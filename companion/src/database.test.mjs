@@ -1,0 +1,192 @@
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+
+import { GameDatabase } from './database.mjs';
+
+const POSITION = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -';
+
+const entry = ({ fingerprint, white, black, result, year, rating, uci, san }) => ({
+  game: {
+    fingerprint,
+    white,
+    black,
+    whiteKey: white.toLocaleLowerCase('en-US'),
+    blackKey: black.toLocaleLowerCase('en-US'),
+    result,
+    date: `${year}.01.01`,
+    year,
+    event: 'Test event',
+    site: 'Local',
+    round: '1',
+    whiteRating: rating,
+    blackRating: rating - 50,
+    eco: 'C20',
+    opening: 'King Pawn',
+    plyCount: 1,
+    importedAt: year,
+  },
+  pgn: `[White "${white}"]\n[Black "${black}"]\n[Result "${result}"]\n\n1. ${san} ${result}`,
+  positions: [
+    {
+      positionKey: POSITION,
+      ply: 0,
+      moveUci: uci,
+      moveSan: san,
+      mover: 'w',
+    },
+  ],
+});
+
+describe('GameDatabase', () => {
+  let directory;
+  let database;
+
+  beforeEach(() => {
+    directory = mkdtempSync(path.join(tmpdir(), 'kingfisher-sqlite-'));
+    database = new GameDatabase(path.join(directory, 'games.sqlite'));
+  });
+
+  afterEach(() => {
+    database.close();
+    rmSync(directory, { recursive: true, force: true });
+  });
+
+  it('imports summaries and content atomically and rejects duplicate fingerprints', () => {
+    const game = entry({
+      fingerprint: 'game-1',
+      white: 'Alpha',
+      black: 'Beta',
+      result: '1-0',
+      year: 2026,
+      rating: 2500,
+      uci: 'e2e4',
+      san: 'e4',
+    });
+
+    expect(database.insertGames([game])).toEqual({ imported: 1, duplicates: 0 });
+    expect(database.insertGames([game])).toEqual({ imported: 0, duplicates: 1 });
+    expect(database.count()).toBe(1);
+
+    const result = database.search({ limit: 10, exactTotal: true });
+    expect(result.total).toBe(1);
+    expect(result.games[0]).toMatchObject({
+      fingerprint: 'game-1',
+      white: 'Alpha',
+      black: 'Beta',
+      result: '1-0',
+      year: 2026,
+      whiteRating: 2500,
+      blackRating: 2450,
+      eco: 'C20',
+      opening: 'King Pawn',
+    });
+    expect(database.content(result.games[0].id)).toBe(game.pgn);
+  });
+
+  it('pages and filters summaries with truthful hasMore semantics', () => {
+    database.insertGames([
+      entry({
+        fingerprint: 'game-1',
+        white: 'Alpha',
+        black: 'Beta',
+        result: '1-0',
+        year: 2026,
+        rating: 2500,
+        uci: 'e2e4',
+        san: 'e4',
+      }),
+      entry({
+        fingerprint: 'game-2',
+        white: 'Gamma',
+        black: 'Alpha',
+        result: '1/2-1/2',
+        year: 2025,
+        rating: 2400,
+        uci: 'd2d4',
+        san: 'd4',
+      }),
+      entry({
+        fingerprint: 'game-3',
+        white: 'Delta',
+        black: 'Epsilon',
+        result: '0-1',
+        year: 2024,
+        rating: 2300,
+        uci: 'e2e4',
+        san: 'e4',
+      }),
+    ]);
+
+    expect(database.search({ limit: 2, offset: 0 })).toMatchObject({
+      hasMore: true,
+      total: null,
+      offset: 0,
+      limit: 2,
+    });
+    expect(database.search({ limit: 2, offset: 2 })).toMatchObject({
+      hasMore: false,
+      total: null,
+      offset: 2,
+      limit: 2,
+    });
+
+    const alpha = database.search({ player: 'alpha', exactTotal: true });
+    expect(alpha.total).toBe(2);
+    expect(alpha.games.map((game) => game.fingerprint).sort()).toEqual(['game-1', 'game-2']);
+    expect(database.search({ result: '0-1', exactTotal: true }).total).toBe(1);
+    expect(database.search({ fromYear: 2025, minRating: 2400, exactTotal: true }).total).toBe(2);
+  });
+
+  it('aggregates positions and returns model games and matching players', () => {
+    database.insertGames([
+      entry({
+        fingerprint: 'game-1',
+        white: 'Alpha',
+        black: 'Beta',
+        result: '1-0',
+        year: 2026,
+        rating: 2500,
+        uci: 'e2e4',
+        san: 'e4',
+      }),
+      entry({
+        fingerprint: 'game-2',
+        white: 'Alphonse',
+        black: 'Gamma',
+        result: '1/2-1/2',
+        year: 2025,
+        rating: 2400,
+        uci: 'e2e4',
+        san: 'e4',
+      }),
+      entry({
+        fingerprint: 'game-3',
+        white: 'Delta',
+        black: 'Alpha',
+        result: '0-1',
+        year: 2024,
+        rating: 2300,
+        uci: 'd2d4',
+        san: 'd4',
+      }),
+    ]);
+
+    const explorer = database.explore(POSITION);
+    expect(explorer).toMatchObject({ totalGames: 3, white: 1, draws: 1, black: 1 });
+    expect(explorer.moves).toEqual([
+      expect.objectContaining({ uci: 'e2e4', games: 2, white: 1, draws: 1, black: 0 }),
+      expect.objectContaining({ uci: 'd2d4', games: 1, white: 0, draws: 0, black: 1 }),
+    ]);
+    expect(database.gamesAtPosition(POSITION, 2).map((game) => game.fingerprint)).toEqual([
+      'game-1',
+      'game-2',
+    ]);
+    expect(database.players('alp')).toEqual([
+      { name: 'Alpha', games: 2 },
+      { name: 'Alphonse', games: 1 },
+    ]);
+  });
+});

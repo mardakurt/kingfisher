@@ -7,9 +7,6 @@ built for someone who already knows what a Najdorf is and wants better tools —
 not a tutorial, not a puzzle streak, and not a wrapper that prints `+0.34` and
 calls it analysis.
 
-> **Working name.** "Kingfisher" is a placeholder while the product is being
-> built. Branding is deliberately not a Phase 1 concern.
-
 ---
 
 ## Status: Phase 4 — a chess workstation
@@ -72,8 +69,10 @@ fails, the header says the work is not saved.
 Studies, chapters, imported game summaries/content, position indexes,
 repertoires, model-game links, training schedules/history, personal aliases and
 the active draft are stored in IndexedDB under `kingfisher`; preferences stay
-in `localStorage`. Nothing leaves the machine except opening-explorer lookups
-you make against Lichess.
+in `localStorage`. Network requests occur only when you deliberately use a
+remote evidence source: the Lichess explorer, the Lichess tablebase, or an
+assistant endpoint you configured. Local database, engine, repertoire, study,
+training and backup workflows remain offline.
 
 An analysis is always one of three things, and the header says which:
 
@@ -123,11 +122,21 @@ The engine provider then selects the threaded build automatically.
 ### About the opening explorer
 
 Lichess began requiring authenticated opening-explorer requests in April 2026.
-Phase 1 deliberately does not ask for or store a Lichess token, so the remote
-providers explain that boundary and offer **My games** instead. Importing a PGN
-indexes every game locally and that explorer remains fully offline. Authenticated
-remote access belongs behind the existing database-provider interface in a later
-milestone.
+Kingfisher therefore ships no shared developer credential. Add your own
+scope-free token in Settings → Database to enable the Masters and Lichess
+sources. Without one, those providers explain what is missing and **My games**,
+repertoire, personal and SQLite sources continue to work. The token is stored
+only in this browser's preferences and is sent only as the authorization header
+for requests to the Lichess opening explorer.
+
+### About the Grandmaster Companion
+
+The optional assistant accepts any OpenAI-compatible `/chat/completions`
+endpoint. Configure its base URL, model and optional API key in Settings →
+Assistant. Hosted providers work, as do local runners such as Ollama, LM Studio,
+llama.cpp server and vLLM. Kingfisher sends the current labelled evidence packet
+to that configured endpoint; no key ships with the app, and an unconfigured
+assistant stays disabled without affecting the rest of the workstation.
 
 ---
 

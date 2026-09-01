@@ -2,7 +2,7 @@
 
 An optional local service for the three things a browser genuinely cannot do:
 
-1. run **native UCI engines** as real processes (Lc0, Stockfish native, Berserk),
+1. run **native UCI engines** as real processes (Lc0, Stormphrax, Stockfish native),
 2. query a **SQLite** game database far larger than IndexedDB is comfortable with,
 3. probe **Syzygy tablebases** from local files.
 
