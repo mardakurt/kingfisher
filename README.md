@@ -12,10 +12,14 @@ calls it analysis.
 
 ---
 
-## Status: Phase 1 — the analysis workspace
+## Status: Phase 2 — a place to keep the work
 
-This repository is at the end of its first milestone. The foundation is real
-and tested; the rest of the product is architecture, not implementation.
+Phase 1 built the workstation. Phase 2 made it somewhere you can leave things:
+analysis you did an hour ago is still there after a reload, filed in a study,
+and the games you imported answer questions about the position in front of you.
+
+Everything is stored in your browser. There is no account, no server and no
+sync, and the application works with the network off.
 
 **Working today**
 
@@ -25,17 +29,38 @@ and tested; the rest of the product is architecture, not implementation.
 | Game tree       | Nested variations, promote / promote-to-main-line, delete, truncate, undo & redo, keyboard navigation                                                    |
 | Annotation      | Comments, NAG glyphs, arrows and square highlights (right-drag), all surviving a PGN round trip                                                          |
 | Engine          | Stockfish 17.1 in a Web Worker, MultiPV 1–5, live depth / nodes / nps, evaluation bar, click any move in a variation to insert the line up to that point |
-| Import / export | PGN and FEN in (format auto-detected), PGN and FEN out                                                                                                   |
-| Database        | Auth-aware Lichess Masters and players providers, plus an offline local index built from every PGN you import                                            |
+| Move editing    | Right-click any move for comments, glyphs, variation reordering, "make this the main line", targeted deletion and copy                                   |
+| Studies         | Notebooks of ordered chapters — create, rename, reorder, duplicate, delete; autosaved as you work; export a chapter or a whole study as PGN              |
+| Games           | Import single or multi-game PGNs into a local database, with duplicate detection, search, filters, sortable columns and bulk delete                      |
+| Explorer        | Your own games answered by position, so transpositions merge; plus auth-aware Lichess Masters and players providers                                      |
+| Import / export | PGN and FEN in (format auto-detected), staged progress and cancellation for large files; PGN, FEN, SAN and UCI out                                       |
 | Interface       | Responsive desktop/tablet/phone workspace, command palette (`⌘K`), keyboard-first navigation, dark and light themes, local-first preferences             |
 
 **Deliberately not built yet** — the sidebar shows these dimmed rather than
 hiding them, because the shape of the product should be visible:
-Games, Database, Openings, Repertoire, Studies, Training.
+Database (large external collections), Openings, Repertoire, Training.
 
 Nothing in the application fabricates chess data. When the engine is not
 installed, the engine panel says so. When a database cannot be reached, the
-explorer says so and offers your own games instead.
+explorer says so and offers your own games instead. The evaluation graph plots
+only evaluations you actually saved, leaving unanalysed moves blank rather than
+drawing a curve through them. "Saved" means a write completed; if storage
+fails, the header says the work is not saved.
+
+### Where your data lives
+
+Studies, chapters, imported games and the position index are stored in
+IndexedDB under the database name `kingfisher`; preferences stay in
+`localStorage`. Nothing leaves the machine except opening-explorer lookups you
+make against Lichess.
+
+An analysis is always one of three things, and the header says which:
+
+- **Untitled analysis** — kept as a draft so a refresh cannot lose it, but not
+  filed anywhere. `Save to study` (`⌘S`) turns it into a chapter.
+- **Study chapter** — yours, and autosaved as you work.
+- **Database game** — source material, marked read-only. Editing it never
+  writes back over the imported game; save a copy to a study instead.
 
 ---
 
@@ -105,30 +130,34 @@ milestone.
 The workspace is meant to be driven from the keyboard; press `?` in the app for
 the full list.
 
-|              |                                          |
-| ------------ | ---------------------------------------- |
-| `←` `→`      | Previous / next move                     |
-| `↑` `↓`      | Previous / next variation                |
-| `Home` `End` | Start of game / end of line              |
-| `E`          | Start or stop the engine                 |
-| `D`          | Database explorer                        |
-| `F`          | Flip the board                           |
-| `1`–`6`      | Annotate `!` `?` `!!` `??` `!?` `?!`     |
-| `⇧P` / `⇧M`  | Promote variation / promote to main line |
-| `Delete`     | Delete this move and everything after it |
-| `X`          | Clear arrows and highlights              |
-| `⌘Z` / `⇧⌘Z` | Undo / redo                              |
-| `⌘K`         | Command palette                          |
+|              |                                           |
+| ------------ | ----------------------------------------- |
+| `←` `→`      | Previous / next move                      |
+| `↑` `↓`      | Previous / next variation                 |
+| `Home` `End` | Start of game / end of line               |
+| `E`          | Start or stop the engine                  |
+| `D`          | Database explorer                         |
+| `F`          | Flip the board                            |
+| `1`–`6`      | Annotate `!` `?` `!!` `??` `!?` `?!`      |
+| `C`          | Comment on this move                      |
+| `⇧P` / `⇧M`  | Move variation up / promote to main line  |
+| `⇧↑` `⇧↓`    | Reorder this variation among its siblings |
+| `Delete`     | Delete this move and everything after it  |
+| `X`          | Clear arrows and highlights               |
+| `⌘Z` / `⇧⌘Z` | Undo / redo                               |
+| `⌘S`         | Save this analysis to a study             |
+| `⌘K`         | Command palette                           |
 
 On the board: right-drag draws an arrow, right-click highlights a square. Hold
-`⇧` for red, `⌥` for blue, `⇧⌥` for yellow.
+`⇧` for red, `⌥` for blue, `⇧⌥` for yellow. In the notation window, right-click
+any move for comments, glyphs, variation ordering and deletion.
 
 ---
 
 ## Documentation
 
-- [`ARCHITECTURE.md`](ARCHITECTURE.md) — layering, domain models, engine and
-  database architecture, state, performance, testing.
+- [`ARCHITECTURE.md`](ARCHITECTURE.md) — layering, domain models, engine,
+  database and persistence architecture, state, performance, testing.
 - [`docs/adr/`](docs/adr) — short records of the decisions that shaped the
   codebase and why.
 

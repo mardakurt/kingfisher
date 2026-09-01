@@ -2,7 +2,7 @@
   "name": "kingfisher",
   "version": "0.1.0",
   "private": true,
-  "description": "Kingfisher — a chess research workspace for strong players.",
+  "description": "Kingfisher \u2014 a chess research workspace for strong players.",
   "scripts": {
     "dev": "next dev --port 3210",
     "build": "next build",
@@ -12,6 +12,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "engine:install": "node scripts/install-engine.mjs"
   },
   "dependencies": {

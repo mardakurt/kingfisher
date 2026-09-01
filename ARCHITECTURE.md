@@ -29,7 +29,7 @@ things:
   ├───────────────────────────────────────────────────────────┤
   │  stores/         analysis · engine · ui · preferences     │
   ├───────────────────────────────────────────────────────────┤
-  │  engine/         database/       (capability interfaces)  │
+  │  engine/   database/   persistence/  (capability layer)   │
   ├───────────────────────────────────────────────────────────┤
   │  chess/          the domain — no React, no I/O            │
   └───────────────────────────────────────────────────────────┘
@@ -39,8 +39,10 @@ Dependencies point downwards only.
 
 - `chess/` imports nothing from the layers above it and contains no React. It is
   the part of the codebase most worth keeping, and it is fully unit tested.
-- `engine/` and `database/` define capability interfaces and their
-  implementations. They may use `chess/`; they know nothing about React.
+- `engine/`, `database/` and `persistence/` define capability interfaces and
+  their implementations. They may use `chess/`; they know nothing about React.
+  `persistence/` is the only place that mentions IndexedDB — the domain does not
+  know that storage exists, and no component holds a transaction.
 - `stores/` holds application state and is the only place where the domain and
   the capabilities are wired together.
 - `features/` renders. Components read from stores and call domain functions;
@@ -74,8 +76,16 @@ src/
     pv.ts                  UCI variations → readable SAN
     stockfish/             WASM-in-a-worker implementation
   database/                ChessDatabaseProvider and the normalized result model
-    local-index.ts         In-memory position index over imported games
-    providers/             Lichess explorer, local collection
+    local-index.ts         In-memory position index (pure, used by tests)
+    providers/             Lichess explorer, persistent local collection
+  persistence/             Local-first storage. See ADR 0008.
+    schema/migrations.ts   Versioned stores and indexes; an ordered array
+    indexeddb/database.ts  The IndexedDB wrapper: transactions, error mapping
+    indexeddb/memory.ts    Same interface in memory, for tests
+    repositories/          StudyRepository, GameRepository, DraftRepository
+    validation.ts          Runtime guards for everything read back out
+    import-game.ts         PGN → parse → normalize → persist → index
+    autosave.ts            Pure debounce-with-a-cap scheduling
   features/                UI, one folder per product area
   stores/                  Zustand stores, one per state category
   components/              Shared primitives and icons
@@ -217,12 +227,51 @@ Authenticated access remains an additive provider concern.
 The interface is shaped for databases of millions of games: the unit of work is
 a question about a position, never "load the games".
 
-`PositionIndex` is the local implementation. Importing a PGN opens the first
-game _and_ indexes every game in the file, keyed by `positionKey` (placement,
-side to move, castling, en passant — no move counters), so transpositions are
-found. A few thousand games fit comfortably in memory; a collection of millions
-belongs behind a different implementation of the same interface, which is
-exactly why the interface exists.
+`PersistentLocalCollectionProvider` is the local implementation. It reads the
+IndexedDB position index through `GameRepository`, so what the explorer shows
+survives a reload. Importing a PGN stores and indexes every game in the file,
+keyed by the canonical position key — placement, side to move, castling and a
+_usable_ en passant square, with no move counters — so transpositions merge.
+ADR 0009 explains why each of those fields is in or out; getting it wrong splits
+one position into two and reports half the evidence.
+
+`PositionIndex` (`database/local-index.ts`) remains as the pure in-memory
+implementation of the same aggregation, which is what the aggregation tests run
+against. A collection of millions belongs behind a third implementation of the
+same interface, which is exactly why the interface exists.
+
+---
+
+## Persistence
+
+```
+StudyRepository     studies, chapters, ordering, duplication
+GameRepository      imported games, fingerprints, search, position index
+DraftRepository     the one active workspace, for reload recovery
+```
+
+Five object stores — `studies`, `chapters`, `games`, `positions`, `drafts` —
+created by a versioned migration array, never by deleting the database. Records
+are validated on the way out, because a record written by an older build is a
+plausible thing to find and a malformed tree must not reach the board.
+
+**Two things are written, and they answer different questions.** The _draft_
+answers "what was on screen?" — document, tree, cursor, orientation — so a
+refresh cannot destroy work that was never filed. The _chapter_ answers "what is
+in my study?" and is authoritative. Both are written from one debounced pass
+over the same store snapshot, so they cannot disagree.
+
+**Autosave** debounces at 900 ms with a 5 s cap on the oldest unsaved change, so
+steady annotation cannot postpone a write forever. The decision is a pure
+function of timestamps (`persistence/autosave.ts`) and is unit tested without a
+clock. Saves compare a monotonic `revision` against `savedRevision` rather than
+diffing trees, which is what lets an edit made _during_ a write leave the
+document correctly dirty.
+
+**Ownership is explicit.** An analysis is one of three things, and the header
+says which: an untitled analysis, a study chapter, or a database game opened as
+read-only source material. Editing an imported game never writes back over the
+imported record; "Save to study" is the one action that transfers ownership.
 
 ---
 
@@ -230,12 +279,12 @@ exactly why the interface exists.
 
 Four stores, split by what the state _is_, not by which component uses it.
 
-| Store               | Holds                                                   | Persisted    |
-| ------------------- | ------------------------------------------------------- | ------------ |
-| `analysis-store`    | The game tree, the cursor, board orientation, undo/redo | No           |
-| `engine-store`      | Engine status, identity, the latest analysis snapshot   | No           |
-| `ui-store`          | Palette / dialog visibility, active panel, notices      | No           |
-| `preferences-store` | Themes, board and piece sets, engine defaults           | localStorage |
+| Store               | Holds                                                                                      | Persisted    |
+| ------------------- | ------------------------------------------------------------------------------------------ | ------------ |
+| `analysis-store`    | The game tree, the cursor, orientation, undo/redo, the current document and its save state | Autosaved    |
+| `engine-store`      | Engine status, identity, the latest snapshot, pinned lines                                 | No           |
+| `ui-store`          | Palette / dialog visibility, active panel, notices                                         | No           |
+| `preferences-store` | Themes, board and piece sets, engine defaults                                              | localStorage |
 
 Two rules hold this together:
 
@@ -253,6 +302,16 @@ TanStack Query, keyed by position and filters, cancelled when the user moves on.
 The engine session object itself lives in a module-level variable rather than in
 the store: it owns a Web Worker, it is not serialisable, and nothing should
 re-render because a pointer to it changed.
+
+Pinned engine lines are deliberately session-only. A pin holds a reading still
+while the search moves on; anything worth keeping is either inserted into the
+tree as real moves or attached to a move as an evaluation, and both of those are
+persisted. Storing live engine output would fill the database with chatter.
+
+A running search emits a new best line several times a second, and none of it is
+knowledge. An evaluation becomes study data only when a search _settles_ — the
+engine finished, or the user stopped it — or when the user saves one explicitly.
+That is what keeps autosave quiet while the engine runs.
 
 ---
 
@@ -314,7 +373,7 @@ The choices already made, and why:
 
 ## Testing
 
-127 tests, all on the parts where being wrong is expensive.
+213 tests across 17 files, all on the parts where being wrong is expensive.
 
 | Area           | Covered                                                                                                                                                                                                                           |
 | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -329,6 +388,15 @@ The choices already made, and why:
 | Analysis store | Navigation, variation creation, editing, undo/redo including redo invalidation, PGN/FEN load and export                                                                                                                           |
 | Board layout   | Pointer-to-square conversion in both orientations and animation identity across ordinary moves, promotion, and castling                                                                                                           |
 | Providers      | Explicit handling of authentication-required Lichess explorer responses                                                                                                                                                           |
+| Variations     | Reordering as a pure permutation — every node, parent, position, comment and descendant compared before and after; promotion from inside a nested line; whole-side-line deletion                                                  |
+| Persistence    | Study and chapter CRUD, ordering and gap-closing on delete, cascade delete, duplication, refusal to resurrect a deleted chapter; draft save/restore; corrupted-record rejection                                                   |
+| Round trip     | A chapter with a nested variation, multi-line comments, NAGs, arrows, highlights and saved evaluations — stored, reloaded and compared node by node, then exported to PGN and reimported                                          |
+| Migrations     | Contiguous versions, every store and index created on a fresh database, nothing replayed over an existing one                                                                                                                     |
+| Position key   | Counters ignored, castling distinguished, en passant kept only when usable, transpositions merged                                                                                                                                 |
+| Import         | Multi-game files, stage ordering, duplicate skipping, cancellation, damaged-game accounting, position-index entries                                                                                                               |
+| Explorer       | Result and rating aggregation, popularity ordering, transposition merging, per-game counting, filters, deletion and clearing                                                                                                      |
+| PV insertion   | Structured insertion, branch reuse, variation creation, comment and evaluation preservation, idempotence, stale-line rejection with the tree left untouched, undo                                                                 |
+| Autosave       | Debounce, the cap that stops steady editing postponing a write forever, no concurrent writes                                                                                                                                      |
 
 Run with `npm test`.
 
@@ -339,9 +407,9 @@ Run with `npm test`.
 Phase 1 built the workspace. The order below is chosen so that each phase makes
 the next one cheaper.
 
-**Phase 2 — games and persistence.** IndexedDB behind the local database
-provider, a game list, per-game review, and the "annotate before you switch the
-engine on" workflow.
+**Phase 2 — games and persistence.** _Done._ IndexedDB behind repositories,
+studies and chapters with autosave, a local game database with position
+indexing, and an explorer that answers from your own games.
 
 **Phase 3 — repertoire.** Positions and expected replies rather than PGN files,
 with statuses, priorities and detection of when an imported game leaves the
