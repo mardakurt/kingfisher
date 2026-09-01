@@ -471,7 +471,7 @@ uncompressed across 23 files in this build; Phase 3 added no runtime dependency.
 
 ## Testing
 
-331 tests across 26 files, all on the parts where being wrong is expensive.
+338 tests across 27 files, all on the parts where being wrong is expensive.
 
 | Area             | Covered                                                                                                                                                                                                                           |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
