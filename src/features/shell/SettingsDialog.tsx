@@ -300,12 +300,30 @@ function EngineSection() {
         />
       </Row>
 
-      <Row label="Lines (MultiPV)" hint="Only used when the preset is Custom.">
+      {/* The value is always what the engine runs with; a preset only fills it
+          in. Changing it therefore means the preset no longer describes the
+          settings, and saying so is more honest than leaving a preset selected
+          that is not in force. */}
+      <Row label="Lines (MultiPV)" hint="Changing this puts the preset into Custom.">
         <Segmented
           items={[1, 2, 3, 4, 5].map((n) => ({ id: String(n), label: String(n) }))}
           value={String(prefs.engineMultiPv)}
-          onChange={(value) => prefs.set('engineMultiPv', Number(value))}
+          onChange={(value) => {
+            prefs.set('engineMultiPv', Number(value));
+            prefs.set('enginePreset', 'custom');
+          }}
         />
+      </Row>
+
+      <Row
+        label="Hash and threads"
+        hint="Set by the preset, sized to the cores this machine reports."
+      >
+        <span className="text-2xs text-secondary tabular">
+          {prefs.engineHashMb} MB · {prefs.engineThreads} thread
+          {prefs.engineThreads === 1 ? '' : 's'}
+          {capabilities?.maxThreads ? ` of ${capabilities.maxThreads}` : ''}
+        </span>
       </Row>
 
       <Row label="Analyse automatically" hint="Restart the engine whenever the position changes.">
