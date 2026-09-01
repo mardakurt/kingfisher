@@ -260,10 +260,11 @@ splits, average rating, performance rating, notable players, top games. The
 panel does not know which provider it is talking to.
 
 Lichess has required authenticated opening-explorer requests since April 2026.
-This milestone does not collect tokens, so those providers translate HTTP 401
-into an explicit authentication message and local fallback. They do not claim
-the backend is unavailable, and the panel never substitutes synthetic results.
-Authenticated access remains an additive provider concern.
+Kingfisher accepts the user's own scope-free token in Settings → Database and
+adds it only to those explorer requests. Without one, the providers translate
+HTTP 401 into an explicit authentication message and local fallback. They do
+not claim the backend is unavailable, and the panel never substitutes synthetic
+results.
 
 The interface is shaped for databases of millions of games: the unit of work is
 a question about a position, never "load the games".
@@ -311,10 +312,11 @@ to subtract a mate score from an evaluation. See `docs/ENGINES.md`.
 ## The local companion
 
 Optional, and nothing depends on it. `companion/` is a dependency-free Node
-service doing the three things a browser cannot: run native UCI engines, query
-SQLite, and read local tablebases. It is reached through the ordinary
-`EngineProvider` and `ChessDatabaseProvider` interfaces, so no UI code knows it
-exists.
+service for the two native capabilities shipped here: native UCI engines and
+SQLite. It is reached through the ordinary `EngineProvider` and
+`ChessDatabaseProvider` interfaces, so no UI code knows it exists. Tablebases
+use the independent `TablebaseProvider` boundary; the current implementation is
+the documented Lichess Syzygy service, not a companion route.
 
 Loopback only; a token minted per run and never written to disk; origin
 allowlist; resource **keys** rather than paths, so a request cannot name a file;

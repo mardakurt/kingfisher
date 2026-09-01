@@ -1,10 +1,13 @@
 # Kingfisher companion
 
-An optional local service for the three things a browser genuinely cannot do:
+An optional local service for the two native capabilities shipped in Phase 4:
 
 1. run **native UCI engines** as real processes (Lc0, Stormphrax, Stockfish native),
-2. query a **SQLite** game database far larger than IndexedDB is comfortable with,
-3. probe **Syzygy tablebases** from local files.
+2. query a **SQLite** game database far larger than IndexedDB is comfortable with.
+
+Tablebase evidence is exposed through a separate provider abstraction. The
+current provider is the documented Lichess Syzygy service; this companion does
+not expose local Syzygy files.
 
 It is not a server for the application. Kingfisher works completely without it;
 the companion adds capabilities and never becomes a dependency of the UI. No

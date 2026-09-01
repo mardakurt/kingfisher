@@ -1,9 +1,9 @@
 /**
  * The companion's HTTP surface.
  *
- * Small on purpose. Every route is either "run an engine", "query a database"
- * or "probe a tablebase"; anything that could be done in the browser is done in
- * the browser. Requests carry resource *keys*, never filesystem paths.
+ * Small on purpose. Every route is either "run an engine" or "query a database";
+ * anything that could be done in the browser is done in the browser. Requests
+ * carry resource *keys*, never filesystem paths.
  */
 
 import { createServer } from 'node:http';

@@ -20,8 +20,9 @@ assistant that is shown the evidence rather than asked what it remembers.
 
 Everything is stored in your browser. There is no account, no cloud and no
 sync, and the application works with the network off. An **optional** local
-companion adds the three things a browser genuinely cannot do — native engines,
-SQLite, local tablebases — and nothing depends on it.
+companion adds native engines and SQLite collections, the two native
+capabilities shipped in Phase 4, and nothing depends on it. Tablebase evidence
+currently comes from the separate Lichess Syzygy provider.
 
 **Working today**
 

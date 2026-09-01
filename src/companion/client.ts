@@ -1,11 +1,12 @@
 /**
  * The browser's view of the local companion.
  *
- * Everything that needs a native process or a file on disk goes through here:
- * native engines, the SQLite database, local tablebases. Nothing else in the
- * application knows the companion exists — it is reached through the same
- * engine, database and tablebase interfaces as everything else, which is why
- * the application still works with the companion switched off.
+ * The native capabilities shipped by the companion go through here: native
+ * engines and SQLite databases. Nothing else in the application knows the
+ * companion exists — it is reached through the same engine and database
+ * interfaces as everything else, which is why the application still works
+ * with the companion switched off. Tablebases use their own provider boundary;
+ * the current implementation is remote rather than a companion route.
  *
  * Configuration is a URL and a token the user pastes from the terminal that
  * started the companion. The token is deliberately not discoverable: there is

@@ -1,10 +1,11 @@
-# 0015 — An optional local companion for engines, SQLite and tablebases
+# 0015 — An optional local companion for engines and SQLite
 
 **Status:** Accepted
 
 ## Context
 
-Three things a serious chess workstation needs are things a browser cannot do:
+Three capabilities a serious chess workstation may need are things a browser
+cannot do:
 
 1. Run a native UCI engine. Lc0 has no WebAssembly build worth shipping, and
    native Stockfish is roughly an order of magnitude faster than the WASM one.
@@ -12,14 +13,16 @@ Three things a serious chess workstation needs are things a browser cannot do:
    and is fine there; beyond that it wants a real query planner and indexes.
 3. Read a 150 GB Syzygy directory from disk.
 
-Phase 3 deferred all three. Phase 4 could not, because "multiple engines" is
-not deliverable without at least the first.
+Phase 3 deferred all three. Phase 4 could not defer native engines or the
+large-database path. Its tablebase requirement is satisfied independently by a
+remote `TablebaseProvider`, so a local Syzygy reader is not part of this service.
 
 ## Decision
 
 A small optional Node service in `companion/`, started by `npm run companion`.
-It does exactly those three things and nothing else — no rendering, no chess
-logic, no application state — and Kingfisher works fully without it.
+It does exactly the two shipped native jobs — engine processes and SQLite — and
+nothing else: no rendering, no chess logic, no application state. Kingfisher
+works fully without it.
 
 It is reached through the existing interfaces. A native engine is an
 `EngineProvider`; a SQLite collection is a `ChessDatabaseProvider`. Nothing in
@@ -68,8 +71,8 @@ your engines and files".
 
 ## Consequences
 
-- Native engines, large databases and local tablebases become available without
-  changing the application's shape.
+- Native engines and large databases become available without changing the
+  application's shape. Tablebases keep their independent provider boundary.
 - There is a second process to start, and the pairing step is real friction. It
   is confined to users who want the capabilities.
 - The companion is a security surface, which is why its rules are enforced in
