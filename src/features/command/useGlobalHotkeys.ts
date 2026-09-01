@@ -152,12 +152,12 @@ export function useGlobalHotkeys(): void {
       }
       if (key === 'e') {
         const engine = useEngine.getState();
-        if (engine.running) {
-          engine.stop();
+        if (engine.primary.running) {
+          engine.stop('primary');
         } else {
           const prefs = usePreferences.getState();
           const fen = analysis.tree.nodes[analysis.currentId]?.fen ?? START_FEN;
-          void engine.analyse(fen, prefs.engineLimit, {
+          void engine.analyse('primary', fen, prefs.engineLimit, {
             multiPv: prefs.engineMultiPv,
             threads: prefs.engineThreads,
             hashMb: prefs.engineHashMb,

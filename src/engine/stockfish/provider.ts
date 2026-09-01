@@ -19,7 +19,7 @@ import {
   type EngineProvider,
   type EngineSession,
 } from '../types';
-import { StockfishSession } from './session';
+import { UciSession } from '../uci-session';
 import { UciWorkerClient } from './worker-client';
 
 const MANIFEST_URL = '/engine/stockfish/manifest.json';
@@ -88,7 +88,7 @@ export class StockfishWasmProvider implements EngineProvider {
     const { identity, options } = await readIdentity(client);
     const capabilities = deriveCapabilities(options, build);
 
-    const session = new StockfishSession(client, identity, options, capabilities);
+    const session = new UciSession(client, identity, options, capabilities);
     await session.configure({
       ...DEFAULT_ENGINE_CONFIGURATION,
       threads: build.threads ? (configuration.threads ?? DEFAULT_ENGINE_CONFIGURATION.threads) : 1,

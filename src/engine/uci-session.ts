@@ -1,16 +1,21 @@
 /**
- * A Stockfish analysis session.
+ * A UCI analysis session, over any transport.
  *
  * Responsibilities: keep the engine configured, serialise searches so that a
  * new request cleanly supersedes a running one, and turn a stream of `info`
  * lines into successive `EngineAnalysis` snapshots.
+ *
+ * Nothing here knows whether the engine is WebAssembly in a Worker or a native
+ * process behind the local companion. That is the point: the awkward parts of
+ * driving an engine are written once, and a new engine is a new transport plus
+ * a capability record, not a second copy of this file.
  */
 
 import { parseFen } from '@/chess/fen';
 import { toWhitePov } from '@/chess/evaluation';
 import type { Color, Fen, Uci } from '@/chess/types';
 
-import { formatGoCommand, formatPositionCommand, parseUciLine, type UciInfo } from '../uci';
+import { formatGoCommand, formatPositionCommand, parseUciLine, type UciInfo } from './uci';
 import {
   EMPTY_ANALYSIS,
   EngineError,
@@ -24,8 +29,8 @@ import {
   type EngineOptionSpec,
   type EngineSession,
   type PrincipalVariation,
-} from '../types';
-import type { UciWorkerClient } from './worker-client';
+} from './types';
+import type { UciTransport } from './transport';
 
 /** How often listeners hear about progress while a search is running. */
 const UPDATE_INTERVAL_MS = 90;
@@ -44,7 +49,7 @@ interface Search {
   timer: ReturnType<typeof setTimeout> | null;
 }
 
-export class StockfishSession implements EngineSession {
+export class UciSession implements EngineSession {
   private nextSearchId = 1;
   private active: Search | null = null;
   private queue: Promise<void> = Promise.resolve();
@@ -52,7 +57,7 @@ export class StockfishSession implements EngineSession {
   private disposed = false;
 
   constructor(
-    private readonly client: UciWorkerClient,
+    private readonly client: UciTransport,
     readonly identity: EngineIdentity,
     readonly options: readonly EngineOptionSpec[],
     readonly capabilities: EngineCapabilities,

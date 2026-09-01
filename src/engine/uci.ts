@@ -211,3 +211,13 @@ export function formatPositionCommand(fen: string, moves?: readonly string[]): s
   const base = `position fen ${fen}`;
   return moves && moves.length > 0 ? `${base} moves ${moves.join(' ')}` : base;
 }
+
+/** Every `option name …` line from a `uci` handshake, parsed. */
+export function parseUciOptions(lines: readonly string[]): EngineOptionSpec[] {
+  const options: EngineOptionSpec[] = [];
+  for (const line of lines) {
+    const option = parseOption(line);
+    if (option) options.push(option);
+  }
+  return options;
+}

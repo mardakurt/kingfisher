@@ -40,8 +40,8 @@ function CreateTrainingForm() {
   const notify = useUi((state) => state.notify);
   const document = useAnalysis((state) => state.document);
   const { node, position, currentId } = useAnalysisPosition();
-  const engineLines = useEngine((state) => state.analysis?.lines);
-  const engineFen = useEngine((state) => state.analysedFen);
+  const engineLines = useEngine((state) => state.primary.analysis?.lines);
+  const engineFen = useEngine((state) => state.primary.analysedFen);
   const repertoireHere = useRepertoiresAtPosition(positionKey(node.fen));
 
   const [mode, setMode] = useState<TrainingMode>('repertoire-recall');

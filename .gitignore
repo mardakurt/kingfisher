@@ -20,3 +20,5 @@ public/bench/
 .playwright-mcp/
 *.png
 public/brandlab/
+engines/
+companion/data/

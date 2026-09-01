@@ -33,13 +33,13 @@ import { useUi } from '@/stores/ui-store';
 export function EnginePanel() {
   const { node, currentId } = useAnalysisPosition();
 
-  const status = useEngine((state) => state.status);
-  const problem = useEngine((state) => state.problem);
-  const identity = useEngine((state) => state.identity);
-  const analysis = useEngine((state) => state.analysis);
-  const history = useEngine((state) => state.history);
-  const analysedFen = useEngine((state) => state.analysedFen);
-  const running = useEngine((state) => state.running);
+  const status = useEngine((state) => state.primary.status);
+  const problem = useEngine((state) => state.primary.problem);
+  const identity = useEngine((state) => state.primary.identity);
+  const analysis = useEngine((state) => state.primary.analysis);
+  const history = useEngine((state) => state.primary.history);
+  const analysedFen = useEngine((state) => state.primary.analysedFen);
+  const running = useEngine((state) => state.primary.running);
   const runEngine = useEngine((state) => state.analyse);
   const stopEngine = useEngine((state) => state.stop);
   const pinned = useEngine((state) => state.pinned);
@@ -55,7 +55,7 @@ export function EnginePanel() {
   const metrics = engineSessionMetrics(history);
 
   const start = useCallback(() => {
-    void runEngine(node.fen, prefs.engineLimit, {
+    void runEngine('primary', node.fen, prefs.engineLimit, {
       multiPv: prefs.engineMultiPv,
       threads: prefs.engineThreads,
       hashMb: prefs.engineHashMb,
@@ -127,7 +127,7 @@ export function EnginePanel() {
               <Save />
             </IconButton>
             {running ? (
-              <IconButton label="Stop analysis (E)" onClick={stopEngine} active>
+              <IconButton label="Stop analysis (E)" onClick={() => stopEngine('primary')} active>
                 <Stop />
               </IconButton>
             ) : (

@@ -30,19 +30,24 @@ import {
 } from '@/persistence/backup';
 import { getRepositories } from '@/persistence/repositories';
 import { useProfile, phase3Keys } from '@/features/persistence/queries';
+import { parsePairing } from '@/companion/client';
+import { useCompanionStatus } from '@/companion/useCompanion';
 import { cn } from '@/lib/cn';
 import type { PieceType } from '@/chess/types';
 import { DEFAULT_PREFERENCES, usePreferences, type Preferences } from '@/stores/preferences-store';
 import { useUi } from '@/stores/ui-store';
 
-type Section = 'appearance' | 'board' | 'pieces' | 'engine' | 'database' | 'profile';
+type Section =
+  'appearance' | 'board' | 'pieces' | 'engine' | 'companion' | 'database' | 'assistant' | 'profile';
 
 const SECTIONS: readonly { id: Section; label: string }[] = [
   { id: 'appearance', label: 'Appearance' },
   { id: 'board', label: 'Board' },
   { id: 'pieces', label: 'Pieces' },
   { id: 'engine', label: 'Engine' },
+  { id: 'companion', label: 'Companion' },
   { id: 'database', label: 'Database' },
+  { id: 'assistant', label: 'Assistant' },
   { id: 'profile', label: 'Profile' },
 ];
 
@@ -69,6 +74,8 @@ export function SettingsDialog() {
       {section === 'board' && <BoardSection />}
       {section === 'pieces' && <PiecesSection />}
       {section === 'engine' && <EngineSection />}
+      {section === 'companion' && <CompanionSection />}
+      {section === 'assistant' && <AssistantSection />}
       {section === 'database' && <DatabaseSection />}
       {section === 'profile' && <ProfileSection />}
     </Dialog>
@@ -282,7 +289,7 @@ function PiecesSection() {
 
 function EngineSection() {
   const prefs = usePreferences();
-  const capabilities = useEngine((state) => state.capabilities);
+  const capabilities = useEngine((state) => state.primary.capabilities);
   return (
     <div className="flex flex-col gap-4">
       <Row
@@ -386,6 +393,171 @@ function DatabaseSection() {
     </div>
   );
 }
+
+/**
+ * Pairing with the local companion.
+ *
+ * The whole configuration is one paste. The companion prints a URL with the
+ * token in its fragment; splitting that into two fields the user has to copy
+ * separately would be two chances to get it wrong for no benefit.
+ */
+function CompanionSection() {
+  const prefs = usePreferences();
+  const status = useCompanionStatus();
+  const [pairing, setPairing] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const connected = Boolean(prefs.companionUrl && prefs.companionToken);
+
+  const pair = () => {
+    const parsed = parsePairing(pairing);
+    if (!parsed) {
+      setError('That does not look like a pairing address. It ends with #token=…');
+      return;
+    }
+    setError(null);
+    prefs.set('companionUrl', parsed.url);
+    prefs.set('companionToken', parsed.token);
+    setPairing('');
+  };
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div>
+        <h3 className="text-xs text-primary">Local companion</h3>
+        <p className="mt-1 text-2xs leading-relaxed text-tertiary">
+          Optional. It runs native engines, a SQLite database and local tablebases — the three
+          things a browser cannot. Everything else in Kingfisher works without it.
+        </p>
+        <p className="mt-2 rounded-[4px] border border-line bg-surface-inset px-2.5 py-2 font-mono text-[10.5px] text-secondary">
+          npm run companion
+        </p>
+      </div>
+
+      {connected ? (
+        <div className="rounded-[4px] border border-line bg-surface-inset p-3">
+          <p className="text-2xs text-secondary">
+            Paired with <span className="font-mono">{prefs.companionUrl}</span>
+          </p>
+          {status.isPending ? (
+            <p className="mt-1 text-[10.5px] text-tertiary">Checking…</p>
+          ) : status.isError ? (
+            <p className="mt-1 text-[10.5px] text-negative">
+              {status.error instanceof Error ? status.error.message : 'Not reachable.'}
+            </p>
+          ) : (
+            <dl className="mt-2 grid grid-cols-2 gap-y-1 text-[10.5px]">
+              <dt className="text-tertiary">Native engines</dt>
+              <dd className="text-right text-secondary">
+                {status.data?.engines.map((engine) => engine.name).join(', ') || 'none'}
+              </dd>
+              <dt className="text-tertiary">Databases</dt>
+              <dd className="text-right text-secondary tabular">
+                {status.data?.databases.length ?? 0}
+              </dd>
+              <dt className="text-tertiary">Running sessions</dt>
+              <dd className="text-right text-secondary tabular">
+                {status.data?.sessions.length ?? 0}
+              </dd>
+            </dl>
+          )}
+          <div className="mt-2 flex justify-end">
+            <Button
+              variant="danger"
+              onClick={() => {
+                prefs.set('companionUrl', '');
+                prefs.set('companionToken', '');
+              }}
+            >
+              Unpair
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div>
+          <label className="block text-2xs text-tertiary">
+            Pairing address
+            <input
+              value={pairing}
+              onChange={(event) => setPairing(event.target.value)}
+              placeholder="http://127.0.0.1:4321#token=…"
+              className="mt-1 h-8 w-full rounded-[4px] border border-line bg-surface-inset px-2.5 font-mono text-[11px] text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60"
+            />
+          </label>
+          {error ? <p className="mt-1 text-2xs text-negative">{error}</p> : null}
+          <div className="mt-2 flex justify-end">
+            <Button variant="accent" onClick={pair} disabled={!pairing.trim()}>
+              Pair
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Where the grounded assistant sends its evidence packets.
+ *
+ * No key ships with Kingfisher and none is ever defaulted. An unconfigured
+ * assistant is a disabled assistant, and every other part of the application
+ * carries on exactly as before — which is the only arrangement that keeps the
+ * product honest about being local-first.
+ */
+function AssistantSection() {
+  const prefs = usePreferences();
+  const configured = Boolean(prefs.assistantBaseUrl && prefs.assistantModel);
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div>
+        <h3 className="text-xs text-primary">Grandmaster companion</h3>
+        <p className="mt-1 text-2xs leading-relaxed text-tertiary">
+          Answers questions about the position using only evidence Kingfisher already has — engine
+          lines, database counts, your repertoire, structural features, tablebase results. It is
+          shown the evidence and asked to cite it; it is not asked what it remembers about chess.
+        </p>
+      </div>
+
+      <label className="block text-2xs text-tertiary">
+        API base URL (OpenAI-compatible)
+        <input
+          value={prefs.assistantBaseUrl}
+          onChange={(event) => prefs.set('assistantBaseUrl', event.target.value.trim())}
+          placeholder="http://localhost:11434/v1"
+          className={FIELD_INPUT}
+        />
+      </label>
+      <label className="block text-2xs text-tertiary">
+        Model
+        <input
+          value={prefs.assistantModel}
+          onChange={(event) => prefs.set('assistantModel', event.target.value.trim())}
+          placeholder="llama3.1 or gpt-4o-mini"
+          className={FIELD_INPUT}
+        />
+      </label>
+      <label className="block text-2xs text-tertiary">
+        API key (leave empty for a local endpoint)
+        <input
+          type="password"
+          value={prefs.assistantApiKey}
+          onChange={(event) => prefs.set('assistantApiKey', event.target.value.trim())}
+          className={FIELD_INPUT}
+        />
+      </label>
+
+      <p className="text-[10.5px] leading-relaxed text-tertiary">
+        {configured
+          ? 'Configured. The Companion tab in Analysis is enabled.'
+          : 'Not configured. The Companion tab explains what is missing and everything else works.'}{' '}
+        The key is stored in this browser only and is sent to the URL above and nowhere else.
+      </p>
+    </div>
+  );
+}
+
+const FIELD_INPUT =
+  'mt-1 h-8 w-full rounded-[4px] border border-line bg-surface-inset px-2.5 text-xs text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60';
 
 function ProfileSection() {
   const queryClient = useQueryClient();

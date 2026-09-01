@@ -6,11 +6,12 @@
  * `./session.ts`.
  */
 
+import type { LineListener, UciTransport } from '../transport';
 import { EngineError } from '../types';
 
-export type LineListener = (line: string) => void;
+export type { LineListener };
 
-export class UciWorkerClient {
+export class UciWorkerClient implements UciTransport {
   private worker: Worker | null = null;
   private readonly listeners = new Set<LineListener>();
   private failure: Error | null = null;

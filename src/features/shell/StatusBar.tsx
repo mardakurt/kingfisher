@@ -22,8 +22,8 @@ export function StatusBar() {
   const moves = useAnalysis((state) => nodeCount(state.tree));
   const document = useAnalysis((state) => state.document);
   const saveState = useAnalysis(selectSaveState);
-  const status = useEngine((state) => state.status);
-  const analysis = useEngine((state) => state.analysis);
+  const status = useEngine((state) => state.primary.status);
+  const analysis = useEngine((state) => state.primary.analysis);
   const [copied, setCopied] = useState(false);
 
   const copyFen = async () => {

@@ -14,6 +14,7 @@ import { ModelGameDialog } from '@/features/games/ModelGameDialog';
 import { ImportDialog } from '@/features/shell/ImportDialog';
 import { SettingsDialog } from '@/features/shell/SettingsDialog';
 import { ShortcutsDialog } from '@/features/shell/ShortcutsDialog';
+import { useCompanionSync } from '@/companion/useCompanion';
 import { useUi } from '@/stores/ui-store';
 
 import { Notices } from './Notices';
@@ -23,6 +24,7 @@ import { StatusBar } from './StatusBar';
 export function AppShell({ children }: { children: ReactNode }) {
   useGlobalHotkeys();
   useWorkspacePersistence();
+  useCompanionSync();
   const sidebarOpen = useUi((state) => state.sidebarOpen);
   const setSidebarOpen = useUi((state) => state.setSidebarOpen);
 

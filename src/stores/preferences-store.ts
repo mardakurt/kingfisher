@@ -46,6 +46,23 @@ export interface Preferences {
   explorerSinceYear: number | null;
   /** Analysis preset the engine panel starts from. */
   enginePreset: EnginePresetId;
+  /** Which engine the panel drives, and which one it compares against. */
+  primaryEngineId: string;
+  secondaryEngineId: string;
+  /**
+   * The local companion, as pasted from the terminal that started it.
+   *
+   * The token is a session secret and lives in `localStorage` with the rest of
+   * the preferences. That is the same exposure as anything else this
+   * origin stores, and the companion only accepts it from loopback — but it is
+   * why the companion mints a new one on every run rather than persisting it.
+   */
+  companionUrl: string;
+  companionToken: string;
+  /** Where the assistant sends evidence packets, if the user configured one. */
+  assistantBaseUrl: string;
+  assistantModel: string;
+  assistantApiKey: string;
 }
 
 interface PreferencesActions {
@@ -72,6 +89,13 @@ export const DEFAULT_PREFERENCES: Preferences = {
   explorerMinRating: null,
   explorerSinceYear: null,
   enginePreset: 'standard',
+  primaryEngineId: 'stockfish-wasm',
+  secondaryEngineId: 'lc0',
+  companionUrl: '',
+  companionToken: '',
+  assistantBaseUrl: '',
+  assistantModel: '',
+  assistantApiKey: '',
 };
 
 /**

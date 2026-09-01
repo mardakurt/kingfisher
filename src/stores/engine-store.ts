@@ -1,18 +1,25 @@
 'use client';
 
 /**
- * Engine runtime state.
+ * Engine runtime state, for one or two engines at a time.
  *
- * The session itself is held in a module-level variable, not in the store: it
- * owns a Web Worker, it is not serialisable, and nothing should re-render
- * because a pointer to it changed. The store holds only what the interface
- * needs to draw — status, identity, the latest analysis snapshot.
+ * Sessions are held in module-level slots, not in the store: each owns a Worker
+ * or a companion stream, none of them is serialisable, and nothing should
+ * re-render because a pointer changed. The store holds only what the interface
+ * draws — status, identity, the latest snapshot.
+ *
+ * There are exactly two slots. `primary` is the engine the panel shows;
+ * `secondary` exists so two engines can be pointed at one position and
+ * disagree, which is the single most useful thing a second engine does. Two is
+ * a hard limit rather than a setting: a third search would take cores from the
+ * interface, and a board that stutters costs more than a third opinion is
+ * worth.
  */
 
 import { create } from 'zustand';
 
 import { annotateAnalysis } from '@/engine/pv';
-import { defaultEngineProvider } from '@/engine/registry';
+import { DEFAULT_ENGINE_ID, engineDefinition, engineProviderById } from '@/engine/registry';
 import type {
   AnalysisHandle,
   AnalysisLimit,
@@ -25,6 +32,7 @@ import type { Score } from '@/chess/evaluation';
 import type { Fen, San, Uci } from '@/chess/types';
 
 export type EngineStatus = 'idle' | 'loading' | 'ready' | 'analysing' | 'error' | 'unavailable';
+export type SlotId = 'primary' | 'secondary';
 
 /**
  * A line the user asked to keep in view.
@@ -32,9 +40,7 @@ export type EngineStatus = 'idle' | 'loading' | 'ready' | 'analysing' | 'error' 
  * Pins are working memory, not study data: they hold a line steady while the
  * search moves on, so two candidate moves can be compared without racing the
  * engine. Anything worth keeping past the session is inserted into the tree or
- * attached to a move as an evaluation, both of which are persisted. Pins are
- * deliberately not, which is also why thousands of live updates can never
- * accumulate in the database.
+ * attached to a move as an evaluation, both of which are persisted.
  */
 export interface PinnedLine {
   readonly id: string;
@@ -54,40 +60,28 @@ interface EngineProblem {
   readonly remedy?: string;
 }
 
-interface EngineConfigInput {
+export interface EngineConfigInput {
   readonly multiPv: number;
   readonly threads: number;
   readonly hashMb: number;
 }
 
-interface EngineState {
-  status: EngineStatus;
-  problem: EngineProblem | null;
-  identity: EngineIdentity | null;
-  capabilities: EngineCapabilities | null;
-  analysis: EngineAnalysis | null;
+export interface EngineSlot {
+  readonly engineId: string;
+  readonly status: EngineStatus;
+  readonly problem: EngineProblem | null;
+  readonly identity: EngineIdentity | null;
+  readonly capabilities: EngineCapabilities | null;
+  readonly analysis: EngineAnalysis | null;
   /** Bounded depth samples for factual stability and volatility metrics. */
-  history: readonly EngineAnalysis[];
+  readonly history: readonly EngineAnalysis[];
   /** The position the current analysis belongs to. */
-  analysedFen: Fen | null;
-  running: boolean;
-  pinned: readonly PinnedLine[];
-
-  prepare(config: EngineConfigInput): Promise<boolean>;
-  analyse(fen: Fen, limit: AnalysisLimit, config: EngineConfigInput): Promise<void>;
-  stop(): void;
-  shutdown(): void;
-  applyConfig(config: EngineConfigInput): Promise<void>;
-  pin(rank: number): void;
-  unpin(id: string): void;
-  clearPins(): void;
+  readonly analysedFen: Fen | null;
+  readonly running: boolean;
 }
 
-let session: EngineSession | null = null;
-let handle: AnalysisHandle | null = null;
-let starting: Promise<EngineSession | null> | null = null;
-
-export const useEngine = create<EngineState>((set, get) => ({
+const EMPTY_SLOT = (engineId: string): EngineSlot => ({
+  engineId,
   status: 'idle',
   problem: null,
   identity: null,
@@ -96,19 +90,90 @@ export const useEngine = create<EngineState>((set, get) => ({
   history: [],
   analysedFen: null,
   running: false,
-  pinned: [],
+});
 
-  prepare: async (config) => {
-    if (session) return true;
-    if (starting) return (await starting) !== null;
+interface Runtime {
+  session: EngineSession | null;
+  handle: AnalysisHandle | null;
+  starting: Promise<EngineSession | null> | null;
+  /** Which engine the live session actually is, so a switch can be detected. */
+  engineId: string | null;
+}
 
-    set({ status: 'loading', problem: null });
-    const provider = defaultEngineProvider();
+const runtimes: Record<SlotId, Runtime> = {
+  primary: { session: null, handle: null, starting: null, engineId: null },
+  secondary: { session: null, handle: null, starting: null, engineId: null },
+};
 
-    starting = (async () => {
+interface EngineState {
+  primary: EngineSlot;
+  secondary: EngineSlot;
+  /** Whether the second engine follows the board. */
+  comparing: boolean;
+  pinned: readonly PinnedLine[];
+
+  selectEngine(slot: SlotId, engineId: string): Promise<void>;
+  prepare(slot: SlotId, config: EngineConfigInput): Promise<boolean>;
+  analyse(slot: SlotId, fen: Fen, limit: AnalysisLimit, config: EngineConfigInput): Promise<void>;
+  /** Run both engines on one position. */
+  compare(fen: Fen, limit: AnalysisLimit, config: EngineConfigInput): Promise<void>;
+  setComparing(on: boolean): void;
+  stop(slot?: SlotId): void;
+  shutdown(slot?: SlotId): void;
+  applyConfig(slot: SlotId, config: EngineConfigInput): Promise<void>;
+  pin(rank: number): void;
+  unpin(id: string): void;
+  clearPins(): void;
+}
+
+/**
+ * Threads for one slot.
+ *
+ * Two engines on one machine must not each ask for every core. They split what
+ * the user allowed, and one core is always left for the interface.
+ */
+export function shareThreads(threads: number, engines: number): number {
+  if (engines <= 1) return Math.max(1, threads);
+  return Math.max(1, Math.floor(threads / engines));
+}
+
+export const useEngine = create<EngineState>((set, get) => {
+  const patch = (slot: SlotId, changes: Partial<EngineSlot>) =>
+    set((state) =>
+      slot === 'primary'
+        ? { primary: { ...state.primary, ...changes } }
+        : { secondary: { ...state.secondary, ...changes } },
+    );
+
+  const startSession = async (
+    slot: SlotId,
+    config: EngineConfigInput,
+  ): Promise<EngineSession | null> => {
+    const runtime = runtimes[slot];
+    const engineId = get()[slot].engineId;
+
+    // A session for a different engine is not reusable; tear it down first.
+    if (runtime.session && runtime.engineId !== engineId) {
+      runtime.handle?.stop();
+      runtime.session.dispose();
+      runtime.session = null;
+      runtime.handle = null;
+      runtime.engineId = null;
+    }
+    if (runtime.session) return runtime.session;
+    if (runtime.starting) return runtime.starting;
+
+    patch(slot, { status: 'loading', problem: null });
+    const provider = engineProviderById(engineId);
+    if (!provider) {
+      patch(slot, { status: 'error', problem: { message: `Unknown engine: ${engineId}` } });
+      return null;
+    }
+
+    runtime.starting = (async () => {
       const availability = await provider.checkAvailability();
       if (!availability.available) {
-        set({
+        patch(slot, {
           status: 'unavailable',
           problem: {
             message: availability.reason ?? 'The engine is unavailable.',
@@ -119,8 +184,9 @@ export const useEngine = create<EngineState>((set, get) => ({
       }
       try {
         const created = await provider.create(config);
-        session = created;
-        set({
+        runtime.session = created;
+        runtime.engineId = engineId;
+        patch(slot, {
           status: 'ready',
           identity: created.identity,
           capabilities: created.capabilities,
@@ -128,7 +194,7 @@ export const useEngine = create<EngineState>((set, get) => ({
         });
         return created;
       } catch (error) {
-        set({
+        patch(slot, {
           status: 'error',
           problem: {
             message: error instanceof Error ? error.message : 'The engine failed to start.',
@@ -139,82 +205,141 @@ export const useEngine = create<EngineState>((set, get) => ({
         });
         return null;
       } finally {
-        starting = null;
+        runtime.starting = null;
       }
     })();
 
-    return (await starting) !== null;
-  },
+    return runtime.starting;
+  };
 
-  analyse: async (fen, limit, config) => {
-    const ready = await get().prepare(config);
-    if (!ready || !session) return;
+  const run = async (
+    slot: SlotId,
+    fen: Fen,
+    limit: AnalysisLimit,
+    config: EngineConfigInput,
+  ): Promise<void> => {
+    const session = await startSession(slot, config);
+    if (!session) return;
+    const runtime = runtimes[slot];
 
-    handle?.stop();
-    handle = null;
+    runtime.handle?.stop();
+    runtime.handle = null;
 
     await session.configure(config);
-
-    set({ running: true, status: 'analysing', analysedFen: fen, analysis: null, history: [] });
-
-    handle = session.analyse({ fen, limit }, (snapshot) => {
-      // Ignore stragglers from a search the user has already moved past.
-      if (get().analysedFen !== snapshot.fen) return;
-      const annotated = annotateAnalysis(snapshot);
-      set((state) => ({ analysis: annotated, history: [...state.history, annotated].slice(-32) }));
-      if (snapshot.complete) set({ running: false, status: 'ready' });
-    });
-  },
-
-  stop: () => {
-    handle?.stop();
-    handle = null;
-    session?.stop();
-    set({ running: false, status: session ? 'ready' : get().status });
-  },
-
-  shutdown: () => {
-    handle?.stop();
-    handle = null;
-    session?.dispose();
-    session = null;
-    set({
-      status: 'idle',
-      running: false,
+    patch(slot, {
+      running: true,
+      status: 'analysing',
+      analysedFen: fen,
       analysis: null,
       history: [],
-      analysedFen: null,
-      identity: null,
     });
-  },
 
-  applyConfig: async (config) => {
-    if (!session) return;
-    await session.configure(config);
-  },
+    runtime.handle = session.analyse({ fen, limit }, (snapshot) => {
+      // Stragglers from a search the user has already moved past are dropped,
+      // per slot: the two engines finish at different times by definition.
+      if (get()[slot].analysedFen !== snapshot.fen) return;
+      const annotated = annotateAnalysis(snapshot);
+      const next = (current: EngineSlot): EngineSlot => ({
+        ...current,
+        analysis: annotated,
+        history: [...current.history, annotated].slice(-32),
+        ...(snapshot.complete ? { running: false, status: 'ready' as const } : {}),
+      });
+      set((state) =>
+        slot === 'primary'
+          ? { primary: next(state.primary) }
+          : { secondary: next(state.secondary) },
+      );
+    });
+  };
 
-  pin: (rank) => {
-    const { analysis, identity, pinned } = get();
-    const line = analysis?.lines.find((candidate) => candidate.rank === rank);
-    if (!analysis || !line) return;
+  const teardown = (slot: SlotId) => {
+    const runtime = runtimes[slot];
+    runtime.handle?.stop();
+    runtime.handle = null;
+    runtime.session?.dispose();
+    runtime.session = null;
+    runtime.engineId = null;
+    patch(slot, { ...EMPTY_SLOT(get()[slot].engineId) });
+  };
 
-    const entry: PinnedLine = {
-      id: `${analysis.fen}|${line.moves.join('')}`,
-      fen: analysis.fen,
-      score: line.score,
-      depth: line.depth || analysis.depth,
-      moves: [...line.moves],
-      san: [...(line.san ?? [])],
-      engine: identity?.name ?? 'Stockfish',
-      pinnedAt: Date.now(),
-    };
+  return {
+    primary: EMPTY_SLOT(DEFAULT_ENGINE_ID),
+    secondary: EMPTY_SLOT('lc0'),
+    comparing: false,
+    pinned: [],
 
-    // Pinning the same line again refreshes it to the deeper reading.
-    const rest = pinned.filter((candidate) => candidate.id !== entry.id);
-    set({ pinned: [entry, ...rest].slice(0, MAX_PINS) });
-  },
+    selectEngine: async (slot, engineId) => {
+      if (get()[slot].engineId === engineId) return;
+      teardown(slot);
+      patch(slot, { ...EMPTY_SLOT(engineId) });
+    },
 
-  unpin: (id) => set((state) => ({ pinned: state.pinned.filter((line) => line.id !== id) })),
+    prepare: async (slot, config) => (await startSession(slot, config)) !== null,
 
-  clearPins: () => set({ pinned: [] }),
-}));
+    analyse: async (slot, fen, limit, config) => {
+      const engines = get().comparing ? 2 : 1;
+      await run(slot, fen, limit, { ...config, threads: shareThreads(config.threads, engines) });
+    },
+
+    compare: async (fen, limit, config) => {
+      set({ comparing: true });
+      const threads = shareThreads(config.threads, 2);
+      // Started together rather than in sequence: the point is two readings of
+      // the same position at the same time.
+      await Promise.all([
+        run('primary', fen, limit, { ...config, threads }),
+        run('secondary', fen, limit, { ...config, threads }),
+      ]);
+    },
+
+    setComparing: (on) => {
+      set({ comparing: on });
+      if (!on) teardown('secondary');
+    },
+
+    stop: (slot) => {
+      const slots: SlotId[] = slot ? [slot] : ['primary', 'secondary'];
+      for (const id of slots) {
+        const runtime = runtimes[id];
+        runtime.handle?.stop();
+        runtime.handle = null;
+        runtime.session?.stop();
+        patch(id, { running: false, status: runtime.session ? 'ready' : get()[id].status });
+      }
+    },
+
+    shutdown: (slot) => {
+      for (const id of slot ? [slot] : (['primary', 'secondary'] as SlotId[])) teardown(id);
+    },
+
+    applyConfig: async (slot, config) => {
+      await runtimes[slot].session?.configure(config);
+    },
+
+    pin: (rank) => {
+      const { primary, pinned } = get();
+      const line = primary.analysis?.lines.find((candidate) => candidate.rank === rank);
+      if (!primary.analysis || !line) return;
+
+      const entry: PinnedLine = {
+        id: `${primary.analysis.fen}|${line.moves.join('')}`,
+        fen: primary.analysis.fen,
+        score: line.score,
+        depth: line.depth || primary.analysis.depth,
+        moves: [...line.moves],
+        san: [...(line.san ?? [])],
+        engine: primary.identity?.name ?? engineDefinition(primary.engineId)?.name ?? 'Engine',
+        pinnedAt: Date.now(),
+      };
+
+      // Pinning the same line again refreshes it to the deeper reading.
+      const rest = pinned.filter((candidate) => candidate.id !== entry.id);
+      set({ pinned: [entry, ...rest].slice(0, MAX_PINS) });
+    },
+
+    unpin: (id) => set((state) => ({ pinned: state.pinned.filter((line) => line.id !== id) })),
+
+    clearPins: () => set({ pinned: [] }),
+  };
+});

@@ -27,10 +27,14 @@ import { Toolbar } from './Toolbar';
 import { useAnalysisPosition } from './useAnalysisPosition';
 import { useEngineSnapshots } from './useEngineSnapshots';
 import { GameInsightsPanel } from '@/features/games/GameInsightsPanel';
+import { EngineComparison } from '@/features/engine/EngineComparison';
+import { FeaturesPanel } from './FeaturesPanel';
 
 const RIGHT_TABS: readonly { id: RightPanelTab; label: string }[] = [
   { id: 'engine', label: 'Engine' },
+  { id: 'compare', label: 'Compare' },
   { id: 'explorer', label: 'Explorer' },
+  { id: 'features', label: 'Structure' },
   { id: 'notes', label: 'Notes' },
   { id: 'game', label: 'Game' },
 ];
@@ -62,9 +66,9 @@ export function AnalysisWorkspace() {
   const workspaceTab = useUi((state) => state.workspaceTab);
   const setWorkspaceTab = useUi((state) => state.setWorkspaceTab);
 
-  const analysis = useEngine((state) => state.analysis);
-  const analysedFen = useEngine((state) => state.analysedFen);
-  const engineRunning = useEngine((state) => state.running);
+  const analysis = useEngine((state) => state.primary.analysis);
+  const analysedFen = useEngine((state) => state.primary.analysedFen);
+  const engineRunning = useEngine((state) => state.primary.running);
   const runEngine = useEngine((state) => state.analyse);
 
   const evaluationForBar =
@@ -97,7 +101,7 @@ export function AnalysisWorkspace() {
     if (!prefs.autoAnalyse) return;
     if (lastAutoFen.current === node.fen) return;
     lastAutoFen.current = node.fen;
-    void runEngine(node.fen, prefs.engineLimit, {
+    void runEngine('primary', node.fen, prefs.engineLimit, {
       multiPv: prefs.engineMultiPv,
       threads: prefs.engineThreads,
       hashMb: prefs.engineHashMb,
@@ -238,7 +242,9 @@ function RightPanelContent({ tab }: { readonly tab: RightPanelTab }) {
   return (
     <ErrorBoundary label={`The ${tab} panel`} key={tab}>
       {tab === 'engine' && <EnginePanel />}
+      {tab === 'compare' && <EngineComparison />}
       {tab === 'explorer' && <ExplorerPanel />}
+      {tab === 'features' && <FeaturesPanel />}
       {tab === 'notes' && <NotesPanel />}
       {tab === 'game' && <GameInsightsPanel />}
     </ErrorBoundary>

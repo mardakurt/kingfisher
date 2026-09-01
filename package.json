@@ -13,7 +13,9 @@
     "test:watch": "vitest",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "engine:install": "node scripts/install-engine.mjs"
+    "engine:install": "node scripts/install-engine.mjs",
+    "companion": "node companion/src/server.mjs",
+    "engines:install": "node scripts/install-engines.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.102.8",

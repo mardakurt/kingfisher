@@ -56,29 +56,30 @@ export function useEngineSnapshots(): void {
 
       // Re-bind on every new search, including the stream of them that
       // automatic analysis starts while the user walks through a game.
-      if (engine.analysedFen !== analysedFen.current) {
-        analysedFen.current = engine.analysedFen;
+      // Only the primary engine writes evaluations into the tree. A comparison
+      // run is for reading two opinions, not for two engines overwriting one
+      // stored number with each other's.
+      const slot = engine.primary;
+      if (slot.analysedFen !== analysedFen.current) {
+        analysedFen.current = slot.analysedFen;
         const current = analysis.tree.nodes[analysis.currentId];
-        analysedNode.current = current?.fen === engine.analysedFen ? current.id : null;
+        analysedNode.current = current?.fen === slot.analysedFen ? current.id : null;
       }
 
-      const settled = wasRunning.current && !engine.running;
-      wasRunning.current = engine.running;
+      const settled = wasRunning.current && !slot.running;
+      wasRunning.current = slot.running;
       if (!settled) return;
 
       const nodeId = analysedNode.current;
       analysedNode.current = null;
-      if (!nodeId || !engine.analysis) return;
+      if (!nodeId || !slot.analysis) return;
 
       // The node may have been deleted, or the search may have outlived a reload
       // of the tree; only attach when it still stands for the analysed position.
       const node = analysis.tree.nodes[nodeId];
-      if (!node || node.fen !== engine.analysis.fen) return;
+      if (!node || node.fen !== slot.analysis.fen) return;
 
-      const evaluation = evaluationFromAnalysis(
-        engine.analysis,
-        engine.identity?.name ?? 'Stockfish',
-      );
+      const evaluation = evaluationFromAnalysis(slot.analysis, slot.identity?.name ?? 'Stockfish');
       if (evaluation) analysis.attachEvaluation(nodeId, evaluation);
     });
 

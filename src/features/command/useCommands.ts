@@ -42,6 +42,7 @@ export function useCommands(): readonly Command[] {
     const startEngine = () => {
       const { engineMultiPv, engineThreads, engineHashMb, engineLimit } = prefs();
       void engine().analyse(
+        'primary',
         analysis().tree.nodes[analysis().currentId]?.fen ?? START_FEN,
         engineLimit,
         {
@@ -190,7 +191,7 @@ export function useCommands(): readonly Command[] {
         keywords: 'pv principal variation add moves',
         run: () => {
           const state = analysis();
-          const snapshot = engine().analysis;
+          const snapshot = engine().primary.analysis;
           const node = state.tree.nodes[state.currentId];
           if (!snapshot || !node || snapshot.fen !== node.fen) {
             ui().notify({
@@ -214,7 +215,7 @@ export function useCommands(): readonly Command[] {
         keywords: 'attach snapshot depth score evidence',
         run: () => {
           const state = analysis();
-          const snapshot = engine().analysis;
+          const snapshot = engine().primary.analysis;
           const node = state.tree.nodes[state.currentId];
           if (!snapshot || !node || snapshot.fen !== node.fen) {
             ui().notify({ tone: 'info', message: 'Analyse this position first.' });
@@ -222,7 +223,7 @@ export function useCommands(): readonly Command[] {
           }
           const evaluation = evaluationFromAnalysis(
             snapshot,
-            engine().identity?.name ?? 'Stockfish',
+            engine().primary.identity?.name ?? 'Stockfish',
           );
           if (!evaluation) return;
           state.attachEvaluation(state.currentId, evaluation);
