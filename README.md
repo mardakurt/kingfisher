@@ -12,33 +12,42 @@ calls it analysis.
 
 ---
 
-## Status: Phase 2 — a place to keep the work
+## Status: Phase 3 — preparation and training
 
-Phase 1 built the workstation. Phase 2 made it somewhere you can leave things:
-analysis you did an hour ago is still there after a reload, filed in a study,
-and the games you imported answer questions about the position in front of you.
+Phase 1 built the workstation, Phase 2 made the work durable, and Phase 3 turns
+the stored material into preparation: transposition-aware repertoires, opponent
+reports, model-game references, personal-game deviations, and deterministic
+training queues.
 
 Everything is stored in your browser. There is no account, no server and no
 sync, and the application works with the network off.
 
 **Working today**
 
-| Area            | What you can do                                                                                                                                          |
-| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Board           | Drag or click to move, promotion picker, flip, four board themes, two piece sets, coordinates, move animation                                            |
-| Game tree       | Nested variations, promote / promote-to-main-line, delete, truncate, undo & redo, keyboard navigation                                                    |
-| Annotation      | Comments, NAG glyphs, arrows and square highlights (right-drag), all surviving a PGN round trip                                                          |
-| Engine          | Stockfish 17.1 in a Web Worker, MultiPV 1–5, live depth / nodes / nps, evaluation bar, click any move in a variation to insert the line up to that point |
-| Move editing    | Right-click any move for comments, glyphs, variation reordering, "make this the main line", targeted deletion and copy                                   |
-| Studies         | Notebooks of ordered chapters — create, rename, reorder, duplicate, delete; autosaved as you work; export a chapter or a whole study as PGN              |
-| Games           | Import single or multi-game PGNs into a local database, with duplicate detection, search, filters, sortable columns and bulk delete                      |
-| Explorer        | Your own games answered by position, so transpositions merge; plus auth-aware Lichess Masters and players providers                                      |
-| Import / export | PGN and FEN in (format auto-detected), staged progress and cancellation for large files; PGN, FEN, SAN and UCI out                                       |
-| Interface       | Responsive desktop/tablet/phone workspace, command palette (`⌘K`), keyboard-first navigation, dark and light themes, local-first preferences             |
+| Area            | What you can do                                                                                                                                                                                                       |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Board           | Drag or click to move, promotion picker, flip, eight board themes, six vector piece sets, coordinates, move animation                                                                                                 |
+| Game tree       | Nested variations, promote / promote-to-main-line, delete, truncate, undo & redo, keyboard navigation                                                                                                                 |
+| Annotation      | Comments, NAG glyphs, arrows and square highlights (right-drag), all surviving a PGN round trip                                                                                                                       |
+| Engine          | Stockfish 17.1 in a Web Worker, MultiPV 1–5, live depth / nodes / nps, evaluation bar, click any move in a variation to insert the line up to that point                                                              |
+| Move editing    | Right-click any move for comments, glyphs, variation reordering, "make this the main line", targeted deletion and copy                                                                                                |
+| Marking         | Mark a position critical — opening, calculation, strategy, endgame or time trouble — and take it straight to a training item                                                                                          |
+| Studies         | Notebooks of ordered chapters — create, rename, reorder, duplicate, delete; autosaved as you work; export a chapter or a whole study as PGN                                                                           |
+| Games           | Import cancellable multi-game PGNs, paged indexed search, filters, sortable columns, bulk delete, model-game tags, and personal-game evidence                                                                         |
+| Explorer        | Your own games answered by position, so transpositions merge; plus auth-aware Lichess Masters and players providers                                                                                                   |
+| Openings        | One board-led workspace combining local database moves, repertoire choices, personal results, engine evidence, and model games                                                                                        |
+| Repertoire      | White/Black repertoires keyed by canonical position, editable move roles and notes, explicit opponent replies, coverage counts, local evidence, gap detection, and PGN export                                         |
+| Preparation     | Exact-player reports with side/date/rating/ECO/result filters, profile facts, transposition-aware trees with frequency, score, average Elo and recency, prepared-vs-gap comparison, and a "My games" view of your own |
+| Training        | Answer on the board or by band: repertoire recall, best move, candidate moves, evaluation bands, and plans, each checked against what you recorded; due/new/learning/mature queues with deterministic SRS             |
+| Backup          | Versioned JSON export; authored-work or full-game backup; validated transactional merge and replace                                                                                                                   |
+| Search          | `⌘K` searches actions plus studies, chapters, games, players, repertoires, training items, model games, and tags                                                                                                      |
+| Import / export | PGN and FEN in (format auto-detected), staged progress and cancellation for large files; PGN, FEN, SAN and UCI out                                                                                                    |
+| Interface       | Responsive desktop/tablet/phone workspace, command palette (`⌘K`), keyboard-first navigation, dark and light themes, local-first preferences                                                                          |
 
-**Deliberately not built yet** — the sidebar shows these dimmed rather than
-hiding them, because the shape of the product should be visible:
-Database (large external collections), Openings, Repertoire, Training.
+**Deliberately bounded.** Local collections are designed and measured to
+50,000 games, not millions. Opponent preparation uses at most the latest 1,000
+matching games. Position feature extraction remains future work; the app does
+not fabricate strategic labels from incomplete evidence.
 
 Nothing in the application fabricates chess data. When the engine is not
 installed, the engine panel says so. When a database cannot be reached, the
@@ -49,10 +58,11 @@ fails, the header says the work is not saved.
 
 ### Where your data lives
 
-Studies, chapters, imported games and the position index are stored in
-IndexedDB under the database name `kingfisher`; preferences stay in
-`localStorage`. Nothing leaves the machine except opening-explorer lookups you
-make against Lichess.
+Studies, chapters, imported game summaries/content, position indexes,
+repertoires, model-game links, training schedules/history, personal aliases and
+the active draft are stored in IndexedDB under `kingfisher`; preferences stay
+in `localStorage`. Nothing leaves the machine except opening-explorer lookups
+you make against Lichess.
 
 An analysis is always one of three things, and the header says which:
 
@@ -121,6 +131,7 @@ milestone.
 | `npm run typecheck`      | TypeScript, no emit                |
 | `npm run lint`           | ESLint                             |
 | `npm run format`         | Prettier                           |
+| `npm run format:check`   | Verify formatting                  |
 | `npm run engine:install` | Download the Stockfish WASM builds |
 
 ---
@@ -160,6 +171,9 @@ any move for comments, glyphs, variation ordering and deletion.
   database and persistence architecture, state, performance, testing.
 - [`docs/adr/`](docs/adr) — short records of the decisions that shaped the
   codebase and why.
+- [`docs/performance/phase-3-indexeddb.md`](docs/performance/phase-3-indexeddb.md)
+  — measured 1k/10k/50k local-database behaviour and the thresholds it chose.
+  `scripts/bench-indexeddb.js` reproduces the numbers in your own browser.
 
 ---
 

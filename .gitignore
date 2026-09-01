@@ -13,4 +13,9 @@ npm-debug.log*
 
 # Engine binaries are GPL-3.0 and ~7 MB; fetched by `npm run engine:install`.
 /public/engine/
+
+# Generated benchmark collections and browser-automation captures. Both are
+# reproducible from scripts/ and neither belongs in review.
 public/bench/
+.playwright-mcp/
+*.png
