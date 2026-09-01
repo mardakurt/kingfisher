@@ -11,6 +11,12 @@ import { useId } from 'react';
 import { squareOffset } from './layout';
 import type { Color } from '@/chess/types';
 
+/**
+ * Brushes resolve through CSS custom properties, so switching the palette is a
+ * change of four variables on the root rather than a re-render of every shape.
+ * The brush *names* stay green/red/blue/yellow whatever the palette paints
+ * them, because those names are what PGN `[%cal]` and `[%csl]` round-trip.
+ */
 const BRUSH_COLOR = {
   green: 'var(--shape-green)',
   red: 'var(--shape-red)',

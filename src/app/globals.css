@@ -230,3 +230,18 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/*
+ * Colour-blind annotation palette.
+ *
+ * Chosen from the Okabe–Ito set, which is designed to stay distinguishable
+ * under deuteranopia and protanopia — the cases where the default green/red
+ * pair collapses into one colour. The brush names do not change, because they
+ * are what PGN round-trips; only the paint does.
+ */
+:root[data-arrow-palette='colorblind'] {
+  --shape-green: #0072b2;
+  --shape-red: #d55e00;
+  --shape-blue: #56b4e9;
+  --shape-yellow: #f0e442;
+}

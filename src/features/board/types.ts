@@ -10,7 +10,7 @@
 
 import type { Shape } from '@/chess/annotations';
 import type { ChessMove, Color, Fen, MoveIntent, PromotionPiece, Square } from '@/chess/types';
-import type { BoardThemeId, PieceSetId } from '@/lib/board-options';
+import type { BoardThemeId, CoordinateStyle, PieceSetId } from '@/lib/board-options';
 
 export interface ChessboardProps {
   readonly fen: Fen;
@@ -29,8 +29,9 @@ export interface ChessboardProps {
   readonly onShapesClear?: () => void;
   readonly theme: BoardThemeId;
   readonly pieceSet: PieceSetId;
-  readonly coordinates?: boolean;
-  readonly animated?: boolean;
+  readonly coordinates?: CoordinateStyle;
+  /** Move animation duration; 0 disables animation entirely. */
+  readonly animationMs?: number;
   /** Squares the rest of the UI wants emphasised, e.g. an explorer hover. */
   readonly emphasis?: readonly Square[];
   readonly className?: string;

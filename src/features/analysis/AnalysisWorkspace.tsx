@@ -15,7 +15,7 @@ import { useMediaQuery } from '@/hooks/use-media-query';
 import { cn } from '@/lib/cn';
 import { useAnalysis } from '@/stores/analysis-store';
 import { useEngine } from '@/stores/engine-store';
-import { usePreferences } from '@/stores/preferences-store';
+import { resolveAnimationMs, usePreferences } from '@/stores/preferences-store';
 import { useUi, type RightPanelTab, type WorkspacePanelTab } from '@/stores/ui-store';
 import type { MoveIntent } from '@/chess/types';
 
@@ -152,8 +152,8 @@ export function AnalysisWorkspace() {
                   onShapesClear={() => clearShapes(currentId)}
                   theme={prefs.boardTheme}
                   pieceSet={prefs.pieceSet}
-                  coordinates={prefs.showCoordinates}
-                  animated={prefs.animateMoves}
+                  coordinates={prefs.coordinateStyle}
+                  animationMs={resolveAnimationMs(prefs.animationSpeed)}
                 />
               </div>
             </div>

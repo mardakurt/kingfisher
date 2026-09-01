@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Brush, Shape } from '@/chess/annotations';
 import { boardSquares, squareColor } from '@/chess/board';
 import { parseFen } from '@/chess/fen';
+import { FILES, RANKS } from '@/chess/types';
 import type { Color, Fen, Piece, PromotionPiece, Square } from '@/chess/types';
 import { cn } from '@/lib/cn';
 
@@ -77,11 +78,13 @@ export function Chessboard({
   onShapesClear,
   theme,
   pieceSet,
-  coordinates = true,
-  animated = true,
+  coordinates = 'inside',
+  animationMs = 130,
   emphasis = [],
   className,
 }: ChessboardProps) {
+  const outsideCoordinates = coordinates === 'outside';
+  const insideCoordinates = coordinates === 'inside';
   const boardRef = useRef<HTMLDivElement>(null);
   const interactionRef = useRef<Interaction | null>(null);
   const selectedRef = useRef<Square | null>(null);
@@ -318,129 +321,207 @@ export function Chessboard({
       className={cn('relative aspect-square w-full touch-none select-none', className)}
       style={themeTokens as React.CSSProperties}
     >
+      {/*
+        Outside coordinates live in gutters on the root, and the board area is
+        inset by the same amount. The board element's own box is therefore
+        untouched, so pointer-to-square mapping needs no adjustment at all.
+      */}
+      {outsideCoordinates && <OutsideCoordinates orientation={orientation} />}
+
       <div
-        ref={boardRef}
-        className="absolute inset-0 grid grid-cols-8 grid-rows-8 overflow-hidden rounded-[3px] shadow-[0_2px_18px_rgba(0,0,0,0.28)] ring-1 ring-black/25"
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerCancel}
-        onContextMenu={(event) => event.preventDefault()}
-        role="grid"
-        aria-label="Chessboard"
-      >
-        {squares.map((square, index) => {
-          const light = squareColor(square) === 'light';
-          const isLastMove = lastMove?.from === square || lastMove?.to === square;
-          const isTarget = legalTargets.includes(square);
-          const squarePiece = board[squareIndexOf(square)] ?? null;
-          const occupied = squarePiece != null;
-          const canSelect = (destinations?.get(square)?.length ?? 0) > 0;
-          const showFile = coordinates && index >= 56;
-          const showRank = coordinates && index % 8 === 0;
-
-          return (
-            <div
-              key={square}
-              className={cn('relative', (canSelect || isTarget) && 'cursor-pointer')}
-              style={{ background: light ? 'var(--square-light)' : 'var(--square-dark)' }}
-              role="gridcell"
-              aria-label={
-                squarePiece ? `${square}, ${pieceLabel(squarePiece)}` : `${square}, empty`
-              }
-            >
-              {isLastMove && <div className="absolute inset-0 bg-[var(--accent)]/24" />}
-              {activeSelection === square && (
-                <div className="absolute inset-0 bg-[var(--accent)]/38" />
-              )}
-              {emphasised.has(square) && (
-                <div className="absolute inset-0 ring-2 ring-inset ring-[var(--accent)]/70" />
-              )}
-              {checkSquare === square && (
-                <div
-                  className="absolute inset-0"
-                  style={{
-                    background:
-                      'radial-gradient(circle at 50% 50%, var(--board-check-core) 0%, var(--board-check-mid) 42%, transparent 72%)',
-                  }}
-                />
-              )}
-              {isTarget &&
-                (occupied ? (
-                  <div className="absolute inset-0 rounded-[2px] border-[5px] border-[var(--board-target)]" />
-                ) : (
-                  <div className="absolute left-1/2 top-1/2 h-[26%] w-[26%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--board-target)]" />
-                ))}
-
-              {showRank && (
-                <span
-                  className="pointer-events-none absolute left-[3px] top-[1px] text-[9px] font-medium leading-none tabular"
-                  style={{ color: light ? 'var(--coord-on-light)' : 'var(--coord-on-dark)' }}
-                >
-                  {square[1]}
-                </span>
-              )}
-              {showFile && (
-                <span
-                  className="pointer-events-none absolute bottom-[1px] right-[3px] text-[9px] font-medium leading-none"
-                  style={{ color: light ? 'var(--coord-on-light)' : 'var(--coord-on-dark)' }}
-                >
-                  {square[0]}
-                </span>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="pointer-events-none absolute inset-0" aria-hidden>
-        {layout.tracker.pieces.map(({ key, piece, square }) => {
-          const dragging = drag?.from === square;
-          const offset = squareOffset(square, orientation);
-          const style: React.CSSProperties = dragging
-            ? dragStyle(drag)
-            : {
-                transform: `translate(${offset.x}%, ${offset.y}%)`,
-                transition: animated ? 'transform 130ms cubic-bezier(0.2, 0.8, 0.3, 1)' : undefined,
-              };
-
-          return (
-            <div
-              key={key}
-              className="absolute left-0 top-0 h-[12.5%] w-[12.5%]"
-              style={{ ...style, zIndex: dragging ? 30 : 10 }}
-            >
-              <PieceIcon
-                piece={piece}
-                set={pieceSet}
-                className={cn('h-full w-full p-[6%]', dragging && 'scale-[1.08] drop-shadow-lg')}
-              />
-            </div>
-          );
-        })}
-      </div>
-
-      <BoardShapes
-        shapes={shapes}
-        draft={
-          shapeDraft
-            ? shapeDraft.from === shapeDraft.to
-              ? { kind: 'square', square: shapeDraft.from, brush: shapeDraft.brush }
-              : { kind: 'arrow', from: shapeDraft.from, to: shapeDraft.to, brush: shapeDraft.brush }
-            : null
+        className="absolute"
+        style={
+          outsideCoordinates ? { left: GUTTER, right: 0, top: 0, bottom: GUTTER } : { inset: 0 }
         }
-        orientation={orientation}
-      />
+      >
+        <div
+          ref={boardRef}
+          className="absolute inset-0 grid grid-cols-8 grid-rows-8 overflow-hidden rounded-[3px] shadow-[0_2px_18px_rgba(0,0,0,0.28)] ring-1 ring-black/25"
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerCancel}
+          onContextMenu={(event) => event.preventDefault()}
+          role="grid"
+          aria-label="Chessboard"
+        >
+          {squares.map((square, index) => {
+            const light = squareColor(square) === 'light';
+            const isLastMove = lastMove?.from === square || lastMove?.to === square;
+            const isTarget = legalTargets.includes(square);
+            const squarePiece = board[squareIndexOf(square)] ?? null;
+            const occupied = squarePiece != null;
+            const canSelect = (destinations?.get(square)?.length ?? 0) > 0;
+            const showFile = insideCoordinates && index >= 56;
+            const showRank = insideCoordinates && index % 8 === 0;
 
-      {pendingPromotion && (
-        <PromotionPicker
-          square={pendingPromotion.to}
+            return (
+              <div
+                key={square}
+                className={cn('relative', (canSelect || isTarget) && 'cursor-pointer')}
+                style={{ background: light ? 'var(--square-light)' : 'var(--square-dark)' }}
+                role="gridcell"
+                aria-label={
+                  squarePiece ? `${square}, ${pieceLabel(squarePiece)}` : `${square}, empty`
+                }
+              >
+                {isLastMove && (
+                  <div
+                    className="absolute inset-0"
+                    style={{ background: 'var(--square-last-move)' }}
+                  />
+                )}
+                {activeSelection === square && (
+                  <div
+                    className="absolute inset-0"
+                    style={{ background: 'var(--square-selected)' }}
+                  />
+                )}
+                {emphasised.has(square) && (
+                  <div className="absolute inset-0 ring-2 ring-inset ring-[var(--accent)]/70" />
+                )}
+                {checkSquare === square && (
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      background:
+                        'radial-gradient(circle at 50% 50%, var(--square-check) 0%, color-mix(in srgb, var(--square-check) 55%, transparent) 42%, transparent 72%)',
+                    }}
+                  />
+                )}
+                {isTarget &&
+                  (occupied ? (
+                    <div
+                      className="absolute inset-0 rounded-[2px] border-[5px]"
+                      style={{ borderColor: 'var(--square-legal)' }}
+                    />
+                  ) : (
+                    <div
+                      className="absolute left-1/2 top-1/2 h-[26%] w-[26%] -translate-x-1/2 -translate-y-1/2 rounded-full"
+                      style={{ background: 'var(--square-legal)' }}
+                    />
+                  ))}
+
+                {showRank && (
+                  <span
+                    className="pointer-events-none absolute left-[3px] top-[1px] text-[9px] font-medium leading-none tabular"
+                    style={{ color: light ? 'var(--coord-on-light)' : 'var(--coord-on-dark)' }}
+                  >
+                    {square[1]}
+                  </span>
+                )}
+                {showFile && (
+                  <span
+                    className="pointer-events-none absolute bottom-[1px] right-[3px] text-[9px] font-medium leading-none"
+                    style={{ color: light ? 'var(--coord-on-light)' : 'var(--coord-on-dark)' }}
+                  >
+                    {square[0]}
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="pointer-events-none absolute inset-0" aria-hidden>
+          {layout.tracker.pieces.map(({ key, piece, square }) => {
+            const dragging = drag?.from === square;
+            const offset = squareOffset(square, orientation);
+            const style: React.CSSProperties = dragging
+              ? dragStyle(drag)
+              : {
+                  transform: `translate(${offset.x}%, ${offset.y}%)`,
+                  transition:
+                    animationMs > 0
+                      ? `transform ${animationMs}ms cubic-bezier(0.2, 0.8, 0.3, 1)`
+                      : undefined,
+                };
+
+            return (
+              <div
+                key={key}
+                className="absolute left-0 top-0 h-[12.5%] w-[12.5%]"
+                style={{ ...style, zIndex: dragging ? 30 : 10 }}
+              >
+                <PieceIcon
+                  piece={piece}
+                  set={pieceSet}
+                  className={cn('h-full w-full p-[6%]', dragging && 'scale-[1.08] drop-shadow-lg')}
+                />
+              </div>
+            );
+          })}
+        </div>
+
+        <BoardShapes
+          shapes={shapes}
+          draft={
+            shapeDraft
+              ? shapeDraft.from === shapeDraft.to
+                ? { kind: 'square', square: shapeDraft.from, brush: shapeDraft.brush }
+                : {
+                    kind: 'arrow',
+                    from: shapeDraft.from,
+                    to: shapeDraft.to,
+                    brush: shapeDraft.brush,
+                  }
+              : null
+          }
           orientation={orientation}
-          color={promotionColor ?? 'w'}
-          pieceSet={pieceSet}
-          onChoose={finishPromotion}
         />
-      )}
+
+        {pendingPromotion && (
+          <PromotionPicker
+            square={pendingPromotion.to}
+            orientation={orientation}
+            color={promotionColor ?? 'w'}
+            pieceSet={pieceSet}
+            onChoose={finishPromotion}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Width of the coordinate gutters, in pixels, when they sit outside the board. */
+const GUTTER = 15;
+
+/**
+ * Labels always name the real square, so they follow the board when it is
+ * flipped. There is deliberately no "always from White's side" option: it would
+ * print `a1` under what is actually `h8`, which is not a preference, it is a
+ * bug with a settings toggle.
+ */
+function OutsideCoordinates({ orientation }: { readonly orientation: Color }) {
+  const files = orientation === 'w' ? FILES : [...FILES].reverse();
+  const ranks = orientation === 'w' ? [...RANKS].reverse() : RANKS;
+
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-0 text-tertiary">
+      <div
+        className="absolute left-0 top-0 flex flex-col"
+        style={{ width: GUTTER, bottom: GUTTER }}
+      >
+        {ranks.map((rank) => (
+          <span
+            key={rank}
+            className="flex flex-1 items-center justify-center text-[9px] font-medium leading-none tabular"
+          >
+            {rank}
+          </span>
+        ))}
+      </div>
+      <div className="absolute bottom-0 right-0 flex" style={{ height: GUTTER, left: GUTTER }}>
+        {files.map((file) => (
+          <span
+            key={file}
+            className="flex flex-1 items-center justify-center text-[9px] font-medium leading-none"
+          >
+            {file}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }

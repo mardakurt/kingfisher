@@ -29,10 +29,17 @@ function createQueryClient() {
 export function AppProviders({ children }: { children: React.ReactNode }) {
   const [client] = useState(createQueryClient);
   const theme = usePreferences((state) => state.theme);
+  const arrowPalette = usePreferences((state) => state.arrowPalette);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
+
+  // On the root rather than the board, so annotation colours are identical in
+  // the board, the settings swatches and any future overlay.
+  useEffect(() => {
+    document.documentElement.dataset.arrowPalette = arrowPalette;
+  }, [arrowPalette]);
 
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
 }
