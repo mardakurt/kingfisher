@@ -38,11 +38,12 @@ import {
   setComment,
   setEvaluation,
   setHeader,
+  setMeta,
   setNags,
   toggleShape,
   truncateAfter,
 } from '@/chess/tree/tree';
-import type { GameTree, NodeId } from '@/chess/tree/types';
+import type { CriticalCategory, GameTree, NodeId } from '@/chess/tree/types';
 import type { Color, Fen, MoveIntent } from '@/chess/types';
 import type { AnalysisDocument } from '@/persistence/types';
 
@@ -117,6 +118,7 @@ interface AnalysisState {
   toggleShape(nodeId: NodeId, shape: Shape): void;
   clearShapes(nodeId: NodeId): void;
   attachEvaluation(nodeId: NodeId, evaluation: Evaluation): void;
+  setCritical(nodeId: NodeId, category: CriticalCategory | null): void;
   setHeaderValue(key: string, value: string): void;
 
   // Session
@@ -351,6 +353,23 @@ export const useAnalysis = create<AnalysisState>((set, get) => ({
       tree: setEvaluation(state.tree, nodeId, evaluation),
       revision: state.revision + 1,
     });
+  },
+
+  setCritical: (nodeId, category) => {
+    const state = get();
+    const node = state.tree.nodes[nodeId];
+    if (!node || node.meta.critical === category) return;
+    if (category) {
+      set(commit(state, setMeta(state.tree, nodeId, { critical: category })));
+      return;
+    }
+    const { critical: _drop, ...meta } = node.meta;
+    set(
+      commit(state, {
+        ...state.tree,
+        nodes: { ...state.tree.nodes, [nodeId]: { ...node, meta } },
+      }),
+    );
   },
 
   setHeaderValue: (key, value) => {

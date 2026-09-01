@@ -50,6 +50,7 @@ import { usePreferences } from '@/stores/preferences-store';
 import { useUi } from '@/stores/ui-store';
 
 import { exportStudyPgn } from './export';
+import { NavButton } from '@/features/shell/NavButton';
 
 type Prompt =
   | { readonly kind: 'create-study' }
@@ -206,6 +207,7 @@ export function StudiesWorkspace() {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <header className="flex h-10 shrink-0 items-center gap-2 border-b border-line-subtle bg-surface-1 px-2 sm:px-3">
+        <NavButton />
         <Notebook className="h-4 w-4 shrink-0 text-accent" />
         <h1 className="text-xs font-semibold text-primary">Studies</h1>
         <span className="hidden text-2xs text-tertiary sm:inline">
@@ -580,7 +582,7 @@ function ChapterList(props: ChapterListProps) {
                     always present for keyboard and touch users, who have no
                     hover to reveal them with.
                   */}
-                  <span className="flex shrink-0 items-center opacity-100 min-[900px]:opacity-0 min-[900px]:transition-opacity min-[900px]:focus-within:opacity-100 min-[900px]:group-hover:opacity-100">
+                  <span className="flex shrink-0 items-center opacity-100 mid:opacity-0 mid:transition-opacity mid:focus-within:opacity-100 mid:group-hover:opacity-100">
                     <IconButton
                       label="Move chapter up"
                       disabled={index === 0}

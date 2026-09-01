@@ -26,11 +26,13 @@ import { PositionSummary } from './PositionSummary';
 import { Toolbar } from './Toolbar';
 import { useAnalysisPosition } from './useAnalysisPosition';
 import { useEngineSnapshots } from './useEngineSnapshots';
+import { GameInsightsPanel } from '@/features/games/GameInsightsPanel';
 
 const RIGHT_TABS: readonly { id: RightPanelTab; label: string }[] = [
   { id: 'engine', label: 'Engine' },
   { id: 'explorer', label: 'Explorer' },
   { id: 'notes', label: 'Notes' },
+  { id: 'game', label: 'Game' },
 ];
 
 const WORKSPACE_TABS: readonly { id: WorkspacePanelTab; label: string }[] = [
@@ -120,8 +122,8 @@ export function AnalysisWorkspace() {
           wideWorkspace && 'flex-row overflow-hidden',
         )}
       >
-        <section className="flex min-w-0 shrink-0 flex-col gap-2 px-2 py-2 sm:gap-3 sm:px-4 sm:py-3 min-[1100px]:min-h-0 min-[1100px]:flex-1 min-[1100px]:px-5 min-[1100px]:py-4">
-          <div className="flex min-h-0 shrink-0 items-center justify-center min-[1100px]:flex-1">
+        <section className="flex min-w-0 shrink-0 flex-col gap-2 px-2 py-2 sm:gap-3 sm:px-4 sm:py-3 board:min-h-0 board:flex-1 board:px-5 board:py-4">
+          <div className="flex min-h-0 shrink-0 items-center justify-center board:flex-1">
             <div
               className={cn(
                 'grid w-full items-stretch',
@@ -238,6 +240,7 @@ function RightPanelContent({ tab }: { readonly tab: RightPanelTab }) {
       {tab === 'engine' && <EnginePanel />}
       {tab === 'explorer' && <ExplorerPanel />}
       {tab === 'notes' && <NotesPanel />}
+      {tab === 'game' && <GameInsightsPanel />}
     </ErrorBoundary>
   );
 }

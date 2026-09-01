@@ -3,9 +3,10 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-import { Close } from '@/components/icons';
+import { Close, Settings } from '@/components/icons';
 import { IconButton } from '@/components/ui/Button';
 import { cn } from '@/lib/cn';
+import { useUi } from '@/stores/ui-store';
 
 import { NAV_SECTIONS } from './navigation';
 
@@ -16,6 +17,7 @@ interface SidebarProps {
 
 export function Sidebar({ variant = 'desktop', onClose }: SidebarProps) {
   const pathname = usePathname();
+  const setSettingsOpen = useUi((state) => state.setSettingsOpen);
   const drawer = variant === 'drawer';
 
   return (
@@ -101,16 +103,36 @@ export function Sidebar({ variant = 'desktop', onClose }: SidebarProps) {
         })}
       </ul>
 
-      <div
-        className={cn(
-          'mt-auto border-t border-line-subtle px-3 py-2',
-          !drawer && 'hidden xl:block',
-        )}
-      >
-        <p className="text-[10px] leading-relaxed text-tertiary">
-          Analysis, studies and games.
+      {/* Settings has a keyboard shortcut and a palette entry, but until now no
+          visible control outside Analysis — so on Repertoire, Training or
+          Preparation there was nothing to click. It belongs with navigation. */}
+      <div className="mt-auto border-t border-line-subtle">
+        <button
+          type="button"
+          onClick={() => {
+            setSettingsOpen(true);
+            onClose?.();
+          }}
+          className={cn(
+            'flex w-full items-center gap-2 py-2 text-xs text-tertiary transition-colors hover:bg-surface-2 hover:text-secondary',
+            drawer ? 'px-3' : 'justify-center px-2 xl:justify-start xl:px-3',
+          )}
+        >
+          <Settings className="h-4 w-4 shrink-0" />
+          <span className={cn('truncate', !drawer && 'hidden xl:inline')}>Settings</span>
+          <kbd className={cn('ml-auto font-mono text-[10px]', !drawer && 'hidden xl:inline')}>
+            ⌘,
+          </kbd>
+        </button>
+        <p
+          className={cn(
+            'border-t border-line-subtle px-3 py-2 text-[10px] leading-relaxed text-tertiary',
+            !drawer && 'hidden xl:block',
+          )}
+        >
+          Local-first chess research.
           <br />
-          Dimmed sections are not built yet.
+          Preparation grounded in your evidence.
         </p>
       </div>
     </nav>

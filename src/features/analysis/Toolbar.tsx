@@ -9,33 +9,38 @@
  * lives behind one menu, where it is also discoverable by name.
  */
 
-import {
-  Copy,
-  Export,
-  Import,
-  Menu as MenuIcon,
-  Moon,
-  Plus,
-  Search,
-  Settings,
-  Sun,
-} from '@/components/icons';
+import { Copy, Export, Import, Moon, Plus, Search, Settings, Sun } from '@/components/icons';
 import { Button, IconButton } from '@/components/ui/Button';
 import { Menu, type MenuSection } from '@/components/ui/Menu';
 import { START_FEN } from '@/chess/fen';
+import type { CriticalCategory } from '@/chess/tree/types';
 import { useAnalysis } from '@/stores/analysis-store';
 import { usePreferences } from '@/stores/preferences-store';
 import { useUi } from '@/stores/ui-store';
 
 import { DocumentHeader } from './DocumentHeader';
 import { useCopyActions } from './useCopyActions';
+import { NavButton } from '@/features/shell/NavButton';
+
+const CRITICAL_CATEGORIES: readonly { id: CriticalCategory; label: string }[] = [
+  { id: 'opening', label: 'Opening' },
+  { id: 'calculation', label: 'Calculation' },
+  { id: 'strategy', label: 'Strategy' },
+  { id: 'endgame', label: 'Endgame' },
+  { id: 'time-trouble', label: 'Time trouble' },
+];
 
 export function Toolbar() {
   const newGame = useAnalysis((state) => state.newGame);
+  const currentId = useAnalysis((state) => state.currentId);
+  const critical = useAnalysis((state) => state.tree.nodes[state.currentId]?.meta.critical);
+  const setCritical = useAnalysis((state) => state.setCritical);
   const setImportOpen = useUi((state) => state.setImportOpen);
-  const setSidebarOpen = useUi((state) => state.setSidebarOpen);
   const setSettingsOpen = useUi((state) => state.setSettingsOpen);
   const setSaveToStudyOpen = useUi((state) => state.setSaveToStudyOpen);
+  const setAddToRepertoireOpen = useUi((state) => state.setAddToRepertoireOpen);
+  const setTrainingCaptureOpen = useUi((state) => state.setTrainingCaptureOpen);
+  const setModelGameOpen = useUi((state) => state.setModelGameOpen);
   const toggleCommandPalette = useUi((state) => state.toggleCommandPalette);
   const theme = usePreferences((state) => state.theme);
   const toggleTheme = usePreferences((state) => state.toggleTheme);
@@ -56,6 +61,21 @@ export function Toolbar() {
       items: [
         { id: 'save', label: 'Save to study…', run: () => setSaveToStudyOpen(true) },
         {
+          id: 'repertoire',
+          label: 'Add to repertoire…',
+          run: () => setAddToRepertoireOpen(true),
+        },
+        {
+          id: 'training',
+          label: 'Create training position…',
+          run: () => setTrainingCaptureOpen(true),
+        },
+        {
+          id: 'model-game',
+          label: 'Mark as model game…',
+          run: () => setModelGameOpen(true),
+        },
+        {
           id: 'import',
           label: 'Import PGN or FEN…',
           icon: <Import />,
@@ -63,22 +83,50 @@ export function Toolbar() {
         },
       ],
     },
+    {
+      /*
+        Critical positions carry a category because "come back to this" and
+        "I miscalculated here" lead to different work later. The categories are
+        listed rather than hidden behind a submenu: five explicit items are
+        easier to hit, and the current one shows as already chosen.
+      */
+      id: 'critical',
+      items: [
+        ...CRITICAL_CATEGORIES.map((entry) => ({
+          id: `critical-${entry.id}`,
+          label:
+            critical === entry.id ? `Critical: ${entry.label} ✓` : `Mark critical — ${entry.label}`,
+          run: () => setCritical(currentId, entry.id),
+        })),
+        ...(critical
+          ? [
+              {
+                id: 'critical-clear',
+                label: 'Unmark critical position',
+                run: () => setCritical(currentId, null),
+              },
+            ]
+          : []),
+      ],
+    },
   ];
 
   return (
-    <header className="flex h-10 min-w-0 shrink-0 items-center gap-1 overflow-hidden border-b border-line-subtle bg-surface-1 px-1.5 sm:px-2">
-      <IconButton
-        label="Open navigation"
-        className="md:hidden"
-        onClick={() => setSidebarOpen(true)}
-      >
-        <MenuIcon />
-      </IconButton>
+    /*
+      No `overflow-hidden` here. The document menu is positioned against this
+      header, so clipping the header clipped the menu to its own 40px height —
+      every item below the first was invisible and unclickable. Overflow is
+      contained by the children that can actually grow (the document title
+      truncates, the rest are fixed-width controls) rather than by cutting the
+      row that anchors a popover.
+    */
+    <header className="flex h-10 min-w-0 shrink-0 items-center gap-1 border-b border-line-subtle bg-surface-1 px-1.5 sm:px-2">
+      <NavButton />
       <Button aria-label="New analysis" icon={<Plus />} onClick={() => newGame(START_FEN)}>
-        <span className="hidden min-[430px]:inline">New</span>
+        <span className="hidden xs:inline">New</span>
       </Button>
       <Button aria-label="Import PGN or FEN" icon={<Import />} onClick={() => setImportOpen(true)}>
-        <span className="hidden min-[430px]:inline">Import</span>
+        <span className="hidden xs:inline">Import</span>
       </Button>
 
       <Menu
@@ -86,6 +134,9 @@ export function Toolbar() {
         trigger={({ open, toggle, id }) => (
           <Button
             id={id}
+            /* The label is hidden below `sm`, so the button needs a name of
+               its own or it reaches a screen reader as an unnamed control. */
+            aria-label="Document actions"
             aria-haspopup="menu"
             aria-expanded={open}
             active={open}

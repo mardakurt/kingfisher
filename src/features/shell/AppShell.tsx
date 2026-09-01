@@ -8,6 +8,9 @@ import { CommentDialog } from '@/features/movetree/CommentDialog';
 import { MoveContextMenu } from '@/features/movetree/MoveContextMenu';
 import { useWorkspacePersistence } from '@/features/persistence/useWorkspacePersistence';
 import { SaveToStudyDialog } from '@/features/studies/SaveToStudyDialog';
+import { AddToRepertoireDialog } from '@/features/repertoire/AddToRepertoireDialog';
+import { CreateTrainingDialog } from '@/features/training/CreateTrainingDialog';
+import { ModelGameDialog } from '@/features/games/ModelGameDialog';
 import { ImportDialog } from '@/features/shell/ImportDialog';
 import { SettingsDialog } from '@/features/shell/SettingsDialog';
 import { ShortcutsDialog } from '@/features/shell/ShortcutsDialog';
@@ -64,6 +67,9 @@ export function AppShell({ children }: { children: ReactNode }) {
       <SettingsDialog />
       <ImportDialog />
       <SaveToStudyDialog />
+      <AddToRepertoireDialog />
+      <CreateTrainingDialog />
+      <ModelGameDialog />
       <CommentDialog />
       <MoveContextMenu />
       <Notices />

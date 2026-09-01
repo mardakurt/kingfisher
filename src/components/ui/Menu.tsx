@@ -72,7 +72,13 @@ function MenuList({ sections, onClose, labelledBy, autoFocus = true }: MenuListP
       role="menu"
       aria-labelledby={labelledBy}
       onKeyDown={onKeyDown}
-      className="min-w-[200px] overflow-hidden rounded-[5px] border border-line-strong bg-surface-1 py-1 shadow-2xl"
+      /*
+        A menu grows with the actions a screen offers; a viewport does not. The
+        cap is expressed against the viewport rather than a fixed pixel height,
+        so a long menu scrolls on a laptop in split screen instead of running
+        off the bottom with its last items unreachable.
+      */
+      className="max-h-[min(70dvh,32rem)] min-w-[200px] overflow-y-auto overscroll-contain rounded-[5px] border border-line-strong bg-surface-1 py-1 shadow-2xl"
     >
       {sections.map((section, index) => (
         <div key={section.id}>
@@ -119,8 +125,22 @@ interface MenuProps {
 
 export function Menu({ trigger, sections, align = 'start' }: MenuProps) {
   const [open, setOpen] = useState(false);
+  const [above, setAbove] = useState(false);
   const id = useId();
   const wrapper = useRef<HTMLDivElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
+
+  // Open upwards when there is more room there. A menu anchored under a
+  // toolbar has plenty of space below on a desktop and almost none in a short
+  // window, and the difference should not decide whether it can be used.
+  useLayoutEffect(() => {
+    if (!open) return;
+    const trigger = wrapper.current?.getBoundingClientRect();
+    const box = panel.current?.getBoundingClientRect();
+    if (!trigger || !box) return;
+    const below = window.innerHeight - trigger.bottom;
+    setAbove(box.height > below - 8 && trigger.top > below);
+  }, [open, sections]);
 
   useEffect(() => {
     if (!open) return;
@@ -135,7 +155,14 @@ export function Menu({ trigger, sections, align = 'start' }: MenuProps) {
     <div ref={wrapper} className="relative shrink-0">
       {trigger({ open, toggle: () => setOpen((value) => !value), id })}
       {open && (
-        <div className={cn('absolute top-full z-50 mt-1', align === 'end' ? 'right-0' : 'left-0')}>
+        <div
+          ref={panel}
+          className={cn(
+            'absolute z-50',
+            above ? 'bottom-full mb-1' : 'top-full mt-1',
+            align === 'end' ? 'right-0' : 'left-0',
+          )}
+        >
           <MenuList sections={sections} onClose={() => setOpen(false)} labelledBy={id} />
         </div>
       )}

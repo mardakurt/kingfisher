@@ -9,7 +9,7 @@
 
 import { create } from 'zustand';
 
-export type RightPanelTab = 'engine' | 'explorer' | 'notes';
+export type RightPanelTab = 'engine' | 'explorer' | 'notes' | 'game';
 export type WorkspacePanelTab = 'moves' | RightPanelTab;
 export type BottomPanelTab = 'moves' | 'headers';
 
@@ -33,6 +33,9 @@ interface UiState {
   settingsOpen: boolean;
   importOpen: boolean;
   saveToStudyOpen: boolean;
+  addToRepertoireOpen: boolean;
+  trainingCaptureOpen: boolean;
+  modelGameOpen: boolean;
   /** The move whose comment is being edited, or null. */
   commentingNodeId: string | null;
   /** The move whose context menu is open, with where to draw it. */
@@ -49,6 +52,9 @@ interface UiState {
   setSettingsOpen(open: boolean): void;
   setImportOpen(open: boolean): void;
   setSaveToStudyOpen(open: boolean): void;
+  setAddToRepertoireOpen(open: boolean): void;
+  setTrainingCaptureOpen(open: boolean): void;
+  setModelGameOpen(open: boolean): void;
   setCommentingNodeId(nodeId: string | null): void;
   setMoveMenu(target: MoveMenuTarget | null): void;
   setSidebarOpen(open: boolean): void;
@@ -67,6 +73,9 @@ export const useUi = create<UiState>((set) => ({
   settingsOpen: false,
   importOpen: false,
   saveToStudyOpen: false,
+  addToRepertoireOpen: false,
+  trainingCaptureOpen: false,
+  modelGameOpen: false,
   commentingNodeId: null,
   moveMenu: null,
   sidebarOpen: false,
@@ -81,6 +90,9 @@ export const useUi = create<UiState>((set) => ({
   setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
   setImportOpen: (importOpen) => set({ importOpen }),
   setSaveToStudyOpen: (saveToStudyOpen) => set({ saveToStudyOpen }),
+  setAddToRepertoireOpen: (addToRepertoireOpen) => set({ addToRepertoireOpen }),
+  setTrainingCaptureOpen: (trainingCaptureOpen) => set({ trainingCaptureOpen }),
+  setModelGameOpen: (modelGameOpen) => set({ modelGameOpen }),
   setCommentingNodeId: (commentingNodeId) => set({ commentingNodeId }),
   setMoveMenu: (moveMenu) => set({ moveMenu }),
   setSidebarOpen: (sidebarOpen) => set({ sidebarOpen }),

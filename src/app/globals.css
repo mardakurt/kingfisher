@@ -3,6 +3,30 @@
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
 /*
+ * Layout breakpoints between the stock ones.
+ *
+ * Named rather than written inline as `min-[1180px]:`, so the intent of each
+ * width is stated once: `xs` is where a button can afford a text label beside
+ * its icon, `mid` where a list and a detail pane fit side by side, and `wide`,
+ * `board` and `panes` are where a second pane, a full-size board and a third
+ * pane respectively stop crowding each other.
+ *
+ * These are emitted *before* the stock breakpoints rather than interleaved by
+ * width, so a wider one does not automatically beat a narrower stock one:
+ * `md:grid-cols-…` silently won over `panes:grid-cols-…` at 1280px wide, and
+ * the three-pane workspaces never appeared. Where both would set the same
+ * property, bound the narrower rule — `md:max-panes:grid-cols-…` — so the two
+ * media queries are disjoint and the cascade order stops mattering.
+ */
+@theme {
+  --breakpoint-xs: 430px;
+  --breakpoint-mid: 900px;
+  --breakpoint-wide: 1080px;
+  --breakpoint-board: 1100px;
+  --breakpoint-panes: 1180px;
+}
+
+/*
  * Design tokens.
  *
  * Semantic variables are defined per theme below; the `@theme` block only maps
