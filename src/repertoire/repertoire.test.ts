@@ -4,7 +4,7 @@ import { positionKey, START_FEN } from '@/chess/fen';
 import { playSanAt } from '@/chess/game';
 import { expect as unwrap } from '@/chess/result';
 import { createTree, mustGetNode, nodePath } from '@/chess/tree/tree';
-import type { GameTree, NodeId } from '@/chess/tree/types';
+import { moveNumberOfPly, type GameTree, type NodeId } from '@/chess/tree/types';
 import type { Fen, San, Uci } from '@/chess/types';
 import type { DatabaseMove } from '@/database/types';
 import { createMemoryRepositories } from '@/persistence/repositories';
@@ -17,6 +17,7 @@ import {
   findGaps,
   indexPositions,
   lineToEntries,
+  lineToKnowledge,
   lookup,
   mergeMove,
   roleOf,
@@ -74,6 +75,31 @@ describe('turning a line into repertoire entries', () => {
     const [first] = lineToEntries(tree, last, 'w');
     expect(first?.positionKey).toBe(positionKey(START_FEN));
     expect(first?.depth).toBe(0);
+  });
+
+  /**
+   * Depth counts plies inside the line; ply is the move's real number in the
+   * game. They diverge the moment a line starts from a position rather than
+   * from move one, which is what happens when preparation is written from a
+   * board opened at a coverage gap.
+   */
+  it('keeps the real move number when a line starts mid-game', () => {
+    const opening = play(['e4', 'c6']);
+    const midGame = createTree(mustGetNode(opening.tree, opening.last).fen);
+    const played = unwrap(playSanAt(midGame, midGame.rootId, 'd4'));
+
+    const [entry] = lineToKnowledge(played.tree, played.nodeId, 'w');
+    expect(entry?.depth).toBe(0);
+    expect(entry?.ply).toBe(3);
+    expect(moveNumberOfPly(entry!.ply)).toBe(2);
+  });
+
+  it('records opponent continuations separately from the user’s decisions', () => {
+    const { tree, last } = play(['e4', 'c5', 'Nf3']);
+    const knowledge = lineToKnowledge(tree, last, 'w');
+
+    expect(knowledge.map((entry) => entry.move.san)).toEqual(['e4', 'c5', 'Nf3']);
+    expect(knowledge.map((entry) => entry.move.expected ?? false)).toEqual([false, true, false]);
   });
 
   it('merges a repeated move instead of listing it twice', () => {
@@ -260,6 +286,36 @@ describe('coverage', () => {
     expect(result.averageDepth).toBe(3);
   });
 
+  it('breaks the move total down by role, so the headline can be checked', () => {
+    const result = coverage([
+      position({ id: 'a', moves: [move('main'), { ...move('alternative'), uci: 'd2d4' as Uci }] }),
+      position({ id: 'b', moves: [move('candidate')] }),
+      position({ id: 'c', moves: [move('avoid'), { ...move('main'), expected: true }] }),
+    ]);
+
+    expect(result.mainMoves).toBe(1);
+    expect(result.alternativeMoves).toBe(1);
+    expect(result.candidateMoves).toBe(1);
+    expect(result.avoidMoves).toBe(1);
+    expect(result.expectedReplies).toBe(1);
+    expect(
+      result.mainMoves + result.alternativeMoves + result.candidateMoves + result.avoidMoves,
+    ).toBe(result.totalMoves);
+  });
+
+  it('does not count opponent continuations as prepared answers', () => {
+    const result = coverage([
+      position({
+        moves: [{ ...move('main'), expected: true }],
+      }),
+    ]);
+
+    expect(result.answeredPositions).toBe(0);
+    expect(result.unansweredPositions).toBe(0);
+    expect(result.totalMoves).toBe(0);
+    expect(result.expectedReplies).toBe(1);
+  });
+
   it('reports zeroes for an empty repertoire rather than dividing by zero', () => {
     const result = coverage([]);
     expect(result.averageDepth).toBe(0);
@@ -333,6 +389,39 @@ describe('gap detection', () => {
     expect(gaps).toEqual([]);
   });
 
+  it('reports one hole when two opponent moves transpose into it', () => {
+    const prepared: RepertoirePositionRecord = {
+      id: 'p',
+      repertoireId: 'r',
+      positionKey: 'root',
+      fen: START_FEN,
+      sideToMove: 'w',
+      moves: [],
+      depth: 2,
+      createdAt: 0,
+      updatedAt: 0,
+    };
+    const other: RepertoirePositionRecord = { ...prepared, id: 'q', positionKey: 'other' };
+
+    const gaps = findGaps(indexPositions([prepared, other]), [
+      {
+        position: prepared,
+        replies: [
+          { move: dbMove('Nf6', 'g8f6', 40), resultingKey: 'same', resultingFen: START_FEN },
+        ],
+      },
+      {
+        position: other,
+        replies: [
+          { move: dbMove('d5', 'd7d5', 12), resultingKey: 'same', resultingFen: START_FEN },
+        ],
+      },
+    ]);
+
+    expect(gaps).toHaveLength(1);
+    expect(gaps[0]?.opponentMove.san).toBe('Nf6');
+  });
+
   it('treats a position that only says "avoid" as still unprepared', () => {
     const rejected: RepertoirePositionRecord = {
       id: 'p',
@@ -359,6 +448,41 @@ describe('gap detection', () => {
 });
 
 describe('deviation from a repertoire', () => {
+  async function addKnowledge(
+    repertoireId: string,
+    moves: string[],
+    color: 'w' | 'b',
+  ): Promise<void> {
+    const { tree, last } = play(moves);
+    for (const entry of lineToKnowledge(tree, last, color)) {
+      await repositories.repertoires.upsertPosition({
+        repertoireId,
+        fen: entry.fen,
+        sideToMove: entry.sideToMove,
+        depth: entry.depth,
+        moves: [entry.move],
+      });
+    }
+  }
+
+  it('reports an opponent deviation only where expected replies were recorded', async () => {
+    const repertoire = await repositories.repertoires.create({ title: 'e4', color: 'w' });
+    await addKnowledge(repertoire.id, ['e4', 'e5', 'Nf3'], 'w');
+    const stored = await repositories.repertoires.get(repertoire.id);
+
+    const game = play(['e4', 'c5']);
+    const report = findDeviation(
+      game.tree,
+      game.last,
+      'w',
+      indexPositions(stored?.positions ?? []),
+    );
+
+    expect(report.own).toBeNull();
+    expect(report.opponent?.playedSan).toBe('c5');
+    expect(report.opponent?.expected.map((move) => move.san)).toEqual(['e5']);
+  });
+
   it('names the move where the user left their own preparation', async () => {
     const repertoire = await repositories.repertoires.create({ title: 'e4', color: 'w' });
     await addLine(repertoire.id, ['e4', 'e5', 'Nf3', 'Nc6', 'Bb5'], 'w');

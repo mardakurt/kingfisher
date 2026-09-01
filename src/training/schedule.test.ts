@@ -97,6 +97,13 @@ describe('grading', () => {
     expect(hard.ease).toBeLessThan(base.ease);
   });
 
+  it('lets "easy" leave the learning steps instead of drilling a known item', () => {
+    const graduated = grade(newSchedule(T0), 'easy', T0);
+    expect(graduated.intervalDays).toBeGreaterThan(grade(newSchedule(T0), 'good', T0).intervalDays);
+    expect(graduated.dueAt).toBeGreaterThan(T0);
+    expect(stageOf(graduated)).toBe('learning');
+  });
+
   it('rewards "easy" with more ease and a longer interval', () => {
     const base: ScheduleState = {
       ...newSchedule(T0),

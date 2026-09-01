@@ -25,6 +25,16 @@ const DEFAULT_EASE = 2.5;
 /** Interval in days for the first few successful reviews, before ease applies. */
 const LEARNING_STEPS = [0, 1, 3] as const;
 
+/**
+ * The interval `easy` graduates a learning item to, in days.
+ *
+ * Without this, the first three reviews of an item ignore the grade entirely
+ * and all four buttons schedule the same day — which reads as if the choice
+ * did nothing. Saying an item is easy is information, and the honest response
+ * is to stop drilling it three times this week.
+ */
+const EASY_GRADUATION_DAYS = 4;
+
 /** How much each grade moves the ease factor. */
 const EASE_DELTA: Record<ReviewGrade, number> = {
   again: -0.2,
@@ -73,10 +83,13 @@ export function grade(state: ScheduleState, review: ReviewGrade, now: number): S
   }
 
   const streak = state.streak + 1;
+  const learning = streak <= LEARNING_STEPS.length;
   const intervalDays =
-    streak <= LEARNING_STEPS.length
-      ? (LEARNING_STEPS[streak - 1] ?? 1)
-      : Math.round(Math.max(1, state.intervalDays) * ease * (review === 'hard' ? 0.6 : 1));
+    learning && review === 'easy'
+      ? Math.max(EASY_GRADUATION_DAYS, LEARNING_STEPS[streak - 1] ?? 1)
+      : learning
+        ? (LEARNING_STEPS[streak - 1] ?? 1)
+        : Math.round(Math.max(1, state.intervalDays) * ease * (review === 'hard' ? 0.6 : 1));
 
   const capped = Math.min(intervalDays, 365);
 

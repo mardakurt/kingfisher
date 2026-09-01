@@ -39,8 +39,15 @@ export function roleOf(
   position: RepertoirePositionRecord | undefined,
   uci: Uci | string,
 ): RepertoireRole | null {
-  return position?.moves.find((move) => move.uci === uci)?.role ?? null;
+  const move = position?.moves.find((candidate) => candidate.uci === uci);
+  return move && !move.expected ? move.role : null;
 }
+
+/** Whether a move is a recorded opponent continuation at this position. */
+export const isExpectedReply = (
+  position: RepertoirePositionRecord | undefined,
+  uci: Uci | string,
+): boolean => position?.moves.some((move) => move.uci === uci && move.expected === true) ?? false;
 
 /**
  * Merge a move into a position's move list.
@@ -65,7 +72,16 @@ export interface LineEntry {
   readonly fen: Fen;
   readonly sideToMove: 'w' | 'b';
   readonly move: RepertoireMove;
+  /** Plies from the start of this line — what the repertoire records as depth. */
   readonly depth: number;
+  /**
+   * The move's real half-move number in the game.
+   *
+   * Not the same as `depth` once a line starts from a position rather than
+   * from move one: adding "2.d4" from a board opened at a Caro-Kann position
+   * must not be shown as "1.d4".
+   */
+  readonly ply: number;
 }
 
 /**
@@ -98,12 +114,58 @@ export function lineToEntries(
       fen: parent.fen,
       sideToMove: move.color,
       depth: index,
+      ply: child.ply,
       move: {
         uci: move.uci,
         san: move.san,
         role,
         ...(note && index === path.length - 2 ? { note } : {}),
-        updatedAt: Date.now(),
+        updatedAt: 0,
+      },
+    });
+  }
+
+  return entries;
+}
+
+/**
+ * Preserve the whole line as repertoire knowledge.
+ *
+ * Own-side moves retain their selected role. Opponent moves are explicitly
+ * marked as expected continuations, which lets game analysis distinguish an
+ * opponent deviation from a position that was never prepared at all.
+ */
+export function lineToKnowledge(
+  tree: GameTree,
+  nodeId: NodeId,
+  color: 'w' | 'b',
+  role: RepertoireRole = 'main',
+  note?: string,
+): LineEntry[] {
+  const path = nodePath(tree, nodeId);
+  const entries: LineEntry[] = [];
+
+  for (let index = 0; index < path.length - 1; index += 1) {
+    const parent = mustGetNode(tree, path[index] as NodeId);
+    const child = mustGetNode(tree, path[index + 1] as NodeId);
+    const move = child.move;
+    if (!move) continue;
+    const own = move.color === color;
+
+    entries.push({
+      positionKey: positionKey(parent.fen),
+      fen: parent.fen,
+      sideToMove: move.color,
+      depth: index,
+      ply: child.ply,
+      move: {
+        uci: move.uci,
+        san: move.san,
+        role: own ? role : 'main',
+        ...(!own ? { expected: true } : {}),
+        ...(note && index === path.length - 2 ? { note } : {}),
+        // The repository stamps the real time when the entry is written.
+        updatedAt: 0,
       },
     });
   }
@@ -121,34 +183,53 @@ export interface RepertoireCoverage {
   /** Positions carrying only `avoid` moves, i.e. a decision with no answer. */
   readonly unansweredPositions: number;
   readonly totalMoves: number;
+  /** Own moves by role, so the headline numbers can be checked against parts. */
+  readonly mainMoves: number;
+  readonly alternativeMoves: number;
+  readonly candidateMoves: number;
+  readonly avoidMoves: number;
+  /** Recorded opponent continuations; excluded from prepared-position counts. */
+  readonly expectedReplies: number;
   readonly maxDepth: number;
   /** Plies, averaged over positions that have any move at all. */
   readonly averageDepth: number;
 }
 
 const hasPlayableMove = (position: RepertoirePositionRecord): boolean =>
-  position.moves.some((move) => move.role === 'main' || move.role === 'alternative');
+  position.moves.some(
+    (move) => !move.expected && (move.role === 'main' || move.role === 'alternative'),
+  );
 
 export function coverage(positions: readonly RepertoirePositionRecord[]): RepertoireCoverage {
   let answered = 0;
   let candidates = 0;
   let unanswered = 0;
   let totalMoves = 0;
+  let expectedReplies = 0;
   let maxDepth = 0;
   let depthSum = 0;
   let depthCount = 0;
+  const byRole: Record<RepertoireRole, number> = {
+    main: 0,
+    alternative: 0,
+    candidate: 0,
+    avoid: 0,
+  };
 
   for (const position of positions) {
-    totalMoves += position.moves.length;
+    const ownMoves = position.moves.filter((move) => !move.expected);
+    totalMoves += ownMoves.length;
+    for (const move of ownMoves) byRole[move.role] += 1;
+    expectedReplies += position.moves.length - ownMoves.length;
     maxDepth = Math.max(maxDepth, position.depth);
 
     if (hasPlayableMove(position)) {
       answered += 1;
       depthSum += position.depth;
       depthCount += 1;
-    } else if (position.moves.some((move) => move.role === 'candidate')) {
+    } else if (ownMoves.some((move) => move.role === 'candidate')) {
       candidates += 1;
-    } else {
+    } else if (ownMoves.length > 0) {
       unanswered += 1;
     }
   }
@@ -158,6 +239,11 @@ export function coverage(positions: readonly RepertoirePositionRecord[]): Repert
     candidatePositions: candidates,
     unansweredPositions: unanswered,
     totalMoves,
+    mainMoves: byRole.main,
+    alternativeMoves: byRole.alternative,
+    candidateMoves: byRole.candidate,
+    avoidMoves: byRole.avoid,
+    expectedReplies,
     maxDepth,
     averageDepth: depthCount === 0 ? 0 : Math.round((depthSum / depthCount) * 10) / 10,
   };
@@ -219,7 +305,21 @@ export function findGaps(
   }
 
   // Most-played first: that is where preparation time is best spent.
-  return gaps.sort((a, b) => b.games - a.games || a.depth - b.depth);
+  gaps.sort((a, b) => b.games - a.games || a.depth - b.depth);
+
+  /*
+    One unprepared position is one hole, however many move orders reach it.
+    Two opponent moves that transpose into the same position would otherwise be
+    reported as two jobs, and preparing either one would silently close both —
+    which is precisely the confusion the position-keyed model exists to avoid.
+    The most-played route survives, because that is the one worth naming.
+  */
+  const seen = new Set<PositionKey>();
+  return gaps.filter((gap) => {
+    if (seen.has(gap.positionKey)) return false;
+    seen.add(gap.positionKey);
+    return true;
+  });
 }
 
 // --- Deviation --------------------------------------------------------------
@@ -277,7 +377,9 @@ export function findDeviation(
     const isOwn = move.color === color;
 
     if (isOwn) {
-      const expected = position?.moves.filter((candidate) => candidate.role !== 'avoid') ?? [];
+      const expected =
+        position?.moves.filter((candidate) => !candidate.expected && candidate.role !== 'avoid') ??
+        [];
       if (expected.length === 0) break;
       if (!expected.some((candidate) => candidate.uci === move.uci)) {
         own ??= {
@@ -290,16 +392,17 @@ export function findDeviation(
         };
         break;
       }
-    } else if (position && position.moves.length > 0) {
+    } else if (position) {
       // Opponent replies are recorded on their own position entries; a move we
       // never wrote down is a hole in preparation, reported once.
-      if (!position.moves.some((candidate) => candidate.uci === move.uci)) {
+      const expected = position.moves.filter((candidate) => candidate.expected);
+      if (expected.length > 0 && !expected.some((candidate) => candidate.uci === move.uci)) {
         opponent ??= {
           ply: child.ply,
           nodeId: child.id,
           playedUci: move.uci,
           playedSan: move.san,
-          expected: position.moves,
+          expected,
           color: move.color,
         };
         break;
