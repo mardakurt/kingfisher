@@ -18,7 +18,13 @@ npm-debug.log*
 # reproducible from scripts/ and neither belongs in review.
 public/bench/
 .playwright-mcp/
-*.png
 public/brandlab/
+
+# Screenshots dropped at the repository root by browser tooling. Scoped to the
+# root on purpose: the app's own icons are product assets and are committed.
+/*.png
+
+# Engine binaries and neural weights. GPL, 25-115 MB, and belonging to their
+# own projects; `npm run engines:install` fetches them on demand.
 engines/
 companion/data/
