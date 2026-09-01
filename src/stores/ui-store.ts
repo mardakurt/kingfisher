@@ -10,7 +10,7 @@
 import { create } from 'zustand';
 
 export type RightPanelTab =
-  'engine' | 'compare' | 'explorer' | 'features' | 'tablebase' | 'notes' | 'game';
+  'engine' | 'compare' | 'explorer' | 'features' | 'tablebase' | 'assistant' | 'notes' | 'game';
 export type WorkspacePanelTab = 'moves' | RightPanelTab;
 export type BottomPanelTab = 'moves' | 'headers';
 

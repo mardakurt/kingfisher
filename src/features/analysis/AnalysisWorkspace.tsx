@@ -30,6 +30,7 @@ import { GameInsightsPanel } from '@/features/games/GameInsightsPanel';
 import { EngineComparison } from '@/features/engine/EngineComparison';
 import { FeaturesPanel } from './FeaturesPanel';
 import { TablebasePanel } from './TablebasePanel';
+import { CompanionPanel } from '@/features/assistant/CompanionPanel';
 
 const RIGHT_TABS: readonly { id: RightPanelTab; label: string }[] = [
   { id: 'engine', label: 'Engine' },
@@ -37,6 +38,7 @@ const RIGHT_TABS: readonly { id: RightPanelTab; label: string }[] = [
   { id: 'explorer', label: 'Explorer' },
   { id: 'features', label: 'Structure' },
   { id: 'tablebase', label: 'Tablebase' },
+  { id: 'assistant', label: 'Companion' },
   { id: 'notes', label: 'Notes' },
   { id: 'game', label: 'Game' },
 ];
@@ -248,6 +250,7 @@ function RightPanelContent({ tab }: { readonly tab: RightPanelTab }) {
       {tab === 'explorer' && <ExplorerPanel />}
       {tab === 'features' && <FeaturesPanel />}
       {tab === 'tablebase' && <TablebasePanel />}
+      {tab === 'assistant' && <CompanionPanel />}
       {tab === 'notes' && <NotesPanel />}
       {tab === 'game' && <GameInsightsPanel />}
     </ErrorBoundary>

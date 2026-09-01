@@ -11,6 +11,7 @@ import { nodePath } from '@/chess/tree/tree';
 import { evaluationFromAnalysis } from '@/features/analysis/useEngineSnapshots';
 import { formatScore } from '@/chess/evaluation';
 import { useAnalysis } from '@/stores/analysis-store';
+import { engineDefinitions } from '@/engine/registry';
 import { useEngine } from '@/stores/engine-store';
 import { usePreferences } from '@/stores/preferences-store';
 import { useUi } from '@/stores/ui-store';
@@ -312,6 +313,58 @@ export function useCommands(): readonly Command[] {
         title: 'Stop engine analysis',
         group: 'Engine',
         run: () => engine().stop(),
+      },
+      {
+        id: 'compare-engines',
+        title: 'Run two engines on this position',
+        group: 'Engine',
+        keywords: 'compare second engine lc0 disagreement neural',
+        run: () => {
+          const { engineMultiPv, engineThreads, engineHashMb, engineLimit } = prefs();
+          ui().setRightTab('compare');
+          void engine().compare(
+            analysis().tree.nodes[analysis().currentId]?.fen ?? START_FEN,
+            engineLimit,
+            { multiPv: Math.max(2, engineMultiPv), threads: engineThreads, hashMb: engineHashMb },
+          );
+        },
+      },
+      {
+        id: 'switch-engine',
+        title: 'Switch to the next engine',
+        group: 'Engine',
+        keywords: 'stockfish lc0 stormphrax choose',
+        run: () => {
+          const definitions = engineDefinitions();
+          const current = engine().primary.engineId;
+          const at = definitions.findIndex((entry) => entry.id === current);
+          const next = definitions[(at + 1) % definitions.length];
+          if (!next) return;
+          void engine().selectEngine('primary', next.id);
+          prefs().set('primaryEngineId', next.id);
+          ui().notify({ tone: 'info', message: `Engine set to ${next.name}.` });
+        },
+      },
+      {
+        id: 'show-features',
+        title: 'Show position structure',
+        group: 'Panels',
+        keywords: 'pawn structure isolated passed open files bishop pair',
+        run: () => ui().setRightTab('features'),
+      },
+      {
+        id: 'show-tablebase',
+        title: 'Show the tablebase',
+        group: 'Panels',
+        keywords: 'syzygy endgame dtz proved',
+        run: () => ui().setRightTab('tablebase'),
+      },
+      {
+        id: 'show-assistant',
+        title: 'Ask the companion',
+        group: 'Panels',
+        keywords: 'assistant ai explain plan grounded',
+        run: () => ui().setRightTab('assistant'),
       },
       {
         id: 'engine-multipv',
