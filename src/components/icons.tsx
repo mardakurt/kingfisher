@@ -1,0 +1,185 @@
+/**
+ * Icons.
+ *
+ * Hand-written rather than pulled from an icon package: the set is small, the
+ * shapes are shared with the board, and a dependency for twenty paths is not
+ * worth the bundle or the version churn. All icons are 16 × 16 on a 24 grid.
+ */
+
+import type { SVGProps } from 'react';
+
+type IconProps = SVGProps<SVGSVGElement>;
+
+const Icon = ({ children, ...props }: IconProps) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={1.75}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden
+    {...props}
+  >
+    {children}
+  </svg>
+);
+
+export const ChevronLeft = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="m15 6-6 6 6 6" />
+  </Icon>
+);
+export const ChevronRight = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="m9 6 6 6-6 6" />
+  </Icon>
+);
+export const ChevronDown = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="m6 9 6 6 6-6" />
+  </Icon>
+);
+export const SkipStart = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M18 5v14M16 12 8 5v14z" />
+  </Icon>
+);
+export const SkipEnd = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M6 5v14M8 12l8-7v14z" />
+  </Icon>
+);
+export const Play = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M7 4.5 19 12 7 19.5z" />
+  </Icon>
+);
+export const Stop = (p: IconProps) => (
+  <Icon {...p}>
+    <rect x="6" y="6" width="12" height="12" rx="1.5" />
+  </Icon>
+);
+export const Flip = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M4 8h13l-3-3M20 16H7l3 3" />
+  </Icon>
+);
+export const Plus = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M12 5v14M5 12h14" />
+  </Icon>
+);
+export const Import = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M12 3v11m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+  </Icon>
+);
+export const Export = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M12 15V4m0 0 4 4m-4-4L8 8M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+  </Icon>
+);
+export const Settings = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="12" cy="12" r="3" />
+    <path d="M12 2v2.5M12 19.5V22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M2 12h2.5M19.5 12H22M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8" />
+  </Icon>
+);
+export const Search = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="11" cy="11" r="6.5" />
+    <path d="m16 16 4.5 4.5" />
+  </Icon>
+);
+export const Trash = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13M10 11v6M14 11v6" />
+  </Icon>
+);
+export const ArrowUp = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M12 20V5m0 0-6 6m6-6 6 6" />
+  </Icon>
+);
+export const Scissors = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="6" cy="18" r="2.5" />
+    <circle cx="6" cy="6" r="2.5" />
+    <path d="M20 4 8.5 15.5M20 20 8.5 8.5" />
+  </Icon>
+);
+export const Board = (p: IconProps) => (
+  <Icon {...p}>
+    <rect x="3.5" y="3.5" width="17" height="17" rx="1.5" />
+    <path d="M3.5 9h17M3.5 15h17M9 3.5v17M15 3.5v17" />
+  </Icon>
+);
+export const Library = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M4 4h4v16H4zM10 4h4v16h-4zM16.5 5l3.5 1-3 15-3.5-1z" />
+  </Icon>
+);
+export const Database = (p: IconProps) => (
+  <Icon {...p}>
+    <ellipse cx="12" cy="6" rx="7.5" ry="3" />
+    <path d="M4.5 6v12c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3V6M4.5 12c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3" />
+  </Icon>
+);
+export const Opening = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M12 3v5M12 8 6 13v8M12 8l6 5v8" />
+    <circle cx="12" cy="3.5" r="1.5" />
+  </Icon>
+);
+export const Repertoire = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M5 4h11l3 3v13H5z" />
+    <path d="M8.5 12.5l2.5 2.5 4.5-5" />
+  </Icon>
+);
+export const Notebook = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M6 3h13v18H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
+    <path d="M9 3v18M12 8h4M12 12h4" />
+  </Icon>
+);
+export const Target = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="12" cy="12" r="8" />
+    <circle cx="12" cy="12" r="3.5" />
+  </Icon>
+);
+export const Sun = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="12" cy="12" r="4" />
+    <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+  </Icon>
+);
+export const Moon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z" />
+  </Icon>
+);
+export const Info = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="12" cy="12" r="8.5" />
+    <path d="M12 11v5M12 8h.01" />
+  </Icon>
+);
+export const Close = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M6 6l12 12M18 6 6 18" />
+  </Icon>
+);
+export const Menu = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M4 7h16M4 12h16M4 17h16" />
+  </Icon>
+);
+export const Pin = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M9 3h6l-1 6 4 3v2H6v-2l4-3z" />
+    <path d="M12 14v7" />
+  </Icon>
+);

@@ -1,0 +1,15 @@
+node_modules
+.next
+out
+dist
+coverage
+*.tsbuildinfo
+next-env.d.ts
+.env*
+!.env.example
+*.log
+npm-debug.log*
+.DS_Store
+
+# Engine binaries are GPL-3.0 and ~7 MB; fetched by `npm run engine:install`.
+/public/engine/

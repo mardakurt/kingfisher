@@ -1,0 +1,134 @@
+'use client';
+
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+
+import { Close } from '@/components/icons';
+import { IconButton } from '@/components/ui/Button';
+import { cn } from '@/lib/cn';
+
+import { NAV_SECTIONS } from './navigation';
+
+interface SidebarProps {
+  readonly variant?: 'desktop' | 'drawer';
+  readonly onClose?: () => void;
+}
+
+export function Sidebar({ variant = 'desktop', onClose }: SidebarProps) {
+  const pathname = usePathname();
+  const drawer = variant === 'drawer';
+
+  return (
+    <nav
+      className={cn(
+        'shrink-0 flex-col border-r border-line-subtle bg-surface-1',
+        drawer ? 'flex h-full w-[min(82vw,280px)] shadow-2xl' : 'hidden w-12 md:flex xl:w-[188px]',
+      )}
+      aria-label="Sections"
+    >
+      <div
+        className={cn(
+          'flex h-10 shrink-0 items-center border-b border-line-subtle',
+          drawer ? 'gap-2 px-3' : 'justify-center px-2 xl:justify-start xl:gap-2 xl:px-3',
+        )}
+      >
+        <Mark />
+        <span
+          className={cn(
+            'text-[13px] font-semibold tracking-tight text-primary',
+            !drawer && 'hidden xl:inline',
+          )}
+        >
+          Kingfisher
+        </span>
+        {drawer && (
+          <IconButton label="Close navigation" className="ml-auto" onClick={onClose} autoFocus>
+            <Close />
+          </IconButton>
+        )}
+      </div>
+
+      <ul className="flex flex-col gap-px p-1.5">
+        {NAV_SECTIONS.map((section) => {
+          const active = pathname.startsWith(section.href);
+          const Icon = section.icon;
+
+          if (!section.ready) {
+            return (
+              <li key={section.id}>
+                <span
+                  title={section.hint}
+                  aria-disabled
+                  className={cn(
+                    'flex cursor-default items-center rounded-[4px] py-1.5 text-xs text-tertiary/60',
+                    drawer
+                      ? 'gap-2.5 px-2'
+                      : 'justify-center px-1 xl:justify-start xl:gap-2.5 xl:px-2',
+                  )}
+                >
+                  <Icon className="h-4 w-4 shrink-0" />
+                  <span className={cn('truncate', !drawer && 'hidden xl:inline')}>
+                    {section.label}
+                  </span>
+                </span>
+              </li>
+            );
+          }
+
+          return (
+            <li key={section.id}>
+              <Link
+                href={section.href}
+                title={!drawer ? section.label : undefined}
+                onClick={onClose}
+                className={cn(
+                  'flex items-center rounded-[4px] py-1.5 text-xs transition-colors',
+                  drawer
+                    ? 'gap-2.5 px-2'
+                    : 'justify-center px-1 xl:justify-start xl:gap-2.5 xl:px-2',
+                  active
+                    ? 'bg-surface-3 text-primary'
+                    : 'text-secondary hover:bg-surface-2 hover:text-primary',
+                )}
+              >
+                <Icon className={cn('h-4 w-4 shrink-0', active && 'text-accent')} />
+                <span className={cn('truncate', !drawer && 'hidden xl:inline')}>
+                  {section.label}
+                </span>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+
+      <div
+        className={cn(
+          'mt-auto border-t border-line-subtle px-3 py-2',
+          !drawer && 'hidden xl:block',
+        )}
+      >
+        <p className="text-[10px] leading-relaxed text-tertiary">
+          Phase 1 · analysis workspace.
+          <br />
+          Dimmed sections are not built yet.
+        </p>
+      </div>
+    </nav>
+  );
+}
+
+const Mark = () => (
+  <svg viewBox="0 0 24 24" className="h-4.5 w-4.5" aria-hidden>
+    <path
+      d="M12 2.5 14.2 7l4.8.6-3.5 3.4.9 4.9L12 13.6 7.6 15.9l.9-4.9L5 7.6 9.8 7z"
+      fill="var(--accent)"
+      opacity="0.9"
+    />
+    <path
+      d="M12 15.5v6M8.5 21.5h7"
+      stroke="var(--accent)"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+    />
+  </svg>
+);

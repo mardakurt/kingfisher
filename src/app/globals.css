@@ -1,0 +1,232 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+/*
+ * Design tokens.
+ *
+ * Semantic variables are defined per theme below; the `@theme` block only maps
+ * them into Tailwind utilities. Nothing in a component should reach for a raw
+ * hex value — the board and the evaluation colours in particular have to stay
+ * legible in both themes, and that is only checkable if they live here.
+ */
+
+:root,
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --surface-0: #0b0d11;
+  --surface-1: #101319;
+  --surface-2: #161a22;
+  --surface-3: #1c212a;
+  --surface-inset: #0d1015;
+
+  --border-subtle: #1e232c;
+  --border: #262c37;
+  --border-strong: #333b48;
+
+  --text-primary: #e7eaf0;
+  --text-secondary: #9aa4b4;
+  --text-tertiary: #6a7382;
+  --text-inverse: #0b0d11;
+
+  --accent: #c8a15a;
+  --accent-hover: #d9b571;
+  --accent-muted: #45392260;
+  --accent-contrast: #17130a;
+
+  --positive: #6fae7a;
+  --negative: #cf6f68;
+  --caution: #d3a84c;
+  --info: #6d92c9;
+
+  --eval-white: #e9ecf1;
+  --eval-black: #23282f;
+
+  --shape-green: #5fa96b;
+  --shape-red: #c25b52;
+  --shape-blue: #4d82c4;
+  --shape-yellow: #cba43f;
+
+  --board-target: rgb(0 0 0 / 0.26);
+  --board-check-core: rgb(207 111 104 / 0.92);
+  --board-check-mid: rgb(207 111 104 / 0.5);
+
+  --selection: #c8a15a33;
+  --shadow-panel: 0 1px 2px rgb(0 0 0 / 0.4);
+}
+
+[data-theme='light'] {
+  color-scheme: light;
+
+  --surface-0: #f3f1ed;
+  --surface-1: #fbfaf8;
+  --surface-2: #ffffff;
+  --surface-3: #f0eeea;
+  --surface-inset: #edeae5;
+
+  --border-subtle: #e6e2db;
+  --border: #dbd6cd;
+  --border-strong: #c6bfb3;
+
+  --text-primary: #1b1d21;
+  --text-secondary: #555b68;
+  --text-tertiary: #767c88;
+  --text-inverse: #fbfaf8;
+
+  --accent: #9a7423;
+  --accent-hover: #825f16;
+  --accent-muted: #c8a15a2a;
+  --accent-contrast: #fffdf7;
+
+  --positive: #3f7d4d;
+  --negative: #a8443c;
+  --caution: #8d6b16;
+  --info: #35608f;
+
+  --eval-white: #ffffff;
+  --eval-black: #2b3037;
+
+  --shape-green: #4a8f57;
+  --shape-red: #b24a41;
+  --shape-blue: #3a6cad;
+  --shape-yellow: #b08a26;
+
+  --board-target: rgb(20 22 26 / 0.25);
+  --board-check-core: rgb(168 68 60 / 0.9);
+  --board-check-mid: rgb(168 68 60 / 0.46);
+
+  --selection: #9a742326;
+  --shadow-panel: 0 1px 2px rgb(23 20 14 / 0.08);
+}
+
+@theme inline {
+  --color-surface-0: var(--surface-0);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-surface-inset: var(--surface-inset);
+
+  --color-line-subtle: var(--border-subtle);
+  --color-line: var(--border);
+  --color-line-strong: var(--border-strong);
+
+  --color-primary: var(--text-primary);
+  --color-secondary: var(--text-secondary);
+  --color-tertiary: var(--text-tertiary);
+  --color-inverse: var(--text-inverse);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-muted: var(--accent-muted);
+  --color-accent-contrast: var(--accent-contrast);
+
+  --color-positive: var(--positive);
+  --color-negative: var(--negative);
+  --color-caution: var(--caution);
+  --color-info: var(--info);
+
+  --color-eval-white: var(--eval-white);
+  --color-eval-black: var(--eval-black);
+
+  --color-shape-green: var(--shape-green);
+  --color-shape-red: var(--shape-red);
+  --color-shape-blue: var(--shape-blue);
+  --color-shape-yellow: var(--shape-yellow);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: var(--font-mono-face), ui-monospace, 'SF Mono', 'JetBrains Mono', monospace;
+
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
+}
+
+* {
+  border-color: var(--border-subtle);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background-color: var(--surface-0);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-feature-settings: 'cv05', 'ss01';
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+::selection {
+  background: var(--selection);
+}
+
+/* Scrollbars should read as part of the panel, not as a browser artefact. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: var(--border-strong);
+  border: 3px solid transparent;
+  background-clip: content-box;
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--text-tertiary);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-radius: 3px;
+}
+
+/* Numeric data must line up in columns: evaluations, node counts, ratings. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes kf-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes kf-rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.995);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-fade-in {
+  animation: kf-fade-in 120ms ease-out;
+}
+
+.animate-rise {
+  animation: kf-rise 140ms cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
