@@ -321,7 +321,7 @@ export function useCommands(): readonly Command[] {
         keywords: 'compare second engine lc0 disagreement neural',
         run: () => {
           const { engineMultiPv, engineThreads, engineHashMb, engineLimit } = prefs();
-          ui().setRightTab('compare');
+          ui().setRightTab('engine');
           void engine().compare(
             analysis().tree.nodes[analysis().currentId]?.fen ?? START_FEN,
             engineLimit,
@@ -350,14 +350,14 @@ export function useCommands(): readonly Command[] {
         title: 'Show position structure',
         group: 'Panels',
         keywords: 'pawn structure isolated passed open files bishop pair',
-        run: () => ui().setRightTab('features'),
+        run: () => ui().setRightTab('position'),
       },
       {
         id: 'show-tablebase',
         title: 'Show the tablebase',
         group: 'Panels',
         keywords: 'syzygy endgame dtz proved',
-        run: () => ui().setRightTab('tablebase'),
+        run: () => ui().setRightTab('position'),
       },
       {
         id: 'show-assistant',

@@ -9,8 +9,15 @@
 
 import { create } from 'zustand';
 
-export type RightPanelTab =
-  'engine' | 'compare' | 'explorer' | 'features' | 'tablebase' | 'assistant' | 'notes' | 'game';
+/**
+ * Six, not eight.
+ *
+ * The engine tab holds both the single and the two-engine view, and `position`
+ * holds structure and tablebase, because in each pair the two halves answer the
+ * same kind of question and are read together anyway. Eight labels did not fit
+ * a 430px panel without touching each other.
+ */
+export type RightPanelTab = 'engine' | 'explorer' | 'position' | 'assistant' | 'notes' | 'game';
 export type WorkspacePanelTab = 'moves' | RightPanelTab;
 export type BottomPanelTab = 'moves' | 'headers';
 

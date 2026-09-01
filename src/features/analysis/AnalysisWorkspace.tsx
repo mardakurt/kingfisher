@@ -5,7 +5,6 @@ import { useCallback, useEffect, useRef } from 'react';
 import type { Shape } from '@/chess/annotations';
 import { Chessboard } from '@/features/board/Chessboard';
 import { MoveTree } from '@/features/movetree/MoveTree';
-import { EnginePanel } from '@/features/engine/EnginePanel';
 import { ExplorerPanel } from '@/features/explorer/ExplorerPanel';
 import { NotesPanel } from '@/features/notes/NotesPanel';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -27,17 +26,14 @@ import { Toolbar } from './Toolbar';
 import { useAnalysisPosition } from './useAnalysisPosition';
 import { useEngineSnapshots } from './useEngineSnapshots';
 import { GameInsightsPanel } from '@/features/games/GameInsightsPanel';
-import { EngineComparison } from '@/features/engine/EngineComparison';
-import { FeaturesPanel } from './FeaturesPanel';
-import { TablebasePanel } from './TablebasePanel';
+import { EnginePanelHost } from '@/features/engine/EnginePanelHost';
+import { PositionPanel } from './PositionPanel';
 import { CompanionPanel } from '@/features/assistant/CompanionPanel';
 
 const RIGHT_TABS: readonly { id: RightPanelTab; label: string }[] = [
   { id: 'engine', label: 'Engine' },
-  { id: 'compare', label: 'Compare' },
   { id: 'explorer', label: 'Explorer' },
-  { id: 'features', label: 'Structure' },
-  { id: 'tablebase', label: 'Tablebase' },
+  { id: 'position', label: 'Position' },
   { id: 'assistant', label: 'Companion' },
   { id: 'notes', label: 'Notes' },
   { id: 'game', label: 'Game' },
@@ -245,11 +241,9 @@ export function AnalysisWorkspace() {
 function RightPanelContent({ tab }: { readonly tab: RightPanelTab }) {
   return (
     <ErrorBoundary label={`The ${tab} panel`} key={tab}>
-      {tab === 'engine' && <EnginePanel />}
-      {tab === 'compare' && <EngineComparison />}
+      {tab === 'engine' && <EnginePanelHost />}
       {tab === 'explorer' && <ExplorerPanel />}
-      {tab === 'features' && <FeaturesPanel />}
-      {tab === 'tablebase' && <TablebasePanel />}
+      {tab === 'position' && <PositionPanel />}
       {tab === 'assistant' && <CompanionPanel />}
       {tab === 'notes' && <NotesPanel />}
       {tab === 'game' && <GameInsightsPanel />}

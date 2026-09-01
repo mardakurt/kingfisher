@@ -31,6 +31,8 @@ import {
 import { getRepositories } from '@/persistence/repositories';
 import { useProfile, phase3Keys } from '@/features/persistence/queries';
 import { parsePairing } from '@/companion/client';
+import { importPgnIntoSqlite } from '@/companion/import';
+import { companionClient } from '@/companion/session';
 import { LICHESS_TOKEN_URL } from '@/database/providers/lichess-auth';
 import { useCompanionStatus } from '@/companion/useCompanion';
 import { cn } from '@/lib/cn';
@@ -495,6 +497,147 @@ function CompanionSection() {
           </div>
         </div>
       )}
+
+      {connected ? <SqliteDatabases /> : null}
+    </div>
+  );
+}
+
+/**
+ * SQLite collections held by the companion.
+ *
+ * IndexedDB was measured to 50,000 games and is fine there. This is for the
+ * collections where it is not — and the browser still does the chess, so a game
+ * imported here has the same fingerprint and the same canonical position keys
+ * as one imported into IndexedDB.
+ */
+function SqliteDatabases() {
+  const status = useCompanionStatus();
+  const notify = useUi((state) => state.notify);
+  const [name, setName] = useState('');
+  const [pgn, setPgn] = useState('');
+  const [target, setTarget] = useState('');
+  const [busy, setBusy] = useState<string | null>(null);
+
+  const databases = status.data?.databases ?? [];
+  const selected = target || databases[0]?.key || '';
+
+  const create = async () => {
+    const client = companionClient();
+    if (!client || !name.trim()) return;
+    setBusy('create');
+    try {
+      const created = await client.createDatabase(name.trim());
+      setName('');
+      setTarget(created.key);
+      await status.refetch();
+      notify({ tone: 'success', message: `SQLite database "${created.name}" created.` });
+    } catch (error) {
+      notify({
+        tone: 'error',
+        message: error instanceof Error ? error.message : 'The database could not be created.',
+      });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const load = async () => {
+    const client = companionClient();
+    if (!client || !selected || !pgn.trim()) return;
+    setBusy('import');
+    try {
+      const result = await importPgnIntoSqlite(client, selected, pgn, (progress) =>
+        setBusy(`import:${progress.parsed}/${progress.total}`),
+      );
+      setPgn('');
+      await status.refetch();
+      notify({
+        tone: 'success',
+        message: `${result.imported} games imported, ${result.duplicates} duplicates skipped.`,
+      });
+    } catch (error) {
+      notify({
+        tone: 'error',
+        message: error instanceof Error ? error.message : 'The import failed.',
+      });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <div className="border-t border-line-subtle pt-3">
+      <h3 className="text-xs text-primary">SQLite collections</h3>
+      <p className="mt-1 text-2xs leading-relaxed text-tertiary">
+        For archives larger than IndexedDB is comfortable with. They appear as ordinary sources in
+        the opening explorer.
+      </p>
+
+      {databases.length > 0 ? (
+        <ul className="mt-2 space-y-1">
+          {databases.map((entry) => (
+            <li
+              key={entry.key}
+              className="flex items-center gap-2 rounded-[4px] border border-line bg-surface-inset px-2.5 py-1.5 text-2xs"
+            >
+              <span className="min-w-0 flex-1 truncate text-secondary">{entry.name}</span>
+              <span className="text-tertiary tabular">
+                {entry.games === null ? '—' : `${entry.games.toLocaleString()} games`}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      <div className="mt-2 flex gap-1.5">
+        <input
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          placeholder="New collection name"
+          className={FIELD_INPUT.replace('mt-1 ', '')}
+        />
+        <Button onClick={() => void create()} disabled={!name.trim() || busy !== null}>
+          Create
+        </Button>
+      </div>
+
+      {databases.length > 0 ? (
+        <div className="mt-3">
+          <label className="block text-2xs text-tertiary">
+            Import a PGN into
+            <select
+              value={selected}
+              onChange={(event) => setTarget(event.target.value)}
+              className={FIELD_INPUT}
+            >
+              {databases.map((entry) => (
+                <option key={entry.key} value={entry.key}>
+                  {entry.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <textarea
+            value={pgn}
+            onChange={(event) => setPgn(event.target.value)}
+            placeholder="Paste a PGN collection…"
+            className="mt-1.5 min-h-24 w-full resize-y rounded-[4px] border border-line bg-surface-inset px-2.5 py-2 font-mono text-[10.5px] text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60"
+          />
+          <div className="mt-1.5 flex items-center justify-end gap-2">
+            {busy?.startsWith('import:') ? (
+              <span className="text-2xs text-tertiary tabular">{busy.slice(7)}</span>
+            ) : null}
+            <Button
+              variant="accent"
+              onClick={() => void load()}
+              disabled={!pgn.trim() || busy !== null}
+            >
+              {busy?.startsWith('import') ? 'Importing…' : 'Import'}
+            </Button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
