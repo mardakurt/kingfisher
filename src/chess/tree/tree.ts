@@ -303,24 +303,58 @@ function firstDivergence(tree: GameTree, id: NodeId): { parentId: NodeId; childI
 }
 
 /**
+ * The move that heads the variation a node belongs to.
+ *
+ * Reordering acts on whole side lines, not on individual moves: a user who
+ * selects the fourth move of a variation and asks to move it up means "move
+ * this variation up", because a move in the middle of a line has no siblings
+ * of its own to be reordered among.
+ */
+export function variationHeadId(tree: GameTree, id: NodeId): NodeId | null {
+  const divergence = firstDivergence(tree, id);
+  if (divergence) return divergence.childId;
+  return siblings(tree, id).length > 1 ? id : null;
+}
+
+/**
+ * Move a variation one step within its sibling order.
+ *
+ * Only the sibling array of one parent changes: no node is recreated, no
+ * subtree is copied, and no comment, evaluation or descendant can be lost by
+ * construction. Everything outside that one array is shared unchanged.
+ */
+export function moveVariation(tree: GameTree, id: NodeId, delta: number): GameTree {
+  const head = variationHeadId(tree, id);
+  if (head === null || delta === 0) return tree;
+
+  const node = tree.nodes[head];
+  if (!node?.parentId) return tree;
+  const parent = mustGetNode(tree, node.parentId);
+
+  const index = parent.children.indexOf(head);
+  const target = index + delta;
+  if (index < 0 || target < 0 || target >= parent.children.length) return tree;
+
+  const children = [...parent.children];
+  children[index] = children[target] as NodeId;
+  children[target] = head;
+  return put(tree, { ...parent, children });
+}
+
+/**
  * Move a variation one step up in its sibling order.
  *
  * Applied to a move already on the main line this is a no-op, which is what a
  * user pressing the shortcut repeatedly expects.
  */
-export function promoteVariation(tree: GameTree, id: NodeId): GameTree {
-  const divergence = firstDivergence(tree, id);
-  if (!divergence) return tree;
+export const promoteVariation = (tree: GameTree, id: NodeId): GameTree =>
+  moveVariation(tree, id, -1);
 
-  const parent = mustGetNode(tree, divergence.parentId);
-  const index = parent.children.indexOf(divergence.childId);
-  if (index <= 0) return tree;
-
-  const children = [...parent.children];
-  const previous = children[index - 1] as NodeId;
-  children[index - 1] = divergence.childId;
-  children[index] = previous;
-  return put(tree, { ...parent, children });
+/** Delete the whole side line a node belongs to. */
+export function removeVariation(tree: GameTree, id: NodeId): RemoveResult {
+  const head = variationHeadId(tree, id);
+  if (head === null) return { tree, selectionId: id };
+  return removeNode(tree, head);
 }
 
 /** Make a node's line the main line all the way back to the root. */
