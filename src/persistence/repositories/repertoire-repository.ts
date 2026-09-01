@@ -167,11 +167,18 @@ export class LocalRepertoireRepository implements RepertoireRepository {
         );
         const existing = matches[0];
 
+        /*
+          The store stamps the time, not the caller. Callers build moves while
+          rendering a preview or replaying a line, and a timestamp read there is
+          both impure and wrong — what `updatedAt` should mean is when the
+          decision was written down, which only this transaction knows.
+        */
         const merged = existing ? [...existing.moves] : [];
         for (const move of input.moves) {
+          const stamped = { ...move, updatedAt: now };
           const at = merged.findIndex((candidate) => candidate.uci === move.uci);
-          if (at < 0) merged.push(move);
-          else merged[at] = { ...merged[at], ...move };
+          if (at < 0) merged.push(stamped);
+          else merged[at] = { ...merged[at], ...stamped };
         }
 
         const record: RepertoirePositionRecord = {

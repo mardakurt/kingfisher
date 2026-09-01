@@ -5,6 +5,8 @@ import type {
   ScanOptions,
   ScanResult,
 } from './database';
+import { isKeyRange } from './database';
+import { compareKeys, rangeIncludes } from './key-range';
 import { readKeyPath, resolveSchema, type StoreName } from '../schema/migrations';
 
 /**
@@ -72,19 +74,31 @@ export class MemoryPersistenceDatabase implements PersistenceDatabase {
         Array.isArray(spec.keyPath)
           ? spec.keyPath.map((part) => readKeyPath(value, part)).join('\u001f')
           : readKeyPath(value, spec.keyPath as string);
-      sorted.sort((a, b) => {
-        const left = key(a);
-        const right = key(b);
-        if (left === right) return 0;
-        return (left as never) < (right as never) ? -1 : 1;
-      });
+      sorted.sort((a, b) => compareKeys(key(a), key(b)));
     }
     if (options.direction === 'prev' || options.direction === 'prevunique') sorted.reverse();
 
-    const matches = options.match ? sorted.filter(options.match) : sorted;
     const offset = Math.max(0, options.offset ?? 0);
     const limit = options.limit ?? Number.POSITIVE_INFINITY;
-    return { items: matches.slice(offset, offset + limit), total: matches.length };
+
+    /*
+      `stopEarly` is emulated rather than ignored: a caller that asked to stop
+      once the page is full must see the same incomplete `total` here as it
+      would in a browser, or a test would prove something the product does not do.
+    */
+    const items: T[] = [];
+    let matched = 0;
+    let complete = true;
+    for (const value of sorted) {
+      if (options.match && !options.match(value)) continue;
+      if (matched >= offset && items.length < limit) items.push(value);
+      matched += 1;
+      if (options.stopEarly && options.match && items.length >= limit) {
+        complete = false;
+        break;
+      }
+    }
+    return { items, total: matched, complete };
   }
 
   async getAllFromIndex<T>(store: StoreName, index: string, key?: Key): Promise<T[]> {
@@ -106,8 +120,16 @@ export class MemoryPersistenceDatabase implements PersistenceDatabase {
     });
     if (key === undefined) return present as T[];
 
-    if (typeof IDBKeyRange !== 'undefined' && key instanceof IDBKeyRange) {
-      return present.filter((value) => rangeIncludes(key, extract(value))) as T[];
+    if (isKeyRange(key)) {
+      return present.filter((value) => {
+        const indexed = extract(value);
+        // A multi-entry index matches when any element falls inside the range,
+        // exactly as a real cursor over that index would.
+        if (spec.multiEntry && Array.isArray(indexed)) {
+          return indexed.some((part) => rangeIncludes(key, part));
+        }
+        return rangeIncludes(key, indexed);
+      }) as T[];
     }
 
     return present.filter((value) => {
@@ -152,30 +174,4 @@ export class MemoryPersistenceDatabase implements PersistenceDatabase {
   }
 
   close(): void {}
-}
-
-function rangeIncludes(range: IDBKeyRange, value: unknown): boolean {
-  if (value === undefined) return false;
-  const compare = (a: unknown, b: unknown): number => {
-    if (typeof indexedDB !== 'undefined') return indexedDB.cmp(a as IDBValidKey, b as IDBValidKey);
-    if (Array.isArray(a) && Array.isArray(b)) {
-      for (let i = 0; i < Math.max(a.length, b.length); i += 1) {
-        const step = compare(a[i], b[i]);
-        if (step !== 0) return step;
-      }
-      return 0;
-    }
-    if (a === b) return 0;
-    return (a as never) < (b as never) ? -1 : 1;
-  };
-
-  if (range.lower !== undefined) {
-    const step = compare(value, range.lower);
-    if (step < 0 || (step === 0 && range.lowerOpen)) return false;
-  }
-  if (range.upper !== undefined) {
-    const step = compare(value, range.upper);
-    if (step > 0 || (step === 0 && range.upperOpen)) return false;
-  }
-  return true;
 }

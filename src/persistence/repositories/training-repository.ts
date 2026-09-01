@@ -8,6 +8,7 @@
  */
 
 import { stableId } from '../ids';
+import { upToKey } from '../indexeddb/key-range';
 import { STORE_NAMES } from '../schema/migrations';
 import type { PersistenceDatabase } from '../indexeddb/database';
 import type {
@@ -66,15 +67,14 @@ export class LocalTrainingRepository implements TrainingRepository {
    * user's collection grows.
    */
   async due(now: number, limit = 200): Promise<readonly TrainingItemRecord[]> {
-    const range = typeof IDBKeyRange !== 'undefined' ? IDBKeyRange.upperBound(now) : undefined;
     const records = await this.database.getAllFromIndex<unknown>(
       STORE_NAMES.trainingItems,
       'dueAt',
-      range,
+      upToKey(now),
     );
-    const items = records
-      .map((record) => assertValid(record, isTrainingItemRecord, 'training item'))
-      .filter((item) => item.schedule.dueAt <= now);
+    const items = records.map((record) =>
+      assertValid(record, isTrainingItemRecord, 'training item'),
+    );
     items.sort((a, b) => a.schedule.dueAt - b.schedule.dueAt);
     return items.slice(0, limit);
   }

@@ -1,11 +1,19 @@
 import { describe, expect, it } from 'vitest';
 
+import { START_FEN } from '@/chess/fen';
+import { parsePgn } from '@/chess/pgn';
+
+import { normalizeGame, indexGame } from '../import-game';
+import { MemoryPersistenceDatabase } from '../indexeddb/memory';
+import { LocalGameRepository } from '../repositories/game-repository';
+
 import {
   applyMigrations,
   DATABASE_VERSION,
   MIGRATIONS,
   playerKey,
   resolveSchema,
+  splitGameRecord,
   STORE_NAMES,
   withPlayerKeys,
   type MigrationTarget,
@@ -140,11 +148,51 @@ describe('schema migrations', () => {
     expect(rewritten).toContain(STORE_NAMES.games);
   });
 
-  it('runs nothing at all when a version 2 database is opened', () => {
+  it('runs nothing at all when a current database is opened', () => {
     const { stores, target, rewritten } = recorder();
     applyMigrations(target, DATABASE_VERSION, DATABASE_VERSION);
     expect(stores.size).toBe(0);
     expect(rewritten).toHaveLength(0);
+  });
+
+  it('moves a Phase 2 game tree without changing its searchable summary', () => {
+    const legacy = {
+      id: 'g1',
+      white: 'A',
+      black: 'B',
+      tree: { rootId: 'root', nodes: { root: { fen: START_FEN } } },
+      normalizedPgn: '1. e4 *',
+    };
+    const split = splitGameRecord(legacy);
+
+    expect(split?.keep).toEqual({ id: 'g1', white: 'A', black: 'B' });
+    expect(split?.move).toEqual({
+      id: 'g1',
+      tree: legacy.tree,
+      normalizedPgn: '1. e4 *',
+    });
+    expect(splitGameRecord(split?.keep)).toBeNull();
+  });
+
+  it('supports search, open, explore and delete after the v2-to-v3 split', async () => {
+    const parsed = parsePgn('[White "Carlsen"]\n[Black "Nepo"]\n[Opening "Catalan"]\n\n1. d4 Nf6 *')
+      .games[0];
+    if (!parsed) throw new Error('migration fixture did not parse');
+    const legacy = normalizeGame(parsed.tree, 1);
+    const split = splitGameRecord(legacy) as { keep: unknown; move: unknown };
+    const database = new MemoryPersistenceDatabase();
+    await database.put(STORE_NAMES.games, split.keep);
+    await database.put(STORE_NAMES.gameContent, split.move);
+    for (const position of indexGame(legacy)) await database.put(STORE_NAMES.positions, position);
+    const repository = new LocalGameRepository(database);
+
+    expect((await repository.search({ player: 'carlsen' })).games[0]?.opening).toBe('Catalan');
+    expect((await repository.get(legacy.id))?.tree.headers.White).toBe('Carlsen');
+    expect((await repository.explore(START_FEN)).moves[0]?.san).toBe('d4');
+
+    await repository.delete(legacy.id);
+    expect(await repository.get(legacy.id)).toBeNull();
+    expect((await repository.explore(START_FEN)).totalGames).toBe(0);
   });
 });
 

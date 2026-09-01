@@ -168,19 +168,24 @@ export const MIGRATIONS: readonly Migration[] = [
         The list, the search and the explorer only ever need the summary.
       */
       target.createStore(STORE_NAMES.gameContent, { keyPath: 'id' });
-      target.split(STORE_NAMES.games, STORE_NAMES.gameContent, (record) => {
-        if (typeof record !== 'object' || record === null) return null;
-        const game = record as Record<string, unknown>;
-        if (game.tree === undefined && game.normalizedPgn === undefined) return null;
-        const { tree, normalizedPgn, ...summary } = game;
-        return {
-          keep: summary,
-          move: { id: game.id, tree, normalizedPgn },
-        };
-      });
+      target.split(STORE_NAMES.games, STORE_NAMES.gameContent, splitGameRecord);
     },
   },
 ];
+
+/** Pure form of the v3 data migration, exported for realistic upgrade tests. */
+export function splitGameRecord(
+  record: unknown,
+): { readonly keep: unknown; readonly move: unknown } | null {
+  if (typeof record !== 'object' || record === null) return null;
+  const game = record as Record<string, unknown>;
+  if (game.tree === undefined && game.normalizedPgn === undefined) return null;
+  const { tree, normalizedPgn, ...summary } = game;
+  return {
+    keep: summary,
+    move: { id: game.id, tree, normalizedPgn },
+  };
+}
 
 /**
  * Normalized player names for indexing.

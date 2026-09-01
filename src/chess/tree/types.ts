@@ -43,6 +43,16 @@ export type MoveClassification =
   | 'practical'
   | 'novelty';
 
+/**
+ * Why a position was marked critical.
+ *
+ * Five kinds of "come back to this", because the follow-up work differs: an
+ * opening hole is repertoire work, a miscalculation is training material, and
+ * time trouble is neither. Kept as a closed set so the marker stays a fact
+ * rather than a free-text label nobody can filter on.
+ */
+export type CriticalCategory = 'opening' | 'calculation' | 'strategy' | 'endgame' | 'time-trouble';
+
 export interface NodeMeta {
   /** Clock reading after the move, in seconds (PGN `[%clk]`). */
   readonly clockSeconds?: number;
@@ -50,6 +60,8 @@ export interface NodeMeta {
   readonly elapsedSeconds?: number;
   readonly classification?: MoveClassification;
   readonly repertoire?: RepertoireStatus;
+  /** A position the user deliberately marked for later work. */
+  readonly critical?: CriticalCategory;
   /** Epoch milliseconds when the node was created. */
   readonly createdAt?: number;
 }

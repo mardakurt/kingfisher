@@ -153,6 +153,8 @@ export interface GameRepository {
   count(): Promise<number>;
   /** The game with its moves. */
   get(id: GameId): Promise<GameRecord | null>;
+  /** Many full games in one transaction, for bounded preparation reports. */
+  getMany(ids: readonly GameId[]): Promise<readonly GameRecord[]>;
   /** Metadata only; never reads the tree. */
   summary(id: GameId): Promise<GameSummary | null>;
   /** Metadata for many games at once, in one transaction. */

@@ -465,4 +465,50 @@ describe('game repository', () => {
     expect(await repositories.games.count()).toBe(0);
     expect(await repositories.games.get(game.id)).toBeNull();
   });
+
+  it('loads a bounded set of full games in one repository call', async () => {
+    const first = gameFrom('[White "A"]\n[Black "B"]\n\n1. e4 e5 *');
+    const second = gameFrom('[White "C"]\n[Black "D"]\n\n1. d4 d5 *');
+    await repositories.games.persist(first, []);
+    await repositories.games.persist(second, []);
+
+    const loaded = await repositories.games.getMany([second.id, 'missing', first.id, second.id]);
+    expect(loaded.map((game) => game.id)).toEqual([second.id, first.id]);
+    expect(loaded.every((game) => game.tree.nodes[game.tree.rootId])).toBe(true);
+  });
+});
+
+describe('Phase 3 library repositories', () => {
+  it('stores one model-game reference and queries every supported scope', async () => {
+    const link = await repositories.modelGames.create({
+      gameId: 'game-1',
+      kinds: ['model', 'strategic'],
+      positionKey: 'position-1',
+      studyId: 'study-1',
+      repertoireId: 'rep-1',
+      note: 'A thematic exchange sacrifice.',
+      tags: ['dark squares'],
+    });
+
+    expect((await repositories.modelGames.forGame('game-1'))[0]?.id).toBe(link.id);
+    expect((await repositories.modelGames.forPosition('position-1'))[0]?.id).toBe(link.id);
+    expect((await repositories.modelGames.forStudy('study-1'))[0]?.id).toBe(link.id);
+    expect((await repositories.modelGames.forRepertoire('rep-1'))[0]?.id).toBe(link.id);
+
+    await repositories.modelGames.delete(link.id);
+    expect(await repositories.modelGames.list()).toEqual([]);
+  });
+
+  it('keeps personal aliases explicit, trimmed and deduplicated', async () => {
+    expect((await repositories.profile.get()).aliases).toEqual([]);
+    const profile = await repositories.profile.setAliases([
+      '  Carlsen, Magnus ',
+      '',
+      'Carlsen, Magnus',
+      'M. Carlsen',
+    ]);
+
+    expect(profile.aliases).toEqual(['Carlsen, Magnus', 'M. Carlsen']);
+    expect((await repositories.profile.get()).aliases).toEqual(profile.aliases);
+  });
 });

@@ -1,3 +1,4 @@
+import { toNativeRange, type KeyRange } from './key-range';
 import {
   applyMigrations,
   DATABASE_NAME,
@@ -6,23 +7,33 @@ import {
   type StoreName,
 } from '../schema/migrations';
 
-export type Key = IDBValidKey | IDBKeyRange;
+export type Key = IDBValidKey | KeyRange;
 
 /** Where to read from, and in what order. */
 export interface ScanOptions<T> {
   readonly index?: string;
-  readonly range?: IDBKeyRange;
+  readonly range?: KeyRange;
   readonly direction?: IDBCursorDirection;
   /** Applied to each visited record; only matches count towards the page. */
   readonly match?: (value: T) => boolean;
   readonly offset?: number;
   readonly limit?: number;
+  /**
+   * Stop as soon as the page is full instead of walking the rest of the range.
+   *
+   * Only meaningful together with `match`: without one the scan already stops.
+   * A scan that stops early cannot know how many records matched, and says so
+   * through `complete`.
+   */
+  readonly stopEarly?: boolean;
 }
 
 export interface ScanResult<T> {
   readonly items: T[];
   /** Matching records, counted across the whole range, not just this page. */
   readonly total: number;
+  /** False when `stopEarly` ended the walk, which makes `total` a lower bound. */
+  readonly complete: boolean;
 }
 
 export interface PersistenceTransaction {
@@ -31,7 +42,7 @@ export interface PersistenceTransaction {
   /** Row count without reading the rows; a stored game carries a whole tree. */
   count(store: StoreName): Promise<number>;
   /** Count matching keys without deserialising a single record value. */
-  countRange(store: StoreName, index: string | null, range?: IDBKeyRange): Promise<number>;
+  countRange(store: StoreName, index: string | null, range?: KeyRange): Promise<number>;
   /** One page of records, read through a cursor rather than materialised whole. */
   scan<T>(store: StoreName, options?: ScanOptions<T>): Promise<ScanResult<T>>;
   getAllFromIndex<T>(store: StoreName, index: string, key?: Key): Promise<T[]>;
@@ -48,6 +59,9 @@ export interface PersistenceDatabase extends PersistenceTransaction {
   ): Promise<T>;
   close(): void;
 }
+
+export const isKeyRange = (key: Key): key is KeyRange =>
+  typeof key === 'object' && key !== null && !Array.isArray(key) && 'kind' in key;
 
 const request = <T>(value: IDBRequest<T>): Promise<T> =>
   new Promise((resolve, reject) => {
@@ -84,11 +98,11 @@ class NativeTransaction implements PersistenceTransaction {
    * the record values, so counting ten thousand games costs almost nothing even
    * though each one carries a full game tree.
    */
-  countRange(store: StoreName, index: string | null, range?: IDBKeyRange): Promise<number> {
+  countRange(store: StoreName, index: string | null, range?: KeyRange): Promise<number> {
     const source = index
       ? this.value.objectStore(store).index(index)
       : this.value.objectStore(store);
-    return request(source.count(range));
+    return request(source.count(range ? toNativeRange(range) : undefined));
   }
 
   /**
@@ -114,7 +128,10 @@ class NativeTransaction implements PersistenceTransaction {
       const items: T[] = [];
       let matched = 0;
       let skipped = false;
-      const cursorRequest = source.openCursor(options.range ?? null, options.direction ?? 'next');
+      const cursorRequest = source.openCursor(
+        options.range ? toNativeRange(options.range) : null,
+        options.direction ?? 'next',
+      );
 
       cursorRequest.onerror = () =>
         reject(cursorRequest.error ?? new Error('IndexedDB scan failed.'));
@@ -122,7 +139,7 @@ class NativeTransaction implements PersistenceTransaction {
       cursorRequest.onsuccess = () => {
         const cursor = cursorRequest.result;
         if (!cursor) {
-          resolve({ items, total: matched });
+          resolve({ items, total: matched, complete: true });
           return;
         }
 
@@ -139,7 +156,7 @@ class NativeTransaction implements PersistenceTransaction {
           items.push(cursor.value as T);
           matched += 1;
           if (items.length >= limit) {
-            resolve({ items, total: matched });
+            resolve({ items, total: matched, complete: false });
             return;
           }
           cursor.continue();
@@ -151,6 +168,10 @@ class NativeTransaction implements PersistenceTransaction {
           if (matched >= offset && items.length < limit) items.push(value);
           matched += 1;
         }
+        if (options.stopEarly && items.length >= limit) {
+          resolve({ items, total: matched, complete: false });
+          return;
+        }
         cursor.continue();
       };
     });
@@ -158,7 +179,8 @@ class NativeTransaction implements PersistenceTransaction {
 
   getAllFromIndex<T>(store: StoreName, index: string, key?: Key): Promise<T[]> {
     const source = this.value.objectStore(store).index(index);
-    return request(source.getAll(key)) as Promise<T[]>;
+    const query = key !== undefined && isKeyRange(key) ? toNativeRange(key) : key;
+    return request(source.getAll(query as IDBValidKey | IDBKeyRange | undefined)) as Promise<T[]>;
   }
 
   put<T>(store: StoreName, value: T): Promise<IDBValidKey> {
@@ -193,7 +215,7 @@ class NativeDatabase implements PersistenceDatabase {
     return this.readonly([store]).count(store);
   }
 
-  countRange(store: StoreName, index: string | null, range?: IDBKeyRange): Promise<number> {
+  countRange(store: StoreName, index: string | null, range?: KeyRange): Promise<number> {
     return this.readonly([store]).countRange(store, index, range);
   }
 

@@ -96,6 +96,7 @@ const isRepertoireMove = (value: unknown): boolean =>
   object(value) &&
   text(value.uci) &&
   text(value.san) &&
+  (value.expected === undefined || typeof value.expected === 'boolean') &&
   (value.role === 'main' ||
     value.role === 'alternative' ||
     value.role === 'candidate' ||

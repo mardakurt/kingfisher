@@ -1,17 +1,11 @@
-import { parseFen, positionKey } from '@/chess/fen';
-import type { Fen, San, Uci } from '@/chess/types';
-import {
-  moveScore,
-  performanceRating,
-  type DatabaseGameRef,
-  type DatabaseMove,
-  type ExplorerFilters,
-  type ExplorerResult,
-  type GameResult,
-} from '@/database/types';
+import { positionKey } from '@/chess/fen';
+import type { Fen } from '@/chess/types';
+import { aggregateLocalExplorer } from '@/database/local-aggregate';
+import type { ExplorerFilters, ExplorerResult } from '@/database/types';
 
 import type { PersistenceDatabase, PersistenceTransaction } from '../indexeddb/database';
-import { STORE_NAMES } from '../schema/migrations';
+import { boundKeys, onlyKey, type KeyRange } from '../indexeddb/key-range';
+import { playerKey, STORE_NAMES } from '../schema/migrations';
 import type {
   GameContent,
   GameId,
@@ -24,6 +18,30 @@ import type {
   PositionRecord,
 } from '../types';
 import { assertValid, isGameSummary } from '../validation';
+
+/**
+ * Above this many matching games, one bulk summary read is substantially
+ * faster than one IndexedDB request per id. Browser measurements on Chromium
+ * 152 put 50k individual reads at ~2.1 s; the bulk join plus aggregation was
+ * ~363 ms and can be moved off the UI thread by the persistent provider.
+ */
+const BULK_EXPLORER_JOIN_THRESHOLD = 500;
+
+/**
+ * Above this many matches, ordering by reading them all costs more than
+ * walking the sort index and testing each record until the page is full.
+ */
+const SORT_IN_MEMORY_LIMIT = 2_000;
+
+/** Sort fields an index can already produce in order, and the index that does. */
+const ORDERED_INDEXES: Record<NonNullable<GameSearchQuery['sortBy']>, string | null> = {
+  importedAt: 'importedAt',
+  date: 'date',
+  white: 'white',
+  black: 'black',
+  rating: null,
+  opening: null,
+};
 
 export class LocalGameRepository implements GameRepository {
   constructor(private readonly database: PersistenceDatabase) {}
@@ -46,6 +64,26 @@ export class LocalGameRepository implements GameRepository {
           throw new Error('That game is stored without its moves and cannot be opened.');
         }
         return { ...summary, tree: content.tree, normalizedPgn: content.normalizedPgn };
+      },
+    );
+  }
+
+  async getMany(ids: readonly GameId[]): Promise<readonly GameRecord[]> {
+    if (ids.length === 0) return [];
+    return this.database.transaction(
+      [STORE_NAMES.games, STORE_NAMES.gameContent],
+      'readonly',
+      async (transaction) => {
+        const games: GameRecord[] = [];
+        for (const id of [...new Set(ids)]) {
+          const raw = await transaction.get<unknown>(STORE_NAMES.games, id);
+          if (raw === undefined) continue;
+          const summary = assertValid(raw, isGameSummary, 'game');
+          const content = await transaction.get<GameContent>(STORE_NAMES.gameContent, id);
+          if (!content) throw new Error(`Game ${id} is stored without its moves.`);
+          games.push({ ...summary, tree: content.tree, normalizedPgn: content.normalizedPgn });
+        }
+        return games;
       },
     );
   }
@@ -94,59 +132,82 @@ export class LocalGameRepository implements GameRepository {
     const plan = planQuery(query);
     const offset = Math.max(0, query.offset ?? 0);
     const limit = Math.max(1, query.limit ?? 100);
+    const sortBy = query.sortBy ?? 'importedAt';
+    const descending = query.sortDirection !== 'asc';
 
     /*
-      When the plan is exact the total comes from a key cursor, which never
-      deserialises a record, and the page cursor stops as soon as it is full.
-      Cost then tracks the page size rather than the size of the collection.
+      Case 1: the index the plan walks already produces the requested order, so
+      a page is a page. When the plan is also exact the total comes from a key
+      cursor, which never deserialises a record, and the page cursor stops as
+      soon as it is full — cost then tracks the page size, not the collection.
     */
-    if (plan.exact) {
-      const [total, page] = await Promise.all([
-        this.database.countRange(STORE_NAMES.games, plan.index, plan.range),
-        this.database.scan<GameSummary>(STORE_NAMES.games, {
-          ...(plan.index ? { index: plan.index } : {}),
-          ...(plan.range ? { range: plan.range } : {}),
-          direction: plan.ordered && query.sortDirection !== 'asc' ? 'prev' : 'next',
-          offset,
-          limit,
-        }),
-      ]);
-      const games = plan.ordered
-        ? page.items
-        : [...page.items].sort(
-            (a, b) =>
-              compareGames(a, b, query.sortBy ?? 'importedAt') *
-              (query.sortDirection === 'asc' ? 1 : -1),
-          );
-      return { games, total };
+    if (plan.ordered) {
+      const direction: IDBCursorDirection = descending ? 'prev' : 'next';
+      if (plan.exact) {
+        const [total, page] = await Promise.all([
+          this.database.countRange(STORE_NAMES.games, plan.index, plan.range),
+          this.database.scan<GameSummary>(STORE_NAMES.games, {
+            ...(plan.index ? { index: plan.index } : {}),
+            ...(plan.range ? { range: plan.range } : {}),
+            direction,
+            offset,
+            limit,
+          }),
+        ]);
+        return { games: page.items, total };
+      }
+      const result = await this.database.scan<GameSummary>(STORE_NAMES.games, {
+        ...(plan.index ? { index: plan.index } : {}),
+        ...(plan.range ? { range: plan.range } : {}),
+        direction,
+        match: (game) => matchesSearch(game, query),
+        offset,
+        limit,
+      });
+      return { games: result.items, total: result.total };
     }
 
     /*
-      Sorting by a field the plan is not walking would need the whole result
-      set, so it is only honoured when the chosen index already produces that
-      order. Anything else sorts within the page, and says so by returning the
-      page the index gave.
-    */
-    const direction: IDBCursorDirection = query.sortDirection === 'asc' ? 'next' : 'prev';
+      Case 2: the narrowing index answers the filters but not the order, which
+      is the situation an earlier version got wrong — it sorted the page it
+      happened to receive, so "the 100 most recent" was really "100 arbitrary
+      games, displayed in date order", and page 2 could repeat page 1.
 
-    const result = await this.database.scan<GameSummary>(STORE_NAMES.games, {
+      Two honest ways out, chosen by how much the range actually holds. That
+      count is a key-cursor count, so asking is nearly free.
+    */
+    const narrowed = plan.exact
+      ? await this.database.countRange(STORE_NAMES.games, plan.index, plan.range)
+      : null;
+    const orderedIndex = ORDERED_INDEXES[sortBy];
+
+    if (narrowed !== null && orderedIndex && narrowed > SORT_IN_MEMORY_LIMIT) {
+      // Too many matches to hold and sort. Walk the sort index instead and test
+      // each record; the page fills in order and the walk stops there.
+      const page = await this.database.scan<GameSummary>(STORE_NAMES.games, {
+        index: orderedIndex,
+        direction: descending ? 'prev' : 'next',
+        match: (game) => matchesSearch(game, query),
+        offset,
+        limit,
+        stopEarly: true,
+      });
+      return { games: page.items, total: narrowed };
+    }
+
+    // Few enough matches to order properly: read the range, sort it, page it.
+    const all = await this.database.scan<GameSummary>(STORE_NAMES.games, {
       ...(plan.index ? { index: plan.index } : {}),
       ...(plan.range ? { range: plan.range } : {}),
-      direction: plan.ordered ? direction : 'next',
-      match: (game) => matchesSearch(game, query),
-      offset,
-      limit,
+      ...(plan.exact ? {} : { match: (game: GameSummary) => matchesSearch(game, query) }),
     });
-
-    const games = plan.ordered
-      ? result.items
-      : [...result.items].sort(
-          (a, b) =>
-            compareGames(a, b, query.sortBy ?? 'importedAt') *
-            (query.sortDirection === 'asc' ? 1 : -1),
-        );
-
-    return { games, total: result.total };
+    const sorted = [...all.items].sort(
+      (a, b) => compareGames(a, b, sortBy) * (descending ? -1 : 1),
+    );
+    return {
+      games: sorted.slice(offset, offset + limit),
+      total: narrowed ?? sorted.length,
+    };
   }
 
   async persist(
@@ -252,6 +313,7 @@ export class LocalGameRepository implements GameRepository {
       key,
     );
     const uniqueGameIds = [...new Set(records.map((record) => record.gameId))];
+    const includedIds = new Set(uniqueGameIds);
 
     /*
       One transaction for every game the position touches. Reading them one at a
@@ -259,103 +321,22 @@ export class LocalGameRepository implements GameRepository {
       thousand transaction round trips to answer a single explorer query.
     */
     const games = (
-      await this.database.transaction([STORE_NAMES.games], 'readonly', async (transaction) => {
-        const loaded: (GameSummary | undefined)[] = [];
-        for (const id of uniqueGameIds) {
-          loaded.push(await transaction.get<GameSummary>(STORE_NAMES.games, id));
-        }
-        return loaded;
-      })
-    ).filter((game): game is GameSummary => game !== undefined && matchesExplorer(game, filters));
-    const gamesById = new Map(games.map((game) => [game.id, game]));
-    const parsedFen = parseFen(fen);
-    const sideToMove = parsedFen.ok ? parsedFen.value.turn : 'w';
-
-    const byMove = new Map<string, MutableMove>();
-    const includedGames = new Set<string>();
-    for (const record of records) {
-      const game = gamesById.get(record.gameId);
-      if (!game) continue;
-      includedGames.add(game.id);
-      let move = byMove.get(record.moveUci);
-      if (!move) {
-        move = {
-          uci: record.moveUci,
-          san: record.moveSan,
-          gameIds: new Set(),
-          white: 0,
-          draws: 0,
-          black: 0,
-          ratingSum: 0,
-          ratingCount: 0,
-          players: new Set(),
-        };
-        byMove.set(record.moveUci, move);
-      }
-      if (move.gameIds.has(game.id)) continue;
-      move.gameIds.add(game.id);
-      addResult(move, game.result);
-      const rating = record.mover === 'w' ? game.whiteRating : game.blackRating;
-      if (rating) {
-        move.ratingSum += rating;
-        move.ratingCount += 1;
-      }
-      const player = record.mover === 'w' ? game.white : game.black;
-      if (player) move.players.add(player);
-      if (game.year && (!move.lastYear || game.year > move.lastYear)) move.lastYear = game.year;
-    }
-
-    const moves: DatabaseMove[] = [...byMove.values()]
-      .map((move) => {
-        const averageRating = move.ratingCount
-          ? Math.round(move.ratingSum / move.ratingCount)
-          : undefined;
-        const base: DatabaseMove = {
-          uci: move.uci,
-          san: move.san,
-          games: move.gameIds.size,
-          white: move.white,
-          draws: move.draws,
-          black: move.black,
-          ...(averageRating ? { averageRating } : {}),
-          ...(move.lastYear ? { lastPlayedYear: move.lastYear } : {}),
-          ...(move.players.size ? { notablePlayers: [...move.players].slice(0, 8) } : {}),
-        };
-        const performance = averageRating
-          ? performanceRating(moveScore(base, sideToMove), averageRating)
-          : undefined;
-        return performance === undefined ? base : { ...base, performance };
-      })
-      .sort((a, b) => b.games - a.games || a.san.localeCompare(b.san));
-
-    const included = games.filter((game) => includedGames.has(game.id));
-    const total = tallyGames(included);
-    return {
-      fen,
-      source: { id: 'local-collection', name: 'My games' },
-      totalGames: included.length,
-      ...total,
-      moves: moves.slice(0, limit),
-      topGames: included
-        .sort((a, b) => b.importedAt - a.importedAt)
-        .slice(0, 8)
-        .map(toGameRef),
-      truncated: moves.length > limit,
-    };
+      uniqueGameIds.length > BULK_EXPLORER_JOIN_THRESHOLD
+        ? await this.database.getAll<GameSummary>(STORE_NAMES.games)
+        : await this.database.transaction([STORE_NAMES.games], 'readonly', async (transaction) => {
+            const loaded: (GameSummary | undefined)[] = [];
+            for (const id of uniqueGameIds) {
+              loaded.push(await transaction.get<GameSummary>(STORE_NAMES.games, id));
+            }
+            return loaded;
+          })
+    ).filter(
+      (game): game is GameSummary =>
+        game !== undefined &&
+        (uniqueGameIds.length <= BULK_EXPLORER_JOIN_THRESHOLD || includedIds.has(game.id)),
+    );
+    return aggregateLocalExplorer(fen, records, games, filters, limit);
   }
-}
-
-interface MutableMove {
-  readonly uci: Uci;
-  readonly san: San;
-  readonly gameIds: Set<string>;
-  white: number;
-  draws: number;
-  black: number;
-  ratingSum: number;
-  ratingCount: number;
-  readonly players: Set<string>;
-  lastYear?: number;
 }
 
 async function findFingerprint(
@@ -374,7 +355,7 @@ async function findFingerprint(
 interface QueryPlan {
   /** The index to walk, or null to walk the primary key. */
   readonly index: string | null;
-  readonly range?: IDBKeyRange;
+  readonly range?: KeyRange;
   /** True when walking this index already yields the requested sort order. */
   readonly ordered: boolean;
   /**
@@ -394,16 +375,14 @@ interface QueryPlan {
  * the plan falls back to the natural order.
  */
 function planQuery(query: GameSearchQuery): QueryPlan {
-  const hasRange = typeof IDBKeyRange !== 'undefined';
-
   /*
     Count the predicates the query actually carries, then let a plan call itself
     exact only if it consumed all of them. Deriving `exact` this way rather than
     listing exceptions per branch is what stops a filter being silently dropped
-    when, say, `IDBKeyRange` is unavailable and the plan falls through — a bug
-    that returns too many games rather than an error, which is the worst kind.
+    when a plan falls through — a bug that returns too many games rather than an
+    error, which is the worst kind.
   */
-  const player = query.player?.trim().toLowerCase();
+  const player = playerKey(query.player);
   const predicates =
     (player ? 1 : 0) +
     (query.result ? 1 : 0) +
@@ -413,40 +392,38 @@ function planQuery(query: GameSearchQuery): QueryPlan {
     (query.opening ? 1 : 0) +
     (query.eco ? 1 : 0);
 
-  const plan = (index: string | null, range: IDBKeyRange | null, consumed: number): QueryPlan => ({
+  const plan = (index: string | null, range: KeyRange | null, consumed: number): QueryPlan => ({
     index,
     ...(range ? { range } : {}),
     ordered: false,
     exact: consumed === predicates,
   });
 
-  if (player && hasRange) {
-    const range = IDBKeyRange.only(player);
-    // An index lookup answers a *whole* normalized name. A partial name still
-    // has to be compared per record, so the plan narrows but is not exact.
-    const consumed = 1;
-    if (query.playerColor === 'w') return plan('whiteKey', range, consumed);
-    if (query.playerColor === 'b') return plan('blackKey', range, consumed);
-    return plan('players', range, consumed);
+  if (player) {
+    // `player` means a whole normalized name, which is what the index holds and
+    // what `matchesSearch` tests, so both paths agree about who a player is.
+    // Partial-name searching is what `text` is for.
+    const range = onlyKey(player);
+    if (query.playerColor === 'w') return plan('whiteKey', range, 1);
+    if (query.playerColor === 'b') return plan('blackKey', range, 1);
+    return plan('players', range, 1);
   }
 
-  if ((query.fromYear || query.toYear) && hasRange) {
-    const range = IDBKeyRange.bound(query.fromYear ?? 0, query.toYear ?? 9999);
-    return plan('year', range, 1);
+  if (query.fromYear || query.toYear) {
+    return plan('year', boundKeys(query.fromYear ?? 0, query.toYear ?? 9999), 1);
   }
 
-  if (query.result && hasRange) {
-    return plan('result', IDBKeyRange.only(query.result), 1);
-  }
+  if (query.result) return plan('result', onlyKey(query.result), 1);
 
   // Nothing selective to narrow by: walk the sort index itself so the page
   // arrives already ordered and nothing outside it is deserialised.
-  const sortBy = query.sortBy ?? 'importedAt';
-  const ordered =
-    sortBy === 'importedAt' || sortBy === 'date' || sortBy === 'white' || sortBy === 'black';
-  const index = ordered ? (sortBy === 'importedAt' ? 'importedAt' : sortBy) : null;
+  const orderedIndex = ORDERED_INDEXES[query.sortBy ?? 'importedAt'];
 
-  return { index, ordered, exact: predicates === 0 };
+  return {
+    index: orderedIndex ?? null,
+    ordered: orderedIndex !== null,
+    exact: predicates === 0,
+  };
 }
 
 function matchesSearch(game: GameSummary, query: GameSearchQuery): boolean {
@@ -466,10 +443,13 @@ function matchesSearch(game: GameSummary, query: GameSearchQuery): boolean {
       .toLowerCase();
     if (!haystack.includes(text)) return false;
   }
-  const player = query.player?.trim().toLowerCase();
+  const player = playerKey(query.player);
   if (player) {
-    const white = game.white.toLowerCase().includes(player);
-    const black = game.black.toLowerCase().includes(player);
+    // Whole-name equality, never a substring: `text` searches names loosely,
+    // `player` names one person. Merging two people who share a surname is a
+    // worse failure than showing nothing for a half-typed name.
+    const white = game.whiteKey === player;
+    const black = game.blackKey === player;
     if (
       query.playerColor === 'w' ? !white : query.playerColor === 'b' ? !black : !white && !black
     ) {
@@ -491,16 +471,6 @@ function matchesSearch(game: GameSummary, query: GameSearchQuery): boolean {
   return true;
 }
 
-function matchesExplorer(game: GameSummary, filters: ExplorerFilters): boolean {
-  return matchesSearch(game, {
-    ...(filters.player ? { player: filters.player } : {}),
-    ...(filters.playerColor ? { playerColor: filters.playerColor } : {}),
-    ...(filters.sinceYear ? { fromYear: filters.sinceYear } : {}),
-    ...(filters.untilYear ? { toYear: filters.untilYear } : {}),
-    ...(filters.minRating ? { minRating: filters.minRating } : {}),
-  });
-}
-
 function compareGames(
   a: GameSummary,
   b: GameSummary,
@@ -517,32 +487,4 @@ function compareGames(
     );
   }
   return a.importedAt - b.importedAt;
-}
-
-function addResult(
-  target: { white: number; draws: number; black: number },
-  result: GameResult,
-): void {
-  if (result === '1-0') target.white += 1;
-  else if (result === '0-1') target.black += 1;
-  else if (result === '1/2-1/2') target.draws += 1;
-}
-
-function tallyGames(games: readonly GameSummary[]) {
-  const tally = { white: 0, draws: 0, black: 0 };
-  for (const game of games) addResult(tally, game.result);
-  return tally;
-}
-
-function toGameRef(game: GameSummary): DatabaseGameRef {
-  return {
-    id: game.id,
-    white: game.white,
-    black: game.black,
-    result: game.result,
-    ...(game.whiteRating ? { whiteRating: game.whiteRating } : {}),
-    ...(game.blackRating ? { blackRating: game.blackRating } : {}),
-    ...(game.year ? { year: game.year } : {}),
-    ...(game.event ? { event: game.event } : {}),
-  };
 }

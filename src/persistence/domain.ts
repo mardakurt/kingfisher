@@ -51,6 +51,12 @@ export interface RepertoireMove {
   readonly uci: Uci;
   readonly san: San;
   readonly role: RepertoireRole;
+  /**
+   * An observed/expected opponent continuation rather than a move the user
+   * intends to play. Kept on the same position record so deviations and gaps
+   * remain position-keyed and transposition aware.
+   */
+  readonly expected?: boolean;
   readonly note?: string;
   /** Epoch ms; lets "needs review" be derived rather than stored as a status. */
   readonly updatedAt: number;
@@ -125,6 +131,22 @@ export interface ScheduleState {
   readonly lapses: number;
 }
 
+/**
+ * Where an item's accepted answer came from.
+ *
+ * Recorded because "the engine liked this at depth 30" and "this is my
+ * repertoire move" are different claims, and neither is the same as "I decided
+ * this is right". A training item that cannot say which one it is invites the
+ * user to treat a search result as truth. See ADR 0011.
+ */
+export type AnswerSource = 'user' | 'engine' | 'repertoire';
+
+export const ANSWER_SOURCE_LABEL: Record<AnswerSource, string> = {
+  user: 'User-defined',
+  engine: 'Saved engine line',
+  repertoire: 'Repertoire',
+};
+
 export interface TrainingItemRecord {
   readonly id: TrainingItemId;
   readonly mode: TrainingMode;
@@ -144,6 +166,8 @@ export interface TrainingItemRecord {
   readonly explanation?: string;
   readonly tags: readonly string[];
   readonly source?: TrainingSource;
+  /** Provenance of `solutionUci`; absent on items written before it existed. */
+  readonly answerSource?: AnswerSource;
   readonly schedule: ScheduleState;
   readonly createdAt: number;
   readonly updatedAt: number;
