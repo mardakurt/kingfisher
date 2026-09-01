@@ -8,6 +8,7 @@ import { IconButton } from '@/components/ui/Button';
 import { cn } from '@/lib/cn';
 import { useUi } from '@/stores/ui-store';
 
+import { BrandMark } from './BrandMark';
 import { NAV_SECTIONS } from './navigation';
 
 interface SidebarProps {
@@ -34,7 +35,7 @@ export function Sidebar({ variant = 'desktop', onClose }: SidebarProps) {
           drawer ? 'gap-2 px-3' : 'justify-center px-2 xl:justify-start xl:gap-2 xl:px-3',
         )}
       >
-        <Mark />
+        <BrandMark className="h-[18px] w-[18px] shrink-0 text-accent" />
         <span
           className={cn(
             'text-[13px] font-semibold tracking-tight text-primary',
@@ -138,19 +139,3 @@ export function Sidebar({ variant = 'desktop', onClose }: SidebarProps) {
     </nav>
   );
 }
-
-const Mark = () => (
-  <svg viewBox="0 0 24 24" className="h-4.5 w-4.5" aria-hidden>
-    <path
-      d="M12 2.5 14.2 7l4.8.6-3.5 3.4.9 4.9L12 13.6 7.6 15.9l.9-4.9L5 7.6 9.8 7z"
-      fill="var(--accent)"
-      opacity="0.9"
-    />
-    <path
-      d="M12 15.5v6M8.5 21.5h7"
-      stroke="var(--accent)"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-    />
-  </svg>
-);

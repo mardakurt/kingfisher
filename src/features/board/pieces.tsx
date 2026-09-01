@@ -9,11 +9,13 @@
 export {
   PieceIcon,
   PieceSetPreview,
+  PIECE_ATTRIBUTIONS,
   PIECE_SETS,
   PREVIEW_ORDER,
   pieceLabel,
   pieceLetter,
   pieceSet,
+  type AssetAttribution,
   type PieceIconProps,
   type PieceSetDefinition,
   type PieceSetId,

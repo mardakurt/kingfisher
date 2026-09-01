@@ -36,6 +36,16 @@ export interface BoardTheme {
   readonly check: string;
   /** Dots and rings marking legal destinations. */
   readonly legalMove: string;
+  /**
+   * Wood grain strength, 0–1. Absent means a flat board.
+   *
+   * The grain is generated (see `grainPattern`) rather than vendored as a
+   * photograph. A fixed-size texture has to be resampled for every board size
+   * between a 200px study thumbnail and a 900px analysis board, and it either
+   * blurs or moirés at most of them; an SVG pattern is correct at all of them,
+   * costs about a kilobyte, and carries no licence obligations.
+   */
+  readonly grain?: number;
 }
 
 export const BOARD_THEMES: readonly BoardTheme[] = [
@@ -87,7 +97,8 @@ export const BOARD_THEMES: readonly BoardTheme[] = [
   {
     id: 'walnut',
     name: 'Walnut',
-    description: 'Warm wood tones without a texture bitmap.',
+    description: 'Dark tournament wood with a generated grain.',
+    grain: 1,
     light: '#e4cfa8',
     dark: '#a97d54',
     pieceLight: '#fcf8f1',
@@ -101,6 +112,7 @@ export const BOARD_THEMES: readonly BoardTheme[] = [
   },
   {
     id: 'sand',
+    grain: 0.55,
     name: 'Sand',
     description: 'Low-contrast warm neutrals; easy on a bright screen.',
     light: '#eadfc8',
@@ -171,9 +183,43 @@ export const boardTheme = (id: BoardThemeId): BoardTheme =>
  * thumbnail read the same tokens, so a preview cannot drift from the board it
  * is previewing.
  */
+/**
+ * A tiling wood grain as a data-URI SVG.
+ *
+ * Deterministic, so the same theme always produces the same board rather than
+ * re-rolling its grain on every render, and seeded per tone so the light and
+ * dark squares do not share a visibly identical pattern.
+ */
+export function grainPattern(seed: number, strength: number): string {
+  const lines: string[] = [];
+  let value = seed;
+  const next = () => {
+    // A small LCG. The grain only needs to look unplanned, not be random.
+    value = (value * 1664525 + 1013904223) % 4294967296;
+    return value / 4294967296;
+  };
+  for (let index = 0; index < 26; index += 1) {
+    const y = index * 3.1 + next() * 2.2;
+    const amplitude = 0.7 + next() * 1.9;
+    const width = 0.35 + next() * 0.75;
+    const opacity = (0.05 + next() * 0.16) * strength;
+    lines.push(
+      `<path d="M0 ${y.toFixed(2)}q20 ${amplitude.toFixed(2)} 40 0t40 0" fill="none" ` +
+        `stroke="#000" stroke-width="${width.toFixed(2)}" stroke-opacity="${opacity.toFixed(3)}"/>`,
+    );
+  }
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80">` +
+    lines.join('') +
+    `</svg>`;
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+}
+
 export const boardThemeVariables = (theme: BoardTheme): Record<string, string> => ({
   '--square-light': theme.light,
   '--square-dark': theme.dark,
+  '--square-grain-light': theme.grain ? grainPattern(11, theme.grain) : 'none',
+  '--square-grain-dark': theme.grain ? grainPattern(97, theme.grain * 0.8) : 'none',
   '--piece-light': theme.pieceLight,
   '--piece-dark': theme.pieceDark,
   '--coord-on-light': theme.coordinateOnLight,

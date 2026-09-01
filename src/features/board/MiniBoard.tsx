@@ -50,7 +50,12 @@ export function MiniBoard({ fen, orientation = 'w', theme, pieceSet, className }
             <div
               key={`${file}${rank}`}
               className="relative"
-              style={{ background: light ? 'var(--square-light)' : 'var(--square-dark)' }}
+              style={{
+                // Grain over colour. Wood themes set the pattern; flat ones
+                // resolve it to `none` and the square is a plain fill.
+                backgroundColor: light ? 'var(--square-light)' : 'var(--square-dark)',
+                backgroundImage: light ? 'var(--square-grain-light)' : 'var(--square-grain-dark)',
+              }}
             >
               {piece && <PieceIcon piece={piece} set={pieceSet} className="h-full w-full" />}
             </div>

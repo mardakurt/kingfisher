@@ -14,6 +14,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 import type { AnalysisLimit } from '@/engine/types';
 import type { EnginePresetId } from '@/engine/presets';
+import { DEFAULT_PIECE_SET_ID, LEGACY_PIECE_SET_IDS } from '@/lib/board-options';
 import type {
   AnimationSpeed,
   ArrowPaletteId,
@@ -55,8 +56,8 @@ interface PreferencesActions {
 
 export const DEFAULT_PREFERENCES: Preferences = {
   theme: 'dark',
-  boardTheme: 'slate',
-  pieceSet: 'staunton',
+  boardTheme: 'walnut',
+  pieceSet: DEFAULT_PIECE_SET_ID,
   coordinateStyle: 'inside',
   animationSpeed: 'normal',
   arrowPalette: 'standard',
@@ -101,7 +102,7 @@ export const usePreferences = create<Preferences & PreferencesActions>()(
     }),
     {
       name: 'kingfisher.preferences',
-      version: 2,
+      version: 3,
       storage: createJSONStorage(() => localStorage),
       /**
        * Phase 3 replaced two booleans with named scales. Migrating rather than
@@ -109,18 +110,32 @@ export const usePreferences = create<Preferences & PreferencesActions>()(
        * reappear after an update.
        */
       migrate: (persisted, version) => {
-        if (version >= 2 || persisted === null || typeof persisted !== 'object') {
-          return persisted as Preferences;
+        if (persisted === null || typeof persisted !== 'object') return persisted as Preferences;
+        let state = persisted as Record<string, unknown>;
+
+        if (version < 2) {
+          const { showCoordinates, animateMoves, ...rest } = state;
+          state = {
+            ...rest,
+            coordinateStyle: showCoordinates === false ? 'none' : 'inside',
+            animationSpeed: animateMoves === false ? 'off' : 'normal',
+            arrowPalette: 'standard',
+            enginePreset: 'standard',
+          };
         }
-        const old = persisted as Record<string, unknown>;
-        const { showCoordinates, animateMoves, ...rest } = old;
-        return {
-          ...rest,
-          coordinateStyle: showCoordinates === false ? 'none' : 'inside',
-          animationSpeed: animateMoves === false ? 'off' : 'normal',
-          arrowPalette: 'standard',
-          enginePreset: 'standard',
-        } as unknown as Preferences;
+
+        /*
+          Phase 4 replaced the hand-drawn geometry sets with licensed artwork.
+          A stored id naming one of them still renders — the fallback registry
+          keeps them — but leaving a user on it would mean they never see the
+          reason the artwork was vendored. The id is moved forward once; anyone
+          who prefers something else picks it again in Settings.
+        */
+        if (version < 3 && LEGACY_PIECE_SET_IDS.includes(state.pieceSet as PieceSetId)) {
+          state = { ...state, pieceSet: DEFAULT_PIECE_SET_ID };
+        }
+
+        return state as unknown as Preferences;
       },
       partialize: ({ set: _set, toggleTheme: _toggle, reset: _reset, ...rest }) => rest,
     },

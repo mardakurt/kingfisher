@@ -17,9 +17,20 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Kingfisher — chess research workspace',
+  title: {
+    default: 'Kingfisher — chess research workspace',
+    template: '%s · Kingfisher',
+  },
   description:
     'Engine analysis, opening databases and repertoire work in one workspace, for players who study.',
+  applicationName: 'Kingfisher',
+  appleWebApp: { capable: true, title: 'Kingfisher', statusBarStyle: 'black-translucent' },
+  /*
+    `icon.svg` and `apple-icon.png` in this directory are picked up by the file
+    convention; the manifest icons are declared in `manifest.ts`. Only the
+    Windows tile needs saying out loud.
+  */
+  other: { 'msapplication-TileColor': '#0b0d11' },
 };
 
 export const viewport: Viewport = {

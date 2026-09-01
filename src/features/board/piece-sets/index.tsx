@@ -1,14 +1,25 @@
 /**
  * The piece-set registry.
  *
- * A set is a geometry family plus a rendering treatment, declared as data. The
- * board asks the registry for a renderer and knows nothing else, so adding a
- * set is a table entry rather than a change to the board.
+ * A set is either **vendored artwork** — twelve SVG files under `public/piece/`,
+ * drawn by people who draw chess pieces for a living — or the Phase 1 fallback
+ * **geometry**, which is hand-written path data coloured from the board theme.
  *
- * Colours always come from the board theme's `--piece-light` / `--piece-dark`
- * custom properties rather than being baked into a set. That is what lets any
- * of the six sets sit on any of the eight boards and stay readable: the theme
- * owns contrast, the set owns shape.
+ * Artwork won. The geometry sets were a reasonable way to ship a board before
+ * there was anything else, but they never looked like chess pieces next to a
+ * real Staunton set, so they are no longer offered. They are still *resolvable*,
+ * because a preference is a contract: a stored `pieceSet: 'minimal'` from an
+ * older install must render a board, not an empty grid.
+ *
+ * Vendored sets carry their own colours. That is the point of using real
+ * artwork and the reason `--piece-light` / `--piece-dark` no longer apply to
+ * them: a Staunton knight is not a silhouette with a fill, it is a drawing.
+ * Board themes therefore stop owning piece contrast and start being chosen to
+ * suit it, which is what the appearance matrix in Settings is for.
+ *
+ * Every vendored set's licence and author is recorded here *and* in
+ * THIRD_PARTY_ASSETS.md, so the obligation travels with the code rather than
+ * living only in a document somebody forgets to read.
  */
 
 import type { ReactElement } from 'react';
@@ -20,8 +31,16 @@ import { GEOMETRY_FAMILIES, type GeometryFamily } from './geometry';
 
 export type { PieceSetId } from '@/lib/board-options';
 
+export interface AssetAttribution {
+  readonly author: string;
+  /** SPDX-style identifier, or the licence's common name. */
+  readonly license: string;
+  readonly licenseUrl: string;
+  readonly source: string;
+}
+
 /**
- * How a geometry is painted.
+ * How a geometry family is painted. Fallback-only; see the module comment.
  *
  * `outlineWidth` is asymmetric on purpose: a white piece on a light square
  * needs a heavier contrast outline than a black piece on a dark square, because
@@ -32,13 +51,22 @@ interface PieceStyle {
   readonly blackOutline: number;
   readonly fillOpacity?: number;
   readonly detailOpacity?: number;
-  /** Flat sets drop interior detail rather than drawing it faintly. */
   readonly detail: boolean;
-  /** Shadow beneath the piece; off for flat and high-contrast sets. */
   readonly shade?: boolean;
 }
 
-export interface PieceSetDefinition {
+interface VectorPieceSet {
+  readonly kind: 'vector';
+  readonly id: PieceSetId;
+  readonly name: string;
+  readonly description: string;
+  /** Directory under `public/`, without a trailing slash. */
+  readonly directory: string;
+  readonly attribution: AssetAttribution;
+}
+
+interface GeometryPieceSet {
+  readonly kind: 'geometry';
   readonly id: PieceSetId;
   readonly name: string;
   readonly description: string;
@@ -46,32 +74,113 @@ export interface PieceSetDefinition {
   readonly style: PieceStyle;
 }
 
+export type PieceSetDefinition = VectorPieceSet | GeometryPieceSet;
+
+/** The sets a user can choose. Ordered by how conventional they look. */
 export const PIECE_SETS: readonly PieceSetDefinition[] = [
   {
+    kind: 'vector',
+    id: 'cburnett',
+    name: 'Cburnett',
+    description: 'The Staunton set from Wikipedia. What most players picture as “a chess piece”.',
+    directory: '/piece/cburnett',
+    attribution: {
+      author: 'Colin M.L. Burnett',
+      license: 'GPL-2.0-or-later',
+      licenseUrl: 'https://www.gnu.org/licenses/gpl-2.0.txt',
+      source: 'https://en.wikipedia.org/wiki/User:Cburnett/GFDL_images/Chess',
+    },
+  },
+  {
+    kind: 'vector',
+    id: 'merida',
+    name: 'Merida',
+    description: 'Heavier tournament Staunton with deeper carving. Reads well on wood.',
+    directory: '/piece/merida',
+    attribution: {
+      author: 'Armando Hernandez Marroquin',
+      license: 'GPL-2.0-or-later',
+      licenseUrl: 'https://www.gnu.org/licenses/gpl-2.0.txt',
+      source: 'https://github.com/lichess-org/lila/tree/master/public/piece/merida',
+    },
+  },
+  {
+    kind: 'vector',
+    id: 'chessnut',
+    name: 'Chessnut',
+    description: 'Modern Staunton with clean edges and generous interior space.',
+    directory: '/piece/chessnut',
+    attribution: {
+      author: 'Alexis Luengas',
+      license: 'Apache-2.0',
+      licenseUrl: 'https://github.com/LexLuengas/chessnut-pieces/blob/master/LICENSE.txt',
+      source: 'https://github.com/LexLuengas/chessnut-pieces',
+    },
+  },
+  {
+    kind: 'vector',
+    id: 'fantasy',
+    name: 'Fantasy',
+    description: 'Softly shaded and elegant. The most decorative set here.',
+    directory: '/piece/fantasy',
+    attribution: {
+      author: 'Maurizio Monge',
+      license: 'MIT',
+      licenseUrl: 'https://github.com/maurimo/chess-art/blob/main/LICENSE',
+      source: 'https://github.com/maurimo/chess-art',
+    },
+  },
+  {
+    kind: 'vector',
+    id: 'spatial',
+    name: 'Spatial',
+    description: 'Flat, geometric and very high contrast. Calm in crowded positions.',
+    directory: '/piece/spatial',
+    attribution: {
+      author: 'Maurizio Monge',
+      license: 'MIT',
+      licenseUrl: 'https://github.com/maurimo/chess-art/blob/main/LICENSE',
+      source: 'https://github.com/maurimo/chess-art',
+    },
+  },
+];
+
+/**
+ * Retained so an older stored preference still renders. Not offered anywhere.
+ *
+ * `staunton` doubles as the recovery set: it needs no network request and no
+ * files on disk, so it is what a board falls back to if artwork cannot load.
+ */
+export const LEGACY_PIECE_SETS: readonly PieceSetDefinition[] = [
+  {
+    kind: 'geometry',
     id: 'staunton',
-    name: 'Modern Staunton',
-    description: 'Solid silhouettes with a fine contrast outline. The default.',
+    name: 'Built-in fallback',
+    description: 'Drawn from path data. Used only when artwork cannot be loaded.',
     family: 'staunton',
     style: { whiteOutline: 2, blackOutline: 1.25, detail: true, detailOpacity: 0.66, shade: true },
   },
   {
+    kind: 'geometry',
     id: 'classic',
-    name: 'Classic Staunton',
-    description: 'Heavier outline and stronger carving; reads well on wood.',
+    name: 'Built-in fallback (classic)',
+    description: 'Legacy geometry retained for stored preferences.',
     family: 'staunton',
     style: { whiteOutline: 3.1, blackOutline: 2.3, detail: true, detailOpacity: 0.82, shade: true },
   },
   {
+    kind: 'geometry',
     id: 'tournament',
-    name: 'Tournament',
-    description: 'Flat fills, no interior detail. Calm in crowded positions.',
+    name: 'Built-in fallback (flat)',
+    description: 'Legacy geometry retained for stored preferences.',
     family: 'staunton',
     style: { whiteOutline: 1.6, blackOutline: 0.9, detail: false },
   },
   {
+    kind: 'geometry',
     id: 'line',
-    name: 'Line',
-    description: 'Outlined and translucent; lighter on the eye during long study.',
+    name: 'Built-in fallback (line)',
+    description: 'Legacy geometry retained for stored preferences.',
     family: 'staunton',
     style: {
       whiteOutline: 2.9,
@@ -82,25 +191,54 @@ export const PIECE_SETS: readonly PieceSetDefinition[] = [
     },
   },
   {
+    kind: 'geometry',
     id: 'minimal',
-    name: 'Minimal',
-    description: 'Reduced shapes built for small boards and dense screens.',
+    name: 'Built-in fallback (minimal)',
+    description: 'Legacy geometry retained for stored preferences.',
     family: 'minimal',
     style: { whiteOutline: 2.2, blackOutline: 1.6, detail: true, detailOpacity: 0.7 },
   },
   {
+    kind: 'geometry',
     id: 'contrast',
-    name: 'High Contrast',
-    description: 'Pure black and white with a heavy outline, for low vision.',
+    name: 'Built-in fallback (contrast)',
+    description: 'Legacy geometry retained for stored preferences.',
     family: 'staunton',
     style: { whiteOutline: 4, blackOutline: 3.4, detail: false },
   },
 ];
 
-const BY_ID = new Map(PIECE_SETS.map((set) => [set.id, set]));
+/** The set a board falls back to when nothing else resolves. */
+export const FALLBACK_PIECE_SET = LEGACY_PIECE_SETS[0] as PieceSetDefinition;
+
+export { DEFAULT_PIECE_SET_ID, LEGACY_PIECE_SET_IDS } from '@/lib/board-options';
+
+const BY_ID = new Map<PieceSetId, PieceSetDefinition>(
+  [...PIECE_SETS, ...LEGACY_PIECE_SETS].map((set) => [set.id, set]),
+);
 
 export const pieceSet = (id: PieceSetId): PieceSetDefinition =>
   BY_ID.get(id) ?? (PIECE_SETS[0] as PieceSetDefinition);
+
+/** Every vendored set's attribution, for the settings screen and the manifest. */
+export const PIECE_ATTRIBUTIONS: readonly (AssetAttribution & { readonly name: string })[] =
+  PIECE_SETS.filter((set): set is VectorPieceSet => set.kind === 'vector').map((set) => ({
+    name: set.name,
+    ...set.attribution,
+  }));
+
+const FILE_NAME: Record<PieceType, string> = {
+  k: 'K',
+  q: 'Q',
+  r: 'R',
+  b: 'B',
+  n: 'N',
+  p: 'P',
+};
+
+/** Where one piece's artwork lives, e.g. `/piece/cburnett/wN.svg`. */
+export const pieceAssetUrl = (set: VectorPieceSet, piece: Piece): string =>
+  `${set.directory}/${piece.color}${FILE_NAME[piece.type]}.svg`;
 
 export interface PieceIconProps {
   readonly piece: Piece;
@@ -112,6 +250,49 @@ export interface PieceIconProps {
 
 export function PieceIcon({ piece, set, className, decorative }: PieceIconProps) {
   const definition = pieceSet(set);
+  const label = pieceLabel(piece);
+
+  if (definition.kind === 'vector') {
+    return (
+      /*
+        A plain <img>, not next/image: these are a few hundred bytes of SVG
+        served from our own origin, so there is nothing to optimise and an
+        optimiser in front of them would only add a request and a layout shift.
+        `draggable={false}` matters — the board implements its own dragging, and
+        the browser's native image drag would fight it.
+      */
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={pieceAssetUrl(definition, piece)}
+        alt={decorative ? '' : label}
+        {...(decorative ? { 'aria-hidden': true } : {})}
+        className={className}
+        draggable={false}
+      />
+    );
+  }
+
+  return (
+    <GeometryPiece
+      piece={piece}
+      definition={definition}
+      className={className}
+      label={decorative ? null : label}
+    />
+  );
+}
+
+function GeometryPiece({
+  piece,
+  definition,
+  className,
+  label,
+}: {
+  readonly piece: Piece;
+  readonly definition: GeometryPieceSet;
+  readonly className?: string;
+  readonly label: string | null;
+}) {
   const geometry = GEOMETRY_FAMILIES[definition.family][piece.type];
   const { style } = definition;
 
@@ -123,7 +304,7 @@ export function PieceIcon({ piece, set, className, decorative }: PieceIconProps)
     <svg
       viewBox="0 0 100 100"
       className={className}
-      {...(decorative ? { 'aria-hidden': true } : { role: 'img', 'aria-label': pieceLabel(piece) })}
+      {...(label === null ? { 'aria-hidden': true } : { role: 'img', 'aria-label': label })}
       preserveAspectRatio="xMidYMid meet"
       shapeRendering="geometricPrecision"
     >

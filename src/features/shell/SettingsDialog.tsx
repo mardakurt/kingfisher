@@ -262,6 +262,16 @@ function PiecesSection() {
                 {set.name}
               </span>
               <span className="block truncate text-[10.5px] text-tertiary">{set.description}</span>
+              {/*
+                The artwork is other people's work under a licence that asks for
+                credit. Crediting it where it is chosen, rather than only in a
+                file, is both the obligation and the more useful place for it.
+              */}
+              {set.kind === 'vector' ? (
+                <span className="block truncate text-[10px] text-tertiary/80">
+                  {set.attribution.author} · {set.attribution.license}
+                </span>
+              ) : null}
             </span>
           </button>
         );

@@ -359,7 +359,12 @@ export function Chessboard({
               <div
                 key={square}
                 className={cn('relative', (canSelect || isTarget) && 'cursor-pointer')}
-                style={{ background: light ? 'var(--square-light)' : 'var(--square-dark)' }}
+                style={{
+                  // Grain over colour. Wood themes set the pattern; flat ones
+                  // resolve it to `none` and the square is a plain fill.
+                  backgroundColor: light ? 'var(--square-light)' : 'var(--square-dark)',
+                  backgroundImage: light ? 'var(--square-grain-light)' : 'var(--square-grain-dark)',
+                }}
                 role="gridcell"
                 aria-label={
                   squarePiece ? `${square}, ${pieceLabel(squarePiece)}` : `${square}, empty`
