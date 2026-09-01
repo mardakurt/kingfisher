@@ -188,6 +188,23 @@ export interface GameRepository {
   deleteMany(ids: readonly GameId[]): Promise<void>;
   clear(): Promise<void>;
   explore(fen: Fen, filters?: ExplorerFilters, limit?: number): Promise<ExplorerResult>;
+  /** How many stored games reach a canonical position. */
+  countAtPosition(key: string): Promise<number>;
+  /**
+   * Distinct move orders that reach a position in the stored games.
+   *
+   * Read from what was actually played, never generated: a list of plausible
+   * transpositions the user's database has no example of would be a list of
+   * guesses dressed as evidence.
+   */
+  routesToPosition(key: string, limit?: number): Promise<readonly TranspositionRoute[]>;
+}
+
+export interface TranspositionRoute {
+  /** The move order, in SAN, from the start of the game. */
+  readonly moves: readonly San[];
+  /** How many stored games arrived this way. */
+  readonly games: number;
 }
 
 export type AnalysisDocument =

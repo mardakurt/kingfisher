@@ -1,5 +1,5 @@
 import { positionKey } from '@/chess/fen';
-import type { Fen } from '@/chess/types';
+import type { Fen, San } from '@/chess/types';
 import { aggregateLocalExplorer } from '@/database/local-aggregate';
 import type { ExplorerFilters, ExplorerResult } from '@/database/types';
 
@@ -16,6 +16,7 @@ import type {
   GameSummary,
   PersistGameResult,
   PositionRecord,
+  TranspositionRoute,
 } from '../types';
 import { assertValid, isGameSummary } from '../validation';
 
@@ -324,6 +325,61 @@ export class LocalGameRepository implements GameRepository {
         await transaction.clear(STORE_NAMES.games);
       },
     );
+  }
+
+  async countAtPosition(key: string): Promise<number> {
+    const records = await this.database.getAllFromIndex<PositionRecord>(
+      STORE_NAMES.positions,
+      'positionKey',
+      key,
+    );
+    return new Set(records.map((record) => record.gameId)).size;
+  }
+
+  /**
+   * The move orders that actually reached this position in stored games.
+   *
+   * Bounded on purpose: a position in a popular opening is reached by thousands
+   * of games, and the user wants to see the two or three distinct orders, not a
+   * census. Games are sampled, their prefixes reconstructed from the position
+   * index, and identical orders merged.
+   */
+  async routesToPosition(key: string, limit = 4): Promise<readonly TranspositionRoute[]> {
+    const arrivals = await this.database.getAllFromIndex<PositionRecord>(
+      STORE_NAMES.positions,
+      'positionKey',
+      key,
+    );
+    if (arrivals.length === 0) return [];
+
+    // The earliest arrival per game is the one that names the move order.
+    const firstByGame = new Map<GameId, number>();
+    for (const record of arrivals) {
+      const current = firstByGame.get(record.gameId);
+      if (current === undefined || record.ply < current) firstByGame.set(record.gameId, record.ply);
+    }
+
+    const counts = new Map<string, { moves: San[]; games: number }>();
+    const sample = [...firstByGame.entries()].slice(0, 60);
+
+    for (const [gameId, ply] of sample) {
+      const records = await this.database.getAllFromIndex<PositionRecord>(
+        STORE_NAMES.positions,
+        'gameId',
+        gameId,
+      );
+      const moves = records
+        .filter((record) => record.ply <= ply)
+        .sort((a, b) => a.ply - b.ply)
+        .map((record) => record.moveSan);
+      if (moves.length === 0) continue;
+      const signature = moves.join(' ');
+      const existing = counts.get(signature);
+      if (existing) existing.games += 1;
+      else counts.set(signature, { moves, games: 1 });
+    }
+
+    return [...counts.values()].sort((a, b) => b.games - a.games).slice(0, limit);
   }
 
   async explore(fen: Fen, filters: ExplorerFilters = {}, limit = 20): Promise<ExplorerResult> {

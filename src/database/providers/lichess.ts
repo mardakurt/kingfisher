@@ -12,6 +12,8 @@
 import { asSan, asUci, type Fen } from '@/chess/types';
 import { parseFen } from '@/chess/fen';
 
+import { hasLichessToken, lichessAuthHeaders } from './lichess-auth';
+
 import {
   DatabaseError,
   moveScore,
@@ -110,7 +112,10 @@ export class LichessExplorerProvider implements ChessDatabaseProvider {
 
     let response: Response;
     try {
-      response = await fetch(url, { signal: combined, headers: { Accept: 'application/json' } });
+      response = await fetch(url, {
+        signal: combined,
+        headers: { Accept: 'application/json', ...lichessAuthHeaders() },
+      });
     } catch (error) {
       if (signal?.aborted) throw error;
       if (timeout.aborted) {
@@ -127,8 +132,12 @@ export class LichessExplorerProvider implements ChessDatabaseProvider {
 
     if (response.status === 401) {
       throw new DatabaseError(
-        'Lichess now requires authentication for opening explorer requests.',
-        'Authenticated Lichess access is not configured in this local-first milestone. Use "My games" to keep working offline.',
+        hasLichessToken()
+          ? 'Lichess rejected the configured API token.'
+          : 'Lichess requires an API token for opening explorer requests.',
+        hasLichessToken()
+          ? 'Create a fresh token and paste it into Settings → Database. No scopes are needed.'
+          : 'Add your own token in Settings → Database, or use "My games", which works offline.',
       );
     }
     if (response.status === 429) {

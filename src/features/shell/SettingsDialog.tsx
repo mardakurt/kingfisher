@@ -31,6 +31,7 @@ import {
 import { getRepositories } from '@/persistence/repositories';
 import { useProfile, phase3Keys } from '@/features/persistence/queries';
 import { parsePairing } from '@/companion/client';
+import { LICHESS_TOKEN_URL } from '@/database/providers/lichess-auth';
 import { useCompanionStatus } from '@/companion/useCompanion';
 import { cn } from '@/lib/cn';
 import type { PieceType } from '@/chess/types';
@@ -388,6 +389,9 @@ function DatabaseSection() {
         />
       </Row>
       <div className="border-t border-line-subtle pt-3">
+        <LichessAccess />
+      </div>
+      <div className="border-t border-line-subtle pt-3">
         <BackupControls />
       </div>
     </div>
@@ -609,6 +613,50 @@ function ProfileSection() {
           {busy ? 'Saving…' : 'Save aliases'}
         </Button>
       </div>
+    </div>
+  );
+}
+
+/**
+ * The user's own Lichess token for the opening explorer.
+ *
+ * Lichess requires authentication for explorer requests now. Kingfisher ships
+ * no credential of its own: one would breach their terms and give every
+ * installation a single shared rate limit. The alternative offered here is the
+ * honest one — your token, or the local sources, which need no network at all.
+ */
+function LichessAccess() {
+  const prefs = usePreferences();
+  const configured = prefs.lichessToken.length > 0;
+
+  return (
+    <div>
+      <h3 className="text-xs text-primary">Lichess opening explorer</h3>
+      <p className="mt-1 text-2xs leading-relaxed text-tertiary">
+        The Masters and Lichess databases need a personal API token. No scopes are required. Without
+        one, those two sources say so and the local sources carry on working.
+      </p>
+      <div className="mt-2 flex gap-1.5">
+        <input
+          type="password"
+          value={prefs.lichessToken}
+          onChange={(event) => prefs.set('lichessToken', event.target.value.trim())}
+          placeholder="lip_…"
+          className="h-8 min-w-0 flex-1 rounded-[4px] border border-line bg-surface-inset px-2.5 font-mono text-[11px] text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60"
+        />
+        <a
+          href={LICHESS_TOKEN_URL}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="flex h-8 items-center rounded-[4px] border border-line px-2.5 text-2xs text-secondary hover:border-line-strong"
+        >
+          Create one
+        </a>
+      </div>
+      <p className="mt-1 text-[10px] text-tertiary">
+        {configured ? 'Configured.' : 'Not configured.'} Stored in this browser and sent only to
+        lichess.org.
+      </p>
     </div>
   );
 }

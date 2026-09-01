@@ -59,6 +59,14 @@ export interface Preferences {
    */
   companionUrl: string;
   companionToken: string;
+  /**
+   * A personal Lichess API token for the opening explorer.
+   *
+   * Lichess requires authentication for explorer requests. Shipping a
+   * developer credential would breach their terms and give every user one
+   * shared rate limit, so each user supplies their own or uses a local source.
+   */
+  lichessToken: string;
   /** Where the assistant sends evidence packets, if the user configured one. */
   assistantBaseUrl: string;
   assistantModel: string;
@@ -93,6 +101,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   secondaryEngineId: 'lc0',
   companionUrl: '',
   companionToken: '',
+  lichessToken: '',
   assistantBaseUrl: '',
   assistantModel: '',
   assistantApiKey: '',
