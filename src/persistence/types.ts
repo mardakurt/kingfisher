@@ -2,6 +2,11 @@ import type { GameTree } from '@/chess/tree/types';
 import type { Fen, San, Uci } from '@/chess/types';
 import type { ExplorerFilters, ExplorerResult, GameResult } from '@/database/types';
 
+import type { PersistenceDatabase } from './indexeddb/database';
+import type { ModelGameRepository, ProfileRepository } from './repositories/library-repository';
+import type { RepertoireRepository } from './repositories/repertoire-repository';
+import type { TrainingRepository } from './repositories/training-repository';
+
 export type StudyId = string;
 export type ChapterId = string;
 export type GameId = string;
@@ -77,13 +82,35 @@ export interface GameMetadata {
   readonly timeControl?: string;
 }
 
-export interface GameRecord extends GameMetadata {
+/**
+ * Everything about a game except the moves.
+ *
+ * This is what the game list, the search and the explorer read. Keeping the
+ * tree out of it is the difference between reading 379 bytes per game and
+ * 6.7 kB — measured, and the reason for schema version 3.
+ */
+export interface GameSummary extends GameMetadata {
   readonly id: GameId;
   readonly fingerprint: string;
-  readonly tree: GameTree;
-  readonly normalizedPgn: string;
+  /**
+   * Normalized player names, written at import so the indexes can be walked
+   * without deserialising and lower-casing every record at query time.
+   */
+  readonly whiteKey: string;
+  readonly blackKey: string;
+  readonly playerKeys: readonly string[];
   readonly importedAt: number;
 }
+
+/** The moves, stored separately and read only when a game is opened. */
+export interface GameContent {
+  readonly id: GameId;
+  readonly tree: GameTree;
+  readonly normalizedPgn: string;
+}
+
+/** A game with its moves, as import produces it and as analysis consumes it. */
+export interface GameRecord extends GameSummary, Omit<GameContent, 'id'> {}
 
 export interface PositionRecord {
   readonly id: string;
@@ -112,7 +139,8 @@ export interface GameSearchQuery {
 }
 
 export interface GameSearchResult {
-  readonly games: readonly GameRecord[];
+  /** Summaries: opening a game fetches its moves separately. */
+  readonly games: readonly GameSummary[];
   readonly total: number;
 }
 
@@ -123,10 +151,19 @@ export interface PersistGameResult {
 
 export interface GameRepository {
   count(): Promise<number>;
+  /** The game with its moves. */
   get(id: GameId): Promise<GameRecord | null>;
-  findByFingerprint(fingerprint: string): Promise<GameRecord | null>;
+  /** Metadata only; never reads the tree. */
+  summary(id: GameId): Promise<GameSummary | null>;
+  /** Metadata for many games at once, in one transaction. */
+  summaries(ids: readonly GameId[]): Promise<readonly GameSummary[]>;
+  findByFingerprint(fingerprint: string): Promise<GameSummary | null>;
   search(query?: GameSearchQuery): Promise<GameSearchResult>;
   persist(game: GameRecord, positions: readonly PositionRecord[]): Promise<PersistGameResult>;
+  /** Store many games in one transaction; the batch is the unit of atomicity. */
+  persistMany(
+    entries: readonly { game: GameRecord; positions: readonly PositionRecord[] }[],
+  ): Promise<PersistGameResult[]>;
   delete(id: GameId): Promise<void>;
   deleteMany(ids: readonly GameId[]): Promise<void>;
   clear(): Promise<void>;
@@ -167,6 +204,17 @@ export interface AppRepositories {
   readonly studies: StudyRepository;
   readonly games: GameRepository;
   readonly drafts: DraftRepository;
+  readonly repertoires: RepertoireRepository;
+  readonly training: TrainingRepository;
+  readonly modelGames: ModelGameRepository;
+  readonly profile: ProfileRepository;
+  /**
+   * The underlying database, for backup and restore only.
+   *
+   * Everything else goes through a repository; a whole-database export is the
+   * one operation that legitimately needs to walk every store generically.
+   */
+  readonly raw: PersistenceDatabase;
   close(): void;
 }
 

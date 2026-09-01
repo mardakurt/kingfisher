@@ -8,11 +8,32 @@ import {
 
 export type Key = IDBValidKey | IDBKeyRange;
 
+/** Where to read from, and in what order. */
+export interface ScanOptions<T> {
+  readonly index?: string;
+  readonly range?: IDBKeyRange;
+  readonly direction?: IDBCursorDirection;
+  /** Applied to each visited record; only matches count towards the page. */
+  readonly match?: (value: T) => boolean;
+  readonly offset?: number;
+  readonly limit?: number;
+}
+
+export interface ScanResult<T> {
+  readonly items: T[];
+  /** Matching records, counted across the whole range, not just this page. */
+  readonly total: number;
+}
+
 export interface PersistenceTransaction {
   get<T>(store: StoreName, key: IDBValidKey): Promise<T | undefined>;
   getAll<T>(store: StoreName): Promise<T[]>;
   /** Row count without reading the rows; a stored game carries a whole tree. */
   count(store: StoreName): Promise<number>;
+  /** Count matching keys without deserialising a single record value. */
+  countRange(store: StoreName, index: string | null, range?: IDBKeyRange): Promise<number>;
+  /** One page of records, read through a cursor rather than materialised whole. */
+  scan<T>(store: StoreName, options?: ScanOptions<T>): Promise<ScanResult<T>>;
   getAllFromIndex<T>(store: StoreName, index: string, key?: Key): Promise<T[]>;
   put<T>(store: StoreName, value: T): Promise<IDBValidKey>;
   delete(store: StoreName, key: IDBValidKey): Promise<void>;
@@ -58,6 +79,83 @@ class NativeTransaction implements PersistenceTransaction {
     return request(this.value.objectStore(store).count());
   }
 
+  /**
+   * Counting through a *key* cursor is the point: IndexedDB never deserialises
+   * the record values, so counting ten thousand games costs almost nothing even
+   * though each one carries a full game tree.
+   */
+  countRange(store: StoreName, index: string | null, range?: IDBKeyRange): Promise<number> {
+    const source = index
+      ? this.value.objectStore(store).index(index)
+      : this.value.objectStore(store);
+    return request(source.count(range));
+  }
+
+  /**
+   * Walk an index and take one page.
+   *
+   * Two properties matter for large collections. Without a per-record predicate
+   * the cursor skips the offset with `advance` and stops the moment the page is
+   * full, so the cost is the page size rather than the collection size — and
+   * `total` is left to the caller, which can get it from a key cursor instead.
+   * With a predicate there is no choice but to visit records, and `total` then
+   * counts every match because it was paid for anyway.
+   */
+  scan<T>(store: StoreName, options: ScanOptions<T> = {}): Promise<ScanResult<T>> {
+    const source = options.index
+      ? this.value.objectStore(store).index(options.index)
+      : this.value.objectStore(store);
+
+    const offset = Math.max(0, options.offset ?? 0);
+    const limit = options.limit ?? Number.POSITIVE_INFINITY;
+    const counting = Boolean(options.match);
+
+    return new Promise((resolve, reject) => {
+      const items: T[] = [];
+      let matched = 0;
+      let skipped = false;
+      const cursorRequest = source.openCursor(options.range ?? null, options.direction ?? 'next');
+
+      cursorRequest.onerror = () =>
+        reject(cursorRequest.error ?? new Error('IndexedDB scan failed.'));
+
+      cursorRequest.onsuccess = () => {
+        const cursor = cursorRequest.result;
+        if (!cursor) {
+          resolve({ items, total: matched });
+          return;
+        }
+
+        // Skipping through the index costs nothing per record when there is no
+        // predicate; stepping one at a time would deserialise every skipped row.
+        if (!counting && !skipped && offset > 0) {
+          skipped = true;
+          cursor.advance(offset);
+          return;
+        }
+        skipped = true;
+
+        if (!counting) {
+          items.push(cursor.value as T);
+          matched += 1;
+          if (items.length >= limit) {
+            resolve({ items, total: matched });
+            return;
+          }
+          cursor.continue();
+          return;
+        }
+
+        const value = cursor.value as T;
+        if (options.match?.(value)) {
+          if (matched >= offset && items.length < limit) items.push(value);
+          matched += 1;
+        }
+        cursor.continue();
+      };
+    });
+  }
+
   getAllFromIndex<T>(store: StoreName, index: string, key?: Key): Promise<T[]> {
     const source = this.value.objectStore(store).index(index);
     return request(source.getAll(key)) as Promise<T[]>;
@@ -93,6 +191,14 @@ class NativeDatabase implements PersistenceDatabase {
 
   count(store: StoreName): Promise<number> {
     return this.readonly([store]).count(store);
+  }
+
+  countRange(store: StoreName, index: string | null, range?: IDBKeyRange): Promise<number> {
+    return this.readonly([store]).countRange(store, index, range);
+  }
+
+  scan<T>(store: StoreName, options?: ScanOptions<T>): Promise<ScanResult<T>> {
+    return this.readonly([store]).scan<T>(store, options);
   }
 
   getAllFromIndex<T>(store: StoreName, index: string, key?: Key): Promise<T[]> {
@@ -151,6 +257,10 @@ export async function openPersistenceDatabase(): Promise<PersistenceDatabase> {
   const value = await new Promise<IDBDatabase>((resolve, reject) => {
     open.onupgradeneeded = (event) => {
       const database = open.result;
+      // The upgrade transaction: every schema change and every backfill below
+      // happens inside it, so an interrupted upgrade rolls back whole.
+      const upgrade = open.transaction as IDBTransaction;
+
       const target: MigrationTarget = {
         hasStore: (name) => database.objectStoreNames.contains(name),
         createStore: (name, options, indexes = []) => {
@@ -159,8 +269,47 @@ export async function openPersistenceDatabase(): Promise<PersistenceDatabase> {
           for (const index of indexes) {
             store.createIndex(index.name, index.keyPath as string | string[], {
               unique: index.unique ?? false,
+              multiEntry: index.multiEntry ?? false,
             });
           }
+        },
+        addIndex: (name, index) => {
+          if (!database.objectStoreNames.contains(name)) return;
+          const store = upgrade.objectStore(name);
+          if (store.indexNames.contains(index.name)) return;
+          store.createIndex(index.name, index.keyPath as string | string[], {
+            unique: index.unique ?? false,
+            multiEntry: index.multiEntry ?? false,
+          });
+        },
+        split: (from, to, divide) => {
+          if (!database.objectStoreNames.contains(from)) return;
+          if (!database.objectStoreNames.contains(to)) return;
+          const source = upgrade.objectStore(from);
+          const target_ = upgrade.objectStore(to);
+          const cursorRequest = source.openCursor();
+          cursorRequest.onsuccess = () => {
+            const cursor = cursorRequest.result;
+            if (!cursor) return;
+            const parts = divide(cursor.value);
+            if (parts) {
+              target_.put(parts.move);
+              cursor.update(parts.keep);
+            }
+            cursor.continue();
+          };
+        },
+        rewrite: (name, update) => {
+          if (!database.objectStoreNames.contains(name)) return;
+          const store = upgrade.objectStore(name);
+          const cursorRequest = store.openCursor();
+          cursorRequest.onsuccess = () => {
+            const cursor = cursorRequest.result;
+            if (!cursor) return;
+            const next = update(cursor.value);
+            if (next !== cursor.value) cursor.update(next);
+            cursor.continue();
+          };
         },
       };
       applyMigrations(target, event.oldVersion, event.newVersion ?? DATABASE_VERSION);

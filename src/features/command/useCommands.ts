@@ -4,6 +4,8 @@ import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { START_FEN } from '@/chess/fen';
+import { BOARD_THEMES, boardTheme } from '@/features/board/themes';
+import { PIECE_SETS, pieceSet } from '@/features/board/pieces';
 import { serializeMovetext, serializePgn } from '@/chess/pgn';
 import { nodePath } from '@/chess/tree/tree';
 import { evaluationFromAnalysis } from '@/features/analysis/useEngineSnapshots';
@@ -246,9 +248,42 @@ export function useCommands(): readonly Command[] {
       },
       {
         id: 'toggle-coordinates',
-        title: 'Toggle board coordinates',
+        title: 'Cycle board coordinates (inside, outside, off)',
         group: 'Board',
-        run: () => prefs().set('showCoordinates', !prefs().showCoordinates),
+        keywords: 'files ranks labels a1 h8',
+        run: () => {
+          const order = ['inside', 'outside', 'none'] as const;
+          const next = order[(order.indexOf(prefs().coordinateStyle) + 1) % order.length];
+          prefs().set('coordinateStyle', next ?? 'inside');
+        },
+      },
+      {
+        id: 'cycle-piece-set',
+        title: 'Switch piece set',
+        group: 'Board',
+        keywords: 'pieces appearance staunton minimal',
+        run: () => {
+          const ids = PIECE_SETS.map((set) => set.id);
+          const next = ids[(ids.indexOf(prefs().pieceSet) + 1) % ids.length];
+          if (next) {
+            prefs().set('pieceSet', next);
+            ui().notify({ tone: 'info', message: `Piece set: ${pieceSet(next).name}` });
+          }
+        },
+      },
+      {
+        id: 'cycle-board-theme',
+        title: 'Switch board theme',
+        group: 'Board',
+        keywords: 'colours appearance squares',
+        run: () => {
+          const ids = BOARD_THEMES.map((theme) => theme.id);
+          const next = ids[(ids.indexOf(prefs().boardTheme) + 1) % ids.length];
+          if (next) {
+            prefs().set('boardTheme', next);
+            ui().notify({ tone: 'info', message: `Board: ${boardTheme(next).name}` });
+          }
+        },
       },
       {
         id: 'toggle-evaluation-graph',

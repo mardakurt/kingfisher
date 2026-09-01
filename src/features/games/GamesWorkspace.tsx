@@ -26,7 +26,8 @@ import {
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { cn } from '@/lib/cn';
 import { formatPgnDate, gameTitle } from '@/persistence/describe';
-import type { GameRecord, GameSearchQuery } from '@/persistence/types';
+import { getRepositories } from '@/persistence/repositories';
+import type { GameSearchQuery, GameSummary } from '@/persistence/types';
 import type { GameResult } from '@/database/types';
 import { useAnalysis } from '@/stores/analysis-store';
 import { useUi } from '@/stores/ui-store';
@@ -129,18 +130,32 @@ export function GamesWorkspace() {
     });
   };
 
-  const open = (game: GameRecord) => {
+  const open = async (game: GameSummary) => {
     /*
       A database game opens as source material, not as the user's own document.
       Editing it will not write back over the imported record: autosave treats
       anything that is not a study chapter as a draft, and "Save to study" is
       how an analysis of a game becomes the user's.
     */
-    openDocument({
-      tree: game.tree,
-      document: { kind: 'database-game', title: gameTitle(game), gameId: game.id },
-    });
-    router.push('/analysis');
+    // The list holds summaries; the moves are fetched only when one is opened.
+    try {
+      const repositories = await getRepositories();
+      const full = await repositories.games.get(game.id);
+      if (!full) {
+        notify({ tone: 'error', message: 'That game is no longer in the database.' });
+        return;
+      }
+      openDocument({
+        tree: full.tree,
+        document: { kind: 'database-game', title: gameTitle(full), gameId: full.id },
+      });
+      router.push('/analysis');
+    } catch (error) {
+      notify({
+        tone: 'error',
+        message: error instanceof Error ? error.message : 'That game could not be opened.',
+      });
+    }
   };
 
   const filtersActive =
@@ -337,7 +352,7 @@ export function GamesWorkspace() {
               {rows.map((game) => (
                 <tr
                   key={game.id}
-                  onDoubleClick={() => open(game)}
+                  onDoubleClick={() => void open(game)}
                   className="border-t border-line-subtle transition-colors hover:bg-surface-2"
                 >
                   <td className="px-2 py-1">
@@ -352,7 +367,7 @@ export function GamesWorkspace() {
                   <td className="min-w-0 px-2 py-1">
                     <button
                       type="button"
-                      onClick={() => open(game)}
+                      onClick={() => void open(game)}
                       className="block w-full truncate text-left text-primary hover:underline"
                     >
                       {game.white}
@@ -361,7 +376,7 @@ export function GamesWorkspace() {
                   <td className="min-w-0 px-2 py-1">
                     <button
                       type="button"
-                      onClick={() => open(game)}
+                      onClick={() => void open(game)}
                       className="block w-full truncate text-left text-primary hover:underline"
                     >
                       {game.black}
@@ -399,7 +414,7 @@ export function GamesWorkspace() {
                 />
                 <button
                   type="button"
-                  onClick={() => open(game)}
+                  onClick={() => void open(game)}
                   className="min-w-0 flex-1 text-left"
                 >
                   <span className="flex min-w-0 items-baseline gap-2">

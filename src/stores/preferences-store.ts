@@ -13,7 +13,14 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import type { AnalysisLimit } from '@/engine/types';
-import type { BoardThemeId, PieceSetId } from '@/lib/board-options';
+import type { EnginePresetId } from '@/engine/presets';
+import type {
+  AnimationSpeed,
+  ArrowPaletteId,
+  BoardThemeId,
+  CoordinateStyle,
+  PieceSetId,
+} from '@/lib/board-options';
 
 export type AppTheme = 'dark' | 'light';
 
@@ -21,8 +28,9 @@ export interface Preferences {
   theme: AppTheme;
   boardTheme: BoardThemeId;
   pieceSet: PieceSetId;
-  showCoordinates: boolean;
-  animateMoves: boolean;
+  coordinateStyle: CoordinateStyle;
+  animationSpeed: AnimationSpeed;
+  arrowPalette: ArrowPaletteId;
   showEvaluationBar: boolean;
   /** The bar chart of stored evaluations under the board. */
   showEvaluationGraph: boolean;
@@ -35,6 +43,8 @@ export interface Preferences {
   explorerSourceId: string;
   explorerMinRating: number | null;
   explorerSinceYear: number | null;
+  /** Analysis preset the engine panel starts from. */
+  enginePreset: EnginePresetId;
 }
 
 interface PreferencesActions {
@@ -47,8 +57,9 @@ export const DEFAULT_PREFERENCES: Preferences = {
   theme: 'dark',
   boardTheme: 'slate',
   pieceSet: 'staunton',
-  showCoordinates: true,
-  animateMoves: true,
+  coordinateStyle: 'inside',
+  animationSpeed: 'normal',
+  arrowPalette: 'standard',
   showEvaluationBar: true,
   showEvaluationGraph: true,
   autoAnalyse: false,
@@ -59,7 +70,26 @@ export const DEFAULT_PREFERENCES: Preferences = {
   explorerSourceId: 'lichess-masters',
   explorerMinRating: null,
   explorerSinceYear: null,
+  enginePreset: 'standard',
 };
+
+/**
+ * How long a move animation lasts.
+ *
+ * Resolved here rather than in the board so that the reduced-motion check lives
+ * with the preference it overrides. A user who has asked their operating system
+ * for less motion gets none, whatever the stored value says.
+ */
+export function resolveAnimationMs(speed: AnimationSpeed): number {
+  if (speed === 'off') return 0;
+  if (
+    typeof window !== 'undefined' &&
+    window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  ) {
+    return 0;
+  }
+  return speed === 'fast' ? 70 : 130;
+}
 
 export const usePreferences = create<Preferences & PreferencesActions>()(
   persist(
@@ -71,8 +101,27 @@ export const usePreferences = create<Preferences & PreferencesActions>()(
     }),
     {
       name: 'kingfisher.preferences',
-      version: 1,
+      version: 2,
       storage: createJSONStorage(() => localStorage),
+      /**
+       * Phase 3 replaced two booleans with named scales. Migrating rather than
+       * resetting keeps a user who turned coordinates off from having them
+       * reappear after an update.
+       */
+      migrate: (persisted, version) => {
+        if (version >= 2 || persisted === null || typeof persisted !== 'object') {
+          return persisted as Preferences;
+        }
+        const old = persisted as Record<string, unknown>;
+        const { showCoordinates, animateMoves, ...rest } = old;
+        return {
+          ...rest,
+          coordinateStyle: showCoordinates === false ? 'none' : 'inside',
+          animationSpeed: animateMoves === false ? 'off' : 'normal',
+          arrowPalette: 'standard',
+          enginePreset: 'standard',
+        } as unknown as Preferences;
+      },
       partialize: ({ set: _set, toggleTheme: _toggle, reset: _reset, ...rest }) => rest,
     },
   ),

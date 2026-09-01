@@ -5,6 +5,7 @@ import type { GameTree, NodeId } from '@/chess/tree/types';
 import type { GameResult } from '@/database/types';
 
 import { gameFingerprint } from './ids';
+import { playerKey } from './schema/migrations';
 import type {
   GameRecord,
   GameRepository,
@@ -16,8 +17,28 @@ import type {
 export interface ImportGamesOptions {
   readonly onProgress?: (progress: ImportProgress) => void;
   readonly signal?: AbortSignal;
-  readonly yieldEvery?: number;
+  /**
+   * Games per transaction. Larger batches import faster and make cancellation
+   * coarser, since a batch is the unit that either lands whole or not at all.
+   */
+  readonly batchSize?: number;
 }
+
+/**
+ * Games per transaction.
+ *
+ * Chosen for the cancellation contract, not for speed. Import throughput was
+ * measured at batch sizes 1 and 100 over a thousand-game file and the
+ * difference was inside the run-to-run noise of a dev build (7–17 ms per game
+ * across repeated runs either way), so no speed claim is made here: the cost is
+ * dominated by parsing and position extraction rather than by transaction
+ * commits, which measured well under a millisecond each.
+ *
+ * What batching does buy is a defined unit of atomicity. A cancelled or failed
+ * import leaves whole batches committed and nothing half-written, and at this
+ * size at most a hundred games of work is discarded.
+ */
+const DEFAULT_BATCH_SIZE = 100;
 
 export async function importGames(
   source: string,
@@ -35,23 +56,41 @@ export async function importGames(
   let duplicates = 0;
   let indexedPositions = 0;
   let firstGame: GameRecord | undefined;
-  const yieldEvery = Math.max(1, options.yieldEvery ?? 8);
+  const batchSize = Math.max(1, options.batchSize ?? DEFAULT_BATCH_SIZE);
+
+  let batch: { game: GameRecord; positions: PositionRecord[] }[] = [];
+
+  const flush = async (completed: number): Promise<void> => {
+    if (batch.length === 0) return;
+    options.onProgress?.({ stage: 'importing', completed, total });
+    const results = await repository.persistMany(batch);
+    for (const [index, result] of results.entries()) {
+      if (result.duplicate) duplicates += 1;
+      else {
+        imported += 1;
+        indexedPositions += batch[index]?.positions.length ?? 0;
+      }
+    }
+    batch = [];
+    // Between batches, not between games: the yield is worth a round trip only
+    // when there is real work either side of it.
+    await yieldToBrowser();
+  };
 
   for (const [index, parsedGame] of parsed.games.entries()) {
     throwIfAborted(options.signal);
-    options.onProgress?.({ stage: 'importing', completed: index, total });
+
     const game = normalizeGame(parsedGame.tree);
     firstGame ??= game;
-    const positions = indexGame(game);
+    // Position extraction is the "indexing" the progress line refers to; it
+    // happens per game, before anything is written.
     options.onProgress?.({ stage: 'indexing', completed: index, total });
-    const persisted = await repository.persist(game, positions);
-    if (persisted.duplicate) duplicates += 1;
-    else {
-      imported += 1;
-      indexedPositions += positions.length;
-    }
-    if ((index + 1) % yieldEvery === 0) await yieldToBrowser();
+    batch.push({ game, positions: indexGame(game) });
+
+    if (batch.length >= batchSize) await flush(index + 1);
   }
+
+  await flush(total);
 
   options.onProgress?.({ stage: 'complete', completed: total, total });
   return {
@@ -71,14 +110,22 @@ export function normalizeGame(tree: GameTree, importedAt = Date.now()): GameReco
   const whiteRating = positiveNumber(headers.WhiteElo);
   const blackRating = positiveNumber(headers.BlackElo);
   const year = positiveNumber(headers.Date?.slice(0, 4));
+  const whiteName = headers.White || 'Unknown';
+  const blackName = headers.Black || 'Unknown';
+  const whiteKey = playerKey(whiteName);
+  const blackKey = playerKey(blackName);
+
   return {
     id: `game-${fingerprint}`,
     fingerprint,
+    whiteKey,
+    blackKey,
+    playerKeys: whiteKey === blackKey ? [whiteKey] : [whiteKey, blackKey],
     tree,
     normalizedPgn,
     importedAt,
-    white: headers.White || 'Unknown',
-    black: headers.Black || 'Unknown',
+    white: whiteName,
+    black: blackName,
     result: gameResult(headers.Result),
     ...(headers.Date ? { date: headers.Date } : {}),
     ...(year && year > 1000 ? { year } : {}),

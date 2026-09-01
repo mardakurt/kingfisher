@@ -4,27 +4,43 @@ import {
   applyMigrations,
   DATABASE_VERSION,
   MIGRATIONS,
+  playerKey,
+  resolveSchema,
   STORE_NAMES,
+  withPlayerKeys,
   type MigrationTarget,
   type StoreName,
 } from './migrations';
 
 interface CreatedStore {
   readonly options: IDBObjectStoreParameters;
-  readonly indexes: readonly { name: string; keyPath: string | readonly string[] }[];
+  indexes: { name: string; keyPath: string | readonly string[] }[];
 }
 
 /** Records what a migration asked for, without needing a real IndexedDB. */
 function recorder() {
   const stores = new Map<StoreName, CreatedStore>();
+  const rewritten: StoreName[] = [];
+  const splits: string[] = [];
   const target: MigrationTarget = {
     hasStore: (name) => stores.has(name),
     createStore: (name, options, indexes = []) => {
       if (stores.has(name)) throw new Error(`${name} was created twice`);
       stores.set(name, { options, indexes: [...indexes] });
     },
+    addIndex: (name, index) => {
+      const store = stores.get(name);
+      if (!store) throw new Error(`${name} does not exist yet`);
+      store.indexes.push(index);
+    },
+    split: (from, to) => {
+      splits.push(`${from}->${to}`);
+    },
+    rewrite: (name) => {
+      rewritten.push(name);
+    },
   };
-  return { stores, target };
+  return { stores, target, rewritten, splits };
 }
 
 describe('schema migrations', () => {
@@ -77,17 +93,96 @@ describe('schema migrations', () => {
    * database only runs the steps it has not already seen, so nothing is
    * recreated and no user data is dropped to make types line up.
    */
-  it('runs nothing when the stored database is already current', () => {
-    const { stores, target } = recorder();
-    applyMigrations(target, DATABASE_VERSION, DATABASE_VERSION);
-    expect(stores.size).toBe(0);
+  it('resolves a schema that matches what the migrations created', () => {
+    const schema = resolveSchema();
+    expect([...schema.keys()].sort()).toEqual([...Object.values(STORE_NAMES)].sort());
+    // Index names and key paths differ on purpose; the resolver must keep both.
+    expect(schema.get(STORE_NAMES.trainingItems)?.indexes.get('dueAt')?.keyPath).toBe(
+      'schedule.dueAt',
+    );
+    expect(schema.get(STORE_NAMES.games)?.indexes.get('players')?.multiEntry).toBe(true);
   });
 
-  it('runs only the steps between the stored and the target version', () => {
-    const { stores, target } = recorder();
+  /**
+   * The upgrade a real Phase 2 installation performs. Simulated by building the
+   * version 1 schema first and then running only the steps above it, which is
+   * exactly what the browser does — and is where a migration that assumes a
+   * fresh database would fail.
+   */
+  it('upgrades an existing version 1 database without recreating its stores', () => {
+    const { stores, target, rewritten } = recorder();
+    applyMigrations(target, 0, 1);
+    const v1Stores = [...stores.keys()].sort();
+    const gamesIndexesBefore = stores.get(STORE_NAMES.games)?.indexes.length ?? 0;
+
     applyMigrations(target, 1, DATABASE_VERSION);
-    // With one migration shipped so far there is nothing above version 1 yet;
-    // when there is, this asserts that version 1 is not replayed over live data.
-    expect(stores.has(STORE_NAMES.studies)).toBe(false);
+
+    // Nothing from version 1 was recreated; `createStore` throws on a repeat.
+    for (const store of v1Stores) expect(stores.has(store)).toBe(true);
+
+    // The new stores arrived.
+    expect(stores.has(STORE_NAMES.repertoires)).toBe(true);
+    expect(stores.has(STORE_NAMES.repertoirePositions)).toBe(true);
+    expect(stores.has(STORE_NAMES.trainingItems)).toBe(true);
+    expect(stores.has(STORE_NAMES.trainingReviews)).toBe(true);
+    expect(stores.has(STORE_NAMES.modelGameLinks)).toBe(true);
+    expect(stores.has(STORE_NAMES.profile)).toBe(true);
+
+    // The existing games store gained indexes rather than being replaced.
+    const gamesIndexes = stores.get(STORE_NAMES.games)?.indexes ?? [];
+    expect(gamesIndexes.length).toBeGreaterThan(gamesIndexesBefore);
+    expect(gamesIndexes.map((index) => index.name)).toEqual(
+      expect.arrayContaining(['fingerprint', 'players', 'whiteKey', 'blackKey', 'year']),
+    );
+
+    // And its records are backfilled, so old games are searchable by the new
+    // indexes without being re-imported.
+    expect(rewritten).toContain(STORE_NAMES.games);
+  });
+
+  it('runs nothing at all when a version 2 database is opened', () => {
+    const { stores, target, rewritten } = recorder();
+    applyMigrations(target, DATABASE_VERSION, DATABASE_VERSION);
+    expect(stores.size).toBe(0);
+    expect(rewritten).toHaveLength(0);
+  });
+});
+
+describe('player key normalization', () => {
+  it('folds case and whitespace, because those are the same person', () => {
+    expect(playerKey('  KASPAROV,   Garry ')).toBe('kasparov, garry');
+    expect(playerKey('Kasparov, Garry')).toBe('kasparov, garry');
+  });
+
+  it('does not merge names that merely look similar', () => {
+    // Two different people; an aggressive normalizer would collapse them and
+    // produce a preparation report about the wrong player.
+    expect(playerKey('Polgar, Judit')).not.toBe(playerKey('Polgar, Susan'));
+    expect(playerKey('M. Carlsen')).not.toBe(playerKey('Magnus Carlsen'));
+  });
+
+  it('handles a missing name without throwing', () => {
+    expect(playerKey(undefined)).toBe('');
+  });
+});
+
+describe('games backfill', () => {
+  it('adds normalized keys for both players', () => {
+    const record = withPlayerKeys({ id: 'g1', white: 'Carlsen, M', black: 'Nepo, I' }) as Record<
+      string,
+      unknown
+    >;
+    expect(record.whiteKey).toBe('carlsen, m');
+    expect(record.blackKey).toBe('nepo, i');
+    expect(record.playerKeys).toEqual(['carlsen, m', 'nepo, i']);
+  });
+
+  it('lists one key when a player faced themselves in a fixture', () => {
+    const record = withPlayerKeys({ white: 'A', black: 'A' }) as Record<string, unknown>;
+    expect(record.playerKeys).toEqual(['a']);
+  });
+
+  it('leaves a non-object record alone', () => {
+    expect(withPlayerKeys(null)).toBeNull();
   });
 });

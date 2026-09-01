@@ -288,8 +288,11 @@ describe('imported games as source material', () => {
     );
 
     const { games } = await repositories.games.search();
-    const stored = games[0];
-    expect(stored).toBeDefined();
+    const summary = games[0];
+    expect(summary).toBeDefined();
+    // The list holds summaries; the moves come from the content store.
+    const stored = await repositories.games.get((summary as NonNullable<typeof summary>).id);
+    expect(stored).not.toBeNull();
     const tree = (stored as NonNullable<typeof stored>).tree;
 
     const line = mainlinePath(tree)

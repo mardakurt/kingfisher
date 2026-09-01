@@ -13,3 +13,4 @@ npm-debug.log*
 
 # Engine binaries are GPL-3.0 and ~7 MB; fetched by `npm run engine:install`.
 /public/engine/
+public/bench/
