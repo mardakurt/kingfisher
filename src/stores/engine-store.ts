@@ -66,6 +66,8 @@ interface EngineState {
   identity: EngineIdentity | null;
   capabilities: EngineCapabilities | null;
   analysis: EngineAnalysis | null;
+  /** Bounded depth samples for factual stability and volatility metrics. */
+  history: readonly EngineAnalysis[];
   /** The position the current analysis belongs to. */
   analysedFen: Fen | null;
   running: boolean;
@@ -91,6 +93,7 @@ export const useEngine = create<EngineState>((set, get) => ({
   identity: null,
   capabilities: null,
   analysis: null,
+  history: [],
   analysedFen: null,
   running: false,
   pinned: [],
@@ -152,12 +155,13 @@ export const useEngine = create<EngineState>((set, get) => ({
 
     await session.configure(config);
 
-    set({ running: true, status: 'analysing', analysedFen: fen, analysis: null });
+    set({ running: true, status: 'analysing', analysedFen: fen, analysis: null, history: [] });
 
     handle = session.analyse({ fen, limit }, (snapshot) => {
       // Ignore stragglers from a search the user has already moved past.
       if (get().analysedFen !== snapshot.fen) return;
-      set({ analysis: annotateAnalysis(snapshot) });
+      const annotated = annotateAnalysis(snapshot);
+      set((state) => ({ analysis: annotated, history: [...state.history, annotated].slice(-32) }));
       if (snapshot.complete) set({ running: false, status: 'ready' });
     });
   },
@@ -174,7 +178,14 @@ export const useEngine = create<EngineState>((set, get) => ({
     handle = null;
     session?.dispose();
     session = null;
-    set({ status: 'idle', running: false, analysis: null, analysedFen: null, identity: null });
+    set({
+      status: 'idle',
+      running: false,
+      analysis: null,
+      history: [],
+      analysedFen: null,
+      identity: null,
+    });
   },
 
   applyConfig: async (config) => {

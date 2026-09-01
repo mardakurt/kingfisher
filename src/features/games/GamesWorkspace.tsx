@@ -31,6 +31,7 @@ import type { GameSearchQuery, GameSummary } from '@/persistence/types';
 import type { GameResult } from '@/database/types';
 import { useAnalysis } from '@/stores/analysis-store';
 import { useUi } from '@/stores/ui-store';
+import { NavButton } from '@/features/shell/NavButton';
 
 type SortField = NonNullable<GameSearchQuery['sortBy']>;
 
@@ -57,6 +58,8 @@ const RESULTS: readonly { id: GameResult | 'any'; label: string }[] = [
   { id: '0-1', label: '0-1' },
 ];
 
+const PAGE_SIZE = 100;
+
 export function GamesWorkspace() {
   const router = useRouter();
   const notify = useUi((state) => state.notify);
@@ -76,6 +79,7 @@ export function GamesWorkspace() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
   const [confirmation, setConfirmation] = useState<'selected' | 'all' | null>(null);
+  const [page, setPage] = useState(0);
 
   const query = useMemo<GameSearchQuery>(
     () => ({
@@ -88,9 +92,10 @@ export function GamesWorkspace() {
       ...(eco.trim() ? { eco: eco.trim() } : {}),
       sortBy,
       sortDirection,
-      limit: 500,
+      limit: PAGE_SIZE,
+      offset: page * PAGE_SIZE,
     }),
-    [text, player, playerColor, result, minRating, fromYear, eco, sortBy, sortDirection],
+    [text, player, playerColor, result, minRating, fromYear, eco, sortBy, sortDirection, page],
   );
 
   const games = useGames(query);
@@ -109,8 +114,12 @@ export function GamesWorkspace() {
   const rows = games.data?.games ?? [];
   const filtered = games.data?.total ?? 0;
   const stored = total.data ?? 0;
+  const pageCount = Math.max(1, Math.ceil(filtered / PAGE_SIZE));
+  const visibleFrom = filtered === 0 ? 0 : page * PAGE_SIZE + 1;
+  const visibleTo = Math.min(filtered, page * PAGE_SIZE + rows.length);
 
   const sort = (field: SortField) => {
+    setPage(0);
     if (field === sortBy) {
       setSortDirection((current) => (current === 'asc' ? 'desc' : 'asc'));
       return;
@@ -164,6 +173,7 @@ export function GamesWorkspace() {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <header className="flex h-10 shrink-0 items-center gap-1.5 border-b border-line-subtle bg-surface-1 px-2 sm:px-3">
+        <NavButton />
         <Database className="h-4 w-4 shrink-0 text-accent" />
         <h1 className="shrink-0 text-xs font-semibold text-primary">Games</h1>
         <span className="hidden shrink-0 text-2xs text-tertiary tabular lg:inline">
@@ -172,7 +182,10 @@ export function GamesWorkspace() {
 
         <input
           value={text}
-          onChange={(event) => setText(event.target.value)}
+          onChange={(event) => {
+            setText(event.target.value);
+            setPage(0);
+          }}
           placeholder="Search players, events, openings…"
           aria-label="Search games"
           className="ml-1 h-7 min-w-0 flex-1 rounded-[4px] border border-line bg-surface-inset px-2 text-2xs text-primary outline-none placeholder:text-tertiary/70 focus:border-accent/60"
@@ -186,24 +199,31 @@ export function GamesWorkspace() {
           <Filter />
         </IconButton>
         <Button variant="accent" icon={<Import />} onClick={() => setImportOpen(true)}>
-          <span className="hidden min-[430px]:inline">Import</span>
+          <span className="hidden xs:inline">Import</span>
         </Button>
       </header>
 
       {filtersOpen && (
         <div className="flex shrink-0 flex-wrap items-end gap-2 border-b border-line-subtle bg-surface-1 px-2 py-2 sm:px-3">
-          <Field label="Player">
+          <Field label="Player (exact name)">
             <input
               value={player}
-              onChange={(event) => setPlayer(event.target.value)}
+              onChange={(event) => {
+                setPlayer(event.target.value);
+                setPage(0);
+              }}
               className={FIELD}
-              placeholder="Carlsen"
+              title="A whole name as it appears in the PGN; case and spacing are ignored. Use the search box above for partial names."
+              placeholder="Carlsen, Magnus"
             />
           </Field>
           <Field label="Colour">
             <select
               value={playerColor}
-              onChange={(event) => setPlayerColor(event.target.value as 'any' | 'w' | 'b')}
+              onChange={(event) => {
+                setPlayerColor(event.target.value as 'any' | 'w' | 'b');
+                setPage(0);
+              }}
               className={FIELD}
             >
               <option value="any">Either</option>
@@ -214,7 +234,10 @@ export function GamesWorkspace() {
           <Field label="Result">
             <select
               value={result}
-              onChange={(event) => setResult(event.target.value as GameResult | 'any')}
+              onChange={(event) => {
+                setResult(event.target.value as GameResult | 'any');
+                setPage(0);
+              }}
               className={FIELD}
             >
               {RESULTS.map((option) => (
@@ -228,7 +251,10 @@ export function GamesWorkspace() {
             <input
               value={minRating}
               inputMode="numeric"
-              onChange={(event) => setMinRating(event.target.value.replace(/\D/g, ''))}
+              onChange={(event) => {
+                setMinRating(event.target.value.replace(/\D/g, ''));
+                setPage(0);
+              }}
               className={FIELD}
               placeholder="2400"
             />
@@ -237,7 +263,10 @@ export function GamesWorkspace() {
             <input
               value={fromYear}
               inputMode="numeric"
-              onChange={(event) => setFromYear(event.target.value.replace(/\D/g, '').slice(0, 4))}
+              onChange={(event) => {
+                setFromYear(event.target.value.replace(/\D/g, '').slice(0, 4));
+                setPage(0);
+              }}
               className={FIELD}
               placeholder="2015"
             />
@@ -245,7 +274,10 @@ export function GamesWorkspace() {
           <Field label="ECO">
             <input
               value={eco}
-              onChange={(event) => setEco(event.target.value.toUpperCase().slice(0, 3))}
+              onChange={(event) => {
+                setEco(event.target.value.toUpperCase().slice(0, 3));
+                setPage(0);
+              }}
               className={FIELD}
               placeholder="B90"
             />
@@ -259,6 +291,7 @@ export function GamesWorkspace() {
                 setMinRating('');
                 setFromYear('');
                 setEco('');
+                setPage(0);
               }}
             >
               Clear filters
@@ -439,13 +472,35 @@ export function GamesWorkspace() {
       <footer className="flex h-8 shrink-0 items-center gap-3 border-t border-line-subtle bg-surface-1 px-2 text-[10.5px] text-tertiary sm:px-3">
         <span className="tabular">
           {filtered.toLocaleString()} of {stored.toLocaleString()} games
-          {rows.length < filtered && ` · showing ${rows.length.toLocaleString()}`}
+          {filtered > PAGE_SIZE &&
+            ` · ${visibleFrom.toLocaleString()}–${visibleTo.toLocaleString()}`}
         </span>
+        {filtered > PAGE_SIZE && (
+          <div className="ml-auto flex items-center gap-1">
+            <Button
+              size="sm"
+              onClick={() => setPage((value) => Math.max(0, value - 1))}
+              disabled={page === 0}
+            >
+              Previous
+            </Button>
+            <span className="px-1 tabular">
+              {page + 1}/{pageCount}
+            </span>
+            <Button
+              size="sm"
+              onClick={() => setPage((value) => Math.min(pageCount - 1, value + 1))}
+              disabled={page + 1 >= pageCount}
+            >
+              Next
+            </Button>
+          </div>
+        )}
         {stored > 0 && (
           <Button
             variant="danger"
             size="sm"
-            className="ml-auto"
+            className={filtered <= PAGE_SIZE ? 'ml-auto' : undefined}
             onClick={() => setConfirmation('all')}
           >
             Clear database
@@ -462,6 +517,7 @@ export function GamesWorkspace() {
         onConfirm={async () => {
           await deleteGames.mutateAsync({ ids: [...selected] });
           setSelected(new Set());
+          setPage(0);
           setConfirmation(null);
           notify({ tone: 'success', message: 'Games deleted.' });
         }}
@@ -476,6 +532,7 @@ export function GamesWorkspace() {
         onConfirm={async () => {
           await clearAll.mutateAsync();
           setSelected(new Set());
+          setPage(0);
           setConfirmation(null);
           notify({ tone: 'success', message: 'The local game database is empty.' });
         }}

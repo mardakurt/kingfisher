@@ -16,6 +16,7 @@ import { useCallback } from 'react';
 
 import { formatScore } from '@/chess/evaluation';
 import { variationTokens } from '@/engine/pv';
+import { describeGap, engineSessionMetrics } from '@/engine/metrics';
 import type { PrincipalVariation } from '@/engine/types';
 import { Pin, Play, Plus, Save, Stop, Trash } from '@/components/icons';
 import { Button, IconButton } from '@/components/ui/Button';
@@ -36,6 +37,7 @@ export function EnginePanel() {
   const problem = useEngine((state) => state.problem);
   const identity = useEngine((state) => state.identity);
   const analysis = useEngine((state) => state.analysis);
+  const history = useEngine((state) => state.history);
   const analysedFen = useEngine((state) => state.analysedFen);
   const running = useEngine((state) => state.running);
   const runEngine = useEngine((state) => state.analyse);
@@ -50,6 +52,7 @@ export function EnginePanel() {
   const notify = useUi((state) => state.notify);
 
   const stale = analysedFen !== node.fen;
+  const metrics = engineSessionMetrics(history);
 
   const start = useCallback(() => {
     void runEngine(node.fen, prefs.engineLimit, {
@@ -110,7 +113,10 @@ export function EnginePanel() {
             <Segmented
               items={[1, 2, 3, 4, 5].map((n) => ({ id: String(n), label: String(n) }))}
               value={String(prefs.engineMultiPv)}
-              onChange={(value) => prefs.set('engineMultiPv', Number(value))}
+              onChange={(value) => {
+                prefs.set('engineMultiPv', Number(value));
+                prefs.set('enginePreset', 'custom');
+              }}
               className="mr-1"
             />
             <IconButton
@@ -226,7 +232,7 @@ export function EnginePanel() {
                     )}
                   </div>
 
-                  <span className="flex shrink-0 items-center opacity-100 min-[900px]:opacity-0 min-[900px]:transition-opacity min-[900px]:focus-within:opacity-100 min-[900px]:group-hover:opacity-100">
+                  <span className="flex shrink-0 items-center opacity-100 mid:opacity-0 mid:transition-opacity mid:focus-within:opacity-100 mid:group-hover:opacity-100">
                     <IconButton
                       label="Pin this line so it stays visible"
                       className="h-6 w-6"
@@ -250,14 +256,25 @@ export function EnginePanel() {
       </PanelBody>
 
       {analysis && analysis.nodes > 0 && (
-        <footer className="flex shrink-0 items-center gap-3 border-t border-line-subtle px-2.5 py-1 text-[10.5px] text-tertiary tabular">
-          <span>{formatCount(analysis.nodes)} nodes</span>
-          <span>{Math.round(analysis.nps / 1000)}k n/s</span>
-          {analysis.hashFull !== undefined && (
-            <span>hash {(analysis.hashFull / 10).toFixed(0)}%</span>
-          )}
-          {analysis.tbHits ? <span>tb {formatCount(analysis.tbHits)}</span> : null}
-          <span className="ml-auto">{(analysis.timeMs / 1000).toFixed(1)}s</span>
+        <footer className="shrink-0 border-t border-line-subtle px-2.5 py-1 text-[10px] text-tertiary tabular">
+          <div className="flex items-center gap-3">
+            <span>{formatCount(analysis.nodes)} nodes</span>
+            <span>{Math.round(analysis.nps / 1000)}k n/s</span>
+            {analysis.hashFull !== undefined && (
+              <span>hash {(analysis.hashFull / 10).toFixed(0)}%</span>
+            )}
+            {analysis.tbHits ? <span>tb {formatCount(analysis.tbHits)}</span> : null}
+            <span className="ml-auto">{(analysis.timeMs / 1000).toFixed(1)}s</span>
+          </div>
+          <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-tertiary/80">
+            <span>top unchanged {metrics.topMoveStableDepths} depths</span>
+            <span>{metrics.topMoveChanges} top-move changes</span>
+            <span>score swing {(metrics.scoreSwingCp / 100).toFixed(2)}</span>
+            {metrics.multiPvGap ? <span>MultiPV gap {describeGap(metrics.multiPvGap)}</span> : null}
+            {metrics.nearEqualCandidates > 0 ? (
+              <span>{metrics.nearEqualCandidates} within 0.20</span>
+            ) : null}
+          </div>
         </footer>
       )}
     </div>

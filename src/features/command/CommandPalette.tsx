@@ -1,9 +1,15 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 import { Search } from '@/components/icons';
+import { useWorkspaceSearch } from '@/features/persistence/queries';
 import { cn } from '@/lib/cn';
+import { gameTitle } from '@/persistence/describe';
+import { getRepositories } from '@/persistence/repositories';
+import type { WorkspaceSearchHit } from '@/persistence/search';
+import { useAnalysis } from '@/stores/analysis-store';
 import { useUi } from '@/stores/ui-store';
 
 import { useCommands, type Command } from './useCommands';
@@ -23,6 +29,7 @@ export function CommandPalette() {
 }
 
 function PaletteDialog() {
+  const router = useRouter();
   const setOpen = useUi((state) => state.setCommandPaletteOpen);
   const commands = useCommands();
 
@@ -32,7 +39,56 @@ function PaletteDialog() {
   const listRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
 
-  const matches = useMemo(() => rank(commands, query), [commands, query]);
+  const entities = useWorkspaceSearch(query);
+  const entityCommands = useMemo(
+    () =>
+      (entities.data ?? []).map((hit) =>
+        commandForHit(hit, async (selectedHit) => {
+          const repositories = await getRepositories();
+          if (selectedHit.kind === 'game' || selectedHit.kind === 'model-game') {
+            const game = selectedHit.targetId
+              ? await repositories.games.get(selectedHit.targetId)
+              : null;
+            if (!game) throw new Error('That game is no longer in the database.');
+            useAnalysis.getState().openDocument({
+              tree: game.tree,
+              document: { kind: 'database-game', title: gameTitle(game), gameId: game.id },
+            });
+            router.push('/analysis');
+            return;
+          }
+          if (selectedHit.kind === 'chapter') {
+            const chapter = selectedHit.targetId
+              ? await repositories.studies.getChapter(selectedHit.targetId)
+              : null;
+            if (!chapter) throw new Error('That chapter is no longer available.');
+            const study = await repositories.studies.get(chapter.studyId);
+            useAnalysis.getState().openDocument({
+              tree: chapter.tree,
+              document: {
+                kind: 'study-chapter',
+                title: chapter.title,
+                studyId: chapter.studyId,
+                studyTitle: study?.study.title ?? 'Study',
+                chapterId: chapter.id,
+              },
+            });
+            router.push('/analysis');
+            return;
+          }
+          if (selectedHit.kind === 'study') router.push('/studies');
+          else if (selectedHit.kind === 'repertoire') router.push('/repertoire');
+          else if (selectedHit.kind === 'player')
+            router.push(`/database?player=${encodeURIComponent(selectedHit.title)}`);
+          else router.push('/training');
+        }),
+      ),
+    [entities.data, router],
+  );
+  const matches = useMemo(
+    () => rank([...commands, ...entityCommands], query),
+    [commands, entityCommands, query],
+  );
   const selected = Math.min(index, Math.max(0, matches.length - 1));
 
   useEffect(() => {
@@ -114,14 +170,16 @@ function PaletteDialog() {
                 setOpen(false);
               }
             }}
-            placeholder="Type a command…"
+            placeholder="Search commands, games, studies, players…"
             className="h-11 w-full bg-transparent text-sm text-primary outline-none placeholder:text-tertiary"
           />
         </div>
 
         <div ref={listRef} className="max-h-[min(46vh,calc(100dvh-8rem))] overflow-y-auto py-1">
           {matches.length === 0 ? (
-            <p className="px-4 py-6 text-center text-xs text-tertiary">No matching command.</p>
+            <p className="px-4 py-6 text-center text-xs text-tertiary">
+              {entities.isFetching ? 'Searching the workspace…' : 'No matching command or item.'}
+            </p>
           ) : (
             matches.map((command, position) => (
               <button
@@ -151,6 +209,30 @@ function PaletteDialog() {
       </div>
     </div>
   );
+}
+
+const HIT_GROUP: Record<WorkspaceSearchHit['kind'], string> = {
+  study: 'Study',
+  chapter: 'Chapter',
+  game: 'Game',
+  player: 'Player',
+  repertoire: 'Repertoire',
+  training: 'Training',
+  'model-game': 'Model game',
+  tag: 'Tag',
+};
+
+function commandForHit(
+  hit: WorkspaceSearchHit,
+  open: (hit: WorkspaceSearchHit) => Promise<void>,
+): Command {
+  return {
+    id: `entity:${hit.id}`,
+    title: hit.subtitle ? `${hit.title} · ${hit.subtitle}` : hit.title,
+    group: HIT_GROUP[hit.kind],
+    keywords: hit.subtitle,
+    run: () => open(hit),
+  };
 }
 
 function rank(commands: readonly Command[], query: string): Command[] {
