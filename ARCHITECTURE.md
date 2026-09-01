@@ -25,7 +25,8 @@ things:
   │  app/            routes, providers, global styles         │
   ├───────────────────────────────────────────────────────────┤
   │  features/       analysis · games · openings · repertoire │
-  │                  preparation · training · shell · command │
+  │                  preparation · training · explorer ·      │
+  │                  engine · assistant · shell · command     │
   ├───────────────────────────────────────────────────────────┤
   │  stores/         analysis · engine · ui · preferences     │
   ├───────────────────────────────────────────────────────────┤
@@ -282,6 +283,74 @@ same interface, which is exactly why the interface exists.
 
 ---
 
+## Engines
+
+One session drives every engine. `UciSession` owns everything that is hard —
+serialising searches so a new request supersedes a running one, coalescing the
+`info` flood into UI-rate snapshots, keeping MultiPV lines in rank order,
+converting scores to White's point of view — and none of it depends on where
+the engine runs. That is behind `UciTransport`:
+
+```
+UciTransport            one line in, one line out
+  ├── UciWorkerClient   postMessage to a Web Worker   (Stockfish WASM)
+  └── CompanionTransport fetch in, SSE out            (Lc0, Stormphrax, …)
+```
+
+Adding an engine is a transport plus a capability record, not a second copy of
+the session. **Capabilities are read from the engine's own `option` lines** at
+handshake rather than tabulated: Lc0 has no `Hash`, no `Use NNUE`, a `Threads`
+default of 0 and a `WeightsFile` no alpha-beta engine has, and a hand-written
+table would encode that as folklore and go stale.
+
+Two engines may run at once and they split the thread budget. Two is a hard
+limit: a third search takes cores from the interface. `engine/comparison.ts`
+reports top-move agreement, PV divergence and the evaluation gap, and refuses
+to subtract a mate score from an evaluation. See `docs/ENGINES.md`.
+
+## The local companion
+
+Optional, and nothing depends on it. `companion/` is a dependency-free Node
+service doing the three things a browser cannot: run native UCI engines, query
+SQLite, and read local tablebases. It is reached through the ordinary
+`EngineProvider` and `ChessDatabaseProvider` interfaces, so no UI code knows it
+exists.
+
+Loopback only; a token minted per run and never written to disk; origin
+allowlist; resource **keys** rather than paths, so a request cannot name a file;
+argv arrays rather than a shell. ADR 0015 and `companion/README.md` carry the
+reasoning and the threat model.
+
+## Evidence sources
+
+Six kinds of evidence about a position, deliberately never merged:
+
+| Source     | Says                               | Lives in              |
+| ---------- | ---------------------------------- | --------------------- |
+| Engine     | what a search currently believes   | `engine/`             |
+| Database   | what has been played, and by whom  | `database/`           |
+| Repertoire | what the user decided              | `repertoire/`         |
+| Personal   | how the user has done with it      | `database/` + profile |
+| Tablebase  | what is **proved**                 | `tablebase/`          |
+| Structure  | what is **countable** on the board | `chess/features.ts`   |
+
+`chess/features.ts` is pure and holds no judgement: isolated, doubled, passed,
+connected passed and backward pawns, pawn islands, open and semi-open files,
+rooks on them, the bishop pair, material imbalance by piece type, castling
+rights, whether the king castled, and king shelter. Where a term has more than
+one definition in the literature the one used is written beside the code — a
+backward pawn needs its advance square covered by an enemy pawn, or the term
+means nothing.
+
+## The assistant
+
+`assistant/` builds an **evidence packet** from the sources above, renders it as
+a labelled document, and asks an OpenAI-compatible endpoint to explain _that_.
+The model is never asked what it knows about chess. The packet names which
+sources are empty, so "there is no database evidence here" is an available
+answer, and the rendered packet is shown under every reply so any claim can be
+checked. No key ships; an unconfigured assistant is a disabled one. ADR 0016.
+
 ## Persistence
 
 ```
@@ -471,7 +540,7 @@ uncompressed across 23 files in this build; Phase 3 added no runtime dependency.
 
 ## Testing
 
-338 tests across 27 files, all on the parts where being wrong is expensive.
+437 tests across 32 files, all on the parts where being wrong is expensive.
 
 | Area             | Covered                                                                                                                                                                                                                           |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
