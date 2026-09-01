@@ -7,7 +7,10 @@ import nextTypescript from 'eslint-config-next/typescript';
  */
 const config = [
   {
-    ignores: ['.next/**', 'node_modules/**', 'public/engine/**', 'next-env.d.ts', 'scripts/**'],
+    // `public/` is served as-is: downloaded engine builds, generated benchmark
+    // fixtures, and anything else copied there to be fetched by the app. None
+    // of it is source, and linting it fails builds for reasons nobody authored.
+    ignores: ['.next/**', 'node_modules/**', 'public/**', 'next-env.d.ts', 'scripts/**'],
   },
   ...nextCoreWebVitals,
   ...nextTypescript,
