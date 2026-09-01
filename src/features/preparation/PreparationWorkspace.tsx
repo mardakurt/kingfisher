@@ -37,7 +37,8 @@ interface PreparationData {
   readonly games: readonly GameRecord[];
   readonly profile: PlayerProfile;
   readonly tree: OpeningTree;
-  readonly total: number;
+  /** Matching games in the database, where that was cheap to know. */
+  readonly total: number | null;
 }
 
 export function PreparationWorkspace({ initialPlayer = '' }: { readonly initialPlayer?: string }) {
@@ -71,6 +72,8 @@ export function PreparationWorkspace({ initialPlayer = '' }: { readonly initialP
       sortBy: 'date',
       sortDirection: 'desc',
       limit: Math.min(1000, Math.max(1, Number(recentN) || 200)),
+      // The report says "N of M games"; that M is worth one count.
+      exactTotal: true,
     }),
     [submitted, side, fromYear, toYear, minRating, eco, result, recentN],
   );
@@ -401,7 +404,7 @@ function ProfilePanel({
   total,
 }: {
   readonly profile: PlayerProfile;
-  readonly total: number;
+  readonly total: number | null;
 }) {
   return (
     <div className="divide-y divide-line-subtle">
@@ -411,7 +414,7 @@ function ProfilePanel({
           <dt className="text-tertiary">Games analysed</dt>
           <dd className="text-right text-secondary tabular">
             {profile.games}
-            {total > profile.games ? ` of ${total}` : ''}
+            {total !== null && total > profile.games ? ` of ${total}` : ''}
           </dd>
           <dt className="text-tertiary">Average rating</dt>
           <dd className="text-right text-secondary tabular">{profile.averageRating ?? '—'}</dd>

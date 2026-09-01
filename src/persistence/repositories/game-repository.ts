@@ -137,9 +137,14 @@ export class LocalGameRepository implements GameRepository {
 
     /*
       Case 1: the index the plan walks already produces the requested order, so
-      a page is a page. When the plan is also exact the total comes from a key
-      cursor, which never deserialises a record, and the page cursor stops as
-      soon as it is full — cost then tracks the page size, not the collection.
+      a page is a page.
+
+      When the plan is also exact, the total comes from a key cursor, which
+      never deserialises a record — cheap enough to always report. When it is
+      not, counting means visiting every record in the range to test it, and
+      that is the scan ADR 0014 exists to avoid: the walk stops one row past
+      the page and reports `hasMore` instead. `exactTotal` buys the count back
+      for the caller that genuinely needs it.
     */
     if (plan.ordered) {
       const direction: IDBCursorDirection = descending ? 'prev' : 'next';
@@ -154,27 +159,36 @@ export class LocalGameRepository implements GameRepository {
             limit,
           }),
         ]);
-        return { games: page.items, total };
+        return { games: page.items, total, hasMore: offset + page.items.length < total };
       }
+
       const result = await this.database.scan<GameSummary>(STORE_NAMES.games, {
         ...(plan.index ? { index: plan.index } : {}),
         ...(plan.range ? { range: plan.range } : {}),
         direction,
         match: (game) => matchesSearch(game, query),
         offset,
-        limit,
+        // One row past the page answers "is there more" without counting.
+        limit: query.exactTotal ? limit : limit + 1,
+        ...(query.exactTotal ? {} : { stopEarly: true }),
       });
-      return { games: result.items, total: result.total };
+
+      if (query.exactTotal) {
+        return {
+          games: result.items,
+          total: result.total,
+          hasMore: offset + result.items.length < result.total,
+        };
+      }
+      const hasMore = result.items.length > limit;
+      return { games: hasMore ? result.items.slice(0, limit) : result.items, total: null, hasMore };
     }
 
     /*
-      Case 2: the narrowing index answers the filters but not the order, which
-      is the situation an earlier version got wrong — it sorted the page it
-      happened to receive, so "the 100 most recent" was really "100 arbitrary
-      games, displayed in date order", and page 2 could repeat page 1.
+      Case 2: the narrowing index answers the filters but not the order.
 
-      Two honest ways out, chosen by how much the range actually holds. That
-      count is a key-cursor count, so asking is nearly free.
+      Two honest ways out, chosen by how much the range holds; that count is a
+      key-cursor count, so asking is nearly free.
     */
     const narrowed = plan.exact
       ? await this.database.countRange(STORE_NAMES.games, plan.index, plan.range)
@@ -192,10 +206,15 @@ export class LocalGameRepository implements GameRepository {
         limit,
         stopEarly: true,
       });
-      return { games: page.items, total: narrowed };
+      return {
+        games: page.items,
+        total: narrowed,
+        hasMore: offset + page.items.length < narrowed,
+      };
     }
 
     // Few enough matches to order properly: read the range, sort it, page it.
+    // The whole match set is in hand, so the total is exact and free.
     const all = await this.database.scan<GameSummary>(STORE_NAMES.games, {
       ...(plan.index ? { index: plan.index } : {}),
       ...(plan.range ? { range: plan.range } : {}),
@@ -204,9 +223,11 @@ export class LocalGameRepository implements GameRepository {
     const sorted = [...all.items].sort(
       (a, b) => compareGames(a, b, sortBy) * (descending ? -1 : 1),
     );
+    const total = narrowed ?? sorted.length;
     return {
       games: sorted.slice(offset, offset + limit),
-      total: narrowed ?? sorted.length,
+      total,
+      hasMore: offset + limit < total,
     };
   }
 

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Dialog } from '@/components/ui/Dialog';
 import { Segmented } from '@/components/ui/Tabs';
 import { useAnalysisPosition } from '@/features/analysis/useAnalysisPosition';
+import { AnswerBoard, type AcceptedMove } from './AnswerBoard';
 import { invalidateTraining, useRepertoiresAtPosition } from '@/features/persistence/queries';
 import {
   ANSWER_SOURCE_LABEL,
@@ -46,8 +47,8 @@ function CreateTrainingForm() {
 
   const [mode, setMode] = useState<TrainingMode>('repertoire-recall');
   const [prompt, setPrompt] = useState('Play the prepared move.');
-  const [solution, setSolution] = useState('');
-  const [candidates, setCandidates] = useState('');
+  const [accepted, setAccepted] = useState<readonly AcceptedMove[]>([]);
+  const [candidates, setCandidates] = useState<readonly AcceptedMove[]>([]);
   const [band, setBand] = useState<EvaluationBand>('equal');
   const [whitePlan, setWhitePlan] = useState('');
   const [blackPlan, setBlackPlan] = useState('');
@@ -71,20 +72,12 @@ function CreateTrainingForm() {
 
   const submit = async () => {
     setError(null);
-    const solutionMoves = moveMode ? resolveMoves(solution, position) : [];
-    if (solutionMoves instanceof Error) {
-      setError(solutionMoves.message);
-      return;
-    }
+    const solutionMoves = moveMode ? accepted : [];
     if (moveMode && solutionMoves.length === 0) {
-      setError('Enter at least one accepted move in UCI notation.');
+      setError('Play the answer on the board first.');
       return;
     }
-    const candidateMoves = mode === 'candidates' ? resolveMoves(candidates, position) : [];
-    if (candidateMoves instanceof Error) {
-      setError(candidateMoves.message);
-      return;
-    }
+    const candidateMoves = mode === 'candidates' ? candidates : [];
     if (mode === 'plan' && !whitePlan.trim() && !blackPlan.trim()) {
       setError('Write at least one structured plan.');
       return;
@@ -175,18 +168,21 @@ function CreateTrainingForm() {
 
       {moveMode ? (
         <>
-          <label className="mt-3 block text-2xs text-tertiary">
-            Accepted move{mode === 'repertoire-recall' ? 's' : ''} (UCI, comma separated)
-            <input
-              value={solution}
-              onChange={(event) => {
-                setSolution(event.target.value);
+          <div className="mt-3">
+            <p className="mb-1.5 text-2xs text-tertiary">
+              Accepted move{mode === 'repertoire-recall' || mode === 'candidates' ? 's' : ''}
+            </p>
+            <AnswerBoard
+              fen={node.fen}
+              moves={accepted}
+              onChange={(next) => {
+                setAccepted(next);
                 setAnswerSource('user');
               }}
-              placeholder="e2e4, d2d4"
-              className={FIELD}
+              multiple={mode !== 'best-move'}
+              orientation={position.turn}
             />
-          </label>
+          </div>
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
             <span className="text-[10px] text-tertiary">
               Answer source: {ANSWER_SOURCE_LABEL[answerSource]}
@@ -194,7 +190,9 @@ function CreateTrainingForm() {
             {engineMove ? (
               <Button
                 onClick={() => {
-                  setSolution(engineMove);
+                  const played = position.playUci(engineMove);
+                  if (!played.ok) return;
+                  setAccepted([{ uci: played.value.uci, san: played.value.san }]);
                   setAnswerSource('engine');
                 }}
               >
@@ -204,7 +202,7 @@ function CreateTrainingForm() {
             {repertoireMoves.length ? (
               <Button
                 onClick={() => {
-                  setSolution(repertoireMoves.map((move) => move.uci).join(', '));
+                  setAccepted(repertoireMoves.map((move) => ({ uci: move.uci, san: move.san })));
                   setAnswerSource('repertoire');
                 }}
               >
@@ -214,15 +212,16 @@ function CreateTrainingForm() {
           </div>
 
           {mode === 'candidates' ? (
-            <label className="mt-3 block text-2xs text-tertiary">
-              Additional candidates (UCI, comma separated)
-              <input
-                value={candidates}
-                onChange={(event) => setCandidates(event.target.value)}
-                placeholder="g1f3, c2c4"
-                className={FIELD}
+            <div className="mt-3">
+              <p className="mb-1.5 text-2xs text-tertiary">Additional candidates</p>
+              <AnswerBoard
+                fen={node.fen}
+                moves={candidates}
+                onChange={setCandidates}
+                multiple
+                orientation={position.turn}
               />
-            </label>
+            </div>
           ) : null}
         </>
       ) : null}
@@ -281,20 +280,6 @@ function CreateTrainingForm() {
       {error ? <p className="mt-2 text-2xs text-negative">{error}</p> : null}
     </Dialog>
   );
-}
-
-function resolveMoves(text: string, position: ReturnType<typeof useAnalysisPosition>['position']) {
-  const tokens = text
-    .split(/[\s,]+/)
-    .map((value) => value.trim())
-    .filter(Boolean);
-  const moves = [];
-  for (const token of tokens) {
-    const result = position.playUci(token);
-    if (!result.ok) return new Error(`${token}: ${result.error.message}`);
-    moves.push(result.value);
-  }
-  return moves;
 }
 
 function defaultPrompt(mode: TrainingMode): string {

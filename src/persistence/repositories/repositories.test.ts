@@ -430,9 +430,9 @@ describe('game repository', () => {
       1,
     );
     expect((await repositories.games.search({ result: '1-0' })).total).toBe(1);
-    expect((await repositories.games.search({ minRating: 2800 })).total).toBe(1);
+    expect((await repositories.games.search({ minRating: 2800 })).games).toHaveLength(1);
     expect((await repositories.games.search({ fromYear: 2020 })).total).toBe(1);
-    expect((await repositories.games.search({ text: 'nepo' })).total).toBe(2);
+    expect((await repositories.games.search({ text: 'nepo' })).games).toHaveLength(2);
   });
 
   it('sorts by the column asked for, in the direction asked for', async () => {

@@ -29,12 +29,14 @@ import { useEngineSnapshots } from './useEngineSnapshots';
 import { GameInsightsPanel } from '@/features/games/GameInsightsPanel';
 import { EngineComparison } from '@/features/engine/EngineComparison';
 import { FeaturesPanel } from './FeaturesPanel';
+import { TablebasePanel } from './TablebasePanel';
 
 const RIGHT_TABS: readonly { id: RightPanelTab; label: string }[] = [
   { id: 'engine', label: 'Engine' },
   { id: 'compare', label: 'Compare' },
   { id: 'explorer', label: 'Explorer' },
   { id: 'features', label: 'Structure' },
+  { id: 'tablebase', label: 'Tablebase' },
   { id: 'notes', label: 'Notes' },
   { id: 'game', label: 'Game' },
 ];
@@ -245,6 +247,7 @@ function RightPanelContent({ tab }: { readonly tab: RightPanelTab }) {
       {tab === 'compare' && <EngineComparison />}
       {tab === 'explorer' && <ExplorerPanel />}
       {tab === 'features' && <FeaturesPanel />}
+      {tab === 'tablebase' && <TablebasePanel />}
       {tab === 'notes' && <NotesPanel />}
       {tab === 'game' && <GameInsightsPanel />}
     </ErrorBoundary>

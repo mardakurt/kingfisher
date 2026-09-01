@@ -112,11 +112,18 @@ export function GamesWorkspace() {
   );
 
   const rows = games.data?.games ?? [];
-  const filtered = games.data?.total ?? 0;
+  /*
+    `total` is null when counting would have cost a full scan (ADR 0014), so
+    the footer says what it knows: an exact count where there is one, and a
+    range plus a working Next button where there is not.
+  */
+  const filtered = games.data?.total ?? null;
+  const hasMore = games.data?.hasMore ?? false;
   const stored = total.data ?? 0;
-  const pageCount = Math.max(1, Math.ceil(filtered / PAGE_SIZE));
-  const visibleFrom = filtered === 0 ? 0 : page * PAGE_SIZE + 1;
-  const visibleTo = Math.min(filtered, page * PAGE_SIZE + rows.length);
+  const pageCount = filtered === null ? null : Math.max(1, Math.ceil(filtered / PAGE_SIZE));
+  const visibleFrom = rows.length === 0 ? 0 : page * PAGE_SIZE + 1;
+  const visibleTo = page * PAGE_SIZE + rows.length;
+  const paged = page > 0 || hasMore;
 
   const sort = (field: SortField) => {
     setPage(0);
@@ -471,11 +478,14 @@ export function GamesWorkspace() {
 
       <footer className="flex h-8 shrink-0 items-center gap-3 border-t border-line-subtle bg-surface-1 px-2 text-[10.5px] text-tertiary sm:px-3">
         <span className="tabular">
-          {filtered.toLocaleString()} of {stored.toLocaleString()} games
-          {filtered > PAGE_SIZE &&
-            ` · ${visibleFrom.toLocaleString()}–${visibleTo.toLocaleString()}`}
+          {filtered === null
+            ? `${visibleFrom.toLocaleString()}–${visibleTo.toLocaleString()} of ${stored.toLocaleString()} games`
+            : `${filtered.toLocaleString()} of ${stored.toLocaleString()} games`}
+          {filtered !== null && filtered > PAGE_SIZE
+            ? ` · ${visibleFrom.toLocaleString()}–${visibleTo.toLocaleString()}`
+            : ''}
         </span>
-        {filtered > PAGE_SIZE && (
+        {paged && (
           <div className="ml-auto flex items-center gap-1">
             <Button
               size="sm"
@@ -485,13 +495,10 @@ export function GamesWorkspace() {
               Previous
             </Button>
             <span className="px-1 tabular">
-              {page + 1}/{pageCount}
+              {page + 1}
+              {pageCount === null ? '' : `/${pageCount}`}
             </span>
-            <Button
-              size="sm"
-              onClick={() => setPage((value) => Math.min(pageCount - 1, value + 1))}
-              disabled={page + 1 >= pageCount}
-            >
+            <Button size="sm" onClick={() => setPage((value) => value + 1)} disabled={!hasMore}>
               Next
             </Button>
           </div>
@@ -500,7 +507,7 @@ export function GamesWorkspace() {
           <Button
             variant="danger"
             size="sm"
-            className={filtered <= PAGE_SIZE ? 'ml-auto' : undefined}
+            className={paged ? undefined : 'ml-auto'}
             onClick={() => setConfirmation('all')}
           >
             Clear database

@@ -22,3 +22,6 @@ order taken. Superseded records stay, marked as such.
 | [0011](0011-deterministic-training-schedule.md) | Deterministic, legible spaced repetition                  | Accepted |
 | [0012](0012-transactional-workspace-backups.md) | Versioned transactional local backup                      | Accepted |
 | [0013](0013-large-local-database-queries.md)    | Summary paging, adaptive joins and Worker exploration     | Accepted |
+| [0014](0014-counting-a-filtered-page.md)        | A page reports `hasMore`; a total is opt-in               | Accepted |
+| [0015](0015-native-companion.md)                | An optional local companion for engines and SQLite        | Accepted |
+| [0016](0016-grounded-assistant.md)              | The assistant is given evidence, not asked what it knows  | Accepted |

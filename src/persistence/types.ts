@@ -136,12 +136,30 @@ export interface GameSearchQuery {
   readonly sortDirection?: 'asc' | 'desc';
   readonly limit?: number;
   readonly offset?: number;
+  /**
+   * Insist on an exact total even where counting costs a full scan.
+   *
+   * Off by default. A filter an index cannot answer has to visit every record
+   * to be counted, and almost every caller wants "is there another page", not
+   * "how many pages". See ADR 0014.
+   */
+  readonly exactTotal?: boolean;
 }
 
 export interface GameSearchResult {
   /** Summaries: opening a game fetches its moves separately. */
   readonly games: readonly GameSummary[];
-  readonly total: number;
+  /**
+   * Matching games, or null when the query could not be counted cheaply.
+   *
+   * Null is not "zero" and not "unknown-ish": it means the repository declined
+   * to pay for a number nobody asked for. A caller that needs one passes
+   * `exactTotal`. The interface refuses to report an estimate as a total,
+   * because a wrong count on a database screen is worse than no count.
+   */
+  readonly total: number | null;
+  /** Whether a further page exists. Always exact — it costs one extra row. */
+  readonly hasMore: boolean;
 }
 
 export interface PersistGameResult {

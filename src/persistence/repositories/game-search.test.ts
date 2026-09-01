@@ -58,7 +58,11 @@ describe('who a player filter means', () => {
   });
 
   it('still searches names loosely through the text field', async () => {
-    expect((await repositories.games.search({ text: 'Carlsen' })).total).toBe(2);
+    const loose = await repositories.games.search({ text: 'Carlsen' });
+    expect(loose.games).toHaveLength(2);
+    // A text filter no index can answer is not counted unless asked; see below.
+    expect(loose.total).toBeNull();
+    expect((await repositories.games.search({ text: 'Carlsen', exactTotal: true })).total).toBe(2);
   });
 
   it('honours the colour a player is asked about', async () => {
@@ -186,11 +190,69 @@ describe('filters combine rather than replace each other', () => {
   });
 
   it('matches an opening by substring and an ECO by prefix', async () => {
-    expect((await repositories.games.search({ opening: 'gambit' })).total).toBe(1);
-    expect((await repositories.games.search({ eco: 'D' })).total).toBe(1);
+    expect((await repositories.games.search({ opening: 'gambit' })).games).toHaveLength(1);
+    expect((await repositories.games.search({ eco: 'D' })).games).toHaveLength(1);
   });
 
   it('counts every stored game when nothing is asked of it', async () => {
     expect((await repositories.games.search()).total).toBe(2);
+  });
+});
+
+/**
+ * ADR 0014. A filter no index can answer has to visit every record to be
+ * counted, and almost nobody wants the number — they want to know whether to
+ * enable the Next button. The repository refuses to pay for a total nobody
+ * asked for, and refuses to guess one.
+ */
+describe('what a page costs to count', () => {
+  beforeEach(async () => {
+    for (let index = 0; index < 12; index += 1) {
+      await store({
+        White: `Player ${index}`,
+        Black: 'Opponent',
+        Result: '1-0',
+        Event: 'Countable Open',
+        Date: `20${10 + index}.01.01`,
+      });
+    }
+  });
+
+  it('counts exactly when an index answers the whole query', async () => {
+    const page = await repositories.games.search({ limit: 5 });
+    expect(page.total).toBe(12);
+    expect(page.hasMore).toBe(true);
+  });
+
+  it('returns no total for a filter the index cannot answer', async () => {
+    const page = await repositories.games.search({ text: 'Countable', limit: 5 });
+    expect(page.games).toHaveLength(5);
+    expect(page.total).toBeNull();
+    expect(page.hasMore).toBe(true);
+  });
+
+  it('still answers "is there another page" exactly without a total', async () => {
+    const page = await repositories.games.search({ text: 'Countable', limit: 5, offset: 10 });
+    expect(page.games).toHaveLength(2);
+    expect(page.total).toBeNull();
+    expect(page.hasMore).toBe(false);
+  });
+
+  it('pays for the count when the caller asks for one', async () => {
+    const page = await repositories.games.search({ text: 'Countable', limit: 5, exactTotal: true });
+    expect(page.total).toBe(12);
+    expect(page.hasMore).toBe(true);
+  });
+
+  it('never reports an approximate number as a total', async () => {
+    const page = await repositories.games.search({ text: 'Countable', limit: 5 });
+    // Null rather than a guess: the one thing a database screen must not do is
+    // show a confident wrong count.
+    expect(page.total === null || page.total === 12).toBe(true);
+  });
+
+  it('does not claim more pages at the end of an exactly counted result', async () => {
+    const page = await repositories.games.search({ limit: 12 });
+    expect(page.hasMore).toBe(false);
   });
 });
