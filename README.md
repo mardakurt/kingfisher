@@ -28,7 +28,7 @@ currently comes from the separate Lichess Syzygy provider.
 
 | Area            | What you can do                                                                                                                                                                                                           |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Board           | Drag or click to move, promotion picker, flip, eight board themes, six vector piece sets, coordinates, move animation                                                                                                     |
+| Board           | Drag or click to move, promotion picker, flip, eight board themes, five selectable open-source vector piece sets plus an internal recovery set, coordinates, move animation                                               |
 | Game tree       | Nested variations, promote / promote-to-main-line, delete, truncate, undo & redo, keyboard navigation                                                                                                                     |
 | Annotation      | Comments, NAG glyphs, arrows and square highlights (right-drag), all surviving a PGN round trip                                                                                                                           |
 | Engines         | Stockfish 17.1 in a Worker; Lc0 and Stormphrax as native processes through the companion. MultiPV 1–5, live depth / nodes / nps, evaluation bar, stability and line-separation metrics, click any move to insert the line |
