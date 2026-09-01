@@ -13,6 +13,13 @@ export type RightPanelTab = 'engine' | 'explorer' | 'notes';
 export type WorkspacePanelTab = 'moves' | RightPanelTab;
 export type BottomPanelTab = 'moves' | 'headers';
 
+/** Where a move's context menu was summoned from, in viewport coordinates. */
+export interface MoveMenuTarget {
+  readonly nodeId: string;
+  readonly x: number;
+  readonly y: number;
+}
+
 export interface Notice {
   readonly id: string;
   readonly tone: 'info' | 'error' | 'success';
@@ -25,6 +32,11 @@ interface UiState {
   shortcutsOpen: boolean;
   settingsOpen: boolean;
   importOpen: boolean;
+  saveToStudyOpen: boolean;
+  /** The move whose comment is being edited, or null. */
+  commentingNodeId: string | null;
+  /** The move whose context menu is open, with where to draw it. */
+  moveMenu: MoveMenuTarget | null;
   sidebarOpen: boolean;
   rightTab: RightPanelTab;
   workspaceTab: WorkspacePanelTab;
@@ -36,6 +48,9 @@ interface UiState {
   setShortcutsOpen(open: boolean): void;
   setSettingsOpen(open: boolean): void;
   setImportOpen(open: boolean): void;
+  setSaveToStudyOpen(open: boolean): void;
+  setCommentingNodeId(nodeId: string | null): void;
+  setMoveMenu(target: MoveMenuTarget | null): void;
   setSidebarOpen(open: boolean): void;
   setRightTab(tab: RightPanelTab): void;
   setWorkspaceTab(tab: WorkspacePanelTab): void;
@@ -51,6 +66,9 @@ export const useUi = create<UiState>((set) => ({
   shortcutsOpen: false,
   settingsOpen: false,
   importOpen: false,
+  saveToStudyOpen: false,
+  commentingNodeId: null,
+  moveMenu: null,
   sidebarOpen: false,
   rightTab: 'engine',
   workspaceTab: 'moves',
@@ -62,6 +80,9 @@ export const useUi = create<UiState>((set) => ({
   setShortcutsOpen: (shortcutsOpen) => set({ shortcutsOpen }),
   setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
   setImportOpen: (importOpen) => set({ importOpen }),
+  setSaveToStudyOpen: (saveToStudyOpen) => set({ saveToStudyOpen }),
+  setCommentingNodeId: (commentingNodeId) => set({ commentingNodeId }),
+  setMoveMenu: (moveMenu) => set({ moveMenu }),
   setSidebarOpen: (sidebarOpen) => set({ sidebarOpen }),
   setRightTab: (rightTab) => set({ rightTab }),
   setWorkspaceTab: (workspaceTab) => set({ workspaceTab }),

@@ -1,23 +1,36 @@
 'use client';
 
+/**
+ * The engine's candidate moves.
+ *
+ * Three things can be done with a line here, and they are deliberately
+ * different actions. *Insert* writes real, legal, structured moves into the
+ * game tree, reusing branches that already exist. *Pin* holds a reading still
+ * while the search moves on, for comparison. *Save evaluation* attaches one
+ * snapshot to the current move as evidence. Only the first and third change
+ * the document; pins are session-local, because a database full of engine
+ * chatter is not a study.
+ */
+
 import { useCallback } from 'react';
 
 import { formatScore } from '@/chess/evaluation';
 import { variationTokens } from '@/engine/pv';
 import type { PrincipalVariation } from '@/engine/types';
-import { Play, Plus, Stop } from '@/components/icons';
+import { Pin, Play, Plus, Save, Stop, Trash } from '@/components/icons';
 import { Button, IconButton } from '@/components/ui/Button';
 import { EmptyState, PanelBody, PanelHeader } from '@/components/ui/Panel';
 import { Segmented } from '@/components/ui/Tabs';
 import { useAnalysisPosition } from '@/features/analysis/useAnalysisPosition';
+import { evaluationFromAnalysis } from '@/features/analysis/useEngineSnapshots';
 import { cn } from '@/lib/cn';
 import { useAnalysis } from '@/stores/analysis-store';
-import { useEngine } from '@/stores/engine-store';
+import { useEngine, type PinnedLine } from '@/stores/engine-store';
 import { usePreferences } from '@/stores/preferences-store';
 import { useUi } from '@/stores/ui-store';
 
 export function EnginePanel() {
-  const { node } = useAnalysisPosition();
+  const { node, currentId } = useAnalysisPosition();
 
   const status = useEngine((state) => state.status);
   const problem = useEngine((state) => state.problem);
@@ -27,9 +40,13 @@ export function EnginePanel() {
   const running = useEngine((state) => state.running);
   const runEngine = useEngine((state) => state.analyse);
   const stopEngine = useEngine((state) => state.stop);
+  const pinned = useEngine((state) => state.pinned);
+  const pin = useEngine((state) => state.pin);
+  const unpin = useEngine((state) => state.unpin);
 
   const prefs = usePreferences();
   const insertUciLine = useAnalysis((state) => state.insertUciLine);
+  const attachEvaluation = useAnalysis((state) => state.attachEvaluation);
   const notify = useUi((state) => state.notify);
 
   const stale = analysedFen !== node.fen;
@@ -49,14 +66,41 @@ export function EnginePanel() {
     runEngine,
   ]);
 
+  /**
+   * Insertion replays the UCI moves against the real position, so an engine
+   * line that has gone stale — the board moved on mid-search — fails cleanly at
+   * the first illegal move instead of corrupting the tree.
+   */
   const insert = useCallback(
-    (line: PrincipalVariation, upto: number) => {
-      const moves = line.moves.slice(0, upto + 1);
-      const result = insertUciLine(moves);
-      if (!result.ok) notify({ tone: 'error', message: result.error.message });
+    (moves: readonly string[], upto: number, from?: string) => {
+      const result = insertUciLine(moves.slice(0, upto + 1), from);
+      if (!result.ok) {
+        notify({
+          tone: 'error',
+          message: 'That engine line no longer fits this position.',
+          detail: result.error.message,
+        });
+      }
     },
     [insertUciLine, notify],
   );
+
+  const saveEvaluation = useCallback(() => {
+    if (!analysis || stale) {
+      notify({ tone: 'info', message: 'Analyse this position first.' });
+      return;
+    }
+    const evaluation = evaluationFromAnalysis(analysis, identity?.name ?? 'Stockfish');
+    if (!evaluation) {
+      notify({ tone: 'info', message: 'The engine has not reported a score yet.' });
+      return;
+    }
+    attachEvaluation(currentId, evaluation);
+    notify({
+      tone: 'success',
+      message: `${formatScore(evaluation.score)} at depth ${evaluation.depth} saved to this move.`,
+    });
+  }, [analysis, attachEvaluation, currentId, identity, notify, stale]);
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -69,6 +113,13 @@ export function EnginePanel() {
               onChange={(value) => prefs.set('engineMultiPv', Number(value))}
               className="mr-1"
             />
+            <IconButton
+              label="Save this evaluation to the current move"
+              onClick={saveEvaluation}
+              disabled={!analysis || stale}
+            >
+              <Save />
+            </IconButton>
             {running ? (
               <IconButton label="Stop analysis (E)" onClick={stopEngine} active>
                 <Stop />
@@ -97,6 +148,26 @@ export function EnginePanel() {
       </PanelHeader>
 
       <PanelBody>
+        {pinned.length > 0 && (
+          <section className="border-b border-line-subtle bg-surface-2/40">
+            <h3 className="flex items-center gap-1.5 px-2.5 pt-1.5 text-[10px] uppercase tracking-wide text-tertiary">
+              <Pin className="h-3 w-3" />
+              Pinned
+            </h3>
+            <ul className="divide-y divide-line-subtle">
+              {pinned.map((line) => (
+                <PinnedRow
+                  key={line.id}
+                  line={line}
+                  applicable={line.fen === node.fen}
+                  onInsert={() => insert(line.moves, line.moves.length - 1)}
+                  onRemove={() => unpin(line.id)}
+                />
+              ))}
+            </ul>
+          </section>
+        )}
+
         {status === 'unavailable' || status === 'error' ? (
           <EmptyState
             title={problem?.message ?? 'The engine is unavailable.'}
@@ -136,7 +207,7 @@ export function EnginePanel() {
                             key={`${line.rank}-${index}`}
                             type="button"
                             title="Add this line up to here"
-                            onClick={() => insert(line, moveIndexOf(line, index, node.ply))}
+                            onClick={() => insert(line.moves, moveIndexOf(line, index, node.ply))}
                             className="mr-1 rounded-[3px] px-0.5 text-primary transition-colors hover:bg-accent-muted"
                           >
                             {token.text}
@@ -155,13 +226,22 @@ export function EnginePanel() {
                     )}
                   </div>
 
-                  <IconButton
-                    label="Insert this variation into the game"
-                    className="opacity-0 transition-opacity group-hover:opacity-100"
-                    onClick={() => insert(line, line.moves.length - 1)}
-                  >
-                    <Plus />
-                  </IconButton>
+                  <span className="flex shrink-0 items-center opacity-100 min-[900px]:opacity-0 min-[900px]:transition-opacity min-[900px]:focus-within:opacity-100 min-[900px]:group-hover:opacity-100">
+                    <IconButton
+                      label="Pin this line so it stays visible"
+                      className="h-6 w-6"
+                      onClick={() => pin(line.rank)}
+                    >
+                      <Pin />
+                    </IconButton>
+                    <IconButton
+                      label="Insert this variation into the game"
+                      className="h-6 w-6"
+                      onClick={() => insert(line.moves, line.moves.length - 1)}
+                    >
+                      <Plus />
+                    </IconButton>
+                  </span>
                 </div>
               </li>
             ))}
@@ -181,6 +261,51 @@ export function EnginePanel() {
         </footer>
       )}
     </div>
+  );
+}
+
+interface PinnedRowProps {
+  readonly line: PinnedLine;
+  /** Pins survive navigation, so most of them do not fit the current board. */
+  readonly applicable: boolean;
+  readonly onInsert: () => void;
+  readonly onRemove: () => void;
+}
+
+function PinnedRow({ line, applicable, onInsert, onRemove }: PinnedRowProps) {
+  return (
+    <li className="group flex items-baseline gap-2 px-2.5 py-1.5">
+      <span className="w-[52px] shrink-0 rounded-[3px] bg-surface-3 px-1 py-0.5 text-center text-xs font-medium text-secondary tabular">
+        {formatScore(line.score)}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p
+          className={cn(
+            'truncate text-[11.5px]',
+            applicable ? 'text-secondary' : 'text-tertiary/70',
+          )}
+        >
+          {line.san.join(' ') || line.moves.join(' ')}
+        </p>
+        <p className="text-[10px] text-tertiary tabular">
+          depth {line.depth} · {line.engine}
+          {!applicable && ' · another position'}
+        </p>
+      </div>
+      <span className="flex shrink-0 items-center">
+        <IconButton
+          label="Insert this pinned line"
+          className="h-6 w-6"
+          disabled={!applicable}
+          onClick={onInsert}
+        >
+          <Plus />
+        </IconButton>
+        <IconButton label="Remove this pin" className="h-6 w-6" tone="danger" onClick={onRemove}>
+          <Trash />
+        </IconButton>
+      </span>
+    </li>
   );
 }
 

@@ -1,7 +1,9 @@
 /**
  * The user's own games, queried like any other database.
  *
- * Backed by `PositionIndex`, which is populated when PGN files are imported.
+ * Backed by `PositionIndex`, retained as the pure in-memory implementation for
+ * aggregation and regression tests. The application registry uses the
+ * persistent repository-backed provider in `persistent-local.ts`.
  * Same interface as the remote providers, so the explorer panel can switch
  * between "what do masters play" and "what did I play" without knowing the
  * difference.

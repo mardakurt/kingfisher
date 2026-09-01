@@ -4,6 +4,10 @@ import { useEffect, type ReactNode } from 'react';
 
 import { CommandPalette } from '@/features/command/CommandPalette';
 import { useGlobalHotkeys } from '@/features/command/useGlobalHotkeys';
+import { CommentDialog } from '@/features/movetree/CommentDialog';
+import { MoveContextMenu } from '@/features/movetree/MoveContextMenu';
+import { useWorkspacePersistence } from '@/features/persistence/useWorkspacePersistence';
+import { SaveToStudyDialog } from '@/features/studies/SaveToStudyDialog';
 import { ImportDialog } from '@/features/shell/ImportDialog';
 import { SettingsDialog } from '@/features/shell/SettingsDialog';
 import { ShortcutsDialog } from '@/features/shell/ShortcutsDialog';
@@ -15,6 +19,7 @@ import { StatusBar } from './StatusBar';
 
 export function AppShell({ children }: { children: ReactNode }) {
   useGlobalHotkeys();
+  useWorkspacePersistence();
   const sidebarOpen = useUi((state) => state.sidebarOpen);
   const setSidebarOpen = useUi((state) => state.setSidebarOpen);
 
@@ -58,6 +63,9 @@ export function AppShell({ children }: { children: ReactNode }) {
       <ShortcutsDialog />
       <SettingsDialog />
       <ImportDialog />
+      <SaveToStudyDialog />
+      <CommentDialog />
+      <MoveContextMenu />
       <Notices />
     </div>
   );

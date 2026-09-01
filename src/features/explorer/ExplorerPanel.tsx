@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 
 import { DatabaseError, moveScore, type DatabaseMove } from '@/database/types';
-import { databaseProviders, localPositionIndex } from '@/database/registry';
+import { databaseProviders } from '@/database/registry';
 import { Button } from '@/components/ui/Button';
 import { EmptyState, PanelBody, PanelHeader } from '@/components/ui/Panel';
 import { Segmented } from '@/components/ui/Tabs';
@@ -133,9 +133,7 @@ export function ExplorerPanel() {
             title="No games reach this position"
             description={
               prefs.explorerSourceId === 'local-collection'
-                ? localPositionIndex.gameCount === 0
-                  ? 'Import a PGN and every game in it is indexed here, so you can see what you actually play.'
-                  : `None of your ${localPositionIndex.gameCount} indexed games reach this position.`
+                ? 'No games stored on this device reach this position. Import a PGN collection to expand your local explorer.'
                 : 'The position is outside this database, which usually means you have left known theory.'
             }
           />

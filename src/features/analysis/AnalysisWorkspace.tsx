@@ -20,10 +20,12 @@ import { useUi, type RightPanelTab, type WorkspacePanelTab } from '@/stores/ui-s
 import type { MoveIntent } from '@/chess/types';
 
 import { BoardControls } from './BoardControls';
+import { EvaluationGraph } from './EvaluationGraph';
 import { EvaluationBar } from './EvaluationBar';
 import { PositionSummary } from './PositionSummary';
 import { Toolbar } from './Toolbar';
 import { useAnalysisPosition } from './useAnalysisPosition';
+import { useEngineSnapshots } from './useEngineSnapshots';
 
 const RIGHT_TABS: readonly { id: RightPanelTab; label: string }[] = [
   { id: 'engine', label: 'Engine' },
@@ -46,8 +48,11 @@ export function AnalysisWorkspace() {
   const goTo = useAnalysis((state) => state.goTo);
   const toggleShape = useAnalysis((state) => state.toggleShape);
   const clearShapes = useAnalysis((state) => state.clearShapes);
-  const recordEvaluation = useAnalysis((state) => state.recordEvaluation);
   const notify = useUi((state) => state.notify);
+  const setMoveMenu = useUi((state) => state.setMoveMenu);
+  const setCommentingNodeId = useUi((state) => state.setCommentingNodeId);
+
+  useEngineSnapshots();
 
   const prefs = usePreferences();
   const rightTab = useUi((state) => state.rightTab);
@@ -78,6 +83,12 @@ export function AnalysisWorkspace() {
     [currentId, toggleShape],
   );
 
+  const onMoveContextMenu = useCallback(
+    (nodeId: string, event: React.MouseEvent) =>
+      setMoveMenu({ nodeId, x: event.clientX, y: event.clientY }),
+    [setMoveMenu],
+  );
+
   // Re-analyse when the position changes, if the user asked for that.
   const lastAutoFen = useRef<string | null>(null);
   useEffect(() => {
@@ -98,25 +109,6 @@ export function AnalysisWorkspace() {
     prefs.engineThreads,
     runEngine,
   ]);
-
-  // Keep the tree's stored evaluation in step with the running search, without
-  // touching undo history and without writing on every info line.
-  const lastRecordedDepth = useRef(0);
-  useEffect(() => {
-    if (!analysis || analysedFen !== node.fen) return;
-    const best = analysis.lines[0];
-    if (!best) return;
-    if (analysis.depth === lastRecordedDepth.current && !analysis.complete) return;
-    lastRecordedDepth.current = analysis.depth;
-    recordEvaluation(currentId, {
-      score: best.score,
-      depth: analysis.depth,
-      nodes: analysis.nodes,
-      engine: 'Stockfish',
-      ...(best.moves[0] ? { bestMove: best.moves[0] } : {}),
-      recordedAt: Date.now(),
-    });
-  }, [analysis, analysedFen, currentId, node.fen, recordEvaluation]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -171,6 +163,15 @@ export function AnalysisWorkspace() {
             <BoardControls />
             <PositionSummary />
           </div>
+
+          {prefs.showEvaluationGraph && (
+            <EvaluationGraph
+              tree={tree}
+              currentId={currentId}
+              onSelect={goTo}
+              className="mx-auto w-full max-w-[min(750px,calc(100dvh-136px))] shrink-0"
+            />
+          )}
         </section>
 
         {wideWorkspace ? (
@@ -188,7 +189,13 @@ export function AnalysisWorkspace() {
               <PanelHeader>Moves</PanelHeader>
               <div className="min-h-0 flex-1">
                 <ErrorBoundary label="The move list">
-                  <MoveTree tree={tree} currentId={currentId} onSelect={goTo} />
+                  <MoveTree
+                    tree={tree}
+                    currentId={currentId}
+                    onSelect={goTo}
+                    onContextMenu={onMoveContextMenu}
+                    onEditComment={setCommentingNodeId}
+                  />
                 </ErrorBoundary>
               </div>
             </Panel>
@@ -206,7 +213,13 @@ export function AnalysisWorkspace() {
             <div className="h-[min(46dvh,440px)] min-h-[280px]">
               {workspaceTab === 'moves' ? (
                 <ErrorBoundary label="The move list">
-                  <MoveTree tree={tree} currentId={currentId} onSelect={goTo} />
+                  <MoveTree
+                    tree={tree}
+                    currentId={currentId}
+                    onSelect={goTo}
+                    onContextMenu={onMoveContextMenu}
+                    onEditComment={setCommentingNodeId}
+                  />
                 </ErrorBoundary>
               ) : (
                 <RightPanelContent tab={workspaceTab} />

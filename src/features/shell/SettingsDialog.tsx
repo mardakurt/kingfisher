@@ -91,6 +91,17 @@ export function SettingsDialog() {
           />
         </Row>
 
+        <Row
+          label="Evaluation graph"
+          hint="A bar per move that has a saved engine evaluation, under the board."
+        >
+          <Toggle
+            label="Show evaluation graph"
+            checked={prefs.showEvaluationGraph}
+            onChange={(value) => prefs.set('showEvaluationGraph', value)}
+          />
+        </Row>
+
         <Row label="Analyse automatically" hint="Restart the engine whenever the position changes.">
           <Toggle
             label="Analyse automatically"

@@ -34,7 +34,7 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     label: 'Games',
     href: '/games',
     icon: Library,
-    ready: false,
+    ready: true,
     hint: 'Import and review your own games.',
   },
   {
@@ -66,7 +66,7 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     label: 'Studies',
     href: '/studies',
     icon: Notebook,
-    ready: false,
+    ready: true,
     hint: 'Notebooks of chapters and analysis.',
   },
   {

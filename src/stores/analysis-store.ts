@@ -16,7 +16,7 @@ import { create } from 'zustand';
 
 import type { Shape } from '@/chess/annotations';
 import { toggleNag as toggleNagCode } from '@/chess/annotations';
-import type { Evaluation } from '@/chess/evaluation';
+import type { Evaluation, Score } from '@/chess/evaluation';
 import { START_FEN } from '@/chess/fen';
 import { playIntentAt, playSanAt, positionAt, insertLine } from '@/chess/game';
 import { parsePgn, serializePgn } from '@/chess/pgn';
@@ -27,11 +27,13 @@ import {
   adjacentSibling,
   createTree,
   lastNodeOfLine,
+  moveVariation,
   mustGetNode,
   nodePath,
   promoteToMainline,
   promoteVariation,
   removeNode,
+  removeVariation,
   removeVariations,
   setComment,
   setEvaluation,
@@ -42,6 +44,7 @@ import {
 } from '@/chess/tree/tree';
 import type { GameTree, NodeId } from '@/chess/tree/types';
 import type { Color, Fen, MoveIntent } from '@/chess/types';
+import type { AnalysisDocument } from '@/persistence/types';
 
 interface Snapshot {
   readonly tree: GameTree;
@@ -49,6 +52,24 @@ interface Snapshot {
 }
 
 const HISTORY_LIMIT = 120;
+
+/** What the workspace is editing right now, before anything has been saved. */
+export const UNTITLED_DOCUMENT: AnalysisDocument = {
+  kind: 'untitled',
+  title: 'Untitled analysis',
+};
+
+export interface OpenDocumentInput {
+  readonly tree: GameTree;
+  readonly document: AnalysisDocument;
+  readonly currentId?: NodeId;
+  readonly orientation?: Color;
+  /** False when the loaded content is not yet the persisted content. */
+  readonly clean?: boolean;
+}
+
+/** What the save indicator shows. Derived, never stored. */
+export type SaveState = 'saved' | 'saving' | 'unsaved' | 'error';
 
 interface AnalysisState {
   tree: GameTree;
@@ -58,6 +79,18 @@ interface AnalysisState {
   future: Snapshot[];
   /** Bumped whenever a fresh game is loaded, so views can reset scroll etc. */
   generation: number;
+
+  /** What is being edited: an untitled analysis, a chapter, or a database game. */
+  document: AnalysisDocument;
+  /**
+   * Bumped by every change worth persisting. Autosave compares it against
+   * `savedRevision` rather than diffing trees, so a save can be recognised as
+   * stale the moment a further edit lands while it is in flight.
+   */
+  revision: number;
+  savedRevision: number;
+  saving: boolean;
+  saveError: string | null;
 
   // Navigation
   goTo(nodeId: NodeId): void;
@@ -73,20 +106,24 @@ interface AnalysisState {
   playSan(san: string): Result<NodeId>;
   insertUciLine(moves: readonly string[], from?: NodeId): Result<NodeId>;
   deleteNode(nodeId: NodeId): void;
+  deleteVariation(nodeId: NodeId): void;
   truncate(nodeId: NodeId): void;
   clearVariations(nodeId: NodeId): void;
   promote(nodeId: NodeId): void;
+  demote(nodeId: NodeId): void;
   promoteToMain(nodeId: NodeId): void;
   comment(nodeId: NodeId, text: string): void;
   toggleNag(nodeId: NodeId, code: number): void;
   toggleShape(nodeId: NodeId, shape: Shape): void;
   clearShapes(nodeId: NodeId): void;
-  recordEvaluation(nodeId: NodeId, evaluation: Evaluation): void;
+  attachEvaluation(nodeId: NodeId, evaluation: Evaluation): void;
   setHeaderValue(key: string, value: string): void;
 
   // Session
   newGame(fen?: Fen): void;
   loadGame(tree: GameTree): void;
+  openDocument(input: OpenDocumentInput): void;
+  setDocument(document: AnalysisDocument): void;
   loadFen(text: string): Result<true>;
   loadPgn(text: string): Result<{ games: number; issues: number }>;
   exportPgn(): string;
@@ -94,11 +131,16 @@ interface AnalysisState {
   setOrientation(color: Color): void;
   undo(): void;
   redo(): void;
+
+  // Persistence bookkeeping, driven by the autosave controller.
+  markSaving(): void;
+  markSaved(revision: number): void;
+  markSaveFailed(message: string): void;
 }
 
 const initialTree = createTree(START_FEN, { Event: 'Analysis', Result: '*' });
 
-/** Wrap a tree edit so that undo/redo and cursor validity are handled once. */
+/** Wrap a tree edit so that undo/redo, the cursor and the revision are handled once. */
 function commit(
   state: AnalysisState,
   tree: GameTree,
@@ -107,7 +149,26 @@ function commit(
   const snapshot: Snapshot = { tree: state.tree, currentId: state.currentId };
   const past = [...state.past, snapshot].slice(-HISTORY_LIMIT);
   const cursor = tree.nodes[currentId] ? currentId : tree.rootId;
-  return { tree, currentId: cursor, past, future: [] };
+  return { tree, currentId: cursor, past, future: [], revision: state.revision + 1 };
+}
+
+/** A freshly opened document starts clean: nothing has changed since it loaded. */
+function opened(state: AnalysisState, input: OpenDocumentInput): Partial<AnalysisState> {
+  const { tree } = input;
+  const revision = state.revision + 1;
+  return {
+    tree,
+    document: input.document,
+    currentId: input.currentId && tree.nodes[input.currentId] ? input.currentId : tree.rootId,
+    ...(input.orientation ? { orientation: input.orientation } : {}),
+    past: [],
+    future: [],
+    generation: state.generation + 1,
+    revision,
+    savedRevision: input.clean === false ? revision - 1 : revision,
+    saving: false,
+    saveError: null,
+  };
 }
 
 export const useAnalysis = create<AnalysisState>((set, get) => ({
@@ -117,6 +178,11 @@ export const useAnalysis = create<AnalysisState>((set, get) => ({
   past: [],
   future: [],
   generation: 0,
+  document: UNTITLED_DOCUMENT,
+  revision: 0,
+  savedRevision: 0,
+  saving: false,
+  saveError: null,
 
   goTo: (nodeId) => {
     if (!get().tree.nodes[nodeId]) return;
@@ -184,6 +250,14 @@ export const useAnalysis = create<AnalysisState>((set, get) => ({
     set(commit(state, removed.tree, cursorSurvives ? state.currentId : removed.selectionId));
   },
 
+  deleteVariation: (nodeId) => {
+    const state = get();
+    const removed = removeVariation(state.tree, nodeId);
+    if (removed.tree === state.tree) return;
+    const cursorSurvives = removed.tree.nodes[state.currentId] !== undefined;
+    set(commit(state, removed.tree, cursorSurvives ? state.currentId : removed.selectionId));
+  },
+
   truncate: (nodeId) => {
     const state = get();
     const tree = truncateAfter(state.tree, nodeId);
@@ -200,12 +274,23 @@ export const useAnalysis = create<AnalysisState>((set, get) => ({
 
   promote: (nodeId) => {
     const state = get();
-    set(commit(state, promoteVariation(state.tree, nodeId)));
+    const tree = promoteVariation(state.tree, nodeId);
+    if (tree === state.tree) return;
+    set(commit(state, tree));
+  },
+
+  demote: (nodeId) => {
+    const state = get();
+    const tree = moveVariation(state.tree, nodeId, 1);
+    if (tree === state.tree) return;
+    set(commit(state, tree));
   },
 
   promoteToMain: (nodeId) => {
     const state = get();
-    set(commit(state, promoteToMainline(state.tree, nodeId)));
+    const tree = promoteToMainline(state.tree, nodeId);
+    if (tree === state.tree) return;
+    set(commit(state, tree));
   },
 
   comment: (nodeId, text) => {
@@ -238,13 +323,34 @@ export const useAnalysis = create<AnalysisState>((set, get) => ({
   },
 
   /**
-   * Evaluations are not user edits: recording one must not create an undo step,
-   * or a running engine would fill the history with noise.
+   * Attach an engine evaluation to a move as a deliberate act.
+   *
+   * A running search emits a new best line several times a second; none of that
+   * is knowledge. Only a snapshot the user asked for — or the final state of a
+   * search they let finish or stopped — becomes part of the study, which is why
+   * this is a normal revision-bumping edit rather than a silent background
+   * write. It still creates no undo step: undoing an evaluation is not what
+   * ⌘Z means to anybody.
    */
-  recordEvaluation: (nodeId, evaluation) => {
+  attachEvaluation: (nodeId, evaluation) => {
     const state = get();
-    if (!state.tree.nodes[nodeId]) return;
-    set({ tree: setEvaluation(state.tree, nodeId, evaluation) });
+    const node = state.tree.nodes[nodeId];
+    if (!node) return;
+    const current = node.evaluation;
+    // Re-attaching the identical snapshot must not mark the document dirty.
+    if (
+      current &&
+      current.depth === evaluation.depth &&
+      current.engine === evaluation.engine &&
+      current.score.kind === evaluation.score.kind &&
+      scoreMagnitude(current.score) === scoreMagnitude(evaluation.score)
+    ) {
+      return;
+    }
+    set({
+      tree: setEvaluation(state.tree, nodeId, evaluation),
+      revision: state.revision + 1,
+    });
   },
 
   setHeaderValue: (key, value) => {
@@ -254,23 +360,19 @@ export const useAnalysis = create<AnalysisState>((set, get) => ({
 
   newGame: (fen = START_FEN) => {
     const tree = createTree(fen, { Event: 'Analysis', Result: '*' });
-    set((state) => ({
-      tree,
-      currentId: tree.rootId,
-      past: [],
-      future: [],
-      generation: state.generation + 1,
-    }));
+    set((state) => opened(state, { tree, document: UNTITLED_DOCUMENT }));
   },
 
   loadGame: (tree) => {
-    set((state) => ({
-      tree,
-      currentId: tree.rootId,
-      past: [],
-      future: [],
-      generation: state.generation + 1,
-    }));
+    set((state) => opened(state, { tree, document: UNTITLED_DOCUMENT, clean: false }));
+  },
+
+  openDocument: (input) => {
+    set((state) => opened(state, input));
+  },
+
+  setDocument: (document) => {
+    set((state) => ({ document, revision: state.revision + 1 }));
   },
 
   loadFen: (text) => {
@@ -311,6 +413,7 @@ export const useAnalysis = create<AnalysisState>((set, get) => ({
         0,
         HISTORY_LIMIT,
       ),
+      revision: state.revision + 1,
     });
   },
 
@@ -323,8 +426,24 @@ export const useAnalysis = create<AnalysisState>((set, get) => ({
       currentId: next.tree.nodes[next.currentId] ? next.currentId : next.tree.rootId,
       past: [...state.past, { tree: state.tree, currentId: state.currentId }].slice(-HISTORY_LIMIT),
       future: state.future.slice(1),
+      revision: state.revision + 1,
     });
   },
+
+  markSaving: () => set({ saving: true }),
+
+  /**
+   * A save records the revision it captured, not the current one: an edit made
+   * while the write was in flight must leave the document dirty.
+   */
+  markSaved: (revision) =>
+    set((state) => ({
+      saving: false,
+      saveError: null,
+      savedRevision: Math.max(state.savedRevision, revision),
+    })),
+
+  markSaveFailed: (message) => set({ saving: false, saveError: message }),
 }));
 
 // --- Selectors -------------------------------------------------------------
@@ -344,5 +463,20 @@ export const selectLastMove = (state: AnalysisState) => selectCurrentNode(state)
 
 export const selectCanUndo = (state: AnalysisState): boolean => state.past.length > 0;
 export const selectCanRedo = (state: AnalysisState): boolean => state.future.length > 0;
+
+export const selectDirty = (state: AnalysisState): boolean =>
+  state.revision !== state.savedRevision;
+
+export const selectSaveState = (state: AnalysisState): SaveState => {
+  if (state.saveError) return 'error';
+  if (state.saving) return 'saving';
+  return selectDirty(state) ? 'unsaved' : 'saved';
+};
+
+/** True while the document is a study chapter, which is what autosave writes to. */
+export const selectChapterId = (state: AnalysisState): string | null =>
+  state.document.kind === 'study-chapter' ? state.document.chapterId : null;
+
+const scoreMagnitude = (score: Score): number => (score.kind === 'cp' ? score.cp : score.moves);
 
 export type { AnalysisState, ChessError };

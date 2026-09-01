@@ -183,3 +183,46 @@ export const Pin = (p: IconProps) => (
     <path d="M12 14v7" />
   </Icon>
 );
+export const Pencil = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M4 20h4l10-10a2.5 2.5 0 0 0-4-4L4 16z" />
+  </Icon>
+);
+export const Copy = (p: IconProps) => (
+  <Icon {...p}>
+    <rect x="9" y="9" width="11" height="11" rx="2" />
+    <path d="M5 15H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v1" />
+  </Icon>
+);
+export const ArrowDown = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M12 5v14M6 13l6 6 6-6" />
+  </Icon>
+);
+export const ArrowLeft = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M19 12H5M11 6l-6 6 6 6" />
+  </Icon>
+);
+export const Check = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="m5 12.5 4.5 4.5L19 7" />
+  </Icon>
+);
+export const Warning = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M12 4 2.5 20h19z" />
+    <path d="M12 10v4M12 17.2v.1" />
+  </Icon>
+);
+export const Save = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M5 4h11l4 4v12H5z" />
+    <path d="M9 4v5h6V4M8 20v-6h8v6" />
+  </Icon>
+);
+export const Filter = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M3 5h18l-7 8v6l-4 2v-8z" />
+  </Icon>
+);

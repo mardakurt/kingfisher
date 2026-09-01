@@ -24,6 +24,8 @@ export interface Preferences {
   showCoordinates: boolean;
   animateMoves: boolean;
   showEvaluationBar: boolean;
+  /** The bar chart of stored evaluations under the board. */
+  showEvaluationGraph: boolean;
   /** Analyse automatically whenever the position changes. */
   autoAnalyse: boolean;
   engineMultiPv: number;
@@ -48,6 +50,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   showCoordinates: true,
   animateMoves: true,
   showEvaluationBar: true,
+  showEvaluationGraph: true,
   autoAnalyse: false,
   engineMultiPv: 3,
   engineThreads: 1,

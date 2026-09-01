@@ -21,9 +21,33 @@ import type {
   EngineIdentity,
   EngineSession,
 } from '@/engine/types';
-import type { Fen } from '@/chess/types';
+import type { Score } from '@/chess/evaluation';
+import type { Fen, San, Uci } from '@/chess/types';
 
 export type EngineStatus = 'idle' | 'loading' | 'ready' | 'analysing' | 'error' | 'unavailable';
+
+/**
+ * A line the user asked to keep in view.
+ *
+ * Pins are working memory, not study data: they hold a line steady while the
+ * search moves on, so two candidate moves can be compared without racing the
+ * engine. Anything worth keeping past the session is inserted into the tree or
+ * attached to a move as an evaluation, both of which are persisted. Pins are
+ * deliberately not, which is also why thousands of live updates can never
+ * accumulate in the database.
+ */
+export interface PinnedLine {
+  readonly id: string;
+  readonly fen: Fen;
+  readonly score: Score;
+  readonly depth: number;
+  readonly moves: readonly Uci[];
+  readonly san: readonly San[];
+  readonly engine: string;
+  readonly pinnedAt: number;
+}
+
+const MAX_PINS = 8;
 
 interface EngineProblem {
   readonly message: string;
@@ -45,12 +69,16 @@ interface EngineState {
   /** The position the current analysis belongs to. */
   analysedFen: Fen | null;
   running: boolean;
+  pinned: readonly PinnedLine[];
 
   prepare(config: EngineConfigInput): Promise<boolean>;
   analyse(fen: Fen, limit: AnalysisLimit, config: EngineConfigInput): Promise<void>;
   stop(): void;
   shutdown(): void;
   applyConfig(config: EngineConfigInput): Promise<void>;
+  pin(rank: number): void;
+  unpin(id: string): void;
+  clearPins(): void;
 }
 
 let session: EngineSession | null = null;
@@ -65,6 +93,7 @@ export const useEngine = create<EngineState>((set, get) => ({
   analysis: null,
   analysedFen: null,
   running: false,
+  pinned: [],
 
   prepare: async (config) => {
     if (session) return true;
@@ -152,4 +181,29 @@ export const useEngine = create<EngineState>((set, get) => ({
     if (!session) return;
     await session.configure(config);
   },
+
+  pin: (rank) => {
+    const { analysis, identity, pinned } = get();
+    const line = analysis?.lines.find((candidate) => candidate.rank === rank);
+    if (!analysis || !line) return;
+
+    const entry: PinnedLine = {
+      id: `${analysis.fen}|${line.moves.join('')}`,
+      fen: analysis.fen,
+      score: line.score,
+      depth: line.depth || analysis.depth,
+      moves: [...line.moves],
+      san: [...(line.san ?? [])],
+      engine: identity?.name ?? 'Stockfish',
+      pinnedAt: Date.now(),
+    };
+
+    // Pinning the same line again refreshes it to the deeper reading.
+    const rest = pinned.filter((candidate) => candidate.id !== entry.id);
+    set({ pinned: [entry, ...rest].slice(0, MAX_PINS) });
+  },
+
+  unpin: (id) => set((state) => ({ pinned: state.pinned.filter((line) => line.id !== id) })),
+
+  clearPins: () => set({ pinned: [] }),
 }));

@@ -172,12 +172,25 @@ describe('undo and redo', () => {
     const ids = playLine(['e4']);
     const historyBefore = store().past.length;
 
-    store().recordEvaluation(ids[0] as NodeId, { score: cp(31), depth: 22 });
+    store().attachEvaluation(ids[0] as NodeId, { score: cp(31), depth: 22 });
     expect(mustGetNode(store().tree, ids[0] as NodeId).evaluation?.score).toEqual(cp(31));
     expect(store().past.length).toBe(historyBefore);
 
     store().undo();
     expect(nodeCount(store().tree)).toBe(0);
+  });
+
+  it('marks an attached evaluation as work worth saving, but only once', () => {
+    const ids = playLine(['e4']);
+    const evaluation = { score: cp(31), depth: 22, engine: 'Stockfish' };
+
+    const before = store().revision;
+    store().attachEvaluation(ids[0] as NodeId, evaluation);
+    expect(store().revision).toBe(before + 1);
+
+    // Re-reporting the same snapshot must not keep the document dirty.
+    store().attachEvaluation(ids[0] as NodeId, { ...evaluation });
+    expect(store().revision).toBe(before + 1);
   });
 });
 

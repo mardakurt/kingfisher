@@ -43,11 +43,26 @@ export function useGlobalHotkeys(): void {
         ui.setSettingsOpen(true);
         return;
       }
+      /*
+        Work is already saved continuously, so ⌘S has nothing to flush. Rather
+        than swallow the key or let the browser offer to save the page, it opens
+        the one save action that does something: filing the analysis in a study.
+      */
+      if (modifier && event.key.toLowerCase() === 's') {
+        event.preventDefault();
+        if (useAnalysis.getState().document.kind !== 'study-chapter') {
+          ui.setSaveToStudyOpen(true);
+        }
+        return;
+      }
       if (event.key === 'Escape') {
         ui.setCommandPaletteOpen(false);
         ui.setShortcutsOpen(false);
         ui.setSettingsOpen(false);
         ui.setImportOpen(false);
+        ui.setSaveToStudyOpen(false);
+        ui.setCommentingNodeId(null);
+        ui.setMoveMenu(null);
         return;
       }
       if (isTypingTarget(event.target)) return;
@@ -73,11 +88,13 @@ export function useGlobalHotkeys(): void {
           return;
         case 'ArrowUp':
           event.preventDefault();
-          analysis.previousVariation();
+          if (event.shiftKey) analysis.promote(analysis.currentId);
+          else analysis.previousVariation();
           return;
         case 'ArrowDown':
           event.preventDefault();
-          analysis.nextVariation();
+          if (event.shiftKey) analysis.demote(analysis.currentId);
+          else analysis.nextVariation();
           return;
         case 'Home':
           event.preventDefault();
@@ -107,6 +124,12 @@ export function useGlobalHotkeys(): void {
         return;
       }
 
+      if (key === 'c') {
+        // Guarding on the root keeps `C` from opening an editor for a comment
+        // that has nowhere sensible to appear before the first move.
+        ui.setCommentingNodeId(analysis.currentId);
+        return;
+      }
       if (key === 'f') {
         analysis.flip();
         return;

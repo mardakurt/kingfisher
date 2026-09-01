@@ -108,7 +108,7 @@ export function Sidebar({ variant = 'desktop', onClose }: SidebarProps) {
         )}
       >
         <p className="text-[10px] leading-relaxed text-tertiary">
-          Phase 1 · analysis workspace.
+          Analysis, studies and games.
           <br />
           Dimmed sections are not built yet.
         </p>

@@ -4,7 +4,10 @@ import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { START_FEN } from '@/chess/fen';
-import { serializePgn } from '@/chess/pgn';
+import { serializeMovetext, serializePgn } from '@/chess/pgn';
+import { nodePath } from '@/chess/tree/tree';
+import { evaluationFromAnalysis } from '@/features/analysis/useEngineSnapshots';
+import { formatScore } from '@/chess/evaluation';
 import { useAnalysis } from '@/stores/analysis-store';
 import { useEngine } from '@/stores/engine-store';
 import { usePreferences } from '@/stores/preferences-store';
@@ -86,6 +89,155 @@ export function useCommands(): readonly Command[] {
         },
       },
       {
+        id: 'copy-line-san',
+        title: 'Copy the current line (SAN)',
+        group: 'Game',
+        keywords: 'export variation moves movetext',
+        run: async () => {
+          const state = analysis();
+          await navigator.clipboard.writeText(
+            serializeMovetext(state.tree, nodePath(state.tree, state.currentId)),
+          );
+          ui().notify({ tone: 'success', message: 'Line copied to the clipboard.' });
+        },
+      },
+      {
+        id: 'copy-line-uci',
+        title: 'Copy the current line (UCI move sequence)',
+        group: 'Game',
+        keywords: 'export engine long algebraic',
+        run: async () => {
+          const state = analysis();
+          const moves = nodePath(state.tree, state.currentId)
+            .map((id) => state.tree.nodes[id]?.move?.uci)
+            .filter(Boolean);
+          await navigator.clipboard.writeText(moves.join(' '));
+          ui().notify({ tone: 'success', message: 'UCI move sequence copied.' });
+        },
+      },
+      {
+        id: 'save-to-study',
+        title: 'Save this analysis to a study…',
+        group: 'Study',
+        keywords: 'chapter notebook persist file',
+        run: () => ui().setSaveToStudyOpen(true),
+      },
+      {
+        id: 'goto-studies',
+        title: 'Go to Studies',
+        group: 'Navigate',
+        keywords: 'chapters notebooks library',
+        run: () => router.push('/studies'),
+      },
+      {
+        id: 'goto-games',
+        title: 'Search my games',
+        group: 'Navigate',
+        keywords: 'database collection pgn library find',
+        run: () => router.push('/games'),
+      },
+      {
+        id: 'add-comment',
+        title: 'Comment on this move…',
+        group: 'Editing',
+        shortcut: 'C',
+        keywords: 'annotate note prose text',
+        run: () => ui().setCommentingNodeId(analysis().currentId),
+      },
+      {
+        id: 'promote-variation',
+        title: 'Move this variation up',
+        group: 'Editing',
+        shortcut: '⇧P',
+        keywords: 'promote reorder branch sibling',
+        run: () => analysis().promote(analysis().currentId),
+      },
+      {
+        id: 'demote-variation',
+        title: 'Move this variation down',
+        group: 'Editing',
+        keywords: 'demote reorder branch sibling',
+        run: () => analysis().demote(analysis().currentId),
+      },
+      {
+        id: 'promote-mainline',
+        title: 'Make this the main line',
+        group: 'Editing',
+        shortcut: '⇧M',
+        keywords: 'promote mainline primary',
+        run: () => analysis().promoteToMain(analysis().currentId),
+      },
+      {
+        id: 'delete-variation',
+        title: 'Delete this variation',
+        group: 'Editing',
+        keywords: 'remove branch side line',
+        run: () => analysis().deleteVariation(analysis().currentId),
+      },
+      {
+        id: 'truncate',
+        title: 'Delete everything after this move',
+        group: 'Editing',
+        keywords: 'truncate cut continuation',
+        run: () => analysis().truncate(analysis().currentId),
+      },
+      {
+        id: 'insert-best-line',
+        title: 'Insert the best engine line',
+        group: 'Engine',
+        keywords: 'pv principal variation add moves',
+        run: () => {
+          const state = analysis();
+          const snapshot = engine().analysis;
+          const node = state.tree.nodes[state.currentId];
+          if (!snapshot || !node || snapshot.fen !== node.fen) {
+            ui().notify({
+              tone: 'info',
+              message: 'Analyse this position before inserting the engine line.',
+            });
+            return;
+          }
+          const best = snapshot.lines[0];
+          if (!best || best.moves.length === 0) return;
+          const result = state.insertUciLine(best.moves);
+          if (!result.ok) {
+            ui().notify({ tone: 'error', message: result.error.message });
+          }
+        },
+      },
+      {
+        id: 'save-evaluation',
+        title: 'Save the engine evaluation to this move',
+        group: 'Engine',
+        keywords: 'attach snapshot depth score evidence',
+        run: () => {
+          const state = analysis();
+          const snapshot = engine().analysis;
+          const node = state.tree.nodes[state.currentId];
+          if (!snapshot || !node || snapshot.fen !== node.fen) {
+            ui().notify({ tone: 'info', message: 'Analyse this position first.' });
+            return;
+          }
+          const evaluation = evaluationFromAnalysis(
+            snapshot,
+            engine().identity?.name ?? 'Stockfish',
+          );
+          if (!evaluation) return;
+          state.attachEvaluation(state.currentId, evaluation);
+          ui().notify({
+            tone: 'success',
+            message: `${formatScore(evaluation.score)} at depth ${evaluation.depth} saved.`,
+          });
+        },
+      },
+      {
+        id: 'clear-pins',
+        title: 'Clear pinned engine lines',
+        group: 'Engine',
+        keywords: 'unpin remove',
+        run: () => engine().clearPins(),
+      },
+      {
         id: 'flip-board',
         title: 'Flip the board',
         group: 'Board',
@@ -97,6 +249,13 @@ export function useCommands(): readonly Command[] {
         title: 'Toggle board coordinates',
         group: 'Board',
         run: () => prefs().set('showCoordinates', !prefs().showCoordinates),
+      },
+      {
+        id: 'toggle-evaluation-graph',
+        title: 'Toggle the evaluation graph',
+        group: 'Board',
+        keywords: 'chart curve advantage',
+        run: () => prefs().set('showEvaluationGraph', !prefs().showEvaluationGraph),
       },
       {
         id: 'toggle-theme',

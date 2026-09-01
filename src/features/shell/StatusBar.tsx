@@ -4,7 +4,8 @@ import { useState } from 'react';
 
 import { nodeCount } from '@/chess/tree/tree';
 import { cn } from '@/lib/cn';
-import { selectFen, useAnalysis } from '@/stores/analysis-store';
+import { documentTitle } from '@/persistence/describe';
+import { selectFen, selectSaveState, useAnalysis } from '@/stores/analysis-store';
 import { useEngine } from '@/stores/engine-store';
 
 const ENGINE_LABEL: Record<string, string> = {
@@ -19,6 +20,8 @@ const ENGINE_LABEL: Record<string, string> = {
 export function StatusBar() {
   const fen = useAnalysis(selectFen);
   const moves = useAnalysis((state) => nodeCount(state.tree));
+  const document = useAnalysis((state) => state.document);
+  const saveState = useAnalysis(selectSaveState);
   const status = useEngine((state) => state.status);
   const analysis = useEngine((state) => state.analysis);
   const [copied, setCopied] = useState(false);
@@ -35,7 +38,7 @@ export function StatusBar() {
 
   return (
     <footer className="flex h-6 min-w-0 shrink-0 items-center gap-3 overflow-hidden border-t border-line-subtle bg-surface-1 px-2.5 text-[10.5px] text-tertiary">
-      <span className="flex shrink-0 items-center gap-1.5">
+      <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap">
         <span
           className={cn(
             'h-1.5 w-1.5 rounded-full',
@@ -56,7 +59,31 @@ export function StatusBar() {
         </span>
       )}
 
-      <span className="tabular">{moves} half-moves</span>
+      {/* Dropped first on a phone: the move count is the least urgent thing here. */}
+      <span className="hidden shrink-0 whitespace-nowrap tabular sm:inline">
+        {moves} half-moves
+      </span>
+
+      {/*
+        The toolbar's document header is hidden below `md`. On a phone this is
+        the only place that answers "what am I editing, and is it safe?", and a
+        local-first application must always be able to answer it.
+      */}
+      <span className="flex min-w-0 flex-1 items-center gap-1.5 md:hidden">
+        <span className="min-w-0 truncate text-secondary">{documentTitle(document)}</span>
+        <span
+          className={cn(
+            'shrink-0 whitespace-nowrap',
+            saveState === 'error'
+              ? 'text-negative'
+              : saveState === 'unsaved'
+                ? 'text-caution'
+                : 'text-tertiary',
+          )}
+        >
+          {SAVE_LABEL[saveState]}
+        </span>
+      </span>
 
       <button
         type="button"
@@ -69,6 +96,13 @@ export function StatusBar() {
     </footer>
   );
 }
+
+const SAVE_LABEL: Record<string, string> = {
+  saved: '· saved',
+  saving: '· saving…',
+  unsaved: '· unsaved',
+  error: '· not saved',
+};
 
 const formatNodes = (nodes: number): string => {
   if (nodes >= 1e9) return `${(nodes / 1e9).toFixed(2)}B`;

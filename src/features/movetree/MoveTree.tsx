@@ -13,6 +13,7 @@ interface MoveTreeProps {
   readonly currentId: NodeId;
   readonly onSelect: (nodeId: NodeId) => void;
   readonly onContextMenu?: (nodeId: NodeId, event: React.MouseEvent) => void;
+  readonly onEditComment?: (nodeId: NodeId) => void;
   readonly showEvaluations?: boolean;
 }
 
@@ -29,6 +30,7 @@ export function MoveTree({
   currentId,
   onSelect,
   onContextMenu,
+  onEditComment,
   showEvaluations = true,
 }: MoveTreeProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -48,7 +50,10 @@ export function MoveTree({
       className="h-full overflow-y-auto px-2.5 py-2 text-[12.5px] leading-[1.75]"
     >
       {root?.comment && (
-        <p className="mb-1.5 border-l-2 border-line pl-2 text-2xs italic leading-relaxed text-secondary">
+        <p
+          className="mb-1.5 whitespace-pre-wrap border-l-2 border-line pl-2 text-2xs italic leading-relaxed text-secondary"
+          onDoubleClick={() => onEditComment?.(tree.rootId)}
+        >
           {root.comment}
         </p>
       )}
@@ -67,6 +72,7 @@ export function MoveTree({
             currentId={currentId}
             onSelect={onSelect}
             onContextMenu={onContextMenu}
+            onEditComment={onEditComment}
             showEvaluations={showEvaluations}
           />
         </div>
@@ -89,12 +95,13 @@ interface LineProps {
   readonly currentId: NodeId;
   readonly onSelect: (nodeId: NodeId) => void;
   readonly onContextMenu?: (nodeId: NodeId, event: React.MouseEvent) => void;
+  readonly onEditComment?: (nodeId: NodeId) => void;
   readonly showEvaluations: boolean;
 }
 
 /** Walks one line, emitting its side lines where they branch off. */
 function LineContent(props: LineProps): ReactNode {
-  const { tree, depth, currentId, onSelect, onContextMenu, showEvaluations } = props;
+  const { tree, depth, currentId, onSelect, onContextMenu, onEditComment, showEvaluations } = props;
   const output: ReactNode[] = [];
 
   let parent: MoveNode | undefined = tree.nodes[props.parentId];
@@ -119,7 +126,13 @@ function LineContent(props: LineProps): ReactNode {
     );
 
     if (main.comment) {
-      output.push(<CommentToken key={`${mainId}-c`} text={main.comment} depth={depth} />);
+      output.push(
+        <CommentToken
+          key={`${mainId}-c`}
+          text={main.comment}
+          onEdit={onEditComment ? () => onEditComment(mainId) : undefined}
+        />,
+      );
     }
 
     const alternatives = parent.children.slice(1);
@@ -128,7 +141,7 @@ function LineContent(props: LineProps): ReactNode {
       if (!alt) continue;
       output.push(
         <Variation key={`${altId}-v`} depth={depth + 1}>
-          {alt.preComment && <CommentToken text={alt.preComment} depth={depth + 1} inline />}
+          {alt.preComment && <CommentToken text={alt.preComment} />}
           <MoveToken
             node={alt}
             depth={depth + 1}
@@ -138,7 +151,12 @@ function LineContent(props: LineProps): ReactNode {
             onContextMenu={onContextMenu}
             showEvaluation={false}
           />
-          {alt.comment && <CommentToken text={alt.comment} depth={depth + 1} inline />}
+          {alt.comment && (
+            <CommentToken
+              text={alt.comment}
+              onEdit={onEditComment ? () => onEditComment(altId) : undefined}
+            />
+          )}
           <LineContent
             {...props}
             parentId={altId}
@@ -214,6 +232,15 @@ function MoveToken({
           <span className="ml-0.5 opacity-80">{nagSymbol(judgement)}</span>
         )}
       </button>
+      {node.shapes.length > 0 && (
+        <span
+          aria-hidden
+          title={`${node.shapes.length} arrow(s) or highlight(s) on this move`}
+          className="mr-1 select-none text-[10px] text-accent/70"
+        >
+          ◆
+        </span>
+      )}
       {showEvaluation && node.evaluation && (
         <span
           className={cn(
@@ -232,9 +259,20 @@ function MoveToken({
   );
 }
 
-const CommentToken = ({ text }: { text: string; depth?: number; inline?: boolean }) => (
-  <span className="mr-1 text-[11.5px] italic text-secondary">{text}</span>
-);
+/** Comments read as prose inside the notation, and open for editing on click. */
+const CommentToken = ({ text, onEdit }: { text: string; onEdit?: (() => void) | undefined }) =>
+  onEdit ? (
+    <button
+      type="button"
+      onClick={onEdit}
+      title="Edit this comment"
+      className="mr-1 whitespace-pre-wrap rounded-[3px] text-left text-[11.5px] italic text-secondary transition-colors hover:bg-surface-3 hover:text-primary"
+    >
+      {text}
+    </button>
+  ) : (
+    <span className="mr-1 whitespace-pre-wrap text-[11.5px] italic text-secondary">{text}</span>
+  );
 
 const Variation = ({ depth, children }: { depth: number; children: ReactNode }) => (
   <div

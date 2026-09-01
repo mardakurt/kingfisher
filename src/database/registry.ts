@@ -1,18 +1,16 @@
 /**
  * The databases this build can query.
  *
- * The local collection is a singleton because it holds imported games for the
- * session; remote providers are stateless.
+ * Providers are stateless. The local implementation opens the versioned
+ * persistence repository lazily when queried, so importing and exploring use
+ * the same durable source of truth without exposing IndexedDB to the panel.
  */
 
-import { PositionIndex } from './local-index';
 import { LichessExplorerProvider } from './providers/lichess';
-import { LocalCollectionProvider } from './providers/local';
+import { PersistentLocalCollectionProvider } from './providers/persistent-local';
 import type { ChessDatabaseProvider } from './types';
 
-export const localPositionIndex = new PositionIndex();
-
-const localProvider = new LocalCollectionProvider(localPositionIndex);
+const localProvider = new PersistentLocalCollectionProvider();
 
 const providers: readonly ChessDatabaseProvider[] = [
   new LichessExplorerProvider('masters'),
