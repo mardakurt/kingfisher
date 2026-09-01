@@ -39,18 +39,18 @@ export const NAV_SECTIONS: readonly NavSection[] = [
   },
   {
     id: 'database',
-    label: 'Database',
+    label: 'Preparation',
     href: '/database',
     icon: Database,
-    ready: false,
-    hint: 'Search large game collections.',
+    ready: true,
+    hint: 'Prepare for opponents from local games.',
   },
   {
     id: 'openings',
     label: 'Openings',
     href: '/openings',
     icon: Opening,
-    ready: false,
+    ready: true,
     hint: 'Explore theory with database evidence.',
   },
   {
@@ -58,7 +58,7 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     label: 'Repertoire',
     href: '/repertoire',
     icon: Repertoire,
-    ready: false,
+    ready: true,
     hint: 'Maintain lines you intend to play.',
   },
   {
@@ -74,7 +74,7 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     label: 'Training',
     href: '/training',
     icon: Target,
-    ready: false,
+    ready: true,
     hint: 'Calculation and recall from your own positions.',
   },
 ];
