@@ -48,9 +48,9 @@ interface RawResult {
 
 export class CompanionSqliteProvider implements ChessDatabaseProvider {
   readonly capabilities = {
-    ratingFilter: false,
-    dateFilter: false,
-    playerFilter: false,
+    ratingFilter: true,
+    dateFilter: true,
+    playerFilter: true,
     topGames: true,
     offline: true,
   };
@@ -69,6 +69,10 @@ export class CompanionSqliteProvider implements ChessDatabaseProvider {
     return this.games === null
       ? 'A SQLite collection on this machine, through the companion.'
       : `${this.games.toLocaleString()} games in SQLite, through the companion.`;
+  }
+
+  get cacheVersion(): string {
+    return `${this.key}:${this.games ?? 'unknown'}`;
   }
 
   async health(signal?: AbortSignal) {
@@ -123,7 +127,12 @@ export class CompanionSqliteProvider implements ChessDatabaseProvider {
     */
     let raw: RawResult;
     try {
-      raw = await client.explore<RawResult>(this.key, positionKey(query.fen), query.limit ?? 20);
+      raw = await client.explore<RawResult>(
+        this.key,
+        positionKey(query.fen),
+        query.limit ?? 20,
+        query.filters,
+      );
     } catch (error) {
       if (error instanceof DOMException) throw error;
       throw new DatabaseError(

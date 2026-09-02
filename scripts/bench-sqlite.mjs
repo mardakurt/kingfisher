@@ -168,6 +168,18 @@ async function main() {
     await measure('opening aggregation (common)', 20, () =>
       call('/db/explore', { key, positionKey: afterE4, limit: 24 }),
     ),
+    /*
+      The same question answered without the derived aggregate table.
+      A filtered explore takes the normalized `positions JOIN games` path —
+      which is exactly the SQL Phase 6 measured — so this row is the honest
+      before-figure for the aggregate work, measured on the same machine, the
+      same Node and the same rows as the row above it. `sinceYear` is set below
+      any real game date so the filter selects everything and only the plan
+      differs.
+    */
+    await measure('same, normalized scan (no aggregates)', 20, () =>
+      call('/db/explore', { key, positionKey: afterE4, limit: 24, filters: { sinceYear: 1 } }),
+    ),
     await measure('opening aggregation (deep)', 20, () =>
       call('/db/explore', { key, positionKey: deep, limit: 24 }),
     ),
@@ -181,7 +193,12 @@ async function main() {
     `import ${imported.toLocaleString()} games (${duplicates} duplicates)   ${ms(importMs)}` +
       `  ·  ${Math.round(imported / (importMs / 1000)).toLocaleString()} games/s`,
   );
-  console.log(`stored game count reported by companion   ${stored?.games?.toLocaleString()}\n`);
+  console.log(`stored game count reported by companion   ${stored?.games?.toLocaleString()}`);
+  const integrity = await call('/db/integrity', { key });
+  console.log(
+    `explorer aggregates                    ${integrity.consistent ? 'consistent' : 'INCONSISTENT'}` +
+      ` (${integrity.aggregateRows.toLocaleString()} rows for ${integrity.positions.toLocaleString()} positions)\n`,
+  );
 
   const width = Math.max(...results.map((entry) => entry.label.length));
   console.log(`${'query'.padEnd(width)}   median     worst`);

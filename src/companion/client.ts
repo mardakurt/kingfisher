@@ -33,6 +33,15 @@ export interface CompanionDatabaseEntry {
   readonly name: string;
   readonly games: number | null;
   readonly file: string;
+  readonly bytes: number | null;
+}
+
+/** Whether the derived explorer aggregates still agree with the source rows. */
+export interface CompanionAggregateIntegrity {
+  readonly positions: number;
+  readonly aggregatedPositions: number;
+  readonly aggregateRows: number;
+  readonly consistent: boolean;
 }
 
 export interface CompanionStatus {
@@ -158,12 +167,20 @@ export class CompanionClient {
     return this.request('/db/search', { key, query });
   }
 
-  explore<T>(key: string, positionKey: string, limit?: number): Promise<T> {
-    return this.request('/db/explore', { key, positionKey, limit });
+  explore<T>(key: string, positionKey: string, limit?: number, filters?: unknown): Promise<T> {
+    return this.request('/db/explore', { key, positionKey, limit, filters });
   }
 
   gamesAtPosition<T>(key: string, positionKey: string, limit?: number): Promise<T> {
     return this.request('/db/games-at', { key, positionKey, limit });
+  }
+
+  databaseIntegrity(key: string): Promise<CompanionAggregateIntegrity> {
+    return this.request('/db/integrity', { key });
+  }
+
+  rebuildAggregates(key: string): Promise<CompanionAggregateIntegrity> {
+    return this.request('/db/rebuild-aggregates', { key });
   }
 
   gameContent(key: string, id: string): Promise<{ pgn: string | null }> {

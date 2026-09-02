@@ -567,12 +567,14 @@ function CompanionSection() {
  * as one imported into IndexedDB.
  */
 function SqliteDatabases() {
+  const queryClient = useQueryClient();
   const status = useCompanionStatus();
   const notify = useUi((state) => state.notify);
   const [name, setName] = useState('');
   const [pgn, setPgn] = useState('');
   const [target, setTarget] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
+  const [aggregates, setAggregates] = useState<Record<string, string>>({});
 
   const databases = status.data?.databases ?? [];
   const selected = target || databases[0]?.key || '';
@@ -597,15 +599,61 @@ function SqliteDatabases() {
     }
   };
 
+  /*
+    The explorer answers unfiltered questions from a derived aggregate table, so
+    the honest thing to offer is a way to check that the derivation still agrees
+    with the games and positions it came from — and a rebuild if it does not.
+    Nothing is repaired without being asked.
+  */
+  const verify = async (key: string) => {
+    const client = companionClient();
+    if (!client) return;
+    setBusy(`verify:${key}`);
+    try {
+      const facts = await client.databaseIntegrity(key);
+      setAggregates((current) => ({
+        ...current,
+        [key]: facts.consistent
+          ? `Aggregates agree with ${facts.positions.toLocaleString()} indexed positions.`
+          : `Aggregates cover ${facts.aggregatedPositions.toLocaleString()} of ${facts.positions.toLocaleString()} positions.`,
+      }));
+      if (!facts.consistent) {
+        const rebuilt = await client.rebuildAggregates(key);
+        setAggregates((current) => ({
+          ...current,
+          [key]: rebuilt.consistent
+            ? `Rebuilt: aggregates agree with ${rebuilt.positions.toLocaleString()} positions.`
+            : 'Rebuild did not reconcile the aggregates; the source rows may be damaged.',
+        }));
+        await queryClient.invalidateQueries({ queryKey: ['explorer', `sqlite:${key}`] });
+      }
+    } catch (error) {
+      notify({
+        tone: 'error',
+        message: error instanceof Error ? error.message : 'The check could not be run.',
+      });
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const load = async () => {
     const client = companionClient();
     if (!client || !selected || !pgn.trim()) return;
     setBusy('import');
     try {
       const result = await importPgnIntoSqlite(client, selected, pgn, (progress) =>
-        setBusy(`import:${progress.parsed}/${progress.total}`),
+        /*
+          The streaming worker knows how many games it has parsed, never how
+          many are still to come, so this counts up rather than inventing a
+          denominator that would sit at zero.
+        */
+        setBusy(
+          `import:${progress.imported.toLocaleString()} of ${progress.parsed.toLocaleString()} parsed`,
+        ),
       );
       setPgn('');
+      await queryClient.invalidateQueries({ queryKey: ['explorer', `sqlite:${selected}`] });
       await status.refetch();
       notify({
         tone: 'success',
@@ -636,10 +684,24 @@ function SqliteDatabases() {
               key={entry.key}
               className="flex items-center gap-2 rounded-[4px] border border-line bg-surface-inset px-2.5 py-1.5 text-2xs"
             >
-              <span className="min-w-0 flex-1 truncate text-secondary">{entry.name}</span>
+              <div className="min-w-0 flex-1">
+                <span className="block truncate text-secondary">{entry.name}</span>
+                {aggregates[entry.key] ? (
+                  <span className="mt-0.5 block text-[10px] text-tertiary">
+                    {aggregates[entry.key]}
+                  </span>
+                ) : null}
+              </div>
               <span className="text-tertiary tabular">
                 {entry.games === null ? '—' : `${entry.games.toLocaleString()} games`}
               </span>
+              <Button
+                variant="ghost"
+                onClick={() => void verify(entry.key)}
+                disabled={busy !== null}
+              >
+                {busy === `verify:${entry.key}` ? 'Checking…' : 'Verify explorer index'}
+              </Button>
             </li>
           ))}
         </ul>

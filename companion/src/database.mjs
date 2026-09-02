@@ -21,6 +21,7 @@ import { DatabaseSync } from 'node:sqlite';
 const SCHEMA = `
 PRAGMA journal_mode = WAL;
 PRAGMA synchronous = NORMAL;
+PRAGMA foreign_keys = ON;
 
 CREATE TABLE IF NOT EXISTS games (
   id            INTEGER PRIMARY KEY,
@@ -60,6 +61,24 @@ CREATE TABLE IF NOT EXISTS positions (
   mover         TEXT NOT NULL
 );
 
+-- The unfiltered explorer is the companion's hottest ordinary query.  These
+-- rows are factual reductions of positions + games, not a replacement for the
+-- source records: filtered queries still use the normalized tables below.
+CREATE TABLE IF NOT EXISTS position_aggregates (
+  position_key       TEXT NOT NULL,
+  move_uci           TEXT NOT NULL,
+  move_san           TEXT NOT NULL,
+  mover              TEXT NOT NULL,
+  games              INTEGER NOT NULL,
+  white_wins         INTEGER NOT NULL,
+  draws              INTEGER NOT NULL,
+  black_wins         INTEGER NOT NULL,
+  rating_total       INTEGER NOT NULL,
+  rating_count       INTEGER NOT NULL,
+  latest_year        INTEGER,
+  PRIMARY KEY (position_key, move_uci)
+) WITHOUT ROWID;
+
 CREATE INDEX IF NOT EXISTS games_white_key   ON games(white_key);
 CREATE INDEX IF NOT EXISTS games_black_key   ON games(black_key);
 CREATE INDEX IF NOT EXISTS games_year        ON games(year);
@@ -69,6 +88,57 @@ CREATE INDEX IF NOT EXISTS games_max_rating  ON games(max_rating);
 CREATE INDEX IF NOT EXISTS games_imported    ON games(imported_at);
 CREATE INDEX IF NOT EXISTS positions_key     ON positions(position_key);
 CREATE INDEX IF NOT EXISTS positions_game    ON positions(game_id);
+
+CREATE TRIGGER IF NOT EXISTS positions_aggregate_insert
+AFTER INSERT ON positions
+BEGIN
+  INSERT INTO position_aggregates (
+    position_key, move_uci, move_san, mover, games, white_wins, draws,
+    black_wins, rating_total, rating_count, latest_year
+  )
+  SELECT
+    NEW.position_key, NEW.move_uci, NEW.move_san, NEW.mover, 1,
+    CASE WHEN result = '1-0' THEN 1 ELSE 0 END,
+    CASE WHEN result = '1/2-1/2' THEN 1 ELSE 0 END,
+    CASE WHEN result = '0-1' THEN 1 ELSE 0 END,
+    COALESCE(max_rating, 0), CASE WHEN max_rating IS NULL THEN 0 ELSE 1 END, year
+  FROM games WHERE id = NEW.game_id
+  ON CONFLICT(position_key, move_uci) DO UPDATE SET
+    games = games + 1,
+    white_wins = white_wins + excluded.white_wins,
+    draws = draws + excluded.draws,
+    black_wins = black_wins + excluded.black_wins,
+    rating_total = rating_total + excluded.rating_total,
+    rating_count = rating_count + excluded.rating_count,
+    latest_year = CASE
+      WHEN latest_year IS NULL OR excluded.latest_year > latest_year THEN excluded.latest_year
+      ELSE latest_year
+    END;
+END;
+
+-- Deletion is deliberately rebuilt for the affected move.  Imports are the
+-- high-volume path and stay O(1) per position; deletion is rare, and rebuilding
+-- one move is the simple way to keep latest_year exact after removing its max.
+CREATE TRIGGER IF NOT EXISTS positions_aggregate_delete
+AFTER DELETE ON positions
+BEGIN
+  DELETE FROM position_aggregates
+  WHERE position_key = OLD.position_key AND move_uci = OLD.move_uci;
+
+  INSERT INTO position_aggregates (
+    position_key, move_uci, move_san, mover, games, white_wins, draws,
+    black_wins, rating_total, rating_count, latest_year
+  )
+  SELECT
+    p.position_key, p.move_uci, MIN(p.move_san), MIN(p.mover), COUNT(*),
+    SUM(CASE WHEN g.result = '1-0' THEN 1 ELSE 0 END),
+    SUM(CASE WHEN g.result = '1/2-1/2' THEN 1 ELSE 0 END),
+    SUM(CASE WHEN g.result = '0-1' THEN 1 ELSE 0 END),
+    COALESCE(SUM(g.max_rating), 0), COUNT(g.max_rating), MAX(g.year)
+  FROM positions p JOIN games g ON g.id = p.game_id
+  WHERE p.position_key = OLD.position_key AND p.move_uci = OLD.move_uci
+  GROUP BY p.position_key, p.move_uci;
+END;
 `;
 
 export class GameDatabase {
@@ -77,6 +147,11 @@ export class GameDatabase {
   constructor(file) {
     this.#db = new DatabaseSync(file);
     this.#db.exec(SCHEMA);
+    const aggregateCount = this.#db
+      .prepare('SELECT COUNT(*) AS n FROM position_aggregates')
+      .get().n;
+    const positionCount = this.#db.prepare('SELECT COUNT(*) AS n FROM positions').get().n;
+    if (aggregateCount === 0 && positionCount > 0) this.rebuildAggregates();
   }
 
   close() {
@@ -85,6 +160,44 @@ export class GameDatabase {
 
   count() {
     return this.#db.prepare('SELECT COUNT(*) AS n FROM games').get().n;
+  }
+
+  /** Rebuild the derived rows transactionally, for migration and repair. */
+  rebuildAggregates() {
+    this.#db.exec('BEGIN');
+    try {
+      this.#db.exec(`
+        DELETE FROM position_aggregates;
+        INSERT INTO position_aggregates (
+          position_key, move_uci, move_san, mover, games, white_wins, draws,
+          black_wins, rating_total, rating_count, latest_year
+        )
+        SELECT
+          p.position_key, p.move_uci, MIN(p.move_san), MIN(p.mover), COUNT(*),
+          SUM(CASE WHEN g.result = '1-0' THEN 1 ELSE 0 END),
+          SUM(CASE WHEN g.result = '1/2-1/2' THEN 1 ELSE 0 END),
+          SUM(CASE WHEN g.result = '0-1' THEN 1 ELSE 0 END),
+          COALESCE(SUM(g.max_rating), 0), COUNT(g.max_rating), MAX(g.year)
+        FROM positions p JOIN games g ON g.id = p.game_id
+        GROUP BY p.position_key, p.move_uci;
+      `);
+      this.#db.exec('COMMIT');
+    } catch (error) {
+      this.#db.exec('ROLLBACK');
+      throw error;
+    }
+  }
+
+  /** Cheap consistency facts for diagnostics and tests; no guessed repair. */
+  aggregateIntegrity() {
+    return this.#db
+      .prepare(
+        `SELECT
+           (SELECT COUNT(*) FROM positions) AS positions,
+           (SELECT COALESCE(SUM(games), 0) FROM position_aggregates) AS aggregatedPositions,
+           (SELECT COUNT(*) FROM position_aggregates) AS aggregateRows`,
+      )
+      .get();
   }
 
   /**
@@ -166,6 +279,21 @@ export class GameDatabase {
       throw error;
     }
     return { imported, duplicates };
+  }
+
+  /** Delete exact games and let foreign keys plus aggregate triggers do the rest. */
+  deleteGamesByFingerprint(fingerprints) {
+    const remove = this.#db.prepare('DELETE FROM games WHERE fingerprint = ?');
+    let deleted = 0;
+    this.#db.exec('BEGIN');
+    try {
+      for (const fingerprint of fingerprints) deleted += Number(remove.run(fingerprint).changes);
+      this.#db.exec('COMMIT');
+    } catch (error) {
+      this.#db.exec('ROLLBACK');
+      throw error;
+    }
+    return { deleted };
   }
 
   /**
@@ -256,10 +384,40 @@ export class GameDatabase {
   }
 
   /** Every move played from a canonical position, aggregated. */
-  explore(positionKey, limit = 24) {
+  explore(positionKey, limit = 24, filters = {}) {
+    const where = ['p.position_key = ?'];
+    const params = [positionKey];
+    if (filters.minRating) {
+      where.push('g.max_rating >= ?');
+      params.push(filters.minRating);
+    }
+    if (filters.maxRating) {
+      where.push('g.max_rating <= ?');
+      params.push(filters.maxRating);
+    }
+    if (filters.sinceYear) {
+      where.push('g.year >= ?');
+      params.push(filters.sinceYear);
+    }
+    if (filters.untilYear) {
+      where.push('g.year <= ?');
+      params.push(filters.untilYear);
+    }
+    if (filters.player) {
+      if (filters.playerColor === 'w') where.push('g.white_key = ?');
+      else if (filters.playerColor === 'b') where.push('g.black_key = ?');
+      else where.push('(g.white_key = ? OR g.black_key = ?)');
+      params.push(filters.player);
+      if (!filters.playerColor) params.push(filters.player);
+    }
+
+    const filtered = where.length > 1;
+    if (!filtered) return this.#exploreAggregated(positionKey, limit);
+
+    const clause = where.join(' AND ');
     const rows = this.#db
       .prepare(
-        `SELECT p.move_uci AS uci, p.move_san AS san, p.mover AS mover,
+        `SELECT p.move_uci AS uci, MIN(p.move_san) AS san, MIN(p.mover) AS mover,
                 COUNT(*) AS games,
                 SUM(CASE WHEN g.result = '1-0' THEN 1 ELSE 0 END) AS white,
                 SUM(CASE WHEN g.result = '1/2-1/2' THEN 1 ELSE 0 END) AS draws,
@@ -267,12 +425,12 @@ export class GameDatabase {
                 AVG(g.max_rating) AS averageRating,
                 MAX(g.year) AS lastPlayedYear
          FROM positions p JOIN games g ON g.id = p.game_id
-         WHERE p.position_key = ?
+         WHERE ${clause}
          GROUP BY p.move_uci
          ORDER BY games DESC
          LIMIT ?`,
       )
-      .all(positionKey, limit);
+      .all(...params, limit);
 
     const totals = this.#db
       .prepare(
@@ -281,9 +439,9 @@ export class GameDatabase {
                 SUM(CASE WHEN g.result = '1/2-1/2' THEN 1 ELSE 0 END) AS draws,
                 SUM(CASE WHEN g.result = '0-1' THEN 1 ELSE 0 END) AS black
          FROM positions p JOIN games g ON g.id = p.game_id
-         WHERE p.position_key = ?`,
+         WHERE ${clause}`,
       )
-      .get(positionKey);
+      .get(...params);
 
     return {
       moves: rows.map((row) => ({
@@ -300,6 +458,46 @@ export class GameDatabase {
       white: totals?.white ?? 0,
       draws: totals?.draws ?? 0,
       black: totals?.black ?? 0,
+    };
+  }
+
+  #exploreAggregated(positionKey, limit) {
+    const rows = this.#db
+      .prepare(
+        `SELECT move_uci AS uci, move_san AS san, mover, games,
+                white_wins AS white, draws, black_wins AS black,
+                CASE WHEN rating_count > 0 THEN rating_total * 1.0 / rating_count END AS averageRating,
+                latest_year AS lastPlayedYear
+         FROM position_aggregates
+         WHERE position_key = ?
+         ORDER BY games DESC
+         LIMIT ?`,
+      )
+      .all(positionKey, limit);
+    const totals = this.#db
+      .prepare(
+        `SELECT COALESCE(SUM(games), 0) AS games,
+                COALESCE(SUM(white_wins), 0) AS white,
+                COALESCE(SUM(draws), 0) AS draws,
+                COALESCE(SUM(black_wins), 0) AS black
+         FROM position_aggregates WHERE position_key = ?`,
+      )
+      .get(positionKey);
+    return {
+      moves: rows.map((row) => ({
+        uci: row.uci,
+        san: row.san,
+        games: row.games,
+        white: row.white,
+        draws: row.draws,
+        black: row.black,
+        averageRating: row.averageRating ? Math.round(row.averageRating) : undefined,
+        lastPlayedYear: row.lastPlayedYear ?? undefined,
+      })),
+      totalGames: totals.games,
+      white: totals.white,
+      draws: totals.draws,
+      black: totals.black,
     };
   }
 

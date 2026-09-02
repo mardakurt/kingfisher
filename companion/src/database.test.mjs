@@ -188,5 +188,36 @@ describe('GameDatabase', () => {
       { name: 'Alpha', games: 2 },
       { name: 'Alphonse', games: 1 },
     ]);
+    expect(database.aggregateIntegrity()).toEqual({
+      positions: 3,
+      aggregatedPositions: 3,
+      aggregateRows: 2,
+    });
+    expect(database.explore(POSITION, 24, { minRating: 2450 })).toMatchObject({
+      totalGames: 1,
+      white: 1,
+      draws: 0,
+      black: 0,
+    });
+  });
+
+  it('maintains explorer aggregates through deletion and an explicit rebuild', () => {
+    database.insertGames([
+      entry({
+        fingerprint: 'game-1',
+        white: 'Alpha',
+        black: 'Beta',
+        result: '1-0',
+        year: 2026,
+        rating: 2500,
+        uci: 'e2e4',
+        san: 'e4',
+      }),
+    ]);
+    database.rebuildAggregates();
+    expect(database.explore(POSITION).moves[0]).toMatchObject({ games: 1, lastPlayedYear: 2026 });
+    database.deleteGamesByFingerprint(['game-1']);
+    expect(database.explore(POSITION)).toMatchObject({ totalGames: 0, moves: [] });
+    expect(database.aggregateIntegrity()).toMatchObject({ positions: 0, aggregatedPositions: 0 });
   });
 });

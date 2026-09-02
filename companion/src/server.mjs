@@ -7,7 +7,7 @@
  */
 
 import { createServer } from 'node:http';
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -163,6 +163,13 @@ async function route(url, request, response) {
           }
         })(),
         file: path.basename(file),
+        bytes: (() => {
+          try {
+            return statSync(file).size;
+          } catch {
+            return null;
+          }
+        })(),
       })),
       sessions: engines.list(),
     });
@@ -248,8 +255,37 @@ async function route(url, request, response) {
     return json(
       response,
       200,
-      database(String(body.key)).explore(String(body.positionKey), body.limit ?? 24),
+      database(String(body.key)).explore(
+        String(body.positionKey),
+        body.limit ?? 24,
+        body.filters ?? {},
+      ),
     );
+  }
+
+  /*
+    Derived explorer aggregates are checked on demand rather than on every
+    status poll: the check sums a whole table, and a hundred-thousand-game
+    collection should not pay for that once a second to say nothing changed.
+  */
+  if (pathname === '/db/integrity' && request.method === 'POST') {
+    const body = await readBody(request);
+    const facts = database(String(body.key)).aggregateIntegrity();
+    return json(response, 200, {
+      ...facts,
+      consistent: facts.positions === facts.aggregatedPositions,
+    });
+  }
+
+  if (pathname === '/db/rebuild-aggregates' && request.method === 'POST') {
+    const body = await readBody(request);
+    const target = database(String(body.key));
+    target.rebuildAggregates();
+    const facts = target.aggregateIntegrity();
+    return json(response, 200, {
+      ...facts,
+      consistent: facts.positions === facts.aggregatedPositions,
+    });
   }
 
   if (pathname === '/db/games-at' && request.method === 'POST') {

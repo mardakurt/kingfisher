@@ -115,6 +115,8 @@ export interface ChessDatabaseProvider {
   readonly name: string;
   readonly description: string;
   readonly capabilities: DatabaseCapabilities;
+  /** Changes whenever the provider's underlying collection changes. */
+  readonly cacheVersion?: string | number;
   explore(query: ExplorerQuery, signal?: AbortSignal): Promise<ExplorerResult>;
   health?(signal?: AbortSignal): Promise<ProviderHealth>;
   game?(id: string, signal?: AbortSignal): Promise<string>;
