@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 
@@ -12,15 +13,10 @@ import { EmptyState, PanelBody, PanelHeader } from '@/components/ui/Panel';
 import { databaseProviderById } from '@/database/registry';
 import { useDatabaseProviders } from '@/database/use-database-providers';
 import type { ProviderHealth } from '@/database/types';
-import { CompanionPanel } from '@/features/assistant/CompanionPanel';
 import { EnginePanelHost } from '@/features/engine/EnginePanelHost';
 import { ExplorerPanel } from '@/features/explorer/ExplorerPanel';
-import { TranspositionsPanel } from '@/features/explorer/TranspositionsPanel';
-import { GameInsightsPanel } from '@/features/games/GameInsightsPanel';
 import { NotesPanel } from '@/features/notes/NotesPanel';
 import { useProfile, useRepertoiresAtPosition } from '@/features/persistence/queries';
-import { FeaturesPanel } from '@/features/analysis/FeaturesPanel';
-import { TablebasePanel } from '@/features/analysis/TablebasePanel';
 import { Tabs } from '@/components/ui/Tabs';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { cn } from '@/lib/cn';
@@ -32,6 +28,44 @@ import {
   type WorkspacePreset,
   type WorkspaceToolId,
 } from '@/stores/workspace-layout-store';
+
+const lazyPanel = (loader: () => Promise<{ default: React.ComponentType }>) =>
+  dynamic(loader, { ssr: false, loading: () => <ToolLoading /> });
+
+const CompanionPanel = lazyPanel(() =>
+  import('@/features/assistant/CompanionPanel').then((module) => ({
+    default: module.CompanionPanel,
+  })),
+);
+const TranspositionsPanel = lazyPanel(() =>
+  import('@/features/explorer/TranspositionsPanel').then((module) => ({
+    default: module.TranspositionsPanel,
+  })),
+);
+const GameInsightsPanel = lazyPanel(() =>
+  import('@/features/games/GameInsightsPanel').then((module) => ({
+    default: module.GameInsightsPanel,
+  })),
+);
+const FeaturesPanel = lazyPanel(() =>
+  import('@/features/analysis/FeaturesPanel').then((module) => ({ default: module.FeaturesPanel })),
+);
+const TablebasePanel = lazyPanel(() =>
+  import('@/features/analysis/TablebasePanel').then((module) => ({
+    default: module.TablebasePanel,
+  })),
+);
+
+function ToolLoading() {
+  return (
+    <div
+      className="flex h-full min-h-[240px] items-center justify-center text-xs text-tertiary"
+      aria-live="polite"
+    >
+      Loading tool…
+    </div>
+  );
+}
 
 const LABELS: Record<WorkspaceToolId, string> = {
   engine: 'Engine',
@@ -77,6 +111,7 @@ const ROUTE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'notes',
   ],
   studies: [
+    'document',
     'engine',
     'explorer',
     'database',

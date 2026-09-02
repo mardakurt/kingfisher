@@ -1,18 +1,12 @@
 'use client';
 
 import { useEffect, type ReactNode } from 'react';
+import dynamic from 'next/dynamic';
 
 import { CommandPalette } from '@/features/command/CommandPalette';
 import { useGlobalHotkeys } from '@/features/command/useGlobalHotkeys';
-import { CommentDialog } from '@/features/movetree/CommentDialog';
 import { MoveContextMenu } from '@/features/movetree/MoveContextMenu';
 import { useWorkspacePersistence } from '@/features/persistence/useWorkspacePersistence';
-import { SaveToStudyDialog } from '@/features/studies/SaveToStudyDialog';
-import { AddToRepertoireDialog } from '@/features/repertoire/AddToRepertoireDialog';
-import { CreateTrainingDialog } from '@/features/training/CreateTrainingDialog';
-import { ModelGameDialog } from '@/features/games/ModelGameDialog';
-import { ImportDialog } from '@/features/shell/ImportDialog';
-import { SettingsDialog } from '@/features/shell/SettingsDialog';
 import { ShortcutsDialog } from '@/features/shell/ShortcutsDialog';
 import { useCompanionSync } from '@/companion/useCompanion';
 import { useUi } from '@/stores/ui-store';
@@ -26,6 +20,52 @@ import { Sidebar } from './Sidebar';
 import { StatusBar } from './StatusBar';
 import { MobileNavigation } from './MobileNavigation';
 import { ChessWorkspaceProvider } from '@/features/workspace/ChessWorkspaceContext';
+import { AnalysisQueueProvider } from '@/features/analysis-queue/AnalysisQueueProvider';
+
+// These feature surfaces are large and uncommon at startup. Conditional
+// mounting matters as much as the dynamic import: a closed dialog must not
+// fetch and evaluate its implementation merely because AppShell exists.
+const SettingsDialog = dynamic(
+  () => import('@/features/shell/SettingsDialog').then((module) => module.SettingsDialog),
+  { ssr: false },
+);
+const ImportDialog = dynamic(
+  () => import('@/features/shell/ImportDialog').then((module) => module.ImportDialog),
+  { ssr: false },
+);
+const SaveToStudyDialog = dynamic(
+  () => import('@/features/studies/SaveToStudyDialog').then((module) => module.SaveToStudyDialog),
+  { ssr: false },
+);
+const AddToRepertoireDialog = dynamic(
+  () =>
+    import('@/features/repertoire/AddToRepertoireDialog').then(
+      (module) => module.AddToRepertoireDialog,
+    ),
+  { ssr: false },
+);
+const CreateTrainingDialog = dynamic(
+  () =>
+    import('@/features/training/CreateTrainingDialog').then(
+      (module) => module.CreateTrainingDialog,
+    ),
+  { ssr: false },
+);
+const ModelGameDialog = dynamic(
+  () => import('@/features/games/ModelGameDialog').then((module) => module.ModelGameDialog),
+  { ssr: false },
+);
+const AnalysisQueueDialog = dynamic(
+  () =>
+    import('@/features/analysis-queue/AnalysisQueueDialog').then(
+      (module) => module.AnalysisQueueDialog,
+    ),
+  { ssr: false },
+);
+const CommentDialog = dynamic(
+  () => import('@/features/movetree/CommentDialog').then((module) => module.CommentDialog),
+  { ssr: false },
+);
 
 export function AppShell({ children }: { children: ReactNode }) {
   useGlobalHotkeys();
@@ -33,6 +73,14 @@ export function AppShell({ children }: { children: ReactNode }) {
   useCompanionSync();
   const sidebarOpen = useUi((state) => state.sidebarOpen);
   const setSidebarOpen = useUi((state) => state.setSidebarOpen);
+  const settingsOpen = useUi((state) => state.settingsOpen);
+  const importOpen = useUi((state) => state.importOpen);
+  const saveToStudyOpen = useUi((state) => state.saveToStudyOpen);
+  const addToRepertoireOpen = useUi((state) => state.addToRepertoireOpen);
+  const trainingCaptureOpen = useUi((state) => state.trainingCaptureOpen);
+  const modelGameOpen = useUi((state) => state.modelGameOpen);
+  const analysisQueueOpen = useUi((state) => state.analysisQueueOpen);
+  const commentingNodeId = useUi((state) => state.commentingNodeId);
 
   useEffect(() => {
     // Browser tests and assistive automation need a deterministic signal that
@@ -55,6 +103,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <ChessWorkspaceProvider>
+      <AnalysisQueueProvider />
       <div className="flex h-dvh flex-col overflow-hidden bg-surface-0">
         <div className="flex min-h-0 flex-1" inert={sidebarOpen || undefined}>
           <Sidebar />
@@ -90,13 +139,14 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         <CommandPalette />
         <ShortcutsDialog />
-        <SettingsDialog />
-        <ImportDialog />
-        <SaveToStudyDialog />
-        <AddToRepertoireDialog />
-        <CreateTrainingDialog />
-        <ModelGameDialog />
-        <CommentDialog />
+        {settingsOpen ? <SettingsDialog /> : null}
+        {importOpen ? <ImportDialog /> : null}
+        {saveToStudyOpen ? <SaveToStudyDialog /> : null}
+        {addToRepertoireOpen ? <AddToRepertoireDialog /> : null}
+        {trainingCaptureOpen ? <CreateTrainingDialog /> : null}
+        {modelGameOpen ? <ModelGameDialog /> : null}
+        {analysisQueueOpen ? <AnalysisQueueDialog /> : null}
+        {commentingNodeId ? <CommentDialog /> : null}
         <MoveContextMenu />
         <Notices />
       </div>
