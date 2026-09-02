@@ -14,6 +14,7 @@
  */
 
 import { useEffect, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 
 import { autosaveDelay } from '@/persistence/autosave';
 import { getRepositories } from '@/persistence/repositories';
@@ -23,12 +24,25 @@ import { StaleChapterWriteError } from '@/persistence/types';
 import { useAnalysis, selectDirty, UNTITLED_DOCUMENT } from '@/stores/analysis-store';
 import { useUi } from '@/stores/ui-store';
 
+import { invalidateStudies } from './queries';
+
 /** Wired once, in the shell, so every route keeps the same session alive. */
 export function useWorkspacePersistence(): void {
+  const client = useQueryClient();
   /** Set on mount rather than at render time, so the hook stays pure. */
   const lastChangeAt = useRef(0);
   const firstUnsavedAt = useRef<number | null>(null);
   const lastRevision = useRef(-1);
+  /*
+    Whether the stored draft still describes what is on screen.
+    True at the start of a session, and again whenever the open document
+    changes: opening an imported game left nothing dirty, so autosave never
+    ran, so nothing was written — and the indicator said "Draft saved" about a
+    board that a reload emptied. A draft is cheap; claiming one that does not
+    exist is not.
+  */
+  const draftStale = useRef(true);
+  const lastDocument = useRef('');
 
   useEffect(() => {
     /*
@@ -82,18 +96,29 @@ export function useWorkspacePersistence(): void {
 
     const save = async () => {
       const state = useAnalysis.getState();
+      const dirty = selectDirty(state);
       // A refused write would only be refused again; the user has to choose.
-      if (!selectDirty(state) || state.saving || state.conflict) return;
+      if ((!dirty && !draftStale.current) || state.saving || state.conflict) return;
 
       const revision = state.revision;
       state.markSaving();
       try {
         const repositories = await getRepositories();
-        const written = await writeWorkspace(repositories, state);
+        // Nothing has changed, so a chapter write would only inflate its
+        // revision and wake other tabs; the draft is the whole point here.
+        const written = await writeWorkspace(repositories, state, { draftOnly: !dirty });
+        draftStale.current = false;
         if (disposed) return;
         if (written) {
           useAnalysis.getState().setDocumentRevision(written.revision);
           announceChapterSaved(written.id, written.revision);
+          /*
+            Autosave is the only writer that used to change chapters without
+            telling the cache. Anything derived from a chapter's moves — the
+            stored move orders in particular, which are cached for a minute —
+            was therefore answering from before this edit.
+          */
+          invalidateStudies(client, written.studyId);
         }
         useAnalysis.getState().markSaved(revision);
         firstUnsavedAt.current = null;
@@ -116,7 +141,7 @@ export function useWorkspacePersistence(): void {
       clear();
       const state = useAnalysis.getState();
       const delay = autosaveDelay({
-        dirty: selectDirty(state),
+        dirty: selectDirty(state) || draftStale.current,
         saving: state.saving,
         now: Date.now(),
         lastChangeAt: lastChangeAt.current,
@@ -135,6 +160,11 @@ export function useWorkspacePersistence(): void {
       if (next === watched) return;
       watched = next;
 
+      const openDocument = documentKey(state);
+      if (openDocument !== lastDocument.current) {
+        lastDocument.current = openDocument;
+        draftStale.current = true;
+      }
       if (state.revision !== lastRevision.current) {
         lastRevision.current = state.revision;
         lastChangeAt.current = Date.now();
@@ -197,6 +227,10 @@ export function useWorkspacePersistence(): void {
       document.removeEventListener('visibilitychange', flush);
       window.removeEventListener('pagehide', flush);
     };
+    // The query client is a stable per-application instance; listing it would
+    // suggest this autosave session can be torn down and rebuilt, which is the
+    // one thing it must not do while an edit is in flight.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 }
 
@@ -242,6 +276,7 @@ async function adoptStoredChapter(chapterId: string): Promise<void> {
 async function writeWorkspace(
   repositories: AppRepositories,
   state: ReturnType<typeof useAnalysis.getState>,
+  options: { readonly draftOnly?: boolean } = {},
 ): Promise<ChapterRecord | null> {
   const draft: DraftRecord = {
     id: 'active',
@@ -254,6 +289,7 @@ async function writeWorkspace(
   };
   await repositories.drafts.save(draft);
 
+  if (options.draftOnly) return null;
   if (state.document.kind !== 'study-chapter') return null;
 
   const chapter = await repositories.studies.getChapter(state.document.chapterId);
@@ -363,8 +399,15 @@ function sameTree(a: DraftRecord['tree'], b: DraftRecord['tree']): boolean {
   return true;
 }
 
+/*
+  The identity of the open document, so switching to another one is treated as
+  something the draft has to catch up with even when no move was played.
+*/
+const documentKey = (state: ReturnType<typeof useAnalysis.getState>): string =>
+  JSON.stringify(state.document);
+
 const signature = (state: ReturnType<typeof useAnalysis.getState>): string =>
-  `${state.revision}|${state.savedRevision}|${state.saving ? 1 : 0}`;
+  `${state.revision}|${state.savedRevision}|${state.saving ? 1 : 0}|${documentKey(state)}`;
 
 const describe = (error: unknown): string =>
   error instanceof Error ? error.message : 'The browser rejected the write.';

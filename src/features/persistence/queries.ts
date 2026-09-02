@@ -37,10 +37,19 @@ export function invalidateGames(client: QueryClient): void {
   void client.invalidateQueries({ queryKey: persistenceKeys.gameCount });
   // The explorer's local provider reads the same position index.
   void client.invalidateQueries({ queryKey: ['explorer'] });
+  /*
+    Stored move orders are derived from games and chapters, and the panel keeps
+    its answer for a minute. Without this, importing games left the
+    transpositions list quietly out of date — a stale chess statement, which is
+    the one thing this application is not allowed to make.
+  */
+  void client.invalidateQueries({ queryKey: ['transpositions'] });
 }
 
 export function invalidateStudies(client: QueryClient, id?: StudyId): void {
   void client.invalidateQueries({ queryKey: persistenceKeys.studies });
+  // Chapters are one of the two sources of stored move orders. See above.
+  void client.invalidateQueries({ queryKey: ['transpositions'] });
   if (id) void client.invalidateQueries({ queryKey: persistenceKeys.study(id) });
   else void client.invalidateQueries({ queryKey: ['persistence', 'study'] });
 }
@@ -111,6 +120,7 @@ export const phase3Keys = {
   trainingDue: ['persistence', 'training-due'] as const,
   modelGames: (scope: string, id: string) => ['persistence', 'model-games', scope, id] as const,
   profile: ['persistence', 'profile'] as const,
+  references: (chapterId: string) => ['persistence', 'references', chapterId] as const,
 };
 
 export function invalidateRepertoires(client: QueryClient): void {
@@ -126,6 +136,27 @@ export function invalidateTraining(client: QueryClient): void {
 
 export function invalidateModelGames(client: QueryClient): void {
   void client.invalidateQueries({ queryKey: ['persistence', 'model-games'] });
+}
+
+export function invalidateReferences(client: QueryClient, chapterId?: string): void {
+  void client.invalidateQueries({
+    queryKey: chapterId ? phase3Keys.references(chapterId) : ['persistence', 'references'],
+  });
+}
+
+export function useStudyReferences(chapterId: string | null) {
+  return useQuery({
+    queryKey: phase3Keys.references(chapterId ?? 'none'),
+    queryFn: async () => {
+      if (!chapterId) return [];
+      const repositories = await getRepositories();
+      const references = await repositories.references.forChapter(chapterId);
+      return Promise.all(references.map((reference) => repositories.references.resolve(reference)));
+    },
+    enabled: chapterId !== null,
+    staleTime: 0,
+    retry: false,
+  });
 }
 
 export function useRepertoires() {

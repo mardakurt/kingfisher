@@ -35,7 +35,7 @@ import { usePreferences } from '@/stores/preferences-store';
 import { useUi } from '@/stores/ui-store';
 
 import { buildMoveEvidence, summariseEvidence, trendOf, type MoveEvidence } from './evidence';
-import { useExplorer } from './useExplorer';
+import { useExplorer, useExplorerPrefetch } from './useExplorer';
 import { usePositionContext } from './usePositionContext';
 
 /** How far back "recent" reaches, for the theory comparison. */
@@ -86,6 +86,7 @@ export function ExplorerPanel() {
     node.fen,
     window.years > 0 ? recentFilters : filters,
   );
+  useExplorerPrefetch(provider?.id ?? '', node.fen, filters, query.data?.moves);
   const repertoireHere = useRepertoiresAtPosition(positionKey(node.fen));
   const context = usePositionContext(node.fen);
 
