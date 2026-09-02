@@ -80,10 +80,21 @@ export const Export = (p: IconProps) => (
     <path d="M12 15V4m0 0 4 4m-4-4L8 8M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
   </Icon>
 );
+/**
+ * Settings is sliders, not a cog.
+ *
+ * A cog is a ring with radial teeth, which at 20px is the same silhouette as
+ * `Sun` — a ring with radial rays. The two controls sit next to each other in
+ * the toolbar and again in the sidebar, so they must not share a shape at all.
+ * Horizontal tracks with handles carry no rotational symmetry and cannot be
+ * confused with an appearance control at any size.
+ */
 export const Settings = (p: IconProps) => (
   <Icon {...p}>
-    <circle cx="12" cy="12" r="3" />
-    <path d="M12 2v2.5M12 19.5V22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M2 12h2.5M19.5 12H22M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8" />
+    <path d="M4 7h9M17 7h3M4 12h3M11 12h9M4 17h9M17 17h3" />
+    <circle cx="15" cy="7" r="2" />
+    <circle cx="9" cy="12" r="2" />
+    <circle cx="15" cy="17" r="2" />
   </Icon>
 );
 export const Search = (p: IconProps) => (
@@ -148,6 +159,20 @@ export const Target = (p: IconProps) => (
   <Icon {...p}>
     <circle cx="12" cy="12" r="8" />
     <circle cx="12" cy="12" r="3.5" />
+  </Icon>
+);
+/**
+ * Training: a card coming back around.
+ *
+ * Training used to borrow `Target`, which left Preparation and Training with
+ * the same bullseye in the same sidebar. Recall on a schedule is a loop, and a
+ * loop is nothing like a target at any size.
+ */
+export const Recall = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M20 12a8 8 0 1 1-2.6-5.9" />
+    <path d="M20 4v4.5h-4.5" />
+    <path d="M12 8.5V12l2.5 1.6" />
   </Icon>
 );
 export const Sun = (p: IconProps) => (

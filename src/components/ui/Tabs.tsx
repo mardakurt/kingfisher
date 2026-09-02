@@ -17,7 +17,7 @@ interface TabsProps<T extends string> {
 
 export function Tabs<T extends string>({ items, value, onChange, className }: TabsProps<T>) {
   return (
-    <div role="tablist" className={cn('flex h-8 items-stretch gap-0', className)}>
+    <div role="tablist" className={cn('flex h-10 items-stretch gap-0', className)}>
       {items.map((item, index) => {
         const selected = item.id === value;
         return (
@@ -44,7 +44,7 @@ export function Tabs<T extends string>({ items, value, onChange, className }: Ta
               buttons?.[next]?.focus();
             }}
             className={cn(
-              'relative flex min-w-0 items-center gap-1.5 px-2 text-2xs font-medium tracking-wide transition-colors sm:px-3',
+              'relative flex min-w-0 shrink-0 items-center gap-1.5 px-3 text-xs font-medium tracking-wide transition-colors',
               selected ? 'text-primary' : 'text-tertiary hover:text-secondary',
             )}
           >

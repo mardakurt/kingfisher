@@ -22,8 +22,8 @@ const VARIANTS: Record<Variant, string> = {
 };
 
 const SIZES: Record<Size, string> = {
-  sm: 'h-6 gap-1.5 px-2 text-2xs',
-  md: 'h-7.5 gap-2 px-2.5 text-xs',
+  sm: 'h-7 gap-1.5 px-2 text-xs',
+  md: 'h-9 gap-2 px-3 text-sm',
 };
 
 export function Button({
@@ -75,7 +75,7 @@ export function IconButton({
       aria-label={label}
       aria-pressed={active}
       className={cn(
-        'inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-[4px] transition-colors duration-100',
+        'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[4px] transition-colors duration-100',
         'text-secondary hover:bg-surface-3 hover:text-primary',
         'disabled:pointer-events-none disabled:opacity-35',
         active && 'bg-accent-muted text-accent',
@@ -84,7 +84,7 @@ export function IconButton({
       )}
       {...props}
     >
-      <span className="[&>svg]:h-4 [&>svg]:w-4">{children}</span>
+      <span className="[&>svg]:h-[18px] [&>svg]:w-[18px]">{children}</span>
     </button>
   );
 }

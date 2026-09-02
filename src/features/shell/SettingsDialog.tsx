@@ -11,7 +11,7 @@
  */
 
 import { useRef, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -33,7 +33,14 @@ import { useProfile, phase3Keys } from '@/features/persistence/queries';
 import { parsePairing } from '@/companion/client';
 import { importPgnIntoSqlite } from '@/companion/import';
 import { companionClient } from '@/companion/session';
-import { LICHESS_TOKEN_URL } from '@/database/providers/lichess-auth';
+import {
+  LICHESS_TOKEN_URL,
+  setLichessToken,
+  testLichessAccount,
+} from '@/database/providers/lichess-auth';
+import { useDatabaseProviders } from '@/database/use-database-providers';
+import type { ChessDatabaseProvider } from '@/database/types';
+import { engineDefinitions } from '@/engine/registry';
 import { useCompanionStatus } from '@/companion/useCompanion';
 import { cn } from '@/lib/cn';
 import type { PieceType } from '@/chess/types';
@@ -41,7 +48,15 @@ import { DEFAULT_PREFERENCES, usePreferences, type Preferences } from '@/stores/
 import { useUi } from '@/stores/ui-store';
 
 type Section =
-  'appearance' | 'board' | 'pieces' | 'engine' | 'companion' | 'database' | 'assistant' | 'profile';
+  | 'appearance'
+  | 'board'
+  | 'pieces'
+  | 'engine'
+  | 'companion'
+  | 'database'
+  | 'assistant'
+  | 'profile'
+  | 'diagnostics';
 
 const SECTIONS: readonly { id: Section; label: string }[] = [
   { id: 'appearance', label: 'Appearance' },
@@ -52,6 +67,7 @@ const SECTIONS: readonly { id: Section; label: string }[] = [
   { id: 'database', label: 'Database' },
   { id: 'assistant', label: 'Assistant' },
   { id: 'profile', label: 'Profile' },
+  { id: 'diagnostics', label: 'Diagnostics' },
 ];
 
 /** A position with one of each piece, so a preview shows the whole alphabet. */
@@ -70,7 +86,7 @@ export function SettingsDialog() {
       description="Stored on this machine. Nothing here needs an account."
       width="w-[640px]"
     >
-      <div className="-mx-4 -mt-3 mb-3 border-b border-line-subtle px-2">
+      <div className="-mx-4 -mt-3 mb-3 overflow-x-auto border-b border-line-subtle px-2">
         <Tabs items={SECTIONS} value={section} onChange={setSection} />
       </div>
       {section === 'appearance' && <AppearanceSection />}
@@ -81,6 +97,7 @@ export function SettingsDialog() {
       {section === 'assistant' && <AssistantSection />}
       {section === 'database' && <DatabaseSection />}
       {section === 'profile' && <ProfileSection />}
+      {section === 'diagnostics' && <DiagnosticsSection />}
     </Dialog>
   );
 }
@@ -771,6 +788,24 @@ function ProfileSection() {
 function LichessAccess() {
   const prefs = usePreferences();
   const configured = prefs.lichessToken.length > 0;
+  const [testing, setTesting] = useState(false);
+  const [account, setAccount] = useState<string | null>(null);
+  const [testError, setTestError] = useState<string | null>(null);
+
+  const test = async () => {
+    setTesting(true);
+    setTestError(null);
+    setAccount(null);
+    setLichessToken(prefs.lichessToken);
+    try {
+      const result = await testLichessAccount();
+      setAccount(result.username);
+    } catch (error) {
+      setTestError(error instanceof Error ? error.message : 'The connection test failed.');
+    } finally {
+      setTesting(false);
+    }
+  };
 
   return (
     <div>
@@ -782,6 +817,7 @@ function LichessAccess() {
       <div className="mt-2 flex gap-1.5">
         <input
           type="password"
+          aria-label="Lichess personal access token"
           value={prefs.lichessToken}
           onChange={(event) => prefs.set('lichessToken', event.target.value.trim())}
           placeholder="lip_…"
@@ -797,8 +833,42 @@ function LichessAccess() {
         </a>
       </div>
       <p className="mt-1 text-[10px] text-tertiary">
-        {configured ? 'Configured.' : 'Not configured.'} Stored in this browser and sent only to
-        lichess.org.
+        {configured ? 'Configured.' : 'Not configured.'} Sent only to explorer.lichess.org and
+        excluded from workspace backups.
+      </p>
+      <label className="mt-2 flex items-center gap-2 text-2xs text-secondary">
+        <input
+          type="checkbox"
+          checked={prefs.rememberLichessToken}
+          onChange={(event) => prefs.set('rememberLichessToken', event.target.checked)}
+          className="accent-[var(--accent)]"
+        />
+        Remember this token on this device
+      </label>
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <Button variant="accent" onClick={() => void test()} disabled={!configured || testing}>
+          {testing ? 'Testing…' : 'Test connection'}
+        </Button>
+        {configured ? (
+          <Button
+            variant="danger"
+            onClick={() => {
+              prefs.set('lichessToken', '');
+              prefs.set('rememberLichessToken', false);
+              setLichessToken('');
+              setAccount(null);
+              setTestError(null);
+            }}
+          >
+            Disconnect
+          </Button>
+        ) : null}
+        {account ? <span className="text-xs text-positive">Connected as {account}</span> : null}
+      </div>
+      {testError ? <p className="mt-2 text-xs text-negative">{testError}</p> : null}
+      <p className="mt-2 text-[10px] leading-relaxed text-tertiary">
+        Capabilities after connection: Masters, aggregated Lichess games, player explorer, recent
+        games, and master-game PGN retrieval. Explorer endpoints use OAuth bearer authentication.
       </p>
     </div>
   );
@@ -952,16 +1022,185 @@ function BackupControls() {
   );
 }
 
+const SECRET_PREFERENCE_KEYS = new Set<keyof Preferences>([
+  'companionToken',
+  'lichessToken',
+  'assistantApiKey',
+]);
+
 function portablePreferences(state: Preferences): Record<string, unknown> {
   return Object.fromEntries(
-    (Object.keys(DEFAULT_PREFERENCES) as (keyof Preferences)[]).map((key) => [key, state[key]]),
+    (Object.keys(DEFAULT_PREFERENCES) as (keyof Preferences)[])
+      .filter((key) => !SECRET_PREFERENCE_KEYS.has(key))
+      .map((key) => [key, state[key]]),
   );
+}
+
+function DiagnosticsSection() {
+  const companion = useCompanionStatus();
+  const primary = useEngine((state) => state.primary);
+  const assistantBaseUrl = usePreferences((state) => state.assistantBaseUrl);
+  const assistantModel = usePreferences((state) => state.assistantModel);
+  const providers = useDatabaseProviders();
+
+  return (
+    <div className="space-y-5">
+      <DiagnosticGroup title="Data providers">
+        {providers.map((provider) => (
+          <ProviderDiagnostic key={provider.id} provider={provider} />
+        ))}
+      </DiagnosticGroup>
+
+      <DiagnosticGroup title="Engines">
+        {engineDefinitions().map((engine) => (
+          <div
+            key={engine.id}
+            className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 border-b border-line-subtle py-2 last:border-0"
+          >
+            <div className="min-w-0">
+              <p className="truncate text-xs text-primary">{engine.name}</p>
+              <p className="truncate text-[10px] text-tertiary">
+                {engine.transport} · {engine.family} · {engine.license}
+              </p>
+            </div>
+            <span
+              className={cn(
+                'self-center text-[10px] uppercase tracking-wide',
+                primary.engineId === engine.id && primary.status !== 'idle'
+                  ? primary.status === 'error' || primary.status === 'unavailable'
+                    ? 'text-negative'
+                    : 'text-positive'
+                  : 'text-tertiary',
+              )}
+            >
+              {primary.engineId === engine.id
+                ? primary.status
+                : engine.transport === 'worker'
+                  ? 'available'
+                  : 'companion'}
+            </span>
+          </div>
+        ))}
+      </DiagnosticGroup>
+
+      <DiagnosticGroup title="Services">
+        <DiagnosticLine
+          name="Local companion"
+          status={companion.isError ? 'Offline' : companion.data ? 'Online' : 'Not paired'}
+          detail={
+            companion.isError
+              ? companion.error.message
+              : companion.data
+                ? `${companion.data.engines.length} engines · ${companion.data.databases.length} databases`
+                : 'Pair in the Companion section.'
+          }
+          ok={Boolean(companion.data)}
+        />
+        <DiagnosticLine
+          name="Grounded assistant"
+          status={assistantBaseUrl && assistantModel ? 'Configured' : 'Not configured'}
+          detail={
+            assistantBaseUrl && assistantModel
+              ? `${assistantModel} · ${safeHost(assistantBaseUrl)}`
+              : 'Configure a model and API base URL in Assistant.'
+          }
+          ok={Boolean(assistantBaseUrl && assistantModel)}
+        />
+      </DiagnosticGroup>
+    </div>
+  );
+}
+
+function ProviderDiagnostic({ provider }: { provider: ChessDatabaseProvider }) {
+  const health = useQuery({
+    queryKey: ['provider-health', provider.id],
+    queryFn: ({ signal }) =>
+      provider.health
+        ? provider.health(signal)
+        : Promise.resolve({
+            state: 'unsupported' as const,
+            checkedAt: 0,
+            message: 'No connection test exposed.',
+          }),
+    staleTime: 30_000,
+    retry: false,
+  });
+  const result = health.data;
+  return (
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 border-b border-line-subtle py-2 last:border-0">
+      <div className="min-w-0">
+        <p className="truncate text-xs text-primary">{provider.name}</p>
+        <p className="text-[10px] leading-relaxed text-tertiary">
+          {result?.message ?? 'Not tested yet.'}
+        </p>
+      </div>
+      <div className="flex items-center gap-2">
+        {result?.latencyMs != null ? (
+          <span className="text-[10px] text-tertiary tabular">{result.latencyMs} ms</span>
+        ) : null}
+        <Button size="sm" onClick={() => void health.refetch()} disabled={health.isFetching}>
+          {health.isFetching ? 'Testing…' : 'Test'}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function DiagnosticGroup({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section>
+      <h3 className="text-[10px] font-semibold uppercase tracking-[0.08em] text-tertiary">
+        {title}
+      </h3>
+      <div className="mt-1 border-y border-line-subtle">{children}</div>
+    </section>
+  );
+}
+
+function DiagnosticLine({
+  name,
+  status,
+  detail,
+  ok,
+}: {
+  name: string;
+  status: string;
+  detail: string;
+  ok: boolean;
+}) {
+  return (
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 border-b border-line-subtle py-2 last:border-0">
+      <div>
+        <p className="text-xs text-primary">{name}</p>
+        <p className="mt-0.5 text-[10px] text-tertiary">{detail}</p>
+      </div>
+      <span
+        className={cn(
+          'self-center text-[10px] uppercase tracking-wide',
+          ok ? 'text-positive' : 'text-caution',
+        )}
+      >
+        {status}
+      </span>
+    </div>
+  );
+}
+
+function safeHost(value: string): string {
+  try {
+    return new URL(value).host;
+  } catch {
+    return 'custom endpoint';
+  }
 }
 
 function applyPortablePreferences(value: Readonly<Record<string, unknown>>): void {
   const current = usePreferences.getState();
   const next: Partial<Preferences> = {};
   for (const key of Object.keys(DEFAULT_PREFERENCES) as (keyof Preferences)[]) {
+    // Backups from an older Kingfisher version may still contain credentials.
+    // Treat them as untrusted input and never restore secrets into this device.
+    if (SECRET_PREFERENCE_KEYS.has(key)) continue;
     const candidate = value[key];
     const fallback = DEFAULT_PREFERENCES[key];
     if (candidate === undefined) continue;

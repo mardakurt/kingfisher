@@ -67,6 +67,8 @@ export interface Preferences {
    * shared rate limit, so each user supplies their own or uses a local source.
    */
   lichessToken: string;
+  /** Persist the Lichess token across reloads; off keeps it in memory for this session only. */
+  rememberLichessToken: boolean;
   /** Where the assistant sends evidence packets, if the user configured one. */
   assistantBaseUrl: string;
   assistantModel: string;
@@ -102,6 +104,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   companionUrl: '',
   companionToken: '',
   lichessToken: '',
+  rememberLichessToken: false,
   assistantBaseUrl: '',
   assistantModel: '',
   assistantApiKey: '',
@@ -135,7 +138,7 @@ export const usePreferences = create<Preferences & PreferencesActions>()(
     }),
     {
       name: 'kingfisher.preferences',
-      version: 3,
+      version: 4,
       storage: createJSONStorage(() => localStorage),
       /**
        * Phase 3 replaced two booleans with named scales. Migrating rather than
@@ -170,7 +173,10 @@ export const usePreferences = create<Preferences & PreferencesActions>()(
 
         return state as unknown as Preferences;
       },
-      partialize: ({ set: _set, toggleTheme: _toggle, reset: _reset, ...rest }) => rest,
+      partialize: ({ set: _set, toggleTheme: _toggle, reset: _reset, ...rest }) => ({
+        ...rest,
+        lichessToken: rest.rememberLichessToken ? rest.lichessToken : '',
+      }),
     },
   ),
 );
