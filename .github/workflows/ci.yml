@@ -1,0 +1,137 @@
+# Kingfisher's gates, run on the machine rather than on someone remembering.
+#
+# Three jobs rather than one: `quality` and `build` are cheap and answer most
+# pull requests in a minute, while `e2e` needs a browser and a real Stockfish
+# download. They are independent, so a type error does not wait behind a
+# WebAssembly fetch.
+#
+# Nothing here installs credentials. The authenticated Lichess checks are the
+# opt-in `smoke:lichess` script and deliberately live outside CI; the explorer
+# behaviour that CI does cover is contract-tested against a routed network.
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+# A new push to the same branch makes the previous run irrelevant.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # Playwright reads this to decide on retries and the HTML reporter.
+  CI: 'true'
+
+jobs:
+  quality:
+    name: Quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          # Caches the npm *download* cache only. Never node_modules, so a
+          # broken lockfile cannot be masked by a warm install.
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Format
+        run: npm run format:check
+
+      - name: Unit and integration tests
+        run: npm test
+
+      - name: Reject whitespace damage
+        run: git diff --check HEAD
+
+  build:
+    name: Production build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build
+        run: npm run build
+
+  e2e:
+    name: Browser tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      # Cached by the resolved Playwright version, so a dependency bump fetches
+      # fresh browsers instead of running against stale ones.
+      - name: Resolve Playwright version
+        id: playwright
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium chrome
+
+      # The cache restores the browsers but not the apt libraries they link
+      # against, so the system dependencies are installed either way.
+      - name: Install browser system dependencies
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium chrome
+
+      # Stockfish is GPL and ~15 MB, so it is fetched rather than committed.
+      # Deliberately not cached: the E2E suite starts a real engine, and a
+      # cached copy would let a broken installer pass unnoticed.
+      - name: Install Stockfish
+        run: npm run engine:install
+
+      - name: Run Playwright
+        run: npx playwright test
+
+      - name: Upload failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-failures
+          # Traces, screenshots and video for failed specs, plus the HTML
+          # report. All generated from fixtures; no user data, no credentials.
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+          if-no-files-found: ignore
