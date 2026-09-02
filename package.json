@@ -21,6 +21,10 @@
     "bench:sqlite": "node scripts/bench-sqlite.mjs",
     "bench:engines": "node scripts/bench-engines.mjs",
     "bench:evidence": "node scripts/bench-evidence.mjs",
+    "bench:pgn": "node scripts/bench-pgn.mjs",
+    "bench:aggregates": "node scripts/bench-aggregates.mjs",
+    "benchmark": "node scripts/benchmark.mjs",
+    "bundle:report": "node scripts/bundle-report.mjs",
     "smoke:lichess": "node scripts/smoke-lichess.mjs"
   },
   "dependencies": {

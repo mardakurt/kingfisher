@@ -284,6 +284,13 @@ test('transpositions list only stored move orders and open their chapter', async
   await play(page, 'e7', 'e6');
   await expectSaved(page);
 
+  /*
+    Pin the cursor to the transposed position before asking about it. Reading
+    it from wherever the board happened to be left this test flaky under load:
+    at the root there is no route to list, and the empty state is
+    indistinguishable from a broken index.
+  */
+  await page.getByRole('button', { name: 'e6', exact: true }).last().click();
   await page.getByRole('tab', { name: 'Transpositions' }).click();
   // The order this chapter used is not offered back as a transposition to
   // itself; the other one is.
