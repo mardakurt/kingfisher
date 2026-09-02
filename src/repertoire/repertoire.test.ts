@@ -49,12 +49,17 @@ async function addLine(
 ) {
   const { tree, last } = play(moves);
   for (const entry of lineToEntries(tree, last, color, role)) {
+    const existing = await repositories.repertoires.getPosition(
+      repertoireId,
+      positionKey(entry.fen),
+    );
     await repositories.repertoires.upsertPosition({
       repertoireId,
       fen: entry.fen,
       sideToMove: entry.sideToMove,
       depth: entry.depth,
       moves: [entry.move],
+      ...(existing ? { expectedRevision: existing.revision } : {}),
     });
   }
   return { tree, last };
@@ -168,6 +173,7 @@ describe('transpositions', () => {
       fen,
       sideToMove: 'w',
       depth: 0,
+      expectedRevision: 0,
       moves: [{ uci: 'd2d4' as Uci, san: 'd4' as San, role: 'alternative', updatedAt: 2 }],
     });
 
@@ -218,7 +224,11 @@ describe('repertoire persistence', () => {
     );
     expect(position).not.toBeNull();
 
-    await repositories.repertoires.removeMove((position as RepertoirePositionRecord).id, 'e2e4');
+    await repositories.repertoires.removeMove(
+      (position as RepertoirePositionRecord).id,
+      'e2e4',
+      (position as RepertoirePositionRecord).revision,
+    );
     expect(
       await repositories.repertoires.getPosition(repertoire.id, positionKey(START_FEN)),
     ).toBeNull();
@@ -261,6 +271,7 @@ describe('coverage', () => {
     depth: 0,
     createdAt: 0,
     updatedAt: 0,
+    revision: 0,
     ...over,
   });
 
@@ -344,6 +355,7 @@ describe('gap detection', () => {
       depth: 4,
       createdAt: 0,
       updatedAt: 0,
+      revision: 0,
     };
     const answered: RepertoirePositionRecord = { ...prepared, id: 'q', positionKey: 'known' };
 
@@ -374,6 +386,7 @@ describe('gap detection', () => {
       depth: 0,
       createdAt: 0,
       updatedAt: 0,
+      revision: 0,
     };
 
     const gaps = findGaps(
@@ -400,6 +413,7 @@ describe('gap detection', () => {
       depth: 2,
       createdAt: 0,
       updatedAt: 0,
+      revision: 0,
     };
     const other: RepertoirePositionRecord = { ...prepared, id: 'q', positionKey: 'other' };
 
@@ -433,6 +447,7 @@ describe('gap detection', () => {
       depth: 1,
       createdAt: 0,
       updatedAt: 0,
+      revision: 0,
     };
 
     const gaps = findGaps(indexPositions([rejected]), [

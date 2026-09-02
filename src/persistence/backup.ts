@@ -20,6 +20,9 @@ import {
   isTrainingItemRecord,
   isTrainingReviewRecord,
   isUserProfileRecord,
+  isStudyReferenceRecord,
+  isAnalysisQueueJobRecord,
+  isStoredEngineEvidenceRecord,
 } from './validation';
 import { DATABASE_NAME, STORE_NAMES, type StoreName } from './schema/migrations';
 import type { PersistenceDatabase, PersistenceTransaction } from './indexeddb/database';
@@ -37,6 +40,9 @@ const PORTABLE_STORES = [
   STORE_NAMES.trainingReviews,
   STORE_NAMES.modelGameLinks,
   STORE_NAMES.profile,
+  STORE_NAMES.studyReferences,
+  STORE_NAMES.analysisQueue,
+  STORE_NAMES.engineEvidence,
 ] as const;
 
 const GAME_STORES = [STORE_NAMES.games, STORE_NAMES.gameContent, STORE_NAMES.positions] as const;
@@ -107,6 +113,13 @@ export function parseWorkspaceBackup(value: unknown): WorkspaceBackup {
     : [...PORTABLE_STORES];
   for (const store of expected) {
     const records = rawStores[store];
+    // v1 backups created before typed study references have no such store.
+    if (store === STORE_NAMES.studyReferences && records === undefined) continue;
+    if (
+      (store === STORE_NAMES.analysisQueue || store === STORE_NAMES.engineEvidence) &&
+      records === undefined
+    )
+      continue;
     if (!Array.isArray(records)) throw invalid(`The ${store} store is missing or invalid.`);
     records.forEach((record, index) => validateRecord(store, record, index));
   }
@@ -169,6 +182,12 @@ const UNIQUE_KEY: Partial<Record<StoreName, (record: Record<string, unknown>) =>
       : null,
   [STORE_NAMES.games]: (record) =>
     typeof record.fingerprint === 'string' ? record.fingerprint : null,
+  [STORE_NAMES.studyReferences]: (record) =>
+    typeof record.chapterId === 'string' &&
+    typeof record.kind === 'string' &&
+    typeof record.targetId === 'string'
+      ? `${record.chapterId}\u001f${record.kind}\u001f${record.targetId}`
+      : null,
 };
 
 async function clearMergeCollisions(
@@ -226,6 +245,9 @@ function validateRecord(store: StoreName, value: unknown, index: number): void {
     if (store === STORE_NAMES.trainingReviews) return isTrainingReviewRecord(value);
     if (store === STORE_NAMES.modelGameLinks) return isModelGameLinkRecord(value);
     if (store === STORE_NAMES.profile) return isUserProfileRecord(value);
+    if (store === STORE_NAMES.studyReferences) return isStudyReferenceRecord(value);
+    if (store === STORE_NAMES.analysisQueue) return isAnalysisQueueJobRecord(value);
+    if (store === STORE_NAMES.engineEvidence) return isStoredEngineEvidenceRecord(value);
     if (store === STORE_NAMES.games) return isGameSummary(value);
     if (store === STORE_NAMES.gameContent) {
       return (

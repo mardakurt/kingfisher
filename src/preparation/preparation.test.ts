@@ -58,6 +58,7 @@ describe('opponent preparation', () => {
         depth: 1,
         createdAt: 1,
         updatedAt: 1,
+        revision: 0,
       },
     ]);
     expect(comparison.prepared.map((move) => move.san)).toEqual(['Nf3']);

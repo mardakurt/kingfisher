@@ -21,6 +21,7 @@ import type {
   RepertoireRecord,
   RepertoireWithPositions,
 } from '../domain';
+import { StaleRepertoirePositionWriteError } from '../domain';
 import { assertValid, isRepertoirePositionRecord, isRepertoireRecord } from '../validation';
 
 export interface CreateRepertoireInput {
@@ -36,6 +37,8 @@ export interface UpsertPositionInput {
   readonly depth: number;
   readonly moves: readonly RepertoireMove[];
   readonly note?: string;
+  /** Required when this canonical position already exists. */
+  readonly expectedRevision?: number;
 }
 
 export interface RepertoireRepository {
@@ -55,8 +58,8 @@ export interface RepertoireRepository {
   ): Promise<RepertoirePositionRecord | null>;
   /** Every repertoire that says something about this position. */
   findByPosition(key: PositionKey): Promise<readonly RepertoirePositionRecord[]>;
-  deletePosition(id: string): Promise<void>;
-  removeMove(positionId: string, uci: string): Promise<void>;
+  deletePosition(id: string, expectedRevision: number): Promise<void>;
+  removeMove(positionId: string, uci: string, expectedRevision: number): Promise<void>;
 }
 
 export class LocalRepertoireRepository implements RepertoireRepository {
@@ -166,6 +169,9 @@ export class LocalRepertoireRepository implements RepertoireRepository {
           [input.repertoireId, key],
         );
         const existing = matches[0];
+        if (existing && existing.revision !== input.expectedRevision) {
+          throw new StaleRepertoirePositionWriteError(existing, input.expectedRevision);
+        }
 
         /*
           The store stamps the time, not the caller. Callers build moves while
@@ -199,6 +205,7 @@ export class LocalRepertoireRepository implements RepertoireRepository {
               : {}),
           createdAt: existing?.createdAt ?? now,
           updatedAt: now,
+          revision: existing ? existing.revision + 1 : 0,
         };
 
         await transaction.put(STORE_NAMES.repertoirePositions, record);
@@ -234,24 +241,46 @@ export class LocalRepertoireRepository implements RepertoireRepository {
     );
   }
 
-  async deletePosition(id: string): Promise<void> {
-    await this.database.delete(STORE_NAMES.repertoirePositions, id);
+  async deletePosition(id: string, expectedRevision: number): Promise<void> {
+    await this.database.transaction(
+      [STORE_NAMES.repertoirePositions],
+      'readwrite',
+      async (transaction) => {
+        const raw = await transaction.get<unknown>(STORE_NAMES.repertoirePositions, id);
+        if (raw === undefined) return;
+        const position = assertValid(raw, isRepertoirePositionRecord, 'repertoire position');
+        if (position.revision !== expectedRevision) {
+          throw new StaleRepertoirePositionWriteError(position, expectedRevision);
+        }
+        await transaction.delete(STORE_NAMES.repertoirePositions, id);
+      },
+    );
   }
 
-  async removeMove(positionId: string, uci: string): Promise<void> {
-    const raw = await this.database.get<unknown>(STORE_NAMES.repertoirePositions, positionId);
-    if (raw === undefined) return;
-    const position = assertValid(raw, isRepertoirePositionRecord, 'repertoire position');
-    const moves = position.moves.filter((move) => move.uci !== uci);
-    // An entry with nothing left to say is removed rather than kept as a stub.
-    if (moves.length === 0) {
-      await this.database.delete(STORE_NAMES.repertoirePositions, positionId);
-      return;
-    }
-    await this.database.put(STORE_NAMES.repertoirePositions, {
-      ...position,
-      moves,
-      updatedAt: Date.now(),
-    });
+  async removeMove(positionId: string, uci: string, expectedRevision: number): Promise<void> {
+    await this.database.transaction(
+      [STORE_NAMES.repertoirePositions],
+      'readwrite',
+      async (transaction) => {
+        const raw = await transaction.get<unknown>(STORE_NAMES.repertoirePositions, positionId);
+        if (raw === undefined) return;
+        const position = assertValid(raw, isRepertoirePositionRecord, 'repertoire position');
+        if (position.revision !== expectedRevision) {
+          throw new StaleRepertoirePositionWriteError(position, expectedRevision);
+        }
+        const moves = position.moves.filter((move) => move.uci !== uci);
+        // An entry with nothing left to say is removed rather than kept as a stub.
+        if (moves.length === 0) {
+          await transaction.delete(STORE_NAMES.repertoirePositions, positionId);
+          return;
+        }
+        await transaction.put(STORE_NAMES.repertoirePositions, {
+          ...position,
+          moves,
+          updatedAt: Date.now(),
+          revision: position.revision + 1,
+        });
+      },
+    );
   }
 }

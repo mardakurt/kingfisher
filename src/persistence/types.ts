@@ -6,6 +6,8 @@ import type { PersistenceDatabase } from './indexeddb/database';
 import type { ModelGameRepository, ProfileRepository } from './repositories/library-repository';
 import type { RepertoireRepository } from './repositories/repertoire-repository';
 import type { TrainingRepository } from './repositories/training-repository';
+import type { StudyReferenceRepository } from './repositories/reference-repository';
+import type { AnalysisQueueRepository } from './repositories/analysis-queue-repository';
 
 export type StudyId = string;
 export type ChapterId = string;
@@ -287,6 +289,8 @@ export interface AppRepositories {
   readonly training: TrainingRepository;
   readonly modelGames: ModelGameRepository;
   readonly profile: ProfileRepository;
+  readonly references: StudyReferenceRepository;
+  readonly analysisQueue: AnalysisQueueRepository;
   /**
    * The underlying database, for backup and restore only.
    *

@@ -45,6 +45,9 @@ const empty: IntegrityInput = {
   training: [],
   reviews: [],
   modelGames: [],
+  references: [],
+  analysisJobs: [],
+  engineEvidence: [],
   draft: null,
 };
 

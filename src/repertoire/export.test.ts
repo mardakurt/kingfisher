@@ -39,12 +39,14 @@ async function knowledge(
 ) {
   const { tree, last } = play(moves);
   for (const entry of lineToKnowledge(tree, last, color, role, note)) {
+    const current = await repositories.repertoires.getPosition(repertoireId, entry.positionKey);
     await repositories.repertoires.upsertPosition({
       repertoireId,
       fen: entry.fen,
       sideToMove: entry.sideToMove,
       depth: entry.depth,
       moves: [entry.move],
+      ...(current ? { expectedRevision: current.revision } : {}),
     });
   }
 }

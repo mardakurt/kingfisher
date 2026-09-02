@@ -18,12 +18,13 @@ import type {
   TrainingItemRecord,
   TrainingReviewRecord,
 } from '../domain';
+import { StaleTrainingItemWriteError } from '../domain';
 import { assertValid, isTrainingItemRecord, isTrainingReviewRecord } from '../validation';
 import { grade as applyGrade, newSchedule } from '@/training/schedule';
 
 export type CreateTrainingItemInput = Omit<
   TrainingItemRecord,
-  'id' | 'schedule' | 'createdAt' | 'updatedAt'
+  'id' | 'schedule' | 'createdAt' | 'updatedAt' | 'revision'
 >;
 
 export interface TrainingRepository {
@@ -86,15 +87,35 @@ export class LocalTrainingRepository implements TrainingRepository {
       schedule: newSchedule(now),
       createdAt: now,
       updatedAt: now,
+      revision: 0,
     };
     await this.database.put(STORE_NAMES.trainingItems, item);
     return item;
   }
 
   async update(item: TrainingItemRecord): Promise<TrainingItemRecord> {
-    const next = { ...item, updatedAt: Date.now() };
-    await this.database.put(STORE_NAMES.trainingItems, next);
-    return next;
+    return this.database.transaction(
+      [STORE_NAMES.trainingItems],
+      'readwrite',
+      async (transaction) => {
+        const raw = await transaction.get<unknown>(STORE_NAMES.trainingItems, item.id);
+        if (raw === undefined) throw new Error('That training item no longer exists.');
+        const current = assertValid(raw, isTrainingItemRecord, 'training item');
+        if (current.revision !== item.revision) {
+          throw new StaleTrainingItemWriteError(current, item.revision);
+        }
+        const next: TrainingItemRecord = {
+          ...item,
+          // Reviews are append-only and schedule changes are allowed to race
+          // with authoring without being erased by an older editor.
+          schedule: current.schedule,
+          updatedAt: Date.now(),
+          revision: current.revision + 1,
+        };
+        await transaction.put(STORE_NAMES.trainingItems, next);
+        return next;
+      },
+    );
   }
 
   async delete(id: TrainingItemId): Promise<void> {

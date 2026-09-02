@@ -1,5 +1,5 @@
 export const DATABASE_NAME = 'kingfisher';
-export const DATABASE_VERSION = 4;
+export const DATABASE_VERSION = 7;
 
 export const STORE_NAMES = {
   studies: 'studies',
@@ -14,6 +14,9 @@ export const STORE_NAMES = {
   modelGameLinks: 'modelGameLinks',
   profile: 'profile',
   gameContent: 'gameContent',
+  studyReferences: 'studyReferences',
+  analysisQueue: 'analysisQueue',
+  engineEvidence: 'engineEvidence',
 } as const;
 
 export type StoreName = (typeof STORE_NAMES)[keyof typeof STORE_NAMES];
@@ -182,6 +185,41 @@ export const MIGRATIONS: readonly Migration[] = [
         collision this exists to catch.
       */
       target.rewrite(STORE_NAMES.chapters, (record) => withRevision(record));
+    },
+  },
+  {
+    version: 5,
+    description: 'Add authoring revisions to repertoire positions and training items.',
+    apply(target) {
+      target.rewrite(STORE_NAMES.repertoirePositions, (record) => withRevision(record));
+      target.rewrite(STORE_NAMES.trainingItems, (record) => withRevision(record));
+    },
+  },
+  {
+    version: 6,
+    description: 'Add typed chapter references to existing chess evidence.',
+    apply(target) {
+      target.createStore(STORE_NAMES.studyReferences, { keyPath: 'id' }, [
+        { name: 'chapterId', keyPath: 'chapterId' },
+        { name: 'targetId', keyPath: 'targetId' },
+        { name: 'chapterTarget', keyPath: ['chapterId', 'kind', 'targetId'], unique: true },
+      ]);
+    },
+  },
+  {
+    version: 7,
+    description: 'Persist resumable background-analysis jobs and their final engine evidence.',
+    apply(target) {
+      target.createStore(STORE_NAMES.analysisQueue, { keyPath: 'id' }, [
+        { name: 'status', keyPath: 'status' },
+        { name: 'gameId', keyPath: 'gameId' },
+        { name: 'createdAt', keyPath: 'createdAt' },
+      ]);
+      target.createStore(STORE_NAMES.engineEvidence, { keyPath: 'id' }, [
+        { name: 'jobId', keyPath: 'jobId' },
+        { name: 'gameId', keyPath: 'gameId' },
+        { name: 'positionKey', keyPath: 'positionKey' },
+      ]);
     },
   },
 ];

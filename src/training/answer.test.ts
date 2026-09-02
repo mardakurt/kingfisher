@@ -22,6 +22,7 @@ const item = (over: Partial<TrainingItemRecord> = {}): TrainingItemRecord => ({
   schedule: newSchedule(0),
   createdAt: 0,
   updatedAt: 0,
+  revision: 0,
   ...over,
 });
 

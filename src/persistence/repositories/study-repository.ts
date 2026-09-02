@@ -70,7 +70,7 @@ export class LocalStudyRepository implements StudyRepository {
 
   async delete(id: StudyId): Promise<void> {
     await this.database.transaction(
-      [STORE_NAMES.studies, STORE_NAMES.chapters],
+      [STORE_NAMES.studies, STORE_NAMES.chapters, STORE_NAMES.studyReferences],
       'readwrite',
       async (transaction) => {
         const chapters = await transaction.getAllFromIndex<ChapterRecord>(
@@ -78,7 +78,17 @@ export class LocalStudyRepository implements StudyRepository {
           'studyId',
           id,
         );
-        for (const chapter of chapters) await transaction.delete(STORE_NAMES.chapters, chapter.id);
+        for (const chapter of chapters) {
+          const references = await transaction.getAllFromIndex<{ id: string }>(
+            STORE_NAMES.studyReferences,
+            'chapterId',
+            chapter.id,
+          );
+          for (const reference of references) {
+            await transaction.delete(STORE_NAMES.studyReferences, reference.id);
+          }
+          await transaction.delete(STORE_NAMES.chapters, chapter.id);
+        }
         await transaction.delete(STORE_NAMES.studies, id);
       },
     );
@@ -164,9 +174,17 @@ export class LocalStudyRepository implements StudyRepository {
     const chapter = await this.getChapter(id);
     if (!chapter) return;
     await this.database.transaction(
-      [STORE_NAMES.studies, STORE_NAMES.chapters],
+      [STORE_NAMES.studies, STORE_NAMES.chapters, STORE_NAMES.studyReferences],
       'readwrite',
       async (transaction) => {
+        const references = await transaction.getAllFromIndex<{ id: string }>(
+          STORE_NAMES.studyReferences,
+          'chapterId',
+          id,
+        );
+        for (const reference of references) {
+          await transaction.delete(STORE_NAMES.studyReferences, reference.id);
+        }
         await transaction.delete(STORE_NAMES.chapters, id);
         const siblings = (
           await transaction.getAllFromIndex<ChapterRecord>(

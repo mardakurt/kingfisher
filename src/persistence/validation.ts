@@ -8,6 +8,9 @@ import type {
   TrainingItemRecord,
   TrainingReviewRecord,
   UserProfileRecord,
+  StudyReferenceRecord,
+  AnalysisQueueJobRecord,
+  StoredEngineEvidenceRecord,
 } from './domain';
 import type { ChapterRecord, DraftRecord, GameRecord, GameSummary, StudyRecord } from './types';
 
@@ -111,6 +114,7 @@ export const isRepertoirePositionRecord = (value: unknown): value is RepertoireP
   text(value.fen) &&
   color(value.sideToMove) &&
   finite(value.depth) &&
+  finite(value.revision) &&
   array(value.moves) &&
   value.moves.every(isRepertoireMove);
 
@@ -133,6 +137,7 @@ export const isTrainingItemRecord = (value: unknown): value is TrainingItemRecor
   text(value.prompt) &&
   array(value.solutionUci) &&
   array(value.tags) &&
+  finite(value.revision) &&
   isScheduleState(value.schedule) &&
   finite(value.createdAt);
 
@@ -154,3 +159,48 @@ export const isModelGameLinkRecord = (value: unknown): value is ModelGameLinkRec
 
 export const isUserProfileRecord = (value: unknown): value is UserProfileRecord =>
   object(value) && value.id === 'me' && array(value.aliases) && value.aliases.every(text);
+
+export const isStudyReferenceRecord = (value: unknown): value is StudyReferenceRecord =>
+  object(value) &&
+  text(value.id) &&
+  text(value.chapterId) &&
+  (value.kind === 'model-game' ||
+    value.kind === 'repertoire-position' ||
+    value.kind === 'training-item') &&
+  text(value.targetId) &&
+  text(value.label) &&
+  finite(value.createdAt);
+
+export const isAnalysisQueueJobRecord = (value: unknown): value is AnalysisQueueJobRecord =>
+  object(value) &&
+  text(value.id) &&
+  text(value.gameId) &&
+  text(value.gameLabel) &&
+  text(value.engineId) &&
+  text(value.preset) &&
+  finite(value.multiPv) &&
+  object(value.limit) &&
+  text(value.strategy) &&
+  finite(value.startPly) &&
+  text(value.status) &&
+  finite(value.nextIndex) &&
+  finite(value.totalPositions) &&
+  finite(value.createdAt) &&
+  finite(value.updatedAt);
+
+export const isStoredEngineEvidenceRecord = (value: unknown): value is StoredEngineEvidenceRecord =>
+  object(value) &&
+  text(value.id) &&
+  text(value.jobId) &&
+  text(value.gameId) &&
+  text(value.nodeId) &&
+  text(value.positionKey) &&
+  text(value.fen) &&
+  text(value.engineId) &&
+  text(value.engineName) &&
+  object(value.score) &&
+  finite(value.depth) &&
+  finite(value.nodes) &&
+  finite(value.timeMs) &&
+  array(value.pv) &&
+  finite(value.analysedAt);

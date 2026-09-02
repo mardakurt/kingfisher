@@ -36,6 +36,9 @@ import type {
   RepertoireRecord,
   TrainingItemRecord,
   TrainingReviewRecord,
+  StudyReferenceRecord,
+  AnalysisQueueJobRecord,
+  StoredEngineEvidenceRecord,
 } from './domain';
 
 export type IntegrityCategory =
@@ -90,6 +93,9 @@ export async function scanIntegrity(database: PersistenceDatabase): Promise<Inte
     training,
     reviews,
     modelGames,
+    references,
+    analysisJobs,
+    engineEvidence,
     draft,
   ] = await Promise.all([
     database.getAll<StudyRecord>(STORE_NAMES.studies),
@@ -102,6 +108,9 @@ export async function scanIntegrity(database: PersistenceDatabase): Promise<Inte
     database.getAll<TrainingItemRecord>(STORE_NAMES.trainingItems),
     database.getAll<TrainingReviewRecord>(STORE_NAMES.trainingReviews),
     database.getAll<ModelGameLinkRecord>(STORE_NAMES.modelGameLinks),
+    database.getAll<StudyReferenceRecord>(STORE_NAMES.studyReferences),
+    database.getAll<AnalysisQueueJobRecord>(STORE_NAMES.analysisQueue),
+    database.getAll<StoredEngineEvidenceRecord>(STORE_NAMES.engineEvidence),
     database.get<DraftRecord>(STORE_NAMES.drafts, 'active'),
   ]);
 
@@ -116,6 +125,9 @@ export async function scanIntegrity(database: PersistenceDatabase): Promise<Inte
     training,
     reviews,
     modelGames,
+    references,
+    analysisJobs,
+    engineEvidence,
     draft: draft ?? null,
   });
 
@@ -133,6 +145,9 @@ export async function scanIntegrity(database: PersistenceDatabase): Promise<Inte
       trainingItems: training.length,
       trainingReviews: reviews.length,
       modelGameLinks: modelGames.length,
+      studyReferences: references.length,
+      analysisQueue: analysisJobs.length,
+      engineEvidence: engineEvidence.length,
     },
     durationMs: Date.now() - started,
   };
@@ -149,6 +164,9 @@ export interface IntegrityInput {
   readonly training: readonly TrainingItemRecord[];
   readonly reviews: readonly TrainingReviewRecord[];
   readonly modelGames: readonly ModelGameLinkRecord[];
+  readonly references: readonly StudyReferenceRecord[];
+  readonly analysisJobs: readonly AnalysisQueueJobRecord[];
+  readonly engineEvidence: readonly StoredEngineEvidenceRecord[];
   readonly draft: DraftRecord | null;
 }
 
@@ -166,6 +184,8 @@ export function collectIssues(input: IntegrityInput): readonly IntegrityIssue[] 
   const contentIds = new Set(input.content.map((entry) => entry.id));
   const repertoireIds = new Set(input.repertoires.map((entry) => entry.id));
   const trainingIds = new Set(input.training.map((item) => item.id));
+  const repertoirePositionIds = new Set(input.repertoirePositions.map((item) => item.id));
+  const analysisJobIds = new Set(input.analysisJobs.map((job) => job.id));
 
   // --- Games ---------------------------------------------------------------
 
@@ -355,6 +375,58 @@ export function collectIssues(input: IntegrityInput): readonly IntegrityIssue[] 
       ids: orphanModelGames.map((link) => link.id),
       repairable: true,
       repair: 'Delete the links whose target is gone.',
+    });
+  }
+
+  // --- Typed chapter references -------------------------------------------
+
+  const brokenReferences = input.references.filter((reference) => {
+    if (!chapterIds.has(reference.chapterId)) return true;
+    if (reference.kind === 'model-game') return !gameIds.has(reference.targetId);
+    if (reference.kind === 'repertoire-position') {
+      return !repertoirePositionIds.has(reference.targetId);
+    }
+    return !trainingIds.has(reference.targetId);
+  });
+  if (brokenReferences.length > 0) {
+    issues.push({
+      category: 'orphaned-reference',
+      title: 'Study references pointing at deleted records',
+      detail:
+        `${brokenReferences.length} chapter reference${brokenReferences.length === 1 ? '' : 's'} ` +
+        'point at a chapter or chess entity that no longer exists.',
+      store: STORE_NAMES.studyReferences,
+      ids: brokenReferences.map((reference) => reference.id),
+      repairable: true,
+      repair: 'Remove the missing references; the chapter itself is unchanged.',
+    });
+  }
+
+  const orphanAnalysisJobs = input.analysisJobs.filter((job) => !gameIds.has(job.gameId));
+  if (orphanAnalysisJobs.length > 0) {
+    issues.push({
+      category: 'orphaned-reference',
+      title: 'Analysis jobs whose game is gone',
+      detail: `${orphanAnalysisJobs.length} queued analysis job${orphanAnalysisJobs.length === 1 ? '' : 's'} cannot resume because the source game was deleted.`,
+      store: STORE_NAMES.analysisQueue,
+      ids: orphanAnalysisJobs.map((job) => job.id),
+      repairable: true,
+      repair: 'Remove the jobs whose source game is gone.',
+    });
+  }
+
+  const orphanEvidence = input.engineEvidence.filter(
+    (entry) => !analysisJobIds.has(entry.jobId) || !gameIds.has(entry.gameId),
+  );
+  if (orphanEvidence.length > 0) {
+    issues.push({
+      category: 'orphaned-reference',
+      title: 'Saved engine evidence with no analysis job or game',
+      detail: `${orphanEvidence.length} saved evaluation${orphanEvidence.length === 1 ? '' : 's'} no longer has its source job or game.`,
+      store: STORE_NAMES.engineEvidence,
+      ids: orphanEvidence.map((entry) => entry.id),
+      repairable: true,
+      repair: 'Remove the unreachable saved evaluations.',
     });
   }
 

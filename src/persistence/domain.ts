@@ -8,11 +8,14 @@
 
 import type { Fen, San, Uci } from '@/chess/types';
 import type { NodeId } from '@/chess/tree/types';
+import type { Score } from '@/chess/evaluation';
+import type { AnalysisLimit } from '@/engine/types';
 
 export type RepertoireId = string;
 export type RepertoirePositionId = string;
 export type TrainingItemId = string;
 export type ModelGameLinkId = string;
+export type StudyReferenceId = string;
 
 /** A canonical position key, as produced by `positionKey`. See ADR 0009. */
 export type PositionKey = string;
@@ -84,6 +87,18 @@ export interface RepertoirePositionRecord {
   readonly depth: number;
   readonly createdAt: number;
   readonly updatedAt: number;
+  /** Authoring revision used for transactional stale-write protection. */
+  readonly revision: number;
+}
+
+export class StaleRepertoirePositionWriteError extends Error {
+  override readonly name = 'StaleRepertoirePositionWriteError';
+  constructor(
+    readonly current: RepertoirePositionRecord,
+    readonly attemptedRevision: number | undefined,
+  ) {
+    super('This repertoire position changed in another Kingfisher tab.');
+  }
 }
 
 export interface RepertoireWithPositions {
@@ -171,6 +186,18 @@ export interface TrainingItemRecord {
   readonly schedule: ScheduleState;
   readonly createdAt: number;
   readonly updatedAt: number;
+  /** Authoring revision; review appends deliberately do not advance it. */
+  readonly revision: number;
+}
+
+export class StaleTrainingItemWriteError extends Error {
+  override readonly name = 'StaleTrainingItemWriteError';
+  constructor(
+    readonly current: TrainingItemRecord,
+    readonly attemptedRevision: number,
+  ) {
+    super('This training item changed in another Kingfisher tab.');
+  }
 }
 
 export interface TrainingSource {
@@ -222,6 +249,75 @@ export interface ModelGameLinkRecord {
   readonly note?: string;
   readonly tags: readonly string[];
   readonly createdAt: number;
+}
+
+// --- Study references ------------------------------------------------------
+
+export type StudyReferenceKind = 'model-game' | 'repertoire-position' | 'training-item';
+
+/** A typed link from a chapter to existing chess evidence; never a copy. */
+export interface StudyReferenceRecord {
+  readonly id: StudyReferenceId;
+  readonly chapterId: string;
+  readonly kind: StudyReferenceKind;
+  readonly targetId: string;
+  /** Snapshot used as a useful label even when the target later disappears. */
+  readonly label: string;
+  readonly createdAt: number;
+}
+
+export interface ResolvedStudyReference {
+  readonly reference: StudyReferenceRecord;
+  readonly missing: boolean;
+  readonly label: string;
+  readonly repertoireId?: RepertoireId;
+  readonly gameId?: string;
+  readonly trainingItemId?: TrainingItemId;
+}
+
+// --- Background analysis ---------------------------------------------------
+
+export type AnalysisQueueStatus =
+  'queued' | 'running' | 'paused' | 'completed' | 'failed' | 'cancelled';
+export type AnalysisQueuePreset = 'quick' | 'standard' | 'deep' | 'custom';
+export type AnalysisQueueStrategy = 'every-move' | 'after-opening';
+
+export interface AnalysisQueueJobRecord {
+  readonly id: string;
+  readonly gameId: string;
+  readonly gameLabel: string;
+  readonly engineId: string;
+  readonly preset: AnalysisQueuePreset;
+  readonly multiPv: number;
+  readonly limit: AnalysisLimit;
+  readonly strategy: AnalysisQueueStrategy;
+  readonly startPly: number;
+  readonly status: AnalysisQueueStatus;
+  readonly nextIndex: number;
+  readonly totalPositions: number;
+  readonly createdAt: number;
+  readonly updatedAt: number;
+  readonly ownerId?: string;
+  readonly heartbeatAt?: number;
+  readonly error?: string;
+}
+
+/** One final engine answer for one queued position; intermediate ticks are not stored. */
+export interface StoredEngineEvidenceRecord {
+  readonly id: string;
+  readonly jobId: string;
+  readonly gameId: string;
+  readonly nodeId: NodeId;
+  readonly positionKey: PositionKey;
+  readonly fen: Fen;
+  readonly engineId: string;
+  readonly engineName: string;
+  readonly score: Score;
+  readonly depth: number;
+  readonly nodes: number;
+  readonly timeMs: number;
+  readonly pv: readonly Uci[];
+  readonly analysedAt: number;
 }
 
 // --- The user --------------------------------------------------------------
