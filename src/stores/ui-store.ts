@@ -47,7 +47,10 @@ interface UiState {
   saveToStudyOpen: boolean;
   addToRepertoireOpen: boolean;
   trainingCaptureOpen: boolean;
+  trainingReferenceChapterId: string | null;
   modelGameOpen: boolean;
+  analysisQueueOpen: boolean;
+  analysisQueueGameIds: readonly string[];
   /** The move whose comment is being edited, or null. */
   commentingNodeId: string | null;
   /** The move whose context menu is open, with where to draw it. */
@@ -64,7 +67,11 @@ interface UiState {
   setSaveToStudyOpen(open: boolean): void;
   setAddToRepertoireOpen(open: boolean): void;
   setTrainingCaptureOpen(open: boolean): void;
+  setTrainingReferenceChapterId(chapterId: string | null): void;
   setModelGameOpen(open: boolean): void;
+  openAnalysisQueue(gameIds?: readonly string[]): void;
+  setAnalysisQueueOpen(open: boolean): void;
+  clearAnalysisQueueSelection(): void;
   setCommentingNodeId(nodeId: string | null): void;
   setMoveMenu(target: MoveMenuTarget | null): void;
   setSidebarOpen(open: boolean): void;
@@ -83,7 +90,10 @@ export const useUi = create<UiState>((set) => ({
   saveToStudyOpen: false,
   addToRepertoireOpen: false,
   trainingCaptureOpen: false,
+  trainingReferenceChapterId: null,
   modelGameOpen: false,
+  analysisQueueOpen: false,
+  analysisQueueGameIds: [],
   commentingNodeId: null,
   moveMenu: null,
   sidebarOpen: false,
@@ -98,7 +108,13 @@ export const useUi = create<UiState>((set) => ({
   setSaveToStudyOpen: (saveToStudyOpen) => set({ saveToStudyOpen }),
   setAddToRepertoireOpen: (addToRepertoireOpen) => set({ addToRepertoireOpen }),
   setTrainingCaptureOpen: (trainingCaptureOpen) => set({ trainingCaptureOpen }),
+  setTrainingReferenceChapterId: (trainingReferenceChapterId) =>
+    set({ trainingReferenceChapterId }),
   setModelGameOpen: (modelGameOpen) => set({ modelGameOpen }),
+  openAnalysisQueue: (analysisQueueGameIds = []) =>
+    set({ analysisQueueOpen: true, analysisQueueGameIds }),
+  setAnalysisQueueOpen: (analysisQueueOpen) => set({ analysisQueueOpen }),
+  clearAnalysisQueueSelection: () => set({ analysisQueueGameIds: [] }),
   setCommentingNodeId: (commentingNodeId) => set({ commentingNodeId }),
   setMoveMenu: (moveMenu) => set({ moveMenu }),
   setSidebarOpen: (sidebarOpen) => set({ sidebarOpen }),
