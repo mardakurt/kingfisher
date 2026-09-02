@@ -42,6 +42,26 @@ is a local-first application with no server component to hold a redirect
 endpoint, and shipping a half-working OAuth button is worse than a token field
 that works. No scopes are required for explorer access.
 
+## A note on the query layer
+
+The typed states above are worth nothing if the UI never renders them, and for
+a while it did not. TanStack Query's default network mode _pauses_ a query
+when the browser claims to be offline: the query keeps `status: 'pending'` and
+takes `fetchStatus: 'paused'`, which every panel drew as a loading message
+that never resolved. An unauthenticated Lichess explorer therefore spun on
+"Reading Masters…" instead of saying it needed a token.
+
+`networkMode: 'offlineFirst'` looks like the fix and is not: it exempts only
+the first attempt and still pauses the retry, so one failure is enough to
+strand the panel. The client default is `always`, set once for every query —
+most of them read IndexedDB, which has no opinion about the network, and
+`navigator.onLine` is a poor oracle for the rest.
+
+The explorer additionally renders `fetchStatus === 'paused'` as its own
+honest state rather than as loading. That is belt and braces on purpose: a
+spinner that never ends is a bad enough failure that the panel should not be
+able to draw one even if the client default is later changed back.
+
 ## Consequences
 
 Tokens live in `localStorage` on the device that entered them, are never

@@ -386,3 +386,34 @@ test('authenticated Lichess explorer contract and appearance preferences work wi
   await expect(page.locator('img[src*="/piece/merida/"]').first()).toBeVisible();
   expect(consoleFailures).toEqual([]);
 });
+
+test('a failing explorer source reports why instead of loading forever', async ({
+  page,
+  context,
+}) => {
+  const consoleFailures = watchConsole(page);
+  await page.goto('/openings');
+  await waitForApp(page);
+
+  // The browser reporting itself offline is the condition that used to strand
+  // the panel: with TanStack's default network mode a failed query parks in
+  // `fetchStatus: 'paused'` while `status` stays `pending`, which renders as
+  // "Reading …" that never resolves. `offlineFirst` does not fix it either —
+  // it exempts only the first attempt and still pauses the retry. Kingfisher
+  // is local-first and must report the real failure regardless.
+  await context.setOffline(true);
+
+  await page.getByRole('tab', { name: 'Explorer' }).click();
+  await page.getByLabel('Evidence source').selectOption('lichess-masters');
+
+  await expect(page.getByText('No evidence from this source.')).toBeVisible();
+  await expect(page.getByText(/requires an API token/i)).toBeVisible();
+  await expect(page.getByText(/Reading Masters/)).toHaveCount(0);
+
+  // IndexedDB has no opinion about the network, so a local source still answers.
+  await page.getByLabel('Evidence source').selectOption('local-collection');
+  await expect(page.getByText('No games reach this position.')).toBeVisible();
+
+  await context.setOffline(false);
+  expect(consoleFailures).toEqual([]);
+});

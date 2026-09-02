@@ -249,7 +249,17 @@ export function ExplorerPanel() {
       ) : null}
 
       <PanelBody>
-        {query.isPending ? (
+        {/* A paused fetch is `status: 'pending'`, so treating pending as
+            "loading" renders a message that never resolves. The client asks
+            for `networkMode: 'always'` precisely so this cannot happen, but a
+            spinner with no end is bad enough that the panel refuses to render
+            one on its own account rather than trusting that setting. */}
+        {query.fetchStatus === 'paused' ? (
+          <EmptyState
+            title="This source is not being queried."
+            description={`The browser is reporting no network connection, so the request to ${provider?.name} is on hold. Choose "My games", which reads this device.`}
+          />
+        ) : query.isPending ? (
           <p className="px-3 py-5 text-2xs text-tertiary">Reading {provider?.name}…</p>
         ) : query.isError ? (
           <EmptyState

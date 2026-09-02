@@ -20,13 +20,8 @@ export function useExplorer(sourceId: string, fen: Fen, filters: ExplorerFilters
       if (!provider) throw new Error(`Unknown database: ${sourceId}`);
       return provider.explore({ fen, filters, limit: 15 }, signal);
     },
-    /**
-     * `navigator.onLine` is a poor oracle — captive portals, VPNs and embedded
-     * browsers all report offline while requests succeed, and the default
-     * `online` mode would leave the panel spinning instead of trying. Attempt
-     * the request regardless and let a real failure produce a real message.
-     */
-    networkMode: 'offlineFirst',
+    // `networkMode: 'always'` comes from the client defaults, and this query is
+    // the reason it is set there. See `app/providers.tsx`.
     retry: (failureCount, error) =>
       failureCount < 1 && !String(error.message).includes('rate limiting'),
   });

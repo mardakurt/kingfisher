@@ -21,6 +21,25 @@ function createQueryClient() {
         gcTime: 30 * 60 * 1000,
         retry: 1,
         refetchOnWindowFocus: false,
+        /**
+         * The online manager gates nothing here.
+         *
+         * Most queries in this application read IndexedDB, which has no
+         * opinion about the network, and `navigator.onLine` is a poor oracle
+         * for the rest — captive portals, VPNs and embedded browsers all
+         * report offline while requests succeed.
+         *
+         * The default `online` mode pauses a query instead of running it, and
+         * `offlineFirst` exempts only the first attempt while leaving retries
+         * paused. Both surface as `status: 'pending'` with `fetchStatus:
+         * 'paused'`, which every panel renders as a loading message that never
+         * resolves. That is how an unauthenticated Lichess explorer spun on
+         * "Reading Masters…" forever instead of saying it needed a token.
+         *
+         * `always` runs the query and lets a real failure produce a real
+         * message, which is the only behaviour this product wants.
+         */
+        networkMode: 'always',
       },
     },
   });

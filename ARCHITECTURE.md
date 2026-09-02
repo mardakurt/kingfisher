@@ -269,6 +269,12 @@ reports one of `ready`, `loading`, `authentication-required`,
 renders that, and so does the Database tool in the dock. ADR 0018 covers the
 model and why an empty result is now only ever a genuinely empty result.
 
+Queries run with `networkMode: 'always'`. The default mode pauses a query when
+the browser claims to be offline, leaving `status: 'pending'` with
+`fetchStatus: 'paused'` — which panels drew as a loading message that never
+resolved. Most queries here read IndexedDB anyway, and the explorer treats a
+paused fetch as its own state rather than as loading.
+
 All three answer the same query — _what happens from this position?_ — and
 return the same `ExplorerResult`: totals, per-move counts, White/draw/Black
 splits, average rating, performance rating, notable players, top games. The
