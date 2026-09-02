@@ -15,6 +15,7 @@ const localProvider = new PersistentLocalCollectionProvider();
 const builtIn: readonly ChessDatabaseProvider[] = [
   new LichessExplorerProvider('masters'),
   new LichessExplorerProvider('lichess'),
+  new LichessExplorerProvider('player'),
   localProvider,
 ];
 
@@ -26,12 +27,21 @@ const builtIn: readonly ChessDatabaseProvider[] = [
  * an explorer that lists a database and then fails is worse than a shorter list.
  */
 let dynamic: readonly ChessDatabaseProvider[] = [];
+let current: readonly ChessDatabaseProvider[] = builtIn;
+const listeners = new Set<() => void>();
 
 export const setDynamicDatabaseProviders = (providers: readonly ChessDatabaseProvider[]): void => {
   dynamic = providers;
+  current = [...builtIn, ...dynamic];
+  for (const listener of listeners) listener();
 };
 
-export const databaseProviders = (): readonly ChessDatabaseProvider[] => [...builtIn, ...dynamic];
+export const databaseProviders = (): readonly ChessDatabaseProvider[] => current;
+
+export const subscribeDatabaseProviders = (listener: () => void): (() => void) => {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+};
 
 export const databaseProviderById = (id: string): ChessDatabaseProvider | undefined =>
   databaseProviders().find((provider) => provider.id === id);

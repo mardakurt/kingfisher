@@ -17,7 +17,8 @@ import { sqliteProvidersFrom } from '@/database/providers/companion-sqlite';
 import { setLichessToken } from '@/database/providers/lichess-auth';
 import { setDynamicDatabaseProviders } from '@/database/registry';
 
-import { companionClient, setCompanion } from './session';
+import { setCompanion } from './session';
+import { CompanionClient } from './client';
 
 export function useCompanionSync(): void {
   const url = usePreferences((state) => state.companionUrl);
@@ -58,8 +59,11 @@ export function useCompanionStatus() {
     staleTime: 5_000,
     refetchInterval: 20_000,
     queryFn: async ({ signal }) => {
-      const client = companionClient();
-      if (!client) return null;
+      // Effects synchronize the module-level client for engine providers, but
+      // a query can start before that effect runs after pairing. Build this
+      // read-only status client from the exact query-key inputs so it cannot
+      // cache a false "connected, zero capabilities" result.
+      const client = new CompanionClient({ url, token });
       return client.status(signal);
     },
   });

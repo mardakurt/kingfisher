@@ -45,6 +45,29 @@ export class PersistentLocalCollectionProvider implements ChessDatabaseProvider 
     offline: true,
   };
 
+  async health() {
+    const started = performance.now();
+    try {
+      const repositories = await this.deps.repositories();
+      const count = await repositories.games.count();
+      return {
+        state: 'ready' as const,
+        checkedAt: Date.now(),
+        latencyMs: Math.round(performance.now() - started),
+        message: 'IndexedDB schema and position index are available.',
+        count,
+      };
+    } catch (error) {
+      return {
+        state: 'error' as const,
+        checkedAt: Date.now(),
+        latencyMs: Math.round(performance.now() - started),
+        message: error instanceof Error ? error.message : 'IndexedDB is unavailable.',
+        remedy: 'Allow local storage for this site, then retry.',
+      };
+    }
+  }
+
   async explore(query: ExplorerQuery, signal?: AbortSignal): Promise<ExplorerResult> {
     if (signal?.aborted) throw new DOMException('The lookup was cancelled.', 'AbortError');
     // Opening here guarantees migrations have completed before the worker

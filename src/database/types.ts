@@ -89,18 +89,43 @@ export interface DatabaseCapabilities {
   readonly offline: boolean;
 }
 
+export type ProviderHealthState =
+  | 'ready'
+  | 'loading'
+  | 'authentication-required'
+  | 'companion-offline'
+  | 'misconfigured'
+  | 'rate-limited'
+  | 'network-error'
+  | 'unsupported'
+  | 'error';
+
+export interface ProviderHealth {
+  readonly state: ProviderHealthState;
+  readonly checkedAt: number;
+  readonly latencyMs?: number;
+  readonly message: string;
+  readonly remedy?: string;
+  readonly version?: string;
+  readonly count?: number | null;
+}
+
 export interface ChessDatabaseProvider {
   readonly id: string;
   readonly name: string;
   readonly description: string;
   readonly capabilities: DatabaseCapabilities;
   explore(query: ExplorerQuery, signal?: AbortSignal): Promise<ExplorerResult>;
+  health?(signal?: AbortSignal): Promise<ProviderHealth>;
+  game?(id: string, signal?: AbortSignal): Promise<string>;
 }
 
 export class DatabaseError extends Error {
   constructor(
     message: string,
     readonly remedy?: string,
+    readonly state: Exclude<ProviderHealthState, 'ready' | 'loading'> = 'error',
+    readonly status?: number,
   ) {
     super(message);
     this.name = 'DatabaseError';

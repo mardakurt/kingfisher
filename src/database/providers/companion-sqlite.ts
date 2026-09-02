@@ -70,6 +70,39 @@ export class CompanionSqliteProvider implements ChessDatabaseProvider {
       : `${this.games.toLocaleString()} games in SQLite, through the companion.`;
   }
 
+  async health(signal?: AbortSignal) {
+    const started = performance.now();
+    const client = companionClient();
+    if (!client) {
+      return {
+        state: 'companion-offline' as const,
+        checkedAt: Date.now(),
+        message: 'The local companion is not connected.',
+        remedy: 'Start npm run companion and pair it in Settings.',
+        count: this.games,
+      };
+    }
+    try {
+      await client.status(signal);
+      return {
+        state: 'ready' as const,
+        checkedAt: Date.now(),
+        latencyMs: Math.round(performance.now() - started),
+        message: 'Companion and SQLite collection are available.',
+        count: this.games,
+      };
+    } catch (error) {
+      return {
+        state: 'companion-offline' as const,
+        checkedAt: Date.now(),
+        latencyMs: Math.round(performance.now() - started),
+        message: error instanceof Error ? error.message : 'The companion did not respond.',
+        remedy: 'Restart the companion and pair it again if its token changed.',
+        count: this.games,
+      };
+    }
+  }
+
   async explore(query: ExplorerQuery, signal?: AbortSignal): Promise<ExplorerResult> {
     const client = companionClient();
     if (!client) {
