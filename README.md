@@ -9,21 +9,25 @@ calls it analysis.
 
 ---
 
-## Status: Phase 5 — one workstation, not seven screens
+## Status: Phase 6 — a workstation you can trust
 
 Phase 1 built the workstation, Phase 2 made the work durable, Phase 3 turned the
 stored material into preparation, and Phase 4 gave it real engines, real artwork
 and real scale.
 
-Phase 5 is the phase that made those parts one application. The tools no longer
-belong to the route that happened to implement them: the engine, the opening
-explorer, the database, the tablebase, the structural features and the
-companion follow the position into Studies, Openings, Repertoire and
-Preparation through a shared workspace context and a single tool dock. Every
-route draws the same board through one pipeline. The Lichess integration was
-rebuilt against the authenticated `explorer.lichess.org` endpoints, providers
-gained a typed health model with real connection tests, and `/databases`
-became a place that answers what is connected and why it is not working.
+Phase 5 made those parts one application: the engine, explorer, database,
+tablebase, features and companion follow the position between routes through a
+shared workspace context and a single tool dock, and every route draws the same
+board through one pipeline.
+
+Phase 6 is about whether you can leave it running for an afternoon. Chapters
+carry a write revision, so two tabs cannot silently overwrite each other and a
+refused write offers to fork rather than lose. The draft is written before the
+chapter, so a failed write no longer takes the session with it, and unsaved
+work found on startup is offered back rather than discarded. A data-integrity
+scan reports what does not resolve and repairs only what is unambiguous.
+Diagnostics produces a report you can paste into a bug thread without leaking a
+token. Every gate runs in GitHub Actions, including the browser tests.
 
 Everything is stored in your browser. There is no account, no cloud and no
 sync, and the application works with the network off. An **optional** local
@@ -92,6 +96,10 @@ fails, the header says the work is not saved.
 management once real data-source management existed. It now redirects to
 `/databases`, and preparation moved to `/preparation`; old bookmarks land
 somewhere sensible rather than 404ing.
+
+`/` still opens `/analysis` rather than `/recent`. Kingfisher already restores
+the previous session there, so landing on Analysis _is_ continuing; putting a
+list in front of it would add a click to the most common action.
 
 ### Where your data lives
 
@@ -182,6 +190,10 @@ assistant stays disabled without affecting the rest of the workstation.
 | `npm run test:watch`      | Tests in watch mode                                                             |
 | `npm run test:e2e`        | Playwright browser tests against a real dev server                              |
 | `npm run test:e2e:ui`     | The same suite in Playwright's interactive runner                               |
+| `npm run bench:sqlite`    | SQLite companion import and query latency (needs a running companion)           |
+| `npm run bench:engines`   | Native engine startup to `uciok`, `readyok` and a first line                    |
+| `npm run bench:evidence`  | Assembling and rendering a companion evidence packet                            |
+| `npm run smoke:lichess`   | Opt-in live check that the Lichess API still matches the providers              |
 | `npm run typecheck`       | TypeScript, no emit                                                             |
 | `npm run lint`            | ESLint                                                                          |
 | `npm run format`          | Prettier                                                                        |
@@ -233,6 +245,10 @@ any move for comments, glyphs, variation ordering and deletion.
   who drew it, and under what licence.
 - [`companion/README.md`](companion/README.md) — what the local companion does
   and its threat model.
+- [`docs/performance/phase-6-companion-and-engines.md`](docs/performance/phase-6-companion-and-engines.md)
+  — measured SQLite import and query latency at 10k and 100k games, native
+  engine startup, and evidence-packet assembly. `npm run bench:sqlite`,
+  `bench:engines` and `bench:evidence` reproduce them.
 - [`docs/performance/phase-3-indexeddb.md`](docs/performance/phase-3-indexeddb.md)
   — measured 1k/10k/50k local-database behaviour and the thresholds it chose.
   `scripts/bench-indexeddb.js` reproduces the numbers in your own browser.
