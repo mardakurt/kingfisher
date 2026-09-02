@@ -153,6 +153,18 @@ const ROUTE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'notes',
   ],
   training: ['document', 'engine', 'explorer', 'database', 'features', 'tablebase', 'notes'],
+  review: [
+    'document',
+    'engine',
+    'explorer',
+    'database',
+    'repertoire',
+    'model-games',
+    'features',
+    'tablebase',
+    'companion',
+    'notes',
+  ],
 };
 
 export function WorkspaceToolDock({
@@ -161,6 +173,7 @@ export function WorkspaceToolDock({
   contextLabel = 'Context',
   contextPanel,
   fill = false,
+  locked,
 }: {
   readonly workspace: keyof typeof ROUTE_TOOLS;
   readonly className?: string;
@@ -168,6 +181,16 @@ export function WorkspaceToolDock({
   readonly contextPanel?: ReactNode;
   /** Fill a route-owned grid track instead of taking the persisted dock width. */
   readonly fill?: boolean;
+  /**
+   * Hide every tool's evidence behind an explicit choice.
+   *
+   * Self-analysis needs the computer to be *deliberately* absent, not broken
+   * and not merely un-started — so the dock keeps its shape, keeps its tabs
+   * visible, and says whose decision this was. Mounting is what is withheld:
+   * a locked tool issues no query and starts no engine, which is also why the
+   * lock cannot be worked around by switching tabs.
+   */
+  readonly locked?: { readonly message: string; readonly action?: ReactNode };
 }) {
   const wide = useMediaQuery('(min-width: 1100px)');
   const tools = ROUTE_TOOLS[workspace] ?? ROUTE_TOOLS.analysis!;
@@ -285,17 +308,42 @@ export function WorkspaceToolDock({
           The dock itself is outside the boundary on purpose — the tabs have to
           survive so the user can leave a tool that will not load.
         */}
-        <ErrorBoundary
-          key={selected}
-          label={selected === 'document' ? contextLabel : LABELS[selected]}
-          onClose={() => selectTool(tools[0] as WorkspaceToolId)}
-          closeLabel="Close tool"
-          onDiagnostics={openDiagnostics}
-        >
-          <ToolContent tool={selected} contextPanel={contextPanel} />
-        </ErrorBoundary>
+        {locked && selected !== 'document' ? (
+          <LockedTool message={locked.message} action={locked.action} />
+        ) : (
+          <ErrorBoundary
+            key={selected}
+            label={selected === 'document' ? contextLabel : LABELS[selected]}
+            onClose={() => selectTool(tools[0] as WorkspaceToolId)}
+            closeLabel="Close tool"
+            onDiagnostics={openDiagnostics}
+          >
+            <ToolContent tool={selected} contextPanel={contextPanel} />
+          </ErrorBoundary>
+        )}
       </div>
     </aside>
+  );
+}
+
+function LockedTool({
+  message,
+  action,
+}: {
+  readonly message: string;
+  readonly action?: ReactNode;
+}) {
+  return (
+    <div
+      className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center"
+      role="status"
+    >
+      <span aria-hidden className="text-xl text-tertiary/60">
+        ◔
+      </span>
+      <p className="max-w-[34ch] text-xs leading-relaxed text-secondary">{message}</p>
+      {action}
+    </div>
   );
 }
 

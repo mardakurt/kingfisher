@@ -180,8 +180,10 @@ describe('dynamic set membership', () => {
     expect(matchesQuery(item(), { withinDays: 5 }, now)).toBe(false);
 
     expect(matchesQuery(item(), { fromMyGames: true })).toBe(false);
-    expect(matchesQuery(item({ source: { kind: 'game', id: 'g1' } }), { fromMyGames: true })).toBe(
-      true,
-    );
+    expect(
+      matchesQuery(item({ source: { kind: 'game', id: 'g1', label: 'A – B' } }), {
+        fromMyGames: true,
+      }),
+    ).toBe(true);
   });
 });

@@ -175,6 +175,21 @@ export const Recall = (p: IconProps) => (
     <path d="M12 8.5V12l2.5 1.6" />
   </Icon>
 );
+/**
+ * Review: a magnifier over the board, pointed at your own thinking.
+ *
+ * Deliberately not a bullseye — Preparation already owns that, and the two
+ * sections would be indistinguishable in a collapsed rail. Deliberately not a
+ * chart either: Review is about looking closely at one position, not about
+ * summarising many.
+ */
+export const Review = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="10.5" cy="10.5" r="6" />
+    <path d="M15 15l5 5" />
+    <path d="M8 10.5h5M10.5 8v5" />
+  </Icon>
+);
 export const Sun = (p: IconProps) => (
   <Icon {...p}>
     <circle cx="12" cy="12" r="4" />

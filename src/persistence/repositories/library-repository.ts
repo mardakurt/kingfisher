@@ -82,6 +82,9 @@ export class LocalModelGameRepository implements ModelGameRepository {
 export interface ProfileRepository {
   get(): Promise<UserProfileRecord>;
   setAliases(aliases: readonly string[]): Promise<UserProfileRecord>;
+  /** Improvement themes the player invented; returns the full list. */
+  addCustomTheme(theme: string): Promise<readonly string[]>;
+  removeCustomTheme(theme: string): Promise<readonly string[]>;
 }
 
 export class LocalProfileRepository implements ProfileRepository {
@@ -95,9 +98,48 @@ export class LocalProfileRepository implements ProfileRepository {
 
   /** Blank entries are dropped: an empty alias would match every game. */
   async setAliases(aliases: readonly string[]): Promise<UserProfileRecord> {
+    const current = await this.get();
     const cleaned = [...new Set(aliases.map((alias) => alias.trim()).filter(Boolean))];
-    const profile: UserProfileRecord = { id: 'me', aliases: cleaned, updatedAt: Date.now() };
+    const profile: UserProfileRecord = {
+      id: 'me',
+      aliases: cleaned,
+      customThemes: current.customThemes ?? [],
+      updatedAt: Date.now(),
+    };
     await this.database.put(STORE_NAMES.profile, profile);
     return profile;
+  }
+
+  /*
+    Slugged the same way the review repository normalises themes, so a tag
+    typed as "Trade Decision" and one typed as "trade decision" are the same
+    tag rather than two entries the summary counts separately.
+  */
+  async addCustomTheme(theme: string): Promise<readonly string[]> {
+    const slug = theme.trim().toLowerCase().replace(/\s+/g, '-');
+    if (!slug) return (await this.get()).customThemes ?? [];
+    const current = await this.get();
+    const themes = current.customThemes ?? [];
+    if (themes.includes(slug)) return themes;
+    const next = [...themes, slug];
+    await this.database.put(STORE_NAMES.profile, {
+      ...current,
+      id: 'me' as const,
+      customThemes: next,
+      updatedAt: Date.now(),
+    });
+    return next;
+  }
+
+  async removeCustomTheme(theme: string): Promise<readonly string[]> {
+    const current = await this.get();
+    const next = (current.customThemes ?? []).filter((entry) => entry !== theme);
+    await this.database.put(STORE_NAMES.profile, {
+      ...current,
+      id: 'me' as const,
+      customThemes: next,
+      updatedAt: Date.now(),
+    });
+    return next;
   }
 }

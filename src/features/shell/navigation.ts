@@ -20,6 +20,7 @@ import {
   Opening,
   Recall,
   Repertoire,
+  Review,
   Target,
 } from '@/components/icons';
 
@@ -52,6 +53,13 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     href: '/openings',
     icon: Opening,
     hint: 'Explore theory with database evidence.',
+  },
+  {
+    id: 'review',
+    label: 'Review',
+    href: '/review',
+    icon: Review,
+    hint: 'Study your own decisions: record first, reveal the evidence after.',
   },
   {
     id: 'games',

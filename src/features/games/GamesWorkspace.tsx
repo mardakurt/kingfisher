@@ -160,7 +160,7 @@ export function GamesWorkspace() {
     });
   };
 
-  const open = async (game: GameSummary) => {
+  const open = async (game: GameSummary, destination: '/analysis' | '/review' = '/analysis') => {
     /*
       A database game opens as source material, not as the user's own document.
       Editing it will not write back over the imported record: autosave treats
@@ -195,7 +195,7 @@ export function GamesWorkspace() {
         tree,
         document: { kind: 'database-game', title: gameTitle(full), gameId: full.id },
       });
-      router.push('/analysis');
+      router.push(destination);
     } catch (error) {
       notify({
         tone: 'error',
@@ -432,6 +432,21 @@ export function GamesWorkspace() {
           <Button variant="accent" onClick={() => openAnalysisQueue([...selected])}>
             Add to analysis queue
           </Button>
+          {selected.size === 1 ? (
+            /*
+              One game, because Review is a walk through a single game's
+              decisions. Offering it for a multi-game selection would promise
+              something the workspace does not do.
+            */
+            <Button
+              onClick={() => {
+                const only = rows.find((row) => selected.has(row.id));
+                if (only) void open(only, '/review');
+              }}
+            >
+              Review this game
+            </Button>
+          ) : null}
           <Button
             variant="danger"
             icon={<Trash />}

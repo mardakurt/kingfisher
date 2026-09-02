@@ -11,6 +11,7 @@ import { useAnalysisPosition } from '@/features/analysis/useAnalysisPosition';
 import { AnswerBoard, type AcceptedMove } from './AnswerBoard';
 import {
   invalidateReferences,
+  invalidateReview,
   invalidateTraining,
   useRepertoiresAtPosition,
 } from '@/features/persistence/queries';
@@ -44,6 +45,9 @@ function CreateTrainingForm() {
   const setOpen = useUi((state) => state.setTrainingCaptureOpen);
   const referenceChapterId = useUi((state) => state.trainingReferenceChapterId);
   const setReferenceChapterId = useUi((state) => state.setTrainingReferenceChapterId);
+  const setTargetId = useUi((state) => state.trainingSetTargetId);
+  const reviewItemId = useUi((state) => state.trainingReviewItemId);
+  const setCaptureTarget = useUi((state) => state.setTrainingCaptureTarget);
   const notify = useUi((state) => state.notify);
   const document = useAnalysis((state) => state.document);
   const { node, position, currentId } = useAnalysisPosition();
@@ -139,6 +143,31 @@ function CreateTrainingForm() {
         });
         invalidateReferences(queryClient, referenceChapterId);
       }
+      /*
+        Two follow-ups Review asks for so the player gets one action instead of
+        three. Both are best-effort on purpose: the training item is the thing
+        that had to be created, and losing its set membership is a smaller
+        failure than losing the item.
+      */
+      if (setTargetId) {
+        const repositories = await getRepositories();
+        const set = await repositories.trainingSets.get(setTargetId);
+        if (set) {
+          await repositories.trainingSets.addItems(set.id, set.revision, [item.id]);
+        }
+      }
+      if (reviewItemId) {
+        const repositories = await getRepositories();
+        const reviewItem = await repositories.review.getReviewItem(reviewItemId);
+        if (reviewItem) {
+          await repositories.review.updateReviewItem(reviewItem.id, reviewItem.revision, {
+            status: 'converted',
+            trainingItemId: item.id,
+          });
+        }
+      }
+      if (setTargetId || reviewItemId) invalidateReview(queryClient);
+      setCaptureTarget({ setId: null, reviewItemId: null });
       invalidateTraining(queryClient);
       notify({ tone: 'success', message: `Training position created: ${item.prompt}` });
       setOpen(false);

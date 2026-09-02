@@ -138,6 +138,17 @@ export function invalidateModelGames(client: QueryClient): void {
   void client.invalidateQueries({ queryKey: ['persistence', 'model-games'] });
 }
 
+/**
+ * Everything the review workspace can change.
+ *
+ * One entry point rather than a key layout every component has to remember:
+ * tagging a position changes the queue, the decision behind it and the
+ * summaries built from both, and a caller should not have to enumerate that.
+ */
+export function invalidateReview(client: QueryClient): void {
+  void client.invalidateQueries({ queryKey: ['review'] });
+}
+
 export function invalidateReferences(client: QueryClient, chapterId?: string): void {
   void client.invalidateQueries({
     queryKey: chapterId ? phase3Keys.references(chapterId) : ['persistence', 'references'],

@@ -48,6 +48,15 @@ interface UiState {
   addToRepertoireOpen: boolean;
   trainingCaptureOpen: boolean;
   trainingReferenceChapterId: string | null;
+  /**
+   * Where a training item created from Review should land.
+   *
+   * Two follow-ups the capture dialog performs on the caller's behalf, so the
+   * player gets one action instead of three: put the new item in this set, and
+   * mark the review queue entry it came from as converted.
+   */
+  trainingSetTargetId: string | null;
+  trainingReviewItemId: string | null;
   modelGameOpen: boolean;
   analysisQueueOpen: boolean;
   analysisQueueGameIds: readonly string[];
@@ -68,6 +77,10 @@ interface UiState {
   setAddToRepertoireOpen(open: boolean): void;
   setTrainingCaptureOpen(open: boolean): void;
   setTrainingReferenceChapterId(chapterId: string | null): void;
+  setTrainingCaptureTarget(target: {
+    readonly setId?: string | null;
+    readonly reviewItemId?: string | null;
+  }): void;
   setModelGameOpen(open: boolean): void;
   openAnalysisQueue(gameIds?: readonly string[]): void;
   setAnalysisQueueOpen(open: boolean): void;
@@ -91,6 +104,8 @@ export const useUi = create<UiState>((set) => ({
   addToRepertoireOpen: false,
   trainingCaptureOpen: false,
   trainingReferenceChapterId: null,
+  trainingSetTargetId: null,
+  trainingReviewItemId: null,
   modelGameOpen: false,
   analysisQueueOpen: false,
   analysisQueueGameIds: [],
@@ -110,6 +125,11 @@ export const useUi = create<UiState>((set) => ({
   setTrainingCaptureOpen: (trainingCaptureOpen) => set({ trainingCaptureOpen }),
   setTrainingReferenceChapterId: (trainingReferenceChapterId) =>
     set({ trainingReferenceChapterId }),
+  setTrainingCaptureTarget: ({ setId, reviewItemId }) =>
+    set({
+      ...(setId !== undefined ? { trainingSetTargetId: setId } : {}),
+      ...(reviewItemId !== undefined ? { trainingReviewItemId: reviewItemId } : {}),
+    }),
   setModelGameOpen: (modelGameOpen) => set({ modelGameOpen }),
   openAnalysisQueue: (analysisQueueGameIds = []) =>
     set({ analysisQueueOpen: true, analysisQueueGameIds }),
