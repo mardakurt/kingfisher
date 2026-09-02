@@ -9,14 +9,21 @@ calls it analysis.
 
 ---
 
-## Status: Phase 4 — a chess workstation
+## Status: Phase 5 — one workstation, not seven screens
 
 Phase 1 built the workstation, Phase 2 made the work durable, Phase 3 turned the
-stored material into preparation. Phase 4 gives it real engines, real artwork
-and real scale: three chess engines including a neural one, an opening explorer
-that puts every kind of evidence side by side, tablebases, deterministic
-positional features, SQLite collections of a hundred thousand games, and an
-assistant that is shown the evidence rather than asked what it remembers.
+stored material into preparation, and Phase 4 gave it real engines, real artwork
+and real scale.
+
+Phase 5 is the phase that made those parts one application. The tools no longer
+belong to the route that happened to implement them: the engine, the opening
+explorer, the database, the tablebase, the structural features and the
+companion follow the position into Studies, Openings, Repertoire and
+Preparation through a shared workspace context and a single tool dock. Every
+route draws the same board through one pipeline. The Lichess integration was
+rebuilt against the authenticated `explorer.lichess.org` endpoints, providers
+gained a typed health model with real connection tests, and `/databases`
+became a place that answers what is connected and why it is not working.
 
 Everything is stored in your browser. There is no account, no cloud and no
 sync, and the application works with the network off. An **optional** local
@@ -26,30 +33,33 @@ currently comes from the separate Lichess Syzygy provider.
 
 **Working today**
 
-| Area            | What you can do                                                                                                                                                                                                           |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Board           | Drag or click to move, promotion picker, flip, eight board themes, five selectable open-source vector piece sets plus an internal recovery set, coordinates, move animation                                               |
-| Game tree       | Nested variations, promote / promote-to-main-line, delete, truncate, undo & redo, keyboard navigation                                                                                                                     |
-| Annotation      | Comments, NAG glyphs, arrows and square highlights (right-drag), all surviving a PGN round trip                                                                                                                           |
-| Engines         | Stockfish 17.1 in a Worker; Lc0 and Stormphrax as native processes through the companion. MultiPV 1–5, live depth / nodes / nps, evaluation bar, stability and line-separation metrics, click any move to insert the line |
-| Two engines     | Run any two on one position and see where they agree, how far their lines run together, and how far apart their evaluations are. No combined score                                                                        |
-| Tablebases      | Syzygy through lichess.org for any position of seven pieces or fewer: category, DTZ, DTM and the winning moves, kept in its own vocabulary rather than converted to centipawns                                            |
-| Structure       | Counted, not judged: pawn islands, isolated, doubled, passed, connected passed and backward pawns, open and semi-open files, rooks on them, the bishop pair, material imbalance, castling and king shelter                |
-| Companion (AI)  | Optional. Answers from an evidence packet the app builds — engine lines, database counts, your repertoire, the structure — and shows you the packet                                                                       |
-| Move editing    | Right-click any move for comments, glyphs, variation reordering, "make this the main line", targeted deletion and copy                                                                                                    |
-| Marking         | Mark a position critical — opening, calculation, strategy, endgame or time trouble — and take it straight to a training item                                                                                              |
-| Studies         | Notebooks of ordered chapters — create, rename, reorder, duplicate, delete; autosaved as you work; export a chapter or a whole study as PGN                                                                               |
-| Games           | Import cancellable multi-game PGNs, paged indexed search, filters, sortable columns, bulk delete, model-game tags, and personal-game evidence                                                                             |
-| Explorer        | Every kind of evidence for one position side by side: frequency, score, average Elo, recent-theory comparison, engine rank, repertoire role, your own results. Sources are never mixed, and there is no combined score    |
-| Databases       | IndexedDB for everyday collections; optional SQLite through the companion, measured at 100,000 games. Both use the same fingerprints and canonical position keys                                                          |
-| Openings        | One board-led workspace combining local database moves, repertoire choices, personal results, engine evidence, and model games                                                                                            |
-| Repertoire      | White/Black repertoires keyed by canonical position, editable move roles and notes, explicit opponent replies, coverage counts, local evidence, gap detection, and PGN export                                             |
-| Preparation     | Exact-player reports with side/date/rating/ECO/result filters, profile facts, transposition-aware trees with frequency, score, average Elo and recency, prepared-vs-gap comparison, and a "My games" view of your own     |
-| Training        | Answer on the board or by band: repertoire recall, best move, candidate moves, evaluation bands, and plans, each checked against what you recorded; due/new/learning/mature queues with deterministic SRS                 |
-| Backup          | Versioned JSON export; authored-work or full-game backup; validated transactional merge and replace                                                                                                                       |
-| Search          | `⌘K` searches actions plus studies, chapters, games, players, repertoires, training items, model games, and tags                                                                                                          |
-| Import / export | PGN and FEN in (format auto-detected), staged progress and cancellation for large files; PGN, FEN, SAN and UCI out                                                                                                        |
-| Interface       | Responsive desktop/tablet/phone workspace, command palette (`⌘K`), keyboard-first navigation, dark and light themes, local-first preferences                                                                              |
+| Area            | What you can do                                                                                                                                                                                                                                                    |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Board           | Drag or click to move, promotion picker, flip, eight board themes, five selectable open-source vector piece sets plus an internal recovery set, coordinates, move animation                                                                                        |
+| Game tree       | Nested variations, promote / promote-to-main-line, delete, truncate, undo & redo, keyboard navigation                                                                                                                                                              |
+| Annotation      | Comments, NAG glyphs, arrows and square highlights (right-drag), all surviving a PGN round trip                                                                                                                                                                    |
+| Engines         | Stockfish 17.1 in a Worker; Lc0 and Stormphrax as native processes through the companion. MultiPV 1–5, live depth / nodes / nps, evaluation bar, stability and line-separation metrics, click any move to insert the line                                          |
+| Two engines     | Run any two on one position and see where they agree, how far their lines run together, and how far apart their evaluations are. No combined score                                                                                                                 |
+| Tablebases      | Syzygy through lichess.org for any position of seven pieces or fewer: category, DTZ, DTM and the winning moves, kept in its own vocabulary rather than converted to centipawns                                                                                     |
+| Structure       | Counted, not judged: pawn islands, isolated, doubled, passed, connected passed and backward pawns, open and semi-open files, rooks on them, the bishop pair, material imbalance, castling and king shelter                                                         |
+| Companion (AI)  | Optional. Answers from an evidence packet the app builds — engine lines, database counts, your repertoire, the structure — and shows you the packet                                                                                                                |
+| Move editing    | Right-click any move for comments, glyphs, variation reordering, "make this the main line", targeted deletion and copy                                                                                                                                             |
+| Marking         | Mark a position critical — opening, calculation, strategy, endgame or time trouble — and take it straight to a training item                                                                                                                                       |
+| Studies         | Notebooks of ordered chapters — create, rename, reorder, duplicate, delete; autosaved as you work; export a chapter or a whole study as PGN                                                                                                                        |
+| Games           | Import cancellable multi-game PGNs, paged indexed search, filters, sortable columns, bulk delete, model-game tags, and personal-game evidence                                                                                                                      |
+| Explorer        | Every kind of evidence for one position side by side: frequency, score, average Elo, recent-theory comparison, engine rank, repertoire role, your own results. Sources are never mixed, and there is no combined score                                             |
+| Databases       | IndexedDB for everyday collections; optional SQLite through the companion, measured at 100,000 games. Both use the same fingerprints and canonical position keys                                                                                                   |
+| Openings        | One board-led workspace combining local database moves, repertoire choices, personal results, engine evidence, and model games                                                                                                                                     |
+| Repertoire      | White/Black repertoires keyed by canonical position, editable move roles and notes, explicit opponent replies, coverage counts, local evidence, gap detection, and PGN export                                                                                      |
+| Preparation     | Exact-player reports with side/date/rating/ECO/result filters, profile facts, transposition-aware trees with frequency, score, average Elo and recency, prepared-vs-gap comparison, and a "My games" view of your own                                              |
+| Training        | Answer on the board or by band: repertoire recall, best move, candidate moves, evaluation bands, and plans, each checked against what you recorded; due/new/learning/mature queues with deterministic SRS                                                          |
+| Backup          | Versioned JSON export; authored-work or full-game backup; validated transactional merge and replace                                                                                                                                                                |
+| Search          | `⌘K` searches actions plus studies, chapters, games, players, repertoires, training items, model games, and tags                                                                                                                                                   |
+| Import / export | PGN and FEN in (format auto-detected), staged progress and cancellation for large files; PGN, FEN, SAN and UCI out                                                                                                                                                 |
+| Workspaces      | The same board and the same research tools in Analysis, Studies, Openings, Repertoire, Preparation and Training. Layout presets, a resizable dock, and the last tool remembered per route                                                                          |
+| Data sources    | `/databases` lists every provider with a real status — ready, authentication required, companion offline, rate limited, misconfigured — plus capabilities, game counts, measured latency and a connection test that validates the response, not just the transport |
+| Lichess         | Masters, the Lichess database and the player explorer over `explorer.lichess.org`, connected with your own scope-free token. `401`, `403`, `404`, `429`, `5xx`, timeouts and schema changes each say what actually happened                                        |
+| Interface       | Responsive desktop/tablet/phone workspace, command palette (`⌘K`), keyboard-first navigation, dark and light themes, local-first preferences                                                                                                                       |
 
 **Deliberately bounded.** IndexedDB collections are measured to 50,000 games and
 SQLite ones to 100,000; neither number is extrapolated to millions. Opponent
@@ -65,14 +75,35 @@ only evaluations you actually saved, leaving unanalysed moves blank rather than
 drawing a curve through them. "Saved" means a write completed; if storage
 fails, the header says the work is not saved.
 
+### Routes
+
+| Route          | Purpose                                                    |
+| -------------- | ---------------------------------------------------------- |
+| `/analysis`    | Analyse a position or game. Opened games land here         |
+| `/openings`    | Board-led opening research across evidence sources         |
+| `/games`       | Your imported game collection: search, filter, sort, open  |
+| `/preparation` | Opponent reports: their tendencies against your repertoire |
+| `/databases`   | Collections, providers, connection health and imports      |
+| `/repertoire`  | The lines you intend to play                               |
+| `/studies`     | Notebooks of chapters, each a full analysis workspace      |
+| `/training`    | Spaced recall over positions you recorded                  |
+
+`/database` (singular) was opponent preparation, which read as data-source
+management once real data-source management existed. It now redirects to
+`/databases`, and preparation moved to `/preparation`; old bookmarks land
+somewhere sensible rather than 404ing.
+
 ### Where your data lives
 
 Studies, chapters, imported game summaries/content, position indexes,
 repertoires, model-game links, training schedules/history, personal aliases and
 the active draft are stored in IndexedDB under `kingfisher`; preferences stay
-in `localStorage`. Network requests occur only when you deliberately use a
-remote evidence source: the Lichess explorer, the Lichess tablebase, or an
-assistant endpoint you configured. Local database, engine, repertoire, study,
+in `localStorage` — including your Lichess token, which is never committed,
+never logged and never included in a backup. It is scope-free and revocable
+from Lichess, which is what makes browser storage an acceptable place for it.
+Network requests occur only when you deliberately use a remote evidence
+source: the Lichess explorer, the Lichess tablebase, or an assistant endpoint
+you configured. Local database, engine, repertoire, study,
 training and backup workflows remain offline.
 
 An analysis is always one of three things, and the header says which:
@@ -80,8 +111,8 @@ An analysis is always one of three things, and the header says which:
 - **Untitled analysis** — kept as a draft so a refresh cannot lose it, but not
   filed anywhere. `Save to study` (`⌘S`) turns it into a chapter.
 - **Study chapter** — yours, and autosaved as you work.
-- **Database game** — source material, marked read-only. Editing it never
-  writes back over the imported game; save a copy to a study instead.
+- **Database game** — source material. You can move and explore freely, but
+  nothing writes back over the imported game; save a copy to a study instead.
 
 ---
 
@@ -149,6 +180,8 @@ assistant stays disabled without affecting the rest of the workstation.
 | `npm run build`           | Production build                                                                |
 | `npm test`                | Run the test suite                                                              |
 | `npm run test:watch`      | Tests in watch mode                                                             |
+| `npm run test:e2e`        | Playwright browser tests against a real dev server                              |
+| `npm run test:e2e:ui`     | The same suite in Playwright's interactive runner                               |
 | `npm run typecheck`       | TypeScript, no emit                                                             |
 | `npm run lint`            | ESLint                                                                          |
 | `npm run format`          | Prettier                                                                        |

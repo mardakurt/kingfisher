@@ -91,6 +91,11 @@ src/
     import-game.ts         PGN → parse → normalize → persist → index
     autosave.ts            Pure debounce-with-a-cap scheduling
   features/                UI, one folder per product area
+    workspace/             The shared workspace seam. See ADR 0017.
+      ChessWorkspaceContext.tsx  Read-through view of the analysis store
+      CanonicalBoardSurface.tsx  The one full-size board pipeline
+      WorkspaceToolDock.tsx      Route → tool table, and the tool host
+    databases/             Data-source management, health and connection tests
   stores/                  Zustand stores, one per state category
   components/              Shared primitives and icons
   hooks/                   Small, generic React hooks
@@ -249,22 +254,34 @@ parsing code.
 
 ```
 ChessDatabaseProvider
-  ├── LichessExplorerProvider('masters')   real over-the-board games
-  ├── LichessExplorerProvider('lichess')   real online games, rating-filterable
+  ├── LichessExplorerProvider('masters')   over-the-board master games
+  ├── LichessExplorerProvider('lichess')   online games, rating/speed-filterable
+  ├── LichessExplorerProvider('player')    one player, indexed on demand
+  ├── CompanionSqliteProvider              a local SQLite collection, if paired
   └── LocalCollectionProvider              your imported PGNs, indexed by position
 ```
+
+Every provider optionally implements `health(signal)`, which runs a real query
+and validates the response shape — not "a fetch returned something" — and
+reports one of `ready`, `loading`, `authentication-required`,
+`companion-offline`, `misconfigured`, `rate-limited`, `network-error`,
+`unsupported` or `error`, with a remedy and a measured latency. `/databases`
+renders that, and so does the Database tool in the dock. ADR 0018 covers the
+model and why an empty result is now only ever a genuinely empty result.
 
 All three answer the same query — _what happens from this position?_ — and
 return the same `ExplorerResult`: totals, per-move counts, White/draw/Black
 splits, average rating, performance rating, notable players, top games. The
 panel does not know which provider it is talking to.
 
-Lichess has required authenticated opening-explorer requests since April 2026.
-Kingfisher accepts the user's own scope-free token in Settings → Database and
-adds it only to those explorer requests. Without one, the providers translate
-HTTP 401 into an explicit authentication message and local fallback. They do
-not claim the backend is unavailable, and the panel never substitutes synthetic
-results.
+The opening explorer lives at `explorer.lichess.org` and requires
+authentication. Kingfisher accepts the user's own scope-free personal access
+token in Settings → Database and adds it only to explorer requests. Without
+one the provider fails as `authentication-required` before sending anything,
+rather than issuing a request it knows will 401 and reporting the result as an
+empty position. `401`, `403`, `404`, `429`, `5xx`, timeouts and unparseable
+bodies each carry their own state and message; the panel never substitutes
+synthetic results.
 
 The interface is shaped for databases of millions of games: the unit of work is
 a question about a position, never "load the games".
@@ -467,6 +484,46 @@ That is what keeps autosave quiet while the engine runs.
 
 ---
 
+## Workspaces and the tool dock
+
+The research routes are one environment with different starting points, not
+seven applications sharing a sidebar. Two seams make that true; ADR 0017
+records the reasoning.
+
+`ChessWorkspaceProvider` (mounted once in `AppShell`) publishes the tree, the
+cursor, the FEN, the orientation and the document by reading the analysis
+store. It holds no chess state of its own — a second source of position truth
+is the bug class this seam exists to prevent.
+
+`WorkspaceToolDock` renders a route's tools from one table:
+
+| Route       | Tools                                                                           |
+| ----------- | ------------------------------------------------------------------------------- |
+| Analysis    | Engine, Explorer, Database, Repertoire, Features, Tablebase, Companion, Notes   |
+| Studies     | Engine, Explorer, Database, Features, Tablebase, Companion, Notes               |
+| Openings    | Explorer, Database, Engine, Repertoire, Model Games, Personal Results, Features |
+| Repertoire  | Context, Explorer, Database, Engine, Model Games, Features, Notes               |
+| Preparation | Context, Engine, Explorer, Database, Repertoire, Model Games, Features, Notes   |
+| Training    | Context, Engine, Explorer, Database, Features, Tablebase, Notes                 |
+
+Games has no dock of its own: opening a row loads the game as the workspace
+document and lands on Analysis, which has the full set.
+
+Training is the one route that gates the dock — it is not rendered at all
+until the answer is revealed, because an engine evaluation beside a position
+you are being asked to solve is the answer.
+
+`stores/workspace-layout-store` persists the dock width, the collapsed state,
+the selected preset (Analysis, Study, Opening Research, Preparation, Minimal
+Board) and the last tool **per route**, so moving between workspaces does not
+carry an unrelated tab along.
+
+The selected tool is the only one mounted. An inactive tool therefore issues
+no database query, opens no engine and makes no assistant call — the dock adds
+tools to a route without adding work to it.
+
+---
+
 ## The board
 
 `features/board/Chessboard.tsx` is a renderer, not a chess engine. Its
@@ -495,6 +552,22 @@ piece by colour, type and set id; the internal SVG geometry shares one viewBox,
 baseline and centring contract. This keeps pieces crisp without asset timing,
 sprite clipping or per-square paths, and adding a set does not change board
 interaction code.
+
+**One surface, four modes.** Routes do not embed `Chessboard` directly. They
+render `features/workspace/CanonicalBoardSurface`, which owns the frame, the
+evaluation bar, the board controls and the position summary, and takes a mode:
+
+| Mode          | Moves | Shapes | Used by                                              |
+| ------------- | ----- | ------ | ---------------------------------------------------- |
+| `interactive` | yes   | yes    | Analysis, Studies, Openings, Repertoire, Preparation |
+| `read-only`   | no    | yes    | Surfaces that navigate but must not mutate           |
+| `preview`     | no    | no     | Cards and thumbnails; no shape handlers              |
+| `training`    | no    | yes    | Review, where legal hints would give it away         |
+
+Cursor, tree and orientation come from `useChessWorkspace()`, so the board and
+every tool in the dock read one position. The mode is passed by the surface
+rather than inferred from the route — see ADR 0017 for why inferring it was a
+bug rather than a shortcut.
 
 **Sizing is CSS-owned.** The board is an `aspect-ratio: 1` surface inside a
 grid capped by both available width and dynamic viewport height. JavaScript
@@ -542,7 +615,7 @@ uncompressed across 23 files in this build; Phase 3 added no runtime dependency.
 
 ## Testing
 
-437 tests across 32 files, all on the parts where being wrong is expensive.
+442 tests across 33 files, all on the parts where being wrong is expensive.
 
 | Area             | Covered                                                                                                                                                                                                                           |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -576,6 +649,27 @@ uncompressed across 23 files in this build; Phase 3 added no runtime dependency.
 | Global search    | Studies, chapters, games, players, repertoires, training, model games and tags                                                                                                                                                    |
 
 Run with `npm test`.
+
+### Browser tests
+
+Seven Playwright specs in `e2e/`, run with `npm run test:e2e` against a real
+dev server and a real Stockfish build. They exist because the failures this
+phase fixed — a board that did not track the selected node, tools missing from
+a route, a provider reporting a `401` as an empty database — are all invisible
+to unit tests.
+
+| Spec              | Covers                                                                                                                                      |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Routes and mobile | Every section reachable from the sidebar, the mobile bar and the drawer; no horizontal overflow                                             |
+| Shared position   | A move in Analysis, saved to a repertoire, a PGN imported and opened from Games, explored locally                                           |
+| Studies           | Chapter creation, moves, a variation, a drawn arrow, Engine and Explorer and Database inside Studies, and the annotation surviving a reload |
+| Canonical board   | Castling, en passant, promotion, two checks, orientation, and all five external piece sets                                                  |
+| Training          | The dock absent before reveal and present after it                                                                                          |
+| Viewport matrix   | Eleven sizes from 320×568 to 2560×1440, each square and overflow-free                                                                       |
+| Lichess contract  | Token attached as `Bearer`, connection test, explorer results, and board/piece preferences persisted                                        |
+
+Every spec asserts the console produced no errors or warnings. The Lichess
+spec routes the network, so the suite needs no real credentials.
 
 ---
 
