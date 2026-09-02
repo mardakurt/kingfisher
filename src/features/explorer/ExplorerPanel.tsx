@@ -21,7 +21,7 @@ import { formatScore } from '@/chess/evaluation';
 import { moveIntent } from '@/chess/moves';
 import { positionKey } from '@/chess/fen';
 import { DatabaseError, type DatabaseMove } from '@/database/types';
-import { databaseProviders } from '@/database/registry';
+import { useDatabaseProviders } from '@/database/use-database-providers';
 import { Button, IconButton } from '@/components/ui/Button';
 import { EmptyState, PanelBody, PanelHeader } from '@/components/ui/Panel';
 import { Segmented } from '@/components/ui/Tabs';
@@ -40,9 +40,10 @@ import { usePositionContext } from './usePositionContext';
 
 /** How far back "recent" reaches, for the theory comparison. */
 const RECENT_WINDOWS = [
-  { id: 'off', label: 'Off', years: 0 },
+  { id: 'off', label: 'All time', years: 0 },
   { id: '1y', label: '12 months', years: 1 },
   { id: '3y', label: '3 years', years: 3 },
+  { id: '5y', label: '5 years', years: 5 },
 ] as const;
 
 type RecentWindowId = (typeof RECENT_WINDOWS)[number]['id'];
@@ -60,26 +61,22 @@ export function ExplorerPanel() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [recentWindow, setRecentWindow] = useState<RecentWindowId>('off');
   const [selected, setSelected] = useState<readonly string[]>([]);
+  const [player, setPlayer] = useState('');
+  const [playerColor, setPlayerColor] = useState<'w' | 'b'>('w');
 
-  const providers = databaseProviders();
+  const providers = useDatabaseProviders();
   const provider = providers.find((entry) => entry.id === prefs.explorerSourceId) ?? providers[0];
+  const playerFilter = provider?.capabilities.playerFilter ?? false;
 
-  const filters = useMemo(
-    () => ({
-      ...(prefs.explorerMinRating ? { minRating: prefs.explorerMinRating } : {}),
-      ...(prefs.explorerSinceYear ? { sinceYear: prefs.explorerSinceYear } : {}),
-    }),
-    [prefs.explorerMinRating, prefs.explorerSinceYear],
-  );
+  const filters = {
+    ...(prefs.explorerMinRating ? { minRating: prefs.explorerMinRating } : {}),
+    ...(prefs.explorerSinceYear ? { sinceYear: prefs.explorerSinceYear } : {}),
+    ...(playerFilter && player.trim() ? { player: player.trim(), playerColor } : {}),
+  };
 
   const window = RECENT_WINDOWS.find((entry) => entry.id === recentWindow) ?? RECENT_WINDOWS[0];
-  const recentFilters = useMemo(
-    () =>
-      window.years > 0
-        ? { ...filters, sinceYear: new Date().getFullYear() - window.years }
-        : filters,
-    [filters, window.years],
-  );
+  const recentFilters =
+    window.years > 0 ? { ...filters, sinceYear: new Date().getFullYear() - window.years } : filters;
 
   const query = useExplorer(provider?.id ?? '', node.fen, filters);
   // A second query against the same source with a tighter date window. Two
@@ -171,6 +168,26 @@ export function ExplorerPanel() {
           {provider?.description}
           {query.data ? ` · ${total.toLocaleString()} games here` : ''}
         </p>
+        {provider?.capabilities.playerFilter ? (
+          <div className="mt-2 flex gap-1.5">
+            <input
+              value={player}
+              onChange={(event) => setPlayer(event.target.value)}
+              placeholder="Exact Lichess username"
+              aria-label="Lichess player"
+              className="h-8 min-w-0 flex-1 rounded-[4px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
+            />
+            <select
+              value={playerColor}
+              onChange={(event) => setPlayerColor(event.target.value as 'w' | 'b')}
+              aria-label="Player colour"
+              className="h-8 rounded-[4px] border border-line bg-surface-inset px-2 text-xs text-primary"
+            >
+              <option value="w">as White</option>
+              <option value="b">as Black</option>
+            </select>
+          </div>
+        ) : null}
       </div>
 
       {filtersOpen ? (
@@ -253,7 +270,7 @@ export function ExplorerPanel() {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[330px] border-collapse text-[10.5px]">
+              <table className="w-full min-w-[650px] border-collapse text-[10.5px]">
                 <thead>
                   <tr className="border-b border-line-subtle text-left text-[9.5px] uppercase tracking-wide text-tertiary">
                     <th className="w-6 px-1.5 py-1.5" />
@@ -264,7 +281,11 @@ export function ExplorerPanel() {
                       <th className="px-1.5 py-1.5 text-right font-medium">Recent</th>
                     ) : null}
                     <th className="px-1.5 py-1.5 text-right font-medium">Score</th>
+                    <th className="px-1.5 py-1.5 text-right font-medium">W</th>
+                    <th className="px-1.5 py-1.5 text-right font-medium">D</th>
+                    <th className="px-1.5 py-1.5 text-right font-medium">B</th>
                     <th className="px-1.5 py-1.5 text-right font-medium">Elo</th>
+                    <th className="px-1.5 py-1.5 font-medium">Opening</th>
                     <th className="px-1.5 py-1.5 font-medium">Mine</th>
                   </tr>
                 </thead>
@@ -284,6 +305,33 @@ export function ExplorerPanel() {
             </div>
 
             {compared.length >= 2 ? <Comparison entries={compared} /> : null}
+
+            {(query.data?.topGames?.length ?? 0) > 0 ? (
+              <section className="border-t border-line-subtle">
+                <h3 className="px-2.5 py-2 text-[10px] font-semibold uppercase tracking-wide text-tertiary">
+                  {provider?.id === 'lichess-player' ? 'Recent games' : 'Model games'}
+                </h3>
+                <div className="divide-y divide-line-subtle">
+                  {query.data?.topGames?.slice(0, 8).map((game) => (
+                    <a
+                      key={game.id}
+                      href={game.url}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 px-2.5 py-2 hover:bg-surface-2"
+                    >
+                      <span className="truncate text-xs text-primary">
+                        {game.white} – {game.black}
+                      </span>
+                      <span className="text-xs text-secondary tabular">{game.result}</span>
+                      <span className="truncate text-[10px] text-tertiary">
+                        {[game.event, game.year].filter(Boolean).join(' · ')}
+                      </span>
+                    </a>
+                  ))}
+                </div>
+              </section>
+            ) : null}
 
             <PositionContext context={context.data} />
 
@@ -363,8 +411,15 @@ function Row({
       <td className="px-1.5 py-1.5 text-right text-secondary tabular">
         {Math.round(entry.score * 100)}%
       </td>
+      <td className="px-1.5 py-1.5 text-right text-secondary tabular">{entry.database.white}</td>
+      <td className="px-1.5 py-1.5 text-right text-secondary tabular">{entry.database.draws}</td>
+      <td className="px-1.5 py-1.5 text-right text-secondary tabular">{entry.database.black}</td>
       <td className="px-1.5 py-1.5 text-right text-secondary tabular">
         {entry.database.averageRating ?? '—'}
+      </td>
+      <td className="max-w-[150px] truncate px-1.5 py-1.5 text-tertiary">
+        {[entry.database.opening?.eco, entry.database.opening?.name].filter(Boolean).join(' ') ||
+          '—'}
       </td>
       <td className="px-1.5 py-1.5 text-[10px] text-tertiary">
         {entry.repertoireRole
