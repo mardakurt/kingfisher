@@ -118,23 +118,50 @@ test('repertoire and training stale edits offer one shared resolution vocabulary
   await second.getByRole('button', { name: 'Save mine as copy' }).click();
   await expect(second.getByText(/Saved this tab's position/)).toBeVisible();
 
+  /*
+    A fresh document before capturing, so the training half does not depend on
+    the debounced draft of the repertoire half having been restored. Reading
+    the board from wherever a previous section left it is how this test fails
+    on a slower machine and nowhere else.
+  */
   await page.goto('/analysis');
+  await ready(page);
+  await page.getByRole('button', { name: 'New analysis' }).click();
   await page.getByRole('button', { name: 'Document actions' }).click();
   await page.getByRole('menuitem', { name: 'Create training position…' }).click();
   const capture = page.getByRole('dialog', { name: 'Create training position' });
   await capture
     .getByRole('grid', { name: 'Chessboard' })
-    .getByRole('gridcell', { name: /^e7,/ })
+    .getByRole('gridcell', { name: /^e2,/ })
     .click();
   await capture
     .getByRole('grid', { name: 'Chessboard' })
-    .getByRole('gridcell', { name: /^e5,/ })
+    .getByRole('gridcell', { name: /^e4,/ })
     .click();
+  // The answer has to have registered before the item is created; asserting it
+  // here turns "the board click did not take" into an immediate, legible
+  // failure instead of a missing button two navigations later.
+  await expect(capture.getByRole('button', { name: 'Remove e4' })).toBeVisible();
   await capture.getByRole('button', { name: 'Create item' }).click();
+  /*
+    Wait for the write, not for the click. Navigating straight after the button
+    left a slower machine loading /training before the item had committed, and
+    the authoring editor there is only rendered once an item is selected — so
+    the failure looked like a missing button rather than a race.
+  */
+  await expect(capture).toBeHidden();
+  await expect(page.getByText(/Training position created/)).toBeVisible({ timeout: 30_000 });
+
   await page.goto('/training');
   await second.goto('/training');
   await ready(page);
   await ready(second);
+  await expect(page.getByRole('button', { name: 'Edit', exact: true })).toBeVisible({
+    timeout: 30_000,
+  });
+  await expect(second.getByRole('button', { name: 'Edit', exact: true })).toBeVisible({
+    timeout: 30_000,
+  });
 
   await page.getByRole('button', { name: 'Edit', exact: true }).click();
   await page.getByLabel('Prompt').fill('Edited in first tab');
