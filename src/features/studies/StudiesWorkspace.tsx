@@ -49,6 +49,7 @@ import { useUi } from '@/stores/ui-store';
 
 import { exportStudyPgn } from './export';
 import { NavButton } from '@/features/shell/NavButton';
+import { ChapterReferences } from './ChapterReferences';
 
 type Prompt =
   | { readonly kind: 'create-study' }
@@ -393,7 +394,11 @@ export function StudiesWorkspace() {
                   />
                 </div>
               </section>
-              <WorkspaceToolDock workspace="studies" />
+              <WorkspaceToolDock
+                workspace="studies"
+                contextLabel="References"
+                contextPanel={<ChapterReferences chapter={chapter} />}
+              />
             </div>
           ) : (
             <EmptyState

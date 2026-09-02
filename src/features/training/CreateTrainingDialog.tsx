@@ -9,7 +9,11 @@ import { Dialog } from '@/components/ui/Dialog';
 import { Segmented } from '@/components/ui/Tabs';
 import { useAnalysisPosition } from '@/features/analysis/useAnalysisPosition';
 import { AnswerBoard, type AcceptedMove } from './AnswerBoard';
-import { invalidateTraining, useRepertoiresAtPosition } from '@/features/persistence/queries';
+import {
+  invalidateReferences,
+  invalidateTraining,
+  useRepertoiresAtPosition,
+} from '@/features/persistence/queries';
 import {
   ANSWER_SOURCE_LABEL,
   EVALUATION_BANDS,
@@ -38,6 +42,8 @@ export function CreateTrainingDialog() {
 function CreateTrainingForm() {
   const queryClient = useQueryClient();
   const setOpen = useUi((state) => state.setTrainingCaptureOpen);
+  const referenceChapterId = useUi((state) => state.trainingReferenceChapterId);
+  const setReferenceChapterId = useUi((state) => state.setTrainingReferenceChapterId);
   const notify = useUi((state) => state.notify);
   const document = useAnalysis((state) => state.document);
   const { node, position, currentId } = useAnalysisPosition();
@@ -123,9 +129,20 @@ function CreateTrainingForm() {
           nodeId: currentId,
         },
       });
+      if (referenceChapterId) {
+        const repositories = await getRepositories();
+        await repositories.references.create({
+          chapterId: referenceChapterId,
+          kind: 'training-item',
+          targetId: item.id,
+          label: item.prompt,
+        });
+        invalidateReferences(queryClient, referenceChapterId);
+      }
       invalidateTraining(queryClient);
       notify({ tone: 'success', message: `Training position created: ${item.prompt}` });
       setOpen(false);
+      setReferenceChapterId(null);
     } catch (failure) {
       setError(
         failure instanceof Error ? failure.message : 'The training item could not be saved.',
@@ -137,13 +154,23 @@ function CreateTrainingForm() {
   return (
     <Dialog
       open
-      onClose={() => (busy ? undefined : setOpen(false))}
+      onClose={() => {
+        if (busy) return;
+        setReferenceChapterId(null);
+        setOpen(false);
+      }}
       title="Create training position"
       description="The position and source link are stored exactly as they are now. Answers remain user-authored evidence."
       width="w-[620px]"
       footer={
         <>
-          <Button onClick={() => setOpen(false)} disabled={busy}>
+          <Button
+            onClick={() => {
+              setReferenceChapterId(null);
+              setOpen(false);
+            }}
+            disabled={busy}
+          >
             Cancel
           </Button>
           <Button variant="accent" onClick={() => void submit()} disabled={busy}>
