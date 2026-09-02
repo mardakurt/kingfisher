@@ -24,6 +24,7 @@ import {
   type ExplorerQuery,
   type ExplorerResult,
 } from '../types';
+import { CompanionError } from '@/companion/client';
 import { companionClient } from '@/companion/session';
 
 interface RawMove {
@@ -109,15 +110,28 @@ export class CompanionSqliteProvider implements ChessDatabaseProvider {
       throw new DatabaseError(
         'The companion is not connected.',
         'Start it with `npm run companion` and pair it in Settings → Companion.',
+        'companion-offline',
       );
     }
     if (signal?.aborted) throw new DOMException('Cancelled', 'AbortError');
 
-    const raw = await client.explore<RawResult>(
-      this.key,
-      positionKey(query.fen),
-      query.limit ?? 20,
-    );
+    /*
+      Translated rather than propagated. A `CompanionError` reaching the panel
+      loses its state and its remedy, because the panel reads `DatabaseError`;
+      the user would see "the companion is not reachable" with no hint that
+      starting it is the fix.
+    */
+    let raw: RawResult;
+    try {
+      raw = await client.explore<RawResult>(this.key, positionKey(query.fen), query.limit ?? 20);
+    } catch (error) {
+      if (error instanceof DOMException) throw error;
+      throw new DatabaseError(
+        error instanceof Error ? error.message : 'The companion could not answer.',
+        error instanceof CompanionError ? error.remedy : undefined,
+        'companion-offline',
+      );
+    }
 
     const parsedTurn = query.fen.split(' ')[1] === 'b' ? 'b' : 'w';
     const moves: DatabaseMove[] = raw.moves.map((move) => {

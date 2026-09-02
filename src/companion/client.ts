@@ -14,6 +14,8 @@
  * Kingfisher could hand it to any other page too.
  */
 
+import { withTimeout } from '@/database/retry';
+
 export interface CompanionConfig {
   readonly url: string;
   readonly token: string;
@@ -38,6 +40,9 @@ export interface CompanionStatus {
   readonly databases: readonly CompanionDatabaseEntry[];
   readonly sessions: readonly { readonly id: string; readonly engine: string }[];
 }
+
+/** Generous: a position query over a hundred thousand games is real work. */
+const REQUEST_TIMEOUT_MS = 20_000;
 
 export class CompanionError extends Error {
   constructor(
@@ -78,12 +83,20 @@ export class CompanionClient {
           ...(body === undefined ? {} : { 'content-type': 'application/json' }),
         },
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-        ...(signal ? { signal } : {}),
+        /*
+          A deadline as well as the caller's signal. Loopback usually fails
+          fast, but a companion that has wedged rather than exited accepts the
+          connection and never answers — and with no timeout that request never
+          settles and the panel waits forever.
+        */
+        signal: withTimeout(signal, REQUEST_TIMEOUT_MS),
       });
     } catch (error) {
-      if (error instanceof DOMException && error.name === 'AbortError') throw error;
+      if (signal?.aborted) throw error;
       throw new CompanionError(
-        'The companion is not reachable.',
+        error instanceof DOMException && error.name === 'TimeoutError'
+          ? 'The companion accepted the request but did not answer.'
+          : 'The companion is not reachable.',
         'Start it with `npm run companion`, then check the address in Settings → Companion.',
       );
     }

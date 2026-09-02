@@ -481,8 +481,13 @@ function CompanionSection() {
       <div>
         <h3 className="text-xs text-primary">Local companion</h3>
         <p className="mt-1 text-2xs leading-relaxed text-tertiary">
-          Optional. It runs native engines, a SQLite database and local tablebases — the three
-          things a browser cannot. Everything else in Kingfisher works without it.
+          {/*
+            It does not serve tablebases and never has: there is no tablebase
+            route in the companion, and Syzygy evidence comes from the separate
+            Lichess provider. The claim was left over from a plan that changed.
+          */}
+          Optional. It runs native engines and SQLite collections — the two things a browser cannot.
+          Everything else in Kingfisher works without it.
         </p>
         <p className="mt-2 rounded-[4px] border border-line bg-surface-inset px-2.5 py-2 font-mono text-[10.5px] text-secondary">
           npm run companion
