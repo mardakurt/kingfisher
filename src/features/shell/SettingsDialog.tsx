@@ -39,7 +39,18 @@ import {
   testLichessAccount,
 } from '@/database/providers/lichess-auth';
 import { useDatabaseProviders } from '@/database/use-database-providers';
-import type { ChessDatabaseProvider } from '@/database/types';
+import { lastFailures } from '@/components/ErrorBoundary';
+import {
+  repairIntegrity,
+  repairableIssues,
+  scanIntegrity,
+  type IntegrityReport,
+} from '@/persistence/integrity';
+import { useWorkspaceLayout } from '@/stores/workspace-layout-store';
+import { APP_VERSION } from '@/lib/version';
+
+import { buildDiagnosticReport } from './diagnostic-report';
+import type { ChessDatabaseProvider, ProviderHealth } from '@/database/types';
 import { engineDefinitions } from '@/engine/registry';
 import { useCompanionStatus } from '@/companion/useCompanion';
 import { cn } from '@/lib/cn';
@@ -1129,7 +1140,271 @@ function DiagnosticsSection() {
           ok={Boolean(assistantBaseUrl && assistantModel)}
         />
       </DiagnosticGroup>
+
+      <IntegritySection />
+      <RecoveryActions />
+      <CopyReport />
     </div>
+  );
+}
+
+/**
+ * The integrity scan.
+ *
+ * Scanned on request rather than on open: it reads every record, and a
+ * diagnostics tab that stalls for a second on a large collection is a tab
+ * people stop opening.
+ */
+function IntegritySection() {
+  const [report, setReport] = useState<IntegrityReport | null>(null);
+  const [busy, setBusy] = useState<'scan' | 'repair' | null>(null);
+  const notify = useUi((state) => state.notify);
+  const client = useQueryClient();
+
+  const scan = async () => {
+    setBusy('scan');
+    try {
+      const repositories = await getRepositories();
+      setReport(await scanIntegrity(repositories.raw));
+    } catch (error) {
+      notify({
+        tone: 'error',
+        message: 'The integrity scan could not run.',
+        detail: error instanceof Error ? error.message : undefined,
+      });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const repair = async () => {
+    if (!report) return;
+    setBusy('repair');
+    try {
+      const repositories = await getRepositories();
+      const result = await repairIntegrity(repositories.raw, report.issues);
+      const rescanned = await scanIntegrity(repositories.raw);
+      setReport(rescanned);
+      // Anything the repair touched is now stale in the query cache.
+      await client.invalidateQueries();
+      notify({
+        tone: 'success',
+        message:
+          `Removed ${result.removed} unreachable record${result.removed === 1 ? '' : 's'}` +
+          `${result.renumbered ? `, renumbered ${result.renumbered} chapter(s)` : ''}.`,
+      });
+    } catch (error) {
+      notify({
+        tone: 'error',
+        message: 'The repair did not complete. Nothing was changed.',
+        detail: error instanceof Error ? error.message : undefined,
+      });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const repairable = report ? repairableIssues(report) : [];
+
+  return (
+    <DiagnosticGroup title="Data integrity">
+      <div className="flex flex-wrap items-center gap-2 py-2">
+        <Button size="sm" onClick={() => void scan()} disabled={busy !== null}>
+          {busy === 'scan' ? 'Scanning…' : 'Run integrity scan'}
+        </Button>
+        {repairable.length > 0 && (
+          <Button size="sm" variant="accent" onClick={() => void repair()} disabled={busy !== null}>
+            {busy === 'repair' ? 'Repairing…' : `Repair ${repairable.length} safe issue(s)`}
+          </Button>
+        )}
+        {report && (
+          <span className="text-[10px] text-tertiary tabular">
+            {Object.values(report.counts)
+              .reduce((sum, value) => sum + value, 0)
+              .toLocaleString()}{' '}
+            records · {report.durationMs} ms
+          </span>
+        )}
+      </div>
+      {report && report.issues.length === 0 && (
+        <p className="pb-2 text-[10px] text-positive">Healthy. Every stored reference resolves.</p>
+      )}
+      {report?.issues.map((issue) => (
+        <div key={`${issue.store}-${issue.title}`} className="border-t border-line-subtle py-2">
+          <p className="text-xs text-primary">{issue.title}</p>
+          <p className="mt-0.5 text-[10px] leading-relaxed text-tertiary">{issue.detail}</p>
+          <p className="mt-1 text-[10px] text-tertiary">
+            <span className="uppercase tracking-wide text-caution">{issue.category}</span>
+            {issue.repair ? ` · ${issue.repair}` : ''}
+            {issue.repairable ? '' : ' · not repaired automatically'}
+          </p>
+        </div>
+      ))}
+    </DiagnosticGroup>
+  );
+}
+
+/**
+ * Targeted recovery, rather than one button that clears everything.
+ *
+ * Each of these fixes a specific stuck subsystem and loses nothing else, so a
+ * user troubleshooting a dead engine never has to reach for something that
+ * would also take their layout or their pairing with it.
+ */
+function RecoveryActions() {
+  const shutdown = useEngine((state) => state.shutdown);
+  const notify = useUi((state) => state.notify);
+  const client = useQueryClient();
+  const companionStatus = useCompanionStatus();
+
+  return (
+    <DiagnosticGroup title="Recovery">
+      <div className="flex flex-wrap gap-2 py-2">
+        <Button
+          size="sm"
+          onClick={() => {
+            shutdown();
+            notify({
+              tone: 'info',
+              message: 'Engines stopped. They restart on the next analysis.',
+            });
+          }}
+        >
+          Restart engines
+        </Button>
+        <Button
+          size="sm"
+          onClick={() => {
+            void companionStatus.refetch();
+            notify({ tone: 'info', message: 'Reconnecting to the companion…' });
+          }}
+        >
+          Reconnect companion
+        </Button>
+        <Button
+          size="sm"
+          onClick={() => {
+            // Provider results only. Nothing stored is touched.
+            void client.invalidateQueries({ queryKey: ['explorer'] });
+            void client.invalidateQueries({ queryKey: ['provider-health'] });
+            void client.invalidateQueries({ queryKey: ['tablebase'] });
+            notify({ tone: 'info', message: 'Cached provider results cleared.' });
+          }}
+        >
+          Clear provider cache
+        </Button>
+        <Button
+          size="sm"
+          onClick={() => {
+            useWorkspaceLayout.setState({
+              sidebarCollapsed: false,
+              toolDockCollapsed: false,
+              toolDockWidth: 420,
+              preset: 'analysis',
+            });
+            notify({ tone: 'info', message: 'Layout reset. Board and data are untouched.' });
+          }}
+        >
+          Reset layout
+        </Button>
+      </div>
+    </DiagnosticGroup>
+  );
+}
+
+function CopyReport() {
+  const [copied, setCopied] = useState(false);
+  const notify = useUi((state) => state.notify);
+  const providers = useDatabaseProviders();
+  const companion = useCompanionStatus();
+  const primary = useEngine((state) => state.primary);
+  const client = useQueryClient();
+
+  const copy = async () => {
+    try {
+      const preferences = usePreferences.getState();
+      const repositories = await getRepositories();
+      const integrity = await scanIntegrity(repositories.raw);
+      const estimate = await navigator.storage?.estimate?.().catch(() => undefined);
+
+      const report = buildDiagnosticReport(
+        {
+          appVersion: APP_VERSION,
+          userAgent: navigator.userAgent,
+          language: navigator.language,
+          viewport: { width: window.innerWidth, height: window.innerHeight },
+          crossOriginIsolated: window.crossOriginIsolated,
+          storage: {
+            indexedDb: typeof indexedDB === 'undefined' ? 'unavailable' : 'available',
+            ...(estimate?.usage !== undefined ? { usageBytes: estimate.usage } : {}),
+            ...(estimate?.quota !== undefined ? { quotaBytes: estimate.quota } : {}),
+            ...((await navigator.storage?.persisted?.().catch(() => undefined)) !== undefined
+              ? { persisted: await navigator.storage.persisted() }
+              : {}),
+          },
+          providers: providers.map((provider) => ({
+            id: provider.id,
+            name: provider.name,
+            health: client.getQueryData<ProviderHealth>(['provider-health', provider.id]) ?? null,
+          })),
+          engines: engineDefinitions().map((engine) => ({
+            id: engine.id,
+            name: engine.name,
+            transport: engine.transport,
+            status: primary.engineId === engine.id ? primary.status : 'not started',
+          })),
+          companion: companion.data
+            ? {
+                state: 'online',
+                engines: companion.data.engines.length,
+                databases: companion.data.databases.length,
+              }
+            : companion.isError
+              ? { state: 'offline', error: companion.error.message }
+              : { state: 'not-paired' },
+          secrets: {
+            lichessToken: preferences.lichessToken.length > 0,
+            companionToken: preferences.companionToken.length > 0,
+            assistantApiKey: preferences.assistantApiKey.length > 0,
+          },
+          assistant: {
+            configured: Boolean(preferences.assistantBaseUrl && preferences.assistantModel),
+            ...(preferences.assistantModel ? { model: preferences.assistantModel } : {}),
+          },
+          integrity,
+          failures: lastFailures,
+          counts: integrity.counts,
+        },
+        // Passed so a secret that leaked into an error message is caught even
+        // though no field above ever reads one.
+        [preferences.lichessToken, preferences.companionToken, preferences.assistantApiKey].filter(
+          (value) => value.length > 0,
+        ),
+      );
+
+      await navigator.clipboard.writeText(report);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch (error) {
+      notify({
+        tone: 'error',
+        message: 'The report could not be copied.',
+        detail: error instanceof Error ? error.message : undefined,
+      });
+    }
+  };
+
+  return (
+    <DiagnosticGroup title="Support">
+      <div className="flex flex-wrap items-center gap-2 py-2">
+        <Button size="sm" variant="accent" onClick={() => void copy()}>
+          {copied ? 'Copied' : 'Copy diagnostic report'}
+        </Button>
+        <span className="text-[10px] leading-relaxed text-tertiary">
+          Plain text for a bug report. Contains no games, notes, tokens or keys.
+        </span>
+      </div>
+    </DiagnosticGroup>
   );
 }
 
