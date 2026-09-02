@@ -17,9 +17,6 @@ import { create } from 'zustand';
  * same kind of question and are read together anyway. Eight labels did not fit
  * a 430px panel without touching each other.
  */
-export type RightPanelTab = 'engine' | 'explorer' | 'position' | 'assistant' | 'notes' | 'game';
-export type WorkspacePanelTab = 'moves' | RightPanelTab;
-export type BottomPanelTab = 'moves' | 'headers';
 
 /** Where a move's context menu was summoned from, in viewport coordinates. */
 export interface MoveMenuTarget {
@@ -56,9 +53,6 @@ interface UiState {
   /** The move whose context menu is open, with where to draw it. */
   moveMenu: MoveMenuTarget | null;
   sidebarOpen: boolean;
-  rightTab: RightPanelTab;
-  workspaceTab: WorkspacePanelTab;
-  bottomTab: BottomPanelTab;
   notices: Notice[];
 
   setCommandPaletteOpen(open: boolean): void;
@@ -74,9 +68,6 @@ interface UiState {
   setCommentingNodeId(nodeId: string | null): void;
   setMoveMenu(target: MoveMenuTarget | null): void;
   setSidebarOpen(open: boolean): void;
-  setRightTab(tab: RightPanelTab): void;
-  setWorkspaceTab(tab: WorkspacePanelTab): void;
-  setBottomTab(tab: BottomPanelTab): void;
   notify(notice: Omit<Notice, 'id'>): void;
   dismiss(id: string): void;
 }
@@ -96,9 +87,6 @@ export const useUi = create<UiState>((set) => ({
   commentingNodeId: null,
   moveMenu: null,
   sidebarOpen: false,
-  rightTab: 'engine',
-  workspaceTab: 'moves',
-  bottomTab: 'moves',
   notices: [],
 
   setCommandPaletteOpen: (commandPaletteOpen) => set({ commandPaletteOpen }),
@@ -114,9 +102,6 @@ export const useUi = create<UiState>((set) => ({
   setCommentingNodeId: (commentingNodeId) => set({ commentingNodeId }),
   setMoveMenu: (moveMenu) => set({ moveMenu }),
   setSidebarOpen: (sidebarOpen) => set({ sidebarOpen }),
-  setRightTab: (rightTab) => set({ rightTab }),
-  setWorkspaceTab: (workspaceTab) => set({ workspaceTab }),
-  setBottomTab: (bottomTab) => set({ bottomTab }),
 
   notify: (notice) => {
     const id = `notice-${++noticeId}`;

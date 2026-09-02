@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 import { START_FEN } from '@/chess/fen';
 import { BOARD_THEMES, boardTheme } from '@/features/board/themes';
@@ -15,6 +15,7 @@ import { engineDefinitions } from '@/engine/registry';
 import { useEngine } from '@/stores/engine-store';
 import { usePreferences } from '@/stores/preferences-store';
 import { useUi } from '@/stores/ui-store';
+import { showTool } from '@/features/workspace/select-tool';
 
 export interface Command {
   readonly id: string;
@@ -33,6 +34,9 @@ export interface Command {
  */
 export function useCommands(): readonly Command[] {
   const router = useRouter();
+  // Which workspace a "show the explorer" command lands in depends on the
+  // route the user is looking at, so the commands are rebuilt when it changes.
+  const pathname = usePathname();
 
   return useMemo(() => {
     const analysis = useAnalysis.getState;
@@ -321,7 +325,7 @@ export function useCommands(): readonly Command[] {
         keywords: 'compare second engine lc0 disagreement neural',
         run: () => {
           const { engineMultiPv, engineThreads, engineHashMb, engineLimit } = prefs();
-          ui().setRightTab('engine');
+          showTool(pathname, 'engine');
           void engine().compare(
             analysis().tree.nodes[analysis().currentId]?.fen ?? START_FEN,
             engineLimit,
@@ -350,21 +354,21 @@ export function useCommands(): readonly Command[] {
         title: 'Show position structure',
         group: 'Panels',
         keywords: 'pawn structure isolated passed open files bishop pair',
-        run: () => ui().setRightTab('position'),
+        run: () => showTool(pathname, 'features'),
       },
       {
         id: 'show-tablebase',
         title: 'Show the tablebase',
         group: 'Panels',
         keywords: 'syzygy endgame dtz proved',
-        run: () => ui().setRightTab('position'),
+        run: () => showTool(pathname, 'tablebase'),
       },
       {
         id: 'show-assistant',
         title: 'Ask the companion',
         group: 'Panels',
         keywords: 'assistant ai explain plan grounded',
-        run: () => ui().setRightTab('assistant'),
+        run: () => showTool(pathname, 'companion'),
       },
       {
         id: 'engine-multipv',
@@ -381,19 +385,19 @@ export function useCommands(): readonly Command[] {
         title: 'Show the database explorer',
         group: 'Panels',
         shortcut: 'D',
-        run: () => ui().setRightTab('explorer'),
+        run: () => showTool(pathname, 'explorer'),
       },
       {
         id: 'show-engine-panel',
         title: 'Show the engine panel',
         group: 'Panels',
-        run: () => ui().setRightTab('engine'),
+        run: () => showTool(pathname, 'engine'),
       },
       {
         id: 'show-notes',
         title: 'Show notes and annotations',
         group: 'Panels',
-        run: () => ui().setRightTab('notes'),
+        run: () => showTool(pathname, 'notes'),
       },
       {
         id: 'shortcuts',
@@ -418,5 +422,5 @@ export function useCommands(): readonly Command[] {
     ];
 
     return commands;
-  }, [router]);
+  }, [pathname, router]);
 }

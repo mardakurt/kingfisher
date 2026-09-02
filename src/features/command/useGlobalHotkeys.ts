@@ -7,6 +7,7 @@ import { useAnalysis } from '@/stores/analysis-store';
 import { useEngine } from '@/stores/engine-store';
 import { usePreferences } from '@/stores/preferences-store';
 import { useUi } from '@/stores/ui-store';
+import { showTool } from '@/features/workspace/select-tool';
 
 /** `1`–`6` annotate the current move with the six move-quality glyphs. */
 const NAG_KEYS: Record<string, number> = { '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6 };
@@ -139,7 +140,10 @@ export function useGlobalHotkeys(): void {
         return;
       }
       if (key === 'd') {
-        ui.setRightTab('explorer');
+        // Routed through the dock. This used to set `ui.rightTab`, which the
+        // tool dock replaced and nothing has read since — so the documented
+        // `D` shortcut quietly did nothing at all.
+        showTool(window.location.pathname, 'explorer');
         return;
       }
       if (key === 'p' && event.shiftKey) {
