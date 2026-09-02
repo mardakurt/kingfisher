@@ -10,6 +10,8 @@ import { LocalStudyRepository } from './study-repository';
 import { LocalTrainingRepository } from './training-repository';
 import { LocalStudyReferenceRepository } from './reference-repository';
 import { LocalAnalysisQueueRepository } from './analysis-queue-repository';
+import { LocalReviewRepository } from './review-repository';
+import { LocalTrainingSetRepository } from './training-set-repository';
 
 const fromDatabase = (database: PersistenceDatabase): AppRepositories => ({
   studies: new LocalStudyRepository(database),
@@ -21,6 +23,8 @@ const fromDatabase = (database: PersistenceDatabase): AppRepositories => ({
   profile: new LocalProfileRepository(database),
   references: new LocalStudyReferenceRepository(database),
   analysisQueue: new LocalAnalysisQueueRepository(database),
+  review: new LocalReviewRepository(database),
+  trainingSets: new LocalTrainingSetRepository(database),
   raw: database,
   close: () => database.close(),
 });

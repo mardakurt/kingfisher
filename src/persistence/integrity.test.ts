@@ -48,6 +48,9 @@ const empty: IntegrityInput = {
   references: [],
   analysisJobs: [],
   engineEvidence: [],
+  decisions: [],
+  reviewItems: [],
+  trainingSets: [],
   draft: null,
 };
 

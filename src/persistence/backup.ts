@@ -23,6 +23,9 @@ import {
   isStudyReferenceRecord,
   isAnalysisQueueJobRecord,
   isStoredEngineEvidenceRecord,
+  isDecisionRecord,
+  isReviewItemRecord,
+  isTrainingSetRecord,
 } from './validation';
 import { DATABASE_NAME, STORE_NAMES, type StoreName } from './schema/migrations';
 import type { PersistenceDatabase, PersistenceTransaction } from './indexeddb/database';
@@ -43,6 +46,9 @@ const PORTABLE_STORES = [
   STORE_NAMES.studyReferences,
   STORE_NAMES.analysisQueue,
   STORE_NAMES.engineEvidence,
+  STORE_NAMES.decisions,
+  STORE_NAMES.reviewItems,
+  STORE_NAMES.trainingSets,
 ] as const;
 
 const GAME_STORES = [STORE_NAMES.games, STORE_NAMES.gameContent, STORE_NAMES.positions] as const;
@@ -120,6 +126,14 @@ export function parseWorkspaceBackup(value: unknown): WorkspaceBackup {
       records === undefined
     )
       continue;
+    // Phase 8 stores, likewise absent from every earlier backup.
+    if (
+      (store === STORE_NAMES.decisions ||
+        store === STORE_NAMES.reviewItems ||
+        store === STORE_NAMES.trainingSets) &&
+      records === undefined
+    )
+      continue;
     if (!Array.isArray(records)) throw invalid(`The ${store} store is missing or invalid.`);
     records.forEach((record, index) => validateRecord(store, record, index));
   }
@@ -182,6 +196,9 @@ const UNIQUE_KEY: Partial<Record<StoreName, (record: Record<string, unknown>) =>
       : null,
   [STORE_NAMES.games]: (record) =>
     typeof record.fingerprint === 'string' ? record.fingerprint : null,
+  [STORE_NAMES.reviewItems]: (record) =>
+    typeof record.identityKey === 'string' ? record.identityKey : null,
+  [STORE_NAMES.trainingSets]: (record) => (typeof record.name === 'string' ? record.name : null),
   [STORE_NAMES.studyReferences]: (record) =>
     typeof record.chapterId === 'string' &&
     typeof record.kind === 'string' &&
@@ -248,6 +265,9 @@ function validateRecord(store: StoreName, value: unknown, index: number): void {
     if (store === STORE_NAMES.studyReferences) return isStudyReferenceRecord(value);
     if (store === STORE_NAMES.analysisQueue) return isAnalysisQueueJobRecord(value);
     if (store === STORE_NAMES.engineEvidence) return isStoredEngineEvidenceRecord(value);
+    if (store === STORE_NAMES.decisions) return isDecisionRecord(value);
+    if (store === STORE_NAMES.reviewItems) return isReviewItemRecord(value);
+    if (store === STORE_NAMES.trainingSets) return isTrainingSetRecord(value);
     if (store === STORE_NAMES.games) return isGameSummary(value);
     if (store === STORE_NAMES.gameContent) {
       return (

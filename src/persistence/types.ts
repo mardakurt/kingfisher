@@ -8,6 +8,8 @@ import type { RepertoireRepository } from './repositories/repertoire-repository'
 import type { TrainingRepository } from './repositories/training-repository';
 import type { StudyReferenceRepository } from './repositories/reference-repository';
 import type { AnalysisQueueRepository } from './repositories/analysis-queue-repository';
+import type { ReviewRepository } from './repositories/review-repository';
+import type { TrainingSetRepository } from './repositories/training-set-repository';
 
 export type StudyId = string;
 export type ChapterId = string;
@@ -291,6 +293,8 @@ export interface AppRepositories {
   readonly profile: ProfileRepository;
   readonly references: StudyReferenceRepository;
   readonly analysisQueue: AnalysisQueueRepository;
+  readonly review: ReviewRepository;
+  readonly trainingSets: TrainingSetRepository;
   /**
    * The underlying database, for backup and restore only.
    *

@@ -39,6 +39,9 @@ import type {
   StudyReferenceRecord,
   AnalysisQueueJobRecord,
   StoredEngineEvidenceRecord,
+  DecisionRecord,
+  ReviewItemRecord,
+  TrainingSetRecord,
 } from './domain';
 
 export type IntegrityCategory =
@@ -96,6 +99,9 @@ export async function scanIntegrity(database: PersistenceDatabase): Promise<Inte
     references,
     analysisJobs,
     engineEvidence,
+    decisions,
+    reviewItems,
+    trainingSets,
     draft,
   ] = await Promise.all([
     database.getAll<StudyRecord>(STORE_NAMES.studies),
@@ -111,6 +117,9 @@ export async function scanIntegrity(database: PersistenceDatabase): Promise<Inte
     database.getAll<StudyReferenceRecord>(STORE_NAMES.studyReferences),
     database.getAll<AnalysisQueueJobRecord>(STORE_NAMES.analysisQueue),
     database.getAll<StoredEngineEvidenceRecord>(STORE_NAMES.engineEvidence),
+    database.getAll<DecisionRecord>(STORE_NAMES.decisions),
+    database.getAll<ReviewItemRecord>(STORE_NAMES.reviewItems),
+    database.getAll<TrainingSetRecord>(STORE_NAMES.trainingSets),
     database.get<DraftRecord>(STORE_NAMES.drafts, 'active'),
   ]);
 
@@ -128,6 +137,9 @@ export async function scanIntegrity(database: PersistenceDatabase): Promise<Inte
     references,
     analysisJobs,
     engineEvidence,
+    decisions,
+    reviewItems,
+    trainingSets,
     draft: draft ?? null,
   });
 
@@ -148,6 +160,9 @@ export async function scanIntegrity(database: PersistenceDatabase): Promise<Inte
       studyReferences: references.length,
       analysisQueue: analysisJobs.length,
       engineEvidence: engineEvidence.length,
+      decisions: decisions.length,
+      reviewItems: reviewItems.length,
+      trainingSets: trainingSets.length,
     },
     durationMs: Date.now() - started,
   };
@@ -167,6 +182,9 @@ export interface IntegrityInput {
   readonly references: readonly StudyReferenceRecord[];
   readonly analysisJobs: readonly AnalysisQueueJobRecord[];
   readonly engineEvidence: readonly StoredEngineEvidenceRecord[];
+  readonly decisions: readonly DecisionRecord[];
+  readonly reviewItems: readonly ReviewItemRecord[];
+  readonly trainingSets: readonly TrainingSetRecord[];
   readonly draft: DraftRecord | null;
 }
 
@@ -427,6 +445,75 @@ export function collectIssues(input: IntegrityInput): readonly IntegrityIssue[] 
       ids: orphanEvidence.map((entry) => entry.id),
       repairable: true,
       repair: 'Remove the unreachable saved evaluations.',
+    });
+  }
+
+  // --- Improvement review --------------------------------------------------
+
+  /*
+    A decision or a review item whose source game is gone is not itself
+    broken: what the player thought about a position is still a true record of
+    what they thought, and the position is stored on the record. So only the
+    *pointer* is reported, and repair only clears the pointer — deleting the
+    thinking because the game was tidied away would be the wrong repair.
+  */
+  const decisionIds = new Set(input.decisions.map((decision) => decision.id));
+  const danglingDecisions = input.decisions.filter(
+    (decision) => decision.gameId !== undefined && !gameIds.has(decision.gameId),
+  );
+  if (danglingDecisions.length > 0) {
+    issues.push({
+      category: 'orphaned-reference',
+      title: 'Decision records pointing at deleted games',
+      detail:
+        `${danglingDecisions.length} decision record${danglingDecisions.length === 1 ? '' : 's'} ` +
+        'name a game that is no longer stored. The position and the thinking are intact.',
+      store: STORE_NAMES.decisions,
+      ids: danglingDecisions.map((decision) => decision.id),
+      repairable: false,
+      repair: 'Nothing is removed: the record is still a true note about a position.',
+    });
+  }
+
+  const brokenReviewLinks = input.reviewItems.filter(
+    (item) =>
+      (item.gameId !== undefined && !gameIds.has(item.gameId)) ||
+      (item.chapterId !== undefined && !chapterIds.has(item.chapterId)) ||
+      (item.decisionId !== undefined && !decisionIds.has(item.decisionId)) ||
+      (item.trainingItemId !== undefined && !trainingIds.has(item.trainingItemId)),
+  );
+  if (brokenReviewLinks.length > 0) {
+    issues.push({
+      category: 'orphaned-reference',
+      title: 'Review queue entries with a missing source',
+      detail:
+        `${brokenReviewLinks.length} review item${brokenReviewLinks.length === 1 ? '' : 's'} ` +
+        'point at a game, chapter, decision or training item that no longer exists.',
+      store: STORE_NAMES.reviewItems,
+      ids: brokenReviewLinks.map((item) => item.id),
+      repairable: true,
+      repair: 'Remove the queue entries whose source is gone.',
+    });
+  }
+
+  const setsWithMissingItems = input.trainingSets.filter(
+    (set) => set.kind === 'static' && set.itemIds.some((itemId) => !trainingIds.has(itemId)),
+  );
+  if (setsWithMissingItems.length > 0) {
+    const missing = setsWithMissingItems.reduce(
+      (total, set) => total + set.itemIds.filter((itemId) => !trainingIds.has(itemId)).length,
+      0,
+    );
+    issues.push({
+      category: 'orphaned-reference',
+      title: 'Training sets listing deleted items',
+      detail:
+        `${setsWithMissingItems.length} training set${setsWithMissingItems.length === 1 ? '' : 's'} ` +
+        `still list ${missing} training item${missing === 1 ? '' : 's'} that no longer exist.`,
+      store: STORE_NAMES.trainingSets,
+      ids: setsWithMissingItems.map((set) => set.id),
+      repairable: false,
+      repair: 'Open the set and remove the missing members; the set itself is fine.',
     });
   }
 

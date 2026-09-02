@@ -6,7 +6,7 @@
  * its own. Everything here is plain data: no React, no storage, no engine.
  */
 
-import type { Fen, San, Uci } from '@/chess/types';
+import type { Color, Fen, San, Uci } from '@/chess/types';
 import type { NodeId } from '@/chess/tree/types';
 import type { Score } from '@/chess/evaluation';
 import type { AnalysisLimit } from '@/engine/types';
@@ -320,6 +320,258 @@ export interface StoredEngineEvidenceRecord {
   readonly analysedAt: number;
 }
 
+// --- Improvement review ----------------------------------------------------
+
+/**
+ * What the player thought, recorded before the computer was allowed to speak.
+ *
+ * The whole point of this record is that it is written *first*. Nothing in the
+ * application may rewrite a decision after the engine has been revealed —
+ * `revealedAt` marks the moment the evidence became visible, and every field
+ * above it was authored without it. An improvement log whose entries drift
+ * toward the engine's opinion after the fact records nothing at all.
+ */
+export interface DecisionRecord {
+  readonly id: string;
+  readonly positionKey: PositionKey;
+  readonly fen: Fen;
+  readonly sideToMove: Color;
+  /** Where the position came from, when it came from something stored. */
+  readonly gameId?: string;
+  readonly chapterId?: string;
+  readonly nodeId?: NodeId;
+  /** Half-move index, so a game's decisions read in the order they happened. */
+  readonly ply?: number;
+  /** The move the player would actually play. */
+  readonly chosenUci?: Uci;
+  readonly chosenSan?: San;
+  readonly candidates: readonly DecisionCandidate[];
+  readonly estimate?: EvaluationEstimate;
+  readonly plan?: string;
+  readonly calculationNotes?: string;
+  readonly confidence?: DecisionConfidence;
+  readonly themes: readonly string[];
+  readonly createdAt: number;
+  readonly updatedAt: number;
+  /** Set once, when the player chose to see the evidence. Never cleared. */
+  readonly revealedAt?: number;
+  readonly revision: number;
+}
+
+/** One move the player actually considered, with what they thought about it. */
+export interface DecisionCandidate {
+  readonly uci: Uci;
+  readonly san: San;
+  readonly note?: string;
+  /** The line the player calculated, in SAN, as they entered it. */
+  readonly line?: readonly San[];
+  readonly estimate?: EvaluationEstimate;
+}
+
+/**
+ * The player's own assessment, before reveal.
+ *
+ * A band and an optional number, because a strong player often knows "slightly
+ * better for White" without wanting to commit to +0.35 — and sometimes wants
+ * exactly that. Both are compared against engine evidence after reveal, and
+ * the comparison is presented as a difference, never as a score.
+ */
+export interface EvaluationEstimate {
+  readonly band: EvaluationBandId;
+  /** Pawns, White's point of view, when the player gave a number. */
+  readonly pawns?: number;
+}
+
+export type EvaluationBandId =
+  'clearly-white' | 'slightly-white' | 'equal' | 'slightly-black' | 'clearly-black';
+
+export type DecisionConfidence = 'low' | 'medium' | 'high';
+
+export class StaleDecisionWriteError extends Error {
+  override readonly name = 'StaleDecisionWriteError';
+  constructor(
+    readonly current: DecisionRecord,
+    readonly attemptedRevision: number,
+  ) {
+    super('This decision record changed in another Kingfisher tab.');
+  }
+}
+
+/**
+ * A position waiting to be reviewed, or already reviewed.
+ *
+ * Critical marks live in the game tree (`NodeMeta.critical`), which is right —
+ * they belong to the analysis. But a tree is not a work queue: it cannot be
+ * filtered, counted or worked through. A review item is the queue entry, and
+ * it carries why it is there.
+ */
+export interface ReviewItemRecord {
+  readonly id: string;
+  /**
+   * Derived identity: position, source document and node.
+   *
+   * Stored rather than computed at query time so it can carry a unique index,
+   * which is what makes "suggest review candidates" idempotent.
+   */
+  readonly identityKey: string;
+  readonly positionKey: PositionKey;
+  readonly fen: Fen;
+  readonly sideToMove: Color;
+  readonly source: ReviewItemSource;
+  readonly gameId?: string;
+  readonly gameLabel?: string;
+  readonly chapterId?: string;
+  readonly nodeId?: NodeId;
+  readonly ply?: number;
+  /** The user's own category, when they marked it themselves. */
+  readonly category?: ReviewCategory;
+  readonly status: ReviewStatus;
+  /**
+   * Why this position is in the queue, as a sentence naming the facts.
+   *
+   * Set for a suggested candidate ("engine evaluation changed from +0.4 to
+   * -1.1"), absent for one the player marked by hand. Never a judgement.
+   */
+  readonly reason?: string;
+  readonly signals: readonly ReviewSignal[];
+  readonly themes: readonly string[];
+  readonly decisionId?: string;
+  readonly trainingItemId?: string;
+  readonly createdAt: number;
+  readonly reviewedAt?: number;
+  readonly revision: number;
+}
+
+export type ReviewItemSource = 'marked' | 'suggested' | 'manual';
+export type ReviewStatus = 'unreviewed' | 'reviewed' | 'converted' | 'ignored';
+
+/** The categories the game tree already uses for a critical mark. */
+export type ReviewCategory = 'opening' | 'calculation' | 'strategy' | 'endgame' | 'time-trouble';
+
+/**
+ * A factual reason a position was suggested for review.
+ *
+ * Deterministic and derived only from evidence already stored: an evaluation
+ * that moved, a best move that changed, lines that separated, a repertoire
+ * deviation, a tablebase result that flipped, or the player's own marker. None
+ * of these is a verdict on the move played, and none of them is allowed to
+ * become one — the vocabulary has no room for "blunder".
+ */
+export type ReviewSignalKind =
+  | 'evaluation-swing'
+  | 'best-move-change'
+  | 'line-separation'
+  | 'critical-marker'
+  | 'repertoire-deviation'
+  | 'tablebase-change';
+
+export interface ReviewSignal {
+  readonly kind: ReviewSignalKind;
+  /** The measured facts behind it, already formatted for display. */
+  readonly detail: string;
+}
+
+export class StaleReviewItemWriteError extends Error {
+  override readonly name = 'StaleReviewItemWriteError';
+  constructor(
+    readonly current: ReviewItemRecord,
+    readonly attemptedRevision: number,
+  ) {
+    super('This review item changed in another Kingfisher tab.');
+  }
+}
+
+/**
+ * The improvement themes Kingfisher ships with.
+ *
+ * A closed default list so summaries can be compared over months, plus
+ * user-defined tags for anything this list does not name. Nothing assigns
+ * these automatically: a theme is the player's own reading of their own
+ * mistake, and an engine score cannot supply it.
+ */
+export const IMPROVEMENT_THEMES = [
+  'calculation',
+  'missed-tactic',
+  'candidate-generation',
+  'piece-placement',
+  'trade-decision',
+  'pawn-break',
+  'king-safety',
+  'opening-knowledge',
+  'time-management',
+  'endgame-technique',
+  'evaluation-error',
+  'plan-selection',
+] as const;
+
+export type BuiltInTheme = (typeof IMPROVEMENT_THEMES)[number];
+
+export const THEME_LABEL: Record<BuiltInTheme, string> = {
+  calculation: 'Calculation',
+  'missed-tactic': 'Missed tactic',
+  'candidate-generation': 'Candidate generation',
+  'piece-placement': 'Piece placement',
+  'trade-decision': 'Trade decision',
+  'pawn-break': 'Pawn break',
+  'king-safety': 'King safety',
+  'opening-knowledge': 'Opening knowledge',
+  'time-management': 'Time management',
+  'endgame-technique': 'Endgame technique',
+  'evaluation-error': 'Evaluation error',
+  'plan-selection': 'Plan selection',
+};
+
+/** A theme id is a built-in slug or a user tag; both are plain strings. */
+export const themeLabel = (id: string): string =>
+  (THEME_LABEL as Record<string, string | undefined>)[id] ??
+  id.replace(/-/g, ' ').replace(/^./, (letter) => letter.toUpperCase());
+
+// --- Training sets ---------------------------------------------------------
+
+/**
+ * A named group of training items.
+ *
+ * Membership, never a copy: a static set holds item ids, a dynamic set holds
+ * the query that decides membership when it is opened. Duplicating a training
+ * item into a set would fork its schedule and its review history, which is
+ * exactly what a spaced-repetition system must not do.
+ */
+export interface TrainingSetRecord {
+  readonly id: string;
+  readonly name: string;
+  readonly kind: TrainingSetKind;
+  /** Static sets only. */
+  readonly itemIds: readonly TrainingItemId[];
+  /** Dynamic sets only. */
+  readonly query?: TrainingSetQuery;
+  readonly createdAt: number;
+  readonly updatedAt: number;
+  readonly revision: number;
+}
+
+export type TrainingSetKind = 'static' | 'dynamic';
+
+/** Every field is optional and every present field narrows. */
+export interface TrainingSetQuery {
+  readonly themes?: readonly string[];
+  readonly modes?: readonly TrainingMode[];
+  readonly tags?: readonly string[];
+  /** Items created within this many days. */
+  readonly withinDays?: number;
+  /** Only items whose source is a stored game of the user's. */
+  readonly fromMyGames?: boolean;
+}
+
+export class StaleTrainingSetWriteError extends Error {
+  override readonly name = 'StaleTrainingSetWriteError';
+  constructor(
+    readonly current: TrainingSetRecord,
+    readonly attemptedRevision: number,
+  ) {
+    super('This training set changed in another Kingfisher tab.');
+  }
+}
+
 // --- The user --------------------------------------------------------------
 
 /**
@@ -332,7 +584,20 @@ export interface StoredEngineEvidenceRecord {
 export interface UserProfileRecord {
   readonly id: 'me';
   readonly aliases: readonly string[];
+  /**
+   * Improvement themes the player added themselves.
+   *
+   * Stored on the profile rather than in a store of their own: a tag has no
+   * identity beyond its name, no revision worth protecting, and there are
+   * never more of them than a person can read.
+   */
+  readonly customThemes?: readonly string[];
   readonly updatedAt: number;
 }
 
-export const EMPTY_PROFILE: UserProfileRecord = { id: 'me', aliases: [], updatedAt: 0 };
+export const EMPTY_PROFILE: UserProfileRecord = {
+  id: 'me',
+  aliases: [],
+  customThemes: [],
+  updatedAt: 0,
+};

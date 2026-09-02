@@ -1,5 +1,5 @@
 export const DATABASE_NAME = 'kingfisher';
-export const DATABASE_VERSION = 7;
+export const DATABASE_VERSION = 8;
 
 export const STORE_NAMES = {
   studies: 'studies',
@@ -17,6 +17,9 @@ export const STORE_NAMES = {
   studyReferences: 'studyReferences',
   analysisQueue: 'analysisQueue',
   engineEvidence: 'engineEvidence',
+  decisions: 'decisions',
+  reviewItems: 'reviewItems',
+  trainingSets: 'trainingSets',
 } as const;
 
 export type StoreName = (typeof STORE_NAMES)[keyof typeof STORE_NAMES];
@@ -220,6 +223,49 @@ export const MIGRATIONS: readonly Migration[] = [
         { name: 'gameId', keyPath: 'gameId' },
         { name: 'positionKey', keyPath: 'positionKey' },
       ]);
+    },
+  },
+  {
+    version: 8,
+    description: 'Record what the player thought, the review queue, and training sets.',
+    apply(target) {
+      /*
+        `positionKey` is indexed on both new position-bearing stores because
+        the question the review workspace asks most is "what did I think here
+        before?", and it must not become a scan as the journal grows.
+      */
+      target.createStore(STORE_NAMES.decisions, { keyPath: 'id' }, [
+        { name: 'positionKey', keyPath: 'positionKey' },
+        { name: 'gameId', keyPath: 'gameId' },
+        { name: 'createdAt', keyPath: 'createdAt' },
+        { name: 'themes', keyPath: 'themes', multiEntry: true },
+      ]);
+      target.createStore(STORE_NAMES.reviewItems, { keyPath: 'id' }, [
+        { name: 'positionKey', keyPath: 'positionKey' },
+        { name: 'status', keyPath: 'status' },
+        { name: 'gameId', keyPath: 'gameId' },
+        { name: 'createdAt', keyPath: 'createdAt' },
+        { name: 'themes', keyPath: 'themes', multiEntry: true },
+        /*
+          One queue entry per position per source document, so re-running the
+          suggester cannot stack duplicates. A derived string rather than a
+          compound key path on purpose: IndexedDB omits a record from a
+          compound index when any component is absent, and a review item
+          created by hand has no game and no node.
+        */
+        { name: 'identityKey', keyPath: 'identityKey', unique: true },
+      ]);
+      target.createStore(STORE_NAMES.trainingSets, { keyPath: 'id' }, [
+        { name: 'name', keyPath: 'name', unique: true },
+        { name: 'createdAt', keyPath: 'createdAt' },
+      ]);
+      // Existing profiles predate user-defined themes; give them the field
+      // rather than letting every read invent an empty array.
+      target.rewrite(STORE_NAMES.profile, (record) => {
+        if (typeof record !== 'object' || record === null) return record;
+        const profile = record as Record<string, unknown>;
+        return Array.isArray(profile.customThemes) ? profile : { ...profile, customThemes: [] };
+      });
     },
   },
 ];

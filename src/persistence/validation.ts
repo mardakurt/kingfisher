@@ -11,6 +11,9 @@ import type {
   StudyReferenceRecord,
   AnalysisQueueJobRecord,
   StoredEngineEvidenceRecord,
+  DecisionRecord,
+  ReviewItemRecord,
+  TrainingSetRecord,
 } from './domain';
 import type { ChapterRecord, DraftRecord, GameRecord, GameSummary, StudyRecord } from './types';
 
@@ -204,3 +207,70 @@ export const isStoredEngineEvidenceRecord = (value: unknown): value is StoredEng
   finite(value.timeMs) &&
   array(value.pv) &&
   finite(value.analysedAt);
+
+const stringArray = (value: unknown): value is readonly string[] =>
+  Array.isArray(value) && value.every(text);
+
+const isEvaluationEstimate = (value: unknown): boolean =>
+  value === undefined ||
+  (object(value) &&
+    (value.band === 'clearly-white' ||
+      value.band === 'slightly-white' ||
+      value.band === 'equal' ||
+      value.band === 'slightly-black' ||
+      value.band === 'clearly-black') &&
+    (value.pawns === undefined || finite(value.pawns)));
+
+const isDecisionCandidate = (value: unknown): boolean =>
+  object(value) &&
+  text(value.uci) &&
+  text(value.san) &&
+  (value.note === undefined || text(value.note)) &&
+  (value.line === undefined || stringArray(value.line)) &&
+  isEvaluationEstimate(value.estimate);
+
+export const isDecisionRecord = (value: unknown): value is DecisionRecord =>
+  object(value) &&
+  text(value.id) &&
+  text(value.positionKey) &&
+  text(value.fen) &&
+  color(value.sideToMove) &&
+  array(value.candidates) &&
+  value.candidates.every(isDecisionCandidate) &&
+  isEvaluationEstimate(value.estimate) &&
+  stringArray(value.themes) &&
+  finite(value.createdAt) &&
+  finite(value.updatedAt) &&
+  finite(value.revision);
+
+const isReviewSignal = (value: unknown): boolean =>
+  object(value) && text(value.kind) && text(value.detail);
+
+export const isReviewItemRecord = (value: unknown): value is ReviewItemRecord =>
+  object(value) &&
+  text(value.id) &&
+  text(value.identityKey) &&
+  text(value.positionKey) &&
+  text(value.fen) &&
+  color(value.sideToMove) &&
+  (value.source === 'marked' || value.source === 'suggested' || value.source === 'manual') &&
+  (value.status === 'unreviewed' ||
+    value.status === 'reviewed' ||
+    value.status === 'converted' ||
+    value.status === 'ignored') &&
+  array(value.signals) &&
+  value.signals.every(isReviewSignal) &&
+  stringArray(value.themes) &&
+  finite(value.createdAt) &&
+  finite(value.revision);
+
+export const isTrainingSetRecord = (value: unknown): value is TrainingSetRecord =>
+  object(value) &&
+  text(value.id) &&
+  text(value.name) &&
+  (value.kind === 'static' || value.kind === 'dynamic') &&
+  stringArray(value.itemIds) &&
+  (value.query === undefined || object(value.query)) &&
+  finite(value.createdAt) &&
+  finite(value.updatedAt) &&
+  finite(value.revision);
