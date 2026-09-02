@@ -40,6 +40,16 @@ export interface ImportGamesOptions {
  */
 const DEFAULT_BATCH_SIZE = 100;
 
+/** Nothing was read, so nothing can be reported except that it stopped. */
+const CANCELLED_BEFORE_START: PersistentImportSummary = {
+  games: 0,
+  imported: 0,
+  duplicates: 0,
+  indexedPositions: 0,
+  issues: 0,
+  cancelled: true,
+};
+
 export async function importGames(
   source: string,
   repository: GameRepository,
@@ -47,7 +57,12 @@ export async function importGames(
 ): Promise<PersistentImportSummary> {
   options.onProgress?.({ stage: 'parsing', completed: 0, total: 0 });
   await yieldToBrowser();
-  throwIfAborted(options.signal);
+  /*
+    Cancellation is a result, not an exception — at every point, including
+    before parsing. One contract means a caller writes one accounting path
+    instead of guessing which cancellations threw and which returned.
+  */
+  if (options.signal?.aborted) return CANCELLED_BEFORE_START;
   const parsed = parsePgn(source);
   const total = parsed.games.length;
   if (total === 0) throw new Error('No games were found in that PGN.');
@@ -77,8 +92,12 @@ export async function importGames(
     await yieldToBrowser();
   };
 
+  let cancelled = false;
   for (const [index, parsedGame] of parsed.games.entries()) {
-    throwIfAborted(options.signal);
+    if (options.signal?.aborted) {
+      cancelled = true;
+      break;
+    }
 
     const game = normalizeGame(parsedGame.tree);
     firstGame ??= game;
@@ -90,6 +109,11 @@ export async function importGames(
     if (batch.length >= batchSize) await flush(index + 1);
   }
 
+  /*
+    The final flush runs even for a cancelled import. The games in it were
+    already parsed and indexed; discarding them would throw away work the user
+    has waited for, and the batch is atomic either way.
+  */
   await flush(total);
 
   options.onProgress?.({ stage: 'complete', completed: total, total });
@@ -99,6 +123,7 @@ export async function importGames(
     duplicates,
     indexedPositions,
     issues: parsed.games.reduce((sum, game) => sum + game.issues.length, 0) + parsed.issues.length,
+    cancelled,
     ...(firstGame ? { firstGame } : {}),
   };
 }
@@ -181,10 +206,6 @@ const gameResult = (value: string | undefined): GameResult =>
 const positiveNumber = (value: string | undefined): number | undefined => {
   const number = Number(value);
   return Number.isFinite(number) && number > 0 ? number : undefined;
-};
-
-const throwIfAborted = (signal?: AbortSignal): void => {
-  if (signal?.aborted) throw new DOMException('The import was cancelled.', 'AbortError');
 };
 
 interface SchedulerWithYield {

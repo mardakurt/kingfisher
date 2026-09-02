@@ -7,6 +7,7 @@ import { cn } from '@/lib/cn';
 import { documentTitle } from '@/persistence/describe';
 import { selectFen, selectSaveState, useAnalysis } from '@/stores/analysis-store';
 import { useEngine } from '@/stores/engine-store';
+import { useUi } from '@/stores/ui-store';
 
 const ENGINE_LABEL: Record<string, string> = {
   idle: 'Engine off',
@@ -23,6 +24,7 @@ export function StatusBar() {
   const document = useAnalysis((state) => state.document);
   const saveState = useAnalysis(selectSaveState);
   const status = useEngine((state) => state.primary.status);
+  const notify = useUi((state) => state.notify);
   const analysis = useEngine((state) => state.primary.analysis);
   const [copied, setCopied] = useState(false);
 
@@ -32,7 +34,11 @@ export function StatusBar() {
       setCopied(true);
       setTimeout(() => setCopied(false), 1200);
     } catch {
+      // Silently resetting the label made a denied clipboard look like a
+      // click that did not register. Every other copy in the application
+      // reports this; this one was the exception.
       setCopied(false);
+      notify({ tone: 'error', message: 'The clipboard is not available in this context.' });
     }
   };
 

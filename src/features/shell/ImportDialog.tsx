@@ -93,10 +93,17 @@ function ImportForm() {
         });
       }
 
+      /*
+        A cancelled import still added the batches that had already committed,
+        so it gets the same accounting as a finished one. Reporting nothing —
+        which is what happened while cancellation was thrown away — left the
+        user unsure whether to import the file again.
+      */
       notify({
-        tone: summary.issues > 0 ? 'info' : 'success',
-        message:
-          summary.imported === 0
+        tone: summary.cancelled ? 'info' : summary.issues > 0 ? 'info' : 'success',
+        message: summary.cancelled
+          ? `Import stopped. ${summary.imported} of ${summary.games} game(s) were added.`
+          : summary.imported === 0
             ? 'Every game in that PGN was already in your database.'
             : `${summary.imported} game${summary.imported === 1 ? '' : 's'} added to your database.`,
         detail: [
@@ -105,6 +112,9 @@ function ImportForm() {
             ? `${summary.indexedPositions.toLocaleString()} positions indexed.`
             : null,
           summary.issues > 0 ? `${summary.issues} part(s) could not be read.` : null,
+          summary.cancelled
+            ? 'Importing the same file again will skip what is already there.'
+            : null,
         ]
           .filter(Boolean)
           .join(' '),

@@ -306,10 +306,21 @@ export interface ImportProgress {
 }
 
 export interface PersistentImportSummary {
+  /** Games found in the source. With `cancelled`, more than were attempted. */
   readonly games: number;
   readonly imported: number;
   readonly duplicates: number;
   readonly indexedPositions: number;
+  /** Games or fragments the parser could not read. They were not imported. */
   readonly issues: number;
+  /**
+   * True when the user stopped the import part-way.
+   *
+   * Reported rather than thrown. Batches are committed as they go, so a
+   * cancelled import has really added games; throwing the cancellation away
+   * left the user with no idea whether any of them landed, and a second
+   * attempt looking like it had duplicated everything.
+   */
+  readonly cancelled: boolean;
   readonly firstGame?: GameRecord;
 }
