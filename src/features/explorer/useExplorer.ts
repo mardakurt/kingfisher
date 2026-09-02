@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 
 import type { Fen } from '@/chess/types';
 import { databaseProviderById } from '@/database/registry';
+import { providerRetry, retryDelayMs } from '@/database/retry';
 import type { ExplorerFilters, ExplorerResult } from '@/database/types';
 
 /**
@@ -22,7 +23,11 @@ export function useExplorer(sourceId: string, fen: Fen, filters: ExplorerFilters
     },
     // `networkMode: 'always'` comes from the client defaults, and this query is
     // the reason it is set there. See `app/providers.tsx`.
-    retry: (failureCount, error) =>
-      failureCount < 1 && !String(error.message).includes('rate limiting'),
+    //
+    // The retry policy is typed rather than matched on the message: a rejected
+    // token, a rate limit and an unreadable response are all facts that a
+    // second identical request cannot change.
+    retry: providerRetry,
+    retryDelay: (attempt, error) => retryDelayMs(error, attempt),
   });
 }

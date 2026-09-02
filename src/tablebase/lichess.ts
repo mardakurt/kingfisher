@@ -11,6 +11,7 @@
  */
 
 import { asSan, asUci, type Fen } from '@/chess/types';
+import { withTimeout } from '@/database/retry';
 
 import {
   moveRank,
@@ -89,6 +90,9 @@ export function normalize(fen: Fen, payload: ApiResponse, source: string): Table
   };
 }
 
+/** Long enough for a cold lookup, short enough that a stall becomes an error. */
+const REQUEST_TIMEOUT_MS = 8_000;
+
 export class LichessTablebaseProvider implements TablebaseProvider {
   readonly id = 'lichess-syzygy';
   readonly name = 'Lichess Syzygy';
@@ -97,7 +101,30 @@ export class LichessTablebaseProvider implements TablebaseProvider {
   async probe(fen: Fen, signal?: AbortSignal): Promise<TablebaseResult> {
     const url = new URL(ENDPOINT);
     url.searchParams.set('fen', fen);
-    const response = await fetch(url, { ...(signal ? { signal } : {}) });
+
+    /*
+      A deadline, not just the caller's signal. This request had neither a
+      timeout nor a catch: a connection that opened and then stalled — a
+      captive portal, a dropped route, a service that accepted and never
+      answered — left the promise unsettled forever, and the panel showing a
+      loading state that no error path could ever replace.
+    */
+    let response: Response;
+    try {
+      response = await fetch(url, { signal: withTimeout(signal, REQUEST_TIMEOUT_MS) });
+    } catch (error) {
+      // A cancellation by the caller is not a failure; the position changed.
+      if (signal?.aborted) throw error;
+      throw new Error(
+        error instanceof DOMException && error.name === 'TimeoutError'
+          ? 'The tablebase did not answer in time.'
+          : 'The tablebase could not be reached.',
+      );
+    }
+
+    if (response.status === 429) {
+      throw new Error('The tablebase is rate limiting this session. Wait before retrying.');
+    }
     if (!response.ok) {
       throw new Error(
         response.status === 404
@@ -105,6 +132,13 @@ export class LichessTablebaseProvider implements TablebaseProvider {
           : `The tablebase service answered ${response.status}.`,
       );
     }
-    return normalize(fen, (await response.json()) as ApiResponse, this.name);
+
+    let payload: ApiResponse;
+    try {
+      payload = (await response.json()) as ApiResponse;
+    } catch {
+      throw new Error('The tablebase returned a response Kingfisher could not read.');
+    }
+    return normalize(fen, payload, this.name);
   }
 }

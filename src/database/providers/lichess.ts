@@ -25,6 +25,7 @@ import {
   type ExplorerResult,
   type GameResult,
 } from '../types';
+import { parseRetryAfter } from '../retry';
 
 const ENDPOINT = 'https://explorer.lichess.org';
 const REQUEST_TIMEOUT_MS = 8_000;
@@ -193,6 +194,7 @@ export class LichessExplorerProvider implements ChessDatabaseProvider {
         'Lichess recommends waiting before retrying and reducing request frequency.',
         'rate-limited',
         429,
+        parseRetryAfter(response.headers.get('retry-after')),
       );
     }
     if (!response.ok) {

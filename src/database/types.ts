@@ -126,6 +126,8 @@ export class DatabaseError extends Error {
     readonly remedy?: string,
     readonly state: Exclude<ProviderHealthState, 'ready' | 'loading'> = 'error',
     readonly status?: number,
+    /** From a `Retry-After` header, when the service supplied one. */
+    readonly retryAfterMs?: number,
   ) {
     super(message);
     this.name = 'DatabaseError';

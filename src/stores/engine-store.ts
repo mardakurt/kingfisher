@@ -98,11 +98,24 @@ interface Runtime {
   starting: Promise<EngineSession | null> | null;
   /** Which engine the live session actually is, so a switch can be detected. */
   engineId: string | null;
+  /**
+   * Monotonic id for the most recent analysis request on this slot.
+   *
+   * Matching on FEN alone is not enough. `run` awaits twice before it starts a
+   * search — once to obtain a session, once to configure it — and two rapid
+   * calls interleave across those awaits: the second sets its position and
+   * starts, then the first resumes, overwrites `analysedFen` with the position
+   * the user has already left, and starts a second search on the same session.
+   * The board then showed one position and the engine another. It also matters
+   * when the user navigates away and back: the same FEN returning would
+   * otherwise let a stale, shallower snapshot land on top of a deeper one.
+   */
+  request: number;
 }
 
 const runtimes: Record<SlotId, Runtime> = {
-  primary: { session: null, handle: null, starting: null, engineId: null },
-  secondary: { session: null, handle: null, starting: null, engineId: null },
+  primary: { session: null, handle: null, starting: null, engineId: null, request: 0 },
+  secondary: { session: null, handle: null, starting: null, engineId: null, request: 0 },
 };
 
 interface EngineState {
@@ -218,14 +231,21 @@ export const useEngine = create<EngineState>((set, get) => {
     limit: AnalysisLimit,
     config: EngineConfigInput,
   ): Promise<void> => {
+    const runtime = runtimes[slot];
+    // Claimed before the first await, so a later request always outranks this
+    // one no matter which of them finishes starting first.
+    const request = (runtime.request += 1);
+
     const session = await startSession(slot, config);
     if (!session) return;
-    const runtime = runtimes[slot];
+    if (runtime.request !== request) return;
 
     runtime.handle?.stop();
     runtime.handle = null;
 
     await session.configure(config);
+    if (runtime.request !== request) return;
+
     patch(slot, {
       running: true,
       status: 'analysing',
@@ -237,6 +257,7 @@ export const useEngine = create<EngineState>((set, get) => {
     runtime.handle = session.analyse({ fen, limit }, (snapshot) => {
       // Stragglers from a search the user has already moved past are dropped,
       // per slot: the two engines finish at different times by definition.
+      if (runtime.request !== request) return;
       if (get()[slot].analysedFen !== snapshot.fen) return;
       const annotated = annotateAnalysis(snapshot);
       const next = (current: EngineSlot): EngineSlot => ({
@@ -255,6 +276,9 @@ export const useEngine = create<EngineState>((set, get) => {
 
   const teardown = (slot: SlotId) => {
     const runtime = runtimes[slot];
+    // Anything still starting is now obsolete; without this a `run` awaiting a
+    // session would resume after the teardown and revive a dead slot.
+    runtime.request += 1;
     runtime.handle?.stop();
     runtime.handle = null;
     runtime.session?.dispose();
@@ -302,6 +326,9 @@ export const useEngine = create<EngineState>((set, get) => {
       const slots: SlotId[] = slot ? [slot] : ['primary', 'secondary'];
       for (const id of slots) {
         const runtime = runtimes[id];
+        // Stopping also invalidates a request that has not started searching
+        // yet, so "Stop" cannot be undone a moment later by a slow start.
+        runtime.request += 1;
         runtime.handle?.stop();
         runtime.handle = null;
         runtime.session?.stop();

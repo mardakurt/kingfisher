@@ -11,6 +11,8 @@
  * product behaves exactly as it did before.
  */
 
+import { withTimeout } from '@/database/retry';
+
 export type AssistantMode =
   'explain' | 'plan' | 'calculate' | 'compare' | 'opening-prep' | 'review';
 
@@ -31,6 +33,9 @@ export interface ChessAssistantProvider {
   readonly name: string;
   ask(request: AssistantRequest): Promise<string>;
 }
+
+/** Generous: a cold local model can take a while to answer the first time. */
+const REQUEST_TIMEOUT_MS = 60_000;
 
 export class AssistantError extends Error {
   constructor(
@@ -77,13 +82,29 @@ export class OpenAiCompatibleProvider implements ChessAssistantProvider {
             { role: 'user', content: user },
           ],
         }),
-        ...(signal ? { signal } : {}),
+        // A deadline as well as the caller's signal. A local runner that is
+        // loading a model, or a hosted endpoint that accepts and stalls, would
+        // otherwise leave the panel waiting with no error path to reach.
+        signal: withTimeout(signal, REQUEST_TIMEOUT_MS),
       });
     } catch (error) {
-      if (error instanceof DOMException && error.name === 'AbortError') throw error;
+      if (signal?.aborted) throw error;
+      if (error instanceof DOMException && error.name === 'TimeoutError') {
+        throw new AssistantError(
+          'The assistant did not answer in time.',
+          'A local runner loading a model for the first time can exceed this; retry once it is warm.',
+        );
+      }
       throw new AssistantError(
         'The assistant endpoint could not be reached.',
         `Check the base URL in Settings → Assistant. A local runner must be started separately.`,
+      );
+    }
+
+    if (response.status === 429) {
+      throw new AssistantError(
+        'The assistant endpoint is rate limiting this session.',
+        'Wait before asking again.',
       );
     }
 
