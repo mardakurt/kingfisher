@@ -18,6 +18,8 @@ npm-debug.log*
 # reproducible from scripts/ and neither belongs in review.
 public/bench/
 .playwright-mcp/
+playwright-report/
+test-results/
 public/brandlab/
 
 # Screenshots dropped at the repository root by browser tooling. Scoped to the

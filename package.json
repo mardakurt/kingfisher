@@ -2,7 +2,7 @@
   "name": "kingfisher",
   "version": "0.1.0",
   "private": true,
-  "description": "Kingfisher \u2014 a chess research workspace for strong players.",
+  "description": "Kingfisher — a chess research workspace for strong players.",
   "scripts": {
     "dev": "next dev --port 3210",
     "build": "next build",
@@ -11,6 +11,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "npm run engine:install && playwright test",
+    "test:e2e:ui": "npm run engine:install && playwright test --ui",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "engine:install": "node scripts/install-engine.mjs",
@@ -26,6 +28,7 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^24.10.0",
     "@types/react": "^19.2.7",
