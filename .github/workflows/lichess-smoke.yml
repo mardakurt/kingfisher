@@ -1,0 +1,43 @@
+name: Lichess contract smoke
+
+on:
+  schedule:
+    - cron: '23 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  token-check:
+    runs-on: ubuntu-latest
+    outputs:
+      configured: ${{ steps.token.outputs.configured }}
+    steps:
+      - id: token
+        env:
+          KINGFISHER_LICHESS_TOKEN: ${{ secrets.KINGFISHER_LICHESS_TOKEN }}
+        run: |
+          if [ -n "$KINGFISHER_LICHESS_TOKEN" ]; then
+            echo 'configured=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'configured=false' >> "$GITHUB_OUTPUT"
+            echo 'Lichess smoke skipped: KINGFISHER_LICHESS_TOKEN is not configured.'
+          fi
+
+  authenticated-contract:
+    needs: token-check
+    if: needs.token-check.outputs.configured == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Validate authenticated Lichess response contracts
+        env:
+          KINGFISHER_LICHESS_TOKEN: ${{ secrets.KINGFISHER_LICHESS_TOKEN }}
+        run: npm run smoke:lichess
