@@ -13,6 +13,7 @@ export type WorkspaceToolId =
   | 'model-games'
   | 'personal-results'
   | 'features'
+  | 'transpositions'
   | 'tablebase'
   | 'companion'
   | 'document'

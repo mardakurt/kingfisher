@@ -15,6 +15,7 @@ import type { ProviderHealth } from '@/database/types';
 import { CompanionPanel } from '@/features/assistant/CompanionPanel';
 import { EnginePanelHost } from '@/features/engine/EnginePanelHost';
 import { ExplorerPanel } from '@/features/explorer/ExplorerPanel';
+import { TranspositionsPanel } from '@/features/explorer/TranspositionsPanel';
 import { GameInsightsPanel } from '@/features/games/GameInsightsPanel';
 import { NotesPanel } from '@/features/notes/NotesPanel';
 import { useProfile, useRepertoiresAtPosition } from '@/features/persistence/queries';
@@ -40,6 +41,7 @@ const LABELS: Record<WorkspaceToolId, string> = {
   'model-games': 'Model Games',
   'personal-results': 'Personal Results',
   features: 'Features',
+  transpositions: 'Transpositions',
   tablebase: 'Tablebase',
   companion: 'Companion',
   document: 'Context',
@@ -68,16 +70,36 @@ const ROUTE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'explorer',
     'database',
     'repertoire',
+    'transpositions',
     'features',
     'tablebase',
     'companion',
     'notes',
   ],
-  studies: ['engine', 'explorer', 'database', 'features', 'tablebase', 'companion', 'notes'],
-  repertoire: ['document', 'explorer', 'database', 'engine', 'model-games', 'features', 'notes'],
+  studies: [
+    'engine',
+    'explorer',
+    'database',
+    'transpositions',
+    'features',
+    'tablebase',
+    'companion',
+    'notes',
+  ],
+  repertoire: [
+    'document',
+    'explorer',
+    'database',
+    'transpositions',
+    'engine',
+    'model-games',
+    'features',
+    'notes',
+  ],
   openings: [
     'explorer',
     'database',
+    'transpositions',
     'engine',
     'repertoire',
     'model-games',
@@ -250,6 +272,7 @@ function ToolContent({ tool, contextPanel }: { tool: WorkspaceToolId; contextPan
   if (tool === 'model-games') return <GameInsightsPanel />;
   if (tool === 'personal-results') return <PersonalResultsPanel />;
   if (tool === 'features') return <FeaturesPanel />;
+  if (tool === 'transpositions') return <TranspositionsPanel />;
   if (tool === 'tablebase') return <TablebasePanel />;
   if (tool === 'companion') return <CompanionPanel />;
   if (tool === 'document') {

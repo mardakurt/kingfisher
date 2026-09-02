@@ -13,6 +13,7 @@ import type { ComponentType, SVGProps } from 'react';
 
 import {
   Board,
+  Clock,
   Database,
   Library,
   Notebook,
@@ -31,6 +32,13 @@ export interface NavSection {
 }
 
 export const NAV_SECTIONS: readonly NavSection[] = [
+  {
+    id: 'recent',
+    label: 'Recent',
+    href: '/recent',
+    icon: Clock,
+    hint: 'Continue where you left off, and your pinned work.',
+  },
   {
     id: 'analysis',
     label: 'Analysis',
