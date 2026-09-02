@@ -385,15 +385,42 @@ DraftRepository        the one active workspace, for reload recovery
 RepertoireRepository   canonical position knowledge and move roles
 TrainingRepository     authored items, due queue and append-only reviews
 Library repositories   model-game references and explicit personal aliases
+StudyReferenceRepo     typed chapter links to games, repertoire positions, items
+AnalysisQueueRepo      background analysis jobs and their stored engine evidence
 ```
 
-Twelve object stores are created by a versioned migration array, never by
+Fifteen object stores are created by a versioned migration array, never by
 deleting the database. Schema v3 moves trees and normalized PGN into
 `gameContent`; lists, search and explorer read only `games` summaries. Phase 3
 adds repertoires/positions, training items/reviews, model-game links and the
-explicit personal profile. Records are validated on the way out, because a
-record written by an older build is plausible and malformed data must not reach
-the board.
+explicit personal profile. Schema v4 adds chapter revisions; v5 extends
+revisions to repertoire positions and training items; v6 adds `studyReferences`
+with a unique `(chapterId, kind, targetId)` index; v7 adds `analysisQueue` and
+`engineEvidence`. Records are validated on the way out, because a record written
+by an older build is plausible and malformed data must not reach the board.
+
+### Revisions beyond chapters
+
+Phase 6 gave chapters a revision checked inside the write transaction (ADR
+0019). Phase 7 applies the same shape to the two other things a second tab can
+be editing:
+
+- **Repertoire positions.** `upsertPosition` takes an `expectedRevision` and
+  throws `StaleRepertoirePositionWriteError` — carrying the winning record —
+  when the stored revision differs. `removeMove` and `deletePosition` take the
+  revision too, and both now run inside a transaction rather than as a
+  read-modify-write.
+- **Training items.** `update` compares revisions and throws
+  `StaleTrainingItemWriteError`. Authoring fields are what the revision
+  protects; the schedule is deliberately taken from the _current_ record on
+  every accepted write, so a review graded in one tab is never erased by an
+  editor that loaded the item before it. Review history stays append-only and
+  does not advance the revision at all — grading a card is not an edit that can
+  conflict with authoring.
+
+Both surfaces reuse the chapter conflict vocabulary — **Reload latest** or
+**Save mine as copy** — because a third dialect of the same idea would be a
+third thing to get wrong.
 
 Backups are domain documents rather than raw database dumps. Every included
 record is validated before merge or replace starts, then every store is written
@@ -557,7 +584,23 @@ carry an unrelated tab along.
 
 The selected tool is the only one mounted. An inactive tool therefore issues
 no database query, opens no engine and makes no assistant call — the dock adds
-tools to a route without adding work to it.
+tools to a route without adding work to it. Phase 7 extends that from runtime
+work to bytes: Companion, Transpositions, Game insights, Features and Tablebase
+are dynamically imported, so a route that never opens them never downloads
+them. Engine, Explorer, Database and Notes stay in the route bundle because
+they are what a player opens first. A lazy panel reserves its height while it
+loads, so the dock does not resize under the cursor.
+
+The dock's `document` slot is per-route context. Studies fills it with the
+chapter **References** panel: typed links from a chapter to the model games,
+repertoire positions and training items it is about, stored as
+`studyReferences` rows rather than copies. Links are created from what is
+actually at the current position — a repertoire entry, a tagged model game, an
+existing training item, or a new training item created and linked in one step —
+because this is a chess reference system, not a wiki. Deleting a chapter or its
+study removes its references in the same transaction; a target deleted from
+elsewhere reads **Missing reference** with the label it had when it was linked,
+and the integrity scanner offers to drop the dead pointer.
 
 ---
 
@@ -629,7 +672,35 @@ The choices already made, and why:
   variable-height structure is real work and belongs with the study system,
   where trees actually get large.
 - Explorer results are cached by position for ten minutes, so walking a line
-  backwards and forwards costs nothing.
+  backwards and forwards costs nothing. The key is
+  `['explorer', sourceId, sourceVersion, fen, filters]`: `sourceVersion` comes
+  from the provider and changes when its collection does, so speed never buys a
+  stale chess statement. Imports and deletions also invalidate `['explorer']`
+  and `['transpositions']` explicitly, and autosaving a chapter invalidates the
+  derived study queries — a chapter's moves are one of the two sources of
+  stored move orders, and autosave used to change them without telling the
+  cache.
+- After an explorer result arrives, the two most-played continuations are
+  prefetched into the same cache. Two, deliberately: on a 100,000-game
+  collection, prefetching every legal move would turn one view into thirty
+  aggregations.
+- PGN parsing runs in a module Worker behind an acknowledged batch pipeline, so
+  exactly one prepared batch is ever in flight and the producer is blocked on
+  the consumer. Cancellation terminates the worker at once and resolves only
+  after the batch already being written commits. See ADR 0021.
+- The unfiltered SQLite opening aggregation is answered from a derived
+  `position_aggregates` table maintained by triggers inside the writer's
+  transaction: 0.3 ms instead of 129 ms at 100,000 games. Filtered queries still
+  read `positions JOIN games`, because an all-time total cannot answer
+  "Elo ≥ 2400". See ADR 0023.
+- Dialogs and uncommon workspace tools are dynamically imported _and_
+  conditionally mounted, so a closed dialog neither fetches nor evaluates its
+  implementation. Engine, Explorer, Database and Notes stay in the route bundle:
+  they are what a player opens first, and a loading flicker there costs more
+  than the bytes save. Lazy panels reserve their height so the dock does not
+  jump.
+- Background analysis runs one engine and yields the moment interactive
+  analysis starts. See ADR 0022.
 - Game lists read 100 indexed summaries per page. Opening a row is the boundary
   that joins its tree back in.
 - Opponent preparation is bounded at 1,000 full games and loads them in one
@@ -645,14 +716,20 @@ The choices already made, and why:
 The 1k/10k/50k measurements are in `docs/performance/phase-3-indexeddb.md`,
 from two independent runs that disagree on absolute numbers by two to three
 times and agree on every conclusion drawn from them; `scripts/bench-indexeddb.js`
-reproduces the second. The production JavaScript chunks total 1,106,437 bytes
-uncompressed across 23 files in this build; Phase 3 added no runtime dependency.
+reproduces the second. The SQLite, import, bundle and responsiveness
+before-and-after figures, together with the performance budgets and what was
+deliberately left unmeasured, are in
+`docs/performance/phase-7-speed-and-scale.md`; `npm run benchmark` reproduces
+them. The heaviest route now ships 289 kB of gzipped JavaScript, down from
+309 kB, while total emitted client JavaScript rose from 1,257 kB in 26 files to
+1,373 kB in 60 — which is what code splitting looks like when features are
+being added at the same time. No runtime dependency was added in Phase 7.
 
 ---
 
 ## Testing
 
-556 tests across 39 files, all on the parts where being wrong is expensive.
+576 tests across 46 files, all on the parts where being wrong is expensive.
 
 | Area              | Covered                                                                                                                                                                                                                           |
 | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -701,18 +778,20 @@ phases fixed — a board that did not track the selected node, tools missing fro
 a route, a provider reporting a `401` as an empty database, a chapter silently
 overwritten by another tab — are all invisible to unit tests.
 
-| Spec              | Covers                                                                                                                                                                                                                                                                                                                        |
-| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Routes and mobile | Every section reachable from the sidebar, the mobile bar and the drawer; no horizontal overflow                                                                                                                                                                                                                               |
-| Shared position   | A move in Analysis, saved to a repertoire, a PGN imported and opened from Games, explored locally                                                                                                                                                                                                                             |
-| Studies           | Chapter creation, moves, a variation, a drawn arrow, Engine and Explorer and Database inside Studies, and the annotation surviving a reload                                                                                                                                                                                   |
-| Canonical board   | Castling, en passant, promotion, two checks, orientation, and all five external piece sets                                                                                                                                                                                                                                    |
-| Training          | The dock absent before reveal and present after it                                                                                                                                                                                                                                                                            |
-| Viewport matrix   | Eleven sizes from 320×568 to 2560×1440, each square and overflow-free                                                                                                                                                                                                                                                         |
-| Lichess contract  | Token attached as `Bearer`, connection test, explorer results, and board/piece preferences persisted                                                                                                                                                                                                                          |
-| Explorer failure  | A source that cannot answer states why instead of loading forever, while a local source still answers                                                                                                                                                                                                                         |
-| Reliability       | Work surviving a reload; a stale second-tab write refused and forked; re-import adding nothing; the report carrying no token; the integrity scan finding and repairing a planted orphan; Continue reopening the right document; transpositions listing only stored orders; an engine surviving rapid navigation and a restart |
-| Viewports         | Nine routes at ten widths from 320×568 to 2560×1440, none scrolling sideways                                                                                                                                                                                                                                                  |
+| Spec              | Covers                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Routes and mobile | Every section reachable from the sidebar, the mobile bar and the drawer; no horizontal overflow                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Shared position   | A move in Analysis, saved to a repertoire, a PGN imported and opened from Games, explored locally                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Studies           | Chapter creation, moves, a variation, a drawn arrow, Engine and Explorer and Database inside Studies, and the annotation surviving a reload                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Canonical board   | Castling, en passant, promotion, two checks, orientation, and all five external piece sets                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| Training          | The dock absent before reveal and present after it                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| Viewport matrix   | Eleven sizes from 320×568 to 2560×1440, each square and overflow-free                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| Lichess contract  | Token attached as `Bearer`, connection test, explorer results, and board/piece preferences persisted                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| Explorer failure  | A source that cannot answer states why instead of loading forever, while a local source still answers                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| Reliability       | Work surviving a reload; a stale second-tab write refused and forked; re-import adding nothing; the report carrying no token; the integrity scan finding and repairing a planted orphan; Continue reopening the right document; transpositions listing only stored orders; an engine surviving rapid navigation and a restart                                                                                                                                                                                                                       |
+| Viewports         | Nine routes at ten widths from 320×568 to 2560×1440, none scrolling sideways                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| Phase 7           | A 20,000-game worker import backgrounded, kept responsive (longest main-thread gap under 500 ms) and cancelled cleanly; repertoire and training stale writes offering the same two choices; chapter references linked, opened and counted; saved filters surviving a reload; storage facts shown; the analysis queue paused, reloaded, resumed, yielding to interactive analysis and leaving real stored evidence; a 1,008-ply chapter imported, navigated, branch-switched, saved and reopened; an imported game still on the board after a reload |
+| Soak              | Eight cycles of new-analysis, moves, engine start/stop, tool switching and route switching through client-side navigation, with `Worker`, `BroadcastChannel`, `EventSource`, `setInterval` and window listeners counted before and after                                                                                                                                                                                                                                                                                                            |
 
 Every spec asserts the console produced no errors or warnings. Nothing in the
 suite touches the real Lichess API, the public tablebase, an assistant endpoint
@@ -721,13 +800,17 @@ suite that depends on them fails for reasons nobody changed.
 
 ### Scripts outside CI
 
-| Script            | Answers                                                                                     |
-| ----------------- | ------------------------------------------------------------------------------------------- |
-| `smoke:lichess`   | Does the live API still match the providers? Token from the environment only, never printed |
-| `bench:sqlite`    | SQLite import and query latency at 10k and 100k games                                       |
-| `bench:engines`   | How long each native engine takes to reach `uciok`, `readyok` and a first line              |
-| `bench:evidence`  | How long assembling and rendering a companion evidence packet takes                         |
-| `bench-indexeddb` | The Phase 3 local-database measurements                                                     |
+| Script             | Answers                                                                                     |
+| ------------------ | ------------------------------------------------------------------------------------------- |
+| `smoke:lichess`    | Does the live API still match the providers? Token from the environment only, never printed |
+| `benchmark`        | Every reproducible local suite in one run, with the environment in its output               |
+| `bench:sqlite`     | SQLite import and query latency at 10k and 100k games, both explorer paths                  |
+| `bench:pgn`        | PGN parse throughput in browser-equivalent code                                             |
+| `bench:aggregates` | Explorer aggregate lookups with a large aggregate table                                     |
+| `bench:engines`    | How long each native engine takes to reach `uciok`, `readyok` and a first line              |
+| `bench:evidence`   | How long assembling and rendering a companion evidence packet takes                         |
+| `bundle:report`    | Initial JavaScript per route, from a production build                                       |
+| `bench-indexeddb`  | The Phase 3 local-database measurements                                                     |
 
 ---
 
@@ -747,6 +830,27 @@ real engine, and a cached copy would let a broken installer pass unnoticed.
 
 No credentials are installed. The authenticated Lichess paths stay
 contract-tested against a routed network.
+
+### The scheduled Lichess contract check
+
+`.github/workflows/lichess-smoke.yml` runs `npm run smoke:lichess` against the
+real API weekly (Mondays, 06:23 UTC) and on manual dispatch. It is a separate
+workflow on purpose: ordinary CI must never depend on a third party's uptime or
+on a credential, and this check exists precisely to fail when Lichess changes
+something nobody in this repository changed.
+
+The token comes only from the `KINGFISHER_LICHESS_TOKEN` repository secret, is
+passed only as an environment variable, and is never printed — the script reads
+it from the environment and its error messages deliberately omit request
+headers.
+
+A first job decides whether the secret exists. If it does not, the run ends
+having said `Lichess smoke skipped: KINGFISHER_LICHESS_TOKEN is not configured`
+and the contract job never starts. It does not pass by pretending Lichess was
+checked. To enable it, the repository owner adds a scope-free Lichess API token
+at **Settings → Secrets and variables → Actions → New repository secret**, named
+`KINGFISHER_LICHESS_TOKEN`. If the authenticated responses stop validating, the
+contract job fails and GitHub surfaces it.
 
 ---
 

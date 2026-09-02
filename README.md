@@ -9,7 +9,7 @@ calls it analysis.
 
 ---
 
-## Status: Phase 6 — a workstation you can trust
+## Status: Phase 7 — fast enough to disappear
 
 Phase 1 built the workstation, Phase 2 made the work durable, Phase 3 turned the
 stored material into preparation, and Phase 4 gave it real engines, real artwork
@@ -20,7 +20,7 @@ tablebase, features and companion follow the position between routes through a
 shared workspace context and a single tool dock, and every route draws the same
 board through one pipeline.
 
-Phase 6 is about whether you can leave it running for an afternoon. Chapters
+Phase 6 made it something you can leave running for an afternoon. Chapters
 carry a write revision, so two tabs cannot silently overwrite each other and a
 refused write offers to fork rather than lose. The draft is written before the
 chapter, so a failed write no longer takes the session with it, and unsaved
@@ -28,6 +28,27 @@ work found on startup is offered back rather than discarded. A data-integrity
 scan reports what does not resolve and repairs only what is unambiguous.
 Diagnostics produces a report you can paste into a bug thread without leaking a
 token. Every gate runs in GitHub Actions, including the browser tests.
+
+Phase 7 is about whether it gets out of the way. The opening explorer answers
+an unfiltered question about a 100,000-game SQLite collection in 0.3 ms instead
+of 129 ms, from a derived aggregate table the writer maintains transactionally;
+filtered questions still read the source rows, because an all-time total cannot
+honestly answer "Elo ≥ 2400". PGN parsing moved into a Worker behind an
+acknowledged batch pipeline, so importing a hundred thousand games no longer
+freezes the tab — you can navigate, move pieces and watch progress while it
+runs, background it, and cancel it without losing what already committed.
+Repertoire positions and training items now carry revisions like chapters do,
+with the same two-choice conflict resolution. A study chapter can link the model
+games, repertoire positions and training items it is about, without copying
+them. Heavy feature surfaces load when opened rather than at startup, taking
+about 7% off every route's initial JavaScript. And a persistent background
+analysis queue will work through selected games with one engine, yield
+instantly to interactive analysis, survive a restart, and store nothing but
+final, factual engine answers — no accuracy score, no move labels.
+
+Every number in that paragraph is measured, reproducible and recorded with its
+before-figure in
+[`docs/performance/phase-7-speed-and-scale.md`](docs/performance/phase-7-speed-and-scale.md).
 
 Everything is stored in your browser. There is no account, no cloud and no
 sync, and the application works with the network off. An **optional** local
@@ -58,8 +79,12 @@ currently comes from the separate Lichess Syzygy provider.
 | Preparation     | Exact-player reports with side/date/rating/ECO/result filters, profile facts, transposition-aware trees with frequency, score, average Elo and recency, prepared-vs-gap comparison, and a "My games" view of your own                                              |
 | Training        | Answer on the board or by band: repertoire recall, best move, candidate moves, evaluation bands, and plans, each checked against what you recorded; due/new/learning/mature queues with deterministic SRS                                                          |
 | Backup          | Versioned JSON export; authored-work or full-game backup; validated transactional merge and replace                                                                                                                                                                |
+| Background work | Queue games for analysis with one background engine: quick / standard / deep / custom presets, every move or after move N, pause, resume, cancel, retry failed, resumable across a restart. Stores engine, score, depth, nodes, time and PV — never a move label   |
+| References      | A chapter can link the model games, repertoire positions and training items it is about. Clicking one opens it; a deleted target reads "Missing reference" and the integrity scan offers to drop it                                                                |
+| Saved filters   | Name a database filter set and get it back from a menu; recently used filter sets are remembered and named after what they select                                                                                                                                  |
+| Storage         | Estimated IndexedDB usage against the browser quota, SQLite collection sizes on disk, and counts of games, studies and training items. Estimates are called estimates, and nothing is ever deleted for you                                                         |
 | Search          | `⌘K` searches actions plus studies, chapters, games, players, repertoires, training items, model games, and tags                                                                                                                                                   |
-| Import / export | PGN and FEN in (format auto-detected), staged progress and cancellation for large files; PGN, FEN, SAN and UCI out                                                                                                                                                 |
+| Import / export | PGN and FEN in (format auto-detected) from a paste or a file, parsed in a Worker so the tab stays usable, backgroundable, cancellable without losing committed games; PGN, FEN, SAN and UCI out                                                                    |
 | Workspaces      | The same board and the same research tools in Analysis, Studies, Openings, Repertoire, Preparation and Training. Layout presets, a resizable dock, and the last tool remembered per route                                                                          |
 | Data sources    | `/databases` lists every provider with a real status — ready, authentication required, companion offline, rate limited, misconfigured — plus capabilities, game counts, measured latency and a connection test that validates the response, not just the transport |
 | Lichess         | Masters, the Lichess database and the player explorer over `explorer.lichess.org`, connected with your own scope-free token. `401`, `403`, `404`, `429`, `5xx`, timeouts and schema changes each say what actually happened                                        |
@@ -104,8 +129,10 @@ list in front of it would add a click to the most common action.
 ### Where your data lives
 
 Studies, chapters, imported game summaries/content, position indexes,
-repertoires, model-game links, training schedules/history, personal aliases and
-the active draft are stored in IndexedDB under `kingfisher`; preferences stay
+repertoires, model-game links, training schedules/history, chapter references,
+background-analysis jobs, saved engine evidence, personal aliases and the active
+draft are stored in IndexedDB under `kingfisher`; saved and recent database
+filters and preferences stay
 in `localStorage` — including your Lichess token, which is never committed,
 never logged and never included in a backup. It is scope-free and revocable
 from Lichess, which is what makes browser storage an acceptable place for it.
@@ -182,25 +209,29 @@ assistant stays disabled without affecting the rest of the workstation.
 
 ## Scripts
 
-| Command                   | Purpose                                                                         |
-| ------------------------- | ------------------------------------------------------------------------------- |
-| `npm run dev`             | Development server on port 3210                                                 |
-| `npm run build`           | Production build                                                                |
-| `npm test`                | Run the test suite                                                              |
-| `npm run test:watch`      | Tests in watch mode                                                             |
-| `npm run test:e2e`        | Playwright browser tests against a real dev server                              |
-| `npm run test:e2e:ui`     | The same suite in Playwright's interactive runner                               |
-| `npm run bench:sqlite`    | SQLite companion import and query latency (needs a running companion)           |
-| `npm run bench:engines`   | Native engine startup to `uciok`, `readyok` and a first line                    |
-| `npm run bench:evidence`  | Assembling and rendering a companion evidence packet                            |
-| `npm run smoke:lichess`   | Opt-in live check that the Lichess API still matches the providers              |
-| `npm run typecheck`       | TypeScript, no emit                                                             |
-| `npm run lint`            | ESLint                                                                          |
-| `npm run format`          | Prettier                                                                        |
-| `npm run format:check`    | Verify formatting                                                               |
-| `npm run engine:install`  | Download the Stockfish WASM builds                                              |
-| `npm run engines:install` | Install every engine for this platform (see [docs/ENGINES.md](docs/ENGINES.md)) |
-| `npm run companion`       | Start the optional local companion                                              |
+| Command                    | Purpose                                                                         |
+| -------------------------- | ------------------------------------------------------------------------------- |
+| `npm run dev`              | Development server on port 3210                                                 |
+| `npm run build`            | Production build                                                                |
+| `npm test`                 | Run the test suite                                                              |
+| `npm run test:watch`       | Tests in watch mode                                                             |
+| `npm run test:e2e`         | Playwright browser tests against a real dev server                              |
+| `npm run test:e2e:ui`      | The same suite in Playwright's interactive runner                               |
+| `npm run benchmark`        | The reproducible local benchmark group, with the environment in its output      |
+| `npm run bench:sqlite`     | SQLite companion import and query latency (needs a running companion)           |
+| `npm run bench:pgn`        | PGN parse throughput in browser-equivalent code                                 |
+| `npm run bench:aggregates` | Explorer aggregate lookups when the aggregate table is itself large             |
+| `npm run bench:engines`    | Native engine startup to `uciok`, `readyok` and a first line                    |
+| `npm run bench:evidence`   | Assembling and rendering a companion evidence packet                            |
+| `npm run bundle:report`    | Initial JavaScript per route, from a production build                           |
+| `npm run smoke:lichess`    | Opt-in live check that the Lichess API still matches the providers              |
+| `npm run typecheck`        | TypeScript, no emit                                                             |
+| `npm run lint`             | ESLint                                                                          |
+| `npm run format`           | Prettier                                                                        |
+| `npm run format:check`     | Verify formatting                                                               |
+| `npm run engine:install`   | Download the Stockfish WASM builds                                              |
+| `npm run engines:install`  | Install every engine for this platform (see [docs/ENGINES.md](docs/ENGINES.md)) |
+| `npm run companion`        | Start the optional local companion                                              |
 
 ---
 
@@ -245,6 +276,10 @@ any move for comments, glyphs, variation ordering and deletion.
   who drew it, and under what licence.
 - [`companion/README.md`](companion/README.md) — what the local companion does
   and its threat model.
+- [`docs/performance/phase-7-speed-and-scale.md`](docs/performance/phase-7-speed-and-scale.md)
+  — before-and-after measurements for opening aggregation, PGN import,
+  main-thread responsiveness and route bundles, plus the performance budgets and
+  what deliberately was not measured. `npm run benchmark` reproduces it.
 - [`docs/performance/phase-6-companion-and-engines.md`](docs/performance/phase-6-companion-and-engines.md)
   — measured SQLite import and query latency at 10k and 100k games, native
   engine startup, and evidence-packet assembly. `npm run bench:sqlite`,

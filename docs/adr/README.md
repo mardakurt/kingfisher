@@ -29,3 +29,6 @@ order taken. Superseded records stay, marked as such.
 | [0018](0018-provider-health-and-lichess-authentication.md) | Typed provider health; Lichess as an authenticated source      | Accepted |
 | [0019](0019-document-revisions-and-tab-conflicts.md)       | Chapter revisions; cross-tab conflicts detected, never merged  | Accepted |
 | [0020](0020-integrity-checks-and-safe-repair.md)           | Integrity rules state facts; repair only removes dead pointers | Accepted |
+| [0021](0021-pgn-worker-pipeline.md)                        | One PGN grammar, run in a Worker behind acknowledged batches   | Accepted |
+| [0022](0022-background-analysis-scheduling.md)             | One background engine; the foreground wins; final answers only | Accepted |
+| [0023](0023-explorer-position-aggregates.md)               | A derived aggregate table for the unfiltered explorer          | Accepted |
