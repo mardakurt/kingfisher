@@ -71,11 +71,18 @@ export function StatusBar() {
       </span>
 
       {/*
-        The toolbar's document header is hidden below `md`. On a phone this is
-        the only place that answers "what am I editing, and is it safe?", and a
-        local-first application must always be able to answer it.
+        "What am I editing, and is it safe?" — answered on every route and at
+        every width.
+
+        This used to be `md:hidden`, on the reasoning that the toolbar's
+        document header covered desktop. That header only renders in Analysis,
+        so on a desktop Studies, Repertoire or Preparation screen there was no
+        save indicator anywhere: a user editing a chapter for an hour had no
+        way at all to tell whether it was written. A local-first application
+        must always be able to answer that, so it is always here — quietly, and
+        accepting a small duplication in Analysis.
       */}
-      <span className="flex min-w-0 flex-1 items-center gap-1.5 md:hidden">
+      <span className="flex min-w-0 flex-1 items-center gap-1.5">
         <span className="min-w-0 truncate text-secondary">{documentTitle(document)}</span>
         <span
           className={cn(
