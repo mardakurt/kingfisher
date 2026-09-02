@@ -318,6 +318,7 @@ export function Chessboard({
 
   return (
     <div
+      data-chessboard
       className={cn('relative aspect-square w-full touch-none select-none', className)}
       style={themeTokens as React.CSSProperties}
     >

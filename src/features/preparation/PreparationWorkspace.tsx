@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 
@@ -9,7 +9,6 @@ import type { Fen } from '@/chess/types';
 import { Database, Search } from '@/components/icons';
 import { Button } from '@/components/ui/Button';
 import { EmptyState, Panel, PanelBody, PanelHeader } from '@/components/ui/Panel';
-import { MiniBoard } from '@/features/board/MiniBoard';
 import { useProfile, useRepertoire, useRepertoires } from '@/features/persistence/queries';
 import type { GameResult } from '@/database/types';
 import { getRepositories } from '@/persistence/repositories';
@@ -23,8 +22,9 @@ import {
   type PreparationEdge,
 } from '@/preparation';
 import { useAnalysis } from '@/stores/analysis-store';
-import { usePreferences } from '@/stores/preferences-store';
 import { NavButton } from '@/features/shell/NavButton';
+import { CanonicalBoardSurface } from '@/features/workspace/CanonicalBoardSurface';
+import { WorkspaceToolDock } from '@/features/workspace/WorkspaceToolDock';
 
 const RESULTS: readonly { id: GameResult | 'any'; label: string }[] = [
   { id: 'any', label: 'Any result' },
@@ -43,7 +43,6 @@ interface PreparationData {
 
 export function PreparationWorkspace({ initialPlayer = '' }: { readonly initialPlayer?: string }) {
   const router = useRouter();
-  const preferences = usePreferences();
   const openDocument = useAnalysis((state) => state.openDocument);
   const profile = useProfile();
   const repertoires = useRepertoires().data ?? [];
@@ -107,6 +106,22 @@ export function PreparationWorkspace({ initialPlayer = '' }: { readonly initialP
   const effectiveRepertoireId = repertoireId || matchingRepertoires[0]?.id || null;
   const repertoire = useRepertoire(effectiveRepertoireId);
   const comparison = compareWithRepertoire(node, repertoire.data?.positions ?? []);
+  const syncedPosition = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!node) return;
+    const key = `${submitted}:${effectiveKey}`;
+    if (syncedPosition.current === key) return;
+    syncedPosition.current = key;
+    openDocument({
+      tree: createTree(node.fen, { Event: `Preparation · ${submitted}`, Result: '*' }),
+      document: {
+        kind: 'untitled',
+        title: submitted ? `Preparation · ${submitted}` : 'Opponent preparation',
+      },
+      orientation: side === 'b' ? 'b' : 'w',
+    });
+  }, [effectiveKey, node, openDocument, side, submitted]);
 
   /**
    * Take an observed continuation to the board so a reply can be prepared.
@@ -185,130 +200,131 @@ export function PreparationWorkspace({ initialPlayer = '' }: { readonly initialP
         setRecentN={setRecentN}
       />
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto md:max-panes:grid-cols-[280px_minmax(360px,1fr)] md:overflow-hidden panes:grid-cols-[300px_minmax(430px,1fr)_390px]">
-        <Panel className="min-h-[200px] border-b border-line-subtle md:min-h-0 md:border-r md:border-b-0">
-          <PanelHeader>Player profile</PanelHeader>
-          <PanelBody>
-            {!submitted ? (
-              <EmptyState
-                title="Search an opponent."
-                description="Names match by normalized case and whitespace only. Add aliases explicitly when needed."
-              />
-            ) : preparation.isPending ? (
-              <p className="px-3 py-5 text-2xs text-tertiary">Building the local report…</p>
-            ) : preparation.isError ? (
-              <EmptyState title="Preparation failed." description={preparation.error.message} />
-            ) : preparation.data?.profile.games === 0 ? (
-              <EmptyState
-                title="No matching local games."
-                description="Check the exact spelling or import more games."
-              />
-            ) : (
-              <ProfilePanel profile={preparation.data!.profile} total={preparation.data!.total} />
-            )}
-          </PanelBody>
-        </Panel>
-
-        <section className="flex min-h-[500px] min-w-0 flex-col px-3 py-3 sm:px-5 sm:py-4 md:min-h-0">
-          {node ? (
-            <>
-              <div className="flex min-h-0 flex-1 items-center justify-center">
-                <MiniBoard
-                  fen={node.fen}
-                  orientation={side === 'b' ? 'b' : 'w'}
-                  theme={preferences.boardTheme}
-                  pieceSet={preferences.pieceSet}
-                  className="max-w-[min(660px,calc(100dvh-190px))] shadow-lg"
-                />
-              </div>
-              <div className="mx-auto mt-3 flex w-full max-w-[660px] items-center border-t border-line-subtle pt-2">
-                <Button
-                  disabled={history.length === 0}
-                  onClick={() => {
-                    const previous = history.at(-1);
-                    if (!previous) return;
-                    setHistory((items) => items.slice(0, -1));
-                    setCurrentKey(previous);
-                  }}
-                >
-                  Back
-                </Button>
-                <span className="ml-2 text-2xs text-tertiary tabular">
-                  {node.games} observed games at this position
-                </span>
-              </div>
-            </>
-          ) : (
-            <EmptyState
-              title="No opening tree yet."
-              description="Run a player search to build one from local games."
-            />
-          )}
-        </section>
-
-        <aside className="min-h-[380px] border-t border-line-subtle bg-surface-1 panes:min-h-0 panes:border-t-0 panes:border-l">
-          <Panel className="h-full">
-            <PanelHeader
-              actions={
-                matchingRepertoires.length ? (
-                  <select
-                    aria-label="Compare repertoire"
-                    value={effectiveRepertoireId ?? ''}
-                    onChange={(event) => setRepertoireId(event.target.value)}
-                    className="h-6 max-w-40 rounded-[3px] border border-line bg-surface-inset px-1.5 text-[10px] normal-case tracking-normal text-secondary"
-                  >
-                    {matchingRepertoires.map((entry) => (
-                      <option key={entry.id} value={entry.id}>
-                        {entry.title}
-                      </option>
-                    ))}
-                  </select>
-                ) : null
-              }
-            >
-              Opening tree
-            </PanelHeader>
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto wide:flex-row wide:overflow-hidden">
+        <div className="grid min-h-0 min-w-0 flex-1 grid-cols-1 md:max-panes:grid-cols-[280px_minmax(360px,1fr)] wide:grid-cols-[280px_minmax(360px,1fr)]">
+          <Panel className="min-h-[200px] border-b border-line-subtle md:min-h-0 md:border-r md:border-b-0">
+            <PanelHeader>Player profile</PanelHeader>
             <PanelBody>
-              {node ? (
-                <MoveTable
-                  node={node}
-                  preparedKeys={new Set(comparison.prepared.map((edge) => edge.resultingKey))}
-                  onSelect={(key) => {
-                    setHistory((items) => [...items, effectiveKey]);
-                    setCurrentKey(key);
-                  }}
-                  onPrepare={(edge) =>
-                    prepareReply(edge.resultingFen, `After ${submitted} plays ${edge.san}`)
-                  }
+              {!submitted ? (
+                <EmptyState
+                  title="Search an opponent."
+                  description="Names match by normalized case and whitespace only. Add aliases explicitly when needed."
                 />
-              ) : null}
-              {node && effectiveRepertoireId ? (
-                <section className="border-t border-line-subtle px-3 py-3">
-                  <h2 className="text-[10px] uppercase tracking-wide text-tertiary">
-                    Repertoire comparison
-                  </h2>
-                  <p className="mt-1 text-[11.5px] text-secondary">
-                    {comparison.prepared.length} observed continuation
-                    {comparison.prepared.length === 1 ? '' : 's'} prepared ·{' '}
-                    {comparison.gaps.length} gap{comparison.gaps.length === 1 ? '' : 's'}
-                  </p>
-                  {comparison.gaps.slice(0, 5).map((edge) => (
-                    <button
-                      key={edge.uci}
-                      type="button"
-                      onClick={() =>
-                        prepareReply(edge.resultingFen, `After ${submitted} plays ${edge.san}`)
-                      }
-                      className="mt-1 block w-full text-left text-2xs text-tertiary hover:text-accent"
-                    >
-                      {edge.san} · {edge.games} games · no prepared reply — prepare one
-                    </button>
-                  ))}
-                </section>
-              ) : null}
+              ) : preparation.isPending ? (
+                <p className="px-3 py-5 text-2xs text-tertiary">Building the local report…</p>
+              ) : preparation.isError ? (
+                <EmptyState title="Preparation failed." description={preparation.error.message} />
+              ) : preparation.data?.profile.games === 0 ? (
+                <EmptyState
+                  title="No matching local games."
+                  description="Check the exact spelling or import more games."
+                />
+              ) : (
+                <ProfilePanel profile={preparation.data!.profile} total={preparation.data!.total} />
+              )}
             </PanelBody>
           </Panel>
-        </aside>
+
+          <section className="flex min-h-[500px] min-w-0 flex-col px-3 py-3 sm:px-5 sm:py-4 md:min-h-0">
+            {node ? (
+              <>
+                <CanonicalBoardSurface
+                  mode="interactive"
+                  className="min-h-0 flex-1"
+                  showContext={false}
+                />
+                <div className="mx-auto mt-3 flex w-full max-w-[660px] items-center border-t border-line-subtle pt-2">
+                  <Button
+                    disabled={history.length === 0}
+                    onClick={() => {
+                      const previous = history.at(-1);
+                      if (!previous) return;
+                      setHistory((items) => items.slice(0, -1));
+                      setCurrentKey(previous);
+                    }}
+                  >
+                    Back
+                  </Button>
+                  <span className="ml-2 text-2xs text-tertiary tabular">
+                    {node.games} observed games at this position
+                  </span>
+                </div>
+              </>
+            ) : (
+              <EmptyState
+                title="No opening tree yet."
+                description="Run a player search to build one from local games."
+              />
+            )}
+          </section>
+        </div>
+        <WorkspaceToolDock
+          workspace="preparation"
+          contextLabel="Opening tree"
+          contextPanel={
+            <Panel className="h-full">
+              <PanelHeader
+                actions={
+                  matchingRepertoires.length ? (
+                    <select
+                      aria-label="Compare repertoire"
+                      value={effectiveRepertoireId ?? ''}
+                      onChange={(event) => setRepertoireId(event.target.value)}
+                      className="h-6 max-w-40 rounded-[3px] border border-line bg-surface-inset px-1.5 text-[10px] normal-case tracking-normal text-secondary"
+                    >
+                      {matchingRepertoires.map((entry) => (
+                        <option key={entry.id} value={entry.id}>
+                          {entry.title}
+                        </option>
+                      ))}
+                    </select>
+                  ) : null
+                }
+              >
+                Opening tree
+              </PanelHeader>
+              <PanelBody>
+                {node ? (
+                  <MoveTable
+                    node={node}
+                    preparedKeys={new Set(comparison.prepared.map((edge) => edge.resultingKey))}
+                    onSelect={(key) => {
+                      setHistory((items) => [...items, effectiveKey]);
+                      setCurrentKey(key);
+                    }}
+                    onPrepare={(edge) =>
+                      prepareReply(edge.resultingFen, `After ${submitted} plays ${edge.san}`)
+                    }
+                  />
+                ) : null}
+                {node && effectiveRepertoireId ? (
+                  <section className="border-t border-line-subtle px-3 py-3">
+                    <h2 className="text-[10px] uppercase tracking-wide text-tertiary">
+                      Repertoire comparison
+                    </h2>
+                    <p className="mt-1 text-[11.5px] text-secondary">
+                      {comparison.prepared.length} observed continuation
+                      {comparison.prepared.length === 1 ? '' : 's'} prepared ·{' '}
+                      {comparison.gaps.length} gap{comparison.gaps.length === 1 ? '' : 's'}
+                    </p>
+                    {comparison.gaps.slice(0, 5).map((edge) => (
+                      <button
+                        key={edge.uci}
+                        type="button"
+                        onClick={() =>
+                          prepareReply(edge.resultingFen, `After ${submitted} plays ${edge.san}`)
+                        }
+                        className="mt-1 block w-full text-left text-2xs text-tertiary hover:text-accent"
+                      >
+                        {edge.san} · {edge.games} games · no prepared reply — prepare one
+                      </button>
+                    ))}
+                  </section>
+                ) : null}
+              </PanelBody>
+            </Panel>
+          }
+        />
       </div>
     </div>
   );

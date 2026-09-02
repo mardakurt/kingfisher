@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { Plus, Target, Trash } from '@/components/icons';
@@ -27,6 +27,10 @@ import {
 } from '@/training/schedule';
 import { wasCorrect } from '@/training/answer';
 import { useUi } from '@/stores/ui-store';
+import { createTree } from '@/chess/tree/tree';
+import { useAnalysis } from '@/stores/analysis-store';
+import { useEngine } from '@/stores/engine-store';
+import { WorkspaceToolDock } from '@/features/workspace/WorkspaceToolDock';
 
 import { TrainingAnswer, type AttemptState } from './TrainingAnswer';
 import { NavButton } from '@/features/shell/NavButton';
@@ -58,6 +62,9 @@ export function TrainingWorkspace() {
   const [busy, setBusy] = useState(false);
   const [deleteItem, setDeleteItem] = useState<TrainingItemRecord | null>(null);
   const [scope, setScope] = useState<'due' | 'all'>('due');
+  const openDocument = useAnalysis((state) => state.openDocument);
+  const stopEngine = useEngine((state) => state.stop);
+  const syncedItem = useRef<string | null>(null);
 
   const items = useMemo(() => training.data ?? [], [training.data]);
   const queue = useMemo(() => orderQueue(items, now), [items, now]);
@@ -75,6 +82,20 @@ export function TrainingWorkspace() {
   // card cannot show the previous card's answer as though it were this one's.
   const result = current && attempt?.itemId === current.id ? attempt.state : null;
   const revealed = current !== null && (revealedItemId === current.id || result !== null);
+
+  useEffect(() => {
+    if (!current || syncedItem.current === current.id) return;
+    syncedItem.current = current.id;
+    // A review must never inherit a running analysis from the previous route.
+    // The evidence dock is not mounted until reveal, so no database or engine
+    // work can disclose the answer early.
+    stopEngine();
+    openDocument({
+      tree: createTree(current.fen, { Event: `Training · ${current.prompt}`, Result: '*' }),
+      document: { kind: 'untitled', title: `Training · ${current.prompt}` },
+      orientation: current.sideToMove,
+    });
+  }, [current, openDocument, stopEngine]);
 
   const show = (id: string) => {
     setSelectedId(id);
@@ -230,28 +251,56 @@ export function TrainingWorkspace() {
           )}
         </section>
 
-        <aside className="min-h-[320px] border-t border-line-subtle bg-surface-1 panes:min-h-0 panes:border-t-0 panes:border-l">
-          <Panel className="h-full">
-            <PanelHeader
-              actions={
-                current ? (
-                  <IconButton
-                    label="Delete training item"
-                    tone="danger"
-                    onClick={() => setDeleteItem(current)}
-                  >
-                    <Trash />
-                  </IconButton>
-                ) : null
-              }
-            >
-              Review details
-            </PanelHeader>
-            <PanelBody>
-              {current ? <ReviewDetails item={current} revealed={revealed} /> : null}
-            </PanelBody>
-          </Panel>
-        </aside>
+        {revealed ? (
+          <WorkspaceToolDock
+            workspace="training"
+            fill
+            contextLabel="Answer"
+            contextPanel={
+              <Panel className="h-full">
+                <PanelHeader
+                  actions={
+                    current ? (
+                      <IconButton
+                        label="Delete training item"
+                        tone="danger"
+                        onClick={() => setDeleteItem(current)}
+                      >
+                        <Trash />
+                      </IconButton>
+                    ) : null
+                  }
+                >
+                  Review details
+                </PanelHeader>
+                <PanelBody>{current ? <ReviewDetails item={current} revealed /> : null}</PanelBody>
+              </Panel>
+            }
+          />
+        ) : (
+          <aside className="min-h-[320px] border-t border-line-subtle bg-surface-1 panes:min-h-0 panes:border-t-0 panes:border-l">
+            <Panel className="h-full">
+              <PanelHeader
+                actions={
+                  current ? (
+                    <IconButton
+                      label="Delete training item"
+                      tone="danger"
+                      onClick={() => setDeleteItem(current)}
+                    >
+                      <Trash />
+                    </IconButton>
+                  ) : null
+                }
+              >
+                Review details
+              </PanelHeader>
+              <PanelBody>
+                {current ? <ReviewDetails item={current} revealed={false} /> : null}
+              </PanelBody>
+            </Panel>
+          </aside>
+        )}
       </div>
       <ConfirmDialog
         open={deleteItem !== null}

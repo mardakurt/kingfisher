@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -12,7 +12,6 @@ import { Export, Plus, Repertoire as RepertoireIcon, Target, Trash } from '@/com
 import { Button, IconButton } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState, Panel, PanelBody, PanelHeader } from '@/components/ui/Panel';
-import { MiniBoard } from '@/features/board/MiniBoard';
 import { useExplorer } from '@/features/explorer/useExplorer';
 import {
   invalidateRepertoires,
@@ -31,9 +30,10 @@ import {
 } from '@/persistence/domain';
 import type { RepertoireGap } from '@/repertoire';
 import { useAnalysis } from '@/stores/analysis-store';
-import { usePreferences } from '@/stores/preferences-store';
 import { useUi } from '@/stores/ui-store';
 import { NavButton } from '@/features/shell/NavButton';
+import { CanonicalBoardSurface } from '@/features/workspace/CanonicalBoardSurface';
+import { WorkspaceToolDock } from '@/features/workspace/WorkspaceToolDock';
 
 const ROLE_LABEL: Record<RepertoireRole, string> = {
   main: 'Main',
@@ -48,7 +48,6 @@ export function RepertoireWorkspace() {
   const notify = useUi((state) => state.notify);
   const openDocument = useAnalysis((state) => state.openDocument);
   const setTrainingCaptureOpen = useUi((state) => state.setTrainingCaptureOpen);
-  const preferences = usePreferences();
   const repertoires = useRepertoires();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedPositionId, setSelectedPositionId] = useState<string | null>(null);
@@ -65,6 +64,25 @@ export function RepertoireWorkspace() {
     positions.find((position) => position.id === selectedPositionId) ?? positions[0] ?? null;
   const metrics = useMemo(() => coverage(positions), [positions]);
   const gaps = useRepertoireGaps(repertoire.data ?? null);
+  const syncedPosition = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!current || !repertoire.data) return;
+    const key = `${repertoire.data.repertoire.id}:${current.id}`;
+    if (syncedPosition.current === key) return;
+    syncedPosition.current = key;
+    openDocument({
+      tree: createTree(current.fen, {
+        Event: repertoire.data.repertoire.title,
+        Result: '*',
+      }),
+      document: {
+        kind: 'untitled',
+        title: `${repertoire.data.repertoire.title} · repertoire position`,
+      },
+      orientation: repertoire.data.repertoire.color,
+    });
+  }, [current, openDocument, repertoire.data]);
 
   const create = async () => {
     if (!newTitle.trim()) return;
@@ -159,128 +177,133 @@ export function RepertoireWorkspace() {
         </div>
       </header>
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto md:max-panes:grid-cols-[230px_minmax(340px,1fr)] md:overflow-hidden panes:grid-cols-[250px_minmax(430px,1fr)_390px]">
-        <Panel className="min-h-[200px] border-b border-line-subtle md:min-h-0 md:border-r md:border-b-0">
-          <PanelHeader>Repertoires</PanelHeader>
-          <PanelBody>
-            {list.length === 0 ? (
-              <EmptyState
-                title="No repertoire yet."
-                description="Create one here, then add a line from Analysis. Positions reached by transposition will converge automatically."
-                action={<Button onClick={() => setCreating(true)}>Create repertoire</Button>}
-              />
-            ) : (
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto wide:flex-row wide:overflow-hidden">
+        <div className="grid min-h-0 min-w-0 flex-1 grid-cols-1 md:max-panes:grid-cols-[230px_minmax(340px,1fr)] wide:grid-cols-[230px_minmax(340px,1fr)]">
+          <Panel className="min-h-[200px] border-b border-line-subtle md:min-h-0 md:border-r md:border-b-0">
+            <PanelHeader>Repertoires</PanelHeader>
+            <PanelBody>
+              {list.length === 0 ? (
+                <EmptyState
+                  title="No repertoire yet."
+                  description="Create one here, then add a line from Analysis. Positions reached by transposition will converge automatically."
+                  action={<Button onClick={() => setCreating(true)}>Create repertoire</Button>}
+                />
+              ) : (
+                <>
+                  <div className="border-b border-line-subtle p-2">
+                    <select
+                      aria-label="Active repertoire"
+                      value={effectiveId ?? ''}
+                      onChange={(event) => {
+                        setSelectedId(event.target.value);
+                        setSelectedPositionId(null);
+                      }}
+                      className="h-8 w-full rounded-[4px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
+                    >
+                      {list.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.title} ({item.color === 'w' ? 'White' : 'Black'})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <PositionNavigator
+                    positions={positions}
+                    selectedId={current?.id ?? null}
+                    onSelect={setSelectedPositionId}
+                  />
+                </>
+              )}
+            </PanelBody>
+            {repertoire.data ? (
+              <div className="flex items-center border-t border-line-subtle px-2 py-1.5">
+                <span className="text-[10.5px] text-tertiary tabular">
+                  {metrics.totalMoves} moves · {metrics.expectedReplies} replies · max depth{' '}
+                  {metrics.maxDepth}
+                </span>
+                <IconButton
+                  className="ml-auto"
+                  label="Delete this repertoire"
+                  tone="danger"
+                  onClick={() => setDeleteOpen(true)}
+                >
+                  <Trash />
+                </IconButton>
+              </div>
+            ) : null}
+          </Panel>
+
+          <section className="flex min-h-[430px] min-w-0 flex-col px-3 py-3 sm:px-5 sm:py-4 md:min-h-0">
+            {current ? (
               <>
-                <div className="border-b border-line-subtle p-2">
-                  <select
-                    aria-label="Active repertoire"
-                    value={effectiveId ?? ''}
-                    onChange={(event) => {
-                      setSelectedId(event.target.value);
-                      setSelectedPositionId(null);
-                    }}
-                    className="h-8 w-full rounded-[4px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
-                  >
-                    {list.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.title} ({item.color === 'w' ? 'White' : 'Black'})
-                      </option>
-                    ))}
-                  </select>
+                <CanonicalBoardSurface
+                  mode="interactive"
+                  className="min-h-0 flex-1"
+                  showContext={false}
+                />
+                <div className="mx-auto mt-3 flex w-full max-w-[690px] items-center gap-2 border-t border-line-subtle pt-2">
+                  <span className="text-2xs text-tertiary tabular">Depth {current.depth}</span>
+                  <span className="truncate text-2xs text-secondary">
+                    {current.moves
+                      .map(
+                        (move) =>
+                          `${move.san} · ${move.expected ? 'Expected reply' : ROLE_LABEL[move.role]}`,
+                      )
+                      .join('   ')}
+                  </span>
+                  <span className="ml-auto shrink-0 text-2xs text-tertiary">
+                    {current.sideToMove === 'w' ? 'White' : 'Black'} to move
+                  </span>
                 </div>
-                <PositionNavigator
-                  positions={positions}
-                  selectedId={current?.id ?? null}
-                  onSelect={setSelectedPositionId}
-                />
               </>
+            ) : (
+              <EmptyState
+                title={
+                  repertoire.data ? 'This repertoire has no positions.' : 'Choose a repertoire.'
+                }
+                description={
+                  repertoire.data
+                    ? 'Open Analysis, play an opening line, then use Add to repertoire.'
+                    : 'Create a repertoire to start organising prepared moves by position.'
+                }
+              />
             )}
-          </PanelBody>
-          {repertoire.data ? (
-            <div className="flex items-center border-t border-line-subtle px-2 py-1.5">
-              <span className="text-[10.5px] text-tertiary tabular">
-                {metrics.totalMoves} moves · {metrics.expectedReplies} replies · max depth{' '}
-                {metrics.maxDepth}
-              </span>
-              <IconButton
-                className="ml-auto"
-                label="Delete this repertoire"
-                tone="danger"
-                onClick={() => setDeleteOpen(true)}
-              >
-                <Trash />
-              </IconButton>
-            </div>
-          ) : null}
-        </Panel>
-
-        <section className="flex min-h-[430px] min-w-0 flex-col px-3 py-3 sm:px-5 sm:py-4 md:min-h-0">
-          {current ? (
-            <>
-              <div className="flex min-h-0 flex-1 items-center justify-center">
-                <MiniBoard
-                  fen={current.fen}
-                  orientation={repertoire.data?.repertoire.color ?? 'w'}
-                  theme={preferences.boardTheme}
-                  pieceSet={preferences.pieceSet}
-                  className="max-w-[min(690px,calc(100dvh-132px))] shadow-lg"
+          </section>
+        </div>
+        <WorkspaceToolDock
+          workspace="repertoire"
+          contextLabel="Repertoire"
+          contextPanel={
+            <div className="flex h-full min-h-0 flex-col">
+              {repertoire.data ? (
+                <CoverageSummary metrics={metrics} unresolved={gaps.data?.length ?? 0} />
+              ) : null}
+              <GapSummary
+                gaps={gaps.data ?? []}
+                pending={gaps.isPending && Boolean(repertoire.data)}
+                onOpen={(gap) =>
+                  openOnBoard(
+                    gap.fen,
+                    `Unanswered after ${gap.opponentMove.san} · ${repertoire.data?.repertoire.title ?? 'Repertoire'}`,
+                  )
+                }
+              />
+              <div className="min-h-0 flex-1">
+                <PositionEvidence
+                  position={current}
+                  onChanged={() => invalidateRepertoires(queryClient)}
+                  onOpenBoard={(fen) =>
+                    openOnBoard(fen, repertoire.data?.repertoire.title ?? 'Repertoire position')
+                  }
+                  onTrain={(fen) => {
+                    openOnBoard(fen, repertoire.data?.repertoire.title ?? 'Repertoire position');
+                    setTrainingCaptureOpen(true);
+                  }}
                 />
               </div>
-              <div className="mx-auto mt-3 flex w-full max-w-[690px] items-center gap-2 border-t border-line-subtle pt-2">
-                <span className="text-2xs text-tertiary tabular">Depth {current.depth}</span>
-                <span className="truncate text-2xs text-secondary">
-                  {current.moves
-                    .map(
-                      (move) =>
-                        `${move.san} · ${move.expected ? 'Expected reply' : ROLE_LABEL[move.role]}`,
-                    )
-                    .join('   ')}
-                </span>
-                <span className="ml-auto shrink-0 text-2xs text-tertiary">
-                  {current.sideToMove === 'w' ? 'White' : 'Black'} to move
-                </span>
-              </div>
-            </>
-          ) : (
-            <EmptyState
-              title={repertoire.data ? 'This repertoire has no positions.' : 'Choose a repertoire.'}
-              description={
-                repertoire.data
-                  ? 'Open Analysis, play an opening line, then use Add to repertoire.'
-                  : 'Create a repertoire to start organising prepared moves by position.'
-              }
-            />
-          )}
-        </section>
-
-        <aside className="flex min-h-[360px] flex-col border-t border-line-subtle bg-surface-1 panes:min-h-0 panes:border-t-0 panes:border-l">
-          {repertoire.data ? (
-            <CoverageSummary metrics={metrics} unresolved={gaps.data?.length ?? 0} />
-          ) : null}
-          <GapSummary
-            gaps={gaps.data ?? []}
-            pending={gaps.isPending && Boolean(repertoire.data)}
-            onOpen={(gap) =>
-              openOnBoard(
-                gap.fen,
-                `Unanswered after ${gap.opponentMove.san} · ${repertoire.data?.repertoire.title ?? 'Repertoire'}`,
-              )
-            }
-          />
-          <div className="min-h-0 flex-1">
-            <PositionEvidence
-              position={current}
-              onChanged={() => invalidateRepertoires(queryClient)}
-              onOpenBoard={(fen) =>
-                openOnBoard(fen, repertoire.data?.repertoire.title ?? 'Repertoire position')
-              }
-              onTrain={(fen) => {
-                openOnBoard(fen, repertoire.data?.repertoire.title ?? 'Repertoire position');
-                setTrainingCaptureOpen(true);
-              }}
-            />
-          </div>
-        </aside>
+            </div>
+          }
+        />
       </div>
 
       {creating ? (

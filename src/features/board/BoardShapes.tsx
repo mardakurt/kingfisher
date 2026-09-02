@@ -43,6 +43,8 @@ export function BoardShapes({ shapes, draft, orientation }: BoardShapesProps) {
   return (
     <svg
       viewBox="0 0 8 8"
+      data-board-shapes
+      data-shape-count={shapes.length}
       className="pointer-events-none absolute inset-0 h-full w-full"
       aria-hidden
     >

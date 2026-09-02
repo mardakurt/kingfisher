@@ -1,0 +1,372 @@
+'use client';
+
+import Link from 'next/link';
+import { useQuery } from '@tanstack/react-query';
+import { useMemo, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
+
+import { positionKey } from '@/chess/fen';
+import { Database, Plus } from '@/components/icons';
+import { Button, IconButton } from '@/components/ui/Button';
+import { EmptyState, PanelBody, PanelHeader } from '@/components/ui/Panel';
+import { databaseProviderById } from '@/database/registry';
+import { useDatabaseProviders } from '@/database/use-database-providers';
+import type { ProviderHealth } from '@/database/types';
+import { CompanionPanel } from '@/features/assistant/CompanionPanel';
+import { EnginePanelHost } from '@/features/engine/EnginePanelHost';
+import { ExplorerPanel } from '@/features/explorer/ExplorerPanel';
+import { GameInsightsPanel } from '@/features/games/GameInsightsPanel';
+import { NotesPanel } from '@/features/notes/NotesPanel';
+import { useProfile, useRepertoiresAtPosition } from '@/features/persistence/queries';
+import { FeaturesPanel } from '@/features/analysis/FeaturesPanel';
+import { TablebasePanel } from '@/features/analysis/TablebasePanel';
+import { Tabs } from '@/components/ui/Tabs';
+import { useMediaQuery } from '@/hooks/use-media-query';
+import { cn } from '@/lib/cn';
+import { useAnalysisPosition } from '@/features/analysis/useAnalysisPosition';
+import { usePreferences } from '@/stores/preferences-store';
+import { useUi } from '@/stores/ui-store';
+import {
+  useWorkspaceLayout,
+  type WorkspacePreset,
+  type WorkspaceToolId,
+} from '@/stores/workspace-layout-store';
+
+const LABELS: Record<WorkspaceToolId, string> = {
+  engine: 'Engine',
+  explorer: 'Explorer',
+  database: 'Database',
+  repertoire: 'Repertoire',
+  'model-games': 'Model Games',
+  'personal-results': 'Personal Results',
+  features: 'Features',
+  tablebase: 'Tablebase',
+  companion: 'Companion',
+  document: 'Context',
+  notes: 'Notes',
+};
+
+const PRESETS: readonly { id: WorkspacePreset; label: string }[] = [
+  { id: 'analysis', label: 'Analysis' },
+  { id: 'study', label: 'Study' },
+  { id: 'opening-research', label: 'Opening Research' },
+  { id: 'preparation', label: 'Preparation' },
+  { id: 'minimal-board', label: 'Minimal Board' },
+];
+
+const PRESET_TOOL: Record<WorkspacePreset, WorkspaceToolId> = {
+  analysis: 'engine',
+  study: 'notes',
+  'opening-research': 'explorer',
+  preparation: 'database',
+  'minimal-board': 'engine',
+};
+
+const ROUTE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
+  analysis: [
+    'engine',
+    'explorer',
+    'database',
+    'repertoire',
+    'features',
+    'tablebase',
+    'companion',
+    'notes',
+  ],
+  studies: ['engine', 'explorer', 'database', 'features', 'tablebase', 'companion', 'notes'],
+  repertoire: ['document', 'explorer', 'database', 'engine', 'model-games', 'features', 'notes'],
+  openings: [
+    'explorer',
+    'database',
+    'engine',
+    'repertoire',
+    'model-games',
+    'personal-results',
+    'features',
+  ],
+  games: ['engine', 'explorer', 'database', 'repertoire', 'features', 'tablebase', 'notes'],
+  preparation: [
+    'document',
+    'engine',
+    'explorer',
+    'database',
+    'repertoire',
+    'model-games',
+    'features',
+    'notes',
+  ],
+  training: ['document', 'engine', 'explorer', 'database', 'features', 'tablebase', 'notes'],
+};
+
+export function WorkspaceToolDock({
+  workspace,
+  className,
+  contextLabel = 'Context',
+  contextPanel,
+  fill = false,
+}: {
+  readonly workspace: keyof typeof ROUTE_TOOLS;
+  readonly className?: string;
+  readonly contextLabel?: string;
+  readonly contextPanel?: ReactNode;
+  /** Fill a route-owned grid track instead of taking the persisted dock width. */
+  readonly fill?: boolean;
+}) {
+  const wide = useMediaQuery('(min-width: 1100px)');
+  const tools = ROUTE_TOOLS[workspace] ?? ROUTE_TOOLS.analysis!;
+  const active = useWorkspaceLayout((state) => state.activeTools[workspace] ?? state.activeTool);
+  const setActive = useWorkspaceLayout((state) => state.setActiveTool);
+  const collapsed = useWorkspaceLayout((state) => state.toolDockCollapsed);
+  const setCollapsed = useWorkspaceLayout((state) => state.setToolDockCollapsed);
+  const width = useWorkspaceLayout((state) => state.toolDockWidth);
+  const setWidth = useWorkspaceLayout((state) => state.setToolDockWidth);
+  const preset = useWorkspaceLayout((state) => state.preset);
+  const setPreset = useWorkspaceLayout((state) => state.setPreset);
+  const selected = tools.includes(active) ? active : (tools[0] as WorkspaceToolId);
+  const selectTool = (tool: WorkspaceToolId) => setActive(workspace, tool);
+
+  const resize = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (!wide) return;
+    const startX = event.clientX;
+    const startWidth = width;
+    const target = event.currentTarget;
+    target.setPointerCapture(event.pointerId);
+    const move = (next: PointerEvent) => setWidth(startWidth + startX - next.clientX);
+    const done = () => {
+      target.removeEventListener('pointermove', move);
+      target.removeEventListener('pointerup', done);
+    };
+    target.addEventListener('pointermove', move);
+    target.addEventListener('pointerup', done);
+  };
+
+  if (collapsed) {
+    return (
+      <aside
+        className={cn(
+          'flex shrink-0 items-center justify-center border-line-subtle bg-surface-1',
+          wide ? 'w-11 border-l' : 'h-11 border-t',
+          className,
+        )}
+      >
+        <IconButton label="Open workspace tools" onClick={() => setCollapsed(false)}>
+          <Database />
+        </IconButton>
+      </aside>
+    );
+  }
+
+  return (
+    <aside
+      className={cn(
+        'relative flex min-h-0 min-w-0 shrink-0 flex-col bg-surface-1',
+        wide ? 'border-l border-line-subtle' : 'min-h-[360px] border-t border-line-subtle',
+        className,
+      )}
+      style={wide && !fill ? { width } : undefined}
+      aria-label="Workspace tools"
+    >
+      {wide && !fill ? (
+        <button
+          type="button"
+          aria-label="Resize workspace tools"
+          onPointerDown={resize}
+          className="absolute inset-y-0 -left-1 z-20 w-2 cursor-col-resize touch-none"
+        />
+      ) : (
+        <div className="mx-auto my-1 h-1 w-12 rounded-full bg-line-strong" aria-hidden />
+      )}
+      <div className="flex h-9 shrink-0 items-center gap-2 border-b border-line-subtle px-3">
+        <label htmlFor={`workspace-preset-${workspace}`} className="text-2xs text-tertiary">
+          Layout
+        </label>
+        <select
+          id={`workspace-preset-${workspace}`}
+          value={preset}
+          onChange={(event) => {
+            const next = event.target.value as WorkspacePreset;
+            setPreset(next);
+            selectTool(PRESET_TOOL[next]);
+          }}
+          className="h-7 min-w-0 flex-1 rounded-[4px] border border-line bg-surface-inset px-2 text-2xs text-primary outline-none focus:border-accent/60"
+        >
+          {PRESETS.map((entry) => (
+            <option key={entry.id} value={entry.id}>
+              {entry.label}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="flex shrink-0 items-stretch border-b border-line-subtle">
+        <div className="min-w-0 flex-1 overflow-x-auto">
+          <Tabs
+            items={tools.map((id) => ({
+              id,
+              label: id === 'document' ? contextLabel : LABELS[id],
+            }))}
+            value={selected}
+            onChange={selectTool}
+          />
+        </div>
+        <button
+          type="button"
+          onClick={() => setCollapsed(true)}
+          className="w-9 shrink-0 border-l border-line-subtle text-lg text-tertiary hover:bg-surface-2 hover:text-primary"
+          aria-label="Collapse workspace tools"
+        >
+          {wide ? '›' : '⌄'}
+        </button>
+      </div>
+      <div className="min-h-0 flex-1 overflow-hidden">
+        <ToolContent tool={selected} contextPanel={contextPanel} />
+      </div>
+    </aside>
+  );
+}
+
+function ToolContent({ tool, contextPanel }: { tool: WorkspaceToolId; contextPanel?: ReactNode }) {
+  if (tool === 'engine') return <EnginePanelHost />;
+  if (tool === 'explorer') return <ExplorerPanel />;
+  if (tool === 'database') return <DatabasePositionPanel />;
+  if (tool === 'repertoire') return <RepertoirePositionPanel />;
+  if (tool === 'model-games') return <GameInsightsPanel />;
+  if (tool === 'personal-results') return <PersonalResultsPanel />;
+  if (tool === 'features') return <FeaturesPanel />;
+  if (tool === 'tablebase') return <TablebasePanel />;
+  if (tool === 'companion') return <CompanionPanel />;
+  if (tool === 'document') {
+    return (
+      contextPanel ?? (
+        <EmptyState
+          title="No route context available."
+          description="Choose another tool for evidence at this position."
+        />
+      )
+    );
+  }
+  return <NotesPanel />;
+}
+
+function DatabasePositionPanel() {
+  const prefs = usePreferences();
+  const providers = useDatabaseProviders();
+  const provider = databaseProviderById(prefs.explorerSourceId) ?? providers[0];
+  const health = useQuery<ProviderHealth>({
+    queryKey: ['provider-health', provider?.id ?? 'none'],
+    enabled: Boolean(provider),
+    queryFn: async ({ signal }) =>
+      provider?.health
+        ? provider.health(signal)
+        : { state: 'unsupported', checkedAt: 0, message: 'Connection testing is not available.' },
+    staleTime: 30_000,
+    retry: false,
+  });
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <PanelHeader>Database at this position</PanelHeader>
+      <PanelBody className="p-3">
+        <label className="text-xs text-tertiary">
+          Active source
+          <select
+            value={provider?.id ?? ''}
+            onChange={(event) => prefs.set('explorerSourceId', event.target.value)}
+            className="mt-1 h-9 w-full rounded-[4px] border border-line bg-surface-inset px-2 text-sm text-primary"
+          >
+            {providers.map((entry) => (
+              <option key={entry.id} value={entry.id}>
+                {entry.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="mt-4 border-y border-line-subtle py-3">
+          <p className="text-sm text-primary">{health.data?.message ?? 'Checking provider…'}</p>
+          <p className="mt-1 text-xs text-tertiary">{provider?.description}</p>
+          {health.data?.latencyMs != null ? (
+            <p className="mt-2 text-xs text-tertiary tabular">
+              Last query {health.data.latencyMs} ms
+            </p>
+          ) : null}
+        </div>
+        <Link
+          href="/databases"
+          className="mt-4 inline-flex h-9 items-center rounded-[4px] border border-line px-3 text-sm text-secondary hover:bg-surface-2 hover:text-primary"
+        >
+          Manage data sources
+        </Link>
+      </PanelBody>
+    </div>
+  );
+}
+
+function RepertoirePositionPanel() {
+  const { node } = useAnalysisPosition();
+  const entries = useRepertoiresAtPosition(positionKey(node.fen));
+  const setOpen = useUi((state) => state.setAddToRepertoireOpen);
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <PanelHeader>Repertoire decisions</PanelHeader>
+      <PanelBody>
+        {entries.isPending ? (
+          <p className="p-3 text-xs text-tertiary">Reading repertoires…</p>
+        ) : (entries.data?.length ?? 0) === 0 ? (
+          <EmptyState
+            title="No repertoire decision here."
+            description="Record your move and the replies you expect from this exact position."
+            action={
+              <Button icon={<Plus />} onClick={() => setOpen(true)}>
+                Add decision
+              </Button>
+            }
+          />
+        ) : (
+          <div className="divide-y divide-line-subtle">
+            {entries.data?.map((entry) => (
+              <div key={entry.id} className="p-3">
+                <p className="text-sm text-primary">
+                  {entry.moves.map((move) => move.san).join(', ')}
+                </p>
+                {entry.note ? <p className="mt-1 text-xs text-tertiary">{entry.note}</p> : null}
+              </div>
+            ))}
+            <div className="p-3">
+              <Button icon={<Plus />} onClick={() => setOpen(true)}>
+                Update decision
+              </Button>
+            </div>
+          </div>
+        )}
+      </PanelBody>
+    </div>
+  );
+}
+
+function PersonalResultsPanel() {
+  const profile = useProfile();
+  const aliases = useMemo(() => profile.data?.aliases ?? [], [profile.data?.aliases]);
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <PanelHeader>Personal results</PanelHeader>
+      <PanelBody>
+        {aliases.length === 0 ? (
+          <EmptyState
+            title="No player aliases configured."
+            description="Add the exact names used in your PGNs under Settings → Profile."
+          />
+        ) : (
+          <div className="p-3">
+            <p className="text-sm text-primary">Matching your local games as</p>
+            <ul className="mt-2 space-y-1 text-xs text-secondary">
+              {aliases.map((alias) => (
+                <li key={alias}>{alias}</li>
+              ))}
+            </ul>
+            <p className="mt-4 text-xs leading-relaxed text-tertiary">
+              Choose My games in Explorer to see move-by-move results for these identities at the
+              current position.
+            </p>
+          </div>
+        )}
+      </PanelBody>
+    </div>
+  );
+}

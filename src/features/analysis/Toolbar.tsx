@@ -120,7 +120,7 @@ export function Toolbar() {
       truncates, the rest are fixed-width controls) rather than by cutting the
       row that anchors a popover.
     */
-    <header className="flex h-10 min-w-0 shrink-0 items-center gap-1 border-b border-line-subtle bg-surface-1 px-1.5 sm:px-2">
+    <header className="flex min-h-14 min-w-0 shrink-0 items-center gap-1.5 border-b border-line-subtle bg-surface-1 px-2 sm:px-4">
       <NavButton />
       <Button aria-label="New analysis" icon={<Plus />} onClick={() => newGame(START_FEN)}>
         <span className="hidden xs:inline">New</span>
@@ -158,7 +158,7 @@ export function Toolbar() {
         type="button"
         onClick={toggleCommandPalette}
         aria-label="Search commands"
-        className="ml-auto flex h-7 shrink-0 items-center gap-2 rounded-[4px] border border-line bg-surface-2 px-2 text-2xs text-tertiary transition-colors hover:border-line-strong hover:text-secondary"
+        className="ml-auto flex h-9 shrink-0 items-center gap-2 rounded-[4px] border border-line bg-surface-2 px-3 text-xs text-tertiary transition-colors hover:border-line-strong hover:text-secondary"
       >
         <Search className="h-3.5 w-3.5" />
         <span className="hidden lg:inline">Search commands</span>
