@@ -26,8 +26,9 @@ import {
   type GameResult,
 } from '../types';
 
-const ENDPOINT = 'https://explorer.lichess.ovh';
+const ENDPOINT = 'https://explorer.lichess.org';
 const REQUEST_TIMEOUT_MS = 8_000;
+const START_POSITION = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1' as Fen;
 
 /** `AbortSignal.any` is not available everywhere yet; this is the same idea. */
 function anySignal(signals: readonly AbortSignal[]): AbortSignal {
@@ -64,7 +65,9 @@ interface LichessMove {
   readonly draws: number;
   readonly black: number;
   readonly averageRating?: number;
+  readonly averageOpponentRating?: number | null;
   readonly game?: LichessGame | null;
+  readonly opening?: { readonly eco?: string; readonly name?: string } | null;
 }
 
 interface LichessResponse {
@@ -73,10 +76,12 @@ interface LichessResponse {
   readonly black: number;
   readonly moves?: readonly LichessMove[];
   readonly topGames?: readonly LichessGame[];
+  readonly recentGames?: readonly LichessGame[];
+  readonly queuePosition?: number;
   readonly opening?: { readonly eco?: string; readonly name?: string } | null;
 }
 
-export type LichessDatabase = 'masters' | 'lichess';
+export type LichessDatabase = 'masters' | 'lichess' | 'player';
 
 const RATING_BUCKETS = [400, 1000, 1200, 1400, 1600, 1800, 2000, 2200, 2500] as const;
 
@@ -88,21 +93,39 @@ export class LichessExplorerProvider implements ChessDatabaseProvider {
 
   constructor(private readonly database: LichessDatabase) {
     const masters = database === 'masters';
-    this.id = masters ? 'lichess-masters' : 'lichess-players';
-    this.name = masters ? 'Masters' : 'Lichess players';
+    const player = database === 'player';
+    this.id = masters ? 'lichess-masters' : player ? 'lichess-player' : 'lichess-games';
+    this.name = masters ? 'Masters' : player ? 'Player' : 'Lichess';
     this.description = masters
-      ? 'Over-the-board games between titled players, from the Lichess opening explorer.'
-      : 'Rated online games, filterable by rating band.';
+      ? 'Over-the-board master games from the Lichess opening explorer.'
+      : player
+        ? 'One Lichess player, indexed on demand and streamed as results become available.'
+        : 'Aggregated rated Lichess games, filterable by rating and speed.';
     this.capabilities = {
-      ratingFilter: !masters,
+      ratingFilter: database === 'lichess',
       dateFilter: true,
-      playerFilter: false,
+      playerFilter: player,
       topGames: true,
       offline: false,
     };
   }
 
   async explore(query: ExplorerQuery, signal?: AbortSignal): Promise<ExplorerResult> {
+    if (!hasLichessToken()) {
+      throw new DatabaseError(
+        'Lichess requires an API token for opening explorer requests.',
+        'Connect Lichess in Settings → Database, or use a local source.',
+        'authentication-required',
+        401,
+      );
+    }
+    if (this.database === 'player' && !query.filters?.player?.trim()) {
+      throw new DatabaseError(
+        'Choose a Lichess player before querying this source.',
+        'Enter an exact username and choose the side they played.',
+        'misconfigured',
+      );
+    }
     const url = this.buildUrl(query);
 
     // A request that never settles would leave the panel spinning forever;
@@ -122,11 +145,13 @@ export class LichessExplorerProvider implements ChessDatabaseProvider {
         throw new DatabaseError(
           'The Lichess explorer did not respond.',
           'Check your connection, or switch to "My games" to work offline.',
+          'network-error',
         );
       }
       throw new DatabaseError(
         'The Lichess explorer could not be reached.',
         'Check your connection, or switch to "My games" to work offline.',
+        'network-error',
       );
     }
 
@@ -138,23 +163,134 @@ export class LichessExplorerProvider implements ChessDatabaseProvider {
         hasLichessToken()
           ? 'Create a fresh token and paste it into Settings → Database. No scopes are needed.'
           : 'Add your own token in Settings → Database, or use "My games", which works offline.',
+        'authentication-required',
+        401,
+      );
+    }
+    if (response.status === 403) {
+      throw new DatabaseError(
+        'Lichess denied this explorer request.',
+        'Test the token in Settings. If it is valid, wait before retrying.',
+        'authentication-required',
+        403,
+      );
+    }
+    if (response.status === 404) {
+      throw new DatabaseError(
+        this.database === 'player'
+          ? 'That Lichess player was not found.'
+          : 'The Lichess explorer endpoint was not found.',
+        this.database === 'player'
+          ? 'Check the exact username.'
+          : 'Update Kingfisher before retrying.',
+        this.database === 'player' ? 'misconfigured' : 'unsupported',
+        404,
       );
     }
     if (response.status === 429) {
       throw new DatabaseError(
         'The Lichess explorer is rate limiting this session.',
-        'Wait a few seconds before exploring further.',
+        'Lichess recommends waiting before retrying and reducing request frequency.',
+        'rate-limited',
+        429,
       );
     }
     if (!response.ok) {
       throw new DatabaseError(
         `The Lichess explorer returned HTTP ${response.status}.`,
         'The service may be down, or this network may be blocking it. "My games" works offline.',
+        response.status >= 500 ? 'network-error' : 'error',
+        response.status,
       );
     }
 
-    const payload = (await response.json()) as LichessResponse;
+    const text = await response.text();
+    let payload: LichessResponse;
+    try {
+      payload = this.database === 'player' ? parseLastNdjson(text) : JSON.parse(text);
+    } catch {
+      throw new DatabaseError(
+        'Lichess returned data Kingfisher could not read.',
+        'Retry once. If it persists, the explorer response contract may have changed.',
+        'error',
+      );
+    }
+    if (!validResponse(payload)) {
+      throw new DatabaseError(
+        'Lichess returned an unexpected explorer response.',
+        'Retry once. If it persists, update Kingfisher.',
+        'error',
+      );
+    }
     return this.toResult(query.fen, payload, query.limit ?? 15);
+  }
+
+  async health(signal?: AbortSignal) {
+    const started = performance.now();
+    if (!hasLichessToken()) {
+      return {
+        state: 'authentication-required' as const,
+        checkedAt: Date.now(),
+        message: 'Connect a personal access token to use the explorer.',
+        remedy: 'Settings → Database → Lichess',
+      };
+    }
+    try {
+      await this.explore(
+        {
+          fen: START_POSITION,
+          ...(this.database === 'player'
+            ? { filters: { player: 'lichess', playerColor: 'w' as const } }
+            : {}),
+          limit: 1,
+        },
+        signal,
+      );
+      return {
+        state: 'ready' as const,
+        checkedAt: Date.now(),
+        latencyMs: Math.round(performance.now() - started),
+        message: 'Authenticated and response schema validated.',
+      };
+    } catch (error) {
+      const known = error instanceof DatabaseError ? error : null;
+      return {
+        state: known?.state ?? ('error' as const),
+        checkedAt: Date.now(),
+        latencyMs: Math.round(performance.now() - started),
+        message: known?.message ?? 'The connection test failed.',
+        ...(known?.remedy ? { remedy: known.remedy } : {}),
+      };
+    }
+  }
+
+  async game(id: string, signal?: AbortSignal): Promise<string> {
+    const path = this.database === 'masters' ? `masters/pgn/${encodeURIComponent(id)}` : null;
+    if (!path)
+      throw new DatabaseError(
+        'This source does not expose PGN by game id.',
+        undefined,
+        'unsupported',
+      );
+    if (!hasLichessToken())
+      throw new DatabaseError(
+        'Lichess authentication is required.',
+        undefined,
+        'authentication-required',
+        401,
+      );
+    const response = await fetch(`${ENDPOINT}/${path}`, {
+      signal,
+      headers: { Accept: 'application/x-chess-pgn', ...lichessAuthHeaders() },
+    });
+    if (!response.ok)
+      throw new DatabaseError(
+        `Lichess returned HTTP ${response.status}.`,
+        undefined,
+        response.status === 429 ? 'rate-limited' : 'error',
+        response.status,
+      );
+    return response.text();
   }
 
   private buildUrl(query: ExplorerQuery): string {
@@ -166,6 +302,12 @@ export class LichessExplorerProvider implements ChessDatabaseProvider {
       const speeds = filters?.speeds?.length ? filters.speeds : ['blitz', 'rapid', 'classical'];
       params.set('speeds', speeds.join(','));
       params.set('ratings', ratingBuckets(filters?.minRating, filters?.maxRating).join(','));
+    }
+    if (this.database === 'player') {
+      params.set('player', filters?.player?.trim() ?? '');
+      params.set('color', filters?.playerColor === 'b' ? 'black' : 'white');
+      params.set('recentGames', '8');
+      if (filters?.speeds?.length) params.set('speeds', filters.speeds.join(','));
     }
     if (filters?.sinceYear) {
       params.set(
@@ -180,7 +322,7 @@ export class LichessExplorerProvider implements ChessDatabaseProvider {
       );
     }
     params.set('moves', String(query.limit ?? 15));
-    params.set('topGames', this.database === 'masters' ? '8' : '4');
+    if (this.database !== 'player') params.set('topGames', this.database === 'masters' ? '8' : '4');
 
     return `${ENDPOINT}/${this.database}?${params.toString()}`;
   }
@@ -197,10 +339,21 @@ export class LichessExplorerProvider implements ChessDatabaseProvider {
         white: move.white,
         draws: move.draws,
         black: move.black,
-        ...(move.averageRating ? { averageRating: move.averageRating } : {}),
+        ...((move.averageRating ?? move.averageOpponentRating)
+          ? { averageRating: move.averageRating ?? move.averageOpponentRating ?? undefined }
+          : {}),
+        ...(move.opening?.name
+          ? {
+              opening: {
+                name: move.opening.name,
+                ...(move.opening.eco ? { eco: move.opening.eco } : {}),
+              },
+            }
+          : {}),
       };
-      const performance = move.averageRating
-        ? performanceRating(moveScore(base, sideToMove), move.averageRating)
+      const average = move.averageRating ?? move.averageOpponentRating ?? undefined;
+      const performance = average
+        ? performanceRating(moveScore(base, sideToMove), average)
         : undefined;
       const notable = move.game?.white?.name ?? move.game?.black?.name;
       return {
@@ -227,9 +380,32 @@ export class LichessExplorerProvider implements ChessDatabaseProvider {
       black: payload.black,
       moves,
       ...(opening ? { opening } : {}),
-      topGames: (payload.topGames ?? []).map(toGameRef),
+      topGames: (payload.topGames ?? payload.recentGames ?? []).map(toGameRef),
     };
   }
+}
+
+function parseLastNdjson(text: string): LichessResponse {
+  const rows = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (rows.length === 0) throw new Error('Empty NDJSON response.');
+  return JSON.parse(rows.at(-1) as string) as LichessResponse;
+}
+
+function validResponse(value: unknown): value is LichessResponse {
+  if (!value || typeof value !== 'object') return false;
+  const payload = value as Partial<LichessResponse>;
+  if (![payload.white, payload.draws, payload.black].every((entry) => typeof entry === 'number')) {
+    return false;
+  }
+  return (payload.moves ?? []).every(
+    (move) =>
+      typeof move.uci === 'string' &&
+      typeof move.san === 'string' &&
+      [move.white, move.draws, move.black].every((entry) => typeof entry === 'number'),
+  );
 }
 
 function toGameRef(game: LichessGame): DatabaseGameRef {
