@@ -70,24 +70,46 @@ const SECTIONS: readonly { id: Section; label: string }[] = [
   { id: 'diagnostics', label: 'Diagnostics' },
 ];
 
+const isSection = (value: string | null): value is Section =>
+  value !== null && SECTIONS.some((entry) => entry.id === value);
+
 /** A position with one of each piece, so a preview shows the whole alphabet. */
 const PREVIEW_FEN = 'r1bqkbnr/pppppppp/8/8/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 0 1';
 
 export function SettingsDialog() {
   const open = useUi((state) => state.settingsOpen);
   const setOpen = useUi((state) => state.setSettingsOpen);
-  const [section, setSection] = useState<Section>('appearance');
+  const requested = useUi((state) => state.settingsSection);
+  const [chosen, setChosen] = useState<Section>('appearance');
+
+  /*
+    Derived rather than synchronised through an effect. A request from
+    elsewhere ("open diagnostics") wins until the user picks a tab themselves,
+    at which point it is cleared and their choice stands. Copying it into local
+    state in an effect would render the wrong tab for one frame and fight the
+    user on every re-render.
+  */
+  const section: Section = isSection(requested) ? requested : chosen;
+  const choose = (next: Section) => {
+    setChosen(next);
+    if (requested) useUi.setState({ settingsSection: null });
+  };
+
+  const close = () => {
+    setOpen(false);
+    if (requested) useUi.setState({ settingsSection: null });
+  };
 
   return (
     <Dialog
       open={open}
-      onClose={() => setOpen(false)}
+      onClose={close}
       title="Settings"
       description="Stored on this machine. Nothing here needs an account."
       width="w-[640px]"
     >
       <div className="-mx-4 -mt-3 mb-3 overflow-x-auto border-b border-line-subtle px-2">
-        <Tabs items={SECTIONS} value={section} onChange={setSection} />
+        <Tabs items={SECTIONS} value={section} onChange={choose} />
       </div>
       {section === 'appearance' && <AppearanceSection />}
       {section === 'board' && <BoardSection />}

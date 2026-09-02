@@ -182,6 +182,7 @@ export function StudiesWorkspace() {
           studyId: target.studyId,
           studyTitle: parent?.title ?? 'Study',
           chapterId: target.id,
+          revision: target.revision,
         },
       });
     },

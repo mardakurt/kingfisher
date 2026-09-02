@@ -17,7 +17,9 @@ import { useEffect, useRef } from 'react';
 
 import { autosaveDelay } from '@/persistence/autosave';
 import { getRepositories } from '@/persistence/repositories';
-import type { AppRepositories, DraftRecord } from '@/persistence/types';
+import { announceChapterSaved, subscribeCrossTab } from '@/persistence/cross-tab';
+import type { AppRepositories, ChapterRecord, DraftRecord } from '@/persistence/types';
+import { StaleChapterWriteError } from '@/persistence/types';
 import { useAnalysis, selectDirty, UNTITLED_DOCUMENT } from '@/stores/analysis-store';
 import { useUi } from '@/stores/ui-store';
 
@@ -80,18 +82,32 @@ export function useWorkspacePersistence(): void {
 
     const save = async () => {
       const state = useAnalysis.getState();
-      if (!selectDirty(state) || state.saving) return;
+      // A refused write would only be refused again; the user has to choose.
+      if (!selectDirty(state) || state.saving || state.conflict) return;
 
       const revision = state.revision;
       state.markSaving();
       try {
         const repositories = await getRepositories();
-        await writeWorkspace(repositories, state);
+        const written = await writeWorkspace(repositories, state);
         if (disposed) return;
+        if (written) {
+          useAnalysis.getState().setDocumentRevision(written.revision);
+          announceChapterSaved(written.id, written.revision);
+        }
         useAnalysis.getState().markSaved(revision);
         firstUnsavedAt.current = null;
       } catch (error) {
         if (disposed) return;
+        if (error instanceof StaleChapterWriteError) {
+          useAnalysis.getState().reportConflict({
+            chapterId: error.current.id,
+            storedRevision: error.current.revision,
+            losingWork: true,
+            detectedAt: Date.now(),
+          });
+          return;
+        }
         useAnalysis.getState().markSaveFailed(describe(error));
       }
     };
@@ -129,14 +145,47 @@ export function useWorkspacePersistence(): void {
       schedule();
     });
 
-    // A hidden tab may never come back. This is best effort: IndexedDB gives no
-    // guarantee that a write started here completes, which is exactly why the
-    // debounce above is short enough that little is ever at risk.
+    /*
+      Flush points, in order of how much they can be trusted.
+
+      `visibilitychange` to hidden is the reliable one and fires on tab
+      switching, minimising and mobile backgrounding. `pagehide` fires on
+      navigation away and on bfcache eviction. `beforeunload` is deliberately
+      *not* used as the mechanism: it is unreliable on mobile and cannot await
+      an IndexedDB write anyway. The real guarantee is that the debounce is
+      short enough that little is ever unsaved, and that ordinary transitions —
+      opening another chapter, switching document — save before they switch.
+    */
     const flush = () => {
       if (document.visibilityState === 'hidden') void save();
     };
     document.addEventListener('visibilitychange', flush);
     window.addEventListener('pagehide', flush);
+
+    /*
+      Another tab wrote the chapter this one is showing.
+
+      Clean means nothing of ours is at risk, so take theirs: that is what the
+      user would pick every time, and asking would be noise. Dirty means a
+      choice has to be made, and only the user can make it.
+    */
+    const unsubscribeTabs = subscribeCrossTab((message) => {
+      const state = useAnalysis.getState();
+      if (state.document.kind !== 'study-chapter') return;
+      if (state.document.chapterId !== message.chapterId) return;
+      if (message.revision <= state.document.revision) return;
+
+      if (selectDirty(state) || state.saving) {
+        useAnalysis.getState().reportConflict({
+          chapterId: message.chapterId,
+          storedRevision: message.revision,
+          losingWork: true,
+          detectedAt: Date.now(),
+        });
+        return;
+      }
+      void adoptStoredChapter(message.chapterId);
+    });
 
     schedule();
 
@@ -144,16 +193,56 @@ export function useWorkspacePersistence(): void {
       disposed = true;
       clear();
       unsubscribe();
+      unsubscribeTabs();
       document.removeEventListener('visibilitychange', flush);
       window.removeEventListener('pagehide', flush);
     };
   }, []);
 }
 
+/** Reload a chapter another tab has advanced, when nothing local is at risk. */
+async function adoptStoredChapter(chapterId: string): Promise<void> {
+  try {
+    const repositories = await getRepositories();
+    const chapter = await repositories.studies.getChapter(chapterId);
+    const state = useAnalysis.getState();
+    if (!chapter) return;
+    // Re-checked after the await: the user may have started editing meanwhile,
+    // and silently replacing their tree would be the exact loss this prevents.
+    if (state.document.kind !== 'study-chapter') return;
+    if (state.document.chapterId !== chapterId) return;
+    if (selectDirty(state)) {
+      state.reportConflict({
+        chapterId,
+        storedRevision: chapter.revision,
+        losingWork: true,
+        detectedAt: Date.now(),
+      });
+      return;
+    }
+    state.openDocument({
+      tree: chapter.tree,
+      document: { ...state.document, title: chapter.title, revision: chapter.revision },
+      orientation: state.orientation,
+    });
+  } catch {
+    // Best effort. The revision check still refuses any stale write.
+  }
+}
+
+/**
+ * Returns the chapter that was written, or null for a document with no chapter.
+ *
+ * Order matters. The draft is written first and marked unsaved, so the work
+ * exists somewhere durable before the chapter write — which is the write that
+ * can be refused for a stale revision, rejected for quota, or interrupted by
+ * the tab going away. Previously the draft went last, so a chapter write that
+ * threw took the session's work with it.
+ */
 async function writeWorkspace(
   repositories: AppRepositories,
   state: ReturnType<typeof useAnalysis.getState>,
-): Promise<void> {
+): Promise<ChapterRecord | null> {
   const draft: DraftRecord = {
     id: 'active',
     document: state.document,
@@ -161,25 +250,46 @@ async function writeWorkspace(
     currentId: state.currentId,
     orientation: state.orientation,
     updatedAt: Date.now(),
+    unsaved: state.document.kind === 'study-chapter',
   };
-
-  if (state.document.kind === 'study-chapter') {
-    const chapter = await repositories.studies.getChapter(state.document.chapterId);
-    if (!chapter) {
-      throw new Error('That chapter no longer exists. Save this analysis to a new chapter.');
-    }
-    await repositories.studies.saveChapter({ ...chapter, tree: state.tree });
-  }
-
   await repositories.drafts.save(draft);
+
+  if (state.document.kind !== 'study-chapter') return null;
+
+  const chapter = await repositories.studies.getChapter(state.document.chapterId);
+  if (!chapter) {
+    throw new Error('That chapter no longer exists. Save this analysis to a new chapter.');
+  }
+  /*
+    The revision offered is the one this *workspace* loaded, not the one just
+    read back. Using the fresh read would make every write trivially valid and
+    the conflict check decorative.
+  */
+  const written = await repositories.studies.saveChapter({
+    ...chapter,
+    tree: state.tree,
+    revision: state.document.revision,
+  });
+
+  // The chapter now holds this work, so the draft is no longer a recovery.
+  await repositories.drafts.save({
+    ...draft,
+    document: { ...state.document, revision: written.revision },
+    unsaved: false,
+  });
+  return written;
 }
 
 /**
  * Reopen what was on screen.
  *
- * For a chapter the stored chapter wins over the draft copy of its tree: the
- * chapter is the record the user believes in, and a draft written moments
- * earlier by the same pass can only be equal or older.
+ * For a chapter the stored chapter normally wins over the draft copy of its
+ * tree: the chapter is the record the user believes in. The exception is a
+ * draft still marked `unsaved`, which means the last chapter write never
+ * landed — a crash, a refused revision, a full disk. That draft holds work the
+ * chapter does not, so it is offered rather than silently discarded, and
+ * silently *applied* would be just as wrong: the user has to be told which
+ * version they are looking at.
  */
 async function restoreDraft(repositories: AppRepositories, draft: DraftRecord): Promise<void> {
   const analysis = useAnalysis.getState();
@@ -187,9 +297,23 @@ async function restoreDraft(repositories: AppRepositories, draft: DraftRecord): 
   if (draft.document.kind === 'study-chapter') {
     const chapter = await repositories.studies.getChapter(draft.document.chapterId);
     if (chapter) {
+      if (draft.unsaved && !sameTree(draft.tree, chapter.tree)) {
+        analysis.openDocument({
+          tree: chapter.tree,
+          document: { ...draft.document, title: chapter.title, revision: chapter.revision },
+          currentId: chapter.tree.nodes[draft.currentId] ? draft.currentId : chapter.tree.rootId,
+          orientation: draft.orientation,
+        });
+        analysis.offerRecovery({
+          draft,
+          chapterTitle: chapter.title,
+          savedAt: chapter.updatedAt,
+        });
+        return;
+      }
       analysis.openDocument({
         tree: chapter.tree,
-        document: { ...draft.document, title: chapter.title },
+        document: { ...draft.document, title: chapter.title, revision: chapter.revision },
         currentId: draft.currentId,
         orientation: draft.orientation,
       });
@@ -217,6 +341,26 @@ async function restoreDraft(repositories: AppRepositories, draft: DraftRecord): 
     currentId: draft.currentId,
     orientation: draft.orientation,
   });
+}
+
+/**
+ * Cheap enough to run on every start, exact enough to avoid a false offer.
+ *
+ * Node count first because it settles almost every case without walking
+ * anything; the id comparison then catches an edit that replaced a move
+ * without changing the size of the tree.
+ */
+function sameTree(a: DraftRecord['tree'], b: DraftRecord['tree']): boolean {
+  const left = Object.keys(a.nodes);
+  const right = Object.keys(b.nodes);
+  if (left.length !== right.length) return false;
+  for (const id of left) {
+    const one = a.nodes[id];
+    const other = b.nodes[id];
+    if (!other || one?.move?.san !== other.move?.san) return false;
+    if (one?.comment !== other.comment) return false;
+  }
+  return true;
 }
 
 const signature = (state: ReturnType<typeof useAnalysis.getState>): string =>

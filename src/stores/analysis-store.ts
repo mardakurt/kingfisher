@@ -72,6 +72,38 @@ export interface OpenDocumentInput {
 /** What the save indicator shows. Derived, never stored. */
 export type SaveState = 'saved' | 'saving' | 'unsaved' | 'error';
 
+/**
+ * Another tab has written the chapter this workspace is editing.
+ *
+ * Held rather than resolved: two game trees cannot be merged automatically
+ * without inventing analysis nobody wrote, so the choice belongs to the user.
+ */
+/**
+ * Work found in the draft that the saved chapter does not contain.
+ *
+ * Offered, never applied: the user is shown the saved version and told a newer
+ * unsaved one exists, so they choose which is real rather than discovering the
+ * swap afterwards.
+ */
+export interface RecoveryOffer {
+  readonly tree: GameTree;
+  readonly currentId: NodeId;
+  readonly chapterTitle: string;
+  /** When the draft was written — the work being offered back. */
+  readonly draftedAt: number;
+  /** When the chapter currently on screen was last saved. */
+  readonly savedAt: number;
+}
+
+export interface DocumentConflict {
+  readonly chapterId: string;
+  /** The revision now in storage. Always ahead of the one this tab holds. */
+  readonly storedRevision: number;
+  /** True when this tab has edits that reloading would discard. */
+  readonly losingWork: boolean;
+  readonly detectedAt: number;
+}
+
 interface AnalysisState {
   tree: GameTree;
   currentId: NodeId;
@@ -92,6 +124,10 @@ interface AnalysisState {
   savedRevision: number;
   saving: boolean;
   saveError: string | null;
+  /** Set when a write was refused, or another tab announced a newer revision. */
+  conflict: DocumentConflict | null;
+  /** Set on startup when a draft holds work the saved chapter does not. */
+  recovery: RecoveryOffer | null;
 
   // Navigation
   goTo(nodeId: NodeId): void;
@@ -138,6 +174,18 @@ interface AnalysisState {
   markSaving(): void;
   markSaved(revision: number): void;
   markSaveFailed(message: string): void;
+  /** Record the open chapter's stored revision after an accepted write. */
+  setDocumentRevision(revision: number): void;
+  reportConflict(conflict: DocumentConflict): void;
+  clearConflict(): void;
+  offerRecovery(input: {
+    draft: { tree: GameTree; currentId: string; updatedAt: number };
+    chapterTitle: string;
+    savedAt: number;
+  }): void;
+  /** Replace the open tree with the recovered work, leaving it dirty to save. */
+  acceptRecovery(): void;
+  discardRecovery(): void;
 }
 
 const initialTree = createTree(START_FEN, { Event: 'Analysis', Result: '*' });
@@ -185,6 +233,8 @@ export const useAnalysis = create<AnalysisState>((set, get) => ({
   savedRevision: 0,
   saving: false,
   saveError: null,
+  conflict: null,
+  recovery: null,
 
   goTo: (nodeId) => {
     if (!get().tree.nodes[nodeId]) return;
@@ -463,6 +513,54 @@ export const useAnalysis = create<AnalysisState>((set, get) => ({
     })),
 
   markSaveFailed: (message) => set({ saving: false, saveError: message }),
+
+  setDocumentRevision: (revision) =>
+    set((state) =>
+      state.document.kind === 'study-chapter' ? { document: { ...state.document, revision } } : {},
+    ),
+
+  /*
+    A conflict does not stop the user editing, and must not: their work is
+    still theirs and still in memory. It stops *autosave*, because every write
+    from here would be refused anyway, and it surfaces the choice.
+  */
+  reportConflict: (conflict) => set({ conflict, saving: false }),
+
+  clearConflict: () => set({ conflict: null }),
+
+  offerRecovery: ({ draft, chapterTitle, savedAt }) =>
+    set({
+      recovery: {
+        tree: draft.tree,
+        currentId: draft.tree.nodes[draft.currentId] ? draft.currentId : draft.tree.rootId,
+        chapterTitle,
+        draftedAt: draft.updatedAt,
+        savedAt,
+      },
+    }),
+
+  /*
+    `clean: false` on purpose. Recovered work is not yet in the chapter, so the
+    document must come back dirty and let autosave write it — coming back clean
+    would show "Saved" over work that exists only in memory.
+  */
+  acceptRecovery: () => {
+    const state = get();
+    const offer = state.recovery;
+    if (!offer) return;
+    set((current) => ({
+      ...opened(current, {
+        tree: offer.tree,
+        document: current.document,
+        currentId: offer.currentId,
+        orientation: current.orientation,
+        clean: false,
+      }),
+      recovery: null,
+    }));
+  },
+
+  discardRecovery: () => set({ recovery: null }),
 }));
 
 // --- Selectors -------------------------------------------------------------

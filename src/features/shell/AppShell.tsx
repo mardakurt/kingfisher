@@ -17,6 +17,10 @@ import { ShortcutsDialog } from '@/features/shell/ShortcutsDialog';
 import { useCompanionSync } from '@/companion/useCompanion';
 import { useUi } from '@/stores/ui-store';
 
+import { ConflictNotice } from '@/features/persistence/ConflictNotice';
+import { RecoveryNotice } from '@/features/persistence/RecoveryNotice';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+
 import { Notices } from './Notices';
 import { Sidebar } from './Sidebar';
 import { StatusBar } from './StatusBar';
@@ -54,7 +58,13 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="flex h-dvh flex-col overflow-hidden bg-surface-0">
         <div className="flex min-h-0 flex-1" inert={sidebarOpen || undefined}>
           <Sidebar />
-          <main className="flex min-w-0 flex-1 flex-col">{children}</main>
+          <main className="flex min-w-0 flex-1 flex-col">
+            {/* Above the workspace, not inside it: the notice has to be visible
+                on whichever route the conflicting chapter is open in. */}
+            <ConflictNotice />
+            <RecoveryNotice />
+            <ErrorBoundary label="The workspace">{children}</ErrorBoundary>
+          </main>
         </div>
         <StatusBar />
         <MobileNavigation />

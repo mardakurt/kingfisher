@@ -42,6 +42,7 @@ export const isChapterRecord = (value: unknown): value is ChapterRecord =>
   finite(value.order) &&
   finite(value.createdAt) &&
   finite(value.updatedAt) &&
+  finite(value.revision) &&
   isGameTree(value.tree);
 
 /** Metadata only; the moves live in their own store since schema version 3. */

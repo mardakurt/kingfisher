@@ -71,6 +71,7 @@ function PaletteDialog() {
                 studyId: chapter.studyId,
                 studyTitle: study?.study.title ?? 'Study',
                 chapterId: chapter.id,
+                revision: chapter.revision,
               },
             });
             router.push('/analysis');

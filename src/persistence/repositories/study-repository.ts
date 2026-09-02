@@ -11,6 +11,7 @@ import type {
   StudyUpdate,
   StudyWithChapters,
 } from '../types';
+import { StaleChapterWriteError } from '../types';
 import { assertValid, isChapterRecord, isStudyRecord } from '../validation';
 import type { PersistenceDatabase } from '../indexeddb/database';
 
@@ -95,6 +96,7 @@ export class LocalStudyRepository implements StudyRepository {
       tree: input.tree,
       createdAt: now,
       updatedAt: now,
+      revision: 0,
     };
     await this.database.transaction(
       [STORE_NAMES.studies, STORE_NAMES.chapters],
@@ -112,28 +114,44 @@ export class LocalStudyRepository implements StudyRepository {
     return raw === undefined ? null : assertValid(raw, isChapterRecord, 'chapter');
   }
 
+  /**
+   * The revision is re-read *inside* the write transaction, not before it.
+   *
+   * Reading first and writing afterwards leaves a window in which the other
+   * tab commits, and a check made in that window passes on data that is
+   * already stale by the time the put lands.
+   */
   async saveChapter(chapter: ChapterRecord): Promise<ChapterRecord> {
-    const current = await this.getChapter(chapter.id);
-    if (!current || current.studyId !== chapter.studyId) {
-      throw new Error('That chapter no longer exists. Save the analysis to a new chapter.');
-    }
     const now = Date.now();
-    const next: ChapterRecord = {
-      ...chapter,
-      title: requiredTitle(chapter.title, 'Chapter'),
-      updatedAt: now,
-    };
-    await this.database.transaction(
+    return this.database.transaction(
       [STORE_NAMES.studies, STORE_NAMES.chapters],
       'readwrite',
       async (transaction) => {
+        const raw = await transaction.get<unknown>(STORE_NAMES.chapters, chapter.id);
+        if (raw === undefined) {
+          throw new Error('That chapter no longer exists. Save the analysis to a new chapter.');
+        }
+        const current = assertValid(raw, isChapterRecord, 'chapter');
+        if (current.studyId !== chapter.studyId) {
+          throw new Error('That chapter no longer exists. Save the analysis to a new chapter.');
+        }
+        if (current.revision !== chapter.revision) {
+          throw new StaleChapterWriteError(current, chapter.revision);
+        }
+
+        const next: ChapterRecord = {
+          ...chapter,
+          title: requiredTitle(chapter.title, 'Chapter'),
+          updatedAt: now,
+          revision: current.revision + 1,
+        };
         const study = await transaction.get<StudyRecord>(STORE_NAMES.studies, chapter.studyId);
         if (!study) throw new Error('The chapter study no longer exists.');
         await transaction.put(STORE_NAMES.chapters, next);
         await transaction.put(STORE_NAMES.studies, { ...study, updatedAt: now });
+        return next;
       },
     );
-    return next;
   }
 
   async renameChapter(id: ChapterId, title: string): Promise<ChapterRecord> {
@@ -159,7 +177,11 @@ export class LocalStudyRepository implements StudyRepository {
         ).sort((a, b) => a.order - b.order);
         for (const [order, sibling] of siblings.entries()) {
           if (sibling.order !== order) {
-            await transaction.put(STORE_NAMES.chapters, { ...sibling, order });
+            await transaction.put(STORE_NAMES.chapters, {
+              ...sibling,
+              order,
+              revision: sibling.revision + 1,
+            });
           }
         }
         const study = await transaction.get<StudyRecord>(STORE_NAMES.studies, chapter.studyId);
@@ -188,7 +210,13 @@ export class LocalStudyRepository implements StudyRepository {
         for (const [order, id] of orderedIds.entries()) {
           const chapter = byId.get(id);
           if (!chapter) throw new Error('Chapter order contains an unknown chapter.');
-          await transaction.put(STORE_NAMES.chapters, { ...chapter, order, updatedAt: Date.now() });
+          if (chapter.order === order) continue;
+          await transaction.put(STORE_NAMES.chapters, {
+            ...chapter,
+            order,
+            updatedAt: Date.now(),
+            revision: chapter.revision + 1,
+          });
         }
         const study = await transaction.get<StudyRecord>(STORE_NAMES.studies, studyId);
         if (study) await transaction.put(STORE_NAMES.studies, { ...study, updatedAt: Date.now() });

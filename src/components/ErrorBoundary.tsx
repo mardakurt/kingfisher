@@ -7,6 +7,11 @@ interface Props {
   /** What failed, in the user's terms: "The engine panel", "The explorer". */
   readonly label: string;
   readonly onReset?: () => void;
+  /** Offered when the caller can put the workspace somewhere else entirely. */
+  readonly onClose?: () => void;
+  readonly closeLabel?: string;
+  /** Offered when the failure is likely to be a provider or engine problem. */
+  readonly onDiagnostics?: () => void;
 }
 
 interface State {
@@ -29,6 +34,12 @@ export class ErrorBoundary extends Component<Props, State> {
 
   override componentDidCatch(error: Error, info: ErrorInfo): void {
     console.error(`[${this.props.label}] ${error.message}`, info.componentStack);
+    lastFailures.unshift({
+      label: this.props.label,
+      message: error.message,
+      at: Date.now(),
+    });
+    lastFailures.length = Math.min(lastFailures.length, 10);
   }
 
   private readonly retry = () => {
@@ -47,16 +58,42 @@ export class ErrorBoundary extends Component<Props, State> {
           {error.message}
         </p>
         <p className="max-w-[40ch] text-2xs leading-relaxed text-tertiary">
-          Your analysis is unaffected. Retrying is safe.
+          The board, move tree and everything else are unaffected. Retrying is safe.
         </p>
-        <button
-          type="button"
-          onClick={this.retry}
-          className="mt-1 rounded-[4px] border border-line bg-surface-2 px-2.5 py-1 text-2xs text-primary transition-colors hover:bg-surface-3"
-        >
-          Try again
-        </button>
+        <div className="mt-1 flex flex-wrap items-center justify-center gap-1.5">
+          <button type="button" onClick={this.retry} className={ACTION}>
+            Try again
+          </button>
+          {this.props.onClose && (
+            <button type="button" onClick={this.props.onClose} className={ACTION}>
+              {this.props.closeLabel ?? 'Close'}
+            </button>
+          )}
+          {this.props.onDiagnostics && (
+            <button type="button" onClick={this.props.onDiagnostics} className={ACTION}>
+              Open diagnostics
+            </button>
+          )}
+        </div>
       </div>
     );
   }
 }
+
+const ACTION =
+  'rounded-[4px] border border-line bg-surface-2 px-2.5 py-1 text-2xs text-primary transition-colors hover:bg-surface-3';
+
+export interface RecordedFailure {
+  readonly label: string;
+  readonly message: string;
+  readonly at: number;
+}
+
+/**
+ * The last few component failures, newest first.
+ *
+ * Module state rather than a store: this is read once, by the diagnostic
+ * report, and a crash that also has to reach a React store to be recorded is a
+ * crash that can be lost exactly when it matters most.
+ */
+export const lastFailures: RecordedFailure[] = [];

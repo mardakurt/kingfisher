@@ -6,6 +6,7 @@ import { useMemo, type PointerEvent as ReactPointerEvent, type ReactNode } from 
 
 import { positionKey } from '@/chess/fen';
 import { Database, Plus } from '@/components/icons';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Button, IconButton } from '@/components/ui/Button';
 import { EmptyState, PanelBody, PanelHeader } from '@/components/ui/Panel';
 import { databaseProviderById } from '@/database/registry';
@@ -123,6 +124,8 @@ export function WorkspaceToolDock({
   const setPreset = useWorkspaceLayout((state) => state.setPreset);
   const selected = tools.includes(active) ? active : (tools[0] as WorkspaceToolId);
   const selectTool = (tool: WorkspaceToolId) => setActive(workspace, tool);
+  const openSettingsAt = useUi((state) => state.openSettingsAt);
+  const openDiagnostics = () => openSettingsAt('diagnostics');
 
   const resize = (event: ReactPointerEvent<HTMLButtonElement>) => {
     if (!wide) return;
@@ -217,7 +220,23 @@ export function WorkspaceToolDock({
         </button>
       </div>
       <div className="min-h-0 flex-1 overflow-hidden">
-        <ToolContent tool={selected} contextPanel={contextPanel} />
+        {/*
+          Keyed by tool so switching tabs resets a boundary that has caught:
+          a tool that failed once should be tried again on its own next visit
+          rather than staying broken until the whole dock remounts.
+
+          The dock itself is outside the boundary on purpose — the tabs have to
+          survive so the user can leave a tool that will not load.
+        */}
+        <ErrorBoundary
+          key={selected}
+          label={selected === 'document' ? contextLabel : LABELS[selected]}
+          onClose={() => selectTool(tools[0] as WorkspaceToolId)}
+          closeLabel="Close tool"
+          onDiagnostics={openDiagnostics}
+        >
+          <ToolContent tool={selected} contextPanel={contextPanel} />
+        </ErrorBoundary>
       </div>
     </aside>
   );

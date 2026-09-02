@@ -39,6 +39,13 @@ interface UiState {
   commandPaletteOpen: boolean;
   shortcutsOpen: boolean;
   settingsOpen: boolean;
+  /**
+   * Which settings section to show when the dialog next opens.
+   *
+   * Lives here rather than in the dialog so a failing tool can send the user
+   * straight to Diagnostics instead of to Appearance and a hunt.
+   */
+  settingsSection: string | null;
   importOpen: boolean;
   saveToStudyOpen: boolean;
   addToRepertoireOpen: boolean;
@@ -58,6 +65,7 @@ interface UiState {
   toggleCommandPalette(): void;
   setShortcutsOpen(open: boolean): void;
   setSettingsOpen(open: boolean): void;
+  openSettingsAt(section: string): void;
   setImportOpen(open: boolean): void;
   setSaveToStudyOpen(open: boolean): void;
   setAddToRepertoireOpen(open: boolean): void;
@@ -79,6 +87,7 @@ export const useUi = create<UiState>((set) => ({
   commandPaletteOpen: false,
   shortcutsOpen: false,
   settingsOpen: false,
+  settingsSection: null,
   importOpen: false,
   saveToStudyOpen: false,
   addToRepertoireOpen: false,
@@ -96,6 +105,7 @@ export const useUi = create<UiState>((set) => ({
   toggleCommandPalette: () => set((state) => ({ commandPaletteOpen: !state.commandPaletteOpen })),
   setShortcutsOpen: (shortcutsOpen) => set({ shortcutsOpen }),
   setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
+  openSettingsAt: (settingsSection) => set({ settingsSection, settingsOpen: true }),
   setImportOpen: (importOpen) => set({ importOpen }),
   setSaveToStudyOpen: (saveToStudyOpen) => set({ saveToStudyOpen }),
   setAddToRepertoireOpen: (addToRepertoireOpen) => set({ addToRepertoireOpen }),

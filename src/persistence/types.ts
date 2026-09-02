@@ -27,6 +27,32 @@ export interface ChapterRecord {
   readonly tree: GameTree;
   readonly createdAt: number;
   readonly updatedAt: number;
+  /**
+   * Incremented by every accepted write.
+   *
+   * A workspace holds the revision it loaded and offers it back when it saves.
+   * Two tabs editing one chapter therefore collide on the second write instead
+   * of silently applying last-write-wins, which for a game tree means losing a
+   * whole variation rather than a keystroke. See ADR 0019.
+   */
+  readonly revision: number;
+}
+
+/**
+ * A write refused because the stored chapter moved on.
+ *
+ * Carries the current record so the caller can offer to reload it or fork a
+ * copy without a second read, and so no caller is tempted to resolve the
+ * conflict by merging two game trees automatically.
+ */
+export class StaleChapterWriteError extends Error {
+  override readonly name = 'StaleChapterWriteError';
+  constructor(
+    readonly current: ChapterRecord,
+    readonly attemptedRevision: number,
+  ) {
+    super('This chapter changed in another Kingfisher tab.');
+  }
 }
 
 export interface StudyWithChapters {
@@ -58,6 +84,10 @@ export interface StudyRepository {
   delete(id: StudyId): Promise<void>;
   createChapter(input: CreateChapterInput): Promise<ChapterRecord>;
   getChapter(id: ChapterId): Promise<ChapterRecord | null>;
+  /**
+   * Write a chapter, refusing the write if the stored revision has moved past
+   * `chapter.revision`. Throws {@link StaleChapterWriteError} when it has.
+   */
   saveChapter(chapter: ChapterRecord): Promise<ChapterRecord>;
   renameChapter(id: ChapterId, title: string): Promise<ChapterRecord>;
   deleteChapter(id: ChapterId): Promise<void>;
@@ -215,6 +245,8 @@ export type AnalysisDocument =
       readonly studyId: StudyId;
       readonly studyTitle: string;
       readonly chapterId: ChapterId;
+      /** The stored revision this workspace loaded, and will write against. */
+      readonly revision: number;
     }
   | {
       readonly kind: 'database-game';
@@ -229,6 +261,16 @@ export interface DraftRecord {
   readonly currentId: string;
   readonly orientation: 'w' | 'b';
   readonly updatedAt: number;
+  /**
+   * True while this draft holds work the authoritative record does not.
+   *
+   * The draft is written *before* the chapter and cleared *after* it, so a
+   * crash, a refused write or a full disk in between leaves this set. It is
+   * the only signal that distinguishes "the last session ended tidily" from
+   * "there is work here nobody has seen since", and it is what decides whether
+   * the user is offered a recovery on startup or left alone.
+   */
+  readonly unsaved?: boolean;
 }
 
 export interface DraftRepository {

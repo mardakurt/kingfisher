@@ -1,5 +1,5 @@
 export const DATABASE_NAME = 'kingfisher';
-export const DATABASE_VERSION = 3;
+export const DATABASE_VERSION = 4;
 
 export const STORE_NAMES = {
   studies: 'studies',
@@ -171,7 +171,28 @@ export const MIGRATIONS: readonly Migration[] = [
       target.split(STORE_NAMES.games, STORE_NAMES.gameContent, splitGameRecord);
     },
   },
+  {
+    version: 4,
+    description: 'Give every chapter a write revision, so two tabs cannot silently overwrite one.',
+    apply(target) {
+      /*
+        Backfilled rather than defaulted at read time. A chapter whose revision
+        is only invented when it is loaded gives every tab the same number, and
+        the first write from each would be accepted — which is precisely the
+        collision this exists to catch.
+      */
+      target.rewrite(STORE_NAMES.chapters, (record) => withRevision(record));
+    },
+  },
 ];
+
+/** Pure form of the v4 data migration, exported for upgrade tests. */
+export function withRevision(record: unknown): unknown {
+  if (typeof record !== 'object' || record === null) return record;
+  const chapter = record as Record<string, unknown>;
+  if (typeof chapter.revision === 'number' && Number.isFinite(chapter.revision)) return chapter;
+  return { ...chapter, revision: 0 };
+}
 
 /** Pure form of the v3 data migration, exported for realistic upgrade tests. */
 export function splitGameRecord(

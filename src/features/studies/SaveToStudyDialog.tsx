@@ -99,6 +99,7 @@ function SaveToStudyForm() {
           studyId: result.study.id,
           studyTitle: result.study.title,
           chapterId: result.chapter.id,
+          revision: result.chapter.revision,
         },
         currentId: useAnalysis.getState().currentId,
       });
