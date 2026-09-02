@@ -42,15 +42,23 @@ export function useRepertoireMutation() {
           color: input.color,
         }));
 
+      const revisions = new Map(
+        (existing?.positions ?? []).map((position) => [position.positionKey, position.revision]),
+      );
+
       for (const entry of input.entries) {
-        await repositories.repertoires.upsertPosition({
+        const written = await repositories.repertoires.upsertPosition({
           repertoireId: repertoire.id,
           fen: entry.fen,
           sideToMove: entry.sideToMove,
           depth: entry.depth,
           moves: [entry.move],
           ...(entry.move.note ? { note: entry.move.note } : {}),
+          ...(revisions.has(entry.positionKey)
+            ? { expectedRevision: revisions.get(entry.positionKey) }
+            : {}),
         });
+        revisions.set(entry.positionKey, written.revision);
       }
 
       return repertoire;

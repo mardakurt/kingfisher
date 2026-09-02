@@ -16,6 +16,7 @@ import {
   type ReviewGrade,
   type TrainingItemRecord,
   type TrainingMode,
+  StaleTrainingItemWriteError,
 } from '@/persistence/domain';
 import { getRepositories } from '@/persistence/repositories';
 import {
@@ -56,12 +57,18 @@ export function TrainingWorkspace() {
   const setCaptureOpen = useUi((state) => state.setTrainingCaptureOpen);
   const training = useTrainingItems();
   const [now] = useState(() => Date.now());
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(() =>
+    typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get('item'),
+  );
   const [revealedItemId, setRevealedItemId] = useState<string | null>(null);
   const [attempt, setAttempt] = useState<{ itemId: string; state: AttemptState } | null>(null);
   const [busy, setBusy] = useState(false);
   const [deleteItem, setDeleteItem] = useState<TrainingItemRecord | null>(null);
-  const [scope, setScope] = useState<'due' | 'all'>('due');
+  const [scope, setScope] = useState<'due' | 'all'>(() =>
+    typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('item')
+      ? 'all'
+      : 'due',
+  );
   const openDocument = useAnalysis((state) => state.openDocument);
   const stopEngine = useEngine((state) => state.stop);
   const syncedItem = useRef<string | null>(null);
@@ -273,7 +280,17 @@ export function TrainingWorkspace() {
                 >
                   Review details
                 </PanelHeader>
-                <PanelBody>{current ? <ReviewDetails item={current} revealed /> : null}</PanelBody>
+                <PanelBody>
+                  {current ? (
+                    <>
+                      <TrainingAuthoringEditor
+                        item={current}
+                        onChanged={() => invalidateTraining(queryClient)}
+                      />
+                      <ReviewDetails item={current} revealed />
+                    </>
+                  ) : null}
+                </PanelBody>
               </Panel>
             }
           />
@@ -296,7 +313,15 @@ export function TrainingWorkspace() {
                 Review details
               </PanelHeader>
               <PanelBody>
-                {current ? <ReviewDetails item={current} revealed={false} /> : null}
+                {current ? (
+                  <>
+                    <TrainingAuthoringEditor
+                      item={current}
+                      onChanged={() => invalidateTraining(queryClient)}
+                    />
+                    <ReviewDetails item={current} revealed={false} />
+                  </>
+                ) : null}
               </PanelBody>
             </Panel>
           </aside>
@@ -314,6 +339,159 @@ export function TrainingWorkspace() {
         }}
       />
     </div>
+  );
+}
+
+function TrainingAuthoringEditor({
+  item,
+  onChanged,
+}: {
+  readonly item: TrainingItemRecord;
+  readonly onChanged: () => void;
+}) {
+  const notify = useUi((state) => state.notify);
+  const [editing, setEditing] = useState(false);
+  const [prompt, setPrompt] = useState(item.prompt);
+  const [explanation, setExplanation] = useState(item.explanation ?? '');
+  const [tags, setTags] = useState(item.tags.join(', '));
+  const [conflict, setConflict] = useState<{
+    latest: TrainingItemRecord;
+    mine: TrainingItemRecord;
+  } | null>(null);
+
+  const mine = (): TrainingItemRecord => ({
+    ...item,
+    prompt: prompt.trim(),
+    explanation: explanation.trim() || undefined,
+    tags: tags
+      .split(',')
+      .map((tag) => tag.trim())
+      .filter(Boolean),
+  });
+
+  const save = async () => {
+    try {
+      await (await getRepositories()).training.update(mine());
+      setEditing(false);
+      onChanged();
+    } catch (error) {
+      if (error instanceof StaleTrainingItemWriteError) {
+        setConflict({ latest: error.current, mine: mine() });
+        return;
+      }
+      notify({
+        tone: 'error',
+        message: error instanceof Error ? error.message : 'The training item could not be saved.',
+      });
+    }
+  };
+
+  if (conflict) {
+    return (
+      <section role="alert" className="border-b border-caution/40 bg-caution/10 px-3 py-3">
+        <p className="text-xs font-medium text-primary">
+          This training item changed in another tab.
+        </p>
+        <p className="mt-1 text-2xs text-secondary">
+          Review history remains intact. Choose which authoring version to continue with.
+        </p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <Button
+            onClick={() => {
+              setPrompt(conflict.latest.prompt);
+              setExplanation(conflict.latest.explanation ?? '');
+              setTags(conflict.latest.tags.join(', '));
+              setConflict(null);
+              setEditing(false);
+              onChanged();
+            }}
+          >
+            Reload latest
+          </Button>
+          <Button
+            variant="accent"
+            onClick={() =>
+              void (async () => {
+                const value = conflict.mine;
+                await (
+                  await getRepositories()
+                ).training.create({
+                  mode: value.mode,
+                  positionKey: value.positionKey,
+                  fen: value.fen,
+                  sideToMove: value.sideToMove,
+                  prompt: `${value.prompt} (this tab)`,
+                  solutionUci: value.solutionUci,
+                  solutionSan: value.solutionSan,
+                  candidatesUci: value.candidatesUci,
+                  ...(value.expectedBand ? { expectedBand: value.expectedBand } : {}),
+                  plans: value.plans,
+                  ...(value.explanation ? { explanation: value.explanation } : {}),
+                  tags: value.tags,
+                  ...(value.source ? { source: value.source } : {}),
+                  ...(value.answerSource ? { answerSource: value.answerSource } : {}),
+                });
+                setConflict(null);
+                setEditing(false);
+                onChanged();
+                notify({ tone: 'success', message: 'Saved this tab as a separate training item.' });
+              })()
+            }
+          >
+            Save mine as copy
+          </Button>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="border-b border-line-subtle px-3 py-3">
+      <div className="flex items-center">
+        <p className="text-[10px] uppercase tracking-wide text-tertiary">Authoring</p>
+        <Button className="ml-auto" onClick={() => setEditing((value) => !value)}>
+          {editing ? 'Close editor' : 'Edit'}
+        </Button>
+      </div>
+      {editing ? (
+        <form
+          className="mt-2 space-y-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void save();
+          }}
+        >
+          <label className="block text-2xs text-tertiary">
+            Prompt
+            <input
+              value={prompt}
+              onChange={(event) => setPrompt(event.target.value)}
+              className="mt-1 h-8 w-full rounded-[4px] border border-line bg-surface-inset px-2 text-xs text-primary"
+            />
+          </label>
+          <label className="block text-2xs text-tertiary">
+            Notes
+            <textarea
+              value={explanation}
+              onChange={(event) => setExplanation(event.target.value)}
+              className="mt-1 h-16 w-full rounded-[4px] border border-line bg-surface-inset px-2 py-1 text-xs text-primary"
+            />
+          </label>
+          <label className="block text-2xs text-tertiary">
+            Tags
+            <input
+              value={tags}
+              onChange={(event) => setTags(event.target.value)}
+              placeholder="opening, calculation"
+              className="mt-1 h-8 w-full rounded-[4px] border border-line bg-surface-inset px-2 text-xs text-primary"
+            />
+          </label>
+          <Button variant="accent" type="submit" disabled={!prompt.trim()}>
+            Save changes
+          </Button>
+        </form>
+      ) : null}
+    </section>
   );
 }
 

@@ -24,6 +24,7 @@ import { exportRepertoirePgn } from '@/repertoire/export';
 import { getRepositories } from '@/persistence/repositories';
 import {
   REPERTOIRE_ROLES,
+  StaleRepertoirePositionWriteError,
   type RepertoirePositionRecord,
   type RepertoireRole,
   type RepertoireWithPositions,
@@ -49,8 +50,16 @@ export function RepertoireWorkspace() {
   const openDocument = useAnalysis((state) => state.openDocument);
   const setTrainingCaptureOpen = useUi((state) => state.setTrainingCaptureOpen);
   const repertoires = useRepertoires();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [selectedPositionId, setSelectedPositionId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(() =>
+    typeof window === 'undefined'
+      ? null
+      : new URLSearchParams(window.location.search).get('repertoire'),
+  );
+  const [selectedPositionId, setSelectedPositionId] = useState<string | null>(() =>
+    typeof window === 'undefined'
+      ? null
+      : new URLSearchParams(window.location.search).get('position'),
+  );
   const [newTitle, setNewTitle] = useState('');
   const [newColor, setNewColor] = useState<'w' | 'b'>('w');
   const [creating, setCreating] = useState(false);
@@ -621,6 +630,10 @@ function MoveEditor({
   const [busy, setBusy] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
   const [note, setNote] = useState('');
+  const [conflict, setConflict] = useState<{
+    latest: RepertoirePositionRecord;
+    mine: RepertoirePositionRecord;
+  } | null>(null);
 
   const write = async (uci: string, change: { role?: RepertoireRole; note?: string }) => {
     const move = position.moves.find((candidate) => candidate.uci === uci);
@@ -634,9 +647,22 @@ function MoveEditor({
         sideToMove: position.sideToMove,
         depth: position.depth,
         moves: [{ ...move, ...change }],
+        expectedRevision: position.revision,
       });
       onChanged();
     } catch (error) {
+      if (error instanceof StaleRepertoirePositionWriteError) {
+        setConflict({
+          latest: error.current,
+          mine: {
+            ...position,
+            moves: position.moves.map((candidate) =>
+              candidate.uci === uci ? { ...candidate, ...change } : candidate,
+            ),
+          },
+        });
+        return;
+      }
       notify({
         tone: 'error',
         message: error instanceof Error ? error.message : 'That change could not be saved.',
@@ -650,9 +676,16 @@ function MoveEditor({
   const drop = async (uci: string) => {
     setBusy(uci);
     try {
-      await (await getRepositories()).repertoires.removeMove(position.id, uci);
+      await (await getRepositories()).repertoires.removeMove(position.id, uci, position.revision);
       onChanged();
     } catch (error) {
+      if (error instanceof StaleRepertoirePositionWriteError) {
+        setConflict({
+          latest: error.current,
+          mine: { ...position, moves: position.moves.filter((move) => move.uci !== uci) },
+        });
+        return;
+      }
       notify({
         tone: 'error',
         message: error instanceof Error ? error.message : 'That move could not be removed.',
@@ -664,6 +697,55 @@ function MoveEditor({
 
   return (
     <section className="border-b border-line-subtle">
+      {conflict ? (
+        <div role="alert" className="border-b border-caution/40 bg-caution/10 px-3 py-2">
+          <p className="text-xs font-medium text-primary">
+            This repertoire position changed in another tab.
+          </p>
+          <p className="mt-0.5 text-2xs text-secondary">
+            The other version was kept. Reload it, or preserve this tab in a separate repertoire.
+          </p>
+          <div className="mt-2 flex gap-2">
+            <Button
+              onClick={() => {
+                setConflict(null);
+                onChanged();
+              }}
+            >
+              Reload latest
+            </Button>
+            <Button
+              variant="accent"
+              onClick={() => {
+                void (async () => {
+                  const repositories = await getRepositories();
+                  const source = await repositories.repertoires.get(conflict.mine.repertoireId);
+                  const copy = await repositories.repertoires.create({
+                    title: `${source?.repertoire.title ?? 'Repertoire'} (this tab)`,
+                    color: source?.repertoire.color ?? conflict.mine.sideToMove,
+                  });
+                  await repositories.repertoires.upsertPosition({
+                    repertoireId: copy.id,
+                    fen: conflict.mine.fen,
+                    sideToMove: conflict.mine.sideToMove,
+                    depth: conflict.mine.depth,
+                    moves: conflict.mine.moves,
+                    ...(conflict.mine.note ? { note: conflict.mine.note } : {}),
+                  });
+                  setConflict(null);
+                  onChanged();
+                  notify({
+                    tone: 'success',
+                    message: `Saved this tab's position in “${copy.title}”.`,
+                  });
+                })();
+              }}
+            >
+              Save mine as copy
+            </Button>
+          </div>
+        </div>
+      ) : null}
       <div className="flex h-8 items-center px-3">
         <h2 className="text-[10px] uppercase tracking-wide text-tertiary">Decisions here</h2>
         <span className="ml-auto text-[10px] text-tertiary tabular">
