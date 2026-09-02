@@ -16,6 +16,7 @@ import { EngineHost } from './engines.mjs';
 import {
   allowedOrigins,
   createToken,
+  databaseKey,
   HOST,
   PathRegistry,
   presentedToken,
@@ -224,7 +225,7 @@ async function route(url, request, response) {
     // The filename is derived from a sanitised name and always lands in the
     // companion's own directory; a request cannot choose where it is written.
     const file = path.join(DATA_DIR, `${name}.kingfisher.sqlite`);
-    const key = `db-${Buffer.from(name).toString('hex').slice(0, 16)}`;
+    const key = databaseKey(name);
     databaseRegistry.register(key, file, { name });
     database(key);
     saveDatabases();

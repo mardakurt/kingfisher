@@ -6,9 +6,14 @@
  * the data, not its exact contents. The seed makes runs comparable.
  *
  *   node scripts/generate-pgn.mjs 10000 > /tmp/bench.pgn
+ *
+ * Also importable, so the benchmarks can generate a collection in process
+ * rather than shelling out and parsing megabytes back off a pipe:
+ *
+ *   import { generateGames } from './generate-pgn.mjs';
  */
 
-const COUNT = Number(process.argv[2] ?? 1000);
+import { pathToFileURL } from 'node:url';
 
 const PLAYERS = [
   'Carlsen, M',
@@ -40,7 +45,15 @@ const OPENINGS = [
 ];
 
 const RESULTS = ['1-0', '0-1', '1/2-1/2'];
-const ECOS = ['B90', 'D37', 'C92', 'A29', 'E97', 'C18', 'B18', 'D85'];
+/*
+  One ECO per opening, in the same order. They were previously off by one from
+  index 2 onward — a King's Indian was tagged C18 — which made any benchmark or
+  fixture that filtered by ECO measure the wrong rows.
+
+  Entries 1 and 2 deliberately share D55: they are the same position reached by
+  two move orders, which is what gives the fixture real transpositions.
+*/
+const ECOS = ['B90', 'D55', 'D55', 'C92', 'A29', 'E97', 'C18', 'B18'];
 
 /** Mulberry32: tiny, deterministic, and good enough for fixture shape. */
 function random(seed) {
@@ -52,42 +65,59 @@ function random(seed) {
   };
 }
 
-const next = random(20260901);
-const out = [];
+/** Deterministic for a given count and seed: two runs produce the same bytes. */
+export function generateGames(count, seed = 20260901) {
+  const next = random(seed);
+  const out = [];
 
-for (let i = 0; i < COUNT; i += 1) {
-  const opening = OPENINGS[Math.floor(next() * OPENINGS.length)];
-  const white = PLAYERS[Math.floor(next() * PLAYERS.length)];
-  let black = PLAYERS[Math.floor(next() * PLAYERS.length)];
-  if (black === white) black = PLAYERS[(PLAYERS.indexOf(white) + 1) % PLAYERS.length];
+  for (let i = 0; i < count; i += 1) {
+    const opening = OPENINGS[Math.floor(next() * OPENINGS.length)];
+    const white = PLAYERS[Math.floor(next() * PLAYERS.length)];
+    let black = PLAYERS[Math.floor(next() * PLAYERS.length)];
+    if (black === white) black = PLAYERS[(PLAYERS.indexOf(white) + 1) % PLAYERS.length];
 
-  const result = RESULTS[Math.floor(next() * RESULTS.length)];
-  const year = 2010 + Math.floor(next() * 16);
-  const month = 1 + Math.floor(next() * 12);
-  const day = 1 + Math.floor(next() * 28);
-  const eco = ECOS[OPENINGS.indexOf(opening)];
+    const result = RESULTS[Math.floor(next() * RESULTS.length)];
+    const year = 2010 + Math.floor(next() * 16);
+    const month = 1 + Math.floor(next() * 12);
+    const day = 1 + Math.floor(next() * 28);
+    const eco = ECOS[OPENINGS.indexOf(opening)];
 
-  // A unique tail per game, so no two games are duplicates of one another.
-  const plies = opening.slice(0, 8 + Math.floor(next() * 6));
-  let movetext = '';
-  for (let m = 0; m < plies.length; m += 2) {
-    movetext += `${m / 2 + 1}. ${plies[m]}${plies[m + 1] ? ` ${plies[m + 1]}` : ''} `;
+    /*
+      The move text is one of eight openings truncated to a random length, so
+      many games share a line — which is the point, because an opening
+      aggregation over a collection where every game is unique measures
+      nothing. The Round and Event tags vary with `i`, which is what keeps the
+      *games* distinct: a fingerprint covers the headers as well as the moves.
+    */
+    const plies = opening.slice(0, 8 + Math.floor(next() * 6));
+    let movetext = '';
+    for (let m = 0; m < plies.length; m += 2) {
+      movetext += `${m / 2 + 1}. ${plies[m]}${plies[m + 1] ? ` ${plies[m + 1]}` : ''} `;
+    }
+
+    out.push(
+      `[Event "Synthetic Open ${1 + (i % 40)}"]\n` +
+        `[Site "Bench"]\n` +
+        `[Date "${year}.${String(month).padStart(2, '0')}.${String(day).padStart(2, '0')}"]\n` +
+        `[Round "${1 + (i % 11)}"]\n` +
+        `[White "${white}"]\n` +
+        `[Black "${black}"]\n` +
+        `[Result "${result}"]\n` +
+        `[WhiteElo "${2500 + Math.floor(next() * 350)}"]\n` +
+        `[BlackElo "${2500 + Math.floor(next() * 350)}"]\n` +
+        `[ECO "${eco}"]\n` +
+        `[GameId "${i}"]\n\n` +
+        `${movetext}${result}`,
+    );
   }
 
-  out.push(
-    `[Event "Synthetic Open ${1 + (i % 40)}"]\n` +
-      `[Site "Bench"]\n` +
-      `[Date "${year}.${String(month).padStart(2, '0')}.${String(day).padStart(2, '0')}"]\n` +
-      `[Round "${1 + (i % 11)}"]\n` +
-      `[White "${white}"]\n` +
-      `[Black "${black}"]\n` +
-      `[Result "${result}"]\n` +
-      `[WhiteElo "${2500 + Math.floor(next() * 350)}"]\n` +
-      `[BlackElo "${2500 + Math.floor(next() * 350)}"]\n` +
-      `[ECO "${eco}"]\n` +
-      `[GameId "${i}"]\n\n` +
-      `${movetext}${result}`,
-  );
+  return out.join('\n\n');
 }
 
-process.stdout.write(out.join('\n\n'));
+// Only when run directly, so importing it does not print megabytes to stdout.
+// Compared through `pathToFileURL` rather than by string: this repository's
+// path contains spaces and an ampersand, which `import.meta.url` percent-
+// encodes and `process.argv[1]` does not.
+if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
+  process.stdout.write(generateGames(Number(process.argv[2] ?? 1000)));
+}
