@@ -11,6 +11,8 @@ import { useCompanionStatus } from '@/companion/useCompanion';
 import { NavButton } from '@/features/shell/NavButton';
 import { cn } from '@/lib/cn';
 import { useUi } from '@/stores/ui-store';
+import { getRepositories } from '@/persistence/repositories';
+import { STORE_NAMES } from '@/persistence/schema/migrations';
 
 const LABELS: Record<ProviderHealthState, string> = {
   ready: 'Ready',
@@ -109,11 +111,99 @@ export function DatabasesWorkspace() {
                     : 'Not paired or checking.'}
               </p>
             </div>
+            <StorageSummary sqlite={companion.data?.databases ?? []} />
           </div>
         </aside>
       </div>
     </div>
   );
+}
+
+function StorageSummary({
+  sqlite,
+}: {
+  readonly sqlite: readonly {
+    readonly name: string;
+    readonly bytes: number | null;
+    readonly games: number | null;
+  }[];
+}) {
+  const storage = useQuery({
+    queryKey: ['storage-usage'],
+    staleTime: 15_000,
+    retry: false,
+    queryFn: async () => {
+      const repositories = await getRepositories();
+      const [estimate, games, studies, training] = await Promise.all([
+        navigator.storage?.estimate?.() ?? Promise.resolve({ usage: undefined, quota: undefined }),
+        repositories.raw.count(STORE_NAMES.games),
+        repositories.raw.count(STORE_NAMES.studies),
+        repositories.raw.count(STORE_NAMES.trainingItems),
+      ]);
+      return { estimate, games, studies, training };
+    },
+  });
+  const usage = storage.data?.estimate.usage;
+  const quota = storage.data?.estimate.quota;
+  const ratio = usage != null && quota ? usage / quota : null;
+  /*
+    Four distinct answers, not one blank. Still reading is not the same as the
+    browser refusing to estimate, and neither is the same as a failed read —
+    collapsing them would have this panel say "Unavailable" about a number it
+    is in the middle of fetching.
+  */
+  const estimate = storage.isPending
+    ? 'Reading…'
+    : storage.isError
+      ? 'Could not be read'
+      : usage == null
+        ? 'Not reported by this browser'
+        : `${formatBytes(usage)}${quota ? ` of ${formatBytes(quota)}` : ''}`;
+  return (
+    <section className="px-4 py-3">
+      <h3 className="text-[10px] font-semibold uppercase tracking-wide text-tertiary">Storage</h3>
+      <p className="mt-2 text-xs text-primary">Estimated browser storage: {estimate}</p>
+      {ratio !== null ? (
+        <div
+          className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-inset"
+          aria-label={`${Math.round(ratio * 100)} percent of estimated browser quota used`}
+        >
+          <div
+            className={cn('h-full', ratio > 0.85 ? 'bg-caution' : 'bg-accent')}
+            style={{ width: `${Math.min(100, ratio * 100)}%` }}
+          />
+        </div>
+      ) : null}
+      <p className="mt-2 text-2xs text-tertiary tabular">
+        {storage.data
+          ? `${storage.data.games.toLocaleString()} games · ${storage.data.studies} studies · ${storage.data.training} training items`
+          : storage.isError
+            ? 'Stored counts could not be read from this browser.'
+            : 'Reading browser storage…'}
+      </p>
+      {sqlite.map((database) => (
+        <p
+          key={database.name}
+          className="mt-1 truncate text-2xs text-tertiary"
+          title={database.name}
+        >
+          {database.name}:{' '}
+          {database.bytes == null ? 'size unavailable' : formatBytes(database.bytes)} ·{' '}
+          {database.games?.toLocaleString() ?? 'unknown'} games
+        </p>
+      ))}
+      <p className="mt-2 text-[10px] leading-relaxed text-tertiary">
+        Browser figures are estimates. Kingfisher never deletes data automatically when quota is
+        low.
+      </p>
+    </section>
+  );
+}
+
+function formatBytes(value: number): string {
+  if (value < 1_000_000) return `${(value / 1_000).toFixed(1)} kB`;
+  if (value < 1_000_000_000) return `${(value / 1_000_000).toFixed(1)} MB`;
+  return `${(value / 1_000_000_000).toFixed(2)} GB`;
 }
 
 function useProviderHealth(provider: ChessDatabaseProvider) {

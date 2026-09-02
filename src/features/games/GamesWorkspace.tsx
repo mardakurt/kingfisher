@@ -10,7 +10,7 @@
  * seven-column table at 320px is a table nobody can read.
  */
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { Database, Filter, Import, Trash } from '@/components/icons';
@@ -32,6 +32,16 @@ import type { GameResult } from '@/database/types';
 import { useAnalysis } from '@/stores/analysis-store';
 import { useUi } from '@/stores/ui-store';
 import { NavButton } from '@/features/shell/NavButton';
+import { setEvaluation } from '@/chess/tree/tree';
+import {
+  deleteResearchFilter,
+  recentResearchFilters,
+  rememberResearchFilter,
+  rememberUsedFilters,
+  savedResearchFilters,
+  saveResearchFilter,
+  type ResearchFilter,
+} from './research-filters';
 
 type SortField = NonNullable<GameSearchQuery['sortBy']>;
 
@@ -64,6 +74,7 @@ export function GamesWorkspace() {
   const router = useRouter();
   const notify = useUi((state) => state.notify);
   const setImportOpen = useUi((state) => state.setImportOpen);
+  const openAnalysisQueue = useUi((state) => state.openAnalysisQueue);
   const openDocument = useAnalysis((state) => state.openDocument);
   const dense = useMediaQuery('(min-width: 720px)');
 
@@ -80,6 +91,9 @@ export function GamesWorkspace() {
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
   const [confirmation, setConfirmation] = useState<'selected' | 'all' | null>(null);
   const [page, setPage] = useState(0);
+  const [savedFilters, setSavedFilters] = useState<readonly ResearchFilter[]>(savedResearchFilters);
+  const [recentFilters, setRecentFilters] =
+    useState<readonly ResearchFilter[]>(recentResearchFilters);
 
   const query = useMemo<GameSearchQuery>(
     () => ({
@@ -161,8 +175,24 @@ export function GamesWorkspace() {
         notify({ tone: 'error', message: 'That game is no longer in the database.' });
         return;
       }
+      const evidence = await repositories.analysisQueue.evidenceForGame(game.id);
+      const tree = evidence.reduce(
+        (currentTree, entry) =>
+          currentTree.nodes[entry.nodeId]
+            ? setEvaluation(currentTree, entry.nodeId, {
+                score: entry.score,
+                depth: entry.depth,
+                nodes: entry.nodes,
+                timeMs: entry.timeMs,
+                engine: entry.engineName,
+                bestMove: entry.pv[0],
+                recordedAt: entry.analysedAt,
+              })
+            : currentTree,
+        full.tree,
+      );
       openDocument({
-        tree: full.tree,
+        tree,
         document: { kind: 'database-game', title: gameTitle(full), gameId: full.id },
       });
       router.push('/analysis');
@@ -176,6 +206,45 @@ export function GamesWorkspace() {
 
   const filtersActive =
     Boolean(player || minRating || fromYear || eco) || playerColor !== 'any' || result !== 'any';
+
+  /*
+    Recent filters are recorded from what the user actually searched with, not
+    only from re-applying a saved one — otherwise the list stays empty for the
+    person it is meant to help. Debounced, because every keystroke changes the
+    query and the point is the filter set, not the typing.
+  */
+  useEffect(() => {
+    if (!filtersActive && !text.trim()) return undefined;
+    const timer = window.setTimeout(() => {
+      const { limit: _limit, offset: _offset, ...filters } = query;
+      setRecentFilters(rememberUsedFilters(filters));
+    }, 1_200);
+    return () => window.clearTimeout(timer);
+  }, [query, filtersActive, text]);
+
+  const applyFilter = (filter: ResearchFilter) => {
+    const values = filter.filters;
+    setText(values.text ?? '');
+    setPlayer(values.player ?? '');
+    setPlayerColor(values.playerColor ?? 'any');
+    setResult(values.result ?? 'any');
+    setMinRating(values.minRating?.toString() ?? '');
+    setFromYear(values.fromYear?.toString() ?? '');
+    setEco(values.eco ?? '');
+    setSortBy(values.sortBy ?? 'importedAt');
+    setSortDirection(values.sortDirection ?? 'desc');
+    setPage(0);
+    setFiltersOpen(true);
+    setRecentFilters(rememberResearchFilter(filter));
+  };
+
+  const saveCurrent = () => {
+    const name = window.prompt('Name this database filter');
+    if (!name?.trim()) return;
+    const { limit: _limit, offset: _offset, ...filters } = query;
+    setSavedFilters(saveResearchFilter(name, filters));
+    notify({ tone: 'success', message: `Saved filter “${name.trim()}”.` });
+  };
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -208,10 +277,47 @@ export function GamesWorkspace() {
         <Button variant="accent" icon={<Import />} onClick={() => setImportOpen(true)}>
           <span className="hidden xs:inline">Import</span>
         </Button>
+        <Button onClick={() => openAnalysisQueue()}>Analysis queue</Button>
       </header>
 
       {filtersOpen && (
         <div className="flex shrink-0 flex-wrap items-end gap-2 border-b border-line-subtle bg-surface-1 px-2 py-2 sm:px-3">
+          {savedFilters.length || recentFilters.length ? (
+            <Field label="Saved / recent">
+              <select
+                aria-label="Saved and recent filters"
+                className={FIELD}
+                defaultValue=""
+                onChange={(event) => {
+                  const selectedFilter = [...savedFilters, ...recentFilters].find(
+                    (entry) => entry.id === event.target.value,
+                  );
+                  if (selectedFilter) applyFilter(selectedFilter);
+                  event.currentTarget.value = '';
+                }}
+              >
+                <option value="">Choose…</option>
+                {savedFilters.length ? (
+                  <optgroup label="Saved">
+                    {savedFilters.map((entry) => (
+                      <option key={entry.id} value={entry.id}>
+                        {entry.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : null}
+                {recentFilters.length ? (
+                  <optgroup label="Recent">
+                    {recentFilters.map((entry) => (
+                      <option key={`recent-${entry.id}`} value={entry.id}>
+                        {entry.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : null}
+              </select>
+            </Field>
+          ) : null}
           <Field label="Player (exact name)">
             <input
               value={player}
@@ -304,6 +410,18 @@ export function GamesWorkspace() {
               Clear filters
             </Button>
           )}
+          <Button onClick={saveCurrent}>Save filter</Button>
+          {savedFilters.length ? (
+            <Button
+              onClick={() => {
+                const selectedName = window.prompt('Exact saved filter name to delete');
+                const target = savedFilters.find((entry) => entry.name === selectedName);
+                if (target) setSavedFilters(deleteResearchFilter(target.id));
+              }}
+            >
+              Manage saved
+            </Button>
+          ) : null}
         </div>
       )}
 
@@ -311,6 +429,9 @@ export function GamesWorkspace() {
         <div className="flex shrink-0 items-center gap-2 border-b border-line-subtle bg-surface-2 px-2 py-1.5 sm:px-3">
           <span className="text-2xs text-secondary tabular">{selected.size} selected</span>
           <Button onClick={() => setSelected(new Set())}>Clear selection</Button>
+          <Button variant="accent" onClick={() => openAnalysisQueue([...selected])}>
+            Add to analysis queue
+          </Button>
           <Button
             variant="danger"
             icon={<Trash />}
