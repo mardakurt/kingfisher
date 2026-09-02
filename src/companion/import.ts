@@ -16,6 +16,8 @@
 import { parsePgn } from '@/chess/pgn';
 import { serializePgn } from '@/chess/pgn';
 import { indexGame, normalizeGame } from '@/persistence/import-game';
+import type { PreparedSqliteGame } from '@/persistence/pgn-import-protocol';
+import { runPgnWorker } from '@/persistence/pgn-worker-client';
 
 import type { CompanionClient } from './client';
 
@@ -23,7 +25,15 @@ export interface SqliteImportProgress {
   readonly parsed: number;
   readonly imported: number;
   readonly duplicates: number;
+  /**
+   * Games in the file.
+   *
+   * Zero while a streaming worker import is still running: the parser knows
+   * what it has parsed and never what is still to come. Only the final result
+   * carries a real total, so progress must count up rather than divide by this.
+   */
   readonly total: number;
+  readonly cancelled?: boolean;
 }
 
 /** Batches, because one transaction per game would spend its life in fsync. */
@@ -36,11 +46,40 @@ export async function importPgnIntoSqlite(
   onProgress?: (progress: SqliteImportProgress) => void,
   signal?: AbortSignal,
 ): Promise<SqliteImportProgress> {
-  const parsed = parsePgn(pgn);
-  const total = parsed.games.length;
   let imported = 0;
   let duplicates = 0;
   let done = 0;
+  const worker = runPgnWorker<PreparedSqliteGame>(pgn, {
+    target: 'sqlite',
+    batchSize: BATCH,
+    signal,
+    onParsed: (parsed) => {
+      done = parsed;
+      onProgress?.({ parsed, imported, duplicates, total: 0 });
+    },
+    onBatch: async (batch, parsed) => {
+      const result = await client.importGames(key, [...batch]);
+      imported += result.imported;
+      duplicates += result.duplicates;
+      done = parsed;
+      onProgress?.({ parsed, imported, duplicates, total: 0 });
+    },
+  });
+  if (worker) {
+    const result = await worker;
+    if (result.total === 0 && !result.cancelled)
+      throw new Error('No games were found in that PGN.');
+    return {
+      parsed: result.parsed,
+      imported,
+      duplicates,
+      total: result.total,
+      cancelled: result.cancelled,
+    };
+  }
+
+  const parsed = parsePgn(pgn);
+  const total = parsed.games.length;
 
   let batch: unknown[] = [];
   const flush = async () => {
@@ -91,5 +130,5 @@ export async function importPgnIntoSqlite(
   }
 
   await flush();
-  return { parsed: done, imported, duplicates, total };
+  return { parsed: done, imported, duplicates, total, cancelled: signal?.aborted ?? false };
 }

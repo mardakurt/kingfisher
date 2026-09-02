@@ -14,7 +14,7 @@
  * source material rather than as the user's own work.
  */
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { parseFen } from '@/chess/fen';
@@ -27,6 +27,7 @@ import { gameTitle } from '@/persistence/describe';
 import type { ImportProgress } from '@/persistence/types';
 import { useAnalysis } from '@/stores/analysis-store';
 import { useUi } from '@/stores/ui-store';
+import { useImportJob } from './import-job-store';
 
 type Detected = 'fen' | 'pgn' | 'empty' | 'unknown';
 
@@ -60,74 +61,75 @@ function ImportForm() {
   const client = useQueryClient();
 
   const [text, setText] = useState('');
+  const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [progress, setProgress] = useState<ImportProgress | null>(null);
-  const abort = useRef<AbortController | null>(null);
+  const [storageWarning, setStorageWarning] = useState<string | null>(null);
+  const progress = useImportJob((state) => state.progress);
+  const busy = useImportJob((state) => state.running);
+  const minimized = useImportJob((state) => state.minimized);
+  const setMinimized = useImportJob((state) => state.setMinimized);
+  const cancelImport = useImportJob((state) => state.cancel);
+  const runImport = useImportJob((state) => state.run);
 
-  const kind = detect(text);
-  const busy = progress !== null && progress.stage !== 'complete';
+  const kind = file ? 'pgn' : detect(text);
 
   const importPgn = useCallback(async () => {
-    const controller = new AbortController();
-    abort.current = controller;
     setError(null);
-    setProgress({ stage: 'parsing', completed: 0, total: 0 });
 
     try {
-      const repositories = await getRepositories();
-      const summary = await importGames(text, repositories.games, {
-        signal: controller.signal,
-        onProgress: setProgress,
-      });
-
-      invalidateGames(client);
-
-      if (summary.firstGame) {
-        openDocument({
-          tree: summary.firstGame.tree,
-          document: {
-            kind: 'database-game',
-            title: gameTitle(summary.firstGame),
-            gameId: summary.firstGame.id,
-          },
+      await runImport(async (signal, onProgress) => {
+        const repositories = await getRepositories();
+        const summary = await importGames(file ?? text, repositories.games, {
+          signal,
+          onProgress,
         });
-      }
 
-      /*
+        invalidateGames(client);
+
+        if (summary.firstGame) {
+          openDocument({
+            tree: summary.firstGame.tree,
+            document: {
+              kind: 'database-game',
+              title: gameTitle(summary.firstGame),
+              gameId: summary.firstGame.id,
+            },
+          });
+        }
+
+        /*
         A cancelled import still added the batches that had already committed,
         so it gets the same accounting as a finished one. Reporting nothing —
         which is what happened while cancellation was thrown away — left the
         user unsure whether to import the file again.
       */
-      notify({
-        tone: summary.cancelled ? 'info' : summary.issues > 0 ? 'info' : 'success',
-        message: summary.cancelled
-          ? `Import stopped. ${summary.imported} of ${summary.games} game(s) were added.`
-          : summary.imported === 0
-            ? 'Every game in that PGN was already in your database.'
-            : `${summary.imported} game${summary.imported === 1 ? '' : 's'} added to your database.`,
-        detail: [
-          summary.duplicates > 0 ? `${summary.duplicates} duplicate(s) skipped.` : null,
-          summary.indexedPositions > 0
-            ? `${summary.indexedPositions.toLocaleString()} positions indexed.`
-            : null,
-          summary.issues > 0 ? `${summary.issues} part(s) could not be read.` : null,
-          summary.cancelled
-            ? 'Importing the same file again will skip what is already there.'
-            : null,
-        ]
-          .filter(Boolean)
-          .join(' '),
+        notify({
+          tone: summary.cancelled ? 'info' : summary.issues > 0 ? 'info' : 'success',
+          message: summary.cancelled
+            ? `Import stopped. ${summary.imported} of ${summary.games} game(s) were added.`
+            : summary.imported === 0
+              ? 'Every game in that PGN was already in your database.'
+              : `${summary.imported} game${summary.imported === 1 ? '' : 's'} added to your database.`,
+          detail: [
+            summary.duplicates > 0 ? `${summary.duplicates} duplicate(s) skipped.` : null,
+            summary.indexedPositions > 0
+              ? `${summary.indexedPositions.toLocaleString()} positions indexed.`
+              : null,
+            summary.issues > 0 ? `${summary.issues} part(s) could not be read.` : null,
+            summary.cancelled
+              ? 'Importing the same file again will skip what is already there.'
+              : null,
+          ]
+            .filter(Boolean)
+            .join(' '),
+        });
+        setOpen(false);
       });
-      setOpen(false);
     } catch (failure) {
-      setProgress(null);
       if (failure instanceof DOMException && failure.name === 'AbortError') return;
       setError(failure instanceof Error ? failure.message : 'The import failed.');
-    } finally {
-      abort.current = null;
     }
-  }, [client, notify, openDocument, setOpen, text]);
+  }, [client, file, notify, openDocument, runImport, setOpen, text]);
 
   const submit = () => {
     if (busy) return;
@@ -145,9 +147,35 @@ function ImportForm() {
   };
 
   const close = () => {
-    abort.current?.abort();
+    if (busy) {
+      setMinimized(true);
+      return;
+    }
     setOpen(false);
   };
+
+  if (minimized && busy) {
+    return (
+      <aside
+        className="fixed right-3 bottom-10 z-50 w-[340px] max-w-[calc(100vw-1.5rem)] rounded-[6px] border border-line-strong bg-surface-1 p-3 shadow-2xl"
+        aria-live="polite"
+      >
+        <p className="text-xs font-medium text-primary">Import continues in the background</p>
+        <p className="mt-1 text-2xs text-secondary">
+          {progress ? STAGE_TEXT[progress.stage] : 'Preparing'}
+          {progress && progress.completed > 0
+            ? ` · ${progress.completed.toLocaleString()} games`
+            : ''}
+        </p>
+        <div className="mt-2 flex justify-end gap-2">
+          <Button onClick={cancelImport}>Cancel import</Button>
+          <Button variant="accent" onClick={() => setMinimized(false)}>
+            Show progress
+          </Button>
+        </div>
+      </aside>
+    );
+  }
 
   return (
     <Dialog
@@ -159,8 +187,9 @@ function ImportForm() {
       footer={
         <>
           <Button variant="ghost" onClick={close}>
-            {busy ? 'Cancel import' : 'Cancel'}
+            {busy ? 'Continue in background' : 'Cancel'}
           </Button>
+          {busy ? <Button onClick={cancelImport}>Cancel import</Button> : null}
           <Button
             variant="accent"
             onClick={submit}
@@ -171,10 +200,37 @@ function ImportForm() {
         </>
       }
     >
+      <label className="mb-2 flex items-center justify-between gap-3 rounded-[4px] border border-line bg-surface-1 px-3 py-2 text-xs text-secondary">
+        <span className="min-w-0 truncate">
+          {file ? `${file.name} · ${(file.size / 1_000_000).toFixed(1)} MB` : 'Choose a PGN file'}
+        </span>
+        <input
+          type="file"
+          accept=".pgn,application/x-chess-pgn,text/plain"
+          disabled={busy}
+          className="max-w-[230px] text-2xs file:mr-2 file:rounded-[3px] file:border file:border-line file:bg-surface-2 file:px-2 file:py-1 file:text-primary"
+          onChange={(event) => {
+            const selected = event.target.files?.[0] ?? null;
+            setFile(selected);
+            setError(null);
+            setStorageWarning(null);
+            if (selected && navigator.storage?.estimate) {
+              void navigator.storage.estimate().then(({ usage = 0, quota = 0 }) => {
+                const remaining = Math.max(0, quota - usage);
+                if (quota > 0 && selected.size * 2.5 > remaining) {
+                  setStorageWarning(
+                    'This import may exceed the browser storage estimate. Consider a companion SQLite collection or export a backup first.',
+                  );
+                }
+              });
+            }
+          }}
+        />
+      </label>
       <textarea
         value={text}
         autoFocus
-        readOnly={busy}
+        readOnly={busy || file !== null}
         onChange={(event) => {
           setText(event.target.value);
           setError(null);
@@ -188,6 +244,12 @@ function ImportForm() {
         }
         className="h-56 w-full resize-none rounded-[4px] border border-line bg-surface-inset px-3 py-2 font-mono text-[11.5px] leading-relaxed text-primary outline-none placeholder:text-tertiary/70 focus:border-accent/60 read-only:opacity-60"
       />
+
+      {storageWarning ? (
+        <p className="mt-2 rounded-[4px] border border-caution/40 bg-caution/10 px-3 py-2 text-2xs text-secondary">
+          {storageWarning}
+        </p>
+      ) : null}
 
       {/*
         Stage-based rather than a percentage: parsing reports no total until it
@@ -209,7 +271,7 @@ function ImportForm() {
       <div className="mt-2 flex items-center justify-between gap-3 text-2xs">
         <span className="text-tertiary">
           {kind === 'fen' && 'Detected a FEN position.'}
-          {kind === 'pgn' && 'Detected a PGN game.'}
+          {kind === 'pgn' && (file ? 'PGN file selected.' : 'Detected a PGN game.')}
           {kind === 'unknown' && 'This does not look like a PGN or a FEN.'}
           {kind === 'empty' && 'Paste a game or a position. ⌘↵ to load.'}
         </span>

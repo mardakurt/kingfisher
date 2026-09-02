@@ -32,26 +32,75 @@ export interface ParsePgnResult {
   readonly issues: readonly PgnIssue[];
 }
 
+/**
+ * Incremental facade over the one authoritative parser.
+ *
+ * It tokenizes once, then lets a Worker parse bounded groups of games and yield
+ * between them for cancellation/back-pressure.  `parseOneGame` remains the
+ * only grammar implementation, so worker imports cannot drift from ordinary
+ * PGN loading.
+ */
+export interface PgnParserSession {
+  readonly done: boolean;
+  readonly parsedGames: number;
+  readonly issues: readonly PgnIssue[];
+  next(): ParsedGame | null;
+}
+
+export function createPgnParser(source: string): PgnParserSession {
+  const tokens = tokenize(source);
+  const issues: PgnIssue[] = [];
+  let cursor = 0;
+  let parsedGames = 0;
+  let finalized = false;
+
+  const finalize = () => {
+    if (finalized) return;
+    finalized = true;
+    if (parsedGames === 0) {
+      issues.push({ severity: 'error', message: 'No games found in this PGN.' });
+    }
+  };
+
+  return {
+    get done() {
+      const complete = cursor >= tokens.length;
+      if (complete) finalize();
+      return complete;
+    },
+    get parsedGames() {
+      return parsedGames;
+    },
+    get issues() {
+      return issues;
+    },
+    next() {
+      while (cursor < tokens.length) {
+        const before = cursor;
+        const parsed = parseOneGame(tokens, cursor);
+        cursor = parsed.nextIndex;
+        // Defensive: never loop on a token the game parser refused to consume.
+        if (cursor <= before) cursor = before + 1;
+        if (parsed.game) {
+          parsedGames += 1;
+          return parsed.game;
+        }
+      }
+      finalize();
+      return null;
+    },
+  };
+}
+
 /** Parse a file that may hold any number of games. */
 export function parsePgn(source: string): ParsePgnResult {
-  const tokens = tokenize(source);
+  const parser = createPgnParser(source);
   const games: ParsedGame[] = [];
-  const issues: PgnIssue[] = [];
-
-  let cursor = 0;
-  while (cursor < tokens.length) {
-    const before = cursor;
-    const parsed = parseOneGame(tokens, cursor);
-    cursor = parsed.nextIndex;
-    if (parsed.game) games.push(parsed.game);
-    // Defensive: never loop on a token the game parser refused to consume.
-    if (cursor <= before) cursor = before + 1;
+  while (!parser.done) {
+    const game = parser.next();
+    if (game) games.push(game);
   }
-
-  if (games.length === 0) {
-    issues.push({ severity: 'error', message: 'No games found in this PGN.' });
-  }
-  return { games, issues };
+  return { games, issues: parser.issues };
 }
 
 /** Parse exactly one game, failing when the text contains none. */
@@ -88,6 +137,17 @@ function parseOneGame(tokens: readonly Token[], start: number): GameParse {
   let tree = createTree(startFen.fen, headers);
 
   let cursor: NodeId = tree.rootId;
+  /*
+    The rules engine is carried along the line rather than rebuilt per move.
+    `seek` is the only way `cursor` moves without a move being played, so it is
+    also the only place that has to pay for a fresh engine — which is what
+    entering or leaving a variation costs, and nothing else.
+  */
+  let position = Position.fromTrustedFen(mustGetNode(tree, cursor).fen);
+  const seek = (nodeId: NodeId) => {
+    cursor = nodeId;
+    position = Position.fromTrustedFen(mustGetNode(tree, nodeId).fen);
+  };
   let lastMove: NodeId | null = null;
   let pending: string[] = [];
   const stack: Frame[] = [];
@@ -135,7 +195,7 @@ function parseOneGame(tokens: readonly Token[], start: number): GameParse {
 
       case 'move': {
         sawMovetext = true;
-        const played = Position.fromTrustedFen(mustGetNode(tree, cursor).fen).playSan(token.value);
+        const played = position.advanceSan(token.value);
         if (!played.ok) {
           issues.push({
             severity: 'error',
@@ -146,9 +206,10 @@ function parseOneGame(tokens: readonly Token[], start: number): GameParse {
           skipNesting = 0;
           break;
         }
-        const result = addMove(tree, cursor, played.value);
+        const result = addMove(tree, cursor, played.value.move);
         tree = result.tree;
         cursor = result.nodeId;
+        position = played.value.next;
         lastMove = result.nodeId;
         flushPendingTo(result.nodeId);
         break;
@@ -206,7 +267,7 @@ function parseOneGame(tokens: readonly Token[], start: number): GameParse {
           break;
         }
         stack.push({ cursor, lastMove, pending });
-        cursor = mustGetNode(tree, lastMove).parentId ?? tree.rootId;
+        seek(mustGetNode(tree, lastMove).parentId ?? tree.rootId);
         lastMove = null;
         pending = [];
         break;
@@ -222,7 +283,7 @@ function parseOneGame(tokens: readonly Token[], start: number): GameParse {
           });
           break;
         }
-        cursor = frame.cursor;
+        seek(frame.cursor);
         lastMove = frame.lastMove;
         pending = frame.pending;
         break;

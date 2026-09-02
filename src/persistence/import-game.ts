@@ -1,11 +1,8 @@
-import { positionKey } from '@/chess/fen';
-import { parsePgn, serializePgn, type ParsedGame } from '@/chess/pgn';
-import { mainlinePath } from '@/chess/tree/tree';
-import type { GameTree, NodeId } from '@/chess/tree/types';
-import type { GameResult } from '@/database/types';
+import { parsePgn, type ParsedGame } from '@/chess/pgn';
 
-import { gameFingerprint } from './ids';
-import { playerKey } from './schema/migrations';
+import { indexGame, normalizeGame } from './prepare-game';
+import type { PreparedLocalGame } from './pgn-import-protocol';
+import { runPgnWorker } from './pgn-worker-client';
 import type {
   GameRecord,
   GameRepository,
@@ -22,6 +19,8 @@ export interface ImportGamesOptions {
    * coarser, since a batch is the unit that either lands whole or not at all.
    */
   readonly batchSize?: number;
+  /** Test/embedder seam; production uses the module Worker. */
+  readonly createWorker?: () => Worker | null;
 }
 
 /**
@@ -51,7 +50,7 @@ const CANCELLED_BEFORE_START: PersistentImportSummary = {
 };
 
 export async function importGames(
-  source: string,
+  source: string | Blob,
   repository: GameRepository,
   options: ImportGamesOptions = {},
 ): Promise<PersistentImportSummary> {
@@ -63,6 +62,59 @@ export async function importGames(
     instead of guessing which cancellations threw and which returned.
   */
   if (options.signal?.aborted) return CANCELLED_BEFORE_START;
+  const batchSize = Math.max(1, options.batchSize ?? DEFAULT_BATCH_SIZE);
+  let imported = 0;
+  let duplicates = 0;
+  let indexedPositions = 0;
+  let firstGame: GameRecord | undefined;
+
+  const worker = runPgnWorker<PreparedLocalGame>(source, {
+    target: 'local',
+    batchSize,
+    signal: options.signal,
+    createWorker: options.createWorker,
+    onParsed: (completed) => options.onProgress?.({ stage: 'parsing', completed, total: 0 }),
+    onBatch: async (batch, completed) => {
+      firstGame ??= batch[0]?.game;
+      options.onProgress?.({ stage: 'indexing', completed, total: 0 });
+      options.onProgress?.({ stage: 'importing', completed, total: 0 });
+      const results = await repository.persistMany(batch);
+      for (const [index, result] of results.entries()) {
+        if (result.duplicate) duplicates += 1;
+        else {
+          imported += 1;
+          indexedPositions += batch[index]?.positions.length ?? 0;
+        }
+      }
+    },
+  });
+
+  if (worker) {
+    const run = await worker;
+    if (run.total === 0 && !run.cancelled) throw new Error('No games were found in that PGN.');
+    options.onProgress?.({ stage: 'complete', completed: run.parsed, total: run.total });
+    return {
+      games: run.total,
+      imported,
+      duplicates,
+      indexedPositions,
+      issues: run.issues,
+      cancelled: run.cancelled,
+      ...(firstGame ? { firstGame } : {}),
+    };
+  }
+
+  const text = typeof source === 'string' ? source : await source.text();
+  return importGamesOnMainThread(text, repository, options, batchSize);
+}
+
+/** Compatibility path for runtimes that refuse module Workers. */
+async function importGamesOnMainThread(
+  source: string,
+  repository: GameRepository,
+  options: ImportGamesOptions,
+  batchSize: number,
+): Promise<PersistentImportSummary> {
   const parsed = parsePgn(source);
   const total = parsed.games.length;
   if (total === 0) throw new Error('No games were found in that PGN.');
@@ -71,8 +123,6 @@ export async function importGames(
   let duplicates = 0;
   let indexedPositions = 0;
   let firstGame: GameRecord | undefined;
-  const batchSize = Math.max(1, options.batchSize ?? DEFAULT_BATCH_SIZE);
-
   let batch: { game: GameRecord; positions: PositionRecord[] }[] = [];
 
   const flush = async (completed: number): Promise<void> => {
@@ -128,85 +178,11 @@ export async function importGames(
   };
 }
 
-export function normalizeGame(tree: GameTree, importedAt = Date.now()): GameRecord {
-  const normalizedPgn = serializePgn(tree, { lineWidth: 80 });
-  const fingerprint = gameFingerprint(tree, normalizedPgn);
-  const headers = tree.headers;
-  const whiteRating = positiveNumber(headers.WhiteElo);
-  const blackRating = positiveNumber(headers.BlackElo);
-  const year = positiveNumber(headers.Date?.slice(0, 4));
-  const whiteName = headers.White || 'Unknown';
-  const blackName = headers.Black || 'Unknown';
-  const whiteKey = playerKey(whiteName);
-  const blackKey = playerKey(blackName);
-
-  return {
-    id: `game-${fingerprint}`,
-    fingerprint,
-    whiteKey,
-    blackKey,
-    playerKeys: whiteKey === blackKey ? [whiteKey] : [whiteKey, blackKey],
-    tree,
-    normalizedPgn,
-    importedAt,
-    white: whiteName,
-    black: blackName,
-    result: gameResult(headers.Result),
-    ...(headers.Date ? { date: headers.Date } : {}),
-    ...(year && year > 1000 ? { year } : {}),
-    ...(headers.Event ? { event: headers.Event } : {}),
-    ...(headers.Site ? { site: headers.Site } : {}),
-    ...(headers.Round ? { round: headers.Round } : {}),
-    ...(whiteRating ? { whiteRating } : {}),
-    ...(blackRating ? { blackRating } : {}),
-    ...(headers.ECO ? { eco: headers.ECO } : {}),
-    ...(headers.Opening ? { opening: headers.Opening } : {}),
-    ...(headers.Variation ? { variation: headers.Variation } : {}),
-    ...(headers.TimeControl ? { timeControl: headers.TimeControl } : {}),
-  };
-}
-
-/**
- * Position identity is placement + side + castling + legal en-passant state.
- * Move counters are intentionally omitted by `positionKey`, so transpositions
- * reached through different move orders converge.
- */
-export function indexGame(game: GameRecord): PositionRecord[] {
-  const path = mainlinePath(game.tree);
-  const records: PositionRecord[] = [];
-  const seen = new Set<string>();
-  for (let index = 0; index < path.length - 1; index += 1) {
-    const node = game.tree.nodes[path[index] as NodeId];
-    const child = game.tree.nodes[path[index + 1] as NodeId];
-    if (!node || !child?.move) continue;
-    const key = positionKey(node.fen);
-    const dedupe = `${key}|${child.move.uci}`;
-    if (seen.has(dedupe)) continue;
-    seen.add(dedupe);
-    records.push({
-      id: `${key}|${game.id}|${child.ply}|${child.move.uci}`,
-      positionKey: key,
-      gameId: game.id,
-      ply: child.ply,
-      moveUci: child.move.uci,
-      moveSan: child.move.san,
-      mover: child.move.color,
-    });
-  }
-  return records;
-}
+export { indexGame, normalizeGame } from './prepare-game';
 
 export function importSummaryIssues(games: readonly ParsedGame[]): number {
   return games.reduce((total, game) => total + game.issues.length, 0);
 }
-
-const gameResult = (value: string | undefined): GameResult =>
-  value === '1-0' || value === '0-1' || value === '1/2-1/2' || value === '*' ? value : '*';
-
-const positiveNumber = (value: string | undefined): number | undefined => {
-  const number = Number(value);
-  return Number.isFinite(number) && number > 0 ? number : undefined;
-};
 
 interface SchedulerWithYield {
   yield?: () => Promise<void>;
