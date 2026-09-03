@@ -1,8 +1,10 @@
-import { positionKey } from '@/chess/fen';
+import { isOk } from '@/chess/result';
+import { parseFen, positionKey } from '@/chess/fen';
+import { positionFeatures } from '@/chess/features';
 import {
-  pawnSkeletonKey,
+  pawnSkeletonKeyFromParts,
   structureClaims,
-  structureFacts,
+  structureFactsFromFeatures,
   structureSignature,
 } from '@/chess/structure';
 import { serializePgn } from '@/chess/pgn';
@@ -63,10 +65,20 @@ export function indexGame(game: GameRecord): PositionRecord[] {
     const child = game.tree.nodes[path[index + 1] as NodeId];
     if (!node || !child?.move) continue;
     const key = positionKey(node.fen);
-    const facts = structureFacts(node.fen);
     const dedupe = `${key}|${child.move.uci}`;
     if (seen.has(dedupe)) continue;
     seen.add(dedupe);
+    /*
+      One FEN parse per indexed position, not three.
+
+      Structure indexing is the most expensive thing this loop does — it walks
+      the board several times per position — so it runs after the dedupe check
+      rather than before it, and shares a single parse with the skeleton key
+      instead of each entry point parsing the FEN again for itself.
+    */
+    const parsed = parseFen(node.fen);
+    const parts = isOk(parsed) ? parsed.value : null;
+    const facts = parts ? structureFactsFromFeatures(positionFeatures(parts), parts) : null;
     records.push({
       id: `${key}|${game.id}|${child.ply}|${child.move.uci}`,
       positionKey: key,
@@ -77,7 +89,7 @@ export function indexGame(game: GameRecord): PositionRecord[] {
       mover: child.move.color,
       fen: node.fen,
       nodeId: node.id,
-      pawnSkeleton: pawnSkeletonKey(node.fen),
+      ...(parts ? { pawnSkeleton: pawnSkeletonKeyFromParts(parts) } : {}),
       ...(facts
         ? {
             structureSignature: structureSignature(facts),

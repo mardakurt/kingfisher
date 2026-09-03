@@ -32,3 +32,8 @@ order taken. Superseded records stay, marked as such.
 | [0021](0021-pgn-worker-pipeline.md)                        | One PGN grammar, run in a Worker behind acknowledged batches   | Accepted |
 | [0022](0022-background-analysis-scheduling.md)             | One background engine; the foreground wins; final answers only | Accepted |
 | [0023](0023-explorer-position-aggregates.md)               | A derived aggregate table for the unfiltered explorer          | Accepted |
+| [0024](0024-structural-position-identity.md)               | Pawn-skeleton key and structure signature, both deterministic  | Accepted |
+| [0025](0025-self-analysis-before-reveal.md)                | Evidence withheld until submission; the record freezes at reveal | Accepted |
+| [0026](0026-exact-filtered-explorer-cells.md)              | Exact year/rating cells for filtered explorer, never buckets   | Accepted |
+| [0027](0027-move-tree-virtualization.md)                   | Move-tree virtualization, adopted after measuring 20,000 nodes | Accepted |
+| [0028](0028-rules-engine-experiment.md)                    | Rules-engine replacement measured and rejected; chess.js stays | Accepted |
