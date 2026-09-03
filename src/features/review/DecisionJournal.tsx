@@ -41,6 +41,7 @@ import {
 } from './comparison';
 import { ThemePicker } from './ThemePicker';
 import { TrainingHandoff } from './TrainingHandoff';
+import { ScheduleReview } from './ScheduleReview';
 import {
   draftEstimate,
   hasAnswers,
@@ -533,6 +534,13 @@ function RevealedJournal({
         <section className="border-t border-line-subtle pt-3">
           <TrainingHandoff reviewItem={reviewItem} />
         </section>
+
+        {/*
+          Two different offers, deliberately side by side. Training tests an
+          answer; review asks you to rebuild the thinking. A position can
+          reasonably want one, both, or neither.
+        */}
+        {reviewItem ? <ScheduleReview item={reviewItem} /> : null}
       </PanelBody>
     </Panel>
   );

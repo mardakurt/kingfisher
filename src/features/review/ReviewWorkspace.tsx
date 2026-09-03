@@ -36,7 +36,9 @@ import { useAnalysisPosition } from '@/features/analysis/useAnalysisPosition';
 import { invalidateReview } from '@/features/persistence/queries';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { getRepositories } from '@/persistence/repositories';
-import type { ReviewItemRecord } from '@/persistence/domain';
+import type { DecisionRecord, ReviewItemRecord } from '@/persistence/domain';
+import { createTree } from '@/chess/tree/tree';
+import { JournalAnalytics } from './JournalAnalytics';
 import { useAnalysis } from '@/stores/analysis-store';
 import { useUi } from '@/stores/ui-store';
 import { cn } from '@/lib/cn';
@@ -48,7 +50,7 @@ import { SuggestCandidatesButton } from './SuggestCandidates';
 import { useDecisionAt, useReviewItems } from './queries';
 import { useReviewSession } from './review-session-store';
 
-type LeftTab = 'queue' | 'improvement';
+type LeftTab = 'queue' | 'improvement' | 'journal';
 
 export function ReviewWorkspace() {
   const client = useQueryClient();
@@ -114,6 +116,39 @@ export function ReviewWorkspace() {
     [notify, openDocument],
   );
 
+  /**
+   * Put a recorded decision back on the board.
+   *
+   * A statistic that cannot be opened is decoration, so every drill-down in
+   * the journal analytics ends here — at the position the number was about,
+   * with the record already written for it.
+   */
+  const openDecision = useCallback(
+    async (record: DecisionRecord) => {
+      if (record.gameId) {
+        const repositories = await getRepositories();
+        const game = await repositories.games.get(record.gameId);
+        if (game) {
+          openDocument({
+            tree: game.tree,
+            document: { kind: 'database-game', title: 'Game', gameId: game.id },
+            ...(record.nodeId && game.tree.nodes[record.nodeId]
+              ? { currentId: record.nodeId }
+              : {}),
+          });
+          return;
+        }
+      }
+      // A decision recorded in calculation mode has no game behind it. Its FEN
+      // is still a position, and opening that is better than refusing.
+      openDocument({
+        tree: createTree(record.fen, { Event: 'Recorded decision', Result: '*' }),
+        document: { kind: 'untitled', title: 'Recorded decision' },
+      });
+    },
+    [openDocument],
+  );
+
   const markCritical = async () => {
     try {
       const repositories = await getRepositories();
@@ -147,15 +182,26 @@ export function ReviewWorkspace() {
           items={[
             { id: 'queue' as const, label: 'Queue' },
             { id: 'improvement' as const, label: 'Improvement' },
+            { id: 'journal' as const, label: 'Journal' },
           ]}
           value={tab}
           onChange={setTab}
         />
       </div>
       <div className="min-h-0 flex-1">
-        <ErrorBoundary label={tab === 'queue' ? 'The review queue' : 'The improvement summary'}>
+        <ErrorBoundary
+          label={
+            tab === 'queue'
+              ? 'The review queue'
+              : tab === 'journal'
+                ? 'Journal analytics'
+                : 'The improvement summary'
+          }
+        >
           {tab === 'queue' ? (
             <CriticalInbox selectedId={selectedItemId} onOpen={(item) => void openItem(item)} />
+          ) : tab === 'journal' ? (
+            <JournalAnalytics onOpenDecision={(decision) => void openDecision(decision)} />
           ) : (
             <ImprovementSummary onOpenItem={(item) => void openItem(item)} />
           )}

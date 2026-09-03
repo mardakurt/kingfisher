@@ -25,6 +25,15 @@ export interface AnalysisQueueRepository {
   recoverInterrupted(now?: number, staleAfterMs?: number): Promise<number>;
   saveEvidence(evidence: StoredEngineEvidenceRecord): Promise<void>;
   evidenceForGame(gameId: string): Promise<readonly StoredEngineEvidenceRecord[]>;
+  /**
+   * Everything stored about one canonical position, from any game.
+   *
+   * Keyed by position rather than by game on purpose: a transposition is the
+   * same position, and evidence gathered while analysing one game is evidence
+   * about the position, not about that game. The decision journal reads this
+   * to put a stored search beside a judgement recorded before it.
+   */
+  evidenceForPosition(positionKey: string): Promise<readonly StoredEngineEvidenceRecord[]>;
   countEvidence(jobId: string): Promise<number>;
 }
 
@@ -120,6 +129,15 @@ export class LocalAnalysisQueueRepository implements AnalysisQueueRepository {
       STORE_NAMES.engineEvidence,
       'gameId',
       gameId,
+    );
+    return rows.map((row) => assertValid(row, isStoredEngineEvidenceRecord, 'engine evidence'));
+  }
+
+  async evidenceForPosition(positionKey: string): Promise<readonly StoredEngineEvidenceRecord[]> {
+    const rows = await this.database.getAllFromIndex<unknown>(
+      STORE_NAMES.engineEvidence,
+      'positionKey',
+      positionKey,
     );
     return rows.map((row) => assertValid(row, isStoredEngineEvidenceRecord, 'engine evidence'));
   }
