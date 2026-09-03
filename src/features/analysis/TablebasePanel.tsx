@@ -18,24 +18,56 @@ import { moveIntent } from '@/chess/moves';
 import { EmptyState, PanelBody, PanelHeader } from '@/components/ui/Panel';
 import { cn } from '@/lib/cn';
 import { defaultTablebaseProvider } from '@/tablebase/registry';
-import { describeCategory, eligibleForTablebase, type TablebaseCategory } from '@/tablebase/types';
+import {
+  chooseTablebaseProvider,
+  CompanionTablebaseProvider,
+  EMPTY_STATUS,
+} from '@/tablebase/companion';
+import { describeCategory, type TablebaseCategory } from '@/tablebase/types';
 import { useAnalysis } from '@/stores/analysis-store';
 import { useUi } from '@/stores/ui-store';
 
 import { useAnalysisPosition } from './useAnalysisPosition';
 
+/**
+ * One instance for the session.
+ *
+ * It carries the machine's capability, which is a property of the machine and
+ * not of a component, and creating it per render would re-scan on every move.
+ */
+const localProvider = new CompanionTablebaseProvider();
+
 export function TablebasePanel() {
   const { node, position } = useAnalysisPosition();
   const play = useAnalysis((state) => state.play);
   const notify = useUi((state) => state.notify);
-  const provider = defaultTablebaseProvider();
+  const remote = defaultTablebaseProvider();
 
   const pieceCount = useMemo(() => {
     const parsed = parseFen(node.fen);
     return parsed.ok ? positionFeatures(parsed.value).pieceCount : 32;
   }, [node.fen]);
 
-  const eligible = eligibleForTablebase(pieceCount, provider.maxPieces);
+  /*
+    What this machine can answer locally, read from the companion's own scan of
+    the tablebase directory. Cached for the session: a download finishing
+    mid-session is rare, and re-scanning on every position would put a
+    filesystem walk behind every move.
+  */
+  const localStatus = useQuery({
+    queryKey: ['tablebase', 'local-status'],
+    retry: false,
+    staleTime: 5 * 60 * 1000,
+    queryFn: () => localProvider.refresh(),
+  });
+
+  const choice = useMemo(
+    () =>
+      chooseTablebaseProvider(pieceCount, localProvider, remote, localStatus.data ?? EMPTY_STATUS),
+    [pieceCount, remote, localStatus.data],
+  );
+  const provider = choice?.provider ?? remote;
+  const eligible = choice !== null;
 
   const probe = useQuery({
     queryKey: ['tablebase', provider.id, node.fen],
@@ -78,6 +110,15 @@ export function TablebasePanel() {
                 Proved, not evaluated. DTZ counts plies to the next capture or pawn move; DTM counts
                 plies to mate where the source knows it.
               </p>
+              {/*
+                Where the proof came from, stated rather than implied. A user
+                who has installed local tables is entitled to know whether they
+                are being used, and a user who has not is entitled to know a
+                request left the machine.
+              */}
+              {choice ? (
+                <p className="mt-1 text-[10px] leading-relaxed text-tertiary">{choice.reason}</p>
+              ) : null}
             </section>
 
             {probe.data.moves.length > 0 ? (

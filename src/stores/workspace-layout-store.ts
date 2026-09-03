@@ -16,6 +16,7 @@ export type WorkspaceToolId =
   | 'transpositions'
   | 'theory-radar'
   | 'calculation'
+  | 'guess-the-move'
   | 'tablebase'
   | 'companion'
   | 'document'

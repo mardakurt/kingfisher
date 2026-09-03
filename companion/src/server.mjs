@@ -13,6 +13,7 @@ import { fileURLToPath } from 'node:url';
 
 import { GameDatabase } from './database.mjs';
 import { EngineHost } from './engines.mjs';
+import { probeLocalTablebase, scanTablebaseDirectory } from './tablebase.mjs';
 import {
   allowedOrigins,
   createToken,
@@ -31,6 +32,15 @@ const MANIFEST = path.join(ROOT, 'public', 'engine', 'manifest.json');
 const IMPORTS = path.join(DATA_DIR, 'databases.json');
 
 const PORT = Number(process.env.KINGFISHER_COMPANION_PORT ?? 4321);
+/*
+  Local tablebases, both halves configured by environment rather than by the
+  browser: a request body must never choose a filesystem path, and the endpoint
+  the companion will call out to is a machine-level decision.
+*/
+const TABLEBASE_DIR = process.env.KINGFISHER_TABLEBASE_PATH
+  ? path.resolve(process.env.KINGFISHER_TABLEBASE_PATH)
+  : null;
+const TABLEBASE_ENDPOINT = process.env.KINGFISHER_TABLEBASE_ENDPOINT ?? null;
 const TOKEN = process.env.KINGFISHER_COMPANION_TOKEN ?? createToken();
 const ORIGINS = allowedOrigins(PORT);
 
@@ -271,6 +281,29 @@ async function route(url, request, response) {
     code every other path uses, and posts them back. The companion never
     computes a chess fact of its own.
   */
+  /*
+    What the machine actually has. Read from the files every time rather than
+    cached: a user who has just finished a download expects the answer to
+    change without restarting the companion.
+  */
+  if (pathname === '/tablebase/status' && request.method === 'GET') {
+    const scan = scanTablebaseDirectory(TABLEBASE_DIR);
+    return json(response, 200, {
+      ...scan,
+      endpoint: TABLEBASE_ENDPOINT ? 'configured' : null,
+      // Stated plainly, because a directory full of tables with no server to
+      // read them is the configuration users will most often arrive at.
+      canProbe: Boolean(TABLEBASE_ENDPOINT),
+    });
+  }
+
+  if (pathname === '/tablebase/probe' && request.method === 'POST') {
+    const body = await readBody(request);
+    const probe = await probeLocalTablebase(TABLEBASE_ENDPOINT, String(body.fen ?? ''));
+    if (!probe.ok) return json(response, 503, { error: probe.reason });
+    return json(response, 200, { source: 'local', result: probe.result });
+  }
+
   if (pathname === '/db/unindexed-positions' && request.method === 'POST') {
     const body = await readBody(request);
     return json(

@@ -64,7 +64,7 @@ export function AnalysisWorkspace({
       {modelGameStudy ? (
         <div className="shrink-0 border-b border-line-subtle bg-surface-2 px-3 py-1 text-center text-[10.5px] text-secondary">
           Model game study · annotations, repertoire and structure remain visible · engine off by
-          default
+          default · use Guess the Move to work through it one decision at a time
         </div>
       ) : null}
       <div
@@ -96,7 +96,7 @@ export function AnalysisWorkspace({
             </div>
           </Panel>
         </section>
-        <WorkspaceToolDock workspace="analysis" />
+        <WorkspaceToolDock workspace={modelGameStudy ? 'model-game' : 'analysis'} />
       </div>
     </div>
   );

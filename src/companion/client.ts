@@ -229,6 +229,24 @@ export class CompanionClient {
     return this.request('/db/index-structures', { key, entries });
   }
 
+  /** What Syzygy tables this machine actually has, read from the files. */
+  tablebaseStatus(): Promise<{
+    configured: boolean;
+    path: string | null;
+    exists: boolean;
+    error?: string;
+    maxPieces: number;
+    wdl: readonly string[];
+    dtz: readonly string[];
+    canProbe: boolean;
+  }> {
+    return this.request('/tablebase/status');
+  }
+
+  probeTablebase(fen: string, signal?: AbortSignal): Promise<{ source: string; result: unknown }> {
+    return this.request('/tablebase/probe', { fen }, signal);
+  }
+
   gameContent(key: string, id: string): Promise<{ pgn: string | null }> {
     return this.request('/db/content', { key, id });
   }

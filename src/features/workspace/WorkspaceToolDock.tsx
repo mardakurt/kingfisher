@@ -57,6 +57,11 @@ const TheoryRadarHost = lazyPanel(() =>
     default: module.TheoryRadarHost,
   })),
 );
+const GuessTheMovePanel = lazyPanel(() =>
+  import('@/features/model-games/GuessTheMovePanel').then((module) => ({
+    default: module.GuessTheMovePanel,
+  })),
+);
 const CalculationHost = lazyPanel(() =>
   import('@/features/calculation/CalculationHost').then((module) => ({
     default: module.CalculationHost,
@@ -90,6 +95,7 @@ const LABELS: Record<WorkspaceToolId, string> = {
   transpositions: 'Transpositions',
   'theory-radar': 'Theory Radar',
   calculation: 'Calculation',
+  'guess-the-move': 'Guess the Move',
   tablebase: 'Tablebase',
   companion: 'Companion',
   document: 'Context',
@@ -159,6 +165,16 @@ const ROUTE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'model-games',
     'personal-results',
     'features',
+  ],
+  'model-game': [
+    'guess-the-move',
+    'notes',
+    'repertoire',
+    'model-games',
+    'features',
+    'explorer',
+    'database',
+    'engine',
   ],
   games: [
     'engine',
@@ -411,6 +427,7 @@ function ToolContent({ tool, contextPanel }: { tool: WorkspaceToolId; contextPan
   if (tool === 'transpositions') return <TranspositionsPanel />;
   if (tool === 'theory-radar') return <TheoryRadarHost />;
   if (tool === 'calculation') return <CalculationHost />;
+  if (tool === 'guess-the-move') return <GuessTheMovePanel />;
   if (tool === 'tablebase') return <TablebasePanel />;
   if (tool === 'companion') return <CompanionPanel />;
   if (tool === 'document') {
