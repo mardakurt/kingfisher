@@ -9,17 +9,24 @@ import type { Fen } from '@/chess/types';
 import { Database, Search } from '@/components/icons';
 import { Button } from '@/components/ui/Button';
 import { EmptyState, Panel, PanelBody, PanelHeader } from '@/components/ui/Panel';
-import { useProfile, useRepertoire, useRepertoires } from '@/features/persistence/queries';
+import {
+  useProfile,
+  useRepertoire,
+  useRepertoires,
+  useTrainingItems,
+} from '@/features/persistence/queries';
 import type { GameResult } from '@/database/types';
 import { getRepositories } from '@/persistence/repositories';
 import type { GameRecord, GameSearchQuery } from '@/persistence/types';
 import {
   buildOpeningTree,
   buildPlayerProfile,
+  buildPreparationPriorities,
   compareWithRepertoire,
   type OpeningTree,
   type PlayerProfile,
   type PreparationEdge,
+  type PreparationPriority,
 } from '@/preparation';
 import { useAnalysis } from '@/stores/analysis-store';
 import { NavButton } from '@/features/shell/NavButton';
@@ -105,7 +112,20 @@ export function PreparationWorkspace({ initialPlayer = '' }: { readonly initialP
   );
   const effectiveRepertoireId = repertoireId || matchingRepertoires[0]?.id || null;
   const repertoire = useRepertoire(effectiveRepertoireId);
+  const training = useTrainingItems();
+  const modelGames = useQuery({
+    queryKey: ['persistence', 'model-games', 'all'],
+    queryFn: async () => (await getRepositories()).modelGames.list(),
+    staleTime: 0,
+    retry: false,
+  });
   const comparison = compareWithRepertoire(node, repertoire.data?.positions ?? []);
+  const priorities = buildPreparationPriorities(
+    node,
+    repertoire.data?.positions ?? [],
+    modelGames.data ?? [],
+    training.data ?? [],
+  );
   const syncedPosition = useRef<string | null>(null);
 
   useEffect(() => {
@@ -321,12 +341,67 @@ export function PreparationWorkspace({ initialPlayer = '' }: { readonly initialP
                     ))}
                   </section>
                 ) : null}
+                {node ? (
+                  <PriorityQueue
+                    priorities={priorities}
+                    onPrepare={(edge) =>
+                      prepareReply(edge.resultingFen, `After ${submitted} plays ${edge.san}`)
+                    }
+                  />
+                ) : null}
               </PanelBody>
             </Panel>
           }
         />
       </div>
     </div>
+  );
+}
+
+function PriorityQueue({
+  priorities,
+  onPrepare,
+}: {
+  readonly priorities: readonly PreparationPriority[];
+  readonly onPrepare: (edge: PreparationEdge) => void;
+}) {
+  return (
+    <section className="border-t border-line-subtle px-3 py-3">
+      <h2 className="text-[10px] uppercase tracking-wide text-tertiary">Preparation priorities</h2>
+      <p className="mt-1 text-[10px] text-tertiary">
+        Ordered by missing response, recent growth, then local frequency. No hidden score.
+      </p>
+      {priorities.slice(0, 8).map((priority) => (
+        <article
+          key={priority.edge.uci}
+          className="mt-2 rounded-[4px] border border-line-subtle bg-surface-2 px-2 py-2"
+        >
+          <div className="flex items-center gap-2 text-2xs">
+            <strong className="text-primary">{priority.edge.san}</strong>
+            <span className="text-tertiary tabular">
+              Local {priority.edge.frequency}% · recent {priority.edge.recentFrequency}%
+            </span>
+            <span className="ml-auto text-tertiary">
+              {priority.prepared ? 'Prepared' : 'No response'}
+            </span>
+          </div>
+          <p className="mt-1 text-[10.5px] text-secondary">{priority.reasons.join(' ')}</p>
+          <div className="mt-1 flex items-center gap-2 text-[10px] text-tertiary">
+            <span>{priority.edge.games} opponent games</span>
+            <span>{priority.modelGames} model games</span>
+            <span>{priority.trainingItems} training</span>
+            {priority.lastReviewedAt ? (
+              <span>Reviewed {new Date(priority.lastReviewedAt).toLocaleDateString()}</span>
+            ) : null}
+            {!priority.prepared ? (
+              <Button className="ml-auto" onClick={() => onPrepare(priority.edge)}>
+                Add response
+              </Button>
+            ) : null}
+          </div>
+        </article>
+      ))}
+    </section>
   );
 }
 

@@ -9,7 +9,11 @@
 import { positionKey } from '@/chess/fen';
 import { mainlinePath, mustGetNode } from '@/chess/tree/tree';
 import type { Fen, San, Uci } from '@/chess/types';
-import type { RepertoirePositionRecord } from '@/persistence/domain';
+import type {
+  ModelGameLinkRecord,
+  RepertoirePositionRecord,
+  TrainingItemRecord,
+} from '@/persistence/domain';
 import type { GameRecord } from '@/persistence/types';
 import { playerKey } from '@/persistence/schema/migrations';
 
@@ -31,6 +35,8 @@ export interface PreparationEdge {
   readonly san: San;
   readonly games: number;
   readonly frequency: number;
+  readonly recentGames: number;
+  readonly recentFrequency: number;
   /** Score of the prepared-for player after choosing this move. */
   readonly playerScore: number;
   readonly averageElo?: number;
@@ -43,6 +49,7 @@ export interface PreparationNode {
   readonly positionKey: string;
   readonly fen: Fen;
   readonly games: number;
+  readonly recentGames: number;
   readonly edges: readonly PreparationEdge[];
 }
 
@@ -54,6 +61,16 @@ export interface OpeningTree {
 export interface RepertoireComparison {
   readonly prepared: readonly PreparationEdge[];
   readonly gaps: readonly PreparationEdge[];
+}
+
+export interface PreparationPriority {
+  readonly edge: PreparationEdge;
+  readonly prepared: boolean;
+  readonly modelGames: number;
+  readonly trainingItems: number;
+  readonly lastReviewedAt?: number;
+  /** Plain factual reasons; there is deliberately no blended recommendation score. */
+  readonly reasons: readonly string[];
 }
 
 export function matchesPlayer(game: GameRecord, aliases: readonly string[]): boolean {
@@ -116,7 +133,11 @@ export function buildPlayerProfile(
 export function buildOpeningTree(
   games: readonly GameRecord[],
   aliases: readonly string[],
-  options: { readonly playerColor?: 'w' | 'b'; readonly maxPlies?: number } = {},
+  options: {
+    readonly playerColor?: 'w' | 'b';
+    readonly maxPlies?: number;
+    readonly recentFromYear?: number;
+  } = {},
 ): OpeningTree {
   const keys = new Set(aliases.map(playerKey).filter(Boolean));
   const aggregates = new Map<string, MutableNode>();
@@ -138,16 +159,20 @@ export function buildOpeningTree(
       const resultingKey = positionKey(child.fen);
       let node = aggregates.get(key);
       if (!node) {
-        node = { fen: parent.fen, gameIds: new Set(), edges: new Map() };
+        node = { fen: parent.fen, gameIds: new Set(), recentGameIds: new Set(), edges: new Map() };
         aggregates.set(key, node);
       }
       node.gameIds.add(game.id);
+      if ((game.year ?? 0) >= (options.recentFromYear ?? new Date().getFullYear() - 2)) {
+        node.recentGameIds.add(game.id);
+      }
       let edge = node.edges.get(move.uci);
       if (!edge) {
         edge = {
           uci: move.uci,
           san: move.san,
           gameIds: new Set(),
+          recentGameIds: new Set(),
           points: 0,
           ratingSum: 0,
           ratings: 0,
@@ -158,6 +183,9 @@ export function buildOpeningTree(
       }
       if (edge.gameIds.has(game.id)) continue;
       edge.gameIds.add(game.id);
+      if ((game.year ?? 0) >= (options.recentFromYear ?? new Date().getFullYear() - 2)) {
+        edge.recentGameIds.add(game.id);
+      }
       edge.points += playerPoints(game, side);
       const rating = side === 'w' ? game.whiteRating : game.blackRating;
       if (rating !== undefined) {
@@ -171,12 +199,17 @@ export function buildOpeningTree(
   const nodes = new Map<string, PreparationNode>();
   for (const [key, node] of aggregates) {
     const gamesAtNode = node.gameIds.size;
+    const recentAtNode = node.recentGameIds.size;
     const edges = [...node.edges.values()]
       .map<PreparationEdge>((edge) => ({
         uci: edge.uci,
         san: edge.san,
         games: edge.gameIds.size,
         frequency: gamesAtNode ? Math.round((edge.gameIds.size / gamesAtNode) * 1000) / 10 : 0,
+        recentGames: edge.recentGameIds.size,
+        recentFrequency: recentAtNode
+          ? Math.round((edge.recentGameIds.size / recentAtNode) * 1000) / 10
+          : 0,
         playerScore: edge.gameIds.size
           ? Math.round((edge.points / edge.gameIds.size) * 1000) / 10
           : 0,
@@ -186,10 +219,81 @@ export function buildOpeningTree(
         resultingFen: edge.resultingFen,
       }))
       .sort((a, b) => b.games - a.games || a.san.localeCompare(b.san));
-    nodes.set(key, { positionKey: key, fen: node.fen, games: gamesAtNode, edges });
+    nodes.set(key, {
+      positionKey: key,
+      fen: node.fen,
+      games: gamesAtNode,
+      recentGames: recentAtNode,
+      edges,
+    });
   }
 
   return { rootKey, nodes };
+}
+
+/**
+ * Build a transparent preparation queue from observable facts.
+ *
+ * Ordering is lexicographic — missing answer, rising recent frequency, then
+ * frequency — and every fact used by that ordering is displayed to the user.
+ */
+export function buildPreparationPriorities(
+  node: PreparationNode | undefined,
+  repertoirePositions: readonly RepertoirePositionRecord[],
+  modelGames: readonly ModelGameLinkRecord[],
+  trainingItems: readonly TrainingItemRecord[],
+): readonly PreparationPriority[] {
+  if (!node) return [];
+  const preparedKeys = new Set(
+    repertoirePositions
+      .filter((position) =>
+        position.moves.some((move) => move.role === 'main' || move.role === 'alternative'),
+      )
+      .map((position) => position.positionKey),
+  );
+
+  return node.edges
+    .map((edge) => {
+      const prepared = preparedKeys.has(edge.resultingKey);
+      const linkedModels = modelGames.filter(
+        (link) => link.positionKey === edge.resultingKey,
+      ).length;
+      const training = trainingItems.filter((item) => item.positionKey === edge.resultingKey);
+      const lastReviewedAt = training.reduce<number | undefined>(
+        (latest, item) =>
+          item.schedule.lastReviewedAt === null
+            ? latest
+            : Math.max(latest ?? 0, item.schedule.lastReviewedAt),
+        undefined,
+      );
+      const rising = edge.recentGames >= 2 && edge.recentFrequency >= edge.frequency + 3;
+      const reasons: string[] = [];
+      if (!prepared && rising) reasons.push('Frequent recent move with no prepared answer.');
+      else if (!prepared && edge.frequency >= 5)
+        reasons.push('High-frequency move with no prepared answer.');
+      else if (!prepared) reasons.push('Observed move with no prepared answer.');
+      if (rising && prepared) reasons.push('This move is gaining frequency in recent games.');
+      if (prepared && training.length === 0)
+        reasons.push('A response exists, but this position is not in training.');
+      if (prepared && linkedModels === 0)
+        reasons.push('A response exists, but no model game is linked at this position.');
+      return {
+        edge,
+        prepared,
+        modelGames: linkedModels,
+        trainingItems: training.length,
+        ...(lastReviewedAt !== undefined ? { lastReviewedAt } : {}),
+        reasons,
+      };
+    })
+    .sort(
+      (a, b) =>
+        Number(a.prepared) - Number(b.prepared) ||
+        Number(b.edge.recentFrequency > b.edge.frequency) -
+          Number(a.edge.recentFrequency > a.edge.frequency) ||
+        b.edge.frequency - a.edge.frequency ||
+        a.edge.san.localeCompare(b.edge.san),
+    );
 }
 
 /** Compare observed opponent choices with positions where the repertoire has a playable reply. */
@@ -223,6 +327,7 @@ function playerPoints(game: GameRecord, side: 'w' | 'b'): number {
 interface MutableNode {
   readonly fen: Fen;
   readonly gameIds: Set<string>;
+  readonly recentGameIds: Set<string>;
   readonly edges: Map<Uci, MutableEdge>;
 }
 
@@ -230,6 +335,7 @@ interface MutableEdge {
   readonly uci: Uci;
   readonly san: San;
   readonly gameIds: Set<string>;
+  readonly recentGameIds: Set<string>;
   points: number;
   ratingSum: number;
   ratings: number;

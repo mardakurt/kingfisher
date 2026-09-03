@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest';
 
 import { parsePgn } from '@/chess/pgn';
 import { normalizeGame } from '@/persistence/import-game';
-import { buildOpeningTree, buildPlayerProfile, compareWithRepertoire } from './index';
+import {
+  buildOpeningTree,
+  buildPlayerProfile,
+  buildPreparationPriorities,
+  compareWithRepertoire,
+} from './index';
 
 const game = (pgn: string) => {
   const parsed = parsePgn(pgn).games[0];
@@ -63,5 +68,21 @@ describe('opponent preparation', () => {
     ]);
     expect(comparison.prepared.map((move) => move.san)).toEqual(['Nf3']);
     expect(comparison.gaps).toEqual([]);
+  });
+
+  it('orders transparent preparation priorities and exposes every supporting fact', () => {
+    const tree = buildOpeningTree(games.slice(0, 2), ['Target'], { recentFromYear: 2025 });
+    const root = tree.nodes.get(tree.rootKey)!;
+    const priorities = buildPreparationPriorities(root, [], [], []);
+    expect(priorities[0]).toMatchObject({
+      prepared: false,
+      modelGames: 0,
+      trainingItems: 0,
+    });
+    expect(priorities[0]!.reasons[0]).toContain('no prepared answer');
+    expect(priorities.map((entry) => entry.edge.frequency)).toEqual([50, 50]);
+    expect(priorities.find((entry) => entry.edge.san === 'd4')).toMatchObject({
+      edge: { recentGames: 1, recentFrequency: 100 },
+    });
   });
 });
