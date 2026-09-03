@@ -64,6 +64,11 @@ const CalculationHost = lazyPanel(() =>
     default: module.CalculationHost,
   })),
 );
+const PositionReportPanel = lazyPanel(() =>
+  import('@/features/position-report/PositionReportPanel').then((module) => ({
+    default: module.PositionReportPanel,
+  })),
+);
 const TablebasePanel = lazyPanel(() =>
   import('@/features/analysis/TablebasePanel').then((module) => ({
     default: module.TablebasePanel,
@@ -113,6 +118,7 @@ export function ToolContent({
   if (tool === 'candidates') return <CandidateComparison />;
   if (tool === 'tablebase') return <TablebasePanel />;
   if (tool === 'conversion') return <ConversionPanel />;
+  if (tool === 'report') return <PositionReportPanel />;
   if (tool === 'companion') return <CompanionPanel />;
   if (tool === 'document') {
     return (

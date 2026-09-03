@@ -33,6 +33,7 @@ export type WorkspaceToolId =
   | 'companion'
   | 'document'
   | 'conversion'
+  | 'report'
   | 'notes';
 
 export interface WorkspaceModuleDescriptor {
@@ -88,6 +89,7 @@ export const WORKSPACE_MODULES: Readonly<Record<WorkspaceToolId, WorkspaceModule
   companion: { id: 'companion', label: 'Companion', home: 'dock', regions: ['dock'] },
   document: { id: 'document', label: 'Context', home: 'dock', regions: ['dock'] },
   conversion: { id: 'conversion', label: 'Play it out', home: 'dock', regions: ['dock'] },
+  report: { id: 'report', label: 'Report', home: 'dock', regions: ['dock'] },
   notes: { id: 'notes', label: 'Notes', home: 'dock', regions: ['dock', 'lower'] },
 };
 
@@ -132,6 +134,7 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'features',
     'tablebase',
     'conversion',
+    'report',
     'companion',
     'notes',
   ],
@@ -170,6 +173,7 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'model-games',
     'personal-results',
     'features',
+    'report',
   ],
   endgame: ['conversion', 'tablebase', 'engine', 'features', 'notes', 'explorer', 'database'],
   'opening-files': [
@@ -213,6 +217,7 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'repertoire-health',
     'model-games',
     'features',
+    'report',
     'notes',
   ],
   training: ['document', 'engine', 'explorer', 'database', 'features', 'tablebase', 'notes'],

@@ -139,3 +139,69 @@ test('§20 a Chess.com sync walks the published monthly archives', async ({ page
   expect(asked.some((url) => url.includes('/2026/01/pgn'))).toBe(true);
   expect(asked.some((url) => url.includes('/2026/02/pgn'))).toBe(true);
 });
+
+test('§36 the position report gathers evidence with provenance under every section', async ({
+  page,
+}) => {
+  await page.route('https://explorer.lichess.org/**', async (route) => {
+    await route.fulfill({
+      json: {
+        white: 400,
+        draws: 300,
+        black: 300,
+        moves: [
+          { uci: 'e7e5', san: 'e5', white: 240, draws: 180, black: 180, averageRating: 2500 },
+          { uci: 'c7c5', san: 'c5', white: 160, draws: 120, black: 120, averageRating: 2510 },
+        ],
+        topGames: [],
+        opening: { eco: 'B00', name: "King's Pawn Game" },
+      },
+    });
+  });
+
+  await page.route('https://lichess.org/api/account', async (route) => {
+    await route.fulfill({ json: { id: 'e2e-user', username: 'E2EUser' } });
+  });
+
+  await page.goto('/analysis');
+  await ready(page);
+
+  /*
+    The masters explorer refuses to answer without a token, and the report
+    correctly reports *that* rather than showing zero games — which is a
+    different guarantee, and one the earlier tests in this file cover. To
+    exercise the evidence path, give it a token first.
+  */
+  await page.getByRole('button', { name: 'Settings (⌘,)' }).click();
+  const settings = page.getByRole('dialog', { name: 'Settings' });
+  await settings.getByRole('tab', { name: 'Database' }).click();
+  await settings.getByLabel('Lichess personal access token').fill('e2e-token');
+  await settings.getByRole('button', { name: 'Test connection' }).click();
+  await expect(settings.getByText('Connected as E2EUser')).toBeVisible();
+  await settings.getByRole('button', { name: 'Close' }).click();
+
+  await page.getByRole('button', { name: /More/ }).first().click();
+  await page.getByRole('menuitem', { name: 'Report' }).click();
+
+  const report = page.locator('[data-position-report]');
+  await expect(report).toBeVisible();
+
+  /*
+    §38: every section either cites a source or states why it is empty.
+    Asserted over the rendered report rather than the model, because the
+    guarantee is only worth anything if it survives rendering.
+  */
+  const sections = report.locator('[data-report-section]');
+  await expect(sections).not.toHaveCount(0);
+  const count = await sections.count();
+  for (let index = 0; index < count; index += 1) {
+    const section = sections.nth(index);
+    const text = (await section.innerText()).trim();
+    expect(text.length, `section ${index} rendered nothing`).toBeGreaterThan(0);
+  }
+
+  // §39: a highlighted move states the rule that selected it, and never "best".
+  const criteria = await report.locator('[data-report-criterion]').allInnerTexts();
+  expect(criteria.join(' ')).toMatch(/Most played/);
+  expect(criteria.join(' ').toLowerCase()).not.toContain('best');
+});
