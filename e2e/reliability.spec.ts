@@ -60,6 +60,21 @@ async function play(page: Page, from: string, to: string) {
   await page.getByRole('gridcell', { name: new RegExp(`^${to},`) }).click();
 }
 
+/**
+ * Wait for a newly created chapter to be the document on the board.
+ *
+ * A visible board is not the same as a loaded chapter: for a moment after
+ * `Create chapter` the surface is mounted but the new empty tree has not
+ * replaced the old one, and moves clicked in that window are swallowed. The
+ * test then continues against a chapter missing its first moves and fails much
+ * later, somewhere unrelated. An empty move count is the precondition, so it
+ * is asserted rather than assumed.
+ */
+async function newChapterReady(page: Page) {
+  await expect(page.getByRole('grid', { name: 'Chessboard' })).toBeVisible();
+  await expect(page.getByText('0 half-moves')).toBeVisible();
+}
+
 async function newStudyChapter(page: Page, study: string, chapter: string) {
   await page.goto('/studies');
   await waitForApp(page);
@@ -69,7 +84,7 @@ async function newStudyChapter(page: Page, study: string, chapter: string) {
   await page.getByRole('button', { name: 'New chapter' }).click();
   await page.getByRole('dialog', { name: 'New chapter' }).getByLabel('Title').fill(chapter);
   await page.getByRole('button', { name: 'Create chapter' }).click();
-  await expect(page.getByRole('grid', { name: 'Chessboard' })).toBeVisible();
+  await newChapterReady(page);
 }
 
 test('work survives a reload the moment after it is made', async ({ page }) => {
@@ -273,15 +288,21 @@ test('transpositions list only stored move orders and open their chapter', async
   await play(page, 'g8', 'f6');
   await play(page, 'c2', 'c4');
   await play(page, 'e7', 'e6');
+  await expect(page.getByText('4 half-moves')).toBeVisible();
   await expectSaved(page);
 
   await page.getByRole('button', { name: 'New chapter' }).click();
   await page.getByRole('dialog', { name: 'New chapter' }).getByLabel('Title').fill('English order');
   await page.getByRole('button', { name: 'Create chapter' }).click();
+  await newChapterReady(page);
   await play(page, 'c2', 'c4');
   await play(page, 'g8', 'f6');
   await play(page, 'd2', 'd4');
   await play(page, 'e7', 'e6');
+  // Both orders must actually have been entered; the assertion below is about
+  // what was *stored*, and cannot distinguish a missing move from a missing
+  // index.
+  await expect(page.getByText('4 half-moves')).toBeVisible();
   await expectSaved(page);
 
   /*

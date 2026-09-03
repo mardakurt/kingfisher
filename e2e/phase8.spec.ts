@@ -42,6 +42,23 @@ async function ready(page: Page) {
   await page.locator('html[data-kingfisher-ready="true"]').waitFor();
 }
 
+/**
+ * Wait for the development persistence bridge, not just for a painted page.
+ *
+ * `data-kingfisher-ready` says the shell has hydrated; `__kingfisher` appears
+ * only once the repository singleton has opened IndexedDB. A route that does
+ * not read persistence on mount can paint well before that, and a test that
+ * reaches for the bridge then fails with an unhelpful "cannot read properties
+ * of undefined".
+ */
+async function bridgeReady(page: Page) {
+  await page.waitForFunction(
+    () => Boolean((globalThis as { __kingfisher?: unknown }).__kingfisher),
+    undefined,
+    { timeout: 30_000 },
+  );
+}
+
 async function importGame(page: Page, pgn = GAME_PGN) {
   await page.goto('/games');
   await ready(page);
@@ -402,6 +419,7 @@ test('a 20,000-node branched study virtualizes and keeps keyboard navigation res
   test.setTimeout(180_000);
   await page.goto('/studies');
   await ready(page);
+  await bridgeReady(page);
   const createMs = await page.evaluate(async () => {
     const app = (
       globalThis as typeof globalThis & {
