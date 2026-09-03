@@ -39,15 +39,34 @@ async function expectNoHorizontalOverflow(page: Page) {
   expect(dimensions.scroll).toBe(dimensions.client);
 }
 
+/**
+ * The board is present, square, and big enough to use.
+ *
+ * Measured inside a single poll rather than polled and then re-read. Routes
+ * whose board depends on an asynchronous query — Repertoire selects a stored
+ * position, Studies a chapter — mount it, resolve, and re-render, so a
+ * `boundingBox()` taken in the gap between a passing poll and the next line
+ * returns null for an element that is fine a millisecond later. That gap was
+ * a real intermittent failure on Repertoire, and it was the measurement that
+ * was unreliable rather than the board.
+ */
 async function expectSquareBoard(page: Page) {
   const board = page.getByRole('grid', { name: 'Chessboard' }).first();
   await expect(board).toBeVisible();
   await expect(board.getByRole('gridcell')).toHaveCount(64);
-  await expect.poll(async () => (await board.boundingBox())?.width ?? 0).toBeGreaterThan(280);
-  const box = await board.boundingBox();
-  expect(box).not.toBeNull();
-  expect(Math.abs((box?.width ?? 0) - (box?.height ?? 0))).toBeLessThan(1);
-  expect(box?.width ?? 0).toBeGreaterThan(280);
+
+  await expect
+    .poll(
+      async () => {
+        const box = await board.boundingBox();
+        if (!box) return null;
+        if (box.width <= 280) return null;
+        if (Math.abs(box.width - box.height) >= 1) return null;
+        return Math.round(box.width);
+      },
+      { timeout: 15_000 },
+    )
+    .not.toBeNull();
 }
 
 async function play(page: Page, from: string, to: string) {
