@@ -40,6 +40,11 @@ export const ChevronDown = (p: IconProps) => (
     <path d="m6 9 6 6 6-6" />
   </Icon>
 );
+export const ChevronUp = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="m6 15 6-6 6 6" />
+  </Icon>
+);
 export const SkipStart = (p: IconProps) => (
   <Icon {...p}>
     <path d="M18 5v14M16 12 8 5v14z" />

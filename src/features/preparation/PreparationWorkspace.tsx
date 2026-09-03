@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 
 import { createTree } from '@/chess/tree/tree';
-import type { Fen } from '@/chess/types';
+import type { Fen, San } from '@/chess/types';
 import { Database, Search } from '@/components/icons';
 import { Button } from '@/components/ui/Button';
 import { EmptyState, Panel, PanelBody, PanelHeader } from '@/components/ui/Panel';
@@ -32,6 +32,15 @@ import { useAnalysis } from '@/stores/analysis-store';
 import { NavButton } from '@/features/shell/NavButton';
 import { CanonicalBoardSurface } from '@/features/workspace/CanonicalBoardSurface';
 import { WorkspaceToolDock } from '@/features/workspace/WorkspaceToolDock';
+import { positionKey } from '@/chess/fen';
+import { Dialog } from '@/components/ui/Dialog';
+import { useUi } from '@/stores/ui-store';
+import { DossierPanel } from './DossierPanel';
+import { GameDaySheet } from './GameDaySheet';
+import { SessionBar } from './SessionBar';
+import { sheetToMarkdown, sheetToPgn, sheetToPrintableHtml } from './sheet-export';
+import { invalidatePreparation, usePreparationSession, usePreparationSessions } from './queries';
+import { useQueryClient } from '@tanstack/react-query';
 
 const RESULTS: readonly { id: GameResult | 'any'; label: string }[] = [
   { id: 'any', label: 'Any result' },
@@ -64,7 +73,15 @@ export function PreparationWorkspace({ initialPlayer = '' }: { readonly initialP
   const [recentN, setRecentN] = useState('200');
   const [currentKey, setCurrentKey] = useState('');
   const [history, setHistory] = useState<string[]>([]);
+  /** The moves walked to reach the current node, so a card prints as a line. */
+  const [line, setLine] = useState<San[]>([]);
   const [repertoireId, setRepertoireId] = useState('');
+  const client = useQueryClient();
+  const notify = useUi((state) => state.notify);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const sessions = usePreparationSessions().data ?? [];
+  const session = usePreparationSession(sessionId).data ?? null;
 
   const query = useMemo<GameSearchQuery>(
     () => ({
@@ -126,6 +143,21 @@ export function PreparationWorkspace({ initialPlayer = '' }: { readonly initialP
     modelGames.data ?? [],
     training.data ?? [],
   );
+  /**
+   * Which colour the *opponent* has.
+   *
+   * A session states the user's colour, which settles it. Without one, the
+   * side filter is the only signal, and 'any' means the dossier has to pick
+   * something — White, stated rather than silently assumed.
+   */
+  const opponentColor: 'w' | 'b' = session
+    ? session.myColor === 'w'
+      ? 'b'
+      : 'w'
+    : side === 'b'
+      ? 'b'
+      : 'w';
+
   const syncedPosition = useRef<string | null>(null);
 
   useEffect(() => {
@@ -150,6 +182,146 @@ export function PreparationWorkspace({ initialPlayer = '' }: { readonly initialP
    * again by hand, which is where preparation sessions die. The gap and the
    * board where its answer is written are one click apart.
    */
+  /**
+   * Add the position on the board to the game-day sheet.
+   *
+   * The line is taken from the route walked through the opening tree, so the
+   * card prints as a line rather than as a bare FEN — which is the difference
+   * between a sheet that can be read away from the machine and one that
+   * cannot.
+   */
+  const addToSheet = async (fen: Fen, line: readonly San[], why?: string) => {
+    if (!session) return;
+    try {
+      const repositories = await getRepositories();
+      await repositories.preparation.addSheetCard(session.id, session.revision, {
+        positionKey: positionKey(fen),
+        fen,
+        line,
+        ...(why ? { why } : {}),
+        source: 'explorer',
+      });
+      invalidatePreparation(client);
+      notify({ tone: 'success', message: 'Added to the game-day sheet.' });
+    } catch (error) {
+      notify({
+        tone: 'error',
+        message: 'Could not add that position.',
+        detail: error instanceof Error ? error.message : undefined,
+      });
+    }
+  };
+
+  const createSession = async (
+    input: Parameters<Awaited<ReturnType<typeof getRepositories>>['preparation']['create']>[0],
+  ) => {
+    const repositories = await getRepositories();
+    const created = await repositories.preparation.create(input);
+    invalidatePreparation(client);
+    setSessionId(created.id);
+    // The session names the opponent; searching for them is what comes next.
+    if (created.opponent) {
+      setPlayer(created.opponent);
+      setSubmitted(created.opponent);
+      setCurrentKey('');
+      setHistory([]);
+      setLine([]);
+    }
+  };
+
+  /** Sheet edits, each retrying once against the stored revision. */
+  const withSession = async (
+    change: (
+      repositories: Awaited<ReturnType<typeof getRepositories>>,
+      current: NonNullable<typeof session>,
+    ) => Promise<unknown>,
+  ) => {
+    if (!session) return;
+    const repositories = await getRepositories();
+    const attempt = async () => {
+      const current = await repositories.preparation.get(session.id);
+      if (!current) throw new Error('That preparation session no longer exists.');
+      await change(repositories, current);
+    };
+    try {
+      await attempt();
+    } catch (error) {
+      // A second panel of the same workspace legitimately races this one.
+      // A genuine cross-tab conflict fails the retry too and surfaces below.
+      if (error instanceof Error && error.name.startsWith('Stale')) {
+        try {
+          await attempt();
+        } catch (retried) {
+          notify({
+            tone: 'error',
+            message: 'Could not update the sheet.',
+            detail: retried instanceof Error ? retried.message : undefined,
+          });
+        }
+      } else {
+        notify({
+          tone: 'error',
+          message: 'Could not update the sheet.',
+          detail: error instanceof Error ? error.message : undefined,
+        });
+      }
+    }
+    invalidatePreparation(client);
+  };
+
+  const editCard = (
+    cardId: string,
+    change: Parameters<
+      Awaited<ReturnType<typeof getRepositories>>['preparation']['updateSheetCard']
+    >[3],
+  ) =>
+    withSession((repositories, current) =>
+      repositories.preparation.updateSheetCard(current.id, current.revision, cardId, change),
+    );
+
+  const removeCard = (cardId: string) =>
+    withSession((repositories, current) =>
+      repositories.preparation.removeSheetCard(current.id, current.revision, cardId),
+    );
+
+  const moveCard = (cardId: string, toIndex: number) =>
+    withSession((repositories, current) =>
+      repositories.preparation.moveSheetCard(current.id, current.revision, cardId, toIndex),
+    );
+
+  /**
+   * Open the sheet as a printable page.
+   *
+   * A new window rather than a download: the player almost always wants the
+   * print dialog, and a file in Downloads is one more step at the moment they
+   * have the least patience for one. The markdown and PGN forms are offered
+   * from the same page as copyable text.
+   */
+  const printSheet = (current: NonNullable<typeof session>) => {
+    const html = sheetToPrintableHtml(current);
+    const target = window.open('', '_blank', 'noopener,noreferrer');
+    if (!target) {
+      notify({
+        tone: 'error',
+        message: 'The browser blocked the print window.',
+        detail: 'Allow pop-ups for Kingfisher, or copy the sheet as Markdown instead.',
+      });
+      return;
+    }
+    target.document.write(html);
+    target.document.close();
+  };
+
+  const copySheet = async (current: NonNullable<typeof session>, format: 'markdown' | 'pgn') => {
+    const text = format === 'markdown' ? sheetToMarkdown(current) : sheetToPgn(current);
+    try {
+      await navigator.clipboard.writeText(text);
+      notify({ tone: 'success', message: `Sheet copied as ${format}.` });
+    } catch {
+      notify({ tone: 'error', message: 'Could not reach the clipboard.' });
+    }
+  };
+
   const prepareReply = (fen: Fen, label: string) => {
     openDocument({
       tree: createTree(fen, { Event: label, Result: '*' }),
@@ -171,6 +343,7 @@ export function PreparationWorkspace({ initialPlayer = '' }: { readonly initialP
             setSubmitted(player.trim());
             setCurrentKey('');
             setHistory([]);
+            setLine([]);
           }}
         >
           <div className="relative min-w-0 flex-1">
@@ -195,6 +368,7 @@ export function PreparationWorkspace({ initialPlayer = '' }: { readonly initialP
                 setSubmitted(alias);
                 setCurrentKey('');
                 setHistory([]);
+                setLine([]);
               }}
             >
               My games
@@ -202,6 +376,15 @@ export function PreparationWorkspace({ initialPlayer = '' }: { readonly initialP
           ) : null}
         </form>
       </header>
+
+      <SessionBar
+        sessions={sessions}
+        active={session}
+        onSelect={setSessionId}
+        onCreate={(input) => void createSession(input)}
+        onOpenSheet={() => setSheetOpen(true)}
+        sheetCount={session?.sheet.length ?? 0}
+      />
 
       <FilterBar
         side={side}
@@ -261,6 +444,7 @@ export function PreparationWorkspace({ initialPlayer = '' }: { readonly initialP
                       if (!previous) return;
                       setHistory((items) => items.slice(0, -1));
                       setCurrentKey(previous);
+                      setLine((moves) => moves.slice(0, -1));
                     }}
                   >
                     Back
@@ -268,6 +452,20 @@ export function PreparationWorkspace({ initialPlayer = '' }: { readonly initialP
                   <span className="ml-2 text-2xs text-tertiary tabular">
                     {node.games} observed games at this position
                   </span>
+                  {session ? (
+                    <Button
+                      className="ml-auto"
+                      onClick={() =>
+                        void addToSheet(
+                          node.fen,
+                          line,
+                          `${node.games} games here in the selected set`,
+                        )
+                      }
+                    >
+                      Add to sheet
+                    </Button>
+                  ) : null}
                 </div>
               </>
             ) : (
@@ -278,6 +476,39 @@ export function PreparationWorkspace({ initialPlayer = '' }: { readonly initialP
             )}
           </section>
         </div>
+        {sheetOpen && session ? (
+          <Dialog
+            open
+            title="Game-day sheet"
+            description={`${session.title}${session.opponent ? ` · vs ${session.opponent}` : ''}`}
+            width="w-[640px]"
+            onClose={() => setSheetOpen(false)}
+          >
+            <div className="max-h-[70vh] overflow-y-auto">
+              <GameDaySheet
+                session={session}
+                onOpen={(card) => {
+                  openDocument({
+                    tree: createTree(card.fen, { Event: session.title, Result: '*' }),
+                    document: { kind: 'untitled', title: session.title },
+                    orientation: session.myColor,
+                  });
+                  router.push('/analysis');
+                }}
+                onEdit={(cardId, change) => void editCard(cardId, change)}
+                onRemove={(cardId) => void removeCard(cardId)}
+                onMove={(cardId, toIndex) => void moveCard(cardId, toIndex)}
+                onPrint={() => printSheet(session)}
+              />
+              <div className="flex flex-wrap items-center gap-1.5 border-t border-line-subtle px-2.5 py-2">
+                <span className="text-[10px] text-tertiary">Also copy as</span>
+                <Button onClick={() => void copySheet(session, 'markdown')}>Markdown</Button>
+                <Button onClick={() => void copySheet(session, 'pgn')}>PGN</Button>
+              </div>
+            </div>
+          </Dialog>
+        ) : null}
+
         <WorkspaceToolDock
           workspace="preparation"
           contextLabel="Opening tree"
@@ -308,9 +539,10 @@ export function PreparationWorkspace({ initialPlayer = '' }: { readonly initialP
                   <MoveTable
                     node={node}
                     preparedKeys={new Set(comparison.prepared.map((edge) => edge.resultingKey))}
-                    onSelect={(key) => {
+                    onSelect={(key, san) => {
                       setHistory((items) => [...items, effectiveKey]);
                       setCurrentKey(key);
+                      if (san) setLine((moves) => [...moves, san]);
                     }}
                     onPrepare={(edge) =>
                       prepareReply(edge.resultingFen, `After ${submitted} plays ${edge.san}`)
@@ -340,6 +572,13 @@ export function PreparationWorkspace({ initialPlayer = '' }: { readonly initialP
                       </button>
                     ))}
                   </section>
+                ) : null}
+                {submitted && preparation.data ? (
+                  <DossierPanel
+                    name={submitted}
+                    games={preparation.data.games}
+                    color={opponentColor}
+                  />
                 ) : null}
                 {node ? (
                   <PriorityQueue
@@ -547,7 +786,7 @@ function MoveTable({
 }: {
   readonly node: NonNullable<OpeningTree['nodes'] extends ReadonlyMap<string, infer T> ? T : never>;
   readonly preparedKeys: ReadonlySet<string>;
-  readonly onSelect: (key: string) => void;
+  readonly onSelect: (key: string, san?: San) => void;
   readonly onPrepare: (edge: PreparationEdge) => void;
 }) {
   return (
@@ -573,7 +812,7 @@ function MoveTable({
                 <button
                   type="button"
                   className="font-medium text-primary hover:text-accent"
-                  onClick={() => onSelect(edge.resultingKey)}
+                  onClick={() => onSelect(edge.resultingKey, edge.san)}
                 >
                   {edge.san}
                 </button>
