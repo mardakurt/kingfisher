@@ -407,3 +407,123 @@ test.describe('settings', () => {
     expect(contents).toContain('boardTheme');
   });
 });
+
+/**
+ * §69: the endgame trainer, refereed by a deterministic tablebase fixture.
+ *
+ * The route is intercepted rather than left to hit lichess.org. A test that
+ * depends on a public endpoint tests the endpoint, and the thing worth
+ * testing here is what Kingfisher *says* when the result changes — which
+ * needs a result that changes on cue.
+ *
+ * The position is a won rook endgame. One move holds the win; another throws
+ * the rook away and draws. The assertion is on the wording as much as the
+ * detection: it must report the result, and it must not tell the player they
+ * blundered.
+ */
+const WON_ROOK_ENDING = '8/8/8/8/8/2k5/8/K2R4 w - - 0 1';
+
+test.describe('endgame conversion', () => {
+  test.beforeEach(async ({ page }) => {
+    await freshLayout(page);
+
+    await page.route('**/tablebase.lichess.ovh/**', async (route) => {
+      const fen = decodeURIComponent(new URL(route.request().url()).searchParams.get('fen') ?? '');
+      const placement = fen.split(' ')[0] ?? '';
+      /*
+        Rd3+ puts the rook next to the black king on c3, where it is simply
+        taken — so the fixture calls that one position a draw and every other
+        a win. Keying on the position rather than on a move counter is what
+        lets the same fixture serve the engine's probe as well as the player's.
+      */
+      const rookHangs = placement.includes('2kR4');
+      const blackToMove = fen.includes(' b ');
+      const category = rookHangs ? 'draw' : blackToMove ? 'loss' : 'win';
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          category,
+          dtz: rookHangs ? 0 : 27,
+          dtm: null,
+          checkmate: false,
+          stalemate: false,
+          moves: [
+            {
+              uci: 'c3c2',
+              san: 'Kc2',
+              category: rookHangs ? 'draw' : 'win',
+              dtz: 26,
+              dtm: null,
+              zeroing: false,
+              checkmate: false,
+              stalemate: false,
+            },
+          ],
+        }),
+      });
+    });
+  });
+
+  /**
+   * Put the endgame on the shared workspace board, then open the trainer.
+   *
+   * On Analysis rather than Endgame: the trainer reads the workspace position,
+   * and a full navigation between routes reloads the draft asynchronously, so
+   * driving it from the route the position was loaded on tests the trainer
+   * rather than the autosave.
+   */
+  const openTrainer = async (page: Page) => {
+    await page.goto('/analysis');
+    await ready(page);
+    await page.getByRole('button', { name: 'Import PGN or FEN' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Import a game or position' });
+    await dialog.getByRole('textbox').fill(WON_ROOK_ENDING);
+    await dialog.getByRole('button', { name: 'Load position' }).click();
+    await expect(dialog).toBeHidden();
+
+    const dock = page.locator('[data-workspace-dock]');
+    await dock.getByRole('button', { name: /More/ }).click();
+    await page.getByRole('menuitem', { name: 'Play it out' }).click();
+    return dock;
+  };
+
+  test('offers the side and the opponent before the session starts', async ({ page }) => {
+    const dock = await openTrainer(page);
+    // The user should know what they are practising against, rather than
+    // discovering it three moves in.
+    await expect(dock.getByLabel('Play as')).toBeVisible();
+    await expect(dock.getByLabel('Opponent')).toBeVisible();
+    await expect(dock.getByRole('button', { name: 'Play it out' })).toBeVisible();
+  });
+
+  test('§53 reports a factual result change, and does not accuse the player', async ({ page }) => {
+    const dock = await openTrainer(page);
+    await dock.getByLabel('Opponent').selectOption('tablebase-perfect');
+    await dock.getByRole('button', { name: 'Play it out' }).click();
+
+    // The session opens on the result it starts from.
+    const status = dock.locator('[data-conversion-status]');
+    await expect(status).toContainText('Win');
+
+    // Rd3+ hangs the rook beside the black king, and gives the win away.
+    const board = dock.getByRole('grid', { name: 'Chessboard' });
+    await board.getByRole('gridcell', { name: /^d1,/ }).click();
+    await board.getByRole('gridcell', { name: /^d3,/ }).click();
+
+    const change = dock.locator('[data-conversion-change]');
+    await expect(change).toHaveText('The tablebase result changed from Win to Draw on this move.');
+    /*
+      The wording rule, asserted rather than trusted. A tablebase knows the
+      result changed; it does not know whether the move was a slip, an
+      experiment, or a line the player understands better than it does.
+    */
+    await expect(change).not.toContainText(/blunder/i);
+    await expect(change).not.toContainText(/mistake/i);
+
+    // §54: the win it started with is gone, so the session says so and stops.
+    await expect(dock.locator('[data-conversion-ending]')).toContainText(
+      'no longer holds the win it started with',
+    );
+  });
+});

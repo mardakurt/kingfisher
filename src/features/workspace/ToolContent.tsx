@@ -69,6 +69,11 @@ const TablebasePanel = lazyPanel(() =>
     default: module.TablebasePanel,
   })),
 );
+const ConversionPanel = lazyPanel(() =>
+  import('@/features/endgame/ConversionHost').then((module) => ({
+    default: module.ConversionHost,
+  })),
+);
 const PositionHealthPanel = lazyPanel(() =>
   import('@/features/repertoire/PositionHealthPanel').then((module) => ({
     default: module.PositionHealthPanel,
@@ -107,6 +112,7 @@ export function ToolContent({
   if (tool === 'guess-the-move') return <GuessTheMovePanel />;
   if (tool === 'candidates') return <CandidateComparison />;
   if (tool === 'tablebase') return <TablebasePanel />;
+  if (tool === 'conversion') return <ConversionPanel />;
   if (tool === 'companion') return <CompanionPanel />;
   if (tool === 'document') {
     return (

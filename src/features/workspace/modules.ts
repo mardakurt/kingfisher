@@ -32,6 +32,7 @@ export type WorkspaceToolId =
   | 'tablebase'
   | 'companion'
   | 'document'
+  | 'conversion'
   | 'notes';
 
 export interface WorkspaceModuleDescriptor {
@@ -86,6 +87,7 @@ export const WORKSPACE_MODULES: Readonly<Record<WorkspaceToolId, WorkspaceModule
   tablebase: { id: 'tablebase', label: 'Tablebase', home: 'dock', regions: ['dock', 'lower'] },
   companion: { id: 'companion', label: 'Companion', home: 'dock', regions: ['dock'] },
   document: { id: 'document', label: 'Context', home: 'dock', regions: ['dock'] },
+  conversion: { id: 'conversion', label: 'Play it out', home: 'dock', regions: ['dock'] },
   notes: { id: 'notes', label: 'Notes', home: 'dock', regions: ['dock', 'lower'] },
 };
 
@@ -129,6 +131,7 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'candidates',
     'features',
     'tablebase',
+    'conversion',
     'companion',
     'notes',
   ],
@@ -168,7 +171,7 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'personal-results',
     'features',
   ],
-  endgame: ['tablebase', 'engine', 'features', 'notes', 'explorer', 'database'],
+  endgame: ['conversion', 'tablebase', 'engine', 'features', 'notes', 'explorer', 'database'],
   'opening-files': [
     'document',
     'explorer',

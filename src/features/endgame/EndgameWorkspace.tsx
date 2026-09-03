@@ -201,8 +201,9 @@ export function EndgameWorkspace() {
               {/* The honest framing for practice: the engine is an opponent
                   here, not an oracle, and the tablebase is the referee. */}
               <p className="mt-1 text-[10px] leading-relaxed text-tertiary">
-                Play it out on the board against the engine from the Engine tool. The Tablebase tool
-                says whether you are still winning; the engine only says what it would play.
+                Open <span className="text-secondary">Play it out</span> to convert this against the
+                engine. After every move the tablebase says what the position is now worth — it
+                reports the result, not a verdict on your move.
               </p>
             </div>
           ) : null}
