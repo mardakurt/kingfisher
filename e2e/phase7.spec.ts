@@ -244,6 +244,17 @@ test('study references, saved filters and storage facts are usable', async ({ pa
   await expect(page.getByText(/games · .* studies · .* training items/)).toBeVisible();
 });
 
+/**
+ * Open the queue dialog from the toolbar.
+ *
+ * Exact, because the Phase 10 background-activity strip also names the queue
+ * — as "Analysis queue · 1 of 1 game" — and a substring match now finds both.
+ * Reaching for the toolbar button specifically is what this test means.
+ */
+async function openQueue(page: Page) {
+  await page.getByRole('button', { name: 'Analysis queue', exact: true }).click();
+}
+
 test('background analysis pauses for interactive work and persists resumable progress', async ({
   page,
 }) => {
@@ -282,7 +293,7 @@ test('background analysis pauses for interactive work and persists resumable pro
 
   await page.reload();
   await ready(page);
-  await page.getByRole('button', { name: 'Analysis queue' }).click();
+  await openQueue(page);
   const restored = page.getByRole('dialog', { name: 'Background analysis queue' });
   await expect(restored.getByText(/paused ·/)).toContainText(
     before?.match(/\d+ \/ \d+/)?.[0] ?? 'positions',
@@ -298,7 +309,7 @@ test('background analysis pauses for interactive work and persists resumable pro
     .getByRole('navigation', { name: 'Sections' })
     .getByRole('link', { name: 'Games' })
     .click();
-  await page.getByRole('button', { name: 'Analysis queue' }).click();
+  await openQueue(page);
   await expect(
     page.getByText('Background work is waiting while interactive analysis has priority.'),
   ).toBeVisible();
@@ -315,7 +326,7 @@ test('background analysis pauses for interactive work and persists resumable pro
     .getByRole('navigation', { name: 'Sections' })
     .getByRole('link', { name: 'Games' })
     .click();
-  await page.getByRole('button', { name: 'Analysis queue' }).click();
+  await openQueue(page);
   await expect(page.getByText(/completed ·/).first()).toBeVisible({ timeout: 30_000 });
 
   /*
