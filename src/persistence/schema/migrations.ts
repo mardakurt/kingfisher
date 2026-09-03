@@ -1,5 +1,5 @@
 export const DATABASE_NAME = 'kingfisher';
-export const DATABASE_VERSION = 10;
+export const DATABASE_VERSION = 11;
 
 export const STORE_NAMES = {
   studies: 'studies',
@@ -24,6 +24,7 @@ export const STORE_NAMES = {
   openingFiles: 'openingFiles',
   endgamePositions: 'endgamePositions',
   pinnedLines: 'pinnedLines',
+  linkedAccounts: 'linkedAccounts',
 } as const;
 
 export type StoreName = (typeof STORE_NAMES)[keyof typeof STORE_NAMES];
@@ -323,6 +324,15 @@ export const MIGRATIONS: readonly Migration[] = [
         { name: 'positionKey', keyPath: 'positionKey' },
         { name: 'chapterId', keyPath: 'chapterId' },
         { name: 'createdAt', keyPath: 'createdAt' },
+      ]);
+    },
+  },
+  {
+    version: 11,
+    description: 'Add linked online accounts, for syncing games from Lichess and Chess.com.',
+    apply(target) {
+      target.createStore(STORE_NAMES.linkedAccounts, { keyPath: 'id' }, [
+        { name: 'provider', keyPath: 'provider' },
       ]);
     },
   },

@@ -29,7 +29,7 @@ import {
   type WorkspaceBackup,
 } from '@/persistence/backup';
 import { getRepositories } from '@/persistence/repositories';
-import { useProfile, phase3Keys } from '@/features/persistence/queries';
+import { useProfile, phase3Keys, invalidateGames } from '@/features/persistence/queries';
 import { parsePairing } from '@/companion/client';
 import { importPgnIntoSqlite } from '@/companion/import';
 import { companionClient } from '@/companion/session';
@@ -56,6 +56,8 @@ import { useShortcuts } from '@/stores/shortcuts-store';
 import type { ChessDatabaseProvider, ProviderHealth } from '@/database/types';
 import { engineDefinitions } from '@/engine/registry';
 import { useCompanionStatus } from '@/companion/useCompanion';
+import { useAccountSync, type AccountSyncState } from '@/stores/account-sync-store';
+import type { LinkedAccountRecord, SyncProvider } from '@/persistence/domain';
 import { cn } from '@/lib/cn';
 import type { PieceType } from '@/chess/types';
 import { DEFAULT_PREFERENCES, usePreferences, type Preferences } from '@/stores/preferences-store';
@@ -71,6 +73,7 @@ const SECTIONS: readonly { id: Section; label: string }[] = [
   { id: 'engine', label: 'Engine' },
   { id: 'companion', label: 'Companion' },
   { id: 'database', label: 'Database' },
+  { id: 'accounts', label: 'Accounts' },
   { id: 'keyboard', label: 'Keyboard' },
   { id: 'assistant', label: 'Assistant' },
   { id: 'profile', label: 'Profile' },
@@ -128,6 +131,7 @@ export function SettingsDialog() {
       {section === 'keyboard' && <KeyboardSection />}
       {section === 'assistant' && <AssistantSection />}
       {section === 'database' && <DatabaseSection />}
+      {section === 'accounts' && <AccountsSection />}
       {section === 'profile' && <ProfileSection />}
       {section === 'diagnostics' && <DiagnosticsSection />}
     </Dialog>
@@ -566,6 +570,198 @@ function CompanionSection() {
     </div>
   );
 }
+
+/**
+ * Lichess and Chess.com accounts whose games are pulled locally.
+ *
+ * Nothing about this is an account *in* Kingfisher: a username is public,
+ * nothing is uploaded, and no credential is required — a Lichess token, if
+ * one is already set for the explorer, is reused only because it raises that
+ * API's rate allowance.
+ *
+ * §25 is the rule the status line here exists for: a sync that failed says
+ * why it failed. An account whose last sync was rate-limited must never be
+ * presented as an account with no games.
+ */
+function AccountsSection() {
+  const queryClient = useQueryClient();
+  const notify = useUi((state) => state.notify);
+  const runs = useAccountSync((state) => state.runs);
+  const syncNow = useAccountSync((state) => state.syncNow);
+  const [provider, setProvider] = useState<SyncProvider>('lichess');
+  const [username, setUsername] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const accounts = useQuery({
+    queryKey: ['linked-accounts'],
+    queryFn: async () => (await getRepositories()).linkedAccounts.list(),
+  });
+
+  const link = async () => {
+    const trimmed = username.trim();
+    if (!trimmed) return;
+    setBusy(true);
+    try {
+      const repositories = await getRepositories();
+      const account = await repositories.linkedAccounts.link({ provider, username: trimmed });
+      setUsername('');
+      await accounts.refetch();
+      // Linking is only useful once it has fetched something, so the first
+      // sync starts here rather than waiting to be asked a second time.
+      await syncNow(account);
+      await accounts.refetch();
+      invalidateGames(queryClient);
+    } catch (error) {
+      notify({
+        tone: 'error',
+        message: error instanceof Error ? error.message : 'The account could not be linked.',
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const sync = async (account: LinkedAccountRecord) => {
+    await syncNow(account);
+    await accounts.refetch();
+    invalidateGames(queryClient);
+  };
+
+  const unlink = async (id: string) => {
+    const repositories = await getRepositories();
+    await repositories.linkedAccounts.unlink(id);
+    await accounts.refetch();
+  };
+
+  const linked = accounts.data ?? [];
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div>
+        <h3 className="text-xs text-primary">Linked accounts</h3>
+        <p className="mt-1 text-2xs leading-relaxed text-tertiary">
+          Games from a Lichess or Chess.com username, pulled into the ordinary local collection —
+          same fingerprint, same duplicate handling, same searches as anything else imported.
+          Nothing is uploaded and no Kingfisher account exists.
+        </p>
+      </div>
+
+      {linked.length > 0 ? (
+        <ul className="flex flex-col gap-1.5">
+          {linked.map((account) => {
+            const run = runs[account.id];
+            return (
+              <li
+                key={account.id}
+                className="rounded-[4px] border border-line bg-surface-inset p-2.5"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="truncate text-2xs text-secondary">
+                    {PROVIDER_LABEL[account.provider]} ·{' '}
+                    <span className="font-mono text-primary">{account.username}</span>
+                  </span>
+                  <div className="flex shrink-0 gap-1.5">
+                    <Button
+                      variant="accent"
+                      disabled={run?.running}
+                      onClick={() => void sync(account)}
+                    >
+                      {run?.running ? 'Syncing…' : 'Sync now'}
+                    </Button>
+                    <Button variant="danger" onClick={() => void unlink(account.id)}>
+                      Unlink
+                    </Button>
+                  </div>
+                </div>
+                <p
+                  className={cn(
+                    'mt-1 text-[10.5px]',
+                    run && run.state !== 'ready' && run.state !== 'loading'
+                      ? 'text-negative'
+                      : 'text-tertiary',
+                  )}
+                >
+                  {describeAccountStatus(account, run)}
+                </p>
+                {run?.remedy ? (
+                  <p className="mt-0.5 text-[10.5px] text-tertiary">{run.remedy}</p>
+                ) : null}
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
+
+      <div>
+        <label className="block text-2xs text-tertiary">
+          Add an account
+          <div className="mt-1 flex gap-1.5">
+            <select
+              value={provider}
+              aria-label="Account provider"
+              onChange={(event) => setProvider(event.target.value as SyncProvider)}
+              className="h-8 rounded-[4px] border border-line bg-surface-inset px-2 text-[11px] text-primary outline-none focus:border-accent/60"
+            >
+              <option value="lichess">Lichess</option>
+              <option value="chess.com">Chess.com</option>
+            </select>
+            <input
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
+              placeholder="username"
+              aria-label="Account username"
+              className="h-8 min-w-0 flex-1 rounded-[4px] border border-line bg-surface-inset px-2.5 font-mono text-[11px] text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60"
+            />
+            <Button
+              variant="accent"
+              disabled={!username.trim() || busy}
+              onClick={() => void link()}
+            >
+              {busy ? 'Linking…' : 'Link'}
+            </Button>
+          </div>
+        </label>
+      </div>
+    </div>
+  );
+}
+
+const PROVIDER_LABEL: Record<SyncProvider, string> = {
+  lichess: 'Lichess',
+  'chess.com': 'Chess.com',
+};
+
+/**
+ * One factual line per account.
+ *
+ * Never "no games": an account that failed to sync says what failed, and one
+ * that has never synced says that instead of implying an empty library.
+ */
+function describeAccountStatus(
+  account: LinkedAccountRecord,
+  run: AccountSyncState | undefined,
+): string {
+  if (run?.running) return 'Syncing…';
+  if (run && run.state !== 'ready') return run.message;
+  if (run?.state === 'ready') {
+    return `${run.message} ${account.importedCount.toLocaleString()} imported in total.`;
+  }
+  if (account.lastSyncStatus === 'error') {
+    return account.lastError ?? 'The last sync failed.';
+  }
+  if (account.lastSyncCompletedAt === undefined) return 'Never synced.';
+  return `Last synced ${describeAge(account.lastSyncCompletedAt)}. ${account.importedCount.toLocaleString()} imported in total.`;
+}
+
+const describeAge = (at: number): string => {
+  const minutes = Math.max(0, Math.round((Date.now() - at) / 60_000));
+  if (minutes < 1) return 'just now';
+  if (minutes < 60) return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+  const days = Math.round(hours / 24);
+  return `${days} day${days === 1 ? '' : 's'} ago`;
+};
 
 /**
  * Arbitrary UCI engines, registered by path rather than installed from the

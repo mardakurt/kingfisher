@@ -20,6 +20,7 @@ export type SettingsSection =
   | 'engine'
   | 'companion'
   | 'database'
+  | 'accounts'
   | 'assistant'
   | 'keyboard'
   | 'profile'
@@ -181,6 +182,22 @@ export const SETTINGS_INDEX: readonly SettingsEntry[] = [
     section: 'profile',
     description: 'The exact names you appear under in your own PGNs, so Kingfisher can find you.',
     keywords: ['alias', 'name', 'profile', 'me', 'my games', 'player'],
+  },
+  {
+    id: 'linked-accounts',
+    label: 'Linked accounts',
+    section: 'accounts',
+    description:
+      'Lichess and Chess.com usernames whose games are pulled into the local collection. No Kingfisher account, and nothing is uploaded.',
+    keywords: ['lichess', 'chess.com', 'chesscom', 'account', 'link', 'online', 'username'],
+  },
+  {
+    id: 'account-sync',
+    label: 'Sync games',
+    section: 'accounts',
+    description:
+      'Fetch new games from a linked account. Incremental: only material newer than the last sync is requested.',
+    keywords: ['sync', 'refresh', 'download', 'import', 'games', 'online', 'update'],
   },
   {
     id: 'backup',

@@ -18,6 +18,7 @@ import type {
   OpeningFileRecord,
   EndgamePositionRecord,
   PinnedLineRecord,
+  LinkedAccountRecord,
 } from './domain';
 import { ENDGAME_CATEGORIES } from './domain';
 import type { ChapterRecord, DraftRecord, GameRecord, GameSummary, StudyRecord } from './types';
@@ -362,3 +363,12 @@ export const isPinnedLineRecord = (value: unknown): value is PinnedLineRecord =>
   stringArray(value.pvUci) &&
   stringArray(value.pvSan) &&
   finite(value.createdAt);
+
+export const isLinkedAccountRecord = (value: unknown): value is LinkedAccountRecord =>
+  object(value) &&
+  text(value.id) &&
+  (value.provider === 'lichess' || value.provider === 'chess.com') &&
+  text(value.username) &&
+  finite(value.createdAt) &&
+  finite(value.importedCount) &&
+  finite(value.duplicatesSkipped);

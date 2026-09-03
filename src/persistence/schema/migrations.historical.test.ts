@@ -341,6 +341,39 @@ describe('migrating a Phase 9-10 installation (structure indexes, preparation) t
   });
 });
 
+describe('migrating a Phase 10 installation (pre-linked-accounts) to current', () => {
+  it('adds the linked-accounts store without disturbing anything already there', async () => {
+    const name = dbName();
+
+    const v10 = await openPersistenceDatabaseAt(10, name);
+    await v10.put(STORE_NAMES.studies, { id: 's1', title: 'Kept', createdAt: 1, updatedAt: 1 });
+    v10.close();
+
+    const current = await openPersistenceDatabaseAt(DATABASE_VERSION, name);
+    expect((await current.get<Record<string, unknown>>(STORE_NAMES.studies, 's1'))?.title).toBe(
+      'Kept',
+    );
+    expect(await current.getAll(STORE_NAMES.linkedAccounts)).toEqual([]);
+
+    await current.put(STORE_NAMES.linkedAccounts, {
+      id: 'lichess:testuser',
+      provider: 'lichess',
+      username: 'testuser',
+      createdAt: 1,
+      importedCount: 0,
+      duplicatesSkipped: 0,
+    });
+    const byProvider = await current.getAllFromIndex(
+      STORE_NAMES.linkedAccounts,
+      'provider',
+      'lichess',
+    );
+    expect(byProvider).toHaveLength(1);
+
+    current.close();
+  });
+});
+
 describe('opening an already-current database', () => {
   it('runs no migration and disturbs nothing', async () => {
     const name = dbName();

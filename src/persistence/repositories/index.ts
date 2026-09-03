@@ -16,6 +16,7 @@ import { LocalPreparationRepository } from './preparation-repository';
 import { LocalOpeningFileRepository } from './opening-file-repository';
 import { LocalEndgameRepository } from './endgame-repository';
 import { LocalPinnedLineRepository } from './pinned-line-repository';
+import { LocalLinkedAccountRepository } from './linked-account-repository';
 
 const fromDatabase = (database: PersistenceDatabase): AppRepositories => ({
   studies: new LocalStudyRepository(database),
@@ -33,6 +34,7 @@ const fromDatabase = (database: PersistenceDatabase): AppRepositories => ({
   openingFiles: new LocalOpeningFileRepository(database),
   endgames: new LocalEndgameRepository(database),
   pinnedLines: new LocalPinnedLineRepository(database),
+  linkedAccounts: new LocalLinkedAccountRepository(database),
   raw: database,
   close: () => database.close(),
 });

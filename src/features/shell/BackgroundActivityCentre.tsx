@@ -4,6 +4,7 @@ import { Menu, type MenuSection } from '@/components/ui/Menu';
 import { cn } from '@/lib/cn';
 import { useAnalysisQueue } from '@/features/analysis-queue/queue-store';
 import { useImportJob } from '@/features/shell/import-job-store';
+import { useAccountSync } from '@/stores/account-sync-store';
 import { useUi } from '@/stores/ui-store';
 
 import {
@@ -31,6 +32,7 @@ export function BackgroundActivityCentre() {
   const queueJobs = useAnalysisQueue((state) => state.jobs);
   const queueRunning = useAnalysisQueue((state) => state.running);
   const queueError = useAnalysisQueue((state) => state.error);
+  const syncRuns = useAccountSync((state) => state.runs);
   const setImportOpen = useUi((state) => state.setImportOpen);
 
   const activities: BackgroundActivity[] = [];
@@ -60,6 +62,27 @@ export function BackgroundActivityCentre() {
       progress: null,
       detail: queueError,
     });
+  }
+
+  /*
+    A sync is shown while it runs and while it is failed, but not once it has
+    quietly succeeded: "Lichess sync completed" is exactly the finished-work
+    announcement this strip exists not to make. The Accounts panel keeps the
+    outcome; this only reports what is happening or what went wrong.
+  */
+  for (const [accountId, run] of Object.entries(syncRuns)) {
+    const label = `${accountId.split(':')[0] === 'lichess' ? 'Lichess' : 'Chess.com'} sync`;
+    if (run.running) {
+      activities.push({ id: accountId, label, state: 'running', progress: null, detail: null });
+    } else if (run.state !== 'ready' && run.state !== 'loading') {
+      activities.push({
+        id: accountId,
+        label,
+        state: 'failed',
+        progress: null,
+        detail: run.message,
+      });
+    }
   }
 
   const line = summarise(activities);

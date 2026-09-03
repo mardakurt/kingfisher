@@ -946,3 +946,43 @@ export const KEY_MOMENT_LABEL: Record<KeyMomentKind, string> = {
   'pawn-break': 'Pawn break',
   'endgame-transition': 'Endgame transition',
 };
+
+// --- Linked online accounts -------------------------------------------------
+
+export type SyncProvider = 'lichess' | 'chess.com';
+
+export type LinkedAccountId = string;
+
+/**
+ * A local link to a Lichess or Chess.com username, for pulling that
+ * account's games into the local collection.
+ *
+ * This is not authentication: the username is public, nothing is verified
+ * beyond "this account exists", and no Kingfisher cloud account is
+ * involved. Deliberately not merged with any other identity — a database
+ * player named the same is not necessarily this account, and this record
+ * exists only to remember *what to fetch and from where*, never to imply
+ * "these games are definitely the same person" beyond what the user linked.
+ */
+export interface LinkedAccountRecord {
+  readonly id: LinkedAccountId;
+  readonly provider: SyncProvider;
+  /** As entered; providers are case-insensitive but this is what is shown. */
+  readonly username: string;
+  readonly createdAt: number;
+  readonly lastSyncStartedAt?: number;
+  readonly lastSyncCompletedAt?: number;
+  readonly lastSyncStatus?: 'success' | 'error';
+  readonly lastError?: string;
+  /**
+   * Lichess: epoch ms of the most recent imported game — the API's own
+   * `since` cursor. Chess.com has no equivalent timestamp cursor; its
+   * incremental unit is the calendar month, tracked by `lastSyncedMonth`.
+   */
+  readonly lastGameTimestamp?: number;
+  /** Chess.com only: the last `YYYY-MM` archive fully fetched. */
+  readonly lastSyncedMonth?: string;
+  /** Cumulative across every sync, so "up to date" has a history behind it. */
+  readonly importedCount: number;
+  readonly duplicatesSkipped: number;
+}

@@ -26,6 +26,7 @@ import {
   isDecisionRecord,
   isReviewItemRecord,
   isTrainingSetRecord,
+  isLinkedAccountRecord,
 } from './validation';
 import { DATABASE_NAME, STORE_NAMES, type StoreName } from './schema/migrations';
 import type { PersistenceDatabase, PersistenceTransaction } from './indexeddb/database';
@@ -49,6 +50,7 @@ const PORTABLE_STORES = [
   STORE_NAMES.decisions,
   STORE_NAMES.reviewItems,
   STORE_NAMES.trainingSets,
+  STORE_NAMES.linkedAccounts,
 ] as const;
 
 const GAME_STORES = [STORE_NAMES.games, STORE_NAMES.gameContent, STORE_NAMES.positions] as const;
@@ -134,6 +136,8 @@ export function parseWorkspaceBackup(value: unknown): WorkspaceBackup {
       records === undefined
     )
       continue;
+    // Phase 11: linked accounts. Absent from every backup made before them.
+    if (store === STORE_NAMES.linkedAccounts && records === undefined) continue;
     if (!Array.isArray(records)) throw invalid(`The ${store} store is missing or invalid.`);
     records.forEach((record, index) => validateRecord(store, record, index));
   }
@@ -268,6 +272,7 @@ function validateRecord(store: StoreName, value: unknown, index: number): void {
     if (store === STORE_NAMES.decisions) return isDecisionRecord(value);
     if (store === STORE_NAMES.reviewItems) return isReviewItemRecord(value);
     if (store === STORE_NAMES.trainingSets) return isTrainingSetRecord(value);
+    if (store === STORE_NAMES.linkedAccounts) return isLinkedAccountRecord(value);
     if (store === STORE_NAMES.games) return isGameSummary(value);
     if (store === STORE_NAMES.gameContent) {
       return (
