@@ -1,10 +1,11 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { Check, Database, Import, Settings, Warning } from '@/components/icons';
 import { Button } from '@/components/ui/Button';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import type { ChessDatabaseProvider, ProviderHealth, ProviderHealthState } from '@/database/types';
 import { useDatabaseProviders } from '@/database/use-database-providers';
 import { useCompanionStatus } from '@/companion/useCompanion';
@@ -13,6 +14,9 @@ import { cn } from '@/lib/cn';
 import { useUi } from '@/stores/ui-store';
 import { getRepositories } from '@/persistence/repositories';
 import { STORE_NAMES } from '@/persistence/schema/migrations';
+import { companionClient } from '@/companion/session';
+import type { CompanionAggregateIntegrity, CompanionDatabaseEntry } from '@/companion/client';
+import type { GameSearchResult } from '@/persistence/types';
 
 const LABELS: Record<ProviderHealthState, string> = {
   ready: 'Ready',
@@ -33,6 +37,9 @@ export function DatabasesWorkspace() {
   const setImportOpen = useUi((state) => state.setImportOpen);
   const setSettingsOpen = useUi((state) => state.setSettingsOpen);
   const companion = useCompanionStatus();
+  const selectedSqlite = companion.data?.databases.find(
+    (database) => selected?.id === `sqlite:${database.key}`,
+  );
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -78,7 +85,12 @@ export function DatabasesWorkspace() {
 
         <main className="min-h-[460px] min-w-0 lg:min-h-0">
           {selected ? (
-            <ProviderDetails provider={selected} onConfigure={() => setSettingsOpen(true)} />
+            <ProviderDetails
+              provider={selected}
+              sqlite={selectedSqlite}
+              onCollectionChanged={() => void companion.refetch()}
+              onConfigure={() => setSettingsOpen(true)}
+            />
           ) : (
             <p className="p-6 text-sm text-tertiary">No database providers are registered.</p>
           )}
@@ -258,9 +270,13 @@ function ProviderButton({
 
 function ProviderDetails({
   provider,
+  sqlite,
+  onCollectionChanged,
   onConfigure,
 }: {
   provider: ChessDatabaseProvider;
+  sqlite?: CompanionDatabaseEntry;
+  onCollectionChanged: () => void;
   onConfigure: () => void;
 }) {
   const health = useProviderHealth(provider);
@@ -325,6 +341,10 @@ function ProviderDetails({
         </div>
       </section>
 
+      {sqlite ? (
+        <SqliteCollectionManagement database={sqlite} onChanged={onCollectionChanged} />
+      ) : null}
+
       <section className="py-5">
         <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">
           Connection test
@@ -356,6 +376,234 @@ function ProviderDetails({
         </div>
       </section>
     </div>
+  );
+}
+
+type DeleteScope = 'selected' | 'matching' | 'clear' | 'collection';
+
+function SqliteCollectionManagement({
+  database,
+  onChanged,
+}: {
+  readonly database: CompanionDatabaseEntry;
+  readonly onChanged: () => void;
+}) {
+  const queryClient = useQueryClient();
+  const notify = useUi((state) => state.notify);
+  const [player, setPlayer] = useState('');
+  const [fromYear, setFromYear] = useState('');
+  const [minRating, setMinRating] = useState('');
+  const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
+  const [confirm, setConfirm] = useState<DeleteScope | null>(null);
+  const [busy, setBusy] = useState(false);
+  const filter = useMemo(
+    () => ({
+      ...(player.trim() ? { player: player.trim().toLocaleLowerCase('en-US') } : {}),
+      ...(Number(fromYear) ? { fromYear: Number(fromYear) } : {}),
+      ...(Number(minRating) ? { minRating: Number(minRating) } : {}),
+    }),
+    [fromYear, minRating, player],
+  );
+  const hasFilter = Object.keys(filter).length > 0;
+  const games = useQuery<GameSearchResult>({
+    queryKey: ['sqlite-management', database.key, filter],
+    queryFn: async () => {
+      const client = companionClient();
+      if (!client) throw new Error('The companion is not connected.');
+      return client.searchGames(database.key, {
+        ...filter,
+        limit: 100,
+        exactTotal: true,
+        sortBy: 'date',
+        sortDirection: 'desc',
+      });
+    },
+    retry: false,
+  });
+  const integrity = useQuery<CompanionAggregateIntegrity>({
+    queryKey: ['sqlite-integrity', database.key],
+    queryFn: async () => {
+      const client = companionClient();
+      if (!client) throw new Error('The companion is not connected.');
+      return client.databaseIntegrity(database.key);
+    },
+    enabled: false,
+    retry: false,
+  });
+
+  const execute = async () => {
+    if (!confirm) return;
+    const client = companionClient();
+    if (!client) return;
+    setBusy(true);
+    try {
+      if (confirm === 'collection') {
+        await client.deleteDatabase(database.key);
+        notify({ tone: 'success', message: `SQLite collection “${database.name}” deleted.` });
+      } else {
+        const result =
+          confirm === 'selected'
+            ? await client.deleteGames(database.key, { fingerprints: [...selected] })
+            : confirm === 'matching'
+              ? await client.deleteGames(database.key, { query: filter })
+              : await client.clearDatabase(database.key);
+        notify({
+          tone: 'success',
+          message: `${result.deleted.toLocaleString()} SQLite game${result.deleted === 1 ? '' : 's'} deleted.`,
+          detail: result.integrity.consistent
+            ? 'Explorer aggregates passed the post-delete integrity check.'
+            : 'The integrity check needs attention; use Rebuild aggregates.',
+        });
+      }
+      setSelected(new Set());
+      await queryClient.invalidateQueries({ queryKey: ['sqlite-management', database.key] });
+      await queryClient.invalidateQueries({ queryKey: ['sqlite-integrity', database.key] });
+      onChanged();
+    } catch (error) {
+      notify({
+        tone: 'error',
+        message: error instanceof Error ? error.message : 'The SQLite deletion failed.',
+      });
+    } finally {
+      setBusy(false);
+      setConfirm(null);
+    }
+  };
+
+  const descriptions: Record<DeleteScope, string> = {
+    selected: `${selected.size.toLocaleString()} selected games will be removed in one transaction.`,
+    matching: `${(games.data?.total ?? 0).toLocaleString()} games matching the visible filter will be removed in one transaction.`,
+    clear: `All ${(database.games ?? 0).toLocaleString()} games will be removed, but the collection file will remain.`,
+    collection: `The collection file “${database.file}” and every game in it will be permanently removed.`,
+  };
+
+  return (
+    <section className="border-b border-line-subtle py-5">
+      <div className="flex flex-wrap items-center gap-2">
+        <div>
+          <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">
+            Collection management
+          </h3>
+          <p className="mt-1 text-xs text-tertiary">
+            Copy {database.file} before a large deletion if you want a recoverable backup.
+          </p>
+        </div>
+        <Button className="ml-auto" onClick={() => void integrity.refetch()}>
+          {integrity.isFetching ? 'Checking…' : 'Run integrity check'}
+        </Button>
+      </div>
+      {integrity.data ? (
+        <p className="mt-2 text-xs text-secondary" role="status">
+          {integrity.data.consistent ? 'Integrity healthy' : 'Integrity mismatch'} ·{' '}
+          {integrity.data.positions.toLocaleString()} positions · {integrity.data.filteredCacheKeys}{' '}
+          exact filter caches
+        </p>
+      ) : null}
+      <div className="mt-3 grid gap-2 sm:grid-cols-3">
+        <ManagementField
+          label="Player"
+          value={player}
+          onChange={setPlayer}
+          placeholder="Exact name"
+        />
+        <ManagementField
+          label="From year"
+          value={fromYear}
+          onChange={setFromYear}
+          placeholder="2024"
+        />
+        <ManagementField
+          label="Minimum Elo"
+          value={minRating}
+          onChange={setMinRating}
+          placeholder="2500"
+        />
+      </div>
+      <div className="mt-3 max-h-56 overflow-auto rounded-[4px] border border-line-subtle">
+        {(games.data?.games ?? []).map((game) => (
+          <label
+            key={game.id}
+            className="flex items-center gap-2 border-b border-line-subtle px-2 py-1.5 text-xs last:border-0"
+          >
+            <input
+              type="checkbox"
+              checked={selected.has(game.fingerprint)}
+              onChange={(event) =>
+                setSelected((current) => {
+                  const next = new Set(current);
+                  if (event.target.checked) next.add(game.fingerprint);
+                  else next.delete(game.fingerprint);
+                  return next;
+                })
+              }
+            />
+            <span className="min-w-0 flex-1 truncate text-secondary">
+              {game.white} – {game.black}
+            </span>
+            <span className="text-tertiary tabular">{game.year ?? '—'}</span>
+            <span className="text-primary">{game.result}</span>
+          </label>
+        ))}
+        {games.isPending ? <p className="p-3 text-xs text-tertiary">Loading games…</p> : null}
+      </div>
+      <p className="mt-1 text-[10px] text-tertiary">
+        Showing up to 100 · exact match count {(games.data?.total ?? 0).toLocaleString()}
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button
+          variant="danger"
+          disabled={selected.size === 0}
+          onClick={() => setConfirm('selected')}
+        >
+          Delete selected ({selected.size})
+        </Button>
+        <Button
+          variant="danger"
+          disabled={!hasFilter || (games.data?.total ?? 0) === 0}
+          onClick={() => setConfirm('matching')}
+        >
+          Delete matching filter
+        </Button>
+        <Button variant="danger" disabled={!database.games} onClick={() => setConfirm('clear')}>
+          Clear collection
+        </Button>
+        <Button variant="danger" onClick={() => setConfirm('collection')}>
+          Delete collection
+        </Button>
+      </div>
+      <ConfirmDialog
+        open={confirm !== null}
+        title={confirm === 'collection' ? 'Delete this SQLite collection?' : 'Delete SQLite games?'}
+        description={confirm ? `${descriptions[confirm]} This cannot be undone in Kingfisher.` : ''}
+        confirmLabel={busy ? 'Deleting…' : 'Delete permanently'}
+        onCancel={() => setConfirm(null)}
+        onConfirm={() => void execute()}
+      />
+    </section>
+  );
+}
+
+function ManagementField({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  readonly label: string;
+  readonly value: string;
+  readonly onChange: (value: string) => void;
+  readonly placeholder: string;
+}) {
+  return (
+    <label className="text-[10px] text-tertiary">
+      {label}
+      <input
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        className="mt-1 h-8 w-full rounded-[4px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
+      />
+    </label>
   );
 }
 
