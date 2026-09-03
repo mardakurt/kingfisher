@@ -38,11 +38,11 @@ usable, and it is asserted directly.
 
 Measured in the browser on a 20,000-node branched study:
 
-| step                            | measured |
-| ------------------------------- | -------- |
-| create and save the chapter     | 61 ms    |
-| reload and render               | 213 ms   |
-| `End`, `Home`, `→` in sequence  | 177 ms   |
+| step                           | measured |
+| ------------------------------ | -------- |
+| create and save the chapter    | 61 ms    |
+| reload and render              | 213 ms   |
+| `End`, `Home`, `→` in sequence | 177 ms   |
 
 Fewer than 100 list items are mounted at any time, against 20,000 rows.
 

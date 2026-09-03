@@ -70,6 +70,8 @@ src/
     game.ts                Tree operations that need the rules
     evaluation.ts          Score, White-POV convention, winning chances
     annotations.ts         NAGs, arrows, square highlights
+    features.ts            Counted structural facts about a position
+    structure.ts           Pawn-skeleton key and structure signature. ADR 0024
     tree/                  MoveNode, GameTree and their pure operations
     pgn/                   Tokenizer, parser, serializer, %-command handling
   engine/                  EngineProvider / EngineSession / EngineAnalysis
@@ -78,12 +80,14 @@ src/
     stockfish/             WASM-in-a-worker implementation
   database/                ChessDatabaseProvider and the normalized result model
     local-index.ts         In-memory position index (pure, used by tests)
+    cache.ts               The explorer query-cache ceiling
     providers/             Lichess explorer, persistent local collection
   persistence/             Local-first storage. See ADR 0008.
     schema/migrations.ts   Versioned stores and indexes; an ordered array
     indexeddb/database.ts  The IndexedDB wrapper: transactions, error mapping
     indexeddb/memory.ts    Same interface in memory, for tests
-    domain.ts              Repertoire, training, model-game and profile records
+    domain.ts              Repertoire, training, model-game, decision, review
+                           queue and training-set records
     backup.ts              Versioned validation and transactional restore
     search.ts              Bounded cross-entity command search
     repositories/          Studies, games, drafts, repertoire, training, library
@@ -96,6 +100,9 @@ src/
       CanonicalBoardSurface.tsx  The one full-size board pipeline
       WorkspaceToolDock.tsx      Route → tool table, and the tool host
     databases/             Data-source management, health and connection tests
+    review/                Self-analysis, the decision journal, the critical
+                           queue and improvement summaries. ADR 0025
+    movetree/flatten.ts    One flattening pass, so the tree can be windowed
   stores/                  Zustand stores, one per state category
   components/              Shared primitives and icons
   hooks/                   Small, generic React hooks
@@ -604,6 +611,78 @@ and the integrity scanner offers to drop the dead pointer.
 
 ---
 
+## Studying your own thinking
+
+The Review workspace inverts the direction every other route runs in. Everywhere
+else, Kingfisher's job is to put evidence in front of the player as fast as
+possible. In `/review` its job is to withhold it until the player has committed
+to a judgement — because a player who opens a position with the evaluation
+already on screen reads rather than calculates.
+
+**The gate is state, not discipline.** `review-session-store` holds whether the
+current decision has been revealed, and the tool dock consults it: engine,
+explorer, tablebase, repertoire, structure and model games render a statement
+that computer evidence is hidden during self-analysis, rather than rendering
+empty. "Empty" and "withheld by your own choice" are different states, and a
+workspace that shows the first when it means the second looks broken.
+
+**The record is structured and, after reveal, immutable.** A `DecisionRecord`
+carries candidate moves entered on a board, an evaluation estimate as a band and
+an optional number, a plan, calculation notes and the move the player would
+play. `revealedAt` is set once and never cleared, and `updateDecision` refuses
+once it is set — the only write allowed afterwards is `annotateDecision`, for
+themes and notes. Tagging what happened is not rewriting it; editing a plan
+after seeing the engine is.
+
+Nothing in the record is generated. There is no field the application writes an
+opinion into, and the reveal panel is called a comparison rather than a score:
+outside tablebase-eligible positions the engine is strong evidence, not truth.
+
+**The queue carries its reason.** `ReviewItemRecord` is the work-queue entry a
+critical mark cannot be, because a tree cannot be filtered, counted or worked
+through. A suggested item states the fact that produced it — an evaluation
+swing, a change of top move, a MultiPV separation, a repertoire deviation, a
+tablebase result change — in those terms, and is never labelled a blunder or a
+mistake. Nothing is auto-accepted into the study system.
+
+**Themes are the player's.** A starting taxonomy plus custom tags, assigned by
+hand. Deriving a theme from an engine score would be inventing a diagnosis from
+a number that does not contain one, and every count in the improvement summary
+opens the positions behind it rather than standing as a statistic.
+
+See ADR 0025.
+
+---
+
+## Structural research
+
+`chess/structure.ts` turns a position into two comparable identities, both pure
+functions of the FEN and both computed identically in the browser, the import
+Worker and the companion:
+
+- **The pawn-skeleton key** is the pawns and nothing else — `p1:` then eight
+  file groups of White ranks, `|`, Black ranks. Two positions share it if and
+  only if their pawns stand on the same squares, which is what a player means by
+  "the same structure" and is why the pieces are excluded by construction rather
+  than down-weighted.
+- **The structure signature** is coarser: the files that matter, the bishop
+  pairs, the material profile and each king's third of the board. Positions
+  sharing it are the same structural _type_, and the result row says so rather
+  than claiming they are the same position.
+
+Both embed a format version, so a key written under an older definition is
+detectable rather than silently a miss. Both are stored on the position row and
+indexed in SQLite and IndexedDB, which makes structure search an equality lookup
+rather than a scan.
+
+`structureOverlap` returns a count of shared claims and the totals on each side.
+Not a similarity score: the caller decides what "close enough" means, and the
+table shows the count so the reader can decide too.
+
+See ADR 0024.
+
+---
+
 ## The board
 
 `features/board/Chessboard.tsx` is a renderer, not a chess engine. Its
@@ -667,10 +746,12 @@ The choices already made, and why:
 - Engine updates are throttled at the source, not at the component.
 - Node evaluations are written to the tree only when depth changes, and never
   create undo entries — otherwise a running engine would fill the history.
-- The move tree renders recursively rather than virtually. This is honest about
-  its limit: it is comfortable to a few thousand nodes. Virtualising a nested,
-  variable-height structure is real work and belongs with the study system,
-  where trees actually get large.
+- The move tree is flattened once per tree and windowed: only the visible rows
+  plus an overscan margin are mounted, and keyboard navigation operates on the
+  flattened order rather than on mounted DOM, so `End` does not require the
+  20,000 rows between here and there to exist. Nested variations, variable-height
+  comments, branch connectors and context menus all survive it. This was adopted
+  after profiling a real 20,000-node tree, not before. See ADR 0027.
 - Explorer results are cached by position for ten minutes, so walking a line
   backwards and forwards costs nothing. The key is
   `['explorer', sourceId, sourceVersion, fen, filters]`: `sourceVersion` comes
@@ -690,9 +771,21 @@ The choices already made, and why:
   after the batch already being written commits. See ADR 0021.
 - The unfiltered SQLite opening aggregation is answered from a derived
   `position_aggregates` table maintained by triggers inside the writer's
-  transaction: 0.3 ms instead of 129 ms at 100,000 games. Filtered queries still
-  read `positions JOIN games`, because an all-time total cannot answer
-  "Elo ≥ 2400". See ADR 0023.
+  transaction: 0.3 ms instead of 129 ms at 100,000 games. See ADR 0023.
+- Filtered SQLite aggregation is answered from exact `(move, year, rating,
+result)` cells built lazily for the 128 positions being researched: 0.4–2.7 ms
+  instead of ~132 ms. Cells, not buckets — a filter boundary lands exactly where
+  the scan put it, and a filter that excludes nothing returns exactly what the
+  unfiltered explorer returns. A player-name filter still scans, because a cell
+  per player would be a copy of the collection. See ADR 0026.
+- SQLite deletion suspends the per-row aggregate trigger, which re-aggregates a
+  whole `(position, move)` group for every cascaded row, and rebuilds only the
+  position keys the deletion could have touched: 199 ms rather than 1,651 ms to
+  remove 1,000 of 100,000 games.
+- Explorer history is capped at 256 inactive entries. `gcTime` expires entries by
+  age, which does not bound an afternoon of navigation. Only _settled_ entries
+  are evictable: a prefetch in flight has no data and no observers, and evicting
+  it would silently disable prefetching once the cache filled.
 - Dialogs and uncommon workspace tools are dynamically imported _and_
   conditionally mounted, so a closed dialog neither fetches nor evaluates its
   implementation. Engine, Explorer, Database and Notes stay in the route bundle:
@@ -868,13 +961,28 @@ opponent reports, model games, personal-game deviation evidence, deterministic
 training, transactional backup, cross-entity search and measured 50k-game local
 queries.
 
-**Phase 4 — deeper study tooling.** Study-level search/navigation, repertoire
-import/export formats, and richer training authoring over complete variations.
+**Phase 4 — engines, artwork and scale.** _Done._ Native engines through the
+companion, SQLite collections measured at 100,000 games, real vector piece sets.
 
-**Phase 5 — understanding.** Position feature extraction (pawn structures, weak
-squares, outposts, king safety), and a move classifier that weighs evaluation
-swing against complexity, uniqueness of the best move and depth stability —
-deliberately not a threshold on centipawn loss.
+**Phase 5 — one application.** _Done._ A shared workspace context, one tool
+dock, one board pipeline, and evidence that follows the position between routes.
+
+**Phase 6 — reliability.** _Done._ Chapter revisions, cross-tab conflict
+detection, drafts written before chapters, an integrity scan, and a diagnostic
+report that carries no secrets.
+
+**Phase 7 — speed and scale.** _Done._ Derived explorer aggregates, PGN parsing
+in a Worker behind acknowledged batches, revisions for repertoire and training,
+chapter references, lazy tool surfaces, and a background analysis queue.
+
+**Phase 8 — studying your own thinking.** _Done._ Self-analysis with evidence
+withheld until submission and the record frozen at reveal; a decision journal;
+a critical-position queue with stated reasons; player-chosen improvement themes
+and factual summaries that drill into the positions behind them; training sets;
+deterministic structural and pawn-skeleton search; model-game discovery and a
+study mode with the engine off; preparation priorities with visible reasons;
+exact filtered explorer queries; SQLite deletion; a virtualized move tree; and a
+rules-engine replacement measured and rejected.
 
 **Later — assistance.** A `ChessContext` assembled from engine output, database
 evidence, position features and the user's own history, so that an explanation

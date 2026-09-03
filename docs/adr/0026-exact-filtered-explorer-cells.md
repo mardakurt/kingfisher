@@ -59,14 +59,14 @@ normalized path, and it is fast because a player's games are a small slice.
 Measured on 100,000 games and a million indexed positions, on the position
 every game reaches:
 
-| query                     | before   | after            |
-| ------------------------- | -------- | ---------------- |
-| last 12 months            | ~132 ms  | 0.4 ms           |
-| last 3 years              | ~132 ms  | 0.7 ms           |
-| Elo ≥ 2400                | ~132 ms  | 2.7 ms           |
-| Elo ≥ 2500                | ~132 ms  | 1.9 ms           |
-| Elo ≥ 2600                | ~132 ms  | 1.1 ms           |
-| date + Elo                | ~132 ms  | 0.7 ms           |
+| query                      | before  | after            |
+| -------------------------- | ------- | ---------------- |
+| last 12 months             | ~132 ms | 0.4 ms           |
+| last 3 years               | ~132 ms | 0.7 ms           |
+| Elo ≥ 2400                 | ~132 ms | 2.7 ms           |
+| Elo ≥ 2500                 | ~132 ms | 1.9 ms           |
+| Elo ≥ 2600                 | ~132 ms | 1.1 ms           |
+| date + Elo                 | ~132 ms | 0.7 ms           |
 | first filter at a position | —       | 281 ms, one time |
 
 The 281 ms is real and is paid once per position per session's worth of use.
