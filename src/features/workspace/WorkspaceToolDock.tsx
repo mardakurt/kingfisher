@@ -22,6 +22,7 @@ import { useMediaQuery } from '@/hooks/use-media-query';
 import { cn } from '@/lib/cn';
 import { useAnalysisPosition } from '@/features/analysis/useAnalysisPosition';
 import { useCalculation } from '@/features/calculation/calculation-store';
+import { TranspositionRoutes } from '@/features/repertoire/TranspositionRoutes';
 import { usePreferences } from '@/stores/preferences-store';
 import { useUi } from '@/stores/ui-store';
 import {
@@ -50,6 +51,11 @@ const GameInsightsPanel = lazyPanel(() =>
 );
 const FeaturesPanel = lazyPanel(() =>
   import('@/features/analysis/FeaturesPanel').then((module) => ({ default: module.FeaturesPanel })),
+);
+const TheoryRadarHost = lazyPanel(() =>
+  import('@/features/theory/TheoryRadarHost').then((module) => ({
+    default: module.TheoryRadarHost,
+  })),
 );
 const CalculationHost = lazyPanel(() =>
   import('@/features/calculation/CalculationHost').then((module) => ({
@@ -82,6 +88,7 @@ const LABELS: Record<WorkspaceToolId, string> = {
   'personal-results': 'Personal Results',
   features: 'Features',
   transpositions: 'Transpositions',
+  'theory-radar': 'Theory Radar',
   calculation: 'Calculation',
   tablebase: 'Tablebase',
   companion: 'Companion',
@@ -112,6 +119,7 @@ const ROUTE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'database',
     'repertoire',
     'transpositions',
+    'theory-radar',
     'calculation',
     'features',
     'tablebase',
@@ -135,6 +143,7 @@ const ROUTE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'explorer',
     'database',
     'transpositions',
+    'theory-radar',
     'engine',
     'model-games',
     'features',
@@ -144,6 +153,7 @@ const ROUTE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'explorer',
     'database',
     'transpositions',
+    'theory-radar',
     'engine',
     'repertoire',
     'model-games',
@@ -165,6 +175,7 @@ const ROUTE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'engine',
     'explorer',
     'database',
+    'theory-radar',
     'repertoire',
     'model-games',
     'features',
@@ -398,6 +409,7 @@ function ToolContent({ tool, contextPanel }: { tool: WorkspaceToolId; contextPan
   if (tool === 'personal-results') return <PersonalResultsPanel />;
   if (tool === 'features') return <FeaturesPanel />;
   if (tool === 'transpositions') return <TranspositionsPanel />;
+  if (tool === 'theory-radar') return <TheoryRadarHost />;
   if (tool === 'calculation') return <CalculationHost />;
   if (tool === 'tablebase') return <TablebasePanel />;
   if (tool === 'companion') return <CompanionPanel />;
@@ -468,7 +480,8 @@ function DatabasePositionPanel() {
 
 function RepertoirePositionPanel() {
   const { node } = useAnalysisPosition();
-  const entries = useRepertoiresAtPosition(positionKey(node.fen));
+  const key = positionKey(node.fen);
+  const entries = useRepertoiresAtPosition(key);
   const setOpen = useUi((state) => state.setAddToRepertoireOpen);
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -489,11 +502,20 @@ function RepertoirePositionPanel() {
         ) : (
           <div className="divide-y divide-line-subtle">
             {entries.data?.map((entry) => (
-              <div key={entry.id} className="p-3">
-                <p className="text-sm text-primary">
-                  {entry.moves.map((move) => move.san).join(', ')}
-                </p>
-                {entry.note ? <p className="mt-1 text-xs text-tertiary">{entry.note}</p> : null}
+              <div key={entry.id}>
+                <div className="p-3">
+                  <p className="text-sm text-primary">
+                    {entry.moves.map((move) => move.san).join(', ')}
+                  </p>
+                  {entry.note ? <p className="mt-1 text-xs text-tertiary">{entry.note}</p> : null}
+                </div>
+                {/*
+                  The evidence that this one record really is shared. A tree
+                  shows divergence and hides convergence, so a player editing a
+                  tabiya reached three ways has no way to see that the other two
+                  inherited the change — except by being shown the routes.
+                */}
+                <TranspositionRoutes repertoireId={entry.repertoireId} positionKey={key} />
               </div>
             ))}
             <div className="p-3">

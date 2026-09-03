@@ -186,9 +186,7 @@ export function maxDepth(branches: readonly CalculationBranch[]): number {
  * considered at the position are exactly its roots — so it is derived rather
  * than maintained separately, and cannot fall out of step with the lines.
  */
-export function candidatesOf(
-  branches: readonly CalculationBranch[],
-): readonly {
+export function candidatesOf(branches: readonly CalculationBranch[]): readonly {
   readonly uci: Uci;
   readonly san: San;
   readonly note?: string;
