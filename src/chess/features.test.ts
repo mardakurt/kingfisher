@@ -12,7 +12,7 @@ import { describe, expect, it } from 'vitest';
 
 import { expect as unwrap } from './result';
 import { parseFen, START_FEN } from './fen';
-import { positionFeatures, hasImbalance } from './features';
+import { pawnFeatures, positionFeatures, hasImbalance } from './features';
 import { asFen } from './types';
 
 const at = (fen: string) => positionFeatures(unwrap(parseFen(asFen(fen))));
@@ -241,5 +241,38 @@ describe('the king', () => {
     expect(at('5rk1/5ppp/8/8/8/8/8/4K3 b - - 0 1').black.kingShieldPawns).toBe(3);
     /* Black king on g2 with its own pawns on the third rank, i.e. behind it. */
     expect(at('8/8/8/8/8/5ppp/6k1/4K3 b - - 0 1').black.kingShieldPawns).toBe(0);
+  });
+});
+
+describe('the pawn-feature split', () => {
+  /*
+    The split exists purely to let an importer reuse pawn analysis across
+    positions that share a skeleton. It is worth nothing if it changes an
+    answer, so the property under test is equality: supplying pre-computed
+    pawn features must produce exactly what computing them inline produces.
+  */
+  const POSITIONS = [
+    START_FEN,
+    'r1bqkb1r/pp3ppp/2n1pn2/2pp4/2PP4/2N2NP1/PP2PPBP/R1BQK2R w KQkq - 0 7',
+    '4k3/5p2/4p1p1/3pP2p/3P1P1P/6P1/8/4K3 w - - 0 1',
+    'r3k2r/pppq1ppp/2np1n2/2b1p1B1/2B1P3/2NP1N2/PPP2PPP/R2Q1RK1 b kq - 0 1',
+  ];
+
+  it('produces identical features whether the pawn half is supplied or not', () => {
+    for (const fen of POSITIONS) {
+      const parsed = parseFen(fen);
+      if (!parsed.ok) throw new Error(`unreadable fixture: ${fen}`);
+      const inline = positionFeatures(parsed.value);
+      const supplied = positionFeatures(parsed.value, pawnFeatures(parsed.value));
+      expect(supplied).toEqual(inline);
+    }
+  });
+
+  it('gives two positions with the same pawns the same pawn features', () => {
+    // Identical pawns, different pieces: the whole premise of the memo.
+    const one = parseFen('4k3/pppppppp/8/8/8/8/PPPPPPPP/4K3 w - - 0 1');
+    const two = parseFen('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+    if (!one.ok || !two.ok) throw new Error('unreadable fixture');
+    expect(pawnFeatures(one.value)).toEqual(pawnFeatures(two.value));
   });
 });

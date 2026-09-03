@@ -265,6 +265,27 @@ async function route(url, request, response) {
     );
   }
 
+  /*
+    Structure backfill runs as a client-driven loop: the browser asks for a
+    page of unindexed positions, computes their identities with the same chess
+    code every other path uses, and posts them back. The companion never
+    computes a chess fact of its own.
+  */
+  if (pathname === '/db/unindexed-positions' && request.method === 'POST') {
+    const body = await readBody(request);
+    return json(
+      response,
+      200,
+      database(String(body.key)).unindexedPositions(Number(body.limit) || 500),
+    );
+  }
+
+  if (pathname === '/db/index-structures' && request.method === 'POST') {
+    const body = await readBody(request);
+    const entries = Array.isArray(body.entries) ? body.entries : [];
+    return json(response, 200, database(String(body.key)).applyStructures(entries));
+  }
+
   if (pathname === '/db/structure-search' && request.method === 'POST') {
     const body = await readBody(request);
     return json(response, 200, {

@@ -204,6 +204,31 @@ export class CompanionClient {
     return this.request('/db/rebuild-aggregates', { key });
   }
 
+  /** A page of positions in an older collection with no structural identity. */
+  unindexedPositions(
+    key: string,
+    limit?: number,
+  ): Promise<{
+    positions: readonly { positionKey: string }[];
+    remaining: number;
+  }> {
+    return this.request('/db/unindexed-positions', { key, limit });
+  }
+
+  /** Store identities the browser computed. See `structure-backfill.ts`. */
+  indexStructures(
+    key: string,
+    entries: readonly {
+      positionKey: string;
+      pawnSkeleton: string;
+      structureSignature?: string;
+      structureClaims?: readonly string[];
+      fen?: string;
+    }[],
+  ): Promise<{ updated: number; remaining: number }> {
+    return this.request('/db/index-structures', { key, entries });
+  }
+
   gameContent(key: string, id: string): Promise<{ pgn: string | null }> {
     return this.request('/db/content', { key, id });
   }

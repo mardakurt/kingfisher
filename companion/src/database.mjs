@@ -783,6 +783,81 @@ export class GameDatabase {
       .map(toSummary);
   }
 
+  /**
+   * Distinct positions still missing their structural identity.
+   *
+   * Collections imported before the structure index existed carry NULL in
+   * these columns, and re-importing every game to fix that would be absurd —
+   * the games are already here and unchanged. What is missing is derivable,
+   * and derivable from the position key alone.
+   *
+   * Distinct *keys*, not rows: a popular opening position appears in tens of
+   * thousands of rows and its structure is identical in all of them, so the
+   * expensive part is done once per position rather than once per game.
+   */
+  unindexedPositions(limit = 500) {
+    const rows = this.#db
+      .prepare(
+        `SELECT position_key AS positionKey FROM positions
+         WHERE pawn_skeleton IS NULL
+         GROUP BY position_key
+         LIMIT ?`,
+      )
+      .all(limit);
+    return { positions: rows, remaining: this.unindexedCount() };
+  }
+
+  unindexedCount() {
+    return this.#db
+      .prepare(
+        `SELECT COUNT(*) AS n FROM (
+           SELECT position_key FROM positions WHERE pawn_skeleton IS NULL GROUP BY position_key
+         )`,
+      )
+      .get().n;
+  }
+
+  /**
+   * Write structural identities computed by the client.
+   *
+   * The companion has no chess rules — deliberately, since a second
+   * implementation of them is a second thing that can be wrong. So the browser
+   * computes the keys from the position key it was handed and posts them back,
+   * and this only stores what it is told, for rows that still have nothing.
+   *
+   * `pawn_skeleton IS NULL` in the WHERE clause makes the whole operation
+   * idempotent: a resumed or repeated backfill cannot overwrite a row that a
+   * newer import has already indexed properly.
+   */
+  applyStructures(entries) {
+    const update = this.#db.prepare(
+      `UPDATE positions SET
+         pawn_skeleton = ?, structure_signature = ?, structure_claims = ?,
+         fen = COALESCE(fen, ?)
+       WHERE position_key = ? AND pawn_skeleton IS NULL`,
+    );
+    let updated = 0;
+    this.#db.exec('BEGIN');
+    try {
+      for (const entry of entries) {
+        updated += Number(
+          update.run(
+            String(entry.pawnSkeleton),
+            entry.structureSignature ? String(entry.structureSignature) : null,
+            entry.structureClaims ? JSON.stringify(entry.structureClaims) : null,
+            entry.fen ? String(entry.fen) : null,
+            String(entry.positionKey),
+          ).changes,
+        );
+      }
+      this.#db.exec('COMMIT');
+    } catch (error) {
+      this.#db.exec('ROLLBACK');
+      throw error;
+    }
+    return { updated, remaining: this.unindexedCount() };
+  }
+
   /** Deterministic structure search over persisted, inspectable identities. */
   searchStructures(query = {}) {
     const limit = Math.min(100, Math.max(1, Number(query.limit) || 30));

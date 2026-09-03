@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { Check, Database, Import, Settings, Warning } from '@/components/icons';
@@ -13,6 +13,7 @@ import { NavButton } from '@/features/shell/NavButton';
 import { cn } from '@/lib/cn';
 import { useUi } from '@/stores/ui-store';
 import { getRepositories } from '@/persistence/repositories';
+import { backfillStructures, type BackfillProgress } from '@/persistence/structure-backfill';
 import { STORE_NAMES } from '@/persistence/schema/migrations';
 import { companionClient } from '@/companion/session';
 import type { CompanionAggregateIntegrity, CompanionDatabaseEntry } from '@/companion/client';
@@ -420,6 +421,8 @@ function SqliteCollectionManagement({
     },
     retry: false,
   });
+  const [backfill, setBackfill] = useState<BackfillProgress | null>(null);
+  const backfillAbort = useRef<AbortController | null>(null);
   const integrity = useQuery<CompanionAggregateIntegrity>({
     queryKey: ['sqlite-integrity', database.key],
     queryFn: async () => {
@@ -430,6 +433,47 @@ function SqliteCollectionManagement({
     enabled: false,
     retry: false,
   });
+
+  /**
+   * Backfill structural identities for a collection imported before Phase 8.
+   *
+   * Runs in the page rather than a worker: the loop is almost entirely waiting
+   * on the companion, and it yields between pages, so the board keeps
+   * responding. Cancelling keeps every page already committed, which is what
+   * makes it safe to start on a hundred thousand games and change your mind.
+   */
+  const runBackfill = async () => {
+    const client = companionClient();
+    if (!client) return;
+    const controller = new AbortController();
+    setBackfill({ stage: 'scanning', processed: 0, remaining: 0, unreadable: 0 });
+    backfillAbort.current = controller;
+    try {
+      const result = await backfillStructures(client, database.key, {
+        signal: controller.signal,
+        onProgress: setBackfill,
+      });
+      notify({
+        tone: result.stage === 'cancelled' ? 'info' : 'success',
+        message:
+          result.stage === 'cancelled'
+            ? `Structure indexing stopped. ${result.processed.toLocaleString()} positions were indexed and kept.`
+            : `Indexed ${result.processed.toLocaleString()} positions.`,
+        ...(result.unreadable > 0
+          ? { detail: `${result.unreadable} positions could not be read and were left alone.` }
+          : {}),
+      });
+      await queryClient.invalidateQueries({ queryKey: ['sqlite-integrity', database.key] });
+    } catch (error) {
+      notify({
+        tone: 'error',
+        message: error instanceof Error ? error.message : 'Structure indexing failed.',
+      });
+    } finally {
+      backfillAbort.current = null;
+      setBackfill(null);
+    }
+  };
 
   const execute = async () => {
     if (!confirm) return;
@@ -488,10 +532,24 @@ function SqliteCollectionManagement({
             Copy {database.file} before a large deletion if you want a recoverable backup.
           </p>
         </div>
-        <Button className="ml-auto" onClick={() => void integrity.refetch()}>
-          {integrity.isFetching ? 'Checking…' : 'Run integrity check'}
-        </Button>
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          {backfill ? (
+            <Button onClick={() => backfillAbort.current?.abort()}>Stop indexing</Button>
+          ) : (
+            <Button onClick={() => void runBackfill()}>Index structures</Button>
+          )}
+          <Button onClick={() => void integrity.refetch()}>
+            {integrity.isFetching ? 'Checking…' : 'Run integrity check'}
+          </Button>
+        </div>
       </div>
+      {backfill ? (
+        <p className="mt-2 text-xs text-secondary tabular" role="status">
+          {backfill.stage === 'scanning' ? 'Scanning for unindexed positions…' : 'Indexing…'}{' '}
+          {backfill.processed.toLocaleString()} done · {backfill.remaining.toLocaleString()} to go
+          {backfill.unreadable > 0 ? ` · ${backfill.unreadable} unreadable` : ''}
+        </p>
+      ) : null}
       {integrity.data ? (
         <p className="mt-2 text-xs text-secondary" role="status">
           {integrity.data.consistent ? 'Integrity healthy' : 'Integrity mismatch'} ·{' '}
