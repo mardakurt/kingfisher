@@ -8,6 +8,7 @@ import {
   clampLowerHeight,
   DEFAULT_ARRANGEMENT,
   moveModule,
+  sanitizeArrangement,
   type WorkspaceArrangement,
   type WorkspaceModuleId,
   type WorkspaceRegion,
@@ -18,7 +19,7 @@ import {
   WORKSPACE_PRESETS,
   type WorkspacePreset,
 } from '@/features/workspace/presets';
-import type { WorkspaceToolId } from '@/features/workspace/modules';
+import { MOVE_TREE_MODULE, WORKSPACE_MODULES, type WorkspaceToolId } from '@/features/workspace/modules';
 import { debouncedStorage } from '@/lib/debounced-storage';
 
 export type { WorkspaceToolId } from '@/features/workspace/modules';
@@ -93,6 +94,76 @@ interface WorkspaceLayoutState {
 }
 
 const key = (workspace: string, device: DeviceClass) => `${device}:${workspace}`;
+
+const VALID_MODULES: ReadonlySet<WorkspaceModuleId> = new Set([
+  ...(Object.keys(WORKSPACE_MODULES) as WorkspaceToolId[]),
+  MOVE_TREE_MODULE.id,
+]);
+
+const VALID_TOOLS: ReadonlySet<string> = new Set(Object.keys(WORKSPACE_MODULES));
+
+function sanitizeArrangements(value: unknown): Record<string, WorkspaceArrangement> {
+  if (typeof value !== 'object' || value === null) return {};
+  const result: Record<string, WorkspaceArrangement> = {};
+  for (const [entryKey, arrangement] of Object.entries(value as Record<string, unknown>)) {
+    result[entryKey] = sanitizeArrangement(arrangement, VALID_MODULES);
+  }
+  return result;
+}
+
+function sanitizeSavedLayouts(value: unknown): readonly SavedLayout[] {
+  if (!Array.isArray(value)) return [];
+  const result: SavedLayout[] = [];
+  for (const entry of value) {
+    if (typeof entry !== 'object' || entry === null) continue;
+    const record = entry as Record<string, unknown>;
+    if (typeof record.id !== 'string' || typeof record.name !== 'string') continue;
+    result.push({
+      id: record.id,
+      name: record.name,
+      arrangement: sanitizeArrangement(record.arrangement, VALID_MODULES),
+    });
+  }
+  return result;
+}
+
+function sanitizePinnedTools(value: unknown): Record<string, readonly WorkspaceToolId[]> {
+  if (typeof value !== 'object' || value === null) return {};
+  const result: Record<string, readonly WorkspaceToolId[]> = {};
+  for (const [workspace, tools] of Object.entries(value as Record<string, unknown>)) {
+    if (!Array.isArray(tools)) continue;
+    result[workspace] = tools.filter(
+      (tool): tool is WorkspaceToolId => typeof tool === 'string' && VALID_TOOLS.has(tool),
+    );
+  }
+  return result;
+}
+
+/**
+ * The one gate every persisted layout passes through, whether or not
+ * `migrate` ran.
+ *
+ * Zustand only calls `migrate` when the stored version differs from this
+ * build's; a same-version file that was hand-edited, corrupted by a failed
+ * write, or written by a build with different module ids would otherwise
+ * reach the store unexamined. `merge` runs unconditionally, so this is the
+ * one place a corrupt layout cannot get past.
+ */
+/** Exported for direct testing of layout-corruption recovery; not part of the store's public API. */
+export function sanitizePersistedState(persisted: unknown): Partial<WorkspaceLayoutState> {
+  if (typeof persisted !== 'object' || persisted === null || Array.isArray(persisted)) return {};
+  const state = persisted as Record<string, unknown>;
+  return {
+    sidebarCollapsed: state.sidebarCollapsed === true,
+    compact: state.compact === true,
+    preset: WORKSPACE_PRESETS.some((entry) => entry.id === state.preset)
+      ? (state.preset as WorkspacePreset)
+      : 'analysis',
+    arrangements: sanitizeArrangements(state.arrangements),
+    savedLayouts: sanitizeSavedLayouts(state.savedLayouts),
+    pinnedTools: sanitizePinnedTools(state.pinnedTools),
+  };
+}
 
 export const useWorkspaceLayout = create<WorkspaceLayoutState>()(
   persist(
@@ -271,6 +342,13 @@ export const useWorkspaceLayout = create<WorkspaceLayoutState>()(
       // launch presents a chrome-less application to somebody who has
       // forgotten they turned it on.
       partialize: ({ focusMode: _focus, ...rest }) => rest,
+      // Runs after `migrate` (or in its place, when the stored version
+      // already matches). Sanitizing here rather than only in `migrate`
+      // is what catches a same-version file that is corrupt, not merely old.
+      merge: (persisted, current) => ({
+        ...current,
+        ...sanitizePersistedState(persisted),
+      }),
     },
   ),
 );

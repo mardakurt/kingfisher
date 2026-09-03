@@ -108,6 +108,57 @@ export function activeInRegion(
   return present[0] as WorkspaceModuleId;
 }
 
+const VALID_REGIONS: ReadonlySet<WorkspaceRegion> = new Set(['dock', 'lower', 'primary']);
+
+/**
+ * Turn whatever was in storage into a valid arrangement.
+ *
+ * Persisted layouts come from three untrustworthy places: a hand-edited
+ * localStorage value, a future build's shape read by an older one, and a
+ * `migrate` step that ran against data this build never wrote. All three look
+ * the same from here — an unknown shape — so this reads only the fields it
+ * knows, drops anything naming a module or region this build does not have,
+ * and clamps every dimension. A layout that fails this can still boot; it
+ * just boots as the default.
+ */
+export function sanitizeArrangement(
+  value: unknown,
+  validModules: ReadonlySet<WorkspaceModuleId>,
+): WorkspaceArrangement {
+  if (typeof value !== 'object' || value === null) return DEFAULT_ARRANGEMENT;
+  const raw = value as Record<string, unknown>;
+
+  const placement: Partial<Record<WorkspaceModuleId, WorkspaceRegion>> = {};
+  if (typeof raw.placement === 'object' && raw.placement !== null) {
+    for (const [module, region] of Object.entries(raw.placement as Record<string, unknown>)) {
+      if (!validModules.has(module as WorkspaceModuleId)) continue;
+      if (typeof region !== 'string' || !VALID_REGIONS.has(region as WorkspaceRegion)) continue;
+      placement[module as WorkspaceModuleId] = region as WorkspaceRegion;
+    }
+  }
+
+  const active: Partial<Record<WorkspaceRegion, WorkspaceModuleId>> = {};
+  if (typeof raw.active === 'object' && raw.active !== null) {
+    for (const [region, module] of Object.entries(raw.active as Record<string, unknown>)) {
+      if (!VALID_REGIONS.has(region as WorkspaceRegion)) continue;
+      if (typeof module !== 'string' || !validModules.has(module as WorkspaceModuleId)) continue;
+      active[region as WorkspaceRegion] = module as WorkspaceModuleId;
+    }
+  }
+
+  return {
+    placement,
+    active,
+    dockWidth: Number.isFinite(raw.dockWidth)
+      ? clampDockWidth(raw.dockWidth as number)
+      : DEFAULT_ARRANGEMENT.dockWidth,
+    lowerHeight: Number.isFinite(raw.lowerHeight)
+      ? clampLowerHeight(raw.lowerHeight as number)
+      : DEFAULT_ARRANGEMENT.lowerHeight,
+    dockCollapsed: raw.dockCollapsed === true,
+  };
+}
+
 /**
  * Move a module, keeping the arrangement coherent.
  *

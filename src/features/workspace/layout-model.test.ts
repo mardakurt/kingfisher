@@ -8,10 +8,13 @@ import {
   modulesInRegion,
   moveModule,
   regionOf,
+  sanitizeArrangement,
   type WorkspaceArrangement,
   type WorkspaceModuleId,
   type WorkspaceRegion,
 } from './layout-model';
+
+const knownModules: ReadonlySet<WorkspaceModuleId> = new Set(['engine', 'explorer', 'notes', 'move-tree']);
 
 const available: readonly { id: WorkspaceModuleId; home: WorkspaceRegion }[] = [
   { id: 'engine', home: 'dock' },
@@ -97,5 +100,38 @@ describe('size clamps', () => {
   it('keeps the lower panel from swallowing the board', () => {
     expect(clampLowerHeight(0)).toBe(140);
     expect(clampLowerHeight(9999)).toBe(520);
+  });
+});
+
+describe('sanitizeArrangement', () => {
+  it('returns the default for anything that is not an object', () => {
+    expect(sanitizeArrangement(null, knownModules)).toEqual(DEFAULT_ARRANGEMENT);
+    expect(sanitizeArrangement('garbage', knownModules)).toEqual(DEFAULT_ARRANGEMENT);
+    expect(sanitizeArrangement(undefined, knownModules)).toEqual(DEFAULT_ARRANGEMENT);
+  });
+
+  it('keeps a well-formed arrangement as-is', () => {
+    const value: WorkspaceArrangement = {
+      placement: { engine: 'lower' },
+      active: { lower: 'engine' },
+      dockWidth: 500,
+      lowerHeight: 250,
+      dockCollapsed: true,
+    };
+    expect(sanitizeArrangement(value, knownModules)).toEqual(value);
+  });
+
+  it('drops an unknown module from placement and active', () => {
+    const result = sanitizeArrangement(
+      { placement: { ghost: 'dock' }, active: { dock: 'ghost' } },
+      knownModules,
+    );
+    expect(result.placement).toEqual({});
+    expect(result.active).toEqual({});
+  });
+
+  it('drops an illegal region', () => {
+    const result = sanitizeArrangement({ placement: { engine: 'floating' } }, knownModules);
+    expect(result.placement).toEqual({});
   });
 });
