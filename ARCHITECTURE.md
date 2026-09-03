@@ -1308,10 +1308,14 @@ deliberately left unmeasured, are in
 them. Phase 7 took the heaviest route from 309 kB of gzipped JavaScript to
 289 kB while total emitted client JavaScript rose from 1,257 kB in 26 files to
 1,373 kB in 60 — which is what code splitting looks like when features are
-being added at the same time. As of Phase 10 the heaviest route is `/review`
-at 324 kB gzipped over 20 scripts, with 1,686 kB emitted across 78 files;
-three phases of new chess surfaces have been added since that figure, all of
-them lazily loaded. No runtime dependency has been added since Phase 7.
+being added at the same time. As of Phase 11 the heaviest route is `/review`
+at 330.7 kB gzipped over 21 scripts, with 1,829.9 kB emitted across 83 files —
++6.7 kB on the heaviest route for three new features, with the position report
+and the accounts settings surface both lazily loaded. No runtime dependency has
+been added since Phase 7: `fake-indexeddb`, added in Phase 11 for the historical
+migration fixtures, is a devDependency and reaches no client bundle. Phase 11's
+figures, including what was deliberately not measured and why, are in
+`docs/performance/phase-11-release-candidate.md`.
 
 Phase 10's search measurements are reproduced by
 `npm run bench:player-search -- 500000`, which generates its own collection
