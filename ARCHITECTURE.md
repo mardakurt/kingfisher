@@ -345,6 +345,24 @@ handshake rather than tabulated: Lc0 has no `Hash`, no `Use NNUE`, a `Threads`
 default of 0 and a `WeightsFile` no alpha-beta engine has, and a hand-written
 table would encode that as folklore and go stale.
 
+**Any UCI engine can be added**, not only the four the installer knows. The
+engine layer needed nothing for this — capabilities have been read from the
+engine rather than tabulated since Phase 6 — so what registration adds is
+trust, not plumbing. `POST /engine/register` is the one companion route that
+accepts a filesystem path rather than a resource key, and a path only becomes a
+key after two checks: that it is a real executable file, and that it completes
+a full `uci` → `uciok` → `isready` → `readyok` handshake. `/bin/ls` is
+executable; only the handshake establishes that a binary is an engine. The
+handshake has its own timeout and always cleans up after itself, so a binary
+that hangs or crashes produces a specific rejection rather than a destabilised
+companion. Keys are derived from the path, so re-registering the same binary
+resumes rather than duplicating, and a registration whose file has since gone is
+dropped at load. Once registered, a custom engine is indistinguishable from a
+catalogue one: same provider, same session, same selector. Its search family is
+recorded as `unknown` rather than guessed, because the family exists to explain
+_why_ two engines disagree and a wrong guess would misrepresent exactly that.
+See ADR 0036.
+
 Two engines may run at once and they split the thread budget. Two is a hard
 limit: a third search takes cores from the interface. `engine/comparison.ts`
 reports top-move agreement, PV divergence and the evaluation gap, and refuses
@@ -405,6 +423,7 @@ TrainingRepository     authored items, due queue and append-only reviews
 Library repositories   model-game references and explicit personal aliases
 StudyReferenceRepo     typed chapter links to games, repertoire positions, items
 AnalysisQueueRepo      background analysis jobs and their stored engine evidence
+LinkedAccountRepo      linked Lichess/Chess.com usernames and their sync cursors
 ```
 
 Fifteen object stores are created by a versioned migration array, never by
@@ -414,8 +433,19 @@ adds repertoires/positions, training items/reviews, model-game links and the
 explicit personal profile. Schema v4 adds chapter revisions; v5 extends
 revisions to repertoire positions and training items; v6 adds `studyReferences`
 with a unique `(chapterId, kind, targetId)` index; v7 adds `analysisQueue` and
-`engineEvidence`. Records are validated on the way out, because a record written
-by an older build is plausible and malformed data must not reach the board.
+`engineEvidence`. Schema v11 adds `linkedAccounts`. Records are validated on the
+way out, because a record written by an older build is plausible and malformed
+data must not reach the board.
+
+Every one of those versions now has a **historical migration fixture**: a real
+IndexedDB database opened at that version, seeded the way a session at that
+version would have seeded it, closed, and reopened at the current version so the
+real upgrade path runs against real data. What is asserted afterwards is
+semantic equality, not "it did not throw" — a chapter's tree with its comments
+and its side variation compared byte for byte, a v1 game's fields untouched
+beside the player keys the v2 backfill added, references and queue jobs still
+resolving through their indexes, and a position indexed before v9 absent from
+the structural indexes rather than fabricated into them.
 
 ### Revisions beyond chapters
 
@@ -846,6 +876,67 @@ See ADR 0031.
 
 ---
 
+## Games from a linked account
+
+`src/sync/` pulls a Lichess or Chess.com account's games into the ordinary
+local collection. Its most important property is what it does not contain:
+there is no game model here, no duplicate rule and no position index. A
+provider produces PGN, and that PGN goes to `importGames` — the same function
+the paste-a-file dialog calls.
+
+```
+remote service → provider → PGN → importGames → fingerprint index → collection
+```
+
+That is why syncing the same account twice imports nothing the second time
+while this feature contains no deduplication logic at all: the `fingerprint`
+unique index has enforced one row per game since schema version 1, and a synced
+game is subject to it because it is not a special kind of game.
+
+The two providers get different cursors because their APIs genuinely differ.
+Lichess takes an epoch-millisecond `since`, so an incremental sync is one
+request for exactly what is new. Chess.com publishes immutable monthly
+archives and has no timestamp cursor, so the unit is the calendar month:
+everything before the last synced month is settled and skipped, and that month
+itself is re-fetched because a month in progress will have gained games.
+Chess.com requests are strictly serial, which its documentation asks for.
+
+Cursors advance only after the import they describe has landed. A cursor
+written first would turn a failed import into permanently skipped games — the
+one failure of an incremental sync a user can neither see nor recover from.
+
+No credential is required: both APIs serve public games anonymously. A Lichess
+token raises that API's rate allowance, so the one that may already be set for
+the explorer is reused; nothing asks for a new one. Failures are reported in the
+same `ProviderHealthState` vocabulary a database provider uses, so a
+rate-limited account reads as rate limited rather than as an account with no
+games. See ADR 0035.
+
+## The position report
+
+`src/features/position-report/report.ts` assembles ten sections about the
+position on the board from evidence that already existed in six different
+panels. The assembly is a pure function over already-fetched evidence, so its
+rules are testable without a database or a network.
+
+Two rules govern every section. **Provenance or a reason**: a section with
+evidence names its source ("Lichess Masters · 18,431 games"), and a section
+without evidence says why it is empty — "Lichess is rate limiting this client"
+and "no repertoire covers this position" are different facts and must never
+both render as blank space. **No best move**: a highlighted move carries the
+rule that selected it — most played, highest scoring among moves with at least
+100 games, most recently played — with the sample threshold written into the
+label, because three wins in three games is not a 100% scoring move. A test
+asserts that no criterion anywhere contains "best", "recommended", "strongest"
+or "should".
+
+Sources are queried independently, so one failing empties its own section and
+nothing else; a report that vanished because the explorer was rate limited would
+hide the repertoire and journal evidence that was available all along. Engine
+evidence stays in its own section attributed to engine and depth, because
+mixing it into the move list would blur what people have played with what a
+search calculated. See ADR 0037.
+
 ## Structural research
 
 `chess/structure.ts` turns a position into two comparable identities, both pure
@@ -1230,51 +1321,59 @@ and deletes it.
 
 ## Testing
 
-895 tests across 76 files, all on the parts where being wrong is expensive.
+1,096 tests across 85 files, all on the parts where being wrong is expensive.
 
-| Area              | Covered                                                                                                                                                                                                                           |
-| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| FEN               | Valid parses, 11 kinds of malformed input, en passant rank rules, round trip, position key                                                                                                                                        |
-| Position          | Legal move generation, castling (including through check), en passant, promotion, checkmate, stalemate, insufficient material, illegal positions                                                                                  |
-| Game tree         | Add / dedupe / delete / truncate / promote / promote-to-main-line, path and line walking, ply numbering from a custom FEN, annotation toggles                                                                                     |
-| Game              | Line insertion in SAN and UCI, threefold repetition along a line                                                                                                                                                                  |
-| PGN               | Tokenizing, nested variations, comments and pre-comments, NAGs and suffix glyphs, `[%cal]` / `[%eval]` / `[%clk]`, FEN tag, illegal-move recovery, multiple games, serialization and round trip, a complete annotated master game |
-| Evaluation        | White-POV conversion, formatting, ordering with mate scores, winning chances                                                                                                                                                      |
-| UCI               | `info` with every field, mate scores, bounds, `bestmove`, options, command formatting                                                                                                                                             |
-| Database          | Position aggregation, transpositions, rating averaging, player and date filters, performance rating                                                                                                                               |
-| Analysis store    | Navigation, variation creation, editing, undo/redo including redo invalidation, PGN/FEN load and export                                                                                                                           |
-| Board layout      | Pointer-to-square conversion in both orientations and animation identity across ordinary moves, promotion, and castling                                                                                                           |
-| Providers         | Explicit handling of authentication-required Lichess explorer responses                                                                                                                                                           |
-| Variations        | Reordering as a pure permutation — every node, parent, position, comment and descendant compared before and after; promotion from inside a nested line; whole-side-line deletion                                                  |
-| Persistence       | Study and chapter CRUD, ordering and gap-closing on delete, cascade delete, duplication, refusal to resurrect a deleted chapter; draft save/restore; corrupted-record rejection                                                   |
-| Round trip        | A chapter with a nested variation, multi-line comments, NAGs, arrows, highlights and saved evaluations — stored, reloaded and compared node by node, then exported to PGN and reimported                                          |
-| Migrations        | Contiguous versions, every store and index created on a fresh database, nothing replayed over an existing one                                                                                                                     |
-| Position key      | Counters ignored, castling distinguished, en passant kept only when usable, transpositions merged                                                                                                                                 |
-| Import            | Multi-game files, stage ordering, duplicate skipping, cancellation, damaged-game accounting, position-index entries                                                                                                               |
-| Explorer          | Result and rating aggregation, popularity ordering, transposition merging, per-game counting, filters, deletion and clearing                                                                                                      |
-| PV insertion      | Structured insertion, branch reuse, variation creation, comment and evaluation preservation, idempotence, stale-line rejection with the tree left untouched, undo                                                                 |
-| Autosave          | Debounce, the cap that stops steady editing postponing a write forever, no concurrent writes                                                                                                                                      |
-| Repertoire        | Line authoring, explicit opponent replies, transposition convergence, roles, coverage, evidence-backed gaps deduplicated by position, and own/opponent deviation                                                                  |
-| Repertoire PGN    | Position map to playable line, variations for alternatives, rejected moves as prose, transposition cut-off, and reparsing what was written                                                                                        |
-| Game search       | Whole-name identity, ordered pages that neither repeat nor skip, totals across the match set, and every predicate applied when the index answers only one                                                                         |
-| Training answers  | Accepting any recorded move, partial candidate sets, band comparison, and refusing to grade prose mechanically                                                                                                                    |
-| Preparation       | Exact identity, factual profiles, transposition-aware trees and prepared/gap comparison                                                                                                                                           |
-| Training          | Every grade transition, interval previews, queue stages, review history and transactional deletion                                                                                                                                |
-| Backup            | Portable/full export, validated merge/replace, game preservation, unique-index collisions on merge, and rollback on malformed input                                                                                               |
-| Global search     | Studies, chapters, games, players, repertoires, training, model games and tags                                                                                                                                                    |
-| Chapter revisions | A refused stale write, the winning record handed to the loser, renames and reorders moving the revision on, a reorder that changes nothing leaving it alone, and the v4 backfill                                                  |
-| Data integrity    | Each rule against a fixture that breaks exactly one relationship, the healthy cases that must produce no finding, safe repair, and the refusal to delete anything not marked repairable                                           |
-| Diagnostic report | No configured secret present, no prefix of one, a secret redacted out of an error message, an unknown bearer token redacted, and ordinary text left alone                                                                         |
-| Provider retries  | Network errors retried once; rejected credentials, rate limits, schema mismatches and misconfiguration never retried; `Retry-After` in seconds and as a date; request deadlines                                                   |
-| Transpositions    | Move orders read from stored trees, a genuine transposition found and a near-miss rejected, merging across sources, ordering by frequency then length, and excluding the order the reader is already on                           |
-| Import hardening  | A broken game beside good ones, Unicode names, a 2,000-character event, a 20,000-character comment, nested variations, SetUp/FEN, the same game twice, a moveless pairing, and interrupted-import consistency                     |
+| Area                | Covered                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| FEN                 | Valid parses, 11 kinds of malformed input, en passant rank rules, round trip, position key                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Position            | Legal move generation, castling (including through check), en passant, promotion, checkmate, stalemate, insufficient material, illegal positions                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Game tree           | Add / dedupe / delete / truncate / promote / promote-to-main-line, path and line walking, ply numbering from a custom FEN, annotation toggles                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Game                | Line insertion in SAN and UCI, threefold repetition along a line                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| PGN                 | Tokenizing, nested variations, comments and pre-comments, NAGs and suffix glyphs, `[%cal]` / `[%eval]` / `[%clk]`, FEN tag, illegal-move recovery, multiple games, serialization and round trip, a complete annotated master game                                                                                                                                                                                                                                                                                                                                  |
+| Evaluation          | White-POV conversion, formatting, ordering with mate scores, winning chances                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| UCI                 | `info` with every field, mate scores, bounds, `bestmove`, options, command formatting                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| Database            | Position aggregation, transpositions, rating averaging, player and date filters, performance rating                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| Analysis store      | Navigation, variation creation, editing, undo/redo including redo invalidation, PGN/FEN load and export                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| Board layout        | Pointer-to-square conversion in both orientations and animation identity across ordinary moves, promotion, and castling                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| Providers           | Explicit handling of authentication-required Lichess explorer responses                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| Variations          | Reordering as a pure permutation — every node, parent, position, comment and descendant compared before and after; promotion from inside a nested line; whole-side-line deletion                                                                                                                                                                                                                                                                                                                                                                                   |
+| Persistence         | Study and chapter CRUD, ordering and gap-closing on delete, cascade delete, duplication, refusal to resurrect a deleted chapter; draft save/restore; corrupted-record rejection                                                                                                                                                                                                                                                                                                                                                                                    |
+| Round trip          | A chapter with a nested variation, multi-line comments, NAGs, arrows, highlights and saved evaluations — stored, reloaded and compared node by node, then exported to PGN and reimported                                                                                                                                                                                                                                                                                                                                                                           |
+| Migrations          | Contiguous versions, every store and index created on a fresh database, nothing replayed over an existing one                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Historical upgrades | Real `fake-indexeddb` databases opened at v1, v3, v6, v7, v8, v9 and v10, seeded the way a session at that version would have, reopened at the current version through the real upgrade path, and checked for semantic equality: chapter trees and their comments and variations byte-identical, player keys backfilled without disturbing neighbouring fields, references and queue jobs still resolving through their indexes, profiles backfilled without clobbering, and a pre-v9 position absent from the structural indexes rather than fabricated into them |
+| Randomized games    | Sixteen fixed seeds generating legal games biased toward captures, castling, en passant and promotion, with variations branched off them. Asserts tree well-formedness, that every move is legal from its parent, PGN round-trip line equality, node reuse on replay, immutability under `addMove`, and well-formedness after promote/truncate/remove. Curated SetUp/FEN fixtures cover castling both sides, all four promotion pieces, checkmate, stalemate and threefold repetition                                                                              |
+| Layout corruption   | Unknown module ids, illegal regions, NaN, negative and gigantic dimensions, non-object roots, unknown future fields, malformed saved layouts and unrecognised presets — each sanitized to something renderable rather than thrown on                                                                                                                                                                                                                                                                                                                               |
+| Account sync        | Request shape and cursor arithmetic for both providers; 404/429/401/network mapped to distinct states; Chess.com month-cursor arithmetic skipping settled months; and the property the design rests on — syncing the same games twice imports nothing the second time, through the ordinary fingerprint index                                                                                                                                                                                                                                                      |
+| Custom engines      | Executable validation (missing, directory, not executable); a real UCI handshake against a fake engine; truthful rejection of a process that never answers, exits early, or prints non-UCI output; and no process left behind after a failed handshake                                                                                                                                                                                                                                                                                                             |
+| Position report     | Every section carries provenance or a stated empty reason; the reference source is named with its size; a failed lookup is distinguished from an empty one; the scoring threshold is stated and small samples excluded; and no highlight criterion anywhere contains "best", "recommended", "strongest" or "should"                                                                                                                                                                                                                                                |
+| Position key        | Counters ignored, castling distinguished, en passant kept only when usable, transpositions merged                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| Import              | Multi-game files, stage ordering, duplicate skipping, cancellation, damaged-game accounting, position-index entries                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| Explorer            | Result and rating aggregation, popularity ordering, transposition merging, per-game counting, filters, deletion and clearing                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| PV insertion        | Structured insertion, branch reuse, variation creation, comment and evaluation preservation, idempotence, stale-line rejection with the tree left untouched, undo                                                                                                                                                                                                                                                                                                                                                                                                  |
+| Autosave            | Debounce, the cap that stops steady editing postponing a write forever, no concurrent writes                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| Repertoire          | Line authoring, explicit opponent replies, transposition convergence, roles, coverage, evidence-backed gaps deduplicated by position, and own/opponent deviation                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Repertoire PGN      | Position map to playable line, variations for alternatives, rejected moves as prose, transposition cut-off, and reparsing what was written                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Game search         | Whole-name identity, ordered pages that neither repeat nor skip, totals across the match set, and every predicate applied when the index answers only one                                                                                                                                                                                                                                                                                                                                                                                                          |
+| Training answers    | Accepting any recorded move, partial candidate sets, band comparison, and refusing to grade prose mechanically                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Preparation         | Exact identity, factual profiles, transposition-aware trees and prepared/gap comparison                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| Training            | Every grade transition, interval previews, queue stages, review history and transactional deletion                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| Backup              | Portable/full export, validated merge/replace, game preservation, unique-index collisions on merge, and rollback on malformed input                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| Global search       | Studies, chapters, games, players, repertoires, training, model games and tags                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Chapter revisions   | A refused stale write, the winning record handed to the loser, renames and reorders moving the revision on, a reorder that changes nothing leaving it alone, and the v4 backfill                                                                                                                                                                                                                                                                                                                                                                                   |
+| Data integrity      | Each rule against a fixture that breaks exactly one relationship, the healthy cases that must produce no finding, safe repair, and the refusal to delete anything not marked repairable                                                                                                                                                                                                                                                                                                                                                                            |
+| Diagnostic report   | No configured secret present, no prefix of one, a secret redacted out of an error message, an unknown bearer token redacted, and ordinary text left alone                                                                                                                                                                                                                                                                                                                                                                                                          |
+| Provider retries    | Network errors retried once; rejected credentials, rate limits, schema mismatches and misconfiguration never retried; `Retry-After` in seconds and as a date; request deadlines                                                                                                                                                                                                                                                                                                                                                                                    |
+| Transpositions      | Move orders read from stored trees, a genuine transposition found and a near-miss rejected, merging across sources, ordering by frequency then length, and excluding the order the reader is already on                                                                                                                                                                                                                                                                                                                                                            |
+| Import hardening    | A broken game beside good ones, Unicode names, a 2,000-character event, a 20,000-character comment, nested variations, SetUp/FEN, the same game twice, a moveless pairing, and interrupted-import consistency                                                                                                                                                                                                                                                                                                                                                      |
 
 Run with `npm test`.
 
 ### Browser tests
 
-Eighteen Playwright specs in `e2e/`, run with `npm run test:e2e` against a real
-dev server and a real Stockfish build. They exist because the failures these
+Seventy-two Playwright tests across nine spec files in `e2e/`, run with
+`npm run test:e2e` against a real dev server and a real Stockfish build, and at
+**zero retries** — a test that only passes on its second attempt is a bug, and a
+gate that re-runs it hides that bug rather than reporting it. They exist because the failures these
 phases fixed — a board that did not track the selected node, tools missing from
 a route, a provider reporting a `401` as an empty database, a chapter silently
 overwritten by another tab — are all invisible to unit tests.
@@ -1293,6 +1392,8 @@ overwritten by another tab — are all invisible to unit tests.
 | Viewports         | Nine routes at ten widths from 320×568 to 2560×1440, none scrolling sideways                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | Phase 7           | A 20,000-game worker import backgrounded, kept responsive (longest main-thread gap under 500 ms) and cancelled cleanly; repertoire and training stale writes offering the same two choices; chapter references linked, opened and counted; saved filters surviving a reload; storage facts shown; the analysis queue paused, reloaded, resumed, yielding to interactive analysis and leaving real stored evidence; a 1,008-ply chapter imported, navigated, branch-switched, saved and reopened; an imported game still on the board after a reload |
 | Soak              | Eight cycles of new-analysis, moves, engine start/stop, tool switching and route switching through client-side navigation, with `Worker`, `BroadcastChannel`, `EventSource`, `setInterval` and window listeners counted before and after                                                                                                                                                                                                                                                                                                            |
+| Phase 11          | A linked Lichess account syncing into the ordinary collection over a routed network; a second sync importing nothing; a rate limit reported as a rate limit rather than an empty library; a missing account named; a Chess.com sync walking only published archive months; and the position report rendering every section with provenance and no "best" anywhere in its criteria                                                                                                                                                                   |
+| Concealment       | The review board's `data-board-conceals` attribute **and** the absence of any `EvaluationBar`-shaped accessible name from the DOM before reveal — concealment proven by absence, not by a flag the component sets about itself                                                                                                                                                                                                                                                                                                                      |
 
 Every spec asserts the console produced no errors or warnings. Nothing in the
 suite touches the real Lichess API, the public tablebase, an assistant endpoint

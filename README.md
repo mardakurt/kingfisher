@@ -9,7 +9,7 @@ calls it analysis.
 
 ---
 
-## Status: Phase 10 — configurable, and hard to break
+## Status: Phase 11 — a release candidate that says where it got everything
 
 Phase 1 built the workstation, Phase 2 made the work durable, Phase 3 turned the
 stored material into preparation, and Phase 4 gave it real engines, real artwork
@@ -130,6 +130,55 @@ collection can be given its structural index in place without re-importing a
 game, and the transposition graph went from 1,119 ms to 53 ms once it was
 measured on a repertoire big enough to matter.
 
+Phase 11 treats the whole thing as a release candidate, and spends most of its
+effort trying to break ten phases of accumulated work rather than adding to it.
+
+The data-safety work is the part that matters. Every historical schema version
+now has a fixture that seeds a database the way a real installation at that
+version would have, migrates it forward through the real upgrade path, and
+checks the result for semantic equality — chapter trees, comments and variations
+byte-identical, player keys backfilled without disturbing the fields beside
+them, references and background jobs still resolving through their indexes. A
+corrupted workspace layout can no longer take a route down: anything unknown,
+absurd or NaN is dropped at load, and if rendering fails anyway the error screen
+offers **Restore default workspace** without requiring you to reach Settings —
+which was previously the only place that control existed.
+
+Randomized testing arrived for the parts where hand-written fixtures only cover
+what someone thought of. Sixteen fixed seeds generate legal games biased toward
+captures, castling, en passant and promotion, branch variations off them, and
+assert properties that must hold for any legal game: the tree stays
+well-formed, every move is legal from its parent, PGN round-trips to the same
+set of lines, replaying a move reuses its node rather than duplicating it, and
+promoting or deleting a variation never leaves a malformed tree. Curated
+SetUp/FEN fixtures cover castling both sides, all four promotion pieces,
+checkmate, stalemate and threefold repetition, which random play reaches too
+rarely to rely on.
+
+And the release gate got stricter rather than kinder. Browser tests now run at
+**zero retries**: a test that only passes on its second attempt is a bug, and a
+gate that quietly re-runs it hides that bug instead of failing on it. Retries
+still exist in a separate, manually-triggered, non-gating workflow, for telling
+a flaky test apart from a broken one.
+
+Three workflow gaps closed alongside that. **Any UCI engine** can now be
+registered by path through the companion — validated as a real executable, then
+made to complete a full `uci`/`uciok`/`isready`/`readyok` handshake before it is
+trusted with a key, so a mistyped path is refused at registration rather than
+during analysis. **Lichess and Chess.com accounts** can be linked by username
+and their games pulled into the ordinary local collection: no Kingfisher
+account, nothing uploaded, incremental against each API's real cursor, and
+duplicate-free because a synced game goes through the same import pipeline and
+the same fingerprint index as a pasted one. And a **position report** answers
+"what do I know about this position" in one click, with every section naming its
+source and no move ever labelled best — a highlighted move carries the rule that
+selected it, with the sample threshold written into the label.
+
+Where Kingfisher still trails ChessBase, En Croissant and ChessMonitor is
+recorded honestly in
+[`docs/product/pro-workstation-gap-analysis.md`](docs/product/pro-workstation-gap-analysis.md),
+including the four gaps Phase 11 did not close.
+
 Every number in those paragraphs is measured, reproducible and recorded with its
 before-figure in
 [`docs/performance/phase-9-preparation-and-scale.md`](docs/performance/phase-9-preparation-and-scale.md),
@@ -196,6 +245,9 @@ currently comes from the separate Lichess Syzygy provider.
 | Candidates           | Ask the engine about the three moves you are choosing between, using UCI `searchmoves` where the engine reports support — and keep a line as evidence with its engine, build, settings, depth and node count                                                                                        |
 | Getting around       | One position-actions list behind the menu, the palette and the keyboard; a research trail that names where it goes back to and restores the position; focus mode; compact density; a pasted FEN that finds everywhere the position is stored                                                        |
 | Interface            | Responsive desktop/tablet/phone workspace, command palette (`⌘K`), keyboard-first navigation, dark and light themes, local-first preferences                                                                                                                                                        |
+| Custom engines       | Register any UCI executable by path through the companion. It must be a real executable and must complete a full `uci`/`uciok`/`isready`/`readyok` handshake before it is accepted; options and capabilities are then read from the engine itself, exactly as for a catalogue engine                |
+| Linked accounts      | Link a Lichess or Chess.com username and pull those games into the ordinary local collection. Incremental per each API's own cursor, strictly serial where asked for, no account and nothing uploaded. Syncing twice imports nothing, because a synced game meets the same fingerprint index        |
+| Position report      | One click: opening, reference statistics, notable moves, tablebase, repertoire, model games, your games, structural themes, stored engine lines and your own journal history. Every section names its source; an empty one says why. No move is ever called best                                    |
 
 **Deliberately bounded.** IndexedDB collections are measured to 50,000 games and
 SQLite ones to 500,000, where the opening explorer is still answered in 0.3 ms
@@ -243,16 +295,23 @@ list in front of it would add a click to the most common action.
 
 Studies, chapters, imported game summaries/content, position indexes,
 repertoires, model-game links, training schedules/history, chapter references,
-background-analysis jobs, saved engine evidence, personal aliases and the active
+background-analysis jobs, saved engine evidence, personal aliases, linked
+online accounts and the active
 draft are stored in IndexedDB under `kingfisher`; saved and recent database
 filters and preferences stay
 in `localStorage` — including your Lichess token, which is never committed,
 never logged and never included in a backup. It is scope-free and revocable
 from Lichess, which is what makes browser storage an acceptable place for it.
 Network requests occur only when you deliberately use a remote evidence
-source: the Lichess explorer, the Lichess tablebase, or an assistant endpoint
-you configured. Local database, engine, repertoire, study,
-training and backup workflows remain offline.
+source: the Lichess explorer, the Lichess tablebase, an account you linked and
+asked to sync, or an assistant endpoint you configured. Local database, engine,
+repertoire, study, training and backup workflows remain offline.
+
+A linked account stores a username and two sync cursors. It is not a login:
+both providers serve public games without one, nothing is uploaded, and no
+password or OAuth flow is involved. The Lichess token you may already have set
+for the explorer is reused if present — it raises that API's rate allowance —
+and sync works without it.
 
 An analysis is always one of three things, and the header says which:
 
