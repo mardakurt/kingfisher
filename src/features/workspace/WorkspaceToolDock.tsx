@@ -21,6 +21,7 @@ import { Tabs } from '@/components/ui/Tabs';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { cn } from '@/lib/cn';
 import { useAnalysisPosition } from '@/features/analysis/useAnalysisPosition';
+import { useCalculation } from '@/features/calculation/calculation-store';
 import { usePreferences } from '@/stores/preferences-store';
 import { useUi } from '@/stores/ui-store';
 import {
@@ -50,6 +51,11 @@ const GameInsightsPanel = lazyPanel(() =>
 const FeaturesPanel = lazyPanel(() =>
   import('@/features/analysis/FeaturesPanel').then((module) => ({ default: module.FeaturesPanel })),
 );
+const CalculationHost = lazyPanel(() =>
+  import('@/features/calculation/CalculationHost').then((module) => ({
+    default: module.CalculationHost,
+  })),
+);
 const TablebasePanel = lazyPanel(() =>
   import('@/features/analysis/TablebasePanel').then((module) => ({
     default: module.TablebasePanel,
@@ -76,6 +82,7 @@ const LABELS: Record<WorkspaceToolId, string> = {
   'personal-results': 'Personal Results',
   features: 'Features',
   transpositions: 'Transpositions',
+  calculation: 'Calculation',
   tablebase: 'Tablebase',
   companion: 'Companion',
   document: 'Context',
@@ -105,6 +112,7 @@ const ROUTE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'database',
     'repertoire',
     'transpositions',
+    'calculation',
     'features',
     'tablebase',
     'companion',
@@ -116,6 +124,7 @@ const ROUTE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'explorer',
     'database',
     'transpositions',
+    'calculation',
     'features',
     'tablebase',
     'companion',
@@ -141,7 +150,16 @@ const ROUTE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'personal-results',
     'features',
   ],
-  games: ['engine', 'explorer', 'database', 'repertoire', 'features', 'tablebase', 'notes'],
+  games: [
+    'engine',
+    'explorer',
+    'database',
+    'repertoire',
+    'calculation',
+    'features',
+    'tablebase',
+    'notes',
+  ],
   preparation: [
     'document',
     'engine',
@@ -190,10 +208,32 @@ export function WorkspaceToolDock({
    * a locked tool issues no query and starts no engine, which is also why the
    * lock cannot be worked around by switching tabs.
    */
-  readonly locked?: { readonly message: string; readonly action?: ReactNode };
+  readonly locked?: {
+    readonly message: string;
+    readonly action?: ReactNode;
+    /** Tools that stay usable while the rest are withheld. */
+    readonly except?: readonly WorkspaceToolId[];
+  };
 }) {
   const wide = useMediaQuery('(min-width: 1100px)');
   const tools = ROUTE_TOOLS[workspace] ?? ROUTE_TOOLS.analysis!;
+  /*
+    A running calculation locks the dock from inside it.
+
+    The alternative — every workspace passing a lock down — is one workspace
+    away from leaking the engine into a session the player asked to be blind.
+    A gate whose enforcement depends on nine call sites remembering is not a
+    gate.
+  */
+  const calculating = useCalculation((state) => state.fen !== null && !state.revealed);
+  const effectiveLock =
+    locked ??
+    (calculating
+      ? {
+          message: 'Evidence is hidden while you calculate. Submit your lines to reveal it.',
+          except: ['calculation'] as readonly WorkspaceToolId[],
+        }
+      : undefined);
   const active = useWorkspaceLayout((state) => state.activeTools[workspace] ?? state.activeTool);
   const setActive = useWorkspaceLayout((state) => state.setActiveTool);
   const collapsed = useWorkspaceLayout((state) => state.toolDockCollapsed);
@@ -308,8 +348,10 @@ export function WorkspaceToolDock({
           The dock itself is outside the boundary on purpose — the tabs have to
           survive so the user can leave a tool that will not load.
         */}
-        {locked && selected !== 'document' ? (
-          <LockedTool message={locked.message} action={locked.action} />
+        {effectiveLock &&
+        selected !== 'document' &&
+        !(effectiveLock.except ?? []).includes(selected) ? (
+          <LockedTool message={effectiveLock.message} action={effectiveLock.action} />
         ) : (
           <ErrorBoundary
             key={selected}
@@ -356,6 +398,7 @@ function ToolContent({ tool, contextPanel }: { tool: WorkspaceToolId; contextPan
   if (tool === 'personal-results') return <PersonalResultsPanel />;
   if (tool === 'features') return <FeaturesPanel />;
   if (tool === 'transpositions') return <TranspositionsPanel />;
+  if (tool === 'calculation') return <CalculationHost />;
   if (tool === 'tablebase') return <TablebasePanel />;
   if (tool === 'companion') return <CompanionPanel />;
   if (tool === 'document') {

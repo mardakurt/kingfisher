@@ -19,6 +19,7 @@ import type { PersistenceDatabase } from '../indexeddb/database';
 import { onlyKey } from '../indexeddb/key-range';
 import { STORE_NAMES } from '../schema/migrations';
 import type {
+  CalculationBranch,
   DecisionCandidate,
   DecisionConfidence,
   DecisionRecord,
@@ -46,6 +47,8 @@ export interface CreateDecisionInput {
   readonly chosenUci?: Uci;
   readonly chosenSan?: San;
   readonly candidates?: readonly DecisionCandidate[];
+  /** The branches entered on a board in calculation mode. */
+  readonly calculation?: readonly CalculationBranch[];
   readonly estimate?: EvaluationEstimate;
   readonly plan?: string;
   readonly calculationNotes?: string;
@@ -183,6 +186,7 @@ export class LocalReviewRepository implements ReviewRepository {
       ...(input.chosenUci ? { chosenUci: input.chosenUci } : {}),
       ...(input.chosenSan ? { chosenSan: input.chosenSan } : {}),
       candidates: input.candidates ?? [],
+      ...(input.calculation?.length ? { calculation: input.calculation } : {}),
       ...(input.estimate ? { estimate: input.estimate } : {}),
       ...(input.plan?.trim() ? { plan: input.plan.trim() } : {}),
       ...(input.calculationNotes?.trim()

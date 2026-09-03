@@ -14,6 +14,7 @@ export type WorkspaceToolId =
   | 'personal-results'
   | 'features'
   | 'transpositions'
+  | 'calculation'
   | 'tablebase'
   | 'companion'
   | 'document'
