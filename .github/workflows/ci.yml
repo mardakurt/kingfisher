@@ -8,6 +8,12 @@
 # Nothing here installs credentials. The authenticated Lichess checks are the
 # opt-in `smoke:lichess` script and deliberately live outside CI; the explorer
 # behaviour that CI does cover is contract-tested against a routed network.
+#
+# `e2e` runs at zero Playwright retries (see playwright.config.ts): a browser
+# test green only on its second attempt is flaky, and flaky-but-green is not
+# a passing release gate. e2e-diagnostic.yml is the separate, non-gating,
+# manually-triggered workflow that runs the same suite with retries enabled,
+# for telling "flaky" apart from "broken" without weakening this gate.
 name: CI
 
 on:

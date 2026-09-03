@@ -1,0 +1,74 @@
+# A deliberately separate, non-gating twin of ci.yml's `e2e` job.
+#
+# The release gate runs Playwright at zero retries (see playwright.config.ts):
+# a browser test that only passes on a second attempt is a bug in the test or
+# the product, not something a gate should paper over. But telling a flaky
+# test apart from a one-off infrastructure hiccup is still useful, and that
+# is what this workflow is for — run by hand, retries enabled, its result
+# never blocks a merge because nothing in branch protection points at it.
+name: E2E diagnostic (retries enabled)
+
+on:
+  workflow_dispatch:
+    inputs:
+      retries:
+        description: 'Playwright retries for this run'
+        required: false
+        default: '2'
+
+permissions:
+  contents: read
+
+jobs:
+  e2e-diagnostic:
+    name: Browser tests (diagnostic)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CI: 'true'
+      PLAYWRIGHT_RETRIES: ${{ github.event.inputs.retries }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Resolve Playwright version
+        id: playwright
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium chrome
+
+      - name: Install browser system dependencies
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium chrome
+
+      - name: Install Stockfish
+        run: npm run engine:install
+
+      - name: Run Playwright
+        run: npx playwright test
+
+      - name: Upload failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-diagnostic-failures
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+          if-no-files-found: ignore

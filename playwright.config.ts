@@ -9,7 +9,15 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   timeout: 60_000,
-  retries: process.env.CI ? 2 : 0,
+  /*
+    The release gate runs at zero retries: a flaky browser test that only
+    passes on its second attempt is a bug, and a gate that quietly re-runs it
+    hides that bug instead of failing on it. The diagnostic workflow
+    (.github/workflows/e2e-diagnostic.yml) sets PLAYWRIGHT_RETRIES for the
+    separate, non-gating job that exists to tell a flaky test apart from a
+    broken one.
+  */
+  retries: Number(process.env.PLAYWRIGHT_RETRIES ?? 0),
   reporter: process.env.CI ? [['line'], ['html', { open: 'never' }]] : 'line',
   expect: { timeout: 10_000 },
   use: {
