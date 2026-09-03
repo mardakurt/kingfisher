@@ -97,7 +97,13 @@ describe('sanitizePersistedState', () => {
     for (const [input, expected] of cases) {
       const result = sanitizePersistedState({
         arrangements: {
-          w: { placement: {}, active: {}, dockWidth: input, lowerHeight: 210, dockCollapsed: false },
+          w: {
+            placement: {},
+            active: {},
+            dockWidth: input,
+            lowerHeight: 210,
+            dockCollapsed: false,
+          },
         },
       });
       expect(result.arrangements?.w?.dockWidth).toBe(expected);

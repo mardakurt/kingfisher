@@ -19,7 +19,11 @@ import {
   WORKSPACE_PRESETS,
   type WorkspacePreset,
 } from '@/features/workspace/presets';
-import { MOVE_TREE_MODULE, WORKSPACE_MODULES, type WorkspaceToolId } from '@/features/workspace/modules';
+import {
+  MOVE_TREE_MODULE,
+  WORKSPACE_MODULES,
+  type WorkspaceToolId,
+} from '@/features/workspace/modules';
 import { debouncedStorage } from '@/lib/debounced-storage';
 
 export type { WorkspaceToolId } from '@/features/workspace/modules';
@@ -147,9 +151,9 @@ function sanitizePinnedTools(value: unknown): Record<string, readonly WorkspaceT
  * build's; a same-version file that was hand-edited, corrupted by a failed
  * write, or written by a build with different module ids would otherwise
  * reach the store unexamined. `merge` runs unconditionally, so this is the
- * one place a corrupt layout cannot get past.
+ * one place a corrupt layout cannot get past. Exported for direct testing;
+ * not otherwise part of the store's public API.
  */
-/** Exported for direct testing of layout-corruption recovery; not part of the store's public API. */
 export function sanitizePersistedState(persisted: unknown): Partial<WorkspaceLayoutState> {
   if (typeof persisted !== 'object' || persisted === null || Array.isArray(persisted)) return {};
   const state = persisted as Record<string, unknown>;

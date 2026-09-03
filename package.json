@@ -2,7 +2,7 @@
   "name": "kingfisher",
   "version": "0.1.0",
   "private": true,
-  "description": "Kingfisher \u2014 a chess research workspace for strong players.",
+  "description": "Kingfisher — a chess research workspace for strong players.",
   "scripts": {
     "dev": "next dev --port 3210",
     "build": "next build",
@@ -46,6 +46,7 @@
     "@types/react-dom": "^19.2.5",
     "eslint": "^9.39.5",
     "eslint-config-next": "16.3.4",
+    "fake-indexeddb": "^6.2.5",
     "prettier": "^3.6.2",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.9.0",

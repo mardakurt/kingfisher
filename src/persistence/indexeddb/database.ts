@@ -270,12 +270,25 @@ class NativeDatabase implements PersistenceDatabase {
   }
 }
 
-export async function openPersistenceDatabase(): Promise<PersistenceDatabase> {
+/**
+ * Opens the database at an arbitrary version and name.
+ *
+ * Production always calls `openPersistenceDatabase()`, which is this at the
+ * current version and the one real database name. The parameters exist for
+ * migration-fixture tests, which need to open the *same* underlying database
+ * at an old version first — to create it in the shape a real installation at
+ * that version would have — and then again at `DATABASE_VERSION`, to run the
+ * exact upgrade path a real update runs.
+ */
+export async function openPersistenceDatabaseAt(
+  version: number,
+  name: string = DATABASE_NAME,
+): Promise<PersistenceDatabase> {
   if (typeof indexedDB === 'undefined') {
     throw new Error('Local storage is unavailable in this browser context.');
   }
 
-  const open = indexedDB.open(DATABASE_NAME, DATABASE_VERSION);
+  const open = indexedDB.open(name, version);
   const value = await new Promise<IDBDatabase>((resolve, reject) => {
     open.onupgradeneeded = (event) => {
       const database = open.result;
@@ -343,6 +356,10 @@ export async function openPersistenceDatabase(): Promise<PersistenceDatabase> {
 
   value.onversionchange = () => value.close();
   return new NativeDatabase(value);
+}
+
+export function openPersistenceDatabase(): Promise<PersistenceDatabase> {
+  return openPersistenceDatabaseAt(DATABASE_VERSION);
 }
 
 function normalizeStorageError(error: unknown): Error {

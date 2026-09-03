@@ -14,7 +14,12 @@ import {
   type WorkspaceRegion,
 } from './layout-model';
 
-const knownModules: ReadonlySet<WorkspaceModuleId> = new Set(['engine', 'explorer', 'notes', 'move-tree']);
+const knownModules: ReadonlySet<WorkspaceModuleId> = new Set([
+  'engine',
+  'explorer',
+  'notes',
+  'move-tree',
+]);
 
 const available: readonly { id: WorkspaceModuleId; home: WorkspaceRegion }[] = [
   { id: 'engine', home: 'dock' },
