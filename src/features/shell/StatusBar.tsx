@@ -9,6 +9,8 @@ import { selectFen, selectSaveState, useAnalysis } from '@/stores/analysis-store
 import { useEngine } from '@/stores/engine-store';
 import { useUi } from '@/stores/ui-store';
 
+import { BackgroundActivityCentre } from './BackgroundActivityCentre';
+
 const ENGINE_LABEL: Record<string, string> = {
   idle: 'Engine off',
   loading: 'Loading engine…',
@@ -97,6 +99,13 @@ export function StatusBar() {
           {SAVE_LABEL[saveState]}
         </span>
       </span>
+
+      {/*
+        Renders nothing at all when nothing is running, which is most of the
+        time. A status area that is permanently occupied is one people stop
+        reading, and this exists to be noticed. §31.
+      */}
+      <BackgroundActivityCentre />
 
       <button
         type="button"
