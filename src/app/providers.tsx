@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 
 import { usePreferences } from '@/stores/preferences-store';
+import { enforceExplorerCacheLimit } from '@/database/cache';
 
 /**
  * Server/cache state lives in TanStack Query, not in Zustand.
@@ -59,6 +60,32 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     document.documentElement.dataset.arrowPalette = arrowPalette;
   }, [arrowPalette]);
+
+  /*
+    A research session visits hundreds of positions, and every one of them
+    leaves an Explorer entry behind. `gcTime` alone does not bound that — it
+    only expires entries by age, so an afternoon of steady navigation grows the
+    cache steadily. Trimming the oldest *inactive* entries on every cache event
+    keeps back-navigation instant and the ceiling fixed.
+  */
+  useEffect(() => {
+    let trimming = false;
+    const unsubscribe = client.getQueryCache().subscribe(() => {
+      if (trimming) return;
+      trimming = true;
+      enforceExplorerCacheLimit(client);
+      trimming = false;
+    });
+    /*
+      A development-only handle, like the persistence bridge: the browser soak
+      test has to observe the real client to prove the ceiling holds in the
+      running application, not only in a unit test's own client.
+    */
+    if (process.env.NODE_ENV !== 'production') {
+      (globalThis as { __kingfisherQueryClient?: QueryClient }).__kingfisherQueryClient = client;
+    }
+    return unsubscribe;
+  }, [client]);
 
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
 }

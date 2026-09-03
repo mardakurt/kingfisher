@@ -33,6 +33,9 @@ export function useExplorer(sourceId: string, fen: Fen, filters: ExplorerFilters
     // second identical request cannot change.
     retry: providerRetry,
     retryDelay: (attempt, error) => retryDelayMs(error, attempt),
+    // Back-navigation stays warm, while the explicit 256-entry boundary in
+    // `database/cache.ts` prevents an all-day research session growing forever.
+    gcTime: 10 * 60_000,
   });
 }
 
