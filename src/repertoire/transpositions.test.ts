@@ -118,6 +118,19 @@ describe('transposition routes', () => {
     expect(whole.truncated).toBe(false);
   });
 
+  it('gives up honestly rather than walking a large graph forever', () => {
+    const positions = repertoireFrom(QGD_ORDERS);
+    /*
+      A repertoire is a graph, and looking for a deep position in a branching
+      one can expand an enormous number of paths before finding twelve. The
+      budget is what keeps a panel that re-renders on every move from costing a
+      second, and exhausting it is reported rather than hidden.
+    */
+    const starved = routesToPosition(positions, tabiyaKey(), { maxVisits: 1 });
+    expect(starved.routes).toEqual([]);
+    expect(starved.truncated).toBe(true);
+  });
+
   it('returns nothing rather than guessing when the root is not in the repertoire', () => {
     const positions = repertoireFrom(QGD_ORDERS);
     const view = routesToPosition(positions, tabiyaKey(), { rootKey: 'not-a-position' });

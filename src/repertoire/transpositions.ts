@@ -56,10 +56,25 @@ export interface TranspositionOptions {
   readonly rootKey?: string;
   readonly maxRoutes?: number;
   readonly maxPlies?: number;
+  readonly maxVisits?: number;
 }
 
 export const DEFAULT_MAX_ROUTES = 12;
 export const DEFAULT_MAX_PLIES = 24;
+
+/**
+ * How many positions the search may expand before it gives up.
+ *
+ * A repertoire is a graph, and a breadth-first walk of a branching graph
+ * looking for a deep position can visit an enormous number of paths before it
+ * finds twelve. Measured on a 2,639-position repertoire, an unbounded walk took
+ * 1.1 seconds — for a panel that renders on every position change, which is
+ * not a cost worth paying for a list nobody asked to be exhaustive.
+ *
+ * The budget is honest rather than hidden: exhausting it sets `truncated`, and
+ * the panel already says the list is partial when that happens.
+ */
+export const DEFAULT_MAX_VISITS = 20_000;
 
 /**
  * Find the prepared move orders that reach `target`.
@@ -77,6 +92,7 @@ export function routesToPosition(
 ): TranspositionView {
   const maxRoutes = options.maxRoutes ?? DEFAULT_MAX_ROUTES;
   const maxPlies = options.maxPlies ?? DEFAULT_MAX_PLIES;
+  const maxVisits = options.maxVisits ?? DEFAULT_MAX_VISITS;
   const rootKey = options.rootKey ?? START_KEY;
 
   const edges = buildEdges(positions);
@@ -85,34 +101,68 @@ export function routesToPosition(
   const routes: TranspositionRoute[] = [];
   let truncated = false;
 
-  // Each queue entry is a complete path, so a route can be reported the moment
-  // it arrives rather than reconstructed from parent pointers afterwards.
-  const queue: { key: string; moves: RouteMove[]; seen: ReadonlySet<string> }[] = [
-    { key: rootKey, moves: [], seen: new Set([rootKey]) },
-  ];
+  /*
+    Parent pointers rather than a complete path per queue entry.
+
+    Carrying the path on every entry meant copying an array — and, before that,
+    a Set — once per expansion, which is what a breadth-first walk does tens of
+    thousands of times in a branching repertoire. A step holds one move and a
+    pointer, so expanding costs one small object, and the path is rebuilt only
+    for the handful of entries that turn out to be routes.
+
+    The visited check walks that chain rather than consulting a global set,
+    because a position reached two ways is the whole point here — a global set
+    would find one route and call it the answer.
+  */
+  interface Step {
+    readonly key: string;
+    readonly move: RouteMove | null;
+    readonly parent: Step | null;
+    readonly depth: number;
+  }
+
+  const onPath = (step: Step, key: string): boolean => {
+    for (let cursor: Step | null = step; cursor; cursor = cursor.parent) {
+      if (cursor.key === key) return true;
+    }
+    return false;
+  };
+
+  const pathOf = (step: Step): RouteMove[] => {
+    const moves: RouteMove[] = [];
+    for (let cursor: Step | null = step; cursor?.move; cursor = cursor.parent) {
+      moves.push(cursor.move);
+    }
+    return moves.reverse();
+  };
+
+  const queue: Step[] = [{ key: rootKey, move: null, parent: null, depth: 0 }];
+  let visits = 0;
 
   while (queue.length > 0) {
+    if (visits >= maxVisits) {
+      truncated = true;
+      break;
+    }
+    visits += 1;
     const current = queue.shift()!;
-    if (current.key === target && current.moves.length > 0) {
-      routes.push({ moves: current.moves, length: current.moves.length });
+    if (current.key === target && current.depth > 0) {
+      const moves = pathOf(current);
+      routes.push({ moves, length: moves.length });
       if (routes.length >= maxRoutes) {
         truncated = queue.length > 0;
         break;
       }
       continue;
     }
-    if (current.moves.length >= maxPlies) {
+    if (current.depth >= maxPlies) {
       truncated = true;
       continue;
     }
 
     for (const edge of edges.get(current.key) ?? []) {
-      if (current.seen.has(edge.toKey)) continue;
-      queue.push({
-        key: edge.toKey,
-        moves: [...current.moves, edge],
-        seen: new Set([...current.seen, edge.toKey]),
-      });
+      if (onPath(current, edge.toKey)) continue;
+      queue.push({ key: edge.toKey, move: edge, parent: current, depth: current.depth + 1 });
     }
   }
 
@@ -176,9 +226,27 @@ export function convergencePoints(
  * survived an edit to its start position should still show every route it can
  * still justify, not fail to render.
  */
+const edgeCache = new WeakMap<
+  readonly RepertoirePositionRecord[],
+  ReadonlyMap<string, readonly RouteMove[]>
+>();
+
 export function buildEdges(
   positions: readonly RepertoirePositionRecord[],
 ): ReadonlyMap<string, readonly RouteMove[]> {
+  /*
+    Memoized on the array itself.
+
+    Building the graph costs one `advanceSan` per stored move — around eight
+    thousand rules-engine calls for a real repertoire — and both public
+    functions need it, on every render, for a panel that re-renders whenever
+    the board moves. A `WeakMap` keyed by the array means a repertoire loaded
+    once from the query cache builds its graph once, and a repertoire that
+    changes gets a new array and therefore a new graph.
+  */
+  const cached = edgeCache.get(positions);
+  if (cached) return cached;
+
   const edges = new Map<string, RouteMove[]>();
   for (const position of positions) {
     const source = Position.fromTrustedFen(position.fen);
@@ -195,6 +263,7 @@ export function buildEdges(
     // that ends there is distinguishable from one that ran off the edge.
     if (!edges.has(position.positionKey)) edges.set(position.positionKey, []);
   }
+  edgeCache.set(positions, edges);
   return edges;
 }
 

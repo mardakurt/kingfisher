@@ -12,6 +12,7 @@ const commands = [
   ['node', ['scripts/bench-pgn.mjs', env.KINGFISHER_BENCH_PGN_COUNT ?? '100000']],
   ['node', ['scripts/bench-aggregates.mjs', env.KINGFISHER_BENCH_AGGREGATE_COUNT ?? '100000']],
   ['node', ['scripts/bench-rules-experiment.mjs', env.KINGFISHER_BENCH_RULES_COUNT ?? '20000']],
+  ['node', ['scripts/bench-preparation.mjs', env.KINGFISHER_BENCH_PREPARATION_COUNT ?? '20000']],
   ['npm', ['run', 'bench:evidence']],
   ['npm', ['test', '--', '--run', 'src/performance']],
 ];
