@@ -274,12 +274,15 @@ export function ReviewWorkspace() {
             <>
               <CanonicalBoardSurface
                 mode="interactive"
+                showEvaluationArtifacts
                 /*
-                  No evaluation bar and no engine arrows while evidence is
-                  hidden: the bar is a number, and a number in the corner of the
-                  board is exactly the leak this workflow exists to prevent.
+                  One flag, resolved by the capability contract, rather than
+                  this route remembering which artefacts leak. The bar is a
+                  number and a number in the corner of the board is the leak
+                  this workflow exists to prevent — but so is a stored `!` on
+                  the next move, which `showEvaluationArtifacts` never covered.
                 */
-                showEvaluationArtifacts={revealed}
+                conceal={!revealed}
                 className="min-h-[460px] flex-1 px-3 py-3 sm:px-4"
               />
             </>

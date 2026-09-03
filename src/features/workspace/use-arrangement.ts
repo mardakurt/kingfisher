@@ -37,6 +37,15 @@ export interface WorkspaceArrangementView {
   readonly lowerModules: readonly WorkspaceModuleId[];
   readonly activeDock: WorkspaceModuleId | null;
   readonly activeLower: WorkspaceModuleId | null;
+  /**
+   * Modules the compact layout folded in from the lower region.
+   *
+   * They stay visible in the tab strip rather than being pushed into More: on
+   * a desktop they had a panel of their own, and demoting the move tree to a
+   * menu entry because the screen got narrower loses it exactly where it is
+   * hardest to find again.
+   */
+  readonly foldedFromLower: readonly WorkspaceModuleId[];
   readonly moveTreeInPrimary: boolean;
 }
 
@@ -74,13 +83,11 @@ export function useWorkspaceArrangement(
       §9's rule made concrete: the phone honours *what* the user chose to have
       available without pretending it has room for the desktop's geometry.
     */
+    const inLower = modulesInRegion(arrangement, available, 'lower');
     const dockModules = wide
       ? modulesInRegion(arrangement, available, 'dock')
-      : [
-          ...modulesInRegion(arrangement, available, 'dock'),
-          ...modulesInRegion(arrangement, available, 'lower'),
-        ];
-    const lowerModules = wide ? modulesInRegion(arrangement, available, 'lower') : [];
+      : [...modulesInRegion(arrangement, available, 'dock'), ...inLower];
+    const lowerModules = wide ? inLower : [];
 
     return {
       device,
@@ -89,6 +96,7 @@ export function useWorkspaceArrangement(
       available,
       dockModules,
       lowerModules,
+      foldedFromLower: wide ? [] : inLower,
       activeDock: activeInRegion(arrangement, dockModules, 'dock'),
       activeLower: activeInRegion(arrangement, lowerModules, 'lower'),
       moveTreeInPrimary:

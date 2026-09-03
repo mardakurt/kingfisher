@@ -9,14 +9,14 @@ import type { AnalysisDocument } from '@/persistence/types';
 import { selectFen, useAnalysis } from '@/stores/analysis-store';
 
 /**
- * How a board surface behaves. Declared by the surface that renders it, not
- * inferred here: the same document is editable in Analysis and frozen in a
- * preview card, so this is a property of the surface rather than of the
- * workspace. An earlier version guessed the mode from the route and the
- * document kind, which made a game opened from Games read-only in Analysis
- * and quietly removed the ability to add a variation to your own game.
+ * How a board surface behaves.
+ *
+ * Lives in `board-capabilities.ts` now, alongside the capability record each
+ * mode resolves to. Re-exported here because this is where routes have always
+ * imported it from, and because the mode is only meaningful in the context of
+ * the workspace it reads.
  */
-export type BoardSurfaceMode = 'interactive' | 'read-only' | 'preview' | 'training';
+export type { BoardSurfaceMode } from './board-capabilities';
 
 export interface ChessWorkspaceContextValue {
   /** The route rendering this workspace, for tools that vary their defaults. */

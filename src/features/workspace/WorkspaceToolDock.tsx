@@ -83,7 +83,7 @@ export function WorkspaceToolDock({
 }) {
   const wide = useMediaQuery('(min-width: 1100px)');
   const view = useWorkspaceArrangement(workspace, { withMoveTree });
-  const { device, arrangement, dockModules, activeDock } = view;
+  const { device, arrangement, dockModules, activeDock, foldedFromLower } = view;
   const setActiveModule = useWorkspaceLayout((state) => state.setActiveModule);
   const setDockWidth = useWorkspaceLayout((state) => state.setDockWidth);
   const setDockCollapsed = useWorkspaceLayout((state) => state.setDockCollapsed);
@@ -167,7 +167,7 @@ export function WorkspaceToolDock({
       <WorkspaceLayoutBar workspace={workspace} contextLabel={contextLabel} view={view} />
       <ModuleTabStrip
         tabs={tabs}
-        visible={pinned as readonly WorkspaceModuleId[]}
+        visible={[...(pinned as readonly WorkspaceModuleId[]), ...foldedFromLower]}
         value={activeDock}
         onChange={select}
         actions={

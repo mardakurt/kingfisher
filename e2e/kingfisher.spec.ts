@@ -190,7 +190,12 @@ test('a study chapter supports moves, variations, analysis tools and durable ann
   await page.getByRole('tab', { name: 'Explorer' }).click();
   await page.getByLabel('Evidence source').selectOption('local-collection');
   await expect(page.getByText('No games reach this position.')).toBeVisible();
-  await page.getByRole('tab', { name: 'Database' }).click();
+  // Database is not pinned by default, so it is reached through More.
+  await page
+    .getByRole('complementary', { name: 'Workspace tools' })
+    .getByRole('button', { name: /More/ })
+    .click();
+  await page.getByRole('menuitem', { name: 'Database' }).click();
   await expect(page.getByText('Database at this position')).toBeVisible();
 
   await page.waitForTimeout(800);
@@ -277,6 +282,14 @@ test('training conceals analysis evidence until the answer is revealed', async (
   await expect(dock).toBeVisible();
   await expect(dock.getByRole('tab', { name: 'Engine' })).toBeVisible();
   await expect(dock.getByRole('tab', { name: 'Explorer' })).toBeVisible();
+  /*
+    Phase 10 stopped rendering every tool as an equally weighted tab: the
+    pinned ones are in the strip and the rest are one click away under More.
+    What matters is still that the evidence is *reachable* once the answer has
+    been shown, which is what this asserts.
+  */
+  await dock.getByRole('button', { name: /More/ }).click();
+  await page.getByRole('menuitem', { name: 'Database' }).click();
   await expect(dock.getByRole('tab', { name: 'Database' })).toBeVisible();
   expect(consoleFailures).toEqual([]);
 });
