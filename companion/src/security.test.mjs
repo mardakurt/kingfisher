@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { allowedOrigins, databaseKey, PathRegistry, tokenMatches } from './security.mjs';
+import { allowedOrigins, databaseKey, engineKey, PathRegistry, tokenMatches } from './security.mjs';
 
 describe('database keys', () => {
   /*
@@ -31,6 +31,20 @@ describe('database keys', () => {
   it('produces a key that is safe to put in a URL and a filename', () => {
     expect(databaseKey('../../etc/passwd')).toMatch(/^db-[0-9a-f]{20}$/);
     expect(databaseKey('Ünïcode náme ♞')).toMatch(/^db-[0-9a-f]{20}$/);
+  });
+});
+
+describe('engine keys', () => {
+  it('is stable, so re-registering the same binary reaches the same key', () => {
+    expect(engineKey('/opt/engines/stockfish')).toBe(engineKey('/opt/engines/stockfish'));
+  });
+
+  it('separates different binaries, including ones that only differ by path', () => {
+    expect(engineKey('/opt/engines/stockfish')).not.toBe(engineKey('/opt/engines/stockfish-dev'));
+  });
+
+  it('produces a key that is safe to put in a URL and a filename', () => {
+    expect(engineKey('/weird path/with spaces & "quotes"')).toMatch(/^engine-[0-9a-f]{20}$/);
   });
 });
 

@@ -12,12 +12,14 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { GameDatabase } from './database.mjs';
+import { handshakeUci, validateExecutable } from './custom-engines.mjs';
 import { EngineHost } from './engines.mjs';
 import { probeLocalTablebase, scanTablebaseDirectory } from './tablebase.mjs';
 import {
   allowedOrigins,
   createToken,
   databaseKey,
+  engineKey,
   HOST,
   PathRegistry,
   presentedToken,
@@ -30,6 +32,7 @@ const DATA_DIR = process.env.KINGFISHER_COMPANION_DATA_DIR
   : path.join(ROOT, 'companion', 'data');
 const MANIFEST = path.join(ROOT, 'public', 'engine', 'manifest.json');
 const IMPORTS = path.join(DATA_DIR, 'databases.json');
+const CUSTOM_ENGINES = path.join(DATA_DIR, 'custom-engines.json');
 
 const PORT = Number(process.env.KINGFISHER_COMPANION_PORT ?? 4321);
 /*
@@ -66,6 +69,42 @@ function loadEngines() {
     });
   }
 }
+
+/**
+ * Custom engines a user registered in an earlier run.
+ *
+ * Re-validated against the filesystem on every start, exactly like
+ * `loadDatabases`: a binary that was uninstalled or lived on removable media
+ * is silently dropped from the registry rather than left as a dead entry
+ * that fails the moment someone tries to start it.
+ */
+function loadCustomEngines() {
+  if (!existsSync(CUSTOM_ENGINES)) return;
+  for (const entry of JSON.parse(readFileSync(CUSTOM_ENGINES, 'utf8'))) {
+    if (!existsSync(entry.path)) continue;
+    engineRegistry.register(entry.key, entry.path, {
+      name: entry.name,
+      args: entry.args ?? [],
+      cwd: path.dirname(entry.path),
+      custom: true,
+    });
+  }
+}
+
+const saveCustomEngines = () => {
+  mkdirSync(DATA_DIR, { recursive: true });
+  writeFileSync(
+    CUSTOM_ENGINES,
+    JSON.stringify(
+      engineRegistry
+        .list()
+        .filter((entry) => entry.custom)
+        .map(({ key, path: file, name, args }) => ({ key, path: file, name, args })),
+      null,
+      2,
+    ),
+  );
+};
 
 function loadDatabases() {
   mkdirSync(DATA_DIR, { recursive: true });
@@ -158,11 +197,13 @@ async function route(url, request, response) {
 
   if (pathname === '/status' && request.method === 'GET') {
     return json(response, 200, {
-      engines: engineRegistry.list().map(({ key, name, version, license }) => ({
+      engines: engineRegistry.list().map(({ key, name, version, license, custom, author }) => ({
         id: key,
         name,
         version,
         license,
+        custom: Boolean(custom),
+        ...(author ? { author } : {}),
       })),
       databases: databaseRegistry.list().map(({ key, name, path: file }) => ({
         key,
@@ -188,6 +229,57 @@ async function route(url, request, response) {
   }
 
   // --- Engines ---------------------------------------------------------------
+
+  /*
+    The one route in this file that accepts a filesystem path rather than a
+    key — deliberately: registering a custom engine is defined as "the user
+    explicitly selects an executable" (Settings, a native file picker, or a
+    pasted path), and there is no other way to name a binary that was never
+    installed by this application. What keeps this safe is everything after
+    the path arrives: it is never passed to a shell, it is confirmed to be a
+    real executable file before anything is spawned, and it is confirmed to
+    actually speak UCI before it is trusted with a key. A path that fails
+    either check is rejected here and never reaches the registry.
+  */
+  if (pathname === '/engine/register' && request.method === 'POST') {
+    const body = await readBody(request);
+    const target = path.resolve(String(body.path ?? ''));
+    validateExecutable(target);
+    const args = Array.isArray(body.args) ? body.args.map(String) : [];
+
+    const handshake = await handshakeUci(target, args);
+    const key = engineKey(target);
+    const name = String(body.name ?? '').trim() || handshake.name || path.basename(target);
+
+    engineRegistry.register(key, target, {
+      name,
+      args,
+      cwd: path.dirname(target),
+      custom: true,
+      ...(handshake.author ? { author: handshake.author } : {}),
+    });
+    saveCustomEngines();
+
+    return json(response, 200, {
+      id: key,
+      name,
+      detectedName: handshake.name,
+      author: handshake.author,
+    });
+  }
+
+  if (pathname === '/engine/unregister' && request.method === 'POST') {
+    const body = await readBody(request);
+    const key = String(body.engine ?? '');
+    const entry = engineRegistry.has(key) ? engineRegistry.resolve(key) : null;
+    if (!entry) return json(response, 200, { deleted: false });
+    if (!entry.custom) {
+      return json(response, 400, { error: 'Only a custom-registered engine can be removed.' });
+    }
+    engineRegistry.delete(key);
+    saveCustomEngines();
+    return json(response, 200, { deleted: true });
+  }
 
   if (pathname === '/engine/start' && request.method === 'POST') {
     const body = await readBody(request);
@@ -408,6 +500,7 @@ const integrityOf = (target) => {
 };
 
 loadEngines();
+loadCustomEngines();
 loadDatabases();
 
 server.listen(PORT, HOST, () => {

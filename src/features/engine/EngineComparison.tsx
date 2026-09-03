@@ -208,7 +208,9 @@ function SlotSummary({ state }: { readonly state: EngineSlot }) {
           {formatScore(line.score)}
           <span className="ml-1.5 text-tertiary">
             depth {line.depth}
-            {definition ? ` · ${definition.family === 'neural' ? 'neural' : 'α-β'}` : ''}
+            {definition && definition.family !== 'unknown'
+              ? ` · ${definition.family === 'neural' ? 'neural' : 'α-β'}`
+              : ''}
           </span>
         </p>
       ) : (
@@ -225,7 +227,7 @@ const toReading = (slot: EngineSlot): EngineReading => {
   return {
     engineId: slot.engineId,
     name: definition?.name ?? slot.engineId,
-    family: definition?.family ?? 'alphabeta',
+    family: definition?.family ?? 'unknown',
     analysis: slot.analysis,
   };
 };

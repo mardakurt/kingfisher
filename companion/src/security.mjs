@@ -60,6 +60,18 @@ export const databaseKey = (name) =>
   `db-${createHash('sha256').update(name, 'utf8').digest('hex').slice(0, 20)}`;
 
 /**
+ * A stable key for a custom engine's executable path.
+ *
+ * Hashed from the absolute path itself, so re-registering the same binary
+ * (the user re-pointing Settings at an engine already added, or a fresh
+ * companion start replaying custom-engines.json) always lands on the same
+ * key rather than accumulating duplicate registrations that only differ by
+ * an arbitrary id.
+ */
+export const engineKey = (absolutePath) =>
+  `engine-${createHash('sha256').update(absolutePath, 'utf8').digest('hex').slice(0, 20)}`;
+
+/**
  * A registry of paths the user explicitly chose.
  *
  * Requests name a *key*, never a path. This is the difference between "open the

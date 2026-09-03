@@ -16,6 +16,7 @@ import { usePreferences } from '@/stores/preferences-store';
 import { sqliteProvidersFrom } from '@/database/providers/companion-sqlite';
 import { setLichessToken } from '@/database/providers/lichess-auth';
 import { setDynamicDatabaseProviders } from '@/database/registry';
+import { syncCustomEngineDefinitions } from '@/engine/registry';
 
 import { setCompanion } from './session';
 import { CompanionClient } from './client';
@@ -45,6 +46,13 @@ export function useCompanionSync(): void {
   useEffect(() => {
     setDynamicDatabaseProviders(databases ? sqliteProvidersFrom(databases) : []);
   }, [databases]);
+
+  // Custom engines registered through Settings → Companion likewise appear in
+  // the engine selector only while the companion that runs them is reachable.
+  const engines = status.data?.engines;
+  useEffect(() => {
+    syncCustomEngineDefinitions(engines?.filter((engine) => engine.custom) ?? []);
+  }, [engines]);
 }
 
 /** Live status of the companion, or null when none is configured. */

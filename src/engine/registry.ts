@@ -16,8 +16,15 @@ import { CompanionEngineProvider } from './companion/provider';
 import { StockfishWasmProvider } from './stockfish/provider';
 import type { EngineProvider } from './types';
 
-/** How an engine searches. Shown to the user, because it explains disagreement. */
-export type EngineFamily = 'alphabeta' | 'neural';
+/**
+ * How an engine searches. Shown to the user, because it explains disagreement.
+ *
+ * `'unknown'` is for a custom-registered engine: this build has never seen it
+ * before and has no source to read a search paradigm from, so it is left
+ * unstated rather than guessed. A wrong guess here is worse than a blank,
+ * because it would misrepresent *why* two engines disagree.
+ */
+export type EngineFamily = 'alphabeta' | 'neural' | 'unknown';
 
 export interface EngineDefinition {
   readonly id: string;
@@ -75,6 +82,56 @@ const NATIVE: readonly Omit<EngineDefinition, 'provider'>[] = [
 const definitions = new Map<string, EngineDefinition>([[STOCKFISH_WASM.id, STOCKFISH_WASM]]);
 for (const entry of NATIVE) {
   definitions.set(entry.id, { ...entry, provider: new CompanionEngineProvider(entry) });
+}
+
+/** Ids added by `syncCustomEngineDefinitions`, so a routine refresh knows what it owns. */
+const customIds = new Set<string>();
+
+export interface DiscoveredCustomEngine {
+  readonly id: string;
+  readonly name: string;
+  readonly license?: string;
+  readonly author?: string;
+}
+
+/**
+ * Engines registered through Settings → Companion, as reported by the
+ * companion's own `/status`.
+ *
+ * Mirrors `setDynamicDatabaseProviders`: what is registered is a property of
+ * the machine and is discovered at runtime, not declared in this file. An id
+ * that is no longer reported (unregistered, or the companion swapped) is
+ * removed; one still reported but already present is left alone, so a live
+ * session's provider is never replaced out from under it by a routine
+ * status refresh.
+ */
+export function syncCustomEngineDefinitions(entries: readonly DiscoveredCustomEngine[]): void {
+  const seen = new Set(entries.map((entry) => entry.id));
+  for (const id of [...customIds]) {
+    if (seen.has(id)) continue;
+    definitions.delete(id);
+    customIds.delete(id);
+  }
+  for (const entry of entries) {
+    customIds.add(entry.id);
+    if (definitions.has(entry.id)) continue;
+    definitions.set(entry.id, {
+      id: entry.id,
+      name: entry.name,
+      family: 'unknown',
+      transport: 'native',
+      license: entry.license ?? 'Unknown — not declared by the engine or the user.',
+      source: 'Registered locally through Settings → Companion.',
+      notes: entry.author
+        ? `By ${entry.author}. Capabilities are read from its own UCI options, the same as any other engine.`
+        : 'Capabilities are read from its own UCI options, the same as any other engine.',
+      provider: new CompanionEngineProvider({
+        id: entry.id,
+        name: entry.name,
+        license: entry.license,
+      }),
+    });
+  }
 }
 
 export const engineDefinitions = (): readonly EngineDefinition[] => [...definitions.values()];

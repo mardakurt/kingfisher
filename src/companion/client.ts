@@ -26,6 +26,17 @@ export interface CompanionEngineEntry {
   readonly name: string;
   readonly version?: string;
   readonly license?: string;
+  /** Registered by path through Settings, rather than installed from the catalogue. */
+  readonly custom: boolean;
+  readonly author?: string;
+}
+
+export interface RegisteredEngine {
+  readonly id: string;
+  readonly name: string;
+  /** What the engine itself reported at handshake, before any override name. */
+  readonly detectedName: string | null;
+  readonly author: string | null;
 }
 
 export interface CompanionDatabaseEntry {
@@ -130,6 +141,22 @@ export class CompanionClient {
 
   startEngine(engine: string): Promise<{ session: string; engine: string }> {
     return this.request('/engine/start', { engine });
+  }
+
+  /**
+   * Registers a UCI engine executable the user selected explicitly.
+   *
+   * The companion resolves the path, confirms it is a real executable file,
+   * and runs a full UCI handshake (uci → uciok → isready → readyok) before
+   * accepting it — so this rejects truthfully rather than accepting a path
+   * to something that merely happens to be executable.
+   */
+  registerEngine(executablePath: string, args?: readonly string[]): Promise<RegisteredEngine> {
+    return this.request('/engine/register', { path: executablePath, args: args ?? [] });
+  }
+
+  unregisterEngine(engine: string): Promise<{ deleted: boolean }> {
+    return this.request('/engine/unregister', { engine });
   }
 
   send(session: string, line: string): Promise<unknown> {

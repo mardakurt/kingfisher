@@ -561,7 +561,122 @@ function CompanionSection() {
         </div>
       )}
 
+      {connected ? <CustomEngines /> : null}
       {connected ? <SqliteDatabases /> : null}
+    </div>
+  );
+}
+
+/**
+ * Arbitrary UCI engines, registered by path rather than installed from the
+ * catalogue.
+ *
+ * The user names an executable; the companion is the one that decides
+ * whether it is trustworthy — it confirms the file exists and is
+ * executable, then runs a real UCI handshake before accepting it. What
+ * comes back (a detected name, an author, or a truthful rejection) is
+ * everything shown here, because this build has no other way to know
+ * whether an arbitrary binary does what it claims.
+ */
+function CustomEngines() {
+  const status = useCompanionStatus();
+  const notify = useUi((state) => state.notify);
+  const [enginePath, setEnginePath] = useState('');
+  const [busy, setBusy] = useState<string | null>(null);
+
+  const engines = status.data?.engines ?? [];
+  const custom = engines.filter((engine) => engine.custom);
+
+  const register = async () => {
+    const client = companionClient();
+    const trimmed = enginePath.trim();
+    if (!client || !trimmed) return;
+    setBusy('register');
+    try {
+      const registered = await client.registerEngine(trimmed);
+      setEnginePath('');
+      await status.refetch();
+      notify({
+        tone: 'success',
+        message: registered.detectedName
+          ? `${registered.detectedName} added and confirmed to speak UCI.`
+          : `${registered.name} added.`,
+      });
+    } catch (error) {
+      notify({
+        tone: 'error',
+        message: error instanceof Error ? error.message : 'The engine could not be registered.',
+      });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const unregister = async (id: string) => {
+    const client = companionClient();
+    if (!client) return;
+    setBusy(`remove:${id}`);
+    try {
+      await client.unregisterEngine(id);
+      await status.refetch();
+    } catch (error) {
+      notify({
+        tone: 'error',
+        message: error instanceof Error ? error.message : 'The engine could not be removed.',
+      });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <div className="rounded-[4px] border border-line bg-surface-inset p-3">
+      <h3 className="text-xs text-primary">Custom UCI engines</h3>
+      <p className="mt-1 text-2xs leading-relaxed text-tertiary">
+        Any engine that speaks UCI, not only the ones this build knows how to install. The companion
+        confirms it before adding it: a path that is not executable, or a process that never
+        completes the handshake, is rejected rather than added.
+      </p>
+
+      {custom.length > 0 ? (
+        <ul className="mt-2 flex flex-col gap-1">
+          {custom.map((engine) => (
+            <li
+              key={engine.id}
+              className="flex items-center justify-between gap-2 rounded-[4px] border border-line-subtle px-2 py-1 text-[10.5px]"
+            >
+              <span className="truncate text-secondary">
+                {engine.name}
+                {engine.author ? <span className="text-tertiary"> · {engine.author}</span> : null}
+              </span>
+              <Button
+                variant="danger"
+                disabled={busy === `remove:${engine.id}`}
+                onClick={() => void unregister(engine.id)}
+              >
+                Remove
+              </Button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      <div className="mt-2 flex gap-1.5">
+        <input
+          value={enginePath}
+          onChange={(event) => setEnginePath(event.target.value)}
+          placeholder="/absolute/path/to/engine"
+          aria-label="Engine executable path"
+          className="h-8 min-w-0 flex-1 rounded-[4px] border border-line bg-surface-2 px-2.5 font-mono text-[11px] text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60"
+        />
+        <Button
+          variant="accent"
+          onClick={() => void register()}
+          disabled={!enginePath.trim() || busy === 'register'}
+        >
+          {busy === 'register' ? 'Testing…' : 'Add'}
+        </Button>
+      </div>
     </div>
   );
 }

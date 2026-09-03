@@ -22,7 +22,7 @@ import type { EngineAnalysis, PrincipalVariation } from './types';
 export interface EngineReading {
   readonly engineId: string;
   readonly name: string;
-  readonly family: 'alphabeta' | 'neural';
+  readonly family: 'alphabeta' | 'neural' | 'unknown';
   readonly analysis: EngineAnalysis | null;
 }
 
