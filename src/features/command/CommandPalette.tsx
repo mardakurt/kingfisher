@@ -81,6 +81,14 @@ function PaletteDialog() {
           else if (selectedHit.kind === 'repertoire') router.push('/repertoire');
           else if (selectedHit.kind === 'player')
             router.push(`/database?player=${encodeURIComponent(selectedHit.title)}`);
+          else if (
+            selectedHit.kind === 'decision' ||
+            selectedHit.kind === 'critical-position' ||
+            selectedHit.kind === 'theme'
+          )
+            router.push('/review');
+          else if (selectedHit.kind === 'training-set')
+            router.push(`/training?set=${encodeURIComponent(selectedHit.targetId ?? '')}`);
           else router.push('/training');
         }),
       ),
@@ -220,6 +228,10 @@ const HIT_GROUP: Record<WorkspaceSearchHit['kind'], string> = {
   repertoire: 'Repertoire',
   training: 'Training',
   'model-game': 'Model game',
+  decision: 'Decision',
+  'critical-position': 'Critical',
+  'training-set': 'Training set',
+  theme: 'Theme',
   tag: 'Tag',
 };
 

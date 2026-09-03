@@ -12,7 +12,18 @@ import type { AppRepositories } from './types';
 import { STORE_NAMES } from './schema/migrations';
 
 export type WorkspaceHitKind =
-  'study' | 'chapter' | 'game' | 'player' | 'repertoire' | 'training' | 'model-game' | 'tag';
+  | 'study'
+  | 'chapter'
+  | 'game'
+  | 'player'
+  | 'repertoire'
+  | 'training'
+  | 'model-game'
+  | 'decision'
+  | 'critical-position'
+  | 'training-set'
+  | 'theme'
+  | 'tag';
 
 export interface WorkspaceSearchHit {
   readonly id: string;
@@ -33,12 +44,25 @@ export async function searchWorkspace(
   const needle = query.trim().toLocaleLowerCase();
   if (needle.length < 2) return [];
 
-  const [studies, chapters, repertoires, training, links, gameResult] = await Promise.all([
+  const [
+    studies,
+    chapters,
+    repertoires,
+    training,
+    links,
+    decisions,
+    reviewItems,
+    sets,
+    gameResult,
+  ] = await Promise.all([
     repositories.studies.list(),
     repositories.raw.getAll<ChapterRecord>(STORE_NAMES.chapters),
     repositories.repertoires.list(),
     repositories.training.list(),
     repositories.modelGames.list(),
+    repositories.review.listDecisions(500),
+    repositories.review.listReviewItems(),
+    repositories.trainingSets.list(),
     repositories.games.search({ text: query.trim(), limit: 18, sortBy: 'importedAt' }),
   ]);
 
@@ -91,6 +115,58 @@ export async function searchWorkspace(
     }
   }
 
+  for (const decision of decisions) {
+    const searchable = [
+      decision.plan,
+      decision.calculationNotes,
+      decision.chosenSan,
+      ...decision.themes,
+      ...decision.candidates.flatMap((candidate) => [
+        candidate.san,
+        candidate.note,
+        ...(candidate.line ?? []),
+      ]),
+    ]
+      .filter(Boolean)
+      .join(' ');
+    if (includes(searchable, needle)) {
+      add({
+        id: `decision:${decision.id}`,
+        kind: 'decision',
+        title: decision.plan || decision.chosenSan || 'Decision record',
+        subtitle: 'Your pre-reveal analysis',
+        targetId: decision.id,
+      });
+    }
+  }
+
+  for (const item of reviewItems) {
+    if (includes([item.gameLabel, item.reason, item.category, ...item.themes].join(' '), needle)) {
+      add({
+        id: `critical:${item.id}`,
+        kind: 'critical-position',
+        title: item.gameLabel || 'Critical position',
+        subtitle: [item.category, ...item.themes].filter(Boolean).join(' · '),
+        targetId: item.id,
+      });
+    }
+  }
+
+  for (const set of sets) {
+    const searchable = [set.name, ...(set.query?.themes ?? []), ...(set.query?.tags ?? [])].join(
+      ' ',
+    );
+    if (includes(searchable, needle)) {
+      add({
+        id: `training-set:${set.id}`,
+        kind: 'training-set',
+        title: set.name,
+        subtitle: set.kind === 'dynamic' ? 'Dynamic training set' : 'Training set',
+        targetId: set.id,
+      });
+    }
+  }
+
   for (const game of gameResult.games) add(gameHit(game));
 
   const players = new Map<string, string>();
@@ -128,6 +204,15 @@ export async function searchWorkspace(
     for (const tag of item.tags) if (includes(tag, needle)) tags.add(tag);
   for (const link of links) for (const tag of link.tags) if (includes(tag, needle)) tags.add(tag);
   for (const tag of tags) add({ id: `tag:${tag}`, kind: 'tag', title: tag, subtitle: 'Tag' });
+
+  const themes = new Set<string>();
+  for (const decision of decisions)
+    for (const theme of decision.themes) if (includes(theme, needle)) themes.add(theme);
+  for (const item of reviewItems)
+    for (const theme of item.themes) if (includes(theme, needle)) themes.add(theme);
+  for (const theme of themes) {
+    add({ id: `theme:${theme}`, kind: 'theme', title: theme, subtitle: 'Improvement theme' });
+  }
 
   return hits;
 }

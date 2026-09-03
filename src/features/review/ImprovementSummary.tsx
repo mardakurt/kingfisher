@@ -17,7 +17,11 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/Button';
 import { EmptyState, Panel, PanelBody, PanelHeader } from '@/components/ui/Panel';
 import { Segmented } from '@/components/ui/Tabs';
-import { invalidateReview, invalidateTraining } from '@/features/persistence/queries';
+import {
+  invalidateReview,
+  invalidateTraining,
+  useTrainingItems,
+} from '@/features/persistence/queries';
 import { getRepositories } from '@/persistence/repositories';
 import type { ReviewItemRecord } from '@/persistence/domain';
 import { themeLabel } from '@/persistence/domain';
@@ -44,6 +48,7 @@ export function ImprovementSummary({
   const all = useReviewItems();
   const decisions = useDecisions();
   const sets = useTrainingSets();
+  const training = useTrainingItems();
   const [periodId, setPeriodId] = useState('30d');
   const [theme, setTheme] = useState<string | null>(null);
   const [now] = useState(() => Date.now());
@@ -56,11 +61,11 @@ export function ImprovementSummary({
       improvementReport({
         reviewItems: all.data ?? [],
         decisions: decisions.data ?? [],
-        trainingItems: [],
+        trainingItems: training.data ?? [],
         from,
         to: now + 1,
       }),
-    [all.data, decisions.data, from, now],
+    [all.data, decisions.data, from, now, training.data],
   );
 
   const trends = useMemo(

@@ -152,7 +152,9 @@ function CreateTrainingForm() {
       if (setTargetId) {
         const repositories = await getRepositories();
         const set = await repositories.trainingSets.get(setTargetId);
-        if (set) {
+        // Dynamic sets are queries, not mutable membership lists. The item is
+        // allowed to join them only by matching their saved criteria.
+        if (set?.kind === 'static') {
           await repositories.trainingSets.addItems(set.id, set.revision, [item.id]);
         }
       }

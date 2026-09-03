@@ -132,6 +132,9 @@ export function invalidateRepertoires(client: QueryClient): void {
 export function invalidateTraining(client: QueryClient): void {
   void client.invalidateQueries({ queryKey: ['persistence', 'training'] });
   void client.invalidateQueries({ queryKey: ['persistence', 'training-due'] });
+  // Dynamic set membership is derived from training fields and static set
+  // counts change when items are removed.
+  void client.invalidateQueries({ queryKey: ['review', 'training-set'] });
 }
 
 export function invalidateModelGames(client: QueryClient): void {

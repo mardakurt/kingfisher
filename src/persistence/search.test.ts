@@ -79,4 +79,40 @@ describe('workspace entity search', () => {
   it('does no broad store work for one-character input', async () => {
     expect(await searchWorkspace(repositories, 'a')).toEqual([]);
   });
+
+  it('finds decision notes, critical themes and training sets', async () => {
+    const decision = await repositories.review.createDecision({
+      positionKey: positionKey(START_FEN),
+      fen: START_FEN,
+      sideToMove: 'w',
+      candidates: [],
+      plan: 'Avoid the queen trade and improve the knight.',
+    });
+    await repositories.review.annotateDecision(decision.id, decision.revision, {
+      themes: ['trade-decision'],
+    });
+    const critical = await repositories.review.upsertReviewItem({
+      positionKey: positionKey(START_FEN),
+      fen: START_FEN,
+      sideToMove: 'w',
+      source: 'manual',
+      reason: 'Queen trade decision needs review.',
+    });
+    await repositories.review.updateReviewItem(critical.id, critical.revision, {
+      themes: ['trade-decision'],
+    });
+    await repositories.trainingSets.create({
+      name: 'Queen trade positions',
+      kind: 'dynamic',
+      query: { themes: ['trade-decision'] },
+    });
+
+    const hits = await searchWorkspace(repositories, 'queen trade');
+    expect(new Set(hits.map((hit) => hit.kind))).toEqual(
+      new Set(['decision', 'critical-position', 'training-set']),
+    );
+    expect(
+      (await searchWorkspace(repositories, 'trade-decision')).some((hit) => hit.kind === 'theme'),
+    ).toBe(true);
+  });
 });

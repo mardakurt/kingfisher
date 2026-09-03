@@ -8,7 +8,11 @@ import { Button, IconButton } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState, Panel, PanelBody, PanelHeader } from '@/components/ui/Panel';
 import { Segmented } from '@/components/ui/Tabs';
-import { invalidateTraining, useTrainingItems } from '@/features/persistence/queries';
+import {
+  invalidateReview,
+  invalidateTraining,
+  useTrainingItems,
+} from '@/features/persistence/queries';
 import { cn } from '@/lib/cn';
 import {
   ANSWER_SOURCE_LABEL,
@@ -35,6 +39,8 @@ import { WorkspaceToolDock } from '@/features/workspace/WorkspaceToolDock';
 
 import { TrainingAnswer, type AttemptState } from './TrainingAnswer';
 import { NavButton } from '@/features/shell/NavButton';
+import { useTrainingSetItems, useTrainingSets } from '@/features/review/queries';
+import { TrainingSetsDialog } from './TrainingSetsDialog';
 
 const MODE_LABEL: Record<TrainingMode, string> = {
   'repertoire-recall': 'Repertoire Recall',
@@ -56,6 +62,7 @@ export function TrainingWorkspace() {
   const notify = useUi((state) => state.notify);
   const setCaptureOpen = useUi((state) => state.setTrainingCaptureOpen);
   const training = useTrainingItems();
+  const sets = useTrainingSets();
   const [now] = useState(() => Date.now());
   const [selectedId, setSelectedId] = useState<string | null>(() =>
     typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get('item'),
@@ -64,6 +71,11 @@ export function TrainingWorkspace() {
   const [attempt, setAttempt] = useState<{ itemId: string; state: AttemptState } | null>(null);
   const [busy, setBusy] = useState(false);
   const [deleteItem, setDeleteItem] = useState<TrainingItemRecord | null>(null);
+  const [setsOpen, setSetsOpen] = useState(false);
+  const [selectedSetId, setSelectedSetId] = useState<string | null>(() =>
+    typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get('set'),
+  );
+  const setItems = useTrainingSetItems(selectedSetId);
   const [scope, setScope] = useState<'due' | 'all'>(() =>
     typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('item')
       ? 'all'
@@ -74,17 +86,23 @@ export function TrainingWorkspace() {
   const syncedItem = useRef<string | null>(null);
 
   const items = useMemo(() => training.data ?? [], [training.data]);
-  const queue = useMemo(() => orderQueue(items, now), [items, now]);
+  const scopedItems = useMemo(
+    () => (selectedSetId ? (setItems.data ?? []) : items),
+    [items, selectedSetId, setItems.data],
+  );
+  const queue = useMemo(() => orderQueue(scopedItems, now), [scopedItems, now]);
   const counts = useMemo(
     () =>
       countQueue(
-        items.map((item) => item.schedule),
+        scopedItems.map((item) => item.schedule),
         now,
       ),
-    [items, now],
+    [scopedItems, now],
   );
-  const listed = scope === 'due' ? queue : items;
-  const current = items.find((item) => item.id === selectedId) ?? queue[0] ?? items[0] ?? null;
+  const listed = scope === 'due' ? queue : scopedItems;
+  const current =
+    scopedItems.find((item) => item.id === selectedId) ?? queue[0] ?? scopedItems[0] ?? null;
+  const selectedSet = (sets.data ?? []).find((set) => set.id === selectedSetId) ?? null;
   // Both the attempt and the reveal are keyed by item, so moving to another
   // card cannot show the previous card's answer as though it were this one's.
   const result = current && attempt?.itemId === current.id ? attempt.state : null;
@@ -145,6 +163,7 @@ export function TrainingWorkspace() {
     try {
       await (await getRepositories()).training.delete(item.id);
       invalidateTraining(queryClient);
+      invalidateReview(queryClient);
       setSelectedId(null);
       notify({ tone: 'success', message: 'Training item deleted with its review history.' });
     } catch (error) {
@@ -162,6 +181,9 @@ export function TrainingWorkspace() {
         <Target className="h-4 w-4 text-accent" />
         <h1 className="text-xs font-semibold text-primary">Training</h1>
         <QueueSummary counts={counts} />
+        <Button onClick={() => setSetsOpen(true)}>
+          {selectedSet ? selectedSet.name : 'Training sets'}
+        </Button>
         <Button
           className="ml-auto"
           variant="accent"
@@ -176,11 +198,11 @@ export function TrainingWorkspace() {
         <Panel className="min-h-[200px] border-b border-line-subtle md:min-h-0 md:border-r md:border-b-0">
           <PanelHeader
             actions={
-              items.length ? (
+              scopedItems.length ? (
                 <Segmented
                   items={[
                     { id: 'due' as const, label: `Due ${queue.length}` },
-                    { id: 'all' as const, label: `All ${items.length}` },
+                    { id: 'all' as const, label: `All ${scopedItems.length}` },
                   ]}
                   value={scope}
                   onChange={setScope}
@@ -191,10 +213,16 @@ export function TrainingWorkspace() {
             Queue
           </PanelHeader>
           <PanelBody>
-            {items.length === 0 ? (
+            {scopedItems.length === 0 ? (
               <EmptyState
-                title="No training positions."
-                description="Create one from a game, study, repertoire, or the current analysis position."
+                title={selectedSet ? 'This training set is empty.' : 'No training positions.'}
+                description={
+                  selectedSet
+                    ? selectedSet.kind === 'dynamic'
+                      ? 'No position currently matches its saved filters.'
+                      : 'Open Training sets to choose positions for it.'
+                    : 'Create one from a game, study, repertoire, or the current analysis position.'
+                }
                 action={<Button onClick={() => setCaptureOpen(true)}>Create position</Button>}
               />
             ) : listed.length === 0 ? (
@@ -336,6 +364,17 @@ export function TrainingWorkspace() {
         onConfirm={async () => {
           if (deleteItem) await remove(deleteItem);
           setDeleteItem(null);
+        }}
+      />
+      <TrainingSetsDialog
+        open={setsOpen}
+        onClose={() => setSetsOpen(false)}
+        items={items}
+        selectedId={selectedSetId}
+        onSelect={(id) => {
+          setSelectedSetId(id);
+          setSelectedId(null);
+          setScope('all');
         }}
       />
     </div>
