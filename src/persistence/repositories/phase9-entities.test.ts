@@ -276,3 +276,37 @@ describe('pinned engine lines', () => {
     expect(await repositories.pinnedLines.count()).toBe(0);
   });
 });
+
+describe('favourite players', () => {
+  it('keeps a player under the same normalized key the search uses', async () => {
+    const repositories = createMemoryRepositories();
+    await repositories.profile.addFavoritePlayer('  Carlsen, Magnus  ', 'Round 6 opponent');
+
+    const profile = await repositories.profile.get();
+    expect(profile.favoritePlayers).toEqual([
+      expect.objectContaining({
+        key: 'carlsen, magnus',
+        name: 'Carlsen, Magnus',
+        note: 'Round 6 opponent',
+      }),
+    ]);
+  });
+
+  it('updates an existing favourite rather than storing the name twice', async () => {
+    const repositories = createMemoryRepositories();
+    await repositories.profile.addFavoritePlayer('Carlsen, Magnus');
+    const after = await repositories.profile.addFavoritePlayer('CARLSEN,  magnus', 'Team-mate');
+
+    // Two spellings of one name are one person, and the preparation search
+    // agrees, because both reduce to the same key.
+    expect(after).toHaveLength(1);
+    expect(after[0]).toMatchObject({ name: 'CARLSEN,  magnus', note: 'Team-mate' });
+  });
+
+  it('removes by key, and ignores a blank name', async () => {
+    const repositories = createMemoryRepositories();
+    await repositories.profile.addFavoritePlayer('Carlsen, Magnus');
+    expect(await repositories.profile.addFavoritePlayer('   ')).toHaveLength(1);
+    expect(await repositories.profile.removeFavoritePlayer('carlsen, magnus')).toEqual([]);
+  });
+});

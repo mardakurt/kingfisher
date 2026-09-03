@@ -8,9 +8,14 @@
  */
 
 import { stableId } from '../ids';
-import { STORE_NAMES } from '../schema/migrations';
+import { STORE_NAMES, playerKey } from '../schema/migrations';
 import type { PersistenceDatabase } from '../indexeddb/database';
-import type { ModelGameLinkId, ModelGameLinkRecord, UserProfileRecord } from '../domain';
+import type {
+  FavoritePlayer,
+  ModelGameLinkId,
+  ModelGameLinkRecord,
+  UserProfileRecord,
+} from '../domain';
 import { EMPTY_PROFILE } from '../domain';
 import { assertValid, isModelGameLinkRecord, isUserProfileRecord } from '../validation';
 
@@ -85,6 +90,16 @@ export interface ProfileRepository {
   /** Improvement themes the player invented; returns the full list. */
   addCustomTheme(theme: string): Promise<readonly string[]>;
   removeCustomTheme(theme: string): Promise<readonly string[]>;
+  /**
+   * Players kept one keystroke away.
+   *
+   * A coach's students, a team, the three people you keep being paired with.
+   * Stored under the normalized key so a favourite matches the same games the
+   * preparation search does, and carrying the name as typed so the list reads
+   * the way the user wrote it.
+   */
+  addFavoritePlayer(name: string, note?: string): Promise<readonly FavoritePlayer[]>;
+  removeFavoritePlayer(key: string): Promise<readonly FavoritePlayer[]>;
 }
 
 export class LocalProfileRepository implements ProfileRepository {
@@ -126,6 +141,40 @@ export class LocalProfileRepository implements ProfileRepository {
       ...current,
       id: 'me' as const,
       customThemes: next,
+      updatedAt: Date.now(),
+    });
+    return next;
+  }
+
+  async addFavoritePlayer(name: string, note?: string): Promise<readonly FavoritePlayer[]> {
+    const trimmed = name.trim();
+    if (!trimmed) return (await this.get()).favoritePlayers ?? [];
+    const key = playerKey(trimmed);
+    const current = await this.get();
+    const favorites = current.favoritePlayers ?? [];
+    // Re-adding an existing favourite updates its note rather than duplicating
+    // a player under two spellings of the same name.
+    const next: FavoritePlayer[] = favorites.some((entry) => entry.key === key)
+      ? favorites.map((entry) =>
+          entry.key === key ? { ...entry, name: trimmed, ...(note ? { note } : {}) } : entry,
+        )
+      : [...favorites, { key, name: trimmed, ...(note ? { note } : {}), addedAt: Date.now() }];
+    await this.database.put(STORE_NAMES.profile, {
+      ...current,
+      id: 'me' as const,
+      favoritePlayers: next,
+      updatedAt: Date.now(),
+    });
+    return next;
+  }
+
+  async removeFavoritePlayer(key: string): Promise<readonly FavoritePlayer[]> {
+    const current = await this.get();
+    const next = (current.favoritePlayers ?? []).filter((entry) => entry.key !== key);
+    await this.database.put(STORE_NAMES.profile, {
+      ...current,
+      id: 'me' as const,
+      favoritePlayers: next,
       updatedAt: Date.now(),
     });
     return next;

@@ -33,6 +33,7 @@ import { NavButton } from '@/features/shell/NavButton';
 import { CanonicalBoardSurface } from '@/features/workspace/CanonicalBoardSurface';
 import { WorkspaceToolDock } from '@/features/workspace/WorkspaceToolDock';
 import { positionKey } from '@/chess/fen';
+import { playerKey } from '@/persistence/schema/migrations';
 import { Dialog } from '@/components/ui/Dialog';
 import { useUi } from '@/stores/ui-store';
 import { DossierPanel } from './DossierPanel';
@@ -212,6 +213,18 @@ export function PreparationWorkspace({ initialPlayer = '' }: { readonly initialP
     }
   };
 
+  const isFavorite = (profile.data?.favoritePlayers ?? []).some(
+    (entry) => entry.key === playerKey(submitted),
+  );
+
+  const toggleFavorite = async () => {
+    if (!submitted.trim()) return;
+    const repositories = await getRepositories();
+    if (isFavorite) await repositories.profile.removeFavoritePlayer(playerKey(submitted));
+    else await repositories.profile.addFavoritePlayer(submitted);
+    void client.invalidateQueries({ queryKey: ['persistence', 'profile'] });
+  };
+
   const createSession = async (
     input: Parameters<Awaited<ReturnType<typeof getRepositories>>['preparation']['create']>[0],
   ) => {
@@ -359,6 +372,44 @@ export function PreparationWorkspace({ initialPlayer = '' }: { readonly initialP
           <Button variant="accent" type="submit" disabled={!player.trim()}>
             Prepare
           </Button>
+          {/*
+            Favourites, where they get used. A coach preparing five students,
+            or a player facing the same three opponents all season, should not
+            retype a name they have typed forty times.
+          */}
+          {(profile.data?.favoritePlayers?.length ?? 0) > 0 ? (
+            <select
+              aria-label="Favourite players"
+              value=""
+              onChange={(event) => {
+                const chosen = event.target.value;
+                if (!chosen) return;
+                setPlayer(chosen);
+                setSubmitted(chosen);
+                setCurrentKey('');
+                setHistory([]);
+                setLine([]);
+              }}
+              className="h-7 max-w-[18ch] rounded-[4px] border border-line bg-surface-inset px-1.5 text-2xs text-primary"
+            >
+              <option value="">Favourites…</option>
+              {profile.data?.favoritePlayers?.map((entry) => (
+                <option key={entry.key} value={entry.name}>
+                  {entry.name}
+                </option>
+              ))}
+            </select>
+          ) : null}
+          {submitted ? (
+            <Button
+              title={
+                isFavorite ? 'Remove from favourites' : 'Keep this opponent one keystroke away'
+              }
+              onClick={() => void toggleFavorite()}
+            >
+              {isFavorite ? 'Favourited' : 'Favourite'}
+            </Button>
+          ) : null}
           {profile.data?.aliases.length ? (
             <Button
               title="Report on your own games, using the aliases in Settings → Profile"
