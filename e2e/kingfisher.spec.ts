@@ -1,5 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
+import { selectTool } from './tools';
+
 const SAMPLE_PGN = `[Event "Kingfisher E2E"]
 [Site "Local"]
 [Date "2026.09.02"]
@@ -145,7 +147,7 @@ test('analysis, games, repertoire and explorer share a working position', async 
   await expect(page).toHaveURL(/\/analysis$/);
   await expectSquareBoard(page);
 
-  await page.getByRole('tab', { name: 'Explorer' }).click();
+  await selectTool(page, page.getByRole('complementary', { name: 'Workspace tools' }), 'Explorer');
   await page.getByLabel('Evidence source').selectOption('local-collection');
   await expect(page.getByText(/My games.*game[s]? here/)).toBeVisible();
   expect(consoleFailures).toEqual([]);
@@ -182,12 +184,12 @@ test('a study chapter supports moves, variations, analysis tools and durable ann
   }
   await expect(page.locator('[data-board-shapes]')).toHaveAttribute('data-shape-count', '1');
 
-  await page.getByRole('tab', { name: 'Engine' }).click();
+  await selectTool(page, page.getByRole('complementary', { name: 'Workspace tools' }), 'Engine');
   await page.getByRole('button', { name: 'Start analysis (E)' }).click();
   await expect(page.getByRole('button', { name: 'Stop analysis (E)' })).toBeVisible();
   await page.getByRole('button', { name: 'Stop analysis (E)' }).click();
 
-  await page.getByRole('tab', { name: 'Explorer' }).click();
+  await selectTool(page, page.getByRole('complementary', { name: 'Workspace tools' }), 'Explorer');
   await page.getByLabel('Evidence source').selectOption('local-collection');
   await expect(page.getByText('No games reach this position.')).toBeVisible();
   // Database is not pinned by default, so it is reached through More.
@@ -377,7 +379,7 @@ test('authenticated Lichess explorer contract and appearance preferences work wi
     .getByRole('navigation', { name: 'Sections' })
     .getByRole('link', { name: 'Openings' })
     .click();
-  await page.getByRole('tab', { name: 'Explorer' }).click();
+  await selectTool(page, page.getByRole('complementary', { name: 'Workspace tools' }), 'Explorer');
   await page.getByLabel('Evidence source').selectOption('lichess-masters');
   await expect(page.getByRole('button', { name: 'e4' })).toBeVisible();
   expect(authHeaders).not.toHaveLength(0);
@@ -385,7 +387,7 @@ test('authenticated Lichess explorer contract and appearance preferences work wi
 
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   settings = page.getByRole('dialog', { name: 'Settings' });
-  await settings.getByRole('tab', { name: 'Board' }).click();
+  await settings.getByRole('tab', { name: 'Board', exact: true }).click();
   await settings.getByRole('button', { name: 'Tournament Blue' }).click();
   await settings.getByRole('tab', { name: 'Pieces' }).click();
   await settings.getByRole('button', { name: /Merida/ }).click();
@@ -416,7 +418,7 @@ test('a failing explorer source reports why instead of loading forever', async (
   // is local-first and must report the real failure regardless.
   await context.setOffline(true);
 
-  await page.getByRole('tab', { name: 'Explorer' }).click();
+  await selectTool(page, page.getByRole('complementary', { name: 'Workspace tools' }), 'Explorer');
   await page.getByLabel('Evidence source').selectOption('lichess-masters');
 
   await expect(page.getByText('No evidence from this source.')).toBeVisible();

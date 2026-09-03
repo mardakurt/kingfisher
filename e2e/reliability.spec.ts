@@ -13,6 +13,8 @@
 
 import { expect, test, type Page } from '@playwright/test';
 
+import { selectTool } from './tools';
+
 const SAMPLE_PGN = (count: number) =>
   Array.from(
     { length: count },
@@ -312,7 +314,11 @@ test('transpositions list only stored move orders and open their chapter', async
     indistinguishable from a broken index.
   */
   await page.getByRole('button', { name: 'e6', exact: true }).last().click();
-  await page.getByRole('tab', { name: 'Transpositions' }).click();
+  await selectTool(
+    page,
+    page.getByRole('complementary', { name: 'Workspace tools' }),
+    'Transpositions',
+  );
   // The order this chapter used is not offered back as a transposition to
   // itself; the other one is.
   await expect(page.getByText('1.d4 Nf6 2.c4 e6')).toBeVisible({ timeout: 15_000 });
@@ -326,7 +332,7 @@ test('an engine that is stopped and restarted leaves no stale evaluation', async
   await waitForApp(page);
   await play(page, 'e2', 'e4');
 
-  await page.getByRole('tab', { name: 'Engine' }).click();
+  await selectTool(page, page.getByRole('complementary', { name: 'Workspace tools' }), 'Engine');
   await page.getByRole('button', { name: 'Analyse this position' }).click();
   await expect(page.getByRole('button', { name: 'Stop analysis (E)' })).toBeVisible({
     timeout: 30_000,
@@ -362,7 +368,7 @@ test('an explorer request that fails states why and never spins', async ({ page,
 
   // A source that cannot answer, and a browser that thinks it is offline.
   await context.setOffline(true);
-  await page.getByRole('tab', { name: 'Explorer' }).click();
+  await selectTool(page, page.getByRole('complementary', { name: 'Workspace tools' }), 'Explorer');
   await page.getByLabel('Evidence source').selectOption('lichess-masters');
   await expect(page.getByText('No evidence from this source.')).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText(/Reading Masters/)).toHaveCount(0);

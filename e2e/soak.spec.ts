@@ -21,6 +21,8 @@
 
 import { expect, test, type Page } from '@playwright/test';
 
+import { selectTool } from './tools';
+
 /** How many full cycles to drive after the warm-up snapshot. */
 const CYCLES = 8;
 
@@ -176,7 +178,7 @@ async function cycle(page: Page, index: number) {
   await play(page, 'e7', 'e5');
   await page.getByRole('button', { name: 'e4', exact: true }).first().click();
 
-  await page.getByRole('tab', { name: 'Engine' }).click();
+  await selectTool(page, page.getByRole('complementary', { name: 'Workspace tools' }), 'Engine');
   await page.getByRole('button', { name: 'Start analysis (E)' }).click();
   await expect(page.getByRole('button', { name: 'Stop analysis (E)' })).toBeVisible({
     timeout: 30_000,
@@ -184,8 +186,8 @@ async function cycle(page: Page, index: number) {
   await page.getByRole('button', { name: 'Stop analysis (E)' }).click();
   await expect(page.getByRole('button', { name: 'Start analysis (E)' })).toBeVisible();
 
-  await page.getByRole('tab', { name: 'Explorer' }).click();
-  await page.getByRole('tab', { name: 'Notes' }).click();
+  await selectTool(page, page.getByRole('complementary', { name: 'Workspace tools' }), 'Explorer');
+  await selectTool(page, page.getByRole('complementary', { name: 'Workspace tools' }), 'Notes');
 
   await navigate(page, 'Studies');
   await navigate(page, 'Games');
@@ -200,7 +202,7 @@ async function cycle(page: Page, index: number) {
     them would accumulate here exactly as an engine session would.
   */
   await navigate(page, 'Review');
-  await page.getByRole('tab', { name: 'Journal' }).click();
+  await selectTool(page, page.getByRole('complementary', { name: 'Workspace tools' }), 'Journal');
   await page.getByRole('tab', { name: 'Improvement' }).click();
   await page.getByRole('tab', { name: 'Queue' }).click();
 
@@ -212,7 +214,7 @@ async function cycle(page: Page, index: number) {
     .click();
 
   await navigate(page, 'Analysis');
-  await page.getByRole('tab', { name: 'Features' }).click();
+  await selectTool(page, page.getByRole('complementary', { name: 'Workspace tools' }), 'Features');
   await page.getByRole('button', { name: 'Search', exact: true }).click();
 
   /*
@@ -227,13 +229,50 @@ async function cycle(page: Page, index: number) {
   await navigate(page, 'Endgame');
 
   await navigate(page, 'Analysis');
-  await page.getByRole('tab', { name: 'Calculation' }).click();
+  await selectTool(
+    page,
+    page.getByRole('complementary', { name: 'Workspace tools' }),
+    'Calculation',
+  );
   await page.getByRole('button', { name: 'Start calculation' }).click();
   await play(page, 'e2', 'e4');
   // Ending the session must release the gate as well as the board; a cycle
   // that left it locked would make every later cycle test nothing.
   await page.getByRole('button', { name: 'End calculation' }).click();
   await expect(page.getByRole('button', { name: 'Start calculation' })).toBeVisible();
+
+  /*
+    Phase 10's own surfaces. Rearranging a workspace mounts and unmounts panels
+    outside the tab strip's usual path, and a preset switch replaces a whole
+    arrangement at once — both are exactly the sort of thing that leaves a
+    ResizeObserver or a listener behind, and neither was reachable before this
+    phase. §62.
+  */
+  await navigate(page, 'Analysis');
+  const dock = page.getByRole('complementary', { name: 'Workspace tools' });
+  await page.getByRole('button', { name: /^Layout/ }).click();
+  await page.getByRole('menuitem', { name: 'Move Engine to the lower panel' }).click();
+  await expect(
+    page.locator('[data-workspace-lower]').getByRole('tab', { name: 'Engine' }),
+  ).toBeVisible();
+
+  await page.getByRole('button', { name: /^Layout/ }).click();
+  await page.getByRole('menuitem', { name: 'Opening Research' }).click();
+
+  await page.getByRole('button', { name: /^Layout/ }).click();
+  await page.getByRole('menuitem', { name: /^Unpin |^Pin / }).click();
+
+  await page.getByRole('button', { name: /^Layout/ }).click();
+  await page.getByRole('menuitem', { name: 'Reset layout' }).click();
+  await expect(dock.getByRole('tab', { name: 'Engine' })).toBeVisible();
+
+  // Settings mounts the live board preview and every provider health query.
+  await page.getByRole('button', { name: 'Settings (⌘,)' }).click();
+  const settings = page.getByRole('dialog', { name: 'Settings' });
+  await settings.getByRole('tab', { name: 'Pieces' }).click();
+  await settings.getByRole('tab', { name: 'Workspace' }).click();
+  await page.keyboard.press('Escape');
+  await expect(settings).toBeHidden();
 
   // Every other pass leaves the analysis tree behind entirely, so route
   // teardown is exercised from a route that owns a board and from one that
@@ -297,7 +336,7 @@ test('an all-day research session cannot grow the explorer cache without bound',
   // Genuine entries first, from genuine navigation.
   await play(page, 'e2', 'e4');
   await play(page, 'e7', 'e5');
-  await page.getByRole('tab', { name: 'Explorer' }).click();
+  await selectTool(page, page.getByRole('complementary', { name: 'Workspace tools' }), 'Explorer');
   await page.getByRole('button', { name: 'e4', exact: true }).first().click();
 
   const counts = await page.evaluate(async () => {
