@@ -7,7 +7,7 @@
  */
 
 import { createServer } from 'node:http';
-import { readFileSync, writeFileSync, existsSync, mkdirSync, statSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -24,7 +24,9 @@ import {
 } from './security.mjs';
 
 const ROOT = path.resolve(fileURLToPath(new URL('../..', import.meta.url)));
-const DATA_DIR = path.join(ROOT, 'companion', 'data');
+const DATA_DIR = process.env.KINGFISHER_COMPANION_DATA_DIR
+  ? path.resolve(process.env.KINGFISHER_COMPANION_DATA_DIR)
+  : path.join(ROOT, 'companion', 'data');
 const MANIFEST = path.join(ROOT, 'public', 'engine', 'manifest.json');
 const IMPORTS = path.join(DATA_DIR, 'databases.json');
 
@@ -263,6 +265,46 @@ async function route(url, request, response) {
     );
   }
 
+  if (pathname === '/db/structure-search' && request.method === 'POST') {
+    const body = await readBody(request);
+    return json(response, 200, {
+      results: database(String(body.key)).searchStructures(body.query ?? {}),
+    });
+  }
+
+  if (pathname === '/db/delete-games' && request.method === 'POST') {
+    const body = await readBody(request);
+    const target = database(String(body.key));
+    const result = Array.isArray(body.fingerprints)
+      ? target.deleteGamesByFingerprint(body.fingerprints.map(String))
+      : target.deleteGamesMatching(body.query ?? {});
+    return json(response, 200, { ...result, integrity: integrityOf(target) });
+  }
+
+  if (pathname === '/db/clear' && request.method === 'POST') {
+    const body = await readBody(request);
+    const target = database(String(body.key));
+    const result = target.clear();
+    return json(response, 200, { ...result, integrity: integrityOf(target) });
+  }
+
+  if (pathname === '/db/delete' && request.method === 'POST') {
+    const body = await readBody(request);
+    const key = String(body.key);
+    const registered = databaseRegistry.resolve(key);
+    const target = open.get(key);
+    if (target) target.close();
+    open.delete(key);
+    databaseRegistry.delete(key);
+    saveDatabases();
+    // The path can only have come from the registry; request bodies never
+    // choose a filesystem target. WAL sidecars belong to this same database.
+    rmSync(registered.path, { force: true });
+    rmSync(`${registered.path}-wal`, { force: true });
+    rmSync(`${registered.path}-shm`, { force: true });
+    return json(response, 200, { deleted: true });
+  }
+
   /*
     Derived explorer aggregates are checked on demand rather than on every
     status poll: the check sums a whole table, and a hundred-thousand-game
@@ -270,22 +312,15 @@ async function route(url, request, response) {
   */
   if (pathname === '/db/integrity' && request.method === 'POST') {
     const body = await readBody(request);
-    const facts = database(String(body.key)).aggregateIntegrity();
-    return json(response, 200, {
-      ...facts,
-      consistent: facts.positions === facts.aggregatedPositions,
-    });
+    const target = database(String(body.key));
+    return json(response, 200, integrityOf(target));
   }
 
   if (pathname === '/db/rebuild-aggregates' && request.method === 'POST') {
     const body = await readBody(request);
     const target = database(String(body.key));
     target.rebuildAggregates();
-    const facts = target.aggregateIntegrity();
-    return json(response, 200, {
-      ...facts,
-      consistent: facts.positions === facts.aggregatedPositions,
-    });
+    return json(response, 200, integrityOf(target));
   }
 
   if (pathname === '/db/games-at' && request.method === 'POST') {
@@ -309,6 +344,14 @@ async function route(url, request, response) {
 
   return json(response, 404, { error: 'No such companion route.' });
 }
+
+const integrityOf = (target) => {
+  const facts = target.aggregateIntegrity();
+  return {
+    ...facts,
+    consistent: facts.positions === facts.aggregatedPositions,
+  };
+};
 
 loadEngines();
 loadDatabases();

@@ -192,6 +192,8 @@ describe('GameDatabase', () => {
       positions: 3,
       aggregatedPositions: 3,
       aggregateRows: 2,
+      filteredCacheKeys: 0,
+      filteredAggregateRows: 0,
     });
     expect(database.explore(POSITION, 24, { minRating: 2450 })).toMatchObject({
       totalGames: 1,
@@ -199,6 +201,141 @@ describe('GameDatabase', () => {
       draws: 0,
       black: 0,
     });
+  });
+
+  it('answers arbitrary filtered explorer boundaries exactly without counting repetitions twice', () => {
+    const repeated = entry({
+      fingerprint: 'game-1',
+      white: 'Alpha',
+      black: 'Beta',
+      result: '1-0',
+      year: 2026,
+      rating: 2500,
+      uci: 'e2e4',
+      san: 'e4',
+    });
+    repeated.positions.push({ ...repeated.positions[0], ply: 8 });
+    database.insertGames([
+      repeated,
+      entry({
+        fingerprint: 'game-2',
+        white: 'Gamma',
+        black: 'Delta',
+        result: '0-1',
+        year: 2023,
+        rating: 2499,
+        uci: 'd2d4',
+        san: 'd4',
+      }),
+    ]);
+
+    expect(database.explore(POSITION, 24, { sinceYear: 2024, minRating: 2500 })).toMatchObject({
+      totalGames: 1,
+      white: 1,
+      black: 0,
+      moves: [expect.objectContaining({ uci: 'e2e4', games: 1 })],
+    });
+    expect(database.explore(POSITION, 24, { untilYear: 2023, maxRating: 2499 })).toMatchObject({
+      totalGames: 1,
+      black: 1,
+      moves: [expect.objectContaining({ uci: 'd2d4', games: 1 })],
+    });
+  });
+
+  it('answers a filter that excludes nothing exactly as the unfiltered explorer does', () => {
+    // A repetition inside one game must not become a second game in either
+    // path. The two paths read different tables, so this is the invariant
+    // that keeps the fast exact cache honest.
+    const repeated = entry({
+      fingerprint: 'game-1',
+      white: 'Alpha',
+      black: 'Beta',
+      result: '1-0',
+      year: 2026,
+      rating: 2500,
+      uci: 'e2e4',
+      san: 'e4',
+    });
+    repeated.positions.push({ ...repeated.positions[0], ply: 8 });
+    database.insertGames([
+      repeated,
+      entry({
+        fingerprint: 'game-2',
+        white: 'Gamma',
+        black: 'Delta',
+        result: '0-1',
+        year: 2023,
+        rating: 2499,
+        uci: 'e2e4',
+        san: 'e4',
+      }),
+    ]);
+
+    const unfiltered = database.explore(POSITION, 24);
+    const permissive = database.explore(POSITION, 24, { sinceYear: 1, minRating: 1 });
+    expect(permissive).toEqual(unfiltered);
+    expect(unfiltered).toMatchObject({
+      totalGames: 2,
+      white: 1,
+      black: 1,
+      moves: [expect.objectContaining({ uci: 'e2e4', games: 2 })],
+    });
+  });
+
+  it('searches indexed structure identities and deletes exact filters transactionally', () => {
+    const structured = entry({
+      fingerprint: 'game-1',
+      white: 'Alpha',
+      black: 'Beta',
+      result: '1-0',
+      year: 2026,
+      rating: 2500,
+      uci: 'e2e4',
+      san: 'e4',
+    });
+    Object.assign(structured.positions[0], {
+      fen: '8/8/8/3p4/3P4/8/8/8 w - - 0 1',
+      nodeId: 'n-1',
+      pawnSkeleton: '8/8/8/3p4/3P4/8/8/8',
+      structureSignature: 'material:none|pawns:d4,d5',
+      structureClaims: ['white:isolated:d4', 'open:c'],
+    });
+    database.insertGames([
+      structured,
+      entry({
+        fingerprint: 'game-2',
+        white: 'Other',
+        black: 'Player',
+        result: '0-1',
+        year: 2024,
+        rating: 2300,
+        uci: 'd2d4',
+        san: 'd4',
+      }),
+    ]);
+
+    const found = database.searchStructures({
+      mode: 'pawn-skeleton',
+      pawnSkeleton: '8/8/8/3p4/3P4/8/8/8',
+      positionKey: POSITION,
+      structureSignature: '',
+      claims: [],
+    });
+    expect(found).toHaveLength(1);
+    expect(found[0]).toMatchObject({
+      game: { fingerprint: 'game-1' },
+      position: { nodeId: 'n-1', structureClaims: ['white:isolated:d4', 'open:c'] },
+    });
+
+    expect(database.deleteGamesMatching({ player: 'alpha' })).toEqual({ deleted: 1 });
+    expect(database.count()).toBe(1);
+    expect(database.aggregateIntegrity()).toMatchObject({
+      positions: 1,
+      aggregatedPositions: 1,
+      filteredCacheKeys: 0,
+    });
+    expect(database.clear()).toEqual({ deleted: 1 });
+    expect(database.count()).toBe(0);
   });
 
   it('maintains explorer aggregates through deletion and an explicit rebuild', () => {

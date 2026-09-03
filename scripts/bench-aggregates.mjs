@@ -74,6 +74,11 @@ try {
         moveUci: HOT_MOVES[Math.floor(next() * HOT_MOVES.length)],
         moveSan: 'x',
         mover: 'w',
+        fen: '8/8/8/3p4/3P4/8/8/8 w - - 0 1',
+        nodeId: `hot-${index}`,
+        pawnSkeleton: '8/8/8/3p4/3P4/8/8/8',
+        structureSignature: 'material:none|pawns:d4,d5',
+        structureClaims: ['white:isolated:d4', 'open:c'],
       },
     ];
     for (let ply = 0; ply < UNIQUE_PER_GAME; ply += 1) {
@@ -130,18 +135,64 @@ try {
   );
 
   const viaAggregates = measure(20, () => database.explore(HOT, 24));
-  const viaScan = measure(20, () => database.explore(HOT, 24, { sinceYear: 1 }));
+  const coldStarted = performance.now();
+  database.explore(HOT, 24, { sinceYear: 2025 });
+  const coldFilter = performance.now() - coldStarted;
+  const commonFilters = [
+    ['last 12 months', { sinceYear: 2025 }],
+    ['last 3 years', { sinceYear: 2023 }],
+    ['Elo >= 2400', { minRating: 2400 }],
+    ['Elo >= 2500', { minRating: 2500 }],
+    ['Elo >= 2600', { minRating: 2600 }],
+    ['date + Elo', { sinceYear: 2023, minRating: 2500 }],
+  ].map(([label, filters]) => ({
+    label,
+    ...measure(20, () => database.explore(HOT, 24, filters)),
+  }));
   const cold = measure(20, (index) => database.explore(`k${index * 7}-3`, 24));
+  const structure = measure(20, () =>
+    database.searchStructures({
+      mode: 'pawn-skeleton',
+      pawnSkeleton: '8/8/8/3p4/3P4/8/8/8',
+      positionKey: HOT,
+      structureSignature: 'material:none|pawns:d4,d5',
+      claims: ['white:isolated:d4'],
+      sort: 'rating',
+      limit: 30,
+    }),
+  );
 
   console.log(`${'query'.padEnd(38)}   median     worst`);
   console.log(
     `${'hot position via aggregates'.padEnd(38)}   ${ms(viaAggregates.median).padStart(8)}  ${ms(viaAggregates.worst).padStart(9)}`,
   );
   console.log(
-    `${'hot position via normalized scan'.padEnd(38)}   ${ms(viaScan.median).padStart(8)}  ${ms(viaScan.worst).padStart(9)}`,
+    `${'first exact filter cache build'.padEnd(38)}   ${ms(coldFilter).padStart(8)}  ${ms(coldFilter).padStart(9)}`,
   );
+  for (const result of commonFilters) {
+    console.log(
+      `${String(result.label).padEnd(38)}   ${ms(result.median).padStart(8)}  ${ms(result.worst).padStart(9)}`,
+    );
+  }
   console.log(
     `${'a rare position via aggregates'.padEnd(38)}   ${ms(cold.median).padStart(8)}  ${ms(cold.worst).padStart(9)}`,
+  );
+  console.log(
+    `${'same pawn skeleton search'.padEnd(38)}   ${ms(structure.median).padStart(8)}  ${ms(structure.worst).padStart(9)}`,
+  );
+  const deletionFingerprints = Array.from(
+    { length: Math.min(1_000, GAMES) },
+    (_, index) => `synthetic-${index}`,
+  );
+  const deleteStarted = performance.now();
+  const deleted = database.deleteGamesByFingerprint(deletionFingerprints);
+  const deleteMs = performance.now() - deleteStarted;
+  const afterDelete = database.aggregateIntegrity();
+  console.log(
+    `${'delete selected + rebuild'.padEnd(38)}   ${ms(deleteMs).padStart(8)}  ${`${deleted.deleted} games`.padStart(9)}`,
+  );
+  console.log(
+    `post-delete aggregates ${afterDelete.positions === afterDelete.aggregatedPositions ? 'consistent' : 'INCONSISTENT'}`,
   );
   console.log('');
 } catch (error) {
