@@ -9,7 +9,17 @@
  * lives behind one menu, where it is also discoverable by name.
  */
 
-import { Copy, Export, Import, Moon, Plus, Search, Settings, Sun } from '@/components/icons';
+import {
+  Copy,
+  Export,
+  Import,
+  Moon,
+  Plus,
+  Search,
+  Settings,
+  Sun,
+  Target,
+} from '@/components/icons';
 import { Button, IconButton } from '@/components/ui/Button';
 import { Menu, type MenuSection } from '@/components/ui/Menu';
 import { START_FEN } from '@/chess/fen';
@@ -20,6 +30,7 @@ import { useUi } from '@/stores/ui-store';
 
 import { DocumentHeader } from './DocumentHeader';
 import { useCopyActions } from './useCopyActions';
+import { usePositionActions } from '@/features/workspace/usePositionActions';
 import { NavButton } from '@/features/shell/NavButton';
 
 const CRITICAL_CATEGORIES: readonly { id: CriticalCategory; label: string }[] = [
@@ -45,6 +56,9 @@ export function Toolbar() {
   const theme = usePreferences((state) => state.theme);
   const toggleTheme = usePreferences((state) => state.toggleTheme);
   const copy = useCopyActions();
+  const fen = useAnalysis((state) => state.tree.nodes[state.currentId]?.fen ?? START_FEN);
+  const documentTitle = useAnalysis((state) => state.document.title);
+  const positionActions = usePositionActions({ fen, label: documentTitle || 'this analysis' });
 
   const sections: readonly MenuSection[] = [
     {
@@ -128,6 +142,29 @@ export function Toolbar() {
       <Button aria-label="Import PGN or FEN" icon={<Import />} onClick={() => setImportOpen(true)}>
         <span className="hidden xs:inline">Import</span>
       </Button>
+
+      {/*
+        Everything you can do with the position on the board, from the one
+        definition shared with the command palette and the keyboard. Kept as a
+        menu rather than as buttons: twelve controls around a board is how a
+        workspace stops looking like a chess application.
+      */}
+      <Menu
+        sections={positionActions.sections}
+        trigger={({ open, toggle, id }) => (
+          <Button
+            id={id}
+            aria-label="Position actions"
+            aria-haspopup="menu"
+            aria-expanded={open}
+            active={open}
+            icon={<Target />}
+            onClick={toggle}
+          >
+            <span className="hidden sm:inline">Position</span>
+          </Button>
+        )}
+      />
 
       <Menu
         sections={sections}

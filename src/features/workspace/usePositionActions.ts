@@ -13,6 +13,7 @@ import { useCallback } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 
 import { positionKey } from '@/chess/fen';
+import { createTree } from '@/chess/tree/tree';
 import type { Fen } from '@/chess/types';
 import { useAnalysis } from '@/stores/analysis-store';
 import { useUi } from '@/stores/ui-store';
@@ -68,7 +69,23 @@ export function usePositionActions(options: UsePositionActionsOptions) {
     saveToStudy: () => ui.setSaveToStudyOpen(true),
     createTraining: () => ui.setTrainingCaptureOpen(true),
     ...(options.onAddToPreparation ? { addToPreparation: options.onAddToPreparation } : {}),
-    saveEndgame: () => options.onSaveEndgame?.(),
+    /*
+      Without a route-supplied handler, this hands the position to the endgame
+      lab rather than doing nothing. A menu entry that silently does nothing is
+      worse than one that is absent.
+    */
+    saveEndgame: () => {
+      if (options.onSaveEndgame) {
+        options.onSaveEndgame();
+        return;
+      }
+      depart();
+      openDocument({
+        tree: createTree(options.fen, { Event: 'Endgame', Result: '*' }),
+        document: { kind: 'untitled', title: 'Endgame' },
+      });
+      router.push('/endgame');
+    },
     copyFen: () => {
       void navigator.clipboard
         .writeText(options.fen)
