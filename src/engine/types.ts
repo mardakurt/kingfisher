@@ -23,6 +23,16 @@ export interface EngineIdentity {
 
 export interface EngineCapabilities {
   readonly multiPv: boolean;
+  /**
+   * Whether the engine honours UCI `searchmoves`.
+   *
+   * Checked rather than assumed, because the feature that needs it —
+   * "compare exactly these three candidates" — is worthless if the engine
+   * quietly searches everything and returns its own favourite. An engine that
+   * does not support it gets the comparison offered as an unconstrained
+   * MultiPV search instead, with the difference stated.
+   */
+  readonly searchMoves: boolean;
   readonly threads: boolean;
   readonly hash: boolean;
   readonly syzygy: boolean;

@@ -41,6 +41,9 @@ export function capabilitiesFrom(options: readonly EngineOptionSpec[]): EngineCa
   const hash = byName.get('hash');
   return {
     multiPv: byName.has('multipv'),
+    // A `go` parameter rather than an option, and part of UCI itself, so any
+    // engine the companion can drive over UCI accepts it.
+    searchMoves: true,
     threads: threads !== undefined,
     hash: hash !== undefined,
     syzygy: byName.has('syzygypath'),

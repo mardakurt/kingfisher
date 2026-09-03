@@ -17,6 +17,7 @@ export type WorkspaceToolId =
   | 'theory-radar'
   | 'calculation'
   | 'guess-the-move'
+  | 'candidates'
   | 'tablebase'
   | 'companion'
   | 'document'

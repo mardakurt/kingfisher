@@ -127,7 +127,14 @@ interface EngineState {
 
   selectEngine(slot: SlotId, engineId: string): Promise<void>;
   prepare(slot: SlotId, config: EngineConfigInput): Promise<boolean>;
-  analyse(slot: SlotId, fen: Fen, limit: AnalysisLimit, config: EngineConfigInput): Promise<void>;
+  analyse(
+    slot: SlotId,
+    fen: Fen,
+    limit: AnalysisLimit,
+    config: EngineConfigInput,
+    /** Restrict the search to these root moves, where the engine supports it. */
+    searchMoves?: readonly Uci[],
+  ): Promise<void>;
   /** Run both engines on one position. */
   compare(fen: Fen, limit: AnalysisLimit, config: EngineConfigInput): Promise<void>;
   setComparing(on: boolean): void;
@@ -230,6 +237,7 @@ export const useEngine = create<EngineState>((set, get) => {
     fen: Fen,
     limit: AnalysisLimit,
     config: EngineConfigInput,
+    searchMoves?: readonly Uci[],
   ): Promise<void> => {
     const runtime = runtimes[slot];
     // Claimed before the first await, so a later request always outranks this
@@ -254,7 +262,17 @@ export const useEngine = create<EngineState>((set, get) => {
       history: [],
     });
 
-    runtime.handle = session.analyse({ fen, limit }, (snapshot) => {
+    /*
+      Restricting the search is a capability, not an assumption. An engine that
+      does not honour `searchmoves` would silently return its own favourite
+      move and the comparison would be a lie, so the restriction is dropped
+      rather than sent — and the caller is told, through the capability, so it
+      can label the result honestly.
+    */
+    const restricted =
+      searchMoves?.length && session.capabilities.searchMoves ? { searchMoves } : {};
+
+    runtime.handle = session.analyse({ fen, limit, ...restricted }, (snapshot) => {
       // Stragglers from a search the user has already moved past are dropped,
       // per slot: the two engines finish at different times by definition.
       if (runtime.request !== request) return;
@@ -301,9 +319,15 @@ export const useEngine = create<EngineState>((set, get) => {
 
     prepare: async (slot, config) => (await startSession(slot, config)) !== null,
 
-    analyse: async (slot, fen, limit, config) => {
+    analyse: async (slot, fen, limit, config, searchMoves) => {
       const engines = get().comparing ? 2 : 1;
-      await run(slot, fen, limit, { ...config, threads: shareThreads(config.threads, engines) });
+      await run(
+        slot,
+        fen,
+        limit,
+        { ...config, threads: shareThreads(config.threads, engines) },
+        searchMoves,
+      );
     },
 
     compare: async (fen, limit, config) => {

@@ -162,6 +162,12 @@ function deriveCapabilities(
 
   return {
     multiPv: Boolean(find('MultiPV')),
+    /*
+      Part of the UCI `go` command rather than an option, so there is nothing
+      to find in the option list. Every engine that speaks UCI at all accepts
+      it; a provider that wraps something which does not would report false.
+    */
+    searchMoves: true,
     threads: build.threads && Boolean(threads),
     hash: Boolean(hash),
     syzygy: Boolean(find('SyzygyPath')),
