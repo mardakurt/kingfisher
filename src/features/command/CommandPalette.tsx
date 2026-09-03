@@ -8,6 +8,12 @@ import { useWorkspaceSearch } from '@/features/persistence/queries';
 import { cn } from '@/lib/cn';
 import { gameTitle } from '@/persistence/describe';
 import { getRepositories } from '@/persistence/repositories';
+import {
+  canonicalise,
+  searchByPosition,
+  type PositionHitKind,
+} from '@/persistence/position-search';
+import { useQuery } from '@tanstack/react-query';
 import type { WorkspaceSearchHit } from '@/persistence/search';
 import { useAnalysis } from '@/stores/analysis-store';
 import { useUi } from '@/stores/ui-store';
@@ -40,6 +46,42 @@ function PaletteDialog() {
   const dialogRef = useRef<HTMLDivElement>(null);
 
   const entities = useWorkspaceSearch(query);
+
+  /*
+    A pasted FEN is not a text query and must not be run as one — a position
+    string shares no words with anything and would return nothing while
+    looking like a broken search. The palette recognises it and answers the
+    question actually being asked: where does this position appear in my work?
+  */
+  const pastedPosition = canonicalise(query);
+  const positions = useQuery({
+    queryKey: ['position-search', pastedPosition],
+    enabled: Boolean(pastedPosition),
+    staleTime: 30_000,
+    retry: false,
+    queryFn: async () => searchByPosition(await getRepositories(), pastedPosition!),
+  });
+
+  const positionCommands = useMemo<readonly Command[]>(
+    () =>
+      (positions.data?.hits ?? []).map((hit) => ({
+        id: `position:${hit.id}`,
+        title: hit.title,
+        subtitle: hit.subtitle ?? positionHitLabel(hit.kind),
+        group: 'This position',
+        run: () => {
+          if (hit.kind === 'game' || hit.kind === 'model-game') router.push('/games');
+          else if (hit.kind === 'endgame') router.push('/endgame');
+          else if (hit.kind === 'opening-file') router.push('/opening-files');
+          else if (hit.kind === 'preparation') router.push('/preparation');
+          else if (hit.kind === 'repertoire') router.push('/repertoire');
+          else if (hit.kind === 'decision' || hit.kind === 'critical-position') {
+            router.push('/review');
+          } else router.push('/training');
+        },
+      })),
+    [positions.data, router],
+  );
   const entityCommands = useMemo(
     () =>
       (entities.data ?? []).map((hit) =>
@@ -89,14 +131,20 @@ function PaletteDialog() {
             router.push('/review');
           else if (selectedHit.kind === 'training-set')
             router.push(`/training?set=${encodeURIComponent(selectedHit.targetId ?? '')}`);
+          else if (selectedHit.kind === 'opening-file') router.push('/opening-files');
+          else if (selectedHit.kind === 'preparation') router.push('/preparation');
+          else if (selectedHit.kind === 'endgame') router.push('/endgame');
           else router.push('/training');
         }),
       ),
     [entities.data, router],
   );
   const matches = useMemo(
-    () => rank([...commands, ...entityCommands], query),
-    [commands, entityCommands, query],
+    () =>
+      // A pasted position answers itself: ranking its hits against the FEN as
+      // a text query would score them all zero and hide them.
+      pastedPosition ? [...positionCommands] : rank([...commands, ...entityCommands], query),
+    [commands, entityCommands, positionCommands, pastedPosition, query],
   );
   const selected = Math.min(index, Math.max(0, matches.length - 1));
 
@@ -231,6 +279,9 @@ const HIT_GROUP: Record<WorkspaceSearchHit['kind'], string> = {
   decision: 'Decision',
   'critical-position': 'Critical',
   'training-set': 'Training set',
+  'opening-file': 'Opening file',
+  preparation: 'Preparation',
+  endgame: 'Endgame',
   theme: 'Theme',
   tag: 'Tag',
 };
@@ -275,4 +326,30 @@ function subsequenceScore(haystack: string, needle: string): number {
     cursor = found + 1;
   }
   return score;
+}
+
+/** What kind of record a position hit is, for the palette's second line. */
+function positionHitLabel(kind: PositionHitKind): string {
+  switch (kind) {
+    case 'game':
+      return 'A stored game';
+    case 'chapter':
+      return 'A study chapter';
+    case 'repertoire':
+      return 'A repertoire decision';
+    case 'training':
+      return 'A training item';
+    case 'model-game':
+      return 'A model game';
+    case 'endgame':
+      return 'The endgame library';
+    case 'opening-file':
+      return 'An opening file';
+    case 'preparation':
+      return 'A game-day sheet';
+    case 'decision':
+      return 'A recorded decision';
+    case 'critical-position':
+      return 'The review queue';
+  }
 }

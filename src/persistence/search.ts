@@ -22,6 +22,9 @@ export type WorkspaceHitKind =
   | 'decision'
   | 'critical-position'
   | 'training-set'
+  | 'opening-file'
+  | 'preparation'
+  | 'endgame'
   | 'theme'
   | 'tag';
 
@@ -53,6 +56,9 @@ export async function searchWorkspace(
     decisions,
     reviewItems,
     sets,
+    openingFiles,
+    sessions,
+    endgames,
     gameResult,
   ] = await Promise.all([
     repositories.studies.list(),
@@ -63,6 +69,9 @@ export async function searchWorkspace(
     repositories.review.listDecisions(500),
     repositories.review.listReviewItems(),
     repositories.trainingSets.list(),
+    repositories.openingFiles.list(),
+    repositories.preparation.list(),
+    repositories.endgames.list(),
     repositories.games.search({ text: query.trim(), limit: 18, sortBy: 'importedAt' }),
   ]);
 
@@ -98,6 +107,45 @@ export async function searchWorkspace(
         title: repertoire.title,
         subtitle: repertoire.color === 'w' ? 'White repertoire' : 'Black repertoire',
         targetId: repertoire.id,
+      });
+    }
+  }
+
+  for (const file of openingFiles) {
+    if (
+      includes(`${file.name} ${file.eco ?? ''} ${file.summary ?? ''} ${file.notes ?? ''}`, needle)
+    ) {
+      add({
+        id: `opening-file:${file.id}`,
+        kind: 'opening-file',
+        title: file.name,
+        subtitle: `${file.color === 'w' ? 'White' : 'Black'} · ${file.positions.length} positions`,
+        targetId: file.id,
+      });
+    }
+  }
+
+  for (const session of sessions) {
+    const searchable = [session.title, session.opponent, session.event, session.notes].join(' ');
+    if (includes(searchable, needle)) {
+      add({
+        id: `preparation:${session.id}`,
+        kind: 'preparation',
+        title: session.title,
+        subtitle: session.opponent ? `vs ${session.opponent}` : 'Preparation session',
+        targetId: session.id,
+      });
+    }
+  }
+
+  for (const record of endgames) {
+    if (includes(`${record.title} ${record.note ?? ''} ${record.tags.join(' ')}`, needle)) {
+      add({
+        id: `endgame:${record.id}`,
+        kind: 'endgame',
+        title: record.title,
+        subtitle: `${record.pieceCount} pieces`,
+        targetId: record.id,
       });
     }
   }
