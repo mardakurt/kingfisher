@@ -191,6 +191,30 @@ async function cycle(page: Page, index: number) {
   await navigate(page, 'Games');
   await navigate(page, 'Training');
 
+  /*
+    Phase 8's surfaces, driven from the same document as everything else.
+
+    Each one owns something the earlier routes did not: Review holds a second
+    board and a reveal gate, structure search holds its own long-lived query,
+    and the training-set dialog mounts and unmounts a list. A leak in any of
+    them would accumulate here exactly as an engine session would.
+  */
+  await navigate(page, 'Review');
+  await page.getByRole('tab', { name: 'Journal' }).click();
+  await page.getByRole('tab', { name: 'Improvement' }).click();
+  await page.getByRole('tab', { name: 'Queue' }).click();
+
+  await navigate(page, 'Training');
+  await page.getByRole('button', { name: 'Training sets' }).click();
+  await page
+    .getByRole('dialog', { name: 'Training sets' })
+    .getByRole('button', { name: 'Close' })
+    .click();
+
+  await navigate(page, 'Analysis');
+  await page.getByRole('tab', { name: 'Features' }).click();
+  await page.getByRole('button', { name: 'Search', exact: true }).click();
+
   // Every other pass leaves the analysis tree behind entirely, so route
   // teardown is exercised from a route that owns a board and from one that
   // does not.
@@ -231,4 +255,66 @@ test('an afternoon of tool, engine and route switching leaks no observable resou
   expect(after.intervals - baseline.intervals).toBeLessThanOrEqual(2);
   expect(after.windowListeners - baseline.windowListeners).toBeLessThanOrEqual(4);
   expect(consoleFailures).toEqual([]);
+});
+
+/**
+ * The Explorer cache ceiling, in the running application.
+ *
+ * `database/cache.ts` is unit-tested against a client the test constructs
+ * itself, which proves the trimming rule and nothing about whether the app
+ * ever calls it. This drives real navigation to seed genuine entries, then
+ * pushes the *real* client past the ceiling and asserts it settles — and that
+ * the trimming is confined to Explorer history, because evicting the
+ * persistence caches to save memory would empty every panel on the page.
+ */
+test('an all-day research session cannot grow the explorer cache without bound', async ({
+  page,
+}) => {
+  test.setTimeout(180_000);
+  await page.goto('/analysis');
+  await ready(page);
+
+  // Genuine entries first, from genuine navigation.
+  await play(page, 'e2', 'e4');
+  await play(page, 'e7', 'e5');
+  await page.getByRole('tab', { name: 'Explorer' }).click();
+  await page.getByRole('button', { name: 'e4', exact: true }).first().click();
+
+  const counts = await page.evaluate(async () => {
+    const client = (
+      globalThis as typeof globalThis & {
+        __kingfisherQueryClient?: {
+          setQueryData(key: unknown[], value: unknown): void;
+          getQueryData(key: unknown[]): unknown;
+          getQueryCache(): { getAll(): { queryKey: unknown[] }[] };
+        };
+      }
+    ).__kingfisherQueryClient!;
+    const before = client.getQueryCache().getAll().length;
+    const persistence = client
+      .getQueryCache()
+      .getAll()
+      .filter((query) => query.queryKey[0] === 'persistence').length;
+    // 500+ positions, as an afternoon of research would leave behind.
+    for (let index = 0; index < 600; index += 1) {
+      client.setQueryData(['explorer', 'local', 'v1', `soak-fen-${index}`, {}], { index });
+      await Promise.resolve();
+    }
+    const all = client.getQueryCache().getAll();
+    return {
+      before,
+      persistence,
+      persistenceAfter: all.filter((query) => query.queryKey[0] === 'persistence').length,
+      explorerAfter: all.filter((query) => query.queryKey[0] === 'explorer').length,
+      newest: client.getQueryData(['explorer', 'local', 'v1', 'soak-fen-599', {}]),
+    };
+  });
+
+  expect(counts.before).toBeGreaterThan(0);
+  // The ceiling from `database/cache.ts`, not a number this test invented.
+  expect(counts.explorerAfter).toBeLessThanOrEqual(256);
+  // Back-navigation still pays off: the most recent position is still cached.
+  expect(counts.newest).toEqual({ index: 599 });
+  // Nothing else was collected to get there.
+  expect(counts.persistenceAfter).toBeGreaterThanOrEqual(counts.persistence);
 });

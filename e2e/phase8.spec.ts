@@ -20,6 +20,24 @@ const GAME_PGN = `[Event "Phase 8"]
 
 1. d4 Nf6 2. c4 e6 3. Nf3 d5 4. Nc3 Be7 5. Bg5 O-O 6. e3 h6 7. Bh4 b6 1-0`;
 
+const STRUCTURE_PGNS = `[Event "Structure one"]
+[Date "2025.01.01"]
+[White "One"]
+[Black "A"]
+[WhiteElo "2600"]
+[Result "*"]
+
+1. Nf3 Nf6 2. d4 d5 3. c4 e6 4. Nc3 *
+
+[Event "Structure two"]
+[Date "2026.01.01"]
+[White "Two"]
+[Black "B"]
+[WhiteElo "2500"]
+[Result "*"]
+
+1. d4 d5 2. c4 e6 3. Nh3 Nf6 4. Nc3 *`;
+
 async function ready(page: Page) {
   await page.locator('html[data-kingfisher-ready="true"]').waitFor();
 }
@@ -215,6 +233,19 @@ test('a marked position joins the queue and can be carried into training', async
 
   // One item, in the set, and the queue entry marked as dealt with.
   expect(stored).toEqual({ setExists: true, members: 1, converted: 1 });
+
+  await page.goto('/training');
+  await ready(page);
+  await page.getByRole('button', { name: 'Training sets' }).click();
+  const setsDialog = page.getByRole('dialog', { name: 'Training sets' });
+  await setsDialog.getByRole('button', { name: /Phase 8 set/ }).click();
+  await expect(setsDialog.getByText('Chosen membership · 1 positions')).toBeVisible();
+  await setsDialog.getByRole('button', { name: 'All training' }).click();
+  await setsDialog.getByLabel('Training set name').fill('Recent review positions');
+  await setsDialog.getByLabel('Training set kind').selectOption('dynamic');
+  await setsDialog.getByLabel('Created within days').fill('90');
+  await setsDialog.getByRole('button', { name: 'Create set' }).click();
+  await expect(setsDialog.getByText('Saved filters · 1 positions')).toBeVisible();
 });
 
 test('review candidates are suggested from stored evidence, with their reasons', async ({
@@ -300,4 +331,255 @@ test('review candidates are suggested from stored evidence, with their reasons',
     return (await app.review.listReviewItems()).length;
   });
   expect(count).toBe(1);
+});
+
+test('pawn-skeleton research opens a model game with the engine off', async ({ page }) => {
+  await importGame(page, STRUCTURE_PGNS);
+  await page
+    .getByRole('checkbox', { name: /Select One/ })
+    .first()
+    .check();
+  await page.getByRole('button', { name: 'Review this game' }).click();
+  await ready(page);
+  await page.getByRole('button', { name: 'e6', exact: true }).click();
+
+  await page.getByRole('button', { name: 'Reveal', exact: true }).click();
+  await page.getByRole('tab', { name: 'Features' }).click();
+  await page.getByRole('button', { name: 'Same pawns' }).click();
+  await page.getByRole('button', { name: 'Search', exact: true }).click();
+  const matching = page.getByRole('listitem').filter({ hasText: 'Two – B' }).first();
+  await expect(matching.getByText('Same pawn skeleton')).toBeVisible();
+  await matching.getByRole('button', { name: 'Study game' }).click();
+
+  await expect(page).toHaveURL(/\/model-game$/);
+  await expect(page.getByText(/Model game study .* engine off by default/)).toBeVisible();
+  await page.getByRole('tab', { name: 'Engine' }).click();
+  await expect(page.getByText('No analysis yet')).toBeVisible();
+});
+
+test('SQLite selection deletion updates exact counts and passes integrity', async ({ page }) => {
+  test.setTimeout(180_000);
+  await page.goto('/analysis');
+  await ready(page);
+  await page.getByRole('button', { name: 'Settings ⌘,' }).click();
+  const settings = page.getByRole('dialog', { name: 'Settings' });
+  await settings.getByRole('tab', { name: 'Companion' }).click();
+  await settings.getByLabel('Pairing address').fill('http://127.0.0.1:4338#token=phase8-e2e-token');
+  await settings.getByRole('button', { name: 'Pair', exact: true }).click();
+  await expect(settings.getByText(/Paired with/)).toBeVisible();
+  await settings.getByPlaceholder('New collection name').fill('Phase 8 deletion E2E');
+  await settings.getByRole('button', { name: 'Create', exact: true }).click();
+  await expect(settings.getByText('Phase 8 deletion E2E').first()).toBeVisible();
+  await settings.getByPlaceholder('Paste a PGN collection…').fill(STRUCTURE_PGNS);
+  await settings.getByRole('button', { name: 'Import', exact: true }).click();
+  await expect(settings.getByText(/2 games/).first()).toBeVisible({ timeout: 30_000 });
+  await settings.getByRole('button', { name: 'Close' }).click();
+
+  await page.goto('/databases');
+  await ready(page);
+  await page.getByRole('button', { name: /Phase 8 deletion E2E/ }).click();
+  await expect(page.getByText('exact match count 2')).toBeVisible();
+  await page.getByRole('checkbox').first().check();
+  await page.getByRole('button', { name: 'Delete selected (1)' }).click();
+  const confirmation = page.getByRole('dialog', { name: 'Delete SQLite games?' });
+  await expect(confirmation.getByText(/one transaction/)).toBeVisible();
+  await confirmation.getByRole('button', { name: 'Delete permanently' }).click();
+  await expect(page.getByText('exact match count 1')).toBeVisible({ timeout: 30_000 });
+  await page.getByRole('button', { name: 'Run integrity check' }).click();
+  await expect(page.getByText(/Integrity healthy/)).toBeVisible();
+
+  await page.getByRole('button', { name: 'Delete collection' }).click();
+  await page
+    .getByRole('dialog', { name: 'Delete this SQLite collection?' })
+    .getByRole('button', { name: 'Delete permanently' })
+    .click();
+  await expect(page.getByRole('button', { name: /Phase 8 deletion E2E/ })).toHaveCount(0);
+});
+
+test('a 20,000-node branched study virtualizes and keeps keyboard navigation responsive', async ({
+  page,
+}) => {
+  test.setTimeout(180_000);
+  await page.goto('/studies');
+  await ready(page);
+  const createMs = await page.evaluate(async () => {
+    const app = (
+      globalThis as typeof globalThis & {
+        __kingfisher?: {
+          studies: {
+            create(input: { title: string }): Promise<{ id: string }>;
+            createChapter(input: Record<string, unknown>): Promise<unknown>;
+          };
+        };
+      }
+    ).__kingfisher!;
+    const started = performance.now();
+    const total = 20_000;
+    const branches = 2_000;
+    const main = total - branches;
+    const start = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+    const byParent = new Map<number, string[]>();
+    for (let index = 0; index < branches; index += 1) {
+      const parent = Math.floor((index * (main - 1)) / branches);
+      byParent.set(parent, [...(byParent.get(parent) ?? []), `v${index}`]);
+    }
+    const nodes: Record<string, unknown> = {
+      r: {
+        id: 'r',
+        parentId: null,
+        children: ['n1', ...(byParent.get(0) ?? [])],
+        move: null,
+        fen: start,
+        ply: 0,
+        nags: [],
+        shapes: [],
+        meta: {},
+      },
+    };
+    const move = (id: string, parentId: string, ply: number, children: string[], san: string) => ({
+      id,
+      parentId,
+      children,
+      move: {
+        from: 'g1',
+        to: 'f3',
+        piece: 'n',
+        color: ply % 2 ? 'w' : 'b',
+        san,
+        uci: ply % 2 ? 'g1f3' : 'g8f6',
+        flags: {
+          capture: false,
+          enPassant: false,
+          promotion: false,
+          kingsideCastle: false,
+          queensideCastle: false,
+          doublePawnPush: false,
+        },
+        before: start,
+        after: start,
+      },
+      fen: start,
+      ply,
+      nags: [],
+      ...(ply % 997 === 0 ? { comment: 'Measured variable-height comment.' } : {}),
+      shapes: [],
+      meta: {},
+    });
+    for (let index = 1; index <= main; index += 1) {
+      nodes[`n${index}`] = move(
+        `n${index}`,
+        index === 1 ? 'r' : `n${index - 1}`,
+        index,
+        index < main ? [`n${index + 1}`, ...(byParent.get(index) ?? [])] : [],
+        index % 2 ? 'Nf3' : 'Nf6',
+      );
+    }
+    for (let index = 0; index < branches; index += 1) {
+      const parent = Math.floor((index * (main - 1)) / branches);
+      nodes[`v${index}`] = move(
+        `v${index}`,
+        parent === 0 ? 'r' : `n${parent}`,
+        parent + 1,
+        [],
+        'd4',
+      );
+    }
+    const study = await app.studies.create({ title: '20k scale study' });
+    await app.studies.createChapter({
+      studyId: study.id,
+      title: '20,000 nodes',
+      tree: { rootId: 'r', nodes, startFen: start, headers: { Result: '*' }, nextId: total + 1 },
+    });
+    return performance.now() - started;
+  });
+
+  const reloadStarted = Date.now();
+  await page.reload();
+  await ready(page);
+  await expect(page.getByText('20000 moves')).toBeVisible();
+  const virtual = page.locator('[data-virtualized-move-tree="true"]');
+  await expect(virtual).toBeVisible();
+  const reloadMs = Date.now() - reloadStarted;
+  expect(await virtual.getByRole('listitem').count()).toBeLessThan(100);
+
+  const navigationStarted = Date.now();
+  await page.keyboard.press('End');
+  await expect(virtual.locator('[data-current="true"]')).toBeVisible();
+  await page.keyboard.press('Home');
+  await page.keyboard.press('ArrowRight');
+  await expect(virtual.locator('[data-current="true"]')).toBeVisible();
+  const navigationMs = Date.now() - navigationStarted;
+  expect(navigationMs).toBeLessThan(2_000);
+  console.warn(
+    `Phase 8 20k tree: create/save ${createMs.toFixed(1)} ms; reload/render ${reloadMs} ms; End/Home/Right ${navigationMs} ms`,
+  );
+});
+
+/**
+ * The preparation queue's whole claim is that it reflects the repertoire.
+ *
+ * A priority that is computed once and then goes stale is worse than no
+ * priority at all: the player prepares the move, the queue keeps demanding it,
+ * and the queue stops being trusted. So this walks the real loop — find the
+ * unanswered move, answer it on the board, come back — and asserts the reason
+ * changed because the evidence changed.
+ */
+test('a frequent opponent move with no answer leaves the queue once it is prepared', async ({
+  page,
+}) => {
+  test.setTimeout(180_000);
+  await importGame(
+    page,
+    `[Event "Prep one"]
+[Date "2026.02.01"]
+[White "Opponent, O"]
+[Black "Rival, R"]
+[Result "1-0"]
+
+1. e4 c5 2. Nf3 1-0
+
+[Event "Prep two"]
+[Date "2026.03.01"]
+[White "Opponent, O"]
+[Black "Second, S"]
+[Result "1-0"]
+
+1. e4 e6 2. d4 1-0`,
+  );
+
+  await page.goto('/preparation');
+  await ready(page);
+  await page.getByLabel('Player name').fill('Opponent, O');
+  await page.getByRole('button', { name: 'Prepare' }).click();
+
+  const dock = page.getByRole('complementary', { name: 'Workspace tools' });
+  await dock.getByRole('tab', { name: 'Opening tree' }).click();
+  const queue = dock.getByRole('article').filter({ hasText: 'e4' }).first();
+  await expect(queue.getByText('No response')).toBeVisible();
+  await expect(queue.getByText(/no prepared answer/i)).toBeVisible();
+  // Every priority states the facts it was ordered by, never a blended score.
+  await expect(queue.getByText('Local 100%')).toBeVisible();
+
+  // Answer it on the board the button hands over, and file the answer.
+  await queue.getByRole('button', { name: 'Add response' }).click();
+  await expect(page).toHaveURL(/\/analysis$/);
+  await ready(page);
+  const board = page.getByRole('grid', { name: 'Chessboard' }).first();
+  await board.getByRole('gridcell', { name: /^e7,/ }).click();
+  await board.getByRole('gridcell', { name: /^e5,/ }).click();
+  await page.getByRole('button', { name: 'Document actions' }).click();
+  await page.getByRole('menuitem', { name: 'Add to repertoire…' }).click();
+  await page.getByLabel('Title').fill('Answer to 1.e4');
+  await page.getByRole('button', { name: /Save \d+ position/ }).click();
+  await expect(page.getByRole('dialog', { name: 'Add to repertoire' })).toBeHidden();
+
+  // Back to the queue: the same move, now carrying a prepared answer.
+  await page.goto('/preparation');
+  await ready(page);
+  await page.getByLabel('Player name').fill('Opponent, O');
+  await page.getByRole('button', { name: 'Prepare' }).click();
+  await dock.getByRole('tab', { name: 'Opening tree' }).click();
+  const answered = dock.getByRole('article').filter({ hasText: 'e4' }).first();
+  await expect(answered.getByText('Prepared')).toBeVisible();
+  await expect(answered.getByText('No response')).toHaveCount(0);
 });

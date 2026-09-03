@@ -1,4 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+
+const companionData = path.join(tmpdir(), `kingfisher-phase8-e2e-${process.pid}`);
 
 export default defineConfig({
   testDir: './e2e',
@@ -19,10 +23,23 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
   },
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:3210/analysis',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-  },
+  webServer: [
+    {
+      command: 'npm run dev',
+      url: 'http://localhost:3210/analysis',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
+    {
+      command: 'npm run companion',
+      url: 'http://127.0.0.1:4338/health',
+      reuseExistingServer: false,
+      timeout: 30_000,
+      env: {
+        KINGFISHER_COMPANION_PORT: '4338',
+        KINGFISHER_COMPANION_TOKEN: 'phase8-e2e-token',
+        KINGFISHER_COMPANION_DATA_DIR: companionData,
+      },
+    },
+  ],
 });
