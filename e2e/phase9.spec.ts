@@ -175,6 +175,16 @@ test('calculation hides every source of evidence until the lines are submitted',
   await dock.getByRole('button', { name: 'Submit and reveal' }).click();
   await expect(dock.getByText(/Recorded and frozen/)).toBeVisible();
 
+  /*
+    A calculated position joins the review queue, so the loop that brings a
+    position you thought hard about back weeks later applies to positions you
+    studied and not only to games you played.
+  */
+  await expect(dock.getByRole('heading', { name: 'Review again' })).toBeVisible();
+  await dock.getByRole('button', { name: 'In a week' }).click();
+  // The confirmation is a global notice, not part of the dock.
+  await expect(page.getByText(/Scheduled: due in 7 days/i)).toBeVisible();
+
   // After the reveal the dock is usable again.
   await dock.getByRole('tab', { name: 'Engine', exact: true }).click();
   await expect(dock.getByText('Evidence is hidden while you calculate.')).toHaveCount(0);

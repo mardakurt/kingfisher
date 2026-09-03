@@ -16,7 +16,7 @@
  */
 
 import { useMemo, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { positionKey } from '@/chess/fen';
 import { asSan, asUci, type Fen, type San, type Uci } from '@/chess/types';
@@ -26,6 +26,7 @@ import { Panel, PanelBody, PanelHeader } from '@/components/ui/Panel';
 import { Segmented } from '@/components/ui/Tabs';
 import { invalidateReview } from '@/features/persistence/queries';
 import { BANDS } from '@/features/review/comparison';
+import { ScheduleReview } from '@/features/review/ScheduleReview';
 import { getRepositories } from '@/persistence/repositories';
 import { useUi } from '@/stores/ui-store';
 import { cn } from '@/lib/cn';
@@ -63,9 +64,17 @@ export function CalculationPanel({
   const state = useCalculation();
   const [saving, setSaving] = useState(false);
   const [savedId, setSavedId] = useState<string | null>(null);
+  const [reviewItemId, setReviewItemId] = useState<string | null>(null);
 
   const running = state.fen === fen;
   const key = positionKey(fen);
+  const reviewItem = useQuery({
+    queryKey: ['persistence', 'review-item', reviewItemId ?? ''],
+    enabled: Boolean(reviewItemId),
+    staleTime: 0,
+    retry: false,
+    queryFn: async () => (await getRepositories()).review.getReviewItem(reviewItemId!),
+  });
   const summary = useMemo(
     () => ({
       moves: countMoves(state.tree.branches),
@@ -124,8 +133,29 @@ export function CalculationPanel({
       // Reveal is what submitting *means*: the record is now frozen, and the
       // evidence becomes available in the same action.
       await repositories.review.revealDecision(decision.id, decision.revision);
+      /*
+        A calculated position joins the review queue too.
+
+        Without this the decision would be findable only by searching the
+        journal — and the whole loop Phase 8 built, where a position you thought
+        hard about comes back weeks later, would apply to games you played and
+        not to positions you studied. Marked rather than suggested: the player
+        chose to calculate here, which is the strongest signal there is.
+      */
+      const item = await repositories.review.upsertReviewItem({
+        positionKey: key,
+        fen,
+        sideToMove,
+        source: 'marked',
+        category: 'calculation',
+      });
+      await repositories.review.updateReviewItem(item.id, item.revision, {
+        status: 'reviewed',
+        decisionId: decision.id,
+      });
       useCalculation.getState().reveal();
       setSavedId(decision.id);
+      setReviewItemId(item.id);
       invalidateReview(client);
       onSaved?.(decision.id);
       notify({ tone: 'success', message: 'Calculation recorded. Evidence revealed.' });
@@ -337,11 +367,14 @@ export function CalculationPanel({
         </label>
 
         {state.revealed ? (
-          <p className="mt-3 rounded-[4px] border border-line-subtle bg-surface-2 px-2.5 py-2 text-2xs leading-relaxed text-secondary">
-            Recorded and frozen. The evidence tools are usable now; what you wrote above cannot be
-            edited, which is what makes it worth reading in a month.
-            {savedId ? ' Saved to the decision journal.' : ''}
-          </p>
+          <>
+            <p className="mt-3 rounded-[4px] border border-line-subtle bg-surface-2 px-2.5 py-2 text-2xs leading-relaxed text-secondary">
+              Recorded and frozen. The evidence tools are usable now; what you wrote above cannot be
+              edited, which is what makes it worth reading in a month.
+              {savedId ? ' Saved to the decision journal.' : ''}
+            </p>
+            {reviewItem.data ? <ScheduleReview item={reviewItem.data} /> : null}
+          </>
         ) : (
           <Button
             variant="accent"
