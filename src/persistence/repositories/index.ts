@@ -12,6 +12,10 @@ import { LocalStudyReferenceRepository } from './reference-repository';
 import { LocalAnalysisQueueRepository } from './analysis-queue-repository';
 import { LocalReviewRepository } from './review-repository';
 import { LocalTrainingSetRepository } from './training-set-repository';
+import { LocalPreparationRepository } from './preparation-repository';
+import { LocalOpeningFileRepository } from './opening-file-repository';
+import { LocalEndgameRepository } from './endgame-repository';
+import { LocalPinnedLineRepository } from './pinned-line-repository';
 
 const fromDatabase = (database: PersistenceDatabase): AppRepositories => ({
   studies: new LocalStudyRepository(database),
@@ -25,6 +29,10 @@ const fromDatabase = (database: PersistenceDatabase): AppRepositories => ({
   analysisQueue: new LocalAnalysisQueueRepository(database),
   review: new LocalReviewRepository(database),
   trainingSets: new LocalTrainingSetRepository(database),
+  preparation: new LocalPreparationRepository(database),
+  openingFiles: new LocalOpeningFileRepository(database),
+  endgames: new LocalEndgameRepository(database),
+  pinnedLines: new LocalPinnedLineRepository(database),
   raw: database,
   close: () => database.close(),
 });

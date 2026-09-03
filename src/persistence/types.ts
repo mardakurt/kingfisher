@@ -10,6 +10,10 @@ import type { StudyReferenceRepository } from './repositories/reference-reposito
 import type { AnalysisQueueRepository } from './repositories/analysis-queue-repository';
 import type { ReviewRepository } from './repositories/review-repository';
 import type { TrainingSetRepository } from './repositories/training-set-repository';
+import type { PreparationRepository } from './repositories/preparation-repository';
+import type { OpeningFileRepository } from './repositories/opening-file-repository';
+import type { EndgameRepository } from './repositories/endgame-repository';
+import type { PinnedLineRepository } from './repositories/pinned-line-repository';
 
 export type StudyId = string;
 export type ChapterId = string;
@@ -326,6 +330,10 @@ export interface AppRepositories {
   readonly analysisQueue: AnalysisQueueRepository;
   readonly review: ReviewRepository;
   readonly trainingSets: TrainingSetRepository;
+  readonly preparation: PreparationRepository;
+  readonly openingFiles: OpeningFileRepository;
+  readonly endgames: EndgameRepository;
+  readonly pinnedLines: PinnedLineRepository;
   /**
    * The underlying database, for backup and restore only.
    *

@@ -14,7 +14,12 @@ import type {
   DecisionRecord,
   ReviewItemRecord,
   TrainingSetRecord,
+  PreparationSessionRecord,
+  OpeningFileRecord,
+  EndgamePositionRecord,
+  PinnedLineRecord,
 } from './domain';
+import { ENDGAME_CATEGORIES } from './domain';
 import type { ChapterRecord, DraftRecord, GameRecord, GameSummary, StudyRecord } from './types';
 
 const object = (value: unknown): value is Record<string, unknown> =>
@@ -274,3 +279,86 @@ export const isTrainingSetRecord = (value: unknown): value is TrainingSetRecord 
   finite(value.createdAt) &&
   finite(value.updatedAt) &&
   finite(value.revision);
+
+// --- Phase 9 entities ------------------------------------------------------
+
+const isSheetCard = (value: unknown): boolean =>
+  object(value) &&
+  text(value.id) &&
+  text(value.positionKey) &&
+  text(value.fen) &&
+  stringArray(value.line) &&
+  finite(value.createdAt);
+
+export const isPreparationSessionRecord = (value: unknown): value is PreparationSessionRecord =>
+  object(value) &&
+  text(value.id) &&
+  text(value.title) &&
+  color(value.myColor) &&
+  stringArray(value.repertoireIds) &&
+  stringArray(value.studyIds) &&
+  stringArray(value.openingFileIds) &&
+  stringArray(value.modelGameLinkIds) &&
+  stringArray(value.reviewItemIds) &&
+  array(value.sheet) &&
+  value.sheet.every(isSheetCard) &&
+  finite(value.createdAt) &&
+  finite(value.updatedAt) &&
+  finite(value.revision);
+
+const isOpeningFilePosition = (value: unknown): boolean =>
+  object(value) &&
+  text(value.positionKey) &&
+  text(value.fen) &&
+  stringArray(value.line) &&
+  finite(value.addedAt);
+
+export const isOpeningFileRecord = (value: unknown): value is OpeningFileRecord =>
+  object(value) &&
+  text(value.id) &&
+  text(value.name) &&
+  color(value.color) &&
+  stringArray(value.repertoireIds) &&
+  stringArray(value.chapterIds) &&
+  stringArray(value.modelGameLinkIds) &&
+  stringArray(value.trainingItemIds) &&
+  stringArray(value.reviewItemIds) &&
+  array(value.positions) &&
+  value.positions.every(isOpeningFilePosition) &&
+  finite(value.createdAt) &&
+  finite(value.updatedAt) &&
+  finite(value.revision);
+
+export const isEndgamePositionRecord = (value: unknown): value is EndgamePositionRecord =>
+  object(value) &&
+  text(value.id) &&
+  text(value.positionKey) &&
+  text(value.fen) &&
+  color(value.sideToMove) &&
+  text(value.title) &&
+  (ENDGAME_CATEGORIES as readonly string[]).includes(value.category as string) &&
+  (value.goal === 'convert-win' ||
+    value.goal === 'hold-draw' ||
+    value.goal === 'find-best-move' ||
+    value.goal === 'study') &&
+  stringArray(value.tags) &&
+  finite(value.pieceCount) &&
+  finite(value.createdAt) &&
+  finite(value.updatedAt) &&
+  finite(value.revision);
+
+export const isPinnedLineRecord = (value: unknown): value is PinnedLineRecord =>
+  object(value) &&
+  text(value.id) &&
+  text(value.positionKey) &&
+  text(value.fen) &&
+  text(value.engineId) &&
+  text(value.engineName) &&
+  finite(value.multiPv) &&
+  object(value.score) &&
+  finite(value.depth) &&
+  finite(value.nodes) &&
+  finite(value.timeMs) &&
+  stringArray(value.pvUci) &&
+  stringArray(value.pvSan) &&
+  finite(value.createdAt);

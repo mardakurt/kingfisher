@@ -1,5 +1,5 @@
 export const DATABASE_NAME = 'kingfisher';
-export const DATABASE_VERSION = 9;
+export const DATABASE_VERSION = 10;
 
 export const STORE_NAMES = {
   studies: 'studies',
@@ -20,6 +20,10 @@ export const STORE_NAMES = {
   decisions: 'decisions',
   reviewItems: 'reviewItems',
   trainingSets: 'trainingSets',
+  preparationSessions: 'preparationSessions',
+  openingFiles: 'openingFiles',
+  endgamePositions: 'endgamePositions',
+  pinnedLines: 'pinnedLines',
 } as const;
 
 export type StoreName = (typeof STORE_NAMES)[keyof typeof STORE_NAMES];
@@ -287,6 +291,39 @@ export const MIGRATIONS: readonly Migration[] = [
         keyPath: 'structureClaims',
         multiEntry: true,
       });
+    },
+  },
+  {
+    version: 10,
+    description: 'Add preparation sessions, opening files, endgame positions and pinned lines.',
+    apply(target) {
+      target.createStore(STORE_NAMES.preparationSessions, { keyPath: 'id' }, [
+        { name: 'updatedAt', keyPath: 'updatedAt' },
+        { name: 'opponentKey', keyPath: 'opponentKey' },
+        { name: 'gameDate', keyPath: 'gameDate' },
+      ]);
+      target.createStore(STORE_NAMES.openingFiles, { keyPath: 'id' }, [
+        { name: 'name', keyPath: 'name', unique: true },
+        { name: 'color', keyPath: 'color' },
+        { name: 'updatedAt', keyPath: 'updatedAt' },
+        { name: 'positionKey', keyPath: 'positionKey' },
+      ]);
+      target.createStore(STORE_NAMES.endgamePositions, { keyPath: 'id' }, [
+        { name: 'positionKey', keyPath: 'positionKey' },
+        { name: 'category', keyPath: 'category' },
+        { name: 'pieceCount', keyPath: 'pieceCount' },
+        { name: 'updatedAt', keyPath: 'updatedAt' },
+      ]);
+      /*
+        Pinned lines are keyed by position rather than by chapter: the same
+        position reached through a different move order is the same position,
+        and evidence gathered about it should not have to be gathered twice.
+      */
+      target.createStore(STORE_NAMES.pinnedLines, { keyPath: 'id' }, [
+        { name: 'positionKey', keyPath: 'positionKey' },
+        { name: 'chapterId', keyPath: 'chapterId' },
+        { name: 'createdAt', keyPath: 'createdAt' },
+      ]);
     },
   },
 ];

@@ -248,6 +248,18 @@ export interface ModelGameLinkRecord {
   readonly repertoireId?: RepertoireId;
   readonly note?: string;
   readonly tags: readonly string[];
+  /**
+   * Why this game was saved, in the player's words.
+   *
+   * The question a model game has to answer is "what is this teaching me",
+   * and only the person who saved it knows. Absent on links written before
+   * this field existed, which reads as "no stated purpose" rather than as a
+   * missing feature.
+   */
+  readonly purpose?: string;
+  readonly themes?: readonly string[];
+  readonly keyMoments?: readonly ModelGameKeyMoment[];
+  readonly openingFileId?: string;
   readonly createdAt: number;
 }
 
@@ -346,6 +358,15 @@ export interface DecisionRecord {
   readonly chosenUci?: Uci;
   readonly chosenSan?: San;
   readonly candidates: readonly DecisionCandidate[];
+  /**
+   * The variations actually calculated, as a tree the player built on a board.
+   *
+   * `DecisionCandidate.line` is one line per candidate, which is what a review
+   * of a played game needs. Calculation mode needs branches — "after 1...Rd8 I
+   * looked at both 2.Qe2 and 2.g4" — so the tree is stored separately rather
+   * than flattened into the candidate list and losing its shape.
+   */
+  readonly calculation?: readonly CalculationBranch[];
   readonly estimate?: EvaluationEstimate;
   readonly plan?: string;
   readonly calculationNotes?: string;
@@ -356,6 +377,23 @@ export interface DecisionRecord {
   /** Set once, when the player chose to see the evidence. Never cleared. */
   readonly revealedAt?: number;
   readonly revision: number;
+}
+
+/**
+ * One branch of what the player calculated, as entered on the board.
+ *
+ * Recursive on purpose: calculation is a tree, and flattening it to a list of
+ * lines loses the thing the player most wants to see afterwards — where their
+ * analysis actually forked, and which fork they failed to look at.
+ */
+export interface CalculationBranch {
+  readonly id: string;
+  /** The move that starts this branch, from its parent's position. */
+  readonly uci: Uci;
+  readonly san: San;
+  readonly note?: string;
+  readonly estimate?: EvaluationEstimate;
+  readonly children: readonly CalculationBranch[];
 }
 
 /** One move the player actually considered, with what they thought about it. */
@@ -437,6 +475,17 @@ export interface ReviewItemRecord {
   readonly themes: readonly string[];
   readonly decisionId?: string;
   readonly trainingItemId?: string;
+  /**
+   * When to think about this position again.
+   *
+   * Reuses `ScheduleState` — the same deterministic scheduler training already
+   * runs on (ADR 0011) — rather than inventing a second algorithm that would
+   * drift from it. Review and training ask different questions of the same
+   * position, so they keep separate schedules, but only one implementation of
+   * "when". Absent means the position is not scheduled, which is a legitimate
+   * choice and the default.
+   */
+  readonly schedule?: ScheduleState;
   readonly createdAt: number;
   readonly reviewedAt?: number;
   readonly revision: number;
@@ -592,12 +641,306 @@ export interface UserProfileRecord {
    * never more of them than a person can read.
    */
   readonly customThemes?: readonly string[];
+  /**
+   * Players kept one keystroke away.
+   *
+   * On the profile for the same reason custom themes are: a favourite has no
+   * identity beyond a name, nothing worth a revision, and there are never more
+   * of them than a person can read in a list.
+   */
+  readonly favoritePlayers?: readonly FavoritePlayer[];
   readonly updatedAt: number;
+}
+
+export interface FavoritePlayer {
+  readonly key: string;
+  readonly name: string;
+  readonly note?: string;
+  readonly addedAt: number;
 }
 
 export const EMPTY_PROFILE: UserProfileRecord = {
   id: 'me',
   aliases: [],
   customThemes: [],
+  favoritePlayers: [],
   updatedAt: 0,
+};
+
+// --- Tournament preparation ------------------------------------------------
+
+/**
+ * One opponent, one game, one body of preparation.
+ *
+ * A professional does not prepare "an opening" — they prepare a specific
+ * player, with a specific colour, in a specific round. That framing is the
+ * whole value of this record, and it is why the session owns almost no chess
+ * data of its own: the opponent's games are already in the collection, the
+ * lines are already in a repertoire, the model games are already linked. A
+ * session that copied any of that would go stale the moment the underlying
+ * work was edited.
+ *
+ * What it *does* own is the curated part — the sheet the player actually reads
+ * on the morning of the game, which by definition cannot be derived.
+ */
+export interface PreparationSessionRecord {
+  readonly id: string;
+  readonly title: string;
+  /** The opponent's name as typed, and its normalized index key. */
+  readonly opponent?: string;
+  readonly opponentKey?: string;
+  /** The colour the *user* has in the game being prepared for. */
+  readonly myColor: Color;
+  readonly event?: string;
+  readonly round?: string;
+  /** ISO `YYYY-MM-DD`, not a timestamp: a round has a date, not a moment. */
+  readonly gameDate?: string;
+  readonly notes?: string;
+  /** References, never copies. */
+  readonly repertoireIds: readonly RepertoireId[];
+  readonly studyIds: readonly string[];
+  readonly openingFileIds: readonly string[];
+  readonly modelGameLinkIds: readonly ModelGameLinkId[];
+  readonly reviewItemIds: readonly string[];
+  /** The curated game-day sheet. Owned, because curation cannot be derived. */
+  readonly sheet: readonly PreparationSheetCard[];
+  readonly createdAt: number;
+  readonly updatedAt: number;
+  readonly revision: number;
+}
+
+/**
+ * One position on the game-day sheet.
+ *
+ * Deliberately not a pointer to a position elsewhere: a sheet card carries the
+ * FEN and the line that reaches it so the sheet still reads correctly when it
+ * is printed, exported, or opened on a phone in a playing hall with the rest
+ * of the database unavailable. Everything else on it is the player's own note.
+ */
+export interface PreparationSheetCard {
+  readonly id: string;
+  readonly positionKey: PositionKey;
+  readonly fen: Fen;
+  /** The move sequence that reaches it, in SAN, for the printed line. */
+  readonly line: readonly San[];
+  /** Why this card is on the sheet, in the player's words. */
+  readonly why?: string;
+  /** The move the player intends to play here. */
+  readonly intendedSan?: San;
+  readonly note?: string;
+  /** Where the card came from, so the sheet can say what it is quoting. */
+  readonly source?: PreparationCardSource;
+  readonly createdAt: number;
+}
+
+export type PreparationCardSource =
+  'repertoire' | 'explorer' | 'model-game' | 'analysis' | 'review' | 'theory-radar';
+
+export class StalePreparationSessionWriteError extends Error {
+  override readonly name = 'StalePreparationSessionWriteError';
+  constructor(
+    readonly current: PreparationSessionRecord,
+    readonly attemptedRevision: number,
+  ) {
+    super('This preparation session changed in another Kingfisher tab.');
+  }
+}
+
+// --- Opening files ---------------------------------------------------------
+
+/**
+ * A focused body of opening research.
+ *
+ * Not a study (which is chapters of analysis) and not a repertoire (which is
+ * decisions at positions). An opening file is the thing a player actually has
+ * in their head — "Black vs 1.e4, Najdorf" — and its job is to gather the
+ * repertoire positions, chapters, model games, critical positions and training
+ * that already exist for that subject into one place to work from.
+ *
+ * It stores references and notes. It stores no lines, because every line it
+ * would store already lives somewhere with a revision on it.
+ */
+export interface OpeningFileRecord {
+  readonly id: string;
+  readonly name: string;
+  readonly color: Color;
+  /** The opening's root position, when the file has one. */
+  readonly positionKey?: PositionKey;
+  readonly fen?: Fen;
+  readonly eco?: string;
+  readonly summary?: string;
+  readonly notes?: string;
+  readonly repertoireIds: readonly RepertoireId[];
+  readonly chapterIds: readonly string[];
+  readonly modelGameLinkIds: readonly ModelGameLinkId[];
+  readonly trainingItemIds: readonly TrainingItemId[];
+  readonly reviewItemIds: readonly string[];
+  /** Positions the file is about, with the player's reason for each. */
+  readonly positions: readonly OpeningFilePosition[];
+  readonly createdAt: number;
+  readonly updatedAt: number;
+  readonly revision: number;
+}
+
+export interface OpeningFilePosition {
+  readonly positionKey: PositionKey;
+  readonly fen: Fen;
+  readonly line: readonly San[];
+  readonly note?: string;
+  readonly addedAt: number;
+}
+
+export class StaleOpeningFileWriteError extends Error {
+  override readonly name = 'StaleOpeningFileWriteError';
+  constructor(
+    readonly current: OpeningFileRecord,
+    readonly attemptedRevision: number,
+  ) {
+    super('This opening file changed in another Kingfisher tab.');
+  }
+}
+
+// --- Endgame library -------------------------------------------------------
+
+/**
+ * A saved endgame position, categorised by the player.
+ *
+ * The category is chosen, never inferred: "fortress" and "technical
+ * conversion" are judgements about what a position is *for*, and counting
+ * pieces cannot produce them.
+ */
+export interface EndgamePositionRecord {
+  readonly id: string;
+  readonly positionKey: PositionKey;
+  readonly fen: Fen;
+  readonly sideToMove: Color;
+  readonly title: string;
+  readonly category: EndgameCategory;
+  readonly goal: EndgameGoal;
+  readonly note?: string;
+  readonly tags: readonly string[];
+  /** How many pieces are on the board, so tablebase eligibility is a lookup. */
+  readonly pieceCount: number;
+  readonly source?: string;
+  readonly gameId?: string;
+  readonly trainingItemId?: TrainingItemId;
+  readonly createdAt: number;
+  readonly updatedAt: number;
+  readonly revision: number;
+}
+
+export const ENDGAME_CATEGORIES = [
+  'rook',
+  'queen',
+  'minor-piece',
+  'pawn',
+  'fortress',
+  'technical-conversion',
+  'defensive-study',
+] as const;
+
+export type EndgameCategory = (typeof ENDGAME_CATEGORIES)[number];
+
+export const ENDGAME_CATEGORY_LABEL: Record<EndgameCategory, string> = {
+  rook: 'Rook ending',
+  queen: 'Queen ending',
+  'minor-piece': 'Minor-piece ending',
+  pawn: 'Pawn ending',
+  fortress: 'Fortress',
+  'technical-conversion': 'Technical conversion',
+  'defensive-study': 'Defensive study',
+};
+
+/** What the player is practising here. Determines how a session is judged. */
+export type EndgameGoal = 'convert-win' | 'hold-draw' | 'find-best-move' | 'study';
+
+export const ENDGAME_GOAL_LABEL: Record<EndgameGoal, string> = {
+  'convert-win': 'Convert the win',
+  'hold-draw': 'Hold the draw',
+  'find-best-move': 'Find the tablebase move',
+  study: 'Study',
+};
+
+export class StaleEndgamePositionWriteError extends Error {
+  override readonly name = 'StaleEndgamePositionWriteError';
+  constructor(
+    readonly current: EndgamePositionRecord,
+    readonly attemptedRevision: number,
+  ) {
+    super('This endgame position changed in another Kingfisher tab.');
+  }
+}
+
+// --- Pinned engine lines ---------------------------------------------------
+
+/**
+ * An engine line promoted from a running search into stored evidence.
+ *
+ * A search that is still running is a moving number; the moment a player
+ * decides a line matters, it has to stop moving. Pinning records the whole
+ * provenance — which engine, which build, what settings, how deep, and when —
+ * because a PV without those is an assertion rather than evidence.
+ */
+export interface PinnedLineRecord {
+  readonly id: string;
+  readonly positionKey: PositionKey;
+  readonly fen: Fen;
+  readonly chapterId?: string;
+  readonly nodeId?: NodeId;
+  readonly engineId: string;
+  readonly engineName: string;
+  readonly engineVersion?: string;
+  readonly multiPv: number;
+  readonly threads?: number;
+  readonly hashMb?: number;
+  /** The moves this line was restricted to, when it came from a comparison. */
+  readonly searchMoves?: readonly Uci[];
+  readonly score: Score;
+  readonly depth: number;
+  readonly seldepth?: number;
+  readonly nodes: number;
+  readonly timeMs: number;
+  readonly pvUci: readonly Uci[];
+  readonly pvSan: readonly San[];
+  readonly note?: string;
+  readonly createdAt: number;
+}
+
+// --- Model game teaching material ------------------------------------------
+
+/**
+ * A moment in a model game the player wants to notice again.
+ *
+ * User-authored, always. Kingfisher can tell you the evaluation changed; it
+ * cannot tell you that a move is a typical manoeuvre, and inventing that label
+ * would be fabricating instruction.
+ */
+export interface ModelGameKeyMoment {
+  readonly id: string;
+  readonly ply: number;
+  readonly positionKey: PositionKey;
+  readonly fen: Fen;
+  readonly kind: KeyMomentKind;
+  readonly note?: string;
+  /** Ask the player to find the game move here, in guess-the-move mode. */
+  readonly guess?: boolean;
+  readonly createdAt: number;
+}
+
+export const KEY_MOMENT_KINDS = [
+  'key-idea',
+  'critical-decision',
+  'typical-manoeuvre',
+  'pawn-break',
+  'endgame-transition',
+] as const;
+
+export type KeyMomentKind = (typeof KEY_MOMENT_KINDS)[number];
+
+export const KEY_MOMENT_LABEL: Record<KeyMomentKind, string> = {
+  'key-idea': 'Key idea',
+  'critical-decision': 'Critical decision',
+  'typical-manoeuvre': 'Typical manoeuvre',
+  'pawn-break': 'Pawn break',
+  'endgame-transition': 'Endgame transition',
 };
