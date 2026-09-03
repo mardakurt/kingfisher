@@ -281,17 +281,14 @@ body {
  * Applied through one root attribute so any surface can opt in without a prop
  * threaded through the layout, and so turning it off is guaranteed complete.
  */
-:root[data-density='compact'] {
-  --chrome-row: 2rem;
-}
-
 :root[data-density='compact'] .density-row {
-  height: var(--chrome-row);
-}
-
-:root[data-density='compact'] .density-pad {
-  padding-top: 0.375rem;
-  padding-bottom: 0.375rem;
+  /*
+   * Two-thirds of a line shorter than the comfortable 2.5rem. Enough to give
+   * a 900px laptop another row of moves across four stacked bars, and not so
+   * little that a 36px control stops fitting — which is the floor, because
+   * this rule may not shrink a hit target.
+   */
+  height: 2.125rem;
 }
 
 :root[data-density='compact'] .density-pad-x {

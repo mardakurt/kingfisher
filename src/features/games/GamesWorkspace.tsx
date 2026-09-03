@@ -248,7 +248,7 @@ export function GamesWorkspace() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header className="flex h-10 shrink-0 items-center gap-1.5 border-b border-line-subtle bg-surface-1 px-2 sm:px-3">
+      <header className="density-row flex h-10 shrink-0 items-center gap-1.5 border-b border-line-subtle bg-surface-1 px-2 sm:px-3">
         <NavButton />
         <Database className="h-4 w-4 shrink-0 text-accent" />
         <h1 className="shrink-0 text-xs font-semibold text-primary">Games</h1>

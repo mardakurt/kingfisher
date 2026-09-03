@@ -29,6 +29,7 @@ function ModelGameForm() {
   const [linkPosition, setLinkPosition] = useState(true);
   const [repertoireId, setRepertoireId] = useState('');
   const [note, setNote] = useState('');
+  const [purpose, setPurpose] = useState('');
   const [tags, setTags] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,6 +50,7 @@ function ModelGameForm() {
         ...(linkPosition ? { positionKey: positionKey(node.fen) } : {}),
         ...(repertoireId ? { repertoireId } : {}),
         ...(note.trim() ? { note: note.trim() } : {}),
+        ...(purpose.trim() ? { purpose: purpose.trim() } : {}),
         tags: tags
           .split(',')
           .map((tag) => tag.trim())
@@ -142,6 +144,22 @@ function ModelGameForm() {
                 </option>
               ))}
             </select>
+          </label>
+          {/*
+            The question a model game has to answer, asked at the moment it is
+            saved — which is the only moment the answer is actually known.
+            Coming back to a folder of "instructive games" in three months and
+            wondering what any of them was instructive *about* is how a model
+            game collection stops being used.
+          */}
+          <label className="mt-3 block text-2xs text-tertiary">
+            Why this game — what is it teaching you?
+            <input
+              value={purpose}
+              onChange={(event) => setPurpose(event.target.value)}
+              className={FIELD}
+              placeholder="How to handle the isolated queen's pawn as the defender"
+            />
           </label>
           <label className="mt-3 block text-2xs text-tertiary">
             Context note

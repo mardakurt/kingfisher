@@ -219,7 +219,7 @@ export function ReviewWorkspace() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header className="flex h-11 shrink-0 flex-wrap items-center gap-1.5 border-b border-line-subtle bg-surface-1 px-2 sm:px-3">
+      <header className="density-row flex h-11 shrink-0 flex-wrap items-center gap-1.5 border-b border-line-subtle bg-surface-1 px-2 sm:px-3">
         <NavButton />
         <div className="min-w-0">
           <h1 className="truncate text-xs font-medium text-primary">Review</h1>

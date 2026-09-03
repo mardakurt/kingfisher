@@ -162,7 +162,7 @@ export function RepertoireWorkspace() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header className="flex h-10 shrink-0 items-center gap-2 border-b border-line-subtle bg-surface-1 px-2 sm:px-3">
+      <header className="density-row flex h-10 shrink-0 items-center gap-2 border-b border-line-subtle bg-surface-1 px-2 sm:px-3">
         <NavButton />
         <RepertoireIcon className="h-4 w-4 text-accent" />
         <h1 className="text-xs font-semibold text-primary">Repertoire</h1>

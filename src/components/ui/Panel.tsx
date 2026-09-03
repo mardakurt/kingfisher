@@ -20,7 +20,12 @@ interface PanelHeaderProps {
 export const PanelHeader = ({ children, actions, className }: PanelHeaderProps) => (
   <header
     className={cn(
-      'flex h-8 shrink-0 items-center justify-between gap-2 border-b border-line-subtle px-2.5',
+      /*
+        Horizontal padding only. A panel header is already 2rem tall, which is
+        below the compact row height — applying that here would make it
+        *taller*, and compact density must never grow anything.
+      */
+      'density-pad-x flex h-8 shrink-0 items-center justify-between gap-2 border-b border-line-subtle px-2.5',
       className,
     )}
   >
