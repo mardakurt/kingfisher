@@ -92,6 +92,15 @@ export interface PositionReportInput {
     readonly source: string;
   };
   readonly structure?: { readonly claims: readonly string[]; readonly definitionVersion: string };
+  /**
+   * Strategic themes that hold here, each with the rule that decided it.
+   *
+   * The definition travels with the theme rather than living only in the
+   * catalogue, because a label the reader cannot check is a label they have to
+   * take on trust — which is the same failure as an uncited statistic.
+   */
+  readonly themes?: readonly { readonly name: string; readonly definition: string }[];
+  readonly themeVersion?: string;
   readonly now?: number;
 }
 
@@ -107,6 +116,7 @@ export function buildPositionReport(input: PositionReportInput): PositionReport 
       repertoireSection(input),
       modelGamesSection(input),
       personalGamesSection(input),
+      themesSection(input),
       structureSection(input),
       engineSection(input),
       journalSection(input),
@@ -341,6 +351,31 @@ function personalGamesSection(input: PositionReportInput): ReportSection {
         secondary: [game.event, game.year].filter(Boolean).join(', ') || game.result,
       })),
     ],
+    emptyReason: null,
+  };
+}
+
+/**
+ * Strategic themes, each printed with the rule that matched it.
+ *
+ * "Opposite-coloured bishops" is a claim about the board and is checkable;
+ * printing it without its definition would turn a countable fact into a label
+ * the reader has to trust. So the definition is the criterion.
+ */
+function themesSection(input: PositionReportInput): ReportSection {
+  const themes = input.themes ?? [];
+  if (themes.length === 0) {
+    return empty(
+      'themes',
+      'Strategic themes',
+      'No defined strategic theme holds in this position. Themes are decided by counting, so an absence here means the rules did not match — not that the position is featureless.',
+    );
+  }
+  return {
+    id: 'themes',
+    title: 'Strategic themes',
+    provenance: `Deterministic theme rules · ${input.themeVersion ?? 'unversioned'}`,
+    entries: themes.map((theme) => ({ primary: theme.name, criterion: theme.definition })),
     emptyReason: null,
   };
 }

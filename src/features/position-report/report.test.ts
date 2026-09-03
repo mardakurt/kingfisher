@@ -47,6 +47,7 @@ describe('buildPositionReport', () => {
       'repertoire',
       'model-games',
       'personal',
+      'themes',
       'structure',
       'engine',
       'journal',
@@ -207,6 +208,33 @@ describe('sections that draw on the player’s own work', () => {
   it('says plainly when no repertoire covers the position', () => {
     const report = buildPositionReport({ fen: FEN });
     expect(section(report, 'repertoire')?.emptyReason).toBe('No repertoire covers this position.');
+  });
+
+  /**
+   * A theme without its rule is a label the reader has to trust. The
+   * definition is carried as the entry's criterion for the same reason a
+   * statistic carries its source.
+   */
+  it('prints each strategic theme with the rule that matched it', () => {
+    const report = buildPositionReport({
+      fen: FEN,
+      themes: [
+        {
+          name: 'Rook ending',
+          definition: 'Neither side has a queen or a minor piece, and at least one rook remains.',
+        },
+      ],
+      themeVersion: 'themes t1',
+    });
+    const themes = section(report, 'themes');
+    expect(themes?.provenance).toContain('themes t1');
+    expect(themes?.entries[0]?.primary).toBe('Rook ending');
+    expect(themes?.entries[0]?.criterion).toContain('Neither side has a queen');
+  });
+
+  it('explains an absence of themes as a non-match rather than a featureless position', () => {
+    const themes = section(buildPositionReport({ fen: FEN }), 'themes');
+    expect(themes?.emptyReason).toContain('decided by counting');
   });
 
   it('versions the structural rules it quotes', () => {

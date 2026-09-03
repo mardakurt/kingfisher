@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react';
 
 import { positionKey } from '@/chess/fen';
 import { SIGNATURE_VERSION, structureClaims, structureFacts } from '@/chess/structure';
+import { strategicThemes, THEME_VERSION, themeById } from '@/chess/themes';
 import { Button } from '@/components/ui/Button';
 import { EmptyState, PanelBody, PanelHeader } from '@/components/ui/Panel';
 import { databaseProviderById } from '@/database/registry';
@@ -65,6 +66,10 @@ export function PositionReportPanel() {
 
       const facts = structureFacts(fen);
       const claims = facts ? structureClaims(facts).map((claim) => claim.label) : [];
+      const themes = strategicThemes(fen)
+        .map((id) => themeById(id))
+        .filter((theme) => theme !== undefined)
+        .map((theme) => ({ name: theme.name, definition: theme.definition }));
       const reference = 'failed' in explorer ? null : explorer;
       const failedExplorer = 'failed' in explorer ? explorer.failed : undefined;
 
@@ -92,6 +97,7 @@ export function PositionReportPanel() {
         ...(claims.length > 0
           ? { structure: { claims, definitionVersion: `structure ${SIGNATURE_VERSION}` } }
           : {}),
+        ...(themes.length > 0 ? { themes, themeVersion: `themes ${THEME_VERSION}` } : {}),
       });
     },
   });

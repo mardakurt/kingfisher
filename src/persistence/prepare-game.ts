@@ -7,6 +7,7 @@ import {
   structureFactsFromFeatures,
   structureSignature,
 } from '@/chess/structure';
+import { themeClaimIds } from '@/chess/themes';
 import { serializePgn } from '@/chess/pgn';
 import { mainlinePath } from '@/chess/tree/tree';
 import type { GameTree, NodeId } from '@/chess/tree/types';
@@ -131,10 +132,19 @@ export function indexGame(game: GameRecord): PositionRecord[] {
       fen: node.fen,
       nodeId: node.id,
       ...(skeleton !== null ? { pawnSkeleton: skeleton } : {}),
-      ...(facts
+      ...(facts && parts
         ? {
             structureSignature: structureSignature(facts),
-            structureClaims: structureClaims(facts).map((claim) => claim.id),
+            /*
+              Strategic themes ride the same multi-entry index as the pawn
+              claims, prefixed so the two kinds can never be confused. One
+              index, one search path, and an old collection gets them from the
+              existing structure backfill rather than a re-import.
+            */
+            structureClaims: [
+              ...structureClaims(facts).map((claim) => claim.id),
+              ...themeClaimIds(parts),
+            ],
           }
         : {}),
     });

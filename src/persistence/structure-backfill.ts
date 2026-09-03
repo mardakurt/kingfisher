@@ -34,6 +34,7 @@ import {
   structureSignature,
 } from '@/chess/structure';
 import { positionFeatures } from '@/chess/features';
+import { themeClaimIds } from '@/chess/themes';
 
 export interface BackfillProgress {
   readonly stage: 'scanning' | 'indexing' | 'complete' | 'cancelled';
@@ -161,7 +162,10 @@ export function identityOf(positionKey: string): {
     positionKey,
     pawnSkeleton: pawnSkeletonKeyFromParts(parsed.value),
     structureSignature: structureSignature(facts),
-    structureClaims: structureClaims(facts).map((claim) => claim.id),
+    structureClaims: [
+      ...structureClaims(facts).map((claim) => claim.id),
+      ...themeClaimIds(parsed.value),
+    ],
     fen,
   };
 }
