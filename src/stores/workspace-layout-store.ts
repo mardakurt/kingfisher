@@ -30,7 +30,27 @@ interface WorkspaceLayoutState {
   activeTools: Record<string, WorkspaceToolId>;
   /** Legacy fallback retained for existing persisted version-1 layouts. */
   activeTool: WorkspaceToolId;
+  /**
+   * Everything except board, move tree and the selected tool is hidden.
+   *
+   * Not persisted, and not a preset. Focus is a thing you enter for twenty
+   * minutes of hard analysis and leave; restoring it on next launch would
+   * present a chrome-less application to somebody who has forgotten they
+   * turned it on, with no obvious way out.
+   */
+  focusMode: boolean;
+  /**
+   * Denser chrome, so more of the window is board, tree and evidence.
+   *
+   * Persisted, because it is a standing preference about how somebody likes
+   * their workstation rather than a mode. It reduces padding and chrome
+   * height; it does not reduce text size or hit targets, which would trade
+   * legibility for density and is the usual way "compact" goes wrong.
+   */
+  compact: boolean;
   setSidebarCollapsed(value: boolean): void;
+  setFocusMode(value: boolean): void;
+  setCompact(value: boolean): void;
   setToolDockCollapsed(value: boolean): void;
   setToolDockWidth(value: number): void;
   setPreset(value: WorkspacePreset): void;
@@ -92,7 +112,11 @@ export const useWorkspaceLayout = create<WorkspaceLayoutState>()(
         preparation: 'document',
       },
       activeTool: 'engine',
+      focusMode: false,
+      compact: false,
       setSidebarCollapsed: (sidebarCollapsed) => set({ sidebarCollapsed }),
+      setFocusMode: (focusMode) => set({ focusMode }),
+      setCompact: (compact) => set({ compact }),
       setToolDockCollapsed: (toolDockCollapsed) => set({ toolDockCollapsed }),
       setToolDockWidth: (toolDockWidth) =>
         set({ toolDockWidth: Math.min(640, Math.max(320, Math.round(toolDockWidth))) }),
@@ -107,6 +131,8 @@ export const useWorkspaceLayout = create<WorkspaceLayoutState>()(
       name: 'kingfisher.workspace-layout',
       version: 2,
       storage: createJSONStorage(() => localStorage),
+      // Focus mode is deliberately excluded: see its declaration above.
+      partialize: ({ focusMode: _focus, ...rest }) => rest,
     },
   ),
 );

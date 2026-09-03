@@ -14,6 +14,7 @@ import { useAnalysis } from '@/stores/analysis-store';
 import { engineDefinitions } from '@/engine/registry';
 import { useEngine } from '@/stores/engine-store';
 import { usePreferences } from '@/stores/preferences-store';
+import { useWorkspaceLayout } from '@/stores/workspace-layout-store';
 import { useUi } from '@/stores/ui-store';
 import { showTool } from '@/features/workspace/select-tool';
 
@@ -42,6 +43,7 @@ export function useCommands(): readonly Command[] {
     const analysis = useAnalysis.getState;
     const ui = useUi.getState;
     const prefs = usePreferences.getState;
+    const layout = useWorkspaceLayout.getState;
     const engine = useEngine.getState;
 
     const startEngine = () => {
@@ -398,6 +400,35 @@ export function useCommands(): readonly Command[] {
         title: 'Show notes and annotations',
         group: 'Panels',
         run: () => showTool(pathname, 'notes'),
+      },
+      {
+        id: 'focus-mode',
+        title: 'Focus mode — board, tree and one tool',
+        group: 'Interface',
+        keywords: 'hide chrome distraction deep concentrate',
+        run: () => layout().setFocusMode(!layout().focusMode),
+      },
+      {
+        id: 'compact-mode',
+        title: 'Compact density — less chrome, same text size',
+        group: 'Interface',
+        keywords: 'dense tight space laptop',
+        run: () => layout().setCompact(!layout().compact),
+      },
+      {
+        id: 'show-calculation',
+        title: 'Calculate here, with evidence hidden',
+        group: 'Panels',
+        shortcut: '⇧C',
+        keywords: 'blindfold candidates variation think',
+        run: () => showTool(pathname, 'calculation'),
+      },
+      {
+        id: 'show-theory-radar',
+        title: 'Show the theory radar',
+        group: 'Panels',
+        keywords: 'recent new changed trend opening',
+        run: () => showTool(pathname, 'theory-radar'),
       },
       {
         id: 'shortcuts',

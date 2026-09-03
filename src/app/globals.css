@@ -269,3 +269,32 @@ body {
   --shape-blue: #56b4e9;
   --shape-yellow: #f0e442;
 }
+
+/*
+ * Compact density.
+ *
+ * Less chrome, not smaller text. Every rule here removes padding or reduces a
+ * fixed chrome height; none of them touches font size or hit-target size,
+ * because that is the trade "compact mode" usually makes and it buys density
+ * with legibility a professional works in for eight hours at a time.
+ *
+ * Applied through one root attribute so any surface can opt in without a prop
+ * threaded through the layout, and so turning it off is guaranteed complete.
+ */
+:root[data-density='compact'] {
+  --chrome-row: 2rem;
+}
+
+:root[data-density='compact'] .density-row {
+  height: var(--chrome-row);
+}
+
+:root[data-density='compact'] .density-pad {
+  padding-top: 0.375rem;
+  padding-bottom: 0.375rem;
+}
+
+:root[data-density='compact'] .density-pad-x {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}

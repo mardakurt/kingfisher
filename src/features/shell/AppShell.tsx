@@ -10,6 +10,7 @@ import { useWorkspacePersistence } from '@/features/persistence/useWorkspacePers
 import { ShortcutsDialog } from '@/features/shell/ShortcutsDialog';
 import { useCompanionSync } from '@/companion/useCompanion';
 import { useUi } from '@/stores/ui-store';
+import { useWorkspaceLayout } from '@/stores/workspace-layout-store';
 
 import { ConflictNotice } from '@/features/persistence/ConflictNotice';
 import { RecoveryNotice } from '@/features/persistence/RecoveryNotice';
@@ -18,6 +19,8 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Notices } from './Notices';
 import { Sidebar } from './Sidebar';
 import { StatusBar } from './StatusBar';
+import { FocusModeBar } from './FocusModeBar';
+import { ResearchTrail } from './ResearchTrail';
 import { MobileNavigation } from './MobileNavigation';
 import { ChessWorkspaceProvider } from '@/features/workspace/ChessWorkspaceContext';
 import { AnalysisQueueProvider } from '@/features/analysis-queue/AnalysisQueueProvider';
@@ -72,6 +75,18 @@ export function AppShell({ children }: { children: ReactNode }) {
   useWorkspacePersistence();
   useCompanionSync();
   const sidebarOpen = useUi((state) => state.sidebarOpen);
+  const focusMode = useWorkspaceLayout((state) => state.focusMode);
+  const setFocusMode = useWorkspaceLayout((state) => state.setFocusMode);
+  const compact = useWorkspaceLayout((state) => state.compact);
+
+  /*
+    Density is a document-level flag rather than a class on every component:
+    one attribute, and any surface can opt into it in CSS without threading a
+    prop through nine layers of layout.
+  */
+  useEffect(() => {
+    document.documentElement.dataset.density = compact ? 'compact' : 'comfortable';
+  }, [compact]);
   const setSidebarOpen = useUi((state) => state.setSidebarOpen);
   const settingsOpen = useUi((state) => state.settingsOpen);
   const importOpen = useUi((state) => state.importOpen);
@@ -101,22 +116,39 @@ export function AppShell({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('keydown', closeOnEscape);
   }, [setSidebarOpen, sidebarOpen]);
 
+  /*
+    Escape leaves focus mode, and does so before anything else reads the key —
+    a mode that hides the way out needs the most conventional exit there is.
+  */
+  useEffect(() => {
+    if (!focusMode) return;
+    const leave = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setFocusMode(false);
+    };
+    window.addEventListener('keydown', leave);
+    return () => window.removeEventListener('keydown', leave);
+  }, [focusMode, setFocusMode]);
+
   return (
     <ChessWorkspaceProvider>
       <AnalysisQueueProvider />
       <div className="flex h-dvh flex-col overflow-hidden bg-surface-0">
         <div className="flex min-h-0 flex-1" inert={sidebarOpen || undefined}>
-          <Sidebar />
+          {/* Focus mode takes the navigation away, not the ability to navigate:
+              Escape and the exit button both restore it, and the command
+              palette still works. */}
+          {focusMode ? null : <Sidebar />}
           <main className="flex min-w-0 flex-1 flex-col">
             {/* Above the workspace, not inside it: the notice has to be visible
                 on whichever route the conflicting chapter is open in. */}
             <ConflictNotice />
             <RecoveryNotice />
+            <ResearchTrail />
             <ErrorBoundary label="The workspace">{children}</ErrorBoundary>
           </main>
         </div>
-        <StatusBar />
-        <MobileNavigation />
+        {focusMode ? <FocusModeBar /> : <StatusBar />}
+        {focusMode ? null : <MobileNavigation />}
 
         {sidebarOpen && (
           <div

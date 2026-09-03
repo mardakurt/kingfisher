@@ -23,6 +23,10 @@ export const SHORTCUTS: readonly Shortcut[] = [
 
   { id: 'engine', keys: 'E', label: 'Start or stop the engine', group: 'Analysis' },
   { id: 'explorer', keys: 'D', label: 'Show the database explorer', group: 'Analysis' },
+  { id: 'analysis', keys: 'A', label: 'Analyse this position', group: 'Analysis' },
+  { id: 'model-games', keys: 'M', label: 'Show model games', group: 'Analysis' },
+  { id: 'repertoire-tool', keys: 'R', label: 'Show repertoire decisions', group: 'Analysis' },
+  { id: 'calculate', keys: '⇧C', label: 'Calculate here, with evidence hidden', group: 'Analysis' },
   { id: 'flip', keys: 'F', label: 'Flip the board', group: 'Analysis' },
 
   { id: 'promote', keys: '⇧P', label: 'Move variation up', group: 'Editing' },
@@ -50,6 +54,7 @@ export const SHORTCUTS: readonly Shortcut[] = [
   { id: 'palette', keys: '⌘K', label: 'Command palette', group: 'Interface' },
   { id: 'shortcuts', keys: '?', label: 'Keyboard shortcuts', group: 'Interface' },
   { id: 'settings', keys: '⌘,', label: 'Settings', group: 'Interface' },
+  { id: 'focus-exit', keys: 'Esc', label: 'Leave focus mode', group: 'Interface' },
 ];
 
 /** Board annotation is mouse-driven, but the modifiers deserve documenting. */

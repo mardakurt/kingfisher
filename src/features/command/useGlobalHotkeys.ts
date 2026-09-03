@@ -1,13 +1,15 @@
 'use client';
 
 import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
-import { START_FEN } from '@/chess/fen';
+import { positionKey, START_FEN } from '@/chess/fen';
 import { useAnalysis } from '@/stores/analysis-store';
 import { useEngine } from '@/stores/engine-store';
 import { usePreferences } from '@/stores/preferences-store';
 import { useUi } from '@/stores/ui-store';
 import { showTool } from '@/features/workspace/select-tool';
+import { useCalculation } from '@/features/calculation/calculation-store';
 
 /** `1`–`6` annotate the current move with the six move-quality glyphs. */
 const NAG_KEYS: Record<string, number> = { '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6 };
@@ -29,6 +31,7 @@ const isTypingTarget = (target: EventTarget | null): boolean => {
  * the reference dialog cannot fall out of date without someone noticing.
  */
 export function useGlobalHotkeys(): void {
+  const router = useRouter();
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       const modifier = event.metaKey || event.ctrlKey;
@@ -125,7 +128,7 @@ export function useGlobalHotkeys(): void {
         return;
       }
 
-      if (key === 'c') {
+      if (key === 'c' && !event.shiftKey) {
         // Guarding on the root keeps `C` from opening an editor for a comment
         // that has nowhere sensible to appear before the first move.
         ui.setCommentingNodeId(analysis.currentId);
@@ -137,6 +140,32 @@ export function useGlobalHotkeys(): void {
       }
       if (key === 'x') {
         analysis.clearShapes(analysis.currentId);
+        return;
+      }
+      /*
+        Position actions. Only the keys `position-actions.ts` claims, and only
+        the ones that were free — `⇧C` rather than `C`, because `C` has opened
+        the comment editor since Phase 1 and a new feature does not get to
+        evict a binding people have learned.
+      */
+      if (key === 'a') {
+        // The same thing the position menu's "Analyse this position" does, so
+        // the key and the menu entry cannot come to mean different things.
+        router.push('/analysis');
+        return;
+      }
+      if (key === 'm' && !event.shiftKey) {
+        showTool(window.location.pathname, 'model-games');
+        return;
+      }
+      if (key === 'r') {
+        showTool(window.location.pathname, 'repertoire');
+        return;
+      }
+      if (key === 'c' && event.shiftKey) {
+        const fen = analysis.tree.nodes[analysis.currentId]?.fen ?? START_FEN;
+        useCalculation.getState().start(fen, positionKey(fen));
+        showTool(window.location.pathname, 'calculation');
         return;
       }
       if (key === 'd') {
@@ -172,5 +201,5 @@ export function useGlobalHotkeys(): void {
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, []);
+  }, [router]);
 }
