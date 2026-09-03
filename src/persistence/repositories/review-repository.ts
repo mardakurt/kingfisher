@@ -28,6 +28,7 @@ import type {
   ReviewItemSource,
   ReviewSignal,
   ReviewStatus,
+  ScheduleState,
 } from '../domain';
 import { StaleDecisionWriteError, StaleReviewItemWriteError } from '../domain';
 import type { Color, Fen, San, Uci } from '@/chess/types';
@@ -110,6 +111,18 @@ export interface ReviewRepository {
         'status' | 'themes' | 'category' | 'decisionId' | 'trainingItemId' | 'reviewedAt'
       >
     >,
+  ): Promise<ReviewItemRecord>;
+  /**
+   * Set or clear when this position should be thought about again.
+   *
+   * Separate from `updateReviewItem` because clearing is a real choice —
+   * "never schedule this" — and a partial update cannot express the difference
+   * between "leave the schedule alone" and "remove it".
+   */
+  scheduleReviewItem(
+    id: string,
+    expectedRevision: number,
+    schedule: ScheduleState | undefined,
   ): Promise<ReviewItemRecord>;
   deleteReviewItem(id: string): Promise<void>;
 }
@@ -346,6 +359,36 @@ export class LocalReviewRepository implements ReviewRepository {
         };
         await transaction.put(STORE_NAMES.reviewItems, record);
         return record;
+      },
+    );
+  }
+
+  async scheduleReviewItem(
+    id: string,
+    expectedRevision: number,
+    schedule: ScheduleState | undefined,
+  ): Promise<ReviewItemRecord> {
+    return this.database.transaction(
+      [STORE_NAMES.reviewItems],
+      'readwrite',
+      async (transaction) => {
+        const raw = await transaction.get<unknown>(STORE_NAMES.reviewItems, id);
+        if (raw === undefined) throw new Error('That review item no longer exists.');
+        const current = assertValid(raw, isReviewItemRecord, 'review item');
+        if (current.revision !== expectedRevision) {
+          throw new StaleReviewItemWriteError(current, expectedRevision);
+        }
+        // Deleting the property rather than storing `undefined`: an absent
+        // schedule is the representation of "not scheduled", and IndexedDB
+        // would happily store the key with an undefined value.
+        const { schedule: _previous, ...rest } = current;
+        const next: ReviewItemRecord = {
+          ...rest,
+          ...(schedule ? { schedule } : {}),
+          revision: current.revision + 1,
+        };
+        await transaction.put(STORE_NAMES.reviewItems, next);
+        return next;
       },
     );
   }
