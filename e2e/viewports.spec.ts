@@ -39,6 +39,8 @@ const ROUTES = [
   '/training',
   '/review',
   '/model-game',
+  '/endgame',
+  '/opening-files',
 ] as const;
 
 async function waitForApp(page: Page) {

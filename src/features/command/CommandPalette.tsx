@@ -66,9 +66,11 @@ function PaletteDialog() {
     () =>
       (positions.data?.hits ?? []).map((hit) => ({
         id: `position:${hit.id}`,
-        title: hit.title,
-        subtitle: hit.subtitle ?? positionHitLabel(hit.kind),
-        group: 'This position',
+        title: hit.subtitle ? `${hit.title} — ${hit.subtitle}` : hit.title,
+        // The palette renders the group and the title, so the kind goes in the
+        // group where it is actually read rather than in a subtitle nothing
+        // displays.
+        group: positionHitLabel(hit.kind),
         run: () => {
           if (hit.kind === 'game' || hit.kind === 'model-game') router.push('/games');
           else if (hit.kind === 'endgame') router.push('/endgame');
@@ -328,28 +330,28 @@ function subsequenceScore(haystack: string, needle: string): number {
   return score;
 }
 
-/** What kind of record a position hit is, for the palette's second line. */
+/** What kind of record a position hit is, shown in the palette's group column. */
 function positionHitLabel(kind: PositionHitKind): string {
   switch (kind) {
     case 'game':
-      return 'A stored game';
+      return 'Game';
     case 'chapter':
-      return 'A study chapter';
+      return 'Chapter';
     case 'repertoire':
-      return 'A repertoire decision';
+      return 'Repertoire';
     case 'training':
-      return 'A training item';
+      return 'Training';
     case 'model-game':
-      return 'A model game';
+      return 'Model game';
     case 'endgame':
-      return 'The endgame library';
+      return 'Endgame';
     case 'opening-file':
-      return 'An opening file';
+      return 'Opening file';
     case 'preparation':
-      return 'A game-day sheet';
+      return 'Preparation';
     case 'decision':
-      return 'A recorded decision';
+      return 'Decision';
     case 'critical-position':
-      return 'The review queue';
+      return 'Critical';
   }
 }

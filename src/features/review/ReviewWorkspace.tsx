@@ -182,7 +182,14 @@ export function ReviewWorkspace() {
           items={[
             { id: 'queue' as const, label: 'Queue' },
             { id: 'improvement' as const, label: 'Improvement' },
-            { id: 'journal' as const, label: 'Journal' },
+            /*
+              Not "Journal": the tool dock's context panel is already called
+              that, and it is the right name for it — the record for the
+              position on the board. This tab is the journal in aggregate, and
+              "Patterns" says what its three views actually show without
+              claiming a score for any of them.
+            */
+            { id: 'journal' as const, label: 'Patterns' },
           ]}
           value={tab}
           onChange={setTab}

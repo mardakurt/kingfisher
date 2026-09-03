@@ -215,6 +215,26 @@ async function cycle(page: Page, index: number) {
   await page.getByRole('tab', { name: 'Features' }).click();
   await page.getByRole('button', { name: 'Search', exact: true }).click();
 
+  /*
+    Phase 9's surfaces. Each owns something the earlier ones did not: the
+    preparation session bar holds queries per session, opening files and the
+    endgame lab each mount a list beside a board, and a calculation session
+    holds a second board plus a gate that other tools consult. A leak in any of
+    them accumulates here exactly as an engine session would.
+  */
+  await navigate(page, 'Preparation');
+  await navigate(page, 'Opening Files');
+  await navigate(page, 'Endgame');
+
+  await navigate(page, 'Analysis');
+  await page.getByRole('tab', { name: 'Calculation' }).click();
+  await page.getByRole('button', { name: 'Start calculation' }).click();
+  await play(page, 'e2', 'e4');
+  // Ending the session must release the gate as well as the board; a cycle
+  // that left it locked would make every later cycle test nothing.
+  await page.getByRole('button', { name: 'End calculation' }).click();
+  await expect(page.getByRole('button', { name: 'Start calculation' })).toBeVisible();
+
   // Every other pass leaves the analysis tree behind entirely, so route
   // teardown is exercised from a route that owns a board and from one that
   // does not.
