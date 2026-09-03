@@ -269,6 +269,23 @@ test.describe('concealment', () => {
       some unrelated reason — an engine that was never started, say.
     */
     await expect(surface.first()).toHaveAttribute('data-board-conceals', 'evidence');
+
+    /*
+      §14: concealment must be subtractive, not a CSS `display: none`. An
+      element carrying an accessible name is reachable by assistive tech and
+      by `page.content()` alike regardless of visibility, so the only proof
+      that concealed evidence was never rendered is that no such element
+      exists in the tree at all. `EvaluationBar` only ever renders when
+      `caps.showEvaluation` is true, so its absence here is a direct check on
+      the capability contract itself, not a proxy for it.
+
+      The pattern matches `EvaluationBar`'s own aria-label ("Evaluation
+      +0.34", "Evaluation #3", "Evaluation —") and deliberately excludes the
+      self-analysis form's "Evaluation estimate" field, which is the user's
+      own guess and is meant to stay visible before reveal.
+    */
+    await expect(page.getByLabel(/^Evaluation [+\-#0-9—]/)).toHaveCount(0);
+    await expect(page.getByLabel('No evaluation')).toHaveCount(0);
   });
 });
 
