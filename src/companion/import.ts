@@ -123,6 +123,11 @@ export async function importPgnIntoSqlite(
         moveUci: position.moveUci,
         moveSan: position.moveSan,
         mover: position.mover,
+        fen: position.fen,
+        nodeId: position.nodeId,
+        pawnSkeleton: position.pawnSkeleton,
+        structureSignature: position.structureSignature,
+        structureClaims: position.structureClaims,
       })),
     });
     done += 1;

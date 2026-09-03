@@ -55,12 +55,14 @@ describe('pawn skeleton key', () => {
     expect(describePawnSkeleton(`${SKELETON_VERSION}:invalid`)).toBe('Unreadable position');
   });
 
-  it('describes a skeleton as squares, White upper-case by file', () => {
+  it('describes a skeleton as named squares for each side', () => {
     // 1.e4 e5 only: every other pawn is still at home.
     const key = pawnSkeletonKey('rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2');
-    expect(describePawnSkeleton(key)).toContain('e4');
-    expect(describePawnSkeleton(key)).toContain('e5');
-    expect(describePawnSkeleton(key)).not.toContain('e2');
+    const described = describePawnSkeleton(key);
+    expect(described).toMatch(/^White .*a2.*e4/);
+    expect(described).toMatch(/Black .*a7.*e5/);
+    expect(described).not.toContain('e2');
+    expect(described).not.toContain('e7');
   });
 });
 

@@ -17,6 +17,7 @@ import { parseFen } from '@/chess/fen';
 import { EmptyState, PanelBody, PanelHeader } from '@/components/ui/Panel';
 
 import { useAnalysisPosition } from './useAnalysisPosition';
+import { StructureSearchPanel } from './StructureSearchPanel';
 
 export function FeaturesPanel() {
   const { node } = useAnalysisPosition();
@@ -48,6 +49,7 @@ export function FeaturesPanel() {
           <Side title="White" side={features.white} />
           <Side title="Black" side={features.black} />
         </div>
+        <StructureSearchPanel fen={node.fen} />
       </PanelBody>
     </div>
   );

@@ -1,4 +1,10 @@
 import { positionKey } from '@/chess/fen';
+import {
+  pawnSkeletonKey,
+  structureClaims,
+  structureFacts,
+  structureSignature,
+} from '@/chess/structure';
 import { serializePgn } from '@/chess/pgn';
 import { mainlinePath } from '@/chess/tree/tree';
 import type { GameTree, NodeId } from '@/chess/tree/types';
@@ -57,6 +63,7 @@ export function indexGame(game: GameRecord): PositionRecord[] {
     const child = game.tree.nodes[path[index + 1] as NodeId];
     if (!node || !child?.move) continue;
     const key = positionKey(node.fen);
+    const facts = structureFacts(node.fen);
     const dedupe = `${key}|${child.move.uci}`;
     if (seen.has(dedupe)) continue;
     seen.add(dedupe);
@@ -68,6 +75,15 @@ export function indexGame(game: GameRecord): PositionRecord[] {
       moveUci: child.move.uci,
       moveSan: child.move.san,
       mover: child.move.color,
+      fen: node.fen,
+      nodeId: node.id,
+      pawnSkeleton: pawnSkeletonKey(node.fen),
+      ...(facts
+        ? {
+            structureSignature: structureSignature(facts),
+            structureClaims: structureClaims(facts).map((claim) => claim.id),
+          }
+        : {}),
     });
   }
   return records;

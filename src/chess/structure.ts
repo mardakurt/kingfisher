@@ -88,20 +88,31 @@ export function pawnSkeletonKeyFromParts(parts: FenParts): string {
   return `${SKELETON_VERSION}:${groups.join('/')}`;
 }
 
-/** Human-readable form of a skeleton key, for a result row or a tooltip. */
+/**
+ * Human-readable form of a skeleton key, for a result row or a tooltip.
+ *
+ * The two sides are named rather than distinguished by letter case: a file is
+ * a lower-case letter in every other part of the product, and a reader should
+ * not have to know a private convention to tell whose pawn is on d4.
+ */
 export function describePawnSkeleton(key: string): string {
   const body = key.startsWith(`${SKELETON_VERSION}:`)
     ? key.slice(SKELETON_VERSION.length + 1)
     : key;
   if (body === 'invalid') return 'Unreadable position';
   const groups = body.split('/');
-  const squares: string[] = [];
+  const white: string[] = [];
+  const black: string[] = [];
   groups.forEach((group, fileIndex) => {
     const [ours = '', theirs = ''] = group.split('|');
-    for (const rank of ours) squares.push(`${FILES[fileIndex]}${rank}`);
-    for (const rank of theirs) squares.push(`${FILES[fileIndex]}${rank}`.toLowerCase());
+    for (const rank of ours) white.push(`${FILES[fileIndex]}${rank}`);
+    for (const rank of theirs) black.push(`${FILES[fileIndex]}${rank}`);
   });
-  return squares.length === 0 ? 'No pawns' : squares.join(' ');
+  if (white.length === 0 && black.length === 0) return 'No pawns';
+  return [
+    white.length ? `White ${white.join(' ')}` : 'White none',
+    black.length ? `Black ${black.join(' ')}` : 'Black none',
+  ].join(' · ');
 }
 
 /** How many pawns a skeleton holds, without reconstructing a board. */

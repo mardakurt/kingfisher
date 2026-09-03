@@ -41,6 +41,8 @@ export interface CompanionAggregateIntegrity {
   readonly positions: number;
   readonly aggregatedPositions: number;
   readonly aggregateRows: number;
+  readonly filteredCacheKeys: number;
+  readonly filteredAggregateRows: number;
   readonly consistent: boolean;
 }
 
@@ -173,6 +175,25 @@ export class CompanionClient {
 
   gamesAtPosition<T>(key: string, positionKey: string, limit?: number): Promise<T> {
     return this.request('/db/games-at', { key, positionKey, limit });
+  }
+
+  searchStructures<T>(key: string, query: unknown): Promise<T> {
+    return this.request('/db/structure-search', { key, query });
+  }
+
+  deleteGames(
+    key: string,
+    selection: { readonly fingerprints: readonly string[] } | { readonly query: unknown },
+  ): Promise<{ deleted: number; integrity: CompanionAggregateIntegrity }> {
+    return this.request('/db/delete-games', { key, ...selection });
+  }
+
+  clearDatabase(key: string): Promise<{ deleted: number; integrity: CompanionAggregateIntegrity }> {
+    return this.request('/db/clear', { key });
+  }
+
+  deleteDatabase(key: string): Promise<{ deleted: boolean }> {
+    return this.request('/db/delete', { key });
   }
 
   databaseIntegrity(key: string): Promise<CompanionAggregateIntegrity> {

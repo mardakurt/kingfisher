@@ -154,6 +154,35 @@ export interface PositionRecord {
   readonly moveUci: Uci;
   readonly moveSan: San;
   readonly mover: 'w' | 'b';
+  /** Representative position before `moveUci`; added by the Phase 8 structure index. */
+  readonly fen?: Fen;
+  readonly nodeId?: string;
+  readonly pawnSkeleton?: string;
+  readonly structureSignature?: string;
+  readonly structureClaims?: readonly string[];
+}
+
+export type StructureSearchMode = 'exact-position' | 'pawn-skeleton' | 'signature' | 'claims';
+export type StructureSearchSort = 'closest' | 'rating' | 'recent';
+
+export interface StructureSearchQuery {
+  readonly mode: StructureSearchMode;
+  readonly positionKey: string;
+  readonly pawnSkeleton: string;
+  readonly structureSignature: string;
+  readonly claims: readonly string[];
+  readonly sort?: StructureSearchSort;
+  readonly limit?: number;
+}
+
+export interface StructureSearchResult {
+  readonly game: GameSummary;
+  readonly position: PositionRecord;
+  readonly exactPosition: boolean;
+  readonly samePawnSkeleton: boolean;
+  readonly sameSignature: boolean;
+  /** Count of requested deterministic claims present in this position. */
+  readonly sharedClaims: number;
 }
 
 export interface GameSearchQuery {
@@ -232,6 +261,8 @@ export interface GameRepository {
    * guesses dressed as evidence.
    */
   routesToPosition(key: string, limit?: number): Promise<readonly TranspositionRoute[]>;
+  /** Deterministic structure lookup over the position index. */
+  searchStructures(query: StructureSearchQuery): Promise<readonly StructureSearchResult[]>;
 }
 
 export interface TranspositionRoute {

@@ -32,6 +32,11 @@ export interface PreparedSqliteGame {
     readonly moveUci: string;
     readonly moveSan: string;
     readonly mover: 'w' | 'b';
+    readonly fen?: string;
+    readonly nodeId?: string;
+    readonly pawnSkeleton?: string;
+    readonly structureSignature?: string;
+    readonly structureClaims?: readonly string[];
   }[];
 }
 

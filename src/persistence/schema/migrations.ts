@@ -1,5 +1,5 @@
 export const DATABASE_NAME = 'kingfisher';
-export const DATABASE_VERSION = 8;
+export const DATABASE_VERSION = 9;
 
 export const STORE_NAMES = {
   studies: 'studies',
@@ -265,6 +265,27 @@ export const MIGRATIONS: readonly Migration[] = [
         if (typeof record !== 'object' || record === null) return record;
         const profile = record as Record<string, unknown>;
         return Array.isArray(profile.customThemes) ? profile : { ...profile, customThemes: [] };
+      });
+    },
+  },
+  {
+    version: 9,
+    description: 'Index deterministic pawn skeletons and structural position facts.',
+    apply(target) {
+      /*
+        Existing position rows remain valid and are reindexed when their PGN is
+        imported again. IndexedDB omits records whose keyPath is absent, so the
+        new indexes never manufacture a match for an older unindexed row.
+      */
+      target.addIndex(STORE_NAMES.positions, { name: 'pawnSkeleton', keyPath: 'pawnSkeleton' });
+      target.addIndex(STORE_NAMES.positions, {
+        name: 'structureSignature',
+        keyPath: 'structureSignature',
+      });
+      target.addIndex(STORE_NAMES.positions, {
+        name: 'structureClaims',
+        keyPath: 'structureClaims',
+        multiEntry: true,
       });
     },
   },

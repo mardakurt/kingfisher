@@ -16,6 +16,8 @@ import type {
   GameSummary,
   PersistGameResult,
   PositionRecord,
+  StructureSearchQuery,
+  StructureSearchResult,
   TranspositionRoute,
 } from '../types';
 import { assertValid, isGameSummary } from '../validation';
@@ -382,6 +384,73 @@ export class LocalGameRepository implements GameRepository {
     return [...counts.values()].sort((a, b) => b.games - a.games).slice(0, limit);
   }
 
+  async searchStructures(query: StructureSearchQuery): Promise<readonly StructureSearchResult[]> {
+    const limit = Math.min(100, Math.max(1, query.limit ?? 30));
+    let records: readonly PositionRecord[];
+    if (query.mode === 'exact-position') {
+      records = await this.database.getAllFromIndex<PositionRecord>(
+        STORE_NAMES.positions,
+        'positionKey',
+        query.positionKey,
+      );
+    } else if (query.mode === 'pawn-skeleton') {
+      records = await this.database.getAllFromIndex<PositionRecord>(
+        STORE_NAMES.positions,
+        'pawnSkeleton',
+        query.pawnSkeleton,
+      );
+    } else if (query.mode === 'signature') {
+      records = await this.database.getAllFromIndex<PositionRecord>(
+        STORE_NAMES.positions,
+        'structureSignature',
+        query.structureSignature,
+      );
+    } else {
+      const first = query.claims[0];
+      records = first
+        ? await this.database.getAllFromIndex<PositionRecord>(
+            STORE_NAMES.positions,
+            'structureClaims',
+            first,
+          )
+        : [];
+      records = records.filter((record) =>
+        query.claims.every((claim) => record.structureClaims?.includes(claim)),
+      );
+    }
+
+    /* A repeated position can contribute more than one move row; show it once. */
+    const unique = new Map<string, PositionRecord>();
+    for (const record of records) {
+      const identity = `${record.gameId}|${record.positionKey}|${record.ply}`;
+      if (!unique.has(identity)) unique.set(identity, record);
+    }
+    const positions = [...unique.values()];
+    const summaries = new Map(
+      (await this.summaries([...new Set(positions.map((record) => record.gameId))])).map((game) => [
+        game.id,
+        game,
+      ]),
+    );
+    const rows = positions.flatMap<StructureSearchResult>((position) => {
+      const game = summaries.get(position.gameId);
+      if (!game) return [];
+      return [
+        {
+          game,
+          position,
+          exactPosition: position.positionKey === query.positionKey,
+          samePawnSkeleton: position.pawnSkeleton === query.pawnSkeleton,
+          sameSignature: position.structureSignature === query.structureSignature,
+          sharedClaims: query.claims.filter((claim) => position.structureClaims?.includes(claim))
+            .length,
+        },
+      ];
+    });
+
+    return rows.sort((a, b) => compareStructureResults(a, b, query)).slice(0, limit);
+  }
+
   async explore(fen: Fen, filters: ExplorerFilters = {}, limit = 20): Promise<ExplorerResult> {
     const key = positionKey(fen);
     const records = await this.database.getAllFromIndex<PositionRecord>(
@@ -415,6 +484,29 @@ export class LocalGameRepository implements GameRepository {
     return aggregateLocalExplorer(fen, records, games, filters, limit);
   }
 }
+
+function compareStructureResults(
+  a: StructureSearchResult,
+  b: StructureSearchResult,
+  query: StructureSearchQuery,
+): number {
+  if (query.sort === 'rating')
+    return maxRating(b.game) - maxRating(a.game) || recent(b) - recent(a);
+  if (query.sort === 'recent')
+    return recent(b) - recent(a) || maxRating(b.game) - maxRating(a.game);
+  return (
+    Number(b.exactPosition) - Number(a.exactPosition) ||
+    Number(b.samePawnSkeleton) - Number(a.samePawnSkeleton) ||
+    Number(b.sameSignature) - Number(a.sameSignature) ||
+    b.sharedClaims - a.sharedClaims ||
+    maxRating(b.game) - maxRating(a.game) ||
+    recent(b) - recent(a)
+  );
+}
+
+const maxRating = (game: GameSummary): number =>
+  Math.max(game.whiteRating ?? 0, game.blackRating ?? 0);
+const recent = (row: StructureSearchResult): number => row.game.year ?? 0;
 
 async function findFingerprint(
   transaction: PersistenceTransaction,

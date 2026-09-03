@@ -18,7 +18,11 @@ import { Toolbar } from './Toolbar';
 import { useAnalysisPosition } from './useAnalysisPosition';
 import { useEngineSnapshots } from './useEngineSnapshots';
 
-export function AnalysisWorkspace() {
+export function AnalysisWorkspace({
+  modelGameStudy = false,
+}: {
+  readonly modelGameStudy?: boolean;
+}) {
   const wide = useMediaQuery('(min-width: 1100px)');
   const { node, tree, currentId } = useAnalysisPosition();
   const goTo = useAnalysis((state) => state.goTo);
@@ -26,12 +30,17 @@ export function AnalysisWorkspace() {
   const setCommentingNodeId = useUi((state) => state.setCommentingNodeId);
   const prefs = usePreferences();
   const runEngine = useEngine((state) => state.analyse);
+  const stopEngine = useEngine((state) => state.stop);
 
   useEngineSnapshots();
 
+  useEffect(() => {
+    if (modelGameStudy) stopEngine();
+  }, [modelGameStudy, stopEngine]);
+
   const lastAutoFen = useRef<string | null>(null);
   useEffect(() => {
-    if (!prefs.autoAnalyse || lastAutoFen.current === node.fen) return;
+    if (modelGameStudy || !prefs.autoAnalyse || lastAutoFen.current === node.fen) return;
     lastAutoFen.current = node.fen;
     void runEngine('primary', node.fen, prefs.engineLimit, {
       multiPv: prefs.engineMultiPv,
@@ -46,11 +55,18 @@ export function AnalysisWorkspace() {
     prefs.engineMultiPv,
     prefs.engineThreads,
     runEngine,
+    modelGameStudy,
   ]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <Toolbar />
+      {modelGameStudy ? (
+        <div className="shrink-0 border-b border-line-subtle bg-surface-2 px-3 py-1 text-center text-[10.5px] text-secondary">
+          Model game study · annotations, repertoire and structure remain visible · engine off by
+          default
+        </div>
+      ) : null}
       <div
         className={cn(
           'flex min-h-0 flex-1 flex-col overflow-y-auto',
