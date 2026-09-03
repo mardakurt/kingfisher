@@ -27,7 +27,8 @@
     "bench:preparation": "node scripts/bench-preparation.mjs",
     "benchmark": "node scripts/benchmark.mjs",
     "bundle:report": "node scripts/bundle-report.mjs",
-    "smoke:lichess": "node scripts/smoke-lichess.mjs"
+    "smoke:lichess": "node scripts/smoke-lichess.mjs",
+    "bench:player-search": "node scripts/bench-player-search.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.102.8",

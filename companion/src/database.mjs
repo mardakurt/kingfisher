@@ -115,6 +115,25 @@ CREATE TABLE IF NOT EXISTS position_filter_total_cache (
   PRIMARY KEY (position_key, year_key, rating_key, result_key)
 ) WITHOUT ROWID;
 
+/*
+  A player is a row, not an aggregation.
+
+  The player prefix lookup used to run two GROUP BY passes over the whole
+  games table on every keystroke — 95 ms at 500,000 games, which is a search
+  box that feels broken. Maintaining the counts on import turns the same
+  question into an index range scan over a table with one row per name.
+
+  name_key is the same normalized key games.white_key holds, so a prefix typed
+  by a user matches the same way it always did.
+*/
+CREATE TABLE IF NOT EXISTS players (
+  name_key      TEXT PRIMARY KEY,
+  name          TEXT NOT NULL,
+  games         INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS players_games ON players(games DESC);
+
 CREATE INDEX IF NOT EXISTS games_white_key   ON games(white_key);
 CREATE INDEX IF NOT EXISTS games_black_key   ON games(black_key);
 CREATE INDEX IF NOT EXISTS games_year        ON games(year);
@@ -245,6 +264,7 @@ const REBUILD_AFFECTED = `
 
 export class GameDatabase {
   #db;
+  #ftsAvailable = false;
 
   constructor(file) {
     this.#db = new DatabaseSync(file);
@@ -262,6 +282,92 @@ export class GameDatabase {
       .get().n;
     const positionCount = this.#db.prepare('SELECT COUNT(*) AS n FROM positions').get().n;
     if (aggregateCount === 0 && positionCount > 0) this.rebuildAggregates();
+    this.#ensureSearchIndexes();
+  }
+
+  /**
+   * The player table and the metadata index, built once for a database that
+   * predates them.
+   *
+   * Both are derived entirely from `games`, so rebuilding is always safe and
+   * a failure is never data loss — which is why a database whose SQLite build
+   * lacks FTS5 simply goes without it and falls back to the LIKE scan rather
+   * than refusing to open.
+   */
+  #ensureSearchIndexes() {
+    const gameCount = this.#db.prepare('SELECT COUNT(*) AS n FROM games').get().n;
+
+    const playerCount = this.#db.prepare('SELECT COUNT(*) AS n FROM players').get().n;
+    if (playerCount === 0 && gameCount > 0) this.rebuildPlayers();
+
+    try {
+      /*
+        §48: players, event, site and ECO — the fields somebody searches by
+        name. Deliberately not the movetext: it is by far the largest column,
+        indexing it would multiply the database size for a query nobody has
+        asked for, and the position index already answers "which games reached
+        this position" properly.
+
+        `content=''` makes this a contentless index: it stores the terms and
+        the rowid, not a second copy of the text.
+      */
+      this.#db.exec(`
+        CREATE VIRTUAL TABLE IF NOT EXISTS games_fts USING fts5(
+          white, black, event, site, eco, opening,
+          content='', tokenize='unicode61'
+        )
+      `);
+      this.#ftsAvailable = true;
+    } catch {
+      // An SQLite build without FTS5. The LIKE path still answers correctly,
+      // just more slowly, and saying so beats refusing to open the database.
+      this.#ftsAvailable = false;
+      return;
+    }
+
+    const indexed = this.#db.prepare('SELECT COUNT(*) AS n FROM games_fts').get().n;
+    if (indexed === 0 && gameCount > 0) this.rebuildSearchIndex();
+  }
+
+  /** Recount every player from `games`. */
+  rebuildPlayers() {
+    this.#db.exec('BEGIN');
+    try {
+      this.#db.exec('DELETE FROM players');
+      this.#db.exec(`
+        INSERT INTO players (name_key, name, games)
+        SELECT name_key, MAX(name), SUM(n) FROM (
+          SELECT white_key AS name_key, white AS name, COUNT(*) AS n
+            FROM games GROUP BY white_key, white
+          UNION ALL
+          SELECT black_key AS name_key, black AS name, COUNT(*) AS n
+            FROM games GROUP BY black_key, black
+        ) GROUP BY name_key
+      `);
+      this.#db.exec('COMMIT');
+    } catch (error) {
+      this.#db.exec('ROLLBACK');
+      throw error;
+    }
+  }
+
+  /** Rebuild the metadata index from `games`. */
+  rebuildSearchIndex() {
+    if (!this.#ftsAvailable) return;
+    this.#db.exec('BEGIN');
+    try {
+      this.#db.exec("INSERT INTO games_fts(games_fts) VALUES('delete-all')");
+      this.#db.exec(`
+        INSERT INTO games_fts (rowid, white, black, event, site, eco, opening)
+        SELECT id, white, black, COALESCE(event, ''), COALESCE(site, ''),
+               COALESCE(eco, ''), COALESCE(opening, '')
+          FROM games
+      `);
+      this.#db.exec('COMMIT');
+    } catch (error) {
+      this.#db.exec('ROLLBACK');
+      throw error;
+    }
   }
 
   #ensurePositionColumns() {
@@ -357,6 +463,21 @@ export class GameDatabase {
       ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     `);
     const findId = this.#db.prepare('SELECT id FROM games WHERE fingerprint = ?');
+    /*
+      Maintained here rather than by a trigger: the import already runs inside
+      one transaction, and a trigger would fire per row with no way to skip it
+      during a bulk rebuild.
+    */
+    const bumpPlayer = this.#db.prepare(`
+      INSERT INTO players (name_key, name, games) VALUES (?, ?, 1)
+      ON CONFLICT(name_key) DO UPDATE SET games = games + 1, name = excluded.name
+    `);
+    const insertFts = this.#ftsAvailable
+      ? this.#db.prepare(`
+          INSERT INTO games_fts (rowid, white, black, event, site, eco, opening)
+          VALUES (?,?,?,?,?,?,?)
+        `)
+      : null;
     const clearFilterCache = this.#db.prepare(
       'DELETE FROM position_filter_cache WHERE position_key = ?',
     );
@@ -404,6 +525,17 @@ export class GameDatabase {
         );
         const id = findId.get(game.fingerprint).id;
         insertContent.run(id, entry.pgn ?? '');
+        bumpPlayer.run(game.whiteKey, game.white);
+        bumpPlayer.run(game.blackKey, game.black);
+        insertFts?.run(
+          id,
+          game.white,
+          game.black,
+          game.event ?? '',
+          game.site ?? '',
+          game.eco ?? '',
+          game.opening ?? '',
+        );
         /*
           One row per (game, position, move). The client indexer already
           collapses repetitions, but this is an HTTP boundary, and the
@@ -483,6 +615,16 @@ export class GameDatabase {
       throw error;
     }
     this.#db.exec(SCHEMA);
+    /*
+      Rebuilt rather than decremented. Deletion is rare and already bulk,
+      whereas getting a per-row decrement wrong leaves a player listed with a
+      game count no game supports — a wrong answer that survives until
+      somebody notices, which is worse than a slower delete.
+    */
+    if (deleted > 0) {
+      this.rebuildPlayers();
+      this.rebuildSearchIndex();
+    }
     return { deleted };
   }
 
@@ -495,7 +637,7 @@ export class GameDatabase {
    * total is available on request and is honestly labelled when it is not.
    */
   search(query = {}) {
-    const { params, clause } = gameWhere(query);
+    const { params, clause } = gameWhere(query, { fts: this.#ftsAvailable });
 
     const SORTS = {
       importedAt: 'imported_at',
@@ -928,7 +1070,13 @@ export class GameDatabase {
 
   /** Transactional deletion for an exact current game selection/filter. */
   deleteGamesMatching(query = {}) {
-    const { clause, params } = gameWhere(query);
+    /*
+      The same matcher the list used. FTS prefix matching and LIKE substring
+      matching do not select the same games, so asking one to choose what to
+      show and the other what to delete would delete a different set from the
+      one the user was looking at.
+    */
+    const { clause, params } = gameWhere(query, { fts: this.#ftsAvailable });
     const fingerprints = this.#db
       .prepare(`SELECT fingerprint FROM games ${clause}`)
       .all(...params)
@@ -944,11 +1092,15 @@ export class GameDatabase {
     try {
       this.#db.exec(`
         DELETE FROM games;
+        DELETE FROM players;
         DELETE FROM position_aggregates;
         DELETE FROM position_filter_cache;
         DELETE FROM position_filter_total_cache;
         DELETE FROM position_filter_cache_keys;
       `);
+      if (this.#ftsAvailable) {
+        this.#db.exec("INSERT INTO games_fts(games_fts) VALUES('delete-all')");
+      }
       this.#db.exec('COMMIT');
     } catch (error) {
       this.#db.exec('ROLLBACK');
@@ -959,20 +1111,51 @@ export class GameDatabase {
     return { deleted };
   }
 
+  /**
+   * Players whose normalized name starts with a prefix, commonest first.
+   *
+   * A range scan over the players table rather than two aggregations over
+   * every game. An empty prefix is the whole table ordered by game count,
+   * which the players_games index answers directly.
+   *
+   * The bound is expressed as >= prefix AND < prefix + '\uffff' rather than
+   * LIKE, so SQLite uses the primary key index for the range without needing
+   * to know that the pattern has no leading wildcard.
+   */
   players(prefix, limit = 20) {
+    const key = String(prefix ?? '').toLowerCase();
+    if (key === '') {
+      return this.#db
+        .prepare('SELECT name, games FROM players ORDER BY games DESC, name ASC LIMIT ?')
+        .all(limit);
+    }
     return this.#db
       .prepare(
-        `SELECT name, SUM(n) AS games FROM (
-           SELECT white AS name, COUNT(*) AS n FROM games WHERE white_key LIKE ? GROUP BY white
-           UNION ALL
-           SELECT black AS name, COUNT(*) AS n FROM games WHERE black_key LIKE ? GROUP BY black
-         ) GROUP BY name ORDER BY games DESC LIMIT ?`,
+        `SELECT name, games FROM players
+          WHERE name_key >= ? AND name_key < ?
+          ORDER BY games DESC, name ASC LIMIT ?`,
       )
-      .all(`${prefix}%`, `${prefix}%`, limit);
+      .all(key, `${key}\uffff`, limit);
   }
 }
 
-function gameWhere(query) {
+/**
+ * An FTS5 MATCH expression from what a user typed.
+ *
+ * Every token is quoted and given a trailing prefix operator, so "carl kasp"
+ * finds Carlsen against Kasparov and a stray quote or asterisk cannot become
+ * syntax. Returns null when nothing usable is left, which sends the caller
+ * back to the LIKE scan rather than matching everything.
+ */
+function ftsQuery(text) {
+  const tokens = String(text)
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter((token) => token.length > 0);
+  if (tokens.length === 0) return null;
+  return tokens.map((token) => `"${token}"*`).join(' AND ');
+}
+
+function gameWhere(query, options = {}) {
   const where = [];
   const params = [];
   if (query.player) {
@@ -988,9 +1171,22 @@ function gameWhere(query) {
     }
   }
   if (query.text) {
-    where.push('(white LIKE ? OR black LIKE ? OR event LIKE ? OR opening LIKE ?)');
-    const like = `%${query.text}%`;
-    params.push(like, like, like, like);
+    /*
+      §48: the metadata index answers this in a single lookup, where the LIKE
+      form was four leading-wildcard comparisons per row — a guaranteed full
+      scan, 141 ms at 500,000 games. The LIKE path is kept for SQLite builds
+      without FTS5 and for a query that tokenizes to nothing, because a slow
+      correct answer beats a fast wrong one.
+    */
+    const match = options.fts ? ftsQuery(query.text) : null;
+    if (match) {
+      where.push('id IN (SELECT rowid FROM games_fts WHERE games_fts MATCH ?)');
+      params.push(match);
+    } else {
+      where.push('(white LIKE ? OR black LIKE ? OR event LIKE ? OR opening LIKE ?)');
+      const like = `%${query.text}%`;
+      params.push(like, like, like, like);
+    }
   }
   if (query.result) {
     where.push('result = ?');
