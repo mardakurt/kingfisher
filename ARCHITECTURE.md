@@ -937,6 +937,35 @@ evidence stays in its own section attributed to engine and depth, because
 mixing it into the move list would blur what people have played with what a
 search calculated. See ADR 0037.
 
+## Strategic themes
+
+`src/chess/themes.ts` extends deterministic search from pawn skeletons to
+piece and material motifs. Sixteen themes, each admitted on one condition:
+**it can be decided by counting.** Every definition is written in the same
+terms the code checks, is shown beside the match rather than living only in
+the catalogue, and is versioned (`THEME_VERSION`) so a stored match cannot be
+silently reinterpreted when a rule changes.
+
+Opposite- and same-coloured bishops, bishop against knight, the bishop pair,
+rook against a minor piece, queenless middlegame, rook ending, minor-piece
+ending, isolated queen's pawn, hanging pawns, the Carlsbad skeleton, symmetrical
+pawns, an open central file, opposite-side castling, and both wing majorities.
+
+What is deliberately absent matters as much: "good bishop", "bad bishop",
+"initiative", "attack", "weak squares", "space". Each is a judgement, and a
+search that claimed to find them would be inventing evidence. A test asserts
+that no definition in the catalogue contains a judgement word, which is what
+stops that line being crossed by a later addition.
+
+Themes are indexed on the **existing** `structureClaims` multi-entry index,
+prefixed `theme:` so the two kinds of claim can never be confused. That means
+one index, one search path, and an older collection picks them up through the
+structure backfill that already exists rather than needing a re-import.
+
+Two definitions were tightened by their own tests before landing: an open
+central file requires four pawns on the board, because with bare kings every
+file is open and the term means nothing.
+
 ## Structural research
 
 `chess/structure.ts` turns a position into two comparable identities, both pure
