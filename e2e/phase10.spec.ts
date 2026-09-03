@@ -238,3 +238,172 @@ test.describe('concealment', () => {
     await expect(surface.first()).toHaveAttribute('data-board-conceals', 'evidence');
   });
 });
+
+/**
+ * §67: the settings workflows a serious user actually performs.
+ *
+ * The shortcut tests are the ones that matter. Before Phase 10 the reference
+ * dialog and the key handler were separate literals, and a binding could be
+ * documented for a whole phase while doing nothing — so the test that earns
+ * its place is the one asserting a rebind changes what the key *does*.
+ */
+test.describe('settings', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      window.localStorage.removeItem('kingfisher.shortcuts');
+    });
+  });
+
+  const openSettings = async (page: Page) => {
+    await page.goto('/analysis');
+    await ready(page);
+    await page.getByRole('button', { name: 'Settings (⌘,)' }).click();
+    await expect(page.getByRole('dialog', { name: 'Settings' })).toBeVisible();
+  };
+
+  test('§17 search finds a setting and jumps to the section holding it', async ({ page }) => {
+    await openSettings(page);
+
+    // Scoped to the dialog: the workspace dock has an Engine tab too, and the
+    // question here is which *settings* section is showing.
+    const dialog = page.getByRole('dialog', { name: 'Settings' });
+    const search = dialog.getByRole('searchbox', { name: 'Search settings' });
+
+    await search.fill('threads');
+    await dialog
+      .getByRole('button', { name: /Threads/ })
+      .first()
+      .click();
+    await expect(dialog.getByRole('tab', { name: 'Engine', exact: true })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+
+    await search.fill('piece set');
+    await dialog
+      .getByRole('button', { name: /Piece set/ })
+      .first()
+      .click();
+    await expect(dialog.getByRole('tab', { name: 'Pieces' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+  });
+
+  test('§17 search reports an honest miss rather than an empty list', async ({ page }) => {
+    await openSettings(page);
+    await page.getByRole('searchbox', { name: 'Search settings' }).fill('zzzznotasetting');
+    await expect(page.getByText(/No setting matches/)).toBeVisible();
+  });
+
+  test('§16 the Keyboard section exists and opens the editor', async ({ page }) => {
+    await openSettings(page);
+    await page.getByRole('tab', { name: 'Keyboard' }).click();
+    await expect(page.getByRole('button', { name: 'Open shortcuts' })).toBeVisible();
+    await expect(page.getByText('Every command is on its default binding.')).toBeVisible();
+  });
+
+  /*
+    The editor is opened with its own `?` binding rather than through Settings.
+    Two stacked dialogs is a real thing a user can do, but it is not what this
+    test is about, and the outer dialog's scroll container makes every click a
+    stability race.
+  */
+  const openShortcuts = async (page: Page) => {
+    await page.goto('/analysis');
+    await ready(page);
+    await page.keyboard.press('?');
+    await expect(page.getByRole('dialog', { name: 'Keyboard shortcuts' })).toBeVisible();
+  };
+
+  test('§37 a rebind changes what the key does, not just what is documented', async ({ page }) => {
+    await openShortcuts(page);
+
+    const flip = page.getByRole('button', { name: 'Change the shortcut for Flip the board' });
+    await expect(flip).toHaveText('F');
+    await flip.click();
+    await page.keyboard.press('q');
+    await expect(flip).toHaveText('Q');
+
+    await page.keyboard.press('Escape');
+
+    // The board follows the new binding, and no longer follows the old one.
+    const orientation = page.getByText('White view');
+    await expect(orientation).toBeVisible();
+    await page.keyboard.press('f');
+    await expect(orientation).toBeVisible();
+    await page.keyboard.press('q');
+    await expect(page.getByText('Black view')).toBeVisible();
+  });
+
+  test('§38 a conflicting binding is refused until the user chooses', async ({ page }) => {
+    await openShortcuts(page);
+
+    const flip = page.getByRole('button', { name: 'Change the shortcut for Flip the board' });
+    await flip.click();
+    await page.keyboard.press('c');
+
+    const conflict = page.getByRole('alertdialog', { name: 'Shortcut conflict' });
+    await expect(conflict).toBeVisible();
+    await expect(conflict).toContainText('already assigned to Edit the comment on this move');
+
+    // Cancel leaves both bindings alone.
+    await conflict.getByRole('button', { name: 'Cancel' }).click();
+    await expect(flip).toHaveText('F');
+
+    // Replace takes the key from the action that held it, rather than leaving
+    // two actions on one key where only one of them could ever fire.
+    await flip.click();
+    await page.keyboard.press('c');
+    await conflict.getByRole('button', { name: 'Replace' }).click();
+    await expect(flip).toHaveText('C');
+    await expect(
+      page.getByRole('button', { name: 'Change the shortcut for Edit the comment on this move' }),
+    ).toHaveText('Unbound');
+  });
+
+  test('§39 reset all shortcuts restores every default', async ({ page }) => {
+    await openShortcuts(page);
+
+    const flip = page.getByRole('button', { name: 'Change the shortcut for Flip the board' });
+    await flip.click();
+    await page.keyboard.press('q');
+    await expect(flip).toHaveText('Q');
+
+    await page.getByRole('button', { name: 'Reset all shortcuts' }).click();
+    await expect(flip).toHaveText('F');
+  });
+
+  test('§21 exported settings carry no secret', async ({ page }) => {
+    await openSettings(page);
+
+    // Store a credential, so the export has something to leak.
+    await page.evaluate(() => {
+      const raw = window.localStorage.getItem('kingfisher.preferences');
+      const parsed = raw ? JSON.parse(raw) : { state: {}, version: 4 };
+      parsed.state = {
+        ...parsed.state,
+        lichessToken: 'lip_e2e_secret',
+        companionToken: 'companion_e2e_secret',
+      };
+      window.localStorage.setItem('kingfisher.preferences', JSON.stringify(parsed));
+    });
+    await page.reload();
+    await ready(page);
+    await page.getByRole('button', { name: 'Settings (⌘,)' }).click();
+    await page.getByRole('tab', { name: 'Diagnostics' }).click();
+
+    const download = page.waitForEvent('download');
+    await page.getByRole('button', { name: 'Export settings' }).click();
+    const file = await download;
+    const stream = await file.createReadStream();
+    const chunks: Buffer[] = [];
+    for await (const chunk of stream) chunks.push(chunk as Buffer);
+    const contents = Buffer.concat(chunks).toString('utf8');
+
+    expect(contents).not.toContain('lip_e2e_secret');
+    expect(contents).not.toContain('companion_e2e_secret');
+    // ...and it is still a useful export rather than an empty one.
+    expect(contents).toContain('boardTheme');
+  });
+});

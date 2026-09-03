@@ -14,6 +14,8 @@
 
 import { expect, test, type Page } from '@playwright/test';
 
+import { selectTool } from './tools';
+
 const OPPONENT_GAMES = `[Event "Prep A"]
 [Date "2026.02.01"]
 [White "Opponent, O"]
@@ -101,7 +103,7 @@ test('a tournament preparation session carries an opponent through to a game-day
   await expect(page.getByText('Game-day sheet')).toBeVisible();
 
   const dock = page.getByRole('complementary', { name: 'Workspace tools' });
-  await dock.getByRole('tab', { name: 'Opening tree' }).click();
+  await selectTool(page, dock, 'Opening tree');
 
   // The dossier states the evidence before anything derived from it.
   await expect(dock.getByText(/3 games · 3 as White/)).toBeVisible();
@@ -141,7 +143,7 @@ test('calculation hides every source of evidence until the lines are submitted',
   await bridgeReady(page);
 
   const dock = page.getByRole('complementary', { name: 'Workspace tools' });
-  await dock.getByRole('tab', { name: 'Calculation' }).click();
+  await selectTool(page, dock, 'Calculation');
   await page.getByRole('button', { name: 'Start calculation' }).click();
 
   /*
@@ -152,10 +154,10 @@ test('calculation hides every source of evidence until the lines are submitted',
     dock.getByText(/Engine, explorer, database, tablebase and repertoire are hidden/),
   ).toBeVisible();
   for (const tool of ['Engine', 'Explorer', 'Database']) {
-    await dock.getByRole('tab', { name: tool, exact: true }).click();
+    await selectTool(page, dock, tool);
     await expect(dock.getByText('Evidence is hidden while you calculate.')).toBeVisible();
   }
-  await dock.getByRole('tab', { name: 'Calculation' }).click();
+  await selectTool(page, dock, 'Calculation');
 
   // Enter two candidates, one of them a real line rather than a single move.
   // The calculation board is the second board on the page.
@@ -186,7 +188,7 @@ test('calculation hides every source of evidence until the lines are submitted',
   await expect(page.getByText(/Scheduled: due in 7 days/i)).toBeVisible();
 
   // After the reveal the dock is usable again.
-  await dock.getByRole('tab', { name: 'Engine', exact: true }).click();
+  await selectTool(page, dock, 'Engine');
   await expect(dock.getByText('Evidence is hidden while you calculate.')).toHaveCount(0);
 
   // The record landed in the journal, with the tree attached.
@@ -261,7 +263,7 @@ test('a repertoire decision is shared by every move order that reaches it', asyn
   }
 
   const dock = page.getByRole('complementary', { name: 'Workspace tools' });
-  await dock.getByRole('tab', { name: 'Repertoire', exact: true }).click();
+  await selectTool(page, dock, 'Repertoire');
 
   // The decision made through the other move order is here, and the panel says
   // why: one record, reached several ways.
@@ -313,7 +315,7 @@ test('the endgame library stores what the player chose, with tablebase eligibili
 
   // The tablebase tool states where a proof would come from.
   const dock = page.getByRole('complementary', { name: 'Workspace tools' });
-  await dock.getByRole('tab', { name: 'Tablebase' }).click();
+  await selectTool(page, dock, 'Tablebase');
   await expect(dock.getByText('Tablebase')).toBeVisible();
 });
 

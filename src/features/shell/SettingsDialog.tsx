@@ -50,6 +50,9 @@ import { useWorkspaceLayout } from '@/stores/workspace-layout-store';
 import { APP_VERSION } from '@/lib/version';
 
 import { buildDiagnosticReport } from './diagnostic-report';
+import { searchSettings, type SettingsSection } from './settings-index';
+import { exportSettings, parseSettingsExport } from './settings-transfer';
+import { useShortcuts } from '@/stores/shortcuts-store';
 import type { ChessDatabaseProvider, ProviderHealth } from '@/database/types';
 import { engineDefinitions } from '@/engine/registry';
 import { useCompanionStatus } from '@/companion/useCompanion';
@@ -58,24 +61,17 @@ import type { PieceType } from '@/chess/types';
 import { DEFAULT_PREFERENCES, usePreferences, type Preferences } from '@/stores/preferences-store';
 import { useUi } from '@/stores/ui-store';
 
-type Section =
-  | 'appearance'
-  | 'board'
-  | 'pieces'
-  | 'engine'
-  | 'companion'
-  | 'database'
-  | 'assistant'
-  | 'profile'
-  | 'diagnostics';
+type Section = SettingsSection;
 
 const SECTIONS: readonly { id: Section; label: string }[] = [
   { id: 'appearance', label: 'Appearance' },
   { id: 'board', label: 'Board' },
   { id: 'pieces', label: 'Pieces' },
+  { id: 'workspace', label: 'Workspace' },
   { id: 'engine', label: 'Engine' },
   { id: 'companion', label: 'Companion' },
   { id: 'database', label: 'Database' },
+  { id: 'keyboard', label: 'Keyboard' },
   { id: 'assistant', label: 'Assistant' },
   { id: 'profile', label: 'Profile' },
   { id: 'diagnostics', label: 'Diagnostics' },
@@ -119,14 +115,17 @@ export function SettingsDialog() {
       description="Stored on this machine. Nothing here needs an account."
       width="w-[640px]"
     >
-      <div className="-mx-4 -mt-3 mb-3 overflow-x-auto border-b border-line-subtle px-2">
+      <SettingsSearch onJump={choose} />
+      <div className="-mx-4 mb-3 overflow-x-auto border-b border-line-subtle px-2">
         <Tabs items={SECTIONS} value={section} onChange={choose} />
       </div>
       {section === 'appearance' && <AppearanceSection />}
       {section === 'board' && <BoardSection />}
       {section === 'pieces' && <PiecesSection />}
+      {section === 'workspace' && <WorkspaceSection />}
       {section === 'engine' && <EngineSection />}
       {section === 'companion' && <CompanionSection />}
+      {section === 'keyboard' && <KeyboardSection />}
       {section === 'assistant' && <AssistantSection />}
       {section === 'database' && <DatabaseSection />}
       {section === 'profile' && <ProfileSection />}
@@ -345,6 +344,7 @@ function EngineSection() {
   const capabilities = useEngine((state) => state.primary.capabilities);
   return (
     <div className="flex flex-col gap-4">
+      <ConfigurationHealth area="engine" />
       <Row
         label="Analysis preset"
         hint="Threads scale to this machine and always leave one core for the interface."
@@ -374,7 +374,10 @@ function EngineSection() {
           in. Changing it therefore means the preset no longer describes the
           settings, and saying so is more honest than leaving a preset selected
           that is not in force. */}
-      <Row label="Lines (MultiPV)" hint="Changing this puts the preset into Custom.">
+      <Row
+        label="Lines (MultiPV)"
+        hint="How many candidate moves the engine reports. Each extra line costs search depth on the others, so three is a good default and eight is a different tool. Changing this puts the preset into Custom."
+      >
         <Segmented
           items={[1, 2, 3, 4, 5].map((n) => ({ id: String(n), label: String(n) }))}
           value={String(prefs.engineMultiPv)}
@@ -387,7 +390,7 @@ function EngineSection() {
 
       <Row
         label="Hash and threads"
-        hint="Set by the preset, sized to the cores this machine reports."
+        hint="Threads is how many CPU cores the search runs on. Hash is the memory it keeps its table of already-searched positions in — a bigger table means fewer positions searched twice, until it is large enough that your machine starts swapping. Both are set by the preset, sized to the cores this machine reports."
       >
         <span className="text-2xs text-secondary tabular">
           {prefs.engineHashMb} MB · {prefs.engineThreads} thread
@@ -396,7 +399,10 @@ function EngineSection() {
         </span>
       </Row>
 
-      <Row label="Analyse automatically" hint="Restart the engine whenever the position changes.">
+      <Row
+        label="Analyse automatically"
+        hint="Restart the engine whenever the position changes. Convenient while browsing a game; expensive on a laptop battery."
+      >
         <Toggle
           label="Analyse automatically"
           checked={prefs.autoAnalyse}
@@ -411,6 +417,7 @@ function DatabaseSection() {
   const prefs = usePreferences();
   return (
     <div className="flex flex-col gap-4">
+      <ConfigurationHealth area="database" />
       <Row label="Explorer minimum rating" hint="Applies to database lookups that support it.">
         <Segmented
           items={[
@@ -478,6 +485,7 @@ function CompanionSection() {
 
   return (
     <div className="flex flex-col gap-4">
+      <ConfigurationHealth area="companion" />
       <div>
         <h3 className="text-xs text-primary">Local companion</h3>
         <p className="mt-1 text-2xs leading-relaxed text-tertiary">
@@ -1145,6 +1153,7 @@ function DiagnosticsSection() {
 
   return (
     <div className="space-y-5">
+      <SettingsTransfer />
       <DiagnosticGroup title="Data providers">
         {providers.map((provider) => (
           <ProviderDiagnostic key={provider.id} provider={provider} />
@@ -1627,3 +1636,353 @@ const Toggle = ({
     />
   </button>
 );
+
+/**
+ * Search across every preference.
+ *
+ * Ten phases of configuration means nobody can remember which of eleven
+ * sections holds "threads" or "piece set". A result names the setting, explains
+ * it in a sentence, and jumps to the section holding it — the explanation
+ * matters as much as the jump, because "Hash (MB)" tells a user nothing about
+ * whether they want to change it.
+ */
+function SettingsSearch({ onJump }: { readonly onJump: (section: Section) => void }) {
+  const [query, setQuery] = useState('');
+  const results = searchSettings(query);
+
+  return (
+    <div className="-mt-2 mb-3">
+      <input
+        type="search"
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+        placeholder="Search settings — try “threads”, “piece set”, “shortcut”"
+        aria-label="Search settings"
+        className="h-8 w-full rounded-[4px] border border-line bg-surface-inset px-2.5 text-xs text-primary outline-none placeholder:text-tertiary focus:border-accent/60"
+      />
+      {query.trim() !== '' ? (
+        <div className="mt-2 max-h-56 overflow-y-auto rounded-[4px] border border-line-subtle">
+          {results.length === 0 ? (
+            <p className="p-3 text-xs text-tertiary">No setting matches “{query.trim()}”.</p>
+          ) : (
+            results.map((entry) => (
+              <button
+                key={entry.id}
+                type="button"
+                onClick={() => {
+                  onJump(entry.section);
+                  setQuery('');
+                }}
+                className="flex w-full flex-col items-start gap-0.5 border-b border-line-subtle px-3 py-2 text-left last:border-0 hover:bg-surface-2"
+              >
+                <span className="flex w-full items-baseline justify-between gap-2">
+                  <span className="text-xs text-primary">{entry.label}</span>
+                  <span className="shrink-0 text-2xs uppercase tracking-wide text-tertiary">
+                    {entry.section}
+                  </span>
+                </span>
+                <span className="text-2xs leading-relaxed text-tertiary">{entry.description}</span>
+              </button>
+            ))
+          )}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/** Layouts, pinned tools and the reset that recovers from a bad arrangement. */
+function WorkspaceSection() {
+  const compact = useWorkspaceLayout((state) => state.compact);
+  const setCompact = useWorkspaceLayout((state) => state.setCompact);
+  const savedLayouts = useWorkspaceLayout((state) => state.savedLayouts);
+  const deleteLayout = useWorkspaceLayout((state) => state.deleteLayout);
+  const resetAllLayouts = useWorkspaceLayout((state) => state.resetAllLayouts);
+  const notify = useUi((state) => state.notify);
+
+  return (
+    <div className="flex flex-col gap-4">
+      <Row
+        label="Compact density"
+        hint="Less padding around panels, so more of the window is board and evidence. Text size and hit targets are unchanged."
+      >
+        <Toggle label="Compact density" checked={compact} onChange={setCompact} />
+      </Row>
+
+      <section>
+        <h3 className="text-[10px] font-semibold uppercase tracking-[0.08em] text-tertiary">
+          Saved layouts
+        </h3>
+        <p className="mt-1 text-2xs leading-relaxed text-tertiary">
+          Panel placement and sizes only. A layout never carries which study or position was open,
+          so applying one cannot drag last month&rsquo;s document onto your screen with it.
+        </p>
+        <div className="mt-2 border-y border-line-subtle">
+          {savedLayouts.length === 0 ? (
+            <p className="py-2 text-xs text-tertiary">
+              None yet. Save one from any workspace&rsquo;s Layout menu.
+            </p>
+          ) : (
+            savedLayouts.map((layout) => (
+              <div
+                key={layout.id}
+                className="flex items-center justify-between gap-3 border-b border-line-subtle py-2 last:border-0"
+              >
+                <p className="text-xs text-primary">{layout.name}</p>
+                <Button size="sm" onClick={() => deleteLayout(layout.id)}>
+                  Delete
+                </Button>
+              </div>
+            ))
+          )}
+        </div>
+      </section>
+
+      <Row
+        label="Reset every workspace layout"
+        hint="Puts every panel back where it started, on every workspace and every screen size. Board, documents and data are untouched."
+      >
+        <Button
+          size="sm"
+          onClick={() => {
+            resetAllLayouts();
+            notify({ tone: 'info', message: 'Every workspace layout reset.' });
+          }}
+        >
+          Reset all layouts
+        </Button>
+      </Row>
+    </div>
+  );
+}
+
+/** Shortcuts live in their own dialog, which is also the reference. */
+function KeyboardSection() {
+  const setShortcutsOpen = useUi((state) => state.setShortcutsOpen);
+  const overrides = useShortcuts((state) => state.overrides);
+  const resetAll = useShortcuts((state) => state.resetAll);
+  const changed = Object.keys(overrides).length;
+
+  return (
+    <div className="flex flex-col gap-4">
+      <Row
+        label="Keyboard shortcuts"
+        hint="Every command, its binding, and any conflict. The reference and the editor are the same screen, so they cannot drift apart."
+      >
+        <Button size="sm" onClick={() => setShortcutsOpen(true)}>
+          Open shortcuts
+        </Button>
+      </Row>
+      <Row
+        label="Customised bindings"
+        hint={
+          changed === 0
+            ? 'Every command is on its default binding.'
+            : `${changed} command${changed === 1 ? '' : 's'} rebound.`
+        }
+      >
+        <Button size="sm" disabled={changed === 0} onClick={resetAll}>
+          Reset all shortcuts
+        </Button>
+      </Row>
+    </div>
+  );
+}
+
+/**
+ * Export and import configuration.
+ *
+ * Separate from the workspace backup because they answer different questions:
+ * a backup is "keep my chess data safe", this is "make my other machine feel
+ * like this one". It carries no credentials, which is stated on screen because
+ * a promise the user cannot see is a promise they cannot rely on.
+ */
+function SettingsTransfer() {
+  const notify = useUi((state) => state.notify);
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  const download = () => {
+    const file = exportSettings({
+      preferences: usePreferences.getState(),
+      layout: {
+        arrangements: useWorkspaceLayout.getState().arrangements,
+        savedLayouts: useWorkspaceLayout.getState().savedLayouts,
+        pinnedTools: useWorkspaceLayout.getState().pinnedTools,
+      },
+      shortcuts: useShortcuts.getState().overrides,
+    });
+    const blob = new Blob([JSON.stringify(file, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `kingfisher-settings-${new Date().toISOString().slice(0, 10)}.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    notify({ tone: 'info', message: 'Settings exported. No tokens or keys are included.' });
+  };
+
+  const upload = async (file: File) => {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(await file.text());
+    } catch {
+      notify({ tone: 'error', message: 'That file is not valid JSON.' });
+      return;
+    }
+    const result = parseSettingsExport(parsed);
+    if (!result.ok) {
+      notify({ tone: 'error', message: result.error });
+      return;
+    }
+    applyPortablePreferences(result.value.preferences as Record<string, unknown>);
+    useShortcuts.getState().replaceAll(result.value.shortcuts);
+    const layout = result.value.layout as {
+      arrangements?: unknown;
+      savedLayouts?: unknown;
+      pinnedTools?: unknown;
+    } | null;
+    /*
+      §64: a malformed layout must not reject the rest. Each part is checked
+      on its own, so an export with a damaged arrangement still restores the
+      appearance and the shortcuts it got right.
+    */
+    if (layout && typeof layout === 'object') {
+      const patch: Record<string, unknown> = {};
+      if (layout.arrangements && typeof layout.arrangements === 'object') {
+        patch.arrangements = layout.arrangements;
+      }
+      if (Array.isArray(layout.savedLayouts)) patch.savedLayouts = layout.savedLayouts;
+      if (layout.pinnedTools && typeof layout.pinnedTools === 'object') {
+        patch.pinnedTools = layout.pinnedTools;
+      }
+      useWorkspaceLayout.setState(patch as never);
+    }
+    notify({ tone: 'info', message: 'Settings imported.' });
+  };
+
+  return (
+    <DiagnosticGroup title="Settings transfer">
+      <div className="flex flex-col gap-2 py-2">
+        <p className="text-2xs leading-relaxed text-tertiary">
+          Appearance, board, workspace layouts, pinned tools and keyboard bindings — without any
+          chess data, and without your Lichess token, companion token, assistant key or the
+          addresses of services on your own network.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" onClick={download}>
+            Export settings
+          </Button>
+          <Button size="sm" onClick={() => fileInput.current?.click()}>
+            Import settings
+          </Button>
+          <input
+            ref={fileInput}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            aria-label="Import settings file"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.target.value = '';
+              if (file) void upload(file);
+            }}
+          />
+        </div>
+      </div>
+    </DiagnosticGroup>
+  );
+}
+
+/**
+ * Whether the things you configured actually work, where you configured them.
+ *
+ * §20's complaint: a setting that exists but gives no sign of whether it took
+ * effect teaches the user to distrust the whole screen. Before this, the only
+ * way to find out whether Lichess was connected or the companion was reachable
+ * was to open Diagnostics — a different section, for a question you were
+ * asking about the section you were already in.
+ *
+ * Diagnostics remains the detailed view. This is the one-line answer.
+ */
+function ConfigurationHealth({ area }: { readonly area: 'companion' | 'database' | 'engine' }) {
+  const companion = useCompanionStatus();
+  const companionUrl = usePreferences((state) => state.companionUrl);
+  const lichessToken = usePreferences((state) => state.lichessToken);
+  const primary = useEngine((state) => state.primary);
+
+  if (area === 'companion') {
+    if (companionUrl.trim() === '') {
+      return <HealthLine ok={false} status="Not connected" detail="No companion is paired." />;
+    }
+    if (companion.isPending) {
+      return <HealthLine ok detail="Checking…" status="Connecting" />;
+    }
+    if (companion.isError || !companion.data) {
+      return (
+        <HealthLine
+          ok={false}
+          status="Unreachable"
+          detail="Paired, but the service did not answer. Is it still running?"
+        />
+      );
+    }
+    const engines = companion.data.engines?.length ?? 0;
+    const databases = companion.data.databases?.length ?? 0;
+    return (
+      <HealthLine
+        ok
+        status="Connected"
+        detail={`${engines} engine${engines === 1 ? '' : 's'} · ${databases} database${
+          databases === 1 ? '' : 's'
+        }`}
+      />
+    );
+  }
+
+  if (area === 'database') {
+    return lichessToken.trim() === '' ? (
+      <HealthLine
+        ok={false}
+        status="No token"
+        detail="Lichess requires a personal token for opening explorer requests."
+      />
+    ) : (
+      <HealthLine ok status="Token stored" detail="Use Test below to confirm it still works." />
+    );
+  }
+
+  return (
+    <HealthLine
+      ok={primary.status !== 'error' && primary.status !== 'unavailable'}
+      status={primary.status === 'idle' ? 'Ready' : primary.status}
+      detail={`Primary engine: ${primary.engineId ?? 'none selected'}`}
+    />
+  );
+}
+
+function HealthLine({
+  ok,
+  status,
+  detail,
+}: {
+  readonly ok: boolean;
+  readonly status: string;
+  readonly detail: string;
+}) {
+  return (
+    <div
+      role="status"
+      className="mb-3 flex items-center justify-between gap-3 rounded-[4px] border border-line-subtle bg-surface-2 px-2.5 py-1.5"
+    >
+      <p className="min-w-0 text-2xs leading-relaxed text-tertiary">{detail}</p>
+      <span
+        className={cn(
+          'shrink-0 text-[10px] uppercase tracking-wide',
+          ok ? 'text-positive' : 'text-caution',
+        )}
+      >
+        {status}
+      </span>
+    </div>
+  );
+}

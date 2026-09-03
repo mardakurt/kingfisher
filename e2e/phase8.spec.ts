@@ -10,6 +10,8 @@
 
 import { expect, test, type Page } from '@playwright/test';
 
+import { selectTool } from './tools';
+
 const GAME_PGN = `[Event "Phase 8"]
 [Site "Local"]
 [Date "2026.09.02"]
@@ -95,15 +97,15 @@ test('self-analysis records a decision before the evidence, and keeps it after',
     rather than merely showing nothing — "empty" and "hidden by your own
     choice" are different states and the workspace has to distinguish them.
   */
-  await page.getByRole('tab', { name: 'Engine' }).click();
+  await selectTool(page, page.getByRole('complementary', { name: 'Workspace tools' }), 'Engine');
   await expect(page.getByText(/Computer evidence is hidden/)).toBeVisible();
   await expect(page.getByRole('button', { name: 'Start analysis (E)' })).toHaveCount(0);
-  await page.getByRole('tab', { name: 'Explorer' }).click();
+  await selectTool(page, page.getByRole('complementary', { name: 'Workspace tools' }), 'Explorer');
   await expect(page.getByText(/Computer evidence is hidden/)).toBeVisible();
   await expect(page.getByLabel('Evidence source')).toHaveCount(0);
 
   // Record three candidates on the journal's own board, an estimate and a plan.
-  await page.getByRole('tab', { name: 'Journal' }).click();
+  await selectTool(page, page.getByRole('complementary', { name: 'Workspace tools' }), 'Journal');
   const board = page.getByRole('grid', { name: 'Chessboard' }).nth(1);
   const play = async (from: string, to: string) => {
     await board.getByRole('gridcell', { name: new RegExp(`^${from},`) }).click();
@@ -129,7 +131,7 @@ test('self-analysis records a decision before the evidence, and keeps it after',
   // After reveal: the answers survive verbatim and the dock is usable.
   await expect(page.getByText('Finish development with Bb7 and Nbd7.')).toBeVisible();
   await expect(page.getByText(/Compared with the engine/)).toBeVisible();
-  await page.getByRole('tab', { name: 'Engine' }).click();
+  await selectTool(page, page.getByRole('complementary', { name: 'Workspace tools' }), 'Engine');
   await expect(page.getByRole('button', { name: 'Start analysis (E)' })).toBeVisible();
 
   // The record is frozen: what was written before the reveal cannot be rewritten.
@@ -186,11 +188,12 @@ test('self-analysis records a decision before the evidence, and keeps it after',
   });
 
   // Tag it, and the review summary counts it.
-  await page.getByRole('tab', { name: 'Journal' }).click();
+  await selectTool(page, page.getByRole('complementary', { name: 'Workspace tools' }), 'Journal');
   await page
     .getByLabel('Workspace tools', { exact: true })
     .getByRole('button', { name: 'Calculation', exact: true })
     .click();
+  // A Review sidebar tab, not a dock tool.
   await page.getByRole('tab', { name: 'Improvement' }).click();
   await expect(page.getByText('Themes you assigned')).toBeVisible();
 
@@ -214,7 +217,7 @@ test('a marked position joins the queue and can be carried into training', async
 
   // Reveal, then hand the position to training inside a new set.
   await page.getByRole('button', { name: 'Reveal', exact: true }).click();
-  await page.getByRole('tab', { name: 'Journal' }).click();
+  await selectTool(page, page.getByRole('complementary', { name: 'Workspace tools' }), 'Journal');
   await page.getByLabel('Training set').selectOption({ label: 'New set…' });
   await page.getByLabel('New set name').fill('Phase 8 set');
   await page.getByRole('button', { name: 'Create training position' }).click();
@@ -361,7 +364,7 @@ test('pawn-skeleton research opens a model game with the engine off', async ({ p
   await page.getByRole('button', { name: 'e6', exact: true }).click();
 
   await page.getByRole('button', { name: 'Reveal', exact: true }).click();
-  await page.getByRole('tab', { name: 'Features' }).click();
+  await selectTool(page, page.getByRole('complementary', { name: 'Workspace tools' }), 'Features');
   await page.getByRole('button', { name: 'Same pawns' }).click();
   await page.getByRole('button', { name: 'Search', exact: true }).click();
   const matching = page.getByRole('listitem').filter({ hasText: 'Two – B' }).first();
@@ -370,7 +373,7 @@ test('pawn-skeleton research opens a model game with the engine off', async ({ p
 
   await expect(page).toHaveURL(/\/model-game$/);
   await expect(page.getByText(/Model game study .* engine off by default/)).toBeVisible();
-  await page.getByRole('tab', { name: 'Engine' }).click();
+  await selectTool(page, page.getByRole('complementary', { name: 'Workspace tools' }), 'Engine');
   await expect(page.getByText('No analysis yet')).toBeVisible();
 });
 
@@ -571,7 +574,7 @@ test('a frequent opponent move with no answer leaves the queue once it is prepar
   await page.getByRole('button', { name: 'Prepare' }).click();
 
   const dock = page.getByRole('complementary', { name: 'Workspace tools' });
-  await dock.getByRole('tab', { name: 'Opening tree' }).click();
+  await selectTool(page, dock, 'Opening tree');
   const queue = dock.getByRole('article').filter({ hasText: 'e4' }).first();
   await expect(queue.getByText('No response')).toBeVisible();
   await expect(queue.getByText(/no prepared answer/i)).toBeVisible();
@@ -596,7 +599,7 @@ test('a frequent opponent move with no answer leaves the queue once it is prepar
   await ready(page);
   await page.getByLabel('Player name').fill('Opponent, O');
   await page.getByRole('button', { name: 'Prepare' }).click();
-  await dock.getByRole('tab', { name: 'Opening tree' }).click();
+  await selectTool(page, dock, 'Opening tree');
   const answered = dock.getByRole('article').filter({ hasText: 'e4' }).first();
   await expect(answered.getByText('Prepared')).toBeVisible();
   await expect(answered.getByText('No response')).toHaveCount(0);

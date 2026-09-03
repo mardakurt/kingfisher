@@ -167,7 +167,18 @@ export function WorkspaceToolDock({
       <WorkspaceLayoutBar workspace={workspace} contextLabel={contextLabel} view={view} />
       <ModuleTabStrip
         tabs={tabs}
-        visible={[...(pinned as readonly WorkspaceModuleId[]), ...foldedFromLower]}
+        /*
+          The route's own context panel — Journal on Review, Opening tree on
+          Preparation, References on Studies — is always in the strip. It is
+          the reason that route exists, and putting the most important tab on
+          a page behind a More menu is the discoverability failure §26 is
+          about, not a cure for it.
+        */
+        visible={[
+          ...(dockModules.includes('document') ? (['document'] as WorkspaceModuleId[]) : []),
+          ...(pinned as readonly WorkspaceModuleId[]),
+          ...foldedFromLower,
+        ]}
         value={activeDock}
         onChange={select}
         actions={

@@ -138,7 +138,17 @@ export function ShortcutsDialog() {
                               : 'border-line bg-surface-2 text-tertiary hover:border-line-strong hover:text-primary',
                           )}
                         >
-                          {capturing === shortcut.id ? 'Press a key…' : formatBinding(binding)}
+                          {capturing === shortcut.id
+                            ? 'Press a key…'
+                            : /*
+                                An action whose binding was taken by a Replace
+                                has none. Saying so keeps the control a real
+                                target rather than an empty box, and tells the
+                                user this command now has no key at all.
+                              */
+                              binding === ''
+                              ? 'Unbound'
+                              : formatBinding(binding)}
                         </button>
                       ) : (
                         <kbd className="rounded-[3px] border border-line bg-surface-2 px-1.5 py-0.5 font-mono text-[10px] text-tertiary">
