@@ -280,6 +280,77 @@ describe('workspace backup', () => {
     expect(await repositories.studies.get(existing.id)).not.toBeNull();
   });
 
+  /**
+   * §8: an old backup must restore into the current build. `BACKUP_VERSION`
+   * itself has never changed, but the stores it carries have grown — a
+   * backup made before study references, background jobs, or the Phase 8
+   * review stores existed is missing all of them, and `parseWorkspaceBackup`
+   * is specifically written to treat that as "nothing to restore there" for
+   * those stores rather than "malformed backup".
+   */
+  it('restores an old backup that predates newer stores', async () => {
+    const oldBackup = {
+      format: BACKUP_FORMAT,
+      version: BACKUP_VERSION,
+      createdAt: NOW,
+      database: 'kingfisher',
+      includesGames: false,
+      preferences: { theme: 'dark' },
+      stores: {
+        [STORE_NAMES.studies]: [
+          { id: 's1', title: 'Pre-Phase-6 study', createdAt: NOW, updatedAt: NOW },
+        ],
+        [STORE_NAMES.chapters]: [],
+        [STORE_NAMES.drafts]: [],
+        [STORE_NAMES.repertoires]: [],
+        [STORE_NAMES.repertoirePositions]: [],
+        [STORE_NAMES.trainingItems]: [],
+        [STORE_NAMES.trainingReviews]: [],
+        [STORE_NAMES.modelGameLinks]: [],
+        [STORE_NAMES.profile]: [],
+        // studyReferences, analysisQueue, engineEvidence, decisions,
+        // reviewItems and trainingSets are all absent, exactly as a genuinely
+        // old backup file would have them.
+      },
+    };
+
+    const target = createMemoryRepositories();
+    const result = await restoreWorkspaceBackup(target.raw, oldBackup, 'replace');
+
+    expect(result.records).toBe(1);
+    expect((await target.studies.list()).map((entry) => entry.title)).toEqual([
+      'Pre-Phase-6 study',
+    ]);
+  });
+
+  /**
+   * §8: "a broken settings record must not prevent valid chess data from
+   * restoring." Preferences are stored and returned opaquely — restore does
+   * not interpret their shape at all — so garbage there cannot abort a
+   * restore the way a malformed study or repertoire record can.
+   */
+  it('restores chess data regardless of what is in preferences', async () => {
+    const source = createMemoryRepositories();
+    const built = await buildWorkspace(source);
+    const corruptPreferences = {
+      theme: 42, // wrong type
+      boardTheme: null,
+      engineThreads: 'not-a-number',
+      shortcuts: ['this should have been an object'],
+      nested: { garbage: { deeply: [1, 2, { still: 'garbage' }] } },
+    };
+    const backup = await createWorkspaceBackup(source.raw, corruptPreferences, { now: NOW });
+
+    const target = createMemoryRepositories();
+    const result = await restoreWorkspaceBackup(target.raw, backup, 'replace');
+
+    expect(result.preferences).toEqual(corruptPreferences);
+    expect(await target.studies.get(built.study.id)).toEqual(
+      await source.studies.get(built.study.id),
+    );
+    expect(await target.repertoires.get(built.repertoire.id)).not.toBeNull();
+  });
+
   it('rejects unsupported versions and partial game payloads', () => {
     expect(() => parseWorkspaceBackup({ format: BACKUP_FORMAT, version: 99 })).toThrow(
       'not supported',
