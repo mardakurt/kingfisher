@@ -18,6 +18,12 @@ import { STORE_NAMES } from '@/persistence/schema/migrations';
 import { companionClient } from '@/companion/session';
 import type { CompanionAggregateIntegrity, CompanionDatabaseEntry } from '@/companion/client';
 import type { GameSearchResult } from '@/persistence/types';
+import {
+  LocalClassificationTarget,
+  SqliteClassificationTarget,
+} from '@/theory/classification-targets';
+
+import { ClassificationSection } from './ClassificationSection';
 
 const LABELS: Record<ProviderHealthState, string> = {
   ready: 'Ready',
@@ -344,6 +350,30 @@ function ProviderDetails({
 
       {sqlite ? (
         <SqliteCollectionManagement database={sqlite} onChanged={onCollectionChanged} />
+      ) : null}
+
+      {provider.id === 'local-collection' ? (
+        <ClassificationSection
+          cacheKey="local-collection"
+          collectionName={provider.name}
+          invalidate={[['games'], ['game-count']]}
+          target={async () => {
+            const repositories = await getRepositories();
+            return new LocalClassificationTarget(repositories.raw);
+          }}
+        />
+      ) : null}
+      {sqlite ? (
+        <ClassificationSection
+          cacheKey={`sqlite:${sqlite.key}`}
+          collectionName={sqlite.name}
+          invalidate={[['sqlite-management', sqlite.key]]}
+          target={async () => {
+            const client = companionClient();
+            if (!client) throw new Error('The companion is not connected.');
+            return new SqliteClassificationTarget(client, sqlite.key);
+          }}
+        />
       ) : null}
 
       <section className="py-5">

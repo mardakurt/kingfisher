@@ -96,6 +96,32 @@ the obligations each engine's licence creates.
 
 ---
 
+## Opening classification data
+
+`data/openings/{a,b,c,d,e}.tsv` are the five ECO volumes of
+[lichess-org/chess-openings](https://github.com/lichess-org/chess-openings),
+vendored byte-identical at commit `4b8622759e7ae6f93f011cc6c83a3823401ab45e`
+(2026-08-04) — 3,810 named openings.
+
+Licence: **CC0 1.0 Public Domain Dedication**. Upstream's own wording is that
+the data set is a collection of facts and therefore in the public domain, with
+CC0 applied to whatever curation effort might attract copyright. Redistribution
+carries no conditions; the attribution here is a courtesy, not an obligation.
+
+Two things are worth stating explicitly, because they are the reason this
+particular dataset was chosen:
+
+- **Nothing here derives from ChessBase.** Most machine-readable ECO tables in
+  circulation are transcriptions of the Encyclopaedia's book text or of
+  ChessBase's opening key. This one is curated independently and is the
+  classifier lichess.org itself runs.
+- **The files are not read at runtime.** `npm run openings:build` replays every
+  line through Kingfisher's own rules code and writes
+  `src/theory/opening-index.generated.ts`, keyed by canonical position identity.
+  See [`data/openings/SOURCE.md`](data/openings/SOURCE.md).
+
+---
+
 ## Fonts
 
 Inter and JetBrains Mono are loaded through `next/font/google`, which fetches

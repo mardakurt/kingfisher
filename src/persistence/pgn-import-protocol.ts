@@ -1,4 +1,4 @@
-import type { GameRecord, PositionRecord } from './types';
+import type { GameRecord, PositionRecord, StoredClassification } from './types';
 
 export interface PreparedLocalGame {
   readonly game: GameRecord;
@@ -22,6 +22,9 @@ export interface PreparedSqliteGame {
     readonly blackRating?: number;
     readonly eco?: string;
     readonly opening?: string;
+    /** Computed during this import, so a fresh collection needs no backfill. */
+    readonly classification?: StoredClassification;
+    readonly classifiedWith?: string;
     readonly plyCount: number;
     readonly importedAt: number;
   };

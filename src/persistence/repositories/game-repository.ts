@@ -606,6 +606,12 @@ function matchesSearch(game: GameSummary, query: GameSearchQuery): boolean {
       game.opening,
       game.variation,
       game.eco,
+      // What Kingfisher computed, as well as what the file declared. A
+      // collection is normally a mix of tagged and untagged imports, and a
+      // free-text search that saw only the tags would miss half of it.
+      game.classification?.name,
+      game.classification?.variation,
+      game.classification?.eco,
     ]
       .filter(Boolean)
       .join(' ')
@@ -634,9 +640,20 @@ function matchesSearch(game: GameSummary, query: GameSearchQuery): boolean {
     );
     if (!ratings.length || Math.max(...ratings) < query.minRating) return false;
   }
-  if (query.opening && !game.opening?.toLowerCase().includes(query.opening.toLowerCase()))
-    return false;
-  if (query.eco && !game.eco?.toLowerCase().startsWith(query.eco.toLowerCase())) return false;
+  if (query.opening) {
+    const needle = query.opening.toLowerCase();
+    const names = [game.opening, game.classification?.name, game.classification?.variation].filter(
+      (value): value is string => Boolean(value),
+    );
+    if (!names.some((name) => name.toLowerCase().includes(needle))) return false;
+  }
+  if (query.eco) {
+    const needle = query.eco.toLowerCase();
+    const codes = [game.eco, game.classification?.eco].filter((value): value is string =>
+      Boolean(value),
+    );
+    if (!codes.some((code) => code.toLowerCase().startsWith(needle))) return false;
+  }
   return true;
 }
 
@@ -648,7 +665,14 @@ function compareGames(
   if (field === 'white') return a.white.localeCompare(b.white);
   if (field === 'black') return a.black.localeCompare(b.black);
   if (field === 'date') return (a.date ?? '').localeCompare(b.date ?? '');
-  if (field === 'opening') return (a.opening ?? '').localeCompare(b.opening ?? '');
+  if (field === 'opening') {
+    // Sorting by the name the list is showing, which is Kingfisher's when it
+    // has one. Ordering by a hidden column is the kind of thing that makes a
+    // table look broken.
+    const label = (game: GameSummary) =>
+      game.classification?.name ?? game.opening ?? game.classification?.eco ?? game.eco ?? '';
+    return label(a).localeCompare(label(b));
+  }
   if (field === 'rating') {
     return (
       Math.max(a.whiteRating ?? 0, a.blackRating ?? 0) -

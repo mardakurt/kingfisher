@@ -28,6 +28,7 @@ import { cn } from '@/lib/cn';
 import { formatPgnDate, gameTitle } from '@/persistence/describe';
 import { getRepositories } from '@/persistence/repositories';
 import type { GameSearchQuery, GameSummary } from '@/persistence/types';
+import { openingDisplay } from '@/theory/classify-games';
 import type { GameResult } from '@/database/types';
 import { useAnalysis } from '@/stores/analysis-store';
 import { useUi } from '@/stores/ui-store';
@@ -566,12 +567,7 @@ export function GamesWorkspace() {
                   </td>
                   <td className="px-2 py-1 text-tertiary tabular">{formatPgnDate(game.date)}</td>
                   <td className="min-w-0 px-2 py-1 text-secondary">
-                    <span className="flex min-w-0 items-baseline gap-1.5">
-                      {game.eco && (
-                        <span className="shrink-0 font-mono text-tertiary">{game.eco}</span>
-                      )}
-                      <span className="truncate">{game.opening ?? game.event ?? ''}</span>
-                    </span>
+                    <OpeningCell game={game} />
                   </td>
                 </tr>
               ))}
@@ -601,7 +597,9 @@ export function GamesWorkspace() {
                   </span>
                   <span className="mt-0.5 flex min-w-0 items-baseline gap-2 text-[10.5px] text-tertiary">
                     <span className="truncate">
-                      {[game.eco, game.opening ?? game.event].filter(Boolean).join(' · ')}
+                      {[openingDisplay(game).eco, openingDisplay(game).label ?? game.event]
+                        .filter(Boolean)
+                        .join(' · ')}
                     </span>
                     <span className="ml-auto shrink-0 tabular">{formatPgnDate(game.date)}</span>
                   </span>
@@ -681,6 +679,50 @@ export function GamesWorkspace() {
         }}
       />
     </div>
+  );
+}
+
+/**
+ * The opening column.
+ *
+ * Shows Kingfisher's own classification where it has one, and says so when the
+ * file it came from disagreed. The declared tag is not hidden — it is in the
+ * tooltip — because a mismatch is usually the imported tag naming a shallower
+ * line than the game actually reached, and that is worth being able to check.
+ */
+function OpeningCell({ game }: { readonly game: GameSummary }) {
+  const display = openingDisplay(game);
+  if (display.source === 'none') {
+    return <span className="text-tertiary/70">{game.event ?? ''}</span>;
+  }
+  const declared = [game.eco, game.opening].filter(Boolean).join(' ');
+  return (
+    <span
+      className="flex min-w-0 items-baseline gap-1.5"
+      title={
+        display.conflict
+          ? `Kingfisher: ${display.eco} ${display.label}. The file declared ${declared}.`
+          : display.source === 'file'
+            ? `Declared by the imported file. Kingfisher has not classified this game yet.`
+            : `${display.eco} ${display.label}, classified by Kingfisher from the position.`
+      }
+    >
+      {display.eco ? <span className="shrink-0 font-mono text-tertiary">{display.eco}</span> : null}
+      <span className="truncate">{display.label ?? game.event ?? ''}</span>
+      {display.conflict ? (
+        <span
+          aria-label="The imported file declares a different ECO code"
+          className="shrink-0 text-caution"
+        >
+          *
+        </span>
+      ) : null}
+      {display.source === 'file' ? (
+        <span aria-hidden className="shrink-0 text-[9px] uppercase text-tertiary/60">
+          file
+        </span>
+      ) : null}
+    </span>
   );
 }
 

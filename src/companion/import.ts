@@ -15,7 +15,8 @@
 
 import { parsePgn } from '@/chess/pgn';
 import { serializePgn } from '@/chess/pgn';
-import { indexGame, normalizeGame } from '@/persistence/import-game';
+import { indexGame, normalizeGame, openingIndexOrNull } from '@/persistence/import-game';
+import { classifyTree } from '@/theory/classify-games';
 import type { PreparedSqliteGame } from '@/persistence/pgn-import-protocol';
 import { runPgnWorker } from '@/persistence/pgn-worker-client';
 
@@ -80,6 +81,7 @@ export async function importPgnIntoSqlite(
 
   const parsed = parsePgn(pgn);
   const total = parsed.games.length;
+  const openings = await openingIndexOrNull();
 
   let batch: unknown[] = [];
   const flush = async () => {
@@ -93,7 +95,8 @@ export async function importPgnIntoSqlite(
 
   for (const game of parsed.games) {
     if (signal?.aborted) break;
-    const record = normalizeGame(game.tree);
+    const prepared = normalizeGame(game.tree);
+    const record = openings ? { ...prepared, ...classifyTree(openings, prepared.tree) } : prepared;
     const positions = indexGame(record);
     batch.push({
       game: {
@@ -112,6 +115,8 @@ export async function importPgnIntoSqlite(
         blackRating: record.blackRating,
         eco: record.eco,
         opening: record.opening,
+        classification: record.classification,
+        classifiedWith: record.classifiedWith,
         plyCount: positions.length,
         importedAt: record.importedAt,
       },

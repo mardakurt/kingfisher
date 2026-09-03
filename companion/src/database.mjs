@@ -42,7 +42,18 @@ CREATE TABLE IF NOT EXISTS games (
   eco           TEXT,
   opening       TEXT,
   ply_count     INTEGER,
-  imported_at   INTEGER NOT NULL
+  imported_at   INTEGER NOT NULL,
+  -- Kingfisher's own opening classification. Kept apart from the eco/opening
+  -- columns, which are whatever the imported PGN declared and are never
+  -- overwritten.
+  classified_eco       TEXT,
+  classified_name      TEXT,
+  classified_variation TEXT,
+  classified_ply       INTEGER,
+  -- Digest of the opening index that last examined this game. Set whether or
+  -- not a name was found, so "not looked at yet" stays distinguishable from
+  -- "looked at, and this position is in no opening table".
+  classified_with      TEXT
 );
 
 -- The movetext lives apart from what the list and the search read, exactly as
@@ -270,6 +281,7 @@ export class GameDatabase {
     this.#db = new DatabaseSync(file);
     this.#db.exec(SCHEMA);
     this.#db.exec(AFFECTED_POSITIONS_TABLE);
+    this.#ensureGameColumns();
     this.#ensurePositionColumns();
     this.#db.exec(`
       CREATE INDEX IF NOT EXISTS positions_pawn_skeleton ON positions(pawn_skeleton)
@@ -370,6 +382,39 @@ export class GameDatabase {
     }
   }
 
+  /**
+   * Classification columns, added to a collection that predates them.
+   *
+   * Same pattern as `#ensurePositionColumns`: the columns are declared in the
+   * schema for a new file and added by ALTER for an old one, so a collection
+   * created before Phase 12 opens and answers normally with every game simply
+   * unclassified until the backfill visits it.
+   */
+  #ensureGameColumns() {
+    const columns = new Set(
+      this.#db
+        .prepare('PRAGMA table_info(games)')
+        .all()
+        .map((row) => row.name),
+    );
+    for (const [name, type] of [
+      ['classified_eco', 'TEXT'],
+      ['classified_name', 'TEXT'],
+      ['classified_variation', 'TEXT'],
+      ['classified_ply', 'INTEGER'],
+      ['classified_with', 'TEXT'],
+    ]) {
+      if (!columns.has(name)) this.#db.exec(`ALTER TABLE games ADD COLUMN ${name} ${type}`);
+    }
+    // Indexed only after the columns exist, which is why these are here rather
+    // than in SCHEMA: SCHEMA runs before the ALTERs and would fail on an old
+    // collection that has not been widened yet.
+    this.#db.exec(`
+      CREATE INDEX IF NOT EXISTS games_classified_eco ON games(classified_eco);
+      CREATE INDEX IF NOT EXISTS games_classified_with ON games(classified_with);
+    `);
+  }
+
   #ensurePositionColumns() {
     const columns = new Set(
       this.#db
@@ -449,8 +494,10 @@ export class GameDatabase {
       INSERT OR IGNORE INTO games (
         fingerprint, white, black, white_key, black_key, result, date, year,
         event, site, round, white_rating, black_rating, max_rating, eco,
-        opening, ply_count, imported_at
-      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        opening, ply_count, imported_at,
+        classified_eco, classified_name, classified_variation, classified_ply,
+        classified_with
+      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     `);
     const insertContent = this.#db.prepare(
       'INSERT OR REPLACE INTO game_content (game_id, pgn) VALUES (?,?)',
@@ -522,6 +569,17 @@ export class GameDatabase {
           game.opening ?? null,
           game.plyCount ?? null,
           game.importedAt ?? Date.now(),
+          /*
+            Classified by the browser during import, so a freshly imported
+            collection needs no backfill pass at all. Absent when the client
+            could not load the opening index; the backfill then finds these
+            rows exactly as it finds a pre-Phase-12 collection's.
+          */
+          game.classification?.eco ?? null,
+          game.classification?.name ?? null,
+          game.classification?.variation ?? null,
+          game.classification?.ply ?? null,
+          game.classifiedWith ?? null,
         );
         const id = findId.get(game.fingerprint).id;
         insertContent.run(id, entry.pgn ?? '');
@@ -926,6 +984,101 @@ export class GameDatabase {
   }
 
   /**
+   * Games this opening index has not looked at, oldest id first.
+   *
+   * Paged by id rather than by OFFSET, so a backfill over half a million games
+   * costs one index seek per page instead of re-walking everything before it.
+   * The position keys come back with the games: the client has the opening
+   * table and the companion has the positions, and shipping the keys is far
+   * cheaper than shipping half a megabyte of index the other way.
+   *
+   * `ply >= 2` because the row at ply n holds the position *before* ply n, so
+   * ply 1 is the starting position and names nothing.
+   */
+  unclassifiedGames(digest, limit = 200, after = null, maxPly = 40) {
+    const params = [];
+    let clause = '(classified_with IS NULL OR classified_with <> ?)';
+    params.push(String(digest));
+    if (after !== null && after !== undefined && String(after).length > 0) {
+      clause += ' AND id > ?';
+      params.push(Number(after));
+    }
+    const rows = this.#db
+      .prepare(`SELECT id FROM games WHERE ${clause} ORDER BY id LIMIT ?`)
+      .all(...params, limit);
+    if (rows.length === 0) return { games: [], nextAfter: null };
+
+    /*
+      One row per ply, plus the last row's FEN and move so the client can
+      replay the single move that produces the game's final position. That
+      position is the only main-line one no row is "before", and for a game
+      that ends inside the opening it is the one that names it.
+    */
+    const keys = this.#db.prepare(
+      `SELECT ply, MIN(position_key) AS positionKey, MIN(fen) AS fen, MIN(move_uci) AS moveUci
+         FROM positions
+        WHERE game_id = ? AND ply <= ?
+        GROUP BY ply
+        ORDER BY ply`,
+    );
+    const games = rows.map((row) => {
+      const plies = keys.all(row.id, maxPly + 1);
+      const last = plies[plies.length - 1];
+      return {
+        id: String(row.id),
+        positionKeys: plies.filter((entry) => entry.ply >= 2).map((entry) => entry.positionKey),
+        ...(last && last.fen ? { finalFen: last.fen, finalMoveUci: last.moveUci } : {}),
+      };
+    });
+    return { games, nextAfter: String(rows[rows.length - 1].id) };
+  }
+
+  classificationRemaining(digest) {
+    const total = this.#db.prepare('SELECT COUNT(*) AS n FROM games').get().n;
+    const done = this.#db
+      .prepare('SELECT COUNT(*) AS n FROM games WHERE classified_with = ?')
+      .get(String(digest)).n;
+    return { remaining: Math.max(0, total - done), total, classified: done };
+  }
+
+  /**
+   * Store classifications the browser computed.
+   *
+   * One transaction per page, exactly like `applyStructures`: the page is the
+   * unit that either lands or does not, which is what makes a cancelled
+   * backfill resumable rather than ambiguous. The companion writes what it is
+   * given and derives no chess fact of its own.
+   */
+  applyClassification(entries) {
+    const update = this.#db.prepare(
+      `UPDATE games SET classified_eco = ?, classified_name = ?, classified_variation = ?,
+                        classified_ply = ?, classified_with = ?
+        WHERE id = ?`,
+    );
+    let updated = 0;
+    this.#db.exec('BEGIN');
+    try {
+      for (const entry of entries) {
+        const named = entry.classification ?? null;
+        const result = update.run(
+          named ? String(named.eco) : null,
+          named ? String(named.name) : null,
+          named && named.variation ? String(named.variation) : null,
+          named ? Number(named.ply) : null,
+          String(entry.classifiedWith),
+          Number(entry.id),
+        );
+        updated += Number(result.changes ?? 0);
+      }
+      this.#db.exec('COMMIT');
+    } catch (error) {
+      this.#db.exec('ROLLBACK');
+      throw error;
+    }
+    return { updated, ...this.classificationRemaining(entries[0]?.classifiedWith ?? '') };
+  }
+
+  /**
    * Distinct positions still missing their structural identity.
    *
    * Collections imported before the structure index existed carry NULL in
@@ -1204,13 +1357,21 @@ function gameWhere(query, options = {}) {
     where.push('max_rating >= ?');
     params.push(query.minRating);
   }
+  /*
+    Both the declared tag and the computed classification, because a
+    collection is very often a mix: games imported with an [ECO] tag, games
+    imported without one and classified here, and games that have both. A
+    search that consulted only one of the two would silently hide half of a
+    normal archive.
+  */
   if (query.eco) {
-    where.push('eco LIKE ?');
-    params.push(`${query.eco}%`);
+    where.push('(eco LIKE ? OR classified_eco LIKE ?)');
+    params.push(`${query.eco}%`, `${query.eco}%`);
   }
   if (query.opening) {
-    where.push('opening LIKE ?');
-    params.push(`%${query.opening}%`);
+    where.push('(opening LIKE ? OR classified_name LIKE ? OR classified_variation LIKE ?)');
+    const like = `%${query.opening}%`;
+    params.push(like, like, like);
   }
   return { where, params, clause: where.length ? `WHERE ${where.join(' AND ')}` : '' };
 }
@@ -1263,4 +1424,15 @@ const toSummary = (row) => ({
   eco: row.eco ?? undefined,
   opening: row.opening ?? undefined,
   importedAt: row.imported_at,
+  ...(row.classified_eco
+    ? {
+        classification: {
+          eco: row.classified_eco,
+          name: row.classified_name ?? '',
+          ...(row.classified_variation ? { variation: row.classified_variation } : {}),
+          ply: row.classified_ply ?? 0,
+        },
+      }
+    : {}),
+  ...(row.classified_with ? { classifiedWith: row.classified_with } : {}),
 });

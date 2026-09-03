@@ -1,4 +1,6 @@
 import { parsePgn, type ParsedGame } from '@/chess/pgn';
+import { classifyTree } from '@/theory/classify-games';
+import { loadOpeningIndex, type OpeningIndex } from '@/theory/openings';
 
 import { indexGame, normalizeGame } from './prepare-game';
 import type { PreparedLocalGame } from './pgn-import-protocol';
@@ -119,6 +121,10 @@ async function importGamesOnMainThread(
   const total = parsed.games.length;
   if (total === 0) throw new Error('No games were found in that PGN.');
 
+  // Same rule as the worker: classify while the tree is already in hand, and
+  // import unclassified rather than not at all if the index will not load.
+  const openings = await openingIndexOrNull();
+
   let imported = 0;
   let duplicates = 0;
   let indexedPositions = 0;
@@ -149,7 +155,8 @@ async function importGamesOnMainThread(
       break;
     }
 
-    const game = normalizeGame(parsedGame.tree);
+    const prepared = normalizeGame(parsedGame.tree);
+    const game = openings ? { ...prepared, ...classifyTree(openings, prepared.tree) } : prepared;
     firstGame ??= game;
     // Position extraction is the "indexing" the progress line refers to; it
     // happens per game, before anything is written.
@@ -176,6 +183,15 @@ async function importGamesOnMainThread(
     cancelled,
     ...(firstGame ? { firstGame } : {}),
   };
+}
+
+/** The opening index, or null when it cannot be loaded. Never throws. */
+export async function openingIndexOrNull(): Promise<OpeningIndex | null> {
+  try {
+    return await loadOpeningIndex();
+  } catch {
+    return null;
+  }
 }
 
 export { indexGame, normalizeGame } from './prepare-game';

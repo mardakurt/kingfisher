@@ -256,6 +256,49 @@ export class CompanionClient {
     return this.request('/db/index-structures', { key, entries });
   }
 
+  /**
+   * A page of games this opening index has not classified.
+   *
+   * `after` is the last id of the previous page, so the walk resumes with an
+   * index seek rather than an OFFSET that grows with the collection.
+   */
+  unclassifiedGames(
+    key: string,
+    digest: string,
+    limit: number,
+    after: string | null,
+  ): Promise<{
+    games: readonly {
+      id: string;
+      positionKeys: readonly string[];
+      /** Position before the game's last stored move, for replaying it. */
+      finalFen?: string;
+      finalMoveUci?: string;
+    }[];
+    nextAfter: string | null;
+  }> {
+    return this.request('/db/unclassified-games', { key, digest, limit, after });
+  }
+
+  classificationRemaining(
+    key: string,
+    digest: string,
+  ): Promise<{ remaining: number; total: number; classified: number }> {
+    return this.request('/db/classification-remaining', { key, digest });
+  }
+
+  /** Store classifications the browser computed. See `classify-games.ts`. */
+  applyClassification(
+    key: string,
+    entries: readonly {
+      id: string;
+      classification?: { eco: string; name: string; variation?: string; ply: number };
+      classifiedWith: string;
+    }[],
+  ): Promise<{ updated: number; remaining: number }> {
+    return this.request('/db/apply-classification', { key, entries });
+  }
+
   /** What Syzygy tables this machine actually has, read from the files. */
   tablebaseStatus(): Promise<{
     configured: boolean;

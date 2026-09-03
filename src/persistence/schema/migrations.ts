@@ -1,5 +1,5 @@
 export const DATABASE_NAME = 'kingfisher';
-export const DATABASE_VERSION = 11;
+export const DATABASE_VERSION = 12;
 
 export const STORE_NAMES = {
   studies: 'studies',
@@ -334,6 +334,32 @@ export const MIGRATIONS: readonly Migration[] = [
       target.createStore(STORE_NAMES.linkedAccounts, { keyPath: 'id' }, [
         { name: 'provider', keyPath: 'provider' },
       ]);
+    },
+  },
+  {
+    version: 12,
+    description: "Index Kingfisher's own opening classification, separately from the PGN tag.",
+    apply(target) {
+      /*
+        Two indexes, because the two questions are different. `classifiedEco`
+        answers "show me the Najdorfs" from what Kingfisher computed rather
+        than from what the file claimed. `classifiedWith` is what makes the
+        backfill bounded: games carrying a stale digest, or none at all, can be
+        walked directly instead of scanning the whole collection.
+
+        No data migration runs here. Classifying every stored game inside a
+        version-change transaction would block the application open on a job
+        that takes minutes on a large collection; the backfill does it
+        afterwards, resumably, and reports progress while it works.
+      */
+      target.addIndex(STORE_NAMES.games, {
+        name: 'classifiedEco',
+        keyPath: 'classification.eco',
+      });
+      target.addIndex(STORE_NAMES.games, {
+        name: 'classifiedWith',
+        keyPath: 'classifiedWith',
+      });
     },
   },
 ];

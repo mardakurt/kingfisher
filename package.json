@@ -2,7 +2,7 @@
   "name": "kingfisher",
   "version": "0.1.0",
   "private": true,
-  "description": "Kingfisher — a chess research workspace for strong players.",
+  "description": "Kingfisher \u2014 a chess research workspace for strong players.",
   "scripts": {
     "dev": "next dev --port 3210",
     "build": "next build",
@@ -18,6 +18,7 @@
     "engine:install": "node scripts/install-engine.mjs",
     "companion": "node companion/src/server.mjs",
     "engines:install": "node scripts/install-engines.mjs",
+    "openings:build": "node scripts/build-opening-index.mjs && prettier --write src/theory/opening-index.generated.ts",
     "bench:sqlite": "node scripts/bench-sqlite.mjs",
     "bench:engines": "node scripts/bench-engines.mjs",
     "bench:evidence": "node scripts/bench-evidence.mjs",

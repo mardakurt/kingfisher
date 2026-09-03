@@ -3,6 +3,8 @@
 import { outcomeAt, repetitionCount } from '@/chess/game';
 import { moveNumberOfPly } from '@/chess/tree/types';
 import { useAnalysis } from '@/stores/analysis-store';
+import { openingLabel } from '@/theory/openings';
+import { useOpeningClassification } from '@/theory/useOpeningClassification';
 
 import { useAnalysisPosition } from './useAnalysisPosition';
 
@@ -25,6 +27,7 @@ export function PositionSummary() {
   const outcome = outcomeAt(tree, currentId);
   const repetitions = repetitionCount(tree, currentId);
   const material = position.materialBalance();
+  const opening = useOpeningClassification(tree, currentId);
 
   return (
     <div className="flex min-w-0 items-center gap-2 text-2xs text-tertiary sm:gap-3">
@@ -56,6 +59,24 @@ export function PositionSummary() {
           {Math.abs(material)} {material > 0 ? 'White' : 'Black'}
         </span>
       )}
+
+      {opening ? (
+        /*
+          Kingfisher's own classification, never the imported tag: this is
+          computed from the position on the board, which is the only answer
+          that stays right when the user plays a move into a different line.
+        */
+        <span
+          className="hidden min-w-0 items-center gap-1.5 md:flex"
+          data-opening-classification={opening.eco}
+          title={`${openingLabel(opening)} — classified by Kingfisher from the position, at move ${moveNumberOfPly(opening.ply)}`}
+        >
+          <span className="rounded-[3px] border border-line bg-surface-2 px-1 text-[10px] font-semibold text-secondary tabular">
+            {opening.eco}
+          </span>
+          <span className="truncate text-secondary">{openingLabel(opening)}</span>
+        </span>
+      ) : null}
 
       <span className="hidden text-tertiary/70 sm:inline">
         {orientation === 'w' ? 'White view' : 'Black view'}

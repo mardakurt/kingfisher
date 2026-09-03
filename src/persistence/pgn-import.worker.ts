@@ -2,6 +2,8 @@
 
 import { createPgnParser } from '@/chess/pgn';
 import { indexGame, normalizeGame } from '@/persistence/prepare-game';
+import { classifyTree } from '@/theory/classify-games';
+import { loadOpeningIndex, type OpeningIndex } from '@/theory/openings';
 
 import type {
   PgnWorkerMessage,
@@ -28,6 +30,20 @@ self.onmessage = (event: MessageEvent<PgnWorkerRequest>) => {
 
 async function run(request: Extract<PgnWorkerRequest, { type: 'start' }>) {
   post({ type: 'progress', parsed: 0, issues: 0 });
+  /*
+    Classified here, once, during the pass that already has the tree in hand.
+    The alternative — importing and then running a backfill over what was just
+    imported — reads every game twice for an answer the first read could have
+    produced. A failure to load the index is not a failure to import: the games
+    land unclassified and the backfill finds them, which is exactly the state a
+    collection imported before Phase 12 is in.
+  */
+  let openings: OpeningIndex | null = null;
+  try {
+    openings = await loadOpeningIndex();
+  } catch {
+    openings = null;
+  }
   const source = typeof request.source === 'string' ? request.source : await request.source.text();
   const parser = createPgnParser(source);
   const batchSize = Math.max(1, request.batchSize);
@@ -39,7 +55,8 @@ async function run(request: Extract<PgnWorkerRequest, { type: 'start' }>) {
   while (!parser.done) {
     const parsedGame = parser.next();
     if (!parsedGame) continue;
-    const game = normalizeGame(parsedGame.tree);
+    const prepared = normalizeGame(parsedGame.tree);
+    const game = openings ? { ...prepared, ...classifyTree(openings, prepared.tree) } : prepared;
     const positions = indexGame(game);
     parsed += 1;
     issues += parsedGame.issues.length;
@@ -64,6 +81,8 @@ async function run(request: Extract<PgnWorkerRequest, { type: 'start' }>) {
           ...(game.blackRating ? { blackRating: game.blackRating } : {}),
           ...(game.eco ? { eco: game.eco } : {}),
           ...(game.opening ? { opening: game.opening } : {}),
+          ...(game.classification ? { classification: game.classification } : {}),
+          ...(game.classifiedWith ? { classifiedWith: game.classifiedWith } : {}),
           plyCount: positions.length,
           importedAt: game.importedAt,
         },

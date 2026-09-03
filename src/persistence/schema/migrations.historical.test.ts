@@ -374,6 +374,68 @@ describe('migrating a Phase 10 installation (pre-linked-accounts) to current', (
   });
 });
 
+describe('migrating a Phase 11 installation (pre-classification) to current', () => {
+  it('keeps unclassified games queryable and lets the backfill find them', async () => {
+    const name = dbName();
+
+    // A real v11 collection: games carrying only what their PGN declared.
+    const v11 = await openPersistenceDatabaseAt(11, name);
+    for (const [id, eco] of [
+      ['g1', 'B20'],
+      ['g2', undefined],
+    ] as const) {
+      await v11.put(STORE_NAMES.games, {
+        id,
+        fingerprint: `fp-${id}`,
+        white: 'White',
+        black: 'Black',
+        whiteKey: 'white',
+        blackKey: 'black',
+        playerKeys: ['white', 'black'],
+        result: '1-0',
+        importedAt: 1,
+        ...(eco ? { eco, opening: 'Sicilian' } : {}),
+      });
+    }
+    v11.close();
+
+    const current = await openPersistenceDatabaseAt(DATABASE_VERSION, name);
+
+    // Nothing invented: an unclassified game is unclassified, not "no opening".
+    const before = await current.get<Record<string, unknown>>(STORE_NAMES.games, 'g1');
+    expect(before?.eco).toBe('B20');
+    expect(before?.classification).toBeUndefined();
+    expect(before?.classifiedWith).toBeUndefined();
+
+    /*
+      The two new indexes exist and hold nothing, which is exactly right: an
+      IndexedDB index has no entry for a record whose key path is absent, and
+      that is what makes "count the classified ones" a cheap way to learn how
+      much work the backfill has left.
+    */
+    expect(await current.getAllFromIndex(STORE_NAMES.games, 'classifiedWith', 'anything')).toEqual(
+      [],
+    );
+    expect(await current.getAllFromIndex(STORE_NAMES.games, 'classifiedEco', 'B90')).toEqual([]);
+
+    await current.put(STORE_NAMES.games, {
+      ...(before as Record<string, unknown>),
+      classification: { eco: 'B90', name: 'Sicilian Defense', variation: 'Najdorf', ply: 10 },
+      classifiedWith: 'digest-1',
+    });
+    const classified = await current.getAllFromIndex<Record<string, unknown>>(
+      STORE_NAMES.games,
+      'classifiedEco',
+      'B90',
+    );
+    expect(classified.map((game) => game.id)).toEqual(['g1']);
+    // The declared tag survived the write that added the computed one.
+    expect(classified[0]?.eco).toBe('B20');
+
+    current.close();
+  });
+});
+
 describe('opening an already-current database', () => {
   it('runs no migration and disturbs nothing', async () => {
     const name = dbName();

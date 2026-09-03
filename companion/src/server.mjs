@@ -411,6 +411,41 @@ async function route(url, request, response) {
     return json(response, 200, database(String(body.key)).applyStructures(entries));
   }
 
+  /*
+    Opening classification is client-driven for the same reason structure
+    indexing is: the opening table and the rules that reach it live in one
+    place, in the browser, and the companion stores what it is told rather than
+    deriving a second opinion.
+  */
+  if (pathname === '/db/unclassified-games' && request.method === 'POST') {
+    const body = await readBody(request);
+    return json(
+      response,
+      200,
+      database(String(body.key)).unclassifiedGames(
+        String(body.digest ?? ''),
+        Number(body.limit) || 200,
+        body.after ?? null,
+        Number(body.maxPly) || 40,
+      ),
+    );
+  }
+
+  if (pathname === '/db/classification-remaining' && request.method === 'POST') {
+    const body = await readBody(request);
+    return json(
+      response,
+      200,
+      database(String(body.key)).classificationRemaining(String(body.digest ?? '')),
+    );
+  }
+
+  if (pathname === '/db/apply-classification' && request.method === 'POST') {
+    const body = await readBody(request);
+    const entries = Array.isArray(body.entries) ? body.entries : [];
+    return json(response, 200, database(String(body.key)).applyClassification(entries));
+  }
+
   if (pathname === '/db/structure-search' && request.method === 'POST') {
     const body = await readBody(request);
     return json(response, 200, {

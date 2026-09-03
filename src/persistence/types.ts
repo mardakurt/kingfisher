@@ -104,6 +104,22 @@ export interface StudyRepository {
   duplicateChapter(id: ChapterId): Promise<ChapterRecord>;
 }
 
+/**
+ * Kingfisher's own opening classification, stored beside the PGN's tags.
+ *
+ * Deliberately a separate field rather than an overwrite of `eco`/`opening`.
+ * The imported tags are evidence about the source file and are preserved
+ * verbatim; this is evidence about the position, and is computed here.
+ */
+export interface StoredClassification {
+  readonly eco: string;
+  /** Opening family, e.g. "Sicilian Defense". */
+  readonly name: string;
+  readonly variation?: string;
+  /** Ply of this game at which the deepest known position was reached. */
+  readonly ply: number;
+}
+
 export interface GameMetadata {
   readonly white: string;
   readonly black: string;
@@ -119,6 +135,19 @@ export interface GameMetadata {
   readonly opening?: string;
   readonly variation?: string;
   readonly timeControl?: string;
+  /** Computed by Kingfisher, never read from the file. */
+  readonly classification?: StoredClassification;
+  /**
+   * `OPENING_DATASET_DIGEST` of the index that last examined this game.
+   *
+   * Set whether or not a name was found, which is what keeps "the classifier
+   * has not looked at this game yet" distinguishable from "the classifier
+   * looked and the position is not in any opening table". Without the
+   * distinction a backfill would re-examine every unnamed game on every run,
+   * and could never report an honest completion. It also makes a dataset
+   * update a bounded job: only rows whose digest is stale need revisiting.
+   */
+  readonly classifiedWith?: string;
 }
 
 /**
