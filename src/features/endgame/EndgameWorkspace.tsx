@@ -28,6 +28,7 @@ import { EmptyState, Panel, PanelBody, PanelHeader } from '@/components/ui/Panel
 import { Target } from '@/components/icons';
 import { NavButton } from '@/features/shell/NavButton';
 import { CanonicalBoardSurface } from '@/features/workspace/CanonicalBoardSurface';
+import { WorkspaceLowerPanel } from '@/features/workspace/WorkspaceLowerPanel';
 import { WorkspaceToolDock } from '@/features/workspace/WorkspaceToolDock';
 import { useEndgamePositions } from '@/features/preparation/queries';
 import { getRepositories } from '@/persistence/repositories';
@@ -205,6 +206,7 @@ export function EndgameWorkspace() {
               </p>
             </div>
           ) : null}
+          <WorkspaceLowerPanel workspace="endgame" contextLabel="Position" />
         </section>
 
         <WorkspaceToolDock workspace="endgame" fill={wide} contextLabel="Position" />

@@ -34,6 +34,7 @@ import { useAnalysis } from '@/stores/analysis-store';
 import { useUi } from '@/stores/ui-store';
 import { NavButton } from '@/features/shell/NavButton';
 import { CanonicalBoardSurface } from '@/features/workspace/CanonicalBoardSurface';
+import { WorkspaceLowerPanel } from '@/features/workspace/WorkspaceLowerPanel';
 import { WorkspaceToolDock } from '@/features/workspace/WorkspaceToolDock';
 
 const ROLE_LABEL: Record<RepertoireRole, string> = {
@@ -277,6 +278,7 @@ export function RepertoireWorkspace() {
                 }
               />
             )}
+            <WorkspaceLowerPanel workspace="repertoire" contextLabel="Repertoire" />
           </section>
         </div>
         <WorkspaceToolDock

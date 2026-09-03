@@ -32,8 +32,9 @@ import { Button, IconButton } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/Panel';
 import { PromptDialog } from '@/components/ui/PromptDialog';
-import { MoveTree } from '@/features/movetree/MoveTree';
 import { CanonicalBoardSurface } from '@/features/workspace/CanonicalBoardSurface';
+import { MoveTreePanel } from '@/features/movetree/MoveTreePanel';
+import { WorkspaceLowerPanel } from '@/features/workspace/WorkspaceLowerPanel';
 import { WorkspaceToolDock } from '@/features/workspace/WorkspaceToolDock';
 import {
   invalidateStudies,
@@ -64,11 +65,6 @@ type Confirmation =
 export function StudiesWorkspace() {
   const notify = useUi((state) => state.notify);
   const openDocument = useAnalysis((state) => state.openDocument);
-  const tree = useAnalysis((state) => state.tree);
-  const currentId = useAnalysis((state) => state.currentId);
-  const goTo = useAnalysis((state) => state.goTo);
-  const setMoveMenu = useUi((state) => state.setMoveMenu);
-  const setCommentingNodeId = useUi((state) => state.setCommentingNodeId);
   const wide = useMediaQuery('(min-width: 1100px)');
 
   /*
@@ -382,22 +378,19 @@ export function StudiesWorkspace() {
                   mode="interactive"
                   className="min-h-[500px] flex-1 px-3 py-3 wide:min-h-0"
                 />
-                <div className="h-[200px] shrink-0 border-t border-line-subtle bg-surface-1">
-                  <MoveTree
-                    tree={tree}
-                    currentId={currentId}
-                    onSelect={goTo}
-                    onContextMenu={(nodeId, event) =>
-                      setMoveMenu({ nodeId, x: event.clientX, y: event.clientY })
-                    }
-                    onEditComment={setCommentingNodeId}
-                  />
-                </div>
+                <WorkspaceLowerPanel
+                  workspace="studies"
+                  contextLabel="References"
+                  withMoveTree
+                  moveTreePanel={<MoveTreePanel withHeader={false} />}
+                />
               </section>
               <WorkspaceToolDock
                 workspace="studies"
                 contextLabel="References"
                 contextPanel={<ChapterReferences chapter={chapter} />}
+                withMoveTree
+                moveTreePanel={<MoveTreePanel withHeader={false} />}
               />
             </div>
           ) : (

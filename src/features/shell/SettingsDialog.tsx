@@ -1363,16 +1363,15 @@ function RecoveryActions() {
         <Button
           size="sm"
           onClick={() => {
-            useWorkspaceLayout.setState({
-              sidebarCollapsed: false,
-              toolDockCollapsed: false,
-              toolDockWidth: 420,
-              preset: 'analysis',
+            useWorkspaceLayout.getState().resetAllLayouts();
+            useWorkspaceLayout.setState({ sidebarCollapsed: false });
+            notify({
+              tone: 'info',
+              message: 'Every workspace layout reset. Board and data are untouched.',
             });
-            notify({ tone: 'info', message: 'Layout reset. Board and data are untouched.' });
           }}
         >
-          Reset layout
+          Reset all layouts
         </Button>
       </div>
     </DiagnosticGroup>

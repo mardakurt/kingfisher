@@ -35,6 +35,7 @@ import { useUi } from '@/stores/ui-store';
 import { createTree } from '@/chess/tree/tree';
 import { useAnalysis } from '@/stores/analysis-store';
 import { useEngine } from '@/stores/engine-store';
+import { WorkspaceLowerPanel } from '@/features/workspace/WorkspaceLowerPanel';
 import { WorkspaceToolDock } from '@/features/workspace/WorkspaceToolDock';
 
 import { TrainingAnswer, type AttemptState } from './TrainingAnswer';
@@ -284,6 +285,7 @@ export function TrainingWorkspace() {
           ) : (
             <EmptyState title="The review queue is empty." />
           )}
+          <WorkspaceLowerPanel workspace="training" contextLabel="Answer" />
         </section>
 
         {revealed ? (

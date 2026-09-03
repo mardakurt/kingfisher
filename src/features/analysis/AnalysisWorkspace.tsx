@@ -3,16 +3,15 @@
 import { useEffect, useRef } from 'react';
 
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { Panel, PanelHeader } from '@/components/ui/Panel';
-import { MoveTree } from '@/features/movetree/MoveTree';
+import { MoveTreePanel } from '@/features/movetree/MoveTreePanel';
 import { CanonicalBoardSurface } from '@/features/workspace/CanonicalBoardSurface';
+import { useWorkspaceArrangement } from '@/features/workspace/use-arrangement';
+import { WorkspaceLowerPanel } from '@/features/workspace/WorkspaceLowerPanel';
 import { WorkspaceToolDock } from '@/features/workspace/WorkspaceToolDock';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { cn } from '@/lib/cn';
-import { useAnalysis } from '@/stores/analysis-store';
 import { useEngine } from '@/stores/engine-store';
 import { usePreferences } from '@/stores/preferences-store';
-import { useUi } from '@/stores/ui-store';
 
 import { Toolbar } from './Toolbar';
 import { useAnalysisPosition } from './useAnalysisPosition';
@@ -24,13 +23,13 @@ export function AnalysisWorkspace({
   readonly modelGameStudy?: boolean;
 }) {
   const wide = useMediaQuery('(min-width: 1100px)');
-  const { node, tree, currentId } = useAnalysisPosition();
-  const goTo = useAnalysis((state) => state.goTo);
-  const setMoveMenu = useUi((state) => state.setMoveMenu);
-  const setCommentingNodeId = useUi((state) => state.setCommentingNodeId);
+  const { node } = useAnalysisPosition();
   const prefs = usePreferences();
   const runEngine = useEngine((state) => state.analyse);
   const stopEngine = useEngine((state) => state.stop);
+
+  const workspace = modelGameStudy ? 'model-game' : 'analysis';
+  const view = useWorkspaceArrangement(workspace, { withMoveTree: true });
 
   useEngineSnapshots();
 
@@ -79,24 +78,30 @@ export function AnalysisWorkspace({
             showEvaluationArtifacts
             className="min-h-[500px] flex-1 px-3 py-3 sm:px-5 sm:py-4 wide:min-h-0"
           />
-          <Panel className="h-[210px] shrink-0 border-t border-line-subtle">
-            <PanelHeader>Moves &amp; variations</PanelHeader>
-            <div className="min-h-0 flex-1">
+          {/*
+            Exactly one region claims the move tree. Rendering it here and in
+            the dock would give the same module two mount points and two
+            scroll positions; `moveTreeInPrimary` is false unless the user has
+            explicitly pinned it back to the board column.
+          */}
+          {view.moveTreeInPrimary ? (
+            <div className="h-[210px] shrink-0 border-t border-line-subtle">
               <ErrorBoundary label="The move list">
-                <MoveTree
-                  tree={tree}
-                  currentId={currentId}
-                  onSelect={goTo}
-                  onContextMenu={(nodeId, event) =>
-                    setMoveMenu({ nodeId, x: event.clientX, y: event.clientY })
-                  }
-                  onEditComment={setCommentingNodeId}
-                />
+                <MoveTreePanel />
               </ErrorBoundary>
             </div>
-          </Panel>
+          ) : null}
+          <WorkspaceLowerPanel
+            workspace={workspace}
+            withMoveTree
+            moveTreePanel={<MoveTreePanel withHeader={false} />}
+          />
         </section>
-        <WorkspaceToolDock workspace={modelGameStudy ? 'model-game' : 'analysis'} />
+        <WorkspaceToolDock
+          workspace={workspace}
+          withMoveTree
+          moveTreePanel={<MoveTreePanel withHeader={false} />}
+        />
       </div>
     </div>
   );

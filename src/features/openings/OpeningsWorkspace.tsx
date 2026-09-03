@@ -3,6 +3,7 @@
 import { Opening, Plus, Search, Settings } from '@/components/icons';
 import { Button, IconButton } from '@/components/ui/Button';
 import { CanonicalBoardSurface } from '@/features/workspace/CanonicalBoardSurface';
+import { WorkspaceLowerPanel } from '@/features/workspace/WorkspaceLowerPanel';
 import { WorkspaceToolDock } from '@/features/workspace/WorkspaceToolDock';
 import { NavButton } from '@/features/shell/NavButton';
 import { useAnalysis } from '@/stores/analysis-store';
@@ -41,10 +42,13 @@ export function OpeningsWorkspace() {
         </IconButton>
       </header>
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto wide:flex-row wide:overflow-hidden">
-        <CanonicalBoardSurface
-          mode="interactive"
-          className="min-h-[560px] min-w-0 flex-1 px-3 py-4 sm:px-5 wide:min-h-0"
-        />
+        <section className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <CanonicalBoardSurface
+            mode="interactive"
+            className="min-h-[560px] min-w-0 flex-1 px-3 py-4 sm:px-5 wide:min-h-0"
+          />
+          <WorkspaceLowerPanel workspace="openings" />
+        </section>
         <WorkspaceToolDock workspace="openings" />
       </div>
     </div>

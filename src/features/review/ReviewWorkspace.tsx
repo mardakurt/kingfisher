@@ -25,12 +25,13 @@ import { useQueryClient } from '@tanstack/react-query';
 
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Button } from '@/components/ui/Button';
-import { EmptyState, Panel, PanelHeader } from '@/components/ui/Panel';
+import { EmptyState } from '@/components/ui/Panel';
 import { Segmented, Tabs } from '@/components/ui/Tabs';
 import { positionKey } from '@/chess/fen';
-import { MoveTree } from '@/features/movetree/MoveTree';
 import { NavButton } from '@/features/shell/NavButton';
 import { CanonicalBoardSurface } from '@/features/workspace/CanonicalBoardSurface';
+import { MoveTreePanel } from '@/features/movetree/MoveTreePanel';
+import { WorkspaceLowerPanel } from '@/features/workspace/WorkspaceLowerPanel';
 import { WorkspaceToolDock } from '@/features/workspace/WorkspaceToolDock';
 import { useAnalysisPosition } from '@/features/analysis/useAnalysisPosition';
 import { invalidateReview } from '@/features/persistence/queries';
@@ -57,10 +58,7 @@ export function ReviewWorkspace() {
   const wide = useMediaQuery('(min-width: 1280px)');
   const { node, tree, currentId } = useAnalysisPosition();
   const document = useAnalysis((state) => state.document);
-  const goTo = useAnalysis((state) => state.goTo);
   const openDocument = useAnalysis((state) => state.openDocument);
-  const setMoveMenu = useUi((state) => state.setMoveMenu);
-  const setCommentingNodeId = useUi((state) => state.setCommentingNodeId);
   const notify = useUi((state) => state.notify);
 
   const selfAnalysis = useReviewSession((state) => state.selfAnalysis);
@@ -284,27 +282,19 @@ export function ReviewWorkspace() {
                 showEvaluationArtifacts={revealed}
                 className="min-h-[460px] flex-1 px-3 py-3 sm:px-4"
               />
-              <Panel className="h-[200px] shrink-0 border-t border-line-subtle">
-                <PanelHeader>Moves</PanelHeader>
-                <div className="min-h-0 flex-1">
-                  <ErrorBoundary label="The move list">
-                    <MoveTree
-                      tree={tree}
-                      currentId={currentId}
-                      onSelect={goTo}
-                      onContextMenu={(nodeId, event) =>
-                        setMoveMenu({ nodeId, x: event.clientX, y: event.clientY })
-                      }
-                      onEditComment={setCommentingNodeId}
-                    />
-                  </ErrorBoundary>
-                </div>
-              </Panel>
             </>
           )}
+          <WorkspaceLowerPanel
+            workspace="review"
+            contextLabel="Journal"
+            withMoveTree
+            moveTreePanel={<MoveTreePanel withHeader={false} />}
+          />
         </section>
 
         <WorkspaceToolDock
+          withMoveTree
+          moveTreePanel={<MoveTreePanel withHeader={false} />}
           workspace="review"
           fill={wide}
           contextLabel="Journal"

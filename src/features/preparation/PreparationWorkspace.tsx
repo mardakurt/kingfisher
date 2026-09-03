@@ -31,6 +31,7 @@ import {
 import { useAnalysis } from '@/stores/analysis-store';
 import { NavButton } from '@/features/shell/NavButton';
 import { CanonicalBoardSurface } from '@/features/workspace/CanonicalBoardSurface';
+import { WorkspaceLowerPanel } from '@/features/workspace/WorkspaceLowerPanel';
 import { WorkspaceToolDock } from '@/features/workspace/WorkspaceToolDock';
 import { positionKey } from '@/chess/fen';
 import { playerKey } from '@/persistence/schema/migrations';
@@ -525,6 +526,7 @@ export function PreparationWorkspace({ initialPlayer = '' }: { readonly initialP
                 description="Run a player search to build one from local games."
               />
             )}
+            <WorkspaceLowerPanel workspace="preparation" contextLabel="Opening tree" />
           </section>
         </div>
         {sheetOpen && session ? (

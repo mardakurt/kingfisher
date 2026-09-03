@@ -25,6 +25,7 @@ import { EmptyState, Panel, PanelBody, PanelHeader } from '@/components/ui/Panel
 import { Opening } from '@/components/icons';
 import { NavButton } from '@/features/shell/NavButton';
 import { CanonicalBoardSurface } from '@/features/workspace/CanonicalBoardSurface';
+import { WorkspaceLowerPanel } from '@/features/workspace/WorkspaceLowerPanel';
 import { WorkspaceToolDock } from '@/features/workspace/WorkspaceToolDock';
 import {
   invalidateOpeningFiles,
@@ -216,6 +217,7 @@ export function OpeningFilesWorkspace() {
               ) : null}
             </div>
           ) : null}
+          <WorkspaceLowerPanel workspace="opening-files" contextLabel="File" />
         </section>
 
         <WorkspaceToolDock
