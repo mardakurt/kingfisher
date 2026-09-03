@@ -70,7 +70,7 @@ src/
     game.ts                Tree operations that need the rules
     evaluation.ts          Score, White-POV convention, winning chances
     annotations.ts         NAGs, arrows, square highlights
-    features.ts            Counted structural facts about a position
+    features.ts            Counted structural facts; pawn half split for reuse
     structure.ts           Pawn-skeleton key and structure signature. ADR 0024
     tree/                  MoveNode, GameTree and their pure operations
     pgn/                   Tokenizer, parser, serializer, %-command handling
@@ -82,6 +82,9 @@ src/
     local-index.ts         In-memory position index (pure, used by tests)
     cache.ts               The explorer query-cache ceiling
     providers/             Lichess explorer, persistent local collection
+  theory/radar.ts          Move shares over three date windows. ADR 0026, 0024
+  repertoire/              Repertoire rules, and the transposition graph
+  tablebase/               Providers, priority and provenance. ADR 0031
   persistence/             Local-first storage. See ADR 0008.
     schema/migrations.ts   Versioned stores and indexes; an ordered array
     indexeddb/database.ts  The IndexedDB wrapper: transactions, error mapping
@@ -90,6 +93,8 @@ src/
                            queue and training-set records
     backup.ts              Versioned validation and transactional restore
     search.ts              Bounded cross-entity command search
+    position-search.ts     Everywhere one canonical position is stored
+    structure-backfill.ts  Indexing an old collection in place
     repositories/          Studies, games, drafts, repertoire, training, library
     validation.ts          Runtime guards for everything read back out
     import-game.ts         PGN → parse → normalize → persist → index
@@ -101,7 +106,13 @@ src/
       WorkspaceToolDock.tsx      Route → tool table, and the tool host
     databases/             Data-source management, health and connection tests
     review/                Self-analysis, the decision journal, the critical
-                           queue and improvement summaries. ADR 0025
+                           queue, scheduling and journal analytics. ADR 0025
+    calculation/           A calculation tree and the blindfold. ADR 0030
+    preparation/           Sessions, dossiers and the game-day sheet. ADR 0029
+    opening-files/         One opening subject, and its references
+    endgame/               The endgame library
+    model-games/           Guess-the-move
+    theory/                The radar panel
     movetree/flatten.ts    One flattening pass, so the tree can be windowed
   stores/                  Zustand stores, one per state category
   components/              Shared primitives and icons
@@ -654,6 +665,90 @@ See ADR 0025.
 
 ---
 
+## Preparing for a game
+
+Everything before Phase 9 could prepare an _opening_. A `PreparationSession`
+prepares a _game_: an opponent, a colour, a round, a date. The distinction
+matters because it decides what the evidence is even about — a dossier for the
+player with Black is a different document from one for the same player with
+White.
+
+**A session holds ids, not copies.** Repertoires, studies, opening files, model
+games and review items are referenced, so a session opened four days later
+shows what those records say now. A player who prepares on Tuesday and plays on
+Saturday edits their repertoire in between, and a folder of copies would show
+them Tuesday's lines without saying so.
+
+**The game-day sheet is the exception, and it is the reason for the rule.** It
+is the document read twenty minutes before the round, and it is not derivable:
+which eight positions matter is a judgement, and the value of a preparation
+sheet is entirely in what was left off it. So a card owns its FEN, its line and
+the player's own reason — it must read correctly when printed, exported, or
+opened on a phone in a playing hall with the database unavailable.
+
+`preparation/dossier.ts` answers the three questions a tree cannot: what they
+play, what has changed between two windows, and which move orders they use.
+Move-order fingerprints are written rules over the opening moves — "1.Nf3
+before d4", "castled after move ten" — each falsifiable by opening the games it
+returns. Nothing here infers a tendency, and there is deliberately no code path
+that could produce a sentence about what an opponent "prefers".
+
+See ADR 0029.
+
+---
+
+## Calculating before looking
+
+The same discipline as self-analysis (ADR 0025), for a position being
+calculated now. The artefact is different: a review captures a judgement, a
+calculation captures a _search_, and a search has a shape.
+
+`features/calculation/tree.ts` is a scratch tree, deliberately not a
+`GameTree`: no revisions, no undo, no save path, because it is free until
+submitted and most of it is discarded. Moves advance the position, so entering
+1...Rd8 2.Qe2 walks the variation the way it is calculated. The candidate list
+is derived from the tree's roots rather than maintained beside them, so the two
+cannot disagree.
+
+**The gate lives inside `WorkspaceToolDock`.** This is the load-bearing part.
+The dock reads the calculation store directly rather than taking a `locked`
+prop from each workspace, because a guarantee that depends on nine call sites
+remembering is one refactor away from leaking an engine line into a session
+somebody asked to be blind.
+
+Submitting writes the same `DecisionRecord` self-analysis writes, with the tree
+attached, so a calculation lands in the same journal with the same
+frozen-at-reveal guarantee and feeds the same analytics.
+
+See ADR 0030.
+
+---
+
+## Where a tablebase answer comes from
+
+`tablebase/` splits capability from probing, and the split is the design.
+
+Capability is read from the files: the companion scans the configured directory
+and derives from Syzygy filenames exactly which material is present and what
+the real piece limit is. Someone with five-piece tables is told five; someone
+with WDL but no DTZ files is told that too, because the two are downloaded
+separately and a partial set is the state most users are in.
+
+Probing is delegated to a local tablebase server. Kingfisher does not implement
+Syzygy decompression — several thousand lines of Huffman-coded table decoding
+whose failure mode is a silently wrong endgame assessment, in a feature whose
+central claim is that a tablebase result is proof rather than opinion.
+
+`chooseTablebaseProvider` returns a decision _with a reason_, and the panel
+prints it: local when it can genuinely answer, remote otherwise, and the reason
+names both numbers when it declines. The configuration users most often arrive
+at — files downloaded, no server running — produces a sentence rather than a
+silent fall back to the network.
+
+See ADR 0031.
+
+---
+
 ## Structural research
 
 `chess/structure.ts` turns a position into two comparable identities, both pure
@@ -782,6 +877,16 @@ result)` cells built lazily for the 128 positions being researched: 0.4–2.7 ms
   whole `(position, move)` group for every cascaded row, and rebuilds only the
   position keys the deletion could have touched: 199 ms rather than 1,651 ms to
   remove 1,000 of 100,000 games.
+- The repertoire transposition graph is memoized on the positions array, and
+  its search carries parent pointers rather than a path per queue entry and is
+  bounded by an explicit visit budget. Measured on 2,639 positions, listing the
+  move orders that reach one position went from 1,119 ms to 53 ms and
+  convergence detection from 255 ms to 1.6 ms. See the Phase 9 notes.
+- Pawn structure and file state are split out of `positionFeatures` and
+  memoized by pawn skeleton across an import. Openings repeat heavily in an
+  archive and roughly half the moves in a game are not pawn moves, so the memo
+  hits often: indexing 210,319 positions went from 2,644 ms to 1,464 ms with no
+  change to a single stored value.
 - Explorer history is capped at 256 inactive entries. `gcTime` expires entries by
   age, which does not bound an afternoon of navigation. Only _settled_ entries
   are evictable: a prefetch in flight has no data and no observers, and evicting
@@ -983,6 +1088,14 @@ deterministic structural and pawn-skeleton search; model-game discovery and a
 study mode with the engine off; preparation priorities with visible reasons;
 exact filtered explorer queries; SQLite deletion; a virtualized move tree; and a
 rules-engine replacement measured and rejected.
+
+**Phase 9 — elite preparation.** _Done._ Tournament preparation sessions and
+opponent dossiers, curated game-day sheets, the theory radar, a
+transposition-aware repertoire, opening files, guess-the-move, a calculation
+workspace with a blindfold, the endgame lab with local Syzygy, restricted-search
+candidate comparison and stored engine evidence, review scheduling and journal
+analytics, position search, and one position-action list behind the menu, the
+palette and the keyboard.
 
 **Later — assistance.** A `ChessContext` assembled from engine output, database
 evidence, position features and the user's own history, so that an explanation
