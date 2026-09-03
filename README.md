@@ -9,7 +9,7 @@ calls it analysis.
 
 ---
 
-## Status: Phase 9 — a preparation workstation
+## Status: Phase 10 — configurable, and hard to break
 
 Phase 1 built the workstation, Phase 2 made the work durable, Phase 3 turned the
 stored material into preparation, and Phase 4 gave it real engines, real artwork
@@ -264,6 +264,48 @@ An analysis is always one of three things, and the header says which:
 
 ---
 
+Phase 10 is about shaping it around your own workflow without being able to
+break it. A workspace is now a board plus three named regions — a side dock, an
+optional lower panel, and the board column — and any module can be moved
+between them from a menu, not only by dragging. Eight presets, layouts you can
+name and save, and a reset that is two clicks from anywhere a layout can go
+wrong: a bad arrangement should never mean clearing `localStorage` by hand.
+Layouts are stored separately per device size, so arranging a phone cannot
+overwrite a desktop.
+
+Deliberately not a docking system. There is no pane tree and no floating
+window, because the single most valuable thing on screen is the board, and any
+system that lets it be dragged into a corner will eventually put it there by
+accident. The board cannot be rearranged, and a test holds it above 400px on a
+1440x900 screen.
+
+Every board on every route now resolves one capability record, and concealment
+is subtractive: Review, Calculation, Guess the Move and Training withhold the
+evaluation, the legal-move hints and the stored annotations, and no call site
+can turn any of it back on. A board whose artwork fails to render falls back to
+the stock set rather than taking the route down.
+
+Settings gained a search box — "threads", "piece set", "shortcut", "lc0" — and
+each result explains the setting rather than just naming it. Every integration
+says whether it works where you configured it, instead of sending you to
+Diagnostics to find out. Settings and layouts export to a file that carries no
+tokens, no keys and no addresses from your own network, and a test greps the
+export for a real-looking credential to keep it that way.
+
+Every keyboard command can be rebound, conflicts are reported rather than
+silently allowed, and the reference dialog is the editor. The binding table is
+now what the handler actually reads, so a documented shortcut is necessarily
+one that fires — which was not previously true.
+
+A saved endgame can be played out against the engine with the tablebase as
+referee. It reports what the position is now worth — "The tablebase result
+changed from Win to Draw on this move" — and never tells you that you blundered,
+because it does not know that.
+
+Player and metadata search over a 500,000-game SQLite collection are indexed
+rather than scanned: a player prefix lookup went from 72–262 ms to under a
+millisecond, and text search from a 127–137 ms tail to a flat 26–29 ms.
+
 ## Getting started
 
 ```bash
@@ -322,38 +364,39 @@ assistant stays disabled without affecting the rest of the workstation.
 
 ## Scripts
 
-| Command                     | Purpose                                                                         |
-| --------------------------- | ------------------------------------------------------------------------------- |
-| `npm run dev`               | Development server on port 3210                                                 |
-| `npm run build`             | Production build                                                                |
-| `npm test`                  | Run the test suite                                                              |
-| `npm run test:watch`        | Tests in watch mode                                                             |
-| `npm run test:e2e`          | Playwright browser tests against a real dev server                              |
-| `npm run test:e2e:ui`       | The same suite in Playwright's interactive runner                               |
-| `npm run benchmark`         | The reproducible local benchmark group, with the environment in its output      |
-| `npm run bench:sqlite`      | SQLite companion import and query latency (needs a running companion)           |
-| `npm run bench:pgn`         | PGN parse throughput in browser-equivalent code                                 |
-| `npm run bench:aggregates`  | Filtered explorer, structure search and SQLite deletion at 100,000 games        |
-| `npm run bench:rules`       | The rules-engine replacement experiment (ADR 0028)                              |
-| `npm run bench:preparation` | Dossiers, transposition graphs, the theory radar and journal analytics          |
-| `npm run bench:engines`     | Native engine startup to `uciok`, `readyok` and a first line                    |
-| `npm run bench:evidence`    | Assembling and rendering a companion evidence packet                            |
-| `npm run bundle:report`     | Initial JavaScript per route, from a production build                           |
-| `npm run smoke:lichess`     | Opt-in live check that the Lichess API still matches the providers              |
-| `npm run typecheck`         | TypeScript, no emit                                                             |
-| `npm run lint`              | ESLint                                                                          |
-| `npm run format`            | Prettier                                                                        |
-| `npm run format:check`      | Verify formatting                                                               |
-| `npm run engine:install`    | Download the Stockfish WASM builds                                              |
-| `npm run engines:install`   | Install every engine for this platform (see [docs/ENGINES.md](docs/ENGINES.md)) |
-| `npm run companion`         | Start the optional local companion                                              |
+| Command                                 | Purpose                                                                         |
+| --------------------------------------- | ------------------------------------------------------------------------------- |
+| `npm run dev`                           | Development server on port 3210                                                 |
+| `npm run build`                         | Production build                                                                |
+| `npm test`                              | Run the test suite                                                              |
+| `npm run test:watch`                    | Tests in watch mode                                                             |
+| `npm run test:e2e`                      | Playwright browser tests against a real dev server                              |
+| `npm run test:e2e:ui`                   | The same suite in Playwright's interactive runner                               |
+| `npm run benchmark`                     | The reproducible local benchmark group, with the environment in its output      |
+| `npm run bench:sqlite`                  | SQLite companion import and query latency (needs a running companion)           |
+| `npm run bench:pgn`                     | PGN parse throughput in browser-equivalent code                                 |
+| `npm run bench:aggregates`              | Filtered explorer, structure search and SQLite deletion at 100,000 games        |
+| `npm run bench:rules`                   | The rules-engine replacement experiment (ADR 0028)                              |
+| `npm run bench:preparation`             | Dossiers, transposition graphs, the theory radar and journal analytics          |
+| `npm run bench:player-search -- 500000` | Player prefix and metadata search over a generated collection                   |
+| `npm run bench:engines`                 | Native engine startup to `uciok`, `readyok` and a first line                    |
+| `npm run bench:evidence`                | Assembling and rendering a companion evidence packet                            |
+| `npm run bundle:report`                 | Initial JavaScript per route, from a production build                           |
+| `npm run smoke:lichess`                 | Opt-in live check that the Lichess API still matches the providers              |
+| `npm run typecheck`                     | TypeScript, no emit                                                             |
+| `npm run lint`                          | ESLint                                                                          |
+| `npm run format`                        | Prettier                                                                        |
+| `npm run format:check`                  | Verify formatting                                                               |
+| `npm run engine:install`                | Download the Stockfish WASM builds                                              |
+| `npm run engines:install`               | Install every engine for this platform (see [docs/ENGINES.md](docs/ENGINES.md)) |
+| `npm run companion`                     | Start the optional local companion                                              |
 
 ---
 
 ## Keyboard
 
 The workspace is meant to be driven from the keyboard; press `?` in the app for
-the full list.
+the full list, and to change any of them. Bindings below are the defaults.
 
 |              |                                           |
 | ------------ | ----------------------------------------- |
@@ -372,6 +415,11 @@ the full list.
 | `⌘Z` / `⇧⌘Z` | Undo / redo                               |
 | `⌘S`         | Save this analysis to a study             |
 | `⌘K`         | Command palette                           |
+
+Every command except `Esc` can be rebound from the same dialog that lists them.
+A binding already in use is reported before it is taken, with the choice to
+replace it or cancel; `Esc` is fixed because it is the way out of every dialog
+and out of focus mode.
 
 On the board: right-drag draws an arrow, right-click highlights a square. Hold
 `⇧` for red, `⌥` for blue, `⇧⌥` for yellow. In the notation window, right-click

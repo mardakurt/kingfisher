@@ -579,14 +579,11 @@ is the bug class this seam exists to prevent.
 
 `WorkspaceToolDock` renders a route's tools from one table:
 
-| Route       | Tools                                                                           |
-| ----------- | ------------------------------------------------------------------------------- |
-| Analysis    | Engine, Explorer, Database, Repertoire, Features, Tablebase, Companion, Notes   |
-| Studies     | Engine, Explorer, Database, Features, Tablebase, Companion, Notes               |
-| Openings    | Explorer, Database, Engine, Repertoire, Model Games, Personal Results, Features |
-| Repertoire  | Context, Explorer, Database, Engine, Model Games, Features, Notes               |
-| Preparation | Context, Engine, Explorer, Database, Repertoire, Model Games, Features, Notes   |
-| Training    | Context, Engine, Explorer, Database, Features, Tablebase, Notes                 |
+`features/workspace/modules.ts` is the single catalogue: each module's label,
+its home region, the regions it may be moved to, and which workspaces offer it.
+This used to be three separate literals — a label map, a route table and a
+render switch — which is how `personal-results` came to be listed on a route
+whose dock never rendered it.
 
 Games has no dock of its own: opening a row loads the game as the workspace
 document and lands on Analysis, which has the full set.
@@ -595,10 +592,110 @@ Training is the one route that gates the dock — it is not rendered at all
 until the answer is revealed, because an engine evaluation beside a position
 you are being asked to solve is the answer.
 
-`stores/workspace-layout-store` persists the dock width, the collapsed state,
-the selected preset (Analysis, Study, Opening Research, Preparation, Minimal
-Board) and the last tool **per route**, so moving between workspaces does not
-carry an unrelated tab along.
+### Regions and placement
+
+Phase 10 turned the dock from _the_ place a tool lives into one of three named
+regions. A workspace is a board plus:
+
+| Region    | What it is                                            |
+| --------- | ----------------------------------------------------- |
+| `dock`    | The side column, or a bottom sheet on a narrow screen |
+| `lower`   | An optional panel beneath the board                   |
+| `primary` | The board column itself                               |
+
+There is no pane tree, no floating window and no arbitrary drop target, and
+that constraint is the design. It keeps the board large, keeps the number of
+reachable layouts small enough to test, and lets a layout be a plain record
+that survives a schema change. Kingfisher is chess software, not an IDE.
+
+`features/workspace/layout-model.ts` holds the rules and imports neither React
+nor storage, so what a layout _means_ is testable without a browser. A
+`WorkspaceArrangement` is:
+
+```
+placement    Partial<Record<ModuleId, Region>>   sparse: only the differences
+active       Partial<Record<Region, ModuleId>>   the selected tab per region
+dockWidth    320–640
+lowerHeight  140–520
+dockCollapsed
+```
+
+`placement` is sparse on purpose: a module absent from it sits in the home
+region its descriptor declares. That is what lets a later phase add a module
+without every saved layout needing a migration to mention it.
+
+Two resolution rules carry most of the weight. `activeInRegion` falls back to
+the first module present when the stored selection has moved elsewhere —
+otherwise moving the active tool to the lower panel leaves the dock selecting
+something that is not in it, rendering nothing and looking broken. And
+`moveModule` selects the module in its new region, so a move is visible rather
+than appearing to do nothing.
+
+The move tree's home is `lower`, not `primary`, and that is load-bearing.
+Stacking a fixed move tree _and_ a lower panel under the board took the board
+from 490px to 277px on a 1440x900 screen while this was being built — exactly
+the shrunken board the design forbids. Making the move tree the lower panel's
+default occupant means the default layout is what it always was, moving the
+engine down puts it in a _tab_ beside the move tree rather than below it, and
+moving the move tree away gives its height back to the board. A Playwright
+test holds the board above 400px at that viewport.
+
+### Presets, saved layouts and reset
+
+Eight presets (Analysis, Opening Research, Study, Preparation, Calculation,
+Review, Endgame, Minimal) each express an opinion about what a kind of session
+needs on screen. Users save their own under any name; a saved layout stores
+arrangement only and never which document or position was open, because
+"Tournament Prep" is a shape of workspace and restoring it should not drag last
+month's document back with it.
+
+Reset **removes** the stored entry rather than writing the default into it, so
+a workspace nobody has touched and one that has been reset are the same thing.
+Storing an explicit "this is the default" record is how saved layouts start
+silently pinning themselves to an old default. Reset is two clicks from
+anywhere a layout can be broken, and Diagnostics has "Reset all layouts": a bad
+drag must never require clearing `localStorage` by hand.
+
+### Devices and migration
+
+Arrangements are keyed `${device}:${workspace}` where device is `desktop` or
+`compact`, split at the same 1100px breakpoint the dock has always used. A
+phone cannot honour a three-region desktop arrangement and does not try:
+modules placed in `lower` fold into the single bottom sheet, and they stay
+_visible_ in the tab strip rather than being pushed into More — on a desktop
+they had a panel of their own, and demoting the move tree to a menu entry
+because the screen got narrower loses it where it is hardest to find again.
+
+The store is at version 3. Version 2's single dock width, collapsed flag and
+per-route active tool all have equivalents here and are carried across rather
+than dropped: making every user re-arrange every workspace after an update is
+the failure the migration exists to prevent.
+
+Persistence is debounced through `lib/debounced-storage.ts`. Zustand's persist
+middleware serialises the whole store synchronously on every `set`, and the old
+resize handler called it on every `pointermove` — several hundred synchronous
+JSON writes on the pointer thread for one drag. Reads go through the pending
+value so a read after a write still sees it; only the trip to disk is delayed,
+and it is flushed on `pagehide` and on becoming hidden.
+
+### Tabs, pinning and availability
+
+Phase 9 rendered every tool as an equally weighted tab in a horizontally
+scrolling row — thirteen of them on Analysis, so the last five sat off-screen
+behind a scrollbar most people never noticed. The strip now shows the route's
+own context panel, the pinned tools, and the active one; everything else is
+behind a single **More**. Tabs are 32px with real words on them: miniature
+navigation is cheap to add and expensive to use.
+
+The route's context panel (Journal on Review, Opening tree on Preparation,
+References on Studies) is always in the strip. It is the reason that route
+exists, and putting the most important tab on a page behind a menu is the
+discoverability failure, not a cure for it.
+
+A tool that cannot help says why rather than disappearing — "Available for
+positions with 7 pieces or fewer. This one has 32." A tool that vanishes
+teaches the user the application is unreliable; one that explains itself
+teaches them how it works.
 
 The selected tool is the only one mounted. An inactive tool therefore issues
 no database query, opens no engine and makes no assistant call — the dock adds
@@ -801,6 +898,55 @@ The board also guarantees it never emits an illegal intent: legality is
 rechecked against the destinations of the position currently rendered, so a
 click that races a position change is dropped rather than rejected downstream.
 
+### The board capability contract
+
+Phase 5 unified the full-size board; Phases 6 to 9 then built Review,
+Calculation, Guess the Move, Endgame, Preparation, Opening Files and Model Game
+mode on top of it, each expressing "hide the answer" its own way — Review by
+passing `showEvaluationArtifacts={revealed}`, the dock by withholding tool
+mounts, Calculation by an overlay. Three mechanisms, no single place to check,
+and nothing stopping a fourth route from forgetting.
+
+`features/workspace/board-capabilities.ts` is that single place:
+
+```
+allowMoves  allowAnnotations  showAnnotations  showLegalHints
+showEvaluation  showCoordinates  allowFlip  allowContextActions  concealPieces
+```
+
+Two rules make it trustworthy.
+
+It is **declared by the surface**, never inferred from the pathname. The same
+document is editable in Analysis and frozen in a preview card, so behaviour is
+a property of the surface rather than of the route. An earlier version guessed
+from the route and the document kind, which made a game opened from Games
+read-only in Analysis and quietly removed the ability to add a variation to
+your own game.
+
+Concealment is **subtractive and applied last**. `resolveBoardCapabilities`
+takes the mode's base record, applies the caller's overrides, and _then_ turns
+off everything that could carry the answer — so no future call site can
+re-enable the evaluation bar inside a session somebody asked to think about
+unaided, including by accident. That property is what the unit tests are
+really for.
+
+Concealment also withholds stored annotations, which the old
+`showEvaluationArtifacts` flag never covered: a `!` sitting on the next move is
+the answer written on the board.
+
+`CanonicalBoardSurface` writes `data-board-conceals="evidence"` when it is
+withholding, so an E2E test asserts the contract from the component's own
+claim rather than from a bar happening to be absent for some other reason. The
+Phase 10 matrix walks all nine board routes and checks each renders exactly one
+canonical board — never two that could disagree about the position.
+
+`BoardErrorBoundary` catches a board that fails to render and retries once with
+the stock piece set and theme, with a diagnostic saying so. The board is the
+one component every chess route depends on and it draws user-chosen artwork; a
+piece-set renderer that throws should cost you the artwork, not an in-memory
+analysis. Only one retry: if the plain board fails too the problem is not the
+artwork, and re-rendering forever would be a loop instead of a message.
+
 `pieces.tsx` is the single piece-rendering boundary. Board code asks it for a
 piece by colour, type and set id; the internal SVG geometry shares one viewBox,
 baseline and centring contract. This keeps pieces crisp without asset timing,
@@ -833,6 +979,119 @@ from full, to icon rail, to an accessible drawer.
 
 ---
 
+## Configuration
+
+Eleven sections of settings means nobody can remember which one holds
+"threads". `features/shell/settings-index.ts` is a searchable catalogue —
+label, section, a sentence of explanation and the words a user would actually
+type. Keywords are stored beside the entry rather than derived from the label,
+because the failure mode is entirely about the words the label _does not_
+contain: somebody looking for the Lichess token searches "token", not "Connect
+Lichess". The explanation matters as much as the jump; "Hash (MB)" tells a user
+nothing about whether they want to change it.
+
+Each integration reports whether it works where it is configured. Before this,
+learning whether Lichess was connected meant opening Diagnostics — a different
+section, for a question about the section you were already in. Diagnostics
+stays the detailed view; the health line is the one-line answer.
+
+### Settings transfer
+
+`features/shell/settings-transfer.ts` exports appearance, board, workspace
+layouts, pinned tools and keyboard bindings, and no credentials. The exclusion
+is a **deny-list**, and the reason is that the failure modes are not symmetric:
+with an allow-list, a preference added next phase is silently dropped from
+every export — annoying. With a deny-list, a _secret_ added next phase is
+silently exported — a leak. So the deny-list is paired with a test that fails
+the moment a preference whose name reads like a credential is not on it, which
+turns the dangerous direction into a build error. Names that look like
+credentials but are not (`rememberLichessToken`) are listed as reviewed
+exceptions rather than weakening the pattern.
+
+`companionUrl` and `assistantBaseUrl` are denied too. Neither is a secret, but
+both are addresses of services on the user's own network, and an exported file
+is a thing people paste into issue trackers.
+
+Import validates each part on its own: an unknown preference key is dropped, a
+preference of the wrong type is dropped, a damaged layout does not prevent the
+appearance and shortcuts restoring. Malformed configuration should cost the
+user the parts it got wrong and nothing else.
+
+### Keyboard bindings
+
+`features/command/shortcuts.ts` has always been a table of what the keys _are_,
+rendered in the reference dialog, while the handler was a separate chain of
+`if`s. The two agreeing was a matter of somebody remembering — which is how the
+`D` binding came to be documented for a whole phase while doing nothing at all.
+
+The table is now authoritative. `features/command/bindings.ts` resolves an
+event to an action id through defaults merged with the user's overrides, and
+`useGlobalHotkeys` switches on the action. A rebind therefore takes effect
+without the handler being touched, and a documented binding is necessarily one
+that fires. The E2E test presses the rebound key and checks the board flipped,
+which is the only assertion that would have caught the original bug.
+
+Deliberately not a chord grammar. Kingfisher's keys are single keys with at
+most shift and the platform modifier; `Ctrl+K Ctrl+S` sequences would add a
+parser, a timeout and a class of unreachable states for nothing a chess player
+asked for. Shift is recorded only on keys whose identity it does not already
+change — on `?` the shift is how the character is typed, so recording it would
+store `shift+?`, which no event can match.
+
+Conflicts are reported, never silently allowed: "C is already assigned to Edit
+the comment on this move", with Replace and Cancel. Replace takes the key from
+the action that held it rather than leaving two actions on one key, because
+only one of them could ever fire. Escape is fixed rather than bindable — it is
+the way out of every dialog and out of focus mode, and making it rebindable
+offers the user a way to lock themselves in.
+
+The reference dialog and the editor are the same screen. A separate "customise
+shortcuts" screen is one nobody finds, and it guarantees the two drift.
+
+---
+
+## Refereed endgame practice
+
+The point of playing a theoretical endgame against an engine is not to find out
+who wins — you already know, that is why it is theoretical. It is to find out
+whether _you_ can hold the result. So the referee is the tablebase, not the
+engine's evaluation.
+
+`features/endgame/conversion.ts` is pure. `outcomeFor` reads a Syzygy category
+from a chosen side's point of view, inverting it when the side to move is not
+the side being asked about — getting that wrong would announce a change on
+every move of the game, which is the regression its test exists for. The two
+fifty-move categories collapse to `draw`: a cursed win is a win on the board
+and a draw in the game, and the game is what is being played.
+
+`describeChange` returns `null` when the result held, because a trainer that
+comments on every move trains the player to stop reading it. When it did move,
+the wording is fixed and asserted by tests:
+
+> The tablebase result changed from Win to Draw on this move.
+
+Never "you blundered". That is not politeness. A tablebase knows the result
+changed; it does not know whether the move was a slip, an experiment, or a line
+the player understands better than the machine does, and a system claiming to
+know that is making something up.
+
+`endingFor` ends a session on mate, stalemate, the fifty-move rule, or the
+starting result being gone — judged against where the session _began_ rather
+than the previous move, so drifting Win to Draw and back to Win is a session
+worth continuing rather than one that ended two moves ago.
+
+The user picks the opponent: tablebase-perfect, a full engine search, or a
+shallow one that will go wrong. A perfect defender in a lost position makes
+practice impossible to fail; an opponent that plays perfectly while being
+called "club strength" is a lie about the exercise. Only the perfect setting
+consults the tablebase.
+
+The session owns its own position rather than writing into the analysis tree:
+twenty forced king moves in the user's variation tree would bury the study they
+were working on.
+
+---
+
 ## Performance
 
 The choices already made, and why:
@@ -860,6 +1119,43 @@ The choices already made, and why:
   prefetched into the same cache. Two, deliberately: on a 100,000-game
   collection, prefetching every legal move would turn one view into thirty
   aggregations.
+- Player and metadata search over the SQLite companion are indexed rather than
+  scanned. The player prefix lookup used to run two `GROUP BY` passes over every
+  game and the text search was four leading-wildcard `LIKE`s — both proportional
+  to the whole database on every keystroke. A `players` table keyed by the same
+  normalized name key `games.white_key` holds, maintained on import, turns the
+  prefix lookup into an index range scan; a contentless FTS5 index over players,
+  event, site, ECO and opening answers the text search in one lookup.
+  Deliberately **not** the movetext: it is by far the largest column, indexing it
+  would multiply the database size for a query nobody has asked for, and the
+  position index already answers "which games reached this position" properly.
+
+  Measured with `npm run bench:player-search -- 500000`, median over 20 runs:
+
+  | Query                 | Before   | After   |
+  | --------------------- | -------- | ------- |
+  | player prefix "car"   | 121.6 ms | 0.0 ms  |
+  | player prefix "carl"  | 72.6 ms  | 0.0 ms  |
+  | player prefix (empty) | 262.5 ms | 0.0 ms  |
+  | text, two terms       | 137.2 ms | 25.8 ms |
+  | text, no match        | 126.4 ms | 0.1 ms  |
+  | text, one common term | 0.3 ms   | 29.0 ms |
+
+  The last row is an honest regression. `LIKE` looked fast on a common term only
+  because `LIMIT` stopped the scan once fifty rows matched; the same query on a
+  term the database does not have cost 126 ms. What changed is that the cost
+  stopped depending on which name you typed — 29 ms is below the threshold at
+  which a search box feels like it responds at all, and the 127–137 ms tail is
+  gone. Bulk import pays for it: 500,000 games went from 11.7 s to 18.5 s, which
+  is the right side of the trade for a background job with a progress bar.
+
+  Both indexes are derived entirely from `games`, so an existing database
+  rebuilds them on first open and a rebuild is never data loss — which is also
+  why an SQLite build without FTS5 falls back to the `LIKE` scan instead of
+  refusing to open. Deletion rebuilds rather than decrements: a player left
+  listed with a game count no game supports is a wrong answer that survives until
+  somebody notices.
+
 - PGN parsing runs in a module Worker behind an acknowledged batch pipeline, so
   exactly one prepared batch is ever in flight and the producer is blocked on
   the consumer. Cancellation terminates the worker at once and resolves only

@@ -41,3 +41,5 @@ order taken. Superseded records stay, marked as such.
 | [0030](0030-calculation-before-evidence.md)                 | A calculation tree, and the evidence gate inside the dock        | Accepted |
 | [0031](0031-local-tablebases-split.md)                      | Tablebase capability read from files; probing delegated          | Accepted |
 | [0032](0032-position-actions-and-research-navigation.md)    | One position-action list; a trail that names its destination     | Accepted |
+| [0033](0033-three-regions-not-a-pane-tree.md)               | Three named regions, not an unbounded pane tree                  | Accepted |
+| [0034](0034-concealment-is-subtractive.md)                  | Concealment is a capability no call site can undo                | Accepted |
