@@ -224,17 +224,50 @@ test.describe('universal board', () => {
  * into a session somebody asked to think about unaided, and the failure does
  * not look like a failure — it looks like a helpful number.
  */
+const REVIEW_PGN = `[Event "Phase 10"]
+[White "Alpha, A"]
+[Black "Beta, B"]
+[Result "1-0"]
+
+1. d4 Nf6 2. c4 e6 3. Nf3 d5 4. Nc3 Be7 5. Bg5 h6 6. Bh4 1-0`;
+
 test.describe('concealment', () => {
-  test('review withholds the evaluation until the evidence is revealed', async ({ page }) => {
+  /*
+    Opened through the real flow — import a game, select it, review it —
+    because Review shows a list until something is open, and a test that
+    skipped itself when nothing was would look like coverage while proving
+    nothing.
+
+    Complementary to the Phase 8 self-analysis test rather than a duplicate of
+    it: that one asserts the *dock* withholds its tools, this one asserts the
+    board's own capability contract, which is the thing a shared-board
+    refactor breaks.
+  */
+  test('§14 the review board withholds evidence until it is revealed', async ({ page }) => {
     await freshLayout(page);
-    await page.goto('/review');
+    await page.goto('/games');
+    await ready(page);
+    await page.getByRole('button', { name: 'Import', exact: true }).click();
+    const dialog = page.getByRole('dialog', { name: 'Import a game or position' });
+    await dialog.getByRole('textbox').fill(REVIEW_PGN);
+    await dialog.getByRole('button', { name: 'Import games' }).click();
+    await expect(dialog).toBeHidden();
+
+    await page
+      .getByRole('checkbox', { name: /Select Alpha, A/ })
+      .first()
+      .check();
+    await page.getByRole('button', { name: 'Review this game' }).click();
+    await expect(page).toHaveURL(/\/review$/);
     await ready(page);
 
     const surface = page.locator('[data-board-surface]');
-    if ((await surface.count()) === 0) test.skip(true, 'Review has nothing open to review.');
-
-    // The contract is asserted in the DOM by CanonicalBoardSurface itself, so
-    // this cannot pass by the bar happening to be absent for another reason.
+    await expect(surface.first()).toBeVisible();
+    /*
+      Asserted from the attribute `CanonicalBoardSurface` writes about itself,
+      so this cannot pass because the evaluation bar happened to be absent for
+      some unrelated reason — an engine that was never started, say.
+    */
     await expect(surface.first()).toHaveAttribute('data-board-conceals', 'evidence');
   });
 });
