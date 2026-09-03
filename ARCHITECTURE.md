@@ -1214,16 +1214,23 @@ reproduces the second. The SQLite, import, bundle and responsiveness
 before-and-after figures, together with the performance budgets and what was
 deliberately left unmeasured, are in
 `docs/performance/phase-7-speed-and-scale.md`; `npm run benchmark` reproduces
-them. The heaviest route now ships 289 kB of gzipped JavaScript, down from
-309 kB, while total emitted client JavaScript rose from 1,257 kB in 26 files to
+them. Phase 7 took the heaviest route from 309 kB of gzipped JavaScript to
+289 kB while total emitted client JavaScript rose from 1,257 kB in 26 files to
 1,373 kB in 60 — which is what code splitting looks like when features are
-being added at the same time. No runtime dependency was added in Phase 7.
+being added at the same time. As of Phase 10 the heaviest route is `/review`
+at 324 kB gzipped over 20 scripts, with 1,686 kB emitted across 78 files;
+three phases of new chess surfaces have been added since that figure, all of
+them lazily loaded. No runtime dependency has been added since Phase 7.
+
+Phase 10's search measurements are reproduced by
+`npm run bench:player-search -- 500000`, which generates its own collection
+and deletes it.
 
 ---
 
 ## Testing
 
-576 tests across 46 files, all on the parts where being wrong is expensive.
+895 tests across 76 files, all on the parts where being wrong is expensive.
 
 | Area              | Covered                                                                                                                                                                                                                           |
 | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -1392,6 +1399,16 @@ workspace with a blindfold, the endgame lab with local Syzygy, restricted-search
 candidate comparison and stored engine evidence, review scheduling and journal
 analytics, position search, and one position-action list behind the menu, the
 palette and the keyboard.
+
+**Phase 10 — configurable, and hard to break.** _Done._ Workspaces composed
+from three named regions with movable modules, eight presets, named custom
+layouts, per-device storage and a reset two clicks from anywhere; a board
+capability contract with concealment no call site can undo, and a fallback for
+artwork that will not render; a searchable settings screen that reports whether
+each integration works, and exports configuration without credentials;
+rebindable keyboard commands with conflict handling; the position-health panel;
+tablebase-refereed endgame conversion; and indexed player and metadata search
+measured at 500,000 games.
 
 **Later — assistance.** A `ChessContext` assembled from engine output, database
 evidence, position features and the user's own history, so that an explanation

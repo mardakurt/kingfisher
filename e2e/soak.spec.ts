@@ -250,6 +250,9 @@ async function cycle(page: Page, index: number) {
   */
   await navigate(page, 'Analysis');
   const dock = page.getByRole('complementary', { name: 'Workspace tools' });
+  // The move entry names whichever tool is *active*, so select one first
+  // rather than assuming the previous step left the dock where we want it.
+  await selectTool(page, dock, 'Engine');
   await page.getByRole('button', { name: /^Layout/ }).click();
   await page.getByRole('menuitem', { name: 'Move Engine to the lower panel' }).click();
   await expect(

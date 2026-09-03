@@ -143,6 +143,14 @@ export function ConversionPanel({
     return () => {
       cancelled = true;
     };
+    /*
+      Narrowed deliberately. The effect reads store actions and preferences,
+      all of which are stable or irrelevant to *whether the engine should
+      move*; listing them would re-run the reply on an unrelated preference
+      change. What must trigger it is the position, whose turn it is, and
+      whether the session is over — and `replying` guards the double-fire that
+      a re-render would otherwise cause.
+    */
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [position, session.ending, session.side, session.startingOutcome, session.strength]);
 
