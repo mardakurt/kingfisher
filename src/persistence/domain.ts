@@ -917,6 +917,8 @@ export interface PinnedLineRecord {
  */
 export interface ModelGameKeyMoment {
   readonly id: string;
+  /** The move this moment is about, so guess-the-move can ask about exactly it. */
+  readonly nodeId?: NodeId;
   readonly ply: number;
   readonly positionKey: PositionKey;
   readonly fen: Fen;

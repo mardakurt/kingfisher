@@ -166,21 +166,51 @@ committed.
 | games at position                     | 17.8 ms | 18.6 ms |
 | opening aggregation (common position) | 0.3 ms  | 0.3 ms  |
 
-## 6. What was not measured
+## 6. The 500,000-game experiment
 
-**The 500,000-game architecture experiment** described in the Phase 9 brief was
-not run. It is a genuine gap and is recorded as one rather than estimated: the
-100,000-game fixture takes about half an hour end to end on this machine and
-produces a 272 MB file, and a 500,000-game run would need several hours and
-well over a gigabyte. Nothing in the results above extrapolates to that scale,
-and this document does not claim it does.
+Run, rather than estimated. `npm run bench:sqlite -- 500000` against a running
+companion: 500,000 games, 5,251,428 indexed positions, a 1.2 GB SQLite file.
 
-What _can_ be said from the measurements that exist: the paths whose cost grows
-with collection size are the normalized scans — text search at 26 ms and player
-search at 13 ms per 100,000 games — while the explorer paths are answered from
-derived tables whose cost tracks moves at a position rather than games in the
-collection, and did not move between 10,000 and 100,000 games.
+| Query                                 | 100,000 | 500,000  | Ratio |
+| ------------------------------------- | ------- | -------- | ----- |
+| opening aggregation (common position) | 0.3 ms  | 0.3 ms   | flat  |
+| opening aggregation (deep position)   | 0.2 ms  | 0.3 ms   | flat  |
+| paged list (100 rows)                 | 0.7 ms  | 0.6 ms   | flat  |
+| page 20 deep (offset 2,000)           | 0.6 ms  | 0.8 ms   | flat  |
+| player search                         | 12.8 ms | 67.4 ms  | 5.3×  |
+| player prefix lookup                  | 16.6 ms | 95.0 ms  | 5.7×  |
+| games at position                     | 18.6 ms | 104.7 ms | 5.6×  |
+| text search                           | 26.0 ms | 140.6 ms | 5.4×  |
+| import through the companion          | 24.1 s  | 179.8 s  | 7.5×  |
+| database file                         | 272 MB  | 1.2 GB   | 4.4×  |
 
-**Local tablebase probe latency** was not measured, because measuring it would
-measure a third-party local server rather than Kingfisher. The directory scan
-that decides whether to use one is a single `readdir`.
+**What holds.** The derived-aggregate paths are flat across a fivefold increase
+— which is the Phase 7 architecture doing exactly what ADR 0023 claimed, and
+the claim is now tested at five times the size it was designed against. The
+opening explorer, which is what a player touches on every move, does not notice
+the difference between 100,000 games and half a million.
+
+**What does not.** Everything answered by a normalized scan is linear, and at
+500,000 games that puts four routine operations between 67 ms and 141 ms, with
+worst cases far higher: text search peaked at 1.6 s and the un-aggregated
+opening scan at 6.9 s. Those are noticeable. They are not broken, and they are
+the paths a player uses occasionally rather than constantly, but a collection
+of this size is past the point where they feel instant.
+
+**Import is slightly superlinear** — 7.5× the time for 5× the games — which is
+what B-tree depth on growing indexes costs. Three minutes for half a million
+games is acceptable for something started once and walked away from.
+
+**Honest conclusion.** Kingfisher works at 500,000 games and the explorer stays
+instant there. The measured envelope is now 500,000 for SQLite rather than
+100,000, with the caveat that player and text search are an order of magnitude
+slower than at 100,000 and would need the same aggregate treatment the explorer
+got before a million-game archive would be comfortable. Nothing here is
+extrapolated past what was run: a million games was not tested and is not
+claimed.
+
+## 7. What was not measured
+
+**Local tablebase probe latency**, because measuring it would measure a
+third-party local server rather than Kingfisher. The directory scan that
+decides whether to use one is a single `readdir`.

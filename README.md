@@ -198,7 +198,9 @@ currently comes from the separate Lichess Syzygy provider.
 | Interface            | Responsive desktop/tablet/phone workspace, command palette (`⌘K`), keyboard-first navigation, dark and light themes, local-first preferences                                                                                                                                                        |
 
 **Deliberately bounded.** IndexedDB collections are measured to 50,000 games and
-SQLite ones to 100,000; neither number is extrapolated to millions. Opponent
+SQLite ones to 500,000, where the opening explorer is still answered in 0.3 ms
+from its derived tables but player and text search have grown to 67–141 ms.
+Neither number is extrapolated to millions. Opponent
 preparation uses at most the latest 1,000 matching games. Structural features
 are counted, never scored — the application does not fabricate strategic labels,
 and the assistant is forbidden from inventing numbers that are not in front of
