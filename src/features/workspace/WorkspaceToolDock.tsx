@@ -166,6 +166,17 @@ const ROUTE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'personal-results',
     'features',
   ],
+  endgame: ['tablebase', 'engine', 'features', 'notes', 'explorer', 'database'],
+  'opening-files': [
+    'document',
+    'explorer',
+    'theory-radar',
+    'repertoire',
+    'transpositions',
+    'model-games',
+    'engine',
+    'notes',
+  ],
   'model-game': [
     'guess-the-move',
     'notes',

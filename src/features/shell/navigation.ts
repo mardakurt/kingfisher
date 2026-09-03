@@ -83,6 +83,13 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     hint: 'Manage collections, providers and connection health.',
   },
   {
+    id: 'opening-files',
+    label: 'Opening Files',
+    href: '/opening-files',
+    icon: Opening,
+    hint: 'One subject, and everything already stored about it.',
+  },
+  {
     id: 'repertoire',
     label: 'Repertoire',
     href: '/repertoire',
@@ -95,6 +102,13 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     href: '/studies',
     icon: Notebook,
     hint: 'Notebooks of chapters and analysis.',
+  },
+  {
+    id: 'endgame',
+    label: 'Endgame',
+    href: '/endgame',
+    icon: Target,
+    hint: 'A library of endgames, with tablebase proof beside them.',
   },
   {
     id: 'training',
