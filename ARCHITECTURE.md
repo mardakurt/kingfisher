@@ -77,11 +77,23 @@ src/
   engine/                  EngineProvider / EngineSession / EngineAnalysis
     uci.ts                 Pure UCI parsing
     pv.ts                  UCI variations → readable SAN
+    trust.ts               What running each kind of engine means. ADR 0041
     stockfish/             WASM-in-a-worker implementation
+  book/                    Opening books, which are not the explorer. ADR 0043
+    polyglot.ts            Zobrist key and the .bin reader
+    kingfisher-book.ts     A book derived from the installed reference
+    registry.ts            Books in priority order, never merged
+  reference/               The data catalog and its packs. ADR 0039
+    pack.ts                The on-disk format, and its only codec
+    reader.ts              Chunk → rows, with a bounded shard cache
+    install.ts             Download → verify → store, all-or-nothing
+    manager.ts             The one place that knows what exists right now
+    sources.ts             Packs, services and collections as one list
+    legends.ts             106 historical players no open archive contains
   database/                ChessDatabaseProvider and the normalized result model
     local-index.ts         In-memory position index (pure, used by tests)
     cache.ts               The explorer query-cache ceiling
-    providers/             Lichess explorer, persistent local collection
+    providers/             Lichess explorer, PKCE sign-in, local collection
   theory/radar.ts          Move shares over three date windows. ADR 0026, 0024
   repertoire/              Repertoire rules, and the transposition graph
   tablebase/               Providers, priority and provenance. ADR 0031
@@ -104,7 +116,9 @@ src/
       ChessWorkspaceContext.tsx  Read-through view of the analysis store
       CanonicalBoardSurface.tsx  The one full-size board pipeline
       WorkspaceToolDock.tsx      Route → tool table, and the tool host
-    databases/             Data-source management, health and connection tests
+    databases/             Data-source management, the reference catalog, health
+    book/                  The book panel, and the book manager in Settings
+    player/                One player's profile, and the player library
     review/                Self-analysis, the decision journal, the critical
                            queue, scheduling and journal analytics. ADR 0025
     calculation/           A calculation tree and the blindfold. ADR 0030
@@ -272,12 +286,29 @@ parsing code.
 
 ```
 ChessDatabaseProvider
+  ├── ReferencePackProvider                a bundled or installed reference pack
   ├── LichessExplorerProvider('masters')   over-the-board master games
   ├── LichessExplorerProvider('lichess')   online games, rating/speed-filterable
   ├── LichessExplorerProvider('player')    one player, indexed on demand
   ├── CompanionSqliteProvider              a local SQLite collection, if paired
   └── LocalCollectionProvider              your imported PGNs, indexed by position
 ```
+
+`ReferencePackProvider` is the one that makes a fresh installation useful, and
+it is the explorer's default. It reads an installed pack — `src/reference/` —
+and is a provider like any other, which is the point: the explorer, the
+position report and preparation all talk to `ChessDatabaseProvider`, so the
+bundled reference works everywhere a database does without a single surface
+learning what a pack is.
+
+Its declared capabilities are deliberately narrow. A pack stores per-position
+aggregates, so it _cannot_ answer "rated 2600+ only" or "since 2024" — see ADR
+0023 — and it says `ratingFilter: false`, `dateFilter: false`,
+`playerFilter: false` rather than accepting a filter and ignoring it. What it
+does carry is a second set of counters built alongside the totals, restricted
+to a `recentSince` year the manifest names, which is the one date comparison an
+aggregate can make honestly. The explorer shows the two apart, because "recent"
+means a different window in each case.
 
 Every provider optionally implements `health(signal)`, which runs a real query
 and validates the response shape — not "a fetch returned something" — and
@@ -299,11 +330,13 @@ splits, average rating, performance rating, notable players, top games. The
 panel does not know which provider it is talking to.
 
 The opening explorer lives at `explorer.lichess.org` and requires
-authentication. Kingfisher accepts the user's own scope-free personal access
-token in Settings → Database and adds it only to explorer requests. Without
-one the provider fails as `authentication-required` before sending anything,
-rather than issuing a request it knows will 401 and reporting the result as an
-empty position. `401`, `403`, `404`, `429`, `5xx`, timeouts and unparseable
+authentication. Settings → Accounts connects an account through OAuth with
+PKCE (ADR 0042) — no secret, no scopes requested, no token to paste — and a
+personal token remains under Advanced. Without either, the provider fails as
+`authentication-required` before sending anything, rather than issuing a
+request it knows will 401 and reporting the result as an empty position. The
+explorer panel then names the source that failed and offers the bundled
+reference, which is on the machine and answers with the network off. `401`, `403`, `404`, `429`, `5xx`, timeouts and unparseable
 bodies each carry their own state and message; the panel never substitutes
 synthetic results.
 
@@ -322,6 +355,65 @@ one position into two and reports half the evidence.
 implementation of the same aggregation, which is what the aggregation tests run
 against. A collection of millions belongs behind a third implementation of the
 same interface, which is exactly why the interface exists.
+
+---
+
+## The data catalog
+
+`src/reference/` is where "a database" stopped meaning two unrelated things.
+
+```
+reference/
+  pack.ts        the on-disk format: manifest, chunk kinds, line codecs
+  reader.ts      chunk → decoded rows, with an eight-shard LRU
+  store.ts       installed packs and their chunk bytes, in IndexedDB
+  install.ts     download → verify → store, resumable, all-or-nothing
+  catalog.ts     the packs this build knows how to obtain
+  manager.ts     the one place that knows what exists right now
+  sources.ts     packs + providers + the user's switches, as one list
+  players.ts     search across every installed pack, plus the roster
+  legends.ts     106 historical players the open archive cannot contain
+```
+
+`manager.ts` owns three things that have to agree: the packs stored in this
+browser, the `ChessDatabaseProvider`s the explorer queries, and the catalog
+rows the settings UI lists. Keeping them in one module rather than three hooks
+is what stops a removed source still being offered, or a freshly installed one
+not appearing until a reload. It lives outside React, because providers do.
+
+`sources.ts` composes packs, the remote services and the companion's SQLite
+collections into one `ReferenceSource` list carrying provenance, state and the
+user's switches, and provides the one function every surface should use to
+decide what to ask: `useSourcesFor(capability)`. Sources are never merged. A
+caller takes the first that can answer, or shows several side by side, but two
+populations are not added together — "34%" means nothing without knowing which
+database it came from.
+
+The pack format, the filters and the build pipeline are described in
+[`docs/data/reference-packs.md`](docs/data/reference-packs.md); ADR 0039 covers
+why a pack is installed rather than served.
+
+---
+
+## Opening books
+
+A book and an explorer answer different questions, and ADR 0043 is why they are
+different panels. `src/book/` holds:
+
+- `polyglot.ts` — the Zobrist key and the `.bin` reader. A binary search over
+  the sorted key array, so a hundred-megabyte book costs two or three reads per
+  position. The en-passant square is hashed only when the capture is really
+  available, and castling arrives as king-takes-own-rook and is translated.
+- `polyglot-constants.generated.ts` — the 781 constants the format is defined
+  by, generated with a check against the specification's published key for the
+  initial position.
+- `kingfisher-book.ts` — a book derived from whichever reference sources are
+  installed, so a user who has never added a `.bin` still has one.
+- `registry.ts` — books in priority order, never merged.
+
+Engines are sent `setoption name OwnBook value false` at session construction.
+Not a preference: an engine answering from an internal book returns a move with
+no search behind it, and the panel would report that as an evaluation.
 
 ---
 
@@ -345,7 +437,7 @@ handshake rather than tabulated: Lc0 has no `Hash`, no `Use NNUE`, a `Threads`
 default of 0 and a `WeightsFile` no alpha-beta engine has, and a hand-written
 table would encode that as folklore and go stale.
 
-**Any UCI engine can be added**, not only the four the installer knows. The
+**Any UCI engine can be added**, not only the six the catalogue knows. The
 engine layer needed nothing for this — capabilities have been read from the
 engine rather than tabulated since Phase 6 — so what registration adds is
 trust, not plumbing. `POST /engine/register` is the one companion route that
@@ -362,6 +454,29 @@ catalogue one: same provider, same session, same selector. Its search family is
 recorded as `unknown` rather than guessed, because the family exists to explain
 _why_ two engines disagree and a wrong guess would misrepresent exactly that.
 See ADR 0036.
+
+**Getting an engine is now part of the application.** Settings → Engine →
+Engines lists the catalogue for this platform with Install buttons.
+`companion/src/managed-engines.mjs` downloads from the project's own release
+page, checks the SHA-256 against `scripts/engine-digests.json`, makes the file
+executable, and then interrogates it: `companion/src/engine-verify.mjs` runs
+nine checks — handshake, isready, a real search, stop, MultiPV, `searchmoves`,
+WDL, Syzygy, and an option that does not exist which the engine must survive.
+Handshake and search are fatal and delete the download; the rest are recorded
+as capabilities and shown on the row.
+
+That verification is not thoroughness for its own sake. Halogen 16 answers
+`go … searchmoves` with "unable to handle command", and Viridithas 20 publishes
+no `MultiPV` option at all. A catalogue that declared those would have been
+wrong about exactly the cases that matter.
+
+**The trust model is three levels and the UI shows the right one.**
+`src/engine/trust.ts` names them: the browser engine is genuinely sandboxed by
+the browser; a managed native engine is verified and runs with the user's own
+operating-system permissions, which the interface says in those words; a custom
+one is the user's own program. ADR 0041 records why no OS sandbox is claimed
+for a binary, and `trust.test.ts` fails if the word "sandboxed" ever appears
+against a native level.
 
 Two engines may run at once and they split the thread budget. Two is a hard
 limit: a third search takes cores from the interface. `engine/comparison.ts`
@@ -1018,6 +1133,30 @@ The board also guarantees it never emits an illegal intent: legality is
 rechecked against the destinations of the position currently rendered, so a
 click that races a position change is dropped rather than rejected downstream.
 
+**There is one board, and `BoardLayers.tsx` is why.** The square grid and the
+piece layer live there and are rendered by both the interactive board and the
+`MiniBoard` used for previews and thumbnails — which differs only in what it
+leaves out. There used to be two implementations, and they drifted: the
+miniature laid pieces out _inside_ grid cells with no explicit row track, so
+the rows sized themselves to the pieces' intrinsic height and the grid
+overflowed its own square box. At 120px the Settings preview was eight columns
+of 14.8px and eight rows of 18.4px, and the bottom two ranks were clipped away.
+That is the class of bug two renderers produce, and the reason there is now one.
+
+### How large the board is
+
+A policy, not a pixel setting — ADR 0040. `BOARD_PRIORITIES` sizes the chrome
+(dock width, notation height, whether the notation folds into the dock, and a
+ceiling), and the board takes what is left, which is why one setting works on a
+1280x720 laptop and on a 27-inch display. On screens under 860px tall the
+notation panel starts smaller, because at 720px the board is limited by height
+by a wide margin.
+
+A stored arrangement always wins; the policy only decides the shape of a
+workspace nobody has rearranged. `e2e/board-size.spec.ts` holds absolute pixel
+floors, and `docs/performance/phase-13-out-of-the-box.md` has the before-and-
+after measurements and the three separate causes of the small board.
+
 ### The board capability contract
 
 Phase 5 unified the full-size board; Phases 6 to 9 then built Review,
@@ -1460,7 +1599,7 @@ and deletes it.
 
 ## Testing
 
-1,096 tests across 85 files, all on the parts where being wrong is expensive.
+1,570 tests across 108 files, all on the parts where being wrong is expensive.
 
 | Area                | Covered                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -1484,6 +1623,15 @@ and deletes it.
 | Layout corruption   | Unknown module ids, illegal regions, NaN, negative and gigantic dimensions, non-object roots, unknown future fields, malformed saved layouts and unrecognised presets — each sanitized to something renderable rather than thrown on                                                                                                                                                                                                                                                                                                                               |
 | Account sync        | Request shape and cursor arithmetic for both providers; 404/429/401/network mapped to distinct states; Chess.com month-cursor arithmetic skipping settled months; and the property the design rests on — syncing the same games twice imports nothing the second time, through the ordinary fingerprint index                                                                                                                                                                                                                                                      |
 | Custom engines      | Executable validation (missing, directory, not executable); a real UCI handshake against a fake engine; truthful rejection of a process that never answers, exits early, or prints non-UCI output; and no process left behind after a failed handshake                                                                                                                                                                                                                                                                                                             |
+| Managed engines     | The catalogue as one platform sees it; refusal to fetch an asset with no recorded digest; refusal of a download whose digest does not match, with nothing left on disk; a real executable that is not an engine deleted after failing its UCI check; and a recorded engine whose binary has since vanished dropped at load rather than left to fail later                                                                                                                                                                                                          |
+| Engine trust        | That only the browser engine is ever described as sandboxed, that a managed engine says out loud that it is not, that every level states limits as well as guarantees, and that the digest claim is scoped to byte-identity rather than authenticity                                                                                                                                                                                                                                                                                                               |
+| Reference packs     | Round-trips for every line format; shard stability and distribution; refusal of a manifest in an unknown format or naming a chunk without a usable digest; a digest mismatch, a 404 and a cancel each leaving the store in a defined state; resumption re-verifying rather than re-downloading; and a damaged installation reporting which chunks it lost                                                                                                                                                                                                          |
+| Player catalog      | Whole-word matches ranked above prefix matches whatever the game counts, roster players reported as zero games rather than hidden, the championship and women's lineages present, dates never invented, and no alias claimed by two people                                                                                                                                                                                                                                                                                                                         |
+| Opening library     | Every one of the 3,810 dataset lines replayed to the position it is filed under; search by ECO, name, nickname, move sequence and FEN; every alias resolving to something the dataset contains; and transposition search returning only orders the rules code played to the same position                                                                                                                                                                                                                                                                          |
+| Polyglot            | All nine positions the specification publishes worked keys for, including the en-passant cases; the packed-move encoding and its king-takes-rook castling; binary search hitting the first and last entries; and refusal of a file that is not a book                                                                                                                                                                                                                                                                                                              |
+| Lichess PKCE        | Verifier alphabet and length, S256 determinism, an authorization request carrying no secret and no empty scope, a mismatched `state` refused rather than repaired, a cancelled sign-in reported as cancelled, and every refusal shape from the token endpoint including a non-JSON error body                                                                                                                                                                                                                                                                      |
+| Appearance          | Twelve themes with square colours far enough apart to see and a piece colour legible on each; ten piece sets with an author, a licence URL and a source, and none carrying a non-commercial or no-derivatives clause                                                                                                                                                                                                                                                                                                                                               |
+| Navigation          | Every section owning its own icon, drawn from the one icon set, in a declared group, with a distinct route and a hint that says what it is for                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | Position report     | Every section carries provenance or a stated empty reason; the reference source is named with its size; a failed lookup is distinguished from an empty one; the scoring threshold is stated and small samples excluded; and no highlight criterion anywhere contains "best", "recommended", "strongest" or "should"                                                                                                                                                                                                                                                |
 | Position key        | Counters ignored, castling distinguished, en passant kept only when usable, transpositions merged                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | Import              | Multi-game files, stage ordering, duplicate skipping, cancellation, damaged-game accounting, position-index entries                                                                                                                                                                                                                                                                                                                                                                                                                                                |
@@ -1667,6 +1815,21 @@ through a companion-managed Fathom helper, so the whole setup is choosing a
 folder; the position report's print and save-to-study; and the reliability work
 Phase 11 deferred — provider chaos, accessibility, visual regression, an
 extended soak and a configuration wiring audit.
+
+**Phase 13 — useful before you add anything.** _Done._ A bundled reference pack
+of 175,022 elite games that installs itself on first run and answers offline; a
+data catalog listing every source with its licence, its provenance and a switch
+per capability; a player library of 12,609 identities plus a curated roster of
+106 historical figures the open archive cannot contain; an opening library
+searchable by code, name, nickname, moves or position; opening books including
+Polyglot, kept separate from the explorer; a managed engine catalogue that
+downloads, digest-checks and interrogates five open-source engines without
+leaving the application, with a trust model that does not claim a sandbox it
+does not have; Lichess sign-in through PKCE; conditional Chess.com syncing; a
+board that is the largest thing on the screen at every supported size, drawn by
+one renderer that the Settings preview also uses; twelve themes and ten piece
+sets; and a release gate that runs the whole thing on an empty browser profile
+with the network switched off.
 
 **Later — assistance.** A `ChessContext` assembled from engine output, database
 evidence, position features and the user's own history, so that an explanation

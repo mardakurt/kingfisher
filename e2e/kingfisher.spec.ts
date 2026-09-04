@@ -436,6 +436,41 @@ test('a failing explorer source offers the local one instead of loading forever'
   // Openings opens on the library; the explorer is the other mode.
   await page.getByRole('button', { name: 'Explorer', exact: true }).first().click();
 
+  /*
+    Let the bundled reference finish installing before cutting the network. It
+    installs itself on first run over the same connection that served the page,
+    so pulling the plug mid-install is a different scenario — a real one, and
+    one the installer handles by leaving nothing behind, but not this one.
+  */
+  await expect
+    .poll(
+      async () =>
+        page.evaluate(async () => {
+          const database = await new Promise<IDBDatabase>((resolve, reject) => {
+            const request = indexedDB.open('kingfisher');
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+          });
+          if (![...database.objectStoreNames].includes('referencePacks')) {
+            database.close();
+            return 'no-store';
+          }
+          const state = await new Promise<string>((resolve) => {
+            const query = database
+              .transaction('referencePacks', 'readonly')
+              .objectStore('referencePacks')
+              .get('kingfisher-starter');
+            query.onsuccess = () =>
+              resolve((query.result as { state?: string })?.state ?? 'absent');
+            query.onerror = () => resolve('error');
+          });
+          database.close();
+          return state;
+        }),
+      { timeout: 60_000 },
+    )
+    .toBe('ready');
+
   // The browser reporting itself offline is the condition that used to strand
   // the panel: with TanStack's default network mode a failed query parks in
   // `fetchStatus: 'paused'` while `status` stays `pending`, which renders as

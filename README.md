@@ -44,6 +44,20 @@ games behind him, and the page says so. See
 
 ---
 
+## Status: Phase 13 — useful before you add anything
+
+Phase 13's question was not "what else can it do" but "what does it do on the
+day you install it". The answer used to be: very little. The explorer had no
+data until you imported a PGN, the Lichess sources had needed an API token
+since April 2026, there was no way to obtain an engine from inside the
+application, the player list only contained names you had already imported, and
+the board — the one thing a chess program is for — rendered 307 pixels wide on
+a 1280×720 laptop.
+
+All of that is fixed, and the fresh-profile flow is a release gate rather than
+a claim. What follows is the record of the twelve phases that built the
+workstation underneath it.
+
 ## Status: Phase 12 — the last four reasons to open something else
 
 Phase 1 built the workstation, Phase 2 made the work durable, Phase 3 turned the

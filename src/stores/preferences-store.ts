@@ -62,6 +62,13 @@ export interface Preferences {
    * build add a source without every saved profile needing a migration to
    * mention it — and what makes "reset" mean something.
    */
+  /**
+   * Which half of the Openings route was last used.
+   *
+   * Persisted because a mode that resets on every reload is a mode the user
+   * has to re-choose every time they come back to a line they were working on.
+   */
+  openingsMode: 'library' | 'explorer';
   sourceSettings: Record<string, SourcePreference>;
   /**
    * Source ids in the order the user prefers them, most trusted first.
@@ -144,6 +151,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   explorerSinceYear: null,
   boardPriority: DEFAULT_BOARD_PRIORITY,
   hiddenEngineIds: [],
+  openingsMode: 'library',
   sourceSettings: {},
   sourcePriority: [],
   enginePreset: 'standard',

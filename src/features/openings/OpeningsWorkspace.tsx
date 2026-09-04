@@ -13,8 +13,6 @@
  * you were in the middle of.
  */
 
-import { useState } from 'react';
-
 import { Opening, Plus, Search, Settings } from '@/components/icons';
 import { Segmented } from '@/components/ui/Tabs';
 import { Button, IconButton } from '@/components/ui/Button';
@@ -24,12 +22,12 @@ import { WorkspaceToolDock } from '@/features/workspace/WorkspaceToolDock';
 import { NavButton } from '@/features/shell/NavButton';
 import { OpeningLibrary } from './OpeningLibrary';
 import { useAnalysis } from '@/stores/analysis-store';
+import { usePreferences } from '@/stores/preferences-store';
 import { useUi } from '@/stores/ui-store';
 
-type Mode = 'library' | 'explorer';
-
 export function OpeningsWorkspace() {
-  const [mode, setMode] = useState<Mode>('library');
+  const mode = usePreferences((state) => state.openingsMode);
+  const setMode = usePreferences((state) => state.set);
   const newGame = useAnalysis((state) => state.newGame);
   const toggleCommandPalette = useUi((state) => state.toggleCommandPalette);
   const setSettingsOpen = useUi((state) => state.setSettingsOpen);
@@ -54,7 +52,7 @@ export function OpeningsWorkspace() {
             { id: 'explorer', label: 'Explorer' },
           ]}
           value={mode}
-          onChange={setMode}
+          onChange={(value) => setMode('openingsMode', value)}
         />
         {mode === 'explorer' ? (
           <Button icon={<Plus />} onClick={() => newGame()}>
