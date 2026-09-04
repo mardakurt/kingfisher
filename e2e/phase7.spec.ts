@@ -112,11 +112,47 @@ test('repertoire and training stale edits offer one shared resolution vocabulary
   const second = await context.newPage();
   await second.goto('/repertoire');
   await ready(second);
+
+  /*
+    Advance the shared record from the second tab while the first tab keeps its
+    rendered revision. Racing two select events is not a reliable stale-write
+    setup: the broadcast channel can legitimately refresh one tab first, which
+    turns its edit into a fresh write. This creates the exact hidden/offline-tab
+    state deterministically and still exercises the visible conflict workflow.
+  */
+  await second.evaluate(async () => {
+    const open = indexedDB.open('kingfisher');
+    const db: IDBDatabase = await new Promise((resolve, reject) => {
+      open.onsuccess = () => resolve(open.result);
+      open.onerror = () => reject(open.error);
+    });
+    const positions: { revision: number }[] = await new Promise((resolve, reject) => {
+      const request = db
+        .transaction('repertoirePositions', 'readonly')
+        .objectStore('repertoirePositions')
+        .getAll();
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    const position = positions[0]!;
+    await new Promise<void>((resolve, reject) => {
+      const request = db
+        .transaction('repertoirePositions', 'readwrite')
+        .objectStore('repertoirePositions')
+        .put({ ...position, revision: position.revision + 1 });
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+    db.close();
+  });
+
   await page.getByLabel('Role for e4').selectOption('alternative');
-  await second.getByLabel('Role for e4').selectOption('candidate');
-  await expect(second.getByText('This repertoire position changed in another tab.')).toBeVisible();
-  await second.getByRole('button', { name: 'Save mine as copy' }).click();
-  await expect(second.getByText(/Saved this tab's position/)).toBeVisible();
+
+  const conflictText = 'This repertoire position changed in another tab.';
+  const losingPage = page;
+  await expect(losingPage.getByText(conflictText)).toBeVisible();
+  await losingPage.getByRole('button', { name: 'Save mine as copy' }).click();
+  await expect(losingPage.getByText(/Saved this tab's position/)).toBeVisible();
 
   /*
     A fresh document before capturing, so the training half does not depend on

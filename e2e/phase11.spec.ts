@@ -181,6 +181,17 @@ test('§36 the position report gathers evidence with provenance under every sect
   await settings.getByLabel('Lichess personal access token').fill('e2e-token');
   await settings.getByRole('button', { name: 'Test connection' }).click();
   await expect(settings.getByText('Connected as E2EUser')).toBeVisible();
+
+  /*
+    Phase 13 deliberately made the bundled starter pack the default source.
+    This test owns a routed Lichess fixture, so it must select that source
+    explicitly rather than depending on whichever source a fresh profile uses.
+    Otherwise the assertion below can pass locally after the starter pack has
+    installed and fail in CI while that asynchronous installation is still in
+    flight — neither outcome exercises the fixture this test set up.
+  */
+  await settings.getByRole('tab', { name: 'Database' }).click();
+  await settings.getByRole('combobox', { name: 'Explorer source' }).selectOption('lichess-masters');
   await settings.getByRole('button', { name: 'Close' }).click();
 
   await page.getByRole('button', { name: /More/ }).first().click();
