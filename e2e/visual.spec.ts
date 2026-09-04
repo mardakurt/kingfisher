@@ -79,6 +79,9 @@ async function settle(page: Page) {
       }
       /* The blinking cursor and any scroll shadow are per-frame noise. */
       ::-webkit-scrollbar { width: 0 !important; height: 0 !important; }
+      /* Next's dev-only route badge lives outside the application. Error-free
+         product baselines must compare Kingfisher, not framework chrome. */
+      nextjs-portal { display: none !important; }
     `,
   });
   // One frame for the style tag, then one for anything it changed.

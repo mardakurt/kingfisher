@@ -1,9 +1,8 @@
 # Kingfisher's gates, run on the machine rather than on someone remembering.
 #
-# Three jobs rather than one: `quality` and `build` are cheap and answer most
-# pull requests in a minute, while `e2e` needs a browser and a real Stockfish
-# download. They are independent, so a type error does not wait behind a
-# WebAssembly fetch.
+# Independent jobs: `quality` and `build` answer cheap failures quickly, the
+# visual gate protects the deliberate workstation compositions, and `e2e`
+# exercises the full product with a real Stockfish download.
 #
 # Nothing here installs credentials. The authenticated Lichess checks are the
 # opt-in `smoke:lichess` script and deliberately live outside CI; the explorer
@@ -85,12 +84,9 @@ jobs:
       - name: Build
         run: npm run build
 
-  # Visual baselines are per-platform, because Chromium rasterises text
-  # differently on macOS and on Linux by far more than any tolerance that would
-  # still catch a moved panel. This job generates the Linux set and uploads it,
-  # so committing them is a download rather than a chore. It does not gate:
-  # until the Linux baselines are in the repository the visual suite skips on
-  # Linux and says so, and a skip must never be able to fail a release.
+  # Baselines are per-platform because Chromium rasterises text differently on
+  # macOS and Linux. This manual job is the reviewed update path; ordinary
+  # pushes compare against the committed Linux set in the visual job below.
   visual-baselines:
     name: Visual baselines (Linux)
     if: github.event_name == 'workflow_dispatch'
@@ -110,6 +106,32 @@ jobs:
         with:
           name: visual-baselines-linux
           path: e2e/visual.spec.ts-snapshots/
+
+  visual:
+    name: Visual gate (Linux)
+    if: github.event_name != 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium chrome
+      - name: Compare professional workstation compositions
+        run: npx playwright test e2e/visual.spec.ts
+      - name: Upload visual failures
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-failures
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+          if-no-files-found: ignore
 
   e2e:
     name: Browser tests
