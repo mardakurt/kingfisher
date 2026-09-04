@@ -122,6 +122,33 @@ particular dataset was chosen:
 
 ---
 
+## Syzygy tablebase decoding
+
+`npm run tablebase:install` fetches four source files from
+[jdart1/Fathom](https://github.com/jdart1/Fathom) at commit
+`c9c6fef0dddc05d2e242c183acf5833149ab676d` and compiles them, together with
+Kingfisher's own `companion/native/kingfisher-tbprobe.c`, into the probe helper
+the companion manages.
+
+Licence: **MIT**, © 2013–2018 Ronald de Man, © 2015 basil00, © 2016–2025 Jon
+Dart. Redistribution and modification are permitted with the notice retained.
+
+Not committed: the sources are fetched on demand and land in `engines/`, which
+is ignored, alongside the engine binaries. The commit is pinned and the SHA-256
+of every fetched file is recorded in `public/engine/tablebase.json`, so a build
+can be told apart from one made against different source.
+
+**Kingfisher contains no tablebase decoder of its own and will not.** Fathom
+does every byte of Syzygy format handling; `kingfisher-tbprobe.c` is a FEN
+parser, a request loop and a JSON writer. See
+[ADR 0038](docs/adr/0038-a-managed-probe-helper-not-a-decoder.md) for why that
+line is drawn where it is.
+
+Tablebase _files_ are not distributed by anyone here. They are the user's, from
+wherever they got them, and Kingfisher only reads the directory it is pointed at.
+
+---
+
 ## Fonts
 
 Inter and JetBrains Mono are loaded through `next/font/google`, which fetches

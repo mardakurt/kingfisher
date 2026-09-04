@@ -1,6 +1,10 @@
 # 0031. Local tablebases: capability from the files, probing delegated
 
-Status: Accepted
+Status: Superseded in part by [ADR 0038](0038-a-managed-probe-helper-not-a-decoder.md).
+The capability-from-the-files half stands; probing is no longer delegated to a
+server the user starts, because the companion now manages a Fathom-based helper
+itself. The refusal to write a decoder is unchanged and is the reason ADR 0038
+vendors somebody else's.
 
 ## Context
 

@@ -15,6 +15,7 @@ import { GameDatabase } from './database.mjs';
 import { handshakeUci, validateExecutable } from './custom-engines.mjs';
 import { EngineHost } from './engines.mjs';
 import { probeLocalTablebase, scanTablebaseDirectory } from './tablebase.mjs';
+import { TablebaseHelper } from './tbprobe-helper.mjs';
 import {
   allowedOrigins,
   createToken,
@@ -40,12 +41,51 @@ const PORT = Number(process.env.KINGFISHER_COMPANION_PORT ?? 4321);
   browser: a request body must never choose a filesystem path, and the endpoint
   the companion will call out to is a machine-level decision.
 */
-const TABLEBASE_DIR = process.env.KINGFISHER_TABLEBASE_PATH
+let TABLEBASE_DIR = process.env.KINGFISHER_TABLEBASE_PATH
   ? path.resolve(process.env.KINGFISHER_TABLEBASE_PATH)
   : null;
 const TABLEBASE_ENDPOINT = process.env.KINGFISHER_TABLEBASE_ENDPOINT ?? null;
+const TABLEBASE_CONFIG = path.join(DATA_DIR, 'tablebase.json');
+const TABLEBASE_MANIFEST = path.join(ROOT, 'public', 'engine', 'tablebase.json');
 const TOKEN = process.env.KINGFISHER_COMPANION_TOKEN ?? createToken();
 const ORIGINS = allowedOrigins(PORT);
+
+/**
+ * The managed probe helper, built by `npm run tablebase:install`.
+ *
+ * Constructed unconditionally and started only when a directory is configured:
+ * a companion on a machine with no helper and no tables is a normal
+ * installation, and it says so through `/tablebase/status` rather than by
+ * failing to boot.
+ */
+function tablebaseBinary() {
+  try {
+    const manifest = JSON.parse(readFileSync(TABLEBASE_MANIFEST, 'utf8'));
+    return existsSync(manifest.helper) ? manifest.helper : null;
+  } catch {
+    return null;
+  }
+}
+
+const tablebase = new TablebaseHelper(tablebaseBinary());
+
+/**
+ * The directory the user last chose, re-validated on every start.
+ *
+ * Same rule as custom engines and SQLite collections: a path that no longer
+ * exists — an unplugged external drive, most realistically — is dropped rather
+ * than left as a dead setting that fails at the moment somebody needs it.
+ */
+function loadTablebaseDirectory() {
+  if (TABLEBASE_DIR) return;
+  if (!existsSync(TABLEBASE_CONFIG)) return;
+  try {
+    const stored = JSON.parse(readFileSync(TABLEBASE_CONFIG, 'utf8'));
+    if (stored.path && existsSync(stored.path)) TABLEBASE_DIR = stored.path;
+  } catch {
+    // A corrupt settings file is not a reason to refuse to start.
+  }
+}
 
 const engineRegistry = new PathRegistry();
 const databaseRegistry = new PathRegistry();
@@ -374,20 +414,102 @@ async function route(url, request, response) {
   */
   if (pathname === '/tablebase/status' && request.method === 'GET') {
     const scan = scanTablebaseDirectory(TABLEBASE_DIR);
+    const helper = tablebase.state();
+    /*
+      Two independent facts, reported separately because they fail separately:
+      what is on disk (the scan) and whether anything can read it (the helper).
+      A user with six-piece tables and no compiler needs to be told the second
+      thing, not shown a piece limit they cannot actually use.
+
+      `maxPieces` is the smaller of the two. The scan says what tables exist;
+      the helper says what Fathom actually opened. Where they disagree the
+      helper wins, because it is the one that will answer the probe.
+    */
+    const probeLimit = helper.available ? helper.largest : TABLEBASE_ENDPOINT ? scan.maxPieces : 0;
     return json(response, 200, {
       ...scan,
+      maxPieces: helper.available
+        ? Math.min(scan.maxPieces || helper.largest, helper.largest)
+        : scan.maxPieces,
       endpoint: TABLEBASE_ENDPOINT ? 'configured' : null,
-      // Stated plainly, because a directory full of tables with no server to
-      // read them is the configuration users will most often arrive at.
-      canProbe: Boolean(TABLEBASE_ENDPOINT),
+      helper: {
+        built: helper.built,
+        running: helper.running,
+        largest: helper.largest,
+        restarts: helper.restarts,
+        ...(helper.reason ? { reason: helper.reason } : {}),
+      },
+      probeLimit,
+      // True when a probe will actually be attempted locally: the managed
+      // helper is answering, or the legacy external server is configured.
+      canProbe: helper.available || Boolean(TABLEBASE_ENDPOINT),
+      /*
+        Which of the two will answer. Kept apart from `canProbe` because the
+        provenance a user is shown must name the thing that produced the
+        result, and "local" covering two different implementations would make
+        that line meaningless.
+      */
+      prober: helper.available ? 'helper' : TABLEBASE_ENDPOINT ? 'server' : null,
+    });
+  }
+
+  /*
+    Choosing the directory is the one other route that takes a filesystem path
+    from a request body, and for the same reason `/engine/register` does: the
+    user is explicitly selecting a folder, and there is no other way to name
+    one the application did not create. It is resolved, confirmed to be a real
+    directory, and never passed to a shell.
+  */
+  if (pathname === '/tablebase/configure' && request.method === 'POST') {
+    const body = await readBody(request);
+    const raw = String(body.path ?? '').trim();
+    if (!raw) {
+      TABLEBASE_DIR = null;
+      await tablebase.use(null);
+      mkdirSync(DATA_DIR, { recursive: true });
+      writeFileSync(TABLEBASE_CONFIG, JSON.stringify({ path: null }, null, 2));
+      return json(response, 200, { configured: false });
+    }
+    const target = path.resolve(raw);
+    if (!existsSync(target) || !statSync(target).isDirectory()) {
+      return json(response, 400, { error: 'That path is not a directory on this machine.' });
+    }
+    TABLEBASE_DIR = target;
+    mkdirSync(DATA_DIR, { recursive: true });
+    writeFileSync(TABLEBASE_CONFIG, JSON.stringify({ path: target }, null, 2));
+    const state = await tablebase.use(target);
+    return json(response, 200, {
+      configured: true,
+      path: target,
+      ...state,
+      scan: scanTablebaseDirectory(target),
     });
   }
 
   if (pathname === '/tablebase/probe' && request.method === 'POST') {
     const body = await readBody(request);
-    const probe = await probeLocalTablebase(TABLEBASE_ENDPOINT, String(body.fen ?? ''));
+    const fen = String(body.fen ?? '');
+
+    /*
+      The managed helper first. It reads the files directly, so it is both
+      faster and one fewer thing for the user to have running — and it is what
+      makes "select a folder" the entire setup procedure.
+    */
+    if (tablebase.state().built && TABLEBASE_DIR) {
+      const local = await tablebase.probe(fen);
+      if (local.ok) return json(response, 200, { source: 'helper', result: local });
+      /*
+        A helper that declined for a reason about *this position* — castling
+        rights, material outside the tables — is a final answer, not a fallback
+        signal. Falling through to an external server would ask the same
+        question of something that would give the same answer.
+      */
+      if (!TABLEBASE_ENDPOINT) return json(response, 503, { error: local.reason });
+    }
+
+    const probe = await probeLocalTablebase(TABLEBASE_ENDPOINT, fen);
     if (!probe.ok) return json(response, 503, { error: probe.reason });
-    return json(response, 200, { source: 'local', result: probe.result });
+    return json(response, 200, { source: 'server', result: probe.result });
   }
 
   if (pathname === '/db/unindexed-positions' && request.method === 'POST') {
@@ -615,6 +737,10 @@ const integrityOf = (target) => {
 loadEngines();
 loadCustomEngines();
 loadDatabases();
+loadTablebaseDirectory();
+// Started eagerly when a directory is already configured, so the first probe
+// of a session does not pay for `tb_init`.
+if (TABLEBASE_DIR) void tablebase.use(TABLEBASE_DIR);
 
 server.listen(PORT, HOST, () => {
   const engineList = engineRegistry.list();
@@ -639,6 +765,7 @@ server.listen(PORT, HOST, () => {
 
 const shutdown = () => {
   engines.stopAll();
+  void tablebase.stop();
   for (const db of open.values()) db.close();
   server.close(() => process.exit(0));
   setTimeout(() => process.exit(0), 1500).unref?.();

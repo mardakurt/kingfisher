@@ -63,6 +63,8 @@ import type { PieceType } from '@/chess/types';
 import { DEFAULT_PREFERENCES, usePreferences, type Preferences } from '@/stores/preferences-store';
 import { useUi } from '@/stores/ui-store';
 
+import { TablebaseSettings } from './TablebaseSettings';
+
 type Section = SettingsSection;
 
 const SECTIONS: readonly { id: Section; label: string }[] = [
@@ -494,12 +496,13 @@ function CompanionSection() {
         <h3 className="text-xs text-primary">Local companion</h3>
         <p className="mt-1 text-2xs leading-relaxed text-tertiary">
           {/*
-            It does not serve tablebases and never has: there is no tablebase
-            route in the companion, and Syzygy evidence comes from the separate
-            Lichess provider. The claim was left over from a plan that changed.
+            It does serve tablebases as of Phase 12: the companion manages a
+            Fathom-based probe helper, so local Syzygy files are read without
+            the user starting anything else. Endgame evidence still falls back
+            to the Lichess provider, and the board says which one answered.
           */}
-          Optional. It runs native engines and SQLite collections — the two things a browser cannot.
-          Everything else in Kingfisher works without it.
+          Optional. It runs native engines, SQLite collections and local Syzygy tables — the things
+          a browser cannot. Everything else in Kingfisher works without it.
         </p>
         <p className="mt-2 rounded-[4px] border border-line bg-surface-inset px-2.5 py-2 font-mono text-[10.5px] text-secondary">
           npm run companion
@@ -567,6 +570,7 @@ function CompanionSection() {
 
       {connected ? <CustomEngines /> : null}
       {connected ? <SqliteDatabases /> : null}
+      {connected ? <TablebaseSettings /> : null}
     </div>
   );
 }

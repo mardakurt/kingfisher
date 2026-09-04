@@ -363,8 +363,37 @@ export class CompanionClient {
     wdl: readonly string[];
     dtz: readonly string[];
     canProbe: boolean;
+    probeLimit?: number;
+    prober?: 'helper' | 'server' | null;
+    helper?: {
+      built: boolean;
+      running: boolean;
+      largest: number;
+      restarts: number;
+      reason?: string;
+    };
   }> {
     return this.request('/tablebase/status');
+  }
+
+  /**
+   * Choose the Syzygy directory, and start the helper on it.
+   *
+   * An empty path clears the setting. The companion resolves and validates the
+   * directory before it is stored; the browser only ever sends what the user
+   * typed or picked.
+   */
+  configureTablebase(directory: string): Promise<{
+    configured: boolean;
+    path?: string;
+    available?: boolean;
+    running?: boolean;
+    built?: boolean;
+    largest?: number;
+    reason?: string;
+    scan?: { maxPieces: number; wdl: readonly string[]; dtz: readonly string[] };
+  }> {
+    return this.request('/tablebase/configure', { path: directory });
   }
 
   probeTablebase(fen: string, signal?: AbortSignal): Promise<{ source: string; result: unknown }> {

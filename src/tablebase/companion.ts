@@ -17,6 +17,8 @@
 import { asSan, asUci, type Fen } from '@/chess/types';
 import { companionClient } from '@/companion/session';
 
+import { fromHelper, type HelperResult } from './syzygy';
+
 import {
   moveRank,
   type TablebaseCategory,
@@ -24,6 +26,17 @@ import {
   type TablebaseProvider,
   type TablebaseResult,
 } from './types';
+
+/** What the companion's own probe helper reports about itself. */
+export interface TablebaseHelperStatus {
+  /** Whether `npm run tablebase:install` has produced a binary. */
+  readonly built: boolean;
+  readonly running: boolean;
+  /** Largest piece count Fathom actually opened tables for. */
+  readonly largest: number;
+  readonly restarts: number;
+  readonly reason?: string;
+}
 
 export interface LocalTablebaseStatus {
   readonly configured: boolean;
@@ -35,8 +48,21 @@ export interface LocalTablebaseStatus {
   readonly wdl: readonly string[];
   /** Material with a DTZ table; a subset in the common partial download. */
   readonly dtz: readonly string[];
-  /** Whether a probe server is configured to read those files. */
+  /** Whether anything on this machine can actually read those files. */
   readonly canProbe: boolean;
+  readonly helper?: TablebaseHelperStatus;
+  /**
+   * Which implementation will answer.
+   *
+   * `helper` is the managed process Kingfisher builds and runs; `server` is an
+   * external `lila-tablebase`-shaped service the user started themselves,
+   * which is still supported and is no longer the only option. Kept distinct
+   * from `canProbe` because the provenance shown to the user has to name the
+   * thing that produced the answer.
+   */
+  readonly prober?: 'helper' | 'server' | null;
+  /** Piece limit the chosen prober will actually answer for. */
+  readonly probeLimit?: number;
 }
 
 export const EMPTY_STATUS: LocalTablebaseStatus = {
@@ -76,7 +102,15 @@ export class CompanionTablebaseProvider implements TablebaseProvider {
   constructor(private status: LocalTablebaseStatus = EMPTY_STATUS) {}
 
   get maxPieces(): number {
-    return this.status.canProbe ? this.status.maxPieces : 0;
+    if (!this.status.canProbe) return 0;
+    // What the prober will answer for, not what is on disk. A directory of
+    // six-piece tables on a machine whose helper opened only five answers five.
+    return this.status.probeLimit ?? this.status.maxPieces;
+  }
+
+  /** The current status, for the settings panel and the provenance line. */
+  get current(): LocalTablebaseStatus {
+    return this.status;
   }
 
   /** Refresh what this machine can answer. Cheap: one directory scan. */
@@ -100,6 +134,18 @@ export class CompanionTablebaseProvider implements TablebaseProvider {
     const client = companionClient();
     if (!client) throw new Error('The companion is not connected.');
     const response = await client.probeTablebase(fen, signal);
+
+    /*
+      Two shapes, because there are two implementations behind this route. The
+      managed helper reports raw Syzygy codes and UCI moves, which this
+      application turns into evidence itself; an external server already speaks
+      the Lichess response shape. Which one answered is carried in `source`, so
+      the panel names the right thing rather than saying "local" about both.
+    */
+    if (response.source === 'helper') {
+      return fromHelper(fen, response.result as HelperResult, `${this.name} (Fathom)`);
+    }
+
     const raw = response.result as {
       category?: string;
       dtz?: number | null;
@@ -157,11 +203,15 @@ export function chooseTablebaseProvider(
   remote: TablebaseProvider,
   status: LocalTablebaseStatus,
 ): TablebaseChoice | null {
-  if (status.canProbe && pieceCount <= status.maxPieces && pieceCount >= 2) {
+  const limit = status.probeLimit ?? status.maxPieces;
+  if (status.canProbe && pieceCount <= limit && pieceCount >= 2) {
     return {
       provider: local,
       local: true,
-      reason: `Answered from local tables on this machine (up to ${status.maxPieces} pieces).`,
+      reason:
+        status.prober === 'server'
+          ? `Answered from local tables through the tablebase server you are running (up to ${limit} pieces).`
+          : `Answered from the Syzygy files on this machine, decoded by Fathom (up to ${limit} pieces).`,
     };
   }
   if (pieceCount >= 2 && pieceCount <= remote.maxPieces) {
@@ -170,10 +220,36 @@ export function chooseTablebaseProvider(
       local: false,
       reason: status.configured
         ? status.canProbe
-          ? `Local tables cover ${status.maxPieces} pieces; this position has ${pieceCount}. Answered by ${remote.name}.`
-          : `Local tables are configured but no local probe server is running. Answered by ${remote.name}.`
+          ? `Local tables cover ${limit} pieces; this position has ${pieceCount}. Answered by ${remote.name}.`
+          : localUnavailableReason(status, remote.name)
         : `Answered by ${remote.name}.`,
     };
   }
   return null;
+}
+
+/**
+ * Why the local tables are not answering, in the user's terms.
+ *
+ * Four different situations that all look like "no local result" and all have
+ * different fixes: no helper built, a helper that will not start, a directory
+ * with nothing readable in it, and a path that has gone away. Telling them
+ * apart is the difference between a setting somebody can repair and one they
+ * give up on.
+ */
+export function localUnavailableReason(status: LocalTablebaseStatus, remoteName: string): string {
+  const helper = status.helper;
+  if (helper && !helper.built) {
+    return `Local probing is not built on this machine — run \`npm run tablebase:install\`. Answered by ${remoteName}.`;
+  }
+  if (helper && helper.reason) {
+    return `The local probe helper is not running: ${helper.reason} Answered by ${remoteName}.`;
+  }
+  if (status.configured && !status.exists) {
+    return `The configured tablebase directory could not be read. Answered by ${remoteName}.`;
+  }
+  if (status.configured && status.maxPieces === 0) {
+    return `The configured directory holds no readable Syzygy tables. Answered by ${remoteName}.`;
+  }
+  return `Local tables are configured but nothing on this machine can read them. Answered by ${remoteName}.`;
 }

@@ -28,7 +28,7 @@ describe('choosing where a tablebase answer comes from', () => {
 
     expect(choice?.local).toBe(true);
     expect(choice?.provider.id).toBe('companion-syzygy');
-    expect(choice?.reason).toContain('local tables on this machine');
+    expect(choice?.reason).toContain('Syzygy files on this machine');
   });
 
   it('falls back when the position is bigger than the local tables', () => {
@@ -56,11 +56,80 @@ describe('choosing where a tablebase answer comes from', () => {
 
     expect(choice?.local).toBe(false);
     /*
-      The configuration users most often arrive at: files downloaded, no probe
-      server running. Silently using the network here would leave them
-      believing their local setup works.
+      Silently using the network here would leave a user believing their local
+      setup works. The message has to name a fix, and which fix depends on why:
+      these four cases all look identical to somebody watching the board.
     */
-    expect(choice?.reason).toContain('no local probe server');
+    expect(choice?.reason).toContain('nothing on this machine can read them');
+  });
+
+  it('distinguishes the four ways local probing can be unavailable', () => {
+    const answered = (extra: Parameters<typeof status>[0]) =>
+      chooseTablebaseProvider(4, local, remote, status(extra))?.reason ?? '';
+
+    expect(
+      answered({
+        configured: true,
+        exists: true,
+        maxPieces: 6,
+        canProbe: false,
+        helper: { built: false, running: false, largest: 0, restarts: 0 },
+      }),
+    ).toContain('tablebase:install');
+
+    expect(
+      answered({
+        configured: true,
+        exists: true,
+        maxPieces: 6,
+        canProbe: false,
+        helper: { built: true, running: false, largest: 0, restarts: 3, reason: 'It crashed.' },
+      }),
+    ).toContain('It crashed.');
+
+    expect(answered({ configured: true, exists: false, maxPieces: 0, canProbe: false })).toContain(
+      'could not be read',
+    );
+
+    expect(answered({ configured: true, exists: true, maxPieces: 0, canProbe: false })).toContain(
+      'no readable Syzygy tables',
+    );
+  });
+
+  it('answers from what the helper opened, not from what is on disk', () => {
+    /*
+      Six-piece files present, but the helper only opened five. The limit that
+      matters is the one that will answer the probe, and a six-piece position
+      must go to the network rather than to a table nothing can read.
+    */
+    const partial = status({
+      configured: true,
+      exists: true,
+      maxPieces: 6,
+      canProbe: true,
+      probeLimit: 5,
+      prober: 'helper',
+    });
+    expect(chooseTablebaseProvider(5, local, remote, partial)?.local).toBe(true);
+    expect(chooseTablebaseProvider(6, local, remote, partial)?.local).toBe(false);
+  });
+
+  it('names the external server when that is what is answering', () => {
+    const reason =
+      chooseTablebaseProvider(
+        4,
+        local,
+        remote,
+        status({
+          configured: true,
+          exists: true,
+          maxPieces: 5,
+          canProbe: true,
+          probeLimit: 5,
+          prober: 'server',
+        }),
+      )?.reason ?? '';
+    expect(reason).toContain('tablebase server you are running');
   });
 
   it('uses the remote provider without comment when nothing local is configured', () => {
