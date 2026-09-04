@@ -507,6 +507,23 @@ async function route(url, request, response) {
       if (!TABLEBASE_ENDPOINT) return json(response, 503, { error: local.reason });
     }
 
+    /*
+      Nothing local can answer. The reason has to name the actual state rather
+      than the pre-Phase-12 one: "no local tablebase server is configured" is
+      the wrong sentence to show somebody who never needed a server and simply
+      has not chosen a folder.
+    */
+    if (!TABLEBASE_ENDPOINT) {
+      const helper = tablebase.state();
+      return json(response, 503, {
+        error: !helper.built
+          ? 'Local probing is not built on this machine. Run `npm run tablebase:install`.'
+          : !TABLEBASE_DIR
+            ? 'No Syzygy directory is configured. Choose one in Settings → Companion → Tablebases.'
+            : (helper.reason ?? 'The local tablebase could not answer.'),
+      });
+    }
+
     const probe = await probeLocalTablebase(TABLEBASE_ENDPOINT, fen);
     if (!probe.ok) return json(response, 503, { error: probe.reason });
     return json(response, 200, { source: 'server', result: probe.result });
