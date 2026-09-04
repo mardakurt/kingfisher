@@ -9,7 +9,7 @@ calls it analysis.
 
 ---
 
-## Status: Phase 11 — a release candidate that says where it got everything
+## Status: Phase 12 — the last four reasons to open something else
 
 Phase 1 built the workstation, Phase 2 made the work durable, Phase 3 turned the
 stored material into preparation, and Phase 4 gave it real engines, real artwork
@@ -174,13 +174,61 @@ the same fingerprint index as a pasted one. And a **position report** answers
 source and no move ever labelled best — a highlighted move carries the rule that
 selected it, with the sample threshold written into the label.
 
+Phase 12 closed the four gaps that analysis had called genuine competitive
+losses, and finished the reliability work Phase 11 deferred.
+
+**Databases became a place you can work.** Games move between collections in all
+four directions — browser to SQLite and back, SQLite to SQLite — paged, with
+progress, cancellable, and never loading an archive into memory. A **move**
+copies, asks the destination to confirm it holds the games, and only then
+deletes: a destination that reports success and stores nothing leaves every game
+where it was and says so. A **merge** counts the exact overlap first — 452 ms
+across two hundred-thousand-game collections — so the dialog can say "68,893 new
+games" rather than an estimate. **Duplicate search** across collections
+separates byte-identical copies, which it offers to remove, from the same game
+annotated two different ways, which it shows and refuses to resolve, because
+there is no correct automatic answer to whose notes survive. Plus one query
+across several collections with every row keeping its source, and named source
+sets that reference rather than copy.
+
+**Openings are classified, not copied from a tag.** 3,810 named positions from a
+CC0 dataset, replayed through Kingfisher's own rules code and keyed by canonical
+position identity — so transpositions converge without a special case, a
+Sicilian that reaches a Najdorf is called a Najdorf, and a game with no `[ECO]`
+tag gets a name. The imported tag is kept beside the computed one and the game
+list says when they disagree.
+
+**Players have a page.** `/player/…` for anybody in your collection: results per
+colour, openings per colour with recent against historical, opponents, and ten
+deterministic tendency metrics that each print the rule they applied and exclude
+games that cannot answer rather than counting them as a "no". Every figure
+carries its denominator. Nothing here produces an adjective. Any opening row is
+one click from the board, and preparing against them is one click from the
+header.
+
+**Local tablebases need one folder.** Choose a Syzygy directory and the
+companion builds and manages a Fathom-based probe helper that reads it — no
+second service to start. Kingfisher still ships no decoder of its own, because a
+wrong tablebase result is worse than none; Fathom is pinned by commit with its
+digests recorded. Correctness is checked against known results, not asserted:
+a rook against a bare king is won and cannot be dropped on the king's file, a
+knight against one is drawn, and the opposition decides king and pawn.
+
+The reliability work found five real things, listed in the performance notes,
+including two controls that were nameless to a screen reader and two capabilities
+the rewritten Databases screen had quietly dropped.
+
 Where Kingfisher still trails ChessBase, En Croissant and ChessMonitor is
 recorded honestly in
-[`docs/product/pro-workstation-gap-analysis.md`](docs/product/pro-workstation-gap-analysis.md),
-including the four gaps Phase 11 did not close.
+[`docs/product/pro-workstation-gap-analysis.md`](docs/product/pro-workstation-gap-analysis.md).
+Four gaps remain and none is small: top-end scale past 500,000 games, opening
+books an engine can consult, ChessMonitor's online rating analytics, and cloud
+engine time.
 
 Every number in those paragraphs is measured, reproducible and recorded with its
 before-figure in
+[`docs/performance/phase-12-pro-workstation.md`](docs/performance/phase-12-pro-workstation.md),
+[`docs/performance/phase-11-release-candidate.md`](docs/performance/phase-11-release-candidate.md),
 [`docs/performance/phase-9-preparation-and-scale.md`](docs/performance/phase-9-preparation-and-scale.md),
 [`docs/performance/phase-8-study-and-research.md`](docs/performance/phase-8-study-and-research.md)
 and

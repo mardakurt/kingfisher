@@ -1212,6 +1212,112 @@ were working on.
 
 ---
 
+## Collections
+
+Kingfisher held games in two places — an IndexedDB collection in the browser and
+any number of SQLite files behind the companion — and had no vocabulary for
+moving a game between them. Import, delete, clear was the whole set.
+
+`src/database/collections/` is the port that fixed that. One interface over both
+stores, so copy, move, merge and duplicate search are one implementation rather
+than four. Four rules shape it:
+
+**Everything is paged.** No operation reads a collection into memory. A copy of
+half a million games is a sequence of bounded pages, which is what lets it
+report progress, be cancelled, and leave a defined state behind when it is.
+Cursors are primary keys, never offsets: an offset makes each page re-walk
+everything before it, which turns a linear job quadratic somewhere around the
+hundred-thousandth game.
+
+**The unit of transfer is a stored game, not a PGN.** A game already carries its
+normalized movetext, its position index and its classification; sending those
+rather than re-deriving them is both faster and safer, because a re-derived
+fingerprint that differs by one byte is a duplicate the destination cannot
+recognise. Only a SQLite-to-browser copy reparses anything, because only the
+browser stores game trees.
+
+**A move never deletes what the destination has not confirmed.** Not "the write
+did not throw" — confirmed, by asking the destination for the fingerprints
+afterwards. A destination that reports success and stores nothing leaves every
+game where it was and says so, which is asserted directly against a double that
+does exactly that. Verified fingerprints are then deleted in batches of two
+thousand rather than once per page, because deletion cost is dominated by a
+fixed per-call price (rebuilding the explorer aggregates for every affected
+position) and the difference is 24.0 ms per game against 1.92 ms. Buffering only
+widens the window in which a game is in _both_ places, which is the safe
+direction, and a cancel flushes what is already confirmed.
+
+**Duplicates are two findings, not one.** Byte-identical copies share a
+fingerprint and can be removed on request. The same game annotated two different
+ways shares only a metadata key, and there is no correct automatic answer to
+whose notes survive — so it is shown, labelled, and never resolved
+automatically.
+
+Federated search never merges source identity. A game held in two collections
+appears once for each, because "it is in both" is the useful answer, and a
+filter is only offered when every selected source can honour it.
+
+---
+
+## Opening classification
+
+ECO used to be whatever an imported PGN's tag said. A great many PGNs carry no
+tag, and a great many carry one computed by a different program at a different
+depth from a different table.
+
+`data/openings/` vendors the CC0 lichess-org/chess-openings dataset — 3,810
+named openings, licence recorded, nothing derived from ChessBase — and
+`npm run openings:build` replays every line through **this application's own
+rules code**, writing an index keyed by the canonical position identity the game
+tree will present. That is the whole point of building it rather than parsing at
+runtime: a second implementation of the rules would show up as an opening that
+is silently never recognised.
+
+Two consequences fall out of keying on position rather than move order, and both
+are why it is done that way:
+
+- **Transpositions converge.** 1.d4 Nf6 2.c4 e6 3.Nc3 Bb4 and 1.c4 e6 2.Nc3 Bb4
+  3.d4 Nf6 are the same position and get the same name, with no special case.
+- **Depth wins.** A Sicilian that reaches a Najdorf is a Najdorf. Reading `[ECO]`
+  off a two-move prefix throws away the part the reader cares about.
+
+The imported tags are never overwritten. `classification` is a separate stored
+field and `classifiedWith` records which index examined a game, so "not looked at
+yet" stays distinguishable from "looked at and unnameable" — which is what makes
+a backfill bounded and resumable rather than a job that revisits every unnamed
+game for ever. Where the two disagree, the game list says so.
+
+---
+
+## Player profiles
+
+`/player/[id]` exists for every name in the collection, keyed on the canonical
+player key the games already carry, so nothing has to be created before somebody
+can be looked at.
+
+Two rules run through it. **Every figure carries its denominator** — "41 of 118",
+not "35%" — because a percentage over eleven games and one over eleven hundred
+are different kinds of fact. And **nothing is an adjective.** The tendency
+section reports rules, counts and denominators, and no code path in this
+application can produce the word "aggressive".
+
+The tendency metrics are three-valued: a measure returns true, false, or null for
+"this game cannot answer". A twelve-move draw says nothing about castling by move
+fifteen, and counting it as a "no" would turn short games into evidence. Each
+metric prints the rule it applied, reusing the published structural-theme
+definitions where it can and carrying their version alongside its own.
+
+Cost is split deliberately. The aggregate walks game _summaries_, which is cheap
+enough to cover an archive; the tendencies read game _trees_, which is not, so
+they run over a bounded sample that says how big it was.
+
+Identity is stated, never inferred. Kingfisher will not decide that "M. Carlsen"
+and "Carlsen, Magnus" are one person: linking is one explicit action, an alias
+cannot belong to two identities, and the panel says out loud that linking widens
+what the profile counts.
+
+---
+
 ## Performance
 
 The choices already made, and why:
@@ -1543,6 +1649,24 @@ each integration works, and exports configuration without credentials;
 rebindable keyboard commands with conflict handling; the position-health panel;
 tablebase-refereed endgame conversion; and indexed player and metadata search
 measured at 500,000 games.
+
+**Phase 11 — a release candidate that says where it got everything.** _Done._
+Arbitrary UCI engines behind a real handshake; Lichess and Chess.com game sync
+on each API's own cursor; the one-click position report with per-section
+provenance; historical migration fixtures; seeded fuzz testing; concealment
+asserted by DOM absence; and a zero-retry browser gate.
+
+**Phase 12 — the last four reasons to leave.** _Done._ Cross-database
+management — copy, move, merge, duplicate resolution, federated search and
+named source sets over one collection port, with a move that never deletes what
+the destination has not confirmed; factual player profiles whose every figure
+carries its denominator and whose tendency metrics print the rule they applied;
+opening classification from a CC0 position index keyed by canonical identity,
+so transpositions converge and the deepest name wins; local Syzygy probing
+through a companion-managed Fathom helper, so the whole setup is choosing a
+folder; the position report's print and save-to-study; and the reliability work
+Phase 11 deferred — provider chaos, accessibility, visual regression, an
+extended soak and a configuration wiring audit.
 
 **Later — assistance.** A `ChessContext` assembled from engine output, database
 evidence, position features and the user's own history, so that an explanation
