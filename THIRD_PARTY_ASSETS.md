@@ -13,18 +13,23 @@ they usually are.
 
 ## Chess piece artwork
 
-All five sets live under `public/piece/<set>/` as twelve SVG files
+All ten sets live under `public/piece/<set>/` as twelve SVG files
 (`wK wQ wR wB wN wP bK bQ bR bB bN bP`). They are used **unmodified**: the files
 are byte-identical to their upstream sources, which keeps the attribution
 honest and makes re-vendoring a newer version a straight copy.
 
-| Set      | Author                      | Licence                                                                             | Source                                                                                            |
-| -------- | --------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| Cburnett | Colin M.L. Burnett          | [GPL-2.0-or-later](https://www.gnu.org/licenses/gpl-2.0.txt)                        | [Wikipedia](https://en.wikipedia.org/wiki/User:Cburnett/GFDL_images/Chess)                        |
-| Merida   | Armando Hernandez Marroquin | [GPL-2.0-or-later](https://www.gnu.org/licenses/gpl-2.0.txt)                        | [lila `public/piece/merida`](https://github.com/lichess-org/lila/tree/master/public/piece/merida) |
-| Chessnut | Alexis Luengas              | [Apache-2.0](https://github.com/LexLuengas/chessnut-pieces/blob/master/LICENSE.txt) | [chessnut-pieces](https://github.com/LexLuengas/chessnut-pieces)                                  |
-| Fantasy  | Maurizio Monge              | [MIT](https://github.com/maurimo/chess-art/blob/main/LICENSE)                       | [chess-art](https://github.com/maurimo/chess-art)                                                 |
-| Spatial  | Maurizio Monge              | [MIT](https://github.com/maurimo/chess-art/blob/main/LICENSE)                       | [chess-art](https://github.com/maurimo/chess-art)                                                 |
+| Set        | Author                      | Licence                                                                             | Source                                                                                            |
+| ---------- | --------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Cburnett   | Colin M.L. Burnett          | [GPL-2.0-or-later](https://www.gnu.org/licenses/gpl-2.0.txt)                        | [Wikipedia](https://en.wikipedia.org/wiki/User:Cburnett/GFDL_images/Chess)                        |
+| Merida     | Armando Hernandez Marroquin | [GPL-2.0-or-later](https://www.gnu.org/licenses/gpl-2.0.txt)                        | [lila `public/piece/merida`](https://github.com/lichess-org/lila/tree/master/public/piece/merida) |
+| Chessnut   | Alexis Luengas              | [Apache-2.0](https://github.com/LexLuengas/chessnut-pieces/blob/master/LICENSE.txt) | [chessnut-pieces](https://github.com/LexLuengas/chessnut-pieces)                                  |
+| Fantasy    | Maurizio Monge              | [MIT](https://github.com/maurimo/chess-art/blob/main/LICENSE)                       | [chess-art](https://github.com/maurimo/chess-art)                                                 |
+| Spatial    | Maurizio Monge              | [MIT](https://github.com/maurimo/chess-art/blob/main/LICENSE)                       | [chess-art](https://github.com/maurimo/chess-art)                                                 |
+| Celtic     | Maurizio Monge              | [MIT](https://github.com/maurimo/chess-art/blob/main/LICENSE)                       | [chess-art](https://github.com/maurimo/chess-art)                                                 |
+| RhosGFX    | RhosGFX                     | [CC0-1.0](https://creativecommons.org/publicdomain/zero/1.0/)                       | [RhosGFX](https://rhosgfx.itch.io/)                                                               |
+| Kiwen Suwi | neverRare                   | [CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/)                           | [kiwen-suwi](https://github.com/neverRare/kiwen-suwi)                                             |
+| Firi       | James Faure                 | [CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/)                           | [Firi-pieceset](https://github.com/jfaure/Firi-pieceset)                                          |
+| MPChess    | Maxime Chupin               | [GPL-3.0-or-later](https://www.gnu.org/licenses/gpl-3.0.html)                       | [mpchess](https://github.com/chupinmaxime/mpchess)                                                |
 
 Licence provenance for Cburnett and Merida was taken from
 [lila's `COPYING.md`](https://github.com/lichess-org/lila/blob/master/COPYING.md),
@@ -39,11 +44,21 @@ which is the upstream distributor's own record of each set's author and terms.
   GPL applies to the artwork, not to Kingfisher's own code: the pieces are
   separate data files loaded at runtime, not a derivative of or linked into the
   application. Removing `public/piece/cburnett` and `public/piece/merida` leaves
-  a working application with three sets, so this is a severable dependency.
+  a working application with eight sets, so this is a severable dependency.
+- **GPL-3.0-or-later** (MPChess). The same source-availability and severability
+  reasoning applies, but this set remains under its own GPL-3.0-or-later terms.
 - **Apache-2.0** (Chessnut). Permissive. Requires the licence notice and
   attribution, both of which are here and in Settings → Pieces.
-- **MIT** (Fantasy, Spatial). Permissive. Requires the copyright notice, which
+- **MIT** (Fantasy, Spatial, Celtic). Permissive. Requires the copyright notice, which
   is retained inside the SVG files and recorded here.
+- **CC0-1.0** (RhosGFX). The author dedicated the artwork to the public domain;
+  attribution is retained here as provenance.
+- **CC-BY-4.0** (Kiwen Suwi, Firi). Redistribution is permitted with author,
+  source and licence attribution, all recorded here and in Settings → Pieces.
+
+The files are vendored as the twelve upstream SVGs for each set. Kingfisher
+does not alter path geometry or recolour them; it only chooses their directory
+through the piece-set registry and renders the selected file as an image.
 
 ### Sets deliberately not used
 
