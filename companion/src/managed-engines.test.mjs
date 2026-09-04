@@ -115,6 +115,17 @@ describe('installing a managed engine', () => {
     expectEqual(registry.has('fake-engine'), false);
   });
 
+  /**
+   * The case that found a real bug.
+   *
+   * A downloaded file that is executable but is not an engine exits the
+   * instant it starts, and the write of `uci` then lands on a closed pipe.
+   * Node reports that as an `EPIPE` on the *stream* rather than to the caller,
+   * so without a listener it is unhandled and takes the process down — the
+   * companion crashing on exactly the input its verification exists to reject.
+   * It reproduced on Linux in CI and not on macOS, which is what a race looks
+   * like.
+   */
   it('deletes a binary that downloads and verifies but does not speak UCI', async () => {
     const { managed, root, registry } = harness({
       digests: { 'https://example.invalid/fake-engine': DIGEST },

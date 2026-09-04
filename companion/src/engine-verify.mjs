@@ -44,6 +44,17 @@ class UciProcess {
     this.#child.stdout.setEncoding('utf8');
     this.#child.stdout.on('data', (chunk) => this.#ingest(chunk));
     this.#child.stderr.resume();
+    /*
+      A pipe to a process that has gone emits `EPIPE` on the *stream*, not to
+      the caller of `write`. Without a listener Node treats it as unhandled and
+      takes the process down — so a downloaded file that is executable but is
+      not an engine, and exits the instant it starts, could crash the companion
+      instead of failing its check. Which is exactly the case this whole
+      verification exists for.
+    */
+    this.#child.stdin.on('error', () => {
+      this.#exited = true;
+    });
     this.#child.on('exit', () => {
       this.#exited = true;
       for (const waiter of this.#waiters.splice(0)) waiter.reject(new Error('The engine exited.'));
@@ -77,7 +88,14 @@ class UciProcess {
 
   send(line) {
     if (this.#exited) throw new Error('The engine exited.');
-    this.#child.stdin.write(`${line}\n`);
+    try {
+      this.#child.stdin.write(`${line}\n`);
+    } catch {
+      // The process closed its input between the check above and the write.
+      // The exit handler fails every waiter with a proper message; a throw
+      // here would only race it with a worse one.
+      this.#exited = true;
+    }
   }
 
   /** Wait for the first line matching `matches`, or fail after `timeoutMs`. */
