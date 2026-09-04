@@ -38,18 +38,92 @@ export interface WorkspaceArrangement {
   readonly dockCollapsed: boolean;
 }
 
-export const DOCK_WIDTH_MIN = 320;
+export const DOCK_WIDTH_MIN = 300;
 export const DOCK_WIDTH_MAX = 640;
-export const LOWER_HEIGHT_MIN = 140;
+export const LOWER_HEIGHT_MIN = 96;
 export const LOWER_HEIGHT_MAX = 520;
 
-export const DEFAULT_ARRANGEMENT: WorkspaceArrangement = {
-  placement: {},
-  active: {},
-  dockWidth: 420,
-  lowerHeight: 210,
-  dockCollapsed: false,
+/**
+ * How much of the workspace the board is entitled to.
+ *
+ * A pixel setting would be the wrong control: the same number is a huge board
+ * on a 27-inch display and an impossible one on a laptop. This is a *policy* —
+ * how the fixed chrome around the board is sized — and the board takes
+ * whatever is left, which is what makes one setting work at every width.
+ *
+ * The measurements that produced these numbers are in
+ * `docs/performance/phase-13-out-of-the-box.md`. On a 1280x720 laptop the
+ * board was 307px before this existed, because a 210px notation panel and 89px
+ * of padding were taken out of a 640px column first.
+ */
+export type BoardPriority = 'balanced' | 'large' | 'maximum';
+
+export interface BoardPriorityShape {
+  readonly dockWidth: number;
+  /** Notation panel height on a tall screen, and on a laptop-height one. */
+  readonly lowerHeight: number;
+  readonly shortLowerHeight: number;
+  /**
+   * The largest board this policy will draw.
+   *
+   * A cap exists at all because a board bigger than about a thousand pixels
+   * stops being easier to read and starts being a thing you move your head to
+   * look at. It is a policy limit, not a rendering one.
+   */
+  readonly maxBoard: number;
+  /** True when the notation panel is folded into the dock rather than shown. */
+  readonly moveTreeInDock: boolean;
+}
+
+export const BOARD_PRIORITIES: Readonly<Record<BoardPriority, BoardPriorityShape>> = {
+  balanced: {
+    dockWidth: 440,
+    lowerHeight: 220,
+    shortLowerHeight: 160,
+    maxBoard: 780,
+    moveTreeInDock: false,
+  },
+  large: {
+    dockWidth: 380,
+    lowerHeight: 170,
+    shortLowerHeight: 120,
+    maxBoard: 960,
+    moveTreeInDock: false,
+  },
+  maximum: {
+    dockWidth: 340,
+    lowerHeight: 140,
+    shortLowerHeight: 120,
+    maxBoard: 1200,
+    moveTreeInDock: true,
+  },
 };
+
+export const DEFAULT_BOARD_PRIORITY: BoardPriority = 'large';
+
+/**
+ * The arrangement a workspace has before anybody rearranges it.
+ *
+ * Derived rather than constant, so changing the board policy changes what an
+ * untouched workspace looks like without rewriting anyone's saved layout: a
+ * stored arrangement still wins, because it is a thing the user did.
+ */
+export function defaultArrangement(
+  priority: BoardPriority = DEFAULT_BOARD_PRIORITY,
+  shortScreen = false,
+): WorkspaceArrangement {
+  const shape = BOARD_PRIORITIES[priority];
+  return {
+    placement: shape.moveTreeInDock ? { 'move-tree': 'dock' } : {},
+    active: {},
+    dockWidth: shape.dockWidth,
+    lowerHeight: shortScreen ? shape.shortLowerHeight : shape.lowerHeight,
+    dockCollapsed: false,
+  };
+}
+
+/** The shape of a workspace nobody has touched, at the default policy. */
+export const DEFAULT_ARRANGEMENT: WorkspaceArrangement = defaultArrangement();
 
 export const clampDockWidth = (value: number): number =>
   Math.min(DOCK_WIDTH_MAX, Math.max(DOCK_WIDTH_MIN, Math.round(value)));

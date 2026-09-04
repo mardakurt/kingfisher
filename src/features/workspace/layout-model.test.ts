@@ -2,13 +2,20 @@ import { describe, expect, it } from 'vitest';
 
 import {
   activeInRegion,
+  BOARD_PRIORITIES,
   clampDockWidth,
   clampLowerHeight,
   DEFAULT_ARRANGEMENT,
+  defaultArrangement,
+  DOCK_WIDTH_MAX,
+  DOCK_WIDTH_MIN,
+  LOWER_HEIGHT_MAX,
+  LOWER_HEIGHT_MIN,
   modulesInRegion,
   moveModule,
   regionOf,
   sanitizeArrangement,
+  type BoardPriority,
   type WorkspaceArrangement,
   type WorkspaceModuleId,
   type WorkspaceRegion,
@@ -97,14 +104,60 @@ describe('moveModule', () => {
 
 describe('size clamps', () => {
   it('keeps the dock wide enough to read and narrow enough to leave the board room', () => {
-    expect(clampDockWidth(10)).toBe(320);
-    expect(clampDockWidth(5000)).toBe(640);
+    expect(clampDockWidth(10)).toBe(DOCK_WIDTH_MIN);
+    expect(clampDockWidth(5000)).toBe(DOCK_WIDTH_MAX);
     expect(clampDockWidth(451.4)).toBe(451);
   });
 
   it('keeps the lower panel from swallowing the board', () => {
-    expect(clampLowerHeight(0)).toBe(140);
-    expect(clampLowerHeight(9999)).toBe(520);
+    expect(clampLowerHeight(0)).toBe(LOWER_HEIGHT_MIN);
+    expect(clampLowerHeight(9999)).toBe(LOWER_HEIGHT_MAX);
+  });
+
+  /*
+    The floors are what a laptop's board depends on. At 1280x720 the board is
+    limited by height, and every pixel the notation panel keeps is a pixel the
+    board does not get — so the minimum has to be small enough that Maximum
+    board priority can actually deliver a maximum board.
+  */
+  it('lets the notation panel get small enough for a laptop board to be large', () => {
+    expect(LOWER_HEIGHT_MIN).toBeLessThanOrEqual(120);
+    expect(DOCK_WIDTH_MIN).toBeLessThanOrEqual(340);
+  });
+});
+
+describe('board priority', () => {
+  it('offers three policies, ordered by how much the board gets', () => {
+    const order = ['balanced', 'large', 'maximum'] as const;
+    for (let index = 1; index < order.length; index += 1) {
+      const looser = BOARD_PRIORITIES[order[index - 1] as BoardPriority];
+      const tighter = BOARD_PRIORITIES[order[index] as BoardPriority];
+      expect(tighter.dockWidth).toBeLessThan(looser.dockWidth);
+      expect(tighter.maxBoard).toBeGreaterThan(looser.maxBoard);
+    }
+  });
+
+  it('gives a laptop a smaller notation panel than a desktop, at every policy', () => {
+    for (const shape of Object.values(BOARD_PRIORITIES)) {
+      expect(shape.shortLowerHeight).toBeLessThanOrEqual(shape.lowerHeight);
+      expect(shape.shortLowerHeight).toBeGreaterThanOrEqual(LOWER_HEIGHT_MIN);
+    }
+  });
+
+  it('produces a valid arrangement for every policy, on both screen shapes', () => {
+    for (const priority of ['balanced', 'large', 'maximum'] as const) {
+      for (const short of [false, true]) {
+        const arrangement = defaultArrangement(priority, short);
+        expect(clampDockWidth(arrangement.dockWidth)).toBe(arrangement.dockWidth);
+        expect(clampLowerHeight(arrangement.lowerHeight)).toBe(arrangement.lowerHeight);
+      }
+    }
+  });
+
+  it('folds the notation into the dock only at Maximum', () => {
+    expect(defaultArrangement('maximum').placement['move-tree']).toBe('dock');
+    expect(defaultArrangement('large').placement['move-tree']).toBeUndefined();
+    expect(defaultArrangement('balanced').placement['move-tree']).toBeUndefined();
   });
 });
 

@@ -87,8 +87,16 @@ const SECTIONS: readonly { id: Section; label: string }[] = [
 const isSection = (value: string | null): value is Section =>
   value !== null && SECTIONS.some((entry) => entry.id === value);
 
-/** A position with one of each piece, so a preview shows the whole alphabet. */
-const PREVIEW_FEN = 'r1bqkbnr/pppppppp/8/8/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 0 1';
+/**
+ * The starting position, for every appearance preview.
+ *
+ * Deliberately the start rather than a contrived position with one of each
+ * piece: thirty-two men is the densest a board ever gets, so it is the case
+ * where a piece set is hardest to read and where a clipped or overlapping
+ * board is most obvious. It is also the one position every chess player can
+ * check at a glance — a preview you have to study to verify is not a preview.
+ */
+const PREVIEW_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
 export function SettingsDialog() {
   const open = useUi((state) => state.settingsOpen);
@@ -201,7 +209,7 @@ function BoardSection() {
   const prefs = usePreferences();
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-[minmax(0,1fr)_120px] gap-4">
+      <div className="grid grid-cols-[minmax(0,1fr)_176px] gap-4">
         <div className="grid grid-cols-2 gap-1.5">
           {BOARD_THEMES.map((theme) => (
             <button
@@ -228,12 +236,17 @@ function BoardSection() {
           ))}
         </div>
 
-        {/* The real renderer, so the preview cannot drift from the board. */}
+        {/*
+          The real renderer, so the preview cannot drift from the board — and
+          large enough to see. At 120px the pieces were smaller than the
+          typography around them, which is not a preview of anything.
+        */}
         <div className="shrink-0">
           <MiniBoard
             fen={PREVIEW_FEN}
             theme={prefs.boardTheme}
             pieceSet={prefs.pieceSet}
+            testId="board-preview"
             className="w-full"
           />
           <p className="mt-1 text-center text-[10px] text-tertiary">
@@ -2027,6 +2040,7 @@ function SettingsSearch({ onJump }: { readonly onJump: (section: Section) => voi
 
 /** Layouts, pinned tools and the reset that recovers from a bad arrangement. */
 function WorkspaceSection() {
+  const prefs = usePreferences();
   const compact = useWorkspaceLayout((state) => state.compact);
   const setCompact = useWorkspaceLayout((state) => state.setCompact);
   const savedLayouts = useWorkspaceLayout((state) => state.savedLayouts);
@@ -2036,6 +2050,26 @@ function WorkspaceSection() {
 
   return (
     <div className="flex flex-col gap-4">
+      {/*
+        A policy rather than a pixel size, because the same number of pixels is
+        a huge board on a desktop display and an impossible one on a laptop.
+        This sizes the chrome; the board takes what is left.
+      */}
+      <Row
+        label="Board priority"
+        hint="How much of a workspace the board gets. Balanced keeps a taller notation panel and a wider dock; Maximum folds the notation into the dock and lets the board fill the column. Workspaces you have rearranged yourself keep the sizes you set."
+      >
+        <Segmented
+          items={[
+            { id: 'balanced' as const, label: 'Balanced' },
+            { id: 'large' as const, label: 'Large' },
+            { id: 'maximum' as const, label: 'Maximum' },
+          ]}
+          value={prefs.boardPriority}
+          onChange={(value) => prefs.set('boardPriority', value)}
+        />
+      </Row>
+
       <Row
         label="Compact density"
         hint="Less padding around panels, so more of the window is board and evidence. Text size and hit targets are unchanged."

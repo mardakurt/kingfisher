@@ -65,9 +65,10 @@ Shahi is explicitly non-derivative. Not used.
 
 ## Board artwork
 
-**None vendored.** All board themes in `src/features/board/themes.ts` are
-Kingfisher's own: flat colour pairs, with the wood themes adding a grain
-generated at runtime by `grainPattern()`.
+**None vendored.** All twelve board themes in `src/features/board/themes.ts`
+are Kingfisher's own: flat colour pairs, with the three wood themes (Walnut,
+Maple, Sand) adding a grain generated at runtime by `grainPattern()`. No
+texture was sampled from ChessBase, Chess.com or any other application.
 
 This was a deliberate choice after investigating the alternative. lila ships
 wood and marble boards under AGPLv3+ as fixed-size JPEGs of 94–515 kB each.

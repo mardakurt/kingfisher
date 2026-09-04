@@ -10,6 +10,7 @@ import type { Color, Fen, Piece, PromotionPiece, Square } from '@/chess/types';
 import { cn } from '@/lib/cn';
 
 import { BoardShapes } from './BoardShapes';
+import { PieceLayer, SQUARE_GRID_CLASS, squareStyle } from './BoardLayers';
 import {
   EMPTY_TRACKER,
   squareFromPoint,
@@ -337,7 +338,10 @@ export function Chessboard({
       >
         <div
           ref={boardRef}
-          className="absolute inset-0 grid grid-cols-8 grid-rows-8 overflow-hidden rounded-[3px] shadow-[0_2px_18px_rgba(0,0,0,0.28)] ring-1 ring-black/25"
+          className={cn(
+            SQUARE_GRID_CLASS,
+            'absolute inset-0 rounded-[3px] shadow-[0_2px_18px_rgba(0,0,0,0.28)] ring-1 ring-black/25',
+          )}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
@@ -360,12 +364,7 @@ export function Chessboard({
               <div
                 key={square}
                 className={cn('relative', (canSelect || isTarget) && 'cursor-pointer')}
-                style={{
-                  // Grain over colour. Wood themes set the pattern; flat ones
-                  // resolve it to `none` and the square is a plain fill.
-                  backgroundColor: light ? 'var(--square-light)' : 'var(--square-dark)',
-                  backgroundImage: light ? 'var(--square-grain-light)' : 'var(--square-grain-dark)',
-                }}
+                style={squareStyle(square)}
                 role="gridcell"
                 aria-label={
                   squarePiece ? `${square}, ${pieceLabel(squarePiece)}` : `${square}, empty`
@@ -429,35 +428,33 @@ export function Chessboard({
           })}
         </div>
 
-        <div className="pointer-events-none absolute inset-0" aria-hidden>
-          {layout.tracker.pieces.map(({ key, piece, square }) => {
+        {/*
+          The same piece layer the preview uses. What the interactive board
+          adds is per-piece: the one being dragged follows the pointer instead
+          of its square, and everything else animates towards its own.
+        */}
+        <PieceLayer
+          pieces={layout.tracker.pieces}
+          orientation={orientation}
+          pieceSet={pieceSet}
+          render={({ square }) => {
             const dragging = drag?.from === square;
             const offset = squareOffset(square, orientation);
-            const style: React.CSSProperties = dragging
-              ? dragStyle(drag)
-              : {
-                  transform: `translate(${offset.x}%, ${offset.y}%)`,
-                  transition:
-                    animationMs > 0
-                      ? `transform ${animationMs}ms cubic-bezier(0.2, 0.8, 0.3, 1)`
-                      : undefined,
-                };
-
-            return (
-              <div
-                key={key}
-                className="absolute left-0 top-0 h-[12.5%] w-[12.5%]"
-                style={{ ...style, zIndex: dragging ? 30 : 10 }}
-              >
-                <PieceIcon
-                  piece={piece}
-                  set={pieceSet}
-                  className={cn('h-full w-full p-[6%]', dragging && 'scale-[1.08] drop-shadow-lg')}
-                />
-              </div>
-            );
-          })}
-        </div>
+            return {
+              style: dragging
+                ? dragStyle(drag)
+                : {
+                    transform: `translate(${offset.x}%, ${offset.y}%)`,
+                    transition:
+                      animationMs > 0
+                        ? `transform ${animationMs}ms cubic-bezier(0.2, 0.8, 0.3, 1)`
+                        : undefined,
+                  },
+              zIndex: dragging ? 30 : 10,
+              ...(dragging ? { pieceClassName: 'scale-[1.08] drop-shadow-lg' } : {}),
+            };
+          }}
+        />
 
         <BoardShapes
           shapes={shapes}

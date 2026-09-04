@@ -29,6 +29,7 @@ const VIEWPORTS = [
 
 const ROUTES = [
   '/recent',
+  '/players',
   '/analysis',
   '/openings',
   '/games',

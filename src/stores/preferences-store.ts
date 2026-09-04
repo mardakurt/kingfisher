@@ -13,6 +13,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import type { AnalysisLimit } from '@/engine/types';
+import { DEFAULT_BOARD_PRIORITY, type BoardPriority } from '@/features/workspace/layout-model';
 import type { SourcePreference } from '@/reference/types';
 import type { EnginePresetId } from '@/engine/presets';
 import { DEFAULT_PIECE_SET_ID, LEGACY_PIECE_SET_IDS } from '@/lib/board-options';
@@ -36,6 +37,14 @@ export interface Preferences {
   showEvaluationBar: boolean;
   /** The bar chart of stored evaluations under the board. */
   showEvaluationGraph: boolean;
+  /**
+   * How much of a workspace the board is entitled to.
+   *
+   * A policy, not a pixel count — see `BOARD_PRIORITIES`. It sizes the chrome
+   * around the board; the board takes what is left, which is why one setting
+   * works on a laptop and on a 27-inch display.
+   */
+  boardPriority: BoardPriority;
   /** Analyse automatically whenever the position changes. */
   autoAnalyse: boolean;
   engineMultiPv: number;
@@ -125,6 +134,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   explorerSourceId: 'kingfisher-starter',
   explorerMinRating: null,
   explorerSinceYear: null,
+  boardPriority: DEFAULT_BOARD_PRIORITY,
   hiddenEngineIds: [],
   sourceSettings: {},
   sourcePriority: [],

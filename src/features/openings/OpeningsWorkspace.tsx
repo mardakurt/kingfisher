@@ -81,7 +81,7 @@ export function OpeningsWorkspace() {
           <section className="flex min-h-0 min-w-0 flex-1 flex-col">
             <CanonicalBoardSurface
               mode="interactive"
-              className="min-h-[560px] min-w-0 flex-1 px-3 py-4 sm:px-5 wide:min-h-0"
+              className="min-h-[520px] min-w-0 flex-1 px-2 py-2 sm:px-3 wide:min-h-0"
             />
             <WorkspaceLowerPanel workspace="openings" />
           </section>

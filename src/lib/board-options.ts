@@ -10,7 +10,18 @@
  * as they were, even where a later name reads better.
  */
 export type BoardThemeId =
-  'slate' | 'walnut' | 'ink' | 'sage' | 'green' | 'blue' | 'sand' | 'contrast';
+  | 'slate'
+  | 'walnut'
+  | 'ink'
+  | 'sage'
+  | 'green'
+  | 'blue'
+  | 'sand'
+  | 'contrast'
+  | 'brown'
+  | 'maple'
+  | 'midnight'
+  | 'ivory';
 
 export type PieceSetId =
   /* Vendored artwork; see THIRD_PARTY_ASSETS.md. */
@@ -19,6 +30,11 @@ export type PieceSetId =
   | 'chessnut'
   | 'fantasy'
   | 'spatial'
+  | 'celtic'
+  | 'rhosgfx'
+  | 'kiwen-suwi'
+  | 'firi'
+  | 'mpchess'
   /*
     Phase 1–3 drew its pieces from hand-written geometry. They were never good
     enough to sit beside real Staunton artwork, so they no longer appear in the

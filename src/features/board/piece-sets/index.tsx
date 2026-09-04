@@ -143,6 +143,71 @@ export const PIECE_SETS: readonly PieceSetDefinition[] = [
       source: 'https://github.com/maurimo/chess-art',
     },
   },
+  {
+    kind: 'vector',
+    id: 'celtic',
+    name: 'Celtic',
+    description: 'Knotwork Staunton, heavier in the base. Distinctive without being fussy.',
+    directory: '/piece/celtic',
+    attribution: {
+      author: 'Maurizio Monge',
+      license: 'MIT',
+      licenseUrl: 'https://github.com/maurimo/chess-art/blob/main/LICENSE',
+      source: 'https://github.com/maurimo/chess-art',
+    },
+  },
+  {
+    kind: 'vector',
+    id: 'rhosgfx',
+    name: 'RhosGFX',
+    description: 'Warm, softly modelled Staunton. Reads unusually well at small sizes.',
+    directory: '/piece/rhosgfx',
+    attribution: {
+      author: 'RhosGFX',
+      license: 'CC0-1.0',
+      licenseUrl: 'https://creativecommons.org/publicdomain/zero/1.0/',
+      source: 'https://rhosgfx.itch.io/',
+    },
+  },
+  {
+    kind: 'vector',
+    id: 'kiwen-suwi',
+    name: 'Kiwen Suwi',
+    description: 'Clean line-art with no shading at all. The most legible set on a busy board.',
+    directory: '/piece/kiwen-suwi',
+    attribution: {
+      author: 'neverRare',
+      license: 'CC-BY-4.0',
+      licenseUrl: 'https://creativecommons.org/licenses/by/4.0/',
+      source: 'https://github.com/neverRare/kiwen-suwi',
+    },
+  },
+  {
+    kind: 'vector',
+    id: 'firi',
+    name: 'Firi',
+    description: 'Gently gradient-shaded, with tall silhouettes. Elegant on a light board.',
+    directory: '/piece/firi',
+    attribution: {
+      author: 'James Faure',
+      license: 'CC-BY-4.0',
+      licenseUrl: 'https://creativecommons.org/licenses/by/4.0/',
+      source: 'https://github.com/jfaure/Firi-pieceset',
+    },
+  },
+  {
+    kind: 'vector',
+    id: 'mpchess',
+    name: 'MPChess',
+    description: 'Crisp outlined Staunton drawn for print. Very even weight across the set.',
+    directory: '/piece/mpchess',
+    attribution: {
+      author: 'Maxime Chupin',
+      license: 'GPL-3.0-or-later',
+      licenseUrl: 'https://www.gnu.org/licenses/gpl-3.0.html',
+      source: 'https://github.com/chupinmaxime/mpchess',
+    },
+  },
 ];
 
 /**

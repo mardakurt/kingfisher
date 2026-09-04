@@ -376,7 +376,7 @@ export function StudiesWorkspace() {
               <section className="flex min-h-[650px] min-w-0 flex-1 flex-col wide:min-h-0">
                 <CanonicalBoardSurface
                   mode="interactive"
-                  className="min-h-[500px] flex-1 px-3 py-3 wide:min-h-0"
+                  className="min-h-[500px] flex-1 px-2 py-2 wide:min-h-0"
                 />
                 <WorkspaceLowerPanel
                   workspace="studies"

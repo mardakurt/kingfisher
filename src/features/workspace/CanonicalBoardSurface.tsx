@@ -13,6 +13,8 @@ import { useAnalysisPosition } from '@/features/analysis/useAnalysisPosition';
 import { cn } from '@/lib/cn';
 import { useAnalysis } from '@/stores/analysis-store';
 import { resolveAnimationMs, usePreferences } from '@/stores/preferences-store';
+
+import { BOARD_PRIORITIES } from './layout-model';
 import { useUi } from '@/stores/ui-store';
 import { useEngine } from '@/stores/engine-store';
 
@@ -70,6 +72,13 @@ export function CanonicalBoardSurface({
   const engineRunning = useEngine((state) => state.primary.running);
   const boardContainer = useRef<HTMLDivElement>(null);
   const [frameSize, setFrameSize] = useState(320);
+  /*
+    The ceiling is a policy, not a constant. It used to be a hard 740, which on
+    a 1920x1080 display left the board smaller than the space available and on
+    a 1280x720 one was never reached at all — the board there was 307px,
+    limited by a notation panel and padding taken out of the column first.
+  */
+  const boardCap = usePreferences((state) => BOARD_PRIORITIES[state.boardPriority].maxBoard);
 
   const caps = useMemo(
     () => resolveBoardCapabilities({ mode, overrides, conceal, concealPieces }),
@@ -78,6 +87,8 @@ export function CanonicalBoardSurface({
 
   const evaluationBarVisible =
     showEvaluationArtifacts && caps.showEvaluation && prefs.showEvaluationBar;
+  /** The bar's column plus the gap, in the same units the grid below uses. */
+  const barSpace = evaluationBarVisible ? EVALUATION_BAR_WIDTH + EVALUATION_BAR_GAP : 0;
   const evaluation =
     analysedFen === node.fen
       ? (analysis?.lines[0]?.score ?? null)
@@ -103,9 +114,16 @@ export function CanonicalBoardSurface({
     const element = boardContainer.current;
     if (!element) return;
     const measure = () => {
+      /*
+        The evaluation bar is beside the board, not part of it. Sizing the
+        whole grid to the available height made the *board* narrower than that
+        height by the bar and its gap — 34px, which at 1280x720 was the
+        difference between a 419px board and a 453px one. Subtract the bar from
+        the width budget and give it back when the grid is laid out.
+      */
       const next = Math.max(
         0,
-        Math.floor(Math.min(740, element.clientWidth, element.clientHeight)),
+        Math.floor(Math.min(boardCap, element.clientWidth - barSpace, element.clientHeight)),
       );
       setFrameSize((current) => (current === next ? current : next));
     };
@@ -113,7 +131,10 @@ export function CanonicalBoardSurface({
     const observer = new ResizeObserver(measure);
     observer.observe(element);
     return () => observer.disconnect();
-  }, []);
+    // Re-measured when the policy changes as well as when the element does:
+    // changing Board priority in Settings must resize the board that is on
+    // screen, not the next one that happens to mount.
+  }, [barSpace, boardCap]);
 
   return (
     <div
@@ -132,7 +153,7 @@ export function CanonicalBoardSurface({
             'grid items-stretch',
             evaluationBarVisible ? 'grid-cols-[22px_minmax(0,1fr)] gap-3' : 'grid-cols-1',
           )}
-          style={{ width: frameSize }}
+          style={{ width: frameSize + barSpace }}
         >
           {evaluationBarVisible ? (
             <EvaluationBar
@@ -183,7 +204,7 @@ export function CanonicalBoardSurface({
         </div>
       </div>
       {showContext && caps.allowContextActions ? (
-        <div className="mx-auto mt-3 flex w-full max-w-[720px] shrink-0 items-center gap-3 border-t border-line-subtle pt-2">
+        <div className="mx-auto mt-2 flex w-full max-w-[860px] shrink-0 items-center gap-3 border-t border-line-subtle pt-1.5">
           <BoardControls />
           <PositionSummary />
         </div>
@@ -193,12 +214,22 @@ export function CanonicalBoardSurface({
           tree={tree}
           currentId={currentId}
           onSelect={goTo}
-          className="mx-auto mt-2 w-full max-w-[740px] shrink-0"
+          className="mx-auto mt-1.5 w-full max-w-[960px] shrink-0"
         />
       ) : null}
     </div>
   );
 }
+
+/**
+ * The evaluation bar's geometry, in one place.
+ *
+ * Duplicated between a Tailwind class and a measurement is exactly how a board
+ * ends up 34px narrower than the space measured for it, so the two are derived
+ * from these constants and the class below names them.
+ */
+const EVALUATION_BAR_WIDTH = 22;
+const EVALUATION_BAR_GAP = 12;
 
 /* Stable empties, so withholding does not remount the board on every render. */
 const EMPTY = new Map<never, never>() as never;

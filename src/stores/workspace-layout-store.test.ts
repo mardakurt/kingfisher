@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
+import {
+  DEFAULT_ARRANGEMENT,
+  DOCK_WIDTH_MAX,
+  DOCK_WIDTH_MIN,
+  LOWER_HEIGHT_MIN,
+} from '@/features/workspace/layout-model';
+
 import { sanitizePersistedState } from './workspace-layout-store';
 
 /**
@@ -86,13 +93,20 @@ describe('sanitizePersistedState', () => {
 
   it('clamps NaN, negative, and gigantic dimensions to sane defaults', () => {
     const cases: readonly [unknown, unknown][] = [
-      [Number.NaN, 420],
-      [-999999, 320],
+      [Number.NaN, DEFAULT_ARRANGEMENT.dockWidth],
+      [-999999, DOCK_WIDTH_MIN],
       // Infinity is not treated as "a huge number to clamp" — it fails the
       // finiteness check the same way NaN does, and falls back to the default.
-      [Number.POSITIVE_INFINITY, 420],
-      [1e20, 640],
-      ['420', 420],
+      [Number.POSITIVE_INFINITY, DEFAULT_ARRANGEMENT.dockWidth],
+      [1e20, DOCK_WIDTH_MAX],
+      /*
+        A *string* that looks like a number is not a number. This case used to
+        expect 420 and passed for the wrong reason: the default happened to be
+        420 too, so "coerced the string" and "fell back to the default" were
+        indistinguishable. They are different behaviours, and the one this code
+        has — and should have — is the fallback.
+      */
+      ['420', DEFAULT_ARRANGEMENT.dockWidth],
     ];
     for (const [input, expected] of cases) {
       const result = sanitizePersistedState({
@@ -116,7 +130,7 @@ describe('sanitizePersistedState', () => {
         w: { placement: {}, active: {}, dockWidth: 420, lowerHeight: -50, dockCollapsed: false },
       },
     });
-    expect(result.arrangements?.w?.lowerHeight).toBe(140);
+    expect(result.arrangements?.w?.lowerHeight).toBe(LOWER_HEIGHT_MIN);
   });
 
   it('ignores unknown fields from a future-version layout without failing', () => {

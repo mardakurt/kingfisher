@@ -3,19 +3,25 @@
 /**
  * A board that only shows a position.
  *
- * The interactive board carries drag state, promotion pickers, annotation
- * pointer handling and animation. A study preview or a game-list thumbnail
- * needs none of that, and mounting the real board dozens of times in a list
- * would be expensive for no benefit, so this renders the squares and pieces
- * and nothing else.
+ * Not a second implementation of a chessboard: it renders the same
+ * `SquareLayer` and `PieceLayer` as the interactive board, and differs only in
+ * what it leaves out — drag state, promotion pickers, annotation pointer
+ * handling, animation and coordinates. Mounting the real board dozens of times
+ * in a game list would be expensive for no benefit; mounting a *different*
+ * board was worse, because the two drifted and the Settings preview ended up
+ * clipping its own bottom two ranks.
  */
 
+import { useMemo } from 'react';
+
+import { boardSquares, squareAt } from '@/chess/board';
 import { parseFen } from '@/chess/fen';
-import { FILES, RANKS, type Color, type Fen } from '@/chess/types';
+import type { Color, Fen } from '@/chess/types';
 import { boardTheme, boardThemeVariables } from '@/features/board/themes';
-import { PieceIcon } from '@/features/board/pieces';
 import type { BoardThemeId, PieceSetId } from '@/lib/board-options';
 import { cn } from '@/lib/cn';
+
+import { PieceLayer, SquareLayer, type PlacedPieceView } from './BoardLayers';
 
 interface MiniBoardProps {
   readonly fen: Fen | string;
@@ -23,45 +29,44 @@ interface MiniBoardProps {
   readonly theme: BoardThemeId;
   readonly pieceSet: PieceSetId;
   readonly className?: string;
+  /** Marks the element for tests that need to find one particular board. */
+  readonly testId?: string;
 }
 
-export function MiniBoard({ fen, orientation = 'w', theme, pieceSet, className }: MiniBoardProps) {
-  const parsed = parseFen(fen);
-  const board = parsed.ok ? parsed.value.board : [];
-
-  const ranks = orientation === 'w' ? [...RANKS].reverse() : [...RANKS];
-  const files = orientation === 'w' ? FILES : [...FILES].reverse();
+export function MiniBoard({
+  fen,
+  orientation = 'w',
+  theme,
+  pieceSet,
+  className,
+  testId,
+}: MiniBoardProps) {
+  const squares = useMemo(() => boardSquares(orientation), [orientation]);
+  const pieces = useMemo<readonly PlacedPieceView[]>(() => {
+    const parsed = parseFen(fen);
+    if (!parsed.ok) return [];
+    const placed: PlacedPieceView[] = [];
+    for (let index = 0; index < 64; index += 1) {
+      const piece = parsed.value.board[index];
+      if (!piece) continue;
+      const square = squareAt(index);
+      placed.push({ key: square, piece, square });
+    }
+    return placed;
+  }, [fen]);
 
   return (
     <div
       style={boardThemeVariables(boardTheme(theme))}
       className={cn(
-        'grid aspect-square w-full grid-cols-8 overflow-hidden rounded-[3px] border border-line-subtle',
+        'relative aspect-square w-full overflow-hidden rounded-[3px] border border-line-subtle',
         className,
       )}
       aria-hidden
+      data-mini-board={testId ?? ''}
     >
-      {ranks.map((rank, rankIndex) =>
-        files.map((file, fileIndex) => {
-          const index = (Number(rank) - 1) * 8 + FILES.indexOf(file);
-          const piece = board[index] ?? null;
-          const light = (rankIndex + fileIndex) % 2 === 0;
-          return (
-            <div
-              key={`${file}${rank}`}
-              className="relative"
-              style={{
-                // Grain over colour. Wood themes set the pattern; flat ones
-                // resolve it to `none` and the square is a plain fill.
-                backgroundColor: light ? 'var(--square-light)' : 'var(--square-dark)',
-                backgroundImage: light ? 'var(--square-grain-light)' : 'var(--square-grain-dark)',
-              }}
-            >
-              {piece && <PieceIcon piece={piece} set={pieceSet} className="h-full w-full" />}
-            </div>
-          );
-        }),
-      )}
+      <SquareLayer squares={squares} className="absolute inset-0" />
+      <PieceLayer pieces={pieces} orientation={orientation} pieceSet={pieceSet} />
     </div>
   );
 }

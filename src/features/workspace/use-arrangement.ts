@@ -5,11 +5,15 @@ import { useMemo } from 'react';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { useWorkspaceLayout, type DeviceClass } from '@/stores/workspace-layout-store';
 
+import { usePreferences } from '@/stores/preferences-store';
+
 import {
   activeInRegion,
-  DEFAULT_ARRANGEMENT as DEFAULTS,
+  BOARD_PRIORITIES,
+  defaultArrangement,
   modulesInRegion,
   regionOf,
+  type BoardPriority,
   type WorkspaceArrangement,
   type WorkspaceModuleId,
   type WorkspaceRegion,
@@ -28,9 +32,22 @@ export function useDeviceClass(): DeviceClass {
   return useMediaQuery('(min-width: 1100px)') ? 'desktop' : 'compact';
 }
 
+/**
+ * A laptop, in the dimension that actually constrains a chessboard.
+ *
+ * The board on a 1280x720 screen is limited by height, not width, and by a
+ * wide margin — so the notation panel's default is smaller there. 860px is
+ * chosen so that 1440x900 (the commonest large laptop) is *not* short, and
+ * 1366x768 and 1280x720 are.
+ */
+export const useShortScreen = (): boolean => !useMediaQuery('(min-height: 860px)');
+
 export interface WorkspaceArrangementView {
   readonly device: DeviceClass;
   readonly wide: boolean;
+  readonly priority: BoardPriority;
+  /** The largest board the current policy will draw. */
+  readonly maxBoard: number;
   readonly arrangement: WorkspaceArrangement;
   readonly available: readonly { readonly id: WorkspaceModuleId; readonly home: WorkspaceRegion }[];
   readonly dockModules: readonly WorkspaceModuleId[];
@@ -62,9 +79,15 @@ export function useWorkspaceArrangement(
 ): WorkspaceArrangementView {
   const device = useDeviceClass();
   const wide = device === 'desktop';
-  const arrangement = useWorkspaceLayout(
-    (state) => state.arrangements[`${device}:${workspace}`] ?? DEFAULTS,
-  );
+  const shortScreen = useShortScreen();
+  const priority = usePreferences((state) => state.boardPriority);
+  const stored = useWorkspaceLayout((state) => state.arrangements[`${device}:${workspace}`]);
+  /*
+    A stored arrangement always wins: it is something the user did. The board
+    policy only decides the shape of a workspace nobody has rearranged, which
+    is every workspace on a fresh profile and most of them for ever.
+  */
+  const arrangement = stored ?? defaultArrangement(priority, shortScreen);
   const withMoveTree = options.withMoveTree ?? false;
 
   return useMemo(() => {
@@ -92,6 +115,8 @@ export function useWorkspaceArrangement(
     return {
       device,
       wide,
+      priority,
+      maxBoard: BOARD_PRIORITIES[priority].maxBoard,
       arrangement,
       available,
       dockModules,
@@ -103,5 +128,5 @@ export function useWorkspaceArrangement(
         !withMoveTree ||
         regionOf(arrangement, MOVE_TREE_MODULE.id, MOVE_TREE_MODULE.home) === 'primary',
     };
-  }, [arrangement, device, wide, withMoveTree, workspace]);
+  }, [arrangement, device, priority, wide, withMoveTree, workspace]);
 }
