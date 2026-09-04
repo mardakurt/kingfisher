@@ -13,6 +13,9 @@ const commands = [
   ['node', ['scripts/bench-aggregates.mjs', env.KINGFISHER_BENCH_AGGREGATE_COUNT ?? '100000']],
   ['node', ['scripts/bench-rules-experiment.mjs', env.KINGFISHER_BENCH_RULES_COUNT ?? '20000']],
   ['node', ['scripts/bench-preparation.mjs', env.KINGFISHER_BENCH_PREPARATION_COUNT ?? '20000']],
+  // Phase 12's collection operations. Runs in-process against the real SQLite
+  // class, so it needs no companion and no token.
+  ['node', ['scripts/bench-collections.mjs', env.KINGFISHER_BENCH_COLLECTION_COUNT ?? '10000']],
   ['npm', ['run', 'bench:evidence']],
   ['npm', ['test', '--', '--run', 'src/performance']],
 ];

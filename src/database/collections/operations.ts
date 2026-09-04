@@ -40,6 +40,23 @@ export interface TransferOptions {
   readonly onProgress?: (progress: TransferProgress) => void;
   /** Games per page. The unit of atomicity, and of what a cancel discards. */
   readonly pageSize?: number;
+  /**
+   * Verified games to accumulate before deleting them from the source.
+   *
+   * A move's deletion cost is dominated by a fixed per-call price — the
+   * destination collection rebuilds the explorer aggregates for every position
+   * the removed games touched — not by the number of games. Measured on a
+   * 50,000-game SQLite collection: 13.0 ms per game deleting 200 at a time,
+   * 1.19 ms at 1,000, 0.26 ms at 5,000. Deleting once per read page would make
+   * a whole-collection move take an hour where batching makes it a minute.
+   *
+   * This does not weaken the invariant. Nothing is deleted before the
+   * destination has confirmed it, and buffering only widens the window in
+   * which a game exists in *both* collections — which is the safe direction.
+   * A cancel flushes what is already verified, so the source is never left
+   * holding games the destination has confirmed and the run reported as moved.
+   */
+  readonly deleteBatchSize?: number;
   /** Copy only games matching this, using the source's own filter semantics. */
   readonly query?: GameSearchQuery | null;
   /** Copy only these fingerprints. Combined with `query` as an intersection. */
@@ -58,6 +75,8 @@ export interface TransferResult extends TransferProgress {
 }
 
 const DEFAULT_PAGE = 200;
+/** Ten pages' worth: past the point where the fixed cost stops dominating. */
+const DEFAULT_DELETE_BATCH = 2_000;
 
 /**
  * Copy games from one collection to another.
@@ -98,6 +117,7 @@ async function runTransfer(
     throw new Error('The source and destination are the same collection.');
   }
   const pageSize = Math.max(1, options.pageSize ?? DEFAULT_PAGE);
+  const deleteBatchSize = Math.max(1, options.deleteBatchSize ?? DEFAULT_DELETE_BATCH);
   const wanted = options.fingerprints ? new Set(options.fingerprints) : null;
   let read = 0;
   let written = 0;
@@ -106,12 +126,27 @@ async function runTransfer(
   let skipped = 0;
   let undeleted = 0;
   let after: string | null = null;
+  /** Fingerprints the destination has confirmed and the source still holds. */
+  let confirmedForDeletion: string[] = [];
 
   const report = (stage: TransferStage) =>
     options.onProgress?.({ stage, read, written, duplicates, removed, skipped });
 
+  const flushDeletions = async () => {
+    if (confirmedForDeletion.length === 0) return;
+    report('deleting');
+    const batch = confirmedForDeletion;
+    confirmedForDeletion = [];
+    removed += await source.removeByFingerprint(batch);
+  };
+
   for (;;) {
-    if (options.signal?.aborted) return finish('cancelled');
+    if (options.signal?.aborted) {
+      // Everything already confirmed is removed before stopping, so a cancelled
+      // move never leaves the source holding games it has reported as moved.
+      await flushDeletions();
+      return finish('cancelled');
+    }
     report('reading');
     const page = await source.read(options.query ?? null, after, pageSize);
     const batch: TransferGame[] = wanted
@@ -125,7 +160,10 @@ async function runTransfer(
       most responsive point available — waiting for the next iteration would
       make a cancel take one whole page longer than it needs to.
     */
-    if (options.signal?.aborted) return finish('cancelled');
+    if (options.signal?.aborted) {
+      await flushDeletions();
+      return finish('cancelled');
+    }
 
     if (batch.length > 0) {
       report('writing');
@@ -155,14 +193,15 @@ async function runTransfer(
           .map((game) => game.summary.fingerprint)
           .filter((fingerprint) => confirmed.has(fingerprint));
         undeleted += batch.length - safe.length;
-        if (safe.length > 0) {
-          report('deleting');
-          removed += await source.removeByFingerprint(safe);
-        }
+        confirmedForDeletion.push(...safe);
+        if (confirmedForDeletion.length >= deleteBatchSize) await flushDeletions();
       }
     }
 
-    if (page.nextAfter === null) return finish('complete');
+    if (page.nextAfter === null) {
+      await flushDeletions();
+      return finish('complete');
+    }
     after = page.nextAfter;
   }
 

@@ -23,6 +23,7 @@
     "tablebase:install": "node scripts/install-tablebase.mjs",
     "openings:build": "node scripts/build-opening-index.mjs && prettier --write src/theory/opening-index.generated.ts",
     "bench:sqlite": "node scripts/bench-sqlite.mjs",
+    "bench:collections": "node scripts/bench-collections.mjs",
     "bench:engines": "node scripts/bench-engines.mjs",
     "bench:evidence": "node scripts/bench-evidence.mjs",
     "bench:pgn": "node scripts/bench-pgn.mjs",
