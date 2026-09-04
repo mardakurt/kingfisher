@@ -1,0 +1,15 @@
+{
+  "https://github.com/Ciekce/Stormphrax/releases/download/v8.0.0/stormphrax-8.0.0-apple-m1": "5e6078f102af5bdd69e1b38ae7843581717fb42f2d0fe8d75f20ef8d097b3207",
+  "https://github.com/Ciekce/Stormphrax/releases/download/v8.0.0/stormphrax-8.0.0-avx2-bmi2": "01aa7cfa6135a5ddd24ad80a85945b0b1c310d7f1f3fb41e3bea4951f38ef8f7",
+  "https://github.com/Ciekce/Stormphrax/releases/download/v8.0.0/stormphrax-8.0.0-avx2-bmi2.exe": "baf96b2a32c338f0bd3daa89f2fb6e7f6d0584e11843e52101d4b83128f8523c",
+  "https://github.com/cosmobobak/viridithas/releases/download/v20.0.0/viridithas-20-linux-x86-64-v3": "eb53de2fde546f3ba294407e3e8986dc3859bb1818f2ef4cf2fd85d077779973",
+  "https://github.com/cosmobobak/viridithas/releases/download/v20.0.0/viridithas-20-macos-aarch64": "9ab84379f0241d94f926666eef8385ab032c585bb3055f27a3fbae423b75fd41",
+  "https://github.com/cosmobobak/viridithas/releases/download/v20.0.0/viridithas-20-win-x86-64-v3.exe": "c7fa86b2b46fe1c34b0ea3715ad3b4a61d3d984ec63d50b1d6b4f187332fbc51",
+  "https://github.com/KierenP/Halogen/releases/download/v16/Halogen-16.0.0-linux-x86_64-avx2": "26daae0d0c735319bde9b242b5a0855db396cf6737241f08a96e4e49e9bab942",
+  "https://github.com/KierenP/Halogen/releases/download/v16/Halogen-16.0.0-macos-arm64-neon-dotprod": "374c1a5720d1ffc06809f3b6a08f4f80b43e1d3c026d6cb9bb8886b9d16aca82",
+  "https://github.com/KierenP/Halogen/releases/download/v16/Halogen-16.0.0-macos-x86_64-avx2": "2f6fe43945be3baf19bef2409b77f9e41b4edb50e965815486204d66a9715bbe",
+  "https://github.com/KierenP/Halogen/releases/download/v16/Halogen-16.0.0-windows-x86_64-avx2.exe": "e780f98732d0161381406b51fc5446c237753b2615b86a88eb7c5ed2c2691d99",
+  "https://github.com/official-stockfish/Stockfish/releases/download/sf_18/stockfish-macos-m1-apple-silicon.tar": "4d77c4aa3ad9bd1ea8111f2ac5a4620fe7ebf998d6893bf828d49ccd579c8cb0",
+  "https://github.com/official-stockfish/Stockfish/releases/download/sf_18/stockfish-macos-x86-64-avx2.tar": "41d30e0860ad924a6ceb422c3a36eba43bbe5ae87d3310840da50e71c53f35d9",
+  "https://github.com/official-stockfish/Stockfish/releases/download/sf_18/stockfish-ubuntu-x86-64-avx2.tar": "536c0c2c0cf06450df0bfb5e876ef0d3119950703a8f143627f990c7b5417964"
+}

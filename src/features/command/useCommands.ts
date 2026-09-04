@@ -341,7 +341,13 @@ export function useCommands(): readonly Command[] {
         group: 'Engine',
         keywords: 'stockfish lc0 stormphrax choose',
         run: () => {
-          const definitions = engineDefinitions();
+          // The cycle walks what the selector offers, not everything this
+          // build can drive: an engine hidden in Settings should not come back
+          // because somebody pressed the shortcut twice.
+          const hiddenIds = prefs().hiddenEngineIds;
+          const all = engineDefinitions();
+          const visible = all.filter((entry) => !hiddenIds.includes(entry.id));
+          const definitions = visible.length > 0 ? visible : all;
           const current = engine().primary.engineId;
           const at = definitions.findIndex((entry) => entry.id === current);
           const next = definitions[(at + 1) % definitions.length];

@@ -11,9 +11,11 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync, statSync } 
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { CATALOGUE, DIGESTS, PLATFORM } from '../../scripts/engine-catalogue.mjs';
 import { GameDatabase } from './database.mjs';
 import { handshakeUci, validateExecutable } from './custom-engines.mjs';
 import { EngineHost } from './engines.mjs';
+import { ManagedEngines } from './managed-engines.mjs';
 import { probeLocalTablebase, scanTablebaseDirectory } from './tablebase.mjs';
 import { TablebaseHelper } from './tbprobe-helper.mjs';
 import {
@@ -34,6 +36,8 @@ const DATA_DIR = process.env.KINGFISHER_COMPANION_DATA_DIR
 const MANIFEST = path.join(ROOT, 'public', 'engine', 'manifest.json');
 const IMPORTS = path.join(DATA_DIR, 'databases.json');
 const CUSTOM_ENGINES = path.join(DATA_DIR, 'custom-engines.json');
+const MANAGED_ENGINES = path.join(DATA_DIR, 'managed-engines.json');
+const ENGINE_DIR = path.join(ROOT, 'engines');
 
 const PORT = Number(process.env.KINGFISHER_COMPANION_PORT ?? 4321);
 /*
@@ -90,6 +94,25 @@ function loadTablebaseDirectory() {
 const engineRegistry = new PathRegistry();
 const databaseRegistry = new PathRegistry();
 const engines = new EngineHost(engineRegistry);
+/** The last failure per engine id, so a poll after a crash says what happened. */
+const installFailures = new Map();
+/**
+ * Engines Kingfisher can install for itself.
+ *
+ * Kept separate from the build-time manifest that `npm run engines:install`
+ * writes, and from the custom engines a user pointed at: three different
+ * provenances, three records, one registry. Merging them into one file would
+ * make "where did this engine come from" unanswerable, which is the question
+ * the trust model turns on.
+ */
+const managed = new ManagedEngines({
+  catalogue: CATALOGUE,
+  digests: DIGESTS,
+  platform: PLATFORM,
+  engineDir: ENGINE_DIR,
+  recordFile: MANAGED_ENGINES,
+  registry: engineRegistry,
+});
 const open = new Map();
 
 /** Engines the installer wrote. Only these can ever be spawned. */
@@ -259,10 +282,51 @@ async function route(url, request, response) {
         ...collectionFootprint(file),
       })),
       sessions: engines.list(),
+      platform: PLATFORM,
+      managed: managed.list(),
     });
   }
 
   // --- Engines ---------------------------------------------------------------
+
+  if (pathname === '/engine/catalogue' && request.method === 'GET') {
+    return json(response, 200, { platform: PLATFORM, engines: managed.list() });
+  }
+
+  if (pathname === '/engine/install' && request.method === 'POST') {
+    const body = await readBody(request);
+    const id = String(body.engine ?? '');
+    // Started rather than awaited: a 115 MB download outlives any sensible
+    // request timeout, and the browser polls `/engine/install-progress`.
+    const started = managed
+      .install(id)
+      .then(() => undefined)
+      .catch((error) => {
+        installFailures.set(id, error instanceof Error ? error.message : String(error));
+      });
+    void started;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    installFailures.delete(id);
+    return json(response, 202, { started: true, engine: managed.status(id) });
+  }
+
+  if (pathname === '/engine/install-progress' && request.method === 'GET') {
+    const id = url.searchParams.get('engine') ?? '';
+    return json(response, 200, {
+      engine: managed.status(id),
+      progress: managed.progress(id),
+      error: installFailures.get(id) ?? null,
+    });
+  }
+
+  if (pathname === '/engine/uninstall' && request.method === 'POST') {
+    const body = await readBody(request);
+    const id = String(body.engine ?? '');
+    for (const session of engines.list()) {
+      if (session.engine === id) engines.stop(session.id);
+    }
+    return json(response, 200, { removed: managed.uninstall(id) });
+  }
 
   /*
     The one route in this file that accepts a filesystem path rather than a
@@ -752,6 +816,7 @@ const integrityOf = (target) => {
 };
 
 loadEngines();
+managed.load();
 loadCustomEngines();
 loadDatabases();
 loadTablebaseDirectory();

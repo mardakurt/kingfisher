@@ -67,6 +67,14 @@ export interface Preferences {
   enginePreset: EnginePresetId;
   /** Which engine the panel drives, and which one it compares against. */
   primaryEngineId: string;
+  /**
+   * Engines hidden from the selector.
+   *
+   * Stored as what is *hidden* rather than what is shown, so installing an
+   * engine makes it available without a second step, and a build that adds an
+   * engine does not need every saved profile to opt into it.
+   */
+  hiddenEngineIds: string[];
   secondaryEngineId: string;
   /**
    * The local companion, as pasted from the terminal that started it.
@@ -117,6 +125,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   explorerSourceId: 'kingfisher-starter',
   explorerMinRating: null,
   explorerSinceYear: null,
+  hiddenEngineIds: [],
   sourceSettings: {},
   sourcePriority: [],
   enginePreset: 'standard',

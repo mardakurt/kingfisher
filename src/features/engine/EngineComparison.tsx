@@ -18,7 +18,8 @@ import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/Panel';
 import { useAnalysisPosition } from '@/features/analysis/useAnalysisPosition';
 import { compareEngines, describeComparison, type EngineReading } from '@/engine/comparison';
-import { engineDefinition, engineDefinitions } from '@/engine/registry';
+import { engineDefinition } from '@/engine/registry';
+import { useVisibleEngineDefinitions } from '@/engine/use-engines';
 import { variationTokens } from '@/engine/pv';
 import { cn } from '@/lib/cn';
 import { useEngine, type EngineSlot } from '@/stores/engine-store';
@@ -57,7 +58,7 @@ export function EngineComparison() {
     prefs.engineThreads,
   ]);
 
-  const definitions = engineDefinitions();
+  const definitions = useVisibleEngineDefinitions();
 
   /*
     The two engines agree on the first `pvAgreementPlies` moves, so either

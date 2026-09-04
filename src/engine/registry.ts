@@ -77,6 +77,24 @@ const NATIVE: readonly Omit<EngineDefinition, 'provider'>[] = [
     source: 'https://github.com/official-stockfish/Stockfish',
     notes: 'The same engine as the browser build, an order of magnitude faster.',
   },
+  {
+    id: 'viridithas',
+    name: 'Viridithas 20',
+    family: 'alphabeta',
+    transport: 'native',
+    license: 'AGPL-3.0-or-later',
+    source: 'https://github.com/cosmobobak/viridithas',
+    notes: 'An independent NNUE engine written in Rust, with its own evaluation.',
+  },
+  {
+    id: 'halogen',
+    name: 'Halogen 16',
+    family: 'alphabeta',
+    transport: 'native',
+    license: 'GPL-3.0-or-later',
+    source: 'https://github.com/KierenP/Halogen',
+    notes: 'A compact independent engine; the smallest native download in the catalogue.',
+  },
 ];
 
 const definitions = new Map<string, EngineDefinition>([[STOCKFISH_WASM.id, STOCKFISH_WASM]]);

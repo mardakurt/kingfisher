@@ -83,6 +83,76 @@ export interface CompanionStatus {
   readonly engines: readonly CompanionEngineEntry[];
   readonly databases: readonly CompanionDatabaseEntry[];
   readonly sessions: readonly { readonly id: string; readonly engine: string }[];
+  readonly platform?: string;
+  readonly managed?: readonly CatalogueEngine[];
+}
+
+/**
+ * What an engine turned out to be able to do.
+ *
+ * Measured at install time by running the engine, never declared in a table —
+ * see `companion/src/engine-verify.mjs`. Two builds of the same version can
+ * differ, and a catalogue that claimed otherwise would be wrong about exactly
+ * the cases that matter.
+ */
+export interface EngineCapabilities {
+  readonly multipv: boolean;
+  readonly searchmoves: boolean;
+  readonly wdl: boolean;
+  readonly syzygy: boolean;
+  readonly threads: boolean;
+  readonly hash: boolean;
+}
+
+export interface EngineCheck {
+  readonly ok: boolean;
+  readonly error: string | null;
+}
+
+export interface ManagedEngineRecord {
+  readonly id: string;
+  readonly name: string;
+  readonly reportedName: string | null;
+  readonly author: string | null;
+  readonly version: string | null;
+  readonly license: string;
+  readonly source: string;
+  readonly binary: string;
+  /** True when Kingfisher downloaded it; false when it found one already installed. */
+  readonly managed: boolean;
+  readonly installedAt: number;
+  readonly sha256: string | null;
+  readonly capabilities: EngineCapabilities;
+  readonly checks: Readonly<Record<string, EngineCheck>>;
+}
+
+export interface EngineInstallProgress {
+  readonly id: string;
+  readonly phase: 'starting' | 'downloading' | 'checking' | 'verifying' | 'done';
+  readonly bytes: number;
+  readonly total: number;
+  readonly message: string;
+}
+
+export interface CatalogueEngine {
+  readonly id: string;
+  readonly name: string;
+  readonly version: string | null;
+  readonly family: string;
+  readonly kind: 'wasm' | 'binary' | 'system';
+  readonly license: string;
+  readonly source: string;
+  readonly notes: string;
+  readonly available: boolean;
+  readonly unavailableReason: string | null;
+  /** How to get a `system` engine, when it is not on the machine. */
+  readonly installHint: string | null;
+  readonly downloadUrl: string | null;
+  readonly sha256: string | null;
+  readonly installed: boolean;
+  readonly installing: boolean;
+  readonly progress: EngineInstallProgress | null;
+  readonly record: ManagedEngineRecord | null;
 }
 
 /** Generous: a position query over a hundred thousand games is real work. */
@@ -173,6 +243,35 @@ export class CompanionClient {
    * accepting it — so this rejects truthfully rather than accepting a path
    * to something that merely happens to be executable.
    */
+  engineCatalogue(
+    signal?: AbortSignal,
+  ): Promise<{ platform: string; engines: readonly CatalogueEngine[] }> {
+    return this.request('/engine/catalogue', undefined, signal);
+  }
+
+  /**
+   * Begin installing a catalogue engine.
+   *
+   * Returns as soon as the download has started rather than when it has
+   * finished: a 115 MB engine outlives any sensible request timeout, and
+   * `installProgress` is how the UI follows it.
+   */
+  installEngine(engine: string): Promise<{ started: boolean; engine: CatalogueEngine | null }> {
+    return this.request('/engine/install', { engine });
+  }
+
+  installProgress(engine: string): Promise<{
+    engine: CatalogueEngine | null;
+    progress: EngineInstallProgress | null;
+    error: string | null;
+  }> {
+    return this.request(`/engine/install-progress?engine=${encodeURIComponent(engine)}`);
+  }
+
+  uninstallEngine(engine: string): Promise<{ removed: boolean }> {
+    return this.request('/engine/uninstall', { engine });
+  }
+
   registerEngine(executablePath: string, args?: readonly string[]): Promise<RegisteredEngine> {
     return this.request('/engine/register', { path: executablePath, args: args ?? [] });
   }

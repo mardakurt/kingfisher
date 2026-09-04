@@ -15,6 +15,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { Button } from '@/components/ui/Button';
 import { Toggle } from '@/components/ui/Toggle';
+import { EngineManager } from '@/features/engine/EngineManager';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Dialog } from '@/components/ui/Dialog';
 import { Segmented, Tabs } from '@/components/ui/Tabs';
@@ -347,11 +348,28 @@ function PiecesSection() {
 }
 
 function EngineSection() {
+  const [tab, setTab] = useState<'analysis' | 'engines'>('analysis');
+  return (
+    <div className="flex flex-col gap-4">
+      <ConfigurationHealth area="engine" />
+      <Segmented
+        items={[
+          { id: 'analysis', label: 'Analysis settings' },
+          { id: 'engines', label: 'Engines' },
+        ]}
+        value={tab}
+        onChange={setTab}
+      />
+      {tab === 'engines' ? <EngineManager /> : <AnalysisSettings />}
+    </div>
+  );
+}
+
+function AnalysisSettings() {
   const prefs = usePreferences();
   const capabilities = useEngine((state) => state.primary.capabilities);
   return (
     <div className="flex flex-col gap-4">
-      <ConfigurationHealth area="engine" />
       <Row
         label="Analysis preset"
         hint="Threads scale to this machine and always leave one core for the interface."

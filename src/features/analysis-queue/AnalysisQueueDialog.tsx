@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Dialog } from '@/components/ui/Dialog';
 import { engineDefinitions, DEFAULT_ENGINE_ID } from '@/engine/registry';
+import { useVisibleEngineDefinitions } from '@/engine/use-engines';
 import type { AnalysisQueuePreset, AnalysisQueueStrategy } from '@/persistence/domain';
 import { useUi } from '@/stores/ui-store';
 import { useAnalysisQueue } from './queue-store';
@@ -23,6 +24,7 @@ export function AnalysisQueueDialog() {
 }
 
 function QueueForm({ onClose }: { readonly onClose: () => void }) {
+  const visibleEngines = useVisibleEngineDefinitions();
   const gameIds = useUi((state) => state.analysisQueueGameIds);
   const clearSelection = useUi((state) => state.clearAnalysisQueueSelection);
   const jobs = useAnalysisQueue((state) => state.jobs);
@@ -118,7 +120,7 @@ function QueueForm({ onClose }: { readonly onClose: () => void }) {
               onChange={(event) => setEngineId(event.target.value)}
               className={CONTROL}
             >
-              {engineDefinitions().map((engine) => (
+              {visibleEngines.map((engine) => (
                 <option key={engine.id} value={engine.id}>
                   {engine.name}
                 </option>
