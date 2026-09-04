@@ -79,6 +79,7 @@ export const useAccountSync = create<AccountSyncStore>((set, get) => ({
         ...(result.cursor.lastGameTimestamp !== undefined
           ? { lastGameTimestamp: result.cursor.lastGameTimestamp }
           : {}),
+        ...(result.cursor.monthEtags !== undefined ? { monthEtags: result.cursor.monthEtags } : {}),
         ...(result.cursor.lastSyncedMonth !== undefined
           ? { lastSyncedMonth: result.cursor.lastSyncedMonth }
           : {}),

@@ -982,6 +982,15 @@ export interface LinkedAccountRecord {
   readonly lastGameTimestamp?: number;
   /** Chess.com only: the last `YYYY-MM` archive fully fetched. */
   readonly lastSyncedMonth?: string;
+  /**
+   * Chess.com only: the entity tag last seen for each fetched month.
+   *
+   * The current month is re-fetched on every sync by design — it can still
+   * gain games — so without these a dormant account downloaded a month of PGN
+   * each time to discover nothing had changed. With them, the server answers
+   * 304 and sends no body.
+   */
+  readonly monthEtags?: Readonly<Record<string, string>>;
   /** Cumulative across every sync, so "up to date" has a history behind it. */
   readonly importedCount: number;
   readonly duplicatesSkipped: number;

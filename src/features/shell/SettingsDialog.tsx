@@ -42,6 +42,7 @@ import {
   testLichessAccount,
 } from '@/database/providers/lichess-auth';
 import { beginLichessLogin, revokeToken } from '@/database/providers/lichess-pkce';
+import { fetchChessComProfile } from '@/sync/chess-com-sync';
 import { useDatabaseProviders } from '@/database/use-database-providers';
 import { lastFailures } from '@/components/ErrorBoundary';
 import {
@@ -757,6 +758,9 @@ function AccountsSection() {
                 {run?.remedy ? (
                   <p className="mt-0.5 text-[10.5px] text-tertiary">{run.remedy}</p>
                 ) : null}
+                {account.provider === 'chess.com' ? (
+                  <ChessComProfileLine account={account} />
+                ) : null}
               </li>
             );
           })}
@@ -1264,6 +1268,48 @@ function ProfileSection() {
         </Button>
       </div>
     </div>
+  );
+}
+
+/**
+ * The public facts Chess.com publishes about a linked account.
+ *
+ * Their Published-Data API serves a profile and a stats document without a
+ * key, so this is one request each and no credential. It is shown because a
+ * linked account with nothing but a username beside it gives no way to tell
+ * "linked to the right person" from "linked to a typo".
+ *
+ * Nothing here is inferred, and in particular no attempt is made to connect
+ * this username to a FIDE identity or to a player in a reference source. That
+ * remains an explicit statement the user makes, exactly as in Phase 12.
+ */
+function ChessComProfileLine({ account }: { readonly account: LinkedAccountRecord }) {
+  const profile = useQuery({
+    queryKey: ['chess-com-profile', account.username],
+    staleTime: 30 * 60_000,
+    retry: false,
+    queryFn: ({ signal }) => fetchChessComProfile(account.username, { signal }),
+  });
+
+  if (profile.isPending) return null;
+  if (profile.isError) {
+    return (
+      <p className="mt-0.5 text-[10.5px] text-tertiary">
+        Chess.com did not return a profile for this username.
+      </p>
+    );
+  }
+
+  const ratings = Object.entries(profile.data.ratings)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([kind, rating]) => `${kind} ${rating}`)
+    .join(' · ');
+
+  return (
+    <p className="mt-0.5 text-[10.5px] text-tertiary">
+      {[profile.data.title, profile.data.name, profile.data.country].filter(Boolean).join(' · ')}
+      {ratings ? ` — ${ratings}` : ' — no published ratings'}
+    </p>
   );
 }
 

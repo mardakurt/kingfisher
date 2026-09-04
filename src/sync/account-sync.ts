@@ -38,6 +38,7 @@ export interface SyncResult {
   readonly cursor: {
     readonly lastGameTimestamp?: number;
     readonly lastSyncedMonth?: string;
+    readonly monthEtags?: Readonly<Record<string, string>>;
   };
 }
 
@@ -109,17 +110,32 @@ async function syncChessCom(
   let duplicates = 0;
   let reached: string | undefined;
   let sawGames = false;
+  /*
+    Entity tags per month, carried across syncs.
+
+    The current month is re-fetched every time by design, because it can still
+    gain games — which for a dormant account meant downloading a whole month of
+    PGN to find out that nothing had happened. With an `If-None-Match` the
+    server answers 304 and no body at all.
+  */
+  const etags: Record<string, string> = { ...(account.monthEtags ?? {}) };
 
   // Serial, deliberately: Chess.com documents parallel requests as liable to
   // be refused, and a month at a time is fast enough for a personal archive.
   for (const month of months) {
     if (options.signal?.aborted) break;
-    const pgn = await fetchChessComMonthPgn(account.username, month, fetchOptions);
+    const stored = etags[month];
+    const result = await fetchChessComMonthPgn(account.username, month, {
+      ...fetchOptions,
+      ...(stored ? { etag: stored } : {}),
+    });
     reached = month;
-    if (!pgn.trim()) continue;
+    if (result.etag) etags[month] = result.etag;
+    else delete etags[month];
+    if (result.unchanged || !result.pgn.trim()) continue;
 
     sawGames = true;
-    const summary = await importGames(pgn, games, {
+    const summary = await importGames(result.pgn, games, {
       ...(options.signal ? { signal: options.signal } : {}),
       ...(options.onProgress ? { onProgress: options.onProgress } : {}),
     });
@@ -134,6 +150,6 @@ async function syncChessCom(
     upToDate: !sawGames,
     // The month reached, not the month after it: this month may still gain
     // games, so the next sync must look at it again.
-    cursor: reached !== undefined ? { lastSyncedMonth: reached } : {},
+    cursor: reached !== undefined ? { lastSyncedMonth: reached, monthEtags: etags } : {},
   };
 }
