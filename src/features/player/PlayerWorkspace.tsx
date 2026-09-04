@@ -71,19 +71,32 @@ export function PlayerWorkspace({ playerId }: { readonly playerId: string }) {
   const data = usePlayerAggregate(identity.data, period);
   const tendencies = usePlayerTendencies(identity.data, data.data?.games);
   const resolved = resolvePeriod(period);
+  const aggregate = data.data?.aggregate;
+
+  /*
+    The name to use for everything, resolved once.
+
+    A stored identity's name wins, because the user chose it. Otherwise the
+    spelling the games actually use, and only then the normalized route key —
+    which is a lookup value, not a name. Resolved here rather than at each call
+    site because getting it wrong in one of them creates a preparation session
+    titled "carlsen, magnus", and a `forOpponent` lookup that then misses it.
+  */
+  const name = identity.data?.stored
+    ? identity.data.name
+    : (aggregate?.displayName ?? identity.data?.name ?? playerId);
 
   const sessions = useQuery<readonly PreparationSessionRecord[]>({
     queryKey: ['player-preparation', playerId],
     enabled: Boolean(identity.data),
     retry: false,
-    queryFn: async () =>
-      (await getRepositories()).preparation.forOpponent(identity.data?.name ?? playerId),
+    queryFn: async () => (await getRepositories()).preparation.forOpponent(name),
   });
 
   const favorite = useMutation({
     mutationFn: async (value: boolean) => {
       const repositories = await getRepositories();
-      await repositories.playerIdentities.upsert({ name: identity.data?.name ?? playerId });
+      await repositories.playerIdentities.upsert({ name });
       return repositories.playerIdentities.setFavorite(playerId, value);
     },
     onSuccess: (record) => {
@@ -110,7 +123,7 @@ export function PlayerWorkspace({ playerId }: { readonly playerId: string }) {
       const repositories = await getRepositories();
       return repositories.preparation.create({
         title,
-        opponent: identity.data?.name ?? playerId,
+        opponent: name,
         myColor: opponentColor === 'w' ? 'b' : 'w',
       });
     },
@@ -125,16 +138,6 @@ export function PlayerWorkspace({ playerId }: { readonly playerId: string }) {
       }),
     onSettled: () => setPreparing(null),
   });
-
-  const aggregate = data.data?.aggregate;
-  /*
-    A stored identity's name wins, because the user chose it. Otherwise the
-    spelling the games actually use, and only then the normalized key — which
-    is a lookup value, not a name anybody writes.
-  */
-  const name = identity.data?.stored
-    ? identity.data.name
-    : (aggregate?.displayName ?? identity.data?.name ?? playerId);
 
   /** Open the position at which an opening was recognised, on the board. */
   const openOnBoard = async (id: string, ply?: number) => {
@@ -367,6 +370,7 @@ export function PlayerWorkspace({ playerId }: { readonly playerId: string }) {
               <PlayerIdentityPanel
                 playerId={playerId}
                 identity={identity.data}
+                displayName={name}
                 onChanged={() => {
                   void queryClient.invalidateQueries({ queryKey: ['player-identity', playerId] });
                   void queryClient.invalidateQueries({ queryKey: ['player-aggregate'] });
@@ -377,20 +381,28 @@ export function PlayerWorkspace({ playerId }: { readonly playerId: string }) {
         )}
       </div>
 
-      <PromptDialog
-        open={preparing !== null}
-        title={`Prepare against ${name} as ${preparing === 'w' ? 'White' : 'Black'}`}
-        description={`A preparation session opens with ${name} as the opponent, and you as ${
-          preparing === 'w' ? 'Black' : 'White'
-        }.`}
-        label="Session title"
-        initialValue={`${name} — ${preparing === 'w' ? 'their White' : 'their Black'}`}
-        confirmLabel="Create session"
-        onCancel={() => setPreparing(null)}
-        onSubmit={(title) => {
-          if (preparing) prepare.mutate({ title, opponentColor: preparing });
-        }}
-      />
+      {/*
+        Mounted only while it is open. `PromptDialog` seeds its field from
+        `initialValue` with `useState`, which reads it once — so a dialog kept
+        mounted from first render captures the title before the player's name
+        has resolved, and offers "carlsen, magnus" as the session name.
+      */}
+      {preparing !== null ? (
+        <PromptDialog
+          open
+          title={`Prepare against ${name} as ${preparing === 'w' ? 'White' : 'Black'}`}
+          description={`A preparation session opens with ${name} as the opponent, and you as ${
+            preparing === 'w' ? 'Black' : 'White'
+          }.`}
+          label="Session title"
+          initialValue={`${name} — ${preparing === 'w' ? 'their White' : 'their Black'}`}
+          confirmLabel="Create session"
+          onCancel={() => setPreparing(null)}
+          onSubmit={(title) => {
+            if (preparing) prepare.mutate({ title, opponentColor: preparing });
+          }}
+        />
+      ) : null}
     </div>
   );
 }

@@ -27,10 +27,23 @@ import type { PlayerIdentityView } from './usePlayer';
 interface PlayerIdentityPanelProps {
   readonly playerId: string;
   readonly identity: PlayerIdentityView | undefined;
+  /**
+   * The name to store, resolved by the workspace.
+   *
+   * Not `identity.name`, which falls back to the normalized route key when no
+   * record exists yet — creating one from that would store "carlsen, magnus"
+   * as somebody's name the first time they were favourited.
+   */
+  readonly displayName: string;
   readonly onChanged: () => void;
 }
 
-export function PlayerIdentityPanel({ playerId, identity, onChanged }: PlayerIdentityPanelProps) {
+export function PlayerIdentityPanel({
+  playerId,
+  identity,
+  displayName,
+  onChanged,
+}: PlayerIdentityPanelProps) {
   const notify = useUi((state) => state.notify);
   const [linking, setLinking] = useState(false);
   const [fideId, setFideId] = useState(identity?.fideId ?? '');
@@ -41,7 +54,7 @@ export function PlayerIdentityPanel({ playerId, identity, onChanged }: PlayerIde
     mutationFn: async () => {
       const repositories = await getRepositories();
       return repositories.playerIdentities.upsert({
-        name: identity?.name ?? playerId,
+        name: displayName,
         fideId,
         lichessUsername: lichess,
         chessComUsername: chesscom,
@@ -61,7 +74,7 @@ export function PlayerIdentityPanel({ playerId, identity, onChanged }: PlayerIde
   const link = useMutation({
     mutationFn: async (alias: string) => {
       const repositories = await getRepositories();
-      await repositories.playerIdentities.upsert({ name: identity?.name ?? playerId });
+      await repositories.playerIdentities.upsert({ name: displayName });
       return repositories.playerIdentities.linkAlias(playerId, alias);
     },
     onSuccess: (record) => {
@@ -106,7 +119,7 @@ export function PlayerIdentityPanel({ playerId, identity, onChanged }: PlayerIde
           Magnus” are one person is a judgement, and getting it wrong merges two careers.
         </p>
         <ul className="mt-3 space-y-1">
-          {(identity?.aliases ?? [playerId]).map((alias) => (
+          {(identity?.aliases ?? [displayName]).map((alias) => (
             <li key={alias} className="flex items-center gap-2 text-xs">
               <span className="min-w-0 flex-1 truncate text-primary">{alias}</span>
               {alias === identity?.name || !identity?.stored ? (
