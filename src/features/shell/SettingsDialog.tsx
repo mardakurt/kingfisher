@@ -16,6 +16,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check } from '@/components/icons';
 import { Button } from '@/components/ui/Button';
 import { Toggle } from '@/components/ui/Toggle';
+import { BookManager } from '@/features/book/BookManager';
 import { EngineManager } from '@/features/engine/EngineManager';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Dialog } from '@/components/ui/Dialog';
@@ -364,7 +365,7 @@ function PiecesSection() {
 }
 
 function EngineSection() {
-  const [tab, setTab] = useState<'analysis' | 'engines'>('analysis');
+  const [tab, setTab] = useState<'analysis' | 'engines' | 'books'>('analysis');
   return (
     <div className="flex flex-col gap-4">
       <ConfigurationHealth area="engine" />
@@ -372,11 +373,18 @@ function EngineSection() {
         items={[
           { id: 'analysis', label: 'Analysis settings' },
           { id: 'engines', label: 'Engines' },
+          { id: 'books', label: 'Books' },
         ]}
         value={tab}
         onChange={setTab}
       />
-      {tab === 'engines' ? <EngineManager /> : <AnalysisSettings />}
+      {tab === 'engines' ? (
+        <EngineManager />
+      ) : tab === 'books' ? (
+        <BookManager />
+      ) : (
+        <AnalysisSettings />
+      )}
     </div>
   );
 }

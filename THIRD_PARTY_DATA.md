@@ -106,6 +106,37 @@ one of the ECO tables transcribed from the Encyclopaedia or from ChessBase.
 
 ---
 
+## Polyglot book constants
+
+| Field        | Value                                                                                  |
+| ------------ | -------------------------------------------------------------------------------------- |
+| What         | The 781 Zobrist constants the Polyglot `.bin` book format is defined by                |
+| Where        | `src/book/polyglot-constants.generated.ts`, written by `npm run polyglot:constants`    |
+| Fetched from | `chess/polyglot.py` in [niklasf/python-chess](https://github.com/niklasf/python-chess) |
+| Verified     | Against the format's own published key for the initial position, `0x463b96181691fc9c`  |
+
+These numbers are not a design decision and not an expressive work: **they are
+the format**. A `.bin` opening book keys its entries on a Zobrist hash computed
+with this exact array, so an implementation using any other numbers could not
+read a single book that exists. They are the same kind of artefact as a CRC
+polynomial, a codec's quantisation table, or an ECO code — a constant that
+interoperability requires and that has only one correct value.
+
+They are _generated_ rather than pasted so that the check is part of the build:
+the Polyglot specification publishes the hash of the initial position, and 781
+numbers that reproduce it are by construction the right 781 numbers. If a
+re-fetch ever returned a different array, `scripts/build-polyglot-constants.mjs`
+refuses to write it. The nine published worked examples are asserted in
+`src/book/polyglot.test.ts`, including the two that exist to pin down the
+en-passant rule.
+
+python-chess is GPL-3.0. That licence covers python-chess as a program;
+Kingfisher does not include, link to or derive from any of its code — it reads
+one constant table out of it, and could equally have read it from the format
+specification or from any of the dozens of implementations that carry it.
+
+---
+
 ## Data deliberately **not** used
 
 These were investigated and rejected. Recording the rejections matters as much

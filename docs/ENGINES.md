@@ -249,6 +249,61 @@ support is whatever that binary actually declares. This matters: Lc0 has no
 `WeightsFile` no alpha-beta engine has. A hand-written table would encode those
 differences as folklore and go stale.
 
+## Opening books
+
+An opening book is **not** the opening explorer, and Kingfisher keeps them
+apart on purpose. An explorer answers _what has been played here_, from a
+population you can name and count. A book answers _what to play here_, from
+somebody's weights — and the somebody matters, because two books disagree in
+ways no number of games can settle. So a book move never appears in the
+explorer's table: it has its own panel, its own numbers, and a line naming the
+book it came from.
+
+### The Kingfisher book
+
+Derived rather than authored, from whichever reference sources are installed:
+"how often was this move chosen, by players rated this highly". No download, no
+separate file, and a weight whose population you can ask about and get an
+answer — which is more than an anonymous `.bin` can offer. Moves under 2% of a
+position's games are left out; that is a fact for the explorer, not advice.
+
+### Polyglot `.bin`
+
+The interchange format every engine and GUI supports. Settings → Engine →
+Books takes a file, checks it, and stores it whole in IndexedDB. Lookups are a
+binary search over the sorted key array, so a hundred-megabyte book costs two
+or three reads per position rather than a parse.
+
+Two parts of the format are easy to get subtly wrong and are handled in
+`src/book/polyglot.ts` rather than left to callers:
+
+- **The en-passant square is hashed only when the capture is really
+  available.** A FEN records the square after any double pawn push; Polyglot
+  hashes it only if an enemy pawn is standing beside the pushed one. Getting
+  this wrong makes roughly one position in forty silently miss.
+- **Castling is stored as king-takes-own-rook.** White's O-O is `e1h1`, which
+  is not a move anyone can play, and is translated back.
+
+All nine positions the specification publishes worked keys for are asserted in
+`polyglot.test.ts`. There is no partial credit with a Zobrist key: either it is
+the same number everybody else computes, or the book reads nothing.
+
+### Engines never play from their own book
+
+Kingfisher sends `setoption name OwnBook value false` to every engine that
+declares the option, at session construction, before any configuration the
+caller asks for.
+
+This is not a preference. An engine answering from an internal book returns a
+move instantly with no search behind it, and the analysis panel would report
+that as an evaluation at depth 0 — a number the engine never computed. §30 of
+the brief puts it exactly right: do not let an engine silently use a book while
+the interface claims the move came from search. Kingfisher's answer is that the
+engine does not use one at all, and the books it _does_ consult are named in
+their own panel.
+
+`BookPath` is deliberately not offered for the same reason.
+
 ## Running two at once
 
 Two is a hard limit, and they split the thread budget. A third search would take

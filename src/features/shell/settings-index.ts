@@ -153,6 +153,14 @@ export const SETTINGS_INDEX: readonly SettingsEntry[] = [
     ],
   },
   {
+    id: 'opening-books',
+    label: 'Opening books',
+    section: 'engine',
+    description:
+      'Kingfisher’s derived book, and any Polyglot .bin files you add. Books are searched in order, never merged.',
+    keywords: ['book', 'polyglot', 'bin', 'opening book', 'ownbook', 'weights', 'repertoire book'],
+  },
+  {
     id: 'pinned-tools',
     label: 'Pinned tools',
     section: 'workspace',

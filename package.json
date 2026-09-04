@@ -35,7 +35,8 @@
     "smoke:lichess": "node scripts/smoke-lichess.mjs",
     "bench:player-search": "node scripts/bench-player-search.mjs",
     "engines:digests": "node scripts/record-engine-digests.mjs",
-    "reference:build": "node scripts/build-reference-pack.mjs"
+    "reference:build": "node scripts/build-reference-pack.mjs",
+    "polyglot:constants": "node scripts/build-polyglot-constants.mjs && prettier --write src/book/polyglot-constants.generated.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.102.8",

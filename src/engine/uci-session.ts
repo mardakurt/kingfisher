@@ -63,6 +63,23 @@ export class UciSession implements EngineSession {
     readonly capabilities: EngineCapabilities,
   ) {
     this.client.onLine((line) => this.handleLine(line));
+
+    /*
+      An engine must never answer from a book of its own.
+
+      An engine playing from its internal book returns a move instantly with no
+      search behind it, and Kingfisher's panel would report that as an
+      evaluation at depth 0 — a number the engine never computed. Kingfisher
+      shows book moves in their own panel, from books it can name; the engine's
+      job is to search.
+
+      Sent unconditionally to every engine that declares the option, before any
+      configuration the caller asks for, so there is no window in which the
+      first search of a session could come from a book.
+    */
+    if (this.options.some((option) => option.name === 'OwnBook')) {
+      this.client.send('setoption name OwnBook value false');
+    }
   }
 
   async configure(configuration: Partial<EngineConfiguration>): Promise<void> {

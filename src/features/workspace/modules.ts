@@ -18,6 +18,7 @@ import type { WorkspaceRegion } from './layout-model';
 export type WorkspaceToolId =
   | 'engine'
   | 'explorer'
+  | 'book'
   | 'database'
   | 'repertoire'
   | 'repertoire-health'
@@ -54,6 +55,7 @@ export interface WorkspaceModuleDescriptor {
 export const WORKSPACE_MODULES: Readonly<Record<WorkspaceToolId, WorkspaceModuleDescriptor>> = {
   engine: { id: 'engine', label: 'Engine', home: 'dock', regions: ['dock', 'lower'] },
   explorer: { id: 'explorer', label: 'Explorer', home: 'dock', regions: ['dock'] },
+  book: { id: 'book', label: 'Book', home: 'dock', regions: ['dock', 'lower'] },
   database: { id: 'database', label: 'Database', home: 'dock', regions: ['dock'] },
   repertoire: { id: 'repertoire', label: 'Repertoire', home: 'dock', regions: ['dock'] },
   'repertoire-health': {
@@ -124,6 +126,7 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
   analysis: [
     'engine',
     'explorer',
+    'book',
     'database',
     'repertoire',
     'repertoire-health',
@@ -142,6 +145,7 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'document',
     'engine',
     'explorer',
+    'book',
     'database',
     'transpositions',
     'calculation',
@@ -154,6 +158,7 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'document',
     'repertoire-health',
     'explorer',
+    'book',
     'database',
     'transpositions',
     'theory-radar',
@@ -164,6 +169,7 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
   ],
   openings: [
     'explorer',
+    'book',
     'database',
     'transpositions',
     'theory-radar',
@@ -194,12 +200,14 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'model-games',
     'features',
     'explorer',
+    'book',
     'database',
     'engine',
   ],
   games: [
     'engine',
     'explorer',
+    'book',
     'database',
     'repertoire',
     'calculation',
@@ -211,6 +219,7 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'document',
     'engine',
     'explorer',
+    'book',
     'database',
     'theory-radar',
     'repertoire',
@@ -225,6 +234,7 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'document',
     'engine',
     'explorer',
+    'book',
     'database',
     'repertoire',
     'repertoire-health',

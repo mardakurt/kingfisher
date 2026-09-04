@@ -1,5 +1,5 @@
 export const DATABASE_NAME = 'kingfisher';
-export const DATABASE_VERSION = 15;
+export const DATABASE_VERSION = 16;
 
 export const STORE_NAMES = {
   studies: 'studies',
@@ -29,6 +29,7 @@ export const STORE_NAMES = {
   playerIdentities: 'playerIdentities',
   referencePacks: 'referencePacks',
   referenceChunks: 'referenceChunks',
+  openingBooks: 'openingBooks',
 } as const;
 
 export type StoreName = (typeof STORE_NAMES)[keyof typeof STORE_NAMES];
@@ -418,6 +419,22 @@ export const MIGRATIONS: readonly Migration[] = [
       ]);
       target.createStore(STORE_NAMES.referenceChunks, { keyPath: ['packId', 'chunkId'] }, [
         { name: 'packId', keyPath: 'packId' },
+      ]);
+    },
+  },
+  {
+    version: 16,
+    description: 'Add opening books, including the Polyglot files a user adds.',
+    apply(target) {
+      /*
+        One row per book, holding the record *and* the bytes. Unlike a
+        reference pack there is nothing to shard: a Polyglot file is read by
+        binary search over the whole buffer, so splitting it would mean
+        reassembling it on every probe. A large book is tens of megabytes,
+        which IndexedDB stores as a single value without complaint.
+      */
+      target.createStore(STORE_NAMES.openingBooks, { keyPath: 'id' }, [
+        { name: 'priority', keyPath: 'priority' },
       ]);
     },
   },

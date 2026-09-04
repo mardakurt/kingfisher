@@ -31,6 +31,14 @@ const CompanionPanel = lazyPanel(() =>
     default: module.CompanionPanel,
   })),
 );
+/*
+  The book panel is loaded on demand: a Polyglot reader pulls in 781 BigInt
+  constants, and a workspace where nobody opens the Book tab should not pay
+  for them.
+*/
+const BookPanel = lazyPanel(() =>
+  import('@/features/book/BookPanel').then((module) => ({ default: module.BookPanel })),
+);
 const TranspositionsPanel = lazyPanel(() =>
   import('@/features/explorer/TranspositionsPanel').then((module) => ({
     default: module.TranspositionsPanel,
@@ -105,6 +113,7 @@ export function ToolContent({
 }) {
   if (tool === 'engine') return <EnginePanelHost />;
   if (tool === 'explorer') return <ExplorerPanel />;
+  if (tool === 'book') return <BookPanel />;
   if (tool === 'database') return <DatabasePositionPanel />;
   if (tool === 'repertoire') return <RepertoirePositionPanel />;
   if (tool === 'repertoire-health') return <PositionHealthPanel />;
