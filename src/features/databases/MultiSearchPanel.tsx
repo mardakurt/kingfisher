@@ -21,6 +21,7 @@ import { useRouter } from 'next/navigation';
 import { Search } from '@/components/icons';
 import { Button } from '@/components/ui/Button';
 import { federatedSearch, supportedFilters } from '@/database/collections/federated';
+import { openStoredGame } from '@/features/games/open-game';
 import type { FederatedResult } from '@/database/collections/federated';
 import { openCollections } from '@/database/collections/registry';
 import type { CollectionFacts } from '@/database/collections/types';
@@ -188,14 +189,30 @@ export function MultiSearchPanel({ selected, onCreateFromResults }: MultiSearchP
                       type="button"
                       className="min-w-0 flex-1 text-left"
                       onClick={() => {
+                        /*
+                          Only the browser's own collection can hand a game
+                          straight to the board today. Saying so is better than
+                          a button that does nothing: the game is real and the
+                          user is told exactly where it is.
+                        */
                         if (hit.source.kind !== 'indexeddb') {
                           notify({
                             tone: 'info',
-                            message: `That game is in ${hit.source.name}. Open it from that collection's game list.`,
+                            message: `That game is in ${hit.source.name}. Copy it to your own collection to open it on the board.`,
                           });
                           return;
                         }
-                        router.push(`/analysis?game=${encodeURIComponent(hit.game.id)}`);
+                        void openStoredGame(hit.game.id)
+                          .then(() => router.push('/analysis'))
+                          .catch((error: unknown) =>
+                            notify({
+                              tone: 'error',
+                              message:
+                                error instanceof Error
+                                  ? error.message
+                                  : 'That game could not be opened.',
+                            }),
+                          );
                       }}
                     >
                       <span className="block truncate text-sm text-primary">

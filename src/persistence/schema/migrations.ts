@@ -1,5 +1,5 @@
 export const DATABASE_NAME = 'kingfisher';
-export const DATABASE_VERSION = 13;
+export const DATABASE_VERSION = 14;
 
 export const STORE_NAMES = {
   studies: 'studies',
@@ -26,6 +26,7 @@ export const STORE_NAMES = {
   pinnedLines: 'pinnedLines',
   linkedAccounts: 'linkedAccounts',
   sourceSets: 'sourceSets',
+  playerIdentities: 'playerIdentities',
 } as const;
 
 export type StoreName = (typeof STORE_NAMES)[keyof typeof STORE_NAMES];
@@ -369,6 +370,27 @@ export const MIGRATIONS: readonly Migration[] = [
     apply(target) {
       target.createStore(STORE_NAMES.sourceSets, { keyPath: 'id' }, [
         { name: 'name', keyPath: 'name', unique: true },
+        { name: 'updatedAt', keyPath: 'updatedAt' },
+      ]);
+    },
+  },
+  {
+    version: 14,
+    description: 'Add player identities: explicit aliases and linked online accounts.',
+    apply(target) {
+      /*
+        Keyed by the canonical player key, so a profile page exists for every
+        name in the database without anything having to be created first. A
+        record only appears when the user states something Kingfisher could not
+        have worked out — an alias, a FIDE id, an online account.
+
+        `aliases` is multi-entry so "which identity owns this name" is an index
+        lookup rather than a scan. It is never written automatically: deciding
+        that two similar names are one person is the user's judgement, and
+        guessing it wrong merges two players' careers.
+      */
+      target.createStore(STORE_NAMES.playerIdentities, { keyPath: 'id' }, [
+        { name: 'aliases', keyPath: 'aliasKeys', multiEntry: true },
         { name: 'updatedAt', keyPath: 'updatedAt' },
       ]);
     },

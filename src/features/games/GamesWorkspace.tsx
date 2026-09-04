@@ -26,14 +26,14 @@ import {
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { cn } from '@/lib/cn';
 import { formatPgnDate, gameTitle } from '@/persistence/describe';
-import { getRepositories } from '@/persistence/repositories';
+import { playerKey } from '@/persistence/schema/migrations';
 import type { GameSearchQuery, GameSummary } from '@/persistence/types';
 import { openingDisplay } from '@/theory/classify-games';
+
+import { openStoredGame } from './open-game';
 import type { GameResult } from '@/database/types';
-import { useAnalysis } from '@/stores/analysis-store';
 import { useUi } from '@/stores/ui-store';
 import { NavButton } from '@/features/shell/NavButton';
-import { setEvaluation } from '@/chess/tree/tree';
 import {
   deleteResearchFilter,
   recentResearchFilters,
@@ -76,7 +76,6 @@ export function GamesWorkspace() {
   const notify = useUi((state) => state.notify);
   const setImportOpen = useUi((state) => state.setImportOpen);
   const openAnalysisQueue = useUi((state) => state.openAnalysisQueue);
-  const openDocument = useAnalysis((state) => state.openDocument);
   const dense = useMediaQuery('(min-width: 720px)');
 
   const [text, setText] = useState('');
@@ -161,41 +160,10 @@ export function GamesWorkspace() {
     });
   };
 
+  // The list holds summaries; the moves are fetched only when one is opened.
   const open = async (game: GameSummary, destination: '/analysis' | '/review' = '/analysis') => {
-    /*
-      A database game opens as source material, not as the user's own document.
-      Editing it will not write back over the imported record: autosave treats
-      anything that is not a study chapter as a draft, and "Save to study" is
-      how an analysis of a game becomes the user's.
-    */
-    // The list holds summaries; the moves are fetched only when one is opened.
     try {
-      const repositories = await getRepositories();
-      const full = await repositories.games.get(game.id);
-      if (!full) {
-        notify({ tone: 'error', message: 'That game is no longer in the database.' });
-        return;
-      }
-      const evidence = await repositories.analysisQueue.evidenceForGame(game.id);
-      const tree = evidence.reduce(
-        (currentTree, entry) =>
-          currentTree.nodes[entry.nodeId]
-            ? setEvaluation(currentTree, entry.nodeId, {
-                score: entry.score,
-                depth: entry.depth,
-                nodes: entry.nodes,
-                timeMs: entry.timeMs,
-                engine: entry.engineName,
-                bestMove: entry.pv[0],
-                recordedAt: entry.analysedAt,
-              })
-            : currentTree,
-        full.tree,
-      );
-      openDocument({
-        tree,
-        document: { kind: 'database-game', title: gameTitle(full), gameId: full.id },
-      });
+      await openStoredGame(game.id);
       router.push(destination);
     } catch (error) {
       notify({
@@ -411,6 +379,21 @@ export function GamesWorkspace() {
               Clear filters
             </Button>
           )}
+          {player.trim() ? (
+            /*
+              The profile for whoever the list is currently filtered to. Offered
+              here rather than as a per-row link because a dense table with a
+              second control in every name cell is a table nobody can scan, and
+              because "the player I am looking at" is exactly what this field
+              already names.
+            */
+            <Button
+              variant="subtle"
+              onClick={() => router.push(`/player/${encodeURIComponent(playerKey(player))}`)}
+            >
+              Player profile
+            </Button>
+          ) : null}
           <Button onClick={saveCurrent}>Save filter</Button>
           {savedFilters.length ? (
             <Button

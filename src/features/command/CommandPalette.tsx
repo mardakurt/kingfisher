@@ -8,6 +8,7 @@ import { useWorkspaceSearch } from '@/features/persistence/queries';
 import { cn } from '@/lib/cn';
 import { gameTitle } from '@/persistence/describe';
 import { getRepositories } from '@/persistence/repositories';
+import { playerKey } from '@/persistence/schema/migrations';
 import {
   canonicalise,
   searchByPosition,
@@ -123,9 +124,13 @@ function PaletteDialog() {
           }
           if (selectedHit.kind === 'study') router.push('/studies');
           else if (selectedHit.kind === 'repertoire') router.push('/repertoire');
-          else if (selectedHit.kind === 'player')
-            router.push(`/database?player=${encodeURIComponent(selectedHit.title)}`);
-          else if (
+          else if (selectedHit.kind === 'player') {
+            // The profile, not a filtered explorer. `targetId` is already the
+            // canonical player key, which is what the profile route is keyed on.
+            router.push(
+              `/player/${encodeURIComponent(selectedHit.targetId ?? playerKey(selectedHit.title))}`,
+            );
+          } else if (
             selectedHit.kind === 'decision' ||
             selectedHit.kind === 'critical-position' ||
             selectedHit.kind === 'theme'

@@ -1017,3 +1017,34 @@ export interface SourceSetRecord {
   readonly createdAt: number;
   readonly updatedAt: number;
 }
+
+/**
+ * A player, as the user has explicitly described them.
+ *
+ * Everything here is stated, never inferred. Kingfisher will not decide that
+ * "M. Carlsen" and "Carlsen, Magnus" are one person, because the cost of being
+ * wrong is a profile that silently mixes two careers — and because the cost of
+ * being right is one click from somebody who knows.
+ *
+ * The `id` is the canonical player key of the primary name, so a profile route
+ * exists for every name in the database whether or not a record was ever
+ * created. A record adds what the database cannot know: other names this player
+ * appears under, and accounts elsewhere that are theirs.
+ */
+export interface PlayerIdentityRecord {
+  readonly id: string;
+  /** The name as it should be displayed. */
+  readonly name: string;
+  /** Display forms of every linked alias, including the primary name. */
+  readonly aliases: readonly string[];
+  /** Normalized forms of `aliases`, which is what games are matched on. */
+  readonly aliasKeys: readonly string[];
+  readonly fideId?: string;
+  readonly fideName?: string;
+  readonly lichessUsername?: string;
+  readonly chessComUsername?: string;
+  readonly favorite?: boolean;
+  readonly note?: string;
+  readonly createdAt: number;
+  readonly updatedAt: number;
+}

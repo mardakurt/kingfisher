@@ -20,6 +20,7 @@ import type {
   PinnedLineRecord,
   LinkedAccountRecord,
   SourceSetRecord,
+  PlayerIdentityRecord,
 } from './domain';
 import { ENDGAME_CATEGORIES } from './domain';
 import type { ChapterRecord, DraftRecord, GameRecord, GameSummary, StudyRecord } from './types';
@@ -364,6 +365,17 @@ export const isPinnedLineRecord = (value: unknown): value is PinnedLineRecord =>
   stringArray(value.pvUci) &&
   stringArray(value.pvSan) &&
   finite(value.createdAt);
+
+export const isPlayerIdentityRecord = (value: unknown): value is PlayerIdentityRecord =>
+  object(value) &&
+  text(value.id) &&
+  text(value.name) &&
+  Array.isArray(value.aliases) &&
+  value.aliases.every(text) &&
+  Array.isArray(value.aliasKeys) &&
+  value.aliasKeys.every(text) &&
+  finite(value.createdAt) &&
+  finite(value.updatedAt);
 
 export const isSourceSetRecord = (value: unknown): value is SourceSetRecord =>
   object(value) &&

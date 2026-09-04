@@ -223,7 +223,15 @@ export async function searchWorkspace(
     if (includes(game.black, needle)) players.set(game.blackKey, game.black);
   }
   for (const [key, name] of players) {
-    add({ id: `player:${key}`, kind: 'player', title: name, subtitle: 'Prepare for player' });
+    add({
+      id: `player:${key}`,
+      kind: 'player',
+      title: name,
+      subtitle: 'Open player profile',
+      // The canonical key, which is what the profile route is keyed on, so the
+      // palette never has to re-derive it from a display name.
+      targetId: key,
+    });
   }
 
   const matchingLinks = links.filter((link) =>
