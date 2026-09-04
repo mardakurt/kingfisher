@@ -180,6 +180,47 @@ export interface OpeningSearchResult {
  * table, so "poisoned pawn" finds what the dataset calls "Poisoned Pawn
  * Variation".
  */
+/**
+ * The families an empty search box should open on.
+ *
+ * Without this, "browse the openings" means an ECO-ordered list, and A00 is
+ * the Amar Opening — a first screen that suggests Kingfisher's idea of a
+ * notable opening is 1.Nh3. These are the families a player would name if
+ * asked, and each resolves to its own shortest line in the dataset.
+ */
+export const OPENING_FAMILIES: readonly string[] = [
+  'Sicilian Defense',
+  'Ruy Lopez',
+  'Italian Game',
+  'French Defense',
+  'Caro-Kann Defense',
+  "Queen's Gambit Declined",
+  "Queen's Gambit Accepted",
+  'Slav Defense',
+  'Semi-Slav Defense',
+  'Nimzo-Indian Defense',
+  "King's Indian Defense",
+  'Grünfeld Defense',
+  'Catalan Opening',
+  "Queen's Indian Defense",
+  'English Opening',
+  'London System',
+  'Scandinavian Defense',
+  'Pirc Defense',
+  'Modern Defense',
+  'Alekhine Defense',
+  'Dutch Defense',
+  'Benoni Defense',
+  'Benko Gambit',
+  'Scotch Game',
+  'Four Knights Game',
+  'Vienna Game',
+  "King's Gambit",
+  'Philidor Defense',
+  "Petrov's Defense",
+  'Trompowsky Attack',
+];
+
 export function searchOpenings(
   entries: readonly OpeningEntry[],
   query: string,
@@ -187,8 +228,17 @@ export function searchOpenings(
 ): readonly OpeningSearchResult[] {
   const raw = query.trim();
   if (raw.length === 0) {
-    return entries
-      .filter((entry) => entry.plies <= 4)
+    const shortest = new Map<string, OpeningEntry>();
+    for (const entry of entries) {
+      const existing = shortest.get(entry.name);
+      if (!existing || entry.plies < existing.plies) shortest.set(entry.name, entry);
+    }
+    const families = OPENING_FAMILIES.map((family) => shortest.get(family)).filter(
+      (entry): entry is OpeningEntry => entry !== undefined,
+    );
+    const seen = new Set(families.map((entry) => entry.key));
+    const rest = entries.filter((entry) => entry.plies <= 4 && !seen.has(entry.key));
+    return [...families, ...rest]
       .slice(0, limit)
       .map((entry) => ({ entry, reason: 'name' as const }));
   }

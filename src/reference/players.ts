@@ -149,7 +149,18 @@ export function usePlayerCatalog() {
 }
 
 export type PlayerFilter =
-  'all' | 'elite' | 'world-champion' | 'women-champion' | 'legend' | 'has-games';
+  'all' | 'top-100' | 'top-500' | 'world-champion' | 'women-champion' | 'legend' | 'has-games';
+
+/**
+ * The rating that ranks a player, and why it is the latest rather than the peak.
+ *
+ * A "top 100" built on peak ratings is a list of who was ever strong, which is
+ * a different and much longer list than who is strong now — and the peak
+ * recorded here is only the highest this *source* saw, which for a player who
+ * joined the archive late is not their career peak at all. The latest recorded
+ * rating is the honest basis for a current-strength ranking.
+ */
+const rankingRating = (player: CatalogPlayer): number => player.lastRating || player.peakRating;
 
 export interface PlayerSearchOptions {
   readonly query: string;
@@ -171,8 +182,28 @@ export function searchPlayers(
   { query, filter, limit = 200 }: PlayerSearchOptions,
 ): readonly CatalogPlayer[] {
   const needle = query.trim().toLowerCase();
+  /*
+    The rating lists are a *rank*, so they have to be computed over the whole
+    catalog before anything is filtered by name. Filtering first and then
+    taking the top hundred of what is left would make "top 100" mean "the
+    hundred best whose name contains what you typed", which is not a list
+    anybody wants.
+  */
+  const ranked =
+    filter === 'top-100' || filter === 'top-500'
+      ? new Set(
+          [...players]
+            .filter((player) => rankingRating(player) > 0)
+            .sort((a, b) => rankingRating(b) - rankingRating(a))
+            .slice(0, filter === 'top-100' ? 100 : 500)
+            .map((player) => player.key),
+        )
+      : null;
+
   const matched = players.filter((player) => {
-    if (!passesFilter(player, filter)) return false;
+    if (ranked) {
+      if (!ranked.has(player.key)) return false;
+    } else if (!passesFilter(player, filter)) return false;
     if (needle.length === 0) return true;
     return (
       player.key.includes(needle) ||
@@ -180,6 +211,15 @@ export function searchPlayers(
       (player.legend?.aliases.some((alias) => alias.toLowerCase().includes(needle)) ?? false)
     );
   });
+
+  /*
+    A rating list is a *ranking*, so it is ordered by rating — that is what the
+    list is. Every other filter is ordered by how well the name matched and
+    then by how much evidence there is behind the row.
+  */
+  if (ranked && needle.length === 0) {
+    return matched.sort((a, b) => rankingRating(b) - rankingRating(a)).slice(0, limit);
+  }
 
   return matched
     .map((player) => ({ player, rank: rankOf(player, needle) }))
@@ -192,8 +232,10 @@ function passesFilter(player: CatalogPlayer, filter: PlayerFilter): boolean {
   switch (filter) {
     case 'all':
       return true;
-    case 'elite':
-      return player.peakRating >= 2600;
+    case 'top-100':
+    case 'top-500':
+      // Handled as a rank over the whole catalog, in `searchPlayers`.
+      return true;
     case 'world-champion':
       return player.legend?.roles.includes('world-champion') ?? false;
     case 'women-champion':

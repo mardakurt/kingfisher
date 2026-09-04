@@ -55,6 +55,48 @@ describe('searching the player catalog', () => {
     expect(results[0]?.legend?.reign).toBe('1960–1961');
   });
 
+  it('cuts a top list by rating, over the whole catalog', () => {
+    const many = Array.from({ length: 150 }, (_, index) =>
+      player({ name: `Player ${index}`, lastRating: 2900 - index, games: 10 }),
+    );
+    const top = searchPlayers(many, { query: '', filter: 'top-100' });
+    expect(top).toHaveLength(100);
+    expect(top[0]?.name).toBe('Player 0');
+    expect(top.at(-1)?.name).toBe('Player 99');
+    expect(top.map((entry) => entry.name)).not.toContain('Player 120');
+  });
+
+  it('leaves unrated players out of a rating list, however many games they have', () => {
+    const mixed = [
+      player({ name: 'Rated', lastRating: 2500, games: 1 }),
+      player({ name: 'Unrated', games: 4000 }),
+    ];
+    expect(
+      searchPlayers(mixed, { query: '', filter: 'top-100' }).map((entry) => entry.name),
+    ).toEqual(['Rated']);
+  });
+
+  it('still narrows a top list by name when one is typed', () => {
+    const many = Array.from({ length: 150 }, (_, index) =>
+      player({ name: `Player ${index}`, lastRating: 2900 - index, games: 10 }),
+    );
+    // In the top hundred and matching, so it comes back; ranked out, so it does not.
+    expect(searchPlayers(many, { query: 'Player 5', filter: 'top-100' }).length).toBeGreaterThan(0);
+    expect(searchPlayers(many, { query: 'Player 149', filter: 'top-100' })).toEqual([]);
+  });
+
+  it('ranks by the latest rating, not the highest ever recorded', () => {
+    // A player whose *peak* in this source is high but who is no longer rated
+    // that highly is not currently top-100, and a list that said otherwise
+    // would be a list of who was ever strong.
+    const ranked = [
+      player({ name: 'Now strong', lastRating: 2800, peakRating: 2800 }),
+      player({ name: 'Once strong', lastRating: 2400, peakRating: 2900 }),
+    ];
+    const top = searchPlayers(ranked, { query: '', filter: 'top-100' });
+    expect(top[0]?.name).toBe('Now strong');
+  });
+
   it('filters to only the players an installed source actually has games for', () => {
     const results = searchPlayers(catalog, { query: '', filter: 'has-games' });
     expect(results.map((entry) => entry.name)).not.toContain('Tal, Mikhail');

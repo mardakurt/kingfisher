@@ -33,6 +33,7 @@ import {
   alternativeMoveOrders,
   fenAfter,
   loadOpeningCatalog,
+  OPENING_FAMILIES,
   searchOpenings,
   type OpeningEntry,
 } from '@/theory/opening-catalog';
@@ -40,27 +41,13 @@ import { useAnalysis } from '@/stores/analysis-store';
 import { usePreferences } from '@/stores/preferences-store';
 import { useUi } from '@/stores/ui-store';
 
-/** Starting points, so an empty search box is a menu rather than a blank. */
-const FAMILIES = [
-  'Sicilian Defense',
-  'Ruy Lopez',
-  'Italian Game',
-  'French Defense',
-  'Caro-Kann Defense',
-  "Queen's Gambit Declined",
-  'Slav Defense',
-  'Nimzo-Indian Defense',
-  "King's Indian Defense",
-  'Grünfeld Defense',
-  'Catalan Opening',
-  'English Opening',
-  'London System',
-  "Queen's Indian Defense",
-  'Scandinavian Defense',
-  'Pirc Defense',
-  'Dutch Defense',
-  'Benoni Defense',
-] as const;
+/**
+ * Starting points, so an empty search box is a menu rather than a blank.
+ *
+ * The same list the catalog orders its empty result by, so a chip and the list
+ * under it cannot disagree about what a family is called.
+ */
+const FAMILIES = OPENING_FAMILIES.slice(0, 18);
 
 export function OpeningLibrary() {
   const [query, setQuery] = useState('');

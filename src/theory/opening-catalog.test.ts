@@ -6,6 +6,7 @@ import {
   keyAfter,
   loadOpeningCatalog,
   OPENING_ALIASES,
+  OPENING_FAMILIES,
   searchOpenings,
   tokeniseMoves,
   type OpeningEntry,
@@ -47,6 +48,33 @@ describe('the opening catalog', () => {
   it('covers all five ECO volumes', () => {
     const volumes = new Set(catalog.map((entry) => entry.eco[0]));
     expect([...volumes].sort()).toEqual(['A', 'B', 'C', 'D', 'E']);
+  });
+});
+
+describe('the empty search box', () => {
+  it('opens on families a chess player would name, not on ECO order', () => {
+    const results = searchOpenings(catalog, '');
+    const first = results.slice(0, 10).map((result) => result.entry.name);
+    // A00 is the Amar Opening. A first screen that suggests Kingfisher's idea
+    // of a notable opening is 1.Nh3 is a first screen that has to be fixed.
+    expect(first).not.toContain('Amar Opening');
+    expect(first).toContain('Sicilian Defense');
+    expect(first).toContain('Ruy Lopez');
+  });
+
+  it('resolves every listed family to its own shortest line', () => {
+    const results = searchOpenings(catalog, '');
+    const missing = OPENING_FAMILIES.filter(
+      (family) => !results.some((result) => result.entry.name === family),
+    );
+    expect(missing).toEqual([]);
+    for (const family of OPENING_FAMILIES) {
+      const shown = results.find((result) => result.entry.name === family)?.entry;
+      const shortest = Math.min(
+        ...catalog.filter((entry) => entry.name === family).map((entry) => entry.plies),
+      );
+      expect(shown?.plies, family).toBe(shortest);
+    }
   });
 });
 

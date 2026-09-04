@@ -77,7 +77,17 @@ export function CollectionList({
                   : `${collection.games.toLocaleString()} games`}
                 {' · '}
                 {collection.kind === 'sqlite' ? 'SQLite' : 'IndexedDB'}
-                {collection.bytes !== null ? ` · ${formatBytes(collection.bytes)}` : ''}
+                {/*
+                  A size only where it is this collection's size. A SQLite
+                  collection is one file and can be measured; the IndexedDB one
+                  shares an origin with studies, repertoires, training and now
+                  the reference packs, so the only figure available is the
+                  origin's — which read as "0 games · 9.6 MB" and looked like a
+                  bug. The origin total is on the Storage panel, labelled.
+                */}
+                {collection.kind === 'sqlite' && collection.bytes !== null
+                  ? ` · ${formatBytes(collection.bytes)}`
+                  : ''}
               </span>
             </span>
           </button>

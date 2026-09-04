@@ -34,7 +34,8 @@ import { useReferenceSources } from '@/reference/use-references';
 
 const FILTERS: readonly { readonly id: PlayerFilter; readonly label: string }[] = [
   { id: 'all', label: 'Everyone' },
-  { id: 'elite', label: 'Elite (2600+)' },
+  { id: 'top-100', label: 'Top 100' },
+  { id: 'top-500', label: 'Top 500' },
   { id: 'world-champion', label: 'World champions' },
   { id: 'women-champion', label: 'Women’s champions' },
   { id: 'legend', label: 'Historical' },
