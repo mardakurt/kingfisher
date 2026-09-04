@@ -34,6 +34,7 @@ export type WorkspaceToolId =
   | 'companion'
   | 'document'
   | 'conversion'
+  | 'play'
   | 'report'
   | 'notes';
 
@@ -91,6 +92,7 @@ export const WORKSPACE_MODULES: Readonly<Record<WorkspaceToolId, WorkspaceModule
   companion: { id: 'companion', label: 'Companion', home: 'dock', regions: ['dock'] },
   document: { id: 'document', label: 'Context', home: 'dock', regions: ['dock'] },
   conversion: { id: 'conversion', label: 'Play it out', home: 'dock', regions: ['dock'] },
+  play: { id: 'play', label: 'Play From Here', home: 'dock', regions: ['dock'] },
   report: { id: 'report', label: 'Report', home: 'dock', regions: ['dock'] },
   notes: { id: 'notes', label: 'Notes', home: 'dock', regions: ['dock', 'lower'] },
 };
@@ -137,6 +139,7 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'features',
     'tablebase',
     'conversion',
+    'play',
     'report',
     'companion',
     'notes',
@@ -151,6 +154,7 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'calculation',
     'features',
     'tablebase',
+    'play',
     'companion',
     'notes',
   ],
@@ -166,6 +170,7 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'model-games',
     'features',
     'notes',
+    'play',
   ],
   openings: [
     'explorer',
@@ -180,8 +185,18 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'personal-results',
     'features',
     'report',
+    'play',
   ],
-  endgame: ['conversion', 'tablebase', 'engine', 'features', 'notes', 'explorer', 'database'],
+  endgame: [
+    'conversion',
+    'play',
+    'tablebase',
+    'engine',
+    'features',
+    'notes',
+    'explorer',
+    'database',
+  ],
   'opening-files': [
     'document',
     'explorer',
@@ -192,6 +207,7 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'model-games',
     'engine',
     'notes',
+    'play',
   ],
   'model-game': [
     'guess-the-move',
@@ -203,6 +219,7 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'book',
     'database',
     'engine',
+    'play',
   ],
   games: [
     'engine',
@@ -214,6 +231,7 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'features',
     'tablebase',
     'notes',
+    'play',
   ],
   preparation: [
     'document',
@@ -228,8 +246,18 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'features',
     'report',
     'notes',
+    'play',
   ],
-  training: ['document', 'engine', 'explorer', 'database', 'features', 'tablebase', 'notes'],
+  training: [
+    'document',
+    'engine',
+    'explorer',
+    'database',
+    'features',
+    'tablebase',
+    'notes',
+    'play',
+  ],
   review: [
     'document',
     'engine',
@@ -243,6 +271,7 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'tablebase',
     'companion',
     'notes',
+    'play',
   ],
 };
 

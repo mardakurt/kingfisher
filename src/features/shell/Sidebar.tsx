@@ -35,8 +35,8 @@ export function Sidebar({ variant = 'desktop', onClose }: SidebarProps) {
         drawer
           ? 'flex h-full w-[min(86vw,300px)] shadow-2xl'
           : compact
-            ? 'hidden w-[72px] md:flex'
-            : 'hidden w-[228px] md:flex',
+            ? 'hidden w-[var(--sidebar-collapsed)] md:flex'
+            : 'hidden w-[var(--sidebar-expanded)] md:flex',
       )}
       aria-label="Sections"
     >

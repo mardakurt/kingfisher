@@ -145,7 +145,7 @@ export function CanonicalBoardSurface({
     >
       <div
         ref={boardContainer}
-        className="flex min-h-0 flex-1 items-center justify-center"
+        className="flex min-h-0 flex-1 items-start justify-center pt-8 mid:items-center mid:pt-0"
         data-board-container
       >
         <div

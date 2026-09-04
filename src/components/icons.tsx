@@ -146,6 +146,21 @@ export const Board = (p: IconProps) => (
     <path d="M3.5 9h17M3.5 15h17M9 3.5v17M15 3.5v17" />
   </Icon>
 );
+/** Engine analysis: ranked principal-variation traces, not a generic CPU chip. */
+export const EngineAnalysis = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M4 6h3l2.5 3L13 5l3 4h4" />
+    <path d="M4 13h4l2 2.5L14 11l2.5 3H20" />
+    <path d="M4 20h16" />
+  </Icon>
+);
+/** A playable board position: four board cells opening into a forward line. */
+export const PlayPosition = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M4 4h11v11H4zM4 9.5h11M9.5 4v11" />
+    <path d="M13.5 19.5H20m0 0-2.5-2.5m2.5 2.5L17.5 22" />
+  </Icon>
+);
 export const Library = (p: IconProps) => (
   <Icon {...p}>
     <path d="M4 4h4v16H4zM10 4h4v16h-4zM16.5 5l3.5 1-3 15-3.5-1z" />

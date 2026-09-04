@@ -87,6 +87,11 @@ const ConversionPanel = lazyPanel(() =>
     default: module.ConversionHost,
   })),
 );
+const PlayFromHerePanel = lazyPanel(() =>
+  import('@/features/play/PlayFromHerePanel').then((module) => ({
+    default: module.PlayFromHerePanel,
+  })),
+);
 const PositionHealthPanel = lazyPanel(() =>
   import('@/features/repertoire/PositionHealthPanel').then((module) => ({
     default: module.PositionHealthPanel,
@@ -127,6 +132,7 @@ export function ToolContent({
   if (tool === 'candidates') return <CandidateComparison />;
   if (tool === 'tablebase') return <TablebasePanel />;
   if (tool === 'conversion') return <ConversionPanel />;
+  if (tool === 'play') return <PlayFromHerePanel />;
   if (tool === 'report') return <PositionReportPanel />;
   if (tool === 'companion') return <CompanionPanel />;
   if (tool === 'document') {

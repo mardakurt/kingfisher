@@ -44,6 +44,7 @@ interface UiState {
    */
   settingsSection: string | null;
   importOpen: boolean;
+  positionSetupOpen: boolean;
   saveToStudyOpen: boolean;
   addToRepertoireOpen: boolean;
   trainingCaptureOpen: boolean;
@@ -73,6 +74,7 @@ interface UiState {
   setSettingsOpen(open: boolean): void;
   openSettingsAt(section: string): void;
   setImportOpen(open: boolean): void;
+  setPositionSetupOpen(open: boolean): void;
   setSaveToStudyOpen(open: boolean): void;
   setAddToRepertoireOpen(open: boolean): void;
   setTrainingCaptureOpen(open: boolean): void;
@@ -100,6 +102,7 @@ export const useUi = create<UiState>((set) => ({
   settingsOpen: false,
   settingsSection: null,
   importOpen: false,
+  positionSetupOpen: false,
   saveToStudyOpen: false,
   addToRepertoireOpen: false,
   trainingCaptureOpen: false,
@@ -120,6 +123,7 @@ export const useUi = create<UiState>((set) => ({
   setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
   openSettingsAt: (settingsSection) => set({ settingsSection, settingsOpen: true }),
   setImportOpen: (importOpen) => set({ importOpen }),
+  setPositionSetupOpen: (positionSetupOpen) => set({ positionSetupOpen }),
   setSaveToStudyOpen: (saveToStudyOpen) => set({ saveToStudyOpen }),
   setAddToRepertoireOpen: (addToRepertoireOpen) => set({ addToRepertoireOpen }),
   setTrainingCaptureOpen: (trainingCaptureOpen) => set({ trainingCaptureOpen }),

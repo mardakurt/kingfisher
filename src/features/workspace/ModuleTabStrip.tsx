@@ -4,6 +4,7 @@ import { Menu, type MenuSection } from '@/components/ui/Menu';
 import { cn } from '@/lib/cn';
 
 import type { WorkspaceModuleId } from './layout-model';
+import { WORKSPACE_TOOL_ICONS } from './tool-icons';
 
 export interface ModuleTab {
   readonly id: WorkspaceModuleId;
@@ -52,6 +53,10 @@ export function ModuleTabStrip({
       items: overflow.map((tab) => ({
         id: tab.id,
         label: tab.label,
+        icon: (() => {
+          const Icon = WORKSPACE_TOOL_ICONS[tab.id];
+          return <Icon />;
+        })(),
         run: () => onChange(tab.id),
       })),
     },
@@ -62,6 +67,7 @@ export function ModuleTabStrip({
       <div role="tablist" className="flex min-w-0 flex-1 items-stretch overflow-x-auto">
         {shown.map((tab) => {
           const selected = tab.id === value;
+          const Icon = WORKSPACE_TOOL_ICONS[tab.id];
           return (
             <button
               key={tab.id}
@@ -77,6 +83,7 @@ export function ModuleTabStrip({
                   : 'text-tertiary hover:bg-surface-2/50 hover:text-secondary',
               )}
             >
+              <Icon className="h-3.5 w-3.5 shrink-0" />
               {tab.label}
               {/* A tool that cannot help still shows; the dot says so at a glance. */}
               {tab.unavailable ? (

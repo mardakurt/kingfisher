@@ -63,6 +63,9 @@ export function usePositionActions(options: UsePositionActionsOptions) {
       useCalculation.getState().start(options.fen, key);
       showTool(pathname, 'calculation');
     },
+    setup: () => ui.setPositionSetupOpen(true),
+    playFromHere: () => showTool(pathname, 'play'),
+    report: () => showTool(pathname, 'report'),
     findModelGames: () => showTool(pathname, 'model-games'),
     searchStructure: () => showTool(pathname, 'features'),
     addToRepertoire: () => ui.setAddToRepertoireOpen(true),

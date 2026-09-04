@@ -24,6 +24,29 @@ export function describeVariation(fen: Fen, moves: readonly string[], limit = 12
   return san;
 }
 
+export interface VariationPosition {
+  readonly fen: Fen;
+  readonly uci: string | null;
+  readonly san: San | null;
+}
+
+/** Positions for a non-destructive PV board, including the starting position. */
+export function variationPositions(
+  fen: Fen,
+  moves: readonly string[],
+  limit = 24,
+): readonly VariationPosition[] {
+  let position = Position.fromTrustedFen(fen);
+  const positions: VariationPosition[] = [{ fen, uci: null, san: null }];
+  for (const uci of moves.slice(0, limit)) {
+    const played = position.playUci(uci);
+    if (!played.ok) break;
+    position = position.after(played.value);
+    positions.push({ fen: position.fen, uci, san: played.value.san });
+  }
+  return positions;
+}
+
 export function annotateAnalysis(analysis: EngineAnalysis, limit = 12): EngineAnalysis {
   const lines: PrincipalVariation[] = analysis.lines.map((line) => ({
     ...line,

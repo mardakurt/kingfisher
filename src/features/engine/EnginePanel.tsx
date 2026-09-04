@@ -12,10 +12,10 @@
  * chatter is not a study.
  */
 
-import { useCallback } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 import { formatScore } from '@/chess/evaluation';
-import { variationTokens } from '@/engine/pv';
+import { variationPositions, variationTokens } from '@/engine/pv';
 import { describeGap, engineSessionMetrics } from '@/engine/metrics';
 import type { PrincipalVariation } from '@/engine/types';
 import { Pin, Play, Plus, Save, Stop, Trash } from '@/components/icons';
@@ -29,6 +29,7 @@ import { useAnalysis } from '@/stores/analysis-store';
 import { useEngine, type PinnedLine } from '@/stores/engine-store';
 import { usePreferences } from '@/stores/preferences-store';
 import { useUi } from '@/stores/ui-store';
+import { MiniBoard } from '@/features/board/MiniBoard';
 
 export function EnginePanel() {
   const { node, currentId } = useAnalysisPosition();
@@ -50,6 +51,9 @@ export function EnginePanel() {
   const insertUciLine = useAnalysis((state) => state.insertUciLine);
   const attachEvaluation = useAnalysis((state) => state.attachEvaluation);
   const notify = useUi((state) => state.notify);
+  const [preview, setPreview] = useState<{ readonly rank: number; readonly ply: number } | null>(
+    null,
+  );
 
   const stale = analysedFen !== node.fen;
   const metrics = engineSessionMetrics(history);
@@ -234,6 +238,13 @@ export function EnginePanel() {
 
                   <span className="flex shrink-0 items-center opacity-100 mid:opacity-0 mid:transition-opacity mid:focus-within:opacity-100 mid:group-hover:opacity-100">
                     <IconButton
+                      label="Preview this variation"
+                      className="h-6 w-6"
+                      onClick={() => setPreview({ rank: line.rank, ply: 1 })}
+                    >
+                      <Play />
+                    </IconButton>
+                    <IconButton
                       label="Pin this line so it stays visible"
                       className="h-6 w-6"
                       onClick={() => pin(line.rank)}
@@ -253,6 +264,17 @@ export function EnginePanel() {
             ))}
           </ol>
         )}
+        {analysis && preview ? (
+          <PvPreview
+            fen={node.fen}
+            line={analysis.lines.find((line) => line.rank === preview.rank)}
+            ply={preview.ply}
+            theme={prefs.boardTheme}
+            pieceSet={prefs.pieceSet}
+            onPly={(ply) => setPreview({ ...preview, ply })}
+            onClose={() => setPreview(null)}
+          />
+        ) : null}
       </PanelBody>
 
       {analysis && analysis.nodes > 0 && (
@@ -278,6 +300,82 @@ export function EnginePanel() {
         </footer>
       )}
     </div>
+  );
+}
+
+function PvPreview({
+  fen,
+  line,
+  ply,
+  theme,
+  pieceSet,
+  onPly,
+  onClose,
+}: {
+  readonly fen: Parameters<typeof variationPositions>[0];
+  readonly line: PrincipalVariation | undefined;
+  readonly ply: number;
+  readonly theme: Parameters<typeof MiniBoard>[0]['theme'];
+  readonly pieceSet: Parameters<typeof MiniBoard>[0]['pieceSet'];
+  readonly onPly: (ply: number) => void;
+  readonly onClose: () => void;
+}) {
+  const positions = useMemo(() => variationPositions(fen, line?.moves ?? []), [fen, line?.moves]);
+  if (!line || positions.length === 0) return null;
+  const index = Math.max(0, Math.min(ply, positions.length - 1));
+  const current = positions[index];
+  if (!current) return null;
+
+  return (
+    <section className="border-t border-line-subtle bg-surface-inset p-3" aria-label="PV preview">
+      <div className="mb-2 flex items-center justify-between">
+        <div>
+          <h3 className="text-xs font-semibold text-primary">Variation preview</h3>
+          <p className="text-xs text-tertiary tabular">
+            {index === 0 ? 'Starting position' : current.san} · {index}/{positions.length - 1}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="text-xs text-tertiary hover:text-primary"
+        >
+          Close
+        </button>
+      </div>
+      <MiniBoard
+        fen={current.fen}
+        theme={theme}
+        pieceSet={pieceSet}
+        className="mx-auto max-w-[240px]"
+        testId="pv-preview"
+      />
+      <div className="mt-2 grid grid-cols-4 gap-1">
+        <Button variant="subtle" onClick={() => onPly(0)} disabled={index === 0}>
+          First
+        </Button>
+        <Button variant="subtle" onClick={() => onPly(index - 1)} disabled={index === 0}>
+          Previous
+        </Button>
+        <Button
+          variant="subtle"
+          onClick={() => onPly(index + 1)}
+          disabled={index === positions.length - 1}
+        >
+          Next
+        </Button>
+        <Button
+          variant="subtle"
+          onClick={() => onPly(positions.length - 1)}
+          disabled={index === positions.length - 1}
+        >
+          Last
+        </Button>
+      </div>
+      <p className="mt-2 text-[11px] leading-relaxed text-tertiary">
+        Preview only. The main board and game tree are unchanged.
+      </p>
+    </section>
   );
 }
 

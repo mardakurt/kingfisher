@@ -37,6 +37,13 @@ const ImportDialog = dynamic(
   () => import('@/features/shell/ImportDialog').then((module) => module.ImportDialog),
   { ssr: false },
 );
+const PositionSetupDialog = dynamic(
+  () =>
+    import('@/features/position-setup/PositionSetupDialog').then(
+      (module) => module.PositionSetupDialog,
+    ),
+  { ssr: false },
+);
 const SaveToStudyDialog = dynamic(
   () => import('@/features/studies/SaveToStudyDialog').then((module) => module.SaveToStudyDialog),
   { ssr: false },
@@ -94,6 +101,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const setSidebarOpen = useUi((state) => state.setSidebarOpen);
   const settingsOpen = useUi((state) => state.settingsOpen);
   const importOpen = useUi((state) => state.importOpen);
+  const positionSetupOpen = useUi((state) => state.positionSetupOpen);
   const saveToStudyOpen = useUi((state) => state.saveToStudyOpen);
   const addToRepertoireOpen = useUi((state) => state.addToRepertoireOpen);
   const trainingCaptureOpen = useUi((state) => state.trainingCaptureOpen);
@@ -177,6 +185,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <ShortcutsDialog />
         {settingsOpen ? <SettingsDialog /> : null}
         {importOpen ? <ImportDialog /> : null}
+        {positionSetupOpen ? <PositionSetupDialog /> : null}
         {saveToStudyOpen ? <SaveToStudyDialog /> : null}
         {addToRepertoireOpen ? <AddToRepertoireDialog /> : null}
         {trainingCaptureOpen ? <CreateTrainingDialog /> : null}

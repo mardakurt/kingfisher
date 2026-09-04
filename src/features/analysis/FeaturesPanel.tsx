@@ -10,10 +10,14 @@
  * engine, the database and the repertoire rather than a fifth opinion.
  */
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 
 import { positionFeatures, type ColorFeatures, type PositionFeatures } from '@/chess/features';
 import { parseFen } from '@/chess/fen';
+import { SQUARES } from '@/chess/board';
+import { relationsFor } from '@/chess/relations';
+import type { FenParts } from '@/chess/fen';
+import type { Square } from '@/chess/types';
 import { EmptyState, PanelBody, PanelHeader } from '@/components/ui/Panel';
 
 import { useAnalysisPosition } from './useAnalysisPosition';
@@ -21,10 +25,11 @@ import { StructureSearchPanel } from './StructureSearchPanel';
 
 export function FeaturesPanel() {
   const { node } = useAnalysisPosition();
-  const features = useMemo(() => {
+  const position = useMemo(() => {
     const parsed = parseFen(node.fen);
-    return parsed.ok ? positionFeatures(parsed.value) : null;
+    return parsed.ok ? { parts: parsed.value, features: positionFeatures(parsed.value) } : null;
   }, [node.fen]);
+  const features = position?.features ?? null;
 
   if (!features) {
     return (
@@ -49,11 +54,73 @@ export function FeaturesPanel() {
           <Side title="White" side={features.white} />
           <Side title="Black" side={features.black} />
         </div>
+        <RelationInspector parts={position?.parts ?? null} />
         <StructureSearchPanel fen={node.fen} />
       </PanelBody>
     </div>
   );
 }
+
+function RelationInspector({ parts }: { readonly parts: FenParts | null }) {
+  const occupied = useMemo(
+    () => SQUARES.filter((square) => parts?.board[SQUARES.indexOf(square)]),
+    [parts],
+  );
+  const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
+  const square = selectedSquare && occupied.includes(selectedSquare) ? selectedSquare : occupied[0];
+
+  if (!parts || !square) return null;
+  const relations = relationsFor(parts, square);
+  const rows: readonly (readonly [string, readonly Square[]])[] = [
+    ['Attacked by', relations.attackedBy],
+    ['Defended by', relations.defendedBy],
+    ['Pieces attacked', relations.piecesAttacked],
+    ['Pieces defended', relations.piecesDefended],
+  ];
+
+  return (
+    <section className="border-b border-line-subtle px-3 py-3" aria-label="Attack relations">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h3 className="text-xs font-semibold text-primary">Relations</h3>
+          <p className="mt-0.5 text-[11px] leading-relaxed text-tertiary">
+            Pseudo-legal attack geometry; pins and king safety are ignored.
+          </p>
+        </div>
+        <label className="text-[11px] text-tertiary">
+          Piece
+          <select
+            aria-label="Relation square"
+            value={square}
+            onChange={(event) => setSelectedSquare(event.target.value as Square)}
+            className="ml-2 h-8 rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 font-mono text-xs text-primary"
+          >
+            {occupied.map((candidate) => {
+              const piece = parts.board[SQUARES.indexOf(candidate)];
+              return (
+                <option key={candidate} value={candidate}>
+                  {candidate} · {piece?.color === 'w' ? 'White' : 'Black'} {pieceName(piece?.type)}
+                </option>
+              );
+            })}
+          </select>
+        </label>
+      </div>
+      <dl className="mt-2 grid grid-cols-[minmax(90px,auto)_1fr] gap-x-3 gap-y-1 text-xs">
+        {rows.map(([label, squares]) => (
+          <div key={label} className="contents">
+            <dt className="text-tertiary">{label}</dt>
+            <dd className="font-mono text-secondary">{squares.length ? squares.join(' ') : '—'}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}
+
+const pieceName = (type: string | undefined): string =>
+  ({ p: 'pawn', n: 'knight', b: 'bishop', r: 'rook', q: 'queen', k: 'king' })[type ?? ''] ??
+  'piece';
 
 function Material({ features }: { readonly features: PositionFeatures }) {
   const { difference, balance } = features.material;

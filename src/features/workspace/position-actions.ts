@@ -34,6 +34,9 @@ export interface PositionActionHandlers {
   readonly analyse: () => void;
   readonly explore: () => void;
   readonly calculate: () => void;
+  readonly setup: () => void;
+  readonly playFromHere: () => void;
+  readonly report: () => void;
   readonly addToRepertoire: () => void;
   readonly saveToStudy: () => void;
   readonly createTraining: () => void;
@@ -73,6 +76,9 @@ export function positionActionSections(
             ]),
         { id: 'explore', label: 'Explore in the database', shortcut: 'D', run: handlers.explore },
         { id: 'calculate', label: 'Calculate here', shortcut: '⇧C', run: handlers.calculate },
+        { id: 'play-from-here', label: 'Play from this position', run: handlers.playFromHere },
+        { id: 'report', label: 'Open Position Report', run: handlers.report },
+        { id: 'setup', label: 'Set up position…', run: handlers.setup },
         {
           id: 'model-games',
           label: 'Find model games',
