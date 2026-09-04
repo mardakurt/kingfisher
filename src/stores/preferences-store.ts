@@ -105,6 +105,14 @@ export interface Preferences {
   lichessToken: string;
   /** Persist the Lichess token across reloads; off keeps it in memory for this session only. */
   rememberLichessToken: boolean;
+  /**
+   * The Lichess account the stored token belongs to.
+   *
+   * Recorded when a sign-in completes so Settings can say *who* is connected
+   * without spending a request — and without ever displaying the token, which
+   * is the one thing about a credential a settings page must not do.
+   */
+  lichessUsername: string;
   /** Where the assistant sends evidence packets, if the user configured one. */
   assistantBaseUrl: string;
   assistantModel: string;
@@ -145,6 +153,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   companionToken: '',
   lichessToken: '',
   rememberLichessToken: false,
+  lichessUsername: '',
   assistantBaseUrl: '',
   assistantModel: '',
   assistantApiKey: '',

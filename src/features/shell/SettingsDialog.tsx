@@ -13,6 +13,7 @@
 import { useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
+import { Check } from '@/components/icons';
 import { Button } from '@/components/ui/Button';
 import { Toggle } from '@/components/ui/Toggle';
 import { EngineManager } from '@/features/engine/EngineManager';
@@ -40,6 +41,7 @@ import {
   setLichessToken,
   testLichessAccount,
 } from '@/database/providers/lichess-auth';
+import { beginLichessLogin, revokeToken } from '@/database/providers/lichess-pkce';
 import { useDatabaseProviders } from '@/database/use-database-providers';
 import { lastFailures } from '@/components/ErrorBoundary';
 import {
@@ -510,6 +512,12 @@ function DatabaseSection() {
           }
         />
       </Row>
+      {/*
+        The Lichess connection lives in Accounts now, where somebody looking
+        for "connect my account" will actually go. Left reachable from here
+        too, because this is the section that explains which explorer sources
+        need it.
+      */}
       <div className="border-t border-line-subtle pt-3">
         <LichessAccess />
       </div>
@@ -698,7 +706,9 @@ function AccountsSection() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div>
+      <LichessAccess />
+
+      <div className="border-t border-line-subtle pt-4">
         <h3 className="text-xs text-primary">Linked accounts</h3>
         <p className="mt-1 text-2xs leading-relaxed text-tertiary">
           Games from a Lichess or Chess.com username, pulled into the ordinary local collection —
@@ -1258,12 +1268,18 @@ function ProfileSection() {
 }
 
 /**
- * The user's own Lichess token for the opening explorer.
+ * Connecting a Lichess account.
  *
- * Lichess requires authentication for explorer requests now. Kingfisher ships
- * no credential of its own: one would breach their terms and give every
- * installation a single shared rate limit. The alternative offered here is the
- * honest one — your token, or the local sources, which need no network at all.
+ * Lichess requires authentication for explorer requests now, and Kingfisher
+ * ships no credential of its own — one would breach their terms and give every
+ * installation a single shared rate limit. Phase 5 concluded from that that
+ * users must paste a personal token; that was the wrong reading. Lichess
+ * supports the Authorization Code flow with PKCE for public clients, which is
+ * built for an application with no backend and no secret to keep, and is what
+ * their own client-side example uses.
+ *
+ * So: one button. The personal token stays underneath, because a scripted or
+ * air-gapped setup still wants one, but it is no longer the front door.
  */
 function LichessAccess() {
   const prefs = usePreferences();
@@ -1271,6 +1287,34 @@ function LichessAccess() {
   const [testing, setTesting] = useState(false);
   const [account, setAccount] = useState<string | null>(null);
   const [testError, setTestError] = useState<string | null>(null);
+  const [advanced, setAdvanced] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+
+  const connect = async () => {
+    setConnecting(true);
+    setTestError(null);
+    try {
+      window.location.href = await beginLichessLogin(window.location.origin);
+    } catch (error) {
+      setConnecting(false);
+      setTestError(
+        error instanceof Error ? error.message : 'The sign-in could not be started here.',
+      );
+    }
+  };
+
+  const disconnect = async () => {
+    const token = prefs.lichessToken;
+    prefs.set('lichessToken', '');
+    prefs.set('rememberLichessToken', false);
+    prefs.set('lichessUsername', '');
+    setLichessToken('');
+    setAccount(null);
+    setTestError(null);
+    // Forgotten locally first, then revoked: a revoke that cannot reach
+    // Lichess must not leave the token still working in this browser.
+    if (token) await revokeToken(token);
+  };
 
   const test = async () => {
     setTesting(true);
@@ -1289,62 +1333,84 @@ function LichessAccess() {
 
   return (
     <div>
-      <h3 className="text-xs text-primary">Lichess opening explorer</h3>
+      <h3 className="text-xs text-primary">Lichess account</h3>
       <p className="mt-1 text-2xs leading-relaxed text-tertiary">
-        The Masters and Lichess databases need a personal API token. No scopes are required. Without
-        one, those two sources say so and the local sources carry on working.
+        Connecting unlocks the Masters and Lichess explorer databases and the player explorer.
+        Kingfisher asks for <strong>no scopes at all</strong> — everything it does works with a
+        token that only identifies the account. Nothing is uploaded, and the built-in reference
+        works without any of this.
       </p>
-      <div className="mt-2 flex gap-1.5">
-        <input
-          type="password"
-          aria-label="Lichess personal access token"
-          value={prefs.lichessToken}
-          onChange={(event) => prefs.set('lichessToken', event.target.value.trim())}
-          placeholder="lip_…"
-          className="h-8 min-w-0 flex-1 rounded-[4px] border border-line bg-surface-inset px-2.5 font-mono text-[11px] text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60"
-        />
-        <a
-          href={LICHESS_TOKEN_URL}
-          target="_blank"
-          rel="noreferrer noopener"
-          className="flex h-8 items-center rounded-[4px] border border-line px-2.5 text-2xs text-secondary hover:border-line-strong"
-        >
-          Create one
-        </a>
-      </div>
-      <p className="mt-1 text-[10px] text-tertiary">
-        {configured ? 'Configured.' : 'Not configured.'} Sent only to explorer.lichess.org and
-        excluded from workspace backups.
-      </p>
-      <label className="mt-2 flex items-center gap-2 text-2xs text-secondary">
-        <input
-          type="checkbox"
-          checked={prefs.rememberLichessToken}
-          onChange={(event) => prefs.set('rememberLichessToken', event.target.checked)}
-          className="accent-[var(--accent)]"
-        />
-        Remember this token on this device
-      </label>
+
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        <Button variant="accent" onClick={() => void test()} disabled={!configured || testing}>
-          {testing ? 'Testing…' : 'Test connection'}
-        </Button>
         {configured ? (
-          <Button
-            variant="danger"
-            onClick={() => {
-              prefs.set('lichessToken', '');
-              prefs.set('rememberLichessToken', false);
-              setLichessToken('');
-              setAccount(null);
-              setTestError(null);
-            }}
-          >
-            Disconnect
+          <>
+            <span className="flex items-center gap-1.5 text-xs text-positive">
+              <Check className="h-3.5 w-3.5" />
+              Connected{prefs.lichessUsername ? ` as ${prefs.lichessUsername}` : ''}
+            </span>
+            <Button onClick={() => void test()} disabled={testing}>
+              {testing ? 'Testing…' : 'Test connection'}
+            </Button>
+            <Button variant="danger" onClick={() => void disconnect()}>
+              Disconnect
+            </Button>
+          </>
+        ) : (
+          <Button variant="accent" onClick={() => void connect()} disabled={connecting}>
+            {connecting ? 'Opening Lichess…' : 'Connect Lichess'}
           </Button>
-        ) : null}
-        {account ? <span className="text-xs text-positive">Connected as {account}</span> : null}
+        )}
+        {account ? <span className="text-xs text-positive">Verified as {account}</span> : null}
       </div>
+      <p className="mt-2 text-[10px] leading-relaxed text-tertiary">
+        You approve the connection on lichess.org and come back here. There is no Kingfisher account
+        and no server in between: the token is issued to this browser, kept in this browser, and
+        excluded from workspace backups. Disconnecting revokes it with Lichess.
+      </p>
+
+      <button
+        type="button"
+        onClick={() => setAdvanced((open) => !open)}
+        aria-expanded={advanced}
+        className="mt-3 text-[10px] text-tertiary underline-offset-2 hover:text-secondary hover:underline"
+      >
+        {advanced ? 'Hide' : 'Advanced:'} use a personal access token instead
+      </button>
+      {advanced ? (
+        <div className="mt-2 rounded-[4px] border border-line bg-surface-2 p-2.5">
+          <p className="text-[10px] leading-relaxed text-tertiary">
+            For a scripted setup, or a browser that cannot complete a redirect. No scopes are
+            required.
+          </p>
+          <div className="mt-2 flex gap-1.5">
+            <input
+              type="password"
+              aria-label="Lichess personal access token"
+              value={prefs.lichessToken}
+              onChange={(event) => prefs.set('lichessToken', event.target.value.trim())}
+              placeholder="lip_…"
+              className="h-8 min-w-0 flex-1 rounded-[4px] border border-line bg-surface-inset px-2.5 font-mono text-[11px] text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60"
+            />
+            <a
+              href={LICHESS_TOKEN_URL}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="flex h-8 items-center rounded-[4px] border border-line px-2.5 text-2xs text-secondary hover:border-line-strong"
+            >
+              Create one
+            </a>
+          </div>
+          <label className="mt-2 flex items-center gap-2 text-2xs text-secondary">
+            <input
+              type="checkbox"
+              checked={prefs.rememberLichessToken}
+              onChange={(event) => prefs.set('rememberLichessToken', event.target.checked)}
+              className="accent-[var(--accent)]"
+            />
+            Remember this token on this device
+          </label>
+        </div>
+      ) : null}
       {testError ? <p className="mt-2 text-xs text-negative">{testError}</p> : null}
       <p className="mt-2 text-[10px] leading-relaxed text-tertiary">
         Capabilities after connection: Masters, aggregated Lichess games, player explorer, recent
