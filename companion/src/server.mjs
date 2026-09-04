@@ -216,13 +216,7 @@ async function route(url, request, response) {
           }
         })(),
         file: path.basename(file),
-        bytes: (() => {
-          try {
-            return statSync(file).size;
-          } catch {
-            return null;
-          }
-        })(),
+        ...collectionFootprint(file),
       })),
       sessions: engines.list(),
     });
@@ -412,6 +406,62 @@ async function route(url, request, response) {
   }
 
   /*
+    Copying between collections is paged rather than streamed: a copy of half
+    a million games is a job the browser drives, one bounded page at a time,
+    so it can report progress, be cancelled, and never hold a whole archive in
+    memory at either end.
+  */
+  if (pathname === '/db/export-page' && request.method === 'POST') {
+    const body = await readBody(request);
+    return json(
+      response,
+      200,
+      database(String(body.key)).exportPage(
+        body.after ?? null,
+        Math.min(Number(body.limit) || 200, 1000),
+        body.query ?? null,
+      ),
+    );
+  }
+
+  if (pathname === '/db/have-fingerprints' && request.method === 'POST') {
+    const body = await readBody(request);
+    return json(
+      response,
+      200,
+      database(String(body.key)).haveFingerprints(body.fingerprints ?? []),
+    );
+  }
+
+  if (pathname === '/db/duplicate-keys' && request.method === 'POST') {
+    const body = await readBody(request);
+    return json(
+      response,
+      200,
+      database(String(body.key)).duplicateKeys(
+        body.after ?? null,
+        Math.min(Number(body.limit) || 5000, 20000),
+      ),
+    );
+  }
+
+  if (pathname === '/db/rename' && request.method === 'POST') {
+    const body = await readBody(request);
+    const key = String(body.key);
+    const entry = databaseRegistry.resolve(key);
+    const name = String(body.name ?? '')
+      .replace(/[^\w. -]/g, '')
+      .slice(0, 64)
+      .trim();
+    if (!name) return json(response, 400, { error: 'That name has no usable characters.' });
+    // The display name only. The file keeps the name it was created with, so
+    // renaming can never move or orphan somebody's data.
+    databaseRegistry.register(key, entry.path, { ...entry, name });
+    saveDatabases();
+    return json(response, 200, { key, name });
+  }
+
+  /*
     Opening classification is client-driven for the same reason structure
     indexing is: the opening table and the rules that reach it live in one
     place, in the browser, and the companion stores what it is told rather than
@@ -524,6 +574,34 @@ async function route(url, request, response) {
   }
 
   return json(response, 404, { error: 'No such companion route.' });
+}
+
+/**
+ * How much disk a collection occupies, and when it last changed.
+ *
+ * The `-wal` sidecar is counted, and that is the whole point of this function
+ * rather than a bare `statSync().size`. SQLite is opened in WAL mode, so a
+ * freshly written page lives in the sidecar until a checkpoint moves it: a copy
+ * of three thousand games can leave the main file at its original four
+ * kilobytes while half a megabyte sits beside it. Reporting only the main file
+ * is technically true and practically a lie — the database screen would show a
+ * collection that had just grown as not having grown at all.
+ *
+ * `modifiedAt` takes the newest mtime across both for the same reason.
+ */
+function collectionFootprint(file) {
+  let bytes = null;
+  let modifiedAt = null;
+  for (const candidate of [file, `${file}-wal`]) {
+    try {
+      const stats = statSync(candidate);
+      bytes = (bytes ?? 0) + stats.size;
+      modifiedAt = Math.max(modifiedAt ?? 0, stats.mtimeMs);
+    } catch {
+      // A missing sidecar is normal: it only exists between checkpoints.
+    }
+  }
+  return { bytes, modifiedAt };
 }
 
 const integrityOf = (target) => {

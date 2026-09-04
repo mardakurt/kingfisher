@@ -45,6 +45,28 @@ export interface CompanionDatabaseEntry {
   readonly games: number | null;
   readonly file: string;
   readonly bytes: number | null;
+  /** The file's mtime. Null when it could not be read. */
+  readonly modifiedAt?: number | null;
+}
+
+/** One game with everything a second collection needs to store it. */
+export interface CompanionExportedGame {
+  readonly summary: Record<string, unknown>;
+  readonly plyCount: number | null;
+  readonly pgn: string | null;
+  readonly positions: readonly Record<string, unknown>[];
+}
+
+/** Enough of a game to decide whether another collection holds it too. */
+export interface CompanionDuplicateKey {
+  readonly id: string;
+  readonly fingerprint: string;
+  readonly white: string;
+  readonly black: string;
+  readonly date?: string;
+  readonly event?: string;
+  readonly round?: string;
+  readonly result: string;
 }
 
 /** Whether the derived explorer aggregates still agree with the source rows. */
@@ -229,6 +251,38 @@ export class CompanionClient {
 
   rebuildAggregates(key: string): Promise<CompanionAggregateIntegrity> {
     return this.request('/db/rebuild-aggregates', { key });
+  }
+
+  /** A bounded page of complete games, for copying to another collection. */
+  exportPage(
+    key: string,
+    after: string | null,
+    limit: number,
+    query?: unknown,
+  ): Promise<{ games: readonly CompanionExportedGame[]; nextAfter: string | null }> {
+    return this.request('/db/export-page', { key, after, limit, query: query ?? null });
+  }
+
+  /** Which of these fingerprints the collection already holds. */
+  haveFingerprints(
+    key: string,
+    fingerprints: readonly string[],
+  ): Promise<{ present: readonly string[] }> {
+    return this.request('/db/have-fingerprints', { key, fingerprints });
+  }
+
+  /** Identity keys for every game, paged, for cross-collection duplicate search. */
+  duplicateKeys(
+    key: string,
+    after: string | null,
+    limit: number,
+  ): Promise<{ games: readonly CompanionDuplicateKey[]; nextAfter: string | null }> {
+    return this.request('/db/duplicate-keys', { key, after, limit });
+  }
+
+  /** Rename the collection as it is displayed. The file is never moved. */
+  renameDatabase(key: string, name: string): Promise<{ key: string; name: string }> {
+    return this.request('/db/rename', { key, name });
   }
 
   /** A page of positions in an older collection with no structural identity. */

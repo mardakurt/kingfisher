@@ -984,6 +984,112 @@ export class GameDatabase {
   }
 
   /**
+   * A page of complete games, for copying to another collection.
+   *
+   * Everything the destination needs and nothing it does not: the summary, the
+   * normalized movetext, and the position rows that were computed at import.
+   * Shipping the positions rather than recomputing them at the far end is what
+   * keeps a SQLite-to-SQLite copy from re-deriving structural identities that
+   * are already stored and already correct — and it is what makes the copy of
+   * a game byte-for-byte the same game, which is what a fingerprint asserts.
+   *
+   * Paged by id, and optionally narrowed by the same matcher the game list
+   * uses, so "copy these search results" copies exactly what was on screen.
+   */
+  exportPage(after = null, limit = 200, query = null) {
+    const parts = [];
+    const params = [];
+    if (query && Object.keys(query).length > 0) {
+      const built = gameWhere(query, { fts: this.#ftsAvailable });
+      parts.push(...built.where);
+      params.push(...built.params);
+    }
+    if (after !== null && after !== undefined && String(after).length > 0) {
+      parts.push('id > ?');
+      params.push(Number(after));
+    }
+    const clause = parts.length ? `WHERE ${parts.join(' AND ')}` : '';
+    const rows = this.#db
+      .prepare(`SELECT * FROM games ${clause} ORDER BY id LIMIT ?`)
+      .all(...params, limit);
+    if (rows.length === 0) return { games: [], nextAfter: null };
+
+    const content = this.#db.prepare('SELECT pgn FROM game_content WHERE game_id = ?');
+    const positions = this.#db.prepare(
+      `SELECT position_key AS positionKey, ply, move_uci AS moveUci, move_san AS moveSan,
+              mover, fen, node_id AS nodeId, pawn_skeleton AS pawnSkeleton,
+              structure_signature AS structureSignature, structure_claims AS structureClaims
+         FROM positions WHERE game_id = ? ORDER BY ply`,
+    );
+    const games = rows.map((row) => ({
+      summary: toSummary(row),
+      plyCount: row.ply_count ?? null,
+      pgn: content.get(row.id)?.pgn ?? null,
+      positions: positions.all(row.id).map((position) => ({
+        ...position,
+        structureClaims: parseClaims(position.structure_claims ?? position.structureClaims),
+      })),
+    }));
+    return { games, nextAfter: String(rows[rows.length - 1].id) };
+  }
+
+  /**
+   * Which of these fingerprints this collection already holds.
+   *
+   * The primitive behind the merge preview, the move's post-copy verification
+   * and cross-collection duplicate search. Answered from the unique index, in
+   * chunks the caller chooses, so none of those three has to read a game.
+   */
+  haveFingerprints(fingerprints) {
+    if (!Array.isArray(fingerprints) || fingerprints.length === 0) return { present: [] };
+    const placeholders = fingerprints.map(() => '?').join(',');
+    const rows = this.#db
+      .prepare(`SELECT fingerprint FROM games WHERE fingerprint IN (${placeholders})`)
+      .all(...fingerprints.map(String));
+    return { present: rows.map((row) => row.fingerprint) };
+  }
+
+  /**
+   * Metadata keys for duplicate detection across collections.
+   *
+   * Two keys per game because they answer different questions. The fingerprint
+   * is exact: same players, same moves, same movetext down to the comments, so
+   * two games sharing one are interchangeable and removing either loses
+   * nothing. The metadata key is coarser — players, date, event, round, result
+   * — so two games sharing it but not the fingerprint are the same game
+   * recorded twice with different annotations, which is a thing to show
+   * somebody rather than a thing to resolve for them.
+   */
+  duplicateKeys(after = null, limit = 5000) {
+    const params = [];
+    let clause = '';
+    if (after !== null && after !== undefined && String(after).length > 0) {
+      clause = 'WHERE id > ?';
+      params.push(Number(after));
+    }
+    const rows = this.#db
+      .prepare(
+        `SELECT id, fingerprint, white, black, date, event, round, result
+           FROM games ${clause} ORDER BY id LIMIT ?`,
+      )
+      .all(...params, limit);
+    if (rows.length === 0) return { games: [], nextAfter: null };
+    return {
+      games: rows.map((row) => ({
+        id: String(row.id),
+        fingerprint: row.fingerprint,
+        white: row.white,
+        black: row.black,
+        date: row.date ?? undefined,
+        event: row.event ?? undefined,
+        round: row.round ?? undefined,
+        result: row.result,
+      })),
+      nextAfter: String(rows[rows.length - 1].id),
+    };
+  }
+
+  /**
    * Games this opening index has not looked at, oldest id first.
    *
    * Paged by id rather than by OFFSET, so a backfill over half a million games

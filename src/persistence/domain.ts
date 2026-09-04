@@ -986,3 +986,34 @@ export interface LinkedAccountRecord {
   readonly importedCount: number;
   readonly duplicatesSkipped: number;
 }
+
+/**
+ * A named set of collections to search together.
+ *
+ * References, never copies. "My Reference", "Tournament Prep" and "All Local
+ * Databases" are three ways of pointing at collections the user already has,
+ * and the point of storing one is that switching between them is an action
+ * rather than a rebuild — a source set that duplicated games would make
+ * changing your mind about what "reference" means an import.
+ *
+ * `collectionIds` are the collection port's ids (`local`, `sqlite:<key>`). An
+ * id naming a collection that no longer exists is kept rather than pruned: a
+ * companion that is not running today is not the same as a collection the user
+ * removed, and silently editing somebody's saved set on the strength of that
+ * confusion is worse than showing them one entry greyed out.
+ */
+export interface SourceSetRecord {
+  readonly id: string;
+  readonly name: string;
+  readonly collectionIds: readonly string[];
+  /** Filters applied to every source in the set, in the game search vocabulary. */
+  readonly filters?: {
+    readonly minRating?: number;
+    readonly fromYear?: number;
+    readonly toYear?: number;
+    readonly player?: string;
+    readonly eco?: string;
+  };
+  readonly createdAt: number;
+  readonly updatedAt: number;
+}

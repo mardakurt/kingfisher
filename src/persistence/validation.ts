@@ -19,6 +19,7 @@ import type {
   EndgamePositionRecord,
   PinnedLineRecord,
   LinkedAccountRecord,
+  SourceSetRecord,
 } from './domain';
 import { ENDGAME_CATEGORIES } from './domain';
 import type { ChapterRecord, DraftRecord, GameRecord, GameSummary, StudyRecord } from './types';
@@ -363,6 +364,15 @@ export const isPinnedLineRecord = (value: unknown): value is PinnedLineRecord =>
   stringArray(value.pvUci) &&
   stringArray(value.pvSan) &&
   finite(value.createdAt);
+
+export const isSourceSetRecord = (value: unknown): value is SourceSetRecord =>
+  object(value) &&
+  text(value.id) &&
+  text(value.name) &&
+  Array.isArray(value.collectionIds) &&
+  value.collectionIds.every(text) &&
+  finite(value.createdAt) &&
+  finite(value.updatedAt);
 
 export const isLinkedAccountRecord = (value: unknown): value is LinkedAccountRecord =>
   object(value) &&

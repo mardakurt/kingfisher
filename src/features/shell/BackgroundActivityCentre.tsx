@@ -4,6 +4,7 @@ import { Menu, type MenuSection } from '@/components/ui/Menu';
 import { cn } from '@/lib/cn';
 import { useAnalysisQueue } from '@/features/analysis-queue/queue-store';
 import { useImportJob } from '@/features/shell/import-job-store';
+import { useTransferJob } from '@/features/databases/transfer-job-store';
 import { useAccountSync } from '@/stores/account-sync-store';
 import { useUi } from '@/stores/ui-store';
 
@@ -29,6 +30,10 @@ export function BackgroundActivityCentre() {
   const importRunning = useImportJob((state) => state.running);
   const importProgress = useImportJob((state) => state.progress);
   const setImportMinimized = useImportJob((state) => state.setMinimized);
+  const transferRunning = useTransferJob((state) => state.running);
+  const transferLabel = useTransferJob((state) => state.label);
+  const transferKind = useTransferJob((state) => state.kind);
+  const transferProgress = useTransferJob((state) => state.progress);
   const queueJobs = useAnalysisQueue((state) => state.jobs);
   const queueRunning = useAnalysisQueue((state) => state.running);
   const queueError = useAnalysisQueue((state) => state.error);
@@ -49,6 +54,23 @@ export function BackgroundActivityCentre() {
       detail: importProgress
         ? describeProgress(importProgress.completed, importProgress.total, 'game')
         : null,
+    });
+  }
+
+  /*
+    A bulk database operation. Progress has no denominator — the source's own
+    page cursor is the only thing that knows how far there is to go — so this
+    reports the counts it has rather than a fraction it would have to invent.
+  */
+  if (transferRunning) {
+    activities.push({
+      id: 'database-transfer',
+      label: transferKind === 'move' ? 'Moving games' : 'Copying games',
+      state: 'running',
+      progress: null,
+      detail: transferProgress
+        ? `${transferLabel ?? ''} · ${transferProgress.written.toLocaleString()} written`.trim()
+        : transferLabel,
     });
   }
 

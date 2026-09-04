@@ -15,6 +15,7 @@ import type { OpeningFileRepository } from './repositories/opening-file-reposito
 import type { EndgameRepository } from './repositories/endgame-repository';
 import type { PinnedLineRepository } from './repositories/pinned-line-repository';
 import type { LinkedAccountRepository } from './repositories/linked-account-repository';
+import type { SourceSetRepository } from './repositories/source-set-repository';
 
 export type StudyId = string;
 export type ChapterId = string;
@@ -365,6 +366,7 @@ export interface AppRepositories {
   readonly endgames: EndgameRepository;
   readonly pinnedLines: PinnedLineRepository;
   readonly linkedAccounts: LinkedAccountRepository;
+  readonly sourceSets: SourceSetRepository;
   /**
    * The underlying database, for backup and restore only.
    *
