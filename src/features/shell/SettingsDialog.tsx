@@ -421,9 +421,34 @@ function EngineSection() {
 
 function DatabaseSection() {
   const prefs = usePreferences();
+  const providers = useDatabaseProviders();
   return (
     <div className="flex flex-col gap-4">
       <ConfigurationHealth area="database" />
+      {/*
+        The reference source, which the explorer, the theory radar and the
+        position report all read. It was settable only from the explorer's own
+        header, which meant the settings search could offer "Explorer source"
+        and then land somebody in a section that did not contain it.
+      */}
+      <Row
+        label="Explorer source"
+        hint="The reference database the explorer, theory radar and position report read."
+      >
+        <select
+          aria-label="Explorer source"
+          value={prefs.explorerSourceId}
+          onChange={(event) => prefs.set('explorerSourceId', event.target.value)}
+          className="h-8 w-full max-w-[220px] rounded-[4px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
+        >
+          {providers.map((provider) => (
+            <option key={provider.id} value={provider.id}>
+              {provider.name}
+            </option>
+          ))}
+        </select>
+      </Row>
+
       <Row label="Explorer minimum rating" hint="Applies to database lookups that support it.">
         <Segmented
           items={[
