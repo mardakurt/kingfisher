@@ -81,6 +81,6 @@ export const PACK_DEFINITIONS = {
       gamesPerPlayer: 300,
       recentYears: 3,
     },
-    shards: { explorer: 256, game: 128, players: 16, playergames: 16 },
+    shards: { explorer: 96, game: 48, players: 8, playergames: 8 },
   },
 };

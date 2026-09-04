@@ -323,6 +323,22 @@ export type AnalysisDocument =
       readonly kind: 'database-game';
       readonly title: string;
       readonly gameId: GameId;
+    }
+  /**
+   * A game from a reference source, opened on the board.
+   *
+   * Distinct from `database-game` because there is no stored record behind it:
+   * the game lives in an installed pack, not in this browser's collection, and
+   * nothing that writes back to a stored game applies. Carrying the source in
+   * the document is what lets the header say where the game came from, which
+   * for licensed data is not decoration.
+   */
+  | {
+      readonly kind: 'reference-game';
+      readonly title: string;
+      readonly sourceId: string;
+      readonly sourceName: string;
+      readonly gameId: string;
     };
 
 export interface DraftRecord {

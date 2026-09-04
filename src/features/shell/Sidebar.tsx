@@ -11,7 +11,7 @@ import { usePreferences } from '@/stores/preferences-store';
 import { useWorkspaceLayout } from '@/stores/workspace-layout-store';
 
 import { BrandMark } from './BrandMark';
-import { NAV_SECTIONS } from './navigation';
+import { NAV_GROUPS, sectionsInGroup } from './navigation';
 
 interface SidebarProps {
   readonly variant?: 'desktop' | 'drawer';
@@ -62,41 +62,69 @@ export function Sidebar({ variant = 'desktop', onClose }: SidebarProps) {
         )}
       </div>
 
-      {/* Primary navigation is the most-used control in the product and must
-          read as such: rows at least as large as the appearance and settings
-          controls below them, not the 28px/12px strip they used to be. */}
-      <ul className="flex flex-col gap-0.5 p-2">
-        {NAV_SECTIONS.map((section) => {
-          const active = pathname.startsWith(section.href);
-          const Icon = section.icon;
+      {/*
+        Primary navigation, in four named groups.
+
+        Thirteen equally-weighted rows is a list nobody reads to the bottom of;
+        the headings turn it into four short ones. They disappear in the
+        collapsed rail — a heading with no room for its own text is noise — and
+        a rule takes their place, so the grouping survives the collapse.
+      */}
+      <ul className="flex flex-col gap-0.5 overflow-y-auto p-2">
+        {NAV_GROUPS.map((group, groupIndex) => {
+          const sections = sectionsInGroup(group.id);
+          if (sections.length === 0) return null;
 
           return (
-            <li key={section.id}>
-              <Link
-                href={section.href}
-                title={compact ? section.label : section.hint}
-                aria-current={active ? 'page' : undefined}
-                onClick={onClose}
-                className={cn(
-                  'relative flex h-10 items-center rounded-[5px] text-sm font-medium transition-colors',
-                  compact ? 'justify-center px-1' : 'gap-3 px-3',
-                  active
-                    ? 'bg-surface-3 text-primary'
-                    : 'text-secondary hover:bg-surface-2 hover:text-primary',
-                )}
-              >
-                {/* The selected section is carried by an accent rail as well as
-                    the raised surface, so it survives both themes and the
-                    collapsed rail where the label is gone. */}
-                {active && (
-                  <span
-                    aria-hidden
-                    className="absolute inset-y-1.5 left-0 w-[3px] rounded-r-full bg-accent"
-                  />
-                )}
-                <Icon className={cn('h-5 w-5 shrink-0', active && 'text-accent')} />
-                <span className={cn('truncate', compact && 'hidden')}>{section.label}</span>
-              </Link>
+            <li key={group.id}>
+              {group.label && !compact ? (
+                <h2 className="mt-2.5 mb-1 px-3 text-[10px] font-semibold uppercase tracking-[0.1em] text-tertiary">
+                  {group.label}
+                </h2>
+              ) : null}
+              {group.label && compact && groupIndex > 0 ? (
+                <hr className="mx-3 my-2 border-line-subtle" aria-hidden />
+              ) : null}
+              <ul className="flex flex-col gap-0.5">
+                {sections.map((section) => {
+                  const active = pathname.startsWith(section.href);
+                  const Icon = section.icon;
+
+                  return (
+                    <li key={section.id}>
+                      <Link
+                        href={section.href}
+                        title={compact ? `${section.label} — ${section.hint}` : section.hint}
+                        aria-label={compact ? section.label : undefined}
+                        aria-current={active ? 'page' : undefined}
+                        onClick={onClose}
+                        data-nav-section={section.id}
+                        className={cn(
+                          'relative flex h-11 items-center rounded-[5px] text-sm font-medium transition-colors',
+                          compact ? 'justify-center px-1' : 'gap-3 px-3',
+                          active
+                            ? 'bg-surface-3 text-primary'
+                            : 'text-secondary hover:bg-surface-2 hover:text-primary',
+                        )}
+                      >
+                        {/* The selected section is carried by an accent rail as
+                            well as the raised surface, so it survives both
+                            themes and the collapsed rail where the label is gone. */}
+                        {active && (
+                          <span
+                            aria-hidden
+                            className="absolute inset-y-1.5 left-0 w-[3px] rounded-r-full bg-accent"
+                          />
+                        )}
+                        <Icon
+                          className={cn('h-[21px] w-[21px] shrink-0', active && 'text-accent')}
+                        />
+                        <span className={cn('truncate', compact && 'hidden')}>{section.label}</span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
             </li>
           );
         })}
@@ -105,7 +133,7 @@ export function Sidebar({ variant = 'desktop', onClose }: SidebarProps) {
       {/* Settings has a keyboard shortcut and a palette entry, but until now no
           visible control outside Analysis — so on Repertoire, Training or
           Preparation there was nothing to click. It belongs with navigation. */}
-      <div className="mt-auto border-t border-line-subtle p-1.5">
+      <div className="mt-auto shrink-0 border-t border-line-subtle p-1.5">
         {!drawer && (
           <button
             type="button"

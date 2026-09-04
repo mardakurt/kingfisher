@@ -41,12 +41,17 @@ const LICHESS_BROADCAST_LICENSE: PackLicense = {
  * Where installable packs are published.
  *
  * Release assets of this repository rather than a second repository or a
- * server: the data is versioned with the build that reads it, GitHub serves
- * range requests so an interrupted install resumes, and there is no
- * infrastructure to keep alive for a project that may be dormant for a year.
+ * server: the data is versioned with the build that reads it, there is no
+ * infrastructure to keep alive for a project that may be dormant for a year,
+ * and a release is immutable in a way a directory on a host is not.
+ *
+ * One release tag per pack, because release assets share a flat namespace and
+ * two packs both containing `explorer-000.kfp.gz` would otherwise collide. The
+ * tag carries the pack version, so installing an update is downloading from a
+ * different tag rather than hoping an asset was replaced in place.
  */
-export const PACK_RELEASE_BASE =
-  'https://github.com/mardakurt/kingfisher/releases/download/reference-v1/';
+export const packRelease = (tag: string): string =>
+  `https://github.com/mardakurt/kingfisher/releases/download/${tag}/`;
 
 export const CATALOG_PACKS: readonly CatalogPack[] = [
   {
@@ -78,7 +83,7 @@ export const CATALOG_PACKS: readonly CatalogPack[] = [
       'Every official over-the-board tournament game relayed by Lichess ' +
       'since 2020, with per-position statistics, the full player table and ' +
       'the games themselves.',
-    manifestUrl: `${PACK_RELEASE_BASE}kingfisher-elite-otb.manifest.json`,
+    manifestUrl: `${packRelease('reference-elite-v1')}manifest.json`,
     bundled: false,
     capabilities: [
       'explorer',

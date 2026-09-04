@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/cn';
 import { documentContext, documentTitle } from '@/persistence/describe';
 import { selectSaveState, useAnalysis, type SaveState } from '@/stores/analysis-store';
+import type { AnalysisDocument } from '@/persistence/types';
 import { useUi } from '@/stores/ui-store';
 
 export function DocumentHeader() {
@@ -32,11 +33,11 @@ export function DocumentHeader() {
       <div className="min-w-0">
         <div className="flex min-w-0 items-baseline gap-1.5">
           <span className="truncate text-xs text-primary">{documentTitle(document)}</span>
-          {document.kind === 'database-game' && (
+          {document.kind === 'database-game' || document.kind === 'reference-game' ? (
             <span className="shrink-0 rounded-[3px] bg-surface-3 px-1 text-[10px] text-tertiary">
               read-only source
             </span>
-          )}
+          ) : null}
         </div>
         {context && <span className="block truncate text-[10px] text-tertiary">{context}</span>}
       </div>
@@ -60,7 +61,7 @@ export function DocumentHeader() {
 interface SaveIndicatorProps {
   readonly state: SaveState;
   readonly error: string | null;
-  readonly kind: 'untitled' | 'study-chapter' | 'database-game';
+  readonly kind: AnalysisDocument['kind'];
 }
 
 function SaveIndicator({ state, error, kind }: SaveIndicatorProps) {

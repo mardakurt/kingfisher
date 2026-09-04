@@ -103,6 +103,10 @@ async function main() {
 
   // --- 2. Scan every archive in parallel into pre-sharded rows.
   const shards = definition.shards;
+  // Supplied rather than read inside the worker, so a build is reproducible
+  // from the same archives regardless of when the workers happen to start.
+  definition.limits.thisYear = new Date().getFullYear();
+
   const scanned = args.reuse
     ? JSON.parse(readFileSync(path.join(work, 'scan.json'), 'utf8'))
     : await scan(archives, work, shards, definition.limits, args.workers);

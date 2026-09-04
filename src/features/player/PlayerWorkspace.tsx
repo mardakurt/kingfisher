@@ -26,7 +26,6 @@ import { useRouter } from 'next/navigation';
 
 import { Board, Pin, Target } from '@/components/icons';
 import { Button } from '@/components/ui/Button';
-import { EmptyState } from '@/components/ui/Panel';
 import { PromptDialog } from '@/components/ui/PromptDialog';
 import { openStoredGame } from '@/features/games/open-game';
 import { NavButton } from '@/features/shell/NavButton';
@@ -45,10 +44,12 @@ import {
 import { useUi } from '@/stores/ui-store';
 
 import { PlayerIdentityPanel } from './PlayerIdentityPanel';
+import { ReferenceGamesPanel } from './ReferenceGamesPanel';
 import { TendencyPanel } from './TendencyPanel';
 import { usePlayerAggregate, usePlayerIdentity, usePlayerTendencies } from './usePlayer';
 
-type Section = 'overview' | 'openings' | 'opponents' | 'tendencies' | 'games' | 'identity';
+type Section =
+  'overview' | 'openings' | 'opponents' | 'tendencies' | 'games' | 'reference' | 'identity';
 
 const SECTIONS: readonly { readonly id: Section; readonly label: string }[] = [
   { id: 'overview', label: 'Overview' },
@@ -56,6 +57,7 @@ const SECTIONS: readonly { readonly id: Section; readonly label: string }[] = [
   { id: 'opponents', label: 'Opponents' },
   { id: 'tendencies', label: 'Tendencies' },
   { id: 'games', label: 'Recent games' },
+  { id: 'reference', label: 'Reference games' },
   { id: 'identity', label: 'Identity' },
 ];
 
@@ -228,12 +230,32 @@ export function PlayerWorkspace({ playerId }: { readonly playerId: string }) {
         {data.isPending ? (
           <p className="p-6 text-sm text-tertiary">Reading this player’s games…</p>
         ) : !aggregate || aggregate.games === 0 ? (
-          <EmptyState
-            title="No games for this player"
-            description={`Nothing in the local collection is under “${name}”${
-              resolved.fromYear ? ` in ${period.label.toLowerCase()}` : ''
-            }. Import games, or link another spelling of the name under Identity.`}
-          />
+          /*
+            An empty local collection used to end the page. It cannot any more:
+            on a fresh profile the local collection is *always* empty and the
+            installed reference sources are not, so the interesting half of the
+            profile was the half that never rendered.
+          */
+          <div className="mx-auto max-w-5xl p-5 md:p-8">
+            <p className="mb-4 text-xs text-tertiary">
+              Nothing in your own collection is under “{name}”
+              {resolved.fromYear ? ` in ${period.label.toLowerCase()}` : ''}. Import games, or link
+              another spelling under Identity. The reference sources are shown below.
+            </p>
+            {section === 'identity' ? (
+              <PlayerIdentityPanel
+                playerId={playerId}
+                identity={identity.data}
+                displayName={name}
+                onChanged={() => {
+                  void queryClient.invalidateQueries({ queryKey: ['player-identity', playerId] });
+                  void queryClient.invalidateQueries({ queryKey: ['player-aggregate'] });
+                }}
+              />
+            ) : (
+              <ReferenceGamesPanel playerKey={playerId} name={name} />
+            )}
+          </div>
         ) : (
           <div className="mx-auto max-w-5xl p-5 md:p-8">
             {/*
@@ -364,6 +386,10 @@ export function PlayerWorkspace({ playerId }: { readonly playerId: string }) {
                   ))}
                 </ul>
               </section>
+            ) : null}
+
+            {section === 'reference' ? (
+              <ReferenceGamesPanel playerKey={playerId} name={name} />
             ) : null}
 
             {section === 'identity' ? (

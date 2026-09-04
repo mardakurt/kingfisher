@@ -40,6 +40,7 @@ import { CollectionDetail } from './CollectionDetail';
 import { CollectionList, formatBytes } from './CollectionList';
 import { DuplicatesPanel } from './DuplicatesPanel';
 import { MultiSearchPanel } from './MultiSearchPanel';
+import { ReferenceCatalogPanel } from './ReferenceCatalogPanel';
 import { SourceSetsPanel } from './SourceSetsPanel';
 import { TransferDialog, type TransferRequest } from './TransferDialog';
 
@@ -55,7 +56,7 @@ const LABELS: Record<ProviderHealthState, string> = {
   error: 'Error',
 };
 
-type CentreTab = 'collection' | 'search' | 'duplicates';
+type CentreTab = 'collection' | 'search' | 'duplicates' | 'sources';
 
 export function DatabasesWorkspace() {
   const queryClient = useQueryClient();
@@ -226,10 +227,19 @@ export function DatabasesWorkspace() {
             >
               Duplicates
             </TabButton>
+            <TabButton
+              active={tab === 'sources'}
+              onClick={() => setTab('sources')}
+              hint="Reference packs, licences, and what each source may answer"
+            >
+              Reference sources
+            </TabButton>
           </nav>
 
           <div className="min-h-0 flex-1 overflow-auto">
-            {collections.isPending ? (
+            {tab === 'sources' ? (
+              <ReferenceCatalogPanel />
+            ) : collections.isPending ? (
               <p className="p-6 text-sm text-tertiary">Reading collections…</p>
             ) : tab === 'search' ? (
               <MultiSearchPanel

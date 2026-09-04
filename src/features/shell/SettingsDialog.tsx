@@ -14,6 +14,7 @@ import { useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { Button } from '@/components/ui/Button';
+import { Toggle } from '@/components/ui/Toggle';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Dialog } from '@/components/ui/Dialog';
 import { Segmented, Tabs } from '@/components/ui/Tabs';
@@ -1950,31 +1951,6 @@ const Row = ({
     </div>
     <div className="max-w-full shrink-0">{children}</div>
   </div>
-);
-
-const Toggle = ({
-  label,
-  checked,
-  onChange,
-}: {
-  label: string;
-  checked: boolean;
-  onChange: (value: boolean) => void;
-}) => (
-  <button
-    type="button"
-    role="switch"
-    aria-label={label}
-    aria-checked={checked}
-    onClick={() => onChange(!checked)}
-    className="relative h-4 w-7 rounded-full transition-colors"
-    style={{ background: checked ? 'var(--accent)' : 'var(--border-strong)' }}
-  >
-    <span
-      className="absolute top-0.5 h-3 w-3 rounded-full bg-white transition-all"
-      style={{ left: checked ? '14px' : '2px' }}
-    />
-  </button>
 );
 
 /**

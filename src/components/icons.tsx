@@ -80,6 +80,21 @@ export const Import = (p: IconProps) => (
     <path d="M12 3v11m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
   </Icon>
 );
+/**
+ * Download, which is not Import.
+ *
+ * Both are an arrow going down, so they are told apart by what they arrive
+ * into: `Import` lands in a tray (a file entering this collection), `Download`
+ * comes out of a cloud (data arriving from somewhere else). They appear on the
+ * same screen — install a reference pack, import a PGN — so the distinction
+ * has to hold at 16px.
+ */
+export const Download = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M7 16.5a4 4 0 0 1 .4-8 5.5 5.5 0 0 1 10.5 1.6 3.5 3.5 0 0 1-.4 6.9" />
+    <path d="M12 10v9m0 0 3.5-3.5M12 19l-3.5-3.5" />
+  </Icon>
+);
 export const Export = (p: IconProps) => (
   <Icon {...p}>
     <path d="M12 15V4m0 0 4 4m-4-4L8 8M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
@@ -158,6 +173,48 @@ export const Notebook = (p: IconProps) => (
   <Icon {...p}>
     <path d="M6 3h13v18H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
     <path d="M9 3v18M12 8h4M12 12h4" />
+  </Icon>
+);
+/**
+ * Players: two people.
+ *
+ * Not a single silhouette, because the section is a *library* of players — a
+ * list to search — rather than "your account", which is the thing one person
+ * shape means everywhere else in software.
+ */
+export const Players = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="9" cy="8" r="3.25" />
+    <path d="M3.5 20a5.5 5.5 0 0 1 11 0" />
+    <path d="M16 5.5a3.25 3.25 0 0 1 0 6.4" />
+    <path d="M17.5 14.2a5.5 5.5 0 0 1 3 4.8" />
+  </Icon>
+);
+/**
+ * Opening files: a folder, holding one subject's papers.
+ *
+ * Previously this shared the branching-lines icon with Openings, which made
+ * two adjacent sections indistinguishable in the collapsed rail. A folder is
+ * the right metaphor anyway: an opening file is a dossier, not a tree.
+ */
+export const Dossier = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M3.5 7.5a1.5 1.5 0 0 1 1.5-1.5h3.6a1.5 1.5 0 0 1 1.2.6l1 1.4H19a1.5 1.5 0 0 1 1.5 1.5v9A1.5 1.5 0 0 1 19 20H5a1.5 1.5 0 0 1-1.5-1.5z" />
+    <path d="M8 13h8" />
+  </Icon>
+);
+/**
+ * Endgame: a king, alone.
+ *
+ * Preparation owns the bullseye, and Endgame used to borrow it — so the two
+ * were the same shape in the same list. A king with nothing around it is what
+ * an endgame *is*, and no other icon in the set is a crowned dome.
+ */
+export const Endgame = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M12 2.5v4M10 4.5h4" />
+    <path d="M12 6.5c-3 0-5 2.2-5 4.8 0 2.1 1.4 3.6 2 5.2h6c.6-1.6 2-3.1 2-5.2 0-2.6-2-4.8-5-4.8z" />
+    <path d="M8 19h8M8.5 21.5h7" />
   </Icon>
 );
 export const Target = (p: IconProps) => (

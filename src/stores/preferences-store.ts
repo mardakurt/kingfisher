@@ -13,6 +13,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import type { AnalysisLimit } from '@/engine/types';
+import type { SourcePreference } from '@/reference/types';
 import type { EnginePresetId } from '@/engine/presets';
 import { DEFAULT_PIECE_SET_ID, LEGACY_PIECE_SET_IDS } from '@/lib/board-options';
 import type {
@@ -44,6 +45,24 @@ export interface Preferences {
   explorerSourceId: string;
   explorerMinRating: number | null;
   explorerSinceYear: number | null;
+  /**
+   * Which data sources are in use, and for what.
+   *
+   * Sparse: a source absent from this record is on, with every capability it
+   * declares. Storing only what the user has changed is what lets a later
+   * build add a source without every saved profile needing a migration to
+   * mention it — and what makes "reset" mean something.
+   */
+  sourceSettings: Record<string, SourcePreference>;
+  /**
+   * Source ids in the order the user prefers them, most trusted first.
+   *
+   * Only sources the user has explicitly ranked appear; everything else keeps
+   * its declared order behind them. Priority never merges populations — it
+   * decides which source a surface reaches for first when the user has not
+   * named one, and the answer is always attributed to the source it came from.
+   */
+  sourcePriority: string[];
   /** Analysis preset the engine panel starts from. */
   enginePreset: EnginePresetId;
   /** Which engine the panel drives, and which one it compares against. */
@@ -98,6 +117,8 @@ export const DEFAULT_PREFERENCES: Preferences = {
   explorerSourceId: 'kingfisher-starter',
   explorerMinRating: null,
   explorerSinceYear: null,
+  sourceSettings: {},
+  sourcePriority: [],
   enginePreset: 'standard',
   primaryEngineId: 'stockfish-wasm',
   secondaryEngineId: 'lc0',

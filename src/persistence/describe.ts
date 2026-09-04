@@ -25,6 +25,9 @@ export function documentTitle(document: AnalysisDocument): string {
 export function documentContext(document: AnalysisDocument): string | null {
   if (document.kind === 'study-chapter') return document.studyTitle;
   if (document.kind === 'database-game') return 'From your game database';
+  // Named, not generic: a reference game carries a licence, and the source is
+  // the only thing on screen that says which one.
+  if (document.kind === 'reference-game') return `From ${document.sourceName}`;
   return null;
 }
 

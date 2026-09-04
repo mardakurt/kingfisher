@@ -114,7 +114,14 @@ async function main() {
     if (rated > 0 ? rated < limits.minRating : !titled) continue;
 
     const date = normaliseDate(tags.UTCDate ?? tags.Date ?? '');
-    const year = Number(date.slice(0, 4)) || 0;
+    /*
+      A relay occasionally carries a typo for a date, and one row reading 2308
+      is enough to move the whole pack's "recent" window past every game in it.
+      A year outside the range chess has been recorded in is treated as no year
+      rather than as a fact.
+    */
+    const parsed = Number(date.slice(0, 4)) || 0;
+    const year = parsed >= 1475 && parsed <= limits.thisYear ? parsed : 0;
     if (year > maxYear) maxYear = year;
 
     /*
