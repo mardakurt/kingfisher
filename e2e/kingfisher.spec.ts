@@ -388,7 +388,10 @@ test('authenticated Lichess explorer contract and appearance preferences work wi
   await expect(page.getByRole('button', { name: 'Settings ⌘,' })).toBeVisible();
   await page.getByRole('button', { name: 'Settings ⌘,' }).click();
   let settings = page.getByRole('dialog', { name: 'Settings' });
-  await settings.getByRole('tab', { name: 'Database' }).click();
+  await settings.getByRole('tab', { name: 'Accounts' }).click();
+  // The personal token is the advanced path now; the front door is the PKCE
+  // button, which needs a real consent screen and so is not driven here.
+  await settings.getByRole('button', { name: /personal access token/ }).click();
   await settings.getByLabel('Lichess personal access token').fill('e2e-token');
   await settings.getByRole('button', { name: 'Test connection' }).click();
   await expect(settings.getByText('Connected as E2EUser')).toBeVisible();
@@ -398,9 +401,11 @@ test('authenticated Lichess explorer contract and appearance preferences work wi
     .getByRole('navigation', { name: 'Sections' })
     .getByRole('link', { name: 'Openings' })
     .click();
+  // Openings opens on the library now; the board and its dock are the other mode.
+  await page.getByRole('button', { name: 'Explorer', exact: true }).first().click();
   await selectTool(page, page.getByRole('complementary', { name: 'Workspace tools' }), 'Explorer');
   await page.getByLabel('Evidence source').selectOption('lichess-masters');
-  await expect(page.getByRole('button', { name: 'e4' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'e4', exact: true })).toBeVisible();
   expect(authHeaders).not.toHaveLength(0);
   expect(authHeaders.every((header) => header === 'Bearer e2e-token')).toBe(true);
 
@@ -421,13 +426,15 @@ test('authenticated Lichess explorer contract and appearance preferences work wi
   expect(consoleFailures).toEqual([]);
 });
 
-test('a failing explorer source reports why instead of loading forever', async ({
+test('a failing explorer source offers the local one instead of loading forever', async ({
   page,
   context,
 }) => {
   const consoleFailures = watchConsole(page);
   await page.goto('/openings');
   await waitForApp(page);
+  // Openings opens on the library; the explorer is the other mode.
+  await page.getByRole('button', { name: 'Explorer', exact: true }).first().click();
 
   // The browser reporting itself offline is the condition that used to strand
   // the panel: with TanStack's default network mode a failed query parks in
@@ -437,12 +444,24 @@ test('a failing explorer source reports why instead of loading forever', async (
   // is local-first and must report the real failure regardless.
   await context.setOffline(true);
 
-  await selectTool(page, page.getByRole('complementary', { name: 'Workspace tools' }), 'Explorer');
+  const dock = page.getByRole('complementary', { name: 'Workspace tools' });
+  await selectTool(page, dock, 'Explorer');
   await page.getByLabel('Evidence source').selectOption('lichess-masters');
 
-  await expect(page.getByText('No evidence from this source.')).toBeVisible();
-  await expect(page.getByText(/requires an API token/i)).toBeVisible();
+  /*
+    The panel no longer merely explains the failure: there is always a source
+    on this machine that can answer, so it names the one that failed and offers
+    the local one. Offering rather than switching is the point — evidence must
+    not change population without the user saying so.
+  */
+  const fallback = page.locator('[data-source-fallback]');
+  await expect(fallback).toBeVisible();
+  await expect(fallback).toContainText(/could not answer/);
   await expect(page.getByText(/Reading Masters/)).toHaveCount(0);
+  await expect(page.getByLabel('Evidence source')).toHaveValue('lichess-masters');
+
+  await fallback.getByRole('button', { name: /^Show / }).click();
+  await expect(page.getByLabel('Evidence source')).not.toHaveValue('lichess-masters');
 
   // IndexedDB has no opinion about the network, so a local source still answers.
   await page.getByLabel('Evidence source').selectOption('local-collection');

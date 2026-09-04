@@ -1378,6 +1378,14 @@ function LichessAccess() {
     try {
       const result = await testLichessAccount();
       setAccount(result.username);
+      /*
+        Record who the token belongs to, so the row above says "Connected as
+        …" rather than just "Connected". A token pasted through the advanced
+        path has no sign-in to learn the name from, and a settings page that
+        can only say a credential exists is a settings page that cannot tell
+        you whose it is.
+      */
+      prefs.set('lichessUsername', result.username);
     } catch (error) {
       setTestError(error instanceof Error ? error.message : 'The connection test failed.');
     } finally {
@@ -1414,7 +1422,9 @@ function LichessAccess() {
             {connecting ? 'Opening Lichess…' : 'Connect Lichess'}
           </Button>
         )}
-        {account ? <span className="text-xs text-positive">Verified as {account}</span> : null}
+        {account && !prefs.lichessUsername ? (
+          <span className="text-xs text-positive">Connected as {account}</span>
+        ) : null}
       </div>
       <p className="mt-2 text-[10px] leading-relaxed text-tertiary">
         You approve the connection on lichess.org and come back here. There is no Kingfisher account

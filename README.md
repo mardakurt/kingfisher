@@ -9,6 +9,41 @@ calls it analysis.
 
 ---
 
+## What you get on a fresh installation
+
+Everything below works the moment the application opens, on an empty profile,
+with no account, no download, no companion and no imported PGN. It is asserted
+by `e2e/fresh-user.spec.ts`, which runs against genuinely empty browser storage
+and is a release gate.
+
+|                       |                                                                                                                                                                                                                                                         |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Engine**            | Stockfish 17.1, as WebAssembly in a Web Worker. Sandboxed by the browser.                                                                                                                                                                               |
+| **Opening Explorer**  | 175,022 over-the-board games between rated or titled players, 2023–2026, as 146,684 position aggregates. On your machine, and it answers with the network off.                                                                                          |
+| **Opening knowledge** | 3,810 named positions with ECO codes, from the CC0 lichess-org dataset, replayed through Kingfisher's own rules code — so transpositions converge and depth wins.                                                                                       |
+| **Opening library**   | All of it, searchable by code, name, nickname, move sequence or position, with statistics, transpositions and model games on every entry.                                                                                                               |
+| **Games**             | 11,357 full elite game scores, openable on the board.                                                                                                                                                                                                   |
+| **Players**           | 12,609 player identities from the reference, plus a curated roster of 106 historical figures — the whole championship lineage from Steinitz to Gukesh, the women's lineage from Menchik to Ju Wenjun, and twenty-five players from before FIDE existed. |
+| **Opening book**      | Derived from the reference: how often strong players chose each move.                                                                                                                                                                                   |
+| **Board and pieces**  | Twelve board themes and ten piece sets, all with licences recorded.                                                                                                                                                                                     |
+
+And what it does _not_ ship: any game played before 2020. The open archive
+Kingfisher builds from begins there, and no collection of classic games with
+clear redistribution terms was found. Morphy is in the player catalog with no
+games behind him, and the page says so. See
+[`THIRD_PARTY_DATA.md`](THIRD_PARTY_DATA.md).
+
+### Optional, one click each
+
+- **Connect Lichess** — OAuth with PKCE, no token to paste, no scopes requested.
+- **Connect Chess.com** — a username; the API is public.
+- **Install a reference pack** — the full broadcast archive: 422,059 games.
+- **Install an engine** — Stockfish 18, Stormphrax, Viridithas, Halogen or Lc0,
+  downloaded, digest-checked and UCI-tested without leaving the application.
+- **Add a Polyglot `.bin`** — your own opening book.
+
+---
+
 ## Status: Phase 12 — the last four reasons to open something else
 
 Phase 1 built the workstation, Phase 2 made the work durable, Phase 3 turned the
@@ -329,6 +364,8 @@ fails, the header says the work is not saved.
 | `/model-game`    | Step through a model game with the engine off, or guess the moves                   |
 | `/opening-files` | One opening subject and everything already stored about it                          |
 | `/endgame`       | The endgame library, with tablebase proof beside it                                 |
+| `/players`       | Every player the installed reference sources know, plus the historical roster       |
+| `/oauth/lichess` | Where a Lichess sign-in returns to. Not part of the workspace                       |
 
 `/database` (singular) was opponent preparation, which read as data-source
 management once real data-source management existed. It now redirects to
@@ -344,8 +381,8 @@ list in front of it would add a click to the most common action.
 Studies, chapters, imported game summaries/content, position indexes,
 repertoires, model-game links, training schedules/history, chapter references,
 background-analysis jobs, saved engine evidence, personal aliases, linked
-online accounts and the active
-draft are stored in IndexedDB under `kingfisher`; saved and recent database
+online accounts, installed reference packs and their chunks, opening books, and
+the active draft are stored in IndexedDB under `kingfisher`; saved and recent database
 filters and preferences stay
 in `localStorage` — including your Lichess token, which is never committed,
 never logged and never included in a backup. It is scope-free and revocable
@@ -450,13 +487,21 @@ The engine provider then selects the threaded build automatically.
 
 ### About the opening explorer
 
-Lichess began requiring authenticated opening-explorer requests in April 2026.
-Kingfisher therefore ships no shared developer credential. Add your own
-scope-free token in Settings → Database to enable the Masters and Lichess
-sources. Without one, those providers explain what is missing and **My games**,
-repertoire, personal and SQLite sources continue to work. The token is stored
-only in this browser's preferences and is sent only as the authorization header
-for requests to the Lichess opening explorer.
+**It works out of the box.** `public/reference/kingfisher-starter/` is a 9.5 MB
+reference pack built from the Lichess broadcast archive (CC BY-SA 4.0), which
+installs itself into this browser on first run and then needs no network at
+all. It is the explorer's default source, and it is what the player library,
+the opening library, model games and the derived opening book all read.
+
+Lichess began requiring authenticated opening-explorer requests in April 2026,
+so its Masters and Lichess sources need an account — but they are now an
+_addition_ rather than a precondition. Settings → Accounts → **Connect
+Lichess** does it with OAuth and PKCE: you approve on lichess.org and come
+back connected, with no token to paste and no scopes requested. A personal
+token is still accepted, folded away under Advanced, for scripted setups.
+
+`docs/data/reference-packs.md` describes the pack format, the filters and how
+to rebuild everything.
 
 ### About the Grandmaster Companion
 
@@ -471,32 +516,36 @@ assistant stays disabled without affecting the rest of the workstation.
 
 ## Scripts
 
-| Command                                 | Purpose                                                                         |
-| --------------------------------------- | ------------------------------------------------------------------------------- |
-| `npm run dev`                           | Development server on port 3210                                                 |
-| `npm run build`                         | Production build                                                                |
-| `npm test`                              | Run the test suite                                                              |
-| `npm run test:watch`                    | Tests in watch mode                                                             |
-| `npm run test:e2e`                      | Playwright browser tests against a real dev server                              |
-| `npm run test:e2e:ui`                   | The same suite in Playwright's interactive runner                               |
-| `npm run benchmark`                     | The reproducible local benchmark group, with the environment in its output      |
-| `npm run bench:sqlite`                  | SQLite companion import and query latency (needs a running companion)           |
-| `npm run bench:pgn`                     | PGN parse throughput in browser-equivalent code                                 |
-| `npm run bench:aggregates`              | Filtered explorer, structure search and SQLite deletion at 100,000 games        |
-| `npm run bench:rules`                   | The rules-engine replacement experiment (ADR 0028)                              |
-| `npm run bench:preparation`             | Dossiers, transposition graphs, the theory radar and journal analytics          |
-| `npm run bench:player-search -- 500000` | Player prefix and metadata search over a generated collection                   |
-| `npm run bench:engines`                 | Native engine startup to `uciok`, `readyok` and a first line                    |
-| `npm run bench:evidence`                | Assembling and rendering a companion evidence packet                            |
-| `npm run bundle:report`                 | Initial JavaScript per route, from a production build                           |
-| `npm run smoke:lichess`                 | Opt-in live check that the Lichess API still matches the providers              |
-| `npm run typecheck`                     | TypeScript, no emit                                                             |
-| `npm run lint`                          | ESLint                                                                          |
-| `npm run format`                        | Prettier                                                                        |
-| `npm run format:check`                  | Verify formatting                                                               |
-| `npm run engine:install`                | Download the Stockfish WASM builds                                              |
-| `npm run engines:install`               | Install every engine for this platform (see [docs/ENGINES.md](docs/ENGINES.md)) |
-| `npm run companion`                     | Start the optional local companion                                              |
+| Command                                     | Purpose                                                                         |
+| ------------------------------------------- | ------------------------------------------------------------------------------- |
+| `npm run dev`                               | Development server on port 3210                                                 |
+| `npm run build`                             | Production build                                                                |
+| `npm test`                                  | Run the test suite                                                              |
+| `npm run test:watch`                        | Tests in watch mode                                                             |
+| `npm run test:e2e`                          | Playwright browser tests against a real dev server                              |
+| `npm run test:e2e:ui`                       | The same suite in Playwright's interactive runner                               |
+| `npm run benchmark`                         | The reproducible local benchmark group, with the environment in its output      |
+| `npm run bench:sqlite`                      | SQLite companion import and query latency (needs a running companion)           |
+| `npm run bench:pgn`                         | PGN parse throughput in browser-equivalent code                                 |
+| `npm run bench:aggregates`                  | Filtered explorer, structure search and SQLite deletion at 100,000 games        |
+| `npm run bench:rules`                       | The rules-engine replacement experiment (ADR 0028)                              |
+| `npm run bench:preparation`                 | Dossiers, transposition graphs, the theory radar and journal analytics          |
+| `npm run bench:player-search -- 500000`     | Player prefix and metadata search over a generated collection                   |
+| `npm run bench:engines`                     | Native engine startup to `uciok`, `readyok` and a first line                    |
+| `npm run bench:evidence`                    | Assembling and rendering a companion evidence packet                            |
+| `npm run bundle:report`                     | Initial JavaScript per route, from a production build                           |
+| `npm run smoke:lichess`                     | Opt-in live check that the Lichess API still matches the providers              |
+| `npm run typecheck`                         | TypeScript, no emit                                                             |
+| `npm run lint`                              | ESLint                                                                          |
+| `npm run format`                            | Prettier                                                                        |
+| `npm run format:check`                      | Verify formatting                                                               |
+| `npm run engine:install`                    | Download the Stockfish WASM builds                                              |
+| `npm run engines:install`                   | Install every engine for this platform (see [docs/ENGINES.md](docs/ENGINES.md)) |
+| `npm run engines:digests`                   | Re-record the SHA-256 of every catalogue engine after adding or bumping one     |
+| `npm run reference:build -- --pack starter` | Rebuild the bundled reference pack from the upstream archive                    |
+| `npm run openings:build`                    | Rebuild the opening index from the vendored CC0 dataset                         |
+| `npm run polyglot:constants`                | Regenerate the Polyglot book constants, verified against the published key      |
+| `npm run companion`                         | Start the optional local companion                                              |
 
 ---
 
@@ -544,6 +593,17 @@ any move for comments, glyphs, variation ordering and deletion.
   are installed, and the obligations that come with them.
 - [`THIRD_PARTY_ASSETS.md`](THIRD_PARTY_ASSETS.md) — every piece of artwork,
   who drew it, and under what licence.
+- [`THIRD_PARTY_DATA.md`](THIRD_PARTY_DATA.md) — every chess _dataset_, its
+  licence, what the build does to it, and — at greater length — the sources
+  that were investigated and rejected for having no stated redistribution
+  terms.
+- [`docs/data/reference-packs.md`](docs/data/reference-packs.md) — the pack
+  format, why it is sharded, what the filters exclude and why, and how to
+  rebuild everything.
+- [`docs/performance/phase-13-out-of-the-box.md`](docs/performance/phase-13-out-of-the-box.md)
+  — measured board sizes before and after, cold start with the bundled
+  reference installing itself, first explorer answer, pack build cost and route
+  bundles.
 - [`companion/README.md`](companion/README.md) — what the local companion does
   and its threat model.
 - [`docs/performance/phase-9-preparation-and-scale.md`](docs/performance/phase-9-preparation-and-scale.md)

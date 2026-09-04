@@ -43,3 +43,12 @@ order taken. Superseded records stay, marked as such.
 | [0032](0032-position-actions-and-research-navigation.md)    | One position-action list; a trail that names its destination     | Accepted |
 | [0033](0033-three-regions-not-a-pane-tree.md)               | Three named regions, not an unbounded pane tree                  | Accepted |
 | [0034](0034-concealment-is-subtractive.md)                  | Concealment is a capability no call site can undo                | Accepted |
+| [0035](0035-online-accounts-reuse-the-import-pipeline.md)   | A synced game is an imported game, with no second pipeline       | Accepted |
+| [0036](0036-a-custom-engine-earns-its-key.md)               | A custom engine earns its registry key by completing a handshake | Accepted |
+| [0037](0037-a-report-cites-or-says-why-not.md)              | A report cites its sources, or says why it has none              | Accepted |
+| [0038](0038-a-managed-probe-helper-not-a-decoder.md)        | A managed Syzygy probe helper, not a decoder of our own          | Accepted |
+| [0039](0039-reference-packs-are-installed-not-served.md)    | Reference packs are sharded, verified and installed, not served  | Accepted |
+| [0040](0040-board-priority-is-a-policy.md)                  | Board size is a policy over the chrome, never a pixel preference | Accepted |
+| [0041](0041-engine-trust-and-the-sandbox-we-do-not-have.md) | Three engine trust levels; no sandbox is claimed for a binary    | Accepted |
+| [0042](0042-pkce-instead-of-a-pasted-token.md)              | Lichess sign-in through PKCE; supersedes 0018's token decision   | Accepted |
+| [0043](0043-a-book-is-not-an-explorer.md)                   | A book states a preference; an explorer counts games             | Accepted |

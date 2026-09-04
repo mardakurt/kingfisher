@@ -78,7 +78,7 @@ export function Sidebar({ variant = 'desktop', onClose }: SidebarProps) {
           return (
             <li key={group.id}>
               {group.label && !compact ? (
-                <h2 className="mt-2.5 mb-1 px-3 text-[10px] font-semibold uppercase tracking-[0.1em] text-tertiary">
+                <h2 className="mt-2 mb-0.5 px-3 text-[10px] font-semibold uppercase tracking-[0.1em] text-tertiary">
                   {group.label}
                 </h2>
               ) : null}
@@ -100,7 +100,14 @@ export function Sidebar({ variant = 'desktop', onClose }: SidebarProps) {
                         onClick={onClose}
                         data-nav-section={section.id}
                         className={cn(
-                          'relative flex h-11 items-center rounded-[5px] text-sm font-medium transition-colors',
+                          /*
+                            40px rows. Thirteen sections plus four headings is
+                            684px of list at 44px, which scrolls on a 1440x900
+                            display — and a primary navigation that scrolls on
+                            the commonest large laptop is one where the last
+                            two sections are effectively hidden.
+                          */
+                          'relative flex h-10 items-center rounded-[5px] text-sm font-medium transition-colors',
                           compact ? 'justify-center px-1' : 'gap-3 px-3',
                           active
                             ? 'bg-surface-3 text-primary'

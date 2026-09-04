@@ -174,7 +174,10 @@ test('§36 the position report gathers evidence with provenance under every sect
   */
   await page.getByRole('button', { name: 'Settings (⌘,)' }).click();
   const settings = page.getByRole('dialog', { name: 'Settings' });
-  await settings.getByRole('tab', { name: 'Database' }).click();
+  await settings.getByRole('tab', { name: 'Accounts' }).click();
+  // The token is the advanced path now; the front door is a PKCE redirect,
+  // which needs a real consent screen and is contract-tested elsewhere.
+  await settings.getByRole('button', { name: /personal access token/ }).click();
   await settings.getByLabel('Lichess personal access token').fill('e2e-token');
   await settings.getByRole('button', { name: 'Test connection' }).click();
   await expect(settings.getByText('Connected as E2EUser')).toBeVisible();

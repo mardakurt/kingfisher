@@ -198,7 +198,11 @@ test('the diagnostic report carries no secrets', async ({ page, context }) => {
   // Configure a token, so the report has something it could leak.
   await page.getByRole('button', { name: 'Settings ⌘,' }).click();
   const settings = page.getByRole('dialog', { name: 'Settings' });
-  await settings.getByRole('tab', { name: 'Database' }).click();
+  await settings.getByRole('tab', { name: 'Accounts' }).click();
+  // The token moved behind the advanced disclosure when PKCE became the front
+  // door; the point of this test is unchanged — a configured secret must not
+  // reach the report.
+  await settings.getByRole('button', { name: /personal access token/ }).click();
   await settings.getByLabel('Lichess personal access token').fill('lip_secretTokenValue123456');
 
   await settings.getByRole('tab', { name: 'Diagnostics' }).click();
@@ -365,12 +369,53 @@ test('an explorer request that fails states why and never spins', async ({ page,
   const consoleFailures = watchConsole(page);
   await page.goto('/openings');
   await waitForApp(page);
+  // Openings opens on the library; the explorer is the other mode.
+  await page.getByRole('button', { name: 'Explorer', exact: true }).first().click();
+
+  /*
+    Let the bundled reference finish installing before cutting the network.
+    It installs itself on first run over the same connection that served the
+    page, so pulling the plug mid-install is a different scenario — a real one,
+    and one the pack installer handles by leaving nothing behind and retrying
+    next start, but not the one this test is about. Cutting the network here
+    would only assert that an interrupted download logs a network error.
+  */
+  await expect
+    .poll(
+      async () =>
+        page.evaluate(async () => {
+          const database = await new Promise<IDBDatabase>((resolve, reject) => {
+            const request = indexedDB.open('kingfisher');
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+          });
+          if (![...database.objectStoreNames].includes('referencePacks')) {
+            database.close();
+            return 'no-store';
+          }
+          const state = await new Promise<string>((resolve) => {
+            const query = database
+              .transaction('referencePacks', 'readonly')
+              .objectStore('referencePacks')
+              .get('kingfisher-starter');
+            query.onsuccess = () =>
+              resolve((query.result as { state?: string })?.state ?? 'absent');
+            query.onerror = () => resolve('error');
+          });
+          database.close();
+          return state;
+        }),
+      { timeout: 60_000 },
+    )
+    .toBe('ready');
 
   // A source that cannot answer, and a browser that thinks it is offline.
   await context.setOffline(true);
   await selectTool(page, page.getByRole('complementary', { name: 'Workspace tools' }), 'Explorer');
   await page.getByLabel('Evidence source').selectOption('lichess-masters');
-  await expect(page.getByText('No evidence from this source.')).toBeVisible({ timeout: 15_000 });
+  // It names the source that failed and offers the local one, rather than
+  // showing an empty panel or a spinner that never resolves.
+  await expect(page.locator('[data-source-fallback]')).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText(/Reading Masters/)).toHaveCount(0);
 
   // IndexedDB has no opinion about the network, so a local source still answers.
