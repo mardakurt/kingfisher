@@ -55,8 +55,9 @@ const SNAPSHOTS = path.join(process.cwd(), 'e2e', 'visual.spec.ts-snapshots');
  */
 const platformSuffix = process.platform === 'win32' ? 'win32' : process.platform;
 const hasBaselines =
-  existsSync(SNAPSHOTS) &&
-  readdirSync(SNAPSHOTS).some((file) => file.endsWith(`-${platformSuffix}.png`));
+  process.env.UPDATE_VISUAL_BASELINES === '1' ||
+  (existsSync(SNAPSHOTS) &&
+    readdirSync(SNAPSHOTS).some((file) => file.endsWith(`-${platformSuffix}.png`)));
 
 /**
  * Everything that has to be true before a pixel is compared.

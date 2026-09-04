@@ -14,7 +14,7 @@
     "test:e2e": "npm run engine:install && playwright test",
     "test:e2e:ui": "npm run engine:install && playwright test --ui",
     "test:e2e:visual": "npm run engine:install && playwright test e2e/visual.spec.ts",
-    "visual:baselines": "npm run engine:install && playwright test e2e/visual.spec.ts --update-snapshots",
+    "visual:baselines": "npm run engine:install && UPDATE_VISUAL_BASELINES=1 playwright test e2e/visual.spec.ts --update-snapshots",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "engine:install": "node scripts/install-engine.mjs",
