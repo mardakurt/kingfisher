@@ -16,6 +16,7 @@
  */
 
 import { useCallback, useMemo, useState } from 'react';
+import Link from 'next/link';
 
 import { formatScore } from '@/chess/evaluation';
 import { moveIntent } from '@/chess/moves';
@@ -26,6 +27,7 @@ import { Button, IconButton } from '@/components/ui/Button';
 import { EmptyState, PanelBody, PanelHeader } from '@/components/ui/Panel';
 import { Segmented } from '@/components/ui/Tabs';
 import { useAnalysisPosition } from '@/features/analysis/useAnalysisPosition';
+import { useChessWorkspace } from '@/features/workspace/ChessWorkspaceContext';
 import { useRepertoiresAtPosition } from '@/features/persistence/queries';
 import { Filter, Plus, Target } from '@/components/icons';
 import { cn } from '@/lib/cn';
@@ -35,8 +37,20 @@ import { usePreferences } from '@/stores/preferences-store';
 import { useUi } from '@/stores/ui-store';
 
 import { buildMoveEvidence, summariseEvidence, trendOf, type MoveEvidence } from './evidence';
+import { useSourcesFor } from '@/reference/sources';
+import { useOpeningClassification } from '@/theory/useOpeningClassification';
+
+import { SourceFallback, SourcePicker } from './SourcePicker';
 import { useExplorer, useExplorerPrefetch } from './useExplorer';
 import { usePositionContext } from './usePositionContext';
+
+/** Whatever went wrong, in the words the source itself used. */
+function describeFailure(error: unknown): string {
+  if (error instanceof DatabaseError) {
+    return `${error.message}${error.remedy ? ` ${error.remedy}` : ''}`;
+  }
+  return error instanceof Error ? error.message : 'The lookup failed.';
+}
 
 /** How far back "recent" reaches, for the theory comparison. */
 const RECENT_WINDOWS = [
@@ -50,6 +64,7 @@ type RecentWindowId = (typeof RECENT_WINDOWS)[number]['id'];
 
 export function ExplorerPanel() {
   const { node, position } = useAnalysisPosition();
+  const { tree, currentId } = useChessWorkspace();
   const prefs = usePreferences();
   const play = useAnalysis((state) => state.play);
   const notify = useUi((state) => state.notify);
@@ -65,7 +80,17 @@ export function ExplorerPanel() {
   const [playerColor, setPlayerColor] = useState<'w' | 'b'>('w');
 
   const providers = useDatabaseProviders();
+  const sources = useSourcesFor('explorer');
   const provider = providers.find((entry) => entry.id === prefs.explorerSourceId) ?? providers[0];
+  /*
+    The source to offer when the chosen one cannot answer: the first installed
+    one that works without a network. On a fresh profile that is the bundled
+    reference, which is the whole point of bundling it — §83's "never blank the
+    explorer" is only possible because there is always something local.
+  */
+  const fallback = sources.find(
+    (source) => source.offline && source.installed && source.id !== provider?.id,
+  );
   const playerFilter = provider?.capabilities.playerFilter ?? false;
 
   const filters = {
@@ -89,6 +114,15 @@ export function ExplorerPanel() {
   useExplorerPrefetch(provider?.id ?? '', node.fen, filters, query.data?.moves);
   const repertoireHere = useRepertoiresAtPosition(positionKey(node.fen));
   const context = usePositionContext(node.fen);
+  /*
+    Kingfisher's own classification first, then whatever the source called it.
+    That order is deliberate: Kingfisher classifies by position from a CC0
+    dataset it replays through its own rules code, and a remote source's name
+    was computed by a different program from a different table. Where both
+    exist they usually agree about the family and disagree about the depth.
+  */
+  const classification = useOpeningClassification(tree, currentId);
+  const opening = classification ?? query.data?.opening;
 
   const evidence = useMemo(() => {
     if (!query.data) return [];
@@ -133,6 +167,15 @@ export function ExplorerPanel() {
 
   const compared = evidence.filter((entry) => selected.includes(entry.uci));
   const total = query.data?.totalGames ?? 0;
+  /*
+    The Recent column appears when there is something recent to show, which is
+    either window the user asked for *or* a source that carries its own. It
+    used to appear only for the first, which meant a reference pack's recent
+    counters — the only recent figure an aggregate can honestly produce — were
+    computed, stored, shipped and never displayed.
+  */
+  const carriedSince = evidence.find((entry) => entry.recentFrom === 'source')?.recentSince;
+  const showRecent = window.years > 0 || carriedSince !== undefined;
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -153,18 +196,36 @@ export function ExplorerPanel() {
       </PanelHeader>
 
       <div className="shrink-0 border-b border-line-subtle px-2.5 py-1.5">
-        <select
-          aria-label="Evidence source"
+        {/*
+          The opening, above the numbers rather than buried in a column. It is
+          the first thing a player wants from a position and the last thing the
+          table gets round to saying.
+        */}
+        <div className="mb-1.5 flex items-baseline gap-1.5">
+          {opening?.eco ? (
+            <span className="shrink-0 rounded-[3px] bg-surface-3 px-1 font-mono text-[10px] text-accent">
+              {opening.eco}
+            </span>
+          ) : null}
+          <span className="min-w-0 truncate text-[11.5px] text-primary">
+            {opening ? opening.name : 'Starting position'}
+          </span>
+          {opening?.variation ? (
+            <span className="min-w-0 truncate text-[10px] text-tertiary">{opening.variation}</span>
+          ) : null}
+          <Link
+            href="/openings"
+            className="ml-auto shrink-0 text-[10px] text-accent underline-offset-2 hover:underline"
+          >
+            Browse openings
+          </Link>
+        </div>
+
+        <SourcePicker
+          sources={sources}
           value={provider?.id ?? ''}
-          onChange={(event) => prefs.set('explorerSourceId', event.target.value)}
-          className="h-6 w-full rounded-[3px] border border-line bg-surface-inset px-1.5 text-[10.5px] text-secondary outline-none focus:border-accent/60"
-        >
-          {providers.map((entry) => (
-            <option key={entry.id} value={entry.id}>
-              {entry.name}
-            </option>
-          ))}
-        </select>
+          onChange={(id) => prefs.set('explorerSourceId', id)}
+        />
         <p className="mt-1 text-[10px] text-tertiary">
           {provider?.description}
           {query.data ? ` · ${total.toLocaleString()} games here` : ''}
@@ -243,7 +304,10 @@ export function ExplorerPanel() {
           </div>
           {!provider?.capabilities.dateFilter && window.years > 0 ? (
             <p className="text-[10px] text-caution">
-              {provider?.name} cannot filter by date, so the recent column repeats the all-time one.
+              {provider?.name} cannot filter by date.
+              {carriedSince !== undefined
+                ? ` It carries its own recent counters instead, covering ${carriedSince} onwards, and that is what the Recent column shows.`
+                : ' The recent column would repeat the all-time one, so it is not shown.'}
             </p>
           ) : null}
         </div>
@@ -255,23 +319,31 @@ export function ExplorerPanel() {
             for `networkMode: 'always'` precisely so this cannot happen, but a
             spinner with no end is bad enough that the panel refuses to render
             one on its own account rather than trusting that setting. */}
-        {query.fetchStatus === 'paused' ? (
+        {query.fetchStatus === 'paused' && fallback ? (
+          <SourceFallback
+            failed={provider?.name ?? 'That source'}
+            fallback={fallback}
+            reason="The browser is reporting no network connection, so the request is on hold. The reference below is on this machine and answers without one."
+            onUse={() => prefs.set('explorerSourceId', fallback.id)}
+          />
+        ) : query.fetchStatus === 'paused' ? (
           <EmptyState
             title="This source is not being queried."
-            description={`The browser is reporting no network connection, so the request to ${provider?.name} is on hold. Choose "My games", which reads this device.`}
+            description={`The browser is reporting no network connection, so the request to ${provider?.name} is on hold.`}
           />
         ) : query.isPending ? (
           <p className="px-3 py-5 text-2xs text-tertiary">Reading {provider?.name}…</p>
+        ) : query.isError && fallback ? (
+          <SourceFallback
+            failed={provider?.name ?? 'That source'}
+            fallback={fallback}
+            reason={describeFailure(query.error)}
+            onUse={() => prefs.set('explorerSourceId', fallback.id)}
+          />
         ) : query.isError ? (
           <EmptyState
             title="No evidence from this source."
-            description={
-              query.error instanceof DatabaseError
-                ? `${query.error.message}${query.error.remedy ? ` ${query.error.remedy}` : ''}`
-                : query.error instanceof Error
-                  ? query.error.message
-                  : 'The lookup failed.'
-            }
+            description={describeFailure(query.error)}
           />
         ) : evidence.length === 0 ? (
           <EmptyState
@@ -288,8 +360,19 @@ export function ExplorerPanel() {
                     <th className="px-1.5 py-1.5 font-medium">Move</th>
                     <th className="px-1.5 py-1.5 text-right font-medium">Games</th>
                     <th className="px-1.5 py-1.5 text-right font-medium">Freq</th>
-                    {window.years > 0 ? (
-                      <th className="px-1.5 py-1.5 text-right font-medium">Recent</th>
+                    {showRecent ? (
+                      <th
+                        className="px-1.5 py-1.5 text-right font-medium"
+                        title={
+                          carriedSince !== undefined && window.years === 0
+                            ? `Games in this source from ${carriedSince} onwards`
+                            : `Games in the last ${window.label.toLowerCase()}`
+                        }
+                      >
+                        {carriedSince !== undefined && window.years === 0
+                          ? `Since ${carriedSince}`
+                          : 'Recent'}
+                      </th>
                     ) : null}
                     <th className="px-1.5 py-1.5 text-right font-medium">Score</th>
                     <th className="px-1.5 py-1.5 text-right font-medium">W</th>
@@ -305,7 +388,7 @@ export function ExplorerPanel() {
                     <Row
                       key={entry.uci}
                       entry={entry}
-                      showRecent={window.years > 0}
+                      showRecent={showRecent}
                       selected={selected.includes(entry.uci)}
                       onToggle={() => toggleSelected(entry.uci)}
                       onPlay={() => playMove(entry.database)}

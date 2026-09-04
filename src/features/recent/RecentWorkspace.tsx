@@ -15,11 +15,23 @@
  * the honest description of what continuing actually is.
  */
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 
-import { Board, Library, Notebook, Pin, Recall, Repertoire } from '@/components/icons';
+import {
+  Board,
+  Library,
+  Notebook,
+  Opening,
+  Pin,
+  Players,
+  Recall,
+  Repertoire,
+  Review,
+  Target,
+} from '@/components/icons';
 import { Button, IconButton } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/Panel';
 import { getRepositories } from '@/persistence/repositories';
@@ -29,8 +41,29 @@ import { usePins, type PinKind } from '@/stores/pins-store';
 import { useUi } from '@/stores/ui-store';
 import { cn } from '@/lib/cn';
 
+import { FirstRun } from './FirstRun';
+
 /** Short enough to scan in one glance; the palette handles everything else. */
 const LIMIT = 6;
+
+/**
+ * The things a session usually starts as.
+ *
+ * Restrained on purpose: six entry points that name an *activity*, not a
+ * feature list. Every one of them works on a fresh profile, which is the
+ * property that makes them worth putting on the first screen.
+ */
+const START_POINTS = [
+  { href: '/analysis', label: 'Analyse a position', icon: Board },
+  { href: '/openings', label: 'Explore an opening', icon: Opening },
+  { href: '/players', label: 'Study elite players', icon: Players },
+  { href: '/games', label: 'My games', icon: Library },
+  { href: '/preparation', label: 'Prepare an opponent', icon: Target },
+  { href: '/review', label: 'Review my decisions', icon: Review },
+] as const;
+
+/** Set once the panel has been dismissed, or once there is real work here. */
+const FIRST_RUN_KEY = 'kingfisher.first-run-done';
 
 export function RecentWorkspace() {
   const router = useRouter();
@@ -39,6 +72,16 @@ export function RecentWorkspace() {
   const notify = useUi((state) => state.notify);
   const pins = usePins((state) => state.pins);
   const togglePin = usePins((state) => state.toggle);
+
+  const [firstRunDone, setFirstRunDone] = useState(() => {
+    try {
+      return localStorage.getItem(FIRST_RUN_KEY) === '1';
+    } catch {
+      // A browser that refuses storage gets the panel every time, which is a
+      // better failure than a crash on the first screen.
+      return false;
+    }
+  });
 
   const data = useQuery({
     queryKey: ['recent-work'],
@@ -118,6 +161,17 @@ export function RecentWorkspace() {
     }
   };
 
+  /*
+    "Nothing yet" is about work, not about data: a fresh profile has a bundled
+    reference and an engine, and neither of those is something to come back to.
+    Games, studies, repertoires and training are.
+  */
+  const hasNothingYet =
+    data.data !== undefined &&
+    data.data.studies.length === 0 &&
+    data.data.repertoires.length === 0 &&
+    data.data.games.length === 0;
+
   const pinned = data.data
     ? pins
         .map((pin) => {
@@ -137,6 +191,26 @@ export function RecentWorkspace() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+      {/*
+        Shown until dismissed, or until there is anything to come back to —
+        whichever happens first. A getting-started panel above a list of your
+        own studies is a panel that has outstayed its welcome.
+      */}
+      {!firstRunDone && hasNothingYet ? (
+        <div className="shrink-0 px-5 pt-5">
+          <FirstRun
+            onDismiss={() => {
+              setFirstRunDone(true);
+              try {
+                localStorage.setItem(FIRST_RUN_KEY, '1');
+              } catch {
+                // Nothing to do: the panel simply comes back next time.
+              }
+            }}
+          />
+        </div>
+      ) : null}
+
       <header className="shrink-0 border-b border-line-subtle px-5 py-5">
         <h1 className="text-xl font-semibold tracking-tight text-primary">Recent work</h1>
         <p className="mt-0.5 text-sm text-secondary">Pick up where you left off.</p>
@@ -155,10 +229,28 @@ export function RecentWorkspace() {
               ? `Chapter in ${document.studyTitle}`
               : document.kind === 'database-game'
                 ? 'A game from your database'
-                : 'Your unsaved analysis'}
+                : document.kind === 'reference-game'
+                  ? `A game from ${document.sourceName}`
+                  : 'Your unsaved analysis'}
             {' · board, position and tools as you left them'}
           </span>
         </div>
+
+        <nav className="mt-4 flex flex-wrap gap-1.5" aria-label="Start something">
+          {START_POINTS.map((entry) => {
+            const Icon = entry.icon;
+            return (
+              <Link
+                key={entry.href}
+                href={entry.href}
+                className="inline-flex h-9 items-center gap-2 rounded-[5px] border border-line px-2.5 text-xs text-secondary transition-colors hover:border-line-strong hover:bg-surface-2 hover:text-primary"
+              >
+                <Icon className="h-4 w-4 shrink-0" />
+                {entry.label}
+              </Link>
+            );
+          })}
+        </nav>
       </header>
 
       <div className="grid min-h-0 flex-1 gap-5 p-5 md:grid-cols-2 xl:grid-cols-3">

@@ -25,6 +25,18 @@ export interface MoveEvidence {
   /** Frequency in the recent window, when one was asked for. */
   readonly recentFrequency?: number;
   readonly recentGames?: number;
+  /**
+   * The year the recent window starts at, and where it came from.
+   *
+   * `filter` means a second query with a date filter, which only a source that
+   * can filter by date can answer. `source` means the source carried its own
+   * recent counters — a position aggregate cannot be sliced by date, but it
+   * can be *built* with a second set of counters, which is what a reference
+   * pack does. The distinction is shown, because "recent" means a different
+   * window in the two cases.
+   */
+  readonly recentSince?: number;
+  readonly recentFrom?: 'filter' | 'source';
   /** How this move ranks in the engine's current lines, if it appears. */
   readonly engineRank?: number;
   readonly engineScore?: EngineAnalysis['lines'][number]['score'];
@@ -72,8 +84,39 @@ export function buildMoveEvidence(options: {
       .map((line) => [line.moves[0] as Uci, line]),
   );
 
+  /*
+    Two ways a source can answer "and how recently". A second filtered query is
+    the strong form, and only sources that can filter by date can serve it. A
+    source that cannot may still carry counters built alongside its totals —
+    which is what a reference pack does, and is the only honest way an
+    aggregate can answer the question at all. The filtered answer wins where
+    both exist, because the user chose its window.
+  */
+  const recentOf = (
+    move: DatabaseMove,
+    filtered: DatabaseMove | undefined,
+    total: number,
+  ): Partial<MoveEvidence> => {
+    if (filtered && total > 0) {
+      return {
+        recentFrequency: filtered.games / total,
+        recentGames: filtered.games,
+        recentFrom: 'filter',
+      };
+    }
+    const carried = move.recent;
+    if (!carried || sourceRecentTotal === 0) return {};
+    return {
+      recentFrequency: carried.games / sourceRecentTotal,
+      recentGames: carried.games,
+      recentSince: carried.sinceYear,
+      recentFrom: 'source',
+    };
+  };
+
+  const sourceRecentTotal = result.moves.reduce((sum, move) => sum + (move.recent?.games ?? 0), 0);
+
   return result.moves.map((move) => {
-    const recentMove = recentByMove.get(move.uci);
     const personalMove = personalByMove.get(move.uci);
     const engineLine = engineByMove.get(move.uci);
     const repertoireMove = repertoire?.moves.find((entry) => entry.uci === move.uci);
@@ -84,9 +127,7 @@ export function buildMoveEvidence(options: {
       database: move,
       frequency: move.games / total,
       score: moveScore(move, sideToMove),
-      ...(recentMove && recentTotal > 0
-        ? { recentFrequency: recentMove.games / recentTotal, recentGames: recentMove.games }
-        : {}),
+      ...recentOf(move, recentByMove.get(move.uci), recentTotal),
       ...(engineLine ? { engineRank: engineLine.rank, engineScore: engineLine.score } : {}),
       ...(repertoireMove
         ? {
