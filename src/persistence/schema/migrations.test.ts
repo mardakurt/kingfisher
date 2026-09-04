@@ -67,7 +67,17 @@ describe('schema migrations', () => {
     applyMigrations(target, 0, DATABASE_VERSION);
 
     expect([...stores.keys()].sort()).toEqual([...Object.values(STORE_NAMES)].sort());
-    for (const store of stores.values()) expect(store.options.keyPath).toBe('id');
+    /*
+      Every store is keyed by a single `id`, with one exception: a reference
+      pack's chunks are identified by the pack they belong to *and* their name,
+      so that removing a pack can delete its chunks by range rather than by
+      remembering which ones it wrote.
+    */
+    for (const [name, store] of stores) {
+      expect(store.options.keyPath).toEqual(
+        name === STORE_NAMES.referenceChunks ? ['packId', 'chunkId'] : 'id',
+      );
+    }
   });
 
   it('indexes the lookups the repositories actually perform', () => {

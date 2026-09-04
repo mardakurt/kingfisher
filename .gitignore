@@ -30,3 +30,5 @@ public/brandlab/
 # own projects; `npm run engines:install` fetches them on demand.
 engines/
 companion/data/
+.archive-cache/
+.packs/

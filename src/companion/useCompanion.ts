@@ -44,7 +44,7 @@ export function useCompanionSync(): void {
   const status = useCompanionStatus();
   const databases = status.data?.databases;
   useEffect(() => {
-    setDynamicDatabaseProviders(databases ? sqliteProvidersFrom(databases) : []);
+    setDynamicDatabaseProviders('companion', databases ? sqliteProvidersFrom(databases) : []);
   }, [databases]);
 
   // Custom engines registered through Settings → Companion likewise appear in

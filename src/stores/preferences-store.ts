@@ -95,7 +95,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   engineThreads: 1,
   engineHashMb: 64,
   engineLimit: { kind: 'infinite' },
-  explorerSourceId: 'lichess-masters',
+  explorerSourceId: 'kingfisher-starter',
   explorerMinRating: null,
   explorerSinceYear: null,
   enginePreset: 'standard',

@@ -9,6 +9,7 @@ import { MoveContextMenu } from '@/features/movetree/MoveContextMenu';
 import { useWorkspacePersistence } from '@/features/persistence/useWorkspacePersistence';
 import { ShortcutsDialog } from '@/features/shell/ShortcutsDialog';
 import { useCompanionSync } from '@/companion/useCompanion';
+import { useReferenceSources } from '@/reference/use-references';
 import { useUi } from '@/stores/ui-store';
 import { useWorkspaceLayout } from '@/stores/workspace-layout-store';
 
@@ -74,6 +75,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   useGlobalHotkeys();
   useWorkspacePersistence();
   useCompanionSync();
+  // Brings the bundled reference up on a fresh profile, so the explorer has
+  // evidence before anybody imports or connects anything.
+  useReferenceSources();
   const sidebarOpen = useUi((state) => state.sidebarOpen);
   const focusMode = useWorkspaceLayout((state) => state.focusMode);
   const setFocusMode = useWorkspaceLayout((state) => state.setFocusMode);

@@ -46,6 +46,24 @@ export interface DatabaseMove {
   readonly notablePlayers?: readonly string[];
   /** Most recent year the move appears, for spotting revivals. */
   readonly lastPlayedYear?: number;
+  /**
+   * The same counts over a recent window the *source* defines.
+   *
+   * Present only when a source can state a recent split as a fact rather than
+   * as a second filtered query — a position aggregate cannot be sliced by date
+   * (ADR 0023), but it can carry a second set of counters that were built with
+   * it. Absent means "this source does not know", never "nothing recent".
+   */
+  readonly recent?: RecentSplit;
+}
+
+/** Counts restricted to games from `sinceYear` onwards. */
+export interface RecentSplit {
+  readonly sinceYear: number;
+  readonly games: number;
+  readonly white: number;
+  readonly draws: number;
+  readonly black: number;
 }
 
 export interface ExplorerResult {

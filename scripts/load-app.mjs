@@ -25,7 +25,9 @@ export async function loadApp(specifiers) {
     configFile: false,
     appType: 'custom',
     logLevel: 'error',
-    server: { middlewareMode: true, watch: null },
+    // `hmr: false` matters when several workers boot Vite at once: each
+    // would otherwise try to open the same WebSocket port and log a failure.
+    server: { middlewareMode: true, watch: null, hmr: false },
     resolve: {
       alias: { '@': fileURLToPath(new URL('../src', import.meta.url)) },
     },

@@ -1,5 +1,5 @@
 export const DATABASE_NAME = 'kingfisher';
-export const DATABASE_VERSION = 14;
+export const DATABASE_VERSION = 15;
 
 export const STORE_NAMES = {
   studies: 'studies',
@@ -27,6 +27,8 @@ export const STORE_NAMES = {
   linkedAccounts: 'linkedAccounts',
   sourceSets: 'sourceSets',
   playerIdentities: 'playerIdentities',
+  referencePacks: 'referencePacks',
+  referenceChunks: 'referenceChunks',
 } as const;
 
 export type StoreName = (typeof STORE_NAMES)[keyof typeof STORE_NAMES];
@@ -392,6 +394,30 @@ export const MIGRATIONS: readonly Migration[] = [
       target.createStore(STORE_NAMES.playerIdentities, { keyPath: 'id' }, [
         { name: 'aliases', keyPath: 'aliasKeys', multiEntry: true },
         { name: 'updatedAt', keyPath: 'updatedAt' },
+      ]);
+    },
+  },
+  {
+    version: 15,
+    description: 'Add installed reference packs, and the compressed chunks they are made of.',
+    apply(target) {
+      /*
+        Two stores rather than one, because a pack's manifest and its data have
+        opposite access patterns. The manifest is small, read on every start,
+        and is what the catalog lists; the chunks are hundreds of records of a
+        few hundred kilobytes each, read one at a time and never enumerated.
+        Keeping them apart means opening the catalog does not touch a megabyte.
+
+        Chunks are stored exactly as they were downloaded — gzip, unmodified —
+        so the digest in the manifest still describes the bytes on disk. That
+        is what makes an integrity check possible at any time rather than only
+        during installation.
+      */
+      target.createStore(STORE_NAMES.referencePacks, { keyPath: 'id' }, [
+        { name: 'installedAt', keyPath: 'installedAt' },
+      ]);
+      target.createStore(STORE_NAMES.referenceChunks, { keyPath: ['packId', 'chunkId'] }, [
+        { name: 'packId', keyPath: 'packId' },
       ]);
     },
   },
