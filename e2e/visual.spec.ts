@@ -87,13 +87,13 @@ async function settle(page: Page) {
 }
 
 /** Turn animation off through the product's own preference. */
-async function calmPreferences(page: Page) {
-  await page.addInitScript(() => {
+async function calmPreferences(page: Page, theme: 'dark' | 'light' = 'dark') {
+  await page.addInitScript((selectedTheme) => {
     const raw = window.localStorage.getItem('kingfisher.preferences');
     const parsed = raw ? JSON.parse(raw) : { state: {}, version: 0 };
-    parsed.state = { ...parsed.state, animationSpeed: 'off', theme: 'dark' };
+    parsed.state = { ...parsed.state, animationSpeed: 'off', theme: selectedTheme };
     window.localStorage.setItem('kingfisher.preferences', JSON.stringify(parsed));
-  });
+  }, theme);
 }
 
 interface Shot {
@@ -101,15 +101,21 @@ interface Shot {
   readonly route: string;
   readonly width: number;
   readonly height: number;
+  readonly theme?: 'dark' | 'light';
 }
 
 const SHOTS: readonly Shot[] = [
   { name: 'analysis-desktop', route: '/analysis', width: 1440, height: 900 },
+  { name: 'analysis-light', route: '/analysis', width: 1440, height: 900, theme: 'light' },
+  { name: 'analysis-laptop', route: '/analysis', width: 1280, height: 720 },
+  { name: 'analysis-large', route: '/analysis', width: 1920, height: 1080 },
   { name: 'analysis-compact', route: '/analysis', width: 1024, height: 720 },
   { name: 'analysis-mobile', route: '/analysis', width: 390, height: 844 },
+  { name: 'openings', route: '/openings', width: 1440, height: 900 },
   { name: 'studies', route: '/studies', width: 1440, height: 900 },
   { name: 'repertoire', route: '/repertoire', width: 1440, height: 900 },
   { name: 'preparation', route: '/preparation', width: 1440, height: 900 },
+  { name: 'players', route: '/players', width: 1440, height: 900 },
   { name: 'databases', route: '/databases', width: 1440, height: 900 },
   { name: 'games', route: '/games', width: 1440, height: 900 },
   { name: 'endgame', route: '/endgame', width: 1440, height: 900 },
@@ -137,7 +143,7 @@ test.describe(() => {
 
   for (const shot of SHOTS) {
     test(`${shot.name} looks the way it is supposed to`, async ({ page }) => {
-      await calmPreferences(page);
+      await calmPreferences(page, shot.theme);
       await page.setViewportSize({ width: shot.width, height: shot.height });
       await page.goto(shot.route);
       await settle(page);
@@ -160,6 +166,7 @@ test.describe(() => {
         // The status bar carries a clock and a live save state, which change
         // between runs without anything having regressed.
         mask: [page.locator('footer')],
+        maskColor: shot.theme === 'light' ? '#f3f1ed' : '#071827',
       });
     });
   }
@@ -171,12 +178,70 @@ test.describe(() => {
     await settle(page);
     await page.getByRole('button', { name: 'Settings ⌘,' }).click();
     await expect(page.getByRole('dialog', { name: 'Settings' })).toBeVisible();
+    await page.getByRole('tab', { name: 'Board', exact: true }).click();
+    await expect(page.locator('[data-mini-board="board-preview"]')).toBeVisible();
     await settle(page);
 
     await expect(page.getByRole('dialog', { name: 'Settings' })).toHaveScreenshot('settings.png', {
       maxDiffPixelRatio: 0.02,
       animations: 'disabled',
       caret: 'hide',
+    });
+  });
+
+  test('the calculation tool looks the way it is supposed to', async ({ page }) => {
+    await calmPreferences(page);
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/analysis');
+    await settle(page);
+    await page.getByRole('button', { name: /More/ }).first().click();
+    await page.getByRole('menuitem', { name: 'Calculation' }).click();
+    await expect(page.getByRole('button', { name: 'Start calculation' })).toBeVisible();
+    await settle(page);
+
+    await expect(page).toHaveScreenshot('calculation-concealed.png', {
+      fullPage: false,
+      maxDiffPixelRatio: 0.02,
+      animations: 'disabled',
+      caret: 'hide',
+      mask: [page.locator('footer')],
+      maskColor: '#071827',
+    });
+  });
+
+  test('position setup uses the board visual system', async ({ page }) => {
+    await calmPreferences(page);
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/analysis');
+    await settle(page);
+    await page.getByRole('button', { name: 'Position actions' }).click();
+    await page.getByRole('menuitem', { name: 'Set up position…' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Set up position' });
+    await expect(dialog).toBeVisible();
+    await settle(page);
+    await expect(dialog).toHaveScreenshot('position-setup.png', {
+      maxDiffPixelRatio: 0.02,
+      animations: 'disabled',
+      caret: 'hide',
+    });
+  });
+
+  test('play from here stays subordinate to the main board', async ({ page }) => {
+    await calmPreferences(page);
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/analysis');
+    await settle(page);
+    await page.getByRole('button', { name: 'Position actions' }).click();
+    await page.getByRole('menuitem', { name: 'Play from this position' }).click();
+    await expect(page.getByRole('button', { name: 'Start practice' })).toBeVisible();
+    await settle(page);
+    await expect(page).toHaveScreenshot('play-from-here.png', {
+      fullPage: false,
+      maxDiffPixelRatio: 0.02,
+      animations: 'disabled',
+      caret: 'hide',
+      mask: [page.locator('footer')],
+      maskColor: '#071827',
     });
   });
 });

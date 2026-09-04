@@ -20,6 +20,7 @@ const FLOORS = [
   { width: 1366, height: 768, board: 490 },
   { width: 1440, height: 900, board: 560 },
   { width: 1920, height: 1080, board: 650 },
+  { width: 2560, height: 1440, board: 760 },
 ] as const;
 
 /** Routes whose whole purpose is a board, and which therefore must be measured. */
@@ -41,6 +42,7 @@ const boardSize = (page: Page) =>
 test('the board is large on every display a workstation runs on', async ({ page }) => {
   test.setTimeout(300_000);
   const tooSmall: string[] = [];
+  const measurements: string[] = [];
 
   for (const floor of FLOORS) {
     await page.setViewportSize({ width: floor.width, height: floor.height });
@@ -49,6 +51,7 @@ test('the board is large on every display a workstation runs on', async ({ page 
       await ready(page);
       await page.waitForTimeout(500);
       const size = await boardSize(page);
+      measurements.push(`${floor.width}x${floor.height} ${route} ${size}px`);
       if (size < floor.board) {
         tooSmall.push(
           `${floor.width}x${floor.height} ${route}: board ${size}px, floor ${floor.board}px`,
@@ -58,6 +61,10 @@ test('the board is large on every display a workstation runs on', async ({ page 
   }
 
   expect(tooSmall).toEqual([]);
+  await test.info().attach('board-measurements.txt', {
+    body: measurements.join('\n'),
+    contentType: 'text/plain',
+  });
 });
 
 test('the board stays square, and never overflows its column', async ({ page }) => {
