@@ -11,11 +11,16 @@ import { EmptyState, PanelBody, PanelHeader } from '@/components/ui/Panel';
 import { databaseProviderById } from '@/database/registry';
 import { useAnalysisPosition } from '@/features/analysis/useAnalysisPosition';
 import { getRepositories } from '@/persistence/repositories';
+import { useAnalysis } from '@/stores/analysis-store';
 import { usePreferences } from '@/stores/preferences-store';
 import { useUi } from '@/stores/ui-store';
+import { openingLabel } from '@/theory/openings';
+import { useOpeningClassification } from '@/theory/useOpeningClassification';
 import { cn } from '@/lib/cn';
 
+import { printReport } from './print';
 import { buildPositionReport, reportToMarkdown, type PositionReport } from './report';
+import { SaveReportDialog } from './SaveReportDialog';
 
 /**
  * The one-click report for the position on the board.
@@ -31,6 +36,13 @@ import { buildPositionReport, reportToMarkdown, type PositionReport } from './re
  */
 export function PositionReportPanel() {
   const { node } = useAnalysisPosition();
+  const documentTitle = useAnalysis((state) => state.document.title);
+  const orientation = useAnalysis((state) => state.orientation);
+  const [saving, setSaving] = useState(false);
+  const opening = useOpeningClassification(
+    useAnalysis((state) => state.tree),
+    useAnalysis((state) => state.currentId),
+  );
   const fen = node.fen;
   const key = useMemo(() => positionKey(fen), [fen]);
   const sourceId = usePreferences((state) => state.explorerSourceId);
@@ -117,9 +129,28 @@ export function PositionReportPanel() {
     <div className="flex h-full flex-col">
       <PanelHeader
         actions={
-          <Button onClick={() => void copy()} disabled={!report.data}>
-            {copied ? 'Copied' : 'Copy Markdown'}
-          </Button>
+          <div className="flex gap-1">
+            <Button size="sm" onClick={() => void copy()} disabled={!report.data}>
+              {copied ? 'Copied' : 'Copy'}
+            </Button>
+            <Button
+              size="sm"
+              disabled={!report.data}
+              onClick={() =>
+                report.data &&
+                printReport(report.data, {
+                  context: documentTitle,
+                  orientation,
+                  opening: opening ? { eco: opening.eco, label: openingLabel(opening) } : null,
+                })
+              }
+            >
+              Print
+            </Button>
+            <Button size="sm" disabled={!report.data} onClick={() => setSaving(true)}>
+              Save to study
+            </Button>
+          </div>
         }
       >
         Position report
@@ -176,6 +207,13 @@ export function PositionReportPanel() {
           </div>
         )}
       </PanelBody>
+      {saving && report.data ? (
+        <SaveReportDialog
+          report={report.data}
+          context={documentTitle}
+          onClose={() => setSaving(false)}
+        />
+      ) : null}
     </div>
   );
 }

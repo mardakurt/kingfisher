@@ -479,6 +479,36 @@ const percent = (part: number, whole: number): string =>
  * sources is exactly the "database says" claim §38 forbids, so every section
  * carries its citation into the text.
  */
+/**
+ * The report as a note to store beside a position, rather than to read now.
+ *
+ * The difference from `reportToMarkdown` is one paragraph, and it is the whole
+ * point of having a second function: a report copied to a clipboard is read
+ * within a minute of being made, and a report saved into a study is read in six
+ * months. What was a live measurement then has to still look like one now.
+ *
+ * So the stored form says when it was taken and that its figures were
+ * measurements at that moment. Anything else turns a snapshot of an explorer
+ * into a standing claim about the position, which is exactly the failure ADR
+ * 0037 exists to prevent.
+ */
+export function reportToStoredNote(report: PositionReport, context?: string): string {
+  const when = new Date(report.generatedAt);
+  return [
+    `# Position report — recorded ${when.toISOString().slice(0, 16).replace('T', ' ')}`,
+    '',
+    context ? `Taken from: ${context}` : '',
+    '',
+    'These figures were measured when this note was written. Reference counts,',
+    'engine evidence and online statistics change; nothing below is a standing',
+    'fact about the position, and every section names where it came from.',
+    '',
+    reportToMarkdown(report).replace(/^# Position report\n/, ''),
+  ]
+    .filter((line, index, all) => !(line === '' && all[index - 1] === ''))
+    .join('\n');
+}
+
 export function reportToMarkdown(report: PositionReport): string {
   const lines: string[] = [
     '# Position report',
