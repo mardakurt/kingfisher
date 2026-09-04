@@ -72,12 +72,55 @@ function publish(): void {
 
   snapshot = {
     loaded: true,
-    sources: CATALOG_PACKS.map((catalog) => describe(catalog, installed, snapshot.progress)),
+    sources: describeAll(installed, snapshot.progress),
     progress: snapshot.progress,
     errors: snapshot.errors,
   };
   emit();
 }
+
+/**
+ * The catalog rows, which is the known packs *plus* anything installed that
+ * this build has never heard of.
+ *
+ * The second half matters: a pack installed from a URL is as real as one from
+ * the catalog, and so is one from a catalog entry a later build dropped. A
+ * source that is holding a hundred megabytes of a user's disk and answering
+ * their queries must appear in the list that says what is installed.
+ */
+function describeAll(
+  packs: readonly InstalledPack[],
+  progress: Readonly<Record<string, InstallProgress>>,
+): readonly ReferenceSource[] {
+  const known = new Set(CATALOG_PACKS.map((pack) => pack.id));
+  const rows = CATALOG_PACKS.map((catalog) => describe(catalog, packs, progress));
+  for (const pack of packs) {
+    if (known.has(pack.id)) continue;
+    rows.push(describe(fromManifest(pack), packs, progress));
+  }
+  return rows;
+}
+
+/** A catalog entry recovered from a pack nobody declared, so it can be listed. */
+const fromManifest = (pack: InstalledPack): CatalogPack => ({
+  id: pack.id,
+  name: pack.manifest.name,
+  description: pack.manifest.description,
+  manifestUrl: '',
+  bundled: false,
+  capabilities: [
+    'explorer',
+    'games',
+    'player-search',
+    'player-profiles',
+    'position-report',
+    'model-games',
+    'preparation',
+  ],
+  approximateBytes: pack.manifest.compressedBytes,
+  license: pack.manifest.license,
+  origin: pack.manifest.provenance.source,
+});
 
 function describe(
   catalog: CatalogPack,
@@ -147,10 +190,7 @@ const setProgress = (id: string, progress: InstallProgress | null) => {
   if (progress) next[id] = progress;
   else delete next[id];
   snapshot = { ...snapshot, progress: next };
-  snapshot = {
-    ...snapshot,
-    sources: CATALOG_PACKS.map((catalog) => describe(catalog, installed, next)),
-  };
+  snapshot = { ...snapshot, sources: describeAll(installed, next) };
   emit();
 };
 
@@ -170,7 +210,7 @@ const setError = (id: string, message: string | null) => {
  * the row rather than raised into the console.
  */
 export async function startInstall(id: string): Promise<boolean> {
-  const catalog = catalogPack(id);
+  const catalog = catalogPack(id) ?? customPacks.get(id);
   if (!catalog || controllers.has(id)) return false;
   const store = await referencePackStore();
   const controller = new AbortController();
@@ -237,6 +277,59 @@ export async function checkForPackUpdates(): Promise<void> {
   publish();
 }
 
+/**
+ * Packs installed from a URL the user supplied.
+ *
+ * Kept so that an update, a retry after a failure, or a resume can find the
+ * manifest again. Not persisted: the *pack* is durable, and the URL it came
+ * from is only needed while this session is still installing from it.
+ */
+const customPacks = new Map<string, CatalogPack>();
+
+/**
+ * Install a pack from any URL that serves a Kingfisher manifest.
+ *
+ * The advanced path, and the honest one. Kingfisher's own published packs live
+ * on a release of this repository; anyone hosting a pack of their own, or
+ * building one with `scripts/build-reference-pack.mjs` and serving the
+ * directory, installs it here. The verification is identical either way —
+ * every chunk is checked against the digest in the manifest, and a pack that
+ * fails leaves nothing behind.
+ */
+export async function installFromUrl(url: string): Promise<{ ok: boolean; message: string }> {
+  try {
+    const manifest = await fetchManifest(url);
+    customPacks.set(manifest.id, {
+      id: manifest.id,
+      name: manifest.name,
+      description: manifest.description,
+      manifestUrl: url,
+      bundled: false,
+      capabilities: [
+        'explorer',
+        'games',
+        'player-search',
+        'player-profiles',
+        'position-report',
+        'model-games',
+        'preparation',
+      ],
+      approximateBytes: manifest.compressedBytes,
+      license: manifest.license,
+      origin: manifest.provenance.source,
+    });
+    const installed = await startInstall(manifest.id);
+    return installed
+      ? { ok: true, message: `${manifest.name} installed.` }
+      : { ok: false, message: snapshot.errors[manifest.id] ?? 'The pack was not installed.' };
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : 'That URL did not serve a pack manifest.',
+    };
+  }
+}
+
 let started: Promise<void> | null = null;
 
 /**
@@ -271,6 +364,7 @@ export function readyPackReaders(): readonly PackReader[] {
 
 export function resetReferenceManagerForTests(): void {
   snapshot = EMPTY;
+  customPacks.clear();
   readers.clear();
   controllers.clear();
   installed = [];

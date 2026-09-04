@@ -114,7 +114,7 @@ async function main() {
     */
     if (!existing || moves.length < existing.plies) {
       const { name, variation } = splitName(row.full);
-      entries.set(key, { eco: row.eco, name, variation, plies: moves.length });
+      entries.set(key, { eco: row.eco, name, variation, plies: moves.length, moves });
     }
   }
 
@@ -133,6 +133,16 @@ async function main() {
     const label = entry.variation ? `${entry.name}: ${entry.variation}` : entry.name;
     return `  '${key}': [${idFor(entry.eco)}, ${idFor(label)}, ${entry.plies}],`;
   });
+  /*
+    The move list, as well as the name.
+
+    Classification only ever needed the position key, so the first version of
+    this file threw the moves away. An opening *library* cannot: browsing to
+    "Najdorf, English Attack" has to be able to put the line on the board, and
+    recomputing it would mean shipping the TSV to the browser. Kept as SAN
+    because that is what a reader wants to see beside the name.
+  */
+  const lines = sorted.map(([key, entry]) => `  '${key}': '${entry.moves.join(' ')}',`);
 
   const source = [
     '/**',
@@ -156,6 +166,11 @@ async function main() {
     '',
     'export const OPENING_POSITIONS: Readonly<Record<string, readonly [number, number, number]>> = {',
     ...packed,
+    '};',
+    '',
+    '/** The dataset’s own shortest line to each position, in SAN. */',
+    'export const OPENING_LINES: Readonly<Record<string, string>> = {',
+    ...lines,
     '};',
     '',
   ].join('\n');

@@ -21,7 +21,13 @@ import { Check, ChevronDown, ChevronUp, Download, Info, Trash, Warning } from '@
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Toggle } from '@/components/ui/Toggle';
-import { cancelInstall, checkForPackUpdates, removePack, startInstall } from '@/reference/manager';
+import {
+  cancelInstall,
+  checkForPackUpdates,
+  installFromUrl,
+  removePack,
+  startInstall,
+} from '@/reference/manager';
 import { useDataSources, useSourceActions } from '@/reference/sources';
 import { useReferenceSources } from '@/reference/use-references';
 import {
@@ -60,6 +66,9 @@ export function ReferenceCatalogPanel() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [removing, setRemoving] = useState<ReferenceSource | null>(null);
   const [checking, setChecking] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [url, setUrl] = useState('');
+  const [installing, setInstalling] = useState(false);
 
   const order = sources.map((source) => source.id);
 
@@ -73,9 +82,11 @@ export function ReferenceCatalogPanel() {
             never merged: a statistic names the source it came from.
           </p>
         </div>
+        <Button variant="subtle" className="ml-auto" onClick={() => setAdding((open) => !open)}>
+          Install from a URL
+        </Button>
         <Button
           variant="subtle"
-          className="ml-auto"
           disabled={checking}
           onClick={async () => {
             setChecking(true);
@@ -87,6 +98,46 @@ export function ReferenceCatalogPanel() {
           {checking ? 'Checking…' : 'Check for updates'}
         </Button>
       </div>
+
+      {adding ? (
+        <form
+          className="shrink-0 border-b border-line-subtle bg-surface-2 px-4 py-3"
+          onSubmit={async (event) => {
+            event.preventDefault();
+            setInstalling(true);
+            const result = await installFromUrl(url.trim());
+            setInstalling(false);
+            notify({ tone: result.ok ? 'success' : 'error', message: result.message });
+            if (result.ok) {
+              setUrl('');
+              setAdding(false);
+            }
+          }}
+        >
+          <label className="block text-xs text-secondary" htmlFor="pack-url">
+            Address of a pack’s <code className="font-mono">manifest.json</code>
+          </label>
+          <p className="mt-0.5 mb-2 text-[11px] text-tertiary">
+            Any host that serves a Kingfisher pack. Every chunk is checked against the digest in the
+            manifest, exactly as for a catalog pack, and a pack that fails verification leaves
+            nothing installed.
+          </p>
+          <div className="flex gap-2">
+            <input
+              id="pack-url"
+              type="url"
+              required
+              value={url}
+              onChange={(event) => setUrl(event.target.value)}
+              placeholder="https://example.org/kingfisher-pack/manifest.json"
+              className="h-8 flex-1 rounded-[4px] border border-line bg-surface-1 px-2 text-xs text-primary placeholder:text-tertiary focus:border-accent focus:outline-none"
+            />
+            <Button type="submit" disabled={installing}>
+              {installing ? 'Installing…' : 'Install'}
+            </Button>
+          </div>
+        </form>
+      ) : null}
 
       <ul className="min-h-0 flex-1 divide-y divide-line-subtle overflow-auto">
         {sources.map((source, index) => {

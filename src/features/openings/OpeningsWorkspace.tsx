@@ -1,15 +1,35 @@
 'use client';
 
+/**
+ * The Openings route, in two modes.
+ *
+ * *Explorer* is the board: a position, and the evidence about it. *Library* is
+ * the index: 3,810 named openings you can search by code, name, nickname,
+ * moves or position, without knowing the line first.
+ *
+ * They are one route rather than two because they are one activity — you look
+ * something up in order to put it on the board — and the switch keeps the
+ * board's workspace mounted underneath, so going back does not lose the line
+ * you were in the middle of.
+ */
+
+import { useState } from 'react';
+
 import { Opening, Plus, Search, Settings } from '@/components/icons';
+import { Segmented } from '@/components/ui/Tabs';
 import { Button, IconButton } from '@/components/ui/Button';
 import { CanonicalBoardSurface } from '@/features/workspace/CanonicalBoardSurface';
 import { WorkspaceLowerPanel } from '@/features/workspace/WorkspaceLowerPanel';
 import { WorkspaceToolDock } from '@/features/workspace/WorkspaceToolDock';
 import { NavButton } from '@/features/shell/NavButton';
+import { OpeningLibrary } from './OpeningLibrary';
 import { useAnalysis } from '@/stores/analysis-store';
 import { useUi } from '@/stores/ui-store';
 
+type Mode = 'library' | 'explorer';
+
 export function OpeningsWorkspace() {
+  const [mode, setMode] = useState<Mode>('library');
   const newGame = useAnalysis((state) => state.newGame);
   const toggleCommandPalette = useUi((state) => state.toggleCommandPalette);
   const setSettingsOpen = useUi((state) => state.setSettingsOpen);
@@ -20,14 +40,27 @@ export function OpeningsWorkspace() {
         <NavButton />
         <Opening className="h-5 w-5 shrink-0 text-accent" />
         <div className="min-w-0">
-          <h1 className="text-sm font-semibold text-primary">Opening Explorer</h1>
+          <h1 className="text-sm font-semibold text-primary">Openings</h1>
           <p className="hidden truncate text-xs text-tertiary sm:block">
-            Research one source at a time; compare database, engine and repertoire evidence.
+            {mode === 'library'
+              ? 'Every named opening, searchable by code, name, moves or position.'
+              : 'Research one source at a time; compare database, engine and repertoire evidence.'}
           </p>
         </div>
-        <Button icon={<Plus />} className="ml-auto" onClick={() => newGame()}>
-          New line
-        </Button>
+        <Segmented
+          className="ml-auto"
+          items={[
+            { id: 'library', label: 'Library' },
+            { id: 'explorer', label: 'Explorer' },
+          ]}
+          value={mode}
+          onChange={setMode}
+        />
+        {mode === 'explorer' ? (
+          <Button icon={<Plus />} onClick={() => newGame()}>
+            New line
+          </Button>
+        ) : null}
         <button
           type="button"
           onClick={toggleCommandPalette}
@@ -41,16 +74,20 @@ export function OpeningsWorkspace() {
           <Settings />
         </IconButton>
       </header>
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto wide:flex-row wide:overflow-hidden">
-        <section className="flex min-h-0 min-w-0 flex-1 flex-col">
-          <CanonicalBoardSurface
-            mode="interactive"
-            className="min-h-[560px] min-w-0 flex-1 px-3 py-4 sm:px-5 wide:min-h-0"
-          />
-          <WorkspaceLowerPanel workspace="openings" />
-        </section>
-        <WorkspaceToolDock workspace="openings" />
-      </div>
+      {mode === 'library' ? (
+        <OpeningLibrary />
+      ) : (
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto wide:flex-row wide:overflow-hidden">
+          <section className="flex min-h-0 min-w-0 flex-1 flex-col">
+            <CanonicalBoardSurface
+              mode="interactive"
+              className="min-h-[560px] min-w-0 flex-1 px-3 py-4 sm:px-5 wide:min-h-0"
+            />
+            <WorkspaceLowerPanel workspace="openings" />
+          </section>
+          <WorkspaceToolDock workspace="openings" />
+        </div>
+      )}
     </div>
   );
 }

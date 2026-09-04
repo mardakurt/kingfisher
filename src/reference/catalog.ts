@@ -94,9 +94,13 @@ export const CATALOG_PACKS: readonly CatalogPack[] = [
       'model-games',
       'preparation',
     ],
-    approximateBytes: 260_000_000,
+    approximateBytes: 113_000_000,
     license: LICHESS_BROADCAST_LICENSE,
-    origin: 'Built from the whole Lichess broadcast archive, 2020 to the present.',
+    origin:
+      'Built from the whole Lichess broadcast archive, 2020 to the present: ' +
+      '422,059 games, 249,245 full scores, 684,269 positions, 34,114 players. ' +
+      'Published as assets of this repository’s reference-elite-v1 release, ' +
+      'which are downloadable only while that repository is public.',
   },
 ];
 
