@@ -399,14 +399,21 @@ test('SQLite selection deletion updates exact counts and passes integrity', asyn
   await ready(page);
   await page.getByRole('button', { name: /Phase 8 deletion E2E/ }).click();
   await expect(page.getByText('exact match count 2')).toBeVisible();
-  await page.getByRole('checkbox').first().check();
+  /*
+    Scoped to the game list. Phase 12's database control centre put selection
+    checkboxes in the collection list too — for cross-collection search and
+    duplicate detection — so an unscoped `first()` now ticks a collection
+    rather than a game, and the delete button never enables.
+  */
+  const gameList = page.locator('label').filter({ has: page.getByRole('checkbox') });
+  await gameList.filter({ hasText: '–' }).first().getByRole('checkbox').check();
   await page.getByRole('button', { name: 'Delete selected (1)' }).click();
   const confirmation = page.getByRole('dialog', { name: 'Delete SQLite games?' });
   await expect(confirmation.getByText(/one transaction/)).toBeVisible();
   await confirmation.getByRole('button', { name: 'Delete permanently' }).click();
   await expect(page.getByText('exact match count 1')).toBeVisible({ timeout: 30_000 });
   await page.getByRole('button', { name: 'Run integrity check' }).click();
-  await expect(page.getByText(/Integrity healthy/)).toBeVisible();
+  await expect(page.getByText(/Aggregates agree with the source rows/)).toBeVisible();
 
   await page.getByRole('button', { name: 'Delete collection' }).click();
   await page

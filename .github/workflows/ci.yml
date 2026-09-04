@@ -21,6 +21,8 @@ on:
     branches: [master]
   pull_request:
     branches: [master]
+  # For the visual-baselines job below, which is generated on demand.
+  workflow_dispatch:
 
 # A new push to the same branch makes the previous run irrelevant.
 concurrency:
@@ -82,6 +84,32 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  # Visual baselines are per-platform, because Chromium rasterises text
+  # differently on macOS and on Linux by far more than any tolerance that would
+  # still catch a moved panel. This job generates the Linux set and uploads it,
+  # so committing them is a download rather than a chore. It does not gate:
+  # until the Linux baselines are in the repository the visual suite skips on
+  # Linux and says so, and a skip must never be able to fail a release.
+  visual-baselines:
+    name: Visual baselines (Linux)
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium chrome
+      - name: Generate baselines
+        run: npm run visual:baselines
+      - uses: actions/upload-artifact@v4
+        with:
+          name: visual-baselines-linux
+          path: e2e/visual.spec.ts-snapshots/
 
   e2e:
     name: Browser tests

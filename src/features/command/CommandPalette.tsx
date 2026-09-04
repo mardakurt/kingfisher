@@ -235,6 +235,13 @@ function PaletteDialog() {
               }
             }}
             placeholder="Search commands, games, studies, players…"
+            /*
+              A placeholder is announced only while the field is empty, so a
+              palette that relied on it went nameless the moment somebody typed
+              — which is every moment that matters here.
+            */
+            aria-label="Search commands, games, studies and players"
+            role="searchbox"
             className="h-11 w-full bg-transparent text-sm text-primary outline-none placeholder:text-tertiary"
           />
         </div>

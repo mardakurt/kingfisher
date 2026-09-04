@@ -32,6 +32,16 @@ interface LiveResources {
   readonly eventSources: number;
   readonly intervals: number;
   readonly windowListeners: number;
+  /**
+   * Observers created and never disconnected.
+   *
+   * Added in Phase 12 because the board, the move tree, the dock and the
+   * database list all measure themselves, and an observer left attached to a
+   * removed element keeps that element and its whole React subtree alive. It
+   * is the one resource in this list that leaks memory silently rather than
+   * showing up as a running process.
+   */
+  readonly resizeObservers: number;
 }
 
 declare global {
@@ -44,7 +54,29 @@ declare global {
 
 async function instrument(page: Page) {
   await page.addInitScript(() => {
-    const live = { workers: 0, channels: 0, eventSources: 0, intervals: 0, windowListeners: 0 };
+    const live = {
+      workers: 0,
+      channels: 0,
+      eventSources: 0,
+      intervals: 0,
+      windowListeners: 0,
+      resizeObservers: 0,
+    };
+
+    if (typeof ResizeObserver !== 'undefined') {
+      const NativeObserver = ResizeObserver;
+      class CountedObserver extends NativeObserver {
+        constructor(callback: ResizeObserverCallback) {
+          super(callback);
+          live.resizeObservers += 1;
+        }
+        override disconnect() {
+          live.resizeObservers -= 1;
+          super.disconnect();
+        }
+      }
+      window.ResizeObserver = CountedObserver as unknown as typeof ResizeObserver;
+    }
 
     const NativeWorker = window.Worker;
     class CountedWorker extends NativeWorker {
@@ -141,6 +173,7 @@ const live = (page: Page) =>
         eventSources: 0,
         intervals: 0,
         windowListeners: 0,
+        resizeObservers: 0,
       },
   );
 
@@ -277,6 +310,43 @@ async function cycle(page: Page, index: number) {
   await page.keyboard.press('Escape');
   await expect(settings).toBeHidden();
 
+  /*
+    Phase 12's surfaces. The database control centre mounts a collection list,
+    a per-collection detail pane and two cross-collection tools that each hold
+    their own query; the player profile mounts an aggregate that pages through
+    the game index and a tendency pass that reads game trees. Both are the
+    shape of thing that leaves a query subscription or an observer behind, and
+    neither existed when this soak was written.
+  */
+  await navigate(page, 'Databases');
+  await page
+    .getByRole('button', { name: /My games/ })
+    .first()
+    .click();
+  await expect(page.getByRole('heading', { name: 'My games' })).toBeVisible();
+  // Ticking a collection enables the cross-collection tools; both are mounted
+  // and unmounted, which is where a federated query would be left running.
+  await page.getByLabel('Include My games').check();
+  await page.getByRole('button', { name: /Search 1 selected/ }).click();
+  await page.getByRole('button', { name: 'Duplicates' }).click();
+  await page.getByLabel('Include My games').uncheck();
+
+  /*
+    The player profile, reached the way a user reaches it and — critically —
+    without a full navigation. `page.goto` would start a new document and reset
+    every counter this test exists to read, which is exactly the trap the
+    comment on `navigate` describes. The route has no sidebar entry, so the
+    games filter's own button is the client-side way in.
+  */
+  await navigate(page, 'Games');
+  await page.getByRole('button', { name: 'Filters' }).click();
+  await page.getByLabel('Player').fill('soak subject');
+  await page.getByRole('button', { name: 'Player profile' }).click();
+  await expect(page.getByRole('button', { name: 'Openings' })).toBeVisible();
+  await page.getByRole('button', { name: 'Openings' }).click();
+  await page.getByRole('button', { name: 'Tendencies' }).click();
+  await page.getByRole('button', { name: 'Identity' }).click();
+
   // Every other pass leaves the analysis tree behind entirely, so route
   // teardown is exercised from a route that owns a board and from one that
   // does not.
@@ -316,7 +386,32 @@ test('an afternoon of tool, engine and route switching leaks no observable resou
   expect(after.eventSources - baseline.eventSources).toBeLessThanOrEqual(1);
   expect(after.intervals - baseline.intervals).toBeLessThanOrEqual(2);
   expect(after.windowListeners - baseline.windowListeners).toBeLessThanOrEqual(4);
+  /*
+    Observers are the one that would leak memory silently. An observer still
+    attached to a removed element keeps that element and its React subtree
+    alive, and nothing about the running application looks wrong.
+  */
+  expect(after.resizeObservers - baseline.resizeObservers).toBeLessThanOrEqual(4);
   expect(consoleFailures).toEqual([]);
+
+  /*
+    Heap, recorded rather than gated. §47: Chromium's `performance.memory` is
+    an estimate that moves with when the collector last ran, so a threshold on
+    it would be a flaky test rather than a memory guard. Printed so a person
+    reading a CI log can see a tenfold growth if there ever is one.
+  */
+  const heap = await page.evaluate(() => {
+    const memory = (performance as unknown as { memory?: { usedJSHeapSize: number } }).memory;
+    return memory ? memory.usedJSHeapSize : null;
+  });
+  if (heap !== null) {
+    // eslint-disable-next-line no-console
+    console.log(
+      `[soak] heap after ${CYCLES + 2} cycles: ${(heap / 1_000_000).toFixed(1)} MB; ` +
+        `workers ${after.workers}, observers ${after.resizeObservers}, ` +
+        `listeners ${after.windowListeners}, intervals ${after.intervals}`,
+    );
+  }
 });
 
 /**

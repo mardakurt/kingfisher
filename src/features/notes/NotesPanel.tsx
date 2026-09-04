@@ -44,6 +44,13 @@ export function NotesPanel() {
         */}
         <textarea
           key={currentId}
+          /*
+            A placeholder is not a name. Screen readers announce the placeholder
+            only while the field is empty, so the moment somebody types a note
+            the field goes nameless — which is exactly when they most need to be
+            able to find it again.
+          */
+          aria-label={isRoot ? 'Note about this game or position' : 'Note about this move'}
           defaultValue={node.comment ?? ''}
           onBlur={(event) => comment(currentId, event.target.value)}
           placeholder={

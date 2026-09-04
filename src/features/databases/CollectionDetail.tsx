@@ -30,6 +30,7 @@ import {
 } from '@/theory/classification-targets';
 
 import { ClassificationSection } from './ClassificationSection';
+import { CollectionGames } from './CollectionGames';
 import { formatBytes, StatusChip } from './CollectionList';
 import type { TransferRequest } from './TransferDialog';
 
@@ -275,6 +276,8 @@ export function CollectionDetail({ collection, onTransfer, onChanged }: Collecti
         </p>
       </section>
 
+      <CollectionGames collection={collection} onTransfer={onTransfer} onChanged={onChanged} />
+
       <ClassificationSection
         cacheKey={collection.id}
         collectionName={collection.name}
@@ -361,7 +364,15 @@ export function CollectionDetail({ collection, onTransfer, onChanged }: Collecti
 
       <ConfirmDialog
         open={confirming !== null}
-        title={confirming === 'delete' ? 'Delete this collection?' : 'Empty this collection?'}
+        // Names the kind, because deleting a SQLite collection removes a file
+        // from disk and emptying the browser's own collection does not.
+        title={
+          confirming === 'delete'
+            ? 'Delete this SQLite collection?'
+            : sqliteKey
+              ? 'Empty this SQLite collection?'
+              : 'Empty this collection?'
+        }
         description={
           confirming === 'delete'
             ? `The file ${collection.location} and every game in it will be permanently removed.`
