@@ -54,3 +54,5 @@ order taken. Superseded records stay, marked as such.
 | [0043](0043-a-book-is-not-an-explorer.md)                         | A book states a preference; an explorer counts games             | Accepted |
 | [0044](0044-preview-and-practice-state-stays-outside-analysis.md) | Preview and practice state stays outside Analysis                | Accepted |
 | [0045](0045-relations-are-pseudo-legal-geometry.md)               | Relations are pseudo-legal geometry                              | Accepted |
+| [0046](0046-a-frequency-threshold-that-falls-with-depth.md)       | A pruning threshold that falls with depth, so deep lines survive | Accepted |
+| [0047](0047-standard-chess-only-and-the-castling-claim.md)        | Standard chess only; a castling right is a claim, and is checked | Accepted |

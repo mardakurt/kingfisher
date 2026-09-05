@@ -97,6 +97,9 @@ export function parseFen(input: string): Result<FenParts> {
   const structural = validateStructure(board.value);
   if (!structural.ok) return structural;
 
+  const rights = validateCastling(board.value, castling.value);
+  if (!rights.ok) return rights;
+
   return ok({
     board: board.value,
     turn,
@@ -213,6 +216,58 @@ function validateStructure(board: readonly (Piece | null)[]): Result<true> {
   }
   if (blackKings !== 1) {
     return fail('invalid-fen', `Position has ${blackKings} black kings, expected exactly 1.`);
+  }
+  return ok(true);
+}
+
+/**
+ * A castling right is a claim about where two pieces are standing.
+ *
+ * Kingfisher plays standard chess, so "K" means precisely: the white king has
+ * never moved and is on e1, and the h1 rook has never moved and is on h1. A
+ * FEN asserting the right without the pieces is describing a position that
+ * cannot occur, and it is not a harmless inconsistency — chess.js answers such
+ * a position by generating a "castling" move that slides the king two squares
+ * and leaves both rooks where they are. That is an illegal move offered as a
+ * legal one, which is the worst thing this application can do.
+ *
+ * The position setup dialog and any imported FEN can both produce one, so the
+ * check belongs here, in Kingfisher's own parser, rather than in whatever the
+ * rules engine happens to tolerate this year.
+ */
+function validateCastling(
+  board: readonly (Piece | null)[],
+  castling: CastlingRights,
+): Result<true> {
+  const at = (index: number, color: Color, type: PieceType) => {
+    const piece = board[index];
+    return piece?.color === color && piece.type === type;
+  };
+  // a1 = 0 … h1 = 7, a8 = 56 … h8 = 63.
+  const checks: readonly [boolean, boolean, string][] = [
+    [
+      castling.whiteKing,
+      at(4, 'w', 'k') && at(7, 'w', 'r'),
+      'K (white kingside) needs a white king on e1 and a white rook on h1',
+    ],
+    [
+      castling.whiteQueen,
+      at(4, 'w', 'k') && at(0, 'w', 'r'),
+      'Q (white queenside) needs a white king on e1 and a white rook on a1',
+    ],
+    [
+      castling.blackKing,
+      at(60, 'b', 'k') && at(63, 'b', 'r'),
+      'k (black kingside) needs a black king on e8 and a black rook on h8',
+    ],
+    [
+      castling.blackQueen,
+      at(60, 'b', 'k') && at(56, 'b', 'r'),
+      'q (black queenside) needs a black king on e8 and a black rook on a8',
+    ],
+  ];
+  for (const [claimed, satisfied, message] of checks) {
+    if (claimed && !satisfied) return fail('invalid-fen', `Castling right ${message}.`);
   }
   return ok(true);
 }
