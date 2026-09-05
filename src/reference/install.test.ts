@@ -76,6 +76,7 @@ function fixture() {
       upstream: [],
     },
     counts: { games: 100, openable: 1, positions: 1, players: 1 },
+    maxPositionPly: 40,
     recentSince: 2025,
     shards: { explorer: 1, game: 1, players: 1, playergames: 1 },
     chunks: (['explorer', 'game', 'players', 'playergames'] as const).map((kind) => {
@@ -143,6 +144,12 @@ describe('parsing a pack manifest', () => {
     const { manifest } = fixture();
     expect(parseManifest(JSON.parse(JSON.stringify(manifest))).id).toBe('fixture-pack');
   });
+
+  it('refuses an Explorer depth that is not a non-negative ply count', () => {
+    const { manifest } = fixture();
+    expect(() => parseManifest({ ...manifest, maxPositionPly: 20.5 })).toThrow(/depth/);
+    expect(() => parseManifest({ ...manifest, maxPositionPly: -1 })).toThrow(/depth/);
+  });
 });
 
 describe('installing a pack', () => {
@@ -166,22 +173,20 @@ describe('installing a pack', () => {
     expect(await verifyPack(installed, store)).toEqual([]);
   });
 
-  it('leaves nothing installed when a chunk fails its digest', async () => {
+  it('keeps verified staging chunks but publishes no ready source after digest failure', async () => {
     const store = await freshStore();
     const { manifest, chunks } = fixture();
 
     await expect(
       installPack(manifest, '/packs/manifest.json', store, {
         fetcher: responder(manifest, chunks, (file) =>
-          file.startsWith('players')
-            ? new Uint8Array(gzipSync(Buffer.from('tampered\n')))
-            : undefined,
+          file.startsWith('players') ? new Uint8Array(chunks.get(file)!.byteLength) : undefined,
         ) as typeof fetch,
       }),
     ).rejects.toThrow(/does not match the digest/);
 
-    expect(await store.get('fixture-pack')).toBeUndefined();
-    expect(await store.list()).toEqual([]);
+    expect((await store.get('fixture-pack'))?.state).toBe('installing');
+    expect((await store.list()).filter((pack) => pack.state === 'ready')).toEqual([]);
   });
 
   it('leaves nothing installed when a chunk cannot be downloaded', async () => {
@@ -196,7 +201,13 @@ describe('installing a pack', () => {
       }),
     ).rejects.toThrow(/HTTP 404/);
 
-    expect(await store.get('fixture-pack')).toBeUndefined();
+    expect((await store.get('fixture-pack'))?.state).toBe('installing');
+    const resumed = vi.fn(responder(manifest, chunks));
+    await installPack(manifest, '/packs/manifest.json', store, {
+      fetcher: resumed as typeof fetch,
+    });
+    expect(resumed).toHaveBeenCalledTimes(1);
+    expect(String(resumed.mock.calls[0]![0])).toContain('playergames-000');
   });
 
   it('keeps what it has when cancelled, and finishes on the next attempt', async () => {
@@ -235,7 +246,11 @@ describe('installing a pack', () => {
     const installed = await installPack(manifest, '/packs/manifest.json', store, {
       fetcher: responder(manifest, chunks) as typeof fetch,
     });
-    await store.putChunk('fixture-pack', chunkId('game', 0), new Uint8Array([1, 2, 3]));
+    await store.putChunk(
+      'fixture-pack',
+      manifest.chunks.find((chunk) => chunk.kind === 'game')!.sha256,
+      new Uint8Array([1, 2, 3]),
+    );
     expect(await verifyPack(installed, store)).toEqual([chunkId('game', 0)]);
   });
 
@@ -249,6 +264,211 @@ describe('installing a pack', () => {
     expect(await store.list()).toEqual([]);
     expect(await store.read(manifest, chunkId('explorer', 0))).toBeNull();
     expect(await store.orphans()).toEqual([]);
+  });
+});
+
+describe('transactional pack updates', () => {
+  function update() {
+    const original = fixture();
+    const chunks = new Map(original.chunks);
+    const file = chunkFile('game', 0);
+    chunks.set(
+      file,
+      new Uint8Array(
+        gzipSync(
+          Buffer.from(
+            'g1\tUpdated\tOpponent\t1-0\t2026\t2026.01.02\tE\tB90\tNajdorf\t2700\t2680\thttps://x\te4 c5\n',
+          ),
+        ),
+      ),
+    );
+    const manifest: PackManifest = {
+      ...original.manifest,
+      version: '2',
+      chunks: original.manifest.chunks.map((chunk) => ({
+        ...chunk,
+        bytes: chunks.get(chunk.file)!.byteLength,
+        sha256: digest(chunks.get(chunk.file)!),
+      })),
+      compressedBytes: [...chunks.values()].reduce((sum, bytes) => sum + bytes.byteLength, 0),
+    };
+    return { original, manifest, chunks };
+  }
+
+  /**
+   * Chunks are content-addressed, which is what lets two generations of a pack
+   * coexist while one is being replaced. The cost of that is that nothing in
+   * the install path can delete the old one — so something else has to, or a
+   * source updated monthly grows by its own size every month, for ever.
+   */
+  it('leaves the superseded generation in place, and reclaims it on request', async () => {
+    const store = await freshStore();
+    const { original, manifest, chunks } = update();
+    await installPack(original.manifest, '/packs/manifest.json', store, {
+      fetcher: responder(original.manifest, original.chunks) as typeof fetch,
+    });
+    const oldReader = new PackReader(original.manifest, store);
+    await installPack(manifest, '/packs/manifest.json', store, {
+      fetcher: responder(manifest, chunks) as typeof fetch,
+    });
+
+    // Still there: another tab may be part-way through a query against it.
+    expect((await oldReader.game('g1'))?.white).toBe('A');
+
+    const dropped = await store.pruneChunks(
+      manifest.id,
+      new Set(manifest.chunks.map((chunk) => chunk.sha256)),
+    );
+    expect(dropped).toBeGreaterThan(0);
+    expect((await new PackReader(manifest, store).game('g1'))?.white).toBe('Updated');
+    // Reclaiming twice is not an error and finds nothing the second time.
+    expect(
+      await store.pruneChunks(manifest.id, new Set(manifest.chunks.map((chunk) => chunk.sha256))),
+    ).toBe(0);
+  });
+
+  it('keeps version 1 readable throughout version 2 download and atomically switches', async () => {
+    const store = await freshStore();
+    const { original, manifest, chunks } = update();
+    const old = await installPack(original.manifest, '/packs/manifest.json', store, {
+      fetcher: responder(original.manifest, original.chunks) as typeof fetch,
+    });
+    const oldReader = new PackReader(old.manifest, store);
+    await installPack(manifest, '/packs/manifest.json', store, {
+      fetcher: (async (input) => {
+        expect((await store.get(manifest.id))?.manifest.version).toBe('1');
+        expect((await new PackReader(old.manifest, store).game('g1'))?.white).toBe('A');
+        return responder(manifest, chunks)(input);
+      }) as typeof fetch,
+    });
+    expect((await store.get(manifest.id))?.manifest.version).toBe('2');
+    expect((await new PackReader(manifest, store).game('g1'))?.white).toBe('Updated');
+    // An already open tab's old reader still has its exact evidence available.
+    expect((await oldReader.game('g1'))?.white).toBe('A');
+  });
+
+  it.each(['download', 'digest', 'cancel-before-activation'] as const)(
+    'preserves active version after %s failure',
+    async (failure) => {
+      const store = await freshStore();
+      const { original, manifest, chunks } = update();
+      const old = await installPack(original.manifest, '/packs/manifest.json', store, {
+        fetcher: responder(original.manifest, original.chunks) as typeof fetch,
+      });
+      const controller = new AbortController();
+      await expect(
+        installPack(manifest, '/packs/manifest.json', store, {
+          signal: controller.signal,
+          onProgress: (event) => {
+            if (failure === 'cancel-before-activation' && event.phase === 'verifying')
+              controller.abort();
+          },
+          fetcher: responder(manifest, chunks, (file) =>
+            failure === 'download'
+              ? null
+              : failure === 'digest'
+                ? new Uint8Array(chunks.get(file)!.length)
+                : undefined,
+          ) as typeof fetch,
+        }),
+      ).rejects.toThrow();
+      expect(await store.get(manifest.id)).toEqual(old);
+      expect(await verifyPack(old, store)).toEqual([]);
+      expect((await new PackReader(old.manifest, store).game('g1'))?.white).toBe('A');
+    },
+  );
+
+  it('rehashes same-length staged corruption instead of inheriting it', async () => {
+    const store = await freshStore();
+    const { manifest, chunks } = fixture();
+    await store.putChunk(
+      manifest.id,
+      manifest.chunks[0]!.sha256,
+      new Uint8Array(manifest.chunks[0]!.bytes),
+    );
+    const fetcher = vi.fn(responder(manifest, chunks));
+    const result = await installPack(manifest, '/packs/manifest.json', store, {
+      fetcher: fetcher as typeof fetch,
+    });
+    expect(fetcher).toHaveBeenCalledTimes(4);
+    expect(await verifyPack(result, store)).toEqual([]);
+  });
+
+  it('removal serializes behind an in-flight install and leaves no resurrected source', async () => {
+    const store = await freshStore();
+    const { manifest, chunks } = fixture();
+    let unblock!: () => void;
+    let entered!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      unblock = resolve;
+    });
+    const started = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
+    const install = installPack(manifest, '/packs/manifest.json', store, {
+      fetcher: (async (input) => {
+        entered();
+        await gate;
+        return responder(manifest, chunks)(input);
+      }) as typeof fetch,
+    });
+    await started;
+    const removal = store.remove(manifest.id);
+    unblock();
+    await Promise.all([install, removal]);
+    expect(await store.get(manifest.id)).toBeUndefined();
+    expect(await store.orphans()).toEqual([]);
+    expect(await store.read(manifest, manifest.chunks[0]!.id)).toBeNull();
+  });
+});
+
+describe('hostile pack manifests', () => {
+  it.each([
+    (manifest: PackManifest) => ({ ...manifest, shards: null }),
+    (manifest: PackManifest) => ({ ...manifest, shards: { ...manifest.shards, explorer: 0 } }),
+    (manifest: PackManifest) => ({ ...manifest, counts: { ...manifest.counts, games: -1 } }),
+    (manifest: PackManifest) => ({ ...manifest, license: null }),
+    (manifest: PackManifest) => ({ ...manifest, id: '../active' }),
+    (manifest: PackManifest) => ({ ...manifest, chunks: manifest.chunks.slice(1) }),
+    (manifest: PackManifest) => ({ ...manifest, chunks: [...manifest.chunks, manifest.chunks[0]] }),
+    (manifest: PackManifest) => ({
+      ...manifest,
+      chunks: manifest.chunks.map((chunk) => ({ ...chunk, file: 'https://evil.invalid/collect' })),
+    }),
+    (manifest: PackManifest) => ({
+      ...manifest,
+      chunks: manifest.chunks.map((chunk) => ({ ...chunk, bytes: 2 ** 40 })),
+    }),
+  ])('rejects malformed metadata before any download', (mutate) => {
+    expect(() => parseManifest(mutate(fixture().manifest))).toThrow(PackInstallError);
+  });
+
+  it('stops oversized and truncated downloads before they can become ready', async () => {
+    for (const difference of [-1, 1]) {
+      const store = await freshStore();
+      const { manifest, chunks } = fixture();
+      await expect(
+        installPack(manifest, '/packs/manifest.json', store, {
+          fetcher: responder(
+            manifest,
+            chunks,
+            (file) => new Uint8Array(chunks.get(file)!.byteLength + difference),
+          ) as typeof fetch,
+        }),
+      ).rejects.toThrow(/size|truncated/);
+      expect((await store.get(manifest.id))?.state).not.toBe('ready');
+    }
+  });
+
+  it('throws on a missing or damaged shard, and can retry after repair', async () => {
+    const { manifest, chunks } = fixture();
+    let bytes: Uint8Array | null = null;
+    const reader = new PackReader(manifest, { read: async () => bytes });
+    await expect(reader.game('g1')).rejects.toThrow(/missing/);
+    bytes = new Uint8Array(manifest.chunks[1]!.bytes);
+    await expect(reader.game('g1')).rejects.toThrow(/damaged/);
+    bytes = chunks.get(chunkFile('game', 0))!;
+    expect((await reader.game('g1'))?.white).toBe('A');
   });
 });
 

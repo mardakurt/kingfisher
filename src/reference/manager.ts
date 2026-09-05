@@ -17,7 +17,14 @@
 import { setDynamicDatabaseProviders } from '@/database/registry';
 
 import { BUNDLED_PACK_ID, CATALOG_PACKS, catalogPack, type CatalogPack } from './catalog';
-import { fetchManifest, installPack, type InstallProgress } from './install';
+import {
+  fetchManifest,
+  installPack,
+  PackInstallError,
+  verifyPack,
+  type InstallProgress,
+} from './install';
+import { withPackLock } from './lock';
 import type { PackManifest } from './pack';
 import { PackReader } from './reader';
 import { ReferencePackProvider } from './provider';
@@ -106,7 +113,7 @@ const fromManifest = (pack: InstalledPack): CatalogPack => ({
   id: pack.id,
   name: pack.manifest.name,
   description: pack.manifest.description,
-  manifestUrl: '',
+  manifestUrl: pack.manifestUrl ?? '',
   bundled: false,
   capabilities: [
     'explorer',
@@ -118,6 +125,9 @@ const fromManifest = (pack: InstalledPack): CatalogPack => ({
     'preparation',
   ],
   approximateBytes: pack.manifest.compressedBytes,
+  ...(pack.manifest.maxPositionPly !== undefined
+    ? { maxPositionPly: pack.manifest.maxPositionPly }
+    : {}),
   license: pack.manifest.license,
   origin: pack.manifest.provenance.source,
 });
@@ -159,9 +169,17 @@ function describe(
           openableCount: pack.manifest.counts.openable,
           playerCount: pack.manifest.counts.players,
           positionCount: pack.manifest.counts.positions,
+          ...(pack.manifest.maxPositionPly !== undefined
+            ? { maxPositionPly: pack.manifest.maxPositionPly }
+            : {}),
           size: pack.bytes,
         }
-      : { size: catalog.approximateBytes }),
+      : {
+          size: catalog.approximateBytes,
+          ...(catalog.maxPositionPly !== undefined
+            ? { maxPositionPly: catalog.maxPositionPly }
+            : {}),
+        }),
     offline: true,
     capabilities: catalog.capabilities,
     ...(catalog.bundled && !ready && !installing
@@ -177,7 +195,10 @@ async function refresh(store: ReferencePackStore): Promise<void> {
       readers.delete(pack.id);
       continue;
     }
-    if (!readers.has(pack.id)) readers.set(pack.id, new PackReader(pack.manifest, store));
+    const previous = readers.get(pack.id);
+    if (!previous || JSON.stringify(previous.manifest) !== JSON.stringify(pack.manifest)) {
+      readers.set(pack.id, new PackReader(pack.manifest, store));
+    }
   }
   for (const id of [...readers.keys()]) {
     if (!installed.some((pack) => pack.id === id && pack.state === 'ready')) readers.delete(id);
@@ -210,17 +231,21 @@ const setError = (id: string, message: string | null) => {
  * the row rather than raised into the console.
  */
 export async function startInstall(id: string): Promise<boolean> {
-  const catalog = catalogPack(id) ?? customPacks.get(id);
+  const saved = installed.find((pack) => pack.id === id);
+  const catalog =
+    customPacks.get(id) ?? catalogPack(id) ?? (saved ? fromManifest(saved) : undefined);
   if (!catalog || controllers.has(id)) return false;
-  const store = await referencePackStore();
   const controller = new AbortController();
   controllers.set(id, controller);
+  const store = await referencePackStore();
   setError(id, null);
 
   try {
     let manifest: PackManifest;
     try {
       manifest = await fetchManifest(catalog.manifestUrl, { signal: controller.signal });
+      if (manifest.id !== id)
+        throw new Error('The downloaded pack identity does not match this catalog entry.');
     } catch (error) {
       if (controller.signal.aborted) return false;
       throw error;
@@ -253,6 +278,23 @@ export async function removePack(id: string): Promise<void> {
   await refresh(store);
 }
 
+/** Verification never repairs data silently. A damaged source stops answering. */
+export async function verifyInstalledPack(id: string): Promise<readonly string[]> {
+  const store = await referencePackStore();
+  return withPackLock(id, async () => {
+    const pack = await store.get(id);
+    if (!pack || pack.state !== 'ready') throw new Error('This pack is not installed.');
+    const damaged = await verifyPack(pack, store);
+    if (damaged.length) {
+      const error = `${damaged.length} damaged or missing chunks. Reinstall this pack to repair it.`;
+      await store.put({ ...pack, state: 'failed', error });
+      setError(id, error);
+    } else setError(id, null);
+    await refresh(store);
+    return damaged;
+  });
+}
+
 /**
  * Ask each installable pack's published manifest what version it is now.
  *
@@ -262,15 +304,27 @@ export async function removePack(id: string): Promise<void> {
  */
 export async function checkForPackUpdates(): Promise<void> {
   const versions: Record<string, string> = {};
-  for (const catalog of CATALOG_PACKS) {
-    if (catalog.bundled) continue;
-    if (!installed.some((pack) => pack.id === catalog.id && pack.state === 'ready')) continue;
+  for (const pack of installed.filter((entry) => entry.state === 'ready')) {
+    const catalog = customPacks.get(pack.id) ?? catalogPack(pack.id) ?? fromManifest(pack);
+    if (!catalog.manifestUrl) continue;
     try {
       const manifest = await fetchManifest(catalog.manifestUrl);
+      if (manifest.id !== catalog.id)
+        throw new Error('Update manifest identifies a different pack.');
       versions[catalog.id] = manifest.version;
-    } catch {
-      // An update check that cannot reach the network is not a failure state:
-      // the installed pack is unaffected, and the row simply does not claim.
+      setError(catalog.id, null);
+    } catch (error) {
+      /*
+        Being offline is not a fault in the pack, and a row that turns red
+        every time a laptop leaves the network teaches the user to ignore the
+        colour. A manifest that *was* reached and is wrong is different: that
+        is something about the source the user should see.
+      */
+      if (error instanceof PackInstallError && error.kind === 'unreachable') continue;
+      setError(
+        catalog.id,
+        `Update check failed; installed data is unchanged. ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
   remoteVersions = versions;
@@ -281,8 +335,7 @@ export async function checkForPackUpdates(): Promise<void> {
  * Packs installed from a URL the user supplied.
  *
  * Kept so that an update, a retry after a failure, or a resume can find the
- * manifest again. Not persisted: the *pack* is durable, and the URL it came
- * from is only needed while this session is still installing from it.
+ * manifest again. The installed record also persists the URL for later sessions.
  */
 const customPacks = new Map<string, CatalogPack>();
 
@@ -341,12 +394,61 @@ let started: Promise<void> | null = null;
  * network beyond the one that served the page, and once written it needs none
  * at all.
  */
+/**
+ * Give back the storage a previous version of a pack is still holding.
+ *
+ * An update writes a whole new generation of content-addressed chunks and
+ * leaves the old one in place, because a reader in another tab may still be
+ * reading it. Nothing reclaims it there, and a 150 MB source updated monthly
+ * would take another 150 MB of the user's quota every month, for ever.
+ *
+ * Start-up is where it is safe: every reader this session will build is built
+ * from the manifest that is installed *now*, so no live reader can be pointing
+ * at an earlier generation. Failures are ignored — the bytes stay reclaimable
+ * and nothing about the pack is wrong.
+ */
+async function reclaimSupersededChunks(store: ReferencePackStore): Promise<void> {
+  for (const pack of installed) {
+    if (pack.state !== 'ready') continue;
+    try {
+      await withPackLock(pack.id, () =>
+        store.pruneChunks(pack.id, new Set(pack.manifest.chunks.map((chunk) => chunk.sha256))),
+      );
+    } catch {
+      // Reclaiming storage is never worth failing a start-up over.
+    }
+  }
+}
+
 export function initialiseReferences(): Promise<void> {
   started ??= (async () => {
     const store = await referencePackStore();
     await refresh(store);
     const bundled = installed.find((pack) => pack.id === BUNDLED_PACK_ID);
-    if (bundled?.state !== 'ready') await startInstall(BUNDLED_PACK_ID);
+    if (bundled?.state !== 'ready') {
+      await startInstall(BUNDLED_PACK_ID);
+      await reclaimSupersededChunks(store);
+      return;
+    }
+    /*
+      The bundled pack is the one source whose new version arrives with the
+      application rather than over the network, so leaving it to the update
+      button is leaving it undone: a profile created a year ago would keep
+      answering from a year-old, shallower table while the data it should be
+      reading sat unused in this build's own assets. Reinstalling costs a
+      handful of local reads, so it happens on start-up rather than being
+      offered. Everything else — the catalog packs — is still the user's call.
+    */
+    const catalog = catalogPack(BUNDLED_PACK_ID);
+    if (!catalog) return;
+    try {
+      const shipped = await fetchManifest(catalog.manifestUrl);
+      if (shipped.version !== bundled.manifest.version) await startInstall(BUNDLED_PACK_ID);
+    } catch {
+      // A build whose own asset cannot be read has bigger problems than a
+      // stale reference, and the installed pack still answers.
+    }
+    await reclaimSupersededChunks(store);
   })();
   return started;
 }

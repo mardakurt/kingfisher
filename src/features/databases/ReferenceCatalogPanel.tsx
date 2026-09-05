@@ -27,6 +27,7 @@ import {
   installFromUrl,
   removePack,
   startInstall,
+  verifyInstalledPack,
 } from '@/reference/manager';
 import { useDataSources, useSourceActions } from '@/reference/sources';
 import { useReferenceSources } from '@/reference/use-references';
@@ -69,6 +70,7 @@ export function ReferenceCatalogPanel() {
   const [adding, setAdding] = useState(false);
   const [url, setUrl] = useState('');
   const [installing, setInstalling] = useState(false);
+  const [verifying, setVerifying] = useState<string | null>(null);
 
   const order = sources.map((source) => source.id);
 
@@ -193,6 +195,45 @@ export function ReferenceCatalogPanel() {
                       }
                     />
                   ) : null}
+                  {open &&
+                  source.installed &&
+                  (source.kind === 'installed' || source.kind === 'bundled') ? (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <Button
+                        variant="subtle"
+                        disabled={verifying !== null || Boolean(progress)}
+                        onClick={async () => {
+                          setVerifying(source.id);
+                          try {
+                            const damaged = await verifyInstalledPack(source.id);
+                            notify({
+                              tone: damaged.length ? 'error' : 'success',
+                              message: damaged.length
+                                ? `${damaged.length} chunks failed verification. Reinstall to repair.`
+                                : `${source.name}: all chunks verified.`,
+                            });
+                          } catch (error) {
+                            notify({
+                              tone: 'error',
+                              message:
+                                error instanceof Error ? error.message : 'Verification failed.',
+                            });
+                          } finally {
+                            setVerifying(null);
+                          }
+                        }}
+                      >
+                        {verifying === source.id ? 'Verifying…' : 'Verify integrity'}
+                      </Button>
+                      <Button
+                        variant="subtle"
+                        disabled={Boolean(progress) || verifying !== null}
+                        onClick={() => void startInstall(source.id)}
+                      >
+                        Reinstall
+                      </Button>
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className="flex shrink-0 flex-col items-end gap-1.5">
@@ -296,6 +337,11 @@ function Facts({ source }: { readonly source: ReferenceSource }) {
   if (source.playerCount !== undefined) facts.push(`${formatCount(source.playerCount)} players`);
   if (source.positionCount !== undefined) {
     facts.push(`${formatCount(source.positionCount)} positions`);
+  }
+  if (source.maxPositionPly !== undefined) {
+    facts.push(
+      `through ${source.maxPositionPly} plies (${(source.maxPositionPly / 2).toFixed(1).replace('.0', '')} full moves)`,
+    );
   }
   if (source.size !== undefined) facts.push(formatSize(source.size));
   facts.push(source.offline ? 'Works offline' : 'Needs a connection');

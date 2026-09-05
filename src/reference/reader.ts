@@ -36,7 +36,25 @@ export async function gunzip(bytes: Uint8Array): Promise<string> {
   const stream = new Blob([bytes as BlobPart])
     .stream()
     .pipeThrough(new DecompressionStream('gzip'));
-  return new Response(stream).text();
+  const reader = stream.getReader();
+  const decoder = new TextDecoder();
+  const text: string[] = [];
+  let size = 0;
+  try {
+    for (;;) {
+      const next = await reader.read();
+      if (next.done) break;
+      size += next.value.byteLength;
+      if (size > 128 * 1024 * 1024)
+        throw new Error('Reference shard exceeds the 128 MiB decoded limit.');
+      text.push(decoder.decode(next.value, { stream: true }));
+    }
+    text.push(decoder.decode());
+    return text.join('');
+  } finally {
+    await reader.cancel();
+    reader.releaseLock();
+  }
 }
 
 /** SHA-256 of the compressed chunk, as hex, for checking against the manifest. */
@@ -80,7 +98,12 @@ export class PackReader {
     const pending = (async () => {
       const bytes = await this.source.read(this.manifest, id);
       const map = new Map<string, string>();
-      if (!bytes) return map;
+      const descriptor = this.manifest.chunks.find((chunk) => chunk.id === id);
+      if (!bytes || !descriptor)
+        throw new Error(`Reference chunk ${id} is missing. Verify or reinstall this pack.`);
+      if (bytes.byteLength !== descriptor.bytes || (await digestOf(bytes)) !== descriptor.sha256) {
+        throw new Error(`Reference chunk ${id} is damaged. Verify or reinstall this pack.`);
+      }
       for (const line of lines(await gunzip(bytes))) {
         if (line.length === 0) continue;
         const separator = line.indexOf(kind === 'game' || kind === 'players' ? '\t' : '|');
@@ -91,6 +114,9 @@ export class PackReader {
     })();
 
     this.cache.set(id, pending);
+    void pending.catch(() => {
+      if (this.cache.get(id) === pending) this.cache.delete(id);
+    });
     if (this.cache.size > CACHE_LIMIT) {
       const oldest = this.cache.keys().next().value;
       if (oldest !== undefined) this.cache.delete(oldest);
@@ -161,16 +187,18 @@ export class PackReader {
     this.players ??= (async () => {
       const all: PackPlayer[] = [];
       for (let shard = 0; shard < this.shardCount('players'); shard += 1) {
-        const bytes = await this.source.read(this.manifest, chunkId('players', shard));
-        if (!bytes) continue;
-        for (const line of lines(await gunzip(bytes))) {
+        const rows = await this.rows('players', shard);
+        for (const line of rows.values()) {
           const player = line.length > 0 ? decodePlayerLine(line) : null;
           if (player) all.push(player);
         }
       }
       all.sort((a, b) => b.games - a.games);
       return all;
-    })();
+    })().catch((error: unknown) => {
+      this.players = null;
+      throw error;
+    });
     return this.players;
   }
 }

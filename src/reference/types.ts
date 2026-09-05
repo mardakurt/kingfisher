@@ -70,6 +70,8 @@ export interface ReferenceSource {
   readonly openableCount?: number;
   readonly playerCount?: number;
   readonly positionCount?: number;
+  /** Deepest Explorer query position represented, measured in plies. */
+  readonly maxPositionPly?: number;
   /** Compressed bytes, as installed or as it would be downloaded. */
   readonly size?: number;
   /** True when a query never leaves the machine. */

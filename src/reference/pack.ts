@@ -72,6 +72,8 @@ export interface PackManifest {
   readonly license: PackLicense;
   readonly provenance: PackProvenance;
   readonly counts: PackCounts;
+  /** Deepest position for which the build attempted to retain outgoing moves. */
+  readonly maxPositionPly?: number;
   /** Games from this calendar year onwards are counted in the `recent` totals. */
   readonly recentSince: number;
   /** How many shards each kind was split into. */

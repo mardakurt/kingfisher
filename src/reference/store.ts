@@ -22,6 +22,7 @@ import { STORE_NAMES } from '@/persistence/schema/migrations';
 
 import type { PackManifest } from './pack';
 import type { ChunkSource } from './reader';
+import { withPackLock } from './lock';
 
 export type InstallState = 'installing' | 'ready' | 'failed';
 
@@ -34,6 +35,8 @@ export interface InstalledPack {
   readonly chunksInstalled: number;
   readonly bytes: number;
   readonly error?: string;
+  /** Where an explicitly installed custom pack can be resumed or updated. */
+  readonly manifestUrl?: string;
 }
 
 interface ChunkRecord {
@@ -63,6 +66,15 @@ export class ReferencePackStore implements ChunkSource {
   }
 
   async read(manifest: PackManifest, chunk: string): Promise<Uint8Array | null> {
+    const descriptor = manifest.chunks.find((entry) => entry.id === chunk);
+    if (!descriptor) return null;
+    // Immutable, content-addressed chunks let old and new manifests coexist.
+    // The fallback reads pre-Phase-15 installations without a schema rewrite.
+    const content = await this.database.get<ChunkRecord>(STORE_NAMES.referenceChunks, [
+      manifest.id,
+      descriptor.sha256,
+    ]);
+    if (content) return content.bytes;
     const record = await this.database.get<ChunkRecord>(STORE_NAMES.referenceChunks, [
       manifest.id,
       chunk,
@@ -79,6 +91,10 @@ export class ReferencePackStore implements ChunkSource {
    * reclaimable; a pack that lies about what it holds is not.
    */
   async remove(id: string): Promise<void> {
+    return withPackLock(id, () => this.removeUnlocked(id));
+  }
+
+  private async removeUnlocked(id: string): Promise<void> {
     await this.database.delete(STORE_NAMES.referencePacks, id);
     const chunks = await this.database.getAllFromIndex<ChunkRecord>(
       STORE_NAMES.referenceChunks,
@@ -88,6 +104,31 @@ export class ReferencePackStore implements ChunkSource {
     await this.database.transaction([STORE_NAMES.referenceChunks], 'readwrite', async (tx) => {
       for (const chunk of chunks) await tx.delete(STORE_NAMES.referenceChunks, [id, chunk.chunkId]);
     });
+  }
+
+  /**
+   * Drop the chunks a pack no longer refers to.
+   *
+   * Chunks are content-addressed, which is what lets an update download and
+   * verify a whole new generation while the old one stays readable — but it
+   * also means the old generation is still there afterwards, and a pack
+   * updated monthly would otherwise grow by its own size every month.
+   *
+   * Called only after the new manifest is the active one, so an interruption
+   * here leaves reclaimable bytes rather than a pack missing a shard.
+   */
+  async pruneChunks(id: string, keep: ReadonlySet<string>): Promise<number> {
+    const chunks = await this.database.getAllFromIndex<ChunkRecord>(
+      STORE_NAMES.referenceChunks,
+      'packId',
+      id,
+    );
+    const stale = chunks.filter((chunk) => !keep.has(chunk.chunkId));
+    if (stale.length === 0) return 0;
+    await this.database.transaction([STORE_NAMES.referenceChunks], 'readwrite', async (tx) => {
+      for (const chunk of stale) await tx.delete(STORE_NAMES.referenceChunks, [id, chunk.chunkId]);
+    });
+    return stale.length;
   }
 
   /** Chunks belonging to no listed pack, left by an interrupted removal. */
