@@ -1,42 +1,84 @@
 # Chess engines
 
-Kingfisher offers six engines. Each is listed only because it has been started,
-driven and stopped from the application — there is no aspirational entry and no
-greyed-out placeholder, because a selector listing an engine that cannot run
-wastes the user's time finding that out.
+The catalogue lists engine distributions by platform. Availability is not a
+capability claim: a native engine must pass installation verification before it
+is registered, and what it can do is read from the engine itself rather than
+from this table.
+
+`npm run engines:verify` installs every engine the running platform offers,
+checks each download against its recorded digest, launches it and interrogates
+it. The results below were produced by that command, not written by hand.
 
 ## What is supported
 
-| Engine     | Version | Family                | Runs as            | Licence           | Needs the companion |
-| ---------- | ------- | --------------------- | ------------------ | ----------------- | ------------------- |
-| Stockfish  | 17.1    | alpha-beta + NNUE     | WebAssembly Worker | GPL-3.0-or-later  | **no**              |
-| Stockfish  | 18      | alpha-beta + NNUE     | native process     | GPL-3.0-or-later  | yes (~115 MB)       |
-| Stormphrax | 8.0.0   | alpha-beta + NNUE     | native process     | GPL-3.0-or-later  | yes (~57 MB)        |
-| Viridithas | 20.0.0  | alpha-beta + NNUE     | native process     | AGPL-3.0-or-later | yes (~57 MB)        |
-| Halogen    | 16.0.0  | alpha-beta + NNUE     | native process     | GPL-3.0-or-later  | yes (~20 MB)        |
-| Lc0        | 0.32.1  | neural network + MCTS | native process     | GPL-3.0-or-later  | yes (see below)     |
+| Engine      | Version | Family                | Runs as            | Licence          | Needs the companion |
+| ----------- | ------- | --------------------- | ------------------ | ---------------- | ------------------- |
+| Stockfish   | 17.1    | alpha-beta + NNUE     | WebAssembly Worker | GPL-3.0-or-later | **no**              |
+| Stockfish   | 18      | alpha-beta + NNUE     | native process     | GPL-3.0-or-later | yes (~115 MB)       |
+| Stormphrax  | 8.0.0   | alpha-beta + NNUE     | native process     | GPL-3.0-or-later | yes (~57 MB)        |
+| Viridithas  | 20.0.0  | alpha-beta + NNUE     | native process     | AGPL-3.0-only    | yes (~57 MB)        |
+| Halogen     | 16.0.0  | alpha-beta + NNUE     | native process     | GPL-3.0-or-later | yes (~20 MB)        |
+| PlentyChess | 8.0.0   | alpha-beta + NNUE     | native process     | GPL-3.0          | yes                 |
+| Lc0         | 0.32.1  | neural network + MCTS | native process     | GPL-3.0-or-later | yes (see below)     |
 
-Lc0 is there for a reason beyond variety: it disagrees with Stockfish
-_systematically_ rather than randomly. MCTS is more optimistic in closed
-positions and less certain about long forcing lines, so where the two part
-company is a useful signal about the position. That is what the two-engine view
-is for. Viridithas and Halogen are independent implementations with their own
-evaluations, which is the same argument at lower cost.
+Lc0 uses a different search/evaluation approach from Stockfish. The comparison
+view keeps each engine's outputs and settings separate. A disagreement is a
+reason to inspect the lines and search conditions, not proof of a strategic
+claim or of which engine is right.
 
 ### Engines considered and left out
 
 | Engine    | Why not                                                                                                                                                                                                                                                                                            |
 | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Berserk   | Release 14 (May 2026) publishes Windows executables only. An Install button that cannot work on the machine looking at it is worse than an absent row.                                                                                                                                             |
-| Obsidian  | Release 16.0 publishes Windows executables only.                                                                                                                                                                                                                                                   |
 | RubiChess | Most recent release August 2024, one Windows archive. Kingfisher offers actively released engines.                                                                                                                                                                                                 |
-| Koivisto  | No release since 2023.                                                                                                                                                                                                                                                                             |
 | Ethereal  | Its current distribution model was checked before it was considered: recent Ethereal is sold commercially rather than released as a free binary, and its networks are not freely redistributable. It is not an open-source engine Kingfisher can install, and presenting it as one would be false. |
+
+Berserk 14, Obsidian 16.0 and Koivisto 9.0 moved _onto_ the list in Phase 15.
+They publish Windows-only builds (Koivisto also Linux), which used to be a
+reason to leave them out entirely. It is a better answer to list them and let
+the platform matrix decide: on Windows they are three more installable engines,
+and on macOS the row states plainly that no build exists for this machine
+rather than pretending the engine does not.
 
 That table lives in `scripts/engine-catalogue.mjs` as `NOT_INCLUDED` as well as
 here, because "why is X not on the list" is a question with an answer and the
 answers change: an engine that ships only a Windows binary today may ship more
 tomorrow.
+
+### What the fleet actually reported
+
+`npm run engines:verify` on macOS arm64 (Apple silicon, CPU features `neon`),
+5 September 2026. Every row was installed from its official release, verified
+against its recorded digest, launched and asked:
+
+| Engine      | UCI `id name`         | MultiPV | WDL | searchmoves | Syzygy | UCI_Chess960 |
+| ----------- | --------------------- | ------- | --- | ----------- | ------ | ------------ |
+| Stockfish   | Stockfish 18          | yes     | yes | yes         | yes    | yes          |
+| Stormphrax  | Stormphrax 8.0.0      | yes     | yes | yes         | yes    | yes          |
+| Viridithas  | Viridithas 20.0.0-dev | **no**  | no  | **no**      | yes    | yes          |
+| Halogen     | Halogen 16.0.0        | yes     | no  | **no**      | yes    | yes          |
+| PlentyChess | PlentyChess 8.0.0     | yes     | no  | **no**      | yes    | yes          |
+
+Berserk, Obsidian and Koivisto publish no macOS build and were correctly
+offered no Install button. Lc0 is a `system` engine — located, not downloaded.
+
+The bolded results are why the checks exist. Kingfisher had assumed that every
+engine it could drive over UCI honoured `searchmoves`, on the reasoning that it
+is part of UCI rather than an option an engine declares. Three of the five
+engines installable on this machine ignore it and answer with their own
+preferred move. Under the old assumption, "compare these three candidates"
+would have returned a search of the whole position and presented it as a
+comparison of the three moves. The capability now comes from this measurement,
+and the session additionally checks that the move it got back was one of the
+moves it asked about — because an engine can accept the restriction and ignore
+it anyway, and only the answer proves what happened.
+
+`UCI_Chess960` is recorded because it is a fact about the engine. **Kingfisher
+does not play Chess960**: its rules code assumes the standard starting squares
+for castling, and nothing in the board, PGN or FEN paths has been built or
+tested for shuffled positions. Knowing which engines could support it is what
+makes adding it later a question about Kingfisher rather than a survey of nine
+binaries.
 
 ## Installing them
 
@@ -211,11 +253,11 @@ a crashed engine surfaces as a crashed engine rather than a stalled panel.
 
 ## Licence obligations
 
-Five are **GPL-3.0-or-later**; **Viridithas is AGPL-3.0-or-later**, and the
-difference is recorded rather than rounded off. It changes nothing for someone
-running the binary — Kingfisher spawns it as a separate process and does not
-link against it — but a project that writes licences down only when they are
-convenient is not writing them down at all.
+License metadata must match each pinned release. In particular,
+[Viridithas 20](https://github.com/cosmobobak/viridithas/blob/v20.0.0/README.md)
+declares AGPL-3.0-only and
+[PlentyChess 8](https://github.com/Yoshie2000/PlentyChess/blob/b-v8.0.0/LICENSE)
+carries GPL version 3. Do not describe either as MIT.
 
 Kingfisher does not distribute them. They are downloaded from the upstream
 project at the user's request, onto the user's machine, and are executed as

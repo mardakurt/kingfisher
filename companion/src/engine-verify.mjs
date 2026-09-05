@@ -28,7 +28,15 @@
 
 import { spawn } from 'node:child_process';
 
-const DEFAULT_TIMEOUT = 25_000;
+const DEFAULT_TIMEOUT = 90_000;
+const START_MOVES = new Set([
+  ...'abcdefgh'.split('').flatMap((file) => [`${file}2${file}3`, `${file}2${file}4`]),
+  'b1a3',
+  'b1c3',
+  'g1f3',
+  'g1h3',
+]);
+const legalStartBest = (line) => START_MOVES.has(line.split(/\s+/)[1]);
 
 /** A conversation with one engine process, line by line. */
 class UciProcess {
@@ -54,6 +62,8 @@ class UciProcess {
     */
     this.#child.stdin.on('error', () => {
       this.#exited = true;
+      for (const waiter of this.#waiters.splice(0))
+        waiter.reject(new Error('The engine input pipe closed.'));
     });
     this.#child.on('exit', () => {
       this.#exited = true;
@@ -71,12 +81,17 @@ class UciProcess {
 
   #ingest(chunk) {
     this.#buffer += chunk;
+    if (this.#buffer.length > 1024 * 1024) {
+      this.#child.kill('SIGKILL');
+      return;
+    }
     const parts = this.#buffer.split(/\r?\n/);
     this.#buffer = parts.pop() ?? '';
     for (const raw of parts) {
       const line = raw.trim();
       if (!line) continue;
       this.#lines.push(line);
+      if (this.#lines.length > 20_000) this.#lines.shift();
       for (const waiter of [...this.#waiters]) {
         if (waiter.matches(line)) {
           this.#waiters.splice(this.#waiters.indexOf(waiter), 1);
@@ -103,15 +118,27 @@ class UciProcess {
     const existing = this.#lines.find(matches);
     if (existing) return Promise.resolve(existing);
     return new Promise((resolve, reject) => {
-      const waiter = { matches, resolve, reject };
+      let timer;
+      const waiter = {
+        matches,
+        resolve: (line) => {
+          clearTimeout(timer);
+          resolve(line);
+        },
+        reject: (error) => {
+          clearTimeout(timer);
+          reject(error);
+        },
+      };
       this.#waiters.push(waiter);
-      setTimeout(() => {
+      timer = setTimeout(() => {
         const index = this.#waiters.indexOf(waiter);
         if (index >= 0) {
           this.#waiters.splice(index, 1);
           reject(new Error('The engine did not answer in time.'));
         }
-      }, timeoutMs).unref?.();
+      }, timeoutMs);
+      timer.unref?.();
     });
   }
 
@@ -192,7 +219,7 @@ export async function verifyEngine(binary, { args = [], cwd, timeoutMs = DEFAULT
       engine.send('position startpos');
       engine.send('go depth 6');
       const best = await engine.expect((line) => line.startsWith('bestmove '), 15_000);
-      return /^bestmove [a-h][1-8][a-h][1-8]/.test(best);
+      return legalStartBest(best);
     });
 
     await record('stop', async () => {
@@ -202,7 +229,7 @@ export async function verifyEngine(binary, { args = [], cwd, timeoutMs = DEFAULT
       await new Promise((resolve) => setTimeout(resolve, 300));
       engine.send('stop');
       const best = await engine.expect((line) => line.startsWith('bestmove '), 8_000);
-      return best.length > 0;
+      return legalStartBest(best);
     });
 
     await record('multipv', async () => {
@@ -228,7 +255,7 @@ export async function verifyEngine(binary, { args = [], cwd, timeoutMs = DEFAULT
       engine.send('go depth 8 searchmoves a2a3');
       const best = await engine.expect((line) => line.startsWith('bestmove '), 15_000);
       // The only legal answer when the search is restricted to one move.
-      return best.startsWith('bestmove a2a3');
+      return best.split(/\s+/)[1] === 'a2a3';
     });
 
     await record('wdl', async () => {
@@ -257,6 +284,7 @@ export async function verifyEngine(binary, { args = [], cwd, timeoutMs = DEFAULT
       name,
       author,
       options,
+      optionLines: idLines.filter((line) => line.startsWith('option name ')),
       checks,
       capabilities: {
         multipv: checks.multipv?.ok === true,
@@ -265,6 +293,14 @@ export async function verifyEngine(binary, { args = [], cwd, timeoutMs = DEFAULT
         syzygy: checks.syzygy?.ok === true,
         threads: options.includes('Threads'),
         hash: options.includes('Hash'),
+        /*
+          Recorded because it is a fact about the engine, not because
+          Kingfisher plays Chess960 — it does not; its rules code assumes the
+          standard starting squares for castling. Knowing which engines could
+          is what makes adding it later a question about Kingfisher rather than
+          a survey of nine binaries.
+        */
+        chess960: options.includes('UCI_Chess960'),
       },
       verifiedAt: Date.now(),
     };

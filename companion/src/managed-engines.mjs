@@ -17,11 +17,23 @@
 
 import { createHash } from 'node:crypto';
 import { execFile } from 'node:child_process';
-import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+  renameSync,
+  readdirSync,
+  rmdirSync,
+} from 'node:fs';
 import path from 'node:path';
 import { promisify } from 'node:util';
 
 import { verifyEngine } from './engine-verify.mjs';
+import { compatibleAsset, cpuFeatures } from './cpu.mjs';
 
 const run = promisify(execFile);
 
@@ -43,14 +55,24 @@ export class ManagedEngines {
   #recordFile;
   #registry;
   #records = new Map();
+  #features;
 
-  constructor({ catalogue, digests, platform, engineDir, recordFile, registry }) {
+  constructor({
+    catalogue,
+    digests,
+    platform,
+    engineDir,
+    recordFile,
+    registry,
+    features = cpuFeatures(),
+  }) {
     this.#catalogue = catalogue;
     this.#digests = digests;
     this.#platform = platform;
     this.#engineDir = engineDir;
     this.#recordFile = recordFile;
     this.#registry = registry;
+    this.#features = features;
   }
 
   /**
@@ -71,8 +93,17 @@ export class ManagedEngines {
     }
     for (const record of stored.engines ?? []) {
       if (!record.binary || !existsSync(record.binary)) continue;
+      if (
+        record.binarySha256 &&
+        createHash('sha256').update(readFileSync(record.binary)).digest('hex') !==
+          record.binarySha256
+      )
+        continue;
       this.#records.set(record.id, record);
       this.#registry.register(record.id, record.binary, {
+        // Carried so `/status` can report what the engine was *measured* to
+        // do rather than what the browser would otherwise have to assume.
+        capabilities: record.capabilities,
         name: record.name,
         version: record.version,
         args: record.args ?? [],
@@ -85,50 +116,67 @@ export class ManagedEngines {
 
   #save() {
     mkdirSync(path.dirname(this.#recordFile), { recursive: true });
+    const temporary = `${this.#recordFile}.tmp`;
     writeFileSync(
-      this.#recordFile,
+      temporary,
       `${JSON.stringify({ version: 1, engines: [...this.#records.values()] }, null, 2)}\n`,
     );
+    renameSync(temporary, this.#recordFile);
   }
 
-  /** The catalogue as this machine sees it: what is offered, and what is on disk. */
+  /**
+   * The catalogue as this machine sees it: what is offered, and what is on disk.
+   *
+   * The browser engine is in the shared catalogue because that file is the one
+   * list of every engine Kingfisher knows, but it is not something a companion
+   * can install, locate, run or remove — it ships inside the application and
+   * Settings → Engines already shows it as its own row. Returning it here put
+   * a second Stockfish in that list, permanently marked unavailable.
+   */
   list() {
-    return this.#catalogue.map((entry) => {
-      const asset = entry.kind === 'binary' ? (entry.assets?.[this.#platform] ?? null) : {};
-      const record = this.#records.get(entry.id) ?? null;
-      const progress = this.#inFlight.get(entry.id) ?? null;
-      const sha256 = asset && entry.kind === 'binary' ? (this.#digests[asset.url] ?? null) : null;
-      return {
-        id: entry.id,
-        name: entry.name,
-        version: entry.version ?? null,
-        family: entry.family,
-        kind: entry.kind,
-        license: entry.license,
-        source: entry.source,
-        notes: entry.notes,
-        /*
+    return this.#catalogue
+      .filter((entry) => entry.kind !== 'wasm')
+      .map((entry) => {
+        const published = entry.assets?.[this.#platform];
+        const asset =
+          entry.kind === 'binary' ? compatibleAsset(entry, this.#platform, this.#features) : {};
+        const record = this.#records.get(entry.id) ?? null;
+        const progress = this.#inFlight.get(entry.id) ?? null;
+        const sha256 = asset && entry.kind === 'binary' ? (this.#digests[asset.url] ?? null) : null;
+        return {
+          id: entry.id,
+          name: entry.name,
+          version: entry.version ?? null,
+          family: entry.family,
+          kind: entry.kind,
+          license: entry.license,
+          source: entry.source,
+          notes: entry.notes,
+          /*
           Three separate reasons a row may not offer an Install button, kept
           apart because they need different words on screen: this platform has
           no build, the project ships no build for anyone to download, or the
           digest was never recorded so Kingfisher will not fetch it.
         */
-        available: entry.kind === 'binary' ? asset !== null : true,
-        unavailableReason:
-          entry.kind === 'binary' && asset === null
-            ? `No ${this.#platform} build is published for ${entry.name}.`
-            : entry.kind === 'binary' && !sha256
-              ? 'No verified digest is recorded for this download.'
-              : null,
-        installHint: entry.kind === 'system' ? (entry.install?.[this.#platform] ?? null) : null,
-        downloadUrl: asset?.url ?? null,
-        sha256,
-        installed: record !== null,
-        installing: progress !== null,
-        progress,
-        record,
-      };
-    });
+          available:
+            entry.kind === 'binary' ? asset !== null && sha256 !== null : entry.kind === 'system',
+          unavailableReason:
+            entry.kind === 'binary' && asset === null
+              ? published
+                ? `This build requires CPU features not confirmed on this machine: ${(published.requires ?? []).join(', ')}.`
+                : `No ${this.#platform} build is published for ${entry.name}.`
+              : entry.kind === 'binary' && !sha256
+                ? 'No verified digest is recorded for this download.'
+                : null,
+          installHint: entry.kind === 'system' ? (entry.install?.[this.#platform] ?? null) : null,
+          downloadUrl: asset?.url ?? null,
+          sha256,
+          installed: record !== null,
+          installing: progress !== null,
+          progress,
+          record,
+        };
+      });
   }
 
   status(id) {
@@ -175,7 +223,7 @@ export class ManagedEngines {
       try {
         report = await verifyEngine(binary, { cwd: path.dirname(binary) });
       } catch (error) {
-        this.#discard(entry, binary);
+        this.#discard(entry, state);
         throw new Error(
           `${entry.name} did not pass its UCI check: ${
             error instanceof Error ? error.message : String(error)
@@ -183,7 +231,7 @@ export class ManagedEngines {
         );
       }
       if (!report.checks.handshake?.ok || !report.checks.search?.ok) {
-        this.#discard(entry, binary);
+        this.#discard(entry, state);
         throw new Error(
           `${entry.name} did not pass its UCI check: ${
             report.checks.search?.error ?? 'it could not find a move.'
@@ -203,11 +251,19 @@ export class ManagedEngines {
         managed: entry.kind === 'binary',
         installedAt: Date.now(),
         sha256: state.sha256 ?? null,
+        binarySha256: createHash('sha256').update(readFileSync(binary)).digest('hex'),
+        platform: this.#platform,
+        cpuFeatures: this.#features,
+        options: report.options,
+        optionLines: report.optionLines ?? [],
+        verifiedAt: report.verifiedAt,
         capabilities: report.capabilities,
         checks: report.checks,
       };
       this.#records.set(id, record);
+      this.#save();
       this.#registry.register(id, binary, {
+        capabilities: report.capabilities,
         name: entry.name,
         version: entry.version,
         args: [],
@@ -215,9 +271,11 @@ export class ManagedEngines {
         license: entry.license,
         managed: true,
       });
-      this.#save();
       state.phase = 'done';
       return record;
+    } catch (error) {
+      this.#discard(entry, state);
+      throw error;
     } finally {
       // Kept for one beat so a poll immediately after completion still sees
       // the terminal phase rather than nothing at all.
@@ -226,13 +284,12 @@ export class ManagedEngines {
   }
 
   /** Remove what an install wrote, when it wrote anything. */
-  #discard(entry, binary) {
-    if (entry.kind !== 'binary') return;
-    rmSync(path.join(this.#engineDir, entry.id), { recursive: true, force: true });
-    // A tar member lands in a subdirectory; removing the engine's directory
-    // covers both layouts, but say so rather than relying on the reader
-    // noticing that `binary` is always inside it.
-    void binary;
+  #discard(entry, state) {
+    if (entry.kind !== 'binary' || !state.directory) return;
+    // Only the new staging directory. A failed update never removes the old engine.
+    rmSync(state.directory, { recursive: true, force: true });
+    const base = path.dirname(state.directory);
+    if (existsSync(base) && readdirSync(base).length === 0) rmdirSync(base);
   }
 
   async #locate(entry) {
@@ -254,8 +311,12 @@ export class ManagedEngines {
   }
 
   async #download(entry, state) {
-    const asset = entry.assets?.[this.#platform];
-    if (!asset) throw new Error(`No ${this.#platform} build is published for ${entry.name}.`);
+    const asset = compatibleAsset(entry, this.#platform, this.#features);
+    if (!asset)
+      throw new Error(
+        this.status(entry.id)?.unavailableReason ??
+          `No compatible ${this.#platform} build is published for ${entry.name}.`,
+      );
     const expected = this.#digests[asset.url];
     if (!expected) {
       throw new Error(
@@ -263,9 +324,6 @@ export class ManagedEngines {
           'not install a download it cannot verify.',
       );
     }
-
-    const target = path.join(this.#engineDir, entry.id);
-    mkdirSync(target, { recursive: true });
 
     state.phase = 'downloading';
     state.message = `Downloading ${asset.url.split('/').pop()}`;
@@ -279,6 +337,8 @@ export class ManagedEngines {
     for await (const chunk of response.body) {
       chunks.push(chunk);
       state.bytes += chunk.length;
+      if (state.bytes > 512 * 1024 * 1024)
+        throw new Error('Engine download exceeds the 512 MiB safety limit.');
     }
     const bytes = Buffer.concat(chunks);
 
@@ -286,18 +346,25 @@ export class ManagedEngines {
     state.message = 'Checking the download against its recorded digest…';
     const digest = createHash('sha256').update(bytes).digest('hex');
     if (digest !== expected) {
-      rmSync(target, { recursive: true, force: true });
       throw new Error(
         `${entry.name}: the download does not match its recorded digest. Nothing was installed.`,
       );
     }
     state.sha256 = digest;
+    const base = path.join(this.#engineDir, entry.id);
+    mkdirSync(base, { recursive: true });
+    const target = mkdtempSync(path.join(base, 'verified-install-'));
+    state.directory = target;
+    const archiveType = asset.archive ?? entry.archive;
 
-    if (entry.archive === 'tar') {
-      const archive = path.join(target, 'download.tar');
+    if (archiveType === 'tar' || archiveType === 'zip') {
+      const archive = path.join(target, `download.${archiveType}`);
       writeFileSync(archive, bytes);
       // `tar` with an explicit member and directory; no shell, no wildcards.
-      await run('tar', ['-xf', archive, '-C', target, asset.file]);
+      // Windows' bundled bsdtar reads ZIP too. Unix uses unzip for ZIP members.
+      if (archiveType === 'zip' && process.platform !== 'win32')
+        await run('unzip', ['-q', archive, asset.file, '-d', target]);
+      else await run('tar', ['-xf', archive, '-C', target, asset.file]);
       rmSync(archive, { force: true });
       const extracted = path.join(target, asset.file);
       if (!existsSync(extracted)) {
@@ -316,6 +383,8 @@ export class ManagedEngines {
 
   /** Remove a managed engine and everything its install wrote. */
   uninstall(id) {
+    if (this.#inFlight.has(id))
+      throw new Error('Wait for this engine installation to finish before removing it.');
     const record = this.#records.get(id);
     if (!record) return false;
     this.#records.delete(id);

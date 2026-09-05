@@ -21,7 +21,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { CATALOGUE, forPlatform } from './engine-catalogue.mjs';
 
 const FILE = new URL('./engine-digests.json', import.meta.url);
-const PLATFORMS = ['darwin-arm64', 'darwin-x64', 'linux-x64', 'win32-x64'];
+const PLATFORMS = ['darwin-arm64', 'darwin-x64', 'linux-arm64', 'linux-x64', 'win32-x64'];
 
 const digests = JSON.parse(readFileSync(FILE, 'utf8'));
 const all = process.argv.includes('--all');

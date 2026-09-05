@@ -67,8 +67,8 @@ export const CATALOGUE = [
     license: 'GPL-3.0-or-later',
     source: 'https://github.com/official-stockfish/Stockfish',
     notes:
-      'The strongest engine there is, and several times faster than the ' +
-      'WebAssembly build because it uses every core. ~115 MB.',
+      'Official native Stockfish. Search speed depends on hardware, thread ' +
+      'and hash settings; it is not interchangeable with a browser-version measurement.',
     archive: 'tar',
     assets: {
       'darwin-arm64': {
@@ -76,12 +76,17 @@ export const CATALOGUE = [
         file: 'stockfish/stockfish-macos-m1-apple-silicon',
       },
       'darwin-x64': {
-        url: 'https://github.com/official-stockfish/Stockfish/releases/download/sf_18/stockfish-macos-x86-64-avx2.tar',
-        file: 'stockfish/stockfish-macos-x86-64-avx2',
+        url: 'https://github.com/official-stockfish/Stockfish/releases/download/sf_18/stockfish-macos-x86-64.tar',
+        file: 'stockfish/stockfish-macos-x86-64',
       },
       'linux-x64': {
-        url: 'https://github.com/official-stockfish/Stockfish/releases/download/sf_18/stockfish-ubuntu-x86-64-avx2.tar',
-        file: 'stockfish/stockfish-ubuntu-x86-64-avx2',
+        url: 'https://github.com/official-stockfish/Stockfish/releases/download/sf_18/stockfish-ubuntu-x86-64.tar',
+        file: 'stockfish/stockfish-ubuntu-x86-64',
+      },
+      'win32-x64': {
+        url: 'https://github.com/official-stockfish/Stockfish/releases/download/sf_18/stockfish-windows-x86-64.zip',
+        file: 'stockfish/stockfish-windows-x86-64.exe',
+        archive: 'zip',
       },
     },
   },
@@ -102,10 +107,12 @@ export const CATALOGUE = [
       'linux-x64': {
         url: 'https://github.com/Ciekce/Stormphrax/releases/download/v8.0.0/stormphrax-8.0.0-avx2-bmi2',
         file: 'stormphrax',
+        requires: ['avx2', 'bmi2'],
       },
       'win32-x64': {
         url: 'https://github.com/Ciekce/Stormphrax/releases/download/v8.0.0/stormphrax-8.0.0-avx2-bmi2.exe',
         file: 'stormphrax.exe',
+        requires: ['avx2', 'bmi2'],
       },
     },
   },
@@ -122,7 +129,7 @@ export const CATALOGUE = [
       writes down licences only when they are convenient is not writing them
       down at all.
     */
-    license: 'AGPL-3.0-or-later',
+    license: 'AGPL-3.0-only',
     source: 'https://github.com/cosmobobak/viridithas',
     notes: 'A strong independent NNUE engine, written in Rust.',
     assets: {
@@ -133,10 +140,16 @@ export const CATALOGUE = [
       'linux-x64': {
         url: 'https://github.com/cosmobobak/viridithas/releases/download/v20.0.0/viridithas-20-linux-x86-64-v3',
         file: 'viridithas',
+        requires: ['avx2', 'bmi2', 'fma', 'sse4_2', 'popcnt'],
       },
       'win32-x64': {
         url: 'https://github.com/cosmobobak/viridithas/releases/download/v20.0.0/viridithas-20-win-x86-64-v3.exe',
         file: 'viridithas.exe',
+        requires: ['avx2', 'bmi2', 'fma', 'sse4_2', 'popcnt'],
+      },
+      'linux-arm64': {
+        url: 'https://github.com/cosmobobak/viridithas/releases/download/v20.0.0/viridithas-20-linux-aarch64-generic',
+        file: 'viridithas',
       },
     },
   },
@@ -155,16 +168,102 @@ export const CATALOGUE = [
         file: 'halogen',
       },
       'darwin-x64': {
-        url: 'https://github.com/KierenP/Halogen/releases/download/v16/Halogen-16.0.0-macos-x86_64-avx2',
+        url: 'https://github.com/KierenP/Halogen/releases/download/v16/Halogen-16.0.0-macos-x86_64-legacy',
         file: 'halogen',
       },
       'linux-x64': {
-        url: 'https://github.com/KierenP/Halogen/releases/download/v16/Halogen-16.0.0-linux-x86_64-avx2',
+        url: 'https://github.com/KierenP/Halogen/releases/download/v16/Halogen-16.0.0-linux-x86_64-legacy',
         file: 'halogen',
       },
       'win32-x64': {
-        url: 'https://github.com/KierenP/Halogen/releases/download/v16/Halogen-16.0.0-windows-x86_64-avx2.exe',
+        url: 'https://github.com/KierenP/Halogen/releases/download/v16/Halogen-16.0.0-windows-x86_64-legacy.exe',
         file: 'halogen.exe',
+      },
+    },
+  },
+  {
+    id: 'plentychess',
+    name: 'PlentyChess 8.0.0',
+    family: 'alphabeta',
+    kind: 'binary',
+    version: '8.0.0',
+    license: 'GPL-3.0',
+    source: 'https://github.com/Yoshie2000/PlentyChess',
+    notes:
+      'An actively developed independent NNUE engine. Generic x64 builds are ' +
+      'used where the companion cannot prove AVX2 support; Apple and Linux arm64 use NEON.',
+    assets: {
+      'darwin-arm64': {
+        url: 'https://github.com/Yoshie2000/PlentyChess/releases/download/b-v8.0.0/PlentyChess-8.0.0-macos-neon',
+        file: 'plentychess',
+      },
+      'linux-arm64': {
+        url: 'https://github.com/Yoshie2000/PlentyChess/releases/download/b-v8.0.0/PlentyChess-8.0.0-linux-neon',
+        file: 'plentychess',
+      },
+      'linux-x64': {
+        url: 'https://github.com/Yoshie2000/PlentyChess/releases/download/b-v8.0.0/PlentyChess-8.0.0-linux-generic',
+        file: 'plentychess',
+      },
+      'win32-x64': {
+        url: 'https://github.com/Yoshie2000/PlentyChess/releases/download/b-v8.0.0/PlentyChess-8.0.0-windows-generic.exe',
+        file: 'plentychess.exe',
+      },
+    },
+  },
+  {
+    id: 'berserk',
+    name: 'Berserk 14',
+    version: '14',
+    family: 'alphabeta',
+    kind: 'binary',
+    license: 'GPL-3.0',
+    source: 'https://github.com/jhonnold/berserk',
+    notes:
+      'Official May 2026 release. Windows x64 only; no native macOS/Linux asset is offered by this release.',
+    assets: {
+      'win32-x64': {
+        url: 'https://github.com/jhonnold/berserk/releases/download/14/berserk-14-x86-64.exe',
+        file: 'berserk.exe',
+      },
+    },
+  },
+  {
+    id: 'koivisto',
+    name: 'Koivisto 9.0',
+    version: '9.0',
+    family: 'alphabeta',
+    kind: 'binary',
+    license: 'GPL-3.0',
+    source: 'https://github.com/Luecx/Koivisto',
+    notes:
+      'Historical stable release from January 2023, not an actively updated engine. SSE2 builds are compatible with baseline x64.',
+    assets: {
+      'linux-x64': {
+        url: 'https://github.com/Luecx/Koivisto/releases/download/v9.0/Koivisto_9.0-linux-sse2-pgo',
+        file: 'koivisto',
+      },
+      'win32-x64': {
+        url: 'https://github.com/Luecx/Koivisto/releases/download/v9.0/Koivisto_9.0-windows-sse2-pgo.exe',
+        file: 'koivisto.exe',
+      },
+    },
+  },
+  {
+    id: 'obsidian',
+    name: 'Obsidian 16.0',
+    version: '16.0',
+    family: 'alphabeta',
+    kind: 'binary',
+    license: 'GPL-3.0',
+    source: 'https://github.com/gab8192/Obsidian',
+    notes:
+      'Official May 2025 release, Windows only. Requires confirmed AVX2 support; no generic artifact is published.',
+    assets: {
+      'win32-x64': {
+        url: 'https://github.com/gab8192/Obsidian/releases/download/v16.0/Obsidian160-avx2.exe',
+        file: 'obsidian.exe',
+        requires: ['avx2'],
       },
     },
   },
@@ -202,17 +301,6 @@ export const CATALOGUE = [
  */
 export const NOT_INCLUDED = [
   {
-    id: 'berserk',
-    reason:
-      'Release 14 (May 2026) publishes Windows executables only. An Install ' +
-      'button that cannot work on the machine looking at it is worse than an ' +
-      'absent row.',
-  },
-  {
-    id: 'obsidian',
-    reason: 'Release 16.0 publishes Windows executables only.',
-  },
-  {
     id: 'rubichess',
     reason:
       'The most recent release is from August 2024 and ships one Windows ' +
@@ -225,10 +313,6 @@ export const NOT_INCLUDED = [
       'sold commercially rather than released as a free binary, and its NNUE ' +
       'networks are not freely redistributable. It is not an open-source ' +
       'engine Kingfisher can install, and presenting it as one would be false.',
-  },
-  {
-    id: 'koivisto',
-    reason: 'No release since 2023; the project is not actively maintained.',
   },
 ];
 
