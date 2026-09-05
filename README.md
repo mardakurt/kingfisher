@@ -19,11 +19,11 @@ and is a release gate.
 |                       |                                                                                                                                                                                                                                                         |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Engine**            | Stockfish 17.1, as WebAssembly in a Web Worker. Sandboxed by the browser.                                                                                                                                                                               |
-| **Opening Explorer**  | 175,022 over-the-board games between rated or titled players, 2023–2026, as 146,684 position aggregates. On your machine, and it answers with the network off.                                                                                          |
+| **Opening Explorer**  | 172,376 over-the-board games between rated or titled players, 2023–2026, as 246,870 position aggregates indexed through **twenty full moves**. On your machine, and it answers with the network off.                                                    |
 | **Opening knowledge** | 3,810 named positions with ECO codes, from the CC0 lichess-org dataset, replayed through Kingfisher's own rules code — so transpositions converge and depth wins.                                                                                       |
 | **Opening library**   | All of it, searchable by code, name, nickname, move sequence or position, with statistics, transpositions and model games on every entry.                                                                                                               |
-| **Games**             | 11,357 full elite game scores, openable on the board.                                                                                                                                                                                                   |
-| **Players**           | 12,609 player identities from the reference, plus a curated roster of 106 historical figures — the whole championship lineage from Steinitz to Gukesh, the women's lineage from Menchik to Ju Wenjun, and twenty-five players from before FIDE existed. |
+| **Games**             | 10,707 full elite game scores, openable on the board.                                                                                                                                                                                                   |
+| **Players**           | 12,522 player identities from the reference, plus a curated roster of 106 historical figures — the whole championship lineage from Steinitz to Gukesh, the women's lineage from Menchik to Ju Wenjun, and twenty-five players from before FIDE existed. |
 | **Opening book**      | Derived from the reference: how often strong players chose each move.                                                                                                                                                                                   |
 | **Board and pieces**  | Twelve board themes and ten piece sets, all with licences recorded.                                                                                                                                                                                     |
 
@@ -37,12 +37,33 @@ games behind him, and the page says so. See
 
 - **Connect Lichess** — OAuth with PKCE, no token to paste, no scopes requested.
 - **Connect Chess.com** — a username; the API is public.
-- **Install a reference pack** — the full broadcast archive: 422,059 games.
-- **Install an engine** — Stockfish 18, Stormphrax, Viridithas, Halogen or Lc0,
-  downloaded, digest-checked and UCI-tested without leaving the application.
+- **Install a reference pack** — **Elite OTB**, the whole broadcast archive
+  since 2020: 407,538 games, every one of them openable, 5,438,808 position
+  aggregates, 339 MB. Or **Recent Theory**, the last two years at a lower
+  frequency threshold so that rare and recent continuations survive: 44,200
+  games, 918,069 positions, 34 MB. Both index through twenty full moves. One
+  click, no file to find, resumable, and verified chunk by chunk.
+- **Install an engine** — Stockfish 18, Stormphrax 8, Viridithas 20, Halogen 16,
+  PlentyChess 8 or Lc0, downloaded, digest-checked and UCI-tested without
+  leaving the application. Capabilities are read from the engine rather than a
+  table: three of those five ignore UCI `searchmoves`, and Kingfisher knows it.
 - **Add a Polyglot `.bin`** — your own opening book.
 
 ---
+
+## Status: Phase 15 — deep enough to prepare with
+
+Phase 15's question was how far into a line Kingfisher keeps answering. It used
+to be about move ten. The reference packs are rebuilt to index twenty full
+moves, with a frequency threshold that falls with depth rather than one number
+for the whole tree; there is a second installable source that answers "is
+anybody still playing this" rather than "how has this scored"; and when the
+position outruns the deepest position anybody has named, the explorer keeps
+showing the opening it is in rather than going blank.
+
+Thirty plies of a mainstream line on an empty profile is a release gate, not a
+claim: `e2e/fresh-user.spec.ts` walks it and reads the opening identity after
+every single ply.
 
 ## Status: Phase 13 — useful before you add anything
 
