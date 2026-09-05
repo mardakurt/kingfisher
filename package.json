@@ -2,7 +2,7 @@
   "name": "kingfisher",
   "version": "0.1.0",
   "private": true,
-  "description": "Kingfisher — a chess research workspace for strong players.",
+  "description": "Kingfisher \u2014 a chess research workspace for strong players.",
   "scripts": {
     "dev": "next dev --port 3210",
     "build": "next build",
@@ -39,7 +39,8 @@
     "engines:digests": "node scripts/record-engine-digests.mjs",
     "engines:verify": "node scripts/verify-engine-fleet.mjs",
     "reference:build": "node scripts/build-reference-pack.mjs",
-    "polyglot:constants": "node scripts/build-polyglot-constants.mjs && prettier --write src/book/polyglot-constants.generated.ts"
+    "polyglot:constants": "node scripts/build-polyglot-constants.mjs && prettier --write src/book/polyglot-constants.generated.ts",
+    "pieces:measure": "node scripts/measure-piece-scale.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.102.8",

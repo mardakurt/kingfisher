@@ -63,6 +63,8 @@ interface VectorPieceSet {
   /** Directory under `public/`, without a trailing slash. */
   readonly directory: string;
   readonly attribution: AssetAttribution;
+  /** See PIECE_INK_TARGET. */
+  readonly visualScale: number;
 }
 
 interface GeometryPieceSet {
@@ -72,9 +74,37 @@ interface GeometryPieceSet {
   readonly description: string;
   readonly family: GeometryFamily;
   readonly style: PieceStyle;
+  readonly visualScale: number;
 }
 
 export type PieceSetDefinition = VectorPieceSet | GeometryPieceSet;
+
+/**
+ * How much of a square a piece's ink should cover, at its tallest.
+ *
+ * Artwork sets disagree wildly about their own margins — measured across the
+ * ten vendored sets, the tallest piece covered anywhere from 0.802 to 0.935 of
+ * its own box before any of this existed. Rendering them all at the same box
+ * size therefore made Celtic look correct and Cburnett look small, and the
+ * board applied a further 6% inset on top, which took the default set down to
+ * 0.688. Lichess draws the same Cburnett files at 0.782.
+ *
+ * So the calibration is per set and not a single number: each set's
+ * `visualScale` is the factor that brings *its* tallest piece to this target.
+ * `npm run pieces:measure` re-derives them by rasterising every piece exactly
+ * as the board draws it and taking the alpha bounding box; the measurements
+ * behind the numbers below are in `docs/design/piece-proportions.md`.
+ */
+export const PIECE_INK_TARGET = 0.86;
+
+/**
+ * The widest a calibrated piece may be, as a fraction of its square.
+ *
+ * A piece that reaches the edge touches its neighbour on a crowded board. No
+ * set reaches this — Merida is the widest at 0.931 — but the scale is clamped
+ * against it so a future set cannot ship over the line.
+ */
+export const PIECE_INK_MAX_WIDTH = 0.94;
 
 /** The sets a user can choose. Ordered by how conventional they look. */
 export const PIECE_SETS: readonly PieceSetDefinition[] = [
@@ -84,6 +114,7 @@ export const PIECE_SETS: readonly PieceSetDefinition[] = [
     name: 'Cburnett',
     description: 'The Staunton set from Wikipedia. What most players picture as “a chess piece”.',
     directory: '/piece/cburnett',
+    visualScale: 1.072,
     attribution: {
       author: 'Colin M.L. Burnett',
       license: 'GPL-2.0-or-later',
@@ -97,6 +128,7 @@ export const PIECE_SETS: readonly PieceSetDefinition[] = [
     name: 'Merida',
     description: 'Heavier tournament Staunton with deeper carving. Reads well on wood.',
     directory: '/piece/merida',
+    visualScale: 1.009,
     attribution: {
       author: 'Armando Hernandez Marroquin',
       license: 'GPL-2.0-or-later',
@@ -110,6 +142,7 @@ export const PIECE_SETS: readonly PieceSetDefinition[] = [
     name: 'Chessnut',
     description: 'Modern Staunton with clean edges and generous interior space.',
     directory: '/piece/chessnut',
+    visualScale: 1.089,
     attribution: {
       author: 'Alexis Luengas',
       license: 'Apache-2.0',
@@ -123,6 +156,7 @@ export const PIECE_SETS: readonly PieceSetDefinition[] = [
     name: 'Fantasy',
     description: 'Softly shaded and elegant. The most decorative set here.',
     directory: '/piece/fantasy',
+    visualScale: 0.956,
     attribution: {
       author: 'Maurizio Monge',
       license: 'MIT',
@@ -136,6 +170,7 @@ export const PIECE_SETS: readonly PieceSetDefinition[] = [
     name: 'Spatial',
     description: 'Flat, geometric and very high contrast. Calm in crowded positions.',
     directory: '/piece/spatial',
+    visualScale: 0.922,
     attribution: {
       author: 'Maurizio Monge',
       license: 'MIT',
@@ -149,6 +184,7 @@ export const PIECE_SETS: readonly PieceSetDefinition[] = [
     name: 'Celtic',
     description: 'Knotwork Staunton, heavier in the base. Distinctive without being fussy.',
     directory: '/piece/celtic',
+    visualScale: 0.92,
     attribution: {
       author: 'Maurizio Monge',
       license: 'MIT',
@@ -162,6 +198,7 @@ export const PIECE_SETS: readonly PieceSetDefinition[] = [
     name: 'RhosGFX',
     description: 'Warm, softly modelled Staunton. Reads unusually well at small sizes.',
     directory: '/piece/rhosgfx',
+    visualScale: 0.983,
     attribution: {
       author: 'RhosGFX',
       license: 'CC0-1.0',
@@ -175,6 +212,7 @@ export const PIECE_SETS: readonly PieceSetDefinition[] = [
     name: 'Kiwen Suwi',
     description: 'Clean line-art with no shading at all. The most legible set on a busy board.',
     directory: '/piece/kiwen-suwi',
+    visualScale: 1.012,
     attribution: {
       author: 'neverRare',
       license: 'CC-BY-4.0',
@@ -188,6 +226,7 @@ export const PIECE_SETS: readonly PieceSetDefinition[] = [
     name: 'Firi',
     description: 'Gently gradient-shaded, with tall silhouettes. Elegant on a light board.',
     directory: '/piece/firi',
+    visualScale: 1.055,
     attribution: {
       author: 'James Faure',
       license: 'CC-BY-4.0',
@@ -201,6 +240,7 @@ export const PIECE_SETS: readonly PieceSetDefinition[] = [
     name: 'MPChess',
     description: 'Crisp outlined Staunton drawn for print. Very even weight across the set.',
     directory: '/piece/mpchess',
+    visualScale: 1.065,
     attribution: {
       author: 'Maxime Chupin',
       license: 'GPL-3.0-or-later',
@@ -224,6 +264,7 @@ export const LEGACY_PIECE_SETS: readonly PieceSetDefinition[] = [
     description: 'Drawn from path data. Used only when artwork cannot be loaded.',
     family: 'staunton',
     style: { whiteOutline: 2, blackOutline: 1.25, detail: true, detailOpacity: 0.66, shade: true },
+    visualScale: 0.94,
   },
   {
     kind: 'geometry',
@@ -232,6 +273,7 @@ export const LEGACY_PIECE_SETS: readonly PieceSetDefinition[] = [
     description: 'Legacy geometry retained for stored preferences.',
     family: 'staunton',
     style: { whiteOutline: 3.1, blackOutline: 2.3, detail: true, detailOpacity: 0.82, shade: true },
+    visualScale: 0.94,
   },
   {
     kind: 'geometry',
@@ -240,6 +282,7 @@ export const LEGACY_PIECE_SETS: readonly PieceSetDefinition[] = [
     description: 'Legacy geometry retained for stored preferences.',
     family: 'staunton',
     style: { whiteOutline: 1.6, blackOutline: 0.9, detail: false },
+    visualScale: 0.94,
   },
   {
     kind: 'geometry',
@@ -254,6 +297,7 @@ export const LEGACY_PIECE_SETS: readonly PieceSetDefinition[] = [
       detail: true,
       detailOpacity: 0.86,
     },
+    visualScale: 0.94,
   },
   {
     kind: 'geometry',
@@ -262,6 +306,7 @@ export const LEGACY_PIECE_SETS: readonly PieceSetDefinition[] = [
     description: 'Legacy geometry retained for stored preferences.',
     family: 'minimal',
     style: { whiteOutline: 2.2, blackOutline: 1.6, detail: true, detailOpacity: 0.7 },
+    visualScale: 0.94,
   },
   {
     kind: 'geometry',
@@ -270,6 +315,7 @@ export const LEGACY_PIECE_SETS: readonly PieceSetDefinition[] = [
     description: 'Legacy geometry retained for stored preferences.',
     family: 'staunton',
     style: { whiteOutline: 4, blackOutline: 3.4, detail: false },
+    visualScale: 0.94,
   },
 ];
 
@@ -316,6 +362,16 @@ export interface PieceIconProps {
 export function PieceIcon({ piece, set, className, decorative }: PieceIconProps) {
   const definition = pieceSet(set);
   const label = pieceLabel(piece);
+  /*
+    The calibration is a property of the artwork, so it is applied here rather
+    than by each surface that draws a piece: the board, the mini board, the
+    promotion picker and the settings preview all get the same proportions
+    without any of them knowing which set is selected. A transform rather than
+    a width, because the element's box is the piece's tile — scaling the box
+    would move the drag target, and the brief for this work is explicitly that
+    only the artwork changes size.
+  */
+  const scale = definition.visualScale === 1 ? undefined : `scale(${definition.visualScale})`;
 
   if (definition.kind === 'vector') {
     return (
@@ -332,6 +388,7 @@ export function PieceIcon({ piece, set, className, decorative }: PieceIconProps)
         alt={decorative ? '' : label}
         {...(decorative ? { 'aria-hidden': true } : {})}
         className={className}
+        style={scale ? { transform: scale } : undefined}
         draggable={false}
       />
     );
@@ -360,6 +417,7 @@ function GeometryPiece({
 }) {
   const geometry = GEOMETRY_FAMILIES[definition.family][piece.type];
   const { style } = definition;
+  const scale = definition.visualScale === 1 ? undefined : `scale(${definition.visualScale})`;
 
   const white = piece.color === 'w';
   const body = white ? 'var(--piece-light)' : 'var(--piece-dark)';
@@ -369,6 +427,7 @@ function GeometryPiece({
     <svg
       viewBox="0 0 100 100"
       className={className}
+      style={scale ? { transform: scale } : undefined}
       {...(label === null ? { 'aria-hidden': true } : { role: 'img', 'aria-label': label })}
       preserveAspectRatio="xMidYMid meet"
       shapeRendering="geometricPrecision"

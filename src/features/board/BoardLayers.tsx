@@ -79,7 +79,12 @@ export function PieceLayer({
   };
 }) {
   return (
-    <div className={cn('pointer-events-none absolute inset-0', className)} aria-hidden>
+    <div
+      className={cn('pointer-events-none absolute inset-0', className)}
+      aria-hidden
+      /* A handle for the proportion tests, which measure artwork against square. */
+      data-piece-layer
+    >
       {pieces.map((placed) => {
         const custom = render?.(placed);
         const offset = squareOffset(placed.square, orientation);
@@ -95,7 +100,14 @@ export function PieceLayer({
             <PieceIcon
               piece={placed.piece}
               set={pieceSet as never}
-              className={cn('h-full w-full p-[6%]', custom?.pieceClassName)}
+              /*
+                No inset. The artwork's own margin is what separates a piece
+                from its neighbour, and each set's is calibrated in the
+                registry; a 6% inset here took the default set's tallest piece
+                down to 0.688 of its square, against 0.782 for the same files
+                on Lichess.
+              */
+              className={cn('h-full w-full', custom?.pieceClassName)}
             />
           </div>
         );
