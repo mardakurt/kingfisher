@@ -4,6 +4,7 @@ import { positionKey, START_FEN } from '@/chess/fen';
 import { playSanAt } from '@/chess/game';
 import { createTree } from '@/chess/tree/tree';
 import type { GameTree } from '@/chess/tree/types';
+import { classifyPath } from './useOpeningClassification';
 import { asFen } from '@/chess/types';
 
 import {
@@ -13,6 +14,7 @@ import {
   classifyPosition,
   loadOpeningIndex,
   openingLabel,
+  openingLineage,
 } from './openings';
 
 /** Play a main line from the start, the way an import would. */
@@ -46,6 +48,7 @@ describe('the opening index', () => {
     const hit = classifyGameTree(index, tree);
     expect(hit?.eco).toBe('B00');
     expect(hit?.name).toBe("King's Pawn Game");
+    expect(hit?.lineage).toEqual(["King's Pawn Game"]);
   });
 
   it('declines a position it has no entry for', () => {
@@ -72,6 +75,7 @@ describe('classifying by the deepest known position', () => {
     const hit = classifyGameTree(index, najdorf);
     expect(hit?.eco).toBe('B90');
     expect(openingLabel(hit!)).toContain('Najdorf');
+    expect(hit?.lineage).toEqual(expect.arrayContaining(['Sicilian Defense', 'Najdorf Variation']));
     expect(hit?.ply).toBe(10);
   });
 
@@ -108,7 +112,46 @@ describe('classifying by the deepest known position', () => {
   });
 });
 
+describe('opening lineage', () => {
+  it('keeps identity levels distinct from explorer and repertoire evidence', () => {
+    expect(
+      openingLineage('Sicilian Defense', 'Najdorf Variation, English Attack, Anti-English'),
+    ).toEqual(['Sicilian Defense', 'Najdorf Variation', 'English Attack', 'Anti-English']);
+  });
+
+  it('has only the family when the dataset declares no variation', () => {
+    expect(openingLineage('Sicilian Defense')).toEqual(['Sicilian Defense']);
+  });
+});
+
 describe('transpositions', () => {
+  it('recognizes a delayed transposition beyond the dataset maximum ply', () => {
+    const shuffle = Array.from({ length: 10 }, () => ['Nf3', 'Nf6', 'Ng1', 'Ng8']).flat();
+    const tree = treeFrom([
+      ...shuffle,
+      'e4',
+      'c5',
+      'Nf3',
+      'd6',
+      'd4',
+      'cxd4',
+      'Nxd4',
+      'Nf6',
+      'Nc3',
+      'a6',
+    ]);
+    const nodes = Object.values(tree.nodes).sort((a, b) => a.ply - b.ply);
+    const expected = { eco: 'B90', ply: 50, datasetPlies: 10 };
+    expect(classifyGameTree(index, tree)).toMatchObject(expected);
+    expect(classifyPath(index, tree, nodes.at(-1)!.id)).toMatchObject(expected);
+    expect(
+      classifyLine(
+        index,
+        nodes.slice(1).map((node) => node.fen),
+      ),
+    ).toMatchObject(expected);
+    expect(classifyLine(index, [nodes.at(-1)!.fen], 50)).toMatchObject(expected);
+  });
   it('converges on one classification through different move orders', () => {
     const direct = classifyGameTree(index, treeFrom(['d4', 'Nf6', 'c4', 'e6', 'Nc3', 'Bb4']));
     const transposed = classifyGameTree(index, treeFrom(['c4', 'e6', 'Nc3', 'Bb4', 'd4', 'Nf6']));
@@ -160,6 +203,7 @@ describe('declared versus computed', () => {
     eco: 'B90',
     name: 'Sicilian Defense',
     variation: 'Najdorf',
+    lineage: ['Sicilian Defense', 'Najdorf'],
     datasetPlies: 10,
     ply: 10,
   };
@@ -179,7 +223,13 @@ describe('declared versus computed', () => {
   });
 
   it('does not call a naming difference a disagreement', () => {
-    const spanish = { eco: 'C60', name: 'Ruy Lopez', datasetPlies: 5, ply: 5 };
+    const spanish = {
+      eco: 'C60',
+      name: 'Ruy Lopez',
+      lineage: ['Ruy Lopez'],
+      datasetPlies: 5,
+      ply: 5,
+    };
     expect(attributeOpening(spanish, { eco: 'C60', opening: 'Spanish Game' }).agreement).toBe(
       'agree',
     );

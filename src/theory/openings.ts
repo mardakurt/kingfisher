@@ -40,6 +40,14 @@ export interface OpeningClassification {
   readonly name: string;
   /** Everything the dataset says after the family, when it says anything. */
   readonly variation?: string;
+  /**
+   * Dataset-defined ancestry, from family to the deepest named qualifier.
+   *
+   * Lichess opening names use `Family: Variation, Subvariation, ...`. Keeping
+   * that structure makes identity useful without pretending that an Explorer
+   * statistic or a repertoire choice is part of the opening's name.
+   */
+  readonly lineage?: readonly string[];
   /** Plies of the dataset's own shortest line to this position. */
   readonly datasetPlies: number;
 }
@@ -67,34 +75,52 @@ export interface OpeningIndex {
 let pending: Promise<OpeningIndex> | null = null;
 let loaded: OpeningIndex | null = null;
 
+/** Turn the dataset's documented name convention into an explicit lineage. */
+export function openingLineage(name: string, variation?: string): readonly string[] {
+  const qualifiers = (variation ?? '')
+    .split(',')
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0);
+  return [name, ...qualifiers];
+}
+
 export function loadOpeningIndex(): Promise<OpeningIndex> {
   if (loaded) return Promise.resolve(loaded);
-  pending ??= import('./opening-index.generated').then((module) => {
-    const cache = new Map<string, OpeningClassification>();
-    const index: OpeningIndex = {
-      digest: module.OPENING_DATASET_DIGEST,
-      entries: module.OPENING_ENTRY_COUNT,
-      deepestPly: module.OPENING_DEEPEST_PLY,
-      lookup(key: string): OpeningClassification | null {
-        const hit = cache.get(key);
-        if (hit) return hit;
-        const packed = module.OPENING_POSITIONS[key];
-        if (!packed) return null;
-        const label = module.OPENING_LABELS[packed[1]] ?? '';
-        const colon = label.indexOf(': ');
-        const value: OpeningClassification = {
-          eco: module.OPENING_LABELS[packed[0]] ?? '',
-          name: colon === -1 ? label : label.slice(0, colon),
-          ...(colon === -1 ? {} : { variation: label.slice(colon + 2) }),
-          datasetPlies: packed[2],
-        };
-        cache.set(key, value);
-        return value;
-      },
-    };
-    loaded = index;
-    return index;
-  });
+  pending ??= import('./opening-index.generated')
+    .then((module) => {
+      const cache = new Map<string, OpeningClassification>();
+      const index: OpeningIndex = {
+        digest: module.OPENING_DATASET_DIGEST,
+        entries: module.OPENING_ENTRY_COUNT,
+        deepestPly: module.OPENING_DEEPEST_PLY,
+        lookup(key: string): OpeningClassification | null {
+          const hit = cache.get(key);
+          if (hit) return hit;
+          const packed = module.OPENING_POSITIONS[key];
+          if (!packed) return null;
+          const label = module.OPENING_LABELS[packed[1]] ?? '';
+          const colon = label.indexOf(': ');
+          const value: OpeningClassification = {
+            eco: module.OPENING_LABELS[packed[0]] ?? '',
+            name: colon === -1 ? label : label.slice(0, colon),
+            ...(colon === -1 ? {} : { variation: label.slice(colon + 2) }),
+            lineage: openingLineage(
+              colon === -1 ? label : label.slice(0, colon),
+              colon === -1 ? undefined : label.slice(colon + 2),
+            ),
+            datasetPlies: packed[2],
+          };
+          cache.set(key, value);
+          return value;
+        },
+      };
+      loaded = index;
+      return index;
+    })
+    .catch((error: unknown) => {
+      pending = null;
+      throw error;
+    });
   return pending;
 }
 
@@ -119,9 +145,8 @@ export const classifyPosition = (index: OpeningIndex, fen: Fen | string) =>
  * "play backwards until a name is found", and is cheaper on a long game
  * because it visits the opening rather than the endgame first.
  *
- * The walk stops at `maxPly` because nothing in the dataset is deeper than
- * that, and continuing would be a hash lookup per move of a 120-move game for
- * a result that cannot change.
+ * The dataset's shortest-line depth is not a bound on the game's ply. A
+ * repetition or delayed transposition can reach a named position much later.
  */
 export function classifyLine(
   index: OpeningIndex,
@@ -129,8 +154,7 @@ export function classifyLine(
   startPly = 1,
 ): GameClassification | null {
   let best: GameClassification | null = null;
-  const limit = Math.min(fens.length, index.deepestPly - startPly + 1);
-  for (let i = 0; i < limit; i += 1) {
+  for (let i = 0; i < fens.length; i += 1) {
     const hit = index.lookup(positionKey(fens[i] as string));
     if (hit) best = { ...hit, ply: startPly + i };
   }
@@ -150,7 +174,6 @@ export function classifyGameTree(index: OpeningIndex, tree: GameTree): GameClass
   for (const id of path) {
     const node = tree.nodes[id];
     if (!node) continue;
-    if (node.ply > index.deepestPly) break;
     const hit = index.lookup(positionKey(node.fen));
     if (hit) best = { ...hit, ply: node.ply, nodeId: id };
   }

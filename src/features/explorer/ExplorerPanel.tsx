@@ -20,7 +20,7 @@ import Link from 'next/link';
 
 import { formatScore } from '@/chess/evaluation';
 import { moveIntent } from '@/chess/moves';
-import { positionKey } from '@/chess/fen';
+import { positionKey, START_FEN } from '@/chess/fen';
 import { DatabaseError, type DatabaseMove } from '@/database/types';
 import { useDatabaseProviders } from '@/database/use-database-providers';
 import { Button, IconButton } from '@/components/ui/Button';
@@ -39,6 +39,8 @@ import { useUi } from '@/stores/ui-store';
 import { buildMoveEvidence, summariseEvidence, trendOf, type MoveEvidence } from './evidence';
 import { useSourcesFor } from '@/reference/sources';
 import { useOpeningClassification } from '@/theory/useOpeningClassification';
+import { openReferenceGame } from '@/features/games/open-reference-game';
+import { packReader } from '@/reference/manager';
 
 import { SourceFallback, SourcePicker } from './SourcePicker';
 import { useExplorer, useExplorerPrefetch } from './useExplorer';
@@ -124,6 +126,27 @@ export function ExplorerPanel() {
   const classification = useOpeningClassification(tree, currentId);
   const opening = classification ?? query.data?.opening;
 
+  /*
+    Opening identity, kept separate from the statistics beside it.
+
+    Past the deepest position anybody has given a name, the honest answer is
+    not "unknown" — the player is still in the Najdorf, and saying otherwise
+    every time they walk past move fifteen would make the panel useless
+    exactly where it is most needed. So the deepest classified ancestor stays
+    on screen, labelled as the last one rather than as this one.
+  */
+  const stale = classification !== null && classification.ply < node.ply;
+  const lineage = classification?.lineage ?? [];
+  const family = opening
+    ? (lineage[0] ?? opening.name)
+    : positionKey(node.fen) === positionKey(START_FEN)
+      ? 'Starting position'
+      : 'No classified opening';
+  const descent = lineage.slice(1).join(' → ');
+  const openingTitle = opening
+    ? `${stale ? 'Last classified opening: ' : ''}${[family, descent].filter(Boolean).join(' → ')}`
+    : family;
+
   const evidence = useMemo(() => {
     if (!query.data) return [];
     return buildMoveEvidence({
@@ -207,12 +230,26 @@ export function ExplorerPanel() {
               {opening.eco}
             </span>
           ) : null}
-          <span className="min-w-0 truncate text-[11.5px] text-primary">
-            {opening ? opening.name : 'Starting position'}
+          {/*
+            Family on the line, the rest of the ancestry under it. One joined
+            string was tried first and reads badly in a panel this narrow:
+            "Sicilian Defense → Najdorf Variation → English Attack" truncates
+            to "Sicilian Defense → Najdorf Var…", which hides the qualifier
+            that is the whole reason a player is reading the line.
+          */}
+          <span
+            className="flex min-w-0 flex-col"
+            data-explorer-opening={family}
+            title={openingTitle}
+          >
+            <span className="min-w-0 truncate text-[11.5px] text-primary">
+              {stale ? 'Last classified: ' : ''}
+              {family}
+            </span>
+            {descent ? (
+              <span className="min-w-0 truncate text-[10px] text-tertiary">{descent}</span>
+            ) : null}
           </span>
-          {opening?.variation ? (
-            <span className="min-w-0 truncate text-[10px] text-tertiary">{opening.variation}</span>
-          ) : null}
           <Link
             href="/openings"
             className="ml-auto shrink-0 text-[10px] text-accent underline-offset-2 hover:underline"
@@ -406,23 +443,59 @@ export function ExplorerPanel() {
                   {provider?.id === 'lichess-player' ? 'Recent games' : 'Model games'}
                 </h3>
                 <div className="divide-y divide-line-subtle">
-                  {query.data?.topGames?.slice(0, 8).map((game) => (
-                    <a
-                      key={game.id}
-                      href={game.url}
-                      target="_blank"
-                      rel="noreferrer noopener"
-                      className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 px-2.5 py-2 hover:bg-surface-2"
-                    >
-                      <span className="truncate text-xs text-primary">
-                        {game.white} – {game.black}
-                      </span>
-                      <span className="text-xs text-secondary tabular">{game.result}</span>
-                      <span className="truncate text-[10px] text-tertiary">
-                        {[game.event, game.year].filter(Boolean).join(' · ')}
-                      </span>
-                    </a>
-                  ))}
+                  {query.data?.topGames?.slice(0, 8).map((game) => {
+                    const content = (
+                      <>
+                        <span className="truncate text-xs text-primary">
+                          {game.white} – {game.black}
+                        </span>
+                        <span className="text-xs text-secondary tabular">{game.result}</span>
+                        <span className="truncate text-[10px] text-tertiary">
+                          {[game.event, game.year].filter(Boolean).join(' · ')}
+                        </span>
+                      </>
+                    );
+                    const className =
+                      'grid w-full grid-cols-[minmax(0,1fr)_auto] gap-2 px-2.5 py-2 text-left hover:bg-surface-2';
+                    return provider && packReader(provider.id) ? (
+                      <button
+                        key={game.id}
+                        type="button"
+                        className={className}
+                        aria-label={`Open ${game.white} – ${game.black}`}
+                        onClick={async () => {
+                          try {
+                            await openReferenceGame(
+                              provider.id,
+                              provider.name,
+                              game.id,
+                              `${game.white} – ${game.black}`,
+                            );
+                          } catch (error) {
+                            notify({
+                              tone: 'error',
+                              message:
+                                error instanceof Error
+                                  ? error.message
+                                  : 'Could not open this reference game.',
+                            });
+                          }
+                        }}
+                      >
+                        {content}
+                      </button>
+                    ) : (
+                      <a
+                        key={game.id}
+                        href={game.url}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        className={className}
+                      >
+                        {content}
+                      </a>
+                    );
+                  })}
                 </div>
               </section>
             ) : null}
@@ -472,6 +545,7 @@ function Row({
       <td className="px-1.5 py-1.5">
         <button
           type="button"
+          data-explorer-move={entry.san}
           className="font-medium text-primary hover:text-accent"
           onClick={onPlay}
         >

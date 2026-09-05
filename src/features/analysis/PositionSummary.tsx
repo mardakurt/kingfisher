@@ -69,12 +69,15 @@ export function PositionSummary() {
         <span
           className="hidden min-w-0 items-center gap-1.5 md:flex"
           data-opening-classification={opening.eco}
-          title={`${openingLabel(opening)} — classified by Kingfisher from the position, at move ${moveNumberOfPly(opening.ply)}`}
+          title={`${opening.ply < node.ply ? 'Last classified opening: ' : ''}${openingLabel(opening)} — classified by Kingfisher from the position, at move ${moveNumberOfPly(opening.ply)}`}
         >
           <span className="rounded-[3px] border border-line bg-surface-2 px-1 text-[10px] font-semibold text-secondary tabular">
             {opening.eco}
           </span>
-          <span className="truncate text-secondary">{openingLabel(opening)}</span>
+          <span className="truncate text-secondary">
+            {opening.ply < node.ply ? 'Last classified: ' : ''}
+            {openingLabel(opening)}
+          </span>
         </span>
       ) : null}
 
