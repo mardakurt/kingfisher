@@ -75,6 +75,62 @@ download at roughly 2.1 hours**, and never writes the 87 GB of input to disk —
 the archive is decoded and filtered as it arrives, and only retained games are
 kept.
 
+## The pack that was built
+
+Built on 5 September 2026 from `lichess_db_standard_rated_2026-07.pgn.zst`,
+streamed and verified against the publisher's SHA-256 without ever writing the
+archive to disk.
+
+|                  |                                                                |
+| ---------------- | -------------------------------------------------------------- |
+| Games considered | **89,288,421**                                                 |
+| Games retained   | **305,169** (0.342%)                                           |
+| By speed         | blitz 295,695 · rapid 9,429 · classical 48                     |
+| Positions        | 315,668                                                        |
+| Players          | 12,315                                                         |
+| Full game scores | 305,169                                                        |
+| Size             | **82 MB** on disk, 85.7 MB compressed chunks from 220.7 MB raw |
+| Indexed to       | ply 40 (20 full moves)                                         |
+
+The speed split is the table at the top of this document arriving as predicted:
+blitz is what a high-rated online population actually plays, rapid is a tenth of
+it, and classical online barely exists — forty-eight games in eighty-nine
+million. Anyone reading a number from this source is reading blitz, and the
+manifest says so rather than letting them assume otherwise.
+
+### How deep it answers
+
+Measured by `node scripts/bench-explorer-depth.mjs --pack .packs/kingfisher-high-rated-online`
+against the same 45 real theoretical lines the other packs are held to:
+
+| Depth               | Answered           |
+| ------------------- | ------------------ |
+| 10 plies (5 moves)  | **100.0%** (45/45) |
+| 20 plies (10 moves) | 66.7% (30/45)      |
+| 30 plies (15 moves) | 7.7% (3/39)        |
+| 40 plies (20 moves) | 0.0% (0/4)         |
+
+Continuous answers: median 21 plies, worst 10, best 34. The most-played chain —
+following whatever the pack itself says is commonest, which involves no authored
+judgement at all — reaches **40 plies (20 moves)** down a Najdorf English Attack.
+
+Why the lines stop: 21 pruned by the pack, 23 never played in it, 1 answered to
+the end. So the binding constraint is the corpus, not the indexing: a month of
+online games at 2400+ is 305,000 games, and a specific fifteenth move of theory
+is often not among them. That is fixed by more months, which is what `--months`
+is for, and not by indexing deeper.
+
+This is deliberately a v1 from one month. It is a recency and
+what-are-people-playing source, not a weight-of-evidence one; Elite OTB remains
+the latter.
+
+### Publishing
+
+The built pack is a release asset like Elite OTB, not something the repository
+carries — 82 MB of aggregates is installed on demand. Building it is the command
+below; publishing the artifact and pointing the catalogue at it is a deliberate
+step, taken when somebody decides this month's build is the one to ship.
+
 ## Reproducing
 
 ```bash
