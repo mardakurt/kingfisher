@@ -447,6 +447,21 @@ export class GameDatabase {
     }
   }
 
+  /**
+   * Fold the write-ahead log back into the database file.
+   *
+   * WAL mode checkpoints on its own often enough for ordinary use, where a
+   * transaction is a few hundred games. It does not keep up with a bulk import
+   * of hundreds of thousands, and the log then grows beside a database that is
+   * already tens of gigabytes — so a caller importing at that scale needs to be
+   * able to ask, rather than watch a disk fill with a file SQLite intends to
+   * discard. TRUNCATE rather than PASSIVE because reclaiming the space is the
+   * entire point.
+   */
+  checkpoint() {
+    this.#db.exec('PRAGMA wal_checkpoint(TRUNCATE)');
+  }
+
   close() {
     this.#db.close();
   }

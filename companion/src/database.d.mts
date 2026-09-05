@@ -91,5 +91,7 @@ export declare class GameDatabase {
     remaining: number;
   };
   applyStructures(entries: readonly unknown[]): { updated: number; remaining: number };
+  /** Fold the write-ahead log back into the database file. */
+  checkpoint(): void;
   close(): void;
 }

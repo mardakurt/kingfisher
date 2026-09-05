@@ -34,3 +34,7 @@ companion/data/
 .engine-fleet/
 .archive-cache/
 .packs/
+
+# The real-scale benchmark database. Tens of gigabytes; rebuilt by
+# `node scripts/bench-real-scale.mjs`.
+.real-scale/

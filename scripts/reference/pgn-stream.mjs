@@ -16,7 +16,7 @@
 import { createReadStream, readFileSync } from 'node:fs';
 import { Readable } from 'node:stream';
 import { createInterface } from 'node:readline';
-import { createGunzip, zstdDecompressSync } from 'node:zlib';
+import { createGunzip, createZstdDecompress, zstdDecompressSync } from 'node:zlib';
 
 import { zstdFrames } from './zstd-frames.mjs';
 
@@ -58,6 +58,28 @@ export function sanTokens(movetext) {
  * hundreds decompressed.
  */
 function bytesOf(file) {
+  /*
+    A remote archive is never written to disk and never held whole in memory.
+
+    The broadcast archives are tens of megabytes and the frame-by-frame path
+    below suits them. The Lichess standard database is a different animal —
+    close to thirty gigabytes per month — so `{ url }` sources are piped
+    straight from the socket through a streaming zstd decoder. Backpressure is
+    the pipe's: the decoder stops pulling when the reader stops consuming, so
+    peak memory is a few buffers rather than a month of chess.
+  */
+  if (typeof file === 'object' && file !== null && typeof file.url === 'string') {
+    return Readable.from(
+      (async function* download() {
+        const response = await fetch(file.url, file.init);
+        if (!response.ok) throw new Error(`${file.url} → HTTP ${response.status}`);
+        if (!response.body) throw new Error(`${file.url} returned no body.`);
+        const decoder = createZstdDecompress();
+        Readable.fromWeb(response.body).pipe(decoder);
+        yield* decoder;
+      })(),
+    );
+  }
   if (file.endsWith('.zst')) {
     const buffer = readFileSync(file);
     const frames = zstdFrames(buffer).filter((frame) => !frame.skippable);
@@ -78,13 +100,24 @@ function bytesOf(file) {
  *
  * A game ends at the first blank line after its movetext started, which is the
  * PGN export-format rule and what every generator in this pipeline emits.
+ *
+ * `accept(tags)` decides from the headers alone whether a game is wanted,
+ * before its movetext is tokenised. On the broadcast archives that saves
+ * nothing worth having. On the Lichess standard database it is the difference
+ * between a feasible build and an infeasible one: a month holds about ninety
+ * million games and a high-rated pack keeps roughly one in two hundred and
+ * fifty, so tokenising every game would spend almost all of the build tearing
+ * apart movetext nothing will ever read. Rejected games are still scanned to
+ * their blank line — that is how the next game is found — but nothing is
+ * built from them.
  */
-export async function* readGames(file) {
+export async function* readGames(file, { accept } = {}) {
   const lines = createInterface({ input: bytesOf(file), crlfDelay: Infinity });
 
   let tags = {};
   let movetext = [];
   let inMoves = false;
+  let wanted = true;
 
   for await (const line of lines) {
     if (!inMoves) {
@@ -95,18 +128,56 @@ export async function* readGames(file) {
       }
       if (line.trim().length === 0) continue;
       inMoves = true;
-      movetext.push(line);
+      wanted = accept ? accept(tags) !== false : true;
+      if (wanted) movetext.push(line);
       continue;
     }
     if (line.trim().length === 0) {
-      yield { tags, moves: sanTokens(movetext.join('\n')) };
+      if (wanted) yield { tags, moves: sanTokens(movetext.join('\n')) };
       tags = {};
       movetext = [];
       inMoves = false;
+      wanted = true;
       continue;
     }
-    movetext.push(line);
+    if (wanted) movetext.push(line);
   }
 
-  if (inMoves) yield { tags, moves: sanTokens(movetext.join('\n')) };
+  if (inMoves && wanted) yield { tags, moves: sanTokens(movetext.join('\n')) };
+}
+
+/**
+ * Yield each game's raw PGN text, tags and movetext together, unparsed.
+ *
+ * `readGames` above answers "what moves were played", which is what building a
+ * pack needs. This answers "what did the file actually say", which is what
+ * feeding the application's own PGN importer needs — the importer takes PGN
+ * text, and reassembling text from stripped SAN tokens would measure a
+ * round-trip this pipeline invented rather than the archive as published.
+ *
+ * Same streaming guarantees and the same end-of-game rule as `readGames`.
+ */
+export async function* readGameTexts(file) {
+  const lines = createInterface({ input: bytesOf(file), crlfDelay: Infinity });
+
+  let block = [];
+  let inMoves = false;
+
+  for await (const line of lines) {
+    if (!inMoves) {
+      if (line.trim().length === 0) continue;
+      block.push(line);
+      if (!TAG.test(line)) inMoves = true;
+      continue;
+    }
+    if (line.trim().length === 0) {
+      yield block.join('\n');
+      block = [];
+      inMoves = false;
+      continue;
+    }
+    block.push(line);
+  }
+
+  if (block.length > 0) yield block.join('\n');
 }
