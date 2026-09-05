@@ -11,7 +11,7 @@
  *
  * So this reads the real thing: the Lichess broadcast archive already cached
  * for the reference-pack builds — 1.19 million real over-the-board games from
- * 2020 onwards, CC0, with real players, real openings and real game lengths.
+ * 2020 onwards, CC BY-SA 4.0, with real players, real openings and real game lengths.
  * No rating filter is applied. The Elite pack's thresholds exist to keep a
  * shipped artifact small; a scale test wants the opposite.
  *
@@ -32,7 +32,15 @@
  * a temporary directory and is removed unless `--keep` is given.
  */
 
-import { mkdirSync, mkdtempSync, readdirSync, rmSync, statSync, statfsSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  statfsSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { performance } from 'node:perf_hooks';
@@ -176,7 +184,8 @@ async function build(database, limit, databaseFile, floorBytes) {
 
   const stats = {
     read: 0,
-    accepted: 0,
+    accepted: database.count(),
+    previouslyStored: database.count(),
     rejected: 0,
     duplicates: 0,
     positions: 0,
@@ -191,6 +200,7 @@ async function build(database, limit, databaseFile, floorBytes) {
 
   const flush = () => {
     if (pending.length === 0) return;
+    const batchCount = pending.length;
     const text = pending.join('\n\n');
     pending = [];
     let parsed;
@@ -198,13 +208,25 @@ async function build(database, limit, databaseFile, floorBytes) {
       parsed = parsePgn(text);
     } catch {
       // One unparseable batch must not end a million-game import.
-      stats.rejected += PARSE_BATCH;
+      stats.rejected += batchCount;
       return;
     }
+    stats.rejected += Math.max(0, batchCount - parsed.games.length);
     const prepared = [];
     for (const game of parsed.games) {
       try {
+        if (
+          game.issues.some((issue) => issue.severity === 'error') ||
+          (game.tree.headers.Variant && game.tree.headers.Variant !== 'Standard')
+        ) {
+          stats.rejected += 1;
+          continue;
+        }
         const base = normalizeGame(game.tree);
+        if (database.haveFingerprints([base.fingerprint]).present.length > 0) {
+          stats.duplicates += 1;
+          continue;
+        }
         const record = { ...base, ...classifyTree(openings, base.tree) };
         const positions = indexGame(record);
         prepared.push({
@@ -275,7 +297,7 @@ async function build(database, limit, databaseFile, floorBytes) {
           }
         }
       }
-      if (stats.read >= limit) break outer;
+      if (stats.accepted >= limit) break outer;
     }
   }
   flush();
@@ -347,6 +369,7 @@ async function main() {
   const database = new GameDatabase(file);
   const stats = await build(database, args.games, file, args.floor);
 
+  database.checkpoint();
   const size = statSync(file).size;
   const seconds = stats.elapsedMs / 1000;
   console.log('\n--- import ------------------------------------------------------');
@@ -364,7 +387,11 @@ async function main() {
 
   console.log('\n--- queries -----------------------------------------------------');
   console.log('all times in milliseconds\n');
-  benchmark(database, args.warm);
+  const queries = benchmark(database, args.warm);
+  writeFileSync(
+    path.join(directory, 'result.json'),
+    JSON.stringify({ stats, size, queries }, null, 2),
+  );
 
   database.close();
   if (args.keep || args.out) console.log(`\nDatabase kept at ${file}`);

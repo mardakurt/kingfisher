@@ -63,6 +63,21 @@ async function main() {
   let opened = 0;
   let rejected = 0;
   let maxYear = 0;
+  const retainedBySpeed = {};
+  const started = Date.now();
+  const progress = setInterval(() => {
+    const memory = process.memoryUsage();
+    console.error(
+      JSON.stringify({
+        examined,
+        kept,
+        heapMB: Math.round(memory.heapUsed / 1e6),
+        rssMB: Math.round(memory.rss / 1e6),
+        elapsedSeconds: Math.round((Date.now() - started) / 1000),
+      }),
+    );
+  }, 30000);
+  progress.unref();
 
   /*
     Rejected before the movetext is tokenised, not after.
@@ -216,6 +231,10 @@ async function main() {
     }
 
     kept += 1;
+    if (speeds) {
+      const speed = speeds.find((name) => (tags.Event ?? '').toLowerCase().includes(name));
+      retainedBySpeed[speed] = (retainedBySpeed[speed] ?? 0) + 1;
+    }
     accepted.write(shardOf(id, shards.game), id);
     for (const [shard, row] of positions) explorer.write(shard, row);
     if (openable) {
@@ -255,6 +274,7 @@ async function main() {
     }
   }
 
+  clearInterval(progress);
   explorer.close();
   games.close();
   players.close();
@@ -269,6 +289,7 @@ async function main() {
     opened,
     rejected,
     maxYear,
+    retainedBySpeed,
   });
 }
 

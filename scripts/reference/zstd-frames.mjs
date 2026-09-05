@@ -21,6 +21,9 @@ const ZSTD_MAGIC = 0xfd2fb528;
 const SKIPPABLE_MASK = 0xfffffff0;
 const SKIPPABLE_MAGIC = 0x184d2a50;
 
+/** How much decompressed output is handed downstream at a time. */
+const SLICE_BYTES = 256 * 1024;
+
 const FCS_SIZES = [0, 2, 4, 8];
 const DID_SIZES = [0, 1, 2, 4];
 
@@ -151,7 +154,21 @@ export async function* zstdFrameStream(source) {
       const frame = held.subarray(offset, end);
       offset = end;
       frames += 1;
-      yield zstdDecompressSync(frame);
+      /*
+        Handed on in slices rather than as one buffer.
+
+        A frame decompresses to roughly twenty-five megabytes, and the reader
+        above it splits that into lines. V8 makes a substring a *view* on its
+        parent, so every retained line kept the whole frame alive, and a worker
+        scanning ninety million games grew by about five kilobytes per game
+        until it ran out of heap at four gigabytes — with only a couple of
+        thousand games actually kept. Slicing bounds what any one line can hold
+        on to.
+      */
+      const decompressed = zstdDecompressSync(frame);
+      for (let at = 0; at < decompressed.length; at += SLICE_BYTES) {
+        yield decompressed.subarray(at, Math.min(at + SLICE_BYTES, decompressed.length));
+      }
     }
     held = offset > 0 ? Buffer.from(held.subarray(offset)) : held;
   }

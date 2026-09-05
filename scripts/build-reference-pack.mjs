@@ -100,8 +100,8 @@ async function main() {
         Not downloaded. One month of the standard database is close to thirty
         gigabytes compressed, so the worker opens the URL and decodes it as it
         arrives. The published digest still identifies the archive — it is what
-        the resume directory below is keyed on — and the scan itself is what
-        would fail if the bytes were wrong.
+        the resume directory below is keyed on — and the reader hashes every compressed byte and refuses completion unless
+        the digest matches, including after a resumed connection.
       */
       archives.push({
         file,
@@ -218,6 +218,17 @@ async function main() {
       upstream: archives.map((archive) => ({ file: archive.file, sha256: archive.sha256 })),
     },
     counts,
+    population: {
+      gamesConsidered: scanned.seen,
+      gamesRetainedBeforeDeduplication: scanned.kept,
+      retainedBySpeed: scanned.retainedBySpeed,
+      speeds: definition.limits.speeds ?? null,
+      minRating: definition.limits.minRating,
+      archiveMonths: wanted.map((file) => /\d{4}-\d{2}/.exec(file)?.[0]),
+      buildImplementation: createHash('sha256')
+        .update(readFileSync(fileURLToPath(import.meta.url)))
+        .digest('hex'),
+    },
     // A query at this depth needs the following move to have been scanned.
     // Keeping the unit and off-by-one rule in the manifest prevents UI and
     // reports from confusing full moves with plies.
@@ -256,7 +267,7 @@ const SCAN_LIMITS = [
 
 /** Run the scan worker over every archive, at most `limit` at a time. */
 function scan(archives, work, shards, limits, limit) {
-  const implementation = ['scan.worker.mjs', 'pgn-stream.mjs']
+  const implementation = ['scan.worker.mjs', 'pgn-stream.mjs', 'zstd-frames.mjs']
     .map((name) => readFileSync(new URL(`./reference/${name}`, import.meta.url), 'utf8'))
     .join('\n');
   const chessRoot = path.join(ROOT, 'src/chess');
@@ -297,6 +308,7 @@ function scan(archives, work, shards, limits, limit) {
     opened: 0,
     rejected: 0,
     maxYear: 0,
+    retainedBySpeed: {},
     directories: queue.map((item) => item.directory),
   };
   const workerFile = new URL('./reference/scan.worker.mjs', import.meta.url);
@@ -312,6 +324,9 @@ function scan(archives, work, shards, limits, limit) {
       reject(error);
     };
     const accumulate = (message) => {
+      for (const [speed, count] of Object.entries(message.retainedBySpeed ?? {})) {
+        totals.retainedBySpeed[speed] = (totals.retainedBySpeed[speed] ?? 0) + count;
+      }
       totals.seen += message.seen;
       totals.kept += message.kept;
       totals.opened += message.opened;
@@ -336,7 +351,7 @@ function scan(archives, work, shards, limits, limit) {
         const worker = new Worker(workerFile, {
           workerData: {
             // A streamed archive is opened by URL; a cached one by path.
-            file: archive.streaming ? { url: archive.url } : archive.path,
+            file: archive.streaming ? { url: archive.url, sha256: archive.sha256 } : archive.path,
             label: archive.file,
             outDir: archive.directory,
             shards,
