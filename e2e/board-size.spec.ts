@@ -91,32 +91,125 @@ test('the board stays square, and never overflows its column', async ({ page }) 
   expect(geometry.insideHeight).toBe(true);
 });
 
-test('board priority actually changes the board, in the direction it says', async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto('/analysis');
-  await ready(page);
+/**
+ * An arrangement of the kind selecting a tool tab writes.
+ *
+ * It records a choice and no dimensions, which is exactly what the store
+ * produces when the user clicks Engine in the dock — an action with no layout
+ * intent at all. The previous version of this test deleted the layout key
+ * before measuring, so it passed throughout the period in which Board priority
+ * did nothing for anybody who had ever clicked a tab.
+ */
+const TAB_SELECTED_LAYOUT = {
+  state: {
+    sidebarCollapsed: false,
+    compact: false,
+    preset: 'analysis',
+    arrangements: {
+      'desktop:analysis': { placement: {}, active: { dock: 'engine' }, dockCollapsed: false },
+    },
+    savedLayouts: [],
+    pinnedTools: {},
+  },
+  version: 4,
+};
 
-  const withPriority = async (priority: string) => {
-    await page.evaluate((value) => {
+const withPriority = async (page: Page, priority: string, layout: unknown) => {
+  await page.evaluate(
+    ({ value, layout }) => {
       const key = 'kingfisher.preferences';
       const raw = localStorage.getItem(key);
       const parsed = raw ? JSON.parse(raw) : { state: {}, version: 4 };
       parsed.state = { ...parsed.state, boardPriority: value };
       localStorage.setItem(key, JSON.stringify(parsed));
-      // A layout the user rearranged wins over the policy, so this test starts
-      // from a workspace nobody has touched.
-      localStorage.removeItem('kingfisher.workspace-layout');
-    }, priority);
-    await page.reload();
-    await ready(page);
-    await page.waitForTimeout(500);
-    return boardSize(page);
-  };
+      if (layout === null) localStorage.removeItem('kingfisher.workspace-layout');
+      else localStorage.setItem('kingfisher.workspace-layout', JSON.stringify(layout));
+    },
+    { value: priority, layout },
+  );
+  await page.reload();
+  await ready(page);
+  await page.waitForTimeout(500);
+  return boardSize(page);
+};
 
-  const balanced = await withPriority('balanced');
-  const large = await withPriority('large');
-  const maximum = await withPriority('maximum');
+test('board priority actually changes the board, in the direction it says', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/analysis');
+  await ready(page);
+
+  const balanced = await withPriority(page, 'balanced', null);
+  const large = await withPriority(page, 'large', null);
+  const maximum = await withPriority(page, 'maximum', null);
 
   expect(large).toBeGreaterThan(balanced);
-  expect(maximum).toBeGreaterThanOrEqual(large);
+  expect(maximum).toBeGreaterThan(large);
+});
+
+/**
+ * The bug a user reported, and the reason the test above was not enough.
+ *
+ * Selecting a tool tab writes an arrangement. The old model let any stored
+ * arrangement override the board policy wholesale, so that one click pinned
+ * the dock width and notation height for ever: measured at 1440x900, Balanced,
+ * Large and Maximum all produced a 583px board. The three settings were
+ * indistinguishable for every user who had used the application at all.
+ */
+test('board priority still moves a workspace whose tab has been clicked', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/analysis');
+  await ready(page);
+
+  const balanced = await withPriority(page, 'balanced', TAB_SELECTED_LAYOUT);
+  const large = await withPriority(page, 'large', TAB_SELECTED_LAYOUT);
+  const maximum = await withPriority(page, 'maximum', TAB_SELECTED_LAYOUT);
+
+  expect(large).toBeGreaterThan(balanced);
+  expect(maximum).toBeGreaterThan(large);
+
+  await test.info().attach('board-priority-with-stored-layout.txt', {
+    body: `balanced ${balanced}px\nlarge ${large}px\nmaximum ${maximum}px`,
+    contentType: 'text/plain',
+  });
+});
+
+/**
+ * A width the user dragged is theirs, and the policy must not take it back.
+ *
+ * This is the other half of the contract: releasing the dimensions nobody
+ * chose is only correct if the ones somebody did choose survive.
+ */
+test('a dock width the user set survives a change of board priority', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/analysis');
+  await ready(page);
+
+  const dragged = {
+    ...TAB_SELECTED_LAYOUT,
+    state: {
+      ...TAB_SELECTED_LAYOUT.state,
+      arrangements: {
+        'desktop:analysis': {
+          placement: {},
+          active: { dock: 'engine' },
+          dockCollapsed: false,
+          dockWidth: 512,
+        },
+      },
+    },
+  };
+
+  const dockWidth = async () =>
+    page
+      .locator('[data-workspace-dock]')
+      .first()
+      .evaluate((el) => Math.round(el.getBoundingClientRect().width));
+
+  await withPriority(page, 'balanced', dragged);
+  const atBalanced = await dockWidth();
+  await withPriority(page, 'maximum', dragged);
+  const atMaximum = await dockWidth();
+
+  expect(atBalanced).toBe(512);
+  expect(atMaximum).toBe(512);
 });

@@ -13,7 +13,9 @@ import {
   LOWER_HEIGHT_MIN,
   modulesInRegion,
   moveModule,
+  policyMoveTreeHome,
   regionOf,
+  resolveArrangement,
   sanitizeArrangement,
   type BoardPriority,
   type WorkspaceArrangement,
@@ -147,17 +149,82 @@ describe('board priority', () => {
   it('produces a valid arrangement for every policy, on both screen shapes', () => {
     for (const priority of ['balanced', 'large', 'maximum'] as const) {
       for (const short of [false, true]) {
-        const arrangement = defaultArrangement(priority, short);
-        expect(clampDockWidth(arrangement.dockWidth)).toBe(arrangement.dockWidth);
-        expect(clampLowerHeight(arrangement.lowerHeight)).toBe(arrangement.lowerHeight);
+        const resolved = resolveArrangement(DEFAULT_ARRANGEMENT, priority, short);
+        expect(clampDockWidth(resolved.dockWidth)).toBe(resolved.dockWidth);
+        expect(clampLowerHeight(resolved.lowerHeight)).toBe(resolved.lowerHeight);
       }
     }
   });
 
   it('folds the notation into the dock only at Maximum', () => {
-    expect(defaultArrangement('maximum').placement['move-tree']).toBe('dock');
-    expect(defaultArrangement('large').placement['move-tree']).toBeUndefined();
-    expect(defaultArrangement('balanced').placement['move-tree']).toBeUndefined();
+    expect(policyMoveTreeHome('maximum')).toBe('dock');
+    expect(policyMoveTreeHome('large')).toBe('lower');
+    expect(policyMoveTreeHome('balanced')).toBe('lower');
+  });
+
+  it('records no dimensions of its own, so the policy can keep governing', () => {
+    /*
+      The regression this pins. `defaultArrangement` used to bake the policy's
+      numbers into the record it returned, and the store wrote that record the
+      first time anybody selected a tool tab. From then on the arrangement said
+      "dock is 380px" rather than "nobody has chosen", and Board priority moved
+      nothing.
+    */
+    expect(defaultArrangement().dockWidth).toBeUndefined();
+    expect(defaultArrangement().lowerHeight).toBeUndefined();
+    expect(defaultArrangement().placement['move-tree']).toBeUndefined();
+  });
+});
+
+describe('resolveArrangement', () => {
+  /** An arrangement of the kind selecting a tool tab produces: choices, no sizes. */
+  const tabSelected: WorkspaceArrangement = {
+    placement: {},
+    active: { dock: 'engine' },
+    dockCollapsed: false,
+  };
+
+  it('lets the policy size a workspace whose only stored fact is a selected tab', () => {
+    const balanced = resolveArrangement(tabSelected, 'balanced');
+    const maximum = resolveArrangement(tabSelected, 'maximum');
+
+    expect(maximum.dockWidth).toBeLessThan(balanced.dockWidth);
+    expect(maximum.lowerHeight).toBeLessThan(balanced.lowerHeight);
+    expect(maximum.moveTreeRegion).toBe('dock');
+    expect(balanced.moveTreeRegion).toBe('lower');
+  });
+
+  it('gives the board more at every step from Balanced to Maximum', () => {
+    const order = ['balanced', 'large', 'maximum'] as const;
+    for (let index = 1; index < order.length; index += 1) {
+      const looser = resolveArrangement(tabSelected, order[index - 1]);
+      const tighter = resolveArrangement(tabSelected, order[index]);
+      expect(tighter.dockWidth).toBeLessThan(looser.dockWidth);
+      expect(tighter.lowerHeight).toBeLessThanOrEqual(looser.lowerHeight);
+    }
+  });
+
+  it('keeps a width the user actually set, at every policy', () => {
+    const dragged: WorkspaceArrangement = { ...tabSelected, dockWidth: 512, lowerHeight: 300 };
+    for (const priority of ['balanced', 'large', 'maximum'] as const) {
+      const resolved = resolveArrangement(dragged, priority);
+      expect(resolved.dockWidth).toBe(512);
+      expect(resolved.lowerHeight).toBe(300);
+    }
+  });
+
+  it('uses the laptop notation height only on a short screen', () => {
+    expect(resolveArrangement(tabSelected, 'balanced', true).lowerHeight).toBe(
+      BOARD_PRIORITIES.balanced.shortLowerHeight,
+    );
+    expect(resolveArrangement(tabSelected, 'balanced', false).lowerHeight).toBe(
+      BOARD_PRIORITIES.balanced.lowerHeight,
+    );
+  });
+
+  it('keeps a notation panel the user moved, whatever the policy says', () => {
+    const moved: WorkspaceArrangement = { ...tabSelected, placement: { 'move-tree': 'primary' } };
+    expect(resolveArrangement(moved, 'maximum').moveTreeRegion).toBe('primary');
   });
 });
 

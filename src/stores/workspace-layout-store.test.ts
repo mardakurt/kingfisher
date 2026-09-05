@@ -7,7 +7,8 @@ import {
   LOWER_HEIGHT_MIN,
 } from '@/features/workspace/layout-model';
 
-import { sanitizePersistedState } from './workspace-layout-store';
+import { BOARD_PRIORITIES } from '@/features/workspace/layout-model';
+import { releasePolicyDimensions, sanitizePersistedState } from './workspace-layout-store';
 
 /**
  * §16: the app must boot safely from a corrupted layout file, whatever shape
@@ -190,5 +191,72 @@ describe('sanitizePersistedState', () => {
     const result = sanitizePersistedState({ sidebarCollapsed: 'yes', compact: 1 });
     expect(result.sidebarCollapsed).toBe(false);
     expect(result.compact).toBe(false);
+  });
+});
+
+describe('releasePolicyDimensions', () => {
+  /*
+    The version 4 migration. Every version 3 arrangement carried a concrete
+    dock width and notation height, whether or not anybody had chosen them,
+    and those numbers outranked the board policy — so Board priority did
+    nothing for any workspace whose tab had ever been clicked. This releases
+    the ones that are still exactly what the policy itself would have written.
+  */
+  it('releases a dimension the policy could have written, so the policy governs again', () => {
+    const released = releasePolicyDimensions({
+      'desktop:analysis': {
+        placement: {},
+        active: { dock: 'engine' },
+        dockCollapsed: false,
+        dockWidth: BOARD_PRIORITIES.large.dockWidth,
+        lowerHeight: BOARD_PRIORITIES.large.lowerHeight,
+      },
+    });
+
+    expect(released['desktop:analysis']).toEqual({
+      placement: {},
+      active: { dock: 'engine' },
+      dockCollapsed: false,
+    });
+  });
+
+  it('releases a laptop notation height as readily as a desktop one', () => {
+    const released = releasePolicyDimensions({
+      'desktop:analysis': { lowerHeight: BOARD_PRIORITIES.balanced.shortLowerHeight },
+    });
+    expect(released['desktop:analysis']).not.toHaveProperty('lowerHeight');
+  });
+
+  it('keeps a dimension no policy produces, because the user chose it', () => {
+    const released = releasePolicyDimensions({
+      'desktop:analysis': { dockWidth: 512, lowerHeight: 300, dockCollapsed: true },
+    });
+    expect(released['desktop:analysis']).toEqual({
+      dockWidth: 512,
+      lowerHeight: 300,
+      dockCollapsed: true,
+    });
+  });
+
+  it('keeps everything that is not a dimension', () => {
+    const released = releasePolicyDimensions({
+      'desktop:analysis': {
+        placement: { 'move-tree': 'dock' },
+        active: { dock: 'explorer' },
+        dockCollapsed: true,
+        dockWidth: BOARD_PRIORITIES.maximum.dockWidth,
+      },
+    });
+    expect(released['desktop:analysis']).toEqual({
+      placement: { 'move-tree': 'dock' },
+      active: { dock: 'explorer' },
+      dockCollapsed: true,
+    });
+  });
+
+  it('survives a stored value that is not a map of arrangements', () => {
+    expect(releasePolicyDimensions(null)).toEqual({});
+    expect(releasePolicyDimensions('garbage')).toEqual({});
+    expect(releasePolicyDimensions({ 'desktop:analysis': null })).toEqual({});
   });
 });

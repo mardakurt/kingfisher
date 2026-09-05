@@ -33,9 +33,33 @@ export interface WorkspaceArrangement {
   readonly placement: Partial<Record<WorkspaceModuleId, WorkspaceRegion>>;
   /** Selected tab per region, when that region holds more than one module. */
   readonly active: Partial<Record<WorkspaceRegion, WorkspaceModuleId>>;
+  /**
+   * A width the user chose by dragging the dock's edge, or that a preset set.
+   *
+   * Absent means "whatever the board policy says", and absent is the normal
+   * state. Storing the policy's own number here instead is what broke Board
+   * priority: selecting a tool tab writes an arrangement, and an arrangement
+   * carrying a concrete width pins that width for ever, so changing the policy
+   * afterwards moved nothing. See `resolveArrangement`.
+   */
+  readonly dockWidth?: number;
+  /** A height the user chose by dragging the notation panel. Same rule. */
+  readonly lowerHeight?: number;
+  readonly dockCollapsed: boolean;
+}
+
+/**
+ * An arrangement with the policy applied, which is what a component renders.
+ *
+ * The distinction is the whole fix: `WorkspaceArrangement` is what was stored
+ * — sparse, recording only decisions the user actually made — and this is what
+ * that means on screen once the board policy has filled in the rest.
+ */
+export interface ResolvedArrangement extends WorkspaceArrangement {
   readonly dockWidth: number;
   readonly lowerHeight: number;
-  readonly dockCollapsed: boolean;
+  /** Where the notation panel lives, policy included. */
+  readonly moveTreeRegion: WorkspaceRegion;
 }
 
 export const DOCK_WIDTH_MIN = 300;
@@ -108,22 +132,72 @@ export const DEFAULT_BOARD_PRIORITY: BoardPriority = 'large';
  * untouched workspace looks like without rewriting anyone's saved layout: a
  * stored arrangement still wins, because it is a thing the user did.
  */
-export function defaultArrangement(
+export function defaultArrangement(): WorkspaceArrangement {
+  return { placement: {}, active: {}, dockCollapsed: false };
+}
+
+/**
+ * The shape of a workspace nobody has touched.
+ *
+ * It records no dimensions at all, which is what makes the board policy able
+ * to keep governing it. A default that named its own numbers would be
+ * indistinguishable, one write later, from a layout the user had built by
+ * hand.
+ */
+export const DEFAULT_ARRANGEMENT: WorkspaceArrangement = defaultArrangement();
+
+/**
+ * Where the notation panel sits under a given policy.
+ *
+ * Maximum folds it into the dock, which is most of why Maximum is bigger than
+ * Large: it removes a whole horizontal band from under the board rather than
+ * merely making it shorter.
+ */
+export const policyMoveTreeHome = (priority: BoardPriority): WorkspaceRegion =>
+  BOARD_PRIORITIES[priority].moveTreeInDock ? 'dock' : 'lower';
+
+/**
+ * Apply the board policy to a stored arrangement.
+ *
+ * Every dimension the user did not explicitly choose comes from the policy, so
+ * changing Board priority in Settings moves the panels of every workspace
+ * except the ones somebody deliberately sized. That is the contract the
+ * setting's description claims, and before this existed it was not true of any
+ * workspace whose tab had ever been clicked.
+ */
+export function resolveArrangement(
+  arrangement: WorkspaceArrangement,
   priority: BoardPriority = DEFAULT_BOARD_PRIORITY,
   shortScreen = false,
-): WorkspaceArrangement {
+): ResolvedArrangement {
   const shape = BOARD_PRIORITIES[priority];
   return {
-    placement: shape.moveTreeInDock ? { 'move-tree': 'dock' } : {},
-    active: {},
-    dockWidth: shape.dockWidth,
-    lowerHeight: shortScreen ? shape.shortLowerHeight : shape.lowerHeight,
-    dockCollapsed: false,
+    ...arrangement,
+    dockWidth: arrangement.dockWidth ?? shape.dockWidth,
+    lowerHeight:
+      arrangement.lowerHeight ?? (shortScreen ? shape.shortLowerHeight : shape.lowerHeight),
+    moveTreeRegion: arrangement.placement['move-tree'] ?? policyMoveTreeHome(priority),
   };
 }
 
-/** The shape of a workspace nobody has touched, at the default policy. */
-export const DEFAULT_ARRANGEMENT: WorkspaceArrangement = defaultArrangement();
+/**
+ * The dimensions a policy can produce on its own.
+ *
+ * Used by the migration to tell a number the user chose from a number an
+ * earlier build wrote down on their behalf. It is not a perfect test — a user
+ * may have dragged the dock to exactly 380px — but it is the only evidence the
+ * old format left, and the worst it can do is return a deliberate 380px dock
+ * to following the policy.
+ */
+export const POLICY_DIMENSIONS: {
+  readonly dockWidths: ReadonlySet<number>;
+  readonly lowerHeights: ReadonlySet<number>;
+} = {
+  dockWidths: new Set(Object.values(BOARD_PRIORITIES).map((shape) => shape.dockWidth)),
+  lowerHeights: new Set(
+    Object.values(BOARD_PRIORITIES).flatMap((shape) => [shape.lowerHeight, shape.shortLowerHeight]),
+  ),
+};
 
 export const clampDockWidth = (value: number): number =>
   Math.min(DOCK_WIDTH_MAX, Math.max(DOCK_WIDTH_MIN, Math.round(value)));
@@ -220,15 +294,21 @@ export function sanitizeArrangement(
     }
   }
 
+  /*
+    A dimension that is absent, or is not a number, stays absent: it means
+    "follow the board policy", and inventing a number here would pin the
+    workspace to today's policy for ever. Only a real stored number survives,
+    and only after clamping.
+  */
   return {
     placement,
     active,
-    dockWidth: Number.isFinite(raw.dockWidth)
-      ? clampDockWidth(raw.dockWidth as number)
-      : DEFAULT_ARRANGEMENT.dockWidth,
-    lowerHeight: Number.isFinite(raw.lowerHeight)
-      ? clampLowerHeight(raw.lowerHeight as number)
-      : DEFAULT_ARRANGEMENT.lowerHeight,
+    ...(Number.isFinite(raw.dockWidth)
+      ? { dockWidth: clampDockWidth(raw.dockWidth as number) }
+      : {}),
+    ...(Number.isFinite(raw.lowerHeight)
+      ? { lowerHeight: clampLowerHeight(raw.lowerHeight as number) }
+      : {}),
     dockCollapsed: raw.dockCollapsed === true,
   };
 }

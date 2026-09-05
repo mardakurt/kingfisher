@@ -112,7 +112,8 @@ export const SETTINGS_INDEX: readonly SettingsEntry[] = [
     id: 'board-priority',
     label: 'Board priority',
     section: 'workspace',
-    description: 'How much of a workspace the board gets, against the panels around it.',
+    description:
+      'How much of a workspace the board gets, against the panels around it. Panels you have sized by hand keep their size.',
     keywords: ['board', 'size', 'bigger', 'larger', 'small', 'priority', 'layout', 'maximise'],
   },
   {

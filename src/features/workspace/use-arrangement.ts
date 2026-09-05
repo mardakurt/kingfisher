@@ -10,11 +10,13 @@ import { usePreferences } from '@/stores/preferences-store';
 import {
   activeInRegion,
   BOARD_PRIORITIES,
-  defaultArrangement,
+  DEFAULT_ARRANGEMENT,
   modulesInRegion,
+  policyMoveTreeHome,
   regionOf,
+  resolveArrangement,
   type BoardPriority,
-  type WorkspaceArrangement,
+  type ResolvedArrangement,
   type WorkspaceModuleId,
   type WorkspaceRegion,
 } from './layout-model';
@@ -48,7 +50,7 @@ export interface WorkspaceArrangementView {
   readonly priority: BoardPriority;
   /** The largest board the current policy will draw. */
   readonly maxBoard: number;
-  readonly arrangement: WorkspaceArrangement;
+  readonly arrangement: ResolvedArrangement;
   readonly available: readonly { readonly id: WorkspaceModuleId; readonly home: WorkspaceRegion }[];
   readonly dockModules: readonly WorkspaceModuleId[];
   readonly lowerModules: readonly WorkspaceModuleId[];
@@ -83,11 +85,18 @@ export function useWorkspaceArrangement(
   const priority = usePreferences((state) => state.boardPriority);
   const stored = useWorkspaceLayout((state) => state.arrangements[`${device}:${workspace}`]);
   /*
-    A stored arrangement always wins: it is something the user did. The board
-    policy only decides the shape of a workspace nobody has rearranged, which
-    is every workspace on a fresh profile and most of them for ever.
+    A stored arrangement wins only where it actually says something. It records
+    what the user did — which tab is selected, where a module was dragged, a
+    width they set by hand — and is silent about everything else, so the board
+    policy still governs the dimensions nobody chose.
+
+    The alternative, which this replaced, was to let any stored arrangement
+    override the policy wholesale. Selecting a tool tab writes an arrangement,
+    so a single click on Engine froze that workspace's dock width and notation
+    height at the policy in force at that moment, and Board priority never
+    moved anything again.
   */
-  const arrangement = stored ?? defaultArrangement(priority, shortScreen);
+  const arrangement = resolveArrangement(stored ?? DEFAULT_ARRANGEMENT, priority, shortScreen);
   const withMoveTree = options.withMoveTree ?? false;
 
   return useMemo(() => {
@@ -96,8 +105,13 @@ export function useWorkspaceArrangement(
         id: id as WorkspaceModuleId,
         home: WORKSPACE_MODULES[id].home,
       })),
+      /*
+        The notation panel's home is the policy's, not the module table's:
+        Maximum folds it into the dock, and that is most of the difference
+        between Maximum and Large.
+      */
       ...(withMoveTree
-        ? [{ id: MOVE_TREE_MODULE.id as WorkspaceModuleId, home: MOVE_TREE_MODULE.home }]
+        ? [{ id: MOVE_TREE_MODULE.id as WorkspaceModuleId, home: policyMoveTreeHome(priority) }]
         : []),
     ];
     /*
@@ -126,7 +140,7 @@ export function useWorkspaceArrangement(
       activeLower: activeInRegion(arrangement, lowerModules, 'lower'),
       moveTreeInPrimary:
         !withMoveTree ||
-        regionOf(arrangement, MOVE_TREE_MODULE.id, MOVE_TREE_MODULE.home) === 'primary',
+        regionOf(arrangement, MOVE_TREE_MODULE.id, policyMoveTreeHome(priority)) === 'primary',
     };
   }, [arrangement, device, priority, wide, withMoveTree, workspace]);
 }

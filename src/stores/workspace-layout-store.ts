@@ -8,6 +8,7 @@ import {
   clampLowerHeight,
   DEFAULT_ARRANGEMENT,
   moveModule,
+  POLICY_DIMENSIONS,
   sanitizeArrangement,
   type WorkspaceArrangement,
   type WorkspaceModuleId,
@@ -169,6 +170,30 @@ export function sanitizePersistedState(persisted: unknown): Partial<WorkspaceLay
   };
 }
 
+/**
+ * Drop stored dimensions that are indistinguishable from the policy's own.
+ *
+ * See the version 4 migration for why this exists and what it can get wrong.
+ */
+export function releasePolicyDimensions(value: unknown): Record<string, unknown> {
+  if (typeof value !== 'object' || value === null) return {};
+  const result: Record<string, unknown> = {};
+  for (const [entryKey, arrangement] of Object.entries(value as Record<string, unknown>)) {
+    if (typeof arrangement !== 'object' || arrangement === null) continue;
+    const { dockWidth, lowerHeight, ...rest } = arrangement as Record<string, unknown>;
+    result[entryKey] = {
+      ...rest,
+      ...(typeof dockWidth === 'number' && !POLICY_DIMENSIONS.dockWidths.has(dockWidth)
+        ? { dockWidth }
+        : {}),
+      ...(typeof lowerHeight === 'number' && !POLICY_DIMENSIONS.lowerHeights.has(lowerHeight)
+        ? { lowerHeight }
+        : {}),
+    };
+  }
+  return result;
+}
+
 export const useWorkspaceLayout = create<WorkspaceLayoutState>()(
   persist(
     (set, get) => ({
@@ -298,7 +323,7 @@ export const useWorkspaceLayout = create<WorkspaceLayoutState>()(
     }),
     {
       name: 'kingfisher.workspace-layout',
-      version: 3,
+      version: 4,
       /*
         Debounced, because §60's complaint is real: the old resize handler
         called `setToolDockWidth` on every pointermove, and zustand's persist
@@ -316,7 +341,23 @@ export const useWorkspaceLayout = create<WorkspaceLayoutState>()(
       migrate: (persisted, version) => {
         if (persisted === null || typeof persisted !== 'object') return persisted;
         const state = persisted as Record<string, unknown>;
-        if (version >= 3) return state;
+        if (version >= 4) return state;
+        /*
+          Version 3 wrote a concrete dock width and notation height into every
+          arrangement, including the ones created by merely selecting a tool
+          tab. Those numbers were the board policy's, not the user's, but once
+          written they outranked it — so Board priority stopped moving anything
+          for anybody who had ever clicked a tab.
+
+          Releasing a dimension that still matches a value the policy itself
+          produces is the only evidence this format left of which numbers were
+          chosen and which were inherited. A width the user dragged to a value
+          the policy also uses is released too; they can drag it back, and the
+          alternative is leaving every existing profile with a setting that
+          does nothing.
+        */
+        if (version === 3)
+          return { ...state, arrangements: releasePolicyDimensions(state.arrangements) };
 
         const width = typeof state.toolDockWidth === 'number' ? state.toolDockWidth : 420;
         const collapsed = state.toolDockCollapsed === true;
