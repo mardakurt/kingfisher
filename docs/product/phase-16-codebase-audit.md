@@ -154,6 +154,57 @@ for ever — indistinguishable from "never asked". It now goes through the same
 interrogation as a downloaded binary. An absent system engine is reported as
 absent, not as a failure, so the exit code stays meaningful on CI runners.
 
+## Search performance — the tail was the measurement (Part P)
+
+Phase 15 reported p95 search latencies "around one second" at a million rows and
+filed it as a performance problem. It was a measurement problem.
+
+`scripts/bench-player-search.mjs` took twenty samples and reported
+`samples[floor(20 * 0.95)]` as the p95. That index is 19 — the **maximum**,
+relabelled. Whichever sample was slowest became the reported percentile by
+construction, no matter how tight the rest of the distribution was.
+
+The slowest sample was always the same one. Printing the samples in the order
+they were taken rather than sorted shows it immediately, at 500,000 games:
+
+```
+player search (exact)  raw: 392.2 29.8 20.7 22.7 20.8 19.9 19.8 19.7 21.1 19.8
+                            18.7 18.6 18.7 18.5 18.1 18.1 17.9 17.7 18.0 17.8
+```
+
+The first query after a build pays to fault in the index pages it touches;
+nothing after it does. At 300,000 games the file is still warm from the build
+and the spike does not appear at all — which is exactly why the effect looked
+like it scaled with row count.
+
+So there was no steady-state tail to optimise, and **nothing was optimised**.
+The benchmark now times the cold run in its own column, and reports a median, a
+true nearest-rank p95 over sixty warm samples, and the worst separately.
+
+Re-measured at **1,000,000 synthetic rows** (built in 45.1 s):
+
+| Query                  |   cold | median |    p95 |   worst |
+| ---------------------- | -----: | -----: | -----: | ------: |
+| player prefix          |  0.1ms |  0.0ms |  0.0ms |   0.1ms |
+| player search (exact)  | 37.9ms | 34.5ms | 37.0ms |  48.0ms |
+| text search (common)   | 62.6ms | 62.6ms | 66.0ms |  67.5ms |
+| text search (2 terms)  | 57.5ms | 55.9ms | 57.5ms |  58.5ms |
+| text search (rare)     | 63.4ms | 64.3ms | 94.3ms | 149.0ms |
+| text search (no match) |  1.5ms |  0.1ms |  0.1ms |   0.2ms |
+
+Against Phase 15's reported 921 ms and 1,074 ms p95, the true figures are
+**37.0 ms and 66.0 ms** — off by roughly twenty-five times.
+
+Two honest caveats. This is **synthetic metadata, not a real million-game
+database**; it exercises the query shapes and the schema, not real movetext or
+real name distributions. And the cold column depends on operating-system page
+cache state — on a machine that has just built the file it is low, and it is not
+a cold-boot measurement.
+
+The one genuine spread left is the rare-term `LIKE` scan, p95 94.3 ms against a
+64.3 ms median, which is the full scan the comment above that benchmark case
+already predicts.
+
 ## Lc0 — live verification (Part L)
 
 Run on this machine, 5 September 2026, Apple M3 Pro.

@@ -50,6 +50,14 @@ Every number below was produced by the command beside it on 5 September 2026.
 | `npm run reference:build -- --pack elite`      | 407,538 games all with full scores, 5,438,808 positions, 33,607 players, 339.3 MB, explorer depth 40 plies                                                     |
 | `node scripts/bench-player-search.mjs 1000000` | 1M metadata rows built in 56.3 s; exact-player median 44.2 ms / p95 921 ms; text `carlsen` median 70.1 ms / p95 1,074.2 ms. Synthetic metadata, not real games |
 
+> **Corrected in Phase 16.** Those p95 figures were an artifact of the
+> benchmark, not of the database. It took twenty samples and reported the
+> maximum as the p95, and the maximum was always the single cold first query.
+> Re-measured at the same 1,000,000 rows with the cold run timed separately and
+> a true nearest-rank p95 over sixty warm samples: exact-player **median 34.5 ms,
+> p95 37.0 ms**; text `carlsen` **median 62.6 ms, p95 66.0 ms**. See
+> `docs/product/phase-16-codebase-audit.md`.
+
 ### Why the deep corpus percentages are a floor
 
 `bench:explorer-depth` walks 31 hand-written theoretical lines. They are real
