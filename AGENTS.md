@@ -130,6 +130,41 @@ deterministic, never generated at runtime and presented as theory.
 Every third-party dataset and asset is recorded in `THIRD_PARTY_DATA.md` and
 `THIRD_PARTY_ASSETS.md`. Add to them when you add a source.
 
+## Building a reference pack
+
+`scripts/build-reference-pack.mjs` builds every pack from an upstream archive:
+download or stream, verify against the publisher's own digests, replay through
+Kingfisher's rules code, aggregate by position, shard, compress, write a
+manifest. Packs are declared in `scripts/reference/packs.mjs`.
+
+Two things about the archives will waste your afternoon if you do not know them.
+
+They are **seekable zstd**: real frames with skippable frames interleaved
+throughout. Piping one into `createZstdDecompress()` fails at byte zero, and
+dropping only the leading skippable frames gets past that and then stops
+_silently_ at the next one — a build that succeeds and writes a pack a fraction
+of the right size. Use `zstdFrameStream()`, which walks the frames.
+
+And a game must be **rejected on its headers** when the source is large.
+`readGames(file, { accept })` decides from the tags before the movetext is
+tokenised. The standard database holds about ninety million games a month and
+the high-rated pack keeps one in two hundred and fifty; without early rejection
+the build is not slow, it is infeasible.
+
+## Interoperability
+
+`src/database/encroissant/` reads another program's database. Two rules:
+
+Kingfisher **never writes to it**. It belongs to a program that may be running.
+
+And the move encoding is **verified, not assumed**. En Croissant stores a move
+as an index into the list its rules library generates, so a decoder that orders
+that list differently returns a move that is legal, plausible and wrong, with
+nothing downstream able to tell. `shakmaty-order.ts` reproduces that ordering and
+`decode.test.ts` checks it against a database En Croissant actually wrote, using
+that program's own decoding as the reference. If you touch the ordering, that
+test is the one that must fail first.
+
 ## Testing expectations
 
 - `src/**/*.test.ts` — unit and integration, Vitest, node environment.
