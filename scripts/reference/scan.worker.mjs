@@ -74,8 +74,16 @@ async function main() {
     Speed and rating are both in the headers, which is what makes this possible.
   */
   const speeds = Array.isArray(limits.speeds) && limits.speeds.length > 0 ? limits.speeds : null;
+  /*
+    Counted here rather than in the loop below, because the loop no longer sees
+    the games this predicate turns away. Without it a build over ninety million
+    games reported that it had scanned a few hundred, which read as a broken
+    stream and was in fact a broken counter.
+  */
+  let examined = 0;
   const accept = speeds
     ? (tags) => {
+        examined += 1;
         const event = `${tags.Event ?? ''}`.toLowerCase();
         // Lichess names the speed in the Event tag: "Rated Blitz game".
         // Checked longest-first so "ultrabullet" is never read as "bullet".
@@ -253,7 +261,15 @@ async function main() {
   playerGames.close();
   accepted.close();
   await closeApp();
-  parentPort.postMessage({ file: label ?? String(file), seen, kept, opened, rejected, maxYear });
+  parentPort.postMessage({
+    file: label ?? String(file),
+    // What the archive held, not what survived the headers.
+    seen: Math.max(seen, examined),
+    kept,
+    opened,
+    rejected,
+    maxYear,
+  });
 }
 
 /** `YYYY.MM.DD`, whichever of the several shapes in the wild the tag used. */

@@ -15,6 +15,9 @@
  * the format states explicitly.
  */
 
+import { Transform } from 'node:stream';
+import { zstdDecompressSync } from 'node:zlib';
+
 const ZSTD_MAGIC = 0xfd2fb528;
 const SKIPPABLE_MASK = 0xfffffff0;
 const SKIPPABLE_MAGIC = 0x184d2a50;
@@ -58,9 +61,19 @@ export function zstdFrames(buffer) {
   return frames;
 }
 
-function endOfFrame(buffer, start) {
+function endOfFrame(buffer, start, partial = false) {
+  /*
+    `partial` is for the streaming splitter: a frame that runs past the end of
+    what has arrived so far is not a corrupt archive, it is an archive still
+    being downloaded. It answers `null` and is asked again with more bytes.
+  */
+  const short = (message) => {
+    if (partial) return null;
+    throw new Error(message);
+  };
   let cursor = start + 4;
-  const descriptor = readByte(buffer, cursor++);
+  if (cursor >= buffer.length) return short(`Truncated frame header at ${cursor}.`);
+  const descriptor = buffer[cursor++];
 
   const fcsFlag = descriptor >> 6;
   const singleSegment = (descriptor & 0x20) !== 0;
@@ -76,7 +89,7 @@ function endOfFrame(buffer, start) {
   cursor += fcsFlag === 0 ? (singleSegment ? 1 : 0) : FCS_SIZES[fcsFlag];
 
   for (;;) {
-    if (cursor + 3 > buffer.length) throw new Error(`Truncated block header in frame at ${start}.`);
+    if (cursor + 3 > buffer.length) return short(`Truncated block header in frame at ${start}.`);
     const header = buffer.readUIntLE(cursor, 3);
     cursor += 3;
     const last = (header & 1) !== 0;
@@ -84,16 +97,72 @@ function endOfFrame(buffer, start) {
     const size = header >> 3;
     if (type === 3) throw new Error(`Reserved block type in frame at ${start}.`);
     cursor += type === 1 ? 1 : size; // RLE blocks store one byte, not `size`.
-    if (cursor > buffer.length) throw new Error(`Block in frame at ${start} runs past the file.`);
+    if (cursor > buffer.length) return short(`Block in frame at ${start} runs past the file.`);
     if (last) break;
   }
 
   if (hasChecksum) cursor += 4;
-  if (cursor > buffer.length) throw new Error(`Checksum of frame at ${start} runs past the file.`);
+  if (cursor > buffer.length) return short(`Checksum of frame at ${start} runs past the file.`);
   return cursor;
 }
 
-function readByte(buffer, at) {
-  if (at >= buffer.length) throw new Error(`Truncated frame header at ${at}.`);
-  return buffer[at];
+/**
+ * A Transform that turns a stream of seekable-zstd bytes into decompressed ones.
+ *
+ * `zstdFrames` above needs the whole archive in memory, which is right for a
+ * twenty-megabyte broadcast file and impossible for a thirty-gigabyte month of
+ * the standard database. This walks the same frame headers incrementally: it
+ * buffers until one complete frame has arrived, decompresses it, and drops it —
+ * so peak memory is one frame, not one archive.
+ *
+ * It exists because neither simpler thing works on these files. Piping straight
+ * into `createZstdDecompress()` fails at byte zero on the leading skippable
+ * frame; skipping only the frames *before* the first real one gets further and
+ * then stops silently at the end of that frame, because the archives interleave
+ * skippable frames throughout and a decoder treats one as the end of the
+ * stream. That failure produced a pack with 148 games in it and exit code 0,
+ * which is why the frames are now counted rather than assumed.
+ */
+export function zstdFrameStream() {
+  let held = Buffer.alloc(0);
+  let frames = 0;
+  const split = function (chunk, _encoding, done) {
+    held = held.length > 0 ? Buffer.concat([held, chunk]) : chunk;
+    let offset = 0;
+    try {
+      for (;;) {
+        if (offset + 8 > held.length) break;
+        const magic = held.readUInt32LE(offset);
+        if ((magic & SKIPPABLE_MASK) === SKIPPABLE_MAGIC) {
+          const end = offset + 8 + held.readUInt32LE(offset + 4);
+          if (end > held.length) break;
+          offset = end;
+          continue;
+        }
+        if (magic !== ZSTD_MAGIC) {
+          throw new Error(`Not a zstd frame at ${offset}: magic 0x${magic.toString(16)}.`);
+        }
+        const end = endOfFrame(held, offset, true);
+        if (end === null) break;
+        this.push(zstdDecompressSync(held.subarray(offset, end)));
+        frames += 1;
+        offset = end;
+      }
+    } catch (error) {
+      return done(error instanceof Error ? error : new Error(String(error)));
+    }
+    held = offset > 0 ? Buffer.from(held.subarray(offset)) : held;
+    done();
+  };
+  return new Transform({
+    transform: split,
+    flush(done) {
+      // Anything left is a partial frame, which means a truncated download.
+      if (held.length > 0) {
+        return done(new Error(`Archive ended mid-frame with ${held.length} bytes unread.`));
+      }
+      if (frames === 0) return done(new Error('Archive contained no zstd frames.'));
+      done();
+    },
+  });
 }

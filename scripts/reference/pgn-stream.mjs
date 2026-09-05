@@ -14,11 +14,12 @@
  */
 
 import { createReadStream, readFileSync } from 'node:fs';
-import { Readable, Transform } from 'node:stream';
+import { PassThrough, Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 import { createInterface } from 'node:readline';
-import { createGunzip, createZstdDecompress, zstdDecompressSync } from 'node:zlib';
+import { createGunzip, zstdDecompressSync } from 'node:zlib';
 
-import { zstdFrames } from './zstd-frames.mjs';
+import { zstdFrames, zstdFrameStream } from './zstd-frames.mjs';
 
 const TAG = /^\[([A-Za-z0-9_]+)\s+"((?:[^"\\]|\\.)*)"\]\s*$/;
 
@@ -49,62 +50,6 @@ export function sanTokens(movetext) {
   return moves;
 }
 
-/** Magic number of a zstd skippable frame; the low nibble is the variant. */
-const SKIPPABLE_MAGIC = 0x184d2a50;
-
-/**
- * Drop zstd skippable frames from a byte stream, forwarding the real ones.
- *
- * The Lichess archives begin with a skippable frame — twelve bytes carrying a
- * size hint — and a streaming zstd decoder refuses the whole file the moment it
- * sees one: "Unknown frame descriptor", before a single game is read. That is
- * why `bytesOf` decodes local archives frame by frame from a buffer, which is
- * fine at twenty megabytes and impossible at thirty gigabytes.
- *
- * Once the leading skippable frames are gone the rest is ordinary zstd, and
- * decoders concatenate real frames without help. So this only has to recognise
- * and drop what comes before the first real frame, and then get out of the way —
- * which keeps it to a handful of bytes of state rather than a frame parser.
- */
-function skipSkippableFrames() {
-  let head = Buffer.alloc(0);
-  let skipping = 0;
-  let reachedRealFrame = false;
-  return new Transform({
-    transform(chunk, _encoding, done) {
-      let buffer = head.length > 0 ? Buffer.concat([head, chunk]) : chunk;
-      head = Buffer.alloc(0);
-      for (;;) {
-        if (skipping > 0) {
-          const drop = Math.min(skipping, buffer.length);
-          buffer = buffer.subarray(drop);
-          skipping -= drop;
-          if (skipping > 0) return done();
-        }
-        if (reachedRealFrame) {
-          if (buffer.length > 0) this.push(buffer);
-          return done();
-        }
-        // A frame header is 8 bytes: magic, then the skippable payload size.
-        if (buffer.length < 8) {
-          head = buffer;
-          return done();
-        }
-        if ((buffer.readUInt32LE(0) & 0xfffffff0) === SKIPPABLE_MAGIC) {
-          skipping = buffer.readUInt32LE(4);
-          buffer = buffer.subarray(8);
-          continue;
-        }
-        reachedRealFrame = true;
-      }
-    },
-    flush(done) {
-      if (head.length > 0 && reachedRealFrame) this.push(head);
-      done();
-    },
-  });
-}
-
 /**
  * A byte stream of the file's contents, whatever it is wrapped in.
  *
@@ -125,16 +70,26 @@ function bytesOf(file) {
     peak memory is a few buffers rather than a month of chess.
   */
   if (typeof file === 'object' && file !== null && typeof file.url === 'string') {
-    return Readable.from(
-      (async function* download() {
+    /*
+      One pipeline, not a generator wrapping a decoder. Async iteration over a
+      stream that is still being written ends as soon as its buffer drains, and
+      a thirty-gigabyte archive then terminated after a few tens of thousands of
+      games with no error anywhere — a build that *succeeded* and wrote a pack a
+      fraction of the right size, which is the worst way for this to fail.
+      Piping keeps it to one stream, so backpressure and errors both belong to it.
+    */
+    const out = new PassThrough();
+    void (async () => {
+      try {
         const response = await fetch(file.url, file.init);
         if (!response.ok) throw new Error(`${file.url} → HTTP ${response.status}`);
         if (!response.body) throw new Error(`${file.url} returned no body.`);
-        const decoder = createZstdDecompress();
-        Readable.fromWeb(response.body).pipe(skipSkippableFrames()).pipe(decoder);
-        yield* decoder;
-      })(),
-    );
+        await pipeline(Readable.fromWeb(response.body), zstdFrameStream(), out);
+      } catch (error) {
+        out.destroy(error instanceof Error ? error : new Error(String(error)));
+      }
+    })();
+    return out;
   }
   if (file.endsWith('.zst')) {
     const buffer = readFileSync(file);
