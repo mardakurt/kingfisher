@@ -203,4 +203,88 @@ export const THEORY_LINES = [
     moves: `e4 e5 Nf3 Nc6 Bb5 Nf6 d3 Bc5 Bxc6 dxc6 Nbd2 Be6 O-O Bd6 Nc4 Nd7 a4 a5
             b3 O-O Ne3 f6 Nd2 Nc5 Nf5 Bxf5 exf5 Qd7`,
   },
+  {
+    eco: 'B78',
+    name: 'Sicilian: Dragon, Yugoslav Attack 9.Bc4',
+    moves: `e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 g6 Be3 Bg7 f3 O-O Qd2 Nc6 Bc4 Bd7 O-O-O Rc8
+            Bb3 Ne5 h4 h5 Bg5 Rc5 Kb1 Re8 g4 hxg4 h5 Nxh5 Rdg1 Rc8 fxg4 Nf6 Bh6 Nfxg4`,
+  },
+  {
+    eco: 'B67',
+    name: 'Sicilian: Richter-Rauzer, 7...a6',
+    moves: `e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 Nc6 Bg5 e6 Qd2 a6 O-O-O Bd7 f4 Be7 Nf3 b5
+            Bxf6 gxf6 f5 Qb6 fxe6 fxe6 Kb1 O-O-O Bd3 Kb8 Rhf1 Be8`,
+  },
+  {
+    eco: 'B31',
+    name: 'Sicilian: Rossolimo, 3...g6',
+    moves: `e4 c5 Nf3 Nc6 Bb5 g6 Bxc6 dxc6 d3 Bg7 h3 Nf6 Nc3 Nd7 Be3 e5 O-O b6 Nh2 Qe7
+            f4 exf4 Rxf4 Ne5 Qd2 h6 Raf1 g5 Bd4 Be6`,
+  },
+  {
+    eco: 'B22',
+    name: 'Sicilian: Alapin, 2...Nf6',
+    moves: `e4 c5 c3 Nf6 e5 Nd5 d4 cxd4 Nf3 Nc6 cxd4 d6 Bc4 Nb6 Bb5 dxe5 Nxe5 Bd7 Nxd7 Qxd7
+            Nc3 e6 O-O Be7 Re1 O-O Bf4 Rfd8 Qe2 a6`,
+  },
+  {
+    eco: 'D27',
+    name: "Queen's Gambit Accepted: Classical",
+    moves: `d4 d5 c4 dxc4 Nf3 Nf6 e3 e6 Bxc4 c5 O-O a6 Bb3 cxd4 exd4 Nc6 Nc3 Be7 Re1 O-O
+            Bf4 Na5 Bc2 b5 Qd3 Bb7 a3 Rc8 Ne5 Nc4 Nxc4 Rxc4`,
+  },
+  {
+    eco: 'E15',
+    name: "Queen's Indian: 4.g3 Ba6",
+    moves: `d4 Nf6 c4 e6 Nf3 b6 g3 Ba6 b3 Bb4+ Bd2 Be7 Bg2 c6 Bc3 d5 Ne5 Nfd7 Nxd7 Nxd7
+            Nd2 O-O O-O Rc8 e4 b5 Re1 dxe4 Nxe4 c5`,
+  },
+  {
+    eco: 'E54',
+    name: 'Nimzo-Indian: Rubinstein, Karpov',
+    moves: `d4 Nf6 c4 e6 Nc3 Bb4 e3 O-O Bd3 d5 Nf3 c5 O-O cxd4 exd4 dxc4 Bxc4 b6 Bg5 Bb7
+            Re1 Nbd7 Rc1 Rc8 Bd3 Bxc3 bxc3 Qc7 c4 Bxf3 Qxf3 Qxc4`,
+  },
+  {
+    eco: 'D35',
+    name: "Queen's Gambit Declined: Exchange, minority attack",
+    moves: `d4 d5 c4 e6 Nc3 Nf6 cxd5 exd5 Bg5 Be7 e3 O-O Bd3 Nbd7 Qc2 Re8 Nge2 Nf8 O-O c6
+            Rab1 a5 a3 Ne4 Bxe7 Qxe7 b4 axb4 axb4 Nd6`,
+  },
+  {
+    eco: 'C58',
+    name: 'Italian: Two Knights, main line',
+    moves: `e4 e5 Nf3 Nc6 Bc4 Nf6 Ng5 d5 exd5 Na5 Bb5+ c6 dxc6 bxc6 Be2 h6 Nf3 e4 Ne5 Bd6
+            d4 exd3 Nxd3 Qc7 b3 O-O O-O c5`,
+  },
+  {
+    eco: 'C52',
+    name: 'Evans Gambit: Accepted',
+    moves: `e4 e5 Nf3 Nc6 Bc4 Bc5 b4 Bxb4 c3 Ba5 d4 d6 Qb3 Qd7 dxe5 Bb6 Nbd2 Na5 Qc2 Nxc4
+            Nxc4 dxe5 Nxb6 axb6 Nxe5 Qe6 O-O Nf6`,
+  },
+  {
+    eco: 'C39',
+    name: "King's Gambit Accepted: Kieseritzky",
+    moves: `e4 e5 f4 exf4 Nf3 g5 h4 g4 Ne5 Nf6 d4 d6 Nd3 Nxe4 Bxf4 Qe7 Qe2 Bg7 c3 Nf6
+            Nd2 O-O O-O-O Re8 Qf2 Na6 Kb1 Nc5`,
+  },
+  {
+    eco: 'B04',
+    name: 'Alekhine: Modern, Exchange',
+    moves: `e4 Nf6 e5 Nd5 d4 d6 Nf3 dxe5 Nxe5 c6 Be2 Bf5 c4 Nb6 Nc3 N8d7 Nf3 e6 O-O Be7
+            b3 O-O Bb2 a5 a4 Bf6 Qd2 Qe7 Rfd1 Rfd8`,
+  },
+  {
+    eco: 'B06',
+    name: 'Modern Defence: 150 Attack',
+    moves: `e4 g6 d4 Bg7 Nc3 d6 Be3 a6 Qd2 b5 f3 Nd7 h4 h5 Nh3 Ngf6 Nf2 c5 dxc5 dxc5
+            O-O-O Qc7 Bg5 Bb7 e5 Nd5 Nxd5 Bxd5`,
+  },
+  {
+    eco: 'D02',
+    name: 'London System: 2.Bf4 c5',
+    moves: `d4 d5 Bf4 Nf6 e3 c5 c3 Nc6 Nd2 Bf5 Ngf3 e6 Ne5 Nd7 Nxd7 Qxd7 Be2 Be7
+            O-O O-O Nf3 Rac8 Ne5 Nxe5 Bxe5 f6 Bg3 c4 f4 b5`,
+  },
 ];

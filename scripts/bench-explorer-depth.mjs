@@ -66,7 +66,7 @@ function replay(app) {
       position = advanced.value.next;
     }
     keys.push(app.fen.positionKey(position.fen));
-    return { ...line, plies: moves.length, keys };
+    return { ...line, plies: moves.length, keys, sans: moves };
   });
 }
 
@@ -132,6 +132,43 @@ function loadShards(dir, manifest, keys, app) {
   return rows;
 }
 
+/**
+ * Why a line stopped being answered, measured rather than guessed.
+ *
+ * A miss at ply thirty used to be unreadable: it could mean the pack is
+ * shallow, or it could mean the hand-written continuation is a move nobody
+ * has actually played. Those call for opposite responses — rebuild the pack,
+ * or fix the corpus — and the benchmark was reporting one number for both.
+ *
+ * The parent position settles it without any authored judgement. At the ply
+ * where the chain breaks, read the row for the position the move was played
+ * *from*:
+ *
+ *  - the parent is missing too — the line had already left the pack, so this
+ *    ply is not where anything happened;
+ *  - the parent is there and lists the move — the pack saw games play it and
+ *    chose not to keep the position after it. That is the pack's depth, and
+ *    it is a real finding;
+ *  - the parent is there and does not list the move — no game in this pack
+ *    ever played it. That is the corpus being more obscure than the data, not
+ *    the pack being shallow.
+ */
+function diagnose(line, rows, app) {
+  let ply = 0;
+  while (ply <= line.plies && rows.has(line.keys[ply])) ply += 1;
+  if (ply > line.plies) return { reach: line.plies, verdict: 'complete', games: 0 };
+
+  const parent = rows.get(line.keys[ply - 1]);
+  if (!parent) return { reach: ply - 1, verdict: 'parent-missing', games: 0 };
+
+  const san = line.sans[ply - 1];
+  const decoded = app.pack.decodeExplorerLine(parent);
+  const played = decoded?.moves?.find((move) => move.san === san);
+  return played
+    ? { reach: ply - 1, verdict: 'pruned', games: played.games ?? 0, san }
+    : { reach: ply - 1, verdict: 'unplayed', games: 0, san };
+}
+
 const pct = (part, whole) => (whole === 0 ? '  n/a' : `${((part / whole) * 100).toFixed(1)}%`);
 
 async function main() {
@@ -177,22 +214,32 @@ async function main() {
     }
 
     // How far each line can be walked before the pack has nothing, which is
-    // the number a player actually experiences.
-    const reach = lines.map((line) => {
-      let last = 0;
-      for (let ply = 0; ply <= line.plies; ply += 1) {
-        if (rows.has(line.keys[ply])) last = ply;
-      }
-      return { name: line.name, eco: line.eco, last };
-    });
-    const depths = reach.map((entry) => entry.last);
+    // the number a player actually experiences — and, where it stops, why.
+    const reach = lines.map((line) => ({ ...diagnose(line, rows, app), line }));
+    const depths = reach.map((entry) => entry.reach);
     console.log(
       `  continuous answers    median ${median(depths)} plies, ` +
         `worst ${Math.min(...depths)}, best ${Math.max(...depths)}`,
     );
-    const shallow = reach.filter((entry) => entry.last < 20).sort((a, b) => a.last - b.last);
-    for (const entry of shallow.slice(0, 5)) {
-      console.log(`    ${entry.eco} ${entry.name} — ${entry.last} plies`);
+
+    const tally = { complete: 0, pruned: 0, unplayed: 0, 'parent-missing': 0 };
+    for (const entry of reach) tally[entry.verdict] += 1;
+    console.log(
+      `  why they stop        ` +
+        `${tally.pruned} pruned by the pack, ` +
+        `${tally.unplayed} never played in it, ` +
+        `${tally.complete} answered to the end`,
+    );
+
+    const shallow = reach
+      .filter((entry) => entry.reach < 20 && entry.verdict !== 'complete')
+      .sort((a, b) => a.reach - b.reach);
+    for (const entry of shallow.slice(0, 6)) {
+      const why =
+        entry.verdict === 'pruned'
+          ? `pruned after ${entry.san} (${entry.games} game${entry.games === 1 ? '' : 's'})`
+          : `${entry.san} never played here`;
+      console.log(`    ${entry.line.eco} ${entry.line.name} — ${entry.reach} plies, ${why}`);
     }
 
     const walk = await popularWalk(dir, manifest, app);
