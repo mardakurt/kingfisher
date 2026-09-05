@@ -18,6 +18,7 @@ import type { WorkspaceRegion } from './layout-model';
 export type WorkspaceToolId =
   | 'engine'
   | 'explorer'
+  | 'theory-book'
   | 'book'
   | 'database'
   | 'repertoire'
@@ -56,7 +57,20 @@ export interface WorkspaceModuleDescriptor {
 export const WORKSPACE_MODULES: Readonly<Record<WorkspaceToolId, WorkspaceModuleDescriptor>> = {
   engine: { id: 'engine', label: 'Engine', home: 'dock', regions: ['dock', 'lower'] },
   explorer: { id: 'explorer', label: 'Explorer', home: 'dock', regions: ['dock'] },
-  book: { id: 'book', label: 'Book', home: 'dock', regions: ['dock', 'lower'] },
+  /*
+    Two things called "book" would be one thing too many. The Theory Book is
+    chess knowledge — the named branches of an opening, from the
+    classification dataset. `book` is a Polyglot file: an engine's move
+    weights, which is a different claim about a position and is labelled as
+    the moves it lists rather than as a book.
+  */
+  'theory-book': {
+    id: 'theory-book',
+    label: 'Theory Book',
+    home: 'dock',
+    regions: ['dock', 'lower'],
+  },
+  book: { id: 'book', label: 'Book Moves', home: 'dock', regions: ['dock', 'lower'] },
   database: { id: 'database', label: 'Database', home: 'dock', regions: ['dock'] },
   repertoire: { id: 'repertoire', label: 'Repertoire', home: 'dock', regions: ['dock'] },
   'repertoire-health': {
@@ -128,6 +142,7 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
   analysis: [
     'engine',
     'explorer',
+    'theory-book',
     'book',
     'database',
     'repertoire',
@@ -148,6 +163,7 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'document',
     'engine',
     'explorer',
+    'theory-book',
     'book',
     'database',
     'transpositions',
@@ -161,6 +177,7 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
   repertoire: [
     'document',
     'repertoire-health',
+    'theory-book',
     'explorer',
     'book',
     'database',
@@ -173,6 +190,7 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'play',
   ],
   openings: [
+    'theory-book',
     'explorer',
     'book',
     'database',
@@ -199,6 +217,7 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
   ],
   'opening-files': [
     'document',
+    'theory-book',
     'explorer',
     'theory-radar',
     'repertoire',
@@ -211,6 +230,7 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
   ],
   'model-game': [
     'guess-the-move',
+    'theory-book',
     'notes',
     'repertoire',
     'model-games',

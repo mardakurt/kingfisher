@@ -36,6 +36,11 @@ const CompanionPanel = lazyPanel(() =>
   constants, and a workspace where nobody opens the Book tab should not pay
   for them.
 */
+const TheoryBookPanel = lazyPanel(() =>
+  import('@/features/theory/TheoryBookPanel').then((module) => ({
+    default: module.TheoryBookPanel,
+  })),
+);
 const BookPanel = lazyPanel(() =>
   import('@/features/book/BookPanel').then((module) => ({ default: module.BookPanel })),
 );
@@ -118,6 +123,7 @@ export function ToolContent({
 }) {
   if (tool === 'engine') return <EnginePanelHost />;
   if (tool === 'explorer') return <ExplorerPanel />;
+  if (tool === 'theory-book') return <TheoryBookPanel />;
   if (tool === 'book') return <BookPanel />;
   if (tool === 'database') return <DatabasePositionPanel />;
   if (tool === 'repertoire') return <RepertoirePositionPanel />;

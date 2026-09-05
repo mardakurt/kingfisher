@@ -29,7 +29,8 @@ export type WorkspaceToolIcon = ComponentType<SVGProps<SVGSVGElement>>;
 export const WORKSPACE_TOOL_ICONS: Readonly<Record<WorkspaceModuleId, WorkspaceToolIcon>> = {
   engine: EngineAnalysis,
   explorer: Search,
-  book: Library,
+  'theory-book': Library,
+  book: Notebook,
   database: Database,
   repertoire: Repertoire,
   'repertoire-health': Review,

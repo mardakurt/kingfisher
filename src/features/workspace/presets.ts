@@ -102,8 +102,19 @@ export const PRESET_ARRANGEMENTS: Record<WorkspacePreset, WorkspaceArrangement> 
 /**
  * The tools that stay visible in the tab strip until the user says otherwise.
  *
- * Three, because the point of pinning is that the important tools are not
- * behind a menu — and a "pinned" list containing everything is just the
+ * Four, and no more: the point of pinning is that the important tools are not
+ * behind a menu, and a "pinned" list containing everything is just the
  * overflowing tab strip §26 asks us to stop shipping.
+ *
+ * The Theory Book earns its place because it answers a different question from
+ * the other three — what the named branches of this opening *are*, rather than
+ * what an engine, a database or the user thinks of them. Leaving it in the
+ * overflow menu would have meant the one surface that carries chess knowledge
+ * out of the box was the one nobody found.
  */
-export const DEFAULT_PINNED_TOOLS: readonly WorkspaceToolId[] = ['engine', 'explorer', 'notes'];
+export const DEFAULT_PINNED_TOOLS: readonly WorkspaceToolId[] = [
+  'engine',
+  'explorer',
+  'theory-book',
+  'notes',
+];

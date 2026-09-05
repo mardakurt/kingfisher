@@ -19,7 +19,7 @@ import { ModuleTabStrip } from './ModuleTabStrip';
 import { ToolContent } from './ToolContent';
 import { useModuleAvailability } from './use-module-availability';
 import { useWorkspaceArrangement } from './use-arrangement';
-import { WORKSPACE_PRESETS } from './presets';
+import { DEFAULT_PINNED_TOOLS, WORKSPACE_PRESETS } from './presets';
 
 export interface WorkspaceLock {
   readonly message: string;
@@ -87,7 +87,8 @@ export function WorkspaceToolDock({
   const setActiveModule = useWorkspaceLayout((state) => state.setActiveModule);
   const setDockWidth = useWorkspaceLayout((state) => state.setDockWidth);
   const setDockCollapsed = useWorkspaceLayout((state) => state.setDockCollapsed);
-  const pinned = useWorkspaceLayout((state) => state.pinnedTools[workspace]) ?? DEFAULT_PINNED;
+  const pinned =
+    useWorkspaceLayout((state) => state.pinnedTools[workspace]) ?? DEFAULT_PINNED_TOOLS;
   const effectiveLock = useEffectiveLock(locked);
   const availability = useModuleAvailability();
   const openSettingsAt = useUi((state) => state.openSettingsAt);
@@ -215,8 +216,6 @@ export function WorkspaceToolDock({
   );
 }
 
-const DEFAULT_PINNED: readonly WorkspaceToolId[] = ['engine', 'explorer', 'notes'];
-
 /**
  * The body of one region: whichever module it shows, or the reason it cannot.
  *
@@ -341,7 +340,8 @@ function WorkspaceLayoutBar({
   const deleteLayout = useWorkspaceLayout((state) => state.deleteLayout);
   const savedLayouts = useWorkspaceLayout((state) => state.savedLayouts);
   const togglePinned = useWorkspaceLayout((state) => state.togglePinned);
-  const pinned = useWorkspaceLayout((state) => state.pinnedTools[workspace]) ?? DEFAULT_PINNED;
+  const pinned =
+    useWorkspaceLayout((state) => state.pinnedTools[workspace]) ?? DEFAULT_PINNED_TOOLS;
   const preset = useWorkspaceLayout((state) => state.preset);
   const [saving, setSaving] = useState(false);
 
