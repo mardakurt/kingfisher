@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 
 import { Position } from '@/chess/position';
-import { engineDefinitions } from '@/engine/registry';
+import { runnableEngineDefinitions } from '@/engine/registry';
 import type { Color, MoveIntent } from '@/chess/types';
 import { Play, Stop } from '@/components/icons';
 import { Button } from '@/components/ui/Button';
@@ -44,7 +44,9 @@ export function PlayFromHerePanel() {
   const notify = useUi((state) => state.notify);
 
   const position = useMemo(() => (line ? Position.fromTrustedFen(line.fen) : null), [line]);
-  const engines = engineDefinitions().filter((entry) => !prefs.hiddenEngineIds.includes(entry.id));
+  const engines = runnableEngineDefinitions().filter(
+    (entry) => !prefs.hiddenEngineIds.includes(entry.id),
+  );
   const destinations = useMemo(
     () => (line && position?.turn === side && !stopped ? legalDestinations(line.fen) : new Map()),
     [line, position?.turn, side, stopped],

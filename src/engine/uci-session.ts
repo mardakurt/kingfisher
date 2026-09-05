@@ -236,6 +236,22 @@ export class UciSession implements EngineSession {
         ...(message.ponder ? { ponder: message.ponder } : {}),
         complete: true,
       };
+      const restricted = search.request.searchMoves;
+      if (restricted && restricted.length > 0) {
+        /*
+          Asked at the end rather than assumed at the start. `searchmoves` is
+          the one part of a search request an engine may ignore without saying
+          so, and the check is the same either way: if the move it came back
+          with is not one of the moves it was given, it did not do what it was
+          asked, and nothing downstream may treat the result as if it had.
+        */
+        const allowed = new Set<string>(restricted);
+        const answered = search.snapshot.bestMove;
+        search.snapshot = {
+          ...search.snapshot,
+          restrictionHonoured: answered === undefined ? true : allowed.has(answered),
+        };
+      }
       this.finishSearch(search);
     }
   }

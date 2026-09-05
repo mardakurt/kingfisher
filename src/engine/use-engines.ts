@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 
 import { usePreferences } from '@/stores/preferences-store';
 
-import { engineDefinitions, type EngineDefinition } from './registry';
+import { engineDefinitions, runnableEngineDefinitions, type EngineDefinition } from './registry';
 
 /**
  * The engines a *selector* should offer.
@@ -23,12 +23,15 @@ export function useVisibleEngineDefinitions(): readonly EngineDefinition[] {
   const secondary = usePreferences((state) => state.secondaryEngineId);
 
   return useMemo(() => {
-    const all = engineDefinitions();
+    // Engines with no build for this machine are dropped before the user's
+    // own hidden list is applied — an engine that cannot run here is not a
+    // preference, and a selector full of them is a selector nobody reads.
+    const all = runnableEngineDefinitions();
     const visible = all.filter(
       (engine) => !hidden.includes(engine.id) || engine.id === primary || engine.id === secondary,
     );
     // Never empty: hiding everything would leave no way to analyse and no way
     // to get back, so the last engine standing is the one that cannot be hidden.
-    return visible.length > 0 ? visible : all.slice(0, 1);
+    return visible.length > 0 ? visible : (all.slice(0, 1) ?? engineDefinitions().slice(0, 1));
   }, [hidden, primary, secondary]);
 }

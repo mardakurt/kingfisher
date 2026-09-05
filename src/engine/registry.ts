@@ -34,6 +34,14 @@ export interface EngineDefinition {
   readonly license: string;
   readonly source: string;
   readonly notes?: string;
+  /**
+   * Companion platform identifiers this engine publishes a build for.
+   *
+   * Absent means "anywhere" — the browser engine, and any engine the user
+   * registered by path. Present and not matching means the selector should
+   * not offer it here; see `setEnginePlatform`.
+   */
+  readonly platforms?: readonly string[];
   readonly provider: EngineProvider;
 }
 
@@ -52,6 +60,7 @@ const STOCKFISH_WASM: EngineDefinition = {
 const NATIVE: readonly Omit<EngineDefinition, 'provider'>[] = [
   {
     id: 'lc0',
+    platforms: ['darwin-arm64', 'darwin-x64', 'linux-x64', 'win32-x64'],
     name: 'Lc0',
     family: 'neural',
     transport: 'native',
@@ -61,6 +70,7 @@ const NATIVE: readonly Omit<EngineDefinition, 'provider'>[] = [
   },
   {
     id: 'stormphrax',
+    platforms: ['darwin-arm64', 'linux-x64', 'win32-x64'],
     name: 'Stormphrax 8',
     family: 'alphabeta',
     transport: 'native',
@@ -70,24 +80,27 @@ const NATIVE: readonly Omit<EngineDefinition, 'provider'>[] = [
   },
   {
     id: 'stockfish-native',
+    platforms: ['darwin-arm64', 'darwin-x64', 'linux-x64', 'win32-x64'],
     name: 'Stockfish 18 (native)',
     family: 'alphabeta',
     transport: 'native',
     license: 'GPL-3.0-or-later',
     source: 'https://github.com/official-stockfish/Stockfish',
-    notes: 'The same engine as the browser build, an order of magnitude faster.',
+    notes: 'Native Stockfish 18. Performance depends on the machine and analysis settings.',
   },
   {
     id: 'viridithas',
+    platforms: ['darwin-arm64', 'linux-x64', 'linux-arm64', 'win32-x64'],
     name: 'Viridithas 20',
     family: 'alphabeta',
     transport: 'native',
-    license: 'AGPL-3.0-or-later',
+    license: 'AGPL-3.0-only',
     source: 'https://github.com/cosmobobak/viridithas',
     notes: 'An independent NNUE engine written in Rust, with its own evaluation.',
   },
   {
     id: 'halogen',
+    platforms: ['darwin-arm64', 'darwin-x64', 'linux-x64', 'win32-x64'],
     name: 'Halogen 16',
     family: 'alphabeta',
     transport: 'native',
@@ -95,11 +108,75 @@ const NATIVE: readonly Omit<EngineDefinition, 'provider'>[] = [
     source: 'https://github.com/KierenP/Halogen',
     notes: 'A compact independent engine; the smallest native download in the catalogue.',
   },
+  {
+    id: 'plentychess',
+    platforms: ['darwin-arm64', 'linux-arm64', 'linux-x64', 'win32-x64'],
+    name: 'PlentyChess 8',
+    family: 'alphabeta',
+    transport: 'native',
+    license: 'GPL-3.0',
+    source: 'https://github.com/Yoshie2000/PlentyChess',
+    notes: 'An actively developed independent NNUE engine with portable release builds.',
+  },
+  {
+    id: 'berserk',
+    platforms: ['win32-x64'],
+    name: 'Berserk 14',
+    family: 'alphabeta',
+    transport: 'native',
+    license: 'GPL-3.0',
+    source: 'https://github.com/jhonnold/berserk',
+    notes: 'Official Windows release. Capabilities are measured at installation.',
+  },
+  {
+    id: 'koivisto',
+    platforms: ['linux-x64', 'win32-x64'],
+    name: 'Koivisto 9.0',
+    family: 'alphabeta',
+    transport: 'native',
+    license: 'GPL-3.0',
+    source: 'https://github.com/Luecx/Koivisto',
+    notes: 'Historical stable 2023 release; not an actively updated engine.',
+  },
+  {
+    id: 'obsidian',
+    platforms: ['win32-x64'],
+    name: 'Obsidian 16.0',
+    family: 'alphabeta',
+    transport: 'native',
+    license: 'GPL-3.0',
+    source: 'https://github.com/gab8192/Obsidian',
+    notes: 'Windows AVX2 release. Installation requires confirmed CPU support.',
+  },
 ];
 
 const definitions = new Map<string, EngineDefinition>([[STOCKFISH_WASM.id, STOCKFISH_WASM]]);
 for (const entry of NATIVE) {
   definitions.set(entry.id, { ...entry, provider: new CompanionEngineProvider(entry) });
+}
+
+/**
+ * Which of the catalogue's engines this machine could actually run.
+ *
+ * Three of the engines in `NATIVE` publish Windows-only builds. Listing them
+ * in a selector on a Mac is offering a choice that cannot be made: picking one
+ * gets an error, and the row was never anything but noise. So the selector
+ * asks the companion what platform it is on and drops the engines with no
+ * build for it. `engineDefinition(id)` is deliberately *not* filtered — an
+ * analysis already running under an engine must not become nameless because
+ * the profile moved between machines.
+ */
+let runnableHere: ReadonlySet<string> | null = null;
+
+export function setEnginePlatform(platform: string | null): void {
+  runnableHere =
+    platform === null
+      ? null
+      : new Set(
+          [STOCKFISH_WASM, ...NATIVE]
+            .filter((entry) => !entry.platforms || entry.platforms.includes(platform))
+            .map((entry) => entry.id),
+        );
 }
 
 /** Ids added by `syncCustomEngineDefinitions`, so a routine refresh knows what it owns. */
@@ -153,6 +230,18 @@ export function syncCustomEngineDefinitions(entries: readonly DiscoveredCustomEn
 }
 
 export const engineDefinitions = (): readonly EngineDefinition[] => [...definitions.values()];
+
+/**
+ * The engines worth offering on this machine.
+ *
+ * Everything the companion has never told us about is kept: a custom engine
+ * the user registered by path, and every engine at all before the companion
+ * has answered. Silence is not evidence that an engine cannot run.
+ */
+export const runnableEngineDefinitions = (): readonly EngineDefinition[] =>
+  [...definitions.values()].filter(
+    (entry) => runnableHere === null || customIds.has(entry.id) || runnableHere.has(entry.id),
+  );
 
 export const engineDefinition = (id: string): EngineDefinition | undefined => definitions.get(id);
 

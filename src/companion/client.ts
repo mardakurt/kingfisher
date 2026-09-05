@@ -29,6 +29,14 @@ export interface CompanionEngineEntry {
   /** Registered by path through Settings, rather than installed from the catalogue. */
   readonly custom: boolean;
   readonly author?: string;
+  /**
+   * What the companion measured when it installed this engine.
+   *
+   * Absent for engines the companion did not install and interrogate — a
+   * build-time install, or one the user registered by path. Absent means
+   * unknown, and unknown is not the same as supported.
+   */
+  readonly capabilities?: EngineCapabilities;
 }
 
 export interface RegisteredEngine {

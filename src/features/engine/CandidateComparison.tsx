@@ -62,6 +62,12 @@ export function CandidateComparison() {
   };
 
   const lines = primary.analysis?.lines ?? [];
+  /*
+    The capability said what the engine claims; this says what it did. An
+    engine can accept the restriction and search everything anyway, and the
+    only way to know is to look at what came back.
+  */
+  const ignored = primary.analysis?.restrictionHonoured === false;
 
   return (
     <>
@@ -117,6 +123,14 @@ export function CandidateComparison() {
             Clear
           </Button>
         </div>
+
+        {ignored ? (
+          <p className="mt-2 rounded-[4px] bg-surface-2 px-2 py-1.5 text-[10px] leading-relaxed text-caution">
+            This engine answered with a move outside the ones selected, so it ignored the
+            restriction. Read the lines below as an ordinary search of the position, not as a
+            comparison of the moves you chose.
+          </p>
+        ) : null}
 
         {lines.length > 0 ? (
           <ul className="mt-3 flex flex-col gap-1">

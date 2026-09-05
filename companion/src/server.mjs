@@ -260,14 +260,22 @@ async function route(url, request, response) {
 
   if (pathname === '/status' && request.method === 'GET') {
     return json(response, 200, {
-      engines: engineRegistry.list().map(({ key, name, version, license, custom, author }) => ({
-        id: key,
-        name,
-        version,
-        license,
-        custom: Boolean(custom),
-        ...(author ? { author } : {}),
-      })),
+      engines: engineRegistry
+        .list()
+        .map(({ key, name, version, license, custom, author, capabilities }) => ({
+          id: key,
+          name,
+          version,
+          license,
+          custom: Boolean(custom),
+          ...(author ? { author } : {}),
+          /*
+            Present only for engines the companion installed and interrogated.
+            Its absence is meaningful: it says nobody has asked this engine
+            what it can do, which is not the same as it being able to do it.
+          */
+          ...(capabilities ? { capabilities } : {}),
+        })),
       databases: databaseRegistry.list().map(({ key, name, path: file }) => ({
         key,
         name,

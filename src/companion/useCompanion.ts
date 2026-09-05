@@ -16,7 +16,7 @@ import { usePreferences } from '@/stores/preferences-store';
 import { sqliteProvidersFrom } from '@/database/providers/companion-sqlite';
 import { setLichessToken } from '@/database/providers/lichess-auth';
 import { setDynamicDatabaseProviders } from '@/database/registry';
-import { syncCustomEngineDefinitions } from '@/engine/registry';
+import { setEnginePlatform, syncCustomEngineDefinitions } from '@/engine/registry';
 
 import { setCompanion } from './session';
 import { CompanionClient } from './client';
@@ -53,6 +53,14 @@ export function useCompanionSync(): void {
   useEffect(() => {
     syncCustomEngineDefinitions(engines?.filter((engine) => engine.custom) ?? []);
   }, [engines]);
+
+  // Three catalogue engines publish Windows-only builds. Which of them are
+  // worth offering is a fact about the machine the companion runs on, so it
+  // is discovered here rather than declared in the registry.
+  const platform = status.data?.platform;
+  useEffect(() => {
+    setEnginePlatform(platform ?? null);
+  }, [platform]);
 }
 
 /** Live status of the companion, or null when none is configured. */

@@ -113,6 +113,17 @@ export interface EngineAnalysis {
   readonly ponder?: Uci;
   /** True once the engine has reported `bestmove`. */
   readonly complete: boolean;
+  /**
+   * Whether a requested `searchmoves` restriction was actually obeyed.
+   *
+   * `undefined` when none was asked for. `false` means the engine searched
+   * outside the moves it was given — which several strong engines do, because
+   * `searchmoves` is an optional part of UCI that an engine is free to ignore
+   * silently. The distinction matters because the numbers are then evidence
+   * about a different question than the one that was asked, and presenting
+   * them as a comparison of the chosen moves would be inventing a result.
+   */
+  readonly restrictionHonoured?: boolean;
 }
 
 export type AnalysisListener = (analysis: EngineAnalysis) => void;

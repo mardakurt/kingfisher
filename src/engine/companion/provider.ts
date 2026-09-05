@@ -26,6 +26,7 @@ import {
 } from '../types';
 import { CompanionTransport } from './transport';
 import { companionClient } from '@/companion/session';
+import type { EngineCapabilities as VerifiedCapabilities } from '@/companion/client';
 
 export interface NativeEngineDescriptor {
   readonly id: string;
@@ -34,16 +35,31 @@ export interface NativeEngineDescriptor {
   readonly license?: string;
 }
 
-/** What an engine's declared options say it can do. */
-export function capabilitiesFrom(options: readonly EngineOptionSpec[]): EngineCapabilities {
+/**
+ * What an engine's declared options say it can do.
+ *
+ * `verified` is the companion's own measurement, taken by running the engine
+ * at install time. It is passed in rather than guessed at because one
+ * capability cannot be read off the option list at all: `searchmoves` is a
+ * parameter of `go`, not an option, and an engine is free to ignore it in
+ * silence. Kingfisher used to assume every UCI engine honoured it. Running the
+ * fleet showed that three of the five engines installable on macOS do not —
+ * Viridithas 20, Halogen 16 and PlentyChess 8 all answer with their own
+ * preferred move — so an assumption there produced a candidate comparison
+ * about moves the user never chose.
+ */
+export function capabilitiesFrom(
+  options: readonly EngineOptionSpec[],
+  verified?: VerifiedCapabilities,
+): EngineCapabilities {
   const byName = new Map(options.map((option) => [option.name.toLowerCase(), option]));
   const threads = byName.get('threads');
   const hash = byName.get('hash');
   return {
     multiPv: byName.has('multipv'),
-    // A `go` parameter rather than an option, and part of UCI itself, so any
-    // engine the companion can drive over UCI accepts it.
-    searchMoves: true,
+    // Unknown means not offered. A restriction the panel promised and the
+    // engine ignored is worse than a control that is greyed out.
+    searchMoves: verified?.searchmoves ?? false,
     threads: threads !== undefined,
     hash: hash !== undefined,
     syzygy: byName.has('syzygypath'),
@@ -104,6 +120,20 @@ export class CompanionEngineProvider implements EngineProvider {
       );
     }
 
+    /*
+      Asked before the session is built, because the answer changes what the
+      session will send. A companion that cannot answer leaves `verified`
+      undefined, which reads as "not known to support it".
+    */
+    let verified: VerifiedCapabilities | undefined;
+    try {
+      const status = await client.status();
+      verified = status.engines.find((engine) => engine.id === this.descriptor.id)?.capabilities;
+    } catch {
+      // An unreachable companion fails at `CompanionTransport.start` with a
+      // better message than anything this could raise.
+    }
+
     const transport = await CompanionTransport.start(client, this.descriptor.id);
     try {
       const banner = await handshake(transport);
@@ -111,7 +141,7 @@ export class CompanionEngineProvider implements EngineProvider {
         transport,
         banner.identity,
         banner.options,
-        capabilitiesFrom(banner.options),
+        capabilitiesFrom(banner.options, verified),
       );
       await session.configure(configuration);
       return session;
