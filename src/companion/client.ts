@@ -14,6 +14,8 @@
  * Kingfisher could hand it to any other page too.
  */
 
+import type { EnCroissantInspection, EnCroissantPage } from '@/database/encroissant/types';
+
 import { withTimeout } from '@/database/retry';
 
 export interface CompanionConfig {
@@ -312,6 +314,19 @@ export class CompanionClient {
   }
 
   // --- Database --------------------------------------------------------------
+
+  inspectEnCroissant(path: string, signal?: AbortSignal): Promise<EnCroissantInspection> {
+    return this.request('/db/encroissant/inspect', { path }, signal);
+  }
+
+  readEnCroissant(
+    path: string,
+    after: number,
+    limit: number,
+    signal?: AbortSignal,
+  ): Promise<EnCroissantPage> {
+    return this.request('/db/encroissant/games', { path, after, limit }, signal);
+  }
 
   createDatabase(name: string): Promise<{ key: string; name: string }> {
     return this.request('/db/create', { name });

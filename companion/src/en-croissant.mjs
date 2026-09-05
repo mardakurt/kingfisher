@@ -73,6 +73,44 @@ function openRead(file) {
   return { database, target, size: stats.size };
 }
 
+const REQUIRED_COLUMNS = {
+  Info: ['Name', 'Value'],
+  Games: [
+    'ID',
+    'Date',
+    'UTCTime',
+    'Round',
+    'WhiteElo',
+    'BlackElo',
+    'Result',
+    'TimeControl',
+    'ECO',
+    'PlyCount',
+    'FEN',
+    'Moves',
+    'WhiteID',
+    'BlackID',
+    'EventID',
+    'SiteID',
+  ],
+  Players: ['ID', 'Name'],
+  Events: ['ID', 'Name'],
+  Sites: ['ID', 'Name'],
+};
+function schemaProblem(database) {
+  for (const [table, required] of Object.entries(REQUIRED_COLUMNS)) {
+    const columns = new Set(
+      database
+        .prepare(`PRAGMA table_info(${table})`)
+        .all()
+        .map((row) => row.name),
+    );
+    if (required.some((name) => !columns.has(name)))
+      return `Unsupported En Croissant database schema: ${table} columns differ.`;
+  }
+  return null;
+}
+
 const infoRows = (database) => {
   const rows = database.prepare('SELECT Name, Value FROM Info').all();
   const info = {};
@@ -107,6 +145,15 @@ export function inspect(file) {
       };
     }
 
+    const problem = schemaProblem(database);
+    if (problem)
+      return {
+        file: target,
+        format: 'en-croissant',
+        supported: false,
+        reason: problem,
+        sizeBytes: size,
+      };
     const info = infoRows(database);
     const version = info.Version ?? null;
     const games = database.prepare('SELECT COUNT(*) AS n FROM Games').get().n;
@@ -159,6 +206,10 @@ export function inspect(file) {
 export function readGames(file, { after = 0, limit = 200 } = {}) {
   const { database } = openRead(file);
   try {
+    const problem = schemaProblem(database);
+    if (problem) throw new EnCroissantError(problem);
+    if (!SUPPORTED_VERSIONS.includes(infoRows(database).Version))
+      throw new EnCroissantError('Unsupported En Croissant database version.');
     const size = Math.max(1, Math.min(1000, Number(limit) || 200));
     const rows = database
       .prepare(

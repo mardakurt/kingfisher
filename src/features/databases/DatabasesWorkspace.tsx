@@ -17,6 +17,8 @@
  * has already taught everybody.
  */
 
+import dynamic from 'next/dynamic';
+import { useEnCroissantImport } from '@/stores/en-croissant-import-store';
 import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -44,6 +46,10 @@ import { ReferenceCatalogPanel } from './ReferenceCatalogPanel';
 import { SourceSetsPanel } from './SourceSetsPanel';
 import { TransferDialog, type TransferRequest } from './TransferDialog';
 
+const EnCroissantImportDialog = dynamic(() =>
+  import('./EnCroissantImportDialog').then((module) => module.EnCroissantImportDialog),
+);
+
 const LABELS: Record<ProviderHealthState, string> = {
   ready: 'Ready',
   loading: 'Checking',
@@ -60,6 +66,8 @@ type CentreTab = 'collection' | 'search' | 'duplicates' | 'sources';
 
 export function DatabasesWorkspace() {
   const queryClient = useQueryClient();
+  const [enCroissantOpen, setEnCroissantOpen] = useState(false);
+  const enCroissantRunning = useEnCroissantImport((state) => state.running);
   const setImportOpen = useUi((state) => state.setImportOpen);
   const setSettingsOpen = useUi((state) => state.setSettingsOpen);
   const notify = useUi((state) => state.notify);
@@ -133,7 +141,10 @@ export function DatabasesWorkspace() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header className="flex min-h-14 shrink-0 items-center gap-3 border-b border-line-subtle bg-surface-1 px-3 md:px-5">
+      {enCroissantOpen ? (
+        <EnCroissantImportDialog open onClose={() => setEnCroissantOpen(false)} />
+      ) : null}
+      <header className="flex min-h-14 shrink-0 flex-wrap items-center gap-3 border-b border-line-subtle bg-surface-1 px-3 md:px-5">
         <NavButton />
         <div className="min-w-0">
           <h1 className="text-sm font-semibold text-primary">Databases</h1>
@@ -151,6 +162,9 @@ export function DatabasesWorkspace() {
         </Button>
         <Button variant="subtle" icon={<Import />} onClick={() => setImportOpen(true)}>
           Import PGN
+        </Button>
+        <Button onClick={() => setEnCroissantOpen(true)}>
+          {enCroissantRunning ? 'En Croissant import running…' : 'Import En Croissant'}
         </Button>
         <Button icon={<Settings />} onClick={() => setSettingsOpen(true)}>
           Connections

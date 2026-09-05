@@ -158,3 +158,16 @@ describe('the En Croissant move encoding', () => {
     }
   });
 });
+
+it('refuses truncated annotations and unbalanced variation markers', () => {
+  for (const bytes of [[253, 5, 0, 65], [254], [255], [12, 255, 12]]) {
+    expect(decodeMoves(new Uint8Array(bytes)), `bytes ${bytes.join(',')}`).toMatchObject({
+      ok: false,
+    });
+  }
+});
+it('validates the source FEN before decoding any move', () => {
+  expect(decodeMoves(new Uint8Array(), '4k3/8/8/8/8/8/8/R4K1R w KQ - 0 1' as Fen)).toMatchObject({
+    ok: false,
+  });
+});

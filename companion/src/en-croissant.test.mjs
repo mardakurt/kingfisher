@@ -123,3 +123,25 @@ describe('reading games out of it', () => {
     expect(readGames(file, { limit: 3 }).games).toHaveLength(3);
   });
 });
+
+it('refuses unsupported schemas on the read path as well as inspection', () => {
+  const file = path.join(directory, 'unknown-read.db');
+  copyFileSync(FIXTURE, file);
+  const database = new DatabaseSync(file);
+  database.exec("UPDATE Info SET Value = '2.0.0' WHERE Name = 'Version'");
+  database.close();
+  expect(() => readGames(file)).toThrow(/Unsupported En Croissant database version/);
+});
+
+it('refuses a familiar version with an incompatible column layout', () => {
+  const file = path.join(directory, 'changed-columns.db');
+  copyFileSync(FIXTURE, file);
+  const database = new DatabaseSync(file);
+  database.exec('ALTER TABLE Games RENAME COLUMN Moves TO DifferentMoves');
+  database.close();
+  expect(inspect(file)).toMatchObject({
+    supported: false,
+    reason: expect.stringMatching(/schema/),
+  });
+  expect(() => readGames(file)).toThrow(/schema/);
+});

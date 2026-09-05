@@ -57,6 +57,7 @@ export interface DecodeFailure {
 export interface DecodeSuccess {
   readonly ok: true;
   readonly moves: readonly DecodedMove[];
+  readonly comments: readonly string[];
 }
 
 export type DecodeResult = DecodeSuccess | DecodeFailure;
@@ -71,12 +72,13 @@ const textDecoder = new TextDecoder();
  * it was an alternative *to*.
  */
 export function decodeMoves(bytes: Uint8Array, startFen?: Fen): DecodeResult {
-  let position: Position;
-  try {
-    position = startFen ? Position.fromTrustedFen(startFen) : Position.initial();
-  } catch {
+  const start = startFen
+    ? Position.fromFen(startFen)
+    : { ok: true as const, value: Position.initial() };
+  if (!start.ok)
     return { ok: false, reason: 'The starting position could not be read.', decoded: 0 };
-  }
+  const position = start.value;
+  const comments: string[] = [];
 
   let cursor = 0;
   let decoded = 0;
@@ -88,7 +90,7 @@ export function decodeMoves(bytes: Uint8Array, startFen?: Fen): DecodeResult {
    * movement, so a nested variation simply recurses and returns with the
    * cursor sitting after its closing marker.
    */
-  const line = (at: Position): DecodedMove[] | DecodeFailure => {
+  const line = (at: Position, depth = 0): DecodedMove[] | DecodeFailure => {
     const moves: DecodedMove[] = [];
     let here = at;
     /** The position the most recent move was played from, for variations. */
@@ -98,6 +100,7 @@ export function decodeMoves(bytes: Uint8Array, startFen?: Fen): DecodeResult {
       const byte = bytes[cursor] as number;
 
       if (byte === VARIATION_END) {
+        if (depth === 0) return { ok: false, reason: 'Unexpected variation end.', decoded };
         cursor += 1;
         return moves;
       }
@@ -105,13 +108,10 @@ export function decodeMoves(bytes: Uint8Array, startFen?: Fen): DecodeResult {
       if (byte === VARIATION_START) {
         cursor += 1;
         if (previous === null) {
-          // A variation with no move to branch from. Read and discard it
-          // rather than abandoning the game.
-          const orphan = line(here);
-          if (!Array.isArray(orphan)) return orphan;
-          continue;
+          return { ok: false, reason: 'A variation has no preceding move.', decoded };
         }
-        const branch = line(previous);
+        if (depth >= 128) return { ok: false, reason: 'Variation nesting exceeds 128.', decoded };
+        const branch = line(previous, depth + 1);
         if (!Array.isArray(branch)) return branch;
         const last = moves[moves.length - 1] as DecodedMove;
         moves[moves.length - 1] = {
@@ -128,7 +128,9 @@ export function decodeMoves(bytes: Uint8Array, startFen?: Fen): DecodeResult {
         }
         const length = (bytes[cursor] as number) | ((bytes[cursor + 1] as number) << 8);
         cursor += 2;
-        const end = Math.min(cursor + length, bytes.length);
+        const end = cursor + length;
+        if (end > bytes.length)
+          return { ok: false, reason: 'A comment ran past the end of the game.', decoded };
         const text = textDecoder.decode(bytes.subarray(cursor, end));
         cursor = end;
         const last = moves[moves.length - 1];
@@ -137,6 +139,10 @@ export function decodeMoves(bytes: Uint8Array, startFen?: Fen): DecodeResult {
             byte === COMMENT
               ? { ...last, comments: [...last.comments, text] }
               : { ...last, nags: [...last.nags, text] };
+        } else if (byte === COMMENT && depth === 0) {
+          comments.push(text);
+        } else {
+          return { ok: false, reason: 'An annotation has no preceding move.', decoded };
         }
         continue;
       }
@@ -166,12 +172,13 @@ export function decodeMoves(bytes: Uint8Array, startFen?: Fen): DecodeResult {
       decoded += 1;
       here = next;
     }
+    if (depth > 0) return { ok: false, reason: 'Unclosed variation.', decoded };
     return moves;
   };
 
   const result = line(position);
   if (!Array.isArray(result)) return result;
-  return { ok: true, moves: result };
+  return { ok: true, moves: result, comments };
 }
 
 /** The mainline as SAN, which is what most callers actually want. */
