@@ -143,6 +143,43 @@ specification or from any of the dozens of implementations that carry it.
 
 ---
 
+## En Croissant interoperability fixture
+
+`src/database/encroissant/__fixtures__/en-croissant-0.15.db` (256 KB) and its
+`.truth.tsv` companion exist so that Kingfisher's reader for another program's
+database is tested against a file that program actually wrote, rather than
+against this project's reading of its documentation.
+
+|                 |                                                                                             |
+| --------------- | ------------------------------------------------------------------------------------------- |
+| Produced by     | En Croissant 0.15.1, `src-tauri/src/db` — its own importer, move encoder and insertion path |
+| Database format | version 1.0.0, as recorded in the file's own `Info` table                                   |
+| Contents        | 60 games, 4,000+ moves, including castling, promotions and checks                           |
+| Games from      | Lichess broadcast archive, `lichess_db_broadcast_2026-06.pgn.zst`                           |
+| Games licence   | CC BY-SA 4.0 — Lichess broadcast archive, lichess.org                                       |
+| En Croissant    | GPL-3.0-or-later, <https://github.com/franciscoBSalgueiro/en-croissant>                     |
+
+`.truth.tsv` is En Croissant's own decoding of the moves it had just encoded.
+It is the reference the decoder is checked against, because En Croissant stores
+a move as an index into the list its rules library generates — so a decoder that
+orders that list differently produces moves that are legal, plausible and wrong,
+and only a comparison against that program's own output can catch it.
+
+The games are redistributed here under CC BY-SA 4.0 with the attribution above.
+No En Croissant source code is vendored; the fixture is data it emitted.
+
+## Lichess standard rated games database
+
+Used for the High-Rated Online reference. Definition, thresholds and the
+measurements behind them are in `docs/data/high-rated-online.md`.
+
+|              |                                                                                                |
+| ------------ | ---------------------------------------------------------------------------------------------- |
+| Source       | <https://database.lichess.org/#standard_games>                                                 |
+| Licence      | CC0 1.0 — public domain dedication                                                             |
+| Used for     | per-position aggregates over games where both players are 2400+, in classical, rapid and blitz |
+| Not used for | bullet and ultrabullet, which are excluded; see the document above for why                     |
+
 ## Data deliberately **not** used
 
 These were investigated and rejected. Recording the rejections matters as much

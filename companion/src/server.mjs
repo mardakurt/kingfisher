@@ -14,6 +14,11 @@ import { fileURLToPath } from 'node:url';
 import { CATALOGUE, DIGESTS, PLATFORM } from '../../scripts/engine-catalogue.mjs';
 import { GameDatabase } from './database.mjs';
 import { handshakeUci, validateExecutable } from './custom-engines.mjs';
+import {
+  EnCroissantError,
+  inspect as inspectEnCroissant,
+  readGames as readEnCroissantGames,
+} from './en-croissant.mjs';
 import { EngineHost } from './engines.mjs';
 import { ManagedEngines } from './managed-engines.mjs';
 import { probeLocalTablebase, scanTablebaseDirectory } from './tablebase.mjs';
@@ -453,6 +458,43 @@ async function route(url, request, response) {
     const body = await readBody(request);
     const result = database(String(body.key)).insertGames(body.games ?? []);
     return json(response, 200, result);
+  }
+
+  /*
+    Reading another program's database, so both routes are read-only and take
+    the path the user chose in a file picker. The file is opened `readOnly`,
+    never migrated and never written; a path that is not an En Croissant
+    database comes back saying so rather than being parsed hopefully.
+  */
+  if (pathname === '/db/encroissant/inspect' && request.method === 'POST') {
+    const body = await readBody(request);
+    try {
+      return json(response, 200, inspectEnCroissant(String(body.path ?? '')));
+    } catch (error) {
+      if (error instanceof EnCroissantError) {
+        return json(response, 400, { error: error.message, remedy: error.remedy ?? null });
+      }
+      throw error;
+    }
+  }
+
+  if (pathname === '/db/encroissant/games' && request.method === 'POST') {
+    const body = await readBody(request);
+    try {
+      return json(
+        response,
+        200,
+        readEnCroissantGames(String(body.path ?? ''), {
+          after: Number(body.after) || 0,
+          limit: Number(body.limit) || 200,
+        }),
+      );
+    } catch (error) {
+      if (error instanceof EnCroissantError) {
+        return json(response, 400, { error: error.message, remedy: error.remedy ?? null });
+      }
+      throw error;
+    }
   }
 
   if (pathname === '/db/search' && request.method === 'POST') {
