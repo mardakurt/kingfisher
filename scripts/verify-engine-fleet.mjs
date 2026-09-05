@@ -42,8 +42,42 @@ async function main() {
 
   const rows = [];
   for (const entry of managed.list()) {
-    if (entry.kind !== 'binary') {
-      rows.push({ ...entry, status: 'system engine, located rather than installed' });
+    /*
+      A `system` engine — Lc0 today — is located on the path rather than
+      downloaded, and used to be skipped here entirely. Skipping it meant its
+      capability row was dashes for ever, which reads as "unknown" and is
+      indistinguishable from "never asked". It is now put through exactly the
+      same interrogation as a downloaded binary, because the interesting claim
+      is identical: does it speak UCI, and can it find a move?
+
+      For Lc0 that second question is the whole question. Its handshake
+      succeeds with no network weights at all; only a real search proves it has
+      something to think with. `managed.install` already requires both, so the
+      only change needed here was to stop stepping around it.
+
+      An absent system engine is not a failure. Most machines, and every CI
+      runner, will not have one, and reporting that as a broken fleet would
+      make the exit code meaningless.
+    */
+    if (entry.kind === 'system') {
+      process.stdout.write(`locating ${entry.id}… `);
+      try {
+        const record = await managed.install(entry.id);
+        console.log('found and verified');
+        rows.push({
+          ...entry,
+          status: `located and verified at ${record.binary ?? 'the path'}`,
+          reported: record.reportedName,
+          capabilities: record.capabilities,
+        });
+      } catch (error) {
+        console.log('not on this machine');
+        rows.push({
+          ...entry,
+          status: `not on this machine (${error instanceof Error ? error.message : error})`,
+          absent: true,
+        });
+      }
       continue;
     }
     if (!entry.available) {
