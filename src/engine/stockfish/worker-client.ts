@@ -14,6 +14,7 @@ export type { LineListener };
 export class UciWorkerClient implements UciTransport {
   private worker: Worker | null = null;
   private readonly listeners = new Set<LineListener>();
+  private readonly waiters = new Set<(error: Error) => void>();
   private failure: Error | null = null;
 
   private constructor(worker: Worker) {
@@ -29,6 +30,8 @@ export class UciWorkerClient implements UciTransport {
     });
     worker.addEventListener('error', (event: ErrorEvent) => {
       this.failure = new Error(event.message || 'The engine worker crashed.');
+      // A crashed worker will never emit the line anyone is waiting for.
+      this.abortWaiters(new EngineError(this.failure.message));
     });
   }
 
@@ -103,25 +106,51 @@ export class UciWorkerClient implements UciTransport {
     this.worker.postMessage(command);
   }
 
-  /** Resolve once a line satisfying `match` arrives, or reject on timeout. */
+  /**
+   * Resolve once a line satisfying `match` arrives, or reject on timeout — or
+   * as soon as the worker dies, because `dispose` and a crash both clear the
+   * listeners, and a waiter that only listens would then sit out its whole
+   * timeout while the session queue behind it stalls.
+   */
   waitFor(
     match: (line: string) => boolean,
     timeoutMs = 30_000,
     label = 'a response',
   ): Promise<string> {
     return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => {
+      if (this.failure) {
+        reject(new EngineError(this.failure.message));
+        return;
+      }
+      if (!this.worker) {
+        reject(new EngineError('The engine session has been closed.'));
+        return;
+      }
+      const fail = (error: Error) => {
+        clearTimeout(timer);
+        this.waiters.delete(fail);
         stop();
-        reject(new EngineError(`Timed out waiting for ${label} from the engine.`));
+        reject(error);
+      };
+      const timer = setTimeout(() => {
+        fail(new EngineError(`Timed out waiting for ${label} from the engine.`));
       }, timeoutMs);
 
       const stop = this.onLine((line) => {
         if (!match(line)) return;
         clearTimeout(timer);
+        this.waiters.delete(fail);
         stop();
         resolve(line);
       });
+      this.waiters.add(fail);
     });
+  }
+
+  /** Fail everything still waiting on engine output. */
+  private abortWaiters(error: Error): void {
+    for (const fail of [...this.waiters]) fail(error);
+    this.waiters.clear();
   }
 
   dispose(): void {
@@ -133,6 +162,9 @@ export class UciWorkerClient implements UciTransport {
     }
     this.worker.terminate();
     this.worker = null;
+    this.abortWaiters(
+      new EngineError(this.failure?.message ?? 'The engine session has been closed.'),
+    );
     this.listeners.clear();
   }
 }

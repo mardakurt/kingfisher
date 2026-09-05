@@ -17,6 +17,7 @@ import { EngineError } from '../types';
 
 export class CompanionTransport implements UciTransport {
   private readonly listeners = new Set<LineListener>();
+  private readonly waiters = new Set<(error: Error) => void>();
   private source: EventSource | null = null;
   private failure: Error | null = null;
   private closed = false;
@@ -61,6 +62,11 @@ export class CompanionTransport implements UciTransport {
         */
         if (line.startsWith('#error') || line.startsWith('#exit')) {
           this.failure = new Error(line.replace(/^#\w+\s*/, '') || 'The engine stopped.');
+          // Listeners still see the line; waiters are released now rather than
+          // waiting out a timeout for output that can no longer arrive.
+          for (const listener of [...this.listeners]) listener(line);
+          this.abortWaiters(new EngineError(this.failure.message));
+          return;
         }
         for (const listener of this.listeners) listener(line);
       };
@@ -94,17 +100,44 @@ export class CompanionTransport implements UciTransport {
 
   waitFor(match: (line: string) => boolean, timeoutMs = 30_000, label = 'a response') {
     return new Promise<string>((resolve, reject) => {
-      const timer = setTimeout(() => {
+      /*
+        A dead engine must fail now, not at the timeout. `dispose` clears the
+        listeners, so a waiter registered only through `onLine` can never fire
+        again — it would sit for the full timeout while the session queue behind
+        it stalls. Waiters are therefore tracked separately and failed directly.
+      */
+      if (this.failure) {
+        reject(new EngineError(this.failure.message));
+        return;
+      }
+      if (this.closed) {
+        reject(new EngineError('This engine session has been closed.'));
+        return;
+      }
+      const fail = (error: Error) => {
+        clearTimeout(timer);
+        this.waiters.delete(fail);
         stop();
-        reject(new EngineError(`Timed out waiting for ${label} from the engine.`));
+        reject(error);
+      };
+      const timer = setTimeout(() => {
+        fail(new EngineError(`Timed out waiting for ${label} from the engine.`));
       }, timeoutMs);
       const stop = this.onLine((line) => {
         if (!match(line)) return;
         clearTimeout(timer);
+        this.waiters.delete(fail);
         stop();
         resolve(line);
       });
+      this.waiters.add(fail);
     });
+  }
+
+  /** Fail everything still waiting on engine output. */
+  private abortWaiters(error: Error): void {
+    for (const fail of [...this.waiters]) fail(error);
+    this.waiters.clear();
   }
 
   dispose(): void {
@@ -112,6 +145,9 @@ export class CompanionTransport implements UciTransport {
     this.closed = true;
     this.source?.close();
     this.source = null;
+    this.abortWaiters(
+      new EngineError(this.failure?.message ?? 'This engine session has been closed.'),
+    );
     this.listeners.clear();
     void this.client.stopEngine(this.session).catch(() => {
       // The companion may already have reaped it; nothing else to do.

@@ -11,9 +11,9 @@
  * a capability record, not a second copy of this file.
  */
 
-import { parseFen } from '@/chess/fen';
+import { Position } from '@/chess/position';
 import { toWhitePov } from '@/chess/evaluation';
-import type { Color, Fen, Uci } from '@/chess/types';
+import type { Color } from '@/chess/types';
 
 import { formatGoCommand, formatPositionCommand, parseUciLine, type UciInfo } from './uci';
 import {
@@ -113,6 +113,7 @@ export class UciSession implements EngineSession {
 
     this.enqueue(async () => {
       await this.stopActiveSearch();
+      this.assertUsable();
       for (const [name, value] of changes) {
         this.client.send(`setoption name ${name} value ${value}`);
       }
@@ -124,13 +125,23 @@ export class UciSession implements EngineSession {
   analyse(request: AnalysisRequest, listener: AnalysisListener): AnalysisHandle {
     this.assertUsable();
 
-    const rootTurn = rootSideToMove(request.fen, request.moves ?? []);
+    let root = Position.fromTrustedFen(request.fen);
+    for (const move of request.moves ?? []) {
+      const played = root.playUci(move);
+      if (!played.ok) throw new EngineError('Invalid move in engine request.');
+      root = Position.fromTrustedFen(played.value.after);
+    }
+    const rootTurn = root.turn;
     let resolve!: (analysis: EngineAnalysis) => void;
     let reject!: (error: unknown) => void;
     const finished = new Promise<EngineAnalysis>((res, rej) => {
       resolve = res;
       reject = rej;
     });
+
+    // Consumers may observe progress without awaiting completion. Still preserve
+    // rejection for those that do, without a global unhandled rejection.
+    void finished.catch(() => {});
 
     const search: Search = {
       id: this.nextSearchId++,
@@ -140,7 +151,7 @@ export class UciSession implements EngineSession {
       resolve,
       reject,
       lines: new Map(),
-      snapshot: EMPTY_ANALYSIS(request.fen),
+      snapshot: EMPTY_ANALYSIS(root.fen),
       cancelled: false,
       lastEmit: 0,
       timer: null,
@@ -148,7 +159,8 @@ export class UciSession implements EngineSession {
 
     this.enqueue(async () => {
       await this.stopActiveSearch();
-      if (search.cancelled || this.disposed) {
+      this.assertUsable();
+      if (search.cancelled) {
         search.resolve({ ...search.snapshot, complete: true });
         return;
       }
@@ -161,11 +173,7 @@ export class UciSession implements EngineSession {
       stop: () => {
         search.cancelled = true;
         if (this.active === search) {
-          try {
-            this.client.send('stop');
-          } catch {
-            // Session already torn down; the finished promise settles below.
-          }
+          this.stop();
         }
       },
       finished,
@@ -175,14 +183,11 @@ export class UciSession implements EngineSession {
   stop(): void {
     if (!this.active) return;
     this.active.cancelled = true;
-    try {
-      this.client.send('stop');
-    } catch {
-      // Nothing to stop if the worker is gone.
-    }
+    void this.enqueue(() => this.stopActiveSearch()).catch(() => {});
   }
 
   dispose(): void {
+    if (this.disposed) return;
     this.disposed = true;
     const search = this.active;
     this.active = null;
@@ -207,22 +212,49 @@ export class UciSession implements EngineSession {
     const search = this.active;
     if (!search) return;
     try {
+      const acknowledged = this.client.waitFor(
+        (line) => /^bestmove(?:\s|$)/.test(line),
+        10_000,
+        'bestmove',
+      );
       this.client.send('stop');
-      await this.client.waitFor((line) => line.startsWith('bestmove'), 10_000, 'bestmove');
-    } catch {
-      // A stalled engine must not deadlock the queue; the search is abandoned.
-      this.finishSearch(search);
+      await acknowledged;
+    } catch (error) {
+      // UCI output carries no request ID. Reusing a process after an unacknowledged
+      // stop would allow its late output to masquerade as a new search.
+      this.fail(error);
+      throw error;
     }
   }
 
-  private waitReady(): Promise<string> {
+  private async waitReady(): Promise<string> {
+    const ready = this.client.waitFor((line) => line.trim() === 'readyok', 20_000, 'readyok');
     this.client.send('isready');
-    return this.client.waitFor((line) => line.trim() === 'readyok', 20_000, 'readyok');
+    try {
+      return await ready;
+    } catch (error) {
+      this.fail(error);
+      throw error;
+    }
+  }
+
+  private fail(error: unknown): void {
+    if (this.disposed) return;
+    const search = this.active;
+    this.active = null;
+    this.disposed = true;
+    if (search?.timer) clearTimeout(search.timer);
+    search?.reject(error instanceof Error ? error : new EngineError(String(error)));
+    this.client.dispose();
   }
 
   private handleLine(line: string): void {
+    if (/^#(?:error|exit)(?:\s|$)/.test(line)) {
+      this.fail(new EngineError('The engine process or connection failed.'));
+      return;
+    }
     const search = this.active;
-    if (!search) return;
+    if (!search || this.disposed) return;
 
     const message = parseUciLine(line);
     if (message.kind === 'info') {
@@ -271,6 +303,7 @@ export class UciSession implements EngineSession {
 
     if (info.pv && info.pv.length > 0 && info.score) {
       const rank = info.multipv ?? 1;
+      if (!Number.isInteger(rank) || rank < 1 || rank > 500) return;
       // A fresh depth-1 line for rank 1 means the engine restarted its table.
       if (rank === 1 && info.depth !== undefined && info.depth < search.snapshot.depth) {
         search.lines.clear();
@@ -315,11 +348,4 @@ export class UciSession implements EngineSession {
     search.listener(final);
     search.resolve(final);
   }
-}
-
-/** Which side moves at the root of the search, after any pre-played moves. */
-function rootSideToMove(fen: Fen, moves: readonly Uci[]): Color {
-  const parsed = parseFen(fen);
-  const start: Color = parsed.ok ? parsed.value.turn : 'w';
-  return moves.length % 2 === 0 ? start : start === 'w' ? 'b' : 'w';
 }

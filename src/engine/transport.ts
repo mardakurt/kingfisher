@@ -17,7 +17,14 @@ export interface UciTransport {
   onLine(listener: LineListener): () => void;
   /** Send one UCI command. Throws if the transport is no longer usable. */
   send(command: string): void;
-  /** Resolve once a line satisfying `match` arrives, or reject on timeout. */
+  /**
+   * Resolve once a line satisfying `match` arrives.
+   *
+   * Must reject on timeout, and must also reject as soon as the transport is
+   * known to be dead — disposed, or the engine behind it crashed. A waiter left
+   * pending on an engine that can no longer answer stalls the session queue
+   * behind it for the whole timeout.
+   */
   waitFor(match: (line: string) => boolean, timeoutMs?: number, label?: string): Promise<string>;
   dispose(): void;
 }
