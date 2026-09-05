@@ -81,10 +81,16 @@ count of games that are in the upstream archive.
 
 ### Packs built from it
 
-| Pack                   | Distribution                       | Contents                                                                                                                        |
-| ---------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `kingfisher-starter`   | Committed, ships with the app      | The most recent 36 monthly archives, games rated 2200+ (or between titled players), with full scores kept for games rated 2600+ |
-| `kingfisher-elite-otb` | Release asset, installed on demand | The whole archive from 2020                                                                                                     |
+| Pack                       | Distribution                                     | Contents                                                                                                                        |
+| -------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| `kingfisher-starter`       | Committed, ships with the app                    | The most recent 36 monthly archives, games rated 2200+ (or between titled players), with full scores kept for games rated 2600+ |
+| `kingfisher-recent-theory` | Public data-only Pages site, installed on demand | The most recent 24 monthly archives, games rated 2400+ (or between GM/IM/WGM), full scores for games rated 2500+                |
+| `kingfisher-elite-otb`     | Public data-only Pages site, installed on demand | The whole archive from 2020, games rated 2000+ (or between titled players), full scores for every accepted game                 |
+
+All three are derived from the same upstream under the same licence. The
+difference between them is a window and a threshold, not a different
+provenance story, and each pack's own manifest carries the licence,
+the attribution string and the SHA-256 of every upstream file it read.
 
 `public/reference/kingfisher-starter/manifest.json` records the exact upstream
 files and their digests that the committed pack was built from, so what is in

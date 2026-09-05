@@ -105,7 +105,9 @@ test('an install that cannot reach its files leaves nothing installed', async ({
   // The Elite pack's manifest lives on a release asset. Refusing the request
   // is exactly what an offline machine, a private repository or a deleted
   // release all look like from here.
-  await page.route('**/releases/download/**', (route) => route.fulfill({ status: 404 }));
+  await page.route('https://mardakurt.github.io/kingfisher-data/**', (route) =>
+    route.fulfill({ status: 404 }),
+  );
 
   await openCatalog(page);
   const elite = page.locator('[data-source-row="kingfisher-elite-otb"]');

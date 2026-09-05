@@ -25,6 +25,8 @@ export interface CatalogPack {
   readonly capabilities: readonly SourceCapability[];
   /** Roughly what installing costs, for the row before a manifest is fetched. */
   readonly approximateBytes: number;
+  /** Deepest Explorer query position in the currently published pack, in plies. */
+  readonly maxPositionPly?: number;
   readonly license: PackLicense;
   /** One line on where the data came from, shown before installation. */
   readonly origin: string;
@@ -40,18 +42,13 @@ const LICHESS_BROADCAST_LICENSE: PackLicense = {
 /**
  * Where installable packs are published.
  *
- * Release assets of this repository rather than a second repository or a
- * server: the data is versioned with the build that reads it, there is no
- * infrastructure to keep alive for a project that may be dormant for a year,
- * and a release is immutable in a way a directory on a host is not.
- *
- * One release tag per pack, because release assets share a flat namespace and
- * two packs both containing `explorer-000.kfp.gz` would otherwise collide. The
- * tag carries the pack version, so installing an update is downloading from a
- * different tag rather than hoping an asset was replaced in place.
+ * Versioned directories in the public data-only repository's Pages site.
+ * GitHub release download redirects do not supply browser CORS permission;
+ * the Pages mirror does. Release assets remain an archival/manual download.
+ * Published version directories are never replaced by the build pipeline.
  */
 export const packRelease = (tag: string): string =>
-  `https://github.com/mardakurt/kingfisher/releases/download/${tag}/`;
+  `https://mardakurt.github.io/kingfisher-data/${tag}/`;
 
 export const CATALOG_PACKS: readonly CatalogPack[] = [
   {
@@ -72,18 +69,22 @@ export const CATALOG_PACKS: readonly CatalogPack[] = [
       'model-games',
       'preparation',
     ],
-    approximateBytes: 12_000_000,
+    approximateBytes: 12_348_080,
+    maxPositionPly: 40,
     license: LICHESS_BROADCAST_LICENSE,
-    origin: 'Built from the Lichess broadcast archive, the most recent three years.',
+    origin:
+      'Built from the most recent three years of the Lichess broadcast ' +
+      'archive: 172,376 games, 246,870 positions, ' +
+      '12,522 players.',
   },
   {
     id: 'kingfisher-elite-otb',
     name: 'Elite OTB Reference',
     description:
-      'Every official over-the-board tournament game relayed by Lichess ' +
-      'since 2020, with per-position statistics, the full player table and ' +
-      'the games themselves.',
-    manifestUrl: `${packRelease('reference-elite-v1')}manifest.json`,
+      'Rating- and title-filtered Lichess broadcast games since 2020, with ' +
+      'per-position statistics, player indexes and selected full scores. ' +
+      'Broadcast coverage is not a complete census of over-the-board chess.',
+    manifestUrl: `${packRelease('reference-elite-v2')}manifest.json`,
     bundled: false,
     capabilities: [
       'explorer',
@@ -94,13 +95,41 @@ export const CATALOG_PACKS: readonly CatalogPack[] = [
       'model-games',
       'preparation',
     ],
-    approximateBytes: 113_000_000,
+    approximateBytes: 339_326_787,
+    maxPositionPly: 40,
     license: LICHESS_BROADCAST_LICENSE,
     origin:
       'Built from the whole Lichess broadcast archive, 2020 to the present: ' +
-      '422,059 games, 249,245 full scores, 684,269 positions, 34,114 players. ' +
-      'Published as assets of this repository’s reference-elite-v1 release, ' +
-      'which are downloadable only while that repository is public.',
+      '407,538 games, all with full scores, 5,438,808 ' +
+      'positions and 33,607 players. Published in the public, ' +
+      'data-only mardakurt/kingfisher-data repository.',
+  },
+  {
+    id: 'kingfisher-recent-theory',
+    name: 'Recent Theory Reference',
+    description:
+      'The last two years only, kept at a lower frequency threshold so that ' +
+      'rare and recent continuations survive. Answers "is anybody still ' +
+      'playing this", which is a different question from "how does it score".',
+    manifestUrl: `${packRelease('reference-recent-v1')}manifest.json`,
+    bundled: false,
+    capabilities: [
+      'explorer',
+      'games',
+      'player-search',
+      'player-profiles',
+      'position-report',
+      'model-games',
+      'preparation',
+    ],
+    approximateBytes: 33_847_971,
+    maxPositionPly: 40,
+    license: LICHESS_BROADCAST_LICENSE,
+    origin:
+      'Built from the last two years of the Lichess broadcast archive: ' +
+      '44,200 games, 918,069 positions, ' +
+      '2,567 players. Published in the public, ' +
+      'data-only mardakurt/kingfisher-data repository.',
   },
 ];
 

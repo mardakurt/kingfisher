@@ -60,23 +60,96 @@ Three reasons, and the second is the one that is easy to miss:
    supports. (`zstd` is not — which is why the _upstream_ archives, which are
    `.zst`, are decompressed by the build script and never by the browser.)
 
-## The two packs
+## The three packs
 
-|                     | `kingfisher-starter`                             | `kingfisher-elite-otb`             |
-| ------------------- | ------------------------------------------------ | ---------------------------------- |
-| Distribution        | Committed to this repository, ships with the app | Release asset, installed on demand |
-| Upstream            | The 36 most recent monthly broadcast archives    | All 79, from 2020                  |
-| Games counted       | 175,022                                          | 422,059                            |
-| Full game scores    | 11,357 (rated 2600+)                             | 249,245 (rated 2200+)              |
-| Position aggregates | 146,684                                          | 684,269                            |
-| Player identities   | 12,609                                           | 34,114                             |
-| Size                | 9.5 MB in 88 chunks                              | 107.7 MB in 160 chunks             |
+|                     | `kingfisher-starter`                             | `kingfisher-recent-theory` | `kingfisher-elite-otb` |
+| ------------------- | ------------------------------------------------ | -------------------------- | ---------------------- |
+| Distribution        | Committed to this repository, ships with the app | Installed on demand        | Installed on demand    |
+| Upstream            | The 36 most recent monthly broadcast archives    | The 24 most recent         | All 79, from 2020      |
+| Games counted       | 172,376                                          | 44,200                     | 407,538                |
+| Full game scores    | 10,707 (rated 2600+)                             | 18,151 (rated 2500+)       | 407,538 — every game   |
+| Position aggregates | 246,870                                          | 918,069                    | 5,438,808              |
+| Deepest query ply   | 40 (20 full moves)                               | 40 (20 full moves)         | 40 (20 full moves)     |
+| Player identities   | 12,522                                           | 2,567                      | 33,607                 |
+| Size                | 12.3 MB in 88 chunks                             | 33.8 MB in 80 chunks       | 339.3 MB in 160 chunks |
 
-Two thresholds rather than one, because the two things a pack carries cost very
-different amounts: a game's contribution to the statistics is a handful of
-counters, while carrying its full score is a few hundred bytes. Opening the
-statistics wide and the stored games narrow is what lets a pack small enough to
-commit still answer from a large population.
+Separate thresholds for statistics and for stored games, because the two cost
+very different amounts: a game's contribution to the statistics is a handful of
+counters, while its full score is a few hundred bytes. Opening the statistics
+wide and the stored games narrow is what lets a pack small enough to commit
+still answer from a large population.
+
+Explorer depth is measured in **plies**, never ambiguously as “moves”. All
+three packs index the outgoing move at ply 40, which is 20 full moves.
+
+`kingfisher-recent-theory` exists because the other two answer the wrong
+question for preparation. They weigh evidence over three and seven years; a
+line played twice in the last eighteen months by 2600s is news, and in a
+seven-year aggregate it is a rounding error. Recent Theory is the same
+pipeline over a two-year window with a lower deep threshold, so it is a
+_recency_ source and is labelled as one. Its numbers are not comparable with
+Elite's and the explorer never adds them together.
+
+## What the pruning threshold costs, measured
+
+A position is kept when enough games reached it. One threshold for the whole
+tree is the wrong shape: near the start every position has thousands of games
+and the number does nothing, and past move nine the tree fans out faster than
+any archive fills it — so the same number is what makes an explorer go blank
+exactly where preparation begins. `deepFromPly` and `deepMinGames` state a
+second, lower threshold for the deep half.
+
+Measured on the starter pack's own scan, which is the same 172,376 games in
+every row:
+
+| Rule                                      | Positions |    Size | Corpus answered at 20 plies |
+| ----------------------------------------- | --------: | ------: | --------------------------: |
+| 3 games everywhere (the Phase 13 rule)    |   150,128 |  9.5 MB |                       58.1% |
+| 3 games, then 2 from ply 24               |   197,349 | 11.0 MB |                       58.1% |
+| **3 games, then 2 from ply 18** (shipped) |   246,870 | 12.3 MB |                   **64.5%** |
+| 3 games, then 1 from ply 24               | 2,755,981 | 79.5 MB |               not measured¹ |
+
+¹ Rejected on size before it was benchmarked: a pack committed to this
+repository has to stay small enough that cloning it is not an event.
+
+The elite pack, which is downloaded rather than committed, can afford the
+expensive end and takes it — 1 game from ply 28, which is 5,438,808 positions
+and 339.3 MB against 650,206 and 157.8 MB for a flat two-game rule. That is
+where its 20-ply and 30-ply advantage over the starter comes from.
+
+Reproduce any row with `npm run reference:build -- --pack starter` after
+editing `scripts/reference/packs.mjs`. Since Phase 15 the scan cache is
+fingerprinted on the limits the _scan_ applies, so changing a frequency
+threshold re-reduces in about a minute instead of re-parsing every archive.
+
+## How deep the packs actually answer
+
+`npm run bench:explorer-depth` replays 31 hand-written theoretical lines
+through the application's own rules and asks each pack what is played at each
+ply. Measured 5 September 2026:
+
+|                     | Starter | Recent Theory | Elite OTB |
+| ------------------- | ------: | ------------: | --------: |
+| 10 plies (5 moves)  |  100.0% |        100.0% |    100.0% |
+| 20 plies (10 moves) |   64.5% |         54.8% |     74.2% |
+| 30 plies (15 moves) |   10.3% |          6.9% |     20.7% |
+| 40 plies (20 moves) |    0.0% |          0.0% |     25.0% |
+| Median continuous   |      22 |            21 |        24 |
+| Most-played chain   |      36 |            41 |        41 |
+
+Two caveats, both of which the benchmark output states:
+
+- The corpus is written from memory. It is real theory for the first twelve to
+  fifteen moves; past that the continuations are _legal_ rather than topical,
+  so a miss at 30 plies can mean "the pack is shallow" or "nobody has played
+  this exact move order". The absolute percentages at 30 and 40 plies are
+  therefore a floor, not a measurement of theoretical depth.
+- The **most-played chain** has no authoring risk in it at all: it starts from
+  the initial position, takes whatever the pack says is the commonest
+  continuation, and counts how far that can be repeated. It is the literal
+  experience of a player clicking the top row. Recent Theory and Elite both
+  run out at 41 plies — which is the pipeline's own `maxPly` cap, not the end
+  of their data. The starter's 36 is a genuine frequency limit.
 
 ## The filters, and why each exists
 
@@ -140,11 +213,17 @@ the same career, while `id` lets a search show one row rather than three.
 ## Rebuilding
 
 ```bash
-npm run reference:build -- --pack starter          # the committed pack
-npm run reference:build -- --pack elite            # the release-asset pack
-npm run reference:build -- --pack starter --files 4    # a short run, for testing a change
-npm run reference:build -- --pack starter --reuse-scan # re-reduce without re-scanning
+npm run reference:build -- --pack starter        # the committed pack
+npm run reference:build -- --pack recent         # the two-year recency pack
+npm run reference:build -- --pack elite          # the deep pack
+npm run reference:build -- --pack starter --files 4   # a short run, for testing a change
 ```
+
+Scans are cached per archive under `.archive-cache/`, fingerprinted on the
+archive's digest and on the limits the scan itself applies. Changing a
+reduce-time threshold — `minGames`, `deepFromPly`, `topGames`,
+`gamesPerPlayer` — therefore reuses every scan and finishes in about a minute.
+Changing a rating filter, a title list or `maxPly` re-parses.
 
 The pipeline downloads the monthly archives, checks each against the SHA-256
 lichess.org publishes, decompresses (frame by frame — the archives carry
@@ -186,12 +265,49 @@ removal ever exercised.
 
 ## Where the packs are published
 
-`kingfisher-elite-otb` is attached to this repository's `reference-elite-v1`
-release. One release tag per pack, because release assets share a flat namespace
-and two packs both containing `explorer-000.kfp.gz` would collide.
+`kingfisher-elite-otb` and `kingfisher-recent-theory` are served from the
+public, data-only `mardakurt/kingfisher-data` repository's GitHub Pages site,
+under one directory per pack version:
 
-**Those assets are downloadable only while the repository is public.** It is
-currently private, so the catalog's Install button for that pack reports a 404
-rather than pretending. The catalog therefore also accepts a manifest URL
-directly — any host serving a pack works, including a directory of one built
-locally — and the verification path is identical either way.
+```
+https://mardakurt.github.io/kingfisher-data/reference-elite-v2/manifest.json
+https://mardakurt.github.io/kingfisher-data/reference-recent-v1/manifest.json
+```
+
+**Pages rather than release assets**, which is not a matter of taste. A release
+download is a redirect to an object store that answers without an
+`Access-Control-Allow-Origin` header, so a browser cannot read it at all; the
+Pages mirror answers with `access-control-allow-origin: *`. Release assets
+remain useful as an archival or manual download and nothing else.
+
+**A separate repository**, so that anonymous installation does not require
+making the Kingfisher application source public. That repository contains
+manifests, chunks, checksums and licence text — no application code.
+
+Version directories are not replaced in place: `reference-elite-v3` will be a
+new directory, so a build that shipped against v2 keeps working. The one
+exception so far was `reference-elite-v1`, withdrawn on 5 September 2026 four
+days after publication because no released build ever referred to it and
+keeping two generations would have doubled a site that has to stay cheap to
+serve.
+
+The catalog also accepts any compatible manifest URL a user pastes in; its
+verification path is identical.
+
+## What is not here, and why
+
+**High-rated online play.** The most obvious missing population is strong
+online chess, and Lichess publishes it openly under CC0 — but as complete
+monthly dumps of every rated game. One recent month is 29.05 GB compressed
+(measured 5 September 2026), downloading at 11.85 MB/s from
+`database.lichess.org`, which is 41 minutes of transfer and something over
+100 million games to parse before any of it is filtered down to the 2200+
+subset a reference would keep. That is a build-machine job with a schedule, not
+something a session can honestly finish, and a pack row pointing at an artifact
+that does not exist would be worse than an absent one.
+
+The pipeline needs no new concepts to do it — a source entry, a pack
+definition and a rating filter — so this is scheduling and bandwidth rather
+than architecture. In the meantime the Lichess opening explorer's `lichess`
+database answers the same question live for a connected account, and is listed
+in the catalog as its own source rather than folded into a pack.
