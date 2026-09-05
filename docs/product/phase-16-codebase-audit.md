@@ -13,7 +13,7 @@ examined, or could not be examined in this environment, it says so.
 | ---------------------------- | ----: | ------------------------------------------------- |
 | `src/`                       |   503 | application, domain and unit tests                |
 | `public/`                    |   211 | piece sets, icons, engine assets                  |
-| `docs/`                      |    67 | 48 ADRs, performance, design, product, reports    |
+| `docs/`                      |    67 | 47 ADRs, performance, design, product, reports    |
 | `e2e/`                       |    62 | 61 Playwright specs plus fixtures                 |
 | `scripts/`                   |    35 | benchmarks, builders, engine and pack tooling     |
 | `companion/`                 |    20 | the local native process                          |
