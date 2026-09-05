@@ -31,6 +31,23 @@ export const persistenceKeys = {
   game: (id: string) => ['persistence', 'game', id] as const,
 };
 
+/**
+ * "Have I been here before?", which is assembled from five different stores.
+ *
+ * `usePositionContext` counts local games, personal games, repertoire entries,
+ * training items and model games at one position, and caches the answer under
+ * the position key alone. That key cannot express any of the five, so every
+ * mutation that changes one of them has to say so here.
+ *
+ * It is called from all five invalidators below rather than from one, because
+ * there is no single moment when "the workspace changed" — there are five, and
+ * a panel that says "My games: 0" after an import is a stale chess statement
+ * whichever of them was missed.
+ */
+export function invalidatePositionContext(client: QueryClient): void {
+  void client.invalidateQueries({ queryKey: ['position-context'] });
+}
+
 /** Everything that can change when games are imported or removed. */
 export function invalidateGames(client: QueryClient): void {
   void client.invalidateQueries({ queryKey: ['persistence', 'games'] });
@@ -44,6 +61,8 @@ export function invalidateGames(client: QueryClient): void {
     the one thing this application is not allowed to make.
   */
   void client.invalidateQueries({ queryKey: ['transpositions'] });
+  // Local and personal game counts, and the routes into this position.
+  invalidatePositionContext(client);
 }
 
 export function invalidateStudies(client: QueryClient, id?: StudyId): void {
@@ -127,6 +146,7 @@ export function invalidateRepertoires(client: QueryClient): void {
   void client.invalidateQueries({ queryKey: ['persistence', 'repertoires'] });
   void client.invalidateQueries({ queryKey: ['persistence', 'repertoire'] });
   void client.invalidateQueries({ queryKey: ['persistence', 'rep-at'] });
+  invalidatePositionContext(client);
 }
 
 export function invalidateTraining(client: QueryClient): void {
@@ -135,10 +155,12 @@ export function invalidateTraining(client: QueryClient): void {
   // Dynamic set membership is derived from training fields and static set
   // counts change when items are removed.
   void client.invalidateQueries({ queryKey: ['review', 'training-set'] });
+  invalidatePositionContext(client);
 }
 
 export function invalidateModelGames(client: QueryClient): void {
   void client.invalidateQueries({ queryKey: ['persistence', 'model-games'] });
+  invalidatePositionContext(client);
 }
 
 /**

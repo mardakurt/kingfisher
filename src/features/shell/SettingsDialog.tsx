@@ -33,7 +33,12 @@ import {
   type WorkspaceBackup,
 } from '@/persistence/backup';
 import { getRepositories } from '@/persistence/repositories';
-import { useProfile, phase3Keys, invalidateGames } from '@/features/persistence/queries';
+import {
+  useProfile,
+  phase3Keys,
+  invalidateGames,
+  invalidatePositionContext,
+} from '@/features/persistence/queries';
 import { parsePairing } from '@/companion/client';
 import { importPgnIntoSqlite } from '@/companion/import';
 import { companionClient } from '@/companion/session';
@@ -1243,6 +1248,13 @@ function ProfileSection() {
       await (await getRepositories()).profile.setAliases(values);
       setDraftAliases(values.join('\n'));
       void queryClient.invalidateQueries({ queryKey: phase3Keys.profile });
+      /*
+        The aliases are what "My games" means. Without this the explorer keeps
+        showing the count it computed before the user said who they are —
+        which, on a fresh profile, is zero for every position they had already
+        looked at.
+      */
+      invalidatePositionContext(queryClient);
       notify({
         tone: 'success',
         message: `${values.length} personal name ${values.length === 1 ? 'alias' : 'aliases'} saved.`,
