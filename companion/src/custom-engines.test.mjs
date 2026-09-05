@@ -110,3 +110,29 @@ describe('handshakeUci', () => {
     expect(result.name).toBe('Fake Engine');
   });
 });
+
+it('has reaped a nonresponsive process before rejecting its handshake', async () => {
+  const { mkdtempSync, readFileSync, rmSync, existsSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const path = await import('node:path');
+  const dir = mkdtempSync(path.join(tmpdir(), 'kingfisher-handshake-exit-'));
+  const pidFile = path.join(dir, 'pid');
+  try {
+    const script = `require('node:fs').writeFileSync(process.argv[1], String(process.pid)); setInterval(() => {}, 1000);`;
+    await expect(
+      handshakeUci(process.execPath, ['-e', script, pidFile], { timeoutMs: 500 }),
+    ).rejects.toThrow(/handshake/);
+    expect(existsSync(pidFile)).toBe(true);
+    const pid = Number(readFileSync(pidFile, 'utf8'));
+    expect(() => process.kill(pid, 0)).toThrow();
+  } finally {
+    if (existsSync(pidFile)) {
+      try {
+        process.kill(Number(readFileSync(pidFile, 'utf8')), 'SIGKILL');
+      } catch {
+        /* Reaped. */
+      }
+    }
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

@@ -62,17 +62,24 @@ export function handshakeUci(binaryPath, args = [], { timeoutMs = 8000 } = {}) {
       } catch {
         // The pipe may already be closed.
       }
-      // A UCI engine that ignored `quit` gets one grace period, then SIGKILL —
-      // exactly EngineHost's own shutdown behaviour, so a hung handshake
-      // process cannot outlive the request that started it.
-      setTimeout(() => {
+      // Do not settle until the process has exited. A test worker (or a
+      // short-lived caller) may exit as soon as this promise settles; an
+      // unreferenced cleanup timer then never fires and leaves an orphan.
+      if (!child?.pid || child.exitCode !== null || child.signalCode !== null) {
+        fn(value);
+        return;
+      }
+      const killTimer = setTimeout(() => {
         try {
-          if (child && !child.killed) child.kill('SIGKILL');
+          child.kill('SIGKILL');
         } catch {
-          // Already gone.
+          /* Already gone. */
         }
-      }, 400).unref?.();
-      fn(value);
+      }, 400);
+      child.once('exit', () => {
+        clearTimeout(killTimer);
+        fn(value);
+      });
     };
 
     try {
@@ -85,6 +92,9 @@ export function handshakeUci(binaryPath, args = [], { timeoutMs = 8000 } = {}) {
     const timer = setTimeout(() => {
       finish(reject, new Error('The engine did not complete the UCI handshake in time.'));
     }, timeoutMs);
+
+    child.stderr.resume();
+    child.stdin.on('error', () => finish(reject, new Error('The engine closed its input pipe.')));
 
     child.on('error', (error) => {
       finish(reject, new Error(`Could not start the engine: ${error.message}`));
