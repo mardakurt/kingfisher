@@ -92,6 +92,10 @@ const EMPTY_SLOT = (engineId: string): EngineSlot => ({
   running: false,
 });
 
+/** What to show a player whose engine stopped answering mid-search. */
+const describeEngineFailure = (error: unknown): string =>
+  error instanceof Error ? error.message : 'The engine stopped answering.';
+
 interface Runtime {
   session: EngineSession | null;
   handle: AnalysisHandle | null;
@@ -289,6 +293,26 @@ export const useEngine = create<EngineState>((set, get) => {
           ? { primary: next(state.primary) }
           : { secondary: next(state.secondary) },
       );
+    });
+
+    /*
+      A search can end without the listener ever hearing about it: the session
+      fails the search when its engine dies, and a dead engine emits no final
+      snapshot to carry the news. Watching only the listener therefore left the
+      panel reading "analysing" for ever after a crash — the stuck spinner, in
+      the place where a chess player is most likely to sit and wait for it.
+
+      The engine slot fails; nothing else does. The board, the explorer and the
+      rest of the workspace are unaffected, which is the point of the slot
+      owning its own status.
+    */
+    runtime.handle.finished.catch((error: unknown) => {
+      if (runtime.request !== request) return;
+      patch(slot, {
+        running: false,
+        status: 'error',
+        problem: { message: describeEngineFailure(error) },
+      });
     });
   };
 
