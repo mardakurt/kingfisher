@@ -56,6 +56,7 @@ async function main() {
   const games = shardWriter('game', shards.game);
   const players = shardWriter('players', shards.players);
   const playerGames = shardWriter('playergames', shards.playergames);
+  const accepted = shardWriter('accepted', shards.game);
 
   let seen = 0;
   let kept = 0;
@@ -91,16 +92,17 @@ async function main() {
     const stated = [whiteElo, blackElo].filter((elo) => elo > 0);
     const rated = stated.length > 0 ? Math.min(...stated) : 0;
 
-    /*
-      An upper bound, which is not a quality filter but a species filter. The
-      archive relays engine tournaments (TCEC) and online events rated on a
-      different scale alongside over-the-board chess, and both carry numbers no
-      human has ever held — the highest FIDE rating ever achieved is 2882. Left
-      in, they dominate every "strongest games at this position" list and make
-      a player's recorded peak meaningless. Excluded, the reference is what it
-      says it is: over-the-board games between people.
-    */
+    // Rating bounds alone cannot prove human or over-the-board provenance.
+    // Also exclude explicitly marked bots and engine/online broadcasts.
     if (stated.some((elo) => elo > limits.maxRating)) continue;
+    if (whiteTitle === 'BOT' || blackTitle === 'BOT') continue;
+    if (
+      limits.excludeOnline &&
+      /\b(tcec|computer|engine|online|lichess|chess\.com|bullet|titled tuesday)\b/i.test(
+        `${tags.BroadcastName ?? ''} ${tags.Event ?? ''}`,
+      )
+    )
+      continue;
 
     /*
       Titles are the second way in, because the archive has two kinds of game.
@@ -144,8 +146,12 @@ async function main() {
 
     let position = Position.initial();
     let illegal = false;
-    const depth = Math.min(moves.length, limits.maxPly);
-    for (let ply = 0; ply < depth; ply += 1) {
+    const positions = [];
+    const visited = new Set();
+    const canonicalMoves = [];
+    // Full scores are checked to the end, even when only the first 41 plies
+    // contribute to Explorer. Nothing is emitted from an illegal game.
+    for (let ply = 0; ply < moves.length; ply += 1) {
       const key = positionKey(position.fen);
       const advanced = position.advanceSan(moves[ply]);
       if (!advanced.ok) {
@@ -155,11 +161,14 @@ async function main() {
       const move = advanced.value.move;
       const uci = `${move.from}${move.to}${move.promotion ?? ''}`;
       const rating = ply % 2 === 0 ? whiteElo : blackElo;
-      explorer.write(
-        shardOf(key, shards.explorer),
-        `${key}\t${moves[ply]}\t${uci}\t${result}\t${rating}\t${year}\t${ply}\t` +
-          `${openable ? id : ''}\t${openable ? rated : 0}`,
-      );
+      canonicalMoves.push(move.san);
+      if (ply < limits.maxPly && !visited.has(key)) {
+        positions.push([
+          shardOf(key, shards.explorer),
+          `${key}\t${move.san}\t${uci}\t${result}\t${rating}\t${year}\t${ply}\t${id}\t${rated}\t${openable ? 1 : 0}`,
+        ]);
+        visited.add(key);
+      }
       position = advanced.value.next;
     }
     if (illegal) {
@@ -168,6 +177,8 @@ async function main() {
     }
 
     kept += 1;
+    accepted.write(shardOf(id, shards.game), id);
+    for (const [shard, row] of positions) explorer.write(shard, row);
     if (openable) {
       opened += 1;
       games.write(
@@ -185,7 +196,7 @@ async function main() {
           whiteElo,
           blackElo,
           tags.GameURL ?? tags.Site ?? '',
-          moves.join(' '),
+          canonicalMoves.join(' '),
         ].join('\t'),
       );
     }
@@ -199,7 +210,7 @@ async function main() {
       const title = side === 'w' ? whiteTitle : blackTitle;
       players.write(
         shardOf(key, shards.players),
-        `${key}\t${name}\t${fide}\t${title}\t${year}\t${elo}`,
+        `${key}\t${name}\t${fide}\t${title}\t${year}\t${elo}\t${id}`,
       );
       if (openable) playerGames.write(shardOf(key, shards.playergames), `${key}\t${year}\t${id}`);
     }
@@ -209,6 +220,7 @@ async function main() {
   games.close();
   players.close();
   playerGames.close();
+  accepted.close();
   await closeApp();
   parentPort.postMessage({ file, seen, kept, opened, rejected, maxYear });
 }

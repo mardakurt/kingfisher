@@ -90,7 +90,7 @@ export async function* readGames(file) {
     if (!inMoves) {
       const tag = TAG.exec(line);
       if (tag) {
-        tags[tag[1]] = tag[2].replace(/\\(["\\])/g, '$1');
+        tags[tag[1]] = tag[2].replace(/\\(["\\])/g, '$1').replace(/[\t\r\n]/g, ' ');
         continue;
       }
       if (line.trim().length === 0) continue;
@@ -99,7 +99,7 @@ export async function* readGames(file) {
       continue;
     }
     if (line.trim().length === 0) {
-      yield { tags, moves: sanTokens(movetext.join(' ')) };
+      yield { tags, moves: sanTokens(movetext.join('\n')) };
       tags = {};
       movetext = [];
       inMoves = false;
@@ -108,5 +108,5 @@ export async function* readGames(file) {
     movetext.push(line);
   }
 
-  if (inMoves) yield { tags, moves: sanTokens(movetext.join(' ')) };
+  if (inMoves) yield { tags, moves: sanTokens(movetext.join('\n')) };
 }

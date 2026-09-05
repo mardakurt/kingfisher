@@ -32,7 +32,7 @@ export const PACK_DEFINITIONS = {
       'Recent elite over-the-board games, bundled with Kingfisher so the ' +
       'opening explorer, player search and model games work before anything ' +
       'is installed or imported.',
-    version: '1',
+    version: '2',
     output: 'public/reference/kingfisher-starter',
     source: LICHESS_BROADCAST,
     transformation: TRANSFORMATION,
@@ -42,12 +42,20 @@ export const PACK_DEFINITIONS = {
       minRating: 2200,
       openRating: 2600,
       maxRating: 2900,
+      excludeOnline: true,
       titles: ['GM', 'IM', 'WGM'],
       openTitles: ['GM'],
       minPlies: 12,
-      maxPly: 30,
+      // Query positions through twenty full moves. The scanner writes the
+      // position *before* each indexed move, so ply 40 requires move index 40.
+      maxPly: 41,
       minGames: 3,
-      maxMoves: 24,
+      // Below this depth a position has to be genuinely common; at and beyond
+      // it, the games that reached it are the evidence. Measured in
+      // docs/data/reference-packs.md.
+      deepFromPly: 18,
+      deepMinGames: 2,
+      maxMoves: 256,
       topGames: 6,
       gamesPerPlayer: 120,
       recentYears: 2,
@@ -55,28 +63,83 @@ export const PACK_DEFINITIONS = {
     shards: { explorer: 64, game: 16, players: 4, playergames: 4 },
   },
 
+  /**
+   * What is being played right now, rather than what has been played most.
+   *
+   * The other two packs answer "how has this position scored"; this one
+   * answers "is anybody still playing it". That is a different question, and
+   * it wants a different threshold: a line played twice in the last two years
+   * by 2500s is news, and a frequency filter tuned for a seven-year archive
+   * would delete exactly the rows a preparation session is looking for.
+   *
+   * Small on purpose. It is meant to be reinstalled often.
+   */
+  recent: {
+    id: 'kingfisher-recent-theory',
+    name: 'Recent Theory Reference',
+    description:
+      'The last two years of rating- and title-filtered Lichess broadcast ' +
+      'games, kept at a low frequency threshold so that recent and rare ' +
+      'continuations survive. A recency source, not a weight-of-evidence one.',
+    version: '1',
+    output: '.packs/kingfisher-recent-theory',
+    source: LICHESS_BROADCAST,
+    transformation: TRANSFORMATION,
+    files: (digests) => broadcastMonths(digests).slice(0, 24),
+    limits: {
+      minRating: 2400,
+      openRating: 2500,
+      maxRating: 2900,
+      excludeOnline: true,
+      titles: ['GM', 'IM', 'WGM'],
+      openTitles: ['GM', 'IM'],
+      minPlies: 12,
+      // Query positions through twenty full moves, as the other packs do.
+      maxPly: 41,
+      // Two games, not one, in the shallow half: a single game there would
+      // index one player's whole score as "theory".
+      minGames: 2,
+      // Past this depth the games that reached the position are the evidence,
+      // which is the entire point of a recency source. Measured in
+      // docs/data/reference-packs.md.
+      deepFromPly: 18,
+      deepMinGames: 1,
+      maxMoves: 256,
+      topGames: 6,
+      gamesPerPlayer: 60,
+      recentYears: 1,
+    },
+    shards: { explorer: 48, game: 24, players: 4, playergames: 4 },
+  },
+
   elite: {
     id: 'kingfisher-elite-otb',
     name: 'Elite OTB Reference',
     description:
-      'The full Lichess broadcast archive: every official over-the-board ' +
-      'tournament game relayed since 2020, with per-position statistics, a ' +
-      'player table and the games themselves.',
-    version: '1',
+      'Rating- and title-filtered Lichess broadcast games since 2020, excluding ' +
+      'explicit bot, engine and online event labels. Broadcast metadata is ' +
+      'not proof of complete over-the-board coverage.',
+    version: '2',
     output: '.packs/kingfisher-elite-otb',
     source: LICHESS_BROADCAST,
     transformation: TRANSFORMATION,
     files: (digests) => broadcastMonths(digests),
     limits: {
       minRating: 2000,
-      openRating: 2200,
+      openRating: 2000,
       maxRating: 2900,
+      excludeOnline: true,
       titles: ['GM', 'IM', 'WGM', 'WIM', 'FM'],
-      openTitles: ['GM', 'IM'],
+      openTitles: ['GM', 'IM', 'WGM', 'WIM', 'FM'],
       minPlies: 10,
-      maxPly: 36,
+      // Query positions through twenty full moves.
+      maxPly: 41,
       minGames: 2,
-      maxMoves: 32,
+      // Past this depth the games that reached the position are the evidence.
+      // Measured in docs/data/reference-packs.md.
+      deepFromPly: 28,
+      deepMinGames: 1,
+      maxMoves: 256,
       topGames: 8,
       gamesPerPlayer: 300,
       recentYears: 3,

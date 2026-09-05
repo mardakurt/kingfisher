@@ -26,7 +26,7 @@ export const LICHESS_BROADCAST = {
     attribution: 'Lichess broadcast archive — lichess.org, CC BY-SA 4.0',
   },
   description:
-    'Games relayed by lichess.org from official over-the-board tournaments, ' +
+    'Games relayed through Lichess broadcasts, ' +
     'published monthly as PGN and released under CC BY-SA 4.0.',
 };
 

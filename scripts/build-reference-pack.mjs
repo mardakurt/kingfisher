@@ -28,6 +28,7 @@ import {
   rmSync,
   statSync,
   writeFileSync,
+  existsSync,
 } from 'node:fs';
 import { createInterface } from 'node:readline';
 import { cpus } from 'node:os';
@@ -49,7 +50,6 @@ function parseArgs(argv) {
     out: null,
     workers: Math.max(1, Math.min(8, cpus().length - 2)),
     files: 0,
-    reuse: false,
   };
   for (let index = 0; index < argv.length; index += 1) {
     const flag = argv[index];
@@ -59,9 +59,6 @@ function parseArgs(argv) {
     // A short run over the newest few archives, for checking a change to the
     // pipeline without waiting for the whole build.
     else if (flag === '--files') args.files = Number(argv[++index]);
-    // Re-reduce the previous scan's rows with different thresholds, which is
-    // the loop the size of a bundled pack is actually tuned in.
-    else if (flag === '--reuse-scan') args.reuse = true;
     else throw new Error(`Unknown option ${flag}`);
   }
   return args;
@@ -80,7 +77,8 @@ async function main() {
   }
   const outDir = args.out ? path.resolve(args.out) : path.join(ROOT, definition.output);
   const work = path.join(CACHE, `work-${definition.id}`);
-  if (!args.reuse) rmSync(work, { recursive: true, force: true });
+  // Each verified upstream file has its own fingerprinted scan directory.
+  // Completed scans survive interruption and are reused on subsequent builds.
   mkdirSync(work, { recursive: true });
 
   console.log(`Kingfisher reference pack: ${definition.name}`);
@@ -107,10 +105,9 @@ async function main() {
   // from the same archives regardless of when the workers happen to start.
   definition.limits.thisYear = new Date().getFullYear();
 
-  const scanned = args.reuse
-    ? JSON.parse(readFileSync(path.join(work, 'scan.json'), 'utf8'))
-    : await scan(archives, work, shards, definition.limits, args.workers);
-  if (!args.reuse) writeFileSync(path.join(work, 'scan.json'), JSON.stringify(scanned));
+  const scanned = await scan(archives, work, shards, definition.limits, args.workers);
+  const inputs = scanned.directories;
+  const shardInputs = (kind, shard) => inputs.map((dir) => path.join(dir, kind, `${shard}.txt`));
   console.log(
     `scanned  ${scanned.seen.toLocaleString()} games, kept ${scanned.kept.toLocaleString()}` +
       `, rejected ${scanned.rejected.toLocaleString()}`,
@@ -126,7 +123,12 @@ async function main() {
   const chunks = [];
   let rawBytes = 0;
   let compressedBytes = 0;
-  const counts = { games: scanned.kept, openable: 0, positions: 0, players: 0 };
+  const counts = { games: 0, openable: 0, positions: 0, players: 0 };
+  for (let shard = 0; shard < shards.game; shard += 1) {
+    const ids = new Set();
+    for await (const id of rows(shardInputs('accepted', shard))) ids.add(id);
+    counts.games += ids.size;
+  }
 
   const emit = (kind, shard, lines) => {
     const raw = Buffer.from(lines.length > 0 ? lines.join('\n') + '\n' : '', 'utf8');
@@ -149,7 +151,7 @@ async function main() {
   const recentSince = scanned.maxYear - (definition.limits.recentYears - 1);
   for (let shard = 0; shard < shards.explorer; shard += 1) {
     const lines = await reduceExplorer(
-      path.join(work, 'explorer', `${shard}.txt`),
+      shardInputs('explorer', shard),
       definition.limits,
       recentSince,
       pack,
@@ -158,17 +160,21 @@ async function main() {
     emit('explorer', shard, lines);
   }
   for (let shard = 0; shard < shards.game; shard += 1) {
-    const lines = await reduceGames(path.join(work, 'game', `${shard}.txt`));
+    const lines = await reduceGames(shardInputs('game', shard));
     counts.openable += lines.length;
     emit('game', shard, lines);
   }
-  const people = await reducePlayers(path.join(work, 'players'), shards.players, pack);
+  const people = await reducePlayers(
+    inputs.map((dir) => path.join(dir, 'players')),
+    shards.players,
+    pack,
+  );
   counts.players = people.identities;
   for (let shard = 0; shard < shards.players; shard += 1)
     emit('players', shard, people.lines[shard]);
 
   const playerGames = await reducePlayerGames(
-    path.join(work, 'playergames'),
+    inputs.map((dir) => path.join(dir, 'playergames')),
     shards.playergames,
     people.canonical,
     definition.limits,
@@ -194,6 +200,10 @@ async function main() {
       upstream: archives.map((archive) => ({ file: archive.file, sha256: archive.sha256 })),
     },
     counts,
+    // A query at this depth needs the following move to have been scanned.
+    // Keeping the unit and off-by-one rule in the manifest prevents UI and
+    // reports from confusing full moves with plies.
+    maxPositionPly: definition.limits.maxPly - 1,
     recentSince,
     shards,
     chunks,
@@ -202,7 +212,7 @@ async function main() {
   };
   writeFileSync(path.join(outDir, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
 
-  if (!process.env.KINGFISHER_KEEP_WORK) rmSync(work, { recursive: true, force: true });
+  // Keep the incremental scan cache; it is derived data in .archive-cache.
   console.log(`games    ${counts.games.toLocaleString()} counted`);
   console.log(`openable ${counts.openable.toLocaleString()} full scores`);
   console.log(`positions${counts.positions.toLocaleString().padStart(10)}`);
@@ -212,55 +222,140 @@ async function main() {
   await closeApp();
 }
 
+/** The limits `scan.worker.mjs` reads. Everything else is applied on reduce. */
+const SCAN_LIMITS = [
+  'excludeOnline',
+  'maxPly',
+  'maxRating',
+  'minPlies',
+  'minRating',
+  'openRating',
+  'openTitles',
+  'thisYear',
+  'titles',
+];
+
 /** Run the scan worker over every archive, at most `limit` at a time. */
 function scan(archives, work, shards, limits, limit) {
-  const queue = [...archives];
-  const totals = { seen: 0, kept: 0, opened: 0, rejected: 0, maxYear: 0 };
+  const implementation = ['scan.worker.mjs', 'pgn-stream.mjs']
+    .map((name) => readFileSync(new URL(`./reference/${name}`, import.meta.url), 'utf8'))
+    .join('\n');
+  const chessRoot = path.join(ROOT, 'src/chess');
+  const rules = readdirSync(chessRoot, { recursive: true })
+    .filter((file) => file.endsWith('.ts') && !file.endsWith('.test.ts'))
+    .sort()
+    .map((file) => readFileSync(path.join(chessRoot, file), 'utf8'))
+    .join('\n');
+  const identity = readFileSync(path.join(ROOT, 'src/persistence/schema/migrations.ts'), 'utf8');
+  /*
+    Only the limits the scan itself applies. `minGames`, `topGames` and the
+    rest are reduce-time thresholds, and fingerprinting them meant that tuning
+    the size of a pack threw away an hour of parsing that would have produced
+    byte-identical rows. Retuning a threshold is now a two-minute reduce.
+  */
+  const scanned = Object.fromEntries(
+    SCAN_LIMITS.filter((key) => key in limits).map((key) => [key, limits[key]]),
+  );
+  const configuration = JSON.stringify({
+    shards,
+    limits: scanned,
+    implementation,
+    rules,
+    identity,
+  });
+  const queue = archives.map((archive) => ({
+    ...archive,
+    directory: path.join(
+      work,
+      createHash('sha256')
+        .update(archive.sha256 + configuration)
+        .digest('hex'),
+    ),
+  }));
+  const totals = {
+    seen: 0,
+    kept: 0,
+    opened: 0,
+    rejected: 0,
+    maxYear: 0,
+    directories: queue.map((item) => item.directory),
+  };
   const workerFile = new URL('./reference/scan.worker.mjs', import.meta.url);
+  const workers = new Set();
 
   return new Promise((resolve, reject) => {
     let active = 0;
     let failed = false;
+    const failure = (error) => {
+      if (failed) return;
+      failed = true;
+      for (const worker of workers) void worker.terminate();
+      reject(error);
+    };
+    const accumulate = (message) => {
+      totals.seen += message.seen;
+      totals.kept += message.kept;
+      totals.opened += message.opened;
+      totals.maxYear = Math.max(totals.maxYear, message.maxYear);
+      totals.rejected += message.rejected;
+    };
     const pump = () => {
       if (failed) return;
       if (queue.length === 0 && active === 0) return resolve(totals);
       while (active < limit && queue.length > 0) {
         const archive = queue.shift();
+        const marker = path.join(archive.directory, 'complete.json');
+        if (existsSync(marker)) {
+          accumulate(JSON.parse(readFileSync(marker, 'utf8')));
+          console.log(`  reused  ${archive.file}`);
+          continue;
+        }
+        // Only this archive's incomplete, fingerprinted temporary output.
+        rmSync(archive.directory, { recursive: true, force: true });
+        mkdirSync(archive.directory, { recursive: true });
         active += 1;
         const worker = new Worker(workerFile, {
-          workerData: { file: archive.path, outDir: work, shards, limits },
+          workerData: { file: archive.path, outDir: archive.directory, shards, limits },
           resourceLimits: { maxOldGenerationSizeMb: 4096 },
         });
+        workers.add(worker);
+        let reported = false;
         worker.on('message', (message) => {
           if (message.error) {
-            failed = true;
-            reject(new Error(`${message.file}: ${message.error}`));
+            failure(new Error(`${message.file}: ${message.error}`));
             return;
           }
-          totals.seen += message.seen;
-          totals.kept += message.kept;
-          totals.opened += message.opened;
-          if (message.maxYear > totals.maxYear) totals.maxYear = message.maxYear;
-          totals.rejected += message.rejected;
+          reported = true;
+          accumulate(message);
+          writeFileSync(marker, JSON.stringify(message));
           console.log(
             `  scanned ${path.basename(message.file)} — ${message.kept.toLocaleString()} kept`,
           );
         });
         worker.on('error', (error) => {
-          failed = true;
-          reject(error);
+          failure(error);
         });
-        worker.on('exit', () => {
+        worker.on('exit', (code) => {
+          workers.delete(worker);
           active -= 1;
+          if (code !== 0 || !reported)
+            return failure(
+              new Error(`${archive.file}: scan worker exited ${code} without a complete result.`),
+            );
           pump();
         });
       }
+      if (queue.length === 0 && active === 0) resolve(totals);
     };
     pump();
   });
 }
 
 async function* rows(file) {
+  if (Array.isArray(file)) {
+    for (const part of file) yield* rows(part);
+    return;
+  }
   let size = 0;
   try {
     size = statSync(file).size;
@@ -281,16 +376,22 @@ async function* rows(file) {
  * worth keeping depends on how many games reached it across the whole archive,
  * which no single file knows.
  */
-async function reduceExplorer(file, limits, recentSince, pack) {
+export async function reduceExplorer(file, limits, recentSince, pack) {
   const positions = new Map();
   for await (const row of rows(file)) {
-    const [key, san, uci, result, rating, year, ply, gameId, strength] = row.split('\t');
-    if (Number(ply) >= limits.maxPly) continue;
+    const [key, san, uci, result, rating, year, ply, gameId, strength, openable] = row.split('\t');
+    const depth = Number(ply);
+    if (depth >= limits.maxPly) continue;
     let entry = positions.get(key);
     if (!entry) {
-      entry = { moves: new Map(), games: [] };
+      entry = { moves: new Map(), games: [], seen: new Set(), ply: depth };
       positions.set(key, entry);
     }
+    // Transpositions reach one position at several depths; the shallowest is
+    // the one the threshold should be judged against.
+    if (depth < entry.ply) entry.ply = depth;
+    if (entry.seen.has(gameId)) continue;
+    entry.seen.add(gameId);
     let move = entry.moves.get(uci);
     if (!move) {
       move = {
@@ -336,17 +437,20 @@ async function reduceExplorer(file, limits, recentSince, pack) {
       its date, because "top games" in an explorer means the strongest evidence
       for the move, and a recent weak game is not that.
     */
-    if (gameId && entry.games.length < limits.topGames * 8) {
+    if (openable === '1') {
       entry.games.push([Number(strength) || 0, gameId]);
+      // Keep the strongest over the whole scan, not the first 64 encountered.
+      entry.games.sort((a, b) => b[0] - a[0] || a[1].localeCompare(b[1]));
+      entry.games.length = Math.min(entry.games.length, limits.topGames);
     }
   }
 
   const lines = [];
   for (const [key, entry] of positions) {
     const total = [...entry.moves.values()].reduce((sum, move) => sum + move.games, 0);
-    if (total < limits.minGames) continue;
+    if (total < requiredGames(limits, entry.ply)) continue;
     const moves = [...entry.moves.values()]
-      .sort((a, b) => b.games - a.games)
+      .sort((a, b) => b.games - a.games || a.uci.localeCompare(b.uci))
       .slice(0, limits.maxMoves)
       .map((move) => ({
         san: move.san,
@@ -370,6 +474,25 @@ async function reduceExplorer(file, limits, recentSince, pack) {
   }
   lines.sort();
   return lines;
+}
+
+/**
+ * How many games a position needs before the pack carries it.
+ *
+ * A single threshold is the wrong shape. Near the start every position has
+ * thousands of games and the number does nothing; past move twelve the tree
+ * fans out faster than any archive fills it, and the same threshold is what
+ * makes an explorer go blank exactly where preparation begins. So the
+ * threshold falls with depth: common positions still have to be common, and a
+ * deep position is kept on the strength of the games that reached it, because
+ * at move eighteen two elite games *are* the theory.
+ *
+ * `deepFromPly` and `deepMinGames` are stated per pack and measured — see
+ * `docs/data/reference-packs.md` for what each setting costs in megabytes.
+ */
+export function requiredGames(limits, ply) {
+  if (limits.deepFromPly === undefined) return limits.minGames;
+  return ply >= limits.deepFromPly ? limits.deepMinGames : limits.minGames;
 }
 
 /** One line per game, with duplicates relayed into several broadcasts removed. */
@@ -399,8 +522,8 @@ async function reducePlayers(dir, shardCount, pack) {
   const byKey = new Map();
 
   for (let shard = 0; shard < shardCount; shard += 1) {
-    for await (const row of rows(path.join(dir, `${shard}.txt`))) {
-      const [key, name, fide, title, year, elo] = row.split('\t');
+    for await (const row of rows(dir.map((part) => path.join(part, `${shard}.txt`)))) {
+      const [key, name, fide, title, year, elo, gameId] = row.split('\t');
       let player = byKey.get(key);
       if (!player) {
         player = {
@@ -414,9 +537,12 @@ async function reducePlayers(dir, shardCount, pack) {
           peakRating: 0,
           lastRating: 0,
           lastRatingYear: 0,
+          seen: new Set(),
         };
         byKey.set(key, player);
       }
+      if (player.seen.has(gameId)) continue;
+      player.seen.add(gameId);
       accumulate(player, name, fide, title, year, elo);
     }
   }
@@ -535,7 +661,7 @@ async function reducePlayerGames(dir, shardCount, canonical, limits, pack) {
   const aliases = new Map();
 
   for (let shard = 0; shard < shardCount; shard += 1) {
-    for await (const row of rows(path.join(dir, `${shard}.txt`))) {
+    for await (const row of rows(dir.map((part) => path.join(part, `${shard}.txt`)))) {
       const [key, year, gameId] = row.split('\t');
       const identity = canonical.get(key) ?? key;
       let list = byIdentity.get(identity);
@@ -567,8 +693,9 @@ async function reducePlayerGames(dir, shardCount, canonical, limits, pack) {
   return lines;
 }
 
-main().catch(async (error) => {
-  console.error(error instanceof Error ? error.stack : error);
-  await closeApp();
-  process.exit(1);
-});
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url))
+  main().catch(async (error) => {
+    console.error(error instanceof Error ? error.stack : error);
+    await closeApp();
+    process.exit(1);
+  });
