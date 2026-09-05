@@ -17,7 +17,8 @@ famous games and a working browser engine are present on a fresh profile.
 measurement and documentation sections are done and evidenced. Five substantial
 sections are not: a real million-game database (Part O), En Croissant
 interoperability (Part S), the high-rated online pack (Part T), a fresh React
-render profile (Part V), and a manual UX pass (Part AH).
+render profile (Part V), and a full manual UX pass (Part AH, done only for the
+analysis route).
 
 **Known release blockers.** None found. Every defect this pass turned up was
 fixed and covered by a test that fails without the fix.
@@ -396,6 +397,16 @@ All run locally at `c6e0b4e`:
 | `npm run benchmark`    | exit 0                                           |
 | `git diff --check`     | clean                                            |
 
+**Live browser verification.** Because this pass changed engine session code,
+the analysis route was driven in a real browser against the dev server rather
+than only in tests. Stockfish 17.1 Lite WASM started, reached depth 28/43 over
+17.5M nodes at 1,411k n/s, and returned three MultiPV lines. Playing 1.e4
+re-searched the new position and replaced every line — no evidence carried over.
+The principal variations rendered as `1…e5 2.Nf3 Nc6 3.d4`, which is the
+black-to-move numbering the root-turn change has to preserve, and the scores
+stayed White-positive after 1.e4. At a narrow viewport the layout switched to its
+mobile navigation with the board still the largest element. No console errors.
+
 **Test quality (Part AM).** Every test added this session was mutation-tested —
 the implementation was reverted and the test re-run to confirm it actually fails:
 
@@ -427,9 +438,24 @@ Final run result is recorded in §14.
 
 ## 14. Final CI run
 
-Run **33966432623**, commit `735de11`. See the run for per-job status; the
-preceding run at `3c9943f` had Quality, Visual gate and Production build green
-before it was superseded by this push.
+Run **33967291779**, commit `dace617`, all gating jobs green:
+
+| Job              | Result         |
+| ---------------- | -------------- |
+| Quality          | ✓ 1m25s        |
+| Production build | ✓ 1m01s        |
+| Visual gate      | ✓ 2m37s        |
+| Browser tests    | ✓ 17m45s       |
+| Playwright       | **156 passed** |
+| Retries          | **0**          |
+| Flaky            | **0**          |
+
+The run carries one annotation, and it is not a Kingfisher failure: GitHub
+deprecating Node 20 for `actions/cache@v4`, which the runner forces onto Node 24
+by itself.
+
+A docs-only commit follows this run to record it; nothing in it touches the code
+these jobs verified.
 
 ---
 
@@ -496,7 +522,7 @@ The next agent should continue **this** phase.
 | S    | En Croissant read/import adapter                     | **not started** — requires a real En Croissant fixture; do not claim compatibility without one                                                                              |
 | T    | High-rated online reference pack                     | **not started** — report as Delivered or Infrastructure-blocked, not quietly dropped                                                                                        |
 | V    | Fresh React render-cost profile                      | not repeated this pass; Phase 14/15 figures stand unrefreshed                                                                                                               |
-| AH   | Manual walk of every route for UX friction           | not done this pass                                                                                                                                                          |
+| AH   | Manual walk of every route for UX friction           | **partial** — the analysis route was driven in a real browser at desktop and narrow widths (see §12); the remaining routes were not walked by hand                          |
 | E    | Formal phase 1–15 verification matrix                | partially evidenced — 156 browser tests across 61 spec files, many named and grouped by the phase they cover, all passing; but the explicit matrix document was not written |
 
 Everything else in Parts A–AU is done and evidenced, either this pass or in the
