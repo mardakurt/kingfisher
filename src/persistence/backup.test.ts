@@ -379,3 +379,106 @@ describe('workspace backup', () => {
     ).toThrow('not marked as including games');
   });
 });
+
+/**
+ * Phase 15 left a real gap here: backups correctly excluded the hundreds of
+ * megabytes of reference-pack data, and also forgot which packs there were, so
+ * a restored profile silently lost the sources every statistic in the
+ * workspace had been read from. These tests hold both halves of the fix at
+ * once — the metadata is carried, and the data still is not.
+ */
+describe('reference sources in a backup', () => {
+  const SOURCES = [
+    { id: 'elite-otb', name: 'Elite OTB', version: '2026.03', bytes: 355_000_000 },
+    {
+      id: 'custom-pack',
+      name: 'A pack from elsewhere',
+      bytes: 1_000,
+      manifestUrl: 'https://example.invalid/manifest.json',
+    },
+  ] as const;
+
+  it('records what was installed', async () => {
+    const source = createMemoryRepositories();
+    const backup = await createWorkspaceBackup(
+      source.raw,
+      {},
+      { now: NOW, referenceSources: SOURCES },
+    );
+    expect(backup.referenceSources).toEqual(SOURCES);
+  });
+
+  it('records nothing when nothing is installed', async () => {
+    const source = createMemoryRepositories();
+    const backup = await createWorkspaceBackup(source.raw, {}, { now: NOW });
+    expect(backup.referenceSources).toEqual([]);
+  });
+
+  it('never carries the pack data itself', async () => {
+    const source = createMemoryRepositories();
+    const backup = await createWorkspaceBackup(
+      source.raw,
+      {},
+      { now: NOW, referenceSources: SOURCES },
+    );
+    // The two stores that hold hundreds of megabytes.
+    expect(backup.stores[STORE_NAMES.referencePacks]).toBeUndefined();
+    expect(backup.stores[STORE_NAMES.referenceChunks]).toBeUndefined();
+    // And the whole document stays small enough to email to yourself.
+    expect(JSON.stringify(backup).length).toBeLessThan(20_000);
+  });
+
+  it('hands the list back to the caller on restore', async () => {
+    const source = createMemoryRepositories();
+    const backup = await createWorkspaceBackup(
+      source.raw,
+      {},
+      { now: NOW, referenceSources: SOURCES },
+    );
+    const target = createMemoryRepositories();
+    const result = await restoreWorkspaceBackup(target.raw, backup, 'merge');
+    expect(result.referenceSources).toEqual(SOURCES);
+  });
+
+  it('does not install anything, or claim it did', async () => {
+    /*
+      The point of the whole design. A restored pack record saying "ready" with
+      no chunks behind it would be a source that answers chess questions from
+      nothing, which is worse than a source that is absent.
+    */
+    const source = createMemoryRepositories();
+    const backup = await createWorkspaceBackup(
+      source.raw,
+      {},
+      { now: NOW, referenceSources: SOURCES },
+    );
+    const target = createMemoryRepositories();
+    await restoreWorkspaceBackup(target.raw, backup, 'replace');
+    expect(await target.raw.getAll(STORE_NAMES.referencePacks)).toEqual([]);
+    expect(await target.raw.getAll(STORE_NAMES.referenceChunks)).toEqual([]);
+  });
+
+  it('restores a backup written before any of this existed', async () => {
+    const source = createMemoryRepositories();
+    const backup = await createWorkspaceBackup(source.raw, {}, { now: NOW });
+    const older = { ...backup } as Record<string, unknown>;
+    delete older.referenceSources;
+    // An older backup cannot answer the question; that is not the same as
+    // being broken, and refusing to restore it would be the worst trade here.
+    expect(parseWorkspaceBackup(older).referenceSources).toEqual([]);
+  });
+
+  it('rejects a reference list that is not one', async () => {
+    const source = createMemoryRepositories();
+    const backup = await createWorkspaceBackup(source.raw, {}, { now: NOW });
+    for (const bad of [
+      'elite-otb',
+      [{ name: 'No id', bytes: 1 }],
+      [{ id: 'no-name', bytes: 1 }],
+      [{ id: 'x', name: 'Bad size', bytes: -1 }],
+      [{ id: 'x', name: 'Not a number', bytes: 'big' }],
+    ]) {
+      expect(() => parseWorkspaceBackup({ ...backup, referenceSources: bad })).toThrow();
+    }
+  });
+});

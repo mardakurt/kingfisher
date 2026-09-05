@@ -30,6 +30,7 @@ import {
   createWorkspaceBackup,
   parseWorkspaceBackup,
   restoreWorkspaceBackup,
+  type BackedUpReferenceSource,
   type WorkspaceBackup,
 } from '@/persistence/backup';
 import { getRepositories } from '@/persistence/repositories';
@@ -72,6 +73,9 @@ import type { LinkedAccountRecord, SyncProvider } from '@/persistence/domain';
 import { cn } from '@/lib/cn';
 import type { PieceType } from '@/chess/types';
 import { DEFAULT_PREFERENCES, usePreferences, type Preferences } from '@/stores/preferences-store';
+import { catalogPack } from '@/reference/catalog';
+import { installedReferenceSources, startInstall } from '@/reference/manager';
+import { formatBytes } from '@/features/databases/CollectionList';
 import { useUi } from '@/stores/ui-store';
 
 import { TablebaseSettings } from './TablebaseSettings';
@@ -1504,6 +1508,13 @@ function BackupControls() {
   const [pending, setPending] = useState<WorkspaceBackup | null>(null);
   const [replaceOpen, setReplaceOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  /*
+    What the restored backup said was installed but this profile has not got.
+    Kept in state after the restore rather than acted on, because reinstalling
+    is a several-hundred-megabyte download and a restore is not consent to
+    start one.
+  */
+  const [missingSources, setMissingSources] = useState<readonly BackedUpReferenceSource[]>([]);
 
   const exportBackup = async () => {
     setBusy(true);
@@ -1511,6 +1522,10 @@ function BackupControls() {
       const preferences = portablePreferences(usePreferences.getState());
       const backup = await createWorkspaceBackup((await getRepositories()).raw, preferences, {
         includeGames,
+        // Names and sizes only. The packs themselves are hundreds of megabytes
+        // and can be fetched again; what cannot be recovered is knowing which
+        // ones the workspace was reading from.
+        referenceSources: installedReferenceSources(),
       });
       const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -1555,6 +1570,8 @@ function BackupControls() {
       const result = await restoreWorkspaceBackup((await getRepositories()).raw, pending, mode);
       applyPortablePreferences(result.preferences);
       await queryClient.invalidateQueries();
+      const here = new Set(installedReferenceSources().map((source) => source.id));
+      setMissingSources(result.referenceSources.filter((source) => !here.has(source.id)));
       setPending(null);
       setReplaceOpen(false);
       notify({
@@ -1630,6 +1647,42 @@ function BackupControls() {
               Cancel
             </Button>
           </div>
+        </div>
+      ) : null}
+      {missingSources.length > 0 ? (
+        <div className="mt-3 rounded-[4px] border border-line bg-surface-inset p-3">
+          <p className="text-2xs text-secondary">
+            These reference sources were installed when the backup was made, and are not on this
+            machine:
+          </p>
+          <ul className="mt-1.5 space-y-1">
+            {missingSources.map((source) => (
+              <li key={source.id} className="flex items-baseline gap-2 text-2xs">
+                <span className="text-primary">{source.name}</span>
+                <span className="text-tertiary">
+                  {source.version ? `${source.version} · ` : ''}
+                  {formatBytes(source.bytes)}
+                </span>
+                <Button
+                  className="ml-auto"
+                  disabled={busy || catalogPack(source.id) === undefined}
+                  onClick={() => {
+                    void startInstall(source.id);
+                    setMissingSources((rest) => rest.filter((entry) => entry.id !== source.id));
+                  }}
+                >
+                  {catalogPack(source.id) ? 'Reinstall' : 'Not in the catalog'}
+                </Button>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-1.5 text-[10.5px] leading-relaxed text-tertiary">
+            Their contents are not in the backup — they are large, and they can be downloaded again.
+            Which sources were switched on, and in what order, was restored with your preferences.
+          </p>
+          <Button className="mt-2" onClick={() => setMissingSources([])}>
+            Dismiss
+          </Button>
         </div>
       ) : null}
       <ConfirmDialog

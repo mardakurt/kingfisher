@@ -464,6 +464,35 @@ export function readyPackReaders(): readonly PackReader[] {
     .filter((reader): reader is PackReader => reader !== undefined);
 }
 
+/**
+ * What is installed right now, in the shape a workspace backup records.
+ *
+ * Only `ready` packs. A pack halfway through installing is not something a
+ * restore should offer to reinstall as though it had been working, and a
+ * failed one is not something the user chose to have.
+ *
+ * The bundled pack is included deliberately: it reinstalls itself on a fresh
+ * profile, but a backup that silently omitted it would be describing a
+ * workspace that never existed.
+ */
+export function installedReferenceSources(): readonly {
+  readonly id: string;
+  readonly name: string;
+  readonly version?: string;
+  readonly bytes: number;
+  readonly manifestUrl?: string;
+}[] {
+  return installed
+    .filter((pack) => pack.state === 'ready')
+    .map((pack) => ({
+      id: pack.id,
+      name: pack.manifest.name,
+      bytes: pack.bytes,
+      ...(pack.manifest.version ? { version: pack.manifest.version } : {}),
+      ...(pack.manifestUrl ? { manifestUrl: pack.manifestUrl } : {}),
+    }));
+}
+
 export function resetReferenceManagerForTests(): void {
   snapshot = EMPTY;
   customPacks.clear();

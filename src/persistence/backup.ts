@@ -6,6 +6,16 @@
  * the user's authored work; callers can opt in when they need a complete local
  * clone. Restore validates the complete document before opening a write
  * transaction, then commits every included store atomically.
+ *
+ * Reference packs are the one thing recorded but never carried. A pack is
+ * hundreds of megabytes of chunks that can be fetched again, so putting them
+ * in a JSON file the user emails to themselves is absurd — but a backup that
+ * does not even remember *which* ones were installed leaves a restored profile
+ * silently missing the sources every statistic in the workspace was read from.
+ * So the backup stores a short list of what was there, and restore hands it
+ * back so the user can be offered a reinstall. The pack records themselves are
+ * never written: a row saying "ready" with no chunks behind it would be a
+ * source that lies about having data.
  */
 
 import {
@@ -63,6 +73,29 @@ export interface WorkspaceBackup {
   readonly includesGames: boolean;
   readonly preferences: Readonly<Record<string, unknown>>;
   readonly stores: Readonly<Partial<Record<StoreName, readonly unknown[]>>>;
+  /**
+   * Which reference packs were installed. Never their contents.
+   *
+   * Whether each source was *enabled* is already in `preferences`, under
+   * `sourceSettings` and `sourcePriority`, and is restored with them.
+   */
+  readonly referenceSources: readonly BackedUpReferenceSource[];
+}
+
+/**
+ * A reference pack that was installed when the backup was taken.
+ *
+ * Metadata only, and deliberately small enough to be obviously not the data:
+ * enough to name the source to a human and to find it in the catalog again.
+ */
+export interface BackedUpReferenceSource {
+  readonly id: string;
+  readonly name: string;
+  readonly version?: string;
+  /** How big it was, so "Reinstall" can say what it is about to download. */
+  readonly bytes: number;
+  /** Where a pack installed from outside the catalog came from. */
+  readonly manifestUrl?: string;
 }
 
 export type RestoreMode = 'merge' | 'replace';
@@ -73,12 +106,24 @@ export interface RestoreResult {
   readonly stores: number;
   readonly includesGames: boolean;
   readonly preferences: Readonly<Record<string, unknown>>;
+  /**
+   * What the backup says was installed, for the caller to offer to reinstall.
+   *
+   * Nothing was written for these. Reinstallation stays an explicit decision
+   * because it is a large download, and a restore is not the moment to start
+   * one without asking.
+   */
+  readonly referenceSources: readonly BackedUpReferenceSource[];
 }
 
 export async function createWorkspaceBackup(
   database: PersistenceDatabase,
   preferences: Readonly<Record<string, unknown>>,
-  options: { readonly includeGames?: boolean; readonly now?: number } = {},
+  options: {
+    readonly includeGames?: boolean;
+    readonly now?: number;
+    readonly referenceSources?: readonly BackedUpReferenceSource[];
+  } = {},
 ): Promise<WorkspaceBackup> {
   const included = options.includeGames
     ? [...PORTABLE_STORES, ...GAME_STORES]
@@ -98,6 +143,7 @@ export async function createWorkspaceBackup(
     includesGames: options.includeGames ?? false,
     preferences: structuredClone(preferences),
     stores,
+    referenceSources: (options.referenceSources ?? []).map((source) => ({ ...source })),
   };
 }
 
@@ -115,6 +161,13 @@ export function parseWorkspaceBackup(value: unknown): WorkspaceBackup {
   if (!isObject(value.preferences)) throw invalid('The preferences section is invalid.');
   if (!isObject(value.stores)) throw invalid('The stores section is invalid.');
   const rawStores = value.stores;
+  /*
+    Absent in every backup written before Phase 16. Treated as "none recorded"
+    rather than as a broken file: an older backup is not wrong, it simply
+    cannot answer the question, and refusing to restore it over that would be
+    the worst possible trade.
+  */
+  const referenceSources = parseReferenceSources(value.referenceSources);
 
   const expected = value.includesGames
     ? [...PORTABLE_STORES, ...GAME_STORES]
@@ -148,7 +201,34 @@ export function parseWorkspaceBackup(value: unknown): WorkspaceBackup {
     throw invalid('The backup contains game data but is not marked as including games.');
   }
 
-  return structuredClone(value) as unknown as WorkspaceBackup;
+  return {
+    ...(structuredClone(value) as unknown as WorkspaceBackup),
+    referenceSources,
+  };
+}
+
+function parseReferenceSources(value: unknown): readonly BackedUpReferenceSource[] {
+  if (value === undefined) return [];
+  if (!Array.isArray(value)) throw invalid('The reference sources section is invalid.');
+  return value.map((entry, index) => {
+    if (!isObject(entry)) throw invalid(`Reference source ${index} is not an object.`);
+    if (typeof entry.id !== 'string' || entry.id.length === 0) {
+      throw invalid(`Reference source ${index} has no id.`);
+    }
+    if (typeof entry.name !== 'string' || entry.name.length === 0) {
+      throw invalid(`Reference source ${index} has no name.`);
+    }
+    if (typeof entry.bytes !== 'number' || !Number.isFinite(entry.bytes) || entry.bytes < 0) {
+      throw invalid(`Reference source ${index} has an invalid size.`);
+    }
+    return {
+      id: entry.id,
+      name: entry.name,
+      bytes: entry.bytes,
+      ...(typeof entry.version === 'string' ? { version: entry.version } : {}),
+      ...(typeof entry.manifestUrl === 'string' ? { manifestUrl: entry.manifestUrl } : {}),
+    };
+  });
 }
 
 export async function restoreWorkspaceBackup(
@@ -180,6 +260,7 @@ export async function restoreWorkspaceBackup(
     stores: stores.length,
     includesGames: backup.includesGames,
     preferences: backup.preferences,
+    referenceSources: backup.referenceSources,
   };
 }
 
