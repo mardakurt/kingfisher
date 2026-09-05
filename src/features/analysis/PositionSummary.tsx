@@ -41,7 +41,16 @@ export function PositionSummary() {
           <span className="text-secondary">
             {position.turn === 'w' ? 'White' : 'Black'} to play
           </span>
-          {node.ply > 0 && <span className="ml-1.5 tabular">move {moveNumberOfPly(node.ply)}</span>}
+          {/*
+            The move about to be played, not the one already made. `node.ply`
+            is the move that *led here*, so numbering it says "White to play
+            move 1" in the position after 1.e4 e5 — where White has already
+            played move 1 and is about to play move 2. Wrong on every White
+            move, on the status line a player reads most often.
+          */}
+          {node.ply > 0 && (
+            <span className="ml-1.5 tabular">move {moveNumberOfPly(node.ply + 1)}</span>
+          )}
         </span>
       )}
 

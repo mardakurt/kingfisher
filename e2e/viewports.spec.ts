@@ -81,3 +81,58 @@ test('no route scrolls sideways at any supported width', async ({ page }) => {
   expect(problems).toEqual([]);
   expect([...new Set(consoleProblems)]).toEqual([]);
 });
+
+/**
+ * Resizing a window that is already open.
+ *
+ * The board matrix in `kingfisher.spec.ts` sets a viewport and then loads the
+ * page, which proves the board is sized correctly *on arrival*. It says nothing
+ * about the case a workstation user actually hits: the application is open, and
+ * they maximise it, or drag it onto a second display, or split it beside an
+ * engine window. That path is a ResizeObserver rather than a first render, and
+ * a stale observer would leave a board sized for the window that has gone —
+ * either overflowing its column or sitting small in the middle of a large one,
+ * until the page is reloaded.
+ */
+test('the board follows the window when it is resized, not only when it is loaded', async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  const board = () => page.getByRole('grid', { name: 'Chessboard' });
+
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto('/analysis');
+  await waitForApp(page);
+  const small = await board().boundingBox();
+  expect(small).not.toBeNull();
+
+  // Grow without reloading. The board should take the room it was given.
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await expect
+    .poll(async () => Math.round((await board().boundingBox())?.width ?? 0), { timeout: 10_000 })
+    .toBeGreaterThan(Math.round(small?.width ?? 0));
+
+  const large = await board().boundingBox();
+  expect(Math.abs((large?.width ?? 0) - (large?.height ?? 0)), 'still square').toBeLessThan(1);
+  // It must also fit the space it is in, rather than overflowing it.
+  const container = await page.locator('[data-board-container]').first().boundingBox();
+  expect(large?.height ?? 0, 'fits its container').toBeLessThanOrEqual(
+    (container?.height ?? 0) + 1,
+  );
+
+  // And shrink again, which is the direction that hides a stale size as overflow.
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await expect
+    .poll(async () => Math.round((await board().boundingBox())?.width ?? 0), { timeout: 10_000 })
+    .toBeLessThan(Math.round(large?.width ?? 0));
+
+  const backAgain = await board().boundingBox();
+  const shrunkContainer = await page.locator('[data-board-container]').first().boundingBox();
+  expect(backAgain?.height ?? 0, 'fits the smaller container').toBeLessThanOrEqual(
+    (shrunkContainer?.height ?? 0) + 1,
+  );
+  expect(
+    Math.abs((backAgain?.width ?? 0) - (backAgain?.height ?? 0)),
+    'square at the smaller size',
+  ).toBeLessThan(1);
+});
