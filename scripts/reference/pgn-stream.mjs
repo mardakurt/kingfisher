@@ -84,7 +84,7 @@ function bytesOf(file) {
         const response = await fetch(file.url, file.init);
         if (!response.ok) throw new Error(`${file.url} → HTTP ${response.status}`);
         if (!response.body) throw new Error(`${file.url} returned no body.`);
-        await pipeline(Readable.fromWeb(response.body), zstdFrameStream(), out);
+        await pipeline(Readable.fromWeb(response.body), zstdFrameStream, out);
       } catch (error) {
         out.destroy(error instanceof Error ? error : new Error(String(error)));
       }

@@ -15,7 +15,6 @@
  * the format states explicitly.
  */
 
-import { Transform } from 'node:stream';
 import { zstdDecompressSync } from 'node:zlib';
 
 const ZSTD_MAGIC = 0xfd2fb528;
@@ -107,62 +106,59 @@ function endOfFrame(buffer, start, partial = false) {
 }
 
 /**
- * A Transform that turns a stream of seekable-zstd bytes into decompressed ones.
+ * Decompress a stream of seekable-zstd bytes, frame by frame.
  *
  * `zstdFrames` above needs the whole archive in memory, which is right for a
  * twenty-megabyte broadcast file and impossible for a thirty-gigabyte month of
- * the standard database. This walks the same frame headers incrementally: it
- * buffers until one complete frame has arrived, decompresses it, and drops it —
- * so peak memory is one frame, not one archive.
+ * the standard database. This walks the same frame headers incrementally,
+ * decompressing each frame as it completes and dropping it — so peak memory is
+ * one frame (about 4.7 MB compressed in these archives), not one archive.
  *
  * It exists because neither simpler thing works on these files. Piping straight
  * into `createZstdDecompress()` fails at byte zero on the leading skippable
- * frame; skipping only the frames *before* the first real one gets further and
- * then stops silently at the end of that frame, because the archives interleave
- * skippable frames throughout and a decoder treats one as the end of the
- * stream. That failure produced a pack with 148 games in it and exit code 0,
- * which is why the frames are now counted rather than assumed.
+ * frame; dropping only the frames *before* the first real one gets further and
+ * then stops silently at the next skippable frame, because a decoder treats one
+ * as the end of the stream. That failure produced a pack with 148 games in it
+ * and exit code 0, which is why the frames are now counted rather than assumed.
+ *
+ * An async generator rather than a `Transform`, because backpressure is the
+ * whole problem at this size: a Transform pushes whatever it has decoded and
+ * relies on the consumer keeping up, and when the consumer is a PGN parser and
+ * the producer is a network socket, the difference accumulates until the worker
+ * runs out of heap. A generator only advances when something pulls from it.
  */
-export function zstdFrameStream() {
+export async function* zstdFrameStream(source) {
   let held = Buffer.alloc(0);
   let frames = 0;
-  const split = function (chunk, _encoding, done) {
-    held = held.length > 0 ? Buffer.concat([held, chunk]) : chunk;
+
+  for await (const chunk of source) {
+    held = held.length > 0 ? Buffer.concat([held, chunk]) : Buffer.from(chunk);
     let offset = 0;
-    try {
-      for (;;) {
-        if (offset + 8 > held.length) break;
-        const magic = held.readUInt32LE(offset);
-        if ((magic & SKIPPABLE_MASK) === SKIPPABLE_MAGIC) {
-          const end = offset + 8 + held.readUInt32LE(offset + 4);
-          if (end > held.length) break;
-          offset = end;
-          continue;
-        }
-        if (magic !== ZSTD_MAGIC) {
-          throw new Error(`Not a zstd frame at ${offset}: magic 0x${magic.toString(16)}.`);
-        }
-        const end = endOfFrame(held, offset, true);
-        if (end === null) break;
-        this.push(zstdDecompressSync(held.subarray(offset, end)));
-        frames += 1;
+    for (;;) {
+      if (offset + 8 > held.length) break;
+      const magic = held.readUInt32LE(offset);
+      if ((magic & SKIPPABLE_MASK) === SKIPPABLE_MAGIC) {
+        const end = offset + 8 + held.readUInt32LE(offset + 4);
+        if (end > held.length) break;
         offset = end;
+        continue;
       }
-    } catch (error) {
-      return done(error instanceof Error ? error : new Error(String(error)));
+      if (magic !== ZSTD_MAGIC) {
+        throw new Error(`Not a zstd frame at ${offset}: magic 0x${magic.toString(16)}.`);
+      }
+      const end = endOfFrame(held, offset, true);
+      if (end === null) break;
+      const frame = held.subarray(offset, end);
+      offset = end;
+      frames += 1;
+      yield zstdDecompressSync(frame);
     }
     held = offset > 0 ? Buffer.from(held.subarray(offset)) : held;
-    done();
-  };
-  return new Transform({
-    transform: split,
-    flush(done) {
-      // Anything left is a partial frame, which means a truncated download.
-      if (held.length > 0) {
-        return done(new Error(`Archive ended mid-frame with ${held.length} bytes unread.`));
-      }
-      if (frames === 0) return done(new Error('Archive contained no zstd frames.'));
-      done();
-    },
-  });
+  }
+
+  // Anything left is a partial frame, which means a truncated download.
+  if (held.length > 0) {
+    throw new Error(`Archive ended mid-frame with ${held.length} bytes unread.`);
+  }
+  if (frames === 0) throw new Error('Archive contained no zstd frames.');
 }

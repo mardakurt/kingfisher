@@ -35,7 +35,7 @@ async function split(bytes, size = 7) {
   const sink = async function* (source) {
     for await (const chunk of source) out.push(Buffer.from(chunk));
   };
-  await pipeline(Readable.from(chunks), zstdFrameStream(), sink);
+  await pipeline(Readable.from(chunks), zstdFrameStream, sink);
   return Buffer.concat(out).toString('utf8');
 }
 
