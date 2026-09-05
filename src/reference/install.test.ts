@@ -327,6 +327,40 @@ describe('transactional pack updates', () => {
     ).toBe(0);
   });
 
+  /**
+   * Reclaiming runs at every start-up. The first version of it asked the
+   * `packId` index for the chunk *records* so it could read their ids, which
+   * deserialised the whole installed pack — twelve megabytes for the bundled
+   * one — on every page load. On a CI runner that was enough to take the
+   * browser down twenty-five times in one suite.
+   */
+  it('reclaims without reading a single chunk of the pack it is reclaiming from', async () => {
+    const store = await freshStore();
+    const { original, manifest, chunks } = update();
+    await installPack(original.manifest, '/packs/manifest.json', store, {
+      fetcher: responder(original.manifest, original.chunks) as typeof fetch,
+    });
+    await installPack(manifest, '/packs/manifest.json', store, {
+      fetcher: responder(manifest, chunks) as typeof fetch,
+    });
+
+    const database = (store as unknown as { database: Record<string, unknown> }).database;
+    const readRecords = vi.spyOn(
+      database as unknown as { getAllFromIndex: () => unknown },
+      'getAllFromIndex',
+    );
+    const dropped = await store.pruneChunks(
+      manifest.id,
+      new Set(manifest.chunks.map((chunk) => chunk.sha256)),
+    );
+
+    expect(dropped).toBeGreaterThan(0);
+    expect(
+      readRecords,
+      'reclaiming storage must not deserialise what it frees',
+    ).not.toHaveBeenCalled();
+  });
+
   it('keeps version 1 readable throughout version 2 download and atomically switches', async () => {
     const store = await freshStore();
     const { original, manifest, chunks } = update();

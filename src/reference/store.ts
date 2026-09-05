@@ -96,13 +96,11 @@ export class ReferencePackStore implements ChunkSource {
 
   private async removeUnlocked(id: string): Promise<void> {
     await this.database.delete(STORE_NAMES.referencePacks, id);
-    const chunks = await this.database.getAllFromIndex<ChunkRecord>(
-      STORE_NAMES.referenceChunks,
-      'packId',
-      id,
-    );
+    // Keys, not records: the records are the pack, and reading it in order to
+    // delete it would mean holding a few hundred megabytes to free them.
+    const keys = await this.database.getAllKeysFromIndex(STORE_NAMES.referenceChunks, 'packId', id);
     await this.database.transaction([STORE_NAMES.referenceChunks], 'readwrite', async (tx) => {
-      for (const chunk of chunks) await tx.delete(STORE_NAMES.referenceChunks, [id, chunk.chunkId]);
+      for (const key of keys) await tx.delete(STORE_NAMES.referenceChunks, key);
     });
   }
 
@@ -118,15 +116,18 @@ export class ReferencePackStore implements ChunkSource {
    * here leaves reclaimable bytes rather than a pack missing a shard.
    */
   async pruneChunks(id: string, keep: ReadonlySet<string>): Promise<number> {
-    const chunks = await this.database.getAllFromIndex<ChunkRecord>(
-      STORE_NAMES.referenceChunks,
-      'packId',
-      id,
-    );
-    const stale = chunks.filter((chunk) => !keep.has(chunk.chunkId));
+    /*
+      Keys only, and this is the whole reason `getAllKeysFromIndex` exists.
+      Reclaiming runs at every start-up, and reading the records would mean
+      deserialising the entire installed pack — twelve megabytes for the
+      bundled one, three hundred and forty for Elite — on every page load, to
+      compare a list of strings.
+    */
+    const keys = await this.database.getAllKeysFromIndex(STORE_NAMES.referenceChunks, 'packId', id);
+    const stale = keys.filter((key) => !keep.has(String((key as IDBValidKey[])[1] ?? '')));
     if (stale.length === 0) return 0;
     await this.database.transaction([STORE_NAMES.referenceChunks], 'readwrite', async (tx) => {
-      for (const chunk of stale) await tx.delete(STORE_NAMES.referenceChunks, [id, chunk.chunkId]);
+      for (const key of stale) await tx.delete(STORE_NAMES.referenceChunks, key);
     });
     return stale.length;
   }
@@ -134,8 +135,12 @@ export class ReferencePackStore implements ChunkSource {
   /** Chunks belonging to no listed pack, left by an interrupted removal. */
   async orphans(): Promise<readonly string[]> {
     const packs = new Set((await this.list()).map((pack) => pack.id));
-    const chunks = await this.database.getAll<ChunkRecord>(STORE_NAMES.referenceChunks);
-    return [...new Set(chunks.map((chunk) => chunk.packId))].filter((id) => !packs.has(id));
+    // The compound primary key is [packId, chunkId], so the pack ids are
+    // readable from the keys alone — without loading every chunk of every
+    // installed pack to find out which packs exist.
+    const keys = await this.database.getAllKeysFromIndex(STORE_NAMES.referenceChunks, 'packId');
+    const owners = new Set(keys.map((key) => String((key as IDBValidKey[])[0] ?? '')));
+    return [...owners].filter((id) => !packs.has(id));
   }
 }
 

@@ -142,6 +142,23 @@ export class MemoryPersistenceDatabase implements PersistenceDatabase {
     }) as T[];
   }
 
+  /**
+   * The double reads the records and then throws them away, which is exactly
+   * the cost the real implementation exists to avoid. That is fine here and
+   * would not be fine there: the point of the method is the shape of its
+   * answer, and tests do not hold twelve megabytes of chunks.
+   */
+  async getAllKeysFromIndex(store: StoreName, index: string, key?: Key): Promise<IDBValidKey[]> {
+    const spec = SCHEMA.get(store);
+    if (!spec) throw new Error(`No store ${store}.`);
+    const values = await this.getAllFromIndex<Record<string, unknown>>(store, index, key);
+    return values.map((value) =>
+      Array.isArray(spec.keyPath)
+        ? (spec.keyPath.map((part) => readKeyPath(value, part)) as IDBValidKey)
+        : (readKeyPath(value, spec.keyPath as string) as IDBValidKey),
+    );
+  }
+
   async put<T>(store: StoreName, value: T): Promise<IDBValidKey> {
     const record = value as Record<string, unknown>;
     const key = record.id as IDBValidKey | undefined;

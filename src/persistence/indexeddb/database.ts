@@ -46,6 +46,15 @@ export interface PersistenceTransaction {
   /** One page of records, read through a cursor rather than materialised whole. */
   scan<T>(store: StoreName, options?: ScanOptions<T>): Promise<ScanResult<T>>;
   getAllFromIndex<T>(store: StoreName, index: string, key?: Key): Promise<T[]>;
+  /**
+   * The primary keys an index matches, without reading a single record.
+   *
+   * The difference is not a micro-optimisation where records are large. A
+   * reference pack's chunks are a hundred kilobytes each, so asking which
+   * chunks a pack owns through `getAllFromIndex` deserialises the entire pack
+   * — twelve megabytes, to compare eighty-eight strings.
+   */
+  getAllKeysFromIndex(store: StoreName, index: string, key?: Key): Promise<IDBValidKey[]>;
   put<T>(store: StoreName, value: T): Promise<IDBValidKey>;
   delete(store: StoreName, key: IDBValidKey): Promise<void>;
   clear(store: StoreName): Promise<void>;
@@ -183,6 +192,12 @@ class NativeTransaction implements PersistenceTransaction {
     return request(source.getAll(query as IDBValidKey | IDBKeyRange | undefined)) as Promise<T[]>;
   }
 
+  getAllKeysFromIndex(store: StoreName, index: string, key?: Key): Promise<IDBValidKey[]> {
+    const source = this.value.objectStore(store).index(index);
+    const query = key !== undefined && isKeyRange(key) ? toNativeRange(key) : key;
+    return request(source.getAllKeys(query as IDBValidKey | IDBKeyRange | undefined));
+  }
+
   put<T>(store: StoreName, value: T): Promise<IDBValidKey> {
     return request(this.value.objectStore(store).put(value));
   }
@@ -225,6 +240,10 @@ class NativeDatabase implements PersistenceDatabase {
 
   getAllFromIndex<T>(store: StoreName, index: string, key?: Key): Promise<T[]> {
     return this.readonly([store]).getAllFromIndex<T>(store, index, key);
+  }
+
+  getAllKeysFromIndex(store: StoreName, index: string, key?: Key): Promise<IDBValidKey[]> {
+    return this.readonly([store]).getAllKeysFromIndex(store, index, key);
   }
 
   async put<T>(store: StoreName, value: T): Promise<IDBValidKey> {
