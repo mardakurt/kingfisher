@@ -39,6 +39,7 @@ import { useUi } from '@/stores/ui-store';
 import { buildMoveEvidence, summariseEvidence, trendOf, type MoveEvidence } from './evidence';
 import { useSourcesFor } from '@/reference/sources';
 import { useOpeningClassification } from '@/theory/useOpeningClassification';
+import { VariationBriefPanel } from '@/features/openings/VariationBriefPanel';
 import { openReferenceGame } from '@/features/games/open-reference-game';
 import { packReader } from '@/reference/manager';
 
@@ -348,6 +349,19 @@ export function ExplorerPanel() {
             </p>
           ) : null}
         </div>
+      ) : null}
+
+      {/*
+        The explanation sits directly under the identity it explains and above
+        the numbers, because "what is this variation" is a question a reader
+        has before "how did it score", not after.
+      */}
+      {opening ? (
+        <VariationBriefPanel
+          lineage={lineage.length > 0 ? lineage : [opening.name]}
+          definingLine={classification?.line ?? null}
+          behind={stale}
+        />
       ) : null}
 
       <PanelBody>

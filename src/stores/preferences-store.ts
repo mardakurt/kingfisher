@@ -69,6 +69,14 @@ export interface Preferences {
    * has to re-choose every time they come back to a line they were working on.
    */
   openingsMode: 'library' | 'explorer';
+  /**
+   * Show the prose explanation of the named variation, not only its name.
+   *
+   * On by default: a player who does not know what an English Attack is is
+   * exactly the reader the explorer is failing today. A player who does know
+   * turns it off once and it stays off.
+   */
+  showVariationBrief: boolean;
   sourceSettings: Record<string, SourcePreference>;
   /**
    * Source ids in the order the user prefers them, most trusted first.
@@ -152,6 +160,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   boardPriority: DEFAULT_BOARD_PRIORITY,
   hiddenEngineIds: [],
   openingsMode: 'library',
+  showVariationBrief: true,
   sourceSettings: {},
   sourcePriority: [],
   enginePreset: 'standard',

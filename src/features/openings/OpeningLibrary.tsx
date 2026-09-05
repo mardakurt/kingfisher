@@ -29,6 +29,7 @@ import { useExplorer } from '@/features/explorer/useExplorer';
 import { useRepertoiresAtPosition } from '@/features/persistence/queries';
 import { useDatabaseProviders } from '@/database/use-database-providers';
 import { cn } from '@/lib/cn';
+import { VariationBriefPanel } from './VariationBriefPanel';
 import {
   alternativeMoveOrders,
   fenAfter,
@@ -37,6 +38,7 @@ import {
   searchOpenings,
   type OpeningEntry,
 } from '@/theory/opening-catalog';
+import { openingLineage } from '@/theory/openings';
 import { useAnalysis } from '@/stores/analysis-store';
 import { usePreferences } from '@/stores/preferences-store';
 import { useUi } from '@/stores/ui-store';
@@ -224,6 +226,17 @@ function OpeningDetail({ entry }: { readonly entry: OpeningEntry }) {
             {entry.plies} {entry.plies === 1 ? 'ply' : 'plies'} · named by the CC0 opening dataset
             Kingfisher classifies with, replayed through its own rules code.
           </p>
+
+          {/*
+            The explanation goes with the identity, above the move orders and
+            the statistics. A reader who has just searched for "Najdorf" wants
+            to know what it is before they are shown thirteen transpositions
+            into it.
+          */}
+          <VariationBriefPanel
+            lineage={openingLineage(entry.name, entry.variation)}
+            density="comfortable"
+          />
 
           <Section title="Also reached by">
             {transpositions.isPending ? (

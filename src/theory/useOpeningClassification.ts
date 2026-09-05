@@ -36,8 +36,12 @@ export function classifyPath(
   for (const id of nodePath(tree, nodeId)) {
     const node = tree.nodes[id];
     if (!node) continue;
-    const hit = index.lookup(positionKey(node.fen));
-    if (hit) best = { ...hit, ply: node.ply, nodeId: id };
+    const key = positionKey(node.fen);
+    const hit = index.lookup(key);
+    if (hit) {
+      const line = index.line(key);
+      best = { ...hit, ply: node.ply, nodeId: id, ...(line ? { line } : {}) };
+    }
   }
   return best;
 }

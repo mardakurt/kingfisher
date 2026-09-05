@@ -58,6 +58,14 @@ export interface GameClassification extends OpeningClassification {
   readonly ply: number;
   /** The node carrying it, when classification walked a tree. */
   readonly nodeId?: NodeId;
+  /**
+   * The dataset's own shortest line to the named position, in SAN.
+   *
+   * Present only where the caller had the index to hand. It is the canonical
+   * sequence for the variation, not the move order this game used to reach
+   * it — a player who transposed still wants to see what defines the line.
+   */
+  readonly line?: string;
 }
 
 export interface OpeningIndex {
@@ -65,6 +73,15 @@ export interface OpeningIndex {
   readonly entries: number;
   readonly deepestPly: number;
   lookup(key: string): OpeningClassification | null;
+  /**
+   * The dataset's own shortest line to a named position, in SAN.
+   *
+   * Deliberately not reconstructed from the game in front of the user: the
+   * question a brief answers is "what sequence defines this variation", and
+   * the answer has to be the canonical one, not whichever move order this
+   * player happened to use to transpose into it.
+   */
+  line(key: string): string | null;
 }
 
 /*
@@ -112,6 +129,9 @@ export function loadOpeningIndex(): Promise<OpeningIndex> {
           };
           cache.set(key, value);
           return value;
+        },
+        line(key: string): string | null {
+          return module.OPENING_LINES[key] ?? null;
         },
       };
       loaded = index;
