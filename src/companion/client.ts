@@ -168,6 +168,23 @@ export interface CatalogueEngine {
 /** Generous: a position query over a hundred thousand games is real work. */
 const REQUEST_TIMEOUT_MS = 20_000;
 
+/**
+ * The deadline for whole-collection maintenance.
+ *
+ * Twenty seconds is right for a query; it is not right for work that is
+ * proportional to the size of the collection. Verifying the aggregates on a
+ * 210,000-game database — sixteen million indexed positions, twelve gigabytes —
+ * takes 67 seconds, because the counts it compares *are* the verification and
+ * there is no way to answer them without reading every row. Under the ordinary
+ * deadline the integrity check therefore failed on exactly the collections
+ * worth checking, and reported the companion as unresponsive when it was
+ * working.
+ *
+ * Ten minutes is chosen against that measurement rather than as a round
+ * number: five times the projected cost at a million games.
+ */
+const MAINTENANCE_TIMEOUT_MS = 600_000;
+
 export class CompanionError extends Error {
   constructor(
     message: string,
@@ -197,7 +214,12 @@ export class CompanionClient {
     return this.config.url;
   }
 
-  private async request<T>(path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
+  private async request<T>(
+    path: string,
+    body?: unknown,
+    signal?: AbortSignal,
+    timeoutMs: number = REQUEST_TIMEOUT_MS,
+  ): Promise<T> {
     let response: Response;
     try {
       response = await fetch(`${this.config.url}${path}`, {
@@ -213,7 +235,7 @@ export class CompanionClient {
           connection and never answers — and with no timeout that request never
           settles and the panel waits forever.
         */
-        signal: withTimeout(signal, REQUEST_TIMEOUT_MS),
+        signal: withTimeout(signal, timeoutMs),
       });
     } catch (error) {
       if (signal?.aborted) throw error;
@@ -356,11 +378,16 @@ export class CompanionClient {
     key: string,
     selection: { readonly fingerprints: readonly string[] } | { readonly query: unknown },
   ): Promise<{ deleted: number; integrity: CompanionAggregateIntegrity }> {
-    return this.request('/db/delete-games', { key, ...selection });
+    return this.request(
+      '/db/delete-games',
+      { key, ...selection },
+      undefined,
+      MAINTENANCE_TIMEOUT_MS,
+    );
   }
 
   clearDatabase(key: string): Promise<{ deleted: number; integrity: CompanionAggregateIntegrity }> {
-    return this.request('/db/clear', { key });
+    return this.request('/db/clear', { key }, undefined, MAINTENANCE_TIMEOUT_MS);
   }
 
   deleteDatabase(key: string): Promise<{ deleted: boolean }> {
@@ -368,11 +395,11 @@ export class CompanionClient {
   }
 
   databaseIntegrity(key: string): Promise<CompanionAggregateIntegrity> {
-    return this.request('/db/integrity', { key });
+    return this.request('/db/integrity', { key }, undefined, MAINTENANCE_TIMEOUT_MS);
   }
 
   rebuildAggregates(key: string): Promise<CompanionAggregateIntegrity> {
-    return this.request('/db/rebuild-aggregates', { key });
+    return this.request('/db/rebuild-aggregates', { key }, undefined, MAINTENANCE_TIMEOUT_MS);
   }
 
   /** A bounded page of complete games, for copying to another collection. */
