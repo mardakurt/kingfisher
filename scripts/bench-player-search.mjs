@@ -112,18 +112,52 @@ function build(database, count) {
   return performance.now() - started;
 }
 
-function measure(label, runs, run) {
+const RUNS = 60;
+
+/**
+ * Time one query, reporting the cold first run apart from the warm ones.
+ *
+ * Both halves of that split were wrong before, and together they turned a
+ * one-off cost into a reported steady-state tail.
+ *
+ * The first query at a given scale pays to fault the index pages it touches in
+ * from a database that was just written; at 500,000 games that first call takes
+ * ~390 ms and every call after it takes 18. Averaging them describes neither.
+ * The cold number is real and worth knowing — it is what the first search after
+ * opening a large database costs — but it is not what searching *feels* like,
+ * and quoting it as a percentile of ordinary use overstates the steady state by
+ * more than twenty times.
+ *
+ * The percentile was also not a percentile. With twenty samples,
+ * `samples[floor(20 * 0.95)]` is `samples[19]` — the maximum, relabelled. So
+ * the cold run *was* the reported "p95" by construction, at every scale, no
+ * matter how tight the rest of the distribution was. Sixty runs and a
+ * nearest-rank index fix that; `worst` is now reported in its own column
+ * instead of masquerading as a percentile.
+ */
+function measure(label, run) {
+  const cold = (() => {
+    const started = performance.now();
+    run(0);
+    return performance.now() - started;
+  })();
+
   const samples = [];
-  for (let i = 0; i < runs; i += 1) {
+  for (let i = 1; i <= RUNS; i += 1) {
     const started = performance.now();
     run(i);
     samples.push(performance.now() - started);
   }
   samples.sort((a, b) => a - b);
-  const median = samples[Math.floor(samples.length / 2)];
-  const p95 = samples[Math.min(samples.length - 1, Math.floor(samples.length * 0.95))];
+  const at = (q) => samples[Math.min(samples.length - 1, Math.ceil(q * samples.length) - 1)];
+  const median = at(0.5);
+  const p95 = at(0.95);
+  const worst = samples[samples.length - 1];
   console.log(
-    `${label.padEnd(28)} median ${median.toFixed(1).padStart(7)} ms   p95 ${p95.toFixed(1).padStart(7)} ms`,
+    `${label.padEnd(28)} cold ${cold.toFixed(1).padStart(7)} ms   ` +
+      `median ${median.toFixed(1).padStart(6)} ms   ` +
+      `p95 ${p95.toFixed(1).padStart(6)} ms   ` +
+      `worst ${worst.toFixed(1).padStart(6)} ms`,
   );
   return median;
 }
@@ -136,14 +170,12 @@ console.log(`Building ${COUNT.toLocaleString('en-GB')} games…`);
 const buildMs = build(database, COUNT);
 console.log(`Built in ${(buildMs / 1000).toFixed(1)} s\n`);
 
-measure('player prefix (car)', 20, () => database.players('car'));
-measure('player prefix (carl)', 20, () => database.players('carl'));
-measure('player prefix (empty)', 20, () => database.players(''));
-measure('player search (exact)', 20, () =>
-  database.search({ player: key('Carlsen, M'), limit: 50 }),
-);
-measure('text search (carlsen)', 20, () => database.search({ text: 'carlsen', limit: 50 }));
-measure('text search (two terms)', 20, () =>
+measure('player prefix (car)', () => database.players('car'));
+measure('player prefix (carl)', () => database.players('carl'));
+measure('player prefix (empty)', () => database.players(''));
+measure('player search (exact)', () => database.search({ player: key('Carlsen, M'), limit: 50 }));
+measure('text search (carlsen)', () => database.search({ text: 'carlsen', limit: 50 }));
+measure('text search (two terms)', () =>
   database.search({ text: 'carlsen candidates', limit: 50 }),
 );
 /*
@@ -152,8 +184,8 @@ measure('text search (two terms)', 20, () =>
   little or nothing scans every row, which is the case a user hits whenever
   they type a name the database does not have.
 */
-measure('text search (rare term)', 20, () => database.search({ text: 'cartwright', limit: 50 }));
-measure('text search (no match)', 20, () => database.search({ text: 'zzzznobody', limit: 50 }));
+measure('text search (rare term)', () => database.search({ text: 'cartwright', limit: 50 }));
+measure('text search (no match)', () => database.search({ text: 'zzzznobody', limit: 50 }));
 
 if (KEEP) {
   console.log(`\nDatabase kept at ${file}`);
