@@ -48,9 +48,38 @@ describe('the published reference catalog', () => {
     }
   });
 
+  it('says what population an online pack is, before anybody installs it', () => {
+    /*
+      The High-Rated Online pack is 97% blitz and one month long. Both facts
+      change what a percentage read off it means, and both have to be on the
+      row a user reads *before* installing — not in a document they find
+      afterwards. Part of shipping it was agreeing not to market it as master
+      practice.
+    */
+    const online = catalogPack('kingfisher-high-rated-online');
+    expect(online, 'the high-rated online pack is not in the catalog').toBeDefined();
+    expect(online?.license.id).toBe('CC0-1.0');
+    expect(online?.description.toLowerCase()).toContain('blitz');
+    expect(online?.description).toContain('2400');
+    expect(online?.origin).toContain('295,695');
+    expect(online?.origin.toLowerCase()).toContain('bullet');
+    // It must not claim to be over-the-board practice, which is what the other
+    // two packs are.
+    expect(online?.origin.toLowerCase()).toContain('not');
+    expect(online?.origin.toLowerCase()).toContain('over-the-board');
+  });
+
+  it('gives every pack a licence it can actually be redistributed under', () => {
+    for (const pack of CATALOG_PACKS) {
+      expect(['CC0-1.0', 'CC-BY-SA-4.0'], pack.id).toContain(pack.license.id);
+      expect(pack.license.attribution ?? '', pack.id).not.toBe('');
+      expect(pack.license.url, pack.id).toMatch(/^https:\/\//);
+    }
+  });
+
   it('offers more than one installable source, so a fresh profile has a choice', () => {
     const installable = CATALOG_PACKS.filter((pack) => !pack.bundled);
-    expect(installable.length).toBeGreaterThanOrEqual(2);
+    expect(installable.length).toBeGreaterThanOrEqual(3);
     expect(CATALOG_PACKS.filter((pack) => pack.bundled)).toHaveLength(1);
   });
 });

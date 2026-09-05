@@ -126,10 +126,51 @@ the latter.
 
 ### Publishing
 
-The built pack is a release asset like Elite OTB, not something the repository
-carries — 82 MB of aggregates is installed on demand. Building it is the command
-below; publishing the artifact and pointing the catalogue at it is a deliberate
-step, taken when somebody decides this month's build is the one to ship.
+**Published, v1, 2026-09-05.** The owner decision in Phase 17 was to ship it.
+
+|             |                                                                    |
+| ----------- | ------------------------------------------------------------------ |
+| Location    | `https://mardakurt.github.io/kingfisher-data/reference-online-v1/` |
+| Repository  | `mardakurt/kingfisher-data`, commit `311b64b`                      |
+| Catalog row | `kingfisher-high-rated-online` in `src/reference/catalog.ts`       |
+| Size        | 85,722,979 bytes across 160 chunks                                 |
+
+Published to the Pages site rather than as a release asset for the same reason
+the other two packs are: release download redirects carry no CORS headers, so a
+browser cannot install from them at all. Release assets remain a manual
+archival download.
+
+**Validated before publication, and again after.** Every one of the 160 chunks
+was checked present, byte-length correct and SHA-256 matching the manifest —
+locally before the push, and again in the staged copy. After publication the
+manifest and a chunk were fetched over the public URL and the chunk's digest
+re-checked against the served manifest; `access-control-allow-origin: *` is
+present.
+
+**Installed and queried, live.** Installed in a browser from the published URL
+in **36 seconds**, and asked for the Najdorf at move 5. It answered from its own
+population — 305,169 games, CC0-1.0 — with a distribution visibly its own:
+
+| Move  | High-Rated Online | Kingfisher Starter (OTB) |
+| ----- | ----------------: | -----------------------: |
+| 6.Bg5 |       27% (1,509) |              17% (1,107) |
+| 6.Be3 |       19% (1,061) |              21% (1,351) |
+| 6.Bc4 |         11% (603) |                 5% (338) |
+| 6.Be2 |          9% (499) |                13% (841) |
+
+The two populations are not merged and each is labelled with its own source and
+licence. That difference is the reason to have both, and the reason neither may
+be presented as the other.
+
+### Update cadence
+
+**Monthly is not proposed, and this is not a rolling window yet.** A three-month
+build was not attempted in this phase, so no measurement exists of what it costs
+or what depth it would add; recommending a cadence on the strength of one
+month's build would be a guess. What is known is what §"What it costs to build"
+records for one month. The next build should be a three-month one, measured
+against v1 on games, positions, size and coverage at 30 and 40 plies, and the
+cadence chosen from that.
 
 ## Reproducing
 

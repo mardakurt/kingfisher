@@ -32,6 +32,13 @@ export interface CatalogPack {
   readonly origin: string;
 }
 
+const LICHESS_STANDARD_LICENSE: PackLicense = {
+  id: 'CC0-1.0',
+  name: 'Creative Commons Zero v1.0 Universal',
+  url: 'https://creativecommons.org/publicdomain/zero/1.0/',
+  attribution: 'Lichess standard rated games database — lichess.org, CC0 1.0',
+};
+
 const LICHESS_BROADCAST_LICENSE: PackLicense = {
   id: 'CC-BY-SA-4.0',
   name: 'Creative Commons Attribution-ShareAlike 4.0 International',
@@ -130,6 +137,42 @@ export const CATALOG_PACKS: readonly CatalogPack[] = [
       '44,200 games, 918,069 positions, ' +
       '2,567 players. Published in the public, ' +
       'data-only mardakurt/kingfisher-data repository.',
+  },
+  {
+    id: 'kingfisher-high-rated-online',
+    name: 'High-Rated Online Reference',
+    description:
+      'Lichess rated games where both players are 2400 or better. ' +
+      'Overwhelmingly blitz — 295,695 of 305,169 games — and one month of ' +
+      'it. Answers what strong players are playing online, which is not the ' +
+      'same question as how a line scores over the board.',
+    manifestUrl: `${packRelease('reference-online-v1')}manifest.json`,
+    bundled: false,
+    capabilities: [
+      'explorer',
+      'games',
+      'player-search',
+      'player-profiles',
+      'position-report',
+      'model-games',
+      'preparation',
+    ],
+    approximateBytes: 85_722_979,
+    maxPositionPly: 40,
+    license: LICHESS_STANDARD_LICENSE,
+    /*
+      The speed mixture is in the first line of the origin because it is the
+      thing most likely to be misread. Somebody who installs this and reads a
+      percentage off it is reading blitz, and the row has to say so before they
+      install rather than in a document afterwards.
+    */
+    origin:
+      'Blitz 295,695 · rapid 9,429 · classical 48, from one month ' +
+      '(2026-07) of the Lichess standard database: 89,288,421 games ' +
+      'considered, 305,169 retained, 315,668 positions, ' +
+      '12,315 players. Bullet and ultrabullet are excluded. Not ' +
+      'over-the-board master practice. Published in the public, data-only ' +
+      'mardakurt/kingfisher-data repository.',
   },
 ];
 
