@@ -37,6 +37,12 @@ import {
   isReviewItemRecord,
   isTrainingSetRecord,
   isLinkedAccountRecord,
+  isPreparationSessionRecord,
+  isOpeningFileRecord,
+  isEndgamePositionRecord,
+  isPinnedLineRecord,
+  isSourceSetRecord,
+  isPlayerIdentityRecord,
 } from './validation';
 import { DATABASE_NAME, STORE_NAMES, type StoreName } from './schema/migrations';
 import type { PersistenceDatabase, PersistenceTransaction } from './indexeddb/database';
@@ -61,7 +67,22 @@ const PORTABLE_STORES = [
   STORE_NAMES.reviewItems,
   STORE_NAMES.trainingSets,
   STORE_NAMES.linkedAccounts,
+  STORE_NAMES.preparationSessions,
+  STORE_NAMES.openingFiles,
+  STORE_NAMES.endgamePositions,
+  STORE_NAMES.pinnedLines,
+  STORE_NAMES.sourceSets,
+  STORE_NAMES.playerIdentities,
 ] as const;
+
+const LATER_AUTHORED_STORES = new Set<StoreName>([
+  STORE_NAMES.preparationSessions,
+  STORE_NAMES.openingFiles,
+  STORE_NAMES.endgamePositions,
+  STORE_NAMES.pinnedLines,
+  STORE_NAMES.sourceSets,
+  STORE_NAMES.playerIdentities,
+]);
 
 const GAME_STORES = [STORE_NAMES.games, STORE_NAMES.gameContent, STORE_NAMES.positions] as const;
 
@@ -174,6 +195,7 @@ export function parseWorkspaceBackup(value: unknown): WorkspaceBackup {
     : [...PORTABLE_STORES];
   for (const store of expected) {
     const records = rawStores[store];
+    if (LATER_AUTHORED_STORES.has(store) && records === undefined) continue;
     // v1 backups created before typed study references have no such store.
     if (store === STORE_NAMES.studyReferences && records === undefined) continue;
     if (
@@ -237,7 +259,9 @@ export async function restoreWorkspaceBackup(
   mode: RestoreMode,
 ): Promise<RestoreResult> {
   const backup = parseWorkspaceBackup(value);
-  const stores = backup.includesGames ? [...PORTABLE_STORES, ...GAME_STORES] : [...PORTABLE_STORES];
+  const stores = (
+    backup.includesGames ? [...PORTABLE_STORES, ...GAME_STORES] : [...PORTABLE_STORES]
+  ).filter((store) => backup.stores[store] !== undefined);
   let records = 0;
 
   await database.transaction(stores, 'readwrite', async (transaction) => {
@@ -283,6 +307,8 @@ const UNIQUE_KEY: Partial<Record<StoreName, (record: Record<string, unknown>) =>
     typeof record.fingerprint === 'string' ? record.fingerprint : null,
   [STORE_NAMES.reviewItems]: (record) =>
     typeof record.identityKey === 'string' ? record.identityKey : null,
+  [STORE_NAMES.openingFiles]: (record) => (typeof record.name === 'string' ? record.name : null),
+  [STORE_NAMES.sourceSets]: (record) => (typeof record.name === 'string' ? record.name : null),
   [STORE_NAMES.trainingSets]: (record) => (typeof record.name === 'string' ? record.name : null),
   [STORE_NAMES.studyReferences]: (record) =>
     typeof record.chapterId === 'string' &&
@@ -353,6 +379,12 @@ function validateRecord(store: StoreName, value: unknown, index: number): void {
     if (store === STORE_NAMES.decisions) return isDecisionRecord(value);
     if (store === STORE_NAMES.reviewItems) return isReviewItemRecord(value);
     if (store === STORE_NAMES.trainingSets) return isTrainingSetRecord(value);
+    if (store === STORE_NAMES.preparationSessions) return isPreparationSessionRecord(value);
+    if (store === STORE_NAMES.openingFiles) return isOpeningFileRecord(value);
+    if (store === STORE_NAMES.endgamePositions) return isEndgamePositionRecord(value);
+    if (store === STORE_NAMES.pinnedLines) return isPinnedLineRecord(value);
+    if (store === STORE_NAMES.sourceSets) return isSourceSetRecord(value);
+    if (store === STORE_NAMES.playerIdentities) return isPlayerIdentityRecord(value);
     if (store === STORE_NAMES.linkedAccounts) return isLinkedAccountRecord(value);
     if (store === STORE_NAMES.games) return isGameSummary(value);
     if (store === STORE_NAMES.gameContent) {
