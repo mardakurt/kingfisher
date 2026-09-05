@@ -281,10 +281,31 @@ export class LichessExplorerProvider implements ChessDatabaseProvider {
         'authentication-required',
         401,
       );
-    const response = await fetch(`${ENDPOINT}/${path}`, {
-      signal,
-      headers: { Accept: 'application/x-chess-pgn', ...lichessAuthHeaders() },
-    });
+    /*
+      The same deadline the explorer query above uses. Fetching a game had only
+      the caller's signal, and callers that open a model game do not pass one —
+      so a stalled connection left the reader waiting on a promise that could
+      never settle, with no error path downstream able to run.
+    */
+    const timeout = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+    const combined = signal ? anySignal([signal, timeout]) : timeout;
+
+    let response: Response;
+    try {
+      response = await fetch(`${ENDPOINT}/${path}`, {
+        signal: combined,
+        headers: { Accept: 'application/x-chess-pgn', ...lichessAuthHeaders() },
+      });
+    } catch (error) {
+      if (signal?.aborted) throw error;
+      throw new DatabaseError(
+        timeout.aborted
+          ? 'Lichess did not respond while fetching that game.'
+          : 'Lichess could not be reached to fetch that game.',
+        'Check your connection, or open the game from a local collection.',
+        'network-error',
+      );
+    }
     if (!response.ok)
       throw new DatabaseError(
         `Lichess returned HTTP ${response.status}.`,

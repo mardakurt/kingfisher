@@ -43,7 +43,15 @@ export function LichessCallback() {
         const { code, request } = readCallback(params, takePkceRequest());
         const token = await exchangeCode(code, request);
 
+        /*
+          This page's whole job is to never leave somebody wondering whether
+          the sign-in worked, and a fetch with no deadline does exactly that:
+          a stalled connection here left "Connecting…" on screen for ever,
+          with no error path able to run. Eight seconds, matching the other
+          Lichess calls, and then it says so.
+        */
         const response = await fetch('https://lichess.org/api/account', {
+          signal: AbortSignal.timeout(8_000),
           headers: { Authorization: `Bearer ${token.accessToken}`, Accept: 'application/json' },
         });
         if (!response.ok) {

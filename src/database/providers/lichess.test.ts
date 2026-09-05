@@ -70,6 +70,40 @@ describe('LichessExplorerProvider authentication', () => {
     await expect(provider.explore({ fen: START_FEN })).rejects.toThrow(/unexpected explorer/);
   });
 
+  /**
+   * A fetch with no deadline is the eternal spinner in its original form: the
+   * promise never settles, so no error path downstream ever runs. Fetching a
+   * game had only the caller's signal, and the callers that open a model game
+   * pass none.
+   */
+  it('gives up on a stalled game fetch instead of waiting for ever', async () => {
+    setLichessToken('lip_example');
+    let observed: AbortSignal | undefined;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        (_url: unknown, init: RequestInit) =>
+          new Promise((_resolve, reject) => {
+            observed = init.signal ?? undefined;
+            // A connection that opens and then says nothing: only the deadline
+            // can end this, which is the whole point of the assertion below.
+            observed?.addEventListener('abort', () => reject(new Error('aborted')));
+          }),
+      ),
+    );
+
+    const provider = new LichessExplorerProvider('masters');
+    const pending = provider.game('abcd1234');
+    expect(observed).toBeDefined();
+    expect(observed?.aborted).toBe(false);
+
+    observed?.dispatchEvent?.(new Event('abort'));
+    await expect(pending).rejects.toMatchObject({
+      state: 'network-error',
+      remedy: expect.stringContaining('local collection'),
+    });
+  });
+
   it('parses the final player NDJSON update and maps recent games', async () => {
     setLichessToken('lip_example');
     const initial = JSON.stringify({ white: 1, draws: 0, black: 0, moves: [] });
