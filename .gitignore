@@ -30,5 +30,7 @@ public/brandlab/
 # own projects; `npm run engines:install` fetches them on demand.
 engines/
 companion/data/
+# `npm run engines:verify` installs the whole fleet to interrogate it.
+.engine-fleet/
 .archive-cache/
 .packs/

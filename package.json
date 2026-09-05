@@ -2,7 +2,7 @@
   "name": "kingfisher",
   "version": "0.1.0",
   "private": true,
-  "description": "Kingfisher \u2014 a chess research workspace for strong players.",
+  "description": "Kingfisher — a chess research workspace for strong players.",
   "scripts": {
     "dev": "next dev --port 3210",
     "build": "next build",
@@ -34,7 +34,10 @@
     "bundle:report": "node scripts/bundle-report.mjs",
     "smoke:lichess": "node scripts/smoke-lichess.mjs",
     "bench:player-search": "node scripts/bench-player-search.mjs",
+    "bench:opening-depth": "node scripts/bench-opening-depth.mjs",
+    "bench:explorer-depth": "node scripts/bench-explorer-depth.mjs",
     "engines:digests": "node scripts/record-engine-digests.mjs",
+    "engines:verify": "node scripts/verify-engine-fleet.mjs",
     "reference:build": "node scripts/build-reference-pack.mjs",
     "polyglot:constants": "node scripts/build-polyglot-constants.mjs && prettier --write src/book/polyglot-constants.generated.ts"
   },

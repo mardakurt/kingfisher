@@ -131,6 +131,79 @@ test.describe('a brand-new installation', () => {
     await expect(dock.getByText(/^B\d\d$/).first()).toBeVisible();
   });
 
+  /**
+   * The release gate for Phase 15, and the reason the packs were rebuilt.
+   *
+   * Five plies proves the explorer answers; it does not prove it is a research
+   * tool. A player studying an opening is fifteen to twenty *full moves* in —
+   * thirty to forty plies — and that is where a reference either keeps
+   * answering or quietly becomes a blank panel with an import prompt.
+   *
+   * Walking the commonest continuation is deliberate: it is exactly what a
+   * player clicking the top row does, and it cannot be gamed by the pack,
+   * because a shallow pack runs out of top rows.
+   */
+  test('answers fifteen full moves into a mainstream line, on a fresh profile', async ({
+    page,
+  }) => {
+    test.setTimeout(300_000);
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/analysis');
+    await ready(page);
+    await referenceReady(page);
+    await page.reload();
+    await ready(page);
+
+    const dock = page.locator('[data-workspace-dock]');
+    await selectTool(page, dock, 'Explorer');
+    await expect(dock.getByRole('combobox', { name: 'Evidence source' })).toHaveValue(
+      'kingfisher-starter',
+      { timeout: 30_000 },
+    );
+
+    const TARGET_PLIES = 30; // fifteen full moves
+    const played: string[] = [];
+    const identities: string[] = [];
+
+    for (let ply = 0; ply < TARGET_PLIES; ply += 1) {
+      const top = dock.locator('[data-explorer-move]').first();
+      await expect(top, `a continuation at ply ${ply}`).toBeVisible({ timeout: 30_000 });
+      const san = (await top.getAttribute('data-explorer-move')) ?? '';
+      await top.click();
+      played.push(san);
+      // The identity is read after every move, not only at the checkpoints,
+      // so a single blank ply cannot hide between them.
+      await expect
+        .poll(async () => dock.locator('[data-explorer-opening]').first().textContent(), {
+          timeout: 20_000,
+        })
+        .not.toBe('');
+      identities.push((await dock.locator('[data-explorer-opening]').first().innerText()).trim());
+    }
+
+    expect(played, 'thirty plies of the commonest continuation').toHaveLength(TARGET_PLIES);
+
+    // The opening is still named at every checkpoint. Past the deepest named
+    // position the name is the deepest classified ancestor, marked as such —
+    // what must never appear is nothing, or the word "Unknown".
+    for (const ply of [10, 20, 30]) {
+      const identity = identities[ply - 1] ?? '';
+      expect(identity, `the opening identity after ${ply} plies (${ply / 2} moves)`).not.toMatch(
+        /unknown|no classified/i,
+      );
+      expect(identity.length, `the opening identity after ${ply} plies`).toBeGreaterThan(3);
+    }
+
+    // Statistics are still rendering at thirty plies: a move, a game count,
+    // and a total for the position.
+    await expect(dock.locator('[data-explorer-move]').first()).toBeVisible();
+    await expect(dock.getByText(/games here/).first()).toBeVisible({ timeout: 20_000 });
+
+    // Nothing along the way asked the user to go and find a database.
+    const body = await page.locator('body').innerText();
+    expect(body).not.toMatch(/import a pgn to|no data for this position|connect an account to/i);
+  });
+
   test('offers famous games that open on the board', async ({ page }) => {
     test.setTimeout(180_000);
     await page.setViewportSize({ width: 1440, height: 900 });
