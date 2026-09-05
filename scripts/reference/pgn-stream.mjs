@@ -81,10 +81,7 @@ function bytesOf(file) {
     const out = new PassThrough();
     void (async () => {
       try {
-        const response = await fetch(file.url, file.init);
-        if (!response.ok) throw new Error(`${file.url} → HTTP ${response.status}`);
-        if (!response.body) throw new Error(`${file.url} returned no body.`);
-        await pipeline(Readable.fromWeb(response.body), zstdFrameStream, out);
+        await pipeline(resumableBytes(file), zstdFrameStream, out);
       } catch (error) {
         out.destroy(error instanceof Error ? error : new Error(String(error)));
       }
@@ -104,6 +101,51 @@ function bytesOf(file) {
   }
   const source = createReadStream(file);
   return file.endsWith('.gz') ? source.pipe(createGunzip()) : source;
+}
+
+/** How many times a dropped download is picked up again before giving up. */
+const RESUME_ATTEMPTS = 8;
+
+/**
+ * The bytes of a remote archive, picking the download up again if it drops.
+ *
+ * A month of the standard database is a forty-five minute download, and
+ * connections that live that long do not always survive: undici reports the
+ * failure as `TypeError: terminated` partway through, and without this the
+ * build loses the whole archive rather than the last few seconds of it.
+ *
+ * Resumption is a `Range` request from the byte already delivered, so nothing
+ * is re-downloaded and — because the frame splitter downstream is counting
+ * bytes into frames — nothing may be delivered twice either. A server that will
+ * not honour the range is treated as a failure rather than restarted silently,
+ * since replaying from zero would corrupt the frame the splitter is midway
+ * through.
+ */
+async function* resumableBytes(file) {
+  let delivered = 0;
+  for (let attempt = 0; ; attempt += 1) {
+    const headers = { ...(file.init?.headers ?? {}) };
+    if (delivered > 0) headers.Range = `bytes=${delivered}-`;
+    let response;
+    try {
+      response = await fetch(file.url, { ...file.init, headers });
+      if (!response.ok) throw new Error(`${file.url} → HTTP ${response.status}`);
+      if (!response.body) throw new Error(`${file.url} returned no body.`);
+      if (delivered > 0 && response.status !== 206) {
+        throw new Error(`${file.url} would not resume from byte ${delivered}.`);
+      }
+      for await (const chunk of Readable.fromWeb(response.body)) {
+        delivered += chunk.length;
+        yield chunk;
+      }
+      return;
+    } catch (error) {
+      if (attempt >= RESUME_ATTEMPTS - 1) throw error;
+      // Give the far end a moment; a dropped connection is rarely instantly
+      // replaceable, and hammering it is how a transient failure becomes a ban.
+      await new Promise((resolve) => setTimeout(resolve, 2000 * (attempt + 1)));
+    }
+  }
 }
 
 /**
