@@ -318,4 +318,17 @@ Three, and the first is not a feature.
 
 ## 14. Final CI run
 
-Recorded after this report was written, against the final HEAD.
+Run **33984316420**, commit `d4c130a`, all four gating jobs green:
+
+| Job              | Result                 |
+| ---------------- | ---------------------- |
+| Quality          | ✓ 2m54s                |
+| Production build | ✓ 54s                  |
+| Visual gate      | ✓ 2m37s                |
+| Browser tests    | ✓ 23m51s               |
+| Playwright       | **158 passed (22.9m)** |
+| Retries          | **0**                  |
+| Flaky            | **0**                  |
+
+A documentation-only commit follows this run to record it. Nothing in it touches
+the code these jobs verified.
