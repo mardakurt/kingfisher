@@ -158,3 +158,113 @@ describe('reference pipeline evidence counts', () => {
     });
   });
 });
+
+/**
+ * The two things that make a ninety-million-game month tractable.
+ *
+ * A game is rejected on its headers, so its movetext is never tokenised; and
+ * the speeds a pack asks for are the only ones that reach the rules code at
+ * all. Both are the difference between a feasible High-Rated Online build and
+ * an infeasible one, and neither is visible in the finished pack — a pack built
+ * with the filter broken would simply be a different, wrong pack.
+ */
+describe('header-first rejection', () => {
+  const game = (event, whiteElo, blackElo, moves = '1. e4 e5 2. Nf3 Nc6') =>
+    `[Event "${event}"]\n[White "A"]\n[Black "B"]\n[WhiteElo "${whiteElo}"]\n` +
+    `[BlackElo "${blackElo}"]\n[Date "2026.01.01"]\n[Result "1-0"]\n\n${moves} 1-0`;
+
+  const write = (dir, games) => {
+    const file = path.join(dir, 'speeds.pgn');
+    writeFileSync(file, games.join('\n\n') + '\n');
+    return file;
+  };
+
+  it('never tokenises the movetext of a game it does not want', async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'kingfisher-accept-'));
+    try {
+      const file = write(dir, [
+        game('Rated Blitz game', 2500, 2500),
+        game('Rated Bullet game', 2500, 2500),
+      ]);
+      const seen = [];
+      const kept = [];
+      for await (const entry of readGames(file, {
+        accept: (tags) => {
+          seen.push(tags.Event);
+          return /Blitz/.test(tags.Event ?? '');
+        },
+      })) {
+        kept.push({ event: entry.tags.Event, moves: entry.moves.length });
+      }
+      // Both were looked at…
+      expect(seen).toEqual(['Rated Blitz game', 'Rated Bullet game']);
+      // …and only the wanted one was ever built.
+      expect(kept).toEqual([{ event: 'Rated Blitz game', moves: 4 }]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('reads the speed from the Event tag without confusing bullet for ultrabullet', async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'kingfisher-speed-'));
+    try {
+      const file = write(dir, [
+        game('Rated UltraBullet game', 2500, 2500),
+        game('Rated Bullet game', 2500, 2500),
+        game('Rated Blitz game', 2500, 2500),
+        game('Rated Rapid game', 2500, 2500),
+        game('Rated Classical game', 2500, 2500),
+      ]);
+      const wanted = ['classical', 'rapid', 'blitz'];
+      const events = [];
+      for await (const entry of readGames(file, {
+        accept: (tags) => {
+          const event = `${tags.Event ?? ''}`.toLowerCase();
+          const speed = [
+            'ultrabullet',
+            'bullet',
+            'blitz',
+            'rapid',
+            'classical',
+            'correspondence',
+          ].find((name) => event.includes(name));
+          return Boolean(speed && wanted.includes(speed));
+        },
+      })) {
+        events.push(entry.tags.Event);
+      }
+      // "ultrabullet" contains "bullet"; matching the longer name first is what
+      // keeps an excluded speed from being excluded for the wrong reason — and
+      // would keep it from being *included* had the order been the other way.
+      expect(events).toEqual(['Rated Blitz game', 'Rated Rapid game', 'Rated Classical game']);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('drops a game where either player is below the threshold, or unrated', async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'kingfisher-rating-'));
+    try {
+      const file = write(dir, [
+        game('Rated Blitz game', 2500, 2500),
+        game('Rated Blitz game', 2500, 2100),
+        game('Rated Blitz game', 2100, 2500),
+        game('Rated Blitz game', 0, 2500),
+      ]);
+      const ratings = [];
+      for await (const entry of readGames(file, {
+        accept: (tags) => {
+          const white = Number(tags.WhiteElo) || 0;
+          const black = Number(tags.BlackElo) || 0;
+          if (white === 0 || black === 0) return false;
+          return Math.min(white, black) >= 2400;
+        },
+      })) {
+        ratings.push([entry.tags.WhiteElo, entry.tags.BlackElo]);
+      }
+      expect(ratings).toEqual([['2500', '2500']]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});

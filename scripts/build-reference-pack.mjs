@@ -49,6 +49,7 @@ function parseArgs(argv) {
     pack: 'starter',
     out: null,
     workers: Math.max(1, Math.min(8, cpus().length - 2)),
+    months: 3,
     files: 0,
   };
   for (let index = 0; index < argv.length; index += 1) {
@@ -59,6 +60,7 @@ function parseArgs(argv) {
     // A short run over the newest few archives, for checking a change to the
     // pipeline without waiting for the whole build.
     else if (flag === '--files') args.files = Number(argv[++index]);
+    else if (flag === '--months') args.months = Number(argv[++index]);
     else throw new Error(`Unknown option ${flag}`);
   }
   return args;
@@ -86,13 +88,29 @@ async function main() {
 
   // --- 1. Acquire and verify the upstream archive.
   const digests = await fetchChecksums(definition.source);
-  const all = definition.files(new Map(digests));
+  const all = definition.files(new Map(digests), args.months);
   const wanted = args.files > 0 ? all.slice(0, args.files) : all;
   console.log(`archives ${wanted.length} files`);
   const archives = [];
   for (const file of wanted) {
     const expected = digests.get(file);
     if (!expected) throw new Error(`${file} is not in the published digest list.`);
+    if (definition.source.streaming) {
+      /*
+        Not downloaded. One month of the standard database is close to thirty
+        gigabytes compressed, so the worker opens the URL and decodes it as it
+        arrives. The published digest still identifies the archive — it is what
+        the resume directory below is keyed on — and the scan itself is what
+        would fail if the bytes were wrong.
+      */
+      archives.push({
+        file,
+        url: new URL(file, definition.source.base).toString(),
+        sha256: expected,
+        streaming: true,
+      });
+      continue;
+    }
     const got = await fetchVerified(definition.source, file, expected, CACHE, (progress) =>
       console.log(`  fetched ${progress.file} (${bytes(progress.bytes)})`),
     );
@@ -225,6 +243,7 @@ async function main() {
 /** The limits `scan.worker.mjs` reads. Everything else is applied on reduce. */
 const SCAN_LIMITS = [
   'excludeOnline',
+  'speeds',
   'maxPly',
   'maxRating',
   'minPlies',
@@ -315,7 +334,14 @@ function scan(archives, work, shards, limits, limit) {
         mkdirSync(archive.directory, { recursive: true });
         active += 1;
         const worker = new Worker(workerFile, {
-          workerData: { file: archive.path, outDir: archive.directory, shards, limits },
+          workerData: {
+            // A streamed archive is opened by URL; a cached one by path.
+            file: archive.streaming ? { url: archive.url } : archive.path,
+            label: archive.file,
+            outDir: archive.directory,
+            shards,
+            limits,
+          },
           resourceLimits: { maxOldGenerationSizeMb: 4096 },
         });
         workers.add(worker);

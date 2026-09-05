@@ -30,6 +30,31 @@ export const LICHESS_BROADCAST = {
     'published monthly as PGN and released under CC BY-SA 4.0.',
 };
 
+export const LICHESS_STANDARD = {
+  id: 'lichess-standard',
+  name: 'Lichess standard rated games database',
+  page: 'https://database.lichess.org/#standard_games',
+  base: 'https://database.lichess.org/standard/',
+  checksums: 'https://database.lichess.org/standard/sha256sums.txt',
+  license: {
+    id: 'CC0-1.0',
+    name: 'Creative Commons Zero v1.0 Universal',
+    url: 'https://creativecommons.org/publicdomain/zero/1.0/',
+    attribution: 'Lichess standard rated games database — lichess.org, CC0 1.0',
+  },
+  description:
+    'Every rated game played on Lichess, published monthly as zstd-compressed ' +
+    'PGN and dedicated to the public domain.',
+  /*
+    Streamed, never stored. A month of this archive is close to thirty
+    gigabytes compressed and several hundred decompressed, so the builder pipes
+    it from the socket through a zstd decoder and discards every game it does
+    not keep. `fetchVerified` below downloads into the cache, which is right for
+    the broadcast archives and impossible here.
+  */
+  streaming: true,
+};
+
 const sha256 = (buffer) => createHash('sha256').update(buffer).digest('hex');
 
 /** The upstream digest list, as published, parsed into `file → sha256`. */

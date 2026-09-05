@@ -10,7 +10,14 @@
  * difference between them is a threshold, not a different provenance story.
  */
 
-import { LICHESS_BROADCAST } from './sources.mjs';
+import { LICHESS_BROADCAST, LICHESS_STANDARD } from './sources.mjs';
+
+/** Standard-database months, newest first, as the published digest list names them. */
+const standardMonths = (digests) =>
+  [...digests.keys()]
+    .filter((file) => /^lichess_db_standard_rated_\d{4}-\d{2}\.pgn\.zst$/.test(file))
+    .sort()
+    .reverse();
 
 /** Broadcast months, newest first, as the published digest list names them. */
 const broadcastMonths = (digests) =>
@@ -143,6 +150,78 @@ export const PACK_DEFINITIONS = {
       topGames: 8,
       gamesPerPlayer: 300,
       recentYears: 3,
+    },
+    shards: { explorer: 96, game: 48, players: 8, playergames: 8 },
+  },
+
+  /**
+   * What strong players are playing online, right now.
+   *
+   * The other two packs answer "how has this position scored over the board".
+   * This answers a different question, from a population three orders of
+   * magnitude larger and moving faster.
+   *
+   * Two thresholds decide what it is, and both were measured on 1,294,431 real
+   * games before being chosen — see `docs/data/high-rated-online.md`.
+   *
+   * **Bullet and ultrabullet are excluded.** They are 73% of all games where
+   * both players are 2200 or better, so a pack that simply took "rated and
+   * strong" would mostly be a record of what strong players do with sixty
+   * seconds and no intention of following theory, and every aggregate in it
+   * would be a weighted average of two populations that disagree.
+   *
+   * **Both players 2400 or better.** At 2200 the retained population is 1.74%
+   * of all games — 1.6 million a month, four times the whole Elite pack from a
+   * single month of input. At 2400 it is 0.405%, about 380,000 a month, which
+   * over a three-month window is a pack of comparable weight to the existing
+   * references drawn from a genuinely strong population.
+   *
+   * The source is streamed and never stored: one month is roughly 29 GB
+   * compressed, and a game is rejected on its headers before its movetext is
+   * ever tokenised.
+   */
+  online: {
+    id: 'kingfisher-high-rated-online',
+    name: 'High-Rated Online Reference',
+    description:
+      'Lichess rated games where both players are 2400 or better, in classical, ' +
+      'rapid and blitz. Bullet and ultrabullet are excluded because they ' +
+      'dominate the high-rated population and are not played as theory.',
+    version: '1',
+    output: '.packs/kingfisher-high-rated-online',
+    source: LICHESS_STANDARD,
+    transformation:
+      'Games were streamed from the published archive, filtered by speed and ' +
+      "rating on their headers, deduplicated, replayed through Kingfisher's " +
+      'own rules code, and reduced to per-position move aggregates, a player ' +
+      'table and full game scores. No move was altered.',
+    /** Newest first; `--months` decides how many. */
+    files: (digests, months = 3) => standardMonths(digests).slice(0, Math.max(1, months)),
+    limits: {
+      minRating: 2400,
+      openRating: 2400,
+      // Online ratings run higher than over-the-board ones, and the ceiling
+      // here exists to exclude nothing real — only impossible values.
+      maxRating: 4000,
+      /*
+        The whole point of the pack, so it is a scan limit rather than a
+        reduce-time one: a game outside these speeds is rejected before its
+        moves are read, which is what makes ninety million games a month
+        tractable.
+      */
+      speeds: ['classical', 'rapid', 'blitz'],
+      excludeOnline: false,
+      titles: [],
+      openTitles: [],
+      minPlies: 12,
+      maxPly: 41,
+      minGames: 3,
+      deepFromPly: 20,
+      deepMinGames: 2,
+      maxMoves: 256,
+      topGames: 6,
+      gamesPerPlayer: 120,
+      recentYears: 1,
     },
     shards: { explorer: 96, game: 48, players: 8, playergames: 8 },
   },

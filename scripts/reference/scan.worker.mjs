@@ -18,7 +18,7 @@ import { parentPort, workerData } from 'node:worker_threads';
 import { closeApp, loadApp } from '../load-app.mjs';
 import { readGames } from './pgn-stream.mjs';
 
-const { file, outDir, shards, limits } = workerData;
+const { file, label, outDir, shards, limits } = workerData;
 
 /** Buffered per-shard appenders, so a scan is not one syscall per position. */
 function shardWriter(kind, count) {
@@ -64,7 +64,38 @@ async function main() {
   let rejected = 0;
   let maxYear = 0;
 
-  for await (const { tags, moves } of readGames(file)) {
+  /*
+    Rejected before the movetext is tokenised, not after.
+
+    The broadcast archives are small enough that it makes no difference. The
+    standard database is ninety million games a month and a high-rated pack
+    keeps roughly one in two hundred and fifty, so tokenising every game would
+    spend almost the whole build tearing apart movetext nothing will read.
+    Speed and rating are both in the headers, which is what makes this possible.
+  */
+  const speeds = Array.isArray(limits.speeds) && limits.speeds.length > 0 ? limits.speeds : null;
+  const accept = speeds
+    ? (tags) => {
+        const event = `${tags.Event ?? ''}`.toLowerCase();
+        // Lichess names the speed in the Event tag: "Rated Blitz game".
+        // Checked longest-first so "ultrabullet" is never read as "bullet".
+        const speed = [
+          'ultrabullet',
+          'bullet',
+          'blitz',
+          'rapid',
+          'classical',
+          'correspondence',
+        ].find((name) => event.includes(name));
+        if (!speed || !speeds.includes(speed)) return false;
+        const white = Number(tags.WhiteElo) || 0;
+        const black = Number(tags.BlackElo) || 0;
+        if (white === 0 || black === 0) return false;
+        return Math.min(white, black) >= limits.minRating;
+      }
+    : undefined;
+
+  for await (const { tags, moves } of readGames(file, accept ? { accept } : {})) {
     seen += 1;
     const result = tags.Result;
     if (result !== '1-0' && result !== '0-1' && result !== '1/2-1/2') continue;
@@ -222,7 +253,7 @@ async function main() {
   playerGames.close();
   accepted.close();
   await closeApp();
-  parentPort.postMessage({ file, seen, kept, opened, rejected, maxYear });
+  parentPort.postMessage({ file: label ?? String(file), seen, kept, opened, rejected, maxYear });
 }
 
 /** `YYYY.MM.DD`, whichever of the several shapes in the wild the tag used. */
@@ -251,6 +282,9 @@ function gameId(white, black, date, moves) {
 }
 
 main().catch((error) => {
-  parentPort.postMessage({ file, error: error instanceof Error ? error.stack : String(error) });
+  parentPort.postMessage({
+    file: label ?? String(file),
+    error: error instanceof Error ? error.stack : String(error),
+  });
   process.exit(1);
 });
