@@ -102,7 +102,7 @@ jobs:
       - run: npx playwright install --with-deps chromium chrome
       - name: Generate baselines
         run: npm run visual:baselines
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: visual-baselines-linux
           path: e2e/visual.spec.ts-snapshots/
@@ -124,7 +124,7 @@ jobs:
         run: npx playwright test e2e/visual.spec.ts
       - name: Upload visual failures
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: visual-failures
           path: |
@@ -155,7 +155,7 @@ jobs:
 
       - name: Cache Playwright browsers
         id: playwright-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
@@ -181,7 +181,7 @@ jobs:
 
       - name: Upload failure artifacts
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: playwright-failures
           # Traces, screenshots and video for failed specs, plus the HTML
