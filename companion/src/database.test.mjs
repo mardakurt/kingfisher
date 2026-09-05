@@ -505,3 +505,20 @@ describe('player and metadata indexes', () => {
     expect(database.search({ text: 'caruana' }).games).toHaveLength(1);
   });
 });
+
+it('checks pending position migrations using an index and preserves existing aggregates on reopen', () => {
+  const dir = mkdtempSync(path.join(tmpdir(), 'kingfisher-open-plan-'));
+  const file = path.join(dir, 'open.sqlite');
+  const database = new GameDatabase(file);
+  database.close();
+  const raw = new DatabaseSync(file);
+  try {
+    const plan = raw
+      .prepare('EXPLAIN QUERY PLAN SELECT 1 FROM positions WHERE result_key IS NULL LIMIT 1')
+      .all();
+    expect(plan.map((row) => row.detail).join(' ')).toMatch(/USING INDEX positions_missing_result/);
+  } finally {
+    raw.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

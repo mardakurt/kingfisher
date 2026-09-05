@@ -289,11 +289,9 @@ export class GameDatabase {
       CREATE INDEX IF NOT EXISTS positions_structure_signature ON positions(structure_signature)
         WHERE structure_signature IS NOT NULL;
     `);
-    const aggregateCount = this.#db
-      .prepare('SELECT COUNT(*) AS n FROM position_aggregates')
-      .get().n;
-    const positionCount = this.#db.prepare('SELECT COUNT(*) AS n FROM positions').get().n;
-    if (aggregateCount === 0 && positionCount > 0) this.rebuildAggregates();
+    const hasAggregates = this.#db.prepare('SELECT 1 FROM position_aggregates LIMIT 1').get();
+    if (!hasAggregates && this.#db.prepare('SELECT 1 FROM positions LIMIT 1').get())
+      this.rebuildAggregates();
     this.#ensureSearchIndexes();
   }
 
@@ -434,6 +432,11 @@ export class GameDatabase {
     ]) {
       if (!columns.has(name)) this.#db.exec(`ALTER TABLE positions ADD COLUMN ${name} ${type}`);
     }
+    // The index is empty once migrated. Without it the claimed existence
+    // check scanned every full position row on every database open.
+    this.#db.exec(
+      'CREATE INDEX IF NOT EXISTS positions_missing_result ON positions(game_id) WHERE result_key IS NULL',
+    );
     // One-time migration for pre-Phase-8 collections. NULL is the marker; a
     // collection already migrated pays only the indexed existence check.
     if (this.#db.prepare('SELECT 1 FROM positions WHERE result_key IS NULL LIMIT 1').get()) {
