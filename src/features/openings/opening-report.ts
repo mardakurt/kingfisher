@@ -211,12 +211,14 @@ function branchesSection(
       .filter((population) => population.result)
       .map(populationLabel)
       .join(' · '),
+    /*
+      Every reason, and only once. `secondary` is the complete list — which is
+      what makes the order arguable — so there is deliberately no `criterion`
+      repeating the first of them beside it. There is no rank and no score.
+    */
     entries: branches.map((branch) => ({
       primary: branch.san,
       secondary: branch.reasons.map(describeReason).join(' · '),
-      // The reason it is listed first is the first reason, spelled out. There
-      // is no rank, no score and nothing the reader has to take on trust.
-      ...(branch.reasons[0] ? { criterion: describeReason(branch.reasons[0]) } : {}),
     })),
     emptyReason: null,
   };

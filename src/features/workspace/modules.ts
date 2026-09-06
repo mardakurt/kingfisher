@@ -19,6 +19,7 @@ export type WorkspaceToolId =
   | 'engine'
   | 'explorer'
   | 'theory-book'
+  | 'opening-report'
   | 'book'
   | 'database'
   | 'repertoire'
@@ -67,6 +68,19 @@ export const WORKSPACE_MODULES: Readonly<Record<WorkspaceToolId, WorkspaceModule
   'theory-book': {
     id: 'theory-book',
     label: 'Theory Book',
+    home: 'dock',
+    regions: ['dock', 'lower'],
+  },
+  /*
+    Distinct from the Theory Book on purpose. The book answers what the named
+    branches here are and shows no counts at all; the report gathers what every
+    installed population played, what the repertoire covers and what a brief
+    says, and cites each of them. Merging the two would put counts inside the
+    book, which is the one thing the book must never carry.
+  */
+  'opening-report': {
+    id: 'opening-report',
+    label: 'Opening Report',
     home: 'dock',
     regions: ['dock', 'lower'],
   },
@@ -143,6 +157,7 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'engine',
     'explorer',
     'theory-book',
+    'opening-report',
     'book',
     'database',
     'repertoire',
@@ -164,6 +179,7 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'engine',
     'explorer',
     'theory-book',
+    'opening-report',
     'book',
     'database',
     'transpositions',
@@ -178,6 +194,7 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'document',
     'repertoire-health',
     'theory-book',
+    'opening-report',
     'explorer',
     'book',
     'database',
@@ -191,6 +208,7 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
   ],
   openings: [
     'theory-book',
+    'opening-report',
     'explorer',
     'book',
     'database',
@@ -218,6 +236,7 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
   'opening-files': [
     'document',
     'theory-book',
+    'opening-report',
     'explorer',
     'theory-radar',
     'repertoire',
@@ -231,6 +250,7 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
   'model-game': [
     'guess-the-move',
     'theory-book',
+    'opening-report',
     'notes',
     'repertoire',
     'model-games',

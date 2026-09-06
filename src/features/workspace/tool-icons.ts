@@ -30,6 +30,7 @@ export const WORKSPACE_TOOL_ICONS: Readonly<Record<WorkspaceModuleId, WorkspaceT
   engine: EngineAnalysis,
   explorer: Search,
   'theory-book': Library,
+  'opening-report': Opening,
   book: Notebook,
   database: Database,
   repertoire: Repertoire,
