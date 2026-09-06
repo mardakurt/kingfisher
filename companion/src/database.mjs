@@ -726,14 +726,27 @@ export class GameDatabase {
     // Whitelisted, never interpolated from the request.
     const column = SORTS[query.sortBy] ?? 'imported_at';
     const direction = query.sortDirection === 'asc' ? 'ASC' : 'DESC';
+    /*
+      A total order, so paging is deterministic.
+
+      Every sort column here has ties — a bulk import stamps hundreds of games
+      with the same `imported_at` millisecond, and thousands share an opening
+      or a rating. `ORDER BY` on its own leaves the order within a tie up to
+      the query plan, which is how a game can appear on two pages of the same
+      result and another on none. The primary key breaks every tie and is free:
+      it is the rowid the row is already being read by.
+    */
+    const order = `${column} ${direction}, id ${direction}`;
     const limit = Math.min(Math.max(Number(query.limit) || 100, 1), 500);
     const offset = Math.max(Number(query.offset) || 0, 0);
 
     // One row over the page size answers "is there a next page" exactly,
     // without counting anything.
-    const rows = this.#db
-      .prepare(`SELECT * FROM games ${clause} ORDER BY ${column} ${direction} LIMIT ? OFFSET ?`)
-      .all(...params, limit + 1, offset);
+    const rows = query.text
+      ? this.#pageByIdFirst(clause, params, order, limit, offset)
+      : this.#db
+          .prepare(`SELECT * FROM games ${clause} ORDER BY ${order} LIMIT ? OFFSET ?`)
+          .all(...params, limit + 1, offset);
 
     const hasMore = rows.length > limit;
     const page = hasMore ? rows.slice(0, limit) : rows;
@@ -744,6 +757,43 @@ export class GameDatabase {
     }
 
     return { games: page.map(toSummary), hasMore, total, offset, limit };
+  }
+
+  /**
+   * The same page, fetched in two steps, for a text search.
+   *
+   * A common term matches a large fraction of a collection, and there is no
+   * index that can order that set — SQLite builds a temp B-tree. `SELECT *`
+   * makes it carry **every column of every matching row** through that sort to
+   * return a hundred: on a real 60,469-game collection, "open" matches 17,566
+   * games and the sort moved all of them.
+   *
+   * Selecting only the id makes each entry in the sort tiny; the hundred full
+   * rows are then fetched by primary key. Measured on that collection, five
+   * alternating runs of each on fresh connections:
+   *
+   *   "open"      23.3 ms → 7.1 ms      "sicilian"  16.9 ms → 6.4 ms
+   *   "masters"    3.5 ms → 1.2 ms
+   *
+   * The rows and their order are identical — asserted, not assumed, in
+   * `database.test.mjs`. Only the text path takes it: every other filter has
+   * an index behind it and does not materialise anything like as much, and a
+   * second round trip would cost more than it saved.
+   *
+   * Three plans that looked promising and were measured to be worse are
+   * recorded in `docs/performance/phase-17-search.md`, so nobody tries them
+   * again.
+   */
+  #pageByIdFirst(clause, params, order, limit, offset) {
+    const ids = this.#db
+      .prepare(`SELECT id FROM games ${clause} ORDER BY ${order} LIMIT ? OFFSET ?`)
+      .all(...params, limit + 1, offset)
+      .map((row) => row.id);
+    if (ids.length === 0) return [];
+    const placeholders = ids.map(() => '?').join(',');
+    return this.#db
+      .prepare(`SELECT * FROM games WHERE id IN (${placeholders}) ORDER BY ${order}`)
+      .all(...ids);
   }
 
   content(id) {

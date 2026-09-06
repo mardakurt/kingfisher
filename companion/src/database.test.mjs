@@ -522,3 +522,121 @@ it('checks pending position migrations using an index and preserves existing agg
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+/**
+ * A text search fetches its page in two steps — the ids in sorted order, then
+ * those rows by primary key — because `SELECT *` carried every column of every
+ * matching row through a temp B-tree to return a hundred. On a real
+ * 60,469-game collection that was 23.3 ms against 7.1 ms.
+ *
+ * The optimisation is only worth having if it is invisible, so these check
+ * that it is: the same rows in the same order as the one-step query, for every
+ * sort the search offers, at the first page and at an offset, with paging that
+ * neither repeats a game nor loses one.
+ */
+describe('a text search pages exactly as the one-step query would', () => {
+  let directory;
+  let database;
+  let file;
+
+  const COUNT = 40;
+
+  beforeEach(() => {
+    directory = mkdtempSync(path.join(tmpdir(), 'kingfisher-search-page-'));
+    file = path.join(directory, 'page.sqlite');
+    database = new GameDatabase(file);
+    const games = [];
+    for (let index = 0; index < COUNT; index += 1) {
+      games.push(
+        entry({
+          fingerprint: `page-${index}`,
+          // Every game carries "Test event", so one term matches all of them.
+          white: `White ${String(index).padStart(2, '0')}`,
+          black: `Black ${String(COUNT - index).padStart(2, '0')}`,
+          result: '1-0',
+          year: 2000 + (index % 7),
+          rating: 2000 + (index % 5) * 10,
+          uci: 'e2e4',
+          san: 'e4',
+        }),
+      );
+    }
+    database.insertGames(games);
+  });
+
+  afterEach(() => {
+    database.close();
+    rmSync(directory, { recursive: true, force: true });
+  });
+
+  /** The one-step query, run against the same file through a second handle. */
+  const oneStep = (column, direction, limit, offset) => {
+    const raw = new DatabaseSync(file);
+    try {
+      return raw
+        .prepare(
+          `SELECT fingerprint FROM games WHERE id IN (SELECT rowid FROM games_fts WHERE games_fts MATCH ?) ` +
+            `ORDER BY ${column} ${direction}, id ${direction} LIMIT ? OFFSET ?`,
+        )
+        .all('test', limit, offset)
+        .map((row) => row.fingerprint);
+    } finally {
+      raw.close();
+    }
+  };
+
+  const SORTS = { importedAt: 'imported_at', white: 'white', black: 'black', rating: 'max_rating' };
+
+  for (const [sortBy, column] of Object.entries(SORTS)) {
+    for (const direction of ['asc', 'desc']) {
+      it(`returns the same page for ${sortBy} ${direction}`, () => {
+        const page = database
+          .search({ text: 'test', sortBy, sortDirection: direction, limit: 10 })
+          .games.map((game) => game.fingerprint);
+        expect(page).toHaveLength(10);
+        expect(page).toEqual(oneStep(column, direction === 'asc' ? 'ASC' : 'DESC', 10, 0));
+      });
+    }
+  }
+
+  it('pages from an offset the same way', () => {
+    const page = database
+      .search({ text: 'test', sortBy: 'white', sortDirection: 'asc', limit: 10, offset: 15 })
+      .games.map((game) => game.fingerprint);
+    expect(page).toEqual(oneStep('white', 'ASC', 10, 15));
+  });
+
+  it('walks every game exactly once across pages, and no game twice', () => {
+    /*
+      What a total order buys. Sorting by a column full of ties left the order
+      within a tie to the query plan, so a game could appear on two pages and
+      another on none.
+    */
+    const seen = [];
+    for (let offset = 0; offset < COUNT; offset += 7) {
+      const page = database.search({
+        text: 'test',
+        sortBy: 'rating',
+        sortDirection: 'desc',
+        limit: 7,
+        offset,
+      });
+      seen.push(...page.games.map((game) => game.fingerprint));
+    }
+    expect(seen).toHaveLength(COUNT);
+    expect(new Set(seen).size).toBe(COUNT);
+  });
+
+  it('reports the last page as the last, and an earlier one as not', () => {
+    expect(database.search({ text: 'test', limit: 10, offset: 0 }).hasMore).toBe(true);
+    const last = database.search({ text: 'test', limit: 10, offset: 35 });
+    expect(last.games).toHaveLength(5);
+    expect(last.hasMore).toBe(false);
+  });
+
+  it('returns nothing, and no error, for a term that matches nothing', () => {
+    const result = database.search({ text: 'zzzznotaterm', limit: 10 });
+    expect(result.games).toEqual([]);
+    expect(result.hasMore).toBe(false);
+  });
+});
