@@ -94,10 +94,15 @@ its own. Two are now closed and one turned out to have been half-built already.
    branches worth the time with the numbers that put them in that order, and
    one row per installed population with its own game count.
 
-   It is narrower than ChessBase's in one way that matters and wider in
-   another. Narrower: the plan sections need the continuations of the games
-   that reached a position, and no source exposes those through the explorer
-   interface, so they are dropped rather than shown empty. Wider: every section
+   The plan sections — where the pieces go, which pawns advance — need the
+   continuations of the games that reached a position, and only a SQLite
+   collection through the companion still has them; a reference pack aggregated
+   its games into per-position counts before Kingfisher ever saw them. So they
+   appear when a collection can answer and are dropped, rather than shown
+   empty, when none can. `66c6251` is the commit where they started appearing at
+   all: the panel had been looking for that source among the reference packs.
+
+   It is wider than ChessBase's in the way that matters most: every section
    states its basis, and there is no combined figure anywhere in it.
 
 3. **~~No spaced repetition over the repertoire tree.~~** Closed in `4106d34`.

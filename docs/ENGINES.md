@@ -205,6 +205,54 @@ tested for shuffled positions. Knowing which engines could support it is what
 makes adding it later a question about Kingfisher rather than a survey of nine
 binaries.
 
+### Four engines at once
+
+`npm run engines:qualify` drives one engine at a time, which leaves the
+question a comparison view depends on: when four native processes search
+simultaneously through one companion, does each session get its own engine's
+answer about its own position?
+
+It has to be asked as a question about chess. UCI output carries no request
+identity, so an attribution defect between concurrent sessions would look
+exactly like a working comparison — four panels, four evaluations, silently
+swapped. `npm run engines:lab` gives each engine one of four positions whose
+**legal-move sets are pairwise disjoint**, so a bestmove from the wrong session
+is not merely suspicious: it is illegal in the position it arrived at, and the
+script names the position it actually belongs to.
+
+Run on 6 September 2026, darwin-arm64, against a live companion — four real
+processes, nothing mocked:
+
+| Engine            | Position                               | bestmove | Lines | Answered | Verdict          |
+| ----------------- | -------------------------------------- | -------- | ----: | -------: | ---------------- |
+| Stormphrax 8.0.0  | rook ending, White to move             | `a1a8`   |   271 | **7 ms** | its own position |
+| PlentyChess 8.0.0 | two connected pawns, White to move     | `b1a2`   |    51 | 2,907 ms | its own position |
+| Halogen 16.0.0    | knight against pawns, Black to move    | `d6d5`   |    34 | 2,906 ms | its own position |
+| Viridithas 20.0.0 | queenside castling free, Black to move | `a8a5`   |    59 | 3,007 ms | its own position |
+
+Stormphrax's 7 ms is not an anomaly to explain away: `a1a8` is mate, and a
+search that has found mate ends. It is also why the concurrency claim is made
+on the _last_ answer rather than on the spread. The last of the four arrived
+3,007 ms after they were all told to `go movetime 3000`. Taking turns, it would
+have arrived at about 12,000 ms.
+
+The check was confirmed to be capable of failing by sending each engine its
+neighbour's position while still verifying against the original: it reported
+`ANSWERED POSITION B`, `ANSWERED POSITION C` and `ANSWERED POSITION A` on three
+of the four, and no bestmove at all on the fourth.
+
+Halogen and Viridithas were registered as custom engines for the run, because
+the managed installer had put them under `engines/` rather than in the
+companion's own record. Any four registered engines work:
+
+```bash
+npm run engines:lab
+npm run engines:lab -- --engines stormphrax,plentychess --movetime 4000
+```
+
+It is live only. With no companion running it says so and stops, rather than
+reporting a result it did not obtain.
+
 ## Installing them
 
 **From inside Kingfisher.** Settings → Engine → Engines lists every engine the

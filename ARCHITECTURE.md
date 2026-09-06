@@ -1117,7 +1117,16 @@ generating them, so it needs no rules engine and does not touch the chess.js
 boundary. `src/theory/critical-branches.ts` orders the branches and attaches
 the facts that put them in that order. Both collapse to one number to sort, and
 that number never leaves its module: `reasons` is what a reader gets and is
-complete without it. See ADR 0048 for what the report deliberately does not do.
+complete without it.
+
+**Only one kind of source can supply those continuations**, and it is not the
+one the report's population columns come from. A reference pack aggregates its
+games into per-position counts before Kingfisher ever sees it; a SQLite
+collection through the companion keeps one row per game and ply, so a
+continuation is a range scan. `OpeningReportPanel` therefore asks the provider
+registry, never the reference list — asking the reference list is what made
+both plan sections unreachable until `66c6251`. When nothing can answer, the
+sections are absent rather than empty, which is a different statement.
 
 ## Reviewing a repertoire
 
