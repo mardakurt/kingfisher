@@ -27,8 +27,10 @@
  * the companion does; a reference pack aggregated its games into per-position
  * counts before Kingfisher ever saw them and cannot.
  *
- * So `continuations` is asked for from whichever source can answer, and when
- * none can, the two sections are **absent rather than empty**:
+ * So `continuations` is asked for from whichever *registered provider* can
+ * answer — deliberately not from the population columns below, which are packs
+ * and can never answer — and when none can, the sections are **absent rather
+ * than empty**:
  * `buildOpeningReport` drops a section whose input was never supplied, which
  * is a different statement from one that was looked for and found nothing.
  */
@@ -42,6 +44,7 @@ import { useChessWorkspace } from '@/features/workspace/ChessWorkspaceContext';
 import { useQuery } from '@tanstack/react-query';
 
 import { databaseProviderById } from '@/database/registry';
+import { useDatabaseProviders } from '@/database/use-database-providers';
 import { useExplorerSources } from '@/features/explorer/useExplorer';
 import { useReferenceSources } from '@/reference/use-references';
 import type { BranchPopulation } from '@/theory/critical-branches';
@@ -116,14 +119,22 @@ export function OpeningReportPanel() {
   });
 
   /*
-    The continuations, from the first source that can supply them. Most cannot:
-    a reference pack has aggregated its games away. The query is keyed on the
-    position so that walking the board re-asks, and it returns an empty list
-    rather than throwing when the companion is not there.
+    The continuations, from the first source that can supply them.
+
+    Searched across every *registered provider* rather than across the three
+    populations above, and that distinction is the whole feature: the
+    populations are reference packs, and a pack aggregated its games into
+    per-position counts before Kingfisher ever saw it, so no pack can answer
+    this — ever. Looking only there made both plan sections unreachable in the
+    product while their unit tests passed, which is precisely the shape of
+    defect this project keeps finding.
+
+    The query is keyed on the position so that walking the board re-asks, and
+    it returns an empty list rather than throwing when the companion is not
+    there.
   */
-  const continuationSource = sources.find((source) =>
-    Boolean(databaseProviderById(source.id)?.continuations),
-  );
+  const providers = useDatabaseProviders();
+  const continuationSource = providers.find((provider) => Boolean(provider.continuations));
   const continuations = useQuery({
     queryKey: ['opening-report-continuations', continuationSource?.id ?? null, fen],
     enabled: Boolean(continuationSource) && fen.length > 0,

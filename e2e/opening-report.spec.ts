@@ -135,3 +135,97 @@ test('the theory book section below the report shows no counts', async ({ page }
   await expect(named).not.toContainText(/\d+%/);
   await expect(named).not.toContainText(/\bgames\b/);
 });
+
+/**
+ * The plan sections, against a real SQLite collection through the companion.
+ *
+ * These are the two sections nothing else can reach. `opening-plans.test.ts`
+ * proves the counting and `opening-report.test.ts` proves the wording, and both
+ * passed for a build in which the sections could never appear: the panel looked
+ * for a source that could supply continuations among the *reference packs* it
+ * draws its population columns from, and a pack has aggregated its games into
+ * per-position counts before Kingfisher ever sees it. No pack can answer, so
+ * the search never found one, so the report always dropped both sections — a
+ * feature with green tests and no way to see it.
+ *
+ * So this pairs the companion Playwright is already running, creates a
+ * collection, imports three real Najdorf games, and reads what the panel
+ * painted. It fails on that build.
+ */
+const NAJDORF_PGNS = [
+  '[Event "Plan evidence 1"]\n[White "A"]\n[Black "B"]\n[Result "*"]\n\n1. e4 c5 2. Nf3 d6 3. d4 cxd4 4. Nxd4 Nf6 5. Nc3 a6 6. Be3 e5 7. Nb3 Be7 8. f3 O-O 9. Qd2 Be6 10. O-O-O Nbd7 *',
+  '[Event "Plan evidence 2"]\n[White "C"]\n[Black "D"]\n[Result "*"]\n\n1. e4 c5 2. Nf3 d6 3. d4 cxd4 4. Nxd4 Nf6 5. Nc3 a6 6. Be3 e5 7. Nb3 Be6 8. f3 Be7 9. Qd2 O-O 10. O-O-O Nbd7 *',
+  '[Event "Plan evidence 3"]\n[White "E"]\n[Black "F"]\n[Result "*"]\n\n1. e4 c5 2. Nf3 d6 3. d4 cxd4 4. Nxd4 Nf6 5. Nc3 a6 6. Bg5 e6 7. f4 Be7 8. Qf3 Qc7 9. O-O-O Nbd7 10. g4 b5 *',
+].join('\n\n');
+
+test('the plan sections count a real collection, and cite how many games they replayed', async ({
+  page,
+}) => {
+  test.setTimeout(180_000);
+  await page.goto('/analysis');
+  await page.locator(READY).waitFor();
+
+  await page.getByRole('button', { name: 'Settings ⌘,' }).click();
+  const settings = page.getByRole('dialog', { name: 'Settings' });
+  await settings.getByRole('tab', { name: 'Companion' }).click();
+  await settings.getByLabel('Pairing address').fill('http://127.0.0.1:4338#token=phase8-e2e-token');
+  await settings.getByRole('button', { name: 'Pair', exact: true }).click();
+  await expect(settings.getByText(/Paired with/)).toBeVisible();
+  await settings.getByPlaceholder('New collection name').fill('Plan evidence E2E');
+  await settings.getByRole('button', { name: 'Create', exact: true }).click();
+  await expect(settings.getByText('Plan evidence E2E').first()).toBeVisible();
+  await settings.getByPlaceholder('Paste a PGN collection…').fill(NAJDORF_PGNS);
+  await settings.getByRole('button', { name: 'Import', exact: true }).click();
+  await expect(settings.getByText(/3 games/).first()).toBeVisible({ timeout: 30_000 });
+  await settings.getByRole('button', { name: 'Close' }).click();
+
+  await selectTool(page, page.locator('[data-workspace-dock]').first(), 'Opening Report');
+  await report(page).waitFor();
+  for (const [from, to] of [
+    ['e2', 'e4'],
+    ['c7', 'c5'],
+    ['g1', 'f3'],
+    ['d7', 'd6'],
+    ['d2', 'd4'],
+    ['c5', 'd4'],
+    ['f3', 'd4'],
+    ['g8', 'f6'],
+    ['b1', 'c3'],
+    ['a7', 'a6'],
+  ] as const) {
+    await play(page, from, to);
+  }
+
+  /*
+    Present at all is the regression. The rest is the claim each section is
+    entitled to make: a denominator, and the window it was counted over.
+  */
+  const destinations = section(page, 'destinations');
+  await expect(destinations).toBeVisible({ timeout: 30_000 });
+  await expect(destinations).toContainText(/\d+ games replayed \d+ plies past this position/);
+  // Every one of the three games plays ...Be7. A row that could not name the
+  // square it came from would be a statistic without a piece attached.
+  await expect(destinations).toContainText("Black's bishop on f8 reached e7");
+  await expect(destinations).toContainText(/3 of 3 games \(100/);
+
+  const advances = section(page, 'advances');
+  await expect(advances).toBeVisible();
+  await expect(advances).toContainText(/\d+ games replayed \d+ plies past this position/);
+  /*
+    Two of the three play ...e5. Written as the pawn's journey rather than as a
+    move, because a pawn that reaches a square over two moves would otherwise be
+    printed as a move nobody can play.
+  */
+  await expect(advances).toContainText("Black's e7 pawn reaches e5");
+  await expect(advances).toContainText(/2 of 3 games/);
+
+  await page.goto('/databases');
+  await page.locator(READY).waitFor();
+  await page.getByRole('button', { name: /Plan evidence E2E/ }).click();
+  await page.getByRole('button', { name: 'Delete collection' }).click();
+  await page
+    .getByRole('dialog', { name: 'Delete this SQLite collection?' })
+    .getByRole('button', { name: 'Delete permanently' })
+    .click();
+  await expect(page.getByRole('button', { name: /Plan evidence E2E/ })).toHaveCount(0);
+});

@@ -295,8 +295,33 @@ describe('the plans, with their denominators', () => {
 
   it('reports a pawn advance without calling it a break', () => {
     const advances = section(full, 'advances')!;
-    expect(advances.entries.some((entry) => entry.primary === 'White plays e2-e4')).toBe(true);
+    expect(advances.entries.some((entry) => entry.primary === "White's e2 pawn reaches e4")).toBe(
+      true,
+    );
     expect(JSON.stringify(advances).toLowerCase()).not.toContain('break');
+  });
+
+  it('does not write a destination as though it were one move', () => {
+    /*
+      A pawn's destination is where it got to, which is not always a move it
+      could make. Measured on a real collection, the b7 pawn reaches b4 in
+      21.7% of Najdorfs — by way of b5. `b7-b4` reads as a move nobody can
+      play, and a report that prints an illegal move loses the reader's trust
+      in every number beside it.
+    */
+    const journey = section(
+      {
+        ...full,
+        continuations: [
+          ['b7b5', 'e2e4', 'b5b4'],
+          ['b7b5', 'd2d4', 'b5b4'],
+        ],
+      },
+      'advances',
+    )!;
+    const reached = journey.entries.find((entry) => entry.primary.includes('b4'));
+    expect(reached?.primary).toBe("Black's b7 pawn reaches b4");
+    expect(JSON.stringify(journey)).not.toContain('b7-b4');
   });
 
   it('says nothing rather than something, when nothing recurred', () => {

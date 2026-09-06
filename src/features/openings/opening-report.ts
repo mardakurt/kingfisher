@@ -327,8 +327,17 @@ function advancesSection(plans: PlanEvidence | null): ReportSection {
     id: 'advances',
     title: 'Pawn advances',
     provenance,
+    /*
+      "the b7 pawn reaches b4", not "Black plays b7-b4".
+
+      A destination is where a pawn *got to*, which is not always one move: on
+      a real Najdorf collection the b7 pawn reaches b4 in 21.7% of games, by way
+      of b5. Writing that as `b7-b4` reads as a move nobody can play, and a
+      report that prints an illegal move loses the reader's trust in every
+      number beside it.
+    */
     entries: rows.map((row) => ({
-      primary: `${COLOUR[row.color]} plays ${row.from}-${row.to}`,
+      primary: `${COLOUR[row.color]}'s ${row.from} pawn reaches ${row.to}`,
       secondary: `${count(row.games)} of ${count(row.denominator)} games (${percent(
         row.games / row.denominator,
       )}), typically by ply ${row.medianPly + 1}`,
