@@ -415,6 +415,27 @@ test('an afternoon of tool, engine and route switching leaks no observable resou
   });
   page.on('pageerror', (error) => consoleFailures.push(`pageerror: ${error.message}`));
 
+  /*
+    What actually failed, and not only that something did.
+
+    Chromium's console message for a failed request is "Failed to load
+    resource: the server responded with a status of 404 (Not Found)" — with no
+    URL in it. This test failed in CI on a documentation-only commit with
+    exactly that string and nothing else, which is a failure nobody can act on:
+    it names neither the resource nor the route that asked for it. Recording
+    the response alongside the console line means the next one says which URL,
+    and the assertion below prints both.
+  */
+  const failedRequests: string[] = [];
+  page.on('response', (response) => {
+    if (response.status() >= 400) {
+      failedRequests.push(`HTTP ${response.status()} ${response.url()}`);
+    }
+  });
+  page.on('requestfailed', (request) => {
+    failedRequests.push(`${request.failure()?.errorText ?? 'failed'} ${request.url()}`);
+  });
+
   await instrument(page);
   await page.goto('/analysis');
   await ready(page);
@@ -444,7 +465,16 @@ test('an afternoon of tool, engine and route switching leaks no observable resou
     alive, and nothing about the running application looks wrong.
   */
   expect(after.resizeObservers - baseline.resizeObservers).toBeLessThanOrEqual(4);
-  expect(consoleFailures).toEqual([]);
+  /*
+    Reported together. A console error whose cause is a failed request is
+    unreadable without the URL, and a failed request with no console error is
+    usually a probe the application handled deliberately — so the assertion is
+    on the console, and the requests are what make it diagnosable.
+  */
+  expect(
+    consoleFailures,
+    `failed requests during the soak:\n${failedRequests.join('\n') || '(none)'}`,
+  ).toEqual([]);
 
   /*
     Heap, recorded rather than gated. §47: Chromium's `performance.memory` is
