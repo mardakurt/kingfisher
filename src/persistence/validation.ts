@@ -193,6 +193,12 @@ export const isAnalysisQueueJobRecord = (value: unknown): value is AnalysisQueue
   object(value.limit) &&
   text(value.strategy) &&
   finite(value.startPly) &&
+  // Optional, and checked when present: a stored side that is not a side
+  // would silently narrow a pass to nothing.
+  (value.sides === undefined ||
+    value.sides === 'both' ||
+    value.sides === 'w' ||
+    value.sides === 'b') &&
   text(value.status) &&
   finite(value.nextIndex) &&
   finite(value.totalPositions) &&

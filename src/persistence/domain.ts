@@ -294,6 +294,16 @@ export type AnalysisQueueStatus =
 export type AnalysisQueuePreset = 'quick' | 'standard' | 'deep' | 'custom';
 export type AnalysisQueueStrategy = 'every-move' | 'after-opening';
 
+/**
+ * Whose moves a pass evaluates.
+ *
+ * A player reviewing their own game usually wants their own decisions, and an
+ * engine pass over both sides costs twice as much for evidence half of which
+ * they will not read. `both` stays the default because it is the honest one
+ * for a game somebody is studying rather than one they played.
+ */
+export type AnalysisQueueSides = 'both' | 'w' | 'b';
+
 export interface AnalysisQueueJobRecord {
   readonly id: string;
   readonly gameId: string;
@@ -304,6 +314,12 @@ export interface AnalysisQueueJobRecord {
   readonly limit: AnalysisLimit;
   readonly strategy: AnalysisQueueStrategy;
   readonly startPly: number;
+  /**
+   * Absent on a job queued before this existed, and read as `both`. A pass
+   * that silently narrowed an old job to one side would change what its
+   * stored evidence means.
+   */
+  readonly sides?: AnalysisQueueSides;
   readonly status: AnalysisQueueStatus;
   readonly nextIndex: number;
   readonly totalPositions: number;

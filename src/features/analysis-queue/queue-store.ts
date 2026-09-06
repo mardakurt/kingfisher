@@ -9,6 +9,7 @@ import type { AnalysisHandle, EngineSession } from '@/engine/types';
 import type {
   AnalysisQueueJobRecord,
   AnalysisQueuePreset,
+  AnalysisQueueSides,
   AnalysisQueueStrategy,
   StoredEngineEvidenceRecord,
 } from '@/persistence/domain';
@@ -21,6 +22,8 @@ export interface QueueConfiguration {
   readonly multiPv: number;
   readonly strategy: AnalysisQueueStrategy;
   readonly startPly: number;
+  /** Whose moves to evaluate. Defaults to both. */
+  readonly sides?: AnalysisQueueSides;
   readonly customTimeMs?: number;
 }
 
@@ -76,15 +79,49 @@ const limitFor = (configuration: QueueConfiguration) => {
   };
 };
 
-const positionsFor = (
+const sideToMoveOf = (fen: string): 'w' | 'b' => (fen.split(/\s+/)[1] === 'b' ? 'b' : 'w');
+
+/**
+ * The positions a job evaluates.
+ *
+ * `sides` narrows to one player's decisions, and it cannot simply drop the
+ * other player's positions: judging a move needs the evaluation *before* it
+ * and *after* it, so keeping only White's positions would leave every swing
+ * with nothing to compare against. What it keeps is the position each of that
+ * side's moves was played from, and the position it led to.
+ */
+export const positionsFor = (
   game: GameRecord,
-  strategy: Pick<AnalysisQueueJobRecord, 'strategy' | 'startPly'>,
-) =>
-  mainlinePath(game.tree)
-    .slice(1)
+  job: Pick<AnalysisQueueJobRecord, 'strategy' | 'startPly' | 'sides'>,
+) => {
+  const path = mainlinePath(game.tree);
+  const nodes = path
     .map((id) => game.tree.nodes[id])
-    .filter((node): node is NonNullable<typeof node> => Boolean(node))
-    .filter((node) => strategy.strategy === 'every-move' || node.ply >= strategy.startPly);
+    .filter((node): node is NonNullable<typeof node> => Boolean(node));
+  const side = job.sides ?? 'both';
+
+  const wanted = new Set<string>();
+  /*
+    `index + 1 < nodes.length` because a position with no successor is one no
+    move was played from, and there is nothing there to judge. Without it the
+    final position joins the set whenever the game ends on the other side's
+    move — an evaluation paid for and never read.
+  */
+  for (let index = 0; index + 1 < nodes.length; index += 1) {
+    const node = nodes[index];
+    const after = nodes[index + 1];
+    if (!node || !after) continue;
+    if (side !== 'both' && sideToMoveOf(node.fen) !== side) continue;
+    // The position the move was played from, and the one it produced.
+    wanted.add(node.id);
+    wanted.add(after.id);
+  }
+
+  return nodes
+    .slice(1)
+    .filter((node) => side === 'both' || wanted.has(node.id))
+    .filter((node) => job.strategy === 'every-move' || node.ply >= job.startPly);
+};
 
 export const useAnalysisQueue = create<QueueState>((set, get) => {
   const refresh = async () => {
@@ -300,6 +337,7 @@ export const useAnalysisQueue = create<QueueState>((set, get) => {
         const totalPositions = positionsFor(game, {
           strategy: configuration.strategy,
           startPly: configuration.startPly,
+          ...(configuration.sides ? { sides: configuration.sides } : {}),
         }).length;
         await repositories.analysisQueue.enqueue({
           gameId,
@@ -310,6 +348,11 @@ export const useAnalysisQueue = create<QueueState>((set, get) => {
           limit: limitFor(configuration),
           strategy: configuration.strategy,
           startPly: configuration.strategy === 'after-opening' ? configuration.startPly : 1,
+          // Omitted rather than defaulted, so a job carries a side only when
+          // one was chosen and an older job keeps meaning what it meant.
+          ...(configuration.sides && configuration.sides !== 'both'
+            ? { sides: configuration.sides }
+            : {}),
           totalPositions,
         });
       }
