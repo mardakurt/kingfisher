@@ -1146,6 +1146,20 @@ training cards, where nothing stops two existing for one position. A position
 with two reviews on the sooner of them, so a due card cannot hide behind a
 distant one.
 
+**A session is a selection, not a syllabus.** Starting a review replaces the
+membership of the static training set it uses rather than adding to it, so a
+player who reviews forty positions and then wants the five they keep failing
+gets five. No card and no schedule is touched by that — the set holds
+membership, and the cards belong to the queue.
+
+**And the link the review hands the queue has to be read from the route.**
+`?set=`, `?item=` and `?scope=` are how a review session, a critical position
+and the command palette all give the training workspace a subject. Reading them
+from `window.location` during the first render is right after a page load and
+wrong after a client navigation, which is what every one of those links is; the
+workspace reads `useSearchParams`, and `src/app/training/page.tsx` carries the
+Suspense boundary a prerendered route needs for that.
+
 ## Strategic themes
 
 `src/chess/themes.ts` extends deterministic search from pawn skeletons to
