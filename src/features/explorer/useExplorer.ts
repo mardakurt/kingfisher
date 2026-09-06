@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { Position } from '@/chess/position';
 import { isOk } from '@/chess/result';
@@ -88,4 +88,38 @@ export function useExplorerPrefetch(
     // structurally, so the serialized form is what this effect depends on.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [client, sourceId, sourceVersion, fen, candidates, JSON.stringify(filters)]);
+}
+
+/**
+ * The same position from several sources at once, for the comparison view.
+ *
+ * `useQueries` rather than a loop of `useExplorer`, because the set of sources
+ * is chosen by the user and a hook cannot be called conditionally. Each entry
+ * keeps its own key, so a source already read by the single-source panel is
+ * answered from the cache rather than fetched again.
+ */
+export function useExplorerSources(
+  sourceIds: readonly string[],
+  fen: Fen,
+  filters: ExplorerFilters,
+) {
+  return useQueries({
+    queries: sourceIds.map((sourceId) => ({
+      queryKey: [
+        'explorer',
+        sourceId,
+        databaseProviderById(sourceId)?.cacheVersion ?? 'live',
+        fen,
+        filters,
+      ],
+      queryFn: async ({ signal }: { signal?: AbortSignal }) => {
+        const provider = databaseProviderById(sourceId);
+        if (!provider) throw new Error(`Unknown database: ${sourceId}`);
+        return provider.explore({ fen, filters, limit: 15 }, signal);
+      },
+      retry: providerRetry,
+      retryDelay: (attempt: number, error: unknown) => retryDelayMs(error, attempt),
+      gcTime: 10 * 60_000,
+    })),
+  });
 }

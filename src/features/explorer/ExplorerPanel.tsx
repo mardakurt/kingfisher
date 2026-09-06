@@ -29,7 +29,7 @@ import { Segmented } from '@/components/ui/Tabs';
 import { useAnalysisPosition } from '@/features/analysis/useAnalysisPosition';
 import { useChessWorkspace } from '@/features/workspace/ChessWorkspaceContext';
 import { useRepertoiresAtPosition } from '@/features/persistence/queries';
-import { Filter, Plus, Target } from '@/components/icons';
+import { Database, Filter, Plus, Target } from '@/components/icons';
 import { cn } from '@/lib/cn';
 import { useAnalysis } from '@/stores/analysis-store';
 import { useEngine } from '@/stores/engine-store';
@@ -44,6 +44,7 @@ import { openReferenceGame } from '@/features/games/open-reference-game';
 import { packReader } from '@/reference/manager';
 
 import { SourceFallback, SourcePicker } from './SourcePicker';
+import { SourceComparison } from './SourceComparison';
 import { useExplorer, useExplorerPrefetch } from './useExplorer';
 import { usePositionContext } from './usePositionContext';
 
@@ -79,6 +80,8 @@ export function ExplorerPanel() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [recentWindow, setRecentWindow] = useState<RecentWindowId>('off');
   const [selected, setSelected] = useState<readonly string[]>([]);
+  const [comparing, setComparing] = useState(false);
+  const [comparedSources, setComparedSources] = useState<readonly string[]>([]);
   const [player, setPlayer] = useState('');
   const [playerColor, setPlayerColor] = useState<'w' | 'b'>('w');
 
@@ -206,6 +209,41 @@ export function ExplorerPanel() {
       <PanelHeader
         actions={
           <>
+            {/*
+              Comparing sources is a mode, not a filter: it changes what the
+              panel is showing rather than which games it counts.
+            */}
+            <IconButton
+              label="Compare sources"
+              active={comparing}
+              onClick={() => {
+                setComparing((open) => {
+                  const next = !open;
+                  /*
+                    Open it on the source already selected plus the next
+                    installed one, so the first thing a user sees is an actual
+                    comparison rather than an empty frame asking them to build
+                    one.
+                  */
+                  if (next && comparedSources.length === 0) {
+                    /*
+                      The second column defaults to a source that answers
+                      without a network. Picking the first installed one would
+                      pick Masters, which needs a token, so the first thing a
+                      new user saw would be a column that could not answer.
+                    */
+                    const offline = sources.filter((source) => source.installed && source.offline);
+                    const current = offline.find((source) => source.id === provider?.id);
+                    const first = (current ?? offline[0])?.id;
+                    const second = offline.find((source) => source.id !== first)?.id;
+                    setComparedSources([first, second].filter((id): id is string => Boolean(id)));
+                  }
+                  return next;
+                });
+              }}
+            >
+              <Database />
+            </IconButton>
             <IconButton
               label="Explorer filters"
               active={filtersOpen}
@@ -450,6 +488,21 @@ export function ExplorerPanel() {
             </div>
 
             {compared.length >= 2 ? <Comparison entries={compared} /> : null}
+
+            {comparing ? (
+              <SourceComparison
+                sources={sources}
+                fen={node.fen}
+                filters={filters}
+                whiteToMove={position.turn === 'w'}
+                selected={comparedSources}
+                onSelectedChange={setComparedSources}
+                onPlay={(san) => {
+                  const move = query.data?.moves.find((entry) => entry.san === san);
+                  if (move) playMove(move);
+                }}
+              />
+            ) : null}
 
             {(query.data?.topGames?.length ?? 0) > 0 ? (
               <section className="border-t border-line-subtle">
