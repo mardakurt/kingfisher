@@ -23,11 +23,13 @@ const config = [
       'public/**',
       'next-env.d.ts',
       'scripts/**',
+      // Build scripts, print to a terminal, same as scripts/ above.
+      'desktop/scripts/**',
       'test-results/**',
       'playwright-report/**',
       // The shell's own install and the bundles it packs, none of it ours.
       'desktop/node_modules/**',
-      'desktop/app/**',
+      'desktop/web/**',
       'desktop/dist/**',
     ],
   },

@@ -31,7 +31,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const STANDALONE = path.join(ROOT, '.next', 'standalone');
-const OUT = path.join(ROOT, 'desktop', 'app');
+const OUT = path.join(ROOT, 'desktop', 'web');
 
 const size = (dir) => {
   let total = 0;

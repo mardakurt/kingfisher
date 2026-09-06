@@ -52,5 +52,8 @@ kf-compaction-run/
 # applications electron-builder writes. All three are reproducible from
 # `npm run desktop:dist`; the .app alone is 300 MB.
 desktop/node_modules/
-desktop/app/
+desktop/web/
 desktop/dist/
+# electron-builder refuses an output path with an `&` in it, so a checkout
+# under one lands here instead; `desktop/scripts/build.mjs` explains it.
+

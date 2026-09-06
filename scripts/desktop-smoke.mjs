@@ -91,11 +91,21 @@ function shellBinary() {
   return path.join(ROOT, 'desktop', 'node_modules', 'electron', 'dist', relative);
 }
 
+/**
+ * The packaged application.
+ *
+ * `KINGFISHER_DESKTOP_OUT` exists because electron-builder refuses an output
+ * directory whose path contains shell-special characters, and the development
+ * checkout this was written in lives under one. `npm run desktop:dist` passes
+ * the same variable through, so the two always agree.
+ */
 function packagedBinary() {
-  const app = path.join(ROOT, 'desktop', 'dist', 'mac-arm64', 'Kingfisher.app');
-  const universal = path.join(ROOT, 'desktop', 'dist', 'mac', 'Kingfisher.app');
-  const chosen = existsSync(app) ? app : universal;
-  return path.join(chosen, 'Contents', 'MacOS', 'Kingfisher');
+  const out = process.env.KINGFISHER_DESKTOP_OUT ?? path.join(ROOT, 'desktop', 'dist');
+  for (const directory of ['mac-arm64', 'mac', 'mac-x64', 'mac-universal']) {
+    const app = path.join(out, directory, 'Kingfisher.app');
+    if (existsSync(app)) return path.join(app, 'Contents', 'MacOS', 'Kingfisher');
+  }
+  return path.join(out, 'mac-arm64', 'Kingfisher.app', 'Contents', 'MacOS', 'Kingfisher');
 }
 
 async function main() {

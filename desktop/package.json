@@ -7,11 +7,12 @@
   "main": "src/main.mjs",
   "scripts": {
     "start": "electron .",
-    "pack": "electron-builder --dir",
-    "dist": "electron-builder"
+    "pack": "node scripts/build.mjs --dir",
+    "dist": "node scripts/build.mjs"
   },
   "devDependencies": {
     "electron": "44.2.0",
     "electron-builder": "^26.0.12"
-  }
+  },
+  "author": "Kingfisher"
 }

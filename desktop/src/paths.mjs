@@ -28,7 +28,7 @@ export function resolveLayout({ resourcesPath, packaged, here = HERE } = {}) {
       packaged: false,
       repo,
       companionEntry: path.join(repo, 'companion', 'src', 'server.mjs'),
-      webEntry: path.join(repo, 'desktop', 'app', 'server.js'),
+      webEntry: path.join(repo, 'desktop', 'web', 'server.js'),
       companionData: null,
     };
   }
@@ -37,7 +37,7 @@ export function resolveLayout({ resourcesPath, packaged, here = HERE } = {}) {
     packaged: true,
     repo: base,
     companionEntry: path.join(base, 'companion', 'src', 'server.mjs'),
-    webEntry: path.join(base, 'app', 'server.js'),
+    webEntry: path.join(base, 'web', 'server.js'),
     companionData: null,
   };
 }
