@@ -168,6 +168,20 @@ and only a comparison against that program's own output can catch it.
 The games are redistributed here under CC BY-SA 4.0 with the attribution above.
 No En Croissant source code is vendored; the fixture is data it emitted.
 
+## Historical master games — audited, none shipped
+
+No source was found that both contains historical over-the-board master games
+and grants redistribution on terms compatible with the rest of this file.
+Lumbra's Gigabase is CC BY-NC-SA with unstated provenance; PGN Mentor and
+Caissabase state no licence at all. The full audit, the legal reasoning about
+game scores and database rights, and what would change the answer are in
+[`docs/data/historical-games-audit.md`](docs/data/historical-games-audit.md).
+
+Kingfisher therefore ships no historical games, and no browse set offers a
+player it has none for.
+
+---
+
 ## Lichess standard rated games database
 
 Used for the High-Rated Online reference. Definition, thresholds and the
