@@ -282,6 +282,16 @@ There is deliberately **no search timeout**. A ten-minute think on a critical
 position is the product working, and a watchdog that ended it would be a bug
 that looked like a feature.
 
+**Checked against a real engine, not only against a stand-in.** Hardening the
+spawn is the kind of change that passes its own tests and stops a real binary
+from starting, so Stormphrax 8.0.0 was run through the actual `EngineHost` on
+darwin-arm64 with all of it on: it handshook and reported
+`id name Stormphrax 8.0.0`, `setoption name Threads value 9999` and
+`setoption name Hash value 33554432` were both clamped to this machine's
+ceiling of 3 threads and 1,152 MB and both clamps were reported into the
+session, it searched a real position to depth 12 and returned `bestmove d7d6`,
+it wrote nothing to the error channel, and it exited cleanly when stopped.
+
 **It is still not sandboxed.** A native engine is a program running with the same
 operating-system permissions as anything else you launch: your files, your
 network. Kingfisher verifies where it came from and that it is what it claims
