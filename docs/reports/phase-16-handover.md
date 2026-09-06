@@ -14,7 +14,7 @@ none of them is parked in Known Limitations.
 | **T**  | High-rated online pack         | **DELIVERED** — 89,288,421 games considered, 305,169 retained, 82 MB, indexed to 20 full moves                                                                              |
 | **V**  | React render profile           | **DELIVERED** — measured; nothing needed optimising                                                                                                                         |
 | **AH** | Full manual route walk         | **DELIVERED** — every route, four widths, one real defect found and fixed                                                                                                   |
-| **E**  | Phase 1–15 verification matrix | **DELIVERED** — `docs/product/phase-16-phase-verification.md`                                                                                                               |
+| **E**  | Phase 1–15 verification matrix | **DELIVERED** — `docs/product/phase-verification.md`                                                                                                                        |
 
 One qualification, stated once and plainly: **Part O built a 210,013-game
 database, not a 1,000,000-game one.** The import was stopped by free disk, which
@@ -235,7 +235,7 @@ next person does not spend an afternoon on it.
 
 ## 9. Part E — the verification matrix
 
-`docs/product/phase-16-phase-verification.md`. One row per major capability
+`docs/product/phase-verification.md`. One row per major capability
 across Phases 1–15: the invariant, where it lives, the unit and browser evidence,
 and the fix commit where Phase 16 found it broken. Eight rows read **Held
 (repaired)** — each a capability an earlier phase reported as working, each found

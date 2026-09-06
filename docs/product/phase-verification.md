@@ -1,4 +1,4 @@
-# Phases 1–15, capability by capability
+# Phases 1–17, capability by capability
 
 What each phase built, the invariant that has to keep holding, and where the
 evidence for it lives. This is the map to consult before changing something:
@@ -9,8 +9,8 @@ Status values mean exactly this:
 
 - **Held** — the invariant is asserted by the evidence named, and that evidence
   passed on the run recorded in the Phase 16 handover.
-- **Held (repaired)** — the invariant was found broken during Phase 16 and the
-  fix commit is named.
+- **Held (repaired)** — the invariant was found broken during Phase 16 or 17
+  and the fix commit is named.
 
 Nothing here is marked verified on the strength of an earlier report.
 
@@ -147,6 +147,25 @@ Nothing here is marked verified on the strength of an earlier report.
 | Backup completeness            | `src/persistence/backup.ts`      | Every store holding authored work round-trips                      | `backup-completeness.test.ts` | `reliability.spec.ts`       | **Held (repaired)** | Six stores of authored work were absent from backups | `53f21bb` |
 | Pack metadata in backups       | `src/persistence/backup.ts`      | A restore says which sources were installed, without carrying them | `backup.test.ts`              | `reference-sources.spec.ts` | Held                | —                                                    | `266b3d2` |
 
+## Phase 17 — opening knowledge, data, settings and the board
+
+| Capability                    | Implementation                               | Invariant                                                                                      | Unit evidence               | Browser evidence              | Status              | Regression                                                                                | Fix       |
+| ----------------------------- | -------------------------------------------- | ---------------------------------------------------------------------------------------------- | --------------------------- | ----------------------------- | ------------------- | ----------------------------------------------------------------------------------------- | --------- |
+| Board priority                | `src/features/workspace/layout-model.ts`     | A dimension the user did not choose follows the policy; one they dragged does not              | `layout-model.test.ts`      | `board-size.spec.ts`          | **Held (repaired)** | Selecting a tool tab froze the layout, so all three policies drew a 583px board           | `7a8b5f2` |
+| Piece proportions             | `src/features/board/piece-sets/`             | Every set's tallest piece covers 0.86 of its square; none exceeds 0.94 and touches a neighbour | `piece-proportions.test.ts` | `piece-proportions.spec.ts`   | **Held (repaired)** | A 6% inset plus each set's own margin left the default set at 0.705                       | `7c19273` |
+| Settings contract             | `src/features/shell/settings-contract.ts`    | Every preference names a control, a consumer and a visible effect                              | `settings-contract.test.ts` | `settings.spec.ts`            | Held                | —                                                                                         | `58a0450` |
+| Settings persistence, reset   | `src/stores/preferences-store.ts`            | A change sticks, survives a reload, and Reset undoes all of it                                 | `preferences-store.test.ts` | `settings.spec.ts`            | **Held (repaired)** | The store had no test at all                                                              | `58a0450` |
+| Theory Book                   | `src/theory/theory-book.ts`                  | Named branches only; no counts, no evaluations; no opening identity invented                   | `theory-book.test.ts`       | `theory-book.spec.ts`         | Held                | —                                                                                         | `044371d` |
+| Book past the last named line | `src/theory/theory-book.ts`                  | A line deeper than the dataset names is placed, and says how far past it is                    | `theory-book.test.ts`       | `theory-book.spec.ts`         | Held                | —                                                                                         | `044371d` |
+| Source comparison             | `src/features/explorer/source-comparison.ts` | Populations are never merged; three kinds of absence stay distinct                             | `source-comparison.test.ts` | `source-comparison.spec.ts`   | Held                | —                                                                                         | `4b37f3f` |
+| High-Rated Online pack        | `src/reference/catalog.ts`                   | Published, digest-verified, and labelled with its speed mixture before installation            | `catalog.test.ts`           | installed and queried by hand | Held                | —                                                                                         | `43960a9` |
+| Player browse sets            | `src/reference/players.ts`                   | A browse set contains only players with at least one game; search still finds the rest         | `players.test.ts`           | `players.spec.ts`             | **Held (repaired)** | World champions opened with Steinitz, Lasker and Capablanca — three profiles with nothing | `a37eb66` |
+| Player identity display       | `src/reference/legends.ts`                   | A profile is headed by a name, not a route key                                                 | `players.test.ts`           | `players.spec.ts`             | **Held (repaired)** | Every historical profile read "steinitz, wilhelm"                                         | `a37eb66` |
+| Player search spelling        | `src/reference/players.ts`                   | Diacritics fold, separators flatten, nicknames are a written list                              | `players.test.ts`           | `players.spec.ts`             | **Held (repaired)** | "Polgár" found nothing; "MVL" found nothing                                               | `a37eb66` |
+| Browser engine                | `scripts/install-engine.mjs`                 | The displayed version is one that handshook and searched                                       | —                           | `fresh-user.spec.ts`          | Held                | —                                                                                         | `18e2aa6` |
+| Text search paging            | `companion/src/database.mjs`                 | The order is total, so paging shows each game exactly once                                     | `database.test.mjs`         | —                             | **Held (repaired)** | Ties were ordered by the query plan, so a game could appear on two pages                  | `9aa60ae` |
+| Pinned tools                  | `src/features/workspace/presets.ts`          | One definition of the default pinned tools                                                     | —                           | `soak.spec.ts`                | **Held (repaired)** | The dock carried its own copy, so pinning a new tool changed nothing                      | `044371d` |
+
 ---
 
 ## How to use this
@@ -155,6 +174,8 @@ Before changing something, find the row. If the invariant in that row is what
 your change would alter, the evidence named there should fail — and if it does
 not, the evidence is the thing to fix first.
 
-Eight rows say **Held (repaired)**. Every one of those was a capability an
-earlier phase reported as working, and every one was found by asking for the
-evidence rather than by reading the report.
+Fifteen rows say **Held (repaired)** — eight found in Phase 16 and seven in
+Phase 17. Every one was a capability an earlier phase reported as working, and
+every one was found by asking for the evidence rather than by reading the
+report. Two of the seven were reported by the user rather than by a test, which
+is the strongest argument in this document for the rest of it.
