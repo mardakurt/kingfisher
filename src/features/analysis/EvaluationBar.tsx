@@ -27,6 +27,7 @@ export function EvaluationBar({ score, orientation, stale }: EvaluationBarProps)
 
   return (
     <div
+      data-evaluation-bar
       className={cn(
         'relative flex h-full w-[18px] shrink-0 flex-col overflow-hidden rounded-[3px] border border-line-strong transition-opacity',
         stale && 'opacity-45',

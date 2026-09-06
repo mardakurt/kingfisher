@@ -60,7 +60,7 @@ export function EvaluationGraph({ tree, currentId, onSelect, className }: Evalua
   const currentIndex = columns.findIndex((column) => column.nodeId === currentId);
 
   return (
-    <figure className={cn('min-w-0', className)}>
+    <figure data-evaluation-graph className={cn('min-w-0', className)}>
       <svg
         viewBox={`0 0 ${width} ${HEIGHT}`}
         preserveAspectRatio="none"

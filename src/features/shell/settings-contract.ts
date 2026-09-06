@@ -47,8 +47,19 @@ export interface SettingContract {
   readonly effect: string;
   /** The entry in `SETTINGS_INDEX`, when the setting is searchable there. */
   readonly indexedAs: string | null;
-  /** Whether the change is visible without reloading. */
+  /** Whether the change takes effect without a reload or a restart. */
   readonly previewable: boolean;
+  /**
+   * Why no browser test asserts this setting's effect.
+   *
+   * Absent means there is one, or there must be — `e2e/settings.spec.ts` fails
+   * when a setting with no reason has no runtime assertion. Present means the
+   * effect needs infrastructure a browser test cannot stand up: a companion
+   * process, somebody's Lichess token, an assistant endpoint. Stating the
+   * reason is the point; "previewable" was doing double duty for "takes effect
+   * immediately" and "you can see it", which are different claims.
+   */
+  readonly notBrowserCheckable?: string;
   /** An end-to-end test that asserts the effect, if one exists. */
   readonly verifiedBy?: string;
 }
@@ -107,6 +118,8 @@ export const SETTING_CONTRACTS: readonly SettingContract[] = [
     effect: 'resolveAnimationMs returns a different duration, and Off also honours reduced motion.',
     indexedAs: 'animation',
     previewable: true,
+    notBrowserCheckable:
+      'A timing assertion on an animation is the flakiest test there is; the value that reaches the board is asserted instead.',
   },
   {
     key: 'arrowPalette',
@@ -179,6 +192,7 @@ export const SETTING_CONTRACTS: readonly SettingContract[] = [
     effect: 'The engine is configured with that thread count on its next search.',
     indexedAs: 'engine-threads',
     previewable: false,
+    notBrowserCheckable: 'Sent to the engine on its next search; not visible in the page.',
   },
   {
     key: 'engineHashMb',
@@ -189,6 +203,7 @@ export const SETTING_CONTRACTS: readonly SettingContract[] = [
     effect: 'The engine is configured with that hash size on its next search.',
     indexedAs: 'engine-hash',
     previewable: false,
+    notBrowserCheckable: 'Sent to the engine on its next search; not visible in the page.',
   },
   {
     key: 'engineLimit',
@@ -199,6 +214,7 @@ export const SETTING_CONTRACTS: readonly SettingContract[] = [
     effect: 'A search stops at that depth, node count or time instead of running on.',
     indexedAs: null,
     previewable: true,
+    notBrowserCheckable: 'When a search stops is a timing assertion against a live engine.',
   },
   {
     key: 'enginePreset',
@@ -229,6 +245,7 @@ export const SETTING_CONTRACTS: readonly SettingContract[] = [
     effect: 'The comparison column is driven by a different engine process.',
     indexedAs: 'engine-choice',
     previewable: true,
+    notBrowserCheckable: 'Needs a second engine process running through the companion.',
   },
   {
     key: 'hiddenEngineIds',
@@ -291,6 +308,8 @@ export const SETTING_CONTRACTS: readonly SettingContract[] = [
       'A surface that has not been told which source to use reaches for a different one first.',
     indexedAs: 'reference-sources',
     previewable: true,
+    notBrowserCheckable:
+      'Changes which source an unspecified surface reaches for first; no single visible surface asserts it.',
   },
   {
     key: 'openingsMode',
@@ -322,6 +341,7 @@ export const SETTING_CONTRACTS: readonly SettingContract[] = [
     effect: 'Companion requests go to that address.',
     indexedAs: 'companion',
     previewable: true,
+    notBrowserCheckable: 'Needs a companion process at a known address.',
   },
   {
     key: 'companionToken',
@@ -332,6 +352,7 @@ export const SETTING_CONTRACTS: readonly SettingContract[] = [
     effect: 'Companion requests carry that token, and are rejected without it.',
     indexedAs: 'companion',
     previewable: true,
+    notBrowserCheckable: 'Needs a companion process to accept or reject the token.',
   },
   {
     key: 'lichessToken',
@@ -342,6 +363,8 @@ export const SETTING_CONTRACTS: readonly SettingContract[] = [
     effect: 'Lichess requests are authenticated, so the Lichess explorer answers at all.',
     indexedAs: 'lichess-token',
     previewable: true,
+    notBrowserCheckable:
+      'Needs a real Lichess token, which requires a consent step no agent can give.',
   },
   {
     key: 'rememberLichessToken',
@@ -352,6 +375,7 @@ export const SETTING_CONTRACTS: readonly SettingContract[] = [
     effect: 'The token survives a reload, or is dropped when the tab closes.',
     indexedAs: 'lichess-token',
     previewable: false,
+    notBrowserCheckable: 'Covered by the store test; the effect is what reaches storage.',
   },
   {
     key: 'lichessUsername',
@@ -372,6 +396,7 @@ export const SETTING_CONTRACTS: readonly SettingContract[] = [
     effect: 'Evidence packets are sent to that endpoint.',
     indexedAs: null,
     previewable: true,
+    notBrowserCheckable: 'Needs an assistant endpoint to receive the request.',
   },
   {
     key: 'assistantModel',
@@ -382,6 +407,7 @@ export const SETTING_CONTRACTS: readonly SettingContract[] = [
     effect: 'The request names that model.',
     indexedAs: null,
     previewable: true,
+    notBrowserCheckable: 'Needs an assistant endpoint to receive the request.',
   },
   {
     key: 'assistantApiKey',
@@ -392,6 +418,7 @@ export const SETTING_CONTRACTS: readonly SettingContract[] = [
     effect: 'The request is authenticated, and fails without it.',
     indexedAs: null,
     previewable: true,
+    notBrowserCheckable: 'Needs an assistant endpoint to accept or reject the key.',
   },
 ];
 

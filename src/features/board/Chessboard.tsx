@@ -320,6 +320,10 @@ export function Chessboard({
   return (
     <div
       data-chessboard
+      /* Which appearance preferences actually reached the board, in the DOM,
+         so the settings contract can be checked rather than believed. */
+      data-board-theme={theme}
+      data-coordinates={coordinates}
       className={cn('relative aspect-square w-full touch-none select-none', className)}
       style={themeTokens as React.CSSProperties}
     >
