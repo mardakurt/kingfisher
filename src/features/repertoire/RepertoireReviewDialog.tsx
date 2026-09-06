@@ -77,7 +77,7 @@ export function RepertoireReviewDialog({
         (set) => set.name === name && set.kind === 'static',
       );
       const set = existing
-        ? await repositories.trainingSets.addItems(
+        ? await repositories.trainingSets.replaceItems(
             existing.id,
             existing.revision,
             items.map((item) => item.id),

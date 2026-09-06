@@ -556,9 +556,16 @@ their own panel.
 
 ## Running two at once
 
-Two is a hard limit, and they split the thread budget. A third search would take
-cores from the interface, and a board that stutters costs more than a third
-opinion is worth. The comparison reports where the two agree, how far their
+Two is a hard limit — `SlotId` in `src/stores/engine-store.ts` is `'primary' |
+'secondary'` and there is no third slot — and they split the thread budget.
+
+The four-engine attribution check above is a different thing and must not be
+read as a comparison view that takes four. It drives four engines through the
+**companion**, to prove the session layer keeps concurrent searches apart. What
+the interface offers a reader is two.
+
+A third search in the interface would take cores from it, and a board that
+stutters costs more than a third opinion is worth. The comparison reports where the two agree, how far their
 principal variations run together, and how far apart their evaluations are — and
 refuses to subtract a mate score from an evaluation, for the same reason the
 MultiPV gap does.

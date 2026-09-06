@@ -50,7 +50,7 @@ jobs:
             label: Windows x64
           - os: macos-latest
             label: macOS arm64
-          - os: macos-13
+          - os: macos-15-intel
             label: macOS x64
     steps:
       - uses: actions/checkout@v5
@@ -69,6 +69,7 @@ jobs:
       - name: Interrogate the fleet
         id: verify
         continue-on-error: true
+        shell: bash
         run: node scripts/verify-engine-fleet.mjs --keep 2>&1 | tee engine-verify-${{ matrix.os }}.txt
 
       # Qualification: nine positions and five protocol sequences against every
@@ -81,6 +82,7 @@ jobs:
       - name: Qualify the fleet
         id: qualify
         continue-on-error: true
+        shell: bash
         run: node scripts/qualify-engines.mjs --dir .engine-fleet 2>&1 | tee engine-qualify-${{ matrix.os }}.txt
 
       - uses: actions/upload-artifact@v6

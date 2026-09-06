@@ -245,3 +245,20 @@ test('the plan sections count a real collection, and cite how many games they re
     .click();
   await expect(page.getByRole('button', { name: /Plan evidence E2E/ })).toHaveCount(0);
 });
+
+test('the report checks branches against the chosen saved repertoire', async ({ page }) => {
+  await openReport(page);
+  await play(page, 'e2', 'e4');
+  await page.getByRole('button', { name: 'Document actions' }).click();
+  await page.getByRole('menuitem', { name: 'Add to repertoire…' }).click();
+  await page.getByLabel('Title').fill('Report White e4');
+  await page.getByRole('button', { name: /Save \d+ position/ }).click();
+  await expect(page.getByRole('dialog', { name: 'Add to repertoire' })).toBeHidden();
+  await page.keyboard.press('Home');
+  await page.getByLabel('Report repertoire').selectOption({ label: 'Report White e4' });
+  await expect(section(page, 'repertoire')).toContainText('Report White e4');
+  await expect(section(page, 'repertoire').locator('li').filter({ hasText: /^e4/ })).toContainText(
+    'answered',
+  );
+  await expect(section(page, 'repertoire')).toContainText('no response');
+});

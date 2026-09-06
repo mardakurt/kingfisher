@@ -150,3 +150,35 @@ test('running the review twice does not double the queue', async ({ page }) => {
   await expect(status).toContainText('0 new');
   await expect(status).toContainText(`${newFirstTime} already scheduled`);
 });
+
+/**
+ * A second, smaller session replaces the first rather than adding to it.
+ *
+ * Two things had to be true for this and neither was. The dialog added its
+ * prompts to the existing set, so a set only ever grew. And the training
+ * workspace read `?set=` from `window.location` during its first render, which
+ * on a client navigation happens before the address changes — so the link the
+ * review pushed opened the whole queue instead of the session, permanently,
+ * because a `useState` initialiser runs once.
+ *
+ * The queue count is the assertion because it is the only place a player would
+ * see either defect: both show up as "All 2" when the session holds one.
+ */
+test('a smaller repeat session contains only the selected prompts', async ({ page }) => {
+  await buildRepertoire(page, 'Limited');
+  await page.goto('/repertoire');
+  await ready(page);
+  await page.getByRole('button', { name: 'Review repertoire' }).click();
+  await expect(dialog(page).getByRole('status')).toContainText('2 prompts');
+  await dialog(page).getByRole('button', { name: 'Start repertoire review' }).click();
+  await expect(page).toHaveURL(/\/training/);
+  await expect(page.getByRole('button', { name: 'All 2', exact: true })).toBeVisible();
+  await page.goto('/repertoire');
+  await ready(page);
+  await page.getByRole('button', { name: 'Review repertoire' }).click();
+  await dialog(page).getByLabel('Session limit').fill('1');
+  await expect(dialog(page).getByRole('status')).toContainText('1 prompts');
+  await dialog(page).getByRole('button', { name: 'Start repertoire review' }).click();
+  await expect(page).toHaveURL(/\/training/);
+  await expect(page.getByRole('button', { name: 'All 1', exact: true })).toBeVisible();
+});

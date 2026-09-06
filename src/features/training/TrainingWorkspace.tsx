@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { Plus, Target, Trash } from '@/components/icons';
@@ -65,24 +66,33 @@ export function TrainingWorkspace() {
   const training = useTrainingItems();
   const sets = useTrainingSets();
   const [now] = useState(() => Date.now());
-  const [selectedId, setSelectedId] = useState<string | null>(() =>
-    typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get('item'),
-  );
+  /*
+    The address, not a snapshot of it.
+
+    These three were seeded from `window.location.search` in a `useState`
+    initialiser, which is correct after a page load and wrong after a client
+    navigation: the component renders before the address changes, so `?set=…`
+    read as absent and the workspace opened the whole queue instead of the
+    session — permanently, because an initialiser runs once. Every link into
+    this route from inside the application is a client navigation, which is all
+    of them: the repertoire review, a critical position, the search palette.
+
+    `useSearchParams` tracks the route. It needs the Suspense boundary in
+    `src/app/training/page.tsx`, which is why that boundary exists.
+  */
+  const params = useSearchParams();
+  const setParam = params.get('set');
+  const itemParam = params.get('item');
+  const [selectedId, setSelectedId] = useState<string | null>(itemParam);
   const [revealedItemId, setRevealedItemId] = useState<string | null>(null);
   const [attempt, setAttempt] = useState<{ itemId: string; state: AttemptState } | null>(null);
   const [busy, setBusy] = useState(false);
   const [deleteItem, setDeleteItem] = useState<TrainingItemRecord | null>(null);
   const [setsOpen, setSetsOpen] = useState(false);
-  const [selectedSetId, setSelectedSetId] = useState<string | null>(() =>
-    typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get('set'),
-  );
+  const [selectedSetId, setSelectedSetId] = useState<string | null>(setParam);
   const setItems = useTrainingSetItems(selectedSetId);
-  const [scope, setScope] = useState<'due' | 'all'>(() =>
-    typeof window !== 'undefined' &&
-    (new URLSearchParams(window.location.search).has('item') ||
-      new URLSearchParams(window.location.search).get('scope') === 'all')
-      ? 'all'
-      : 'due',
+  const [scope, setScope] = useState<'due' | 'all'>(
+    itemParam !== null || params.get('scope') === 'all' ? 'all' : 'due',
   );
   const openDocument = useAnalysis((state) => state.openDocument);
   const stopEngine = useEngine((state) => state.stop);

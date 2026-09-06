@@ -29,6 +29,27 @@ const makeItem = async (
   });
 
 describe('static training sets', () => {
+  it('replaces a review session without retaining old prompts or changing their schedules', async () => {
+    const repositories = createMemoryRepositories();
+    const one = await makeItem(repositories, 'Earlier session');
+    const two = await makeItem(repositories, 'Selected now');
+    const set = await repositories.trainingSets.create({
+      name: 'Review',
+      kind: 'static',
+      itemIds: [one.id, two.id],
+    });
+    const replaced = await repositories.trainingSets.replaceItems(set.id, set.revision, [
+      two.id,
+      two.id,
+    ]);
+    expect(replaced.itemIds).toEqual([two.id]);
+    expect(await repositories.trainingSets.resolve(set.id)).toEqual([two]);
+    expect(await repositories.training.get(one.id)).toEqual(one);
+    expect(await repositories.training.get(two.id)).toEqual(two);
+    await expect(
+      repositories.trainingSets.replaceItems(set.id, set.revision, [one.id]),
+    ).rejects.toBeInstanceOf(StaleTrainingSetWriteError);
+  });
   it('holds membership rather than copies, and resolves to the real items', async () => {
     const repositories = createMemoryRepositories();
     const one = await makeItem(repositories, 'Najdorf recall 1');

@@ -38,6 +38,12 @@ export interface TrainingSetRepository {
     itemIds: readonly string[],
   ): Promise<TrainingSetRecord>;
   removeItem(id: string, expectedRevision: number, itemId: string): Promise<TrainingSetRecord>;
+  /** Replace session membership without changing any card or its schedule. */
+  replaceItems(
+    id: string,
+    expectedRevision: number,
+    itemIds: readonly string[],
+  ): Promise<TrainingSetRecord>;
   setQuery(
     id: string,
     expectedRevision: number,
@@ -120,6 +126,19 @@ export class LocalTrainingSetRepository implements TrainingSetRepository {
       ...current,
       itemIds: current.itemIds.filter((member) => member !== itemId),
     }));
+  }
+
+  replaceItems(
+    id: string,
+    expectedRevision: number,
+    itemIds: readonly string[],
+  ): Promise<TrainingSetRecord> {
+    return this.write(id, expectedRevision, (current) => {
+      if (current.kind !== 'static') {
+        throw new Error('A dynamic set decides its own membership; edit its filters instead.');
+      }
+      return { ...current, itemIds: dedupe(itemIds) };
+    });
   }
 
   setQuery(

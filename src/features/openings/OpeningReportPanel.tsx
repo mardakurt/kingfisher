@@ -38,6 +38,8 @@
 import { useEffect, useMemo, useState } from 'react';
 
 import { PanelBody, PanelHeader } from '@/components/ui/Panel';
+import { positionKey } from '@/chess/fen';
+import { useRepertoires, useRepertoire } from '@/features/persistence/queries';
 import { nodePath } from '@/chess/tree/tree';
 import type { Fen } from '@/chess/types';
 import { useChessWorkspace } from '@/features/workspace/ChessWorkspaceContext';
@@ -89,6 +91,11 @@ export function OpeningReportPanel() {
       live = false;
     };
   }, []);
+
+  const repertoires = useRepertoires();
+  const [repertoireId, setRepertoireId] = useState('');
+  const selectedRepertoireId = repertoireId || repertoires.data?.[0]?.id || null;
+  const repertoire = useRepertoire(selectedRepertoireId);
 
   const node = tree.nodes[currentId];
   const fen = (node?.fen ?? '') as Fen;
@@ -171,17 +178,34 @@ export function OpeningReportPanel() {
 
   const placement = book?.deepest(line) ?? null;
 
-  /*
-    `populations` is a fresh array on every render, so it cannot be a dependency
-    on its own. What actually changes the report is which sources answered and
-    with how many games, so that is what the memo watches.
-  */
-  const answered = populations
-    .map((population) => `${population.id}:${population.result?.totalGames ?? '-'}`)
-    .join('|');
-
+  const repertoirePosition = repertoire.data?.positions.find(
+    (position) => position.positionKey === (fen ? positionKey(fen) : ''),
+  );
   const continuationName = continuationSource?.name ?? '';
 
+  /*
+    Memoised on the answers themselves.
+
+    `populations` is a fresh array on every render, so it cannot be a dependency
+    on its own — but the earlier key, a string of each source's total, was
+    wrong in a way worth recording: equal game totals do not mean equal move
+    distributions, and "still loading" and "could not answer" are different
+    evidence that both stringify to nothing. So the key is each source's actual
+    move distribution, with a distinct mark for each of those two silences.
+
+    It is memoised at all because rebuilding is not cheap: the plan sections
+    replay up to three hundred games thirty plies deep, and this panel
+    re-renders on every board interaction.
+  */
+  const answered = populations
+    .map((population) => {
+      if (population.result === undefined) return `${population.id}:loading`;
+      if (population.result === null) return `${population.id}:unavailable`;
+      return `${population.id}:${population.result.moves
+        .map((move) => `${move.uci}=${move.games}`)
+        .join(',')}`;
+    })
+    .join('|');
   const report = useMemo(
     () =>
       buildOpeningReport({
@@ -191,6 +215,14 @@ export function OpeningReportPanel() {
         ...(placement ? { children: book?.variations(placement.node.key) ?? [] } : {}),
         ...(placement ? { brief: book?.brief(placement.node.key) ?? null } : {}),
         populations,
+        ...(repertoire.data
+          ? {
+              repertoireName: repertoire.data.repertoire.title,
+              repertoireMoves: (repertoirePosition?.moves ?? [])
+                .filter((move) => move.role === 'main' || move.role === 'alternative')
+                .map((move) => move.uci),
+            }
+          : {}),
         // Absent when nothing can answer, which drops the plan sections rather
         // than showing them empty.
         ...(continuations.data
@@ -198,7 +230,16 @@ export function OpeningReportPanel() {
           : {}),
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [fen, placement, book, answered, continuations.data, continuationName],
+    [
+      fen,
+      placement,
+      book,
+      answered,
+      continuations.data,
+      continuationName,
+      repertoire.data,
+      repertoirePosition,
+    ],
   );
 
   if (!node) {
@@ -217,6 +258,29 @@ export function OpeningReportPanel() {
       <PanelHeader>Opening Report</PanelHeader>
       <PanelBody>
         <div className="flex flex-col gap-4" data-opening-report>
+          {Boolean(repertoires.data?.length) && (
+            <label className="text-xs text-secondary">
+              Compare repertoire
+              <select
+                aria-label="Report repertoire"
+                value={selectedRepertoireId ?? ''}
+                onChange={(event) => setRepertoireId(event.target.value)}
+                className="mt-1 block w-full rounded border border-line bg-surface-inset p-2"
+              >
+                {repertoires.data?.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          {continuations.isError && (
+            <p role="alert" className="text-xs text-negative">
+              Plan evidence from {continuationSource?.name} could not be loaded. Other sources
+              remain available.
+            </p>
+          )}
           {report.sections.map((section) => (
             <section key={section.id} data-report-section={section.id}>
               <h3 className="text-xs font-semibold tracking-wide text-secondary uppercase">
