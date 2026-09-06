@@ -612,7 +612,8 @@ and the test re-run to confirm it fails without the fix.
 
 ## 20. Competitors
 
-`docs/product/phase-17-competitors.md`, checked September 2026 and deliberately
+`docs/product/competitors.md` (renamed in Phase 18; it is a living document
+rather than one phase's), checked September 2026 and deliberately
 unflattering where it should be. ChessBase's Mega Database 2026 is **11.7
 million games back to 1475**; Kingfisher has 507,000 across three packs and
 **nothing before 2020**. En Croissant ships no games at all. Lichess is browser
