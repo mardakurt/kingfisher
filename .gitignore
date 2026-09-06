@@ -19,7 +19,9 @@ npm-debug.log*
 public/bench/
 .playwright-mcp/
 playwright-report/
-test-results/
+# `test-results/` plus the "test-results 2" copies a file manager leaves behind
+# when a run is interrupted. Two of those were sitting in the tree.
+test-results*/
 public/brandlab/
 
 # Screenshots dropped at the repository root by browser tooling. Scoped to the
@@ -36,5 +38,12 @@ companion/data/
 .packs/
 
 # The real-scale benchmark database. Tens of gigabytes; rebuilt by
-# `node scripts/bench-real-scale.mjs`.
+# `node scripts/bench-real-scale.mjs`. The one that was here was eleven.
 .real-scale/
+
+# The compaction benchmark's collection, when it is pointed inside the tree.
+# Rebuilt by `npm run bench:compaction`; the measured one was 4.96 GB after
+# migrating and 10.54 GB at its widest, and its numbers are in
+# `docs/performance/phase-18-storage.md` where they do not take up a disk.
+.compaction/
+kf-compaction-run/
