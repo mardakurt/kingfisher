@@ -13,6 +13,7 @@ import { fileURLToPath } from 'node:url';
 
 import { CATALOGUE, DIGESTS, PLATFORM } from '../../scripts/engine-catalogue.mjs';
 import { GameDatabase } from './database.mjs';
+import { DatabaseMaintenance } from './database-maintenance.mjs';
 import { handshakeUci, validateExecutable } from './custom-engines.mjs';
 import {
   EnCroissantError,
@@ -192,7 +193,10 @@ const saveDatabases = () =>
     ),
   );
 
+const maintenance = new DatabaseMaintenance();
 const database = (key) => {
+  if (maintenance.busy(key))
+    throw new Error('Collection maintenance is running. Other collections remain available.');
   if (!open.has(key)) open.set(key, new GameDatabase(databaseRegistry.resolve(key).path));
   return open.get(key);
 };
@@ -775,6 +779,8 @@ async function route(url, request, response) {
   if (pathname === '/db/delete' && request.method === 'POST') {
     const body = await readBody(request);
     const key = String(body.key);
+    if (maintenance.busy(key))
+      return json(response, 409, { error: 'Wait for collection maintenance to finish.' });
     const registered = databaseRegistry.resolve(key);
     const target = open.get(key);
     if (target) target.close();
@@ -829,14 +835,43 @@ async function route(url, request, response) {
 
   if (pathname === '/db/compact' && request.method === 'POST') {
     const body = await readBody(request);
-    const target = database(String(body.key));
-    const result = target.compactPositions({ force: body.force === true });
-    if (result.migrated === false && result.reason === 'insufficient-disk') {
-      // 507 rather than 500: the request was well formed and the collection is
-      // fine; there is not enough disk, and the preflight says how much short.
-      return json(response, 507, result);
-    }
-    return json(response, 200, { ...result, schema: target.schemaStatus() });
+    const key = String(body.key);
+    const preflight = database(key).compactionPreflight();
+    if (preflight.sufficient !== true)
+      return json(response, 507, {
+        error: 'Safe disk headroom could not be confirmed.',
+        preflight,
+      });
+    open.get(key)?.close();
+    open.delete(key);
+    return json(
+      response,
+      202,
+      maintenance.start(key, databaseRegistry.resolve(key).path, 'compact'),
+    );
+  }
+
+  if (pathname === '/db/verify-start' && request.method === 'POST') {
+    const body = await readBody(request);
+    const key = String(body.key);
+    database(key);
+    open.get(key)?.close();
+    open.delete(key);
+    return json(
+      response,
+      202,
+      maintenance.start(key, databaseRegistry.resolve(key).path, 'integrity'),
+    );
+  }
+
+  if (pathname === '/db/maintenance-status' && request.method === 'POST') {
+    const body = await readBody(request);
+    return json(response, 200, maintenance.status(String(body.key)));
+  }
+
+  if (pathname === '/db/maintenance-cancel' && request.method === 'POST') {
+    const body = await readBody(request);
+    return json(response, 200, maintenance.cancel(String(body.key)));
   }
 
   if (pathname === '/db/games-at' && request.method === 'POST') {
@@ -928,6 +963,7 @@ server.listen(PORT, HOST, () => {
 });
 
 const shutdown = () => {
+  void maintenance.close();
   engines.stopAll();
   void tablebase.stop();
   for (const db of open.values()) db.close();

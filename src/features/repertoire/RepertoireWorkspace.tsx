@@ -36,6 +36,7 @@ import { NavButton } from '@/features/shell/NavButton';
 import { CanonicalBoardSurface } from '@/features/workspace/CanonicalBoardSurface';
 import { WorkspaceLowerPanel } from '@/features/workspace/WorkspaceLowerPanel';
 import { WorkspaceToolDock } from '@/features/workspace/WorkspaceToolDock';
+import { RepertoireReviewDialog } from './RepertoireReviewDialog';
 
 const ROLE_LABEL: Record<RepertoireRole, string> = {
   main: 'Main',
@@ -65,6 +66,7 @@ export function RepertoireWorkspace() {
   const [newColor, setNewColor] = useState<'w' | 'b'>('w');
   const [creating, setCreating] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
 
   const list = repertoires.data ?? [];
   const effectiveId = selectedId ?? list[0]?.id ?? null;
@@ -163,6 +165,9 @@ export function RepertoireWorkspace() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
+      {reviewOpen && repertoire.data ? (
+        <RepertoireReviewDialog repertoire={repertoire.data} onClose={() => setReviewOpen(false)} />
+      ) : null}
       <header className="density-row flex h-10 shrink-0 items-center gap-2 border-b border-line-subtle bg-surface-1 px-2 sm:px-3">
         <NavButton />
         <RepertoireIcon className="h-4 w-4 text-accent" />
@@ -175,6 +180,9 @@ export function RepertoireWorkspace() {
           </span>
         ) : null}
         <div className="ml-auto flex items-center gap-1.5">
+          {repertoire.data ? (
+            <Button onClick={() => setReviewOpen(true)}>Review repertoire</Button>
+          ) : null}
           {repertoire.data ? (
             <Button icon={<Export />} onClick={() => void exportPgn()}>
               <span className="hidden sm:inline">Export PGN</span>

@@ -21,6 +21,7 @@ import type {
 import { StaleTrainingItemWriteError } from '../domain';
 import { assertValid, isTrainingItemRecord, isTrainingReviewRecord } from '../validation';
 import { grade as applyGrade, newSchedule } from '@/training/schedule';
+import { reviewCardKey } from '@/repertoire/review-card';
 
 export type CreateTrainingItemInput = Omit<
   TrainingItemRecord,
@@ -33,6 +34,10 @@ export interface TrainingRepository {
   /** Items whose next review is at or before `now`. */
   due(now: number, limit?: number): Promise<readonly TrainingItemRecord[]>;
   create(input: CreateTrainingItemInput, now?: number): Promise<TrainingItemRecord>;
+  enrolRepertoire(
+    inputs: readonly CreateTrainingItemInput[],
+    now?: number,
+  ): Promise<readonly TrainingItemRecord[]>;
   update(item: TrainingItemRecord): Promise<TrainingItemRecord>;
   delete(id: TrainingItemId): Promise<void>;
   /** Grade a review, advancing the schedule and appending to history. */
@@ -48,6 +53,48 @@ export interface TrainingRepository {
 
 export class LocalTrainingRepository implements TrainingRepository {
   constructor(private readonly database: PersistenceDatabase) {}
+
+  async enrolRepertoire(
+    inputs: readonly CreateTrainingItemInput[],
+    now = Date.now(),
+  ): Promise<readonly TrainingItemRecord[]> {
+    return this.database.transaction(
+      [STORE_NAMES.trainingItems],
+      'readwrite',
+      async (transaction) => {
+        const all = await transaction.getAll<TrainingItemRecord>(STORE_NAMES.trainingItems);
+        const existing = new Map<string, TrainingItemRecord>();
+        for (const item of all) {
+          if (item.mode !== 'repertoire-recall') continue;
+          const key = reviewCardKey(item.positionKey, item.solutionUci);
+          const held = existing.get(key);
+          if (!held || item.schedule.dueAt < held.schedule.dueAt) existing.set(key, item);
+        }
+        const result: TrainingItemRecord[] = [];
+        for (const input of inputs) {
+          if (input.mode !== 'repertoire-recall')
+            throw new Error('Repertoire enrolment requires recall cards.');
+          const key = reviewCardKey(input.positionKey, input.solutionUci);
+          let item = existing.get(key);
+          if (!item) {
+            item = {
+              ...input,
+              id: stableId('train'),
+              schedule: newSchedule(now),
+              createdAt: now,
+              updatedAt: now,
+              revision: 0,
+            };
+            assertValid(item, isTrainingItemRecord, 'training item');
+            await transaction.put(STORE_NAMES.trainingItems, item);
+            existing.set(key, item);
+          }
+          if (!result.some((held) => held.id === item.id)) result.push(item);
+        }
+        return result;
+      },
+    );
+  }
 
   async list(): Promise<readonly TrainingItemRecord[]> {
     const records = await this.database.getAll<unknown>(STORE_NAMES.trainingItems);

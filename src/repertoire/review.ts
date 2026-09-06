@@ -49,6 +49,7 @@ import type {
   TrainingItemRecord,
 } from '@/persistence/domain';
 import { DAY_MS, isDue, newSchedule, stageOf } from '@/training/schedule';
+import { reviewCardKey } from './review-card';
 
 /**
  * Which positions a session asks about.
@@ -141,7 +142,9 @@ const WEIGHT: Record<PromptReason['kind'], number> = {
 
 /** The moves the player intends to play, as opposed to replies they expect. */
 const ownMoves = (moves: readonly RepertoireMove[]): readonly RepertoireMove[] =>
-  moves.filter((move) => move.expected !== true);
+  moves.filter(
+    (move) => move.expected !== true && move.role !== 'avoid' && move.role !== 'candidate',
+  );
 
 const answersFor = (
   position: RepertoirePositionRecord,
@@ -149,17 +152,20 @@ const answersFor = (
   colour: 'w' | 'b',
 ): readonly RepertoireMove[] => {
   const mine = position.sideToMove === colour;
+  const playable = position.moves.filter(
+    (move) => move.role !== 'avoid' && move.role !== 'candidate',
+  );
   switch (mode) {
     case 'my-move':
       return mine ? ownMoves(position.moves) : [];
     case 'opponent-reply':
-      return mine ? [] : position.moves;
+      return mine ? [] : playable;
     case 'critical':
       // More than one recorded answer: the positions where the player has to
       // remember which of their own options they settled on.
-      return position.moves.length > 1 ? position.moves : [];
+      return playable.length > 1 ? playable : [];
     case 'full-branch':
-      return position.moves;
+      return playable;
   }
 };
 
@@ -198,11 +204,13 @@ export function buildReviewSession(
 
   const schedules = new Map<string, TrainingItemRecord>();
   for (const item of input.existingItems ?? []) {
-    const held = schedules.get(item.positionKey);
+    if (item.mode !== 'repertoire-recall') continue;
+    const key = reviewCardKey(item.positionKey, item.solutionUci);
+    const held = schedules.get(key);
     // A position drilled by more than one card reviews on the soonest of them:
     // the queue must not be able to hide a due card behind a distant one.
     if (!held || item.schedule.dueAt < held.schedule.dueAt) {
-      schedules.set(item.positionKey, item);
+      schedules.set(key, item);
     }
   }
 
@@ -212,7 +220,12 @@ export function buildReviewSession(
     const moves = [...(answers.get(key)?.values() ?? [])];
     if (moves.length === 0) continue;
 
-    const existing = schedules.get(key);
+    const existing = schedules.get(
+      reviewCardKey(
+        key,
+        moves.map((move) => move.uci),
+      ),
+    );
     const schedule = existing?.schedule ?? newSchedule(now);
     const unseen = !existing || schedule.reviewCount === 0;
     if (options.dueOnly && !isDue(schedule, now)) continue;

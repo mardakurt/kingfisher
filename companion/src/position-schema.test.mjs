@@ -296,6 +296,85 @@ describe('an interrupted migration', () => {
 });
 
 describe('the migration preflight', () => {
+  it('re-encodes a position edited while migration was interrupted', () => {
+    writeTextSchemaFixture(file('edited.sqlite'), { games: 4, pliesPerGame: 5 });
+    const db = new DatabaseSync(file('edited.sqlite'));
+    expect(() =>
+      migrateToCompact(db, {
+        chunkSize: 5,
+        onProgress() {
+          throw new Error('paused');
+        },
+      }),
+    ).toThrow('paused');
+    db.exec('UPDATE positions SET structure_claims = \'["open:h"]\' WHERE rowid = 1');
+    const edited = readTextPositions(file('edited.sqlite'));
+    expect(migrateToCompact(db).migrated).toBe(true);
+    expect(readTextPositions(file('edited.sqlite'))).toEqual(edited);
+    db.close();
+  });
+  it.each([false, null])(
+    'refuses unsafe or unknown disk headroom (%s), including a force request',
+    (sufficient) => {
+      writeTextSchemaFixture(file('refused.sqlite'), { games: 4, pliesPerGame: 5 });
+      const database = new GameDatabase(file('refused.sqlite'));
+      const measured = database.compactionPreflight();
+      database.compactionPreflight = () => ({
+        ...measured,
+        sufficient,
+        freeBytes: sufficient === null ? null : 0,
+      });
+      const before = readTextPositions(file('refused.sqlite'));
+      expect(database.compactPositions({ force: true }).migrated).toBe(false);
+      expect(database.schemaStatus().version).toBe(TEXT_SCHEMA);
+      expect(readTextPositions(file('refused.sqlite'))).toEqual(before);
+      database.close();
+    },
+  );
+
+  it('rolls back the entire schema cutover if a later column cannot be dropped', () => {
+    writeTextSchemaFixture(file('cutover.sqlite'), { games: 4, pliesPerGame: 5 });
+    const before = readTextPositions(file('cutover.sqlite'));
+    const db = new DatabaseSync(file('cutover.sqlite'));
+    const faulty = new Proxy(db, {
+      get(target, key) {
+        if (key === 'exec')
+          return (sql) => {
+            if (sql.includes('DROP COLUMN pawn_skeleton')) throw new Error('interrupted cutover');
+            return target.exec(sql);
+          };
+        const value = Reflect.get(target, key);
+        return typeof value === 'function' ? value.bind(target) : value;
+      },
+    });
+    expect(() => migrateToCompact(faulty)).toThrow('interrupted cutover');
+    expect(readTextPositions(file('cutover.sqlite'))).toEqual(before);
+    expect(migrateToCompact(db).migrated).toBe(true);
+    expect(readTextPositions(file('cutover.sqlite'))).toEqual(before);
+    db.close();
+  });
+
+  it('retries space reclamation after VACUUM fails following a successful schema cutover', () => {
+    writeTextSchemaFixture(file('vacuum.sqlite'), { games: 4, pliesPerGame: 5 });
+    const db = new DatabaseSync(file('vacuum.sqlite'));
+    const faulty = new Proxy(db, {
+      get(target, key) {
+        if (key === 'exec')
+          return (sql) => {
+            if (sql === 'VACUUM') throw new Error('disk became full');
+            return target.exec(sql);
+          };
+        const value = Reflect.get(target, key);
+        return typeof value === 'function' ? value.bind(target) : value;
+      },
+    });
+    expect(() => migrateToCompact(faulty)).toThrow('disk became full');
+    expect(migrationStatus(db)).toMatchObject({ version: COMPACT_SCHEMA, complete: false });
+    expect(migrateToCompact(db)).toMatchObject({ migrated: true });
+    expect(migrationStatus(db).complete).toBe(true);
+    db.close();
+  });
+
   it('reports the space the migration needs before it starts', () => {
     writeTextSchemaFixture(file('games.sqlite'), { games: 100, pliesPerGame: 10 });
     const database = new GameDatabase(file('games.sqlite'));
@@ -306,7 +385,7 @@ describe('the migration preflight', () => {
     expect(preflight.estimatedFinalBytes).toBeLessThan(preflight.currentBytes);
     // The peak is the file's own size again: the VACUUM that reclaims the
     // pages builds a complete second copy before replacing the original.
-    expect(preflight.temporaryBytesRequired).toBe(preflight.currentBytes);
+    expect(preflight.temporaryBytesRequired).toBeGreaterThanOrEqual(preflight.currentBytes * 3);
     expect(preflight.requiredBytes).toBeGreaterThan(preflight.temporaryBytesRequired);
     expect(preflight.freeBytes).toBeGreaterThan(0);
     expect(preflight.sufficient).toBe(true);
@@ -453,5 +532,62 @@ describe('the collection works the same on either schema', () => {
     database.compactPositions();
     expect(observations(database)).toEqual(before);
     database.close();
+  });
+});
+
+describe('the indexes a compact collection carries', () => {
+  const indexesOn = (fileName) => {
+    const db = new DatabaseSync(file(fileName));
+    const names = db
+      .prepare("SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='positions'")
+      .all()
+      .map((row) => row.name);
+    db.close();
+    return names;
+  };
+
+  it('indexes all three structural columns, not two of them', () => {
+    /*
+      The claims index is the one the text schema could not have: a claim
+      search is a LIKE with a leading wildcard, which no index on the text can
+      serve, so `structure_claims` never had one and every claim search scanned
+      every position. Compacting turns that side of the query into an integer
+      `IN`, which an index does serve — and leaving it off was worth 3,399 ms
+      against 2,312 ms on eleven million positions.
+    */
+    writeTextSchemaFixture(file('games.sqlite'), { games: 10, pliesPerGame: 6 });
+    const database = new GameDatabase(file('games.sqlite'));
+    database.compactPositions();
+    database.close();
+
+    const names = indexesOn('games.sqlite');
+    expect(names).toContain('positions_pawn_skeleton_id');
+    expect(names).toContain('positions_structure_signature_id');
+    expect(names).toContain('positions_structure_claims_id');
+  });
+
+  it('gives a collection created compact the same indexes as a migrated one', () => {
+    // A migrated collection and a fresh one must be the same database, or a
+    // query is fast for one user and slow for another for no stated reason.
+    writeTextSchemaFixture(file('migrated.sqlite'), { games: 10, pliesPerGame: 6 });
+    const migrated = new GameDatabase(file('migrated.sqlite'));
+    migrated.compactPositions();
+    migrated.close();
+
+    const fresh = new GameDatabase(file('fresh.sqlite'));
+    fresh.close();
+
+    expect(indexesOn('fresh.sqlite').sort()).toEqual(indexesOn('migrated.sqlite').sort());
+  });
+
+  it('leaves the text schema with the indexes it always had', () => {
+    // A collection nobody has migrated must not acquire an index on a column
+    // it does not have.
+    writeTextSchemaFixture(file('old.sqlite'), { games: 5, pliesPerGame: 4 });
+    const database = new GameDatabase(file('old.sqlite'));
+    database.close();
+    const names = indexesOn('old.sqlite');
+    expect(names).toContain('positions_pawn_skeleton');
+    expect(names).not.toContain('positions_structure_claims_id');
   });
 });

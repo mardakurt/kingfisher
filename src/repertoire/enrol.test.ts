@@ -13,7 +13,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import type { ScheduleState, TrainingItemRecord } from '@/persistence/domain';
+import type { TrainingItemRecord } from '@/persistence/domain';
 import { DAY_MS, newSchedule } from '@/training/schedule';
 
 import { cardFor, planEnrolment } from './enrol';
@@ -34,10 +34,7 @@ const prompt = (positionKey: string, over: Partial<RepertoirePrompt> = {}): Repe
   ...over,
 });
 
-const card = (
-  positionKey: string,
-  over: { createdAt?: number; schedule?: ScheduleState } = {},
-): TrainingItemRecord =>
+const card = (positionKey: string, over: Partial<TrainingItemRecord> = {}): TrainingItemRecord =>
   ({
     id: `item-${positionKey}-${over.createdAt ?? NOW}`,
     mode: 'repertoire-recall',
@@ -45,8 +42,8 @@ const card = (
     fen: `${positionKey} 0 1`,
     sideToMove: 'w',
     prompt: 'Play your move',
-    solutionUci: [],
-    solutionSan: [],
+    solutionUci: ['d2d4'],
+    solutionSan: ['d4'],
     candidatesUci: [],
     plans: [],
     tags: [],
@@ -54,6 +51,7 @@ const card = (
     createdAt: over.createdAt ?? NOW,
     updatedAt: NOW,
     revision: 1,
+    ...over,
   }) as unknown as TrainingItemRecord;
 
 describe('deciding which prompts need a card', () => {
@@ -115,6 +113,14 @@ describe('deciding which prompts need a card', () => {
 });
 
 describe('the card a prompt becomes', () => {
+  it('does not treat another exercise at the same position as repertoire recall', () => {
+    expect(planEnrolment([prompt('a')], [card('a', { mode: 'plan' })]).toCreate).toHaveLength(1);
+  });
+  it('does not reuse a card whose accepted repertoire answers changed', () => {
+    expect(
+      planEnrolment([prompt('a', { solutionUci: ['e2e4'] })], [card('a')]).toCreate,
+    ).toHaveLength(1);
+  });
   const repertoire = { id: 'rep-1', name: 'Black vs 1.e4' };
 
   it('is an ordinary training item, not a new kind of thing', () => {

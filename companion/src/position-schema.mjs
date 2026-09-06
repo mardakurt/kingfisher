@@ -100,11 +100,28 @@ const COMPACT_COLUMNS = [
   ['fen_literal', 'TEXT'],
 ];
 
+/*
+  The claims index is the one the text schema could not have.
+
+  A claim search is `... LIKE '%"open:c"%'`, and a leading wildcard makes an
+  index on the text useless — so `structure_claims` never had one, and the
+  search scanned every position row. Under the compact schema the LIKE is
+  confined to the lookup table and the positions side becomes an integer `IN`,
+  which an index does help: measured on 11,303,059 positions, a claim search
+  went from 3,399 ms to 2,312 ms, for 130 MB on a 4.8 GB collection.
+
+  It is still the slowest search here, and the remaining cost is not the index
+  — it is that a common claim matches a large fraction of 1.5 million claim
+  sets and the result has to be ordered before it is cut to thirty. Making that
+  cheap needs a claim-to-position table, which is a different change.
+*/
 const COMPACT_INDEXES = `
 CREATE INDEX IF NOT EXISTS positions_pawn_skeleton_id
   ON positions(pawn_skeleton_id) WHERE pawn_skeleton_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS positions_structure_signature_id
   ON positions(structure_signature_id) WHERE structure_signature_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS positions_structure_claims_id
+  ON positions(structure_claims_id) WHERE structure_claims_id IS NOT NULL;
 `;
 
 const columnNames = (db, table) =>
@@ -255,8 +272,15 @@ export function migrationPreflight(db, file) {
     used to decide whether there is room, and under-promising the saving never
     causes a migration to start that should not have.
   */
+  // Encoding grows the existing table before reclaiming it. The atomic DDL
+  // and VACUUM also need a journal and a replacement file; one file's size
+  // alone is not a safe bound, especially for a mostly unique population.
+  const logicalBytes =
+    db.prepare('PRAGMA page_count').get().page_count *
+    db.prepare('PRAGMA page_size').get().page_size;
+  currentBytes = Math.max(currentBytes, logicalBytes);
   const estimatedFinalBytes = Math.round(currentBytes * 0.59);
-  const temporaryBytesRequired = currentBytes;
+  const temporaryBytesRequired = currentBytes * 3;
 
   let freeBytes = null;
   try {
@@ -290,7 +314,15 @@ export function migrationPreflight(db, file) {
 export function migrationStatus(db) {
   const version = detectSchemaVersion(db);
   if (version === COMPACT_SCHEMA) {
-    return { version, complete: true, encoded: null, positions: null, resuming: false };
+    const reclaiming = readState(db, 'compact_vacuum_pending') === '1';
+    return {
+      version,
+      complete: !reclaiming,
+      encoded: null,
+      positions: null,
+      resuming: reclaiming,
+      reclaiming,
+    };
   }
   const started = readState(db, 'compact_migration_started') !== null;
   const cursor = Number(readState(db, 'compact_migration_cursor') ?? 0);
@@ -323,6 +355,12 @@ export function migrateToCompact(db, options = {}) {
   const started = Date.now();
 
   if (detectSchemaVersion(db) === COMPACT_SCHEMA) {
+    if (readState(db, 'compact_vacuum_pending') === '1') {
+      db.exec('VACUUM');
+      writeState(db, 'compact_vacuum_pending', null);
+      db.exec('PRAGMA wal_checkpoint(TRUNCATE)');
+      return { migrated: true, encoded: 0, elapsedMs: Date.now() - started, reclaimed: true };
+    }
     return { migrated: false, reason: 'already-compact', encoded: 0, elapsedMs: 0 };
   }
 
@@ -332,6 +370,21 @@ export function migrateToCompact(db, options = {}) {
     if (!columns.has(name)) db.exec(`ALTER TABLE positions ADD COLUMN ${name} ${type}`);
   }
   writeState(db, 'compact_migration_started', String(started));
+  // While paused the text schema remains writable. A changed earlier row
+  // must be encoded again, including inserts that reuse a deleted rowid.
+  db.exec(`
+    CREATE TRIGGER IF NOT EXISTS compact_changed_update
+    AFTER UPDATE OF position_key, fen, pawn_skeleton, structure_signature, structure_claims ON positions
+    BEGIN
+      UPDATE schema_state SET value = MIN(COALESCE(CAST(value AS INTEGER), 0), MAX(0, NEW.rowid - 1))
+      WHERE key = 'compact_migration_cursor';
+    END;
+    CREATE TRIGGER IF NOT EXISTS compact_changed_insert AFTER INSERT ON positions
+    BEGIN
+      UPDATE schema_state SET value = MIN(COALESCE(CAST(value AS INTEGER), 0), MAX(0, NEW.rowid - 1))
+      WHERE key = 'compact_migration_cursor';
+    END;
+  `);
 
   const intern = Object.fromEntries(
     LOOKUPS.map(([table]) => [
@@ -371,12 +424,15 @@ export function migrateToCompact(db, options = {}) {
   );
 
   let cursor = Number(readState(db, 'compact_migration_cursor') ?? 0);
+  const previouslyEncoded = db
+    .prepare('SELECT COUNT(*) AS n FROM positions WHERE rowid <= ?')
+    .get(cursor).n;
   let encoded = 0;
 
   while (cursor < maxRowid) {
     const rows = read.all(cursor, chunk);
     if (rows.length === 0) break;
-    db.exec('BEGIN');
+    db.exec('BEGIN IMMEDIATE');
     try {
       for (const row of rows) {
         const { halfmove, fullmove, literal } = splitFen(row.fen, row.position_key);
@@ -398,38 +454,57 @@ export function migrateToCompact(db, options = {}) {
       throw error;
     }
     encoded += rows.length;
-    if (onProgress) onProgress({ encoded, total, cursor, phase: 'encoding' });
+    if (onProgress)
+      onProgress({
+        encoded,
+        completed: previouslyEncoded + encoded,
+        total,
+        cursor,
+        phase: 'encoding',
+      });
   }
 
-  const mismatch = verifyEncoding(db);
-  if (mismatch) {
-    throw new Error(
-      `compact migration verification failed at rowid ${mismatch.rowid}: ${mismatch.reason}`,
-    );
-  }
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    const mismatch = verifyEncoding(db);
+    if (mismatch) {
+      throw new Error(
+        `compact migration verification failed at rowid ${mismatch.rowid}: ${mismatch.reason}`,
+      );
+    }
 
-  if (onProgress) onProgress({ encoded, total, cursor, phase: 'reclaiming' });
+    if (onProgress) onProgress({ encoded, total, cursor, phase: 'reclaiming' });
 
-  // DROP COLUMN refuses while an index names the column, so the text indexes
-  // go first. Their compact replacements are created after, on columns that
-  // now hold every value.
-  db.exec(`
+    // DROP COLUMN refuses while an index names the column, so the text indexes
+    // go first. Their compact replacements are created after, on columns that
+    // now hold every value.
+    db.exec(`
+    DROP TRIGGER IF EXISTS compact_changed_update;
+    DROP TRIGGER IF EXISTS compact_changed_insert;
     DROP INDEX IF EXISTS positions_pawn_skeleton;
     DROP INDEX IF EXISTS positions_structure_signature;
   `);
-  for (const column of ['fen', 'pawn_skeleton', 'structure_signature', 'structure_claims']) {
-    db.exec(`ALTER TABLE positions DROP COLUMN ${column}`);
+    for (const column of ['fen', 'pawn_skeleton', 'structure_signature', 'structure_claims']) {
+      db.exec(`ALTER TABLE positions DROP COLUMN ${column}`);
+    }
+    db.exec(COMPACT_INDEXES);
+    writeState(db, 'compact_migration_cursor', null);
+    writeState(db, 'compact_migration_started', null);
+    db.exec(`PRAGMA user_version = ${COMPACT_SCHEMA}`);
+    writeState(db, 'compact_vacuum_pending', '1');
+    db.exec('COMMIT');
+  } catch (error) {
+    db.exec('ROLLBACK');
+    throw error;
   }
-  db.exec(COMPACT_INDEXES);
-  writeState(db, 'compact_migration_cursor', null);
-  writeState(db, 'compact_migration_started', null);
-  db.exec(`PRAGMA user_version = ${COMPACT_SCHEMA}`);
 
   // The columns are gone from the schema; the pages they occupied are not gone
   // from the file until this runs. It is the step that needs the free disk the
   // preflight asked for, and the step that produces the number the user was
   // promised.
   db.exec('VACUUM');
+  writeState(db, 'compact_vacuum_pending', null);
+  db.exec('PRAGMA wal_checkpoint(TRUNCATE)');
 
   return {
     migrated: true,

@@ -34,6 +34,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { argv, exit } from 'node:process';
+import { Worker } from 'node:worker_threads';
 
 import { GameDatabase } from '../companion/src/database.mjs';
 import { writeTextSchemaFixture } from '../companion/src/__fixtures__/text-schema.mjs';
@@ -252,11 +253,29 @@ async function main() {
     report the peak is to watch free space fall and say how far.
   */
   const freeAtStart = freeBytes(file);
-  let lowestFree = freeAtStart;
-  const watch = setInterval(() => {
-    const now = freeBytes(file);
-    if (now < lowestFree) lowestFree = now;
-  }, 250);
+  // SQLite is synchronous. A timer on this thread never samples during the
+  // migration, and previously reported a fictitious zero-byte peak.
+  const samples = new BigInt64Array(new SharedArrayBuffer(16));
+  Atomics.store(samples, 0, BigInt(freeAtStart));
+  const watch = new Worker(
+    `
+    const { workerData, parentPort } = require('node:worker_threads');
+    const { statfsSync } = require('node:fs');
+    const samples = new BigInt64Array(workerData.samples);
+    setInterval(() => {
+      const fs = statfsSync(workerData.file, { bigint: true });
+      const free = fs.bavail * fs.bsize;
+      if (free < Atomics.load(samples, 0)) Atomics.store(samples, 0, free);
+      Atomics.add(samples, 1, 1n);
+    }, 100);
+    parentPort.postMessage('ready');
+  `,
+    { eval: true, workerData: { file, samples: samples.buffer } },
+  );
+  await new Promise((resolve, reject) => {
+    watch.once('message', resolve);
+    watch.once('error', reject);
+  });
 
   console.log('\n--- migrating ---------------------------------------------------');
   const started = performance.now();
@@ -276,14 +295,14 @@ async function main() {
     },
   });
   const migrationMs = performance.now() - started;
-  clearInterval(watch);
+  await watch.terminate();
 
   if (!result.migrated) {
     throw new Error(`migration did not run: ${result.reason}`);
   }
 
   const sizeAfter = statSync(file).size;
-  const peakTemporary = Math.max(0, freeAtStart - lowestFree);
+  const peakTemporary = Math.max(0, freeAtStart - Number(Atomics.load(samples, 0)));
 
   console.log('\n--- queries, compact schema -------------------------------------');
   const after = researchQueries(database, args.warm);
@@ -308,7 +327,9 @@ async function main() {
     )}`,
   );
   console.log(`migration time     ${(migrationMs / 1000).toFixed(1)}s`);
-  console.log(`peak temporary     ${mb(peakTemporary)} (sampled every 250 ms)`);
+  console.log(
+    `peak disk decrease ${mb(peakTemporary)} (${Atomics.load(samples, 1)} independent samples at 100 ms; includes other disk activity)`,
+  );
 
   console.log('\n--- query comparison --------------------------------------------');
   const byLabel = new Map(after.map((row) => [row.label, row]));

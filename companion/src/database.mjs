@@ -340,6 +340,8 @@ export class GameDatabase {
           ON positions(pawn_skeleton_id) WHERE pawn_skeleton_id IS NOT NULL;
         CREATE INDEX IF NOT EXISTS positions_structure_signature_id
           ON positions(structure_signature_id) WHERE structure_signature_id IS NOT NULL;
+        CREATE INDEX IF NOT EXISTS positions_structure_claims_id
+          ON positions(structure_claims_id) WHERE structure_claims_id IS NOT NULL;
       `);
       return;
     }
@@ -400,13 +402,23 @@ export class GameDatabase {
    */
   compactPositions(options = {}) {
     const preflight = this.compactionPreflight();
-    if (preflight.sufficient === false && !options.force) {
-      return { migrated: false, reason: 'insufficient-disk', preflight };
+    if (preflight.sufficient !== true) {
+      return {
+        migrated: false,
+        reason: preflight.sufficient === null ? 'unknown-free-disk' : 'insufficient-disk',
+        preflight,
+      };
     }
-    const result = migrateToCompact(this.#db, options);
-    this.#sql = positionSql(detectSchemaVersion(this.#db));
-    this.#ensurePositionIndexes();
-    return { ...result, preflight };
+    try {
+      const result = migrateToCompact(this.#db, options);
+      return { ...result, preflight };
+    } finally {
+      // VACUUM can fail after the transactional schema cutover succeeded.
+      // Readers must follow the committed schema even when reclaiming failed.
+      this.#sql = positionSql(detectSchemaVersion(this.#db));
+      this.#intern.clear();
+      this.#ensurePositionIndexes();
+    }
   }
 
   /**

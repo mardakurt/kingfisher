@@ -53,7 +53,18 @@ const position = (
     revision: 1,
   }) as unknown as RepertoirePositionRecord;
 
-const card = (positionKey: string, schedule: ScheduleState): TrainingItemRecord =>
+/**
+ * An existing card for a position.
+ *
+ * `solution` matters: a card is identified by the position *and* the answer it
+ * records, so a card carrying a move the repertoire no longer plays does not
+ * cover that position. It defaults to the move most of these fixtures use.
+ */
+const card = (
+  positionKey: string,
+  schedule: ScheduleState,
+  solution: readonly string[] = ['d2d4'],
+): TrainingItemRecord =>
   ({
     id: `item-${positionKey}-${schedule.dueAt}`,
     mode: 'repertoire-recall',
@@ -61,8 +72,8 @@ const card = (positionKey: string, schedule: ScheduleState): TrainingItemRecord 
     fen: `${positionKey} 0 1`,
     sideToMove: 'w',
     prompt: 'Play your move',
-    solutionUci: [],
-    solutionSan: [],
+    solutionUci: solution,
+    solutionSan: solution,
     candidatesUci: [],
     plans: [],
     tags: [],
@@ -282,12 +293,42 @@ describe('the schedule is the training queue’s, not a second one', () => {
         ],
         existingItems: [
           card('due', scheduled({ dueAt: NOW - DAY_MS, reviewCount: 3, streak: 3 })),
-          card('later', scheduled({ dueAt: NOW + 20 * DAY_MS, reviewCount: 3, streak: 3 })),
+          // Carries this position's own answer, so it really does cover it.
+          card('later', scheduled({ dueAt: NOW + 20 * DAY_MS, reviewCount: 3, streak: 3 }), [
+            'c2c4',
+          ]),
         ],
       },
       { dueOnly: true, now: NOW },
     );
     expect(prompts.map((prompt) => prompt.positionKey)).toEqual(['due']);
+  });
+
+  it('does not let a card for a different answer cover the position', () => {
+    /*
+      A card is a memory of a decision, not of a square. If the repertoire used
+      to play d4 here and now plays c4, the old card tests a move that is no
+      longer the answer — so the position counts as undrilled and comes back
+      into the queue, rather than being marked reviewed on the strength of a
+      memory that is now wrong.
+
+      This is the rule that decides which card `buildReviewSession` matches,
+      and it is why `card` takes a solution at all.
+    */
+    const prompts = buildReviewSession(
+      {
+        colour: 'w',
+        positions: [position('changed', 'w', [move('c2c4', 'c4')])],
+        existingItems: [
+          card('changed', scheduled({ dueAt: NOW + 40 * DAY_MS, reviewCount: 9, streak: 7 }), [
+            'd2d4',
+          ]),
+        ],
+      },
+      { dueOnly: true, now: NOW },
+    );
+    expect(prompts).toHaveLength(1);
+    expect(prompts[0]?.unseen).toBe(true);
   });
 
   it('treats a position that has never been drilled as due', () => {

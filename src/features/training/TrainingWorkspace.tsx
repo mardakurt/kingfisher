@@ -78,7 +78,9 @@ export function TrainingWorkspace() {
   );
   const setItems = useTrainingSetItems(selectedSetId);
   const [scope, setScope] = useState<'due' | 'all'>(() =>
-    typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('item')
+    typeof window !== 'undefined' &&
+    (new URLSearchParams(window.location.search).has('item') ||
+      new URLSearchParams(window.location.search).get('scope') === 'all')
       ? 'all'
       : 'due',
   );

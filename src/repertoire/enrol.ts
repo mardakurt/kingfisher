@@ -29,6 +29,7 @@
 import type { TrainingItemRecord } from '@/persistence/domain';
 
 import { describePromptReason, type RepertoirePrompt } from './review';
+import { reviewCardKey } from './review-card';
 
 /** What `enrolPrompts` decided, before anything is written. */
 export interface EnrolmentPlan {
@@ -59,10 +60,17 @@ export function planEnrolment(
 ): EnrolmentPlan {
   const byPosition = new Map<string, TrainingItemRecord>();
   for (const item of existing) {
-    const held = byPosition.get(item.positionKey);
+    if (item.mode !== 'repertoire-recall') continue;
+    const key = reviewCardKey(item.positionKey, item.solutionUci);
+    const held = byPosition.get(key);
     // The oldest card wins when there are several, so the answer to "which
     // card covers this position" does not change between two enrolments.
-    if (!held || item.createdAt < held.createdAt) byPosition.set(item.positionKey, item);
+    if (
+      !held ||
+      item.schedule.dueAt < held.schedule.dueAt ||
+      (item.schedule.dueAt === held.schedule.dueAt && item.createdAt < held.createdAt)
+    )
+      byPosition.set(key, item);
   }
 
   const toCreate: RepertoirePrompt[] = [];
@@ -70,7 +78,7 @@ export function planEnrolment(
   const claimed = new Set<string>();
 
   for (const prompt of prompts) {
-    const item = byPosition.get(prompt.positionKey);
+    const item = byPosition.get(reviewCardKey(prompt.positionKey, prompt.solutionUci));
     if (item) {
       alreadyCovered.push({ prompt, item });
       continue;
