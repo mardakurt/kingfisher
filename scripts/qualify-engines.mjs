@@ -40,7 +40,23 @@ import { fileURLToPath } from 'node:url';
 import { UciProcess } from '../companion/src/engine-verify.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
-const ENGINE_DIR = path.join(ROOT, 'engines');
+
+/**
+ * Where to look for engines.
+ *
+ * `engines/` is where `engines:install` puts them and where the companion
+ * runs them from. `engines:verify` installs to `.engine-fleet` instead, so
+ * that interrogating the whole fleet does not disturb a working installation
+ * — and qualifying what that just installed means being told where it went.
+ * `KINGFISHER_FLEET_DIR` is the same variable the verifier reads.
+ */
+const dirFlag = argv.indexOf('--dir');
+const ENGINE_DIR =
+  dirFlag >= 0
+    ? path.resolve(argv[dirFlag + 1])
+    : process.env.KINGFISHER_FLEET_DIR
+      ? path.resolve(process.env.KINGFISHER_FLEET_DIR)
+      : path.join(ROOT, 'engines');
 
 /**
  * The positions, and what a correct engine must say about each.
@@ -399,8 +415,12 @@ async function main() {
 
   console.log('Kingfisher engine qualification matrix');
   console.log(`${process.platform}-${process.arch} · node ${process.version}`);
+  console.log(`engines from ${ENGINE_DIR}`);
   if (engines.length === 0) {
-    console.log('\nNo managed engines are installed. `npm run engines:install` fetches them.');
+    console.log(
+      '\nNo engines found there. `npm run engines:install` fetches them into engines/, ' +
+        'and `npm run engines:verify` into .engine-fleet — pass --dir to qualify either.',
+    );
     return;
   }
 

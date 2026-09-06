@@ -1,0 +1,106 @@
+# The engine fleet, qualified on every platform Kingfisher offers it on.
+#
+# Kingfisher's engine claims were verified on one machine — darwin-arm64, the
+# one an agent happened to be running on — and every other row in the platform
+# matrix said "a build is published", which is a fact about the release page
+# rather than about the engine. This runs the real interrogation and the real
+# qualification matrix on Linux, Windows and macOS, against binaries downloaded
+# from each project's own release page and checked against their recorded
+# digests.
+#
+# Deliberately not part of `ci.yml`, and deliberately not a gate:
+#
+#   - it downloads several hundred megabytes of engine per platform, which is
+#     not something to do on every push to master;
+#   - upstream release pages are third-party infrastructure, and a gate that
+#     fails because GitHub Releases is having an afternoon is a gate people
+#     learn to ignore;
+#   - and the thing it produces is a *record* — what these binaries did on
+#     these machines on this date — which belongs in a report rather than in a
+#     pass/fail on a pull request.
+#
+# Run it from the Actions tab, or on the schedule below, and put the results in
+# `docs/ENGINES.md`. The artifact is the evidence.
+name: Engine fleet
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Monthly. Engine releases are not frequent, and a stale matrix is worse
+    # than an absent one only if nobody notices it is stale — so it refreshes.
+    - cron: '0 5 1 * *'
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    name: ${{ matrix.label }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      # Every platform reports, whatever the others do. A Windows failure must
+      # not hide the Linux result — the point is the matrix, not a verdict.
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            label: Linux x64
+          - os: windows-latest
+            label: Windows x64
+          - os: macos-latest
+            label: macOS arm64
+          - os: macos-13
+            label: macOS x64
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+
+      # Interrogation: install every engine this platform offers, check each
+      # against its recorded digest, launch it and ask what it can do.
+      - name: Interrogate the fleet
+        id: verify
+        continue-on-error: true
+        run: npm run engines:verify 2>&1 | tee engine-verify-${{ matrix.os }}.txt
+
+      # Qualification: nine positions and five protocol sequences against every
+      # engine that installed. Separate from the interrogation because they
+      # answer different questions — "what does it say it can do" and "does it
+      # stay correct when driven".
+      # `--dir` because the interrogation installs into `.engine-fleet` rather
+      # than `engines/`, so that it never disturbs a working installation.
+      # Qualifying what it just installed means looking where it put them.
+      - name: Qualify the fleet
+        id: qualify
+        continue-on-error: true
+        run: node scripts/qualify-engines.mjs --dir .engine-fleet 2>&1 | tee engine-qualify-${{ matrix.os }}.txt
+
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: engine-matrix-${{ matrix.os }}
+          path: |
+            engine-verify-${{ matrix.os }}.txt
+            engine-qualify-${{ matrix.os }}.txt
+
+      # The step outcomes are recorded rather than enforced. A platform where
+      # an engine failed to qualify is a finding to write down, and the
+      # artifact above says exactly which check it was.
+      - name: Summarise
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## ${{ matrix.label }}"
+            echo ""
+            echo "- interrogation: ${{ steps.verify.outcome }}"
+            echo "- qualification: ${{ steps.qualify.outcome }}"
+            echo ""
+            echo '```'
+            tail -40 engine-qualify-${{ matrix.os }}.txt 2>/dev/null || echo "(no output)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
