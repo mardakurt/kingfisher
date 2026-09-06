@@ -104,6 +104,50 @@ returned a principal variation containing `f1h1` and `f8h8` — castling in the
 king-takes-rook encoding, which an engine that had merely accepted the option
 would not produce.
 
+### The qualification matrix
+
+`npm run engines:verify` asks an engine what it can do and confirms it finds a
+move from the starting position. That answers "is this an engine".
+`npm run engines:qualify` asks the question a session actually depends on: does
+it stay correct across the positions and protocol sequences the application
+puts it through.
+
+Nine positions — the start, a quiet middlegame, a back-rank mate, a promotion,
+an en passant, a both-sides castling position, a king-and-queen ending, a
+position where the natural queen move is stalemate, and a Chess960 start for
+engines that declare it — and five protocol sequences: `stop` mid-search, a
+search immediately after it, a rapid position switch, a node-limited search,
+and three malformed inputs sent one at a time.
+
+Run on darwin-arm64, 6 September 2026, against every engine installed here:
+
+| Engine            | 9 positions | stop | after stop | position switch | go nodes | malformed input                |
+| ----------------- | :---------: | :--: | :--------: | :-------------: | :------: | :----------------------------- |
+| Halogen 16.0.0    |      ✓      |  ✓   |     ✓      |        ✓        |    ✓     | ✓ all three                    |
+| PlentyChess 8.0.0 |      ✓      |  ✓   |     ✓      |        ✓        |    ✓     | **exits on `go depth banana`** |
+| Stormphrax 8.0.0  |      ✓      |  ✓   |     ✓      |        ✓        |    ✓     | ✓ all three                    |
+| Viridithas 20.0.0 |      ✓      |  ✓   |     ✓      |        ✓        |    ✓     | ✓ all three                    |
+
+**One engine fails one check, and it is worth stating precisely.** PlentyChess
+8.0.0 survives an unknown command and a malformed FEN and **exits on a
+non-numeric search depth**. Sending the three inputs together would only have
+said "it died on garbage"; sending them one at a time says which line, which is
+the difference between a finding and a complaint.
+
+Kingfisher does not send that line — `go depth N` is built from a number — so
+this is a fact about the engine rather than a live defect, and the engine
+session already fails a dead engine rather than waiting on it (Phase 16,
+`src/engine/uci-adversarial.test.ts`). It is recorded because an engine that
+exits on malformed input is an engine that will exit on a malformed input
+somebody has not thought of yet.
+
+The matrix also corroborates the `searchmoves` capability independently of the
+handshake: Stormphrax hands back the restricted move, and PlentyChess reports
+`searchmoves ignored` with the move it played instead. That is the same result
+the capability table records, arrived at from the answer rather than from the
+option list — which matters, because an engine can accept the restriction and
+ignore it.
+
 Stockfish 19 also changed how it publishes: one universal binary per operating
 system instead of one per instruction set, gzip-compressed tarballs, and a
 Linux arm64 asset that did not exist before. The catalogue names the same

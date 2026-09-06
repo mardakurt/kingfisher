@@ -39,7 +39,15 @@ const START_MOVES = new Set([
 const legalStartBest = (line) => START_MOVES.has(line.split(/\s+/)[1]);
 
 /** A conversation with one engine process, line by line. */
-class UciProcess {
+/**
+ * A UCI process, driven line by line.
+ *
+ * Exported so `scripts/qualify-engines.mjs` can put an engine through the
+ * position and protocol matrix without a second implementation of the plumbing
+ * — a second one would be a second thing that can be wrong about EPIPE, about
+ * buffering, and about what "the engine exited" means.
+ */
+export class UciProcess {
   #child;
   #buffer = '';
   #lines = [];
