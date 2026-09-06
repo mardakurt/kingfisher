@@ -121,23 +121,33 @@ and three malformed inputs sent one at a time.
 
 ### What it found, on three platforms
 
-Run by `.github/workflows/engines.yml` on 6 September 2026 — GitHub runners,
-engines downloaded from their own release pages and matched against their
-recorded digests, then interrogated and qualified.
+Run by `.github/workflows/engines.yml` (run `34048549010`) on 6 September 2026 —
+GitHub runners, engines downloaded from their own release pages and matched
+against their recorded digests, then interrogated and qualified.
+
+**All four platforms report in that run**, which earlier ones did not: the
+matrix named `macos-13`, a retired runner label, so the macOS x64 leg sat
+queued for hours and was never recorded. It is `macos-15-intel` now, and the
+column below is the first result from it.
 
 **Which engines exist where** is itself part of the answer, and it is not the
 same everywhere:
 
-| Engine            | Linux x64 | Windows x64 | macOS arm64 |
-| ----------------- | :-------: | :---------: | :---------: |
-| Stockfish 19      |     ✓     |      ✓      |      ✓      |
-| Stormphrax 8.0.0  |     ✓     |      —      |      ✓      |
-| Viridithas 20.0.0 |     ✓     |      —      |      ✓      |
-| Halogen 16.0.0    |     ✓     |      ✓      |      ✓      |
-| PlentyChess 8.0.0 |     ✓     |      ✓      |      ✓      |
-| Koivisto 9.0      |     ✓     |      ✓      |      —      |
-| Berserk 14        |     —     |      ✓      |      —      |
-| **Qualified**     |   **6**   |    **5**    |    **5**    |
+| Engine            | Linux x64 | Windows x64 | macOS arm64 | macOS x64 |
+| ----------------- | :-------: | :---------: | :---------: | :-------: |
+| Stockfish 19      |     ✓     |      ✓      |      ✓      |     ✓     |
+| Stormphrax 8.0.0  |     ✓     |      —      |      ✓      |     —     |
+| Viridithas 20.0.0 |     ✓     |      —      |      ✓      |     —     |
+| Halogen 16.0.0    |     ✓     |      ✓      |      ✓      |     ✓     |
+| PlentyChess 8.0.0 |     ✓     |      ✓      |      ✓      |     —     |
+| Koivisto 9.0      |     ✓     |      ✓      |      —      |     —     |
+| Berserk 14        |     —     |      ✓      |      —      |     —     |
+| **Qualified**     |   **6**   |    **5**    |    **5**    |   **2**   |
+
+macOS x64 is the thinnest platform by a distance, and that is a fact about
+what the projects publish rather than about the runner: five of the seven
+declare no darwin-x64 build at all, and Lc0 is not installed on it. A user on
+an Intel Mac gets Stockfish and Halogen.
 
 Every engine passed **all nine positions** on every platform — the mate, the
 promotion, the en passant, both castles, the queen ending, the stalemate trap
@@ -147,7 +157,7 @@ and the Chess960 start — and every protocol sequence except the last.
 
 | Engine            | unknown command | `position fen not-a-fen` | `go depth banana` |
 | ----------------- | :-------------: | :----------------------: | :---------------: |
-| Stockfish 19      |        ✓        |        **exits**         |     **exits**     |
+| Stockfish 19      |        ✓        |    **exits** (all 4)     |     **exits**     |
 | PlentyChess 8.0.0 |        ✓        |    **exits** (Linux)     |     **exits**     |
 | Koivisto 9.0      |        ✓        |   **exits** (Windows)    | **exits** (Linux) |
 | Halogen 16.0.0    |        ✓        |            ✓             |         ✓         |
@@ -155,10 +165,11 @@ and the Chess960 start — and every protocol sequence except the last.
 | Viridithas 20.0.0 |        ✓        |            ✓             |         ✓         |
 | Berserk 14        |        ✓        |            ✓             |         ✓         |
 
-The Stockfish result was reproduced off the CI runner as well, against the
-official `stockfish-macos-universal` binary on a development machine, because
-it is the engine the product leans on hardest and a finding about it should not
-rest on one environment.
+Stockfish 19 exits on the malformed FEN on **every one of the four platforms**,
+macOS x64 included now that it reports. It was also reproduced off the CI
+runners entirely, against the official `stockfish-macos-universal` binary on a
+development machine, because it is the engine the product leans on hardest and
+a finding about it should not rest on one environment.
 
 **What this does and does not mean.** Kingfisher never sends either line:
 `position fen …` is built from a FEN its own parser has already validated, and
