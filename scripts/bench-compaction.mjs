@@ -38,11 +38,19 @@ import { argv, exit } from 'node:process';
 import { GameDatabase } from '../companion/src/database.mjs';
 import { writeTextSchemaFixture } from '../companion/src/__fixtures__/text-schema.mjs';
 
-import { benchmark, build, freeBytes, gb, mb, n } from './bench-real-scale.mjs';
+import { build, freeBytes, gb, mb, n } from './bench-real-scale.mjs';
 import { closeApp } from './load-app.mjs';
 
 function parseArgs(list) {
-  const args = { games: 60_000, keep: false, out: null, warm: 40, floor: 4e9, chunk: 50_000 };
+  const args = {
+    games: 60_000,
+    keep: false,
+    out: null,
+    warm: 40,
+    floor: 4e9,
+    chunk: 50_000,
+    from: null,
+  };
   for (let i = 0; i < list.length; i += 1) {
     const flag = list[i];
     if (flag === '--games') args.games = Number(list[++i]);
@@ -50,25 +58,159 @@ function parseArgs(list) {
     else if (flag === '--keep') args.keep = true;
     else if (flag === '--warm') args.warm = Number(list[++i]);
     else if (flag === '--chunk') args.chunk = Number(list[++i]);
+    else if (flag === '--from') args.from = list[++i];
   }
   return args;
 }
 
 const pct = (before, after) => `${(((before - after) / before) * 100).toFixed(1)}%`;
 
+const percentile = (sorted, q) =>
+  sorted[Math.min(sorted.length - 1, Math.ceil(q * sorted.length) - 1)];
+
+/**
+ * The research queries, and only those.
+ *
+ * `bench-real-scale.mjs` benchmarks the whole product, maintenance queries
+ * included. Two of those — the aggregate integrity check and the duplicate
+ * scan — count whole tables, which at ten million positions is minutes per
+ * run and told this benchmark nothing: the compact schema does not touch
+ * `position_aggregates` and cannot change what counting it costs.
+ *
+ * So this measures what Phase 18's brief actually asks about — the explorer,
+ * filtered explorer, exact position, games at a position, pawn skeleton,
+ * structure signature, claims and reading a FEN back — which is also the list
+ * the compact schema could plausibly have made worse.
+ */
+function researchQueries(database, warm) {
+  const rows = [];
+  const startKey = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -';
+  const najdorf = 'rnbqkb1r/1p2pppp/p2p1n2/8/3NP3/2N5/PPP2PPP/R1BQKB1R w KQkq -';
+
+  /*
+    Discovered from the data rather than assumed. A skeleton or signature that
+    is not in this collection measures an empty answer, which is fast and
+    meaningless — the point is to time a query that finds something.
+  */
+  const sample = database.searchStructures({
+    mode: 'exact-position',
+    positionKey: najdorf,
+    pawnSkeleton: '',
+    structureSignature: '',
+    claims: [],
+    limit: 1,
+  })[0]?.position;
+
+  const measure = (label, run) => {
+    let value;
+    const coldStart = performance.now();
+    try {
+      value = run();
+    } catch (error) {
+      console.log(`${label.padEnd(26)} FAILED: ${error.message}`);
+      return;
+    }
+    const cold = performance.now() - coldStart;
+    const samples = [];
+    for (let i = 0; i < warm; i += 1) {
+      const started = performance.now();
+      run();
+      samples.push(performance.now() - started);
+    }
+    samples.sort((a, b) => a - b);
+    const row = {
+      label,
+      cold,
+      median: percentile(samples, 0.5),
+      p95: percentile(samples, 0.95),
+      rows: Array.isArray(value) ? value.length : (value?.moves?.length ?? null),
+    };
+    rows.push(row);
+    console.log(
+      `${label.padEnd(26)} cold ${row.cold.toFixed(2).padStart(8)}  ` +
+        `median ${row.median.toFixed(3).padStart(8)}  ` +
+        `p95 ${row.p95.toFixed(3).padStart(8)}  ` +
+        `${row.rows === null ? '' : `(${n(row.rows)} rows)`}`,
+    );
+  };
+
+  measure('explorer, start', () => database.explore(startKey, 24));
+  measure('explorer, najdorf', () => database.explore(najdorf, 24));
+  measure('explorer, filtered', () => database.explore(najdorf, 24, { minRating: 2500 }));
+  measure('games at position', () => database.gamesAtPosition(najdorf, 12));
+  measure('exact position search', () =>
+    database.searchStructures({
+      mode: 'exact-position',
+      positionKey: najdorf,
+      pawnSkeleton: '',
+      structureSignature: '',
+      claims: [],
+    }),
+  );
+  if (sample?.pawnSkeleton) {
+    measure('pawn skeleton search', () =>
+      database.searchStructures({
+        mode: 'pawn-skeleton',
+        pawnSkeleton: sample.pawnSkeleton,
+        positionKey: najdorf,
+        structureSignature: '',
+        claims: [],
+      }),
+    );
+  }
+  if (sample?.structureSignature) {
+    measure('structure signature', () =>
+      database.searchStructures({
+        mode: 'signature',
+        structureSignature: sample.structureSignature,
+        positionKey: '',
+        pawnSkeleton: '',
+        claims: [],
+      }),
+    );
+  }
+  if (sample?.structureClaims?.length) {
+    measure('claim search', () =>
+      database.searchStructures({
+        claims: [sample.structureClaims[0]],
+        positionKey: '',
+        pawnSkeleton: '',
+        structureSignature: '',
+      }),
+    );
+  }
+  // Reading a whole position back is the one path the compact schema makes
+  // more work, because the FEN has to be rebuilt from the key and two integers.
+  measure('read positions of a game', () => database.exportPage(null, 20, null).games);
+  measure('player prefix', () => database.players('car', 20));
+  return rows;
+}
+
 async function main() {
   const args = parseArgs(argv.slice(2));
   console.log('Kingfisher compaction benchmark');
   console.log(`node ${process.version} · ${process.platform}-${process.arch}\n`);
 
-  const directory = args.out ?? mkdtempSync(path.join(tmpdir(), 'kingfisher-compaction-'));
+  /*
+    `--from` measures a text-schema collection that already exists.
+
+    The import is by far the longest part of this benchmark — 143,000 real
+    games took forty-five minutes — and the interesting half is what happens
+    after it. Separating them means a query set can be re-timed, or a warm
+    count reconsidered, without paying for the import again.
+  */
+  const directory = args.from
+    ? path.dirname(args.from)
+    : (args.out ?? mkdtempSync(path.join(tmpdir(), 'kingfisher-compaction-')));
   mkdirSync(directory, { recursive: true });
-  const file = path.join(directory, 'compaction.sqlite');
+  const file = args.from ?? path.join(directory, 'compaction.sqlite');
   console.log(`database: ${file}`);
 
-  // The "before" state: an empty collection carrying the text schema, exactly
-  // as a collection created before this phase does.
-  writeTextSchemaFixture(file, { games: 0, pliesPerGame: 0 });
+  if (!args.from) {
+    // The "before" state: an empty collection carrying the text schema, exactly
+    // as a collection created before this phase does.
+    writeTextSchemaFixture(file, { games: 0, pliesPerGame: 0 });
+  }
 
   const database = new GameDatabase(file);
   const schema = database.schemaStatus();
@@ -79,18 +221,20 @@ async function main() {
   }
   console.log(`schema before: version ${schema.version} (text)\n`);
 
-  const stats = await build(database, args.games, file, args.floor);
+  const stats = args.from
+    ? { accepted: database.count(), positions: null }
+    : await build(database, args.games, file, args.floor);
   database.checkpoint();
   const sizeBefore = statSync(file).size;
 
   console.log('\n--- import ------------------------------------------------------');
   console.log(`games stored       ${n(stats.accepted)}`);
-  console.log(`positions indexed  ${n(stats.positions)}`);
+  if (stats.positions !== null) console.log(`positions indexed  ${n(stats.positions)}`);
   console.log(`database on disk   ${gb(sizeBefore)}`);
   console.log(`bytes per game     ${n(Math.round(sizeBefore / Math.max(1, stats.accepted)))}`);
 
   console.log('\n--- queries, text schema ----------------------------------------');
-  const before = benchmark(database, args.warm);
+  const before = researchQueries(database, args.warm);
 
   const preflight = database.compactionPreflight();
   console.log('\n--- preflight ---------------------------------------------------');
@@ -142,7 +286,7 @@ async function main() {
   const peakTemporary = Math.max(0, freeAtStart - lowestFree);
 
   console.log('\n--- queries, compact schema -------------------------------------');
-  const after = benchmark(database, args.warm);
+  const after = researchQueries(database, args.warm);
   const schemaAfter = database.schemaStatus();
   database.close();
 

@@ -368,6 +368,17 @@ async function cycle(page: Page, index: number) {
   await page.locator('[data-book-branch]').first().click();
   await expect(book.locator('[data-book-crumbs]')).toBeVisible();
 
+  /*
+    The Opening Report, which is the surface Phase 18 added with live queries
+    of its own. It runs one explorer query per installed source through
+    `useQueries` and loads the theory book chunk, so mounting and unmounting it
+    every cycle is what would show a subscription or a listener it does not
+    release.
+  */
+  await selectTool(page, dock, 'Opening Report');
+  await expect(page.locator('[data-opening-report]')).toBeVisible();
+  await expect(page.locator('[data-report-section="branches"]')).toBeVisible();
+
   await selectTool(page, dock, 'Explorer');
   await page.getByRole('button', { name: 'Compare sources' }).click();
   const comparison = page.locator('[data-source-comparison]');
