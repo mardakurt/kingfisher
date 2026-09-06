@@ -209,7 +209,7 @@ describe('keeping curated prose apart from counts', () => {
     const brief = report.sections.find((entry) => entry.id === 'brief')!;
     const destinations = report.sections.find((entry) => entry.id === 'destinations')!;
     expect(brief.provenance).toContain('Kingfisher');
-    expect(destinations.provenance).toContain('games replayed');
+    expect(destinations.provenance).toContain('replayed 30 plies');
     // The counted section must not borrow the authored section's authority,
     // and vice versa.
     expect(destinations.provenance).not.toContain('Kingfisher');
@@ -290,7 +290,28 @@ describe('the plans, with their denominators', () => {
     const knight = destinations.entries.find((entry) => entry.primary.includes('knight on g1'))!;
     expect(knight.primary).toBe("White's knight on g1 reached f3");
     expect(knight.secondary).toBe('3 of 3 games (100.0%), typically by ply 3');
-    expect(destinations.provenance).toBe('3 games replayed 30 plies past this position');
+    expect(destinations.provenance).toBe('3 games, replayed 30 plies past this position');
+  });
+
+  /*
+    A machine can hold several collections and only one of them supplied these
+    games. A count whose source cannot be named is the one thing nothing in
+    this report is allowed to be, so when the panel knows which collection
+    answered, the section says so.
+  */
+  it('names the collection the games were replayed from', () => {
+    const named = buildOpeningReport({ ...full, continuationSource: 'Najdorf 2400+' });
+    for (const id of ['destinations', 'advances']) {
+      const found = named.sections.find((entry) => entry.id === id)!;
+      expect(found.provenance).toBe(
+        '3 games from Najdorf 2400+, replayed 30 plies past this position',
+      );
+    }
+  });
+
+  it('still says how many it replayed when the collection has no name', () => {
+    const anonymous = section(full, 'advances')!;
+    expect(anonymous.provenance).toBe('3 games, replayed 30 plies past this position');
   });
 
   it('reports a pawn advance without calling it a break', () => {

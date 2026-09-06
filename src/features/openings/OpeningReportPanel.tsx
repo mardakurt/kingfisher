@@ -41,6 +41,7 @@ import { PanelBody, PanelHeader } from '@/components/ui/Panel';
 import { nodePath } from '@/chess/tree/tree';
 import type { Fen } from '@/chess/types';
 import { useChessWorkspace } from '@/features/workspace/ChessWorkspaceContext';
+import { usePreferences } from '@/stores/preferences-store';
 import { useQuery } from '@tanstack/react-query';
 
 import { databaseProviderById } from '@/database/registry';
@@ -71,6 +72,7 @@ function roleOf(id: string, index: number): BranchPopulation['role'] {
 export function OpeningReportPanel() {
   const { tree, currentId } = useChessWorkspace();
   const references = useReferenceSources();
+  const explorerSourceId = usePreferences((state) => state.explorerSourceId);
   const [book, setBook] = useState<TheoryBook | null>(null);
 
   useEffect(() => {
@@ -134,7 +136,17 @@ export function OpeningReportPanel() {
     there.
   */
   const providers = useDatabaseProviders();
-  const continuationSource = providers.find((provider) => Boolean(provider.continuations));
+  /*
+    The chosen explorer source first, when it can answer, and otherwise the
+    first registered provider that can. Which one it was is then reported in
+    the section's own provenance line, because a machine can hold several
+    collections and only one of them supplied these games: "106 games from
+    Plans" is a citation, "106 games" is a rumour.
+  */
+  const preferred = databaseProviderById(explorerSourceId);
+  const continuationSource = preferred?.continuations
+    ? preferred
+    : providers.find((provider) => Boolean(provider.continuations));
   const continuations = useQuery({
     queryKey: ['opening-report-continuations', continuationSource?.id ?? null, fen],
     enabled: Boolean(continuationSource) && fen.length > 0,
@@ -168,6 +180,8 @@ export function OpeningReportPanel() {
     .map((population) => `${population.id}:${population.result?.totalGames ?? '-'}`)
     .join('|');
 
+  const continuationName = continuationSource?.name ?? '';
+
   const report = useMemo(
     () =>
       buildOpeningReport({
@@ -179,10 +193,12 @@ export function OpeningReportPanel() {
         populations,
         // Absent when nothing can answer, which drops the plan sections rather
         // than showing them empty.
-        ...(continuations.data ? { continuations: continuations.data } : {}),
+        ...(continuations.data
+          ? { continuations: continuations.data, continuationSource: continuationName }
+          : {}),
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [fen, placement, book, answered, continuations.data],
+    [fen, placement, book, answered, continuations.data, continuationName],
   );
 
   if (!node) {

@@ -79,6 +79,16 @@ export interface OpeningReportInput {
   readonly populations?: readonly BranchPopulation[];
   /** Continuations of the games that reached here, as UCI, for the plans. */
   readonly continuations?: readonly (readonly string[])[];
+  /**
+   * The collection those continuations came from.
+   *
+   * Not optional decoration. A machine can have several collections and only
+   * one of them supplied these games, so a plan section that said "106 games
+   * replayed" without naming it would be a count with no source — which is the
+   * one thing nothing in this report is allowed to be. The panel supplies it
+   * from the provider it actually asked.
+   */
+  readonly continuationSource?: string;
   readonly repertoireMoves?: readonly string[];
   readonly repertoireName?: string;
   readonly opponent?: {
@@ -265,7 +275,13 @@ function populationSection(input: OpeningReportInput): ReportSection {
   };
 }
 
-function destinationsSection(plans: PlanEvidence | null): ReportSection {
+function replayedFrom(plans: PlanEvidence, source: string | undefined): string {
+  const games = `${count(plans.games)} games`;
+  const from = source ? ` from ${source}` : '';
+  return `${games}${from}, replayed ${plans.window} plies past this position`;
+}
+
+function destinationsSection(plans: PlanEvidence | null, source?: string): ReportSection {
   if (!plans) {
     return {
       id: 'destinations',
@@ -277,7 +293,7 @@ function destinationsSection(plans: PlanEvidence | null): ReportSection {
     };
   }
   const rows = principalDestinations(plans);
-  const provenance = `${count(plans.games)} games replayed ${plans.window} plies past this position`;
+  const provenance = replayedFrom(plans, source);
   if (rows.length === 0) {
     return {
       id: 'destinations',
@@ -301,7 +317,7 @@ function destinationsSection(plans: PlanEvidence | null): ReportSection {
   };
 }
 
-function advancesSection(plans: PlanEvidence | null): ReportSection {
+function advancesSection(plans: PlanEvidence | null, source?: string): ReportSection {
   if (!plans) {
     return {
       id: 'advances',
@@ -313,7 +329,7 @@ function advancesSection(plans: PlanEvidence | null): ReportSection {
     };
   }
   const rows = significantAdvances(plans);
-  const provenance = `${count(plans.games)} games replayed ${plans.window} plies past this position`;
+  const provenance = replayedFrom(plans, source);
   if (rows.length === 0) {
     return {
       id: 'advances',
@@ -495,8 +511,8 @@ export function buildOpeningReport(input: OpeningReportInput): OpeningReport {
     branchesSection(input, branches),
     populationSection(input),
     childrenSection(input),
-    destinationsSection(plans),
-    advancesSection(plans),
+    destinationsSection(plans, input.continuationSource),
+    advancesSection(plans, input.continuationSource),
     repertoireSection(input, branches),
     modelGamesSection(input),
   ].filter((section) => applicable(input, section));

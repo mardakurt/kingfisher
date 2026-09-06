@@ -1125,8 +1125,11 @@ games into per-position counts before Kingfisher ever sees it; a SQLite
 collection through the companion keeps one row per game and ply, so a
 continuation is a range scan. `OpeningReportPanel` therefore asks the provider
 registry, never the reference list — asking the reference list is what made
-both plan sections unreachable until `66c6251`. When nothing can answer, the
-sections are absent rather than empty, which is a different statement.
+both plan sections unreachable until `66c6251`. It prefers the chosen explorer
+source when that source can answer, and **the section names the collection it
+replayed**, because a machine can hold several and only one of them supplied
+those games. When nothing can answer, the sections are absent rather than
+empty, which is a different statement.
 
 ## Reviewing a repertoire
 

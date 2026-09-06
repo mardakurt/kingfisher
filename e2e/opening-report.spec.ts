@@ -177,6 +177,18 @@ test('the plan sections count a real collection, and cite how many games they re
   await settings.getByPlaceholder('Paste a PGN collection…').fill(NAJDORF_PGNS);
   await settings.getByRole('button', { name: 'Import', exact: true }).click();
   await expect(settings.getByText(/3 games/).first()).toBeVisible({ timeout: 30_000 });
+
+  /*
+    And choose it, rather than relying on it being the only collection that can
+    answer. It is not: other specs in this suite leave their own SQLite
+    collections behind, and the report used to take whichever registered first
+    — which made this test pass alone and fail in the suite, reading "1 games
+    replayed" from somebody else's two-game fixture. That was the product's
+    ambiguity, not the test's: a report drawn from an unnamed collection is a
+    count with no source.
+  */
+  await settings.getByRole('tab', { name: 'Database' }).click();
+  await settings.getByLabel('Explorer source').selectOption({ label: 'Plan evidence E2E' });
   await settings.getByRole('button', { name: 'Close' }).click();
 
   await selectTool(page, page.locator('[data-workspace-dock]').first(), 'Opening Report');
@@ -202,7 +214,9 @@ test('the plan sections count a real collection, and cite how many games they re
   */
   const destinations = section(page, 'destinations');
   await expect(destinations).toBeVisible({ timeout: 30_000 });
-  await expect(destinations).toContainText(/\d+ games replayed \d+ plies past this position/);
+  await expect(destinations).toContainText(
+    /\d+ games from Plan evidence E2E, replayed \d+ plies past this position/,
+  );
   // Every one of the three games plays ...Be7. A row that could not name the
   // square it came from would be a statistic without a piece attached.
   await expect(destinations).toContainText("Black's bishop on f8 reached e7");
@@ -210,7 +224,9 @@ test('the plan sections count a real collection, and cite how many games they re
 
   const advances = section(page, 'advances');
   await expect(advances).toBeVisible();
-  await expect(advances).toContainText(/\d+ games replayed \d+ plies past this position/);
+  await expect(advances).toContainText(
+    /\d+ games from Plan evidence E2E, replayed \d+ plies past this position/,
+  );
   /*
     Two of the three play ...e5. Written as the pawn's journey rather than as a
     move, because a pawn that reaches a square over two moves would otherwise be

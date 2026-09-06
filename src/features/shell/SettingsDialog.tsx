@@ -485,7 +485,7 @@ function DatabaseSection() {
       */}
       <Row
         label="Explorer source"
-        hint="The reference database the explorer, theory radar and position report read."
+        hint="The reference database the explorer, theory radar and position report read, and the collection the opening report replays its plans from when it can."
       >
         <select
           aria-label="Explorer source"
