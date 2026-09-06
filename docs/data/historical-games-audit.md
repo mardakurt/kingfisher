@@ -65,6 +65,59 @@ knows and the packs have nothing for are in a Historical index that says what it
 is. A profile for one of them shows the roster's own facts — title, dates,
 reign, a checked sentence — above a plain statement that the packs begin in 2020. Held by `src/reference/players.test.ts` and `e2e/players.spec.ts`.
 
+## Redistributing a corpus is not the same question as researching one
+
+Phase 18 re-opened this and found that the question above had been answered
+correctly and then over-generalised. "Kingfisher cannot redistribute historical
+games" became "Kingfisher cannot look up Fischer–Spassky", and those are
+different claims.
+
+Kingfisher has had a **Lichess Masters** provider since before this audit
+(`src/database/providers/lichess.ts`). It is an online over-the-board
+collection of strong tournament games, it supports year filtering — `since` and
+`until` as bare years for the masters database — and it returns top games with
+player names, years and game ids, which `lichess.org/game/export/{id}` will
+then hand back as PGN. Nothing about it is redistribution: Kingfisher stores no
+games from it and ships nothing.
+
+**What it needs is the user's own Lichess token.** Checked on 6 September 2026:
+
+| Endpoint                       | Without a token |
+| ------------------------------ | --------------- |
+| `explorer.lichess.org/masters` | **401**         |
+| `explorer.lichess.ovh/masters` | **401**         |
+| `lichess.org/api/user/{name}`  | 200             |
+| `lichess.org/game/export/{id}` | 200             |
+
+The 401 comes from nginx, before any application logic, and does not change
+with headers or user agent. So the explorer is credentialled and the game
+export is not — a shape that suits Kingfisher, which already asks each user for
+their own token through PKCE rather than shipping a shared developer one.
+
+`npm run smoke:lichess` now includes a **Fischer–Spassky 1972 check**: it asks
+the masters explorer what was played in the position after 14...a6 of game 6 of
+the Reykjavik match, requires a 1972 Fischer–Spassky game among the games it
+names, and then fetches that game's movetext from the public export endpoint
+and requires both players and the year in it. Nothing is fixtured; if the
+service stops holding the game, the check fails.
+
+**It has not been run.** Running it needs a token, which needs a person to
+consent, which no agent can do on somebody's behalf. The position in it was
+replayed through the rules code rather than written from memory — the first
+attempt was wrong in three places, which is the reason to say plainly that a
+check written is not a check passed.
+
+So the honest statement of where this stands has three parts:
+
+- Kingfisher **ships** no games before 2020 and, on this audit, cannot.
+- Kingfisher **can research** master games back to roughly 1952 through the
+  Lichess Masters explorer, once a user connects their Lichess account. That
+  covers Fischer–Spassky 1972.
+- Before about 1952 — Morphy, Steinitz, Capablanca — there is still nothing.
+  The Masters population does not reach back that far and no redistributable
+  corpus does either. That is the remaining limitation and it is narrower than
+  the one Phase 17 recorded, but it is real.
+
 ## What would change the answer
 
 In rough order of how tractable each looks.

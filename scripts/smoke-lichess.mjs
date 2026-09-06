@@ -27,6 +27,29 @@ const EXPLORER = 'https://explorer.lichess.org';
 const ACCOUNT = 'https://lichess.org/api/account';
 const START = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
+/**
+ * Reykjavik 1972, game 6, after 14...a6.
+ *
+ * Fischer–Spassky is the game Phase 17 recorded as the one thing a world-class
+ * player could not look up in Kingfisher, because no pack it can redistribute
+ * holds anything before 2020. The Masters explorer does hold it, and this is
+ * the check that says so — against the live service, with a real position, and
+ * only when somebody has supplied their own token.
+ *
+ * The position is reached by
+ *   1.c4 e6 2.Nf3 d5 3.d4 Nf6 4.Nc3 Be7 5.Bg5 O-O 6.e3 h6 7.Bh4 b6
+ *   8.cxd5 Nxd5 9.Bxe7 Qxe7 10.Nxd5 exd5 11.Rc1 Be6 12.Qa4 c5 13.Qa3 Rc8
+ *   14.Bb5 a6
+ * which is a real, named, heavily annotated position and not one chosen to
+ * make a test pass. 13...Rc8 is unambiguous here — the a8 rook is blocked by
+ * the knight on b8 — so the position is the game's and not one of two
+ * readings of it.
+ *
+ * The FEN was replayed from those moves rather than written from memory. The
+ * first attempt at it was wrong in three places.
+ */
+const FISCHER_SPASSKY_1972 = 'rnr3k1/4qpp1/pp2b2p/1Bpp4/3P4/Q3PN2/PP3PPP/2R1K2R w K - 0 15';
+
 const playerIndex = argv.indexOf('--player');
 const PLAYER = playerIndex >= 0 ? argv[playerIndex + 1] : null;
 
@@ -144,6 +167,81 @@ function lastNdjson(text) {
   return JSON.parse(lines[lines.length - 1]);
 }
 
+/**
+ * Can a historical master game actually be found, and read?
+ *
+ * Two separate questions and the check reports them separately, because a
+ * source that names the game and cannot open it is a different product from
+ * one that can. The first asks the Masters explorer what was played in a real
+ * 1972 position and looks for Fischer and Spassky in the games it names; the
+ * second takes the game id it gave back and fetches the movetext from the
+ * public export endpoint.
+ *
+ * Nothing here is fixtured. If the service stops holding the game, this fails,
+ * which is the entire point.
+ */
+async function checkHistorical() {
+  const name = 'Fischer–Spassky 1972';
+  const fen = encodeURIComponent(FISCHER_SPASSKY_1972);
+  const response = await get(`${EXPLORER}/masters?fen=${fen}&topGames=8&since=1970&until=1975`);
+  if (!response.ok) {
+    record(name, false, `HTTP ${response.status} from the masters explorer`);
+    return;
+  }
+  let payload;
+  try {
+    payload = JSON.parse(await response.text());
+  } catch {
+    record(name, false, 'the response was not readable as JSON');
+    return;
+  }
+
+  const games = payload.topGames ?? [];
+  const match = games.find((game) => {
+    const players = `${game.white?.name ?? ''} ${game.black?.name ?? ''}`.toLowerCase();
+    return players.includes('fischer') && players.includes('spassky');
+  });
+  if (!match) {
+    const named = games
+      .map((game) => `${game.year ?? '?'} ${game.white?.name ?? '?'}–${game.black?.name ?? '?'}`)
+      .join(', ');
+    record(name, false, `no Fischer–Spassky game among the top games (${named || 'none'})`);
+    return;
+  }
+  if (match.year !== 1972) {
+    record(name, false, `found Fischer–Spassky but dated ${match.year}, not 1972`);
+    return;
+  }
+  if (!match.id) {
+    record(name, false, 'the game was named but carries no id, so it cannot be opened');
+    return;
+  }
+
+  record(name, true, `${match.year} ${match.white?.name}–${match.black?.name} (${match.id})`);
+
+  // ...and the game itself, from the public export endpoint, which needs no
+  // token. Naming a game is not the same as being able to open it.
+  const pgn = await get(`https://lichess.org/game/export/${match.id}`, 'application/x-chess-pgn');
+  if (!pgn.ok) {
+    record('historical game export', false, `HTTP ${pgn.status} fetching ${match.id}`);
+    return;
+  }
+  const text = await pgn.text();
+  const lower = text.toLowerCase();
+  const complete =
+    text.includes('1972') &&
+    lower.includes('fischer') &&
+    lower.includes('spassky') &&
+    /\n\s*1\.\s*\S/.test(text);
+  record(
+    'historical game export',
+    complete,
+    complete
+      ? `${text.length.toLocaleString()} bytes of PGN, with both players and the year`
+      : 'the export came back without the players, the year, or any movetext',
+  );
+}
+
 async function main() {
   console.log('\nKingfisher — live Lichess contract check');
   console.log(`explorer: ${EXPLORER}\n`);
@@ -160,6 +258,8 @@ async function main() {
     'lichess explorer',
     `lichess?fen=${fen}&moves=5&speeds=blitz,rapid&ratings=2000`,
   );
+
+  await checkHistorical();
 
   if (PLAYER) {
     await checkExplorer(
