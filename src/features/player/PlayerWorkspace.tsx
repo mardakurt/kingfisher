@@ -21,6 +21,8 @@
  */
 
 import { useState } from 'react';
+import { Fragment } from 'react';
+import { LEGENDS_BY_KEY, legendYears } from '@/reference/legends';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 
@@ -237,6 +239,7 @@ export function PlayerWorkspace({ playerId }: { readonly playerId: string }) {
             profile was the half that never rendered.
           */
           <div className="mx-auto max-w-5xl p-5 md:p-8">
+            <RosterFacts playerKey={playerId} />
             <p className="mb-4 text-xs text-tertiary">
               Nothing in your own collection is under “{name}”
               {resolved.fromYear ? ` in ${period.label.toLowerCase()}` : ''}. Import games, or link
@@ -695,5 +698,53 @@ function Fact({
       <p className="mt-1 text-sm text-primary tabular">{value}</p>
       {note ? <p className="text-[10px] text-tertiary">{note}</p> : null}
     </div>
+  );
+}
+
+/**
+ * What the historical roster knows about this person.
+ *
+ * The reason a profile with no games is not a dead end. Kingfisher's packs
+ * begin in 2020, so Steinitz has nothing behind him — but the roster holds
+ * dates, a title, a reign and a checked sentence about why he matters, and
+ * showing those is the difference between "we have nothing" and "here is what
+ * we have, and here is what we do not".
+ *
+ * Nothing here is generated. Every field is a constant somebody wrote and a
+ * reviewer can check, and none of it implies a game exists.
+ */
+function RosterFacts({ playerKey }: { readonly playerKey: string }) {
+  const legend = LEGENDS_BY_KEY.get(playerKey.trim().toLowerCase().replace(/\s+/g, ' '));
+  if (!legend) return null;
+
+  const rows: readonly (readonly [string, string])[] = [
+    ['Title', legend.title],
+    ['Lived', legendYears(legend)],
+    ...(legend.reign ? ([['World champion', legend.reign]] as const) : []),
+    ...(legend.fideId ? ([['FIDE ID', legend.fideId]] as const) : []),
+  ];
+
+  return (
+    <section
+      className="mb-4 rounded-[5px] border border-line-subtle bg-surface-1 p-4"
+      data-roster-facts
+    >
+      <h2 className="text-[10px] font-semibold uppercase tracking-[0.08em] text-tertiary">
+        Historical roster
+      </h2>
+      <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
+        {rows.map(([label, value]) => (
+          <Fragment key={label}>
+            <dt className="text-tertiary">{label}</dt>
+            <dd className="text-secondary">{value}</dd>
+          </Fragment>
+        ))}
+      </dl>
+      <p className="mt-2 text-xs leading-relaxed text-secondary">{legend.note}</p>
+      <p className="mt-2 text-[10px] leading-relaxed text-tertiary">
+        Dates and titles are a checked roster entry, not a game count. Kingfisher has no games for
+        this player in the installed sources; see below for why.
+      </p>
+    </section>
   );
 }

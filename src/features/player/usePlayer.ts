@@ -14,6 +14,7 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
+import { displayPlayerName } from '@/reference/legends';
 
 import { getRepositories } from '@/persistence/repositories';
 import { playerKey } from '@/persistence/schema/migrations';
@@ -76,7 +77,8 @@ export function usePlayerIdentity(id: string) {
       if (!stored) {
         return {
           id,
-          name: id,
+          // A route key is lowercased for matching; it is not a name.
+          name: displayPlayerName(id),
           aliases: [id],
           keys: new Set([id]),
           favorite: false,

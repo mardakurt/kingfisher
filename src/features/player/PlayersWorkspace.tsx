@@ -40,7 +40,20 @@ const FILTERS: readonly { readonly id: PlayerFilter; readonly label: string }[] 
   { id: 'women-champion', label: 'Women’s champions' },
   { id: 'legend', label: 'Historical' },
   { id: 'has-games', label: 'With games here' },
+  /*
+    Last, and named for what it is. These are people the roster knows and the
+    installed sources have no games for; keeping them in the browse lists meant
+    World champions opened with three profiles that had nothing behind them.
+  */
+  { id: 'historical-index', label: 'Historical index' },
 ];
+
+/** Said above the list, so an empty-looking set explains itself. */
+const FILTER_NOTE: Partial<Record<PlayerFilter, string>> = {
+  'historical-index':
+    'People the roster knows and the installed sources have no games for. Kingfisher’s reference packs begin in 2020; these entries are dates, titles and what they won, not a library of their games. Nothing here implies a game exists.',
+  legend: 'Historical figures the installed sources do have games for.',
+};
 
 const EMPTY: readonly CatalogPlayer[] = [];
 
@@ -157,16 +170,30 @@ export function PlayersWorkspace() {
             }
           />
         ) : (
-          <ul className="divide-y divide-line-subtle" data-player-results>
-            {results.map((player) => (
-              <PlayerRow
-                key={player.key}
-                player={player}
-                selected={selected.includes(player.key)}
-                onToggle={() => toggle(player.key)}
-              />
-            ))}
-          </ul>
+          <>
+            {FILTER_NOTE[filter] && query.trim().length === 0 ? (
+              <p
+                className="border-b border-line-subtle bg-surface-2 px-3 py-2 text-xs leading-relaxed text-tertiary md:px-5"
+                data-filter-note={filter}
+              >
+                {FILTER_NOTE[filter]}
+              </p>
+            ) : null}
+            <ul
+              className="divide-y divide-line-subtle"
+              data-player-results
+              data-player-filter={filter}
+            >
+              {results.map((player) => (
+                <PlayerRow
+                  key={player.key}
+                  player={player}
+                  selected={selected.includes(player.key)}
+                  onToggle={() => toggle(player.key)}
+                />
+              ))}
+            </ul>
+          </>
         )}
       </div>
     </div>

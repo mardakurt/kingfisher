@@ -149,7 +149,40 @@ export function usePlayerCatalog() {
 }
 
 export type PlayerFilter =
-  'all' | 'top-100' | 'top-500' | 'world-champion' | 'women-champion' | 'legend' | 'has-games';
+  | 'all'
+  | 'top-100'
+  | 'top-500'
+  | 'world-champion'
+  | 'women-champion'
+  | 'legend'
+  | 'has-games'
+  /**
+   * The people the roster knows and the installed sources have no games for.
+   *
+   * Kept as a set of its own rather than mixed into the browse lists. A
+   * profile that promises a famous name and delivers nothing teaches a user
+   * that the player library is unreliable, so the primary sets contain only
+   * players who lead somewhere and this one is labelled for what it is: an
+   * index of people, not a library of their games.
+   */
+  | 'historical-index';
+
+/**
+ * Browse sets that must never contain a player with nothing to show.
+ *
+ * Enforced by `players.test.ts` and by `e2e/players.spec.ts`, because it is a
+ * product rule rather than a property of the data: the packs change, and the
+ * rule has to survive them changing.
+ */
+export const PRIMARY_PLAYER_FILTERS: readonly PlayerFilter[] = [
+  'all',
+  'top-100',
+  'top-500',
+  'world-champion',
+  'women-champion',
+  'legend',
+  'has-games',
+];
 
 /**
  * The rating that ranks a player, and why it is the latest rather than the peak.
@@ -177,11 +210,73 @@ export interface PlayerSearchOptions {
  * the installed sources is more likely to be the one meant than a namesake
  * with two.
  */
+/**
+ * A name reduced to what two spellings of it have in common.
+ *
+ * Diacritics are folded because a user who types the *correct* spelling of a
+ * Hungarian name must not get fewer results than one who cannot be bothered:
+ * "Polgár" found nothing while "Polgar" found both sisters. Folding is
+ * one-directional — the stored name keeps its accents and is displayed with
+ * them — and it is applied to both sides of every comparison so neither
+ * spelling is privileged.
+ */
+export const foldName = (value: string): string =>
+  value
+    .normalize('NFD')
+    .replace(/\p{M}+/gu, '')
+    .trim()
+    .toLowerCase();
+
+/**
+ * A name reduced further, to what a person typing it might not reproduce.
+ *
+ * Hyphens, apostrophes and full stops are separators that a database and a
+ * user disagree about constantly — "Vachier-Lagrave" and "Vachier Lagrave",
+ * "O'Kelly" and "O Kelly". Matching treats them all as a space; display never
+ * does, so the stored spelling is what appears on screen.
+ */
+export const matchKey = (value: string): string =>
+  foldName(value)
+    .replace(/[-'’.,]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+/**
+ * Nicknames a chess player is actually called, mapped to a name they appear
+ * under.
+ *
+ * Short, checked, and deliberately not a fuzzy matcher. "MVL" is what everyone
+ * calls Maxime Vachier-Lagrave and no database writes it; guessing that from
+ * initials would also turn "MC" into Magnus Carlsen and every third three
+ * letter query into a wrong confident answer. Each entry here was written down
+ * once, by a person.
+ */
+export const PLAYER_NICKNAMES: Readonly<Record<string, string>> = {
+  mvl: 'vachier-lagrave',
+  vishy: 'anand',
+  hikaru: 'nakamura',
+  magnus: 'carlsen',
+  nepo: 'nepomniachtchi',
+  praggu: 'praggnanandhaa',
+  pragg: 'praggnanandhaa',
+  dubov: 'dubov',
+  shirov: 'shirov',
+  gukesh: 'gukesh',
+  wesley: 'so, wesley',
+  fabi: 'caruana',
+  ding: 'ding, liren',
+  levon: 'aronian',
+  alireza: 'firouzja',
+};
+
 export function searchPlayers(
   players: readonly CatalogPlayer[],
   { query, filter, limit = 200 }: PlayerSearchOptions,
 ): readonly CatalogPlayer[] {
-  const needle = query.trim().toLowerCase();
+  const typed = foldName(query);
+  const needle = PLAYER_NICKNAMES[typed] ?? typed;
+  /** The same needle with separators flattened, for matching only. */
+  const loose = matchKey(needle);
   /*
     The rating lists are a *rank*, so they have to be computed over the whole
     catalog before anything is filtered by name. Filtering first and then
@@ -203,12 +298,12 @@ export function searchPlayers(
   const matched = players.filter((player) => {
     if (ranked) {
       if (!ranked.has(player.key)) return false;
-    } else if (!passesFilter(player, filter)) return false;
+    } else if (!passesFilter(player, filter, needle.length > 0)) return false;
     if (needle.length === 0) return true;
     return (
-      player.key.includes(needle) ||
-      player.name.toLowerCase().includes(needle) ||
-      (player.legend?.aliases.some((alias) => alias.toLowerCase().includes(needle)) ?? false)
+      matchKey(player.key).includes(loose) ||
+      matchKey(player.name).includes(loose) ||
+      (player.legend?.aliases.some((alias) => matchKey(alias).includes(loose)) ?? false)
     );
   });
 
@@ -228,22 +323,46 @@ export function searchPlayers(
     .map((entry) => entry.player);
 }
 
-function passesFilter(player: CatalogPlayer, filter: PlayerFilter): boolean {
+/**
+ * Whether a player belongs in a set.
+ *
+ * `searching` is the distinction that makes both rules possible at once.
+ * *Browsing* a set is Kingfisher offering you people, and it must not offer a
+ * famous name with nothing behind it. *Searching* is you naming somebody, and
+ * the honest answer to "Morphy" is the roster entry saying there are no games
+ * here — not silence, which reads as "Kingfisher has never heard of him".
+ */
+function passesFilter(player: CatalogPlayer, filter: PlayerFilter, searching = false): boolean {
   switch (filter) {
+    /*
+      "Everyone" means everyone Kingfisher can show you something about. A
+      roster entry with no games is a real, checked fact about a person and it
+      belongs in the historical index, not in a browse list where every other
+      row opens a profile full of games — unless the user typed their name, in
+      which case they are exactly who was meant.
+    */
     case 'all':
-      return true;
+      return searching || player.games > 0;
     case 'top-100':
     case 'top-500':
       // Handled as a rank over the whole catalog, in `searchPlayers`.
       return true;
+    /*
+      Every set below the rating lists requires at least one game. The roster
+      names 106 people and the installed packs begin in 2020, so without this
+      the World champions list led with Steinitz, Lasker and Capablanca —
+      three profiles with nothing behind them.
+    */
     case 'world-champion':
-      return player.legend?.roles.includes('world-champion') ?? false;
+      return (player.legend?.roles.includes('world-champion') ?? false) && player.games > 0;
     case 'women-champion':
-      return player.legend?.roles.includes('women-champion') ?? false;
+      return (player.legend?.roles.includes('women-champion') ?? false) && player.games > 0;
     case 'legend':
-      return player.legend !== undefined;
+      return player.legend !== undefined && player.games > 0;
     case 'has-games':
       return player.games > 0;
+    case 'historical-index':
+      return player.legend !== undefined && player.games === 0;
   }
 }
 
@@ -266,8 +385,10 @@ function rankOf(player: CatalogPlayer, needle: string): number {
         : 0;
   if (needle.length === 0) return role;
 
-  const name = player.name.toLowerCase();
-  const words = name.split(/[\s,.]+/).filter(Boolean);
+  // Normalised on both sides, so ranking agrees with matching about what a
+  // name is; otherwise a row can match and then rank as though it had not.
+  const name = matchKey(player.name);
+  const words = name.split(/\s+/).filter(Boolean);
   const match =
     name === needle
       ? 16

@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 import { LEGENDS, LEGEND_GROUPS, legendYears } from './legends';
-import { searchPlayers, type CatalogPlayer } from './players';
+import {
+  foldName,
+  matchKey,
+  PLAYER_NICKNAMES,
+  PRIMARY_PLAYER_FILTERS,
+  searchPlayers,
+  type CatalogPlayer,
+} from './players';
 
 /**
  * The player catalog mixes two populations that must not be confused: rows
@@ -104,12 +111,75 @@ describe('searching the player catalog', () => {
   });
 
   it('filters to world champions using the roster, not a rating threshold', () => {
-    const results = searchPlayers(catalog, { query: '', filter: 'world-champion' });
-    expect(results.map((entry) => entry.name)).toEqual(['Tal, Mikhail']);
+    const withGames = [...catalog, player({ name: 'Kramnik, Vladimir', games: 20, legend: TAL })];
+    const results = searchPlayers(withGames, { query: '', filter: 'world-champion' });
+    expect(results.map((entry) => entry.name)).toEqual(['Kramnik, Vladimir']);
   });
 
   it('finds nothing rather than guessing when a name is not in either population', () => {
     expect(searchPlayers(catalog, { query: 'zzzz', filter: 'all' })).toEqual([]);
+  });
+});
+
+/**
+ * The product rule from Phase 17: a player Kingfisher *offers* you must lead
+ * somewhere.
+ *
+ * The roster names 106 people and the installed packs begin in 2020, so
+ * browsing world champions used to open with Steinitz, Lasker and Capablanca —
+ * three profiles with nothing behind them. A famous name that delivers nothing
+ * teaches a user that the player library is unreliable, which is a worse
+ * outcome than not listing them.
+ *
+ * Searching is the deliberate exception, and the reason the rule is stated in
+ * terms of browsing. Somebody who types "Morphy" is naming a person, and the
+ * honest answer is the roster entry saying there are no games here — silence
+ * would read as "Kingfisher has never heard of him".
+ */
+describe('the browse sets lead somewhere', () => {
+  const morphy = player({
+    name: 'Morphy, Paul',
+    games: 0,
+    legend: LEGENDS.find((legend) => legend.name.startsWith('Morphy')),
+  });
+  const catalog = [
+    morphy,
+    player({
+      name: 'Carlsen, Magnus',
+      games: 452,
+      peakRating: 2882,
+      lastRating: 2830,
+      legend: LEGENDS.find((l) => l.name.startsWith('Carlsen')),
+    }),
+    player({ name: 'Nobody, A', games: 3 }),
+  ];
+
+  it('offers no player with nothing behind them, in any primary set', () => {
+    for (const filter of PRIMARY_PLAYER_FILTERS) {
+      const results = searchPlayers(catalog, { query: '', filter });
+      const dead = results.filter((entry) => entry.games === 0).map((entry) => entry.name);
+      expect(dead, `${filter} offers a player with no games`).toEqual([]);
+    }
+  });
+
+  it('keeps the people it cannot show games for in an index of their own', () => {
+    const index = searchPlayers(catalog, { query: '', filter: 'historical-index' });
+    expect(index.map((entry) => entry.name)).toContain('Morphy, Paul');
+    // And nobody who does have games, because that is not what the index is.
+    expect(index.every((entry) => entry.games === 0)).toBe(true);
+  });
+
+  it('still finds a historical player by name, and says they have no games', () => {
+    const results = searchPlayers(catalog, { query: 'morphy', filter: 'all' });
+    expect(results.map((entry) => entry.name)).toContain('Morphy, Paul');
+    expect(results.find((entry) => entry.name === 'Morphy, Paul')?.games).toBe(0);
+  });
+
+  it('does not let the historical index leak into a rating list', () => {
+    for (const filter of ['top-100', 'top-500'] as const) {
+      const results = searchPlayers(catalog, { query: '', filter });
+      expect(results.map((entry) => entry.name)).not.toContain('Morphy, Paul');
+    }
   });
 });
 
@@ -182,5 +252,81 @@ describe('the historical roster', () => {
         group.id,
       ).toBe(true);
     }
+  });
+});
+
+/**
+ * Search has to work for the spelling a person actually types.
+ *
+ * Both cases here were found by typing real names into the real box: "Polgár"
+ * — the correct spelling — returned nothing while "Polgar" returned both
+ * sisters, and "MVL" returned nothing at all.
+ */
+describe('finding a player by the name people use', () => {
+  const catalog = [
+    player({ name: 'Polgár, Judit', games: 40 }),
+    player({ name: 'Vachier-Lagrave, Maxime', games: 553 }),
+    player({ name: 'Nepomniachtchi, Ian', games: 401 }),
+    player({ name: 'Carlsen, Magnus', games: 452 }),
+  ];
+  const names = (query: string) =>
+    searchPlayers(catalog, { query, filter: 'all' }).map((entry) => entry.name);
+
+  it('finds a name whether or not the accents are typed', () => {
+    expect(names('Polgár')).toContain('Polgár, Judit');
+    expect(names('Polgar')).toContain('Polgár, Judit');
+    expect(names('polgar')).toContain('Polgár, Judit');
+  });
+
+  it('keeps the accents in what it displays', () => {
+    // Folding is for matching only; the stored spelling is the correct one.
+    expect(names('polgar')[0]).toBe('Polgár, Judit');
+  });
+
+  it('finds a hyphenated surname with or without the hyphen', () => {
+    expect(names('Vachier-Lagrave')).toContain('Vachier-Lagrave, Maxime');
+    expect(names('vachier lagrave')).toContain('Vachier-Lagrave, Maxime');
+  });
+
+  it('knows the nicknames players are actually called', () => {
+    expect(names('MVL')).toContain('Vachier-Lagrave, Maxime');
+    expect(names('mvl')).toContain('Vachier-Lagrave, Maxime');
+    expect(names('Nepo')).toContain('Nepomniachtchi, Ian');
+  });
+
+  it('does not invent a nickname it was not told about', () => {
+    /*
+      Deriving nicknames from initials would turn every three-letter query into
+      a confident wrong answer. The list is written down, once, by a person.
+    */
+    expect(PLAYER_NICKNAMES.mc).toBeUndefined();
+    expect(names('zzz')).toEqual([]);
+  });
+
+  it('is case-insensitive in both directions', () => {
+    expect(names('CARLSEN')).toContain('Carlsen, Magnus');
+    expect(names('carlsen, magnus')).toContain('Carlsen, Magnus');
+  });
+});
+
+describe('foldName', () => {
+  it('removes diacritics without removing the letters under them', () => {
+    expect(foldName('Polgár')).toBe('polgar');
+    expect(foldName('Réti')).toBe('reti');
+    expect(foldName('Grünfeld')).toBe('grunfeld');
+    expect(foldName('Nepomniachtchi')).toBe('nepomniachtchi');
+  });
+
+  it('leaves a hyphen and an apostrophe alone, because display keeps them', () => {
+    expect(foldName("O'Kelly")).toBe("o'kelly");
+    expect(foldName('Vachier-Lagrave')).toBe('vachier-lagrave');
+  });
+});
+
+describe('matchKey', () => {
+  it('flattens the separators a user and a database disagree about', () => {
+    expect(matchKey('Vachier-Lagrave, Maxime')).toBe('vachier lagrave maxime');
+    expect(matchKey("O'Kelly de Galway, Alberic")).toBe('o kelly de galway alberic');
+    expect(matchKey('Polgár, Judit')).toBe('polgar judit');
   });
 });

@@ -1069,3 +1069,38 @@ export const LEGEND_GROUPS = [
   { id: 'challenger', label: 'Title challengers', role: 'challenger' as const },
   { id: 'pre-fide', label: 'Before FIDE', role: 'pre-fide' as const },
 ] as const;
+
+/**
+ * The roster indexed by the key a route uses, so a profile can find its person.
+ *
+ * Keyed the same way games are — lowercased, whitespace collapsed — including
+ * every alias, because a pack may write "Tal, Mikhail" where the roster says
+ * "Tal, Mikhail Nekhemyevich" and both must reach the same entry.
+ */
+export const LEGENDS_BY_KEY: ReadonlyMap<string, Legend> = (() => {
+  const key = (name: string) => name.trim().toLowerCase().replace(/\s+/g, ' ');
+  const map = new Map<string, Legend>();
+  for (const legend of LEGENDS) {
+    map.set(key(legend.name), legend);
+    for (const alias of legend.aliases) if (!map.has(key(alias))) map.set(key(alias), legend);
+  }
+  return map;
+})();
+
+/**
+ * A name to put at the top of a profile, given only its route key.
+ *
+ * Player keys are lowercased for matching, and a profile that has no stored
+ * identity was showing that key verbatim — every historical profile was
+ * headed "steinitz, wilhelm". The roster's own spelling wins where it knows
+ * the person; otherwise the key is title-cased, which is right far more often
+ * than lowercase and never claims to be more than a guess at capitalisation.
+ */
+export function displayPlayerName(key: string): string {
+  const legend = LEGENDS_BY_KEY.get(key.trim().toLowerCase().replace(/\s+/g, ' '));
+  if (legend) return legend.name;
+  return key.replace(
+    /(^|[\s,\-'’.])([\p{Ll}])/gu,
+    (_match, boundary: string, letter: string) => `${boundary}${letter.toLocaleUpperCase()}`,
+  );
+}
