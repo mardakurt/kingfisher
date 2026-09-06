@@ -41,6 +41,7 @@ import { useSourcesFor } from '@/reference/sources';
 import { useOpeningClassification } from '@/theory/useOpeningClassification';
 import { VariationBriefPanel } from '@/features/openings/VariationBriefPanel';
 import { openReferenceGame } from '@/features/games/open-reference-game';
+import { canOpenGames, openOnlineGame } from '@/features/games/open-online-game';
 import { packReader } from '@/reference/manager';
 
 import { SourceFallback, SourcePicker } from './SourcePicker';
@@ -524,7 +525,21 @@ export function ExplorerPanel() {
                     );
                     const className =
                       'grid w-full grid-cols-[minmax(0,1fr)_auto] gap-2 px-2.5 py-2 text-left hover:bg-surface-2';
-                    return provider && packReader(provider.id) ? (
+                    /*
+                      Three cases, and the middle one used to be missing.
+
+                      A pack game is read from disk. An *online* source that
+                      serves whole games — the Lichess masters database does —
+                      is fetched and opened on this board, which is what makes
+                      a historical game Kingfisher cannot redistribute still
+                      something a player can study here. Only a source that
+                      serves no game at all falls through to a link, and that
+                      link leaves the application, so it is the last resort
+                      rather than the default it had become.
+                    */
+                    const openable =
+                      provider && (packReader(provider.id) || canOpenGames(provider));
+                    return openable ? (
                       <button
                         key={game.id}
                         type="button"
@@ -532,19 +547,23 @@ export function ExplorerPanel() {
                         aria-label={`Open ${game.white} – ${game.black}`}
                         onClick={async () => {
                           try {
-                            await openReferenceGame(
-                              provider.id,
-                              provider.name,
-                              game.id,
-                              `${game.white} – ${game.black}`,
-                            );
+                            const title = `${game.white} – ${game.black}`;
+                            if (packReader(provider.id)) {
+                              await openReferenceGame(provider.id, provider.name, game.id, title);
+                            } else {
+                              await openOnlineGame(provider, game.id, title);
+                            }
                           } catch (error) {
                             notify({
                               tone: 'error',
                               message:
                                 error instanceof Error
                                   ? error.message
-                                  : 'Could not open this reference game.',
+                                  : 'Could not open this game.',
+                              detail:
+                                error && typeof error === 'object' && 'remedy' in error
+                                  ? String((error as { remedy?: unknown }).remedy ?? '')
+                                  : undefined,
                             });
                           }
                         }}

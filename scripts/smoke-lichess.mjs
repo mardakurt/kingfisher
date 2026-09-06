@@ -53,11 +53,27 @@ const FISCHER_SPASSKY_1972 = 'rnr3k1/4qpp1/pp2b2p/1Bpp4/3P4/Q3PN2/PP3PPP/2R1K2R 
 const playerIndex = argv.indexOf('--player');
 const PLAYER = playerIndex >= 0 ? argv[playerIndex + 1] : null;
 
-if (!TOKEN) {
+/*
+  Half of this runs without a credential, and that half is the useful one to
+  have in CI.
+
+  The explorer *query* endpoints require a token — 401 without one, checked
+  live rather than read off a page. `masters/pgn/{gameId}` does not, and that
+  asymmetry is worth a check of its own: it is the difference between "a user
+  with a token can look up a master game" and "anybody can open one", and it
+  is the endpoint that makes a shared master game a link rather than a
+  privilege.
+
+  So `--public` runs only the part that needs nothing, and the default runs
+  everything and says what it skipped.
+*/
+const PUBLIC_ONLY = argv.includes('--public');
+if (!TOKEN && !PUBLIC_ONLY) {
   console.error(
     'Set KINGFISHER_LICHESS_TOKEN to a personal access token.\n' +
       'Create one at https://lichess.org/account/oauth/token/create — no scopes are needed.\n' +
-      'This script is opt-in; CI never requires it.',
+      'This script is opt-in; CI never requires it.\n' +
+      'Or run `npm run smoke:lichess -- --public` for the checks that need no token.',
   );
   exit(1);
 }
@@ -242,9 +258,88 @@ async function checkHistorical() {
   );
 }
 
+/**
+ * The endpoints that need no credential, and the one claim they support.
+ *
+ * `aAbqI4ey` is the example id in Lichess's own API specification, so it is
+ * not a game chosen to make this pass — it is the game the service documents
+ * as its example, and it is a real over-the-board master game: Carlsen–Chadaev,
+ * World Blitz, Astana 2012.
+ *
+ * Two things are asserted, and the second is the point. That the response is a
+ * PGN, and that the *query* endpoint beside it refuses. A check that only did
+ * the first would keep passing if Lichess put the whole explorer behind
+ * authentication, and Kingfisher's error messages depend on knowing which half
+ * is which.
+ */
+async function checkPublicMasterGame() {
+  const id = 'aAbqI4ey';
+  try {
+    const response = await fetch(`${EXPLORER}/masters/pgn/${id}`, {
+      headers: { Accept: 'application/x-chess-pgn' },
+    });
+    if (!response.ok) {
+      record('master game, no token', false, `HTTP ${response.status}`);
+      return;
+    }
+    const text = await response.text();
+    const headers = ['Event', 'White', 'Black', 'Result'].filter((tag) =>
+      new RegExp(`^\\[${tag} "`, 'm').test(text),
+    );
+    const movetext = /\n\n\s*1\./.test(text);
+    if (headers.length === 4 && movetext) {
+      const white = /^\[White "([^"]+)"/m.exec(text)?.[1] ?? '?';
+      const black = /^\[Black "([^"]+)"/m.exec(text)?.[1] ?? '?';
+      const date = /^\[Date "([^"]+)"/m.exec(text)?.[1] ?? '?';
+      record('master game, no token', true, `${white} vs ${black}, ${date}`);
+    } else {
+      record(
+        'master game, no token',
+        false,
+        `contract: expected four tags and movetext, got ${headers.length} tags`,
+      );
+    }
+  } catch (error) {
+    record('master game, no token', false, error.message);
+  }
+}
+
+/** The query endpoint must still refuse, or Kingfisher's guidance is wrong. */
+async function checkExplorerStillNeedsAToken() {
+  try {
+    const response = await fetch(`${EXPLORER}/masters?play=e2e4`, {
+      headers: { Accept: 'application/json' },
+    });
+    if (response.status === 401 || response.status === 403) {
+      record('explorer query without a token', true, `refused with HTTP ${response.status}`);
+    } else {
+      record(
+        'explorer query without a token',
+        false,
+        `contract: answered HTTP ${response.status}; Kingfisher tells users a token is required`,
+      );
+    }
+  } catch (error) {
+    record('explorer query without a token', false, error.message);
+  }
+}
+
 async function main() {
   console.log('\nKingfisher — live Lichess contract check');
   console.log(`explorer: ${EXPLORER}\n`);
+
+  await checkPublicMasterGame();
+  await checkExplorerStillNeedsAToken();
+
+  if (PUBLIC_ONLY) {
+    record('account', true, 'skipped — --public');
+    record('masters explorer', true, 'skipped — --public');
+    record('lichess explorer', true, 'skipped — --public');
+    record('historical position', true, 'skipped — --public');
+    record('player explorer', true, 'skipped — --public');
+    report();
+    return;
+  }
 
   const username = await checkAccount();
   if (username === null) {

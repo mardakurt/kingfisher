@@ -274,13 +274,19 @@ export class LichessExplorerProvider implements ChessDatabaseProvider {
         undefined,
         'unsupported',
       );
-    if (!hasLichessToken())
-      throw new DatabaseError(
-        'Lichess authentication is required.',
-        undefined,
-        'authentication-required',
-        401,
-      );
+    /*
+      No token is required here, and asking for one was withholding a capability
+      Lichess gives away.
+
+      The explorer *query* endpoints return 401 without a token — checked live
+      on 2026-09-06, and the reason `hasLichessToken` guards `explore` above.
+      `masters/pgn/{gameId}` does not: an unauthenticated request for the id in
+      Lichess's own API specification returns the game. So this asks, sends the
+      token when there is one — which spends the user's own rate limit rather
+      than an anonymous pool — and reports a 401 as a 401 if Lichess ever
+      changes its mind. Refusing up front would have been this application
+      deciding, on Lichess's behalf, that a game it will serve cannot be read.
+    */
     /*
       The same deadline the explorer query above uses. Fetching a game had only
       the caller's signal, and callers that open a model game do not pass one —
@@ -306,6 +312,22 @@ export class LichessExplorerProvider implements ChessDatabaseProvider {
         'network-error',
       );
     }
+    if (response.status === 401 || response.status === 403)
+      throw new DatabaseError(
+        'Lichess now requires authentication to read a master game.',
+        hasLichessToken()
+          ? 'The stored token was rejected. Reconnect Lichess in Settings → Database.'
+          : 'Connect Lichess in Settings → Database.',
+        'authentication-required',
+        response.status,
+      );
+    if (response.status === 404)
+      throw new DatabaseError(
+        'The Lichess masters database has no game with that id.',
+        undefined,
+        'error',
+        404,
+      );
     if (!response.ok)
       throw new DatabaseError(
         `Lichess returned HTTP ${response.status}.`,
