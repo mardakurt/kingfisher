@@ -45,7 +45,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { argv, exit } from 'node:process';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { GameDatabase } from '../companion/src/database.mjs';
 
@@ -74,9 +74,9 @@ function parseArgs(list) {
   return args;
 }
 
-const mb = (bytes) => `${(bytes / 1_000_000).toFixed(1)} MB`;
-const gb = (bytes) => `${(bytes / 1_000_000_000).toFixed(2)} GB`;
-const n = (value) => value.toLocaleString('en-GB');
+export const mb = (bytes) => `${(bytes / 1_000_000).toFixed(1)} MB`;
+export const gb = (bytes) => `${(bytes / 1_000_000_000).toFixed(2)} GB`;
+export const n = (value) => value.toLocaleString('en-GB');
 
 /** Nearest-rank percentile. Not `samples[floor(len * q)]`, which returns the
  *  maximum for small samples and was how Phase 15 came to report a cold run as
@@ -142,7 +142,7 @@ function countOf(value) {
  * it is running on takes the machine down with it. This run stops itself
  * instead, and says how far it got.
  */
-function freeBytes(file) {
+export function freeBytes(file) {
   try {
     const stat = statfsSync(path.dirname(file));
     return Number(stat.bsize) * Number(stat.bavail);
@@ -165,7 +165,7 @@ function archives() {
     .map((file) => path.join(CACHE, file));
 }
 
-async function build(database, limit, databaseFile, floorBytes) {
+export async function build(database, limit, databaseFile, floorBytes) {
   const { parsePgn } = await loadApp(['/src/chess/pgn/index.ts']);
   const { normalizeGame, indexGame } = await loadApp(['/src/persistence/prepare-game.ts']);
   const { classifyTree } = await loadApp(['/src/theory/classify-games.ts']);
@@ -307,7 +307,7 @@ async function build(database, limit, databaseFile, floorBytes) {
 }
 
 /** The queries a professional actually runs, against whatever is in the file. */
-function benchmark(database, warm) {
+export function benchmark(database, warm) {
   const rows = [];
   const add = (label, run) => {
     const row = measure(label, run, warm);
@@ -398,10 +398,17 @@ async function main() {
   else rmSync(directory, { recursive: true, force: true });
 }
 
-main()
-  .then(() => closeApp())
-  .catch(async (error) => {
-    console.error(error);
-    await closeApp();
-    exit(1);
-  });
+/*
+  Only when run directly. `bench-compaction.mjs` imports `build` and
+  `benchmark` from here so that the two benchmarks measure a database built by
+  exactly the same code, rather than by two copies of it that can drift.
+*/
+if (import.meta.url === pathToFileURL(argv[1] ?? '').href) {
+  main()
+    .then(() => closeApp())
+    .catch(async (error) => {
+      console.error(error);
+      await closeApp();
+      exit(1);
+    });
+}

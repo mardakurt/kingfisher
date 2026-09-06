@@ -18,6 +18,16 @@
 
 import { DatabaseSync } from 'node:sqlite';
 
+import {
+  COMPACT_TABLES,
+  detectSchemaVersion,
+  migrateToCompact,
+  migrationPreflight,
+  migrationStatus,
+  positionSql,
+  splitFen,
+} from './position-schema.mjs';
+
 const SCHEMA = `
 PRAGMA journal_mode = WAL;
 PRAGMA synchronous = NORMAL;
@@ -63,6 +73,15 @@ CREATE TABLE IF NOT EXISTS game_content (
   pgn           TEXT NOT NULL
 );
 
+/*
+  The compact position index. A new collection is created in it directly; one
+  that predates it keeps its text columns until somebody asks for the
+  migration, and position-schema.mjs explains both halves of that.
+
+  IF NOT EXISTS is what makes the two cases one statement: for an existing
+  collection this does nothing at all, and detectSchemaVersion then finds the
+  text columns still there.
+*/
 CREATE TABLE IF NOT EXISTS positions (
   position_key  TEXT NOT NULL,
   game_id       INTEGER NOT NULL REFERENCES games(id) ON DELETE CASCADE,
@@ -70,11 +89,17 @@ CREATE TABLE IF NOT EXISTS positions (
   move_uci      TEXT NOT NULL,
   move_san      TEXT NOT NULL,
   mover         TEXT NOT NULL,
-  fen           TEXT,
   node_id       TEXT,
-  pawn_skeleton TEXT,
-  structure_signature TEXT,
-  structure_claims TEXT,
+  -- The FEN is the position key plus these two integers; fen_literal holds
+  -- the rare FEN that is not, so nothing is lost to the rule.
+  halfmove      INTEGER,
+  fullmove      INTEGER,
+  fen_literal   TEXT,
+  -- Ids into the three lookup tables, each holding one copy of a value that
+  -- repeated between five and nine times per row as text.
+  pawn_skeleton_id INTEGER,
+  structure_signature_id INTEGER,
+  structure_claims_id INTEGER,
   year_key INTEGER,
   rating_key INTEGER,
   result_key TEXT
@@ -275,24 +300,113 @@ const REBUILD_AFFECTED = `
 
 export class GameDatabase {
   #db;
+  #file;
   #ftsAvailable = false;
+  /** The SQL this file's schema needs, resolved once. See `positionSql`. */
+  #sql;
+  /** Lookup-table interning state, per table. See `#internId`. */
+  #intern = new Map();
 
   constructor(file) {
+    this.#file = file;
     this.#db = new DatabaseSync(file);
     this.#db.exec(SCHEMA);
+    // The lookup tables and the migration cursor. Created for both schemas: a
+    // text-schema collection needs somewhere to record an interrupted
+    // migration before it has anything to put in the lookups.
+    this.#db.exec(COMPACT_TABLES);
     this.#db.exec(AFFECTED_POSITIONS_TABLE);
     this.#ensureGameColumns();
     this.#ensurePositionColumns();
+    this.#sql = positionSql(detectSchemaVersion(this.#db));
+    this.#ensurePositionIndexes();
+    const hasAggregates = this.#db.prepare('SELECT 1 FROM position_aggregates LIMIT 1').get();
+    if (!hasAggregates && this.#db.prepare('SELECT 1 FROM positions LIMIT 1').get())
+      this.rebuildAggregates();
+    this.#ensureSearchIndexes();
+  }
+
+  /**
+   * The structure indexes, on whichever columns this file actually has.
+   *
+   * A partial index on a column the schema does not declare is a syntax error
+   * at open time, so which two exist is decided by the detected schema rather
+   * than by `IF NOT EXISTS` alone.
+   */
+  #ensurePositionIndexes() {
+    if (this.#sql.compact) {
+      this.#db.exec(`
+        CREATE INDEX IF NOT EXISTS positions_pawn_skeleton_id
+          ON positions(pawn_skeleton_id) WHERE pawn_skeleton_id IS NOT NULL;
+        CREATE INDEX IF NOT EXISTS positions_structure_signature_id
+          ON positions(structure_signature_id) WHERE structure_signature_id IS NOT NULL;
+      `);
+      return;
+    }
     this.#db.exec(`
       CREATE INDEX IF NOT EXISTS positions_pawn_skeleton ON positions(pawn_skeleton)
         WHERE pawn_skeleton IS NOT NULL;
       CREATE INDEX IF NOT EXISTS positions_structure_signature ON positions(structure_signature)
         WHERE structure_signature IS NOT NULL;
     `);
-    const hasAggregates = this.#db.prepare('SELECT 1 FROM position_aggregates LIMIT 1').get();
-    if (!hasAggregates && this.#db.prepare('SELECT 1 FROM positions LIMIT 1').get())
-      this.rebuildAggregates();
-    this.#ensureSearchIndexes();
+  }
+
+  /**
+   * The id a lookup table holds for a value, creating the row if it is new.
+   *
+   * One statement per distinct value and none per repeat, which is the point:
+   * an import of four million positions carries under a million distinct
+   * skeletons, signatures and claim sets between them. The cache is bounded so
+   * that a pathological collection costs a statement rather than memory.
+   */
+  #internId(table, value) {
+    if (value === null || value === undefined) return null;
+    const text = String(value);
+    let slot = this.#intern.get(table);
+    if (!slot) {
+      slot = {
+        cache: new Map(),
+        statement: this.#db.prepare(
+          `INSERT INTO ${table} (value) VALUES (?)
+             ON CONFLICT(value) DO UPDATE SET value = value RETURNING id`,
+        ),
+      };
+      this.#intern.set(table, slot);
+    }
+    const hit = slot.cache.get(text);
+    if (hit !== undefined) return hit;
+    const id = slot.statement.get(text).id;
+    if (slot.cache.size < 250_000) slot.cache.set(text, id);
+    return id;
+  }
+
+  /** Which position schema this collection is on, and how far a migration got. */
+  schemaStatus() {
+    return { ...migrationStatus(this.#db), file: this.#file };
+  }
+
+  /** What compacting would cost, before any of it is paid. */
+  compactionPreflight() {
+    return migrationPreflight(this.#db, this.#file);
+  }
+
+  /**
+   * Compact this collection's position index.
+   *
+   * Refuses on insufficient disk rather than starting work that cannot finish,
+   * because the failure it is guarding against is a half-written rebuild of
+   * the table holding most of somebody's data. `force` exists for the caller
+   * who has been shown the numbers and wants it anyway.
+   */
+  compactPositions(options = {}) {
+    const preflight = this.compactionPreflight();
+    if (preflight.sufficient === false && !options.force) {
+      return { migrated: false, reason: 'insufficient-disk', preflight };
+    }
+    const result = migrateToCompact(this.#db, options);
+    this.#sql = positionSql(detectSchemaVersion(this.#db));
+    this.#ensurePositionIndexes();
+    return { ...result, preflight };
   }
 
   /**
@@ -413,6 +527,16 @@ export class GameDatabase {
     `);
   }
 
+  /**
+   * Widen `positions` to whatever its own schema is missing.
+   *
+   * Two eras of collection arrive here. One predates Phase 8 and is missing
+   * structure columns entirely; one is mid-migration and has both sets. The
+   * distinguishing column is `pawn_skeleton`: a file that has it is on the
+   * text schema and is widened with the text columns, and a file that does not
+   * is compact and is widened with the compact ones. Adding the other set to
+   * either would be the one thing that makes `detectSchemaVersion` lie.
+   */
   #ensurePositionColumns() {
     const columns = new Set(
       this.#db
@@ -420,15 +544,26 @@ export class GameDatabase {
         .all()
         .map((row) => row.name),
     );
+    const compact = !columns.has('pawn_skeleton');
     for (const [name, type] of [
-      ['fen', 'TEXT'],
       ['node_id', 'TEXT'],
-      ['pawn_skeleton', 'TEXT'],
-      ['structure_signature', 'TEXT'],
-      ['structure_claims', 'TEXT'],
       ['year_key', 'INTEGER'],
       ['rating_key', 'INTEGER'],
       ['result_key', 'TEXT'],
+      ...(compact
+        ? [
+            ['halfmove', 'INTEGER'],
+            ['fullmove', 'INTEGER'],
+            ['fen_literal', 'TEXT'],
+            ['pawn_skeleton_id', 'INTEGER'],
+            ['structure_signature_id', 'INTEGER'],
+            ['structure_claims_id', 'INTEGER'],
+          ]
+        : [
+            ['fen', 'TEXT'],
+            ['structure_signature', 'TEXT'],
+            ['structure_claims', 'TEXT'],
+          ]),
     ]) {
       if (!columns.has(name)) this.#db.exec(`ALTER TABLE positions ADD COLUMN ${name} ${type}`);
     }
@@ -520,13 +655,22 @@ export class GameDatabase {
     const insertContent = this.#db.prepare(
       'INSERT OR REPLACE INTO game_content (game_id, pgn) VALUES (?,?)',
     );
-    const insertPosition = this.#db.prepare(`
-      INSERT INTO positions (
-        position_key, game_id, ply, move_uci, move_san, mover, fen, node_id,
-        pawn_skeleton, structure_signature, structure_claims,
-        year_key, rating_key, result_key
-      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-    `);
+    const insertPosition = this.#sql.compact
+      ? this.#db.prepare(`
+          INSERT INTO positions (
+            position_key, game_id, ply, move_uci, move_san, mover, node_id,
+            halfmove, fullmove, fen_literal,
+            pawn_skeleton_id, structure_signature_id, structure_claims_id,
+            year_key, rating_key, result_key
+          ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        `)
+      : this.#db.prepare(`
+          INSERT INTO positions (
+            position_key, game_id, ply, move_uci, move_san, mover, fen, node_id,
+            pawn_skeleton, structure_signature, structure_claims,
+            year_key, rating_key, result_key
+          ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        `);
     const findId = this.#db.prepare('SELECT id FROM games WHERE fingerprint = ?');
     /*
       Maintained here rather than by a trigger: the import already runs inside
@@ -624,6 +768,30 @@ export class GameDatabase {
           if (seen.has(identity)) continue;
           seen.add(identity);
           touchedPositions.add(position.positionKey);
+          const claims = position.structureClaims ? JSON.stringify(position.structureClaims) : null;
+          const tail = this.#sql.compact
+            ? (() => {
+                const { halfmove, fullmove, literal } = splitFen(
+                  position.fen ?? null,
+                  position.positionKey,
+                );
+                return [
+                  position.nodeId ?? null,
+                  halfmove,
+                  fullmove,
+                  literal,
+                  this.#internId('pawn_skeletons', position.pawnSkeleton ?? null),
+                  this.#internId('structure_signatures', position.structureSignature ?? null),
+                  this.#internId('structure_claim_sets', claims),
+                ];
+              })()
+            : [
+                position.fen ?? null,
+                position.nodeId ?? null,
+                position.pawnSkeleton ?? null,
+                position.structureSignature ?? null,
+                claims,
+              ];
           insertPosition.run(
             position.positionKey,
             id,
@@ -631,11 +799,7 @@ export class GameDatabase {
             position.moveUci,
             position.moveSan,
             position.mover,
-            position.fen ?? null,
-            position.nodeId ?? null,
-            position.pawnSkeleton ?? null,
-            position.structureSignature ?? null,
-            position.structureClaims ? JSON.stringify(position.structureClaims) : null,
+            ...tail,
             game.year ?? 0,
             ratings.length ? Math.max(...ratings) : 0,
             game.result,
@@ -1084,10 +1248,12 @@ export class GameDatabase {
 
     const content = this.#db.prepare('SELECT pgn FROM game_content WHERE game_id = ?');
     const positions = this.#db.prepare(
-      `SELECT position_key AS positionKey, ply, move_uci AS moveUci, move_san AS moveSan,
-              mover, fen, node_id AS nodeId, pawn_skeleton AS pawnSkeleton,
-              structure_signature AS structureSignature, structure_claims AS structureClaims
-         FROM positions WHERE game_id = ? ORDER BY ply`,
+      `SELECT p.position_key AS positionKey, p.ply, p.move_uci AS moveUci, p.move_san AS moveSan,
+              p.mover, ${this.#sql.fen} AS fen, p.node_id AS nodeId,
+              ${this.#sql.pawnSkeleton} AS pawnSkeleton,
+              ${this.#sql.structureSignature} AS structureSignature,
+              ${this.#sql.structureClaims} AS structureClaims
+         FROM positions p ${this.#sql.join} WHERE p.game_id = ? ORDER BY p.ply`,
     );
     const games = rows.map((row) => ({
       summary: toSummary(row),
@@ -1189,11 +1355,12 @@ export class GameDatabase {
       that ends inside the opening it is the one that names it.
     */
     const keys = this.#db.prepare(
-      `SELECT ply, MIN(position_key) AS positionKey, MIN(fen) AS fen, MIN(move_uci) AS moveUci
-         FROM positions
-        WHERE game_id = ? AND ply <= ?
-        GROUP BY ply
-        ORDER BY ply`,
+      `SELECT p.ply, MIN(p.position_key) AS positionKey, MIN(${this.#sql.fen}) AS fen,
+              MIN(p.move_uci) AS moveUci
+         FROM positions p
+        WHERE p.game_id = ? AND p.ply <= ?
+        GROUP BY p.ply
+        ORDER BY p.ply`,
     );
     const games = rows.map((row) => {
       const plies = keys.all(row.id, maxPly + 1);
@@ -1267,9 +1434,9 @@ export class GameDatabase {
   unindexedPositions(limit = 500) {
     const rows = this.#db
       .prepare(
-        `SELECT position_key AS positionKey FROM positions
-         WHERE pawn_skeleton IS NULL
-         GROUP BY position_key
+        `SELECT p.position_key AS positionKey FROM positions p
+         WHERE ${this.#sql.skeletonIsNull}
+         GROUP BY p.position_key
          LIMIT ?`,
       )
       .all(limit);
@@ -1280,7 +1447,8 @@ export class GameDatabase {
     return this.#db
       .prepare(
         `SELECT COUNT(*) AS n FROM (
-           SELECT position_key FROM positions WHERE pawn_skeleton IS NULL GROUP BY position_key
+           SELECT p.position_key FROM positions p
+            WHERE ${this.#sql.skeletonIsNull} GROUP BY p.position_key
          )`,
       )
       .get().n;
@@ -1299,25 +1467,50 @@ export class GameDatabase {
    * newer import has already indexed properly.
    */
   applyStructures(entries) {
-    const update = this.#db.prepare(
-      `UPDATE positions SET
-         pawn_skeleton = ?, structure_signature = ?, structure_claims = ?,
-         fen = COALESCE(fen, ?)
-       WHERE position_key = ? AND pawn_skeleton IS NULL`,
-    );
+    const update = this.#sql.compact
+      ? this.#db.prepare(
+          `UPDATE positions SET
+             pawn_skeleton_id = ?, structure_signature_id = ?, structure_claims_id = ?,
+             halfmove = COALESCE(halfmove, ?), fullmove = COALESCE(fullmove, ?),
+             fen_literal = COALESCE(fen_literal, ?)
+           WHERE position_key = ? AND pawn_skeleton_id IS NULL`,
+        )
+      : this.#db.prepare(
+          `UPDATE positions SET
+             pawn_skeleton = ?, structure_signature = ?, structure_claims = ?,
+             fen = COALESCE(fen, ?)
+           WHERE position_key = ? AND pawn_skeleton IS NULL`,
+        );
     let updated = 0;
     this.#db.exec('BEGIN');
     try {
       for (const entry of entries) {
-        updated += Number(
-          update.run(
-            String(entry.pawnSkeleton),
-            entry.structureSignature ? String(entry.structureSignature) : null,
-            entry.structureClaims ? JSON.stringify(entry.structureClaims) : null,
-            entry.fen ? String(entry.fen) : null,
-            String(entry.positionKey),
-          ).changes,
-        );
+        const claims = entry.structureClaims ? JSON.stringify(entry.structureClaims) : null;
+        const middle = this.#sql.compact
+          ? (() => {
+              const { halfmove, fullmove, literal } = splitFen(
+                entry.fen ? String(entry.fen) : null,
+                String(entry.positionKey),
+              );
+              return [
+                this.#internId('pawn_skeletons', String(entry.pawnSkeleton)),
+                this.#internId(
+                  'structure_signatures',
+                  entry.structureSignature ? String(entry.structureSignature) : null,
+                ),
+                this.#internId('structure_claim_sets', claims),
+                halfmove,
+                fullmove,
+                literal,
+              ];
+            })()
+          : [
+              String(entry.pawnSkeleton),
+              entry.structureSignature ? String(entry.structureSignature) : null,
+              claims,
+              entry.fen ? String(entry.fen) : null,
+            ];
+        updated += Number(update.run(...middle, String(entry.positionKey)).changes);
       }
       this.#db.exec('COMMIT');
     } catch (error) {
@@ -1336,27 +1529,34 @@ export class GameDatabase {
       where.push('p.position_key = ?');
       params.push(query.positionKey);
     } else if (query.mode === 'pawn-skeleton') {
-      where.push('p.pawn_skeleton = ?');
+      where.push(this.#sql.skeletonEquals);
       params.push(query.pawnSkeleton);
     } else if (query.mode === 'signature') {
-      where.push('p.structure_signature = ?');
+      where.push(this.#sql.signatureEquals);
       params.push(query.structureSignature);
     } else {
       for (const claim of query.claims ?? []) {
         // Claims are stored as a JSON string array. Quoting the complete JSON
         // string avoids substring matches such as `open:c` vs `semi-open:c`.
-        where.push('p.structure_claims LIKE ?');
+        where.push(this.#sql.claimLike);
         params.push(`%${JSON.stringify(String(claim))}%`);
       }
     }
     if (where.length === 0) return [];
+    /*
+      The relevance sort ranks an exact position above a shared skeleton above
+      a shared signature. Under the compact schema those two comparisons resolve
+      the text to an id once each rather than reading a 57-byte text index per
+      row, which is the same reason the WHERE fragments are built rather than
+      written out.
+    */
     const order =
       query.sort === 'recent'
         ? 'g.year DESC, g.max_rating DESC'
         : query.sort === 'rating'
           ? 'g.max_rating DESC, g.year DESC'
-          : `(p.position_key = ?) DESC, (p.pawn_skeleton = ?) DESC,
-             (p.structure_signature = ?) DESC, g.max_rating DESC, g.year DESC`;
+          : `(p.position_key = ?) DESC, (${this.#sql.skeletonEquals}) DESC,
+             (${this.#sql.signatureEquals}) DESC, g.max_rating DESC, g.year DESC`;
     if (query.sort !== 'recent' && query.sort !== 'rating') {
       params.push(query.positionKey, query.pawnSkeleton, query.structureSignature);
     }
@@ -1364,10 +1564,16 @@ export class GameDatabase {
       .prepare(
         // The join is one-to-one on the game id, so there is nothing to group:
         // a GROUP BY here only forces a temporary b-tree over every match.
-        `SELECT p.*, g.* FROM positions p JOIN games g ON g.id = p.game_id
-         WHERE ${where.join(' AND ')}
-         ORDER BY ${order}
-         LIMIT ?`,
+        `SELECT g.*, p.position_key, p.game_id, p.ply, p.move_uci, p.move_san, p.mover,
+                p.node_id, ${this.#sql.fen} AS fen,
+                ${this.#sql.pawnSkeleton} AS pawn_skeleton,
+                ${this.#sql.structureSignature} AS structure_signature,
+                ${this.#sql.structureClaims} AS structure_claims
+           FROM positions p ${this.#sql.join}
+           JOIN games g ON g.id = p.game_id
+          WHERE ${where.join(' AND ')}
+          ORDER BY ${order}
+          LIMIT ?`,
       )
       .all(...params, limit);
     return rows.map((row) => ({

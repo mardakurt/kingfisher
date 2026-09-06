@@ -807,6 +807,38 @@ async function route(url, request, response) {
     return json(response, 200, integrityOf(target));
   }
 
+  /*
+    The compact position index.
+
+    Three routes rather than one, because the decision is the user's and they
+    cannot make it without the numbers: `schema` says whether this collection
+    would benefit and how far an interrupted attempt got, `compaction-preflight`
+    says what it would cost in disk and time, and `compact` does it. Nothing
+    here runs on a status poll — see `position-schema.mjs` for why a database
+    must not migrate itself when it is opened.
+  */
+  if (pathname === '/db/schema' && request.method === 'POST') {
+    const body = await readBody(request);
+    return json(response, 200, database(String(body.key)).schemaStatus());
+  }
+
+  if (pathname === '/db/compaction-preflight' && request.method === 'POST') {
+    const body = await readBody(request);
+    return json(response, 200, database(String(body.key)).compactionPreflight());
+  }
+
+  if (pathname === '/db/compact' && request.method === 'POST') {
+    const body = await readBody(request);
+    const target = database(String(body.key));
+    const result = target.compactPositions({ force: body.force === true });
+    if (result.migrated === false && result.reason === 'insufficient-disk') {
+      // 507 rather than 500: the request was well formed and the collection is
+      // fine; there is not enough disk, and the preflight says how much short.
+      return json(response, 507, result);
+    }
+    return json(response, 200, { ...result, schema: target.schemaStatus() });
+  }
+
   if (pathname === '/db/games-at' && request.method === 'POST') {
     const body = await readBody(request);
     return json(response, 200, {
