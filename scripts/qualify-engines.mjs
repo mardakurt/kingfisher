@@ -346,6 +346,31 @@ async function protocolMatrix(engine) {
   return rows;
 }
 
+/**
+ * Does this file look like an engine to run?
+ *
+ * On Unix an engine is an executable with no extension. On Windows every
+ * engine is a `.exe` and the executable bit means nothing — an earlier version
+ * of this rejected any filename containing a dot, which excluded every Windows
+ * engine there is and reported the platform as having none installed.
+ *
+ * Neural-network weights and licence files live beside the binaries and must
+ * not be launched, so the extensions they use are named rather than guessed.
+ */
+const NOT_AN_ENGINE = new Set(['.nn', '.nnue', '.txt', '.md', '.json', '.pb', '.gz', '.dll']);
+
+function isEngineBinary(full, name) {
+  const extension = path.extname(name).toLowerCase();
+  if (NOT_AN_ENGINE.has(extension)) return false;
+  if (process.platform === 'win32') return extension === '.exe';
+  if (extension !== '') return false;
+  try {
+    return Boolean(statSync(full).mode & 0o111);
+  } catch {
+    return false;
+  }
+}
+
 /** Every managed engine binary on this machine. */
 function installed() {
   if (!existsSync(ENGINE_DIR)) return [];
@@ -355,7 +380,7 @@ function installed() {
     for (const entry of readdirSync(directory, { withFileTypes: true })) {
       const full = path.join(directory, entry.name);
       if (entry.isDirectory()) walk(full, depth + 1);
-      else if (statSync(full).mode & 0o111 && !entry.name.includes('.')) {
+      else if (isEngineBinary(full, entry.name)) {
         found.push({ id: path.relative(ENGINE_DIR, full).split(path.sep)[0], binary: full });
       }
     }

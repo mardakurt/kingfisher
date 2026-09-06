@@ -62,10 +62,14 @@ jobs:
 
       # Interrogation: install every engine this platform offers, check each
       # against its recorded digest, launch it and ask what it can do.
+      # `--keep` because the verifier removes the fleet directory when it is
+      # done, and the qualification below needs the binaries it just installed.
+      # Without it the interrogation reported six engines and the qualification
+      # reported none, on every platform.
       - name: Interrogate the fleet
         id: verify
         continue-on-error: true
-        run: npm run engines:verify 2>&1 | tee engine-verify-${{ matrix.os }}.txt
+        run: node scripts/verify-engine-fleet.mjs --keep 2>&1 | tee engine-verify-${{ matrix.os }}.txt
 
       # Qualification: nine positions and five protocol sequences against every
       # engine that installed. Separate from the interrogation because they
