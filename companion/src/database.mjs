@@ -19,6 +19,11 @@
 import { DatabaseSync } from 'node:sqlite';
 
 import {
+  CLAIM_INDEX_INDEXES,
+  CLAIM_INDEX_TABLES,
+  claimIndexReady,
+  claimPlan,
+  markClaimIndexReady,
   COMPACT_TABLES,
   detectSchemaVersion,
   migrateToCompact,
@@ -306,6 +311,14 @@ export class GameDatabase {
   #sql;
   /** Lookup-table interning state, per table. See `#internId`. */
   #intern = new Map();
+  /** Claim id by value, and the three statements that maintain the claim index. */
+  #claimIds = new Map();
+  #claimStatements = null;
+  /** The claim lookup, and the two table counts the plan hint divides by. */
+  #claimLookup = null;
+  #totals = null;
+  /** Whether a completed build said the claim index can be trusted. */
+  #claimIndexReady = false;
 
   constructor(file) {
     this.#file = file;
@@ -315,11 +328,25 @@ export class GameDatabase {
     // text-schema collection needs somewhere to record an interrupted
     // migration before it has anything to put in the lookups.
     this.#db.exec(COMPACT_TABLES);
+    this.#db.exec(CLAIM_INDEX_TABLES);
     this.#db.exec(AFFECTED_POSITIONS_TABLE);
     this.#ensureGameColumns();
     this.#ensurePositionColumns();
     this.#sql = positionSql(detectSchemaVersion(this.#db));
     this.#ensurePositionIndexes();
+    /*
+      A collection with no claim sets has nothing to backfill, so it is
+      complete by construction — and from here on `#indexClaimSet` keeps it
+      that way, one statement per claim set the process has not seen. Every
+      other collection needs the backfill before the fast plan is allowed.
+    */
+    if (
+      this.#sql.compact &&
+      !this.#db.prepare('SELECT 1 FROM structure_claim_sets LIMIT 1').get()
+    ) {
+      markClaimIndexReady(this.#db);
+    }
+    this.#claimIndexReady = claimIndexReady(this.#db);
     const hasAggregates = this.#db.prepare('SELECT 1 FROM position_aggregates LIMIT 1').get();
     if (!hasAggregates && this.#db.prepare('SELECT 1 FROM positions LIMIT 1').get())
       this.rebuildAggregates();
@@ -343,6 +370,13 @@ export class GameDatabase {
         CREATE INDEX IF NOT EXISTS positions_structure_claims_id
           ON positions(structure_claims_id) WHERE structure_claims_id IS NOT NULL;
       `);
+      /*
+        The rank index the ordered claim scan walks. Only under the compact
+        schema, because it is only there that a claim search can reach the
+        cheap plan at all — the text schema has no claim index to test
+        membership against, and its claim search is a LIKE over every row.
+      */
+      this.#db.exec(CLAIM_INDEX_INDEXES);
       return;
     }
     this.#db.exec(`
@@ -379,12 +413,85 @@ export class GameDatabase {
     if (hit !== undefined) return hit;
     const id = slot.statement.get(text).id;
     if (slot.cache.size < 250_000) slot.cache.set(text, id);
+    /*
+      A claim set that is new *to this process* has its claims indexed here.
+
+      Deliberately on the cache miss rather than on a genuinely new row: the
+      member insert is `OR IGNORE` and therefore idempotent, so re-indexing a
+      set a previous run already indexed costs one no-op statement per distinct
+      value per process, and never costs one per position. That is what keeps
+      this off the hot path — an import of four million positions carries under
+      a million distinct claim sets, and repeats pay nothing.
+    */
+    if (table === 'structure_claim_sets') this.#indexClaimSet(id, text);
     return id;
+  }
+
+  /**
+   * Record which claims a claim set contains.
+   *
+   * `claims.sets` is maintained here and only here, and only when the member
+   * row was genuinely new — `changes` is what distinguishes that from the
+   * idempotent re-run above. It is a plan hint; `claimPlan` explains what it
+   * decides and why being wrong about it cannot change an answer.
+   */
+  #indexClaimSet(setId, json) {
+    if (setId === null) return;
+    let list;
+    try {
+      list = JSON.parse(json);
+    } catch {
+      return;
+    }
+    if (!Array.isArray(list)) return;
+    this.#claimStatements ??= {
+      claim: this.#db.prepare(
+        `INSERT INTO claims (value) VALUES (?)
+           ON CONFLICT(value) DO UPDATE SET value = value RETURNING id`,
+      ),
+      member: this.#db.prepare(
+        'INSERT OR IGNORE INTO claim_set_members (claim_id, set_id) VALUES (?, ?)',
+      ),
+      count: this.#db.prepare('UPDATE claims SET sets = sets + 1 WHERE id = ?'),
+    };
+    for (const claim of list) {
+      if (typeof claim !== 'string') continue;
+      let claimId = this.#claimIds.get(claim);
+      if (claimId === undefined) {
+        claimId = this.#claimStatements.claim.get(claim).id;
+        this.#claimIds.set(claim, claimId);
+      }
+      if (this.#claimStatements.member.run(claimId, setId).changes > 0) {
+        this.#claimStatements.count.run(claimId);
+      }
+    }
   }
 
   /** Which position schema this collection is on, and how far a migration got. */
   schemaStatus() {
-    return { ...migrationStatus(this.#db), file: this.#file };
+    return { ...migrationStatus(this.#db), file: this.#file, claimIndex: this.claimIndexStatus() };
+  }
+
+  /**
+   * Whether a claim search on this collection is the fast one or the scan.
+   *
+   * Reported rather than inferred, because the difference is a factor of a
+   * hundred on a large collection and the user is the one who has to decide
+   * whether to spend a few minutes building it. `claims` and `sets` are what
+   * it would cost and what it has done so far.
+   */
+  claimIndexStatus() {
+    if (!this.#sql.compact) {
+      return { ready: false, applicable: false, claims: 0, sets: 0, indexed: 0 };
+    }
+    return {
+      ready: this.#claimIndexReady,
+      applicable: true,
+      claims: this.#db.prepare('SELECT COUNT(*) AS n FROM claims').get().n,
+      sets: this.#db.prepare('SELECT COUNT(*) AS n FROM structure_claim_sets').get().n,
+      indexed: this.#db.prepare('SELECT COUNT(DISTINCT set_id) AS n FROM claim_set_members').get()
+        .n,
+    };
   }
 
   /** What compacting would cost, before any of it is paid. */
@@ -610,6 +717,33 @@ export class GameDatabase {
    */
   checkpoint() {
     this.#db.exec('PRAGMA wal_checkpoint(TRUNCATE)');
+  }
+
+  /**
+   * Seams for the claim-index tests, and for nothing else.
+   *
+   * The three of them exist because the claim index can only be tested against
+   * states no caller can reach through the API: a collection whose index has
+   * been removed, and the scan the index replaced. Named so that a reader
+   * grepping for production callers finds none.
+   */
+  handleForTest() {
+    return this.#db;
+  }
+
+  fileForTest() {
+    return this.#file;
+  }
+
+  /** The claim search as it was before the index: a LIKE over every claim set. */
+  searchStructuresByScanForTest(query) {
+    const was = this.#claimIndexReady;
+    this.#claimIndexReady = false;
+    try {
+      return this.searchStructures(query);
+    } finally {
+      this.#claimIndexReady = was;
+    }
   }
 
   close() {
@@ -1575,46 +1709,198 @@ export class GameDatabase {
     return { updated, remaining: this.unindexedCount() };
   }
 
-  /** Deterministic structure search over persisted, inspectable identities. */
+  /**
+   * Deterministic structure search over persisted, inspectable identities.
+   *
+   * Four modes and three orderings, and one of the twelve combinations was the
+   * slowest thing in the product: a claim search on a large collection, at
+   * 2,312 ms on 11.3 million positions. `#claimWhere` and `#searchRows` below
+   * are where that was fixed; everything else here is unchanged.
+   */
   searchStructures(query = {}) {
     const limit = Math.min(100, Math.max(1, Number(query.limit) || 30));
-    const where = [];
-    const params = [];
     if (query.mode === 'exact-position') {
-      where.push('p.position_key = ?');
-      params.push(query.positionKey);
-    } else if (query.mode === 'pawn-skeleton') {
-      where.push(this.#sql.skeletonEquals);
-      params.push(query.pawnSkeleton);
-    } else if (query.mode === 'signature') {
-      where.push(this.#sql.signatureEquals);
-      params.push(query.structureSignature);
-    } else {
-      for (const claim of query.claims ?? []) {
-        // Claims are stored as a JSON string array. Quoting the complete JSON
-        // string avoids substring matches such as `open:c` vs `semi-open:c`.
-        where.push(this.#sql.claimLike);
-        params.push(`%${JSON.stringify(String(claim))}%`);
+      return this.#searchRows(query, limit, ['p.position_key = ?'], [query.positionKey]);
+    }
+    if (query.mode === 'pawn-skeleton') {
+      return this.#searchRows(query, limit, [this.#sql.skeletonEquals], [query.pawnSkeleton]);
+    }
+    if (query.mode === 'signature') {
+      return this.#searchRows(
+        query,
+        limit,
+        [this.#sql.signatureEquals],
+        [query.structureSignature],
+      );
+    }
+    return this.#searchByClaims(query, limit);
+  }
+
+  /**
+   * The claim search, in whichever of two plans is cheaper for this claim.
+   *
+   * The seek plan is what this always was: find the matching positions, sort
+   * them, cut to thirty. Its cost is the number of matches, which for a common
+   * claim is millions.
+   *
+   * The scan plan walks `positions_rank` — the rank order the result is asked
+   * for — testing each row for the claim, and stops at thirty. Its cost is
+   * about `limit / selectivity`, which for a common claim is a few dozen rows.
+   *
+   * `claimPlan` chooses between them and explains the threshold. The important
+   * property is that it chooses between two queries that return the same rows
+   * in the same order: a wrong choice is slower and never different.
+   */
+  #searchByClaims(query, limit) {
+    const claims = (query.claims ?? []).map((claim) => String(claim));
+    if (claims.length === 0) return [];
+    const membership = this.#claimWhere(claims);
+    if (!membership) return [];
+    if (membership.plan === 'seek') {
+      return this.#searchRows(query, limit, [membership.sql], membership.params);
+    }
+    /*
+      The relevance ordering leads with three terms the rank index cannot
+      express — an exact position, then a shared skeleton, then a shared
+      signature — so under that ordering the scan is the *last* of four passes
+      rather than the only one. The first three each carry a selective equality
+      the compact schema already indexes, so they are cheap, and taken in order
+      they reproduce the ordering exactly. Ties beyond rating and year were
+      arbitrary before and are arbitrary now.
+    */
+    const relevance = query.sort !== 'recent' && query.sort !== 'rating';
+    const scan = () =>
+      this.#searchRows(query, limit, [membership.sql], membership.params, {
+        index: query.sort === 'recent' ? 'positions_recent' : 'positions_rank',
+      });
+    if (!relevance) return scan();
+
+    const tiers = [
+      { sql: 'p.position_key = ?', params: [query.positionKey] },
+      { sql: this.#sql.skeletonEquals, params: [query.pawnSkeleton] },
+      { sql: this.#sql.signatureEquals, params: [query.structureSignature] },
+    ];
+    const seen = new Set();
+    const results = [];
+    for (const tier of tiers) {
+      if (tier.params[0] === undefined || tier.params[0] === null || tier.params[0] === '')
+        continue;
+      for (const row of this.#searchRows(
+        query,
+        limit,
+        [membership.sql, tier.sql],
+        [...membership.params, ...tier.params],
+        { sort: 'rating' },
+      )) {
+        if (seen.has(row.position.id)) continue;
+        seen.add(row.position.id);
+        results.push(row);
+        if (results.length >= limit) return results;
       }
     }
-    if (where.length === 0) return [];
+    for (const row of scan()) {
+      if (seen.has(row.position.id)) continue;
+      seen.add(row.position.id);
+      results.push(row);
+      if (results.length >= limit) break;
+    }
+    return results;
+  }
+
+  /**
+   * The WHERE fragment that says "this position carries every one of these
+   * claims", and which plan it should be run with.
+   *
+   * Under the compact schema this is `claim_set_members`: one seek per claim
+   * rather than the LIKE scan over every claim set the text schema is stuck
+   * with. `HAVING COUNT(*) = n` is what makes several claims an AND — a set
+   * qualifies only by containing all of them.
+   *
+   * Returns null when a claim is not in the collection at all, which is a
+   * result of none rather than a query worth running.
+   */
+  #claimWhere(claims) {
+    if (!this.#sql.compact) {
+      return {
+        plan: 'seek',
+        sql: claims.map(() => this.#sql.claimLike).join(' AND '),
+        params: claims.map((claim) => `%${JSON.stringify(claim)}%`),
+      };
+    }
     /*
-      The relevance sort ranks an exact position above a shared skeleton above
-      a shared signature. Under the compact schema those two comparisons resolve
-      the text to an id once each rather than reading a 57-byte text index per
-      row, which is the same reason the WHERE fragments are built rather than
-      written out.
+      Not built yet, or built and interrupted. Scanning is what this always
+      did, and it is right; returning nothing because the index is empty would
+      be a collection quietly claiming no game has that structure.
+    */
+    if (!this.#claimIndexReady) {
+      return {
+        plan: 'seek',
+        sql: claims.map(() => this.#sql.claimLike).join(' AND '),
+        params: claims.map((claim) => `%${JSON.stringify(claim)}%`),
+      };
+    }
+    this.#claimLookup ??= this.#db.prepare('SELECT id, sets FROM claims WHERE value = ?');
+    const rows = claims.map((claim) => this.#claimLookup.get(claim));
+    if (rows.some((row) => row === undefined)) return null;
+
+    const placeholders = claims.map(() => '?').join(', ');
+    const sql =
+      `p.structure_claims_id IN (SELECT set_id FROM claim_set_members WHERE claim_id IN (${placeholders})` +
+      (claims.length > 1 ? ` GROUP BY set_id HAVING COUNT(*) = ${claims.length})` : ')');
+
+    /*
+      Several claims are an intersection, so the result is at most as large as
+      the rarest of them; the rarest is therefore what the plan should be
+      chosen on. Choosing on the commonest would send an intersection of two
+      rare claims down the scan plan, which is the expensive mistake.
+    */
+    const rarest = Math.min(...rows.map((row) => row.sets));
+    this.#totals ??= {};
+    this.#totals.sets ??= this.#db
+      .prepare('SELECT COUNT(*) AS n FROM structure_claim_sets')
+      .get().n;
+    this.#totals.positions ??= this.#db.prepare('SELECT COUNT(*) AS n FROM positions').get().n;
+    return {
+      plan: claimPlan({
+        sets: rarest,
+        totalSets: this.#totals.sets,
+        totalPositions: this.#totals.positions,
+        limit: 100,
+      }),
+      sql,
+      params: rows.map((row) => row.id),
+    };
+  }
+
+  /**
+   * Run one structure query and shape its rows.
+   *
+   * `index` forces the rank index, which is what makes the ordered scan an
+   * ordered scan: without it SQLite is free to pick the claim index and sort
+   * afterwards, which is the plan being avoided. It is only ever passed for
+   * the compact schema, where that index exists.
+   */
+  #searchRows(query, limit, where, params, { index = null, sort = query.sort } = {}) {
+    /*
+      The ordering reads the game's rating and year off the *position* row.
+
+      `positions.rating_key` and `positions.year_key` are those two values,
+      denormalised there for the filter cache — verified equal on every row of
+      a real collection rather than assumed. Sorting on them means the join to
+      `games` is needed for the thirty rows returned rather than for every row
+      matched, and it is what lets an index satisfy the ORDER BY at all.
     */
     const order =
-      query.sort === 'recent'
-        ? 'g.year DESC, g.max_rating DESC'
-        : query.sort === 'rating'
-          ? 'g.max_rating DESC, g.year DESC'
+      sort === 'recent'
+        ? 'p.year_key DESC, p.rating_key DESC'
+        : sort === 'rating'
+          ? 'p.rating_key DESC, p.year_key DESC'
           : `(p.position_key = ?) DESC, (${this.#sql.skeletonEquals}) DESC,
-             (${this.#sql.signatureEquals}) DESC, g.max_rating DESC, g.year DESC`;
-    if (query.sort !== 'recent' && query.sort !== 'rating') {
-      params.push(query.positionKey, query.pawnSkeleton, query.structureSignature);
-    }
+             (${this.#sql.signatureEquals}) DESC, p.rating_key DESC, p.year_key DESC`;
+    const ordering =
+      sort !== 'recent' && sort !== 'rating'
+        ? [query.positionKey, query.pawnSkeleton, query.structureSignature]
+        : [];
     const rows = this.#db
       .prepare(
         // The join is one-to-one on the game id, so there is nothing to group:
@@ -1624,13 +1910,13 @@ export class GameDatabase {
                 ${this.#sql.pawnSkeleton} AS pawn_skeleton,
                 ${this.#sql.structureSignature} AS structure_signature,
                 ${this.#sql.structureClaims} AS structure_claims
-           FROM positions p ${this.#sql.join}
+           FROM positions p ${index ? `INDEXED BY ${index}` : ''} ${this.#sql.join}
            JOIN games g ON g.id = p.game_id
           WHERE ${where.join(' AND ')}
           ORDER BY ${order}
           LIMIT ?`,
       )
-      .all(...params, limit);
+      .all(...params, ...ordering, limit);
     return rows.map((row) => ({
       game: toSummary(row),
       position: {

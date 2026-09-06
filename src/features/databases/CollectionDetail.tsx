@@ -32,6 +32,7 @@ import {
 import { ClassificationSection } from './ClassificationSection';
 import { CollectionGames } from './CollectionGames';
 import { formatBytes, StatusChip } from './CollectionList';
+import { StorageSection } from './StorageSection';
 import type { TransferRequest } from './TransferDialog';
 
 interface CollectionDetailProps {
@@ -292,6 +293,8 @@ export function CollectionDetail({ collection, onTransfer, onChanged }: Collecti
           return new LocalClassificationTarget(repositories.raw);
         }}
       />
+
+      <StorageSection sqliteKey={sqliteKey} collectionName={collection.name} />
 
       <section className="border-b border-line-subtle py-5">
         <div className="flex flex-wrap items-start gap-3">

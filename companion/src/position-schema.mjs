@@ -115,6 +115,99 @@ const COMPACT_COLUMNS = [
   sets and the result has to be ordered before it is cut to thirty. Making that
   cheap needs a claim-to-position table, which is a different change.
 */
+/*
+  The claim index, and why it is two tables and not one.
+
+  A claim search is "show me positions where Black has an isolated d-pawn",
+  ordered by rating and year and cut to thirty. Phase 18 left it at 2,312 ms on
+  11.3 million positions and named the direction: a claim-to-position index.
+  Building that literally is the obvious answer and the wrong one. Claims are
+  stored per *position*, positions carry 10.13 of them on average (measured, on
+  a real 248,102-position collection), so a claim-to-position posting list is
+  114 million rows on the collection this was measured against — roughly 1.6 GB,
+  which gives back nearly half of what Phase 18's compaction just saved.
+
+  Two facts make a much smaller index enough.
+
+  **The sort key is already on the row.** `positions.rating_key` and
+  `positions.year_key` are the game's `max_rating` and `year`, denormalised
+  there for the filter cache. Verified rather than assumed — zero mismatched
+  rows out of 248,102 — so ordering by them is the same ordering as before, and
+  the join to `games` is no longer needed to *sort*, only to return thirty rows.
+
+  **Claims repeat in sets, not in positions.** 248,102 positions carry 45,979
+  distinct claim sets. So the index is claim → claim *set* — 569k rows here
+  rather than 2.5 million — and the positions side is the ordinary
+  `structure_claims_id` the compact schema already has.
+
+  That leaves the LIKE, which is what `claim_set_members` removes: finding the
+  sets containing a claim was a scan of every claim set (14.5 ms of a 29.8 ms
+  query at 248k positions, and it grows with the table), and is now one index
+  seek.
+*/
+export const CLAIM_INDEX_TABLES = `
+CREATE TABLE IF NOT EXISTS claims (
+  id    INTEGER PRIMARY KEY,
+  value TEXT NOT NULL UNIQUE,
+  -- How many claim sets contain this claim. A plan hint, not an answer; see
+  -- claimPlan() below for exactly what it decides and what it cannot break.
+  sets  INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS claim_set_members (
+  claim_id INTEGER NOT NULL,
+  set_id   INTEGER NOT NULL,
+  PRIMARY KEY (claim_id, set_id)
+) WITHOUT ROWID;
+`;
+
+/*
+  The index that lets the ordered scan stop early.
+
+  With it, "the thirty highest-rated positions carrying this claim" is a walk
+  down the rank order testing membership, which ends after thirty hits instead
+  of sorting every match. Measured on 248,102 positions: 33.86 ms → 1.69 ms,
+  and the query plan loses its TEMP B-TREE.
+
+  There are two because the panel offers two orderings and an index only walks
+  in the order it was built in. `positions_recent` is the same trick for "most
+  recent first"; without it that sort would be the only one left sorting every
+  match, which is the defect being fixed rather than a corner of it.
+*/
+export const CLAIM_INDEX_INDEXES = `
+CREATE INDEX IF NOT EXISTS positions_rank ON positions(rating_key DESC, year_key DESC);
+CREATE INDEX IF NOT EXISTS positions_recent ON positions(year_key DESC, rating_key DESC);
+`;
+
+/**
+ * Which of the two plans to use for a claim, and why there are two.
+ *
+ * The ordered scan walks the rank index and stops at `limit` hits, so it reads
+ * about `limit / selectivity` rows. The seek plan reads every matching row and
+ * sorts them, so it reads about `matching`. The scan wins when
+ *
+ *     limit x total / matching  <  matching        i.e.  matching > sqrt(limit x total)
+ *
+ * which is a threshold that scales with the collection rather than a constant
+ * somebody tuned once. Measured across the whole spectrum on 248,102 positions,
+ * the two are within 10% of each other at 0.45% selectivity and the formula
+ * puts the crossover at 1.1% — conservative in the right direction, because
+ * being wrong on the seek side costs a factor of three and being wrong on the
+ * scan side costs a factor of a thousand.
+ *
+ * `sets` is used as the estimate of `matching` because it is free to maintain:
+ * it changes only when a claim set is seen for the first time, where the exact
+ * per-claim position count would cost an update on every position inserted. It
+ * misclassifies 10 of 966 claims on the measured collection, every one of them
+ * within a factor of three of the threshold — where the two plans cost the
+ * same. **It can only choose the slower plan. It cannot change an answer.**
+ */
+export function claimPlan({ sets, totalSets, totalPositions, limit }) {
+  if (!totalSets || !totalPositions) return 'seek';
+  const share = sets / totalSets;
+  const crossover = Math.sqrt(limit * totalPositions) / totalPositions;
+  return share >= crossover ? 'scan' : 'seek';
+}
+
 const COMPACT_INDEXES = `
 CREATE INDEX IF NOT EXISTS positions_pawn_skeleton_id
   ON positions(pawn_skeleton_id) WHERE pawn_skeleton_id IS NOT NULL;
@@ -242,6 +335,105 @@ const writeState = (db, key, value) => {
     'INSERT INTO schema_state (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
   ).run(key, value === null ? null : String(value));
 };
+
+/** The key recording that this collection's claim index is complete. */
+export const CLAIM_INDEX_KEY = 'claim_index_version';
+export const CLAIM_INDEX_VERSION = '1';
+
+/**
+ * Whether the claim index can be trusted to answer a claim search.
+ *
+ * This is the question that has to be asked before the fast plan is used, and
+ * getting it wrong is worse than being slow: a claim search against a
+ * half-built index does not fail, it returns *nothing*, which is
+ * indistinguishable from "no game in this collection has that structure". So
+ * the index is used only when a completed build said so, and every other
+ * state — a collection made before the index existed, a backfill that was
+ * interrupted, a file somebody copied mid-build — falls back to scanning, which
+ * is what this always did.
+ */
+export const claimIndexReady = (db) => readState(db, CLAIM_INDEX_KEY) === CLAIM_INDEX_VERSION;
+
+/** Record that it is complete. Only a finished build may call this. */
+export const markClaimIndexReady = (db) => writeState(db, CLAIM_INDEX_KEY, CLAIM_INDEX_VERSION);
+
+/**
+ * Build the claim index for a collection that has claim sets and no index.
+ *
+ * Chunked and resumable for the same reason the position migration is: the
+ * collections where this matters have millions of claim sets, and a job that
+ * can only be run to completion in one go is a job that cannot be run on a
+ * laptop that might sleep. The cursor is the last set id indexed, so resuming
+ * costs one index seek and never re-reads what it already did.
+ *
+ * Returns `{ done, indexed, remaining, cursor }`. `done` is the only signal
+ * that matters to a caller; it is what lets `markClaimIndexReady` be called.
+ */
+export function buildClaimIndex(db, { chunk = 20_000, budgetMs = null, onProgress = null } = {}) {
+  const CURSOR = 'claim_index_cursor';
+  // Self-sufficient: this is called from the migration as well as from the
+  // maintenance job, and the migration runs against files that predate both.
+  db.exec(CLAIM_INDEX_TABLES);
+  let cursor = Number(readState(db, CURSOR) ?? 0);
+  const total = db.prepare('SELECT COUNT(*) AS n FROM structure_claim_sets').get().n;
+  const claim = db.prepare(
+    `INSERT INTO claims (value) VALUES (?)
+       ON CONFLICT(value) DO UPDATE SET value = value RETURNING id`,
+  );
+  const member = db.prepare(
+    'INSERT OR IGNORE INTO claim_set_members (claim_id, set_id) VALUES (?, ?)',
+  );
+  const bump = db.prepare('UPDATE claims SET sets = sets + 1 WHERE id = ?');
+  const page = db.prepare(
+    'SELECT id, value FROM structure_claim_sets WHERE id > ? ORDER BY id LIMIT ?',
+  );
+  const ids = new Map();
+  const started = Date.now();
+  let indexed = 0;
+
+  for (;;) {
+    const rows = page.all(cursor, chunk);
+    if (rows.length === 0) break;
+    /*
+      One transaction per chunk, and the cursor moves inside it. A chunk is
+      either wholly indexed and recorded or wholly absent, so an interrupted
+      build resumes rather than leaving a set half-attributed.
+    */
+    db.exec('BEGIN');
+    try {
+      for (const row of rows) {
+        let list = null;
+        try {
+          list = JSON.parse(row.value);
+        } catch {
+          list = null;
+        }
+        for (const value of Array.isArray(list) ? list : []) {
+          if (typeof value !== 'string') continue;
+          let id = ids.get(value);
+          if (id === undefined) {
+            id = claim.get(value).id;
+            ids.set(value, id);
+          }
+          if (member.run(id, row.id).changes > 0) bump.run(id);
+        }
+        cursor = row.id;
+        indexed += 1;
+      }
+      writeState(db, CURSOR, cursor);
+      db.exec('COMMIT');
+    } catch (error) {
+      db.exec('ROLLBACK');
+      throw error;
+    }
+    onProgress?.({ indexed, total });
+    if (budgetMs !== null && Date.now() - started >= budgetMs) {
+      return { done: false, indexed, total, cursor };
+    }
+  }
+  markClaimIndexReady(db);
+  return { done: true, indexed, total, cursor };
+}
 
 /**
  * What the migration will cost, before any of it is paid.
@@ -488,6 +680,7 @@ export function migrateToCompact(db, options = {}) {
       db.exec(`ALTER TABLE positions DROP COLUMN ${column}`);
     }
     db.exec(COMPACT_INDEXES);
+    db.exec(CLAIM_INDEX_INDEXES);
     writeState(db, 'compact_migration_cursor', null);
     writeState(db, 'compact_migration_started', null);
     db.exec(`PRAGMA user_version = ${COMPACT_SCHEMA}`);
@@ -506,10 +699,21 @@ export function migrateToCompact(db, options = {}) {
   writeState(db, 'compact_vacuum_pending', null);
   db.exec('PRAGMA wal_checkpoint(TRUNCATE)');
 
+  /*
+    The claim sets exist now, so the claim index can be built from them.
+
+    Done here rather than left to a second job the user has to find, because a
+    migration is already the moment somebody has agreed to wait — and a
+    collection that came out of it compact but without a claim index would do
+    the slow thing for ever without ever saying why.
+  */
+  const claims = buildClaimIndex(db);
+
   return {
     migrated: true,
     encoded,
     positions: total,
+    claimSets: claims.total,
     elapsedMs: Date.now() - started,
   };
 }

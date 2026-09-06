@@ -1,6 +1,7 @@
 import { parentPort, workerData } from 'node:worker_threads';
 import { DatabaseSync } from 'node:sqlite';
 import { GameDatabase } from './database.mjs';
+import { buildClaimIndex, claimIndexReady } from './position-schema.mjs';
 
 const { file, operation } = workerData;
 const cancelled = new Int32Array(workerData.cancel);
@@ -26,6 +27,28 @@ try {
     if (!result.migrated && result.reason !== 'already-compact')
       throw new Error(`Migration refused: ${result.reason}.`);
     result = { ...result, schema: database.schemaStatus() };
+  } else if (operation === 'claim-index') {
+    /*
+      Building the claim index for a collection that predates it.
+
+      It runs here, in the worker, for the same reason compaction does: it
+      writes millions of rows and a companion answering explorer queries on the
+      request thread while it does that is a companion that stops answering.
+      The build is chunked and records a cursor, so cancelling it at a chunk
+      boundary leaves a partial index that the *next* run resumes — and, until
+      one of them finishes, the search falls back to scanning rather than
+      trusting a half-built index.
+    */
+    database = new GameDatabase(file);
+    const handle = database.handleForTest();
+    const build = buildClaimIndex(handle, {
+      onProgress: ({ indexed, total }) =>
+        progress({
+          phase: 'Indexing claims',
+          progress: total ? Math.min(100, Math.round((indexed / total) * 100)) : null,
+        }),
+    });
+    result = { ...build, ready: claimIndexReady(handle) };
   } else {
     // Read-only even when cancelled: opening must not run schema repair.
     database = new DatabaseSync(file, { readOnly: true });

@@ -49,6 +49,40 @@ export interface RegisteredEngine {
   readonly author: string | null;
 }
 
+/** Whether a claim search on this collection uses the index or scans. */
+export interface ClaimIndexStatus {
+  readonly ready: boolean;
+  /** False for a collection still on the text schema, which has no claim index. */
+  readonly applicable: boolean;
+  readonly claims: number;
+  readonly sets: number;
+  readonly indexed: number;
+}
+
+export interface CollectionSchemaStatus {
+  readonly version: number;
+  readonly compact?: boolean;
+  readonly file?: string;
+  readonly claimIndex: ClaimIndexStatus;
+  readonly [key: string]: unknown;
+}
+
+export interface CompactionPreflight {
+  readonly sufficient: boolean | null;
+  readonly [key: string]: unknown;
+}
+
+/** A long job on one collection: compaction, the claim index, or integrity. */
+export interface MaintenanceJob {
+  readonly key: string;
+  readonly operation: 'compact' | 'integrity' | 'claim-index';
+  readonly status: 'running' | 'completed' | 'failed' | 'cancelled';
+  readonly phase: string;
+  readonly progress: number | null;
+  readonly result: Record<string, unknown> | null;
+  readonly error: string | null;
+}
+
 /** A collection opened from a path the user chose. */
 export interface AttachedDatabase {
   readonly key: string;
@@ -374,6 +408,44 @@ export class CompanionClient {
    */
   attachDatabase(file: string): Promise<AttachedDatabase> {
     return this.request('/db/attach', { path: file });
+  }
+
+  /**
+   * What shape a collection's position index is in, and what it would cost to
+   * improve it.
+   *
+   * Two separate questions with one answer, because a user deciding whether to
+   * spend five minutes on maintenance is asking both: is this collection on the
+   * compact schema, and can its claim search use the index or is it scanning.
+   */
+  schemaStatus(key: string): Promise<CollectionSchemaStatus> {
+    return this.request('/db/schema', { key });
+  }
+
+  compactionPreflight(key: string): Promise<CompactionPreflight> {
+    return this.request('/db/compaction-preflight', { key });
+  }
+
+  /** Start compaction. Returns the job; poll `maintenanceStatus`. */
+  startCompaction(key: string): Promise<MaintenanceJob> {
+    return this.request('/db/compact', { key });
+  }
+
+  /** Start the claim-index build. Returns the job; poll `maintenanceStatus`. */
+  startClaimIndex(key: string): Promise<MaintenanceJob> {
+    return this.request('/db/index-claims', { key });
+  }
+
+  startIntegrityVerification(key: string): Promise<MaintenanceJob> {
+    return this.request('/db/verify-start', { key });
+  }
+
+  maintenanceStatus(key: string): Promise<MaintenanceJob | null> {
+    return this.request('/db/maintenance-status', { key });
+  }
+
+  cancelMaintenance(key: string): Promise<MaintenanceJob | null> {
+    return this.request('/db/maintenance-cancel', { key });
   }
 
   importGames(key: string, games: unknown[]): Promise<{ imported: number; duplicates: number }> {

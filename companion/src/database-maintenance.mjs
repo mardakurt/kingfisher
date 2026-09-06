@@ -14,7 +14,7 @@ export class DatabaseMaintenance {
 
   start(key, file, operation) {
     if (this.busy(key)) throw new Error('This collection already has maintenance running.');
-    if (!['compact', 'integrity'].includes(operation))
+    if (!['compact', 'integrity', 'claim-index'].includes(operation))
       throw new Error('Unknown maintenance operation.');
     for (const [id, job] of this.#jobs) {
       if (this.#jobs.size < 64) break;

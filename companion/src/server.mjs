@@ -914,6 +914,28 @@ async function route(url, request, response) {
     );
   }
 
+  /*
+    Build the claim index for a collection that predates it.
+
+    A background job rather than a route that does the work, because on the
+    collections where it matters it writes millions of rows — and because the
+    infrastructure for "a long job on one collection, with progress and a
+    cancel" already exists for compaction and integrity, and a second one would
+    be a second thing to get wrong.
+  */
+  if (pathname === '/db/index-claims' && request.method === 'POST') {
+    const body = await readBody(request);
+    const key = String(body.key);
+    database(key);
+    open.get(key)?.close();
+    open.delete(key);
+    return json(
+      response,
+      202,
+      maintenance.start(key, databaseRegistry.resolve(key).path, 'claim-index'),
+    );
+  }
+
   if (pathname === '/db/verify-start' && request.method === 'POST') {
     const body = await readBody(request);
     const key = String(body.key);
