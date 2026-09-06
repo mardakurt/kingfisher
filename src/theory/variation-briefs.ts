@@ -969,6 +969,104 @@ export const VARIATION_BRIEFS: readonly VariationBrief[] = [
     'White develops with Nc3, f3, Bc4 and Qe2, aiming at f7 down the half-open f-file before Black consolidates.',
     'Black returns the pawn at a good moment or holds it and completes development; the extra pawn is the compensation for the discomfort.',
   ),
+  /*
+    --- The families a strong player still meets ------------------------------
+
+    Chosen by measurement rather than by filling a quota. Eighty-four of the
+    dataset's families had no brief, and together they account for 489 of
+    3,810 named positions — most of them openings nobody plays, and two of them
+    the dataset's own catch-all labels for a 1.d4 or 1.e4 position that has not
+    become a named opening yet.
+
+    These are the ones a prepared player can actually be handed over the board,
+    plus those two catch-alls, which are the largest by a distance and give a
+    reader in an unnamed position something true rather than nothing.
+  */
+  B(
+    ["Queen's Pawn Game"],
+    "The dataset's name for a 1.d4 position that has not yet become a named opening.",
+    'White has claimed the centre with a pawn a piece defends, and usually follows with c4 or a quiet setup of Nf3, Bf4 or Bg5 and e3.',
+    'Black decides the character of the game by choosing between ...d5, ...Nf6 and ...f5, and by whether to allow c4 at all.',
+  ),
+  B(
+    ["King's Pawn Game"],
+    "The dataset's name for a 1.e4 position that has not yet become a named opening.",
+    'White opens lines for the queen and the light-squared bishop and can castle quickly; the pawn on e4 is not defended, which is what makes the position sharp.',
+    'Black either contests e4 directly with ...e5 or ...d5, or leaves it alone and undermines it later with ...c5, ...c6 or ...Nf6.',
+  ),
+  B(
+    ['Zukertort Opening'],
+    'White plays 1.Nf3, developing before committing a centre pawn.',
+    "White keeps every structure available and can transpose into a Queen's Gambit, a Réti or a King's Indian Attack once Black has shown a plan.",
+    'Black can seize the centre with ...d5 and ...c5 while White is still flexible, or mirror the flexibility and wait.',
+  ),
+  B(
+    ['Neo-Grünfeld Defense'],
+    'Black meets a fianchetto setup with ...d5, a Grünfeld where White has already played g3.',
+    'White supports the centre with a bishop on g2 rather than with pieces on the queenside, and plays for a slow squeeze rather than a big centre.',
+    'Black trades on c4 or holds the tension, then hits the centre with ...c5 and uses the long diagonal the fianchetto contests.',
+  ),
+  B(
+    ['English Defense'],
+    'Black answers a queen-pawn opening with ...b6 and an early ...Bb7.',
+    'White takes the space that is offered — often e4 and d4 together — and must then prove it is not overextended.',
+    'Black plays against the big centre from the flank with ...Bb7, ...f5 and sometimes ...Bb4, accepting an unusual position to leave preparation behind.',
+  ),
+  B(
+    ['Rapport-Jobava System'],
+    'White plays an early Nc3 and Bf4 against a queen-pawn defence.',
+    'White aims for e4 or a quick Nb5, and keeps the option of castling on either side; the point is to avoid the main theoretical roads entirely.',
+    "Black's most testing answers take the centre before White is coordinated, with ...c5 or an early ...a6 to take b5 away from the knight.",
+  ),
+  B(
+    ['Benko Gambit Declined'],
+    'White refuses the b5 pawn rather than taking it.',
+    "White keeps the queenside closed or returns the pawn on its own terms, denying Black the open a- and b-files that are the gambit's whole point.",
+    'Black has not spent a pawn, and plays a Benoni-shaped position where the queenside pressure has to be created rather than inherited.',
+  ),
+  B(
+    ['Blumenfeld Countergambit'],
+    'Black answers a Benoni setup with ...b5, offering a wing pawn for the centre.',
+    'White does best to decline with e4 rather than take, since capturing hands Black exactly the centre the gambit is played for.',
+    'Black takes on d5 with a pawn and builds a broad centre of pawns on d5 and e6, playing for ...e5 and a rolling mass.',
+  ),
+  /*
+    Keyed on the family and not on `['Vienna Gambit', 'with Max Lange Defense']`.
+    The dataset writes that variation as one label with a comma in it, and
+    `briefForLineage` strips such a clause back to the family — so a brief on
+    the family covers every Vienna Gambit line, and a brief on the two-part
+    lineage covered none of them. The same rule as "London System, with Bd3".
+  */
+  B(
+    ['Vienna Gambit'],
+    "White plays an early f4 in the Vienna, a King's Gambit with Nc3 thrown in.",
+    'White opens the f-file and plays against the black king before it is safe, and the knight on c3 already guards e4 and covers d5.',
+    'Black holds the centre with ...d5 rather than grabbing on f4, and returns material at the right moment to finish development.',
+  ),
+  B(
+    ['Danish Gambit Accepted'],
+    'White gives two pawns for two bishops raking the kingside.',
+    'White develops Bc4 and Bb2 and plays for a direct attack on f7 and g7 before Black can consolidate.',
+    'Black gives one pawn back — usually with ...d5 — to blunt the bishops and reach an ending a pawn up.',
+  ),
+  B(
+    ['Latvian Gambit Accepted'],
+    "Black answers 2.Nf3 with ...f5, a mirror of the King's Gambit a tempo down.",
+    "White's soundest replies take the f5 pawn or hit f7 at once; the extra tempo is what makes the difference from the King's Gambit.",
+    'Black plays for open lines against the white king and accepts that the position is objectively worse in exchange for it being unfamiliar.',
+  ),
+  B(
+    ['Elephant Gambit'],
+    'Black answers 2.Nf3 with ...d5, offering a pawn to open the centre immediately.',
+    'White accepts and returns the pawn only for a concrete gain; holding it while completing development is the whole test.',
+    'Black gets rapid piece play and the e-file, and needs it, because the pawn is not coming back by force.',
+  ),
+  B(
+    ['Blackmar-Diemer Gambit Declined'],
+    'Black refuses the f3 pawn rather than taking it.',
+    'White has spent a tempo on f3 and must show it was useful, usually by building the centre with e4 anyway.',
+    'Black avoids the open lines the gambit is played for and keeps a sound structure; declining is the practical answer to a gambit whose value is surprise.',
+  ),
 ];
 
 /** `'A > B > C'` for a lineage, the key everything below is stored under. */

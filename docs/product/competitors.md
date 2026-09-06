@@ -22,7 +22,7 @@ Ratings are **strict**: ✅ genuinely competitive, ◐ real but narrower, ✗ ab
 | ------------------------------- | :-----------------------: | :----------------: | :--------------: | :----------: | :-------------------------------------------------------: |
 | Database breadth                |     ✅ 11.7M, to 1475     | ✅ online; Masters | ✗ bring your own | ◐ your games |           ◐ **507k across three packs, 2020–**            |
 | Historical coverage             |       ✅ 550 years        |     ◐ Masters      |        ✗         |      ✗       |        ◐ **none shipped; Masters online to ~1952**        |
-| Opening book / theory           | ✅ authored encyclopaedia |    ◐ names only    |   ◐ names only   |      ✗       |    ◐ **3,810 named positions, browsable, 144 briefs**     |
+| Opening book / theory           | ✅ authored encyclopaedia |    ◐ names only    |   ◐ names only   |      ✗       |    ◐ **3,810 named positions, browsable, 157 briefs**     |
 | Opening explorer                |            ✅             |         ✅         |        ✅        |      ◐       |               ✅ **0.1 ms local, offline**                |
 | Several populations at once     |             ◐             |         ✗          |        ✗         |      ✗       |              ✅ **up to four, never merged**              |
 | Where a number came from        |             ◐             |         ◐          |        ✗         |      ◐       |         ✅ **source and licence on every figure**         |
@@ -49,7 +49,7 @@ tool here will put that difference in front of you; most will show you one
 population and let you assume it is the population.
 
 **The data is there and it is free.** A new user gets 172,376 games, 3,810
-named opening positions, 144 variation briefs, a 12,589-player library and a
+named opening positions, 157 variation briefs, a 12,589-player library and a
 working engine, without installing anything or paying for anything. En
 Croissant ships no games; ChessBase ships more than anyone, for a fee.
 
@@ -68,7 +68,7 @@ handles a large imported collection well — 60,469 games at 0.012 ms per
 explorer query — but it does not supply one.
 
 **Authored opening theory.** The Opening Encyclopaedia is 1,586 articles by
-grandmasters. Kingfisher has 144 variation briefs of two to five sentences,
+grandmasters. Kingfisher has 157 variation briefs of two to five sentences,
 written to state only what every reference agrees on. That is a deliberate
 floor, not a claim to compete.
 
@@ -119,7 +119,7 @@ Capablanca — there is still nothing. `docs/data/historical-games-audit.md`.
 **Breadth.** 507,000 shipped games against 11.7 million. Kingfisher handles a
 large imported collection well and does not supply one.
 
-**Authored opening theory.** 1,586 grandmaster articles against 144 briefs of
+**Authored opening theory.** 1,586 grandmaster articles against 157 briefs of
 two to five sentences. A deliberate floor, not a claim to compete.
 
 **Chess960.** ChessBase and Lichess both support it. Kingfisher does not, and
