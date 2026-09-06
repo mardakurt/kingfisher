@@ -204,6 +204,21 @@ export const useAnalysisQueue = create<QueueState>((set, get) => {
                 nodes: result.nodes,
                 timeMs: result.timeMs,
                 pv: line.moves,
+                /*
+                  Every line the search produced, not just the first. A
+                  MultiPV 5 pass computed five and kept one, which threw away
+                  four fifths of what the user paid for and left "was the move
+                  I played even among the engine's candidates" unanswerable
+                  from stored evidence.
+                */
+                ...(result.lines.length > 1
+                  ? {
+                      alternatives: result.lines.slice(1).map((other) => ({
+                        score: other.score,
+                        pv: other.moves,
+                      })),
+                    }
+                  : {}),
                 analysedAt: Date.now(),
               };
               await repositories.analysisQueue.saveEvidence(evidence);

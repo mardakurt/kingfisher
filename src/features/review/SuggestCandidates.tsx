@@ -55,6 +55,20 @@ export function SuggestCandidatesButton() {
           score: row.score,
           ...(row.pv[0] ? { bestMoveUci: row.pv[0] } : {}),
           ...(row.depth ? { depth: row.depth } : {}),
+          /*
+            The first move of every line the pass recorded, best first. A
+            record written before alternatives were kept, or a MultiPV 1 pass,
+            supplies none, and the rule that reads this declines to fire
+            without at least two.
+          */
+          ...(row.alternatives && row.alternatives.length > 0
+            ? {
+                candidateUcis: [
+                  ...(row.pv[0] ? [row.pv[0]] : []),
+                  ...row.alternatives.flatMap((line) => (line.pv[0] ? [line.pv[0]] : [])),
+                ],
+              }
+            : {}),
         })),
         ...Object.values(tree.nodes).flatMap((node) =>
           node.evaluation && !evidence.some((row) => row.nodeId === node.id)

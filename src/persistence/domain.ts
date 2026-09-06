@@ -314,6 +314,19 @@ export interface AnalysisQueueJobRecord {
   readonly error?: string;
 }
 
+/**
+ * One alternative the engine offered at a position, beside its first choice.
+ *
+ * Stored because they were already searched. A MultiPV 5 pass computes five
+ * lines and used to keep one, so a player who paid for the wider search got a
+ * narrower record of it — and the question "was the move I played even among
+ * the moves the engine considered" had no stored answer.
+ */
+export interface StoredEngineLine {
+  readonly score: Score;
+  readonly pv: readonly Uci[];
+}
+
 /** One final engine answer for one queued position; intermediate ticks are not stored. */
 export interface StoredEngineEvidenceRecord {
   readonly id: string;
@@ -329,6 +342,15 @@ export interface StoredEngineEvidenceRecord {
   readonly nodes: number;
   readonly timeMs: number;
   readonly pv: readonly Uci[];
+  /**
+   * The engine's other lines at this position, best first, excluding the first
+   * choice which is `score`/`pv` above.
+   *
+   * Absent on a record written before these were kept, and on any pass run at
+   * MultiPV 1. Absent is not empty: a rule that needs the alternatives must
+   * decline to fire rather than conclude the engine offered none.
+   */
+  readonly alternatives?: readonly StoredEngineLine[];
   readonly analysedAt: number;
 }
 
@@ -512,7 +534,9 @@ export type ReviewSignalKind =
   | 'line-separation'
   | 'critical-marker'
   | 'repertoire-deviation'
-  | 'tablebase-change';
+  | 'tablebase-change'
+  /** The move played was not among the engine's top candidates at all. */
+  | 'outside-candidates';
 
 export interface ReviewSignal {
   readonly kind: ReviewSignalKind;

@@ -31,6 +31,18 @@ export interface EvidencePoint {
   /** The engine's own first choice at this position, when it was stored. */
   readonly bestMoveUci?: string;
   readonly depth?: number;
+  /**
+   * The first move of every line the engine offered here, best first,
+   * including its first choice.
+   *
+   * Fewer than two — undefined, empty, or a single line — all mean the same
+   * thing to the rule that reads this, and it declines to fire on all of them.
+   * A single-line search makes every move but one "outside the candidates",
+   * which is true and would put most of a game in the queue; an older record
+   * has nothing to say either way. Neither is evidence that the engine
+   * considered nothing.
+   */
+  readonly candidateUcis?: readonly string[];
 }
 
 export interface SuggestOptions {
@@ -129,6 +141,37 @@ export function suggestReviewCandidates(
           kind: 'best-move-change',
           detail: `The engine's first choice here was ${here.bestMoveUci}, not ${child.move.uci}.`,
         });
+      }
+
+      /*
+        The played move was not among the engine's candidates at all.
+
+        This is a different event from a large swing and qualifies on its own,
+        because it can happen without one: a move that keeps the evaluation and
+        that a multi-line search never considered is exactly the position worth
+        a second look. It fires only when several lines were actually recorded
+        — with one line every move but one is "outside the candidates", which
+        would be true and useless.
+
+        The magnitude it contributes is the loss when there was one, so a
+        position that is only this does not outrank a real collapse.
+      */
+      const engineCandidates = here.candidateUcis;
+      if (
+        engineCandidates &&
+        engineCandidates.length > 1 &&
+        !engineCandidates.includes(child.move.uci)
+      ) {
+        signals.push({
+          kind: 'outside-candidates',
+          detail:
+            `${child.move.san} was not among the engine's ${engineCandidates.length} ` +
+            `candidate moves here (${engineCandidates.join(', ')}).`,
+        });
+        reason =
+          reason ||
+          `Suggested because ${moveLabel(child.ply, child.move.san)} was not among the ` +
+            `${engineCandidates.length} moves the engine considered here.`;
       }
     }
 

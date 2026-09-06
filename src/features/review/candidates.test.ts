@@ -182,3 +182,85 @@ describe('move labels', () => {
     expect(moveLabel(48, 'Rd8')).toBe('24...Rd8');
   });
 });
+
+describe('a move the engine never considered', () => {
+  /*
+    A different event from a large swing, and one that can happen without one:
+    a move that holds the evaluation and that a five-line search never looked
+    at is exactly the position worth returning to. Before this, a MultiPV 5
+    pass computed five lines, stored one, and could not answer the question at
+    all.
+  */
+  const quiet = (candidateUcis?: readonly string[]): EvidencePoint[] => {
+    const { path } = line(['e4', 'e5', 'Nf3', 'Nc6']);
+    return [
+      { nodeId: path[0] as NodeId, score: cp(20) },
+      { nodeId: path[1] as NodeId, score: cp(25) },
+      // The evaluation barely moves across White's third move, so no swing
+      // signal can fire and only the candidate rule is under test.
+      {
+        nodeId: path[2] as NodeId,
+        score: cp(30),
+        ...(candidateUcis ? { candidateUcis } : {}),
+      },
+      { nodeId: path[3] as NodeId, score: cp(28) },
+      { nodeId: path[4] as NodeId, score: cp(26) },
+    ];
+  };
+
+  it('is suggested even when the evaluation did not move', () => {
+    const { tree } = line(['e4', 'e5', 'Nf3', 'Nc6']);
+    // Nf3 is g1f3, and it is not in the list the engine recorded.
+    const candidates = suggestReviewCandidates(tree, quiet(['b1c3', 'f1c4', 'd2d4']), positionKey);
+    expect(candidates).toHaveLength(1);
+    expect(candidates[0]?.playedSan).toBe('Nf3');
+    expect(candidates[0]?.signals.map((signal) => signal.kind)).toContain('outside-candidates');
+  });
+
+  it('names the moves the engine did consider, so the reason can be checked', () => {
+    const { tree } = line(['e4', 'e5', 'Nf3', 'Nc6']);
+    const [candidate] = suggestReviewCandidates(tree, quiet(['b1c3', 'f1c4', 'd2d4']), positionKey);
+    const signal = candidate?.signals.find((entry) => entry.kind === 'outside-candidates');
+    expect(signal?.detail).toBe(
+      "Nf3 was not among the engine's 3 candidate moves here (b1c3, f1c4, d2d4).",
+    );
+    expect(candidate?.reason).toContain('was not among the 3 moves the engine considered');
+  });
+
+  it('says nothing when the move was among them', () => {
+    const { tree } = line(['e4', 'e5', 'Nf3', 'Nc6']);
+    expect(suggestReviewCandidates(tree, quiet(['g1f3', 'b1c3', 'd2d4']), positionKey)).toEqual([]);
+  });
+
+  it('declines to fire when the pass recorded no candidates', () => {
+    // An older record, or a game the engine was walked through by hand. The
+    // rule has no evidence and must not conclude the engine offered none.
+    const { tree } = line(['e4', 'e5', 'Nf3', 'Nc6']);
+    expect(suggestReviewCandidates(tree, quiet(undefined), positionKey)).toEqual([]);
+  });
+
+  it('declines to fire on a single-line search', () => {
+    /*
+      At MultiPV 1 every move but one is "outside the candidates", which is
+      true and useless — it would put most of the game in the queue.
+    */
+    const { tree } = line(['e4', 'e5', 'Nf3', 'Nc6']);
+    expect(suggestReviewCandidates(tree, quiet(['b1c3']), positionKey)).toEqual([]);
+  });
+
+  it('does not outrank a real collapse', () => {
+    const { tree, path } = line(['e4', 'e5', 'Nf3', 'Nc6']);
+    const evidence: EvidencePoint[] = [
+      { nodeId: path[0] as NodeId, score: cp(20) },
+      // Black's first move collapses: +0.25 becomes +3.00 for White.
+      { nodeId: path[1] as NodeId, score: cp(25) },
+      { nodeId: path[2] as NodeId, score: cp(300), candidateUcis: ['b1c3', 'f1c4', 'd2d4'] },
+      { nodeId: path[3] as NodeId, score: cp(295) },
+      { nodeId: path[4] as NodeId, score: cp(290) },
+    ];
+    const candidates = suggestReviewCandidates(tree, evidence, positionKey);
+    // Both positions qualify; the one that changed the game comes first.
+    expect(candidates[0]?.ply).toBe(path.indexOf(candidates[0]!.nodeId));
+    expect(candidates.map((entry) => entry.playedSan)).toEqual(['e5', 'Nf3']);
+  });
+});
