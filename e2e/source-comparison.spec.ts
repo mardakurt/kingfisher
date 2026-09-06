@@ -106,3 +106,37 @@ test('a move in the comparison can be played onto the board', async ({ page }) =
   // The board advanced: the move is now in the game.
   await expect(page.getByRole('button', { name: san }).first()).toBeVisible();
 });
+
+/**
+ * The actions act on the position, not on the evidence.
+ *
+ * "To repertoire" and "To training" used to live inside the branch that
+ * renders the move table, so they disappeared at exactly the positions a
+ * player most wants them: eighteen moves into a Najdorf, or in a line rare
+ * enough that the reference has never seen it. Preparing an unusual line is
+ * the case for adding it to a repertoire, not the case against.
+ */
+test('a position can be added to a repertoire even where no source has games', async ({ page }) => {
+  await page.goto('/analysis');
+  await page.locator(READY).waitFor();
+  await page.getByRole('button', { name: 'Import PGN or FEN' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Import a game or position' });
+  await dialog
+    .getByRole('textbox')
+    .fill(
+      '1.e4 c5 2.Nf3 d6 3.d4 cxd4 4.Nxd4 Nf6 5.Nc3 a6 6.Be3 e5 7.Nb3 Be6 8.f3 Be7 9.Qd2 O-O 10.O-O-O Nbd7 11.g4 b5 12.g5 b4 13.Ne2 Ne8 14.f4 a5 15.f5 a4 16.Nbd4 exd4 17.Nxd4 b3 18.Kb1 *',
+    );
+  await dialog.getByRole('button', { name: 'Import games' }).click();
+  await expect(dialog).toBeHidden();
+  await page.keyboard.press('End');
+
+  await page.getByRole('tab', { name: 'Explorer' }).click();
+  // The bundled reference has nothing this deep — that is the point of the test.
+  await expect(page.locator('[data-explorer-move]')).toHaveCount(0);
+
+  await expect(page.getByRole('button', { name: 'To repertoire' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'To training' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'To repertoire' }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+});

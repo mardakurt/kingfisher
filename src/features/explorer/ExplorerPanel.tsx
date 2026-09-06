@@ -568,17 +568,28 @@ export function ExplorerPanel() {
             ) : null}
 
             <PositionContext context={context.data} />
-
-            <div className="flex flex-wrap gap-1.5 border-t border-line-subtle px-2.5 py-2">
-              <Button size="sm" icon={<Plus />} onClick={() => setAddToRepertoireOpen(true)}>
-                To repertoire
-              </Button>
-              <Button size="sm" icon={<Target />} onClick={() => setTrainingCaptureOpen(true)}>
-                To training
-              </Button>
-            </div>
           </>
         )}
+
+        {/*
+          Outside the "has games" branch, deliberately.
+
+          These act on the *position*, which always exists; whether a database
+          happens to hold games for it is a different question entirely. They
+          used to live inside the branch that renders the move table, so they
+          disappeared at exactly the positions a player most wants them —
+          eighteen moves into a Najdorf, or in a line rare enough that the
+          reference has never seen it. Preparing an unusual line is the case
+          for adding it to a repertoire, not the case against.
+        */}
+        <div className="flex flex-wrap gap-1.5 border-t border-line-subtle px-2.5 py-2">
+          <Button size="sm" icon={<Plus />} onClick={() => setAddToRepertoireOpen(true)}>
+            To repertoire
+          </Button>
+          <Button size="sm" icon={<Target />} onClick={() => setTrainingCaptureOpen(true)}>
+            To training
+          </Button>
+        </div>
       </PanelBody>
     </div>
   );
