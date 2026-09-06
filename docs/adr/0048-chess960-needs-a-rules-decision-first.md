@@ -1,6 +1,7 @@
 # 0048 — Chess960 needs a licensing decision before it needs code
 
-Status: **Open — awaiting an owner decision.** Nothing has been adopted.
+Status: **Accepted — option C.** Chess960 is not shipped, and the decision was
+the owner's, taken in Phase 18 after the audit below.
 
 ## Context
 
@@ -90,7 +91,17 @@ cannot play, which is what it does today and what ADR 0047 defends.
 
 ## Decision
 
-None taken. This is recorded so that the question is answered deliberately.
+**Option C.** Chess960 is not shipped. Kingfisher continues to refuse the
+positions it cannot play.
+
+The owner was given the three options with this audit behind them and chose to
+keep every runtime dependency permissive rather than take GPL into the bundle,
+and not to hand-roll the one rule that ADR 0047 records as having already
+produced an illegal move offered as legal when it was got subtly wrong.
+
+That is a decision about cost and licence, not a judgement that Chess960 is
+unimportant. If it is revisited, the options above are still the options, and
+the FEN castling field is still the first work.
 
 ## What was built anyway
 
