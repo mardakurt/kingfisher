@@ -11,19 +11,72 @@
  * engine — one parser for every engine is the whole point of the abstraction.
  */
 
-import { spawn } from 'node:child_process';
+import { execFile, spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
+
+import {
+  clampCommand,
+  engineEnvironment,
+  resourceCeiling,
+  truncatePending,
+} from './engine-sandbox.mjs';
 
 const MAX_SESSIONS = 4;
 /** Lines buffered for a stream that has not connected (or briefly dropped). */
 const BACKLOG = 500;
 
+/**
+ * End a child and anything it started.
+ *
+ * POSIX signals the negated process-group id, which works because engines are
+ * spawned detached. Windows has no equivalent signal, so the child tree is
+ * walked by `taskkill /T` instead — a different mechanism, which is why
+ * `GROUP_TERMINATION` names which one this platform got rather than letting
+ * "we kill the process group" stand as a claim on both.
+ *
+ * Falls back to killing the child alone if the group signal fails: a process
+ * that is already gone raises ESRCH, and refusing to fall back would leave a
+ * live engine because a dead one could not be signalled twice.
+ */
+function terminateGroup(child) {
+  const pid = child.pid;
+  if (!pid) return;
+  if (process.platform === 'win32') {
+    execFile('taskkill', ['/pid', String(pid), '/T', '/F'], () => {});
+    return;
+  }
+  try {
+    process.kill(-pid, 'SIGKILL');
+  } catch {
+    try {
+      child.kill('SIGKILL');
+    } catch {
+      // Already gone.
+    }
+  }
+}
+
 export class EngineHost {
   #sessions = new Map();
   #registry;
+  #ceiling;
 
-  constructor(registry) {
+  /**
+   * `ceiling` is injectable so the resource limits can be tested against a
+   * stated machine rather than against whatever runs the suite. It defaults to
+   * this machine's cores and memory divided by the session limit — see
+   * `resourceCeiling`, and note that the divisor is `MAX_SESSIONS` rather than
+   * the number running now: a ceiling that rose as sessions closed would let
+   * the first engine of four take everything and keep it.
+   */
+  constructor(registry, options = {}) {
     this.#registry = registry;
+    this.#ceiling = options.ceiling ?? resourceCeiling({ sessions: MAX_SESSIONS });
+  }
+
+  /** The per-session resource ceiling, so the interface can show it. */
+  get ceiling() {
+    return { ...this.#ceiling };
   }
 
   /**
@@ -39,12 +92,21 @@ export class EngineHost {
     const entry = this.#registry.resolve(engineKey);
     const id = randomUUID();
 
-    // argv array, never a shell string: nothing in a request can become an
-    // argument, and nothing can be interpreted as shell syntax.
+    /*
+      argv array, never a shell string: nothing in a request can become an
+      argument, and nothing can be interpreted as shell syntax.
+
+      `env` is an allowlist plus this engine's own configured variables, not
+      the companion's environment — see `engine-sandbox.mjs`. `detached` puts
+      the engine in its own process group so that stopping it stops anything it
+      started; the exit handlers below are what keep that from leaving orphans
+      if the companion goes away.
+    */
     const child = spawn(entry.path, entry.args ?? [], {
       stdio: ['pipe', 'pipe', 'pipe'],
       cwd: entry.cwd,
-      env: { ...process.env, ...(entry.env ?? {}) },
+      env: engineEnvironment(process.env, entry.env ?? {}),
+      detached: process.platform !== 'win32',
     });
 
     const session = {
@@ -55,6 +117,7 @@ export class EngineHost {
       listeners: new Set(),
       startedAt: Date.now(),
       exited: false,
+      clamped: [],
     };
     this.#sessions.set(id, session);
 
@@ -64,12 +127,25 @@ export class EngineHost {
       if (session.backlog.length > BACKLOG) session.backlog.shift();
       for (const listener of session.listeners) listener(line);
     };
+    session.emit = emit;
 
     child.stdout.setEncoding('utf8');
     child.stdout.on('data', (chunk) => {
       pending += chunk;
       const lines = pending.split(/\r?\n/);
       pending = lines.pop() ?? '';
+      /*
+        A partial line is held until its newline arrives. Something writing
+        without one is not speaking UCI, and holding it would grow until the
+        companion died — so it is cut, and the cut is reported rather than
+        hidden, because silently losing engine output is how a stale line
+        becomes evidence about the wrong position.
+      */
+      const cut = truncatePending(pending);
+      if (cut.overflowed) {
+        pending = cut.pending;
+        emit('#error The engine wrote a line longer than 64 kB; it was discarded.');
+      }
       for (const line of lines) if (line.trim()) emit(line);
     });
 
@@ -99,7 +175,20 @@ export class EngineHost {
     const session = this.#require(id);
     if (session.exited) throw new Error('That engine has exited.');
     // One command per line, and never anything with a newline smuggled in.
-    session.child.stdin.write(`${String(line).replace(/[\r\n]+/g, ' ')}\n`);
+    const flattened = String(line).replace(/[\r\n]+/g, ' ');
+    const { line: sent, clamped } = clampCommand(flattened, this.#ceiling);
+    if (clamped) {
+      /*
+        Reported into the session's own output, not swallowed. An engine given
+        fewer threads than it was asked for is a fact about this search, and a
+        reader comparing two engines' node counts is entitled to know it.
+      */
+      session.clamped.push(clamped);
+      session.emit(
+        `#limit ${clamped.option} ${clamped.requested} exceeds this machine's ceiling of ${clamped.allowed}; ${clamped.allowed} was used.`,
+      );
+    }
+    session.child.stdin.write(`${sent}\n`);
   }
 
   /** Subscribe to a session's output. Returns an unsubscribe function. */
@@ -118,7 +207,7 @@ export class EngineHost {
         session.child.stdin.write('quit\n');
         // A UCI engine mid-search may ignore `quit`; give it a moment, then end it.
         setTimeout(() => {
-          if (!session.exited) session.child.kill('SIGKILL');
+          if (!session.exited) terminateGroup(session.child);
         }, 400).unref?.();
       }
     } catch {
@@ -137,6 +226,7 @@ export class EngineHost {
       engine: session.engineKey,
       startedAt: session.startedAt,
       exited: session.exited,
+      clamped: [...session.clamped],
     }));
   }
 

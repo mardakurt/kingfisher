@@ -260,10 +260,29 @@ This is a real sandbox, enforced by the browser, and it is the only one here.
   that was not installed. This is the single most important rule in the
   companion (`companion/src/security.mjs`).
 - Proven to speak UCI and to find a move before being registered at all.
-- Stopped with `quit`, then `SIGKILL` 400 ms later if it ignores that; at most
-  four engine processes run at once.
+- Given a **minimal environment**: an allowlist of the variables a process
+  needs to start (`PATH`, `HOME`, `TMPDIR` and their Windows equivalents) plus
+  whatever paths the engine's own record configures. It does not inherit the
+  companion's environment, so a Lichess token or a cloud credential in the
+  shell that launched Kingfisher does not reach it.
+- Started **in its own process group**, and stopped by signalling the group, so
+  an engine that spawned helpers does not leave them holding cores.
+- Held to a **resource ceiling**. `Threads` and `Hash` are clamped to this
+  machine's cores and memory divided by the four sessions that may run at once,
+  and a request above the ceiling is reported into the session's own output
+  rather than silently substituted. Nothing else is filtered — this is a
+  ceiling on what an engine can take, not on how it may be configured.
+- Read with a **bounded line buffer**. Something writing 64 kB with no newline
+  is not speaking UCI, and the partial line is discarded with an error rather
+  than accumulated until the companion runs out of memory.
+- Stopped with `quit`, then the process group `SIGKILL`ed 400 ms later if it
+  ignores that; at most four engine processes run at once.
 
-**It is not sandboxed.** A native engine is a program running with the same
+There is deliberately **no search timeout**. A ten-minute think on a critical
+position is the product working, and a watchdog that ended it would be a bug
+that looked like a feature.
+
+**It is still not sandboxed.** A native engine is a program running with the same
 operating-system permissions as anything else you launch: your files, your
 network. Kingfisher verifies where it came from and that it is what it claims
 to be. It does not confine it, and the UI does not say it does.
@@ -276,6 +295,12 @@ on some platforms or degrading the engine — Stockfish wants large pages and
 many threads; Lc0 wants a GPU. A badge reading "Sandboxed" that actually means
 "we checked the SHA-256" is worse than no badge. If a portable, provable
 confinement becomes practical, it is a change to this section first.
+
+The hardening above narrows what an engine has a reason to reach and caps what
+it can hold. It does not confine it, and the distinction matters: an engine can
+still open any file the user can open. **No interface anywhere says
+"Isolated"**, because no platform here has been given isolation that would earn
+the word. What the interface says is unchanged, and is the sentence below.
 
 ### 3. Custom native engine — your own program
 
