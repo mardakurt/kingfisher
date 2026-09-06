@@ -56,3 +56,4 @@ order taken. Superseded records stay, marked as such.
 | [0045](0045-relations-are-pseudo-legal-geometry.md)               | Relations are pseudo-legal geometry                              | Accepted |
 | [0046](0046-a-frequency-threshold-that-falls-with-depth.md)       | A pruning threshold that falls with depth, so deep lines survive | Accepted |
 | [0047](0047-standard-chess-only-and-the-castling-claim.md)        | Standard chess only; a castling right is a claim, and is checked | Accepted |
+| [0048](0048-chess960-needs-a-rules-decision-first.md)             | Chess960 needs a licensing decision before it needs code         | Open     |
