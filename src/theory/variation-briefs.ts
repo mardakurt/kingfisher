@@ -905,6 +905,70 @@ export const VARIATION_BRIEFS: readonly VariationBrief[] = [
     'White plays for Bg2 pressure on the long diagonal and an early h3/g5 space grab.',
     'Black takes the centre with ...d5 and can punish the weakening directly with ...e5 and ...Bxg4 ideas.',
   ),
+
+  // --- Families the dataset names, that a player still meets ------------------
+  //
+  // Added in Phase 17. Each of these is a family the classification dataset
+  // uses as a heading and that a player actually runs into, and each was
+  // uncovered — so a position inside it inherited nothing and the panel had
+  // nothing to say. The generic containers the dataset also uses as headings
+  // ("King's Pawn Game", "Queen's Pawn Game") are deliberately still
+  // uncovered: they name a position rather than an idea, and a brief for them
+  // could only restate the moves.
+  B(
+    ["Queen's Gambit"],
+    'White offers the c-pawn on move two to pull the black d-pawn away from the centre.',
+    'White wants a pawn on d4 unopposed by one on d5, and the central space and piece play that follow; the pawn is usually recovered rather than sacrificed.',
+    'Black chooses between declining and keeping the centre closed, accepting and giving the centre up for time, or countering in the middle with ...c5 or ...e5.',
+  ),
+  B(
+    ["King's Gambit"],
+    'White offers the f-pawn on move two to deflect the black e-pawn and open the f-file.',
+    "White plays for a big centre with d4 and rapid development against Black's weakened kingside, using the half-open f-file.",
+    'Black either holds the extra pawn and completes development, or gives it back to finish developing and use the a7–g1 diagonal and the open king.',
+  ),
+  B(
+    ['Indian Defense'],
+    'Black answers 1.d4 with 1...Nf6, declining to commit a centre pawn immediately.',
+    'White builds a broad pawn centre and tries to keep it, since Black has not yet contested it with a pawn.',
+    'Black attacks that centre from a distance with pieces and a later ...c5, ...e5 or ...d5, choosing the structure once White has committed.',
+  ),
+  B(
+    ['Benko Gambit Accepted'],
+    'Black gives a queenside pawn with ...b5 to open the a- and b-files.',
+    'White is a pawn up and must find time to develop the kingside while the queenside files are under pressure.',
+    'Black plays ...Ba6, ...Bg7, ...Ra8-b8 and presses down two open files; the compensation is long-lasting rather than immediate.',
+  ),
+  B(
+    ['Three Knights Opening'],
+    'Three knights come out before either side commits the fourth.',
+    'White keeps the option of d4 or Bb5 and often transposes into a Four Knights or a Scotch.',
+    'Black avoids the symmetry of the Four Knights, usually with ...Bb4 or ...g6.',
+  ),
+  B(
+    ['Latvian Gambit'],
+    "Black answers 2.Nf3 with 2...f5, a mirror of the King's Gambit a tempo down.",
+    'White can take on e5 or on f5, or ignore the pawn and develop; the extra tempo matters and the black king is the weaker one.',
+    'Black plays for open lines and a quick attack, accepting that the position is sharper for both sides than it is sound.',
+  ),
+  B(
+    ['Englund Gambit'],
+    'Black gives the e-pawn on move one to open lines immediately.',
+    'White holds the pawn and completes development; the extra pawn is real and the position is not difficult to play.',
+    'Black tries to regain the pawn with pressure on b2 and the e-file before White consolidates.',
+  ),
+  B(
+    ['Owen Defense'],
+    "Black plays 1...b6, fianchettoing the queen's bishop against e4 without a pawn in the centre.",
+    'White takes the centre with d4 and c4 and gains space; Bd3 answers the pressure on the long diagonal.',
+    'Black plays against e4 from a distance and strikes with ...f5 or ...c5 once developed.',
+  ),
+  B(
+    ['Blackmar-Diemer Gambit Accepted'],
+    'White gives a centre pawn for open lines and rapid development.',
+    'White develops with Nc3, f3, Bc4 and Qe2, aiming at f7 down the half-open f-file before Black consolidates.',
+    'Black returns the pawn at a good moment or holds it and completes development; the extra pawn is the compensation for the discomfort.',
+  ),
 ];
 
 /** `'A > B > C'` for a lineage, the key everything below is stored under. */
