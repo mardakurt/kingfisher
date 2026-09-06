@@ -741,9 +741,15 @@ function RosterFacts({ playerKey }: { readonly playerKey: string }) {
         ))}
       </dl>
       <p className="mt-2 text-xs leading-relaxed text-secondary">{legend.note}</p>
+      {/*
+        What this panel is, and nothing more. It must not say anything about
+        how many games exist: it renders whenever the *local collection* is
+        empty, and the reference sources below may well have hundreds — an
+        earlier version of this line claimed there were none directly above a
+        section reporting 120.
+      */}
       <p className="mt-2 text-[10px] leading-relaxed text-tertiary">
-        Dates and titles are a checked roster entry, not a game count. Kingfisher has no games for
-        this player in the installed sources; see below for why.
+        Dates and titles are a checked roster entry, not a game count.
       </p>
     </section>
   );
