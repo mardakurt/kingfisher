@@ -72,6 +72,12 @@ export function PlayersWorkspace() {
     [filter, players, query],
   );
 
+  /** People the roster knows and the installed sources have no games for. */
+  const indexOnly = useMemo(
+    () => searchPlayers(players, { query: '', filter: 'historical-index', limit: 1000 }).length,
+    [players],
+  );
+
   const chosen = players.filter((player) => selected.includes(player.key));
   const installed = references.sources.filter((source) => source.installed);
 
@@ -161,12 +167,29 @@ export function PlayersWorkspace() {
         {catalog.isPending ? (
           <p className="p-6 text-sm text-tertiary">Reading players…</p>
         ) : results.length === 0 ? (
+          /*
+            An empty browse set has two quite different causes, and saying
+            which one is the difference between a dead end and a next step.
+            With no reference pack installed the only people Kingfisher knows
+            are the historical roster, and every one of them has no games — so
+            the browse sets are correctly empty and the index is where they
+            are.
+          */
           <EmptyState
-            title="No players match"
+            title={query.trim().length > 0 ? 'No players match' : 'No players with games here'}
             description={
               query.trim().length > 0
                 ? `Nothing in the installed sources or the historical roster matches “${query}”.`
-                : 'Install a reference pack, or import games, to fill the player library.'
+                : indexOnly > 0
+                  ? `Install a reference pack, or import games, to fill the player library. Kingfisher does know ${indexOnly} historical figures it has no games for — they are under Historical index.`
+                  : 'Install a reference pack, or import games, to fill the player library.'
+            }
+            action={
+              indexOnly > 0 && query.trim().length === 0 && filter !== 'historical-index' ? (
+                <Button onClick={() => setFilter('historical-index')}>
+                  Show the historical index
+                </Button>
+              ) : undefined
             }
           />
         ) : (
