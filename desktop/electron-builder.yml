@@ -1,0 +1,111 @@
+# How Kingfisher becomes an application.
+#
+# Three things in here are load-bearing and easy to get wrong silently:
+#
+#   `extraResources` reproduces, under `Resources/kingfisher/`, the directory
+#   layout the companion expects — it resolves its own root as two levels above
+#   `companion/src/`, and reads `scripts/engine-catalogue.mjs` and
+#   `public/engine/` relative to it. `desktop/src/paths.mjs` is the other half
+#   of this arrangement and the two have to agree.
+#
+#   Nothing that is spawned or opened may live inside the asar archive. The
+#   companion is a process, the web bundle is a server, and both are unpacked.
+#
+#   `hardenedRuntime` with the entitlements beside it is what lets a notarised
+#   build run a downloaded engine at all. Without `allow-jit` the renderer's
+#   own WebAssembly engine will not start either.
+
+appId: dev.kingfisher.app
+productName: Kingfisher
+copyright: Kingfisher
+directories:
+  buildResources: build
+  output: dist
+
+# The shell itself, and nothing else. The application it serves and the
+# companion it runs are resources, below.
+files:
+  - src/**/*
+  - package.json
+  - '!**/*.test.mjs'
+  - '!app/**/*'
+
+extraResources:
+  - from: app
+    to: kingfisher/app
+  - from: ../companion/src
+    to: kingfisher/companion/src
+    filter:
+      - '**/*'
+      - '!**/*.test.mjs'
+      - '!__fixtures__/**'
+  - from: ../scripts/engine-catalogue.mjs
+    to: kingfisher/scripts/engine-catalogue.mjs
+  - from: ../scripts/engine-digests.json
+    to: kingfisher/scripts/engine-digests.json
+  - from: ../public/engine
+    to: kingfisher/public/engine
+    filter:
+      - '*.json'
+
+mac:
+  category: public.app-category.education
+  darkModeSupport: true
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  target:
+    - target: dmg
+      arch:
+        - arm64
+        - x64
+  extendInfo:
+    # Kingfisher reaches Lichess and the engine projects' release pages over
+    # HTTPS, and a local companion over plain HTTP on loopback. The exception
+    # is scoped to loopback so that "the app may use HTTP" never means the
+    # network.
+    NSAppTransportSecurity:
+      NSAllowsLocalNetworking: true
+    LSMinimumSystemVersion: '11.0'
+
+# Double-clicking a PGN opens it in Kingfisher. Declared for every platform
+# that has a mechanism for it; `desktop/src/files.mjs` is what actually decides
+# whether a given file is one Kingfisher will open.
+fileAssociations:
+  - ext: pgn
+    name: PGN game
+    description: Portable Game Notation chess games
+    role: Viewer
+    rank: Alternate
+    mimeType: application/vnd.chess-pgn
+
+dmg:
+  title: Kingfisher ${version}
+  contents:
+    - x: 140
+      y: 220
+      type: file
+    - x: 400
+      y: 220
+      type: link
+      path: /Applications
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+        - arm64
+
+linux:
+  category: Education
+  target:
+    - target: AppImage
+      arch:
+        - x64
+        - arm64
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true

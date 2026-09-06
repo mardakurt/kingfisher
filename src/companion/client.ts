@@ -49,6 +49,15 @@ export interface RegisteredEngine {
   readonly author: string | null;
 }
 
+/** A collection opened from a path the user chose. */
+export interface AttachedDatabase {
+  readonly key: string;
+  readonly name: string;
+  readonly path: string;
+  readonly games: number;
+  readonly bytes: number;
+}
+
 export interface CompanionDatabaseEntry {
   readonly key: string;
   readonly name: string;
@@ -352,6 +361,19 @@ export class CompanionClient {
 
   createDatabase(name: string): Promise<{ key: string; name: string }> {
     return this.request('/db/create', { name });
+  }
+
+  /**
+   * Open a collection that already exists on disk.
+   *
+   * The only call that names a filesystem path rather than a key, and it comes
+   * from a native file dialog in the desktop shell — never from anything the
+   * page decided. The companion opens the file read-only first and refuses
+   * anything that is not already a Kingfisher collection, which is what keeps
+   * this from being a way to write into an arbitrary database.
+   */
+  attachDatabase(file: string): Promise<AttachedDatabase> {
+    return this.request('/db/attach', { path: file });
   }
 
   importGames(key: string, games: unknown[]): Promise<{ imported: number; duplicates: number }> {

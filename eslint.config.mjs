@@ -25,10 +25,24 @@ const config = [
       'scripts/**',
       'test-results/**',
       'playwright-report/**',
+      // The shell's own install and the bundles it packs, none of it ours.
+      'desktop/node_modules/**',
+      'desktop/app/**',
+      'desktop/dist/**',
     ],
   },
   ...nextCoreWebVitals,
   ...nextTypescript,
+  {
+    /*
+      A sandboxed preload script cannot be an ES module — Electron loads it
+      before the module loader exists, which is the same reason it is the only
+      place a bridge can be built at all. `sandbox: true` is worth one file in
+      CommonJS.
+    */
+    files: ['desktop/src/preload.cjs'],
+    rules: { '@typescript-eslint/no-require-imports': 'off' },
+  },
   {
     rules: {
       '@typescript-eslint/no-explicit-any': 'error',

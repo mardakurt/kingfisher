@@ -11,15 +11,50 @@ import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 
 export const HOST = '127.0.0.1';
 
-/** Origins a browser is allowed to call from. Localhost only, by construction. */
-export const allowedOrigins = (port) =>
-  new Set([
+/**
+ * Origins a browser is allowed to call from. Loopback only, by construction.
+ *
+ * `extra` exists for one caller: the desktop shell, which serves the
+ * application from a port it chose at start-up because 3210 may be taken by
+ * the very `next dev` the developer is running beside it. It is validated
+ * rather than trusted — a non-loopback origin is dropped, so that widening
+ * this set stays impossible even for the process that spawned the companion.
+ * A companion is reachable from loopback by anything on the machine, and the
+ * origin allowlist is one of the two things (the token is the other) standing
+ * between a page in the user's browser and their engines and databases.
+ */
+export const allowedOrigins = (port, extra = []) => {
+  const origins = new Set([
     `http://localhost:${port}`,
     `http://127.0.0.1:${port}`,
     // The dev server and a production `next start` both default to 3210.
     'http://localhost:3210',
     'http://127.0.0.1:3210',
   ]);
+  for (const candidate of extra) {
+    if (isLoopbackOrigin(candidate)) origins.add(candidate);
+  }
+  return origins;
+};
+
+/** Whether an origin names loopback over plain HTTP, and nothing else. */
+export function isLoopbackOrigin(value) {
+  if (typeof value !== 'string' || value === '') return false;
+  let url;
+  try {
+    url = new URL(value);
+  } catch {
+    return false;
+  }
+  if (url.protocol !== 'http:') return false;
+  if (url.hostname !== 'localhost' && url.hostname !== '127.0.0.1' && url.hostname !== '[::1]') {
+    return false;
+  }
+  // An origin is scheme + host + port and nothing else; anything with a path,
+  // a query or credentials is not one, and accepting it would let a string
+  // that merely *starts* like loopback into the set.
+  return value === url.origin;
+}
 
 export const createToken = () => randomBytes(32).toString('hex');
 

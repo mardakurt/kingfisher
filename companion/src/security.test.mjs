@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { allowedOrigins, databaseKey, engineKey, PathRegistry, tokenMatches } from './security.mjs';
+import {
+  allowedOrigins,
+  databaseKey,
+  engineKey,
+  isLoopbackOrigin,
+  PathRegistry,
+  tokenMatches,
+} from './security.mjs';
 
 describe('database keys', () => {
   /*
@@ -93,5 +100,54 @@ describe('the trust boundary', () => {
     expect(origins.has('http://127.0.0.1:4321')).toBe(true);
     expect(origins.has('https://evil.example')).toBe(false);
     expect(origins.has('http://localhost.evil.example')).toBe(false);
+  });
+});
+
+describe('the desktop origin allowlist', () => {
+  /*
+    The desktop shell picks its own port, so it has to be able to name the
+    origin it serves from. That is a widening of the one list standing between
+    a page in the user's browser and their engines, so it is validated here
+    rather than trusted from the environment that set it — and the process
+    that sets it is the same process that spawns the companion, which is
+    exactly why "it is already trusted" is not a reason to skip the check.
+  */
+  it('admits a loopback origin the desktop shell asks for', () => {
+    const origins = allowedOrigins(4321, ['http://127.0.0.1:52310']);
+    expect(origins.has('http://127.0.0.1:52310')).toBe(true);
+    expect(origins.has('http://localhost:3210')).toBe(true);
+  });
+
+  it('refuses everything that is not loopback over http', () => {
+    const refused = [
+      'https://kingfisher.example',
+      'http://evil.example',
+      'http://127.0.0.1.evil.example',
+      'http://localhost.evil.example:52310',
+      'file://',
+      'http://[::2]:52310',
+      'http://0.0.0.0:52310',
+      'http://192.168.1.10:52310',
+      '',
+      'not a url',
+    ];
+    const origins = allowedOrigins(4321, refused);
+    for (const origin of refused) expect(origins.has(origin)).toBe(false);
+    expect(origins.size).toBe(4);
+  });
+
+  it('refuses a loopback host carrying anything but scheme, host and port', () => {
+    expect(isLoopbackOrigin('http://127.0.0.1:52310')).toBe(true);
+    expect(isLoopbackOrigin('http://localhost:52310')).toBe(true);
+    expect(isLoopbackOrigin('http://[::1]:52310')).toBe(true);
+    expect(isLoopbackOrigin('http://127.0.0.1:52310/')).toBe(false);
+    expect(isLoopbackOrigin('http://127.0.0.1:52310/path')).toBe(false);
+    expect(isLoopbackOrigin('http://user:pass@127.0.0.1:52310')).toBe(false);
+    expect(isLoopbackOrigin('http://127.0.0.1:52310?a=b')).toBe(false);
+  });
+
+  it('adds nothing when the shell names nothing', () => {
+    expect(allowedOrigins(4321).size).toBe(4);
+    expect(allowedOrigins(4321, []).size).toBe(4);
   });
 });

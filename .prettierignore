@@ -3,3 +3,7 @@ node_modules
 public/engine
 
 .real-scale/
+
+desktop/node_modules
+desktop/app
+desktop/dist

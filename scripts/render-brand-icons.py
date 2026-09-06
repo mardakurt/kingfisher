@@ -29,6 +29,10 @@ TARGETS = [
     ("public/icon-192.png", 192),
     ("public/icon-512.png", 512),
     ("src/app/apple-icon.png", 180),
+    # The desktop application icon. electron-builder derives every macOS,
+    # Windows and Linux size from this one, so it is the largest the packagers
+    # ask for rather than a size anything displays directly.
+    ("desktop/build/icon.png", 1024),
 ]
 
 NS = {"svg": "http://www.w3.org/2000/svg"}

@@ -47,3 +47,10 @@ companion/data/
 # `docs/performance/phase-18-storage.md` where they do not take up a disk.
 .compaction/
 kf-compaction-run/
+
+# The desktop shell's own install, the web bundle it packs, and the
+# applications electron-builder writes. All three are reproducible from
+# `npm run desktop:dist`; the .app alone is 300 MB.
+desktop/node_modules/
+desktop/app/
+desktop/dist/

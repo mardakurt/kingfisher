@@ -12,6 +12,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { CATALOGUE, DIGESTS, PLATFORM } from '../../scripts/engine-catalogue.mjs';
+import { AttachError, inspectCollection } from './attach.mjs';
 import { GameDatabase } from './database.mjs';
 import { DatabaseMaintenance } from './database-maintenance.mjs';
 import { handshakeUci, validateExecutable } from './custom-engines.mjs';
@@ -43,7 +44,18 @@ const MANIFEST = path.join(ROOT, 'public', 'engine', 'manifest.json');
 const IMPORTS = path.join(DATA_DIR, 'databases.json');
 const CUSTOM_ENGINES = path.join(DATA_DIR, 'custom-engines.json');
 const MANAGED_ENGINES = path.join(DATA_DIR, 'managed-engines.json');
-const ENGINE_DIR = path.join(ROOT, 'engines');
+/*
+  Where managed native engines are downloaded to.
+
+  Overridable because a packaged desktop application cannot write inside its
+  own bundle: on macOS that directory is signed, and adding a binary to it
+  invalidates the signature that let it launch in the first place. So the
+  shell points this at the user's own application-support directory, and a
+  companion started from a checkout keeps writing to `engines/` as before.
+*/
+const ENGINE_DIR = process.env.KINGFISHER_ENGINE_DIR
+  ? path.resolve(process.env.KINGFISHER_ENGINE_DIR)
+  : path.join(ROOT, 'engines');
 
 const PORT = Number(process.env.KINGFISHER_COMPANION_PORT ?? 4321);
 /*
@@ -58,7 +70,18 @@ const TABLEBASE_ENDPOINT = process.env.KINGFISHER_TABLEBASE_ENDPOINT ?? null;
 const TABLEBASE_CONFIG = path.join(DATA_DIR, 'tablebase.json');
 const TABLEBASE_MANIFEST = path.join(ROOT, 'public', 'engine', 'tablebase.json');
 const TOKEN = process.env.KINGFISHER_COMPANION_TOKEN ?? createToken();
-const ORIGINS = allowedOrigins(PORT);
+/*
+  The desktop shell serves the application from a port it chose at start-up,
+  so it names that origin here. `allowedOrigins` validates it as loopback
+  before adding it; this variable widens nothing on its own.
+*/
+const ORIGINS = allowedOrigins(
+  PORT,
+  (process.env.KINGFISHER_COMPANION_ALLOWED_ORIGINS ?? '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean),
+);
 
 /**
  * The managed probe helper, built by `npm run tablebase:install`.
@@ -456,6 +479,46 @@ async function route(url, request, response) {
     database(key);
     saveDatabases();
     return json(response, 200, { key, name });
+  }
+
+  /*
+    Open a collection the user picked in a native file dialog.
+
+    The one route that takes a path rather than a key, and the narrowest it can
+    be: `inspectCollection` opens the file read-only and refuses anything that
+    is not already a Kingfisher collection, so a wrong path costs a sentence
+    rather than a schema written into somebody's other database. See
+    `attach.mjs`.
+  */
+  if (pathname === '/db/attach' && request.method === 'POST') {
+    const body = await readBody(request);
+    let described;
+    try {
+      described = inspectCollection(body.path);
+    } catch (error) {
+      if (error instanceof AttachError) {
+        return json(response, 400, { error: error.message, remedy: error.remedy ?? null });
+      }
+      throw error;
+    }
+    const key = databaseKey(described.name);
+    /*
+      A name already registered to a different file is a collision, and
+      `PathRegistry.register` refuses it rather than re-pointing the key — the
+      rule that keeps a key from quietly coming to mean a different database.
+      Reported as the collision it is.
+    */
+    try {
+      databaseRegistry.register(key, described.path, { name: described.name });
+    } catch (error) {
+      return json(response, 409, {
+        error: error instanceof Error ? error.message : 'That name is already in use.',
+        remedy: 'Rename the file, or the collection already open under that name.',
+      });
+    }
+    database(key);
+    saveDatabases();
+    return json(response, 200, { key, ...described });
   }
 
   if (pathname === '/db/import' && request.method === 'POST') {
@@ -982,3 +1045,20 @@ const shutdown = () => {
 };
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
+
+/*
+  Die with the parent that started us.
+
+  `SIGTERM` covers a shell that quits in an orderly way. It does not cover one
+  that is killed, force-quit or crashes — and that is the case that matters,
+  because engines are spawned *detached*, in their own process groups, so that
+  stopping one stops the helpers it started. The same property is what lets
+  them survive a companion that goes away without running `stopAll()`.
+
+  So when the companion was forked with an IPC channel, the channel closing is
+  taken as the parent being gone, and it shuts down exactly as it would on a
+  signal. A companion started from a terminal has no channel and is unaffected.
+*/
+if (typeof process.send === 'function') {
+  process.on('disconnect', shutdown);
+}

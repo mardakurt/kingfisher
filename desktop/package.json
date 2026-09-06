@@ -1,0 +1,17 @@
+{
+  "name": "kingfisher-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The desktop shell for Kingfisher. Owns the companion, serves the web application, and adds the native file workflows a browser cannot.",
+  "type": "module",
+  "main": "src/main.mjs",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "44.2.0",
+    "electron-builder": "^26.0.12"
+  }
+}

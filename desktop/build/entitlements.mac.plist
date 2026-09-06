@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  What a hardened Kingfisher is allowed to do, and why each line is here.
+
+  `allow-jit` and `allow-unsigned-executable-memory` are for WebAssembly: the
+  browser engine Kingfisher ships is a JIT-compiled Stockfish, and the hardened
+  runtime refuses that by default.
+
+  `disable-library-validation` and `allow-dyld-environment-variables` are for
+  the native engines. A managed engine is a binary from the engine project's
+  own release page, downloaded against a recorded SHA-256 and spawned by the
+  companion. It is signed by that project or by nobody, and without this it
+  cannot be loaded into a hardened process tree at all.
+
+  That is the trade this application makes, and it is stated rather than
+  implied: a managed native engine runs with the user's own permissions. It is
+  not sandboxed. See docs/adr/0041-engine-trust-and-the-sandbox-we-do-not-have.md.
+
+  `com.apple.security.files.user-selected.read-write` is the file dialogs:
+  a PGN, a SQLite collection, a Syzygy directory, an engine binary — all of
+  them chosen by the person using the application, never named by the page.
+-->
+<plist version="1.0">
+  <dict>
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <true/>
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <true/>
+    <key>com.apple.security.cs.allow-dyld-environment-variables</key>
+    <true/>
+    <key>com.apple.security.files.user-selected.read-write</key>
+    <true/>
+    <key>com.apple.security.network.client</key>
+    <true/>
+    <key>com.apple.security.network.server</key>
+    <true/>
+  </dict>
+</plist>
