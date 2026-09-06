@@ -19,7 +19,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const TARGET_DIR = join(ROOT, 'public', 'engine', 'stockfish');
-const CDN = 'https://unpkg.com/stockfish@17.1.0/src';
+const CDN = 'https://unpkg.com/stockfish@18.0.8/bin';
 
 /**
  * `lite-single` runs anywhere. `lite-mt` needs SharedArrayBuffer, which needs
@@ -28,16 +28,16 @@ const CDN = 'https://unpkg.com/stockfish@17.1.0/src';
 const BUILDS = [
   {
     id: 'lite-single',
-    label: 'Stockfish 17.1 Lite (single-threaded)',
-    script: 'stockfish-17.1-lite-single-03e3232.js',
-    wasm: 'stockfish-17.1-lite-single-03e3232.wasm',
+    label: 'Stockfish 18 Lite (single-threaded)',
+    script: 'stockfish-18-lite-single.js',
+    wasm: 'stockfish-18-lite-single.wasm',
     threads: false,
   },
   {
     id: 'lite-mt',
-    label: 'Stockfish 17.1 Lite (multi-threaded)',
-    script: 'stockfish-17.1-lite-51f59da.js',
-    wasm: 'stockfish-17.1-lite-51f59da.wasm',
+    label: 'Stockfish 18 Lite (multi-threaded)',
+    script: 'stockfish-18-lite.js',
+    wasm: 'stockfish-18-lite.wasm',
     threads: true,
   },
 ];
@@ -81,7 +81,7 @@ async function main() {
   if (ifMissing && (await exists(manifestPath))) return;
 
   await mkdir(TARGET_DIR, { recursive: true });
-  process.stdout.write('Installing Stockfish 17.1 (GPL-3.0-or-later) into public/engine…\n');
+  process.stdout.write('Installing Stockfish 18 (GPL-3.0-or-later) into public/engine…\n');
 
   const installed = [];
   for (const build of BUILDS) {
@@ -112,7 +112,7 @@ async function main() {
     manifestPath,
     `${JSON.stringify(
       {
-        engine: 'Stockfish 17.1',
+        engine: 'Stockfish 18',
         license: 'GPL-3.0-or-later',
         source: 'https://www.npmjs.com/package/stockfish (nmrugg/stockfish.js)',
         installedAt: new Date().toISOString(),

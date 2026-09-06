@@ -13,7 +13,7 @@ it. The results below were produced by that command, not written by hand.
 
 | Engine      | Version | Family                | Runs as            | Licence          | Needs the companion |
 | ----------- | ------- | --------------------- | ------------------ | ---------------- | ------------------- |
-| Stockfish   | 17.1    | alpha-beta + NNUE     | WebAssembly Worker | GPL-3.0-or-later | **no**              |
+| Stockfish   | 18      | alpha-beta + NNUE     | WebAssembly Worker | GPL-3.0-or-later | **no**              |
 | Stockfish   | 18      | alpha-beta + NNUE     | native process     | GPL-3.0-or-later | yes (~115 MB)       |
 | Stormphrax  | 8.0.0   | alpha-beta + NNUE     | native process     | GPL-3.0-or-later | yes (~57 MB)        |
 | Viridithas  | 20.0.0  | alpha-beta + NNUE     | native process     | AGPL-3.0-only    | yes (~57 MB)        |

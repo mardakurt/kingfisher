@@ -47,7 +47,7 @@ export interface EngineDefinition {
 
 const STOCKFISH_WASM: EngineDefinition = {
   id: 'stockfish-wasm',
-  name: 'Stockfish 17.1',
+  name: 'Stockfish 18',
   family: 'alphabeta',
   transport: 'worker',
   license: 'GPL-3.0-or-later',

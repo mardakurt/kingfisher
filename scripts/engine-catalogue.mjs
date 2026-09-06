@@ -46,10 +46,10 @@ export const DIGESTS = JSON.parse(
 export const CATALOGUE = [
   {
     id: 'stockfish-wasm',
-    name: 'Stockfish 17.1',
+    name: 'Stockfish 18',
     family: 'alphabeta',
     kind: 'wasm',
-    version: '17.1',
+    version: '18',
     license: 'GPL-3.0-or-later',
     source: 'https://github.com/official-stockfish/Stockfish',
     notes:

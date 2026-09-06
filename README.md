@@ -18,7 +18,7 @@ and is a release gate.
 
 |                       |                                                                                                                                                                                                                                                         |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Engine**            | Stockfish 17.1, as WebAssembly in a Web Worker. Sandboxed by the browser.                                                                                                                                                                               |
+| **Engine**            | Stockfish 18, as WebAssembly in a Web Worker. Sandboxed by the browser.                                                                                                                                                                                 |
 | **Opening Explorer**  | 172,376 over-the-board games between rated or titled players, 2023–2026, as 246,870 position aggregates indexed through **twenty full moves**. On your machine, and it answers with the network off.                                                    |
 | **Opening knowledge** | 3,810 named positions with ECO codes, from the CC0 lichess-org dataset, replayed through Kingfisher's own rules code — so transpositions converge and depth wins.                                                                                       |
 | **Opening library**   | All of it, searchable by code, name, nickname, move sequence or position, with statistics, transpositions and model games on every entry.                                                                                                               |
@@ -317,7 +317,7 @@ currently comes from the separate Lichess Syzygy provider.
 | Board                | Drag or click to move, promotion picker, flip, eight board themes, five selectable open-source vector piece sets plus an internal recovery set, coordinates, move animation                                                                                                                         |
 | Game tree            | Nested variations, promote / promote-to-main-line, delete, truncate, undo & redo, keyboard navigation                                                                                                                                                                                               |
 | Annotation           | Comments, NAG glyphs, arrows and square highlights (right-drag), all surviving a PGN round trip                                                                                                                                                                                                     |
-| Engines              | Stockfish 17.1 in a Worker; Lc0 and Stormphrax as native processes through the companion. MultiPV 1–5, live depth / nodes / nps, evaluation bar, stability and line-separation metrics, click any move to insert the line                                                                           |
+| Engines              | Stockfish 18 in a Worker; Lc0 and Stormphrax as native processes through the companion. MultiPV 1–5, live depth / nodes / nps, evaluation bar, stability and line-separation metrics, click any move to insert the line                                                                             |
 | Two engines          | Run any two on one position and see where they agree, how far their lines run together, and how far apart their evaluations are. No combined score                                                                                                                                                  |
 | Tablebases           | Syzygy through lichess.org for any position of seven pieces or fewer: category, DTZ, DTM and the winning moves, kept in its own vocabulary rather than converted to centipawns                                                                                                                      |
 | Structure            | Counted, not judged: pawn islands, isolated, doubled, passed, connected passed and backward pawns, open and semi-open files, rooks on them, the bishop pair, material imbalance, castling and king shelter                                                                                          |
@@ -504,7 +504,7 @@ analysis workspace.
 
 ### About the engine download
 
-`npm run engine:install` fetches two Stockfish 17.1 WebAssembly builds (~14 MB)
+`npm run engine:install` fetches two Stockfish 18 WebAssembly builds (~14 MB)
 into `public/engine/stockfish/`. They are **not** committed and **not** an npm
 dependency, because Stockfish is GPL-3.0 licensed and large. The application
 runs without them — the engine panel reports that analysis is unavailable and
