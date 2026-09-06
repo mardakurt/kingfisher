@@ -24,7 +24,7 @@ vi.mock('@/engine/registry', () => ({
   }),
 }));
 
-const { useEngine } = await import('./engine-store');
+const { useEngine, shareResources } = await import('./engine-store');
 
 /** A session whose one search never produces a snapshot and then fails. */
 function failingSession(error: Error): { session: EngineSession; fail: () => void } {
@@ -85,5 +85,53 @@ describe('an engine that dies mid-search fails its own panel', () => {
     // other surface in the workspace, is untouched.
     expect(useEngine.getState().secondary.status).toBe('idle');
     expect(useEngine.getState().secondary.problem).toBeNull();
+  });
+});
+
+describe('sharing a machine between engines', () => {
+  /*
+    Threads were split and hash was not, so turning comparison on doubled the
+    real memory the engines allocated without changing anything the user had
+    set. Memory is the worse half to get wrong: too many threads is contention
+    and a slower search, too much hash is the operating system swapping.
+  */
+  it('splits both threads and hash between two engines', () => {
+    expect(shareResources({ threads: 8, hashMb: 4096, multiPv: 1 }, 2)).toEqual({
+      threads: 4,
+      hashMb: 2048,
+      multiPv: 1,
+    });
+  });
+
+  it('gives a single engine everything the user allowed', () => {
+    // The setting is the user's statement about their own machine.
+    expect(shareResources({ threads: 8, hashMb: 4096, multiPv: 1 }, 1)).toEqual({
+      threads: 8,
+      hashMb: 4096,
+      multiPv: 1,
+    });
+  });
+
+  it('never drops below one thread or a workable table', () => {
+    // Two cores split four ways is half a thread, which is not a number an
+    // engine accepts; 16 MB is Stockfish's own default.
+    expect(shareResources({ threads: 2, hashMb: 32, multiPv: 1 }, 4)).toMatchObject({
+      threads: 1,
+      hashMb: 16,
+    });
+  });
+
+  it('leaves every other setting alone', () => {
+    // A resource split, not a rewrite of the configuration.
+    expect(
+      shareResources({ threads: 8, hashMb: 1024, multiPv: 5, syzygyPath: '/tb' }, 2),
+    ).toMatchObject({ multiPv: 5, syzygyPath: '/tb' });
+  });
+
+  it('rounds down rather than up, so the total never exceeds the setting', () => {
+    const engines = 3;
+    const shared = shareResources({ threads: 8, hashMb: 1000, multiPv: 1 }, engines);
+    expect(shared.threads * engines).toBeLessThanOrEqual(8);
+    expect(shared.hashMb * engines).toBeLessThanOrEqual(1000);
   });
 });

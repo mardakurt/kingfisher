@@ -153,12 +153,44 @@ interface EngineState {
 /**
  * Threads for one slot.
  *
- * Two engines on one machine must not each ask for every core. They split what
- * the user allowed, and one core is always left for the interface.
+ * Two engines on one machine must not each ask for every core, so they split
+ * what the user allowed. A single engine gets all of it: the setting is the
+ * user's statement about their own machine and nothing here second-guesses it.
  */
 export function shareThreads(threads: number, engines: number): number {
   if (engines <= 1) return Math.max(1, threads);
   return Math.max(1, Math.floor(threads / engines));
+}
+
+/**
+ * Hash for one slot.
+ *
+ * Threads were split and hash was not, so two engines each allocated the whole
+ * transposition table the user had asked for — a 4 GB setting became 8 GB of
+ * real memory the moment comparison was turned on.
+ *
+ * Memory is the more damaging of the two to get wrong. Too many threads is
+ * contention, and the search is merely slower; too much hash is the operating
+ * system swapping, which takes the interface down with it, and a transposition
+ * table is allocated up front rather than grown into.
+ *
+ * The floor is 16 MB, which is Stockfish's own default and always workable.
+ */
+export function shareHash(hashMb: number, engines: number): number {
+  if (engines <= 1) return Math.max(16, hashMb);
+  return Math.max(16, Math.floor(hashMb / engines));
+}
+
+/** What one slot may use when `engines` of them are running together. */
+export function shareResources<T extends { threads: number; hashMb: number }>(
+  config: T,
+  engines: number,
+): T {
+  return {
+    ...config,
+    threads: shareThreads(config.threads, engines),
+    hashMb: shareHash(config.hashMb, engines),
+  };
 }
 
 export const useEngine = create<EngineState>((set, get) => {
@@ -345,24 +377,15 @@ export const useEngine = create<EngineState>((set, get) => {
 
     analyse: async (slot, fen, limit, config, searchMoves) => {
       const engines = get().comparing ? 2 : 1;
-      await run(
-        slot,
-        fen,
-        limit,
-        { ...config, threads: shareThreads(config.threads, engines) },
-        searchMoves,
-      );
+      await run(slot, fen, limit, shareResources(config, engines), searchMoves);
     },
 
     compare: async (fen, limit, config) => {
       set({ comparing: true });
-      const threads = shareThreads(config.threads, 2);
+      const shared = shareResources(config, 2);
       // Started together rather than in sequence: the point is two readings of
       // the same position at the same time.
-      await Promise.all([
-        run('primary', fen, limit, { ...config, threads }),
-        run('secondary', fen, limit, { ...config, threads }),
-      ]);
+      await Promise.all([run('primary', fen, limit, shared), run('secondary', fen, limit, shared)]);
     },
 
     setComparing: (on) => {
