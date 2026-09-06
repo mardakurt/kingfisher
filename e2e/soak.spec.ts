@@ -347,6 +347,47 @@ async function cycle(page: Page, index: number) {
   await page.getByRole('button', { name: 'Tendencies' }).click();
   await page.getByRole('button', { name: 'Identity' }).click();
 
+  /*
+    Phase 17's surfaces, each of which owns something none of the above does.
+
+    The Theory Book loads a half-megabyte opening index once and then holds a
+    tree of 3,810 nodes; opening a book line replaces the whole analysis
+    document, so its teardown runs on every click. Compare sources runs one
+    query per column through `useQueries`, which is the one place in the
+    application where the number of live subscriptions depends on what the
+    user picked. And the player library's browse sets each mount a list of
+    three hundred rows over a catalog of twelve thousand.
+  */
+  await navigate(page, 'Analysis');
+  await selectTool(page, dock, 'Theory Book');
+  const book = page.locator('[data-theory-book]');
+  await expect(book).toBeVisible();
+  // Down two levels and back up, so the document is replaced twice a cycle.
+  await page.locator('[data-book-branch]').first().click();
+  await expect(book).toHaveAttribute('data-theory-book', 'located');
+  await page.locator('[data-book-branch]').first().click();
+  await expect(book.locator('[data-book-crumbs]')).toBeVisible();
+
+  await selectTool(page, dock, 'Explorer');
+  await page.getByRole('button', { name: 'Compare sources' }).click();
+  const comparison = page.locator('[data-source-comparison]');
+  await expect(comparison).toBeVisible();
+  // Add and remove a column, so a query subscription is created and dropped.
+  await comparison.locator('[data-comparison-source]').last().click();
+  await comparison.locator('[data-comparison-source]').last().click();
+  await page.getByRole('button', { name: 'Compare sources' }).click();
+  await expect(comparison).toBeHidden();
+
+  await navigate(page, 'Players');
+  await page.getByRole('button', { name: 'World champions', exact: true }).click();
+  await page.getByRole('button', { name: 'Historical index', exact: true }).click();
+  // Back to a set Carlsen is in before searching for him: the historical index
+  // holds only the people with no games, which is the point of it.
+  await page.getByRole('button', { name: 'Everyone', exact: true }).click();
+  await page.getByRole('searchbox', { name: 'Search players' }).fill('carlsen');
+  await expect(page.locator('[data-player-results] li').first()).toBeVisible();
+  await page.getByRole('searchbox', { name: 'Search players' }).fill('');
+
   // Every other pass leaves the analysis tree behind entirely, so route
   // teardown is exercised from a route that owns a board and from one that
   // does not.
