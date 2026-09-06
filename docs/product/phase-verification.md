@@ -1,4 +1,4 @@
-# Phases 1–17, capability by capability
+# Phases 1–18, capability by capability
 
 What each phase built, the invariant that has to keep holding, and where the
 evidence for it lives. This is the map to consult before changing something:
@@ -9,8 +9,8 @@ Status values mean exactly this:
 
 - **Held** — the invariant is asserted by the evidence named, and that evidence
   passed on the run recorded in the Phase 16 handover.
-- **Held (repaired)** — the invariant was found broken during Phase 16 or 17
-  and the fix commit is named.
+- **Held (repaired)** — the invariant was found broken during Phase 16, 17 or
+  18 and the fix commit is named.
 
 Nothing here is marked verified on the strength of an earlier report.
 
@@ -166,6 +166,31 @@ Nothing here is marked verified on the strength of an earlier report.
 | Text search paging            | `companion/src/database.mjs`                 | The order is total, so paging shows each game exactly once                                     | `database.test.mjs`         | —                             | **Held (repaired)** | Ties were ordered by the query plan, so a game could appear on two pages                  | `9aa60ae` |
 | Pinned tools                  | `src/features/workspace/presets.ts`          | One definition of the default pinned tools                                                     | —                           | `soak.spec.ts`                | **Held (repaired)** | The dock carried its own copy, so pinning a new tool changed nothing                      | `044371d` |
 
+## Phase 18 — storage, opening reports, engines and review
+
+| Capability                  | Implementation                            | Invariant                                                                                       | Unit evidence                                  | Browser evidence         | Status              | Regression                                                                                      | Fix       |
+| --------------------------- | ----------------------------------------- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------- | ------------------------ | ------------------- | ----------------------------------------------------------------------------------------------- | --------- |
+| Compact position index      | `companion/src/position-schema.mjs`       | A collection is the same collection after migrating; nothing is dropped before it is verified   | `position-schema.test.mjs`                     | —                        | Held                | —                                                                                               | `3a1a98d` |
+| Migration resumability      | `companion/src/position-schema.mjs`       | An interrupted migration resumes from its cursor and never restarts                             | `position-schema.test.mjs`                     | —                        | Held                | —                                                                                               | `3a1a98d` |
+| Migration disk preflight    | `companion/src/position-schema.mjs`       | Refuses rather than starting work that cannot finish; the peak is the file's own size again     | `position-schema.test.mjs`                     | —                        | Held                | —                                                                                               | `3a1a98d` |
+| Reads on either schema      | `companion/src/database.mjs`              | The same questions get the same answers before and after; resolved once, not per query          | `position-schema.test.mjs`                     | —                        | Held                | —                                                                                               | `3a1a98d` |
+| Opening plan evidence       | `src/theory/opening-plans.ts`             | A piece keeps its identity as it travels; every row has a denominator                           | `opening-plans.test.ts`                        | —                        | Held                | —                                                                                               | `e636730` |
+| Critical branch ranking     | `src/theory/critical-branches.ts`         | Populations are never merged; the ordering number never reaches the reader                      | `critical-branches.test.ts`                    | —                        | Held                | —                                                                                               | `e636730` |
+| Opening Report              | `src/features/openings/opening-report.ts` | Every section cites a source or states why it is empty; authored prose stays labelled           | `opening-report.test.ts`                       | —                        | Held                | —                                                                                               | `f48068a` |
+| Managed Stockfish version   | `scripts/engine-catalogue.mjs`            | The displayed version is one that handshook, searched and matched its digest                    | —                                              | `npm run engines:verify` | Held                | —                                                                                               | `0e069ed` |
+| Engine environment          | `companion/src/engine-sandbox.mjs`        | An engine sees an allowlist and its own configured paths, never the companion's environment     | `engine-sandbox.test.mjs`                      | —                        | **Held (repaired)** | `spawn` was handed `process.env`, so an engine inherited any token in the shell that started it | `eab3d2e` |
+| Engine process group        | `companion/src/engines.mjs`               | Stopping an engine stops anything it started                                                    | `engine-sandbox.test.mjs`                      | —                        | **Held (repaired)** | `child.kill()` left helpers running with nothing tracking them                                  | `eab3d2e` |
+| Engine output bound         | `companion/src/engines.mjs`               | A line with no end is discarded and reported, not accumulated                                   | `engine-sandbox.test.mjs`                      | —                        | **Held (repaired)** | The partial-line buffer was unbounded                                                           | `eab3d2e` |
+| Engine resource ceiling     | `companion/src/engine-sandbox.mjs`        | Threads and hash are clamped to the machine; a clamp is reported, never silent                  | `engine-sandbox.test.mjs`                      | —                        | **Held (repaired)** | `Hash value 33554432` was accepted as given                                                     | `eab3d2e` |
+| Multi-engine resource split | `src/stores/engine-store.ts`              | Threads _and_ hash are divided between running engines; the total never exceeds the setting     | `engine-store.test.ts`                         | —                        | **Held (repaired)** | Only threads were split, so comparison doubled the memory actually allocated                    | `80058d9` |
+| Stored engine alternatives  | `src/features/analysis-queue/`            | Every line a search produced is kept, not only the first                                        | `candidates.test.ts`                           | —                        | **Held (repaired)** | MultiPV 5 computed five lines and stored one, so four fifths of every wide pass was thrown away | `a6714a1` |
+| Outside-candidates signal   | `src/features/review/candidates.ts`       | Fires only on two or more recorded candidates; names the moves the engine did consider          | `candidates.test.ts`                           | —                        | Held                | —                                                                                               | `a6714a1` |
+| Repertoire review session   | `src/repertoire/review.ts`                | One prompt per position however many move orders reach it; the training scheduler, not a second | `review.test.ts`                               | —                        | Held                | —                                                                                               | `4106d34` |
+| Chess960 numbering          | `src/chess/chess960.ts`                   | All 960, the world's numbering, no rules claim of any kind                                      | `chess960.test.ts`                             | —                        | Held                | —                                                                                               | `40c0e04` |
+| Chess960 not supported      | ADR 0048                                  | Kingfisher refuses positions it cannot play; no interface says otherwise                        | `chess960.test.ts`, `variant-contract.test.ts` | —                        | Held                | —                                                                                               | `40c0e04` |
+| Visual gate on the board    | `e2e/visual.spec.ts`                      | A change to the artwork is measured against the artwork, not against the page                   | —                                              | `visual.spec.ts`         | **Held (repaired)** | Every shot was a whole page at 2%, so a 7% change to every piece passed                         | `8752a8f` |
+| Historical master research  | `src/database/providers/lichess.ts`       | Redistribution and research are different questions; the limitation is stated at its real width | —                                              | `npm run smoke:lichess`  | Held                | —                                                                                               | `b598b75` |
+
 ---
 
 ## How to use this
@@ -174,8 +199,29 @@ Before changing something, find the row. If the invariant in that row is what
 your change would alter, the evidence named there should fail — and if it does
 not, the evidence is the thing to fix first.
 
-Fifteen rows say **Held (repaired)** — eight found in Phase 16 and seven in
-Phase 17. Every one was a capability an earlier phase reported as working, and
-every one was found by asking for the evidence rather than by reading the
-report. Two of the seven were reported by the user rather than by a test, which
-is the strongest argument in this document for the rest of it.
+**Twenty-eight rows say Held (repaired)**: thirteen fixed in Phase 16 or
+earlier, eight in Phase 17, seven in Phase 18. Counted by matching each row's
+fix commit against the commits of each phase, because the tally that stood here
+before said fifteen and had been out of date for a phase and a half — which is
+the sort of thing this document exists to stop happening to the rows
+themselves.
+
+Every one was a capability an earlier phase reported as working, and every one
+was found by asking for the evidence rather than by reading the report. Two of
+Phase 17's were reported by the user rather than by a test, which is the
+strongest argument in this document for the rest of it.
+
+Phase 18's seven have a pattern worth naming. None was found by a failing test,
+because in every case the test that would have caught it did not exist; all
+seven were found by asking what a piece of code actually does rather than what
+its name and its comment say it does. The engine inherited `process.env`
+because nothing had ever looked at the `spawn` call; MultiPV stored one line
+because nothing had ever compared what was computed against what was kept; the
+visual gate absorbed a 7% change because everything about it looked strict.
+
+The one that best illustrates it is not in the table. `PIECE_INK_TARGET` reads
+exactly like the constant that sets the piece scale and is not read at runtime
+at all — it documents how the per-set numbers were derived. Mutating it to test
+the visual gate produced a green run that would have been reported as proof the
+gate catches piece regressions. The gate had caught nothing; the mutation had
+changed nothing.
