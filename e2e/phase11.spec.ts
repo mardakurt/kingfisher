@@ -195,7 +195,12 @@ test('§36 the position report gathers evidence with provenance under every sect
   await settings.getByRole('button', { name: 'Close' }).click();
 
   await page.getByRole('button', { name: /More/ }).first().click();
-  await page.getByRole('menuitem', { name: 'Report' }).click();
+  /*
+    `exact` because Phase 18 added an Opening Report tool, and a substring
+    match on "Report" now finds both. The position report and the opening
+    report answer different questions and this test is about the first.
+  */
+  await page.getByRole('menuitem', { name: 'Report', exact: true }).click();
 
   const report = page.locator('[data-position-report]');
   await expect(report).toBeVisible();
