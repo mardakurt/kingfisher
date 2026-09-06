@@ -29,6 +29,7 @@
     "bench:pgn": "node scripts/bench-pgn.mjs",
     "bench:aggregates": "node scripts/bench-aggregates.mjs",
     "bench:rules": "node scripts/bench-rules-experiment.mjs",
+    "bench:compaction": "node scripts/bench-compaction.mjs",
     "bench:preparation": "node scripts/bench-preparation.mjs",
     "benchmark": "node scripts/benchmark.mjs",
     "bundle:report": "node scripts/bundle-report.mjs",
