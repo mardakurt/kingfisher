@@ -1,0 +1,107 @@
+# Engines Kingfisher builds for itself, on every platform it offers them on.
+#
+# The fleet workflow beside this one downloads what the engine projects publish,
+# which is the stronger provenance claim wherever it exists. This is for where
+# it does not: Berserk publishes a Windows asset and nothing else, so an Apple
+# Silicon Kingfisher simply did not offer it, and the same is true of most of
+# the macOS column.
+#
+# What comes out is a binary *and* a provenance record — repository, tag, the
+# commit that tag had to resolve to, licence, compiler, compiler version, build
+# flags, target architecture, what the build downloaded, and the SHA-256 of the
+# result. The record is the deliverable as much as the binary is, which is why
+# it is uploaded even when a build fails.
+#
+# Not a gate, for the same three reasons the fleet workflow is not: it is
+# minutes of compilation per platform, it depends on third-party infrastructure
+# for the sources and the neural networks, and what it produces is a record
+# rather than a verdict.
+#
+# ## Distribution
+#
+# These binaries are **not published as releases**. Every engine here is GPL or
+# AGPL, and conveying a binary carries an obligation to offer the corresponding
+# source. Nothing here is patched — `build-engine.mjs` refuses a checkout that
+# is not clean — so that obligation would be satisfiable by the upstream tag,
+# but satisfying it properly is a release process and not a CI artifact. Until
+# there is one, these are built to be qualified, not to be handed out.
+name: Engine build
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Monthly, the day after the fleet matrix, so the two records are adjacent.
+    - cron: '0 5 2 * *'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.label }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      # Every platform reports. A macOS build failing must not hide the Linux
+      # result — the matrix is the point.
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            label: Linux x64
+          - os: macos-latest
+            label: macOS arm64
+          - os: macos-15-intel
+            label: macOS x64
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+
+      # Build from the exact recorded tags. A tag that has moved fails here,
+      # loudly, rather than producing a binary nobody can account for.
+      - name: Build the declared engines
+        id: build
+        continue-on-error: true
+        shell: bash
+        run: node scripts/build-engine.mjs --out .engine-build 2>&1 | tee engine-build-${{ matrix.os }}.txt
+
+      # The same nine positions and five protocol sequences the published
+      # binaries face. A Kingfisher-built engine earns its row the same way.
+      - name: Qualify what was built
+        id: qualify
+        continue-on-error: true
+        shell: bash
+        run: node scripts/qualify-engines.mjs --dir .engine-build/bin 2>&1 | tee engine-build-qualify-${{ matrix.os }}.txt
+
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: engine-build-${{ matrix.os }}
+          path: |
+            engine-build-${{ matrix.os }}.txt
+            engine-build-qualify-${{ matrix.os }}.txt
+            .engine-build/build-provenance.json
+
+      - name: Summarise
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## ${{ matrix.label }}"
+            echo ""
+            echo "- build: ${{ steps.build.outcome }}"
+            echo "- qualification: ${{ steps.qualify.outcome }}"
+            echo ""
+            echo '### Provenance'
+            echo '```json'
+            cat .engine-build/build-provenance.json 2>/dev/null || echo "(none)"
+            echo '```'
+            echo '### Qualification'
+            echo '```'
+            tail -40 engine-build-qualify-${{ matrix.os }}.txt 2>/dev/null || echo "(no output)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -47,6 +47,7 @@
     "engines:verify": "node scripts/verify-engine-fleet.mjs",
     "engines:qualify": "node scripts/qualify-engines.mjs",
     "engines:lab": "node scripts/engine-lab.mjs",
+    "engines:build": "node scripts/build-engine.mjs",
     "reference:build": "node scripts/build-reference-pack.mjs",
     "polyglot:constants": "node scripts/build-polyglot-constants.mjs && prettier --write src/book/polyglot-constants.generated.ts",
     "pieces:measure": "node scripts/measure-piece-scale.mjs"
