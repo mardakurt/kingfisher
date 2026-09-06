@@ -874,6 +874,16 @@ async function route(url, request, response) {
     return json(response, 200, maintenance.cancel(String(body.key)));
   }
 
+  if (pathname === '/db/continuations-at' && request.method === 'POST') {
+    const body = await readBody(request);
+    return json(response, 200, {
+      continuations: database(String(body.key)).continuationsAt(String(body.positionKey), {
+        games: Number(body.games) || 200,
+        plies: Number(body.plies) || 30,
+      }),
+    });
+  }
+
   if (pathname === '/db/games-at' && request.method === 'POST') {
     const body = await readBody(request);
     return json(response, 200, {

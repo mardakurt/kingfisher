@@ -370,6 +370,20 @@ export class CompanionClient {
     return this.request('/db/games-at', { key, positionKey, limit });
   }
 
+  /** The moves that followed a position, per game. See `continuationsAt`. */
+  continuationsAt<T>(
+    key: string,
+    positionKey: string,
+    options?: { readonly games?: number; readonly plies?: number },
+  ): Promise<T> {
+    return this.request('/db/continuations-at', {
+      key,
+      positionKey,
+      games: options?.games,
+      plies: options?.plies,
+    });
+  }
+
   searchStructures<T>(key: string, query: unknown): Promise<T> {
     return this.request('/db/structure-search', { key, query });
   }

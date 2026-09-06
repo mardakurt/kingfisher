@@ -138,6 +138,23 @@ export interface ChessDatabaseProvider {
   explore(query: ExplorerQuery, signal?: AbortSignal): Promise<ExplorerResult>;
   health?(signal?: AbortSignal): Promise<ProviderHealth>;
   game?(id: string, signal?: AbortSignal): Promise<string>;
+  /**
+   * What was played *after* a position, in the games that reached it.
+   *
+   * Optional because most sources cannot answer it. The explorer reports the
+   * next move, one ply at a time, which is the right shape for browsing and
+   * the wrong shape for asking where the pieces end up over the following
+   * twenty plies — and a source that only has per-position aggregates has
+   * thrown that away before Kingfisher sees it.
+   *
+   * A provider that implements this enables the Opening Report's plan
+   * sections. One that does not leaves them out, which is why
+   * `buildOpeningReport` drops those sections rather than showing them empty.
+   */
+  continuations?(
+    query: { readonly fen: Fen; readonly games?: number; readonly plies?: number },
+    signal?: AbortSignal,
+  ): Promise<readonly (readonly Uci[])[]>;
 }
 
 export class DatabaseError extends Error {

@@ -508,3 +508,80 @@ describe('what this module is not responsible for', () => {
     close();
   });
 });
+
+describe('the continuations the opening report replays', () => {
+  /*
+    `src/theory/opening-plans.ts` counts where the pieces went by replaying the
+    games that reached a position. The explorer cannot supply that — it answers
+    one ply at a time — so the position index is asked directly, and this is
+    the query that does it.
+  */
+  it('returns the moves that followed, in order, from the games that reached it', () => {
+    const { migrated, native, close } = bothSchemas();
+    for (const db of [migrated, native]) {
+      const rows = db.continuationsAt(START, { games: 50, plies: 30 });
+      expect(rows.length).toBe(GAMES.length);
+      // Every fixture game plays e4 c5 from the start, four plies deep.
+      for (const entry of rows) {
+        expect(entry.moves.slice(0, 2)).toEqual(['e2e4', 'c7c5']);
+        expect(entry.moves.length).toBe(4);
+      }
+    }
+    close();
+  });
+
+  it('answers identically on either schema', () => {
+    const { migrated, native, close } = bothSchemas();
+    const strip = (rows) => rows.map((row) => row.moves);
+    expect(strip(migrated.continuationsAt(START, { games: 50 }))).toEqual(
+      strip(native.continuationsAt(START, { games: 50 })),
+    );
+    close();
+  });
+
+  it('starts from the first time a game reached the position, not the last', () => {
+    /*
+      A repetition means one game holds the position at two plies. "After this
+      position" means after the first of them; starting from the later one
+      would silently shorten the continuation and undercount every destination
+      beyond it.
+    */
+    const { migrated, close } = bothSchemas();
+    const repeated = {
+      game: {
+        ...GAMES[0].game,
+        fingerprint: 'repeats',
+        whiteKey: 'repeat white',
+        blackKey: 'repeat black',
+      },
+      pgn: '[White "R"]\n\n1. Nf3 Nf6 2. Ng1 Ng8 *',
+      positions: [0, 1, 2, 3, 4].map((ply) => ({
+        // The same position at ply 0 and again at ply 4.
+        positionKey: ply === 0 || ply === 4 ? 'repeated-key' : `other-${ply}`,
+        ply,
+        moveUci: ['g1f3', 'g8f6', 'f3g1', 'f6g8', 'd2d4'][ply],
+        moveSan: ['Nf3', 'Nf6', 'Ng1', 'Ng8', 'd4'][ply],
+        mover: ply % 2 ? 'b' : 'w',
+      })),
+    };
+    migrated.insertGames([repeated]);
+    const [entry] = migrated.continuationsAt('repeated-key', { games: 5, plies: 30 });
+    expect(entry.moves).toEqual(['g1f3', 'g8f6', 'f3g1', 'f6g8', 'd2d4']);
+    close();
+  });
+
+  it('stops at the ply window it was asked for', () => {
+    const { migrated, close } = bothSchemas();
+    expect(migrated.continuationsAt(START, { games: 5, plies: 2 })[0].moves).toEqual([
+      'e2e4',
+      'c7c5',
+    ]);
+    close();
+  });
+
+  it('returns nothing for a position no game reached', () => {
+    const { migrated, close } = bothSchemas();
+    expect(migrated.continuationsAt('nobody/played/here w - -', {})).toEqual([]);
+    close();
+  });
+});

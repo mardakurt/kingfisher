@@ -1228,6 +1228,49 @@ export class GameDatabase {
   }
 
   /**
+   * What was played *after* this position, in the games that reached it.
+   *
+   * The explorer answers "what move came next", one ply at a time, which is
+   * the right shape for browsing and the wrong shape for asking where the
+   * pieces end up. `src/theory/opening-plans.ts` counts destinations by
+   * replaying a game's continuation, and it needs the continuation.
+   *
+   * The position index already holds it: one row per (game, ply) carrying the
+   * move played, so the continuation of a game is its own rows above the ply
+   * it reached this position at. No movetext is parsed and no PGN is read —
+   * this is the same index the explorer aggregates, asked a different question.
+   *
+   * A game that reaches the position twice — a repetition — contributes from
+   * the *first* time, which is the one a reader means by "after this
+   * position".
+   */
+  continuationsAt(positionKey, { games = 200, plies = 30 } = {}) {
+    const reached = this.#db
+      .prepare(
+        `SELECT p.game_id AS gameId, MIN(p.ply) AS ply
+           FROM positions p JOIN games g ON g.id = p.game_id
+          WHERE p.position_key = ?
+          GROUP BY p.game_id
+          ORDER BY MAX(g.max_rating) DESC, MAX(g.year) DESC
+          LIMIT ?`,
+      )
+      .all(positionKey, Math.max(1, Math.min(1000, games)));
+    if (reached.length === 0) return [];
+
+    const moves = this.#db.prepare(
+      `SELECT p.move_uci AS uci FROM positions p
+        WHERE p.game_id = ? AND p.ply >= ? AND p.ply < ?
+        ORDER BY p.ply`,
+    );
+    return reached.map((row) => ({
+      gameId: String(row.gameId),
+      moves: moves
+        .all(row.gameId, row.ply, row.ply + Math.max(1, Math.min(120, plies)))
+        .map((move) => move.uci),
+    }));
+  }
+
+  /**
    * A page of complete games, for copying to another collection.
    *
    * Everything the destination needs and nothing it does not: the summary, the

@@ -19,15 +19,18 @@
  * to say draws why — which makes the guarantee visible rather than merely
  * asserted in a test.
  *
- * ## What it does not fetch
+ * ## The plan sections, and when they appear
  *
- * The plan sections need the continuations of the games that reached this
- * position, and no installed source exposes them through the explorer
- * interface — the explorer answers "what was played next", one ply at a time.
- * So `continuations` is not supplied, `buildOpeningReport` drops those two
- * sections rather than showing them empty, and the report does not pretend to
- * have looked. `docs/reports/phase-18-handover.md` records this as the gap it
- * is.
+ * Where the pieces go and which pawns advance are counted by replaying the
+ * continuations of the games that reached this position. Only a source that
+ * still holds per-game moves can supply those — a SQLite collection through
+ * the companion does; a reference pack aggregated its games into per-position
+ * counts before Kingfisher ever saw them and cannot.
+ *
+ * So `continuations` is asked for from whichever source can answer, and when
+ * none can, the two sections are **absent rather than empty**:
+ * `buildOpeningReport` drops a section whose input was never supplied, which
+ * is a different statement from one that was looked for and found nothing.
  */
 
 import { useEffect, useMemo, useState } from 'react';
@@ -36,6 +39,9 @@ import { PanelBody, PanelHeader } from '@/components/ui/Panel';
 import { nodePath } from '@/chess/tree/tree';
 import type { Fen } from '@/chess/types';
 import { useChessWorkspace } from '@/features/workspace/ChessWorkspaceContext';
+import { useQuery } from '@tanstack/react-query';
+
+import { databaseProviderById } from '@/database/registry';
 import { useExplorerSources } from '@/features/explorer/useExplorer';
 import { useReferenceSources } from '@/reference/use-references';
 import type { BranchPopulation } from '@/theory/critical-branches';
@@ -110,6 +116,26 @@ export function OpeningReportPanel() {
   });
 
   /*
+    The continuations, from the first source that can supply them. Most cannot:
+    a reference pack has aggregated its games away. The query is keyed on the
+    position so that walking the board re-asks, and it returns an empty list
+    rather than throwing when the companion is not there.
+  */
+  const continuationSource = sources.find((source) =>
+    Boolean(databaseProviderById(source.id)?.continuations),
+  );
+  const continuations = useQuery({
+    queryKey: ['opening-report-continuations', continuationSource?.id ?? null, fen],
+    enabled: Boolean(continuationSource) && fen.length > 0,
+    queryFn: async ({ signal }) => {
+      const provider = databaseProviderById(continuationSource!.id);
+      if (!provider?.continuations) return [];
+      return provider.continuations({ fen, games: 300, plies: 30 }, signal);
+    },
+    gcTime: 5 * 60_000,
+  });
+
+  /*
     The line played to get here. A canonical position key cannot find its own
     ancestors — that is what makes transpositions converge — so the moves are
     how a position deeper than the dataset names is located.
@@ -140,9 +166,12 @@ export function OpeningReportPanel() {
         ...(placement ? { children: book?.variations(placement.node.key) ?? [] } : {}),
         ...(placement ? { brief: book?.brief(placement.node.key) ?? null } : {}),
         populations,
+        // Absent when nothing can answer, which drops the plan sections rather
+        // than showing them empty.
+        ...(continuations.data ? { continuations: continuations.data } : {}),
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [fen, placement, book, answered],
+    [fen, placement, book, answered, continuations.data],
   );
 
   if (!node) {

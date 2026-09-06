@@ -13,7 +13,7 @@
  */
 
 import { positionKey } from '@/chess/fen';
-import { asSan, asUci } from '@/chess/types';
+import { asSan, asUci, type Fen, type Uci } from '@/chess/types';
 
 import {
   DatabaseError,
@@ -105,6 +105,42 @@ export class CompanionSqliteProvider implements ChessDatabaseProvider {
         remedy: 'Restart the companion and pair it again if its token changed.',
         count: this.games,
       };
+    }
+  }
+
+  /**
+   * The moves that followed this position, per game.
+   *
+   * Implemented here and nowhere else, because a SQLite collection is the only
+   * source that still has them: it keeps one row per game and ply, so a
+   * continuation is a range scan. A reference pack has aggregated its games
+   * into per-position counts before Kingfisher ever sees it, and cannot answer
+   * this at all — which is why the Opening Report drops its plan sections
+   * rather than showing them empty when the selected source is a pack.
+   */
+  async continuations(
+    query: { readonly fen: Fen; readonly games?: number; readonly plies?: number },
+    signal?: AbortSignal,
+  ): Promise<readonly (readonly Uci[])[]> {
+    const client = companionClient();
+    if (!client) return [];
+    if (signal?.aborted) throw new DOMException('Cancelled', 'AbortError');
+    try {
+      const raw = await client.continuationsAt<{
+        continuations?: readonly { readonly moves?: readonly string[] }[];
+      }>(this.key, positionKey(query.fen), {
+        ...(query.games === undefined ? {} : { games: query.games }),
+        ...(query.plies === undefined ? {} : { plies: query.plies }),
+      });
+      return (raw.continuations ?? []).map((entry) => (entry.moves ?? []) as readonly Uci[]);
+    } catch {
+      /*
+        A plan section is an enrichment, not the report. A companion that
+        dropped out between the explorer query and this one leaves the sections
+        absent, which `buildOpeningReport` already renders as "not looked for"
+        — far better than failing the whole report.
+      */
+      return [];
     }
   }
 
