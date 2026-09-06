@@ -73,6 +73,47 @@ positions it cannot play rather than guessing. Engine Chess960 capability is
 _recorded_ because it is a fact about the engine, not because the rules code
 supports it.
 
+**Four different questions, four different answers.** The Theory Book, the
+Explorer, Book Moves and the Repertoire each answer one of them, and conflating
+any two is how a statistic becomes mistaken for theory:
+
+|                                               | answers                                        |
+| --------------------------------------------- | ---------------------------------------------- |
+| **Theory Book** (`src/theory/theory-book.ts`) | what are the established, named branches here? |
+| **Explorer** (`src/features/explorer/`)       | what was played, in a population you name?     |
+| **Book Moves** (`src/book/`)                  | what does a Polyglot file weight here?         |
+| **Repertoire** (`src/repertoire/`)            | what do _you_ intend to play?                  |
+
+The Theory Book shows no counts, no percentages and no evaluations, and
+`e2e/theory-book.spec.ts` asserts their absence. A move is in it because the
+CC0 classification dataset names the position after it — that is the only
+claim it is entitled to make. Never label a move "main line" because it was the
+most frequent in one database; say which database, and say it was most played.
+
+**Populations are never merged.** Comparing sources puts each in its own
+column with its own game count and licence, and there is deliberately no
+combined figure. Elite over-the-board play and 2400+ blitz disagree, and the
+disagreement is the reason to look at both.
+
+**Every visible setting needs a real consumer, and a way to check it.**
+`src/features/shell/settings-contract.ts` names, for all thirty-three
+preferences, the module that writes it, the module where it becomes visible,
+and what a person would see. A setting with no runtime assertion in
+`e2e/settings.spec.ts` must carry a written reason why one is impossible.
+Phase 17 opened with a setting that persisted correctly, had two consumers, and
+changed nothing anybody could see.
+
+**A player Kingfisher offers you must lead somewhere.** Every browse set in the
+player library contains only players with at least one game in an installed
+source; the people the roster knows and the packs have nothing for live in a
+Historical index that says so. Searching is the deliberate exception — typing
+"Morphy" must find him and say he has no games.
+
+**Historical games require verified redistribution rights.** Chess moves are
+facts and carry no copyright, which is not the same as a database being
+redistributable. See `docs/data/historical-games-audit.md` before adding any
+historical corpus.
+
 ## Persistence
 
 Autosave writes a draft before it writes a document, so a crash costs at most
