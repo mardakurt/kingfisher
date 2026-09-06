@@ -119,27 +119,58 @@ engines that declare it — and five protocol sequences: `stop` mid-search, a
 search immediately after it, a rapid position switch, a node-limited search,
 and three malformed inputs sent one at a time.
 
-Run on darwin-arm64, 6 September 2026, against every engine installed here:
+### What it found, on three platforms
 
-| Engine            | 9 positions | stop | after stop | position switch | go nodes | malformed input                |
-| ----------------- | :---------: | :--: | :--------: | :-------------: | :------: | :----------------------------- |
-| Halogen 16.0.0    |      ✓      |  ✓   |     ✓      |        ✓        |    ✓     | ✓ all three                    |
-| PlentyChess 8.0.0 |      ✓      |  ✓   |     ✓      |        ✓        |    ✓     | **exits on `go depth banana`** |
-| Stormphrax 8.0.0  |      ✓      |  ✓   |     ✓      |        ✓        |    ✓     | ✓ all three                    |
-| Viridithas 20.0.0 |      ✓      |  ✓   |     ✓      |        ✓        |    ✓     | ✓ all three                    |
+Run by `.github/workflows/engines.yml` on 6 September 2026 — GitHub runners,
+engines downloaded from their own release pages and matched against their
+recorded digests, then interrogated and qualified.
 
-**One engine fails one check, and it is worth stating precisely.** PlentyChess
-8.0.0 survives an unknown command and a malformed FEN and **exits on a
-non-numeric search depth**. Sending the three inputs together would only have
-said "it died on garbage"; sending them one at a time says which line, which is
-the difference between a finding and a complaint.
+**Which engines exist where** is itself part of the answer, and it is not the
+same everywhere:
 
-Kingfisher does not send that line — `go depth N` is built from a number — so
-this is a fact about the engine rather than a live defect, and the engine
-session already fails a dead engine rather than waiting on it (Phase 16,
-`src/engine/uci-adversarial.test.ts`). It is recorded because an engine that
-exits on malformed input is an engine that will exit on a malformed input
-somebody has not thought of yet.
+| Engine            | Linux x64 | Windows x64 | macOS arm64 |
+| ----------------- | :-------: | :---------: | :---------: |
+| Stockfish 19      |     ✓     |      ✓      |      ✓      |
+| Stormphrax 8.0.0  |     ✓     |      —      |      ✓      |
+| Viridithas 20.0.0 |     ✓     |      —      |      ✓      |
+| Halogen 16.0.0    |     ✓     |      ✓      |      ✓      |
+| PlentyChess 8.0.0 |     ✓     |      ✓      |      ✓      |
+| Koivisto 9.0      |     ✓     |      ✓      |      —      |
+| Berserk 14        |     —     |      ✓      |      —      |
+| **Qualified**     |   **6**   |    **5**    |    **5**    |
+
+Every engine passed **all nine positions** on every platform — the mate, the
+promotion, the en passant, both castles, the queen ending, the stalemate trap
+and the Chess960 start — and every protocol sequence except the last.
+
+**The malformed-input row is where they differ, and Stockfish is in it.**
+
+| Engine            | unknown command | `position fen not-a-fen` | `go depth banana` |
+| ----------------- | :-------------: | :----------------------: | :---------------: |
+| Stockfish 19      |        ✓        |        **exits**         |     **exits**     |
+| PlentyChess 8.0.0 |        ✓        |    **exits** (Linux)     |     **exits**     |
+| Koivisto 9.0      |        ✓        |   **exits** (Windows)    | **exits** (Linux) |
+| Halogen 16.0.0    |        ✓        |            ✓             |         ✓         |
+| Stormphrax 8.0.0  |        ✓        |            ✓             |         ✓         |
+| Viridithas 20.0.0 |        ✓        |            ✓             |         ✓         |
+| Berserk 14        |        ✓        |            ✓             |         ✓         |
+
+The Stockfish result was reproduced off the CI runner as well, against the
+official `stockfish-macos-universal` binary on a development machine, because
+it is the engine the product leans on hardest and a finding about it should not
+rest on one environment.
+
+**What this does and does not mean.** Kingfisher never sends either line:
+`position fen …` is built from a FEN its own parser has already validated, and
+`go depth N` from a number. So none of this is a live defect, and a dead engine
+is already failed rather than waited on — Phase 16 fixed that and
+`src/engine/uci-adversarial.test.ts` holds it. It is recorded because an engine
+that exits on malformed input will exit on malformed input nobody has thought
+of yet, and because "Stockfish is robust to anything" is the sort of thing a
+codebase assumes until it measures.
+
+Sending the three inputs one at a time is what makes this a finding rather than
+a complaint. Together they would only have said "it died on garbage".
 
 The matrix also corroborates the `searchmoves` capability independently of the
 handshake: Stormphrax hands back the restricted move, and PlentyChess reports
