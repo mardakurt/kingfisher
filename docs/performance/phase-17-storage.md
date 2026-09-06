@@ -1,5 +1,12 @@
 # Storage: the experiment, its numbers, and why it did not ship
 
+> **Superseded.** This experiment shipped in Phase 18. The numbers below are
+> from a prototype on a copy of a 60,469-game collection; the shipped
+> implementation was measured on 150,119 games and 11,303,059 positions, and
+> those figures are in `docs/performance/phase-18-storage.md`. This file is
+> kept because it is where the design came from and it records what was
+> predicted before anything was built — 41.1%, against 42.9% measured.
+
 Phase 16 measured **58.5 kB per imported game** and named the size of a real
 collection as the product's biggest physical constraint: a million games is
 about sixty gigabytes. Phase 17 was asked to find out whether that can be cut
