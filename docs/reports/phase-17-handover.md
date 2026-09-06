@@ -4,7 +4,7 @@
 Phase 17 status: COMPLETE, with two items deliberately not shipped
 ```
 
-The two are named in §11 and §13 and neither is unfinished work: one is an
+The two are named in §10 and §11 and neither is unfinished work: one is an
 experiment whose numbers say "do this next", and one is a data set that could
 not be obtained legally.
 
@@ -30,7 +30,7 @@ something else.
 
 **Known release blockers.** None.
 
-**The Magnus test.** §22.
+**The Magnus test.** §23.
 
 ---
 
@@ -75,19 +75,25 @@ Thirty-three preferences across twelve sections. **No write-only setting was
 found**: every one is written by a control and read by a consumer, audited by
 scanning every module outside the store and the settings UI.
 
-| Section                  |        Settings |  Runtime-verified | Broken found |
-| ------------------------ | --------------: | ----------------: | -----------: |
-| Appearance               |               4 |                 3 |            0 |
-| Board                    |               4 |                 4 |            0 |
-| Pieces                   |               1 |                 1 |            0 |
-| Workspace                |               1 |                 1 |        **1** |
-| Engine                   |               7 |                 4 |            0 |
-| Companion                |               2 | 0 (reason stated) |            0 |
-| Database / Explorer      |               5 |                 4 |            0 |
-| Accounts                 |               3 |                 1 |            0 |
-| Assistant                |               3 | 0 (reason stated) |            0 |
-| Openings (in place)      |               2 |                 2 |            0 |
-| Layout, pinning, density | not preferences |                 — |        **1** |
+| Where it is shown                    | Settings | Browser-checked | Broken found |
+| ------------------------------------ | -------: | --------------: | -----------: |
+| Appearance                           |        3 |               2 |            0 |
+| Board                                |        4 |               4 |            0 |
+| Pieces                               |        1 |               1 |            0 |
+| Workspace                            |        1 |               1 |        **1** |
+| Engine                               |        6 |               3 |            0 |
+| Companion                            |        2 |               0 |            0 |
+| Database and Explorer                |        5 |               2 |            0 |
+| Accounts                             |        1 |               1 |            0 |
+| Controlled in place, not in Settings |       10 |               6 |            0 |
+| **Total**                            |   **33** |          **20** |        **1** |
+
+Counted from `SETTING_CONTRACTS`, grouped by the Settings section each one is
+searchable under. "Controlled in place" are the ten a user changes from the
+workspace rather than the dialog — the explorer's source and filters, the
+engine choice, the Openings mode, the variation-brief toggle. A second defect
+was found in the workspace's layout code, which is not a preference and so is
+not counted here.
 
 Twenty settings have a runtime assertion in `e2e/settings.spec.ts`. Thirteen
 carry a written reason why a browser cannot check them — engine threads and
@@ -182,6 +188,10 @@ draws it and takes the alpha bounding box. Full record:
 | Families with a brief        |                                                      **65 of 149** |
 | Positions inheriting a brief |                                         **3,321 of 3,810 (87.2%)** |
 | Provenance                   | lichess-org/chess-openings, CC0-1.0; briefs authored by Kingfisher |
+| Deepest named position       |                                           36 plies (18 full moves) |
+| Median named depth           |                                                            9 plies |
+| Named at 20 plies or deeper  |                                                      152 positions |
+| By ECO volume                |                            A 817 · B 772 · C 1,250 · D 614 · E 357 |
 
 Two ways down it, because a book is not a move list. **Next moves** is the
 immediate branches. **Variations** is the named variations however far down
@@ -229,6 +239,31 @@ Three kinds of nothing stay distinct: a source still loading, a source that
 could not answer, and a source that answered and does not have this move. The
 last is evidence — a move played online and unknown over the board keeps its
 row.
+
+---
+
+### How deep the evidence actually goes
+
+`npm run bench:explorer-depth`, on the bundled Starter pack across 45 real
+theoretical lines whose median length is 32 plies:
+
+| Depth               |         Answered |
+| ------------------- | ---------------: |
+| 10 plies (5 moves)  | **45/45 — 100%** |
+| 20 plies (10 moves) |    27/45 — 60.0% |
+| 30 plies (15 moves) |     4/39 — 10.3% |
+| 40 plies (20 moves) |         0/4 — 0% |
+
+Continuous answers: median 20 plies, worst 10, best 36. The most-played chain
+runs to **36 plies** — eighteen full moves of a Najdorf English Attack.
+
+**Why they stop is the finding, and it is not indexing depth.** Of the 45
+lines, 24 stop because the move was _never played_ in this population and 20
+because the pack pruned a continuation with one or two games; one answers to
+the end. The pack is indexed to ply 40 throughout. What runs out is games, not
+index — which is exactly why the Theory Book has to keep answering where the
+Explorer cannot, and why "0 games" is rendered as a fact about a population
+rather than as an absence of knowledge.
 
 ---
 
@@ -287,6 +322,24 @@ folds diacritics and flattens separators; nicknames are a short written-down
 list, not a guess from initials.
 
 Twenty-two real names were typed into the real box before and after.
+
+### Search speed
+
+`npm run bench:player-search`, on a 500,000-game collection:
+
+| Query                  |    cold |     median |     p95 |
+| ---------------------- | ------: | ---------: | ------: |
+| player prefix ("car")  |  0.1 ms | **0.0 ms** |  0.0 ms |
+| player prefix ("carl") |  0.0 ms | **0.0 ms** |  0.0 ms |
+| player exact           | 17.2 ms |    16.6 ms | 16.9 ms |
+| text search, one term  | 28.7 ms |    28.3 ms | 29.0 ms |
+| text search, two terms | 23.7 ms |    23.6 ms | 23.8 ms |
+| text search, no match  |  0.2 ms |     0.0 ms |  0.1 ms |
+
+The prefix index — what the search box uses while somebody is typing — answers
+in under a tenth of a millisecond at half a million games. The catalog search
+over the 12,589 reference identities is in-memory and does not touch a
+database at all.
 
 ---
 
@@ -377,7 +430,7 @@ being migrated from, a migration test, and re-validation of the importer, the
 aggregate rebuild, structure search, the En Croissant importer, backup and
 restore. That was not completed here, and a half-applied schema change to that
 table is worse than a database that is larger than it needs to be. It is the
-first recommendation in §24.
+first recommendation in §22.
 
 ---
 
@@ -456,7 +509,27 @@ selected.
 
 ---
 
-## 14. Stability
+## 14. Offline
+
+Verified by blocking every request that leaves the origin and then using the
+application:
+
+|             |                                                           |
+| ----------- | --------------------------------------------------------- |
+| Theory Book | places the position, with lineage and plans ✓             |
+| Explorer    | **15 moves** from the bundled reference ✓                 |
+| Source line | "Answers without a network. 172,376 games. CC-BY-SA-4.0." |
+| Engine      | browser Stockfish 18 searched ✓                           |
+
+## 15. The route walk
+
+Every primary route loaded at 1600×1000 on a fresh profile: `/analysis`,
+`/openings`, `/studies`, `/repertoire`, `/preparation`, `/players`,
+`/opening-files`, `/review`, `/training`, `/endgame`, `/games`, `/databases`,
+`/recent`. **No sideways scroll on any of them, and zero console or page
+errors.**
+
+## 16. Stability
 
 `e2e/soak.spec.ts`, extended this phase to drive the Theory Book (which
 replaces the whole analysis document on every click), source comparison (the
@@ -469,7 +542,7 @@ the explorer cache cannot grow without bound.
 
 ---
 
-## 15. Phases 1–17 verification
+## 17. Phases 1–17 verification
 
 `docs/product/phase-verification.md`, renamed from its Phase 16 title because
 it is now the map for the whole project. Fourteen rows added for this phase,
@@ -481,7 +554,7 @@ application rather than found by a test.
 
 ---
 
-## 16. Bugs found beyond the brief
+## 18. Bugs found beyond the brief
 
 1. The tool dock carried a **duplicate copy of the default pinned tools**,
    shadowing the registry's; pinning a new tool changed nothing. (`044371d`)
@@ -494,10 +567,24 @@ application rather than found by a test.
 6. The visual gate's `maxDiffPixelRatio: 0.02` **absorbed a 7% change to every
    piece on the board** on 19 of 22 shots. Recorded rather than changed;
    tightening it would need every baseline re-reviewed.
+7. With no reference pack installed, **"Everyone" became correctly empty** once
+   players with no games were excluded — and said only "No players match". It
+   now names the 67 historical figures it does know and offers the index.
+   (`adc096e`)
+8. The historical-roster panel **claimed there were no games directly above a
+   section reporting 120 of them.** It renders whenever the _local collection_
+   is empty, which says nothing about the reference sources. (`3cb1523`)
+9. **"To repertoire" and "To training" disappeared where they were most
+   needed.** Both lived inside the branch that renders the move table, so at
+   move 18 of a Najdorf — a position the reference has never seen — neither
+   button existed. Both act on the position, not on the evidence. (`70d2806`)
+
+Items 7, 8 and 9 were all found by walking the acceptance workflow and reading
+the screen, not by a test. Each now has one.
 
 ---
 
-## 17. Tests
+## 19. Tests
 
 | Gate                   | Result                                            |
 | ---------------------- | ------------------------------------------------- |
@@ -506,11 +593,11 @@ application rather than found by a test.
 | `npm run lint`         | clean                                             |
 | `npm run format:check` | clean                                             |
 | `npm run build`        | exit 0                                            |
-| `npm run test:e2e`     | **203 passed, 0 failed, 0 flaky** — retries **0** |
+| `npm run test:e2e`     | **204 passed, 0 failed, 0 flaky** — retries **0** |
 | `npm run benchmark`    | exit 0, heaviest route 367.2 kB gzipped           |
 | `git diff --check`     | clean                                             |
 
-25 e2e spec files, 977 tracked files, 115,833 lines under `src/`.
+**204 browser tests in 25 spec files.** 978 tracked files, 115,937 lines under `src/`.
 
 New this phase: `theory-book.test.ts`, `source-comparison.test.ts`,
 `piece-proportions.test.ts`, `settings-contract.test.ts`,
@@ -523,13 +610,7 @@ and the test re-run to confirm it fails without the fix.
 
 ---
 
-## 18. CI
-
-Recorded in §23 below, after the run completed.
-
----
-
-## 19. Competitors
+## 20. Competitors
 
 `docs/product/phase-17-competitors.md`, checked September 2026 and deliberately
 unflattering where it should be. ChessBase's Mega Database 2026 is **11.7
@@ -545,7 +626,7 @@ over the repertoire tree — are written down.
 
 ---
 
-## 20. Known limitations
+## 21. Known limitations
 
 Real limitations, not unfinished work.
 
@@ -566,7 +647,7 @@ Real limitations, not unfinished work.
 
 ---
 
-## 21. Recommended next steps
+## 22. Recommended next steps
 
 Three.
 
@@ -580,7 +661,7 @@ Three.
 
 ---
 
-## 22. The Magnus test
+## 23. The Magnus test
 
 **Opening preparation.** Yes. A Najdorf English Attack at move 18 — twenty
 plies past the last position the dataset names — shows the full lineage, says
@@ -606,6 +687,29 @@ no games before 2020, and §11 records exactly why.
 
 ---
 
-## 23. Final CI
+## 24. Final CI
 
-To be completed when the run finishes.
+Run **34017049934**, commit **`70d2806`**. All four gating jobs green.
+
+| Job                 | Result |   Time |
+| ------------------- | ------ | -----: |
+| Quality             | ✓      |  2m51s |
+| Production build    | ✓      |  1m00s |
+| Visual gate (Linux) | ✓      |  2m36s |
+| Browser tests       | ✓      | 29m32s |
+
+|                      |                                         |
+| -------------------- | --------------------------------------- |
+| Unit and integration | **140 files, 1,826 passed, 11 skipped** |
+| Visual gate          | **22 passed**                           |
+| Playwright           | **204 passed (28.7m)**                  |
+| Retries              | **0**                                   |
+| Flaky                | **0**                                   |
+
+The Linux visual baselines were regenerated in CI for the four shots this phase
+changed — the two the piece calibration moved beyond tolerance, position setup,
+and players — and verified by a second generation run against the final code
+producing byte-identical files.
+
+A documentation-only commit follows this run to record it. Nothing in it
+touches the code these jobs verified.
