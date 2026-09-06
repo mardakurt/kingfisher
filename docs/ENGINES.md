@@ -13,8 +13,8 @@ it. The results below were produced by that command, not written by hand.
 
 | Engine      | Version | Family                | Runs as            | Licence          | Needs the companion |
 | ----------- | ------- | --------------------- | ------------------ | ---------------- | ------------------- |
-| Stockfish   | 18      | alpha-beta + NNUE     | WebAssembly Worker | GPL-3.0-or-later | **no**              |
-| Stockfish   | 18      | alpha-beta + NNUE     | native process     | GPL-3.0-or-later | yes (~115 MB)       |
+| Stockfish   | **18**  | alpha-beta + NNUE     | WebAssembly Worker | GPL-3.0-or-later | **no**              |
+| Stockfish   | **19**  | alpha-beta + NNUE     | native process     | GPL-3.0-or-later | yes (~82 MB)        |
 | Stormphrax  | 8.0.0   | alpha-beta + NNUE     | native process     | GPL-3.0-or-later | yes (~57 MB)        |
 | Viridithas  | 20.0.0  | alpha-beta + NNUE     | native process     | AGPL-3.0-only    | yes (~57 MB)        |
 | Halogen     | 16.0.0  | alpha-beta + NNUE     | native process     | GPL-3.0-or-later | yes (~20 MB)        |
@@ -45,19 +45,69 @@ here, because "why is X not on the list" is a question with an answer and the
 answers change: an engine that ships only a Windows binary today may ship more
 tomorrow.
 
+### Why the two Stockfish rows differ
+
+The native engine is **Stockfish 19**; the browser engine is **Stockfish 18**.
+That is not an oversight and the versions are not going to be made to match for
+the sake of matching.
+
+Stockfish 19 was released on 5 September 2026. The native binary was upgraded
+the day after, once it had been downloaded, hashed, launched and made to search
+— see the fleet table below.
+
+There is a Stockfish 19 WebAssembly build: `@lichess-org/stockfish-web@0.5.0`
+ships `sf_19.wasm`. It is not the browser engine here, for four reasons that
+were checked rather than assumed:
+
+- It carries **no embedded network**. The 587 kB module requires a net to be
+  fetched separately and injected through `setNnueBuffer`, where the build
+  Kingfisher ships is 7.3 MB with the network already in it.
+- Its interface is **not the UCI-over-`postMessage` worker protocol** the
+  browser engine session speaks. It is an Emscripten module with `uci()` and a
+  `listen` callback, and its own README says it "is not straight-forward to
+  load and use" and points elsewhere for a simpler browser Stockfish.
+- It is built for `web,worker` environments, and **it has not been seen to
+  run here**. A load attempt under Node hung rather than initialising, which is
+  consistent with that, and is not evidence that it works.
+- It is **AGPL-3.0-or-later**, where the current browser build is GPL-3.0. That
+  is a licence change for code served to every visitor and needs review, not a
+  version bump.
+
+`stockfish` on npm — nmrugg/stockfish.js, the package Kingfisher does ship,
+which embeds its network and speaks plain UCI — is at **18.0.8**, published
+15 June 2026. There is no Stockfish 19 release of it.
+
+So the browser says Stockfish 18 because that is what runs in the browser.
+
 ### What the fleet actually reported
 
 `npm run engines:verify` on macOS arm64 (Apple silicon, CPU features `neon`),
-5 September 2026. Every row was installed from its official release, verified
+6 September 2026. Every row was installed from its official release, verified
 against its recorded digest, launched and asked:
 
 | Engine      | UCI `id name`         | MultiPV | WDL | searchmoves | Syzygy | UCI_Chess960 |
 | ----------- | --------------------- | ------- | --- | ----------- | ------ | ------------ |
-| Stockfish   | Stockfish 18          | yes     | yes | yes         | yes    | yes          |
+| Stockfish   | **Stockfish 19**      | yes     | yes | yes         | yes    | yes          |
 | Stormphrax  | Stormphrax 8.0.0      | yes     | yes | yes         | yes    | yes          |
 | Viridithas  | Viridithas 20.0.0-dev | **no**  | no  | **no**      | yes    | yes          |
 | Halogen     | Halogen 16.0.0        | yes     | no  | **no**      | yes    | yes          |
 | PlentyChess | PlentyChess 8.0.0     | yes     | no  | **no**      | yes    | yes          |
+| Lc0         | Lc0 v0.32.1+git.dirty | yes     | yes | yes         | yes    | yes          |
+
+Stockfish 19's binary hashed to
+`8eed61129d1493c5d1f2fd9323f0c54c47ac49319911fbde18c6b9c87e8b13c5` after
+extraction, from the release asset
+`stockfish-macos-universal.tar.gz`
+(`a1f0e3bc…`). Its Chess960 support was checked by more than the option being
+present: with `UCI_Chess960` set it searched a shuffled start position and
+returned a principal variation containing `f1h1` and `f8h8` — castling in the
+king-takes-rook encoding, which an engine that had merely accepted the option
+would not produce.
+
+Stockfish 19 also changed how it publishes: one universal binary per operating
+system instead of one per instruction set, gzip-compressed tarballs, and a
+Linux arm64 asset that did not exist before. The catalogue names the same
+asset for `darwin-arm64` and `darwin-x64` because upstream now ships one.
 
 Berserk, Obsidian and Koivisto publish no macOS build and were correctly
 offered no Install button. Lc0 is a `system` engine — located, not downloaded.

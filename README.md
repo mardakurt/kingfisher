@@ -50,7 +50,7 @@ games behind him, and the page says so. See
     295,695 of them — and one month of it. It answers what strong players are
     playing online, which is not the same question as how a line scores over
     the board, and the row says so before you install it.
-- **Install an engine** — Stockfish 18, Stormphrax 8, Viridithas 20, Halogen 16,
+- **Install an engine** — Stockfish 19, Stormphrax 8, Viridithas 20, Halogen 16,
   PlentyChess 8 or Lc0, downloaded, digest-checked and UCI-tested without
   leaving the application. Capabilities are read from the engine rather than a
   table: three of those five ignore UCI `searchmoves`, and Kingfisher knows it.
@@ -324,7 +324,7 @@ currently comes from the separate Lichess Syzygy provider.
 | Board                | Drag or click to move, promotion picker, flip, eight board themes, five selectable open-source vector piece sets plus an internal recovery set, coordinates, move animation                                                                                                                         |
 | Game tree            | Nested variations, promote / promote-to-main-line, delete, truncate, undo & redo, keyboard navigation                                                                                                                                                                                               |
 | Annotation           | Comments, NAG glyphs, arrows and square highlights (right-drag), all surviving a PGN round trip                                                                                                                                                                                                     |
-| Engines              | Stockfish 18 in a Worker; Lc0 and Stormphrax as native processes through the companion. MultiPV 1–5, live depth / nodes / nps, evaluation bar, stability and line-separation metrics, click any move to insert the line                                                                             |
+| Engines              | Stockfish 18 in a Worker, Stockfish 19 natively; Lc0 and Stormphrax as native processes through the companion. MultiPV 1–5, live depth / nodes / nps, evaluation bar, stability and line-separation metrics, click any move to insert the line                                                      |
 | Two engines          | Run any two on one position and see where they agree, how far their lines run together, and how far apart their evaluations are. No combined score                                                                                                                                                  |
 | Tablebases           | Syzygy through lichess.org for any position of seven pieces or fewer: category, DTZ, DTM and the winning moves, kept in its own vocabulary rather than converted to centipawns                                                                                                                      |
 | Structure            | Counted, not judged: pawn islands, isolated, doubled, passed, connected passed and backward pawns, open and semi-open files, rooks on them, the bishop pair, material imbalance, castling and king shelter                                                                                          |

@@ -60,32 +60,43 @@ export const CATALOGUE = [
   },
   {
     id: 'stockfish-native',
-    name: 'Stockfish 18',
+    name: 'Stockfish 19',
     family: 'alphabeta',
     kind: 'binary',
-    version: '18',
+    version: '19',
     license: 'GPL-3.0-or-later',
     source: 'https://github.com/official-stockfish/Stockfish',
     notes:
       'Official native Stockfish. Search speed depends on hardware, thread ' +
       'and hash settings; it is not interchangeable with a browser-version measurement.',
+    /*
+      Stockfish 19 publishes one universal binary per operating system rather
+      than one per instruction set, and compresses the tarballs. `tar -xf`
+      detects gzip on its own, so the archive kind is unchanged; what changed
+      is that `darwin-arm64` and `darwin-x64` now name the same asset, and
+      `linux-arm64` exists for the first time.
+    */
     archive: 'tar',
     assets: {
       'darwin-arm64': {
-        url: 'https://github.com/official-stockfish/Stockfish/releases/download/sf_18/stockfish-macos-m1-apple-silicon.tar',
-        file: 'stockfish/stockfish-macos-m1-apple-silicon',
+        url: 'https://github.com/official-stockfish/Stockfish/releases/download/sf_19/stockfish-macos-universal.tar.gz',
+        file: 'stockfish/stockfish-macos-universal',
       },
       'darwin-x64': {
-        url: 'https://github.com/official-stockfish/Stockfish/releases/download/sf_18/stockfish-macos-x86-64.tar',
-        file: 'stockfish/stockfish-macos-x86-64',
+        url: 'https://github.com/official-stockfish/Stockfish/releases/download/sf_19/stockfish-macos-universal.tar.gz',
+        file: 'stockfish/stockfish-macos-universal',
       },
       'linux-x64': {
-        url: 'https://github.com/official-stockfish/Stockfish/releases/download/sf_18/stockfish-ubuntu-x86-64.tar',
-        file: 'stockfish/stockfish-ubuntu-x86-64',
+        url: 'https://github.com/official-stockfish/Stockfish/releases/download/sf_19/stockfish-linux-x86-64-universal.tar.gz',
+        file: 'stockfish/stockfish-linux-x86-64-universal',
+      },
+      'linux-arm64': {
+        url: 'https://github.com/official-stockfish/Stockfish/releases/download/sf_19/stockfish-linux-arm64-universal.tar.gz',
+        file: 'stockfish/stockfish-linux-arm64-universal',
       },
       'win32-x64': {
-        url: 'https://github.com/official-stockfish/Stockfish/releases/download/sf_18/stockfish-windows-x86-64.zip',
-        file: 'stockfish/stockfish-windows-x86-64.exe',
+        url: 'https://github.com/official-stockfish/Stockfish/releases/download/sf_19/stockfish-windows-x86-64-universal.zip',
+        file: 'stockfish/stockfish-windows-x86-64-universal.exe',
         archive: 'zip',
       },
     },
