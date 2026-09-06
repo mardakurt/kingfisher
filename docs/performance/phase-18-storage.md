@@ -136,3 +136,8 @@ node scripts/bench-compaction.mjs --from ~/kf-compaction-run/compaction.sqlite -
 The second form migrates a collection that already exists, which is how the
 import and the measurement were separated after the import turned out to be
 forty-five minutes of the ninety.
+
+The collection these figures came from was deleted once they were recorded.
+It was 4.96 GB after migrating and 10.54 GB at its widest, and a measurement
+that has been written down does not need its evidence kept on a disk — the two
+commands above rebuild it.

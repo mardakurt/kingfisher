@@ -172,6 +172,66 @@ records for one month. The next build should be a three-month one, measured
 against v1 on games, positions, size and coverage at 30 and 40 plies, and the
 cadence chosen from that.
 
+## The three-month build, and why one month stays
+
+Phase 18 built it. `.packs/kingfisher-high-rated-online-rolling-3m`, from
+2026-05, 2026-06 and 2026-07, on the same 2400+ definition and the same speed
+filter, so the only variable is how many months went in.
+
+|                           | one month (v1) |   three months |   change |
+| ------------------------- | -------------: | -------------: | -------: |
+| Games considered          |     89,288,421 |    266,659,364 |     3.0× |
+| Games kept                |    **305,169** |    **911,646** |     3.0× |
+| Positions                 |        315,668 |        981,332 |     3.1× |
+| Players                   |         12,315 |         20,019 |     1.6× |
+| Compressed pack           |    **85.7 MB** |   **253.1 MB** |     3.0× |
+| Answered at 10 plies      | 100.0% (45/45) | 100.0% (45/45) |        — |
+| Answered at 20 plies      |  66.7% (30/45) |  71.1% (32/45) |  +4.4 pp |
+| Answered at 30 plies      |    7.7% (3/39) |   12.8% (5/39) |  +5.1 pp |
+| Answered at 40 plies      |     0.0% (0/4) |    25.0% (1/4) |   1 line |
+| Continuous depth, median  |   **21 plies** |   **23 plies** | +2 plies |
+| Lines answered to the end |              1 |              4 |       +3 |
+
+Measured by `node scripts/bench-explorer-depth.mjs --pack …` over the same 45
+hand-written theoretical lines, whose median length is 32 plies.
+
+**The decision is to keep one month**, and the reason is in the last column of
+a different table — why the lines stop.
+
+|                                    | one month | three months |
+| ---------------------------------- | --------: | -----------: |
+| Stopped because the pack pruned it |        21 |       **18** |
+| Stopped because nobody played it   |    **23** |       **23** |
+| Answered to the end                |         1 |            4 |
+
+Twenty-three of the forty-five lines stop at a move that **nobody in the 2400+
+online population has played at all**. Tripling the months moved that number by
+zero. The Berlin with 3.d3 stops at ...Bd6, the Classical Queen's Gambit
+Accepted at ...cxd4, the Pirc Classical at Be3 — in one month of games and in
+three, alike.
+
+So the extra two hundred million games buy breadth rather than depth. Positions
+grow 3.1× against games at 3.0×, which is the signature of new positions being
+admitted rather than existing ones being deepened; and the median line runs two
+plies further. Three times the download, for two plies and three lines.
+
+That is not a good trade for a pack a user has to fetch before they can use it,
+and the limit it fails to move is not one that more months of the same
+population can move. What would move it is a different population — the lines
+that stop are lines strong players play over the board and not online — which
+is what the Elite OTB and Recent Theory packs are for, and why Kingfisher
+compares populations instead of merging them.
+
+The speed mixture is unchanged and still has to be said out loud: **96.9% blitz
+in both**, 295,695 of 305,172 in one month and 883,853 of 911,655 in three.
+
+The three-month build was measured and then deleted rather than published or
+kept: a 253 MB artifact nobody is going to install is 253 MB on somebody's
+disk. Everything it was built to answer is in the two tables above, and
+`--months 3` rebuilds it. If the distribution cost ever stops mattering — a
+delta format, or a pack fetched by position rather than whole — the
+measurement here is the one to revisit.
+
 ## Reproducing
 
 ```bash
