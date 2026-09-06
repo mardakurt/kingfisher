@@ -356,6 +356,35 @@ implementation of the same aggregation, which is what the aggregation tests run
 against. A collection of millions belongs behind a third implementation of the
 same interface, which is exactly why the interface exists.
 
+### The compact position index
+
+In a SQLite collection the position index and its indexes are **81% of the
+file**, and three of its columns repeat between five and nine times over as
+text while a fourth — the FEN — is the position key with two integers on the
+end. `companion/src/position-schema.mjs` makes those three integer ids into
+lookup tables and the FEN two integers, which on real games is **41% off the
+whole database** with no cost to the explorer.
+
+Three things about it are load-bearing.
+
+**A database does not migrate itself when it is opened.** The migration
+rewrites the table holding most of somebody's data; a collection that did it on
+open would hang on open. `positionSql()` resolves which schema a file is on
+once, so the reader is the same code either way and no query carries a runtime
+conditional.
+
+**It commits per chunk, not once.** One transaction over four million rows
+builds a write-ahead log the size of the table before it commits, which on the
+collections where this is worth doing is the failure it exists to avoid. Each
+chunk is committed with the cursor that says it is done, so an interrupted
+attempt resumes rather than restarting.
+
+**Nothing is destroyed until it is proved unnecessary.** The text columns stay
+the source of truth until every encoded row has been shown to reproduce them;
+a mismatch aborts with them intact. Only then are they dropped and the space
+reclaimed, and the preflight refuses to start when there is not room for the
+VACUUM's second copy.
+
 ---
 
 ## The data catalog
@@ -1051,6 +1080,59 @@ hide the repertoire and journal evidence that was available all along. Engine
 evidence stays in its own section attributed to engine and depth, because
 mixing it into the move list would blur what people have played with what a
 search calculated. See ADR 0037.
+
+## The opening report
+
+`src/features/openings/opening-report.ts` is the same idea aimed at an opening
+rather than a position, and it reuses the position report's `ReportSection` on
+purpose: the provenance-or-a-reason rule is enforced by the type both share,
+and a structural test walks every section and requires one of the two.
+
+It composes evidence that already existed and adds none. Where the theory book
+places the position and what the classification dataset calls it; the variation
+brief, if one is written; what each installed population played, one row per
+source with its own game count; which branches the repertoire does not answer.
+
+Three rules shape it beyond the two it inherits.
+
+**Populations are never merged.** There is no combined percentage anywhere in
+the file, and a disagreement between two sources is reported as two shares with
+neither averaged.
+
+**Authored prose stays distinguishable from counts.** The brief is a section
+attributed to Kingfisher; where the pieces go is a section attributed to the
+games it replayed. Neither borrows the other's authority.
+
+**A name is never printed without the distance to it.** A position twenty plies
+past the last one the dataset names still gets the name, always beside how far
+past it the board is, because the name describes the opening and not the
+position in front of you.
+
+Two modules under it produce the evidence a report cannot get from an explorer.
+`src/theory/opening-plans.ts` replays the recorded continuations of the games
+that reached a position and counts where each piece got to, keeping a piece's
+identity as it travels — so "the knight from g1 reached f3 in 1,204 of 1,431
+games" is a sentence with a denominator. It replays validated moves rather than
+generating them, so it needs no rules engine and does not touch the chess.js
+boundary. `src/theory/critical-branches.ts` orders the branches and attaches
+the facts that put them in that order. Both collapse to one number to sort, and
+that number never leaves its module: `reasons` is what a reader gets and is
+complete without it. See ADR 0048 for what the report deliberately does not do.
+
+## Reviewing a repertoire
+
+`src/repertoire/review.ts` turns a repertoire into a queue of prompts. It is
+deliberately not a second spaced-repetition system — the scheduling is
+`src/training/schedule.ts`, so a repertoire prompt and a tactics card compete
+in one queue on the same terms, and every prompt reports the interval, the last
+review and the next due date it arrived with.
+
+A position is one prompt however many move orders reach it. ADR 0010 already
+made a repertoire a map from positions to moves rather than a tree of
+sequences, so most of that is inherited; what this module has to get right is
+training cards, where nothing stops two existing for one position. A position
+with two reviews on the sooner of them, so a due card cannot hide behind a
+distant one.
 
 ## Strategic themes
 
