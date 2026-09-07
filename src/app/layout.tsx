@@ -56,11 +56,43 @@ const THEME_BOOTSTRAP = `
 })();
 `;
 
+/**
+ * Reserves the macOS window buttons before first paint, for the same reason.
+ *
+ * The traffic lights are drawn by the operating system over the top-left of the
+ * web contents, and the application has to leave room for them. Doing that in
+ * an effect would render one frame with the Kingfisher mark underneath the
+ * close button — which is precisely the bug this reserves against, briefly, on
+ * every launch.
+ *
+ * It is a script rather than a server-rendered attribute because the server has
+ * no idea which of Kingfisher's two identities is asking. The preload has
+ * already run by the time this executes, so `window.kingfisher` is there in the
+ * application and absent in a browser; a browser therefore falls through and
+ * keeps the zero defaults in `globals.css`, which is what stops the web build
+ * from reserving space for a control it does not have.
+ */
+const WINDOW_CHROME_BOOTSTRAP = `
+(function () {
+  try {
+    var chrome = window.kingfisher && window.kingfisher.windowChrome;
+    if (!chrome || !chrome.safe) return;
+    var root = document.documentElement;
+    root.style.setProperty('--titlebar-safe-w', chrome.safe.width + 'px');
+    root.style.setProperty('--titlebar-safe-h', chrome.safe.height + 'px');
+    root.dataset.titlebar = chrome.kind;
+  } catch (error) {
+    /* No reservation is the safe failure: the application looks like the web. */
+  }
+})();
+`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" data-theme="dark" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }} />
+        <script dangerouslySetInnerHTML={{ __html: WINDOW_CHROME_BOOTSTRAP }} />
       </head>
       <body className={`${inter.variable} ${mono.variable} antialiased`}>
         <AppProviders>{children}</AppProviders>

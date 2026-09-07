@@ -39,10 +39,34 @@ const on = (channel, listener) => {
   return () => ipcRenderer.removeListener(channel, wrapped);
 };
 
+/**
+ * The window chrome the shell asked macOS for.
+ *
+ * Relayed rather than computed. `desktop/src/window-chrome.mjs` is the single
+ * place the rectangle is decided, the main process reads it there to place the
+ * buttons, and this hands the renderer the same object so the application can
+ * reserve exactly what was reserved for it. A preload that worked the numbers
+ * out for itself would be a second source of truth, and two sources of truth
+ * for one rectangle is how the bug this fixes was possible.
+ */
+const resolvedWindowChrome = (() => {
+  const raw = switchValue('kingfisher-window-chrome');
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    return null;
+  }
+})();
+
 contextBridge.exposeInMainWorld('kingfisher', {
   platform: 'desktop',
   os: process.platform,
   version: switchValue('kingfisher-app-version'),
+
+  /** Null off macOS, where the shell keeps a real title bar and owes nothing. */
+  windowChrome: resolvedWindowChrome,
 
   /** The companion this shell started, already authenticated. */
   companion: {

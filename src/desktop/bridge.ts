@@ -49,10 +49,34 @@ export interface DesktopDiagnostics {
   readonly startup?: readonly { readonly stage: string; readonly at: number }[];
 }
 
+/**
+ * Where the operating system's own window buttons are, and what they cost.
+ *
+ * Present only on macOS, where the shell hides the title bar and the three
+ * traffic lights are drawn over the top-left of the web contents. `trafficLight`
+ * is what macOS paints; `safe` is the rectangle the application must leave
+ * empty, which is the same thing plus a gutter.
+ *
+ * Null on Windows and Linux — those shells keep a real title bar — and absent
+ * altogether in a browser, which is what stops the web build from growing a
+ * spacer for a control it does not have.
+ */
+export interface WindowChrome {
+  readonly kind: 'mac-hidden-titlebar';
+  readonly trafficLight: {
+    readonly x: number;
+    readonly y: number;
+    readonly width: number;
+    readonly height: number;
+  };
+  readonly safe: { readonly width: number; readonly height: number };
+}
+
 export interface DesktopBridge {
   readonly platform: 'desktop';
   readonly os: string;
   readonly version: string | null;
+  readonly windowChrome: WindowChrome | null;
   readonly companion: { readonly url: string | null; readonly token: string | null };
   openPgn(): Promise<DesktopChoice>;
   openDatabase(): Promise<DesktopChoice>;
@@ -88,3 +112,15 @@ export function desktop(): DesktopBridge | null {
 
 /** Whether this Kingfisher is the application rather than the web page. */
 export const isDesktop = (): boolean => desktop() !== null;
+
+/**
+ * The window chrome this Kingfisher has to work around, or null.
+ *
+ * Null is the answer in a browser and on every platform whose shell keeps a
+ * real title bar, and callers must treat it as "reserve nothing" rather than as
+ * a missing value to substitute a default for. A default would be a second
+ * source of truth for the one rectangle two processes have to agree about.
+ */
+export function windowChrome(): WindowChrome | null {
+  return desktop()?.windowChrome ?? null;
+}

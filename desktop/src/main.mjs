@@ -36,6 +36,7 @@ import {
 } from './files.mjs';
 import { missingParts, resolveLayout } from './paths.mjs';
 import { Service, freePort } from './services.mjs';
+import { MAC_TRAFFIC_LIGHT_POSITION, windowChromeFor } from './window-chrome.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const HOST = '127.0.0.1';
@@ -227,6 +228,17 @@ async function stopServices() {
 }
 
 function createWindow() {
+  const mac = process.platform === 'darwin';
+  /*
+    `hidden` rather than `hiddenInset`, and a position rather than a default.
+
+    `hiddenInset` was what this window used for nineteen phases, and its whole
+    contribution is an inset macOS chooses and will not tell anybody. The
+    renderer therefore could not know where the buttons were, reserved nothing,
+    and drew the Kingfisher mark underneath them. Stating the position makes the
+    rectangle a number two processes can share — see `window-chrome.mjs`, which
+    is the only place either of them gets it from.
+  */
   const window = new BrowserWindow({
     width: 1440,
     height: 920,
@@ -234,7 +246,8 @@ function createWindow() {
     minHeight: 600,
     show: false,
     backgroundColor: '#0b0d11',
-    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
+    titleBarStyle: mac ? 'hidden' : 'default',
+    ...(mac ? { trafficLightPosition: { ...MAC_TRAFFIC_LIGHT_POSITION } } : {}),
     webPreferences: {
       preload: path.join(HERE, 'preload.cjs'),
       // The three that matter, stated rather than inherited. The renderer runs
@@ -248,6 +261,7 @@ function createWindow() {
         `--kingfisher-companion-url=${state.companionUrl}`,
         `--kingfisher-companion-token=${state.companionToken}`,
         `--kingfisher-app-version=${app.getVersion()}`,
+        `--kingfisher-window-chrome=${JSON.stringify(windowChromeFor(process.platform))}`,
       ],
     },
   });

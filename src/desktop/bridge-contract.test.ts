@@ -43,10 +43,29 @@ const PRODUCTION = sources(SRC).map((file) => ({
 const bridgeSource = readFileSync(path.join(SRC, 'desktop', 'bridge.ts'), 'utf8');
 const preloadSource = readFileSync(path.join(DESKTOP, 'preload.cjs'), 'utf8');
 
-/** The methods the bridge interface actually declares. */
-const declared = [...bridgeSource.matchAll(/^ {2}(\w+)\??[(:]/gm)]
+/**
+ * The capabilities the bridge interface actually declares.
+ *
+ * Methods, and the properties that carry something the shell knows and the
+ * application cannot find out for itself. `platform`, `os` and `version` are
+ * facts about the process rather than capabilities, and `companion` is covered
+ * by the pairing check in the desktop smoke; `windowChrome` is neither, so it
+ * is held to the same standard as a method.
+ */
+const DESCRIPTIVE = ['platform', 'os', 'version', 'companion'];
+
+/*
+  Read out of the `DesktopBridge` block rather than the whole file. The file
+  also declares the shapes the bridge passes around — a document, a choice, the
+  diagnostics — and their fields are not capabilities; an earlier version of
+  this scan took the lot and demanded a contract row for `packaged`.
+*/
+const bridgeBlock = /export interface DesktopBridge \{\n([\s\S]*?)\n\}/.exec(bridgeSource)?.[1];
+if (!bridgeBlock) throw new Error('DesktopBridge is not declared the way this scan expects');
+
+const declared = [...bridgeBlock.matchAll(/^ {2}(?:readonly )?(\w+)\??[(:]/gm)]
   .map((match) => match[1] ?? '')
-  .filter((name) => name && !['platform', 'os', 'version', 'companion'].includes(name));
+  .filter((name) => name && !DESCRIPTIVE.includes(name));
 
 describe('the desktop bridge contract', () => {
   it('covers every method the bridge declares, and invents none', () => {
@@ -87,8 +106,9 @@ describe('the desktop bridge contract', () => {
         wrong.push(`${entry.method}: no such module ${entry.caller}`);
         continue;
       }
-      if (!new RegExp(`\\.${entry.method}\\s*\\(`).test(file.text)) {
-        wrong.push(`${entry.method}: ${entry.caller} does not call it`);
+      // A method is called; a property is read. Either counts as reaching it.
+      if (!new RegExp(`\\.?\\b${entry.method}\\b`).test(file.text)) {
+        wrong.push(`${entry.method}: ${entry.caller} does not reach it`);
       }
     }
     expect(wrong, 'contract rows whose caller has drifted').toEqual([]);

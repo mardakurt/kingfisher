@@ -20,6 +20,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 import { Notices } from './Notices';
 import { Sidebar } from './Sidebar';
+import { TitleBarSafeBand } from './TitleBarSafeArea';
 import { StatusBar } from './StatusBar';
 import { FocusModeBar } from './FocusModeBar';
 import { ResearchTrail } from './ResearchTrail';
@@ -148,6 +149,11 @@ export function AppShell({ children }: { children: ReactNode }) {
     <ChessWorkspaceProvider>
       <AnalysisQueueProvider />
       <div className="flex h-dvh flex-col overflow-hidden bg-surface-0">
+        {/* Room for the macOS window buttons when no sidebar header is there to
+            hold them — focus mode, or a viewport narrow enough that navigation
+            has become the mobile bar. Zero-height in every other case, and in
+            every browser. See TitleBarSafeArea.tsx. */}
+        <TitleBarSafeBand focusMode={focusMode} />
         <div className="flex min-h-0 flex-1" inert={sidebarOpen || undefined}>
           {/* Focus mode takes the navigation away, not the ability to navigate:
               Escape and the exit button both restore it, and the command

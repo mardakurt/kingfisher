@@ -57,6 +57,19 @@
   --control-navigation: 42px;
   --sidebar-collapsed: 72px;
   --sidebar-expanded: 228px;
+
+  /*
+    The macOS window buttons, and what Kingfisher owes them.
+
+    Zero here and zero in a browser, which is the point: the reservation only
+    exists where the operating system is drawing three controls on top of the
+    application. `desktop/src/window-chrome.mjs` decides the real values, the
+    shell hands them over on the bridge, and the bootstrap in `layout.tsx` sets
+    them here before first paint. Nothing else may set them, and no component
+    may hard-code the number — see `features/shell/TitleBarSafeArea.tsx`.
+  */
+  --titlebar-safe-w: 0px;
+  --titlebar-safe-h: 0px;
   --panel-header: 36px;
   --focus-ring: 2px;
   --motion-quick: 90ms;
@@ -318,4 +331,40 @@ body {
 :root[data-density='compact'] .density-pad-x {
   padding-left: 0.5rem;
   padding-right: 0.5rem;
+}
+
+/*
+ * The title-bar reservation, in everything that is not a Mac window.
+ *
+ * `display: none` rather than a zero width, and the difference is not
+ * cosmetic. A zero-width flex child is still a flex child: it takes its share
+ * of the container's `gap`, which moved the Kingfisher mark ten pixels to the
+ * right in every browser, and `self-stretch` gave it the full height of the
+ * header while it was there. That is the mirror image of the defect this
+ * mechanism fixes — a web build carrying a notch for a control it does not
+ * have — and `e2e/window-chrome.spec.ts` is what found it.
+ *
+ * `data-titlebar` is set before first paint by the bootstrap in `layout.tsx`,
+ * and only ever by the desktop shell, so this is the browser's default and the
+ * default for a shell on any platform that keeps a real title bar.
+ */
+:root:not([data-titlebar]) [data-titlebar-safe] {
+  display: none;
+}
+
+/*
+ * The collapsed navigation rail, under a macOS hidden title bar.
+ *
+ * The rail is 72 px and the window buttons need 76 px of it, so there is no
+ * room left for the Kingfisher mark that normally sits there — and a mark drawn
+ * under the close button is the bug this whole mechanism exists to prevent. The
+ * rail therefore shows the operating system's controls and nothing else, which
+ * is what a Mac application with a collapsed sidebar looks like anyway.
+ *
+ * Expressed in CSS rather than in the component because `data-titlebar` is set
+ * before first paint by the bootstrap in `layout.tsx`, while a React condition
+ * would have to wait for an effect and would render one frame of the overlap.
+ */
+:root[data-titlebar='mac-hidden-titlebar'] nav[data-sidebar='collapsed'] .kf-titlebar-yield {
+  display: none;
 }

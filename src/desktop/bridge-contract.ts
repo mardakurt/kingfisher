@@ -23,6 +23,10 @@
  * `caller` claim against the source, so a row cannot drift into fiction, and
  * it fails on a method that has neither.
  *
+ * A capability need not be a function. `windowChrome` is a property, and it is
+ * covered here for the same reason the methods are: it is something the shell
+ * offers, it can be read from nowhere, and nobody would notice.
+ *
  * The reasons that are legitimate here are narrow, and there is exactly one
  * kind: the shell already reaches the same capability through its own native
  * menu, so a renderer-side call would be a second route to a place the user
@@ -43,6 +47,11 @@ export interface BridgeContract {
 }
 
 export const BRIDGE_CONTRACTS: readonly BridgeContract[] = [
+  {
+    method: 'windowChrome',
+    purpose: 'Where macOS draws the window buttons, so the application can leave the corner empty.',
+    caller: 'app/layout.tsx',
+  },
   {
     method: 'openPgn',
     purpose: 'Open the native PGN dialog and load what is chosen onto the board.',

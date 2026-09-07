@@ -11,6 +11,7 @@ import { usePreferences } from '@/stores/preferences-store';
 import { useWorkspaceLayout } from '@/stores/workspace-layout-store';
 
 import { BrandMark } from './BrandMark';
+import { TitleBarSafeCorner } from './TitleBarSafeArea';
 import { NAV_GROUPS, sectionsInGroup } from './navigation';
 
 interface SidebarProps {
@@ -39,6 +40,9 @@ export function Sidebar({ variant = 'desktop', onClose }: SidebarProps) {
             : 'hidden w-[var(--sidebar-expanded)] md:flex',
       )}
       aria-label="Sections"
+      /* Read by the macOS title-bar rules in globals.css, and by the window
+         chrome harness, which has to know which layout it is measuring. */
+      data-sidebar={drawer ? 'drawer' : compact ? 'collapsed' : 'expanded'}
     >
       <div
         className={cn(
@@ -46,7 +50,10 @@ export function Sidebar({ variant = 'desktop', onClose }: SidebarProps) {
           drawer || !compact ? 'gap-2.5 px-3.5' : 'justify-center px-2',
         )}
       >
-        <BrandMark className="h-9 w-9 shrink-0 text-accent" />
+        {/* The macOS window buttons sit here, over the top-left of the window.
+            Zero-width everywhere else. */}
+        {drawer ? null : <TitleBarSafeCorner />}
+        <BrandMark className="kf-titlebar-yield h-9 w-9 shrink-0 text-accent" />
         <span
           className={cn(
             'text-[17px] font-semibold tracking-tight text-primary',
