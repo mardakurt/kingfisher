@@ -9,8 +9,14 @@ Status values mean exactly this:
 
 - **Held** — the invariant is asserted by the evidence named, and that evidence
   passed on the run recorded in the Phase 16 handover.
-- **Held (repaired)** — the invariant was found broken during Phase 16, 17, 18
-  or 19 and the fix commit is named.
+- **Held (repaired)** — the invariant was found broken during Phase 16, 17, 18,
+  19 or 20 and the fix commit is named.
+
+**Phase 20 re-ran every row's evidence rather than reading it.** The unit and
+integration suite, the browser suite, the visual gate, the desktop shell tests
+and the companion suite were all run from a clean checkout at the start of the
+phase and again at the end; the counts are in the Phase 20 handover. No row
+below is marked Held on the strength of a previous phase's report.
 
 Nothing here is marked verified on the strength of an earlier report.
 
@@ -222,6 +228,19 @@ Nothing here is marked verified on the strength of an earlier report.
 | A soak failure that names itself | `e2e/soak.spec.ts`                                     | A failed request is reported with its URL; Chromium's console line carries none                                                                                         | —                                              | `soak.spec.ts`                       | **Held (repaired)** | CI run 34050052495 failed on a bare "404 (Not Found)" naming neither resource nor route                 | Phase 19 |
 | The research chain               | `e2e/soak.spec.ts`                                     | Walking the same preparation chain again must not multiply the review set, and must not leave a panel showing the position it saw first                                 | —                                              | `soak.spec.ts` (chain test)          | Held                | —                                                                                                       | Phase 19 |
 
+## Phase 20 — the release candidate
+
+| Capability                               | Implementation                            | Invariant                                                                                                                                  | Unit evidence               | Browser evidence       | Status              | Regression                                                                                                      | Fix      |
+| ---------------------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------- | ---------------------- | ------------------- | --------------------------------------------------------------------------------------------------------------- | -------- |
+| Every shell capability leads somewhere   | `src/desktop/bridge-contract.ts`          | A method on the bridge names either the module that reaches it or the reason nothing does, and the claim is checked against the source     | `bridge-contract.test.ts`   | —                      | **Held (repaired)** | `chooseFile` and `chooseDirectory` were implemented, wired and typed, and called by nothing for a whole phase   | Phase 20 |
+| A path is chosen, not typed              | `src/components/ui/PathField.tsx`         | The desktop adds a way to fill a field, never a second thing the field does; a cancelled dialog leaves what was typed alone                | `bridge-contract.test.ts`   | `en-croissant.spec.ts` | **Held (repaired)** | Three screens asked for an absolute path by hand while the application had a native picker sitting unused       | Phase 20 |
+| A desktop bug report says so             | `src/features/shell/diagnostic-report.ts` | A report from the application names the shell, the Chromium, the Node and whether each owned process is up — and redacts the companion log | `diagnostic-report.test.ts` | —                      | **Held (repaired)** | A desktop report was indistinguishable from a browser one; "companion offline" could not be told from "it died" | Phase 20 |
+| A window does not wait for the companion | `desktop/src/main.mjs`                    | Only the web server is a prerequisite for a window; the companion continues in the background and quit waits for a start still in flight   | `services.test.mjs`         | `desktop:smoke`        | **Held (repaired)** | One `Promise.all` put work proportional to how much a user had configured on the path to a blank board          | Phase 20 |
+| The version is one number                | `next.config.ts`, `src/lib/version.ts`    | The manifests agree, and the value a built page reports is injected from them rather than from a fallback that looks like a version        | `version.test.ts`           | —                      | **Held (repaired)** | Nothing ever set `NEXT_PUBLIC_APP_VERSION`, so every diagnostic report said `0.1.0` whatever the manifests said | Phase 20 |
+| The bundle is the repository             | `scripts/build-desktop-web.mjs`           | What a signed application contains is a property of the repository, not of whose working tree built it                                     | —                           | —                      | **Held (repaired)** | `public/` was copied wholesale, putting 2.9 MB of git-ignored local benchmark PGNs into the signed bundle       | Phase 20 |
+| No optimiser for images nothing renders  | `next.config.ts`                          | The standalone build carries what it reaches; `next/image` is used nowhere                                                                 | —                           | —                      | **Held (repaired)** | 28 MB of `sharp` and libvips shipped for a code path no component invokes                                       | Phase 20 |
+| A test fixture cannot outlive its test   | `desktop/src/services.test.mjs`           | The process that exists to ignore SIGTERM must still end when the run that owns it does not                                                | `services.test.mjs`         | —                      | **Held (repaired)** | A stubborn fixture from an interrupted run had been up for a day, reparented to init                            | Phase 20 |
+
 ---
 
 ## How to use this
@@ -230,8 +249,9 @@ Before changing something, find the row. If the invariant in that row is what
 your change would alter, the evidence named there should fail — and if it does
 not, the evidence is the thing to fix first.
 
-**Thirty-four rows say Held (repaired)**: thirteen fixed in Phase 16 or
-earlier, eight in Phase 17, seven in Phase 18, and six in Phase 19. Counted by
+**Forty-two rows say Held (repaired)**: thirteen fixed in Phase 16 or
+earlier, eight in Phase 17, seven in Phase 18, six in Phase 19, and eight in
+Phase 20. Counted by
 matching each row's fix commit against the commits of each phase, because the
 tally that stood here before Phase 18 said fifteen and had been out of date for
 a phase and a half — which is the sort of thing this document exists to stop

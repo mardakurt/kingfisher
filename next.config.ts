@@ -44,6 +44,23 @@ const desktop = process.env.KINGFISHER_DESKTOP_BUILD === '1';
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   typedRoutes: true,
+  /*
+    No image optimiser in the standalone build.
+
+    Kingfisher renders no `next/image` anywhere — the pieces are a few hundred
+    bytes of SVG each and are drawn with a plain `<img>`, which
+    `src/features/board/piece-sets/index.tsx` says and means. The optimiser is
+    therefore never invoked, but the standalone trace bundles what it *would*
+    need: `sharp`, and under it 27 MB of libvips binaries. That was 28 MB of a
+    signed application, for a code path nothing reaches.
+
+    Declared only for the desktop build, because the rule is that the web build
+    is never changed to suit the desktop. It would be a behavioural no-op
+    either way, but the web build is not standalone and so never bundled
+    `sharp` at all — setting it there would be a change with no effect and a
+    reason for somebody to wonder later.
+  */
+  ...(desktop ? { images: { unoptimized: true as const } } : {}),
   env: {
     NEXT_PUBLIC_APP_VERSION: process.env.NEXT_PUBLIC_APP_VERSION ?? manifest.version,
     ...(process.env.NEXT_PUBLIC_APP_COMMIT
