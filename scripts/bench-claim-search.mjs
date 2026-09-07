@@ -45,8 +45,15 @@ const ROOT = fileURLToPath(new URL('..', import.meta.url));
 function parseArgs(list) {
   const args = {
     db: path.join(ROOT, '.real-scale', 'real.sqlite'),
-    warm: 9,
-    claims: 24,
+    /*
+      Modest on purpose. At this scale each "before" query reads millions of
+      rows out of a five-gigabyte file, so forty runs of the same slow query
+      would take an afternoon to say what four already say. What matters is
+      the spread across the selectivity spectrum, not the sample size at any
+      one point on it.
+    */
+    warm: 3,
+    claims: 12,
     skipBuild: false,
   };
   for (let i = 0; i < list.length; i += 1) {
@@ -169,14 +176,37 @@ async function main() {
       LIMIT 30`,
   );
 
+  /*
+    One run per claim, not `warm` runs, and the reason is worth stating rather
+    than hiding in a flag.
+
+    A claim search under the old plan is latency-bound, not throughput-bound:
+    the common claims match millions of position rows and each one is a random
+    read into `games`. On this collection the commonest claim takes minutes,
+    so repeating it four times measures the page cache rather than the query.
+    One run each across twelve claims is a spread; forty runs of one claim is
+    what Phase 18 reported, and it is measured separately below so that the two
+    numbers can actually be compared.
+  */
   console.log('--- before: the claim index does not exist -----------------------');
   const oldTimes = [];
   const rowTimes = [];
   for (const entry of picked) {
     const like = `%${JSON.stringify(entry.claim)}%`;
-    oldTimes.push(...time(() => phase18.all(like), args.warm));
-    rowTimes.push(...time(() => onRow.all(like), args.warm));
+    let started = performance.now();
+    phase18.all(like);
+    const oldMs = performance.now() - started;
+    started = performance.now();
+    onRow.all(like);
+    const rowMs = performance.now() - started;
+    oldTimes.push(oldMs);
+    rowTimes.push(rowMs);
+    console.log(
+      `  ${entry.claim.padEnd(28)} ${n(entry.sets).padStart(9)} sets  ` +
+        `phase18 ${oldMs.toFixed(0).padStart(8)} ms   on-row ${rowMs.toFixed(0).padStart(8)} ms`,
+    );
   }
+  console.log('');
   console.log(row('Phase 18, sorted via games', summarise(oldTimes)));
   console.log(row('sorted on the position row', summarise(rowTimes)));
   raw.close();
@@ -193,7 +223,7 @@ async function main() {
   const database = new GameDatabase(args.db);
   const openMs = performance.now() - started;
   console.log(
-    `opening the collection (creates the rank indexes)   ${(openMs / 1000).toFixed(1)} s`,
+    `opening the collection                              ${(openMs / 1000).toFixed(1)} s`,
   );
 
   const handle = database.handleForTest();
@@ -241,20 +271,16 @@ async function main() {
   console.log(row('all sorts together', summarise(everything)));
 
   /*
-    The same queries through the fallback the product uses when the index is
-    absent, so "after" is compared against the code that is actually shipped
-    rather than only against the old code.
+    The fallback is deliberately not re-timed here.
+
+    It is the query measured above, and it only ever runs on a collection with
+    no claim index — which is a collection with no rank indexes either, because
+    those are built by the job that builds the claim index. Timing it *now*,
+    with the rank indexes present, would measure a configuration that cannot
+    occur: the planner reaches for a rank scan it then has to sort anyway, and
+    on this collection the commonest claim goes from 30.6 s to 78.5 s. That is
+    the reason they are not built on open.
   */
-  const fallback = [];
-  for (const entry of picked) {
-    fallback.push(
-      ...time(
-        () => database.searchStructuresByScanForTest(query(entry.claim, 'closest')),
-        args.warm,
-      ),
-    );
-  }
-  console.log(row('the same, index disregarded', summarise(fallback)));
 
   const after = statSync(args.db).size;
   console.log(

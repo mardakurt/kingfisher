@@ -557,3 +557,164 @@ test('an all-day research session cannot grow the explorer cache without bound',
   // Nothing else was collected to get there.
   expect(counts.persistenceAfter).toBeGreaterThanOrEqual(counts.persistence);
 });
+
+/**
+ * The research chain, repeated — not the route walk, the workflow.
+ *
+ * The test above drives every surface Kingfisher has, one after another, which
+ * is the right shape for finding a leak and the wrong shape for finding a
+ * *stale* one. Nothing in it goes back to a screen it was on before and
+ * requires it to still be right. This does: it walks one connected piece of
+ * preparation — a line, what is known about it, what several populations say
+ * about it, whose games they are, an engine on it, a repertoire decision, a
+ * review of that decision, an imported game, its analysis, and back to the
+ * beginning — and repeats it.
+ *
+ * Two failures it can see that the other cannot. A panel that caches the
+ * *first* position it was shown and never updates looks correct on a single
+ * pass. And a queue, a review set or a source list that grows every time it is
+ * revisited is a leak with no Worker and no listener behind it, so no resource
+ * count would catch it.
+ *
+ * Native engines are deliberately absent, and the report says so rather than
+ * this test pretending: the companion the browser suite starts installs no
+ * engine binaries, so Lc0 and a second native engine cannot be driven here.
+ * What is exercised is the browser engine and the surfaces around it.
+ */
+test('the same research chain, walked repeatedly, stays correct and stays bounded', async ({
+  page,
+}) => {
+  test.setTimeout(600_000);
+  const consoleFailures: string[] = [];
+  page.on('console', (message) => {
+    if (message.type() === 'error') consoleFailures.push(message.text());
+  });
+  page.on('pageerror', (error) => consoleFailures.push(`pageerror: ${error.message}`));
+
+  await instrument(page);
+  await page.goto('/analysis');
+  await ready(page);
+
+  const dock = () => page.getByRole('complementary', { name: 'Workspace tools' });
+  const najdorf = async () => {
+    await page.getByRole('button', { name: 'Import PGN or FEN' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Import a game or position' });
+    await dialog.getByRole('textbox').fill('1.e4 c5 2.Nf3 d6 3.d4 cxd4 4.Nxd4 Nf6 5.Nc3 a6 *');
+    await dialog.getByRole('button', { name: 'Import games' }).click();
+    await expect(dialog).toBeHidden();
+  };
+
+  /** One pass of the chain. Every step asserts, so a stale panel fails here. */
+  const chain = async (pass: number) => {
+    // 1. A line on the board, from the same moves every pass.
+    await navigate(page, 'Analysis');
+    await page.getByRole('button', { name: 'New analysis' }).click();
+    await najdorf();
+
+    // 2. What is known about it — the Theory Book, which must name the line
+    //    rather than showing whatever it was showing last pass.
+    await page.getByRole('tab', { name: 'Theory Book' }).click();
+    await expect(page.getByRole('tabpanel')).toContainText(/Sicilian/i, { timeout: 20_000 });
+
+    // 3. What the evidence says, and 4. what several populations say.
+    await selectTool(page, dock(), 'Explorer');
+    await page.getByRole('button', { name: 'Compare sources' }).click();
+    await expect(
+      page.getByRole('dialog').or(page.locator('[data-source-comparison]')).first(),
+    ).toBeVisible({
+      timeout: 20_000,
+    });
+    await page.keyboard.press('Escape');
+
+    // 5. The Opening Report over the same position.
+    await selectTool(page, dock(), 'Opening Report');
+    await expect(dock()).toContainText(/Sicilian|Najdorf/i, { timeout: 20_000 });
+
+    // 6. An engine on it, started and stopped, every pass.
+    await selectTool(page, dock(), 'Engine');
+    await page.getByRole('button', { name: 'Start analysis (E)' }).click();
+    await expect(page.getByRole('button', { name: 'Stop analysis (E)' })).toBeVisible({
+      timeout: 30_000,
+    });
+    await page.getByRole('button', { name: 'Stop analysis (E)' }).click();
+    await expect(page.getByRole('button', { name: 'Start analysis (E)' })).toBeVisible();
+
+    // 7. A repertoire decision from the position on the board.
+    await page.getByRole('button', { name: 'Document actions' }).click();
+    await page.getByRole('menuitem', { name: 'Add to repertoire…' }).click();
+    await page.getByRole('button', { name: /Save \d+ position/ }).click();
+    await expect(page.getByRole('dialog', { name: 'Add to repertoire' })).toBeHidden();
+
+    // 8. And a review of it. The set is a *selection*, not a syllabus: a
+    //    second pass must not hand back twice as many prompts as the first.
+    await navigate(page, 'Repertoire');
+    await page.getByRole('button', { name: 'Review repertoire' }).click();
+    const review = page.getByRole('dialog', { name: 'Review repertoire' });
+    await expect(review.getByRole('status')).toContainText(/\d+ prompts/, { timeout: 20_000 });
+    const prompts = Number(
+      /(\d+) prompts/.exec((await review.getByRole('status').innerText()) ?? '')?.[1] ?? '0',
+    );
+    await page.keyboard.press('Escape');
+
+    // 9. Whose games these are.
+    await navigate(page, 'Players');
+    await page.getByRole('searchbox', { name: 'Search players' }).fill('carlsen');
+    await expect(page.locator('[data-player-results] li').first()).toBeVisible();
+    await page.getByRole('searchbox', { name: 'Search players' }).fill('');
+
+    // 10. Preparation, 11. the game database, 12. a study, 13. the endgame lab.
+    await navigate(page, 'Preparation');
+    await navigate(page, 'Games');
+    await navigate(page, 'Databases');
+    await navigate(page, 'Studies');
+    await navigate(page, 'Endgame');
+
+    // 14. Structural search over the position, which owns its own long query.
+    await navigate(page, 'Analysis');
+    await selectTool(page, dock(), 'Features');
+    await page.getByRole('button', { name: 'Search', exact: true }).click();
+
+    // 15. Review and Training, the two queues the chain feeds.
+    await navigate(page, 'Review');
+    await navigate(page, 'Training');
+
+    return { prompts, pass };
+  };
+
+  // A warm-up pass first: the first one opens the persistence database, the
+  // engine's WASM module and every panel's cache, and none of that is a leak.
+  const first = await chain(0);
+  const baseline = await live(page);
+
+  const passes = [];
+  for (let index = 1; index <= 3; index += 1) passes.push(await chain(index));
+  const after = await live(page);
+
+  /*
+    The stale-state assertion, and the reason this test exists beside the other
+    one. Walking the chain again must not multiply the review set: the same
+    repertoire decision, made again, is the same decision. A set that grew with
+    every pass is the Phase 18 defect, and it had no resource signature at all.
+  */
+  for (const pass of passes) {
+    expect(pass.prompts, `pass ${pass.pass} handed back a different number of prompts`).toBe(
+      first.prompts,
+    );
+  }
+
+  // And the ordinary resource bounds, on this heavier chain.
+  expect(after.workers - baseline.workers).toBeLessThanOrEqual(2);
+  expect(after.channels - baseline.channels).toBeLessThanOrEqual(1);
+  expect(after.eventSources - baseline.eventSources).toBeLessThanOrEqual(1);
+  expect(after.intervals - baseline.intervals).toBeLessThanOrEqual(2);
+  expect(after.windowListeners - baseline.windowListeners).toBeLessThanOrEqual(4);
+  expect(after.resizeObservers - baseline.resizeObservers).toBeLessThanOrEqual(4);
+  expect(consoleFailures).toEqual([]);
+
+  // eslint-disable-next-line no-console
+  console.log(
+    `[chain] ${passes.length + 1} passes; review prompts steady at ${first.prompts}; ` +
+      `workers ${after.workers}, observers ${after.resizeObservers}, ` +
+      `listeners ${after.windowListeners}, intervals ${after.intervals}`,
+  );
+});

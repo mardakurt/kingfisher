@@ -365,3 +365,120 @@ describe('the invariant the ordering rests on', () => {
     expect(Math.max(top.game.whiteRating ?? 0, top.game.blackRating ?? 0)).toBe(2800);
   });
 });
+
+describe('what opening a collection costs', () => {
+  /*
+    The rank indexes are only useful to the ordered scan, which only runs once
+    the claim index exists. Creating them on open cost 51.7 seconds on a 5.3 GB
+    collection that might never have one — and, worse, their presence gave the
+    planner a rank scan for the *unindexed* fallback which it then had to sort
+    anyway: 78 s against the 40 s the same query took before they existed.
+
+    So a collection that has claim sets and no claim index must come back from
+    `new GameDatabase(...)` with neither rank index, and building the index is
+    what creates them.
+  */
+  const indexes = (db) =>
+    new Set(
+      db
+        .handleForTest()
+        .prepare("SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = 'positions'")
+        .all()
+        .map((row) => row.name),
+    );
+
+  it('creates the rank indexes for a new collection, where they are free', () => {
+    const db = fresh();
+    expect(indexes(db).has('positions_rank')).toBe(true);
+    expect(indexes(db).has('positions_recent')).toBe(true);
+  });
+
+  it('does not build them on opening a collection that has no claim index', () => {
+    const db = populated(60);
+    const handle = db.handleForTest();
+    handle.exec(
+      `DROP INDEX IF EXISTS positions_rank; DROP INDEX IF EXISTS positions_recent;
+       DELETE FROM claim_set_members; DELETE FROM claims;
+       DELETE FROM schema_state WHERE key = '${CLAIM_INDEX_KEY}';`,
+    );
+    const reopened = new GameDatabase(db.fileForTest());
+    expect(claimIndexReady(reopened.handleForTest())).toBe(false);
+    expect(indexes(reopened).has('positions_rank')).toBe(false);
+    expect(indexes(reopened).has('positions_recent')).toBe(false);
+    // And it still answers, by scanning.
+    expect(
+      reopened.searchStructures({
+        mode: 'claims',
+        claims: ['open-d'],
+        positionKey: '',
+        pawnSkeleton: '',
+        structureSignature: '',
+        limit: 30,
+      }).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it('builds them as part of building the claim index', () => {
+    const db = populated(60);
+    const handle = db.handleForTest();
+    handle.exec(
+      `DROP INDEX IF EXISTS positions_rank; DROP INDEX IF EXISTS positions_recent;
+       DELETE FROM claim_set_members; DELETE FROM claims;
+       DELETE FROM schema_state WHERE key = '${CLAIM_INDEX_KEY}';
+       DELETE FROM schema_state WHERE key = 'claim_index_cursor';`,
+    );
+    expect(buildClaimIndex(handle).done).toBe(true);
+    expect(indexes(db).has('positions_rank')).toBe(true);
+    expect(indexes(db).has('positions_recent')).toBe(true);
+  });
+});
+
+describe('the ordering the ordered scan is given', () => {
+  /*
+    The defect this catches cost 74,351 ms on 11.3 million positions.
+
+    An ordered index scan is only cheap while the ORDER BY *is* the index's
+    order. The relevance ordering leads with three terms the rank index cannot
+    express, so asking the scan for it forced the index walk and then sorted
+    every matched row anyway — the worst of both plans. The tiers supply those
+    three terms; what is left is exactly rating then year.
+
+    Asserted on the plan, because both orderings return the same rows and no
+    correctness test can see the difference.
+  */
+  it('never asks the rank index for an ordering it cannot give', () => {
+    const db = populated(300);
+    const plans = [];
+    const handle = db.handleForTest();
+    const original = handle.prepare.bind(handle);
+    handle.prepare = (sql) => {
+      if (
+        sql.includes('INDEXED BY positions_rank') ||
+        sql.includes('INDEXED BY positions_recent')
+      ) {
+        plans.push(sql);
+      }
+      return original(sql);
+    };
+    for (const sort of ['closest', 'rating', 'recent']) {
+      db.searchStructures({
+        mode: 'claims',
+        claims: ['open-d'],
+        positionKey: '',
+        pawnSkeleton: '',
+        structureSignature: '',
+        sort,
+        limit: 30,
+      });
+    }
+    handle.prepare = original;
+    expect(plans.length).toBeGreaterThan(0);
+    for (const sql of plans) {
+      // The forced-index query must never carry the relevance prefix.
+      expect(sql).not.toContain('position_key = ?) DESC');
+      expect(sql).toMatch(
+        /ORDER BY\s+p\.(rating_key|year_key) DESC, p\.(year_key|rating_key) DESC/,
+      );
+    }
+  });
+});

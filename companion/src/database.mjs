@@ -344,6 +344,13 @@ export class GameDatabase {
       this.#sql.compact &&
       !this.#db.prepare('SELECT 1 FROM structure_claim_sets LIMIT 1').get()
     ) {
+      /*
+        The rank indexes come with the readiness, and here they are free: the
+        table is empty. On a collection that already holds positions they cost
+        the better part of a minute and are built by `buildClaimIndex`, which
+        is the only thing that makes them worth having.
+      */
+      this.#db.exec(CLAIM_INDEX_INDEXES);
       markClaimIndexReady(this.#db);
     }
     this.#claimIndexReady = claimIndexReady(this.#db);
@@ -371,12 +378,17 @@ export class GameDatabase {
           ON positions(structure_claims_id) WHERE structure_claims_id IS NOT NULL;
       `);
       /*
-        The rank index the ordered claim scan walks. Only under the compact
-        schema, because it is only there that a claim search can reach the
-        cheap plan at all — the text schema has no claim index to test
-        membership against, and its claim search is a LIKE over every row.
+        The rank indexes are **not** created here, and that is deliberate.
+
+        They are only useful to the ordered claim scan, which only runs once
+        the claim index exists — and creating them costs 51.7 seconds on a
+        5.3 GB collection, which every open would pay whether or not anybody
+        ever built the index. Worse, their mere presence gives the planner a
+        new option for the *unindexed* fallback: on the commonest claim it
+        chose a rank scan and then sorted anyway, taking 78 s against the
+        40 s the same query took before they existed. So they are built by
+        `buildClaimIndex`, beside the thing that uses them.
       */
-      this.#db.exec(CLAIM_INDEX_INDEXES);
       return;
     }
     this.#db.exec(`
@@ -1769,9 +1781,22 @@ export class GameDatabase {
       arbitrary before and are arbitrary now.
     */
     const relevance = query.sort !== 'recent' && query.sort !== 'rating';
+    /*
+      The scan orders by rating and year, never by relevance, and this is the
+      whole point of the tiers.
+
+      An ordered index scan is only cheap while the ORDER BY *is* the index's
+      order. Asking for the relevance ordering here forces the index scan and
+      then sorts every matched row anyway — the worst of both plans, and
+      measurably so: on 11.3 million positions the commonest claim took
+      74,351 ms that way against 312 ms this way. The three leading relevance
+      terms are supplied by the passes below; what is left after them is
+      exactly rating then year, which is what this index holds.
+    */
     const scan = () =>
       this.#searchRows(query, limit, [membership.sql], membership.params, {
         index: query.sort === 'recent' ? 'positions_recent' : 'positions_rank',
+        sort: query.sort === 'recent' ? 'recent' : 'rating',
       });
     if (!relevance) return scan();
 

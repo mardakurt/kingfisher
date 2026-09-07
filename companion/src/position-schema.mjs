@@ -374,6 +374,14 @@ export function buildClaimIndex(db, { chunk = 20_000, budgetMs = null, onProgres
   // Self-sufficient: this is called from the migration as well as from the
   // maintenance job, and the migration runs against files that predate both.
   db.exec(CLAIM_INDEX_TABLES);
+  /*
+    The rank indexes belong to this job rather than to opening the collection.
+    They are useless until the claim index exists, they cost the better part of
+    a minute on a five-gigabyte collection, and their presence makes the
+    unindexed fallback *slower* by giving the planner a rank scan it then has
+    to sort anyway. Built here, once, by the job that makes them worth having.
+  */
+  db.exec(CLAIM_INDEX_INDEXES);
   let cursor = Number(readState(db, CURSOR) ?? 0);
   const total = db.prepare('SELECT COUNT(*) AS n FROM structure_claim_sets').get().n;
   const claim = db.prepare(
@@ -680,7 +688,6 @@ export function migrateToCompact(db, options = {}) {
       db.exec(`ALTER TABLE positions DROP COLUMN ${column}`);
     }
     db.exec(COMPACT_INDEXES);
-    db.exec(CLAIM_INDEX_INDEXES);
     writeState(db, 'compact_migration_cursor', null);
     writeState(db, 'compact_migration_started', null);
     db.exec(`PRAGMA user_version = ${COMPACT_SCHEMA}`);
