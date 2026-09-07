@@ -28,6 +28,7 @@ import {
   renameSync,
   readdirSync,
   rmdirSync,
+  statSync,
 } from 'node:fs';
 import path from 'node:path';
 import { promisify } from 'node:util';
@@ -36,6 +37,35 @@ import { verifyEngine } from './engine-verify.mjs';
 import { compatibleAsset, cpuFeatures } from './cpu.mjs';
 
 const run = promisify(execFile);
+
+/**
+ * Where a package manager puts things, when `PATH` will not say.
+ *
+ * A macOS application launched from the Finder does not inherit the PATH from
+ * anybody's shell profile. It gets the system default —
+ * `/usr/bin:/bin:/usr/sbin:/sbin` — which contains no Homebrew, no MacPorts
+ * and no `/usr/local/bin`. So `which lc0` succeeds in a terminal, succeeds
+ * when the companion is started from a checkout, and fails in the packaged
+ * application, for every `system` engine, on the machine that has one
+ * installed. Phase 19 recorded that Lc0 had not been verified inside the
+ * bundle; this is why it could not have been.
+ *
+ * These are directories, not binaries: nothing here decides *what* to run.
+ * The engine still has to be one of the names the catalogue lists, still has
+ * to be an executable file, and still has to complete a UCI handshake and find
+ * a move before it is registered at all. This only widens where Kingfisher
+ * looks from "whatever PATH this process happened to inherit" to "the places
+ * this platform's package managers install into".
+ */
+export const WELL_KNOWN_BINARY_DIRECTORIES = {
+  darwin: [
+    '/opt/homebrew/bin', // Homebrew, Apple Silicon
+    '/usr/local/bin', // Homebrew, Intel — and the traditional location
+    '/opt/local/bin', // MacPorts
+  ],
+  linux: ['/usr/local/bin', '/usr/bin', '/bin', '/snap/bin', '/var/lib/flatpak/exports/bin'],
+  win32: [],
+};
 
 export class ManagedEngines {
   /**
@@ -56,6 +86,7 @@ export class ManagedEngines {
   #registry;
   #records = new Map();
   #features;
+  #binaryDirectories;
 
   constructor({
     catalogue,
@@ -65,6 +96,13 @@ export class ManagedEngines {
     recordFile,
     registry,
     features = cpuFeatures(),
+    /*
+      Where to look when PATH does not have it. Injectable so that a test can
+      point it at a directory it controls: the real list names absolute system
+      paths, and a test that needed Homebrew installed to run would not be
+      testing this code.
+    */
+    binaryDirectories = WELL_KNOWN_BINARY_DIRECTORIES[process.platform] ?? [],
   }) {
     this.#catalogue = catalogue;
     this.#digests = digests;
@@ -73,6 +111,7 @@ export class ManagedEngines {
     this.#recordFile = recordFile;
     this.#registry = registry;
     this.#features = features;
+    this.#binaryDirectories = binaryDirectories;
   }
 
   /**
@@ -300,9 +339,27 @@ export class ManagedEngines {
         const found = stdout.split(/\r?\n/)[0]?.trim();
         if (found && existsSync(found)) return found;
       } catch {
-        // Not on the path.
+        // Not on the path — which, in a packaged application, says very
+        // little. See WELL_KNOWN_BINARY_DIRECTORIES.
       }
     }
+
+    /*
+      PATH did not have it. Look where the platform's package managers put
+      things, in order, first hit wins — the same order a shell profile would
+      have produced had this process been given one.
+    */
+    for (const command of entry.commands ?? []) {
+      for (const directory of this.#binaryDirectories) {
+        const candidate = path.join(directory, command);
+        try {
+          if (statSync(candidate).isFile()) return candidate;
+        } catch {
+          // Not there either.
+        }
+      }
+    }
+
     throw new Error(
       entry.install?.[this.#platform]
         ? `${entry.name} is not on this machine. Install it with: ${entry.install[this.#platform]}`

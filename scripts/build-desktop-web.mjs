@@ -122,6 +122,38 @@ if (skipped > 0) {
   );
 }
 
+/*
+  The image optimiser's native dependency, which nothing in Kingfisher reaches.
+
+  `next/image` is rendered nowhere — the pieces are a few hundred bytes of SVG
+  drawn with a plain `<img>` — and `next.config.ts` declares
+  `images.unoptimized` for this build, so the optimiser route is off. Next's
+  standalone trace includes `sharp` and its 27 MB of libvips binaries anyway,
+  because the tracer follows what the compiled server *could* import rather
+  than what this configuration will.
+
+  Declaring `unoptimized` alone did not remove them — measured, not assumed:
+  the bundle was still 379 MB with it set. So they are pruned here, and the
+  claim that this is safe was tested rather than reasoned about. With both
+  directories deleted the standalone server starts and answers `/analysis`,
+  `/openings`, `/players`, `/databases`, `/studies`, `/repertoire`, `/review`,
+  `/training` and `/endgame` with HTTP 200, and serves the 7.3 MB Stockfish
+  WebAssembly and the starter pack manifest.
+*/
+const UNREACHABLE = ['@img', 'sharp'];
+let pruned = 0;
+for (const name of UNREACHABLE) {
+  const at = path.join(OUT, 'node_modules', name);
+  if (!existsSync(at)) continue;
+  pruned += size(at);
+  rmSync(at, { recursive: true, force: true });
+}
+if (pruned > 0) {
+  console.log(
+    `  (pruned ${(pruned / 1e6).toFixed(1)} MB: ${UNREACHABLE.join(', ')} — no next/image)`,
+  );
+}
+
 const absent = REQUIRED.filter((entry) => !existsSync(path.join(OUT, 'public', entry.at)));
 if (absent.length > 0) {
   console.error('\nThe bundle is missing assets the application needs at runtime:\n');

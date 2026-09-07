@@ -176,3 +176,71 @@ describe('installing a managed engine', () => {
     );
   });
 });
+
+/**
+ * Finding an engine the machine already has, without a shell's PATH.
+ *
+ * A macOS application launched from the Finder inherits
+ * `/usr/bin:/bin:/usr/sbin:/sbin` and nothing else — no Homebrew, no MacPorts,
+ * no `/usr/local/bin`. `which lc0` therefore succeeds in a terminal, succeeds
+ * when the companion runs from a checkout, and fails inside the packaged
+ * application on the very machine that has Lc0 installed. Phase 19 recorded
+ * that Lc0 had never been verified inside the bundle; this is the reason it
+ * could not have been.
+ *
+ * The engine used here is a shell script, because what is under test is
+ * *finding* a file, and every other guarantee — that it is executable, speaks
+ * UCI and can find a move — is enforced afterwards by `verifyEngine` and has
+ * its own tests.
+ */
+describe('locating a system engine', () => {
+  const SYSTEM_CATALOGUE = [
+    {
+      id: 'neural',
+      name: 'A Neural Engine',
+      family: 'neural',
+      kind: 'system',
+      license: 'GPL-3.0-or-later',
+      source: 'https://example.invalid/neural',
+      notes: 'A fixture for the system-engine path.',
+      commands: ['pretend-lc0'],
+      install: { 'test-arch': 'brew install pretend-lc0' },
+      platforms: ['*'],
+    },
+  ];
+
+  const systemHarness = (binaryDirectories) => {
+    const root = mkdtempSync(path.join(tmpdir(), 'kingfisher-system-'));
+    return new ManagedEngines({
+      catalogue: SYSTEM_CATALOGUE,
+      digests: {},
+      platform: 'test-arch',
+      engineDir: path.join(root, 'engines'),
+      recordFile: path.join(root, 'managed-engines.json'),
+      registry: new PathRegistry(),
+      binaryDirectories,
+    });
+  };
+
+  it('finds one in a package manager’s directory when PATH does not have it', async () => {
+    const where = mkdtempSync(path.join(tmpdir(), 'kingfisher-bindir-'));
+    const binary = path.join(where, 'pretend-lc0');
+    writeFileSync(binary, '#!/bin/sh\nexit 0\n', { mode: 0o755 });
+
+    const managed = systemHarness([where]);
+    /*
+      Installing runs the real UCI verification, which this script fails — and
+      that is fine, because the failure names the *check*, not the search. A
+      "not on this machine" error would mean it was never found at all, which
+      is the defect.
+    */
+    await expect(managed.install('neural')).rejects.toThrow(/did not pass its UCI check/);
+  });
+
+  it('says the engine is absent, with how to get it, when it is nowhere', async () => {
+    const managed = systemHarness([mkdtempSync(path.join(tmpdir(), 'kingfisher-empty-'))]);
+    await expect(managed.install('neural')).rejects.toThrow(
+      /is not on this machine.*brew install pretend-lc0/s,
+    );
+  });
+});
