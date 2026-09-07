@@ -41,6 +41,8 @@ import { fileURLToPath } from 'node:url';
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const STANDALONE = path.join(ROOT, '.next', 'standalone');
 const OUT = path.join(ROOT, 'desktop', 'web');
+/** `ROOT` with no trailing separator, which is how Next writes it. */
+const ROOT_PATH = path.resolve(ROOT);
 
 const size = (dir) => {
   let total = 0;
@@ -59,7 +61,16 @@ const size = (dir) => {
 console.log('Building the desktop web bundle');
 console.log(`node ${process.version} · ${process.platform}-${process.arch}\n`);
 
-execFileSync('npx', ['next', 'build'], {
+/*
+  `npx.cmd` on Windows.
+
+  npm installs its shims as `.cmd` files there, and `execFile` without a shell
+  cannot start one — the first Windows packaging run failed with
+  `spawnSync npx ENOENT` before it compiled a single route. Naming the
+  extension rather than setting `shell: true` keeps the arguments an array,
+  so nothing here can ever be read as shell syntax.
+*/
+execFileSync(process.platform === 'win32' ? 'npx.cmd' : 'npx', ['next', 'build'], {
   cwd: ROOT,
   stdio: 'inherit',
   env: {
@@ -108,9 +119,26 @@ const EXCLUDED = [
   { at: 'bench', because: 'benchmark fixtures; `npm run bench:*` regenerates them' },
 ];
 
+/*
+  What must be there, and deliberately not more.
+
+  The first version of this list also required `engine/manifest.json`, and the
+  first Linux packaging run failed on it — correctly, in the sense that the
+  file was absent, and wrongly, in the sense that it is *optional*. That
+  manifest is written by `npm run engines:install`, which installs **native**
+  engines, and `loadEngines()` returns early when it is missing. A machine that
+  never installed one is a normal machine.
+
+  So the list is only what the application genuinely cannot run without: the
+  browser engine, which is every user's default and the whole of the offline
+  analysis story.
+*/
 const REQUIRED = [
   { at: 'engine/stockfish', because: 'the browser engine; run `npm run engine:install`' },
-  { at: 'engine/manifest.json', because: 'the engine manifest; run `npm run engine:install`' },
+  {
+    at: 'engine/stockfish/manifest.json',
+    because: 'the browser engine manifest; run `npm run engine:install`',
+  },
 ];
 
 const excludedRoots = EXCLUDED.map((entry) => path.join(ROOT, 'public', entry.at));
@@ -174,31 +202,99 @@ if (absent.length > 0) {
 /*
   Take the build machine's own paths out of what gets signed and shipped.
 
-  `npm run tablebase:install` records the absolute path of the helper it just
-  compiled, and that record lives under `public/`, so a bundle built here
-  shipped `/Users/<whoever built it>/…/kingfisher-tbprobe` to everybody given a
-  copy. Two problems in one line: it discloses the builder's account name and
-  directory layout, and it names a file that cannot exist on the machine
-  reading it.
+  Two files under `public/engine/` are build records, and both named absolute
+  paths on the machine that produced them. A bundle built here shipped
 
-  The rest of the record is provenance worth keeping — the upstream repository,
-  the commit, the licence and the source digests describe the helper wherever
-  it came from — so the path is dropped rather than the file. The companion
-  resolves the binary on the machine it is actually running on; see
-  `tablebaseBinary()`.
+      "helper": "/Users/<the builder>/.../engines/tablebase/kingfisher-tbprobe"
+      "binary": "/Users/<the builder>/.../engines/stormphrax/stormphrax"
+
+  to everybody given a copy. That discloses the builder's account name and
+  directory layout, and it names files that exist on exactly one computer — the
+  companion drops both after an `existsSync`, so nothing breaks, but nothing is
+  gained by carrying them either.
+
+  Everything else in the two records is worth shipping: the engine list with
+  its licences and sources, and the helper's upstream repository, commit,
+  licence and source digests. So the paths are removed and the records kept.
+
+  Written to a staging directory rather than edited in place, because
+  `public/engine/` belongs to the checkout — `npm run dev` reads those same
+  paths and needs them. `electron-builder.yml` copies the sanitised pair from
+  here into `Resources/kingfisher/public/engine`, which is a second copy that
+  does not come through `OUT` at all and was still leaking after the first
+  attempt at this fixed only the one that did.
 */
-const buildRecord = path.join(OUT, 'public', 'engine', 'tablebase.json');
-if (existsSync(buildRecord)) {
-  const record = JSON.parse(readFileSync(buildRecord, 'utf8'));
-  if (record.helper) {
+const STAGED = path.join(ROOT, 'desktop', 'resources', 'engine');
+
+/** Drop the fields that name this machine. Null when there is no such file. */
+const sanitised = (name) => {
+  const source = path.join(ROOT, 'public', 'engine', name);
+  if (!existsSync(source)) return null;
+  const record = JSON.parse(readFileSync(source, 'utf8'));
+  let removed = 0;
+  if (typeof record.helper === 'string') {
     delete record.helper;
-    record.helperPathRemoved =
-      'Removed at packaging: it named the build machine. The companion finds the helper itself.';
-    writeFileSync(buildRecord, `${JSON.stringify(record, null, 2)}\n`);
-    console.log(
-      '  (removed the build machine\u2019s helper path from public/engine/tablebase.json)',
-    );
+    removed += 1;
   }
+  for (const engine of record.engines ?? []) {
+    if (typeof engine.binary === 'string' && path.isAbsolute(engine.binary)) {
+      delete engine.binary;
+      removed += 1;
+    }
+  }
+  if (removed > 0) {
+    record.buildPathsRemoved =
+      'Absolute paths naming the build machine were removed at packaging. The companion ' +
+      'resolves engines and the tablebase helper on the machine it is running on.';
+  }
+  return { removed, text: `${JSON.stringify(record, null, 2)}\n` };
+};
+
+rmSync(STAGED, { recursive: true, force: true });
+mkdirSync(STAGED, { recursive: true });
+let redacted = 0;
+for (const name of ['manifest.json', 'tablebase.json']) {
+  const result = sanitised(name);
+  if (!result) continue;
+  redacted += result.removed;
+  writeFileSync(path.join(STAGED, name), result.text);
+  // The standalone server serves its own copy, which is a different file.
+  const served = path.join(OUT, 'public', 'engine', name);
+  if (existsSync(served)) writeFileSync(served, result.text);
+}
+if (redacted > 0) {
+  console.log(`  (removed ${redacted} build-machine path(s) from public/engine/*.json)`);
+}
+
+/*
+  And Next's own two, which name the directory this was built in.
+
+  `server.js` and `.next/required-server-files.json` carry the build root in
+  `outputFileTracingRoot`, `repoRoot` and `appDir`. That is ordinary Next
+  standalone output and not a Kingfisher bug, but it is still the builder's
+  home directory inside an application handed to other people, and every one
+  of the three is build-time metadata that the running server does not need to
+  be true — it resolves what it serves from `__dirname`.
+
+  Replaced with a neutral absolute path rather than deleted, so the shape of
+  the JSON and of the embedded config is unchanged. Tested rather than
+  reasoned about: with all seven occurrences rewritten, the standalone server
+  starts and answers /analysis, /openings, /players, /databases, /studies,
+  /repertoire, /review, /training, /endgame and /recent with HTTP 200, and
+  serves the 7.3 MB Stockfish WebAssembly.
+*/
+const NEUTRAL_ROOT = '/kingfisher';
+let rewritten = 0;
+for (const relative of ['server.js', path.join('.next', 'required-server-files.json')]) {
+  const at = path.join(OUT, relative);
+  if (!existsSync(at)) continue;
+  const before = readFileSync(at, 'utf8');
+  if (!before.includes(ROOT_PATH)) continue;
+  rewritten += before.split(ROOT_PATH).length - 1;
+  writeFileSync(at, before.split(ROOT_PATH).join(NEUTRAL_ROOT));
+}
+if (rewritten > 0) {
+  console.log(`  (rewrote ${rewritten} reference(s) to the build directory in Next's output)`);
 }
 
 console.log(`\nAssembled ${path.relative(ROOT, OUT)}`);

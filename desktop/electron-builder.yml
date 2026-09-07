@@ -58,7 +58,11 @@ extraResources:
     to: kingfisher/scripts/engine-catalogue.mjs
   - from: ../scripts/engine-digests.json
     to: kingfisher/scripts/engine-digests.json
-  - from: ../public/engine
+  # The sanitised pair, not `../public/engine` — see `build-desktop-web.mjs`.
+  # The checkout's own records name absolute paths on the build machine, and
+  # this copy does not pass through the standalone bundle, so it was still
+  # shipping them after the served copy had been cleaned.
+  - from: resources/engine
     to: kingfisher/public/engine
     filter:
       - '*.json'
