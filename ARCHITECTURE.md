@@ -512,6 +512,45 @@ limit: a third search takes cores from the interface. `engine/comparison.ts`
 reports top-move agreement, PV divergence and the evaluation gap, and refuses
 to subtract a mate score from an evaluation. See `docs/ENGINES.md`.
 
+## The desktop shell
+
+`desktop/` is an Electron application that serves the same Next.js application
+the browser runs and owns the two local processes it needs. It adds no chess
+code and holds no chess state: the renderer is the unmodified web application,
+and the entire surface between them is `desktop/src/preload.cjs` and
+`src/desktop/bridge.ts`, which returns `null` in a browser.
+
+Why Electron and not Tauri is a measured decision in
+[ADR 0049](docs/adr/0049-the-desktop-shell.md), and it turns on two facts. The
+browser engine is a multi-threaded WebAssembly Stockfish, which needs
+`SharedArrayBuffer`, which needs cross-origin isolation — and under Tauri's
+WKWebView `crossOriginIsolated` stays `false` even with COOP and COEP declared.
+And the companion is Node: Electron 44 embeds Node 24.20 with `node:sqlite` and
+`worker_threads`, so it is forked unmodified rather than rewritten in Rust or
+shipped beside a 119 MB Node.
+
+Four rules hold here and are the ones to keep:
+
+- **The shell owns the companion's lifetime, and the shutdown is a contract.**
+  `SIGTERM` first, so the companion runs its own `stopAll` and ends its
+  engines; escalation if it will not go; and an IPC channel the companion
+  watches, so a shell that is _killed_ rather than quit still takes its engines
+  with it. Engines are spawned detached, in their own process groups, which is
+  exactly the property that lets them outlive a parent nobody told to stop.
+  `desktop/src/services.test.mjs` forks real processes and asserts all three.
+- **Native file access goes through one boundary.** Everything the renderer can
+  read was chosen in a dialog or dropped on the window; there is no
+  `readFile(path)` on the bridge, deliberately. A collection opened by path
+  goes through `/db/attach`, which opens the file read-only and refuses
+  anything that is not already a Kingfisher collection.
+- **The web build is not changed to suit it.** Standalone output and
+  cross-origin isolation are opt-in behind environment variables that only
+  `scripts/build-desktop-web.mjs` sets.
+- **A platform claim needs evidence.** `npm run desktop:smoke` drives the real
+  application through Playwright and checks the fourteen things only the shell
+  can be wrong about, including that nothing survives the quit. README states
+  which platforms that has actually been run on.
+
 ## The local companion
 
 Optional, and nothing depends on it. `companion/` is a dependency-free Node
@@ -1209,6 +1248,31 @@ Both embed a format version, so a key written under an older definition is
 detectable rather than silently a miss. Both are stored on the position row and
 indexed in SQLite and IndexedDB, which makes structure search an equality lookup
 rather than a scan.
+
+**Claims are the third identity, and the one that needed an index of its own.**
+A position carries a flat list of chess claims — an isolated d-pawn, an open
+c-file, a strategic theme — and searching for one was the slowest query in the
+product. Two facts made a cheap index possible and are worth keeping in mind
+before changing either:
+
+- **The sort key is already on the position row.** `positions.rating_key` and
+  `year_key` hold the game's `max_rating` and `year`, denormalised there for the
+  filter cache. So a claim search orders on the position, and the join to
+  `games` is needed for the rows it returns rather than for every row it
+  matched. `claim-index.test.mjs` asserts those columns stay equal to the
+  game's, after an import, after a deletion and after a second import — the
+  ordering is only correct while that holds.
+- **Claims repeat in sets, not in positions.** A collection with 11.3 million
+  positions carries 1.5 million distinct claim sets, so the index is claim to
+  claim _set_ rather than claim to position — which would be 114 million rows.
+
+Two query plans, chosen by selectivity: an ordered walk of a rank index that
+stops at thirty, and the seek-and-sort that is cheaper for a rare claim. They
+return the same rows, so a wrong choice is slower and never different. **An
+index that is not finished is never used** — a claim search against a half-built
+one would return nothing, which reads as "no game here has that structure", so
+the fast plan waits for a completed build and everything else falls back to
+scanning.
 
 `structureOverlap` returns a count of shared claims and the totals on each side.
 Not a similarity score: the caller decides what "close enough" means, and the

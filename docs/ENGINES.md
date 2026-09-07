@@ -289,6 +289,72 @@ one — and both feed the same registry. Three provenances, three records, one
 registry: merging them would make "where did this engine come from" unanswerable,
 which is the question the trust model turns on.
 
+### Engines Kingfisher builds for itself
+
+A published binary is the better provenance claim, and where a project
+publishes none the platform row was simply empty. That is why an Apple Silicon
+Kingfisher offered five native engines and an Intel one offered two — a fact
+about release pages, not about the engines.
+
+`npm run engines:build` closes that, under conditions strict enough for the
+result to be worth something:
+
+```bash
+npm run engines:build                      # every engine declared for this platform
+node scripts/build-engine.mjs --engine berserk --keep
+```
+
+- the project's **own** repository, and no mirror;
+- an **exact tag**, which must still resolve to the recorded commit — a tag is
+  a mutable pointer, and the build refuses one that has moved;
+- a checkout verified **clean**, so nothing is patched;
+- the build command as **argv**, never a shell string;
+- and a provenance record: repository, tag, commit, licence, compiler,
+  compiler version, build flags, target architecture, what the build
+  downloaded, and the SHA-256 of the result.
+
+The declarations are in `scripts/engine-sources.mjs`. A binary built this way
+faces the same qualification matrix as a published one; it earns its row the
+same way.
+
+**What it produced, in CI run 34112154544**, on three platforms. Berserk 14
+from tag `14` (`8ae895a6151695be4a50d4fb65b0c131659c513a`), unpatched, each
+binary a different SHA-256 because each is a different target:
+
+| Platform    | Build command                 | Compiler           | Built | SHA-256 (first 16) | Qualification |
+| ----------- | ----------------------------- | ------------------ | ----: | ------------------ | ------------- |
+| macOS arm64 | `make build ARCH=arm64`       | Apple clang 21.0.0 |  11 s | `0d4db823e3896315` | 16 of 16      |
+| macOS x64   | `make build ARCH=x86-64-avx2` | Apple clang        |  16 s | `4c165edfd415240e` | 16 of 16      |
+| Linux x64   | `make build ARCH=x86-64-avx2` | gcc                |     — | see the artifact   | 16 of 16      |
+
+All nine positions and all seven protocol sequences passed on every platform —
+including `position fen not-a-fen` and `go depth banana`, which Stockfish 19
+exits on.
+
+Berserk publishes a Windows asset and nothing else, so this is a **sixth**
+native engine on Apple Silicon and a **third** on Intel, which was the thinnest
+platform in the matrix by a distance.
+
+**Two engines were tried and refused, with the reason recorded** in
+`NOT_BUILDABLE` beside the declarations, so that a shorter macOS column is an
+answer rather than a question:
+
+| Engine        | On macOS                                                                                                           |
+| ------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Obsidian 16.0 | Passes `-flto-partition=one`, a GCC option Apple clang rejects, and `-s` to a linker that does not take it.        |
+| Koivisto 9.0  | Requires `-fopenmp`, which Apple clang does not have, and links with GNU-only `-static` and `-Wl,--whole-archive`. |
+
+Neither is a defect in the engine, and both would build with GNU tooling. They
+would need Kingfisher to patch an engine or override the flags its authors
+chose, which is the one thing this pipeline forbids.
+
+**Nothing built this way is published.** Every engine here is GPL or AGPL, and
+conveying a binary carries an obligation to offer the corresponding source.
+Because nothing is patched, that obligation is satisfiable by the upstream tag —
+which is exactly why "no patches" is a rule and not a preference — but
+satisfying it properly is a release process rather than a CI artifact. These
+are built to be qualified. `.github/workflows/engine-build.yml` says so.
+
 ### What a recorded digest proves
 
 Exactly this: the file downloaded now is byte-identical to the one this project

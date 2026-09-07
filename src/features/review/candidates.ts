@@ -55,6 +55,23 @@ export interface SuggestOptions {
   readonly swingThreshold?: number;
   /** Never return more than this, newest game or not. */
   readonly limit?: number;
+  /**
+   * Whose decisions to suggest.
+   *
+   * A player reviewing their own game wants their own moves, and this is where
+   * that can actually be honoured. It is deliberately *not* applied when
+   * choosing which positions to analyse: judging a move needs the evaluation
+   * before it and after it, and because a side moves at every other ply, the
+   * union of "before and after each of White's moves" is every position in the
+   * game. Narrowing the analysis therefore saves at most one position, whatever
+   * the game's length — arithmetic, not an implementation detail.
+   *
+   * So the choice belongs here. The pass still evaluates the whole game,
+   * because it must; the review only offers the decisions the player asked
+   * about. A position the player marked critical is kept whoever was to move,
+   * because that marker is their own and not a judgement about a side.
+   */
+  readonly sides?: 'both' | 'w' | 'b';
 }
 
 export interface ReviewCandidate {
@@ -80,6 +97,7 @@ export function suggestReviewCandidates(
 ): readonly ReviewCandidate[] {
   const swingThreshold = options.swingThreshold ?? 0.1;
   const limit = options.limit ?? 12;
+  const sides = options.sides ?? 'both';
   const byNode = new Map(evidence.map((point) => [point.nodeId, point]));
   const path = mainlinePath(tree);
   const candidates: ReviewCandidate[] = [];
@@ -176,6 +194,16 @@ export function suggestReviewCandidates(
     }
 
     if (signals.length === 0) continue;
+    /*
+      Whose decisions were asked for.
+
+      Applied after the signals are computed rather than before, so that a
+      position the player marked themselves survives the filter: that marker
+      is their own judgement about what mattered, not a claim about a side,
+      and dropping it because the other colour was to move would be this code
+      overruling them.
+    */
+    if (sides !== 'both' && sideToMove !== sides && !marked) continue;
     candidates.push({
       nodeId,
       ply: node.ply,

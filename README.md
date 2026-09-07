@@ -494,6 +494,56 @@ Player and metadata search over a 500,000-game SQLite collection are indexed
 rather than scanned: a player prefix lookup went from 72–262 ms to under a
 millisecond, and text search from a 127–137 ms tail to a flat 26–29 ms.
 
+## Two identities
+
+Kingfisher is one application with two ways to run it, sharing all of the same
+code — the same board, the same rules, the same explorer, the same repertoire.
+
+**In a browser.** Open it and study chess. Nothing to install, no companion, no
+account; everything under "What you get on a fresh installation" above works on
+an empty profile with the network off.
+
+**As a Mac application.** One launch, no terminal. The shell starts the
+companion for you and pairs it — there is no token to copy out of a terminal
+window, because the process that minted it is the process that serves the page.
+Native engines, SQLite collections of any size, Syzygy tablebases and a PGN
+opened from the Finder all work, and quitting stops every native process the
+session started.
+
+```bash
+npm run desktop:install    # once: the shell's own dependencies
+npm run desktop            # build the web bundle and launch it
+npm run desktop:dist       # Kingfisher.app and a .dmg
+npm run desktop:smoke      # drive the real application and check fourteen things
+```
+
+The desktop shell is Electron, and that was a measured decision rather than a
+default: Kingfisher's browser engine is a multi-threaded WebAssembly Stockfish,
+which needs `SharedArrayBuffer`, which needs cross-origin isolation — and under
+Tauri's WKWebView `crossOriginIsolated` is `false` even with COOP and COEP
+declared, so the engine would have silently fallen back to one thread.
+[ADR 0049](docs/adr/0049-the-desktop-shell.md) has the whole comparison,
+including what it cost.
+
+**What is and is not true of the desktop build today**, stated rather than
+implied:
+
+|                                     |                                                                                 |
+| ----------------------------------- | ------------------------------------------------------------------------------- |
+| macOS arm64 — builds, installs, run | **yes**, and driven end to end by `npm run desktop:smoke`                       |
+| macOS x64                           | builds from the same configuration; not manually run here                       |
+| Windows, Linux                      | configured in `desktop/electron-builder.yml`; not built or run here             |
+| Code signed                         | **no** — needs an Apple Developer identity                                      |
+| Notarised                           | **no** — same                                                                   |
+| Auto-update                         | **not implemented**                                                             |
+| `.pgn` file association             | declared in the bundle; opening from the Finder is untested on a signed install |
+
+The hardened runtime and its entitlements are configured and committed, so
+signing is one credential away. Until it happens, the `.dmg` is an unsigned
+development artifact and macOS will say so.
+
+---
+
 ## Getting started
 
 ```bash

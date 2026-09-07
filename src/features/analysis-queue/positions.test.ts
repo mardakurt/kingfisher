@@ -34,6 +34,26 @@ function gameOf(moves: readonly string[]): { tree: GameTree } {
 const GAME = gameOf(['e4', 'e5', 'Nf3', 'Nc6', 'Bb5', 'a6']);
 const plies = (rows: readonly { ply: number }[]) => rows.map((row) => row.ply);
 
+/** Sixteen plies of the Ruy Lopez. Long enough for the two parity cases. */
+const LONG_GAME = [
+  'e4',
+  'e5',
+  'Nf3',
+  'Nc6',
+  'Bb5',
+  'a6',
+  'Ba4',
+  'Nf6',
+  'O-O',
+  'Be7',
+  'Re1',
+  'b5',
+  'Bb3',
+  'd6',
+  'c3',
+  'O-O',
+] as const;
+
 describe('choosing the positions to evaluate', () => {
   it('takes every position after the first when no side is chosen', () => {
     expect(plies(positionsFor(GAME as never, { strategy: 'every-move', startPly: 1 }))).toEqual([
@@ -76,35 +96,58 @@ describe('choosing the positions to evaluate', () => {
     expect(plies(black)).toEqual([1, 2, 3, 4, 5, 6]);
   });
 
-  it('costs less than both sides on a longer game', () => {
-    // The point of the option. On a real game the saving is close to half; on
-    // a six-ply toy the overlap of before-and-after positions hides it, so
-    // this uses a game long enough for the difference to show.
-    const long = gameOf([
-      'e4',
-      'e5',
-      'Nf3',
-      'Nc6',
-      'Bb5',
-      'a6',
-      'Ba4',
-      'Nf6',
-      'O-O',
-      'Be7',
-      'Re1',
-      'b5',
-      'Bb3',
-      'd6',
-      'c3',
-      'O-O',
-    ]);
+  /*
+    What narrowing to one side actually costs, which is not what this test
+    used to claim.
+
+    It asserted only that White's set is *smaller* than both sides', under a
+    comment saying "on a real game the saving is close to half". The assertion
+    passes on a difference of one, and one is the most it can ever be:
+    judging a move needs the evaluation before it and after it, a side moves at
+    every other ply, so the union of "before and after each of White's moves"
+    is every position in the game. The only position ever dropped is a final
+    one no move was played from.
+
+    So the bound is asserted exactly now, at several lengths, and the option's
+    real narrowing lives in `suggestReviewCandidates` — which decides whose
+    decisions the review offers — rather than here.
+  */
+  it('saves at most one position, whatever the length of the game', () => {
+    const long = gameOf([...LONG_GAME]);
     const both = positionsFor(long as never, { strategy: 'every-move', startPly: 1 }).length;
     const white = positionsFor(long as never, {
       strategy: 'every-move',
       startPly: 1,
       sides: 'w',
     }).length;
-    expect(white).toBeLessThan(both);
+    const black = positionsFor(long as never, {
+      strategy: 'every-move',
+      startPly: 1,
+      sides: 'b',
+    }).length;
+    expect(both - white).toBeLessThanOrEqual(1);
+    expect(both - black).toBeLessThanOrEqual(1);
+    // And never *more* than both sides, which would mean the filter had
+    // started admitting positions the unfiltered pass leaves out.
+    expect(white).toBeLessThanOrEqual(both);
+    expect(black).toBeLessThanOrEqual(both);
+
+    /*
+      The same bound one ply longer, so that "ends on White's move" and "ends
+      on Black's move" are both covered — they are the two cases, and the
+      saving swaps between the colours.
+    */
+    const odd = gameOf([...LONG_GAME, 'a3']);
+    const oddBoth = positionsFor(odd as never, { strategy: 'every-move', startPly: 1 }).length;
+    for (const side of ['w', 'b'] as const) {
+      const narrowed = positionsFor(odd as never, {
+        strategy: 'every-move',
+        startPly: 1,
+        sides: side,
+      }).length;
+      expect(oddBoth - narrowed, side).toBeLessThanOrEqual(1);
+      expect(narrowed, side).toBeLessThanOrEqual(oddBoth);
+    }
   });
 
   it('still skips the opening when asked to', () => {

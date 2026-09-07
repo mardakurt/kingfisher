@@ -264,3 +264,64 @@ describe('a move the engine never considered', () => {
     expect(candidates.map((entry) => entry.playedSan)).toEqual(['e5', 'Nf3']);
   });
 });
+
+describe('whose decisions the review offers', () => {
+  /*
+    The narrowing that a player asking to review "my moves" actually gets.
+
+    It lives here rather than in the analysis pass for a reason worth stating
+    once: judging a move needs the evaluation before it and after it, and a
+    side moves at every other ply, so the union of "before and after each of
+    White's moves" is every position in the game. Narrowing the *pass* saves at
+    most one position, whatever the game's length. Narrowing the *review* is
+    the thing a player can feel.
+  */
+  const bothSidesBlunder = () => {
+    const { tree, path } = line(['e4', 'e5', 'Nf3', 'Nc6', 'Bb5', 'a6']);
+    /*
+      Two collapses, one by each side, and nothing else moving.
+      White to move at plies 0, 2, 4; Black at 1, 3, 5.
+      White's move from ply 2 drops +0.40 to −1.10; Black's from ply 3 hands it
+      straight back, −1.10 to +1.20.
+    */
+    return { tree, evidence: evidenceAt(path, [20, 25, 40, -110, 120, 118, 115]) };
+  };
+
+  it('offers both sides when it is not asked to narrow', () => {
+    const { tree, evidence } = bothSidesBlunder();
+    const sides = suggestReviewCandidates(tree, evidence, positionKey).map(
+      (candidate) => candidate.sideToMove,
+    );
+    expect(sides).toContain('w');
+    expect(sides).toContain('b');
+  });
+
+  it('offers only White’s decisions when asked for White', () => {
+    const { tree, evidence } = bothSidesBlunder();
+    const candidates = suggestReviewCandidates(tree, evidence, positionKey, { sides: 'w' });
+    expect(candidates.length).toBeGreaterThan(0);
+    for (const candidate of candidates) expect(candidate.sideToMove).toBe('w');
+  });
+
+  it('offers only Black’s decisions when asked for Black', () => {
+    const { tree, evidence } = bothSidesBlunder();
+    const candidates = suggestReviewCandidates(tree, evidence, positionKey, { sides: 'b' });
+    expect(candidates.length).toBeGreaterThan(0);
+    for (const candidate of candidates) expect(candidate.sideToMove).toBe('b');
+  });
+
+  /*
+    A position the player marked themselves survives the filter. That marker is
+    their own judgement about what mattered, not a claim about a colour, and
+    dropping it because the other side was to move would be this code
+    overruling them.
+  */
+  it('keeps a position the player marked, whoever was to move', () => {
+    const { tree, path } = line(['e4', 'e5', 'Nf3', 'Nc6']);
+    const blackToMove = path[1] as NodeId;
+    const marked = setMeta(tree, blackToMove, { critical: 'calculation' });
+    const candidates = suggestReviewCandidates(marked, [], positionKey, { sides: 'w' });
+    expect(candidates.map((candidate) => candidate.nodeId)).toEqual([blackToMove]);
+    expect(candidates[0]?.sideToMove).toBe('b');
+  });
+});

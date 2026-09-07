@@ -6,7 +6,11 @@ import { Button } from '@/components/ui/Button';
 import { Dialog } from '@/components/ui/Dialog';
 import { engineDefinitions, DEFAULT_ENGINE_ID } from '@/engine/registry';
 import { useVisibleEngineDefinitions } from '@/engine/use-engines';
-import type { AnalysisQueuePreset, AnalysisQueueStrategy } from '@/persistence/domain';
+import type {
+  AnalysisQueuePreset,
+  AnalysisQueueSides,
+  AnalysisQueueStrategy,
+} from '@/persistence/domain';
 import { useUi } from '@/stores/ui-store';
 import { useAnalysisQueue } from './queue-store';
 
@@ -40,6 +44,7 @@ function QueueForm({ onClose }: { readonly onClose: () => void }) {
   const [preset, setPreset] = useState<AnalysisQueuePreset>('standard');
   const [multiPv, setMultiPv] = useState(1);
   const [strategy, setStrategy] = useState<AnalysisQueueStrategy>('after-opening');
+  const [sides, setSides] = useState<AnalysisQueueSides>('both');
   const [startMove, setStartMove] = useState(10);
   const [customTimeMs, setCustomTimeMs] = useState(2_000);
   const [busy, setBusy] = useState(false);
@@ -54,6 +59,7 @@ function QueueForm({ onClose }: { readonly onClose: () => void }) {
         preset,
         multiPv,
         strategy,
+        sides,
         startPly: strategy === 'after-opening' ? startMove * 2 : 1,
         customTimeMs,
       });
@@ -161,6 +167,33 @@ function QueueForm({ onClose }: { readonly onClose: () => void }) {
             >
               <option value="every-move">Every move</option>
               <option value="after-opening">After opening move N</option>
+            </select>
+          </Field>
+          {/*
+            Whose decisions to judge.
+
+            The pass has been able to narrow to one side since Phase 18, and
+            nothing in the product could ask it to: `sides` was carried by the
+            store, the repository, the position selection and its tests, and
+            set by no control. A player reviewing their own game wants their
+            own moves and pays twice over without this.
+
+            `both` stays the default, because it is the honest one for a game
+            somebody is studying rather than one they played. Narrowing does
+            not simply drop the other side's positions — judging a move needs
+            the evaluation before it and after it — which is why the saving is
+            about a third rather than a half, and why the hint says so.
+          */}
+          <Field label="Moves to judge">
+            <select
+              aria-label="Moves to judge"
+              value={sides}
+              onChange={(event) => setSides(event.target.value as AnalysisQueueSides)}
+              className={CONTROL}
+            >
+              <option value="both">Both sides</option>
+              <option value="w">White&rsquo;s decisions</option>
+              <option value="b">Black&rsquo;s decisions</option>
             </select>
           </Field>
           {strategy === 'after-opening' ? (

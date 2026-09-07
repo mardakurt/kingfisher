@@ -43,6 +43,18 @@ export function SuggestCandidatesButton() {
       const evidence = await repositories.analysisQueue.evidenceForGame(gameId);
 
       /*
+        Whose decisions this game was analysed for.
+
+        The job carries it, and the most recent one for this game is the answer
+        — a player who queued their own game as White asked for their own
+        moves, and the review is where that request can actually be honoured.
+        Absent means both, which is what every job queued before the control
+        existed meant.
+      */
+      const jobs = await repositories.analysisQueue.list();
+      const sides = jobs.filter((job) => job.gameId === gameId).at(-1)?.sides ?? 'both';
+
+      /*
         Stored evidence first, then whatever the tree itself carries. A game
         analysed by the background queue has rows; a game the user walked
         through with the engine on has evaluations on its nodes. Both are the
@@ -84,7 +96,7 @@ export function SuggestCandidatesButton() {
         ),
       ];
 
-      const candidates = suggestReviewCandidates(tree, points, positionKey);
+      const candidates = suggestReviewCandidates(tree, points, positionKey, { sides });
       if (candidates.length === 0) {
         notify({
           tone: 'info',
@@ -92,7 +104,9 @@ export function SuggestCandidatesButton() {
           detail:
             points.length === 0
               ? 'There is no saved engine evidence for it yet. Queue it for background analysis first.'
-              : 'No single move changed the expected result by ten percentage points or more, and nothing is marked critical.',
+              : sides === 'both'
+                ? 'No single move changed the expected result by ten percentage points or more, and nothing is marked critical.'
+                : `No ${sides === 'w' ? 'White' : 'Black'} move changed the expected result by ten percentage points or more. This game was queued for ${sides === 'w' ? 'White' : 'Black'}\u2019s decisions only.`,
         });
         return;
       }

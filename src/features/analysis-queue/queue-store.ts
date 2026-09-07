@@ -89,6 +89,18 @@ const sideToMoveOf = (fen: string): 'w' | 'b' => (fen.split(/\s+/)[1] === 'b' ? 
  * and *after* it, so keeping only White's positions would leave every swing
  * with nothing to compare against. What it keeps is the position each of that
  * side's moves was played from, and the position it led to.
+ *
+ * **Which is why narrowing here saves nothing, and it is worth stating.** A
+ * side moves at every other ply, so the union of "before and after each of
+ * White's moves" is every position in the game; the only one ever dropped is a
+ * final position no move was played from. Measured across game lengths, the
+ * saving is at most **one position**, whatever the game — not the half the
+ * option was introduced believing. It is arithmetic and not a bug to fix.
+ *
+ * So the narrowing that matters is not here. The pass evaluates the whole
+ * game, because it must, and `suggestReviewCandidates` uses `sides` to decide
+ * whose decisions the review offers. This function keeps applying it only so
+ * that a job's stored position count stays consistent with the job.
  */
 export const positionsFor = (
   game: GameRecord,
