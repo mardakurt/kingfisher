@@ -1,4 +1,24 @@
+import { readFileSync } from 'node:fs';
+
 import type { NextConfig } from 'next';
+
+/**
+ * The version, injected from the one place it is written down.
+ *
+ * `src/lib/version.ts` has always said it read this from "environment
+ * variables that the build sets". Until Phase 20 no build set either, so the
+ * diagnostic report every user pasted said `0.1.0` whatever the manifest said
+ * — a fallback doing the work of a value, silently, and wrong the moment the
+ * version changed. Reading the manifest here keeps the version in one place
+ * and out of the client bundle: `NEXT_PUBLIC_` is inlined at build time, so
+ * nothing pulls `package.json` into the browser.
+ *
+ * CI may set either variable itself; an existing value always wins, because
+ * a release build knows more about its own identity than this file does.
+ */
+const manifest = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as {
+  version: string;
+};
 
 /**
  * Cross-origin isolation unlocks SharedArrayBuffer, which the multi-threaded
@@ -24,6 +44,12 @@ const desktop = process.env.KINGFISHER_DESKTOP_BUILD === '1';
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   typedRoutes: true,
+  env: {
+    NEXT_PUBLIC_APP_VERSION: process.env.NEXT_PUBLIC_APP_VERSION ?? manifest.version,
+    ...(process.env.NEXT_PUBLIC_APP_COMMIT
+      ? { NEXT_PUBLIC_APP_COMMIT: process.env.NEXT_PUBLIC_APP_COMMIT }
+      : {}),
+  },
   ...(desktop ? { output: 'standalone' as const } : {}),
   async headers() {
     if (!crossOriginIsolation) return [];

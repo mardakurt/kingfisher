@@ -57,7 +57,9 @@ const marks = [];
 const mark = (stage) => {
   const at = Math.round(process.uptime() * 1000);
   marks.push({ stage, at });
-  if (process.env.KINGFISHER_STARTUP_TRACE) console.log(`[startup] ${stage} ${at} ms`);
+  // stderr, and written directly: this is diagnostic trace rather than
+  // program output, and it must not land in anything parsing stdout.
+  if (process.env.KINGFISHER_STARTUP_TRACE) process.stderr.write(`[startup] ${stage} ${at} ms\n`);
   return at;
 };
 
