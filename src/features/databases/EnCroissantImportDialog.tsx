@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Dialog } from '@/components/ui/Dialog';
 import { Button } from '@/components/ui/Button';
+import { PathField } from '@/components/ui/PathField';
 import { companionClient } from '@/companion/session';
 import type { EnCroissantInspection } from '@/database/encroissant/types';
 import { useEnCroissantImport } from '@/stores/en-croissant-import-store';
@@ -61,20 +62,18 @@ export function EnCroissantImportDialog({ open, onClose }: { open: boolean; onCl
       }
     >
       <div className="space-y-3 p-4 text-xs text-secondary">
-        <label className="block">
-          Database file path
-          <input
-            aria-label="En Croissant file path"
-            className="mt-1 block w-full rounded border border-line bg-surface-2 p-2 text-primary"
-            value={path}
-            disabled={job.running || inspecting}
-            onChange={(event) => {
-              setPath(event.target.value);
-              setFound(null);
-            }}
-            placeholder="/Users/you/Databases/games.db3"
-          />
-        </label>
+        <PathField
+          label="En Croissant file path"
+          dialogTitle="Choose an En Croissant database"
+          extensions={['db3', 'sqlite', 'db']}
+          value={path}
+          disabled={job.running || inspecting}
+          onChange={(next) => {
+            setPath(next);
+            setFound(null);
+          }}
+          placeholder="/Users/you/Databases/games.db3"
+        />
         <p className="text-tertiary">
           Enter the full path on the computer running the companion. Pages are decoded in a worker;
           you can keep using the workspace during import.

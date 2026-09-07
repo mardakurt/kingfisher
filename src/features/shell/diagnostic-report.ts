@@ -65,6 +65,33 @@ export interface DiagnosticInput {
   readonly integrity: IntegrityReport | null;
   readonly failures: readonly RecordedFailure[];
   readonly counts: Readonly<Record<string, number>>;
+  /**
+   * What the application shell is, when there is one.
+   *
+   * Absent in a browser, and its absence is the report saying so. Until Phase
+   * 20 a desktop report was indistinguishable from a browser one — the shell
+   * had exposed all of this since Phase 19 and nothing asked for it — so a bug
+   * report from the packaged application never said which Electron it was,
+   * whether the bundle was packaged or run from a checkout, or whether the two
+   * local processes the shell owns were actually up.
+   *
+   * The companion log is included because it is the one place a start-up
+   * failure is written down, and it is redacted like everything else: the
+   * pairing token is minted per run and appears in no line the companion
+   * writes, but the redaction pass runs over this too rather than trusting
+   * that.
+   */
+  readonly desktop?: {
+    readonly shell: { readonly name: string; readonly version: string; readonly chrome: string };
+    readonly node: string;
+    readonly packaged: boolean;
+    readonly webServer: { readonly running: boolean; readonly pid: number | null };
+    readonly companionProcess: {
+      readonly running: boolean;
+      readonly pid: number | null;
+      readonly log: readonly string[];
+    };
+  };
 }
 
 /**
@@ -114,11 +141,42 @@ export function buildDiagnosticReport(
   lines.push('');
   lines.push(`Generated       ${at}`);
   lines.push(`Version         ${input.appVersion}${input.commit ? ` (${input.commit})` : ''}`);
+  lines.push(`Runs as         ${input.desktop ? 'desktop application' : 'web page'}`);
   lines.push(`Browser         ${input.userAgent}`);
   lines.push(`Language        ${input.language}`);
   lines.push(`Viewport        ${input.viewport.width}x${input.viewport.height}`);
   lines.push(`Cross-origin isolated  ${yesNo(input.crossOriginIsolated)}`);
   lines.push('');
+
+  /*
+    The shell, before storage, because it changes how every line below is read.
+
+    A companion that is "not paired" means something different in a browser,
+    where the user must start one, and in the application, where the shell was
+    supposed to. Reporting which of the two this is turns that ambiguity into a
+    fact.
+  */
+  if (input.desktop) {
+    const { shell, webServer, companionProcess } = input.desktop;
+    lines.push('## Application shell');
+    lines.push(`Shell           ${shell.name} ${shell.version}`);
+    lines.push(`Chromium        ${shell.chrome}`);
+    lines.push(`Node            ${input.desktop.node}`);
+    lines.push(`Packaged        ${yesNo(input.desktop.packaged)}`);
+    lines.push(
+      `Web server      ${webServer.running ? 'running' : 'stopped'}` +
+        `${webServer.pid === null ? '' : ` (pid ${webServer.pid})`}`,
+    );
+    lines.push(
+      `Companion       ${companionProcess.running ? 'running' : 'stopped'}` +
+        `${companionProcess.pid === null ? '' : ` (pid ${companionProcess.pid})`}`,
+    );
+    if (companionProcess.log.length > 0) {
+      lines.push('Companion log, last lines:');
+      for (const line of companionProcess.log.slice(-12)) lines.push(`  ${line}`);
+    }
+    lines.push('');
+  }
 
   lines.push('## Storage');
   lines.push(`IndexedDB       ${input.storage.indexedDb}`);

@@ -168,3 +168,65 @@ describe('what the report must contain', () => {
     );
   });
 });
+
+/**
+ * The shell section, and the reason it exists.
+ *
+ * A desktop bug report used to be indistinguishable from a browser one: the
+ * shell had exposed its versions and the state of the two processes it owns
+ * since Phase 19, and nothing in the application ever asked. "The companion is
+ * offline" then meant two different things — the user never started one, or
+ * the shell started one and it died — and the report could not tell them
+ * apart.
+ */
+describe('the application shell section', () => {
+  const shell: DiagnosticInput['desktop'] = {
+    shell: { name: 'Kingfisher', version: '1.0.0', chrome: '152.0.7977.76' },
+    node: '24.20.0',
+    packaged: true,
+    webServer: { running: true, pid: 4321 },
+    companionProcess: {
+      running: false,
+      pid: null,
+      log: ['companion listening on 127.0.0.1:51763', 'could not open the collection'],
+    },
+  };
+
+  it('is absent in a browser, and says which identity this is', () => {
+    const report = buildDiagnosticReport(input, secrets);
+    expect(report).not.toContain('## Application shell');
+    expect(report).toContain('Runs as         web page');
+  });
+
+  it('names the shell, the Chromium, the Node and whether it is packaged', () => {
+    const report = buildDiagnosticReport({ ...input, desktop: shell }, secrets);
+    expect(report).toContain('Runs as         desktop application');
+    expect(report).toContain('Kingfisher 1.0.0');
+    expect(report).toContain('152.0.7977.76');
+    expect(report).toContain('24.20.0');
+    expect(report).toContain('Packaged        yes');
+  });
+
+  /*
+    The distinction the section was added for: a companion that is *stopped*
+    while the shell that owns it is running, with the reason it stopped.
+  */
+  it('reports each process separately, with the log that explains a failure', () => {
+    const report = buildDiagnosticReport({ ...input, desktop: shell }, secrets);
+    expect(report).toContain('Web server      running (pid 4321)');
+    expect(report).toContain('Companion       stopped');
+    expect(report).toContain('could not open the collection');
+  });
+
+  it('redacts a secret that reached the companion log', () => {
+    const leaky = {
+      ...shell,
+      companionProcess: {
+        ...shell.companionProcess,
+        log: [`paired with token ${COMPANION_TOKEN}`],
+      },
+    };
+    const report = buildDiagnosticReport({ ...input, desktop: leaky }, secrets);
+    expect(report).not.toContain(COMPANION_TOKEN);
+  });
+});

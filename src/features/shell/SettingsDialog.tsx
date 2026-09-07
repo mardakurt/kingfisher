@@ -15,6 +15,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { Check } from '@/components/icons';
 import { Button } from '@/components/ui/Button';
+import { PathField } from '@/components/ui/PathField';
+import { desktop } from '@/desktop/bridge';
 import { Toggle } from '@/components/ui/Toggle';
 import { BookManager } from '@/features/book/BookManager';
 import { EngineManager } from '@/features/engine/EngineManager';
@@ -949,16 +951,19 @@ function CustomEngines() {
         </ul>
       ) : null}
 
-      <div className="mt-2 flex gap-1.5">
-        <input
+      <div className="mt-2 flex items-end gap-1.5">
+        <PathField
+          className="min-w-0 flex-1"
+          label="Engine executable path"
+          dialogTitle="Choose a UCI engine"
           value={enginePath}
-          onChange={(event) => setEnginePath(event.target.value)}
+          onChange={setEnginePath}
           placeholder="/absolute/path/to/engine"
-          aria-label="Engine executable path"
-          className="h-8 min-w-0 flex-1 rounded-[4px] border border-line bg-surface-2 px-2.5 font-mono text-[11px] text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60"
         />
         <Button
           variant="accent"
+          className="h-8"
+          size="sm"
           onClick={() => void register()}
           disabled={!enginePath.trim() || busy === 'register'}
         >
@@ -1969,6 +1974,18 @@ function CopyReport() {
       const integrity = await scanIntegrity(repositories.raw);
       const estimate = await navigator.storage?.estimate?.().catch(() => undefined);
 
+      /*
+        The shell's own account of itself, when there is a shell.
+
+        Asked for rather than inferred: whether the companion process is up is
+        something only the shell that started it knows, and a report that
+        guessed from the HTTP status could not tell "it never started" from
+        "it started and crashed". A failure here must not lose the rest of the
+        report, so it degrades to the browser shape.
+      */
+      const bridge = desktop();
+      const shell = bridge ? await bridge.diagnostics().catch(() => null) : null;
+
       const report = buildDiagnosticReport(
         {
           appVersion: APP_VERSION,
@@ -2016,6 +2033,21 @@ function CopyReport() {
           integrity,
           failures: lastFailures,
           counts: integrity.counts,
+          ...(shell
+            ? {
+                desktop: {
+                  shell: shell.shell,
+                  node: shell.node,
+                  packaged: shell.packaged,
+                  webServer: { running: shell.web.running, pid: shell.web.pid },
+                  companionProcess: {
+                    running: shell.companion.running,
+                    pid: shell.companion.pid,
+                    log: shell.companion.log,
+                  },
+                },
+              }
+            : {}),
         },
         // Passed so a secret that leaked into an error message is caught even
         // though no field above ever reads one.

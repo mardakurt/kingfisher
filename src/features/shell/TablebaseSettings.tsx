@@ -19,6 +19,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { Check, Warning } from '@/components/icons';
 import { Button } from '@/components/ui/Button';
+import { PathField } from '@/components/ui/PathField';
 import { companionClient } from '@/companion/session';
 import { useUi } from '@/stores/ui-store';
 
@@ -164,15 +165,15 @@ export function TablebaseSettings() {
             <p className="mt-2 text-[10.5px] leading-relaxed text-caution">{helper.reason}</p>
           ) : null}
 
-          <label className="mt-3 block text-2xs text-tertiary">
-            Syzygy directory
-            <input
-              value={directory}
-              onChange={(event) => setDirectory(event.target.value)}
-              placeholder={data?.path ?? '/Users/you/syzygy/3-4-5'}
-              className="mt-1 h-8 w-full rounded-[4px] border border-line bg-surface-inset px-2.5 font-mono text-[11px] text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60"
-            />
-          </label>
+          <PathField
+            className="mt-3"
+            label="Syzygy directory"
+            dialogTitle="Choose a Syzygy tablebase folder"
+            directory
+            value={directory}
+            onChange={setDirectory}
+            placeholder={data?.path ?? '/Users/you/syzygy/3-4-5'}
+          />
           <div className="mt-2 flex flex-wrap justify-end gap-2">
             {data?.path ? (
               <Button variant="danger" onClick={() => configure.mutate('')}>
