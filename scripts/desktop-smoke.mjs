@@ -129,9 +129,20 @@ async function main() {
       '[Result "*"]\n\n1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 *\n',
   );
 
+  /*
+    The PGN is passed on the command line, because that is what the Finder
+    does.
+
+    Double-clicking a document on a *cold* launch reaches the shell as
+    `process.argv`, and it is a different path from the `open-file` event a
+    running application gets — `openableFromArgv` and the pending-document
+    queue exist for it, since the file arrives before there is a window to
+    send it to. Phase 19 declared the `.pgn` association and never exercised
+    it; passing the file here exercises the half a test can reach.
+  */
   const launch = args.packaged
-    ? { executablePath: packagedBinary(), args: [] }
-    : { executablePath: shellBinary(), args: [path.join(ROOT, 'desktop')] };
+    ? { executablePath: packagedBinary(), args: [pgn] }
+    : { executablePath: shellBinary(), args: [path.join(ROOT, 'desktop'), pgn] };
 
   if (args.packaged && !existsSync(launch.executablePath)) {
     console.error(`No packaged application at ${launch.executablePath}. Run npm run desktop:dist.`);
@@ -205,6 +216,28 @@ async function main() {
     'the companion answers an authenticated request',
     companion.status === 200,
     `platform ${companion.body?.platform ?? '—'}`,
+  );
+
+  /*
+    4b. The document the shell was launched with.
+
+    Asserted before the IPC send below, because the two are different routes
+    and the second would mask the first: if the queue that holds a document
+    arriving before the window were broken, sending one afterwards would still
+    work and the check would pass for the wrong reason.
+  */
+  let fromArgv = null;
+  for (let attempt = 0; attempt < 60 && !fromArgv; attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    fromArgv = await window.evaluate(() => {
+      const text = document.body.innerText;
+      return text.includes('Bb5') && text.includes('a6') ? 'the game is on the board' : null;
+    });
+  }
+  check(
+    'a PGN named on the command line opens, the way the Finder opens one',
+    fromArgv !== null,
+    fromArgv ?? 'the move list never showed the game the shell was launched with',
   );
 
   // 5. A document reaches the application.

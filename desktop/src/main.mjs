@@ -77,8 +77,10 @@ const state = {
   companionStarted: null,
   /** Why the companion is not running, when it failed rather than was stopped. */
   companionError: null,
-  /** Documents that arrived before a window existed to receive them. */
+  /** Documents that arrived before anything was listening for them. */
   pending: [],
+  /** Whether the renderer has attached its document listener. */
+  documentsWanted: false,
 };
 
 /**
@@ -253,7 +255,17 @@ function createWindow() {
   window.once('ready-to-show', () => {
     mark('window shown');
     window.show();
+    // Not a flush point on its own — see `flushPending`. Harmless, and kept
+    // for the case where the renderer attached before the first paint.
     flushPending();
+  });
+
+  /*
+    A reload is a new renderer with no listeners, so anything sent before it
+    calls `onOpenDocument` again would be lost the same way.
+  */
+  window.webContents.on('did-start-navigation', (_event, _url, isInPlace, isMainFrame) => {
+    if (isMainFrame && !isInPlace) state.documentsWanted = false;
   });
 
   // The renderer telling the shell it is interactive. Everything before this
@@ -304,18 +316,34 @@ function createWindow() {
 function deliver(document) {
   state.recent.add(document.path);
   rebuildMenu();
-  if (state.window && !state.window.webContents.isLoading()) {
-    state.window.webContents.send('kingfisher:open-document', document);
-    return true;
-  }
+  /*
+    Queue first, then flush. The old test was `!webContents.isLoading()`, which
+    answers "has the page finished loading" and not "is anything listening" —
+    two different questions with the same answer only most of the time.
+  */
   state.pending.push(document);
-  return false;
+  const waiting = state.pending.length;
+  flushPending();
+  return state.pending.length < waiting;
 }
 
+/**
+ * Send what is waiting, once there is somebody to send it to.
+ *
+ * `state.documentsWanted` is the renderer having attached its listener, and it
+ * is the condition this used to get wrong. It was called from `ready-to-show`,
+ * which fires when the first frame can be painted — before React has mounted
+ * and before `onOpenDocument` has been called. The document went to a renderer
+ * that was not listening, `ipcRenderer.on` does not replay what it missed, and
+ * a PGN double-clicked on a cold launch simply never appeared. Phase 19
+ * declared the `.pgn` association and never exercised it; the first test that
+ * did, failed.
+ */
 function flushPending() {
+  if (!state.documentsWanted || !state.window) return;
   const queued = state.pending.splice(0);
   for (const document of queued)
-    state.window?.webContents.send('kingfisher:open-document', document);
+    state.window.webContents.send('kingfisher:open-document', document);
 }
 
 /** Turn a path into the document the renderer is given, by what it is. */
@@ -414,6 +442,16 @@ function registerIpc() {
     running, and its last few lines if it is not. Diagnostics that guess are
     worse than none, and a normal user should never have to read this at all.
   */
+  /*
+    The renderer saying it can receive documents. See `flushPending` for the
+    defect this exists to close.
+  */
+  ipcMain.on('kingfisher:documents-wanted', (event) => {
+    if (event.sender !== state.window?.webContents) return;
+    state.documentsWanted = true;
+    flushPending();
+  });
+
   ipcMain.handle('kingfisher:diagnostics', () => ({
     shell: {
       name: 'Electron',

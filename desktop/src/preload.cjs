@@ -75,7 +75,24 @@ contextBridge.exposeInMainWorld('kingfisher', {
   recentDocuments: () => ipcRenderer.invoke('kingfisher:recent'),
   diagnostics: () => ipcRenderer.invoke('kingfisher:diagnostics'),
 
-  /** A document the user opened from the Finder, the menu, or a drop. */
-  onOpenDocument: (listener) => on('kingfisher:open-document', listener),
+  /**
+   * A document the user opened from the Finder, the menu, or a drop.
+   *
+   * Attaching the first listener tells the shell that this renderer can now
+   * receive one, and that message is the whole fix for a real defect: a PGN
+   * double-clicked on a *cold* launch reached the shell before the window
+   * existed, was queued, and was flushed on `ready-to-show` — which fires when
+   * the first frame can be painted, and therefore before React has mounted and
+   * called this. The send went to a renderer with no listener, `ipcRenderer.on`
+   * does not replay, and the game silently never appeared.
+   *
+   * Sent on every attach rather than once. It is idempotent on the other side,
+   * and a renderer that reloads is a renderer that has to be told again.
+   */
+  onOpenDocument: (listener) => {
+    const off = on('kingfisher:open-document', listener);
+    ipcRenderer.send('kingfisher:documents-wanted');
+    return off;
+  },
   onShowDiagnostics: (listener) => on('kingfisher:show-diagnostics', listener),
 });
