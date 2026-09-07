@@ -25,6 +25,7 @@
  */
 
 import {
+  chmodSync,
   cpSync,
   existsSync,
   mkdirSync,
@@ -36,6 +37,7 @@ import {
 } from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
+import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
@@ -62,15 +64,22 @@ console.log('Building the desktop web bundle');
 console.log(`node ${process.version} · ${process.platform}-${process.arch}\n`);
 
 /*
-  `npx.cmd` on Windows.
+  Next's own CLI, run directly, with no shell and no shim.
 
-  npm installs its shims as `.cmd` files there, and `execFile` without a shell
-  cannot start one — the first Windows packaging run failed with
-  `spawnSync npx ENOENT` before it compiled a single route. Naming the
-  extension rather than setting `shell: true` keeps the arguments an array,
-  so nothing here can ever be read as shell syntax.
+  This was `execFileSync('npx', ['next', 'build'])`, which is fine on macOS and
+  Linux and cannot work on Windows: npm installs its shims as `.cmd` files, and
+  since the fix for CVE-2024-27980 Node refuses to spawn one without a shell.
+  The first Windows packaging run failed `spawnSync npx ENOENT`, and naming
+  `npx.cmd` explicitly moved it on to `EINVAL` — the refusal itself.
+
+  `shell: true` would work and is the wrong answer: it would put a command
+  line through a parser for the sake of two constant arguments. Resolving the
+  CLI and running it under this same Node needs no shell on any platform, and
+  removes the shim from the path entirely.
 */
-execFileSync(process.platform === 'win32' ? 'npx.cmd' : 'npx', ['next', 'build'], {
+const nextCli = createRequire(import.meta.url).resolve('next/dist/bin/next');
+
+execFileSync(process.execPath, [nextCli, 'build'], {
   cwd: ROOT,
   stdio: 'inherit',
   env: {
@@ -283,6 +292,32 @@ if (redacted > 0) {
   /repertoire, /review, /training, /endgame and /recent with HTTP 200, and
   serves the 7.3 MB Stockfish WebAssembly.
 */
+/*
+  The Syzygy probe helper, when this machine has built one.
+
+  Without it a packaged Kingfisher can never read local tablebase files: the
+  companion looks for the binary relative to its own root, and in a bundle that
+  root contains no `engines/`. Every desktop user would fall back to the public
+  service — truthfully, and permanently, with nothing they could do about it.
+
+  It is 72 KB, built from Fathom's MIT-licensed decoder by
+  `npm run tablebase:install`, and it is staged here so that
+  `electron-builder.yml` lands it where the companion already looks. Optional
+  on purpose: building it needs a C compiler, a machine without one is a
+  supported configuration, and a packaging run must not fail for want of it.
+*/
+const HELPER = path.join(ROOT, 'engines', 'tablebase', 'kingfisher-tbprobe');
+const STAGED_HELPER = path.join(ROOT, 'desktop', 'resources', 'tablebase');
+rmSync(STAGED_HELPER, { recursive: true, force: true });
+mkdirSync(STAGED_HELPER, { recursive: true });
+if (existsSync(HELPER)) {
+  cpSync(HELPER, path.join(STAGED_HELPER, 'kingfisher-tbprobe'));
+  chmodSync(path.join(STAGED_HELPER, 'kingfisher-tbprobe'), 0o755);
+  console.log('  (staged the Syzygy probe helper — local tablebases will work in the bundle)');
+} else {
+  console.log('  (no Syzygy probe helper built here; the bundle will use the remote tablebase)');
+}
+
 const NEUTRAL_ROOT = '/kingfisher';
 let rewritten = 0;
 for (const relative of ['server.js', path.join('.next', 'required-server-files.json')]) {

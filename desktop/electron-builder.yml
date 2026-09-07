@@ -66,6 +66,12 @@ extraResources:
     to: kingfisher/public/engine
     filter:
       - '*.json'
+  # The Syzygy probe helper, where the companion already looks for it: it
+  # resolves `engines/tablebase/` relative to its own root, which in a bundle
+  # is `Resources/kingfisher`. Empty when this machine has no C compiler, and
+  # then the application uses the remote tablebase and says so.
+  - from: resources/tablebase
+    to: kingfisher/engines/tablebase
 
 mac:
   category: public.app-category.education

@@ -343,6 +343,80 @@ async function main() {
     }
   }
 
+  /*
+    5d. A real tablebase probe, inside the bundle.
+
+    Phase 19 could not do this because the machine had no tables. Phase 20
+    committed the three-piece set — 56 KB, verified against the publisher's own
+    digests — so the question became whether the *packaged* application can
+    read them, and the first answer was no: the probe helper was resolved from
+    a build record naming the machine that compiled it, so it existed on
+    exactly one computer. The helper is now staged into the bundle where the
+    companion already looks.
+
+    The position is the one the Settings panel uses, chosen because a reader
+    can check the answer: a rook against a bare king is won.
+
+    Skipped where no helper was built, which is a supported configuration —
+    Kingfisher uses the public service and the board says which answered.
+  */
+  if (!args.offline) {
+    const tables = path.join(ROOT, 'companion', 'fixtures', 'syzygy-3');
+    const syzygy = await window.evaluate(
+      async ({ directory }) => {
+        const { url, token } = window.kingfisher.companion;
+        const call = async (route, body) => {
+          const response = await fetch(`${url}${route}`, {
+            method: body === undefined ? 'GET' : 'POST',
+            headers: {
+              authorization: `Bearer ${token}`,
+              ...(body === undefined ? {} : { 'content-type': 'application/json' }),
+            },
+            ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+          });
+          return { status: response.status, body: await response.json().catch(() => null) };
+        };
+
+        const before = await call('/tablebase/status');
+        if (before.body?.helper && before.body.helper.built !== true) {
+          return { built: false, reason: before.body.helper.reason ?? 'no helper in the bundle' };
+        }
+
+        const configured = await call('/tablebase/configure', { path: directory });
+        if (configured.status !== 200) {
+          return { built: true, ok: false, reason: `configure returned ${configured.status}` };
+        }
+
+        const probed = await call('/tablebase/probe', {
+          fen: '8/8/8/4k3/8/8/8/K2R4 w - - 0 1',
+        });
+        const answer = probed.body?.result ?? {};
+        return {
+          built: true,
+          ok: probed.status === 200,
+          source: probed.body?.source ?? null,
+          largest: configured.body?.largest ?? null,
+          // 4 is a win on Fathom's scale. Anything else here is wrong chess.
+          won: answer.wdl === 4 || answer.category === 'win',
+          dtz: answer.dtz ?? null,
+        };
+      },
+      { directory: tables },
+    );
+
+    if (!syzygy.built) {
+      console.log(`  · local Syzygy not checked — ${syzygy.reason}`);
+    } else {
+      check(
+        'a local Syzygy probe answers correctly inside the packaged application',
+        syzygy.ok === true && syzygy.won === true && syzygy.source === 'helper',
+        syzygy.won
+          ? `rook against a bare king is won, DTZ ${syzygy.dtz}, up to ${syzygy.largest} pieces`
+          : (syzygy.reason ?? 'it did not report a win'),
+      );
+    }
+  }
+
   // 6. What the shell says about itself.
   const diagnostics = await window.evaluate(() => window.kingfisher.diagnostics());
   check(
