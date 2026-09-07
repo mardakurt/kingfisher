@@ -256,9 +256,30 @@ function cors(request, response) {
   return origin === undefined;
 }
 
+/**
+ * A JSON reply, unless the reply has already started.
+ *
+ * The guard is not tidiness. `/engine/stream` writes its headers and then
+ * keeps the connection open, so a failure *after* that point reached the
+ * handler's catch below, which called this, which called `writeHead` a second
+ * time — and `ERR_HTTP_HEADERS_SENT` thrown from an async request handler is
+ * an unhandled rejection, which ends the process. One HTTP GET naming a
+ * session that had already exited killed the whole companion: every running
+ * engine, every open collection, and on the desktop the native half of the
+ * workstation, mid-analysis.
+ *
+ * The stream route no longer fails that way (it subscribes before it commits
+ * to a response), and this makes the same mistake in any future streaming
+ * route cost a dropped error message instead of the process.
+ */
 const json = (response, status, value) => {
+  if (response.headersSent) {
+    response.end();
+    return undefined;
+  }
   response.writeHead(status, { 'content-type': 'application/json' });
   response.end(JSON.stringify(value));
+  return undefined;
 };
 
 const server = createServer(async (request, response) => {
@@ -439,20 +460,37 @@ async function route(url, request, response) {
 
   if (pathname === '/engine/stream' && request.method === 'GET') {
     const id = url.searchParams.get('session') ?? '';
+    /*
+      Subscribe *before* committing to a response.
+
+      `subscribe` throws for a session that does not exist or has exited, which
+      is an ordinary thing for a client to ask — an engine that crashed, a
+      reconnect after a stop. Writing the event-stream headers first turned
+      that ordinary case into a second `writeHead` in the handler's catch, and
+      an `ERR_HTTP_HEADERS_SENT` thrown from an async handler ends the process.
+      A single GET naming a dead session killed the companion outright.
+    */
+    let unsubscribe;
+    try {
+      unsubscribe = engines.subscribe(id, (line) => {
+        if (line === null) {
+          response.write('event: end\ndata: {}\n\n');
+          response.end();
+          return;
+        }
+        response.write(`data: ${JSON.stringify(line)}\n\n`);
+      });
+    } catch (error) {
+      return json(response, 404, {
+        error: error instanceof Error ? error.message : 'No such engine session.',
+      });
+    }
     response.writeHead(200, {
       'content-type': 'text/event-stream',
       'cache-control': 'no-cache, no-transform',
       connection: 'keep-alive',
     });
     response.write(': connected\n\n');
-    const unsubscribe = engines.subscribe(id, (line) => {
-      if (line === null) {
-        response.write('event: end\ndata: {}\n\n');
-        response.end();
-        return;
-      }
-      response.write(`data: ${JSON.stringify(line)}\n\n`);
-    });
     // Proxies and browsers drop an idle event stream; a comment keeps it warm.
     const beat = setInterval(() => response.write(': beat\n\n'), 15_000);
     request.on('close', () => {

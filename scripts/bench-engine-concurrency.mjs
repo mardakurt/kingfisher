@@ -89,16 +89,20 @@ async function listen(session, sink) {
   }
 }
 
+/** The stream closing when its session stops is normal, not an error. */
+const watch = (session, sink) => listen(session, sink).catch(() => {});
+
 /** Run `count` sessions of one engine on one position, and read each depth. */
 async function round(engineId, count) {
   const threads = share(THREADS, count);
   const hashMb = share(HASH, count);
   const runs = [];
   for (let index = 0; index < count; index += 1) {
-    const opened = await call('/engine/open', { engine: engineId });
-    const run = { session: opened.id, depth: 0, nodes: 0, bestmove: null, clamped: false };
+    const opened = await call('/engine/start', { engine: engineId });
+    const run = { session: opened.session, depth: 0, nodes: 0, bestmove: null, clamped: false };
     runs.push(run);
-    void listen(opened.id, (event) => {
+    // The stream ends when the session does; that is not a failure.
+    watch(run.session, (event) => {
       const line = typeof event === 'string' ? event : (event.line ?? '');
       if (line.startsWith('#')) {
         if (line.includes('clamped')) run.clamped = true;
@@ -137,7 +141,7 @@ async function round(engineId, count) {
   const elapsed = Date.now() - started;
   for (const run of runs) {
     try {
-      await call('/engine/close', { session: run.session });
+      await call('/engine/stop', { session: run.session });
     } catch {
       /* closing a session that already exited is not a failure */
     }

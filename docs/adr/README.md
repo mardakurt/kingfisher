@@ -59,3 +59,4 @@ order taken. Superseded records stay, marked as such.
 | [0048](0048-chess960-needs-a-rules-decision-first.md)                     | Chess960 needs a licensing decision before it needs code           | Accepted |
 | [0049](0049-the-desktop-shell.md)                                         | The desktop shell is Electron, and the reason is SharedArrayBuffer | Accepted |
 | [0050](0050-chess960-the-candidate-that-exists-and-still-is-not-taken.md) | Chess960: a candidate now exists, and it is still not taken        | Accepted |
+| [0051](0051-two-engine-slots-and-the-measurement-behind-them.md)          | Two engine slots, and the measurement behind them                  | Accepted |
