@@ -91,13 +91,52 @@ const ORIGINS = allowedOrigins(
  * installation, and it says so through `/tablebase/status` rather than by
  * failing to boot.
  */
+/**
+ * The Syzygy probe helper, found rather than remembered.
+ *
+ * `npm run tablebase:install` writes a build record naming the absolute path
+ * of the binary it just compiled. Reading `helper` straight out of it is
+ * correct in a checkout and wrong in two ways in a packaged application, both
+ * found in Phase 20 by looking inside the bundle:
+ *
+ *  1. The path is the *build machine's* — the signed bundle shipped
+ *     `/Users/<somebody>/…/engines/tablebase/kingfisher-tbprobe`, disclosing
+ *     the builder's account name and directory layout to everyone given a copy.
+ *  2. It cannot exist on anybody else's disk, so local Syzygy could never work
+ *     in a distributed build. It would degrade to the remote service for ever,
+ *     truthfully but permanently, and no user action could change it.
+ *
+ * So the record is used for what it is — provenance, which is worth shipping —
+ * and the binary is resolved by looking where it could actually be on *this*
+ * machine, nearest first. `KINGFISHER_TABLEBASE_HELPER` is the override for
+ * somebody who built it elsewhere.
+ */
 function tablebaseBinary() {
+  const named = process.env.KINGFISHER_TABLEBASE_HELPER;
+  if (named) return existsSync(named) ? named : null;
+
+  const candidates = [
+    // Built by this checkout, or into the user's own data directory — the
+    // only two places a helper on this machine can have come from.
+    path.join(ROOT, 'engines', 'tablebase', 'kingfisher-tbprobe'),
+    path.join(DATA_DIR, 'tablebase', 'kingfisher-tbprobe'),
+  ];
+
+  /*
+    The recorded path last, and only if it is still real.
+
+    In a checkout it is the same file as the first candidate. In a bundle it is
+    somebody else's disk and `existsSync` says so — which is the whole point of
+    checking rather than trusting.
+  */
   try {
     const manifest = JSON.parse(readFileSync(TABLEBASE_MANIFEST, 'utf8'));
-    return existsSync(manifest.helper) ? manifest.helper : null;
+    if (typeof manifest.helper === 'string') candidates.push(manifest.helper);
   } catch {
-    return null;
+    // No record is not an error: a machine with no C compiler is supported.
   }
+
+  return candidates.find((candidate) => existsSync(candidate)) ?? null;
 }
 
 const tablebase = new TablebaseHelper(tablebaseBinary());

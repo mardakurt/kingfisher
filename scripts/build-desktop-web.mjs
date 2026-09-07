@@ -24,7 +24,16 @@
  *   node scripts/build-desktop-web.mjs
  */
 
-import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, statSync } from 'node:fs';
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -160,6 +169,36 @@ if (absent.length > 0) {
   for (const entry of absent) console.error(`  public/${entry.at} — ${entry.because}`);
   console.error('\nRefusing to assemble an application that would launch without them.');
   process.exit(1);
+}
+
+/*
+  Take the build machine's own paths out of what gets signed and shipped.
+
+  `npm run tablebase:install` records the absolute path of the helper it just
+  compiled, and that record lives under `public/`, so a bundle built here
+  shipped `/Users/<whoever built it>/…/kingfisher-tbprobe` to everybody given a
+  copy. Two problems in one line: it discloses the builder's account name and
+  directory layout, and it names a file that cannot exist on the machine
+  reading it.
+
+  The rest of the record is provenance worth keeping — the upstream repository,
+  the commit, the licence and the source digests describe the helper wherever
+  it came from — so the path is dropped rather than the file. The companion
+  resolves the binary on the machine it is actually running on; see
+  `tablebaseBinary()`.
+*/
+const buildRecord = path.join(OUT, 'public', 'engine', 'tablebase.json');
+if (existsSync(buildRecord)) {
+  const record = JSON.parse(readFileSync(buildRecord, 'utf8'));
+  if (record.helper) {
+    delete record.helper;
+    record.helperPathRemoved =
+      'Removed at packaging: it named the build machine. The companion finds the helper itself.';
+    writeFileSync(buildRecord, `${JSON.stringify(record, null, 2)}\n`);
+    console.log(
+      '  (removed the build machine\u2019s helper path from public/engine/tablebase.json)',
+    );
+  }
 }
 
 console.log(`\nAssembled ${path.relative(ROOT, OUT)}`);

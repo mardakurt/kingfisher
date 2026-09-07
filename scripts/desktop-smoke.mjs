@@ -262,6 +262,87 @@ async function main() {
     await window.waitForSelector('html[data-kingfisher-ready="true"]', { timeout: 30_000 });
   }
 
+  /*
+    5c. A native engine the machine already has, started from inside the bundle.
+
+    This exists because of what it found. Lc0 is a `system` engine — its
+    project publishes no macOS release asset, so Kingfisher locates the copy a
+    package manager installed. It located it with `which`, and a macOS
+    application launched from the Finder inherits `/usr/bin:/bin:/usr/sbin:/sbin`
+    and nothing else: no Homebrew, no MacPorts, no `/usr/local/bin`. So the
+    search succeeded in a terminal, succeeded from a checkout, and could never
+    have succeeded here. Phase 19 recorded Lc0 as "not verified in the packaged
+    application"; it was not verifiable.
+
+    Skipped, not failed, where the machine has no Lc0 — that is a normal
+    machine, and the catalogue row says "Not on this machine" truthfully. What
+    must not happen is a machine that *has* one where the bundle cannot find
+    it.
+
+    Ready means a real search finished. For a neural engine that is the whole
+    of the condition, because Lc0 completes a UCI handshake happily with no
+    network weights at all and would otherwise be reported as working while
+    being unable to evaluate anything.
+  */
+  if (!args.offline) {
+    const lc0 = await window.evaluate(async () => {
+      const { url, token } = window.kingfisher.companion;
+      const call = async (route, body) => {
+        const response = await fetch(`${url}${route}`, {
+          method: body === undefined ? 'GET' : 'POST',
+          headers: {
+            authorization: `Bearer ${token}`,
+            ...(body === undefined ? {} : { 'content-type': 'application/json' }),
+          },
+          ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+        });
+        return { status: response.status, body: await response.json().catch(() => null) };
+      };
+
+      const catalogue = await call('/engine/catalogue');
+      const entry = catalogue.body?.engines?.find((engine) => engine.id === 'lc0');
+      if (!entry) return { present: false, reason: 'lc0 is not in the catalogue' };
+
+      // 202 is the normal answer: installing is asynchronous so that a
+      // download can report progress. A system engine downloads nothing, but
+      // it still has to be located and put through a real search.
+      const installed = await call('/engine/install', { engine: 'lc0' });
+      if (installed.status !== 200 && installed.status !== 202) {
+        return { present: false, reason: installed.body?.error ?? `HTTP ${installed.status}` };
+      }
+      for (let attempt = 0; attempt < 240; attempt += 1) {
+        const progress = await call('/engine/install-progress?engine=lc0');
+        if (!progress.body?.progress) break;
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+
+      const after = await call('/engine/catalogue');
+      const row = after.body?.engines?.find((engine) => engine.id === 'lc0');
+      if (!row?.installed) {
+        return { present: false, reason: row?.unavailableReason ?? 'it did not become installed' };
+      }
+      return {
+        present: true,
+        binary: row.record?.binary ?? null,
+        reported: row.record?.reportedName ?? null,
+        // `verifyEngine` only registers an engine that handshook *and* found a
+        // move, so these two being true is the real-search claim.
+        handshake: row.record?.checks?.handshake?.ok === true,
+        search: row.record?.checks?.search?.ok === true,
+      };
+    });
+
+    if (lc0.present) {
+      check(
+        'Lc0 is found and qualified inside the packaged application',
+        lc0.handshake && lc0.search,
+        `${lc0.reported ?? 'lc0'} at ${lc0.binary ?? 'an unknown path'}`,
+      );
+    } else {
+      console.log(`  · Lc0 not checked — ${lc0.reason}`);
+    }
+  }
+
   // 6. What the shell says about itself.
   const diagnostics = await window.evaluate(() => window.kingfisher.diagnostics());
   check(
