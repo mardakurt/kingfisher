@@ -33,7 +33,9 @@ Ratings are **strict**: ✅ genuinely competitive, ◐ real but narrower, ✗ ab
 | Preparation against an opponent |            ✅             |         ◐          |        ◐         |      ◐       |                                    ✅                                    |
 | Engine management               |            ✅             |         ✗          |        ✅        |      ✗       | ✅ **seven on Apple Silicon, verified by interrogation; one built here** |
 | Repertoire + training           |            ✅             |         ◐          |        ✅        |      ✗       |                                    ✅                                    |
-| Desktop application             |     ✅ Windows-first      |         ✗          |   ✅ all three   |      ✗       |       ◐ **macOS built, signed and driven; not yet distributable**        |
+| Desktop application             |     ✅ Windows-first      |         ✗          |   ✅ all three   |      ✗       | ◐ **macOS driven; Windows and Linux built, untested; not distributable** |
+| Local tablebases                |            ✅             |   ◐ remote only    |        ✅        |      ✗       |           ✅ **local Syzygy, inside the packaged application**           |
+| Neural engine                   |            ✅             |         ✗          |        ✅        |      ✗       |        ✅ **Lc0, metal backend, inside the packaged application**        |
 | Ease of setup                   |    ✗ install, licence     |         ✅         |    ◐ install     |      ✅      |                  ✅ **open a page, or install the app**                  |
 | Open source                     |             ✗             |         ✅         |        ✅        |      ✗       |                                    ✅                                    |
 
