@@ -34,6 +34,14 @@ const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const args = {
   packaged: argv.includes('--packaged'),
   keepOpen: argv.includes('--keep-open'),
+  /*
+    `--offline` blocks every request that does not go to loopback, which is a
+    closer model of a disconnected machine than turning the whole network off
+    would be: the shell serves the application over loopback and talks to the
+    companion over loopback, and both must keep working. What must stop is
+    Lichess, the engine release pages and anything else outside the machine.
+  */
+  offline: argv.includes('--offline'),
 };
 
 const results = [];
@@ -132,6 +140,24 @@ async function main() {
 
   const started = Date.now();
   const app = await electron.launch({ ...launch, timeout: 120_000 });
+
+  if (args.offline) {
+    const blocked = await app.evaluate(({ session }) => {
+      let count = 0;
+      session.defaultSession.webRequest.onBeforeRequest((details, callback) => {
+        const local = /^(https?:\/\/)?(127\.0\.0\.1|localhost|\[::1\])(:|\/|$)/.test(
+          details.url.replace(/^[a-z-]+:\/\//, (m) => m),
+        );
+        const internal = /^(devtools|chrome|chrome-extension|blob|data|file):/.test(details.url);
+        if (local || internal) return callback({});
+        count += 1;
+        return callback({ cancel: true });
+      });
+      return true;
+    });
+    check('the network is cut, loopback is not', blocked === true);
+  }
+
   const window = await app.firstWindow({ timeout: 120_000 });
   await window.waitForLoadState('domcontentloaded');
   const ready = Date.now() - started;
@@ -207,6 +233,34 @@ async function main() {
     opened !== null,
     opened ?? 'the move list never showed the game',
   );
+
+  /*
+    5b. Offline: the local half of the workstation must still work.
+
+    Not "the page loaded" — the things a player would reach for. The board is
+    rendered by the application itself, the explorer answers from a reference
+    pack installed into this browser profile, and the routes that hold studies,
+    the repertoire and training all mount without a network.
+  */
+  if (args.offline) {
+    const local = await window.evaluate(() => ({
+      board: document.querySelectorAll('[data-chessboard]').length,
+      text: document.body.innerText.length,
+    }));
+    check('the board is still drawn with no network', local.board > 0, `${local.board} board(s)`);
+    check('the application still renders', local.text > 200, `${local.text} characters`);
+
+    for (const route of ['/studies', '/repertoire', '/training', '/openings', '/databases']) {
+      const url = new URL(window.url());
+      await window.goto(`${url.origin}${route}`);
+      await window.waitForSelector('html[data-kingfisher-ready="true"]', { timeout: 30_000 });
+      const errors = await window.evaluate(() => document.body.innerText.slice(0, 400));
+      check(`${route} works offline`, errors.length > 40, `${errors.length} characters rendered`);
+    }
+    const url = new URL(window.url());
+    await window.goto(`${url.origin}/analysis`);
+    await window.waitForSelector('html[data-kingfisher-ready="true"]', { timeout: 30_000 });
+  }
 
   // 6. What the shell says about itself.
   const diagnostics = await window.evaluate(() => window.kingfisher.diagnostics());

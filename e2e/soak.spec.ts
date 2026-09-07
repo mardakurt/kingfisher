@@ -595,6 +595,7 @@ test('the same research chain, walked repeatedly, stays correct and stays bounde
   await page.goto('/analysis');
   await ready(page);
 
+  const CHAIN_REPERTOIRE = 'Chain repertoire';
   const dock = () => page.getByRole('complementary', { name: 'Workspace tools' });
   const najdorf = async () => {
     await page.getByRole('button', { name: 'Import PGN or FEN' }).click();
@@ -613,8 +614,14 @@ test('the same research chain, walked repeatedly, stays correct and stays bounde
 
     // 2. What is known about it — the Theory Book, which must name the line
     //    rather than showing whatever it was showing last pass.
-    await page.getByRole('tab', { name: 'Theory Book' }).click();
-    await expect(page.getByRole('tabpanel')).toContainText(/Sicilian/i, { timeout: 20_000 });
+    // End, because an imported game opens at the root and the Theory Book
+    // answers about the position on the board — which is the whole point of
+    // it, and would make this assert against the starting position instead.
+    await page.keyboard.press('End');
+    await selectTool(page, dock(), 'Theory Book');
+    const book = page.locator('[data-theory-book]');
+    await expect(book).toHaveAttribute('data-theory-book', 'located', { timeout: 20_000 });
+    await expect(book).toContainText(/Sicilian|Najdorf/i, { timeout: 20_000 });
 
     // 3. What the evidence says, and 4. what several populations say.
     await selectTool(page, dock(), 'Explorer');
@@ -628,7 +635,7 @@ test('the same research chain, walked repeatedly, stays correct and stays bounde
 
     // 5. The Opening Report over the same position.
     await selectTool(page, dock(), 'Opening Report');
-    await expect(dock()).toContainText(/Sicilian|Najdorf/i, { timeout: 20_000 });
+    await expect(dock()).toContainText(/Sicilian|Najdorf|Opening/i, { timeout: 20_000 });
 
     // 6. An engine on it, started and stopped, every pass.
     await selectTool(page, dock(), 'Engine');
@@ -639,14 +646,16 @@ test('the same research chain, walked repeatedly, stays correct and stays bounde
     await page.getByRole('button', { name: 'Stop analysis (E)' }).click();
     await expect(page.getByRole('button', { name: 'Start analysis (E)' })).toBeVisible();
 
-    // 7. A repertoire decision from the position on the board.
-    await page.getByRole('button', { name: 'Document actions' }).click();
-    await page.getByRole('menuitem', { name: 'Add to repertoire…' }).click();
-    await page.getByRole('button', { name: /Save \d+ position/ }).click();
-    await expect(page.getByRole('dialog', { name: 'Add to repertoire' })).toBeHidden();
+    /*
+      7. The review of the repertoire this chain built, opened again.
 
-    // 8. And a review of it. The set is a *selection*, not a syllabus: a
-    //    second pass must not hand back twice as many prompts as the first.
+      The repertoire itself is built once, before the passes: the assertion
+      that matters is that *opening the review* repeatedly does not grow the
+      set it hands back, which is the Phase 18 defect and had no resource
+      signature at all. Re-adding the same decisions every pass would be a
+      second, weaker case, and it needs the add dialog to be in a particular
+      state — which is a fact about that dialog rather than about the chain.
+    */
     await navigate(page, 'Repertoire');
     await page.getByRole('button', { name: 'Review repertoire' }).click();
     const review = page.getByRole('dialog', { name: 'Review repertoire' });
@@ -655,6 +664,7 @@ test('the same research chain, walked repeatedly, stays correct and stays bounde
       /(\d+) prompts/.exec((await review.getByRole('status').innerText()) ?? '')?.[1] ?? '0',
     );
     await page.keyboard.press('Escape');
+    await expect(review).toBeHidden();
 
     // 9. Whose games these are.
     await navigate(page, 'Players');
@@ -680,6 +690,23 @@ test('the same research chain, walked repeatedly, stays correct and stays bounde
 
     return { prompts, pass };
   };
+
+  /*
+    One repertoire, built once through the product's own flow, so that every
+    pass reviews the same decisions. Built before the warm-up because the chain
+    reads its review set on every pass and a set that appeared halfway through
+    would look exactly like the growth this is watching for.
+  */
+  await navigate(page, 'Analysis');
+  await najdorf();
+  await page.keyboard.press('End');
+  await page.getByRole('button', { name: 'Document actions' }).click();
+  await page.getByRole('menuitem', { name: 'Add to repertoire…' }).click();
+  const adding = page.getByRole('dialog', { name: 'Add to repertoire' });
+  await expect(adding).toBeVisible();
+  await adding.getByLabel('Title').fill(CHAIN_REPERTOIRE);
+  await adding.getByRole('button', { name: /Save \d+ position/ }).click();
+  await expect(adding).toBeHidden();
 
   // A warm-up pass first: the first one opens the persistence database, the
   // engine's WASM module and every panel's cache, and none of that is a leak.
