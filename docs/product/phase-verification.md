@@ -1,4 +1,4 @@
-# Phases 1–19, capability by capability
+# Phases 1–21, capability by capability
 
 What each phase built, the invariant that has to keep holding, and where the
 evidence for it lives. This is the map to consult before changing something:
@@ -10,13 +10,22 @@ Status values mean exactly this:
 - **Held** — the invariant is asserted by the evidence named, and that evidence
   passed on the run recorded in the Phase 16 handover.
 - **Held (repaired)** — the invariant was found broken during Phase 16, 17, 18,
-  19 or 20 and the fix commit is named.
+  19, 20 or 21 and the fix commit is named.
 
 **Phase 20 re-ran every row's evidence rather than reading it.** The unit and
 integration suite, the browser suite, the visual gate, the desktop shell tests
 and the companion suite were all run from a clean checkout at the start of the
 phase and again at the end; the counts are in the Phase 20 handover. No row
 below is marked Held on the strength of a previous phase's report.
+
+**Phase 21 re-ran the same suites and added two the product did not have.** The
+window-chrome contract (`npm run desktop:chrome`) and the stale-response specs
+are new, and both were mutation-checked before being trusted — see the Phase 21
+handover for what turned red. Phase 20's own repairs were re-exercised rather
+than assumed: the packaged smoke run at the end of Phase 21 asserts the PGN
+cold launch, the second PGN, Lc0 inside the bundle, the local Syzygy probe, the
+companion lifetime and zero orphan processes, and all seventeen passed against a
+`Kingfisher.app` built in this phase.
 
 Nothing here is marked verified on the strength of an earlier report.
 
@@ -240,6 +249,18 @@ Nothing here is marked verified on the strength of an earlier report.
 | The bundle is the repository             | `scripts/build-desktop-web.mjs`           | What a signed application contains is a property of the repository, not of whose working tree built it                                     | —                           | —                      | **Held (repaired)** | `public/` was copied wholesale, putting 2.9 MB of git-ignored local benchmark PGNs into the signed bundle       | Phase 20 |
 | No optimiser for images nothing renders  | `next.config.ts`                          | The standalone build carries what it reaches; `next/image` is used nowhere                                                                 | —                           | —                      | **Held (repaired)** | 28 MB of `sharp` and libvips shipped for a code path no component invokes                                       | Phase 20 |
 | A test fixture cannot outlive its test   | `desktop/src/services.test.mjs`           | The process that exists to ignore SIGTERM must still end when the run that owns it does not                                                | `services.test.mjs`         | —                      | **Held (repaired)** | A stubborn fixture from an interrupted run had been up for a day, reparented to init                            | Phase 20 |
+
+---
+
+## Phase 21 — the window, and the answers that arrive late
+
+| Capability                              | Implementation                             | Invariant                                                                                                                             | Unit evidence             | Browser evidence          | Status              | Regression                                                                                                                           | Fix      |
+| --------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- | ------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | -------- |
+| The window buttons have somewhere to go | `desktop/src/window-chrome.mjs`            | One rectangle, decided in one place; the shell places the buttons from it and the renderer reserves the same, and nothing overlaps    | `bridge-contract.test.ts` | `desktop:chrome` — 51     | **Held (repaired)** | `hiddenInset` let macOS choose an inset it does not report, so nothing could reserve it; the close button sat on the Kingfisher mark | Phase 21 |
+| The browser reserves nothing for it     | `src/app/globals.css`, `TitleBarSafeArea`  | The reservation has no area off the desktop, and the web layout is what it was — 228 px sidebar, 56 px header, mark at (14, 10)       | —                         | `window-chrome.spec.ts`   | **Held (repaired)** | A zero-width flex child still takes its share of the container's `gap`, which moved the mark ten pixels right in every browser       | Phase 21 |
+| The smallest window is an honest claim  | `desktop/src/main.mjs`                     | At `minWidth`×`minHeight` the board is still a board, nothing scrolls sideways, and nothing below the fold is outside a scroll region | —                         | `desktop:chrome`          | **Held**            | Not previously checked at all; 900×600 gives a 583 px board and strands nothing                                                      | Phase 21 |
+| A late answer never reaches the screen  | `src/features/explorer/useExplorer.ts`     | Explorer evidence is keyed by source, source version, position and filters, so an answer can only land in the entry that asked for it | —                         | `stale-responses.spec.ts` | **Held**            | Mutation-checked: dropping the position from the key makes the panel serve the previous position's continuations                     | Phase 21 |
+| Player search has no race to lose       | `src/features/player/PlayersWorkspace.tsx` | Typing filters a catalogue loaded once, synchronously; no request is issued per keystroke, so no response can arrive out of order     | —                         | `stale-responses.spec.ts` | **Held**            | Asserted rather than assumed — the test fails if search ever grows a request per keystroke                                           | Phase 21 |
 
 ---
 

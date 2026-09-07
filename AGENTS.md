@@ -215,8 +215,16 @@ returns `null` in a browser. Five rules hold, and each has cost something:
 - **The web build is never changed to suit the desktop.** Standalone output and
   cross-origin isolation are opt-in behind environment variables that only
   `scripts/build-desktop-web.mjs` sets.
+- **The window's chrome is one rectangle, stated once.** macOS draws three
+  buttons over the top-left of the web contents, and `desktop/src/window-chrome.mjs`
+  is the only place their position is decided — the shell reads it to place
+  them, the renderer is handed the same object and reserves exactly that. No
+  component hard-codes a padding for them, the reservation is zero in a browser
+  and off macOS, and the traffic lights are the operating system's own controls
+  rather than circles drawn in HTML. `npm run desktop:chrome` intersects the two
+  and fails on any overlap.
 - **A platform claim needs evidence.** "Builds" is not "runs". `npm run
-desktop:smoke` drives the real application and checks the fourteen things
+desktop:smoke` drives the real application and checks the seventeen things
   only the shell can be wrong about; README states which platforms it has
   actually been run on, and which it has not.
 
@@ -268,6 +276,19 @@ git diff --check
 ```
 
 All of them, before claiming a release gate is green.
+
+And on macOS, where the shell is the product rather than a build target:
+
+```bash
+npm run desktop:smoke               # the shell, from the checkout
+npm run desktop:smoke -- --packaged # a built Kingfisher.app
+npm run desktop:chrome -- --packaged # the window buttons, against every layout
+```
+
+These are not in CI and cannot be: signing needs a certificate in a keychain
+and driving a window needs a real window server, so macOS is built and driven on
+the maintainer's own machine. That is a limitation to state, not to hide behind
+— a green Linux CI says nothing at all about the application a Mac user opens.
 
 ## Two rules about honesty
 

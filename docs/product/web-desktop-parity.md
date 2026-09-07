@@ -87,15 +87,42 @@ changes what a feature _does_; each adds a way of reaching it.
 | Shell diagnostics in the report | Only the process that started them knows whether they are up | `diagnostic-report.test.ts`          |
 | Quit ends every native process  | There is nothing to end in a browser tab                     | smoke: 0 descendants after quit      |
 
+## The window itself
+
+One row, and it is the only place the two identities differ in _layout_ rather
+than in reach. It is here rather than in the table above because it is the
+single difference a user can see without doing anything.
+
+| Difference                    | Web | Desktop (macOS)      | Why                                                                | Evidence                                      |
+| ----------------------------- | :-: | -------------------- | ------------------------------------------------------------------ | --------------------------------------------- |
+| Title-bar safe area, 76×36 px |  ✗  | ✅ top-left reserved | macOS draws three window buttons over the top-left of the contents | `desktop:chrome`; `e2e/window-chrome.spec.ts` |
+
+The shell hides the title bar, so the application's first pixel and the close
+button occupy the same place. The reservation is what keeps Kingfisher out from
+under them, and it is scoped so it costs nothing anybody would notice: with
+navigation on screen it is horizontal, inside a sidebar header that is 56 px
+tall anyway, so the board keeps every pixel it had. `e2e/board-size.spec.ts`
+holds the same floors it held before the change.
+
+**Windows and Linux inherit none of it.** Those shells keep a real title bar,
+so `windowChromeFor()` returns null and the two custom properties stay at zero
+— the same values a browser has. The reservation is `display: none` off the
+desktop rather than merely zero-sized, because a zero-width flex child still
+takes its share of the container's `gap`; that leaked ten pixels into the web
+build once, and `e2e/window-chrome.spec.ts` now pins the browser layout —
+228 px sidebar, 56 px header, mark at (14, 10) — so it cannot leak again.
+
 ## Differences that are _not_ allowed, and are checked
 
-| Would-be difference                      | Status                                                                                                                             |
-| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| A second board renderer in the shell     | **Absent.** One board architecture; a second is a bug. `AGENTS.md`                                                                 |
-| Chess state in the main process          | **Absent.** No board, tree, engine session or query in `desktop/src/`                                                              |
-| A second preferences system              | **Absent.** Desktop pairing is written _through_ the same preference Settings writes                                               |
-| A web build changed to suit the desktop  | **Absent.** Standalone output and cross-origin isolation are opt-in behind env vars that only `scripts/build-desktop-web.mjs` sets |
-| A generic `readFile(path)` on the bridge | **Absent**, deliberately. Everything readable was chosen in a dialog or dropped on the window                                      |
+| Would-be difference                       | Status                                                                                                                             |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| A second board renderer in the shell      | **Absent.** One board architecture; a second is a bug. `AGENTS.md`                                                                 |
+| Chess state in the main process           | **Absent.** No board, tree, engine session or query in `desktop/src/`                                                              |
+| A second preferences system               | **Absent.** Desktop pairing is written _through_ the same preference Settings writes                                               |
+| A web build changed to suit the desktop   | **Absent.** Standalone output and cross-origin isolation are opt-in behind env vars that only `scripts/build-desktop-web.mjs` sets |
+| A generic `readFile(path)` on the bridge  | **Absent**, deliberately. Everything readable was chosen in a dialog or dropped on the window                                      |
+| A desktop title-bar spacer in the browser | **Absent**, and asserted. `e2e/window-chrome.spec.ts` fails on a reservation with any area in a browser                            |
+| Fake window buttons drawn in HTML         | **Absent.** The traffic lights are the operating system's own controls, positioned by the shell, not circles in a div              |
 
 ## The one asymmetry worth stating plainly
 

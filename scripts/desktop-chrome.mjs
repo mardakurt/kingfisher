@@ -376,6 +376,74 @@ async function main() {
   );
   await assertClear(window, light, 'after leaving full screen');
 
+  /*
+    6b. The smallest window the shell will make, and whether it is honest.
+
+    `minWidth`/`minHeight` in main.mjs is a promise: below this the user cannot
+    go, so at exactly this the application has to work. "Works" is three things
+    and not a screenshot — the board is still a board, the page does not scroll
+    sideways, and nothing the user needs has fallen off the bottom into a
+    region that does not scroll. The last one is the one worth checking: at
+    900x600 twenty-five controls sit below the fold, including the move
+    navigation, and the question is not whether they are visible but whether
+    they can be reached.
+  */
+  // Back to a board route: the route walk above ended somewhere without one,
+  // and "is there still a board" is not a question /repertoire can answer.
+  await window.evaluate(() => {
+    document.querySelector('a[href="/analysis"]')?.click();
+  });
+  await window.waitForTimeout(900);
+  await app.evaluate(({ BrowserWindow }) => {
+    BrowserWindow.getAllWindows()[0].setBounds({ x: 40, y: 40, width: 900, height: 600 });
+  });
+  await window.waitForTimeout(900);
+  const smallest = await window.evaluate(() => {
+    const scrollableAncestor = (el) => {
+      for (let node = el.parentElement; node; node = node.parentElement) {
+        const style = getComputedStyle(node);
+        if (/(auto|scroll)/.test(style.overflowY) && node.scrollHeight > node.clientHeight + 1) {
+          return true;
+        }
+      }
+      return false;
+    };
+    const stranded = [];
+    for (const el of document.querySelectorAll('a[href],button,input,select,[role="tab"]')) {
+      const rect = el.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) continue;
+      if (rect.bottom > window.innerHeight + 1 && !scrollableAncestor(el)) {
+        stranded.push((el.getAttribute('aria-label') || el.textContent || '').trim().slice(0, 40));
+      }
+    }
+    const frame = document.querySelector('[data-board-frame]')?.getBoundingClientRect();
+    const root = document.documentElement;
+    return {
+      board: frame ? Math.round(Math.min(frame.width, frame.height)) : 0,
+      sideways: root.scrollWidth - root.clientWidth,
+      stranded,
+    };
+  });
+  check(
+    'the smallest window the shell allows still shows a board',
+    smallest.board >= 400,
+    `${smallest.board}px at 900x600`,
+  );
+  check('and does not scroll sideways there', smallest.sideways <= 0, `${smallest.sideways}px`);
+  check(
+    'and strands no control below the fold',
+    smallest.stranded.length === 0,
+    smallest.stranded.length === 0
+      ? 'everything below the fold is in a region that scrolls'
+      : `unreachable: ${smallest.stranded.slice(0, 3).join(', ')}`,
+  );
+  await assertClear(window, light, 'minimum window, after the walk');
+
+  await app.evaluate(({ BrowserWindow }) => {
+    BrowserWindow.getAllWindows()[0].setBounds({ x: 60, y: 60, width: 1440, height: 900 });
+  });
+  await window.waitForTimeout(400);
+
   // 7. Maximize, which is a different code path from a size the harness set.
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].maximize());
   await window.waitForTimeout(800);
