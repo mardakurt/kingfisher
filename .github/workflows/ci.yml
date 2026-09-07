@@ -136,7 +136,15 @@ jobs:
   e2e:
     name: Browser tests
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # 45, not 30, and the reason is worth writing down: Phase 19's run of this
+    # same 222-test suite took 25m42s, and Phase 20's took 30m17s and was
+    # killed by the old limit one job short of a green release candidate. The
+    # suite had not changed — 222 tests before and after — so what moved was the
+    # runner. A limit that sits five minutes above the observed time turns a
+    # slow morning on shared infrastructure into a red cross that means nothing,
+    # and the cost of that is somebody learning to re-run a gate rather than
+    # read it. Retries are still 0; nothing here makes a failing test pass.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v5
 
