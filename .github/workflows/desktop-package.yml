@@ -1,0 +1,98 @@
+# Does the desktop application package on the platforms it is configured for?
+#
+# macOS is built, signed and driven on the maintainer's own machine, because
+# signing needs a certificate in a keychain and driving it needs a real window
+# server. Windows and Linux were *configured* in Phase 19 and never built, and
+# "configured" is not a claim about anything — an electron-builder target can
+# be perfectly well specified and fail on the first native dependency.
+#
+# This workflow answers the narrow question it can answer: does an artifact
+# come out, and is it the shape it should be. That is genuinely less than
+# support. Nobody has installed these, launched them, or driven them through a
+# game, and until somebody has, README and the release notes call them
+# unsupported — see `docs/release/`. Producing an installer and supporting a
+# platform are different claims and this workflow only makes the first.
+#
+# Not a gate. It is minutes of packaging per platform on every run, it proves
+# nothing about the product's behaviour, and a red cross here should not block
+# a release whose supported platform is macOS.
+name: Desktop package
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Monthly, so a break in Windows or Linux packaging is found within weeks
+    # rather than at the moment somebody decides to support them.
+    - cron: '0 5 3 * *'
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: ${{ matrix.label }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      # Every platform reports; one failing must not hide the other's result.
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            label: Linux x64
+            # The artifact electron-builder is configured to emit there.
+            pattern: '*.AppImage'
+          - os: windows-latest
+            label: Windows x64
+            pattern: '*.exe'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Install the shell's own dependencies
+        run: npm run desktop:install
+
+      # The browser engine is fetched rather than committed, and
+      # `build-desktop-web.mjs` refuses to assemble a bundle without it — which
+      # is the point of that check and the reason this step is not optional.
+      - name: Fetch the browser engine
+        run: npm run engine:install
+
+      - name: Package
+        run: npm run desktop:dist
+
+      # electron-builder writes outside the repository when the checkout path
+      # contains a character it refuses; on a runner it does not, but the
+      # script prints where it went either way.
+      - name: Find what came out
+        shell: bash
+        run: |
+          set -euo pipefail
+          found=$(find . "${TMPDIR:-/tmp}" -maxdepth 4 -name "${{ matrix.pattern }}" -type f 2>/dev/null | head -5 || true)
+          if [ -z "$found" ]; then
+            echo "No ${{ matrix.pattern }} artifact was produced."
+            exit 1
+          fi
+          echo "$found" | while read -r file; do
+            printf '%s  %s bytes\n' "$file" "$(wc -c < "$file")"
+          done
+          echo "ARTIFACT=$(echo "$found" | head -1)" >> "$GITHUB_ENV"
+
+      # Uploaded so that somebody deciding whether to support a platform has
+      # something to install, rather than a green tick.
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kingfisher-${{ matrix.os }}
+          path: ${{ env.ARTIFACT }}
+          if-no-files-found: warn
+          retention-days: 14
