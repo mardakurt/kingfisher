@@ -407,6 +407,25 @@ demand also means the licence obligation is the user's normal one — they have
 the binary the project published, and its source is where the project publishes
 it.
 
+### Lc0, verified on this machine
+
+"Ready" for a neural engine means three things and not one: the binary is
+present, a network is present, and a real search finished. Lc0 handshakes
+happily with no weights at all, which is why the first two are checked
+separately from the third.
+
+Driven through a running companion on macOS 26.6.2, Apple M3 Pro, on 2026-09-07:
+
+|         |                                                               |
+| ------- | ------------------------------------------------------------- |
+| Version | `Lc0 v0.32.1`                                                 |
+| Backend | **metal**, `Initialized metal backend on device Apple M3 Pro` |
+| Network | `42850.pb.gz`, autodiscovered from the Homebrew install       |
+| Search  | depth 4, `pv e2e4 c7c6 d2d4 d7d5 f2f3 d5e4 f3e4`              |
+
+The backend line comes from Lc0's own stderr, which the companion tags rather
+than discards — the reason it is visible at all.
+
 ### Lc0 on macOS
 
 The Lc0 project ships no macOS release asset. Building it during
@@ -630,6 +649,39 @@ engine does not use one at all, and the books it _does_ consult are named in
 their own panel.
 
 `BookPath` is deliberately not offered for the same reason.
+
+## Two at once, and why not three
+
+The comparison view has two slots. Phase 18 proved four native engines can
+search at once through one companion, each answering about its own position;
+Phase 19 was asked whether the interface should offer three or four, and
+measured it rather than deciding by preference.
+
+`npm run bench:engine-concurrency` holds the user's budget fixed, splits it N
+ways exactly as the application does, and runs N sessions of one engine on one
+position — one engine repeated, because four different engines differ for
+reasons that have nothing to do with sharing.
+
+| Engines | 12 threads, 1 GB | 4 threads, 256 MB |
+| ------: | ---------------: | ----------------: |
+|       1 |         depth 24 |          depth 23 |
+|       2 |      depth 23 −1 |       depth 23 −0 |
+|       3 |      depth 23 −1 |       depth 21 −2 |
+|       4 |      depth 22 −2 |       depth 22 −1 |
+
+A third engine is affordable on a capable machine and costs two ply of every
+engine on a modest one, where the split reaches a single thread each.
+
+But the reason there are two slots is not the resources.
+[ADR 0051](adr/0051-two-engine-slots-and-the-measurement-behind-them.md) has
+it: three readings produce a majority, and a majority is a verdict wearing the
+costume of evidence. Two engines disagreeing is a reason to look at the lines,
+which is what the panel says. Three is a vote, and no fictional number reaches
+a chess judgement here.
+
+`npm run engines:lab` drives four. It is a companion-level attribution check —
+does each concurrent session get its own engine's answer about its own
+position — and it is not a comparison view.
 
 ## Running two at once
 
