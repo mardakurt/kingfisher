@@ -34,13 +34,24 @@ process.on('SIGINT', bye);
 if (typeof process.send === 'function') process.on('disconnect', bye);
 `;
 
-/** One that refuses to die. The escalation case. */
+/**
+ * One that refuses to die. The escalation case.
+ *
+ * It ignores SIGTERM and holds an interval, which is the whole point — and
+ * which also means that a test run interrupted between `start()` and `stop()`
+ * leaves it running for ever, reparented to init, with no signal that will
+ * end it. Phase 20 found one of these that had been up for a day. The
+ * self-destruct is not part of what is being tested: `stop({ graceMs: 300 })`
+ * resolves in well under a second, so this only ever fires when the test that
+ * owns the process is no longer there to stop it.
+ */
 const STUBBORN = `
 import { createServer } from 'node:http';
 const server = createServer((_req, res) => { res.writeHead(200); res.end('ok'); });
 server.listen(Number(process.env.PORT), '127.0.0.1');
 process.on('SIGTERM', () => {});
 setInterval(() => {}, 1000);
+setTimeout(() => process.exit(0), 60_000);
 `;
 
 /** One that fails on boot, the way a missing file or a taken port does. */

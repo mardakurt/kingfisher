@@ -40,6 +40,27 @@ import { Service, freePort } from './services.mjs';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const HOST = '127.0.0.1';
 
+/**
+ * When each stage of launch finished, measured from process start.
+ *
+ * Phase 19 reported one number — 5.4 seconds to a window, packaged — and one
+ * number cannot be optimised, because it does not say which part to look at.
+ * Phase 20 needed the breakdown before touching anything, and it is kept
+ * rather than deleted afterwards: it is how a regression in launch becomes
+ * visible instead of becoming folklore.
+ *
+ * `process.uptime()` rather than a captured `Date.now()` at module load,
+ * because the interesting part includes everything before this file was
+ * evaluated — Electron's own bootstrap is a real part of the wait.
+ */
+const marks = [];
+const mark = (stage) => {
+  const at = Math.round(process.uptime() * 1000);
+  marks.push({ stage, at });
+  if (process.env.KINGFISHER_STARTUP_TRACE) console.log(`[startup] ${stage} ${at} ms`);
+  return at;
+};
+
 /** Everything the shell owns for one run. Assembled in `start()`. */
 const state = {
   layout: null,
@@ -50,6 +71,10 @@ const state = {
   companionToken: null,
   window: null,
   recent: new RecentDocuments(),
+  /** Resolves when the background companion start has settled, either way. */
+  companionStarted: null,
+  /** Why the companion is not running, when it failed rather than was stopped. */
+  companionError: null,
   /** Documents that arrived before a window existed to receive them. */
   pending: [],
 };
@@ -120,11 +145,51 @@ async function startServices() {
   });
 
   /*
-    Started together. The companion is not a prerequisite for the application —
-    Kingfisher runs with it switched off, which is the whole web story — so
-    serialising them would only make launch slower for no guarantee.
+    Started together, and waited on separately.
+
+    Both are launched at once, because neither needs the other. But only the
+    web server is a prerequisite for a *window*: Kingfisher runs with the
+    companion switched off — that is the entire web story — so a board that
+    waited for it would be waiting for something it does not need.
+
+    Until Phase 20 this was one `Promise.all`, and the effect was that the
+    slower of the two decided when anything appeared on screen. The companion
+    is often the slower one, and for structural reasons rather than accidental
+    ones: it replays the collections and custom engines a user has registered,
+    stats each recorded path to see whether it still exists, and probes for a
+    tablebase helper. That is work proportional to how much the user has set
+    up, and it was on the path to a blank board.
+
+    So `startServices` now resolves when the *application* can be shown, and
+    the companion continues in the background. A failure to start it is
+    reported where it belongs — in the status bar the renderer already has for
+    exactly this — rather than in a dialog that would preempt a working board.
   */
-  await Promise.all([state.web.start(), state.companion.start()]);
+  const companionStarted = state.companion.start().then(
+    () => {
+      mark('companion ready');
+      return true;
+    },
+    (error) => {
+      /*
+        Not fatal, and not silent.
+
+        The renderer discovers the companion through the same status query the
+        web build uses, so an offline companion already has a truthful
+        rendering. What it cannot know is *why*, and the log the Service kept
+        is the only place the reason exists.
+      */
+      state.companionError = error instanceof Error ? error.message : String(error);
+      console.error(`The Kingfisher companion did not start: ${state.companionError}`);
+      return false;
+    },
+  );
+  // Held so that quit can wait for a start still in flight rather than racing
+  // it, which would leave a companion nobody had a handle to.
+  state.companionStarted = companionStarted;
+
+  await state.web.start();
+  mark('web server ready');
 }
 
 /**
@@ -135,12 +200,25 @@ async function startServices() {
  * shutdown is how engines are orphaned.
  */
 async function stopServices() {
+  /*
+    Wait for a start still in flight before stopping it.
+
+    Since Phase 20 the companion starts in the background, so quitting during
+    launch — which is exactly what someone does when a launch feels slow — can
+    arrive before the fork has returned a pid. Stopping then would find nothing
+    to stop and report success, and the process would finish starting into an
+    application that had already gone. Settling the promise first costs the
+    remainder of a start that was happening anyway.
+  */
+  await state.companionStarted?.catch(() => false);
+
   const results = await Promise.all([
     state.companion?.stop() ?? { stopped: true, escalated: false },
     state.web?.stop() ?? { stopped: true, escalated: false },
   ]);
   state.companion = null;
   state.web = null;
+  state.companionStarted = null;
   return results;
 }
 
@@ -171,9 +249,14 @@ function createWindow() {
   });
 
   window.once('ready-to-show', () => {
+    mark('window shown');
     window.show();
     flushPending();
   });
+
+  // The renderer telling the shell it is interactive. Everything before this
+  // is the shell's to improve; everything after it is the application's.
+  window.webContents.once('did-finish-load', () => mark('renderer loaded'));
 
   /*
     Navigation is pinned to the server this shell started.
@@ -342,8 +425,23 @@ function registerIpc() {
       running: Boolean(state.companion?.running),
       pid: state.companion?.pid ?? null,
       url: state.companionUrl,
-      log: state.companion?.running ? [] : (state.companion?.log.slice(-5) ?? []),
+      /*
+        The log only when it is not running, and the recorded reason with it.
+
+        Since the companion starts in the background, "not running" now has two
+        shapes a user can hit: still starting, and failed to start. The log
+        distinguishes them, and `companionError` is the sentence the rejection
+        carried, which is otherwise nowhere the renderer can see.
+      */
+      log: state.companion?.running
+        ? []
+        : [
+            ...(state.companionError ? [state.companionError] : []),
+            ...(state.companion?.log.slice(-5) ?? []),
+          ],
     },
+    /** What launch cost, stage by stage. See `marks` for why it is kept. */
+    startup: marks.map(({ stage, at }) => ({ stage, at })),
   }));
 }
 
@@ -375,6 +473,7 @@ if (!app.requestSingleInstanceLock()) {
   });
 
   app.whenReady().then(async () => {
+    mark('electron ready');
     registerIpc();
     rebuildMenu();
     try {
@@ -385,6 +484,7 @@ if (!app.requestSingleInstanceLock()) {
       return;
     }
     createWindow();
+    mark('window created');
     void openPaths(openableFromArgv(process.argv));
 
     app.on('activate', () => {

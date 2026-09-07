@@ -91,6 +91,8 @@ export interface DiagnosticInput {
       readonly pid: number | null;
       readonly log: readonly string[];
     };
+    /** Milliseconds from process start to each launch stage, if recorded. */
+    readonly startup?: readonly { readonly stage: string; readonly at: number }[];
   };
 }
 
@@ -174,6 +176,12 @@ export function buildDiagnosticReport(
     if (companionProcess.log.length > 0) {
       lines.push('Companion log, last lines:');
       for (const line of companionProcess.log.slice(-12)) lines.push(`  ${line}`);
+    }
+    if (input.desktop.startup && input.desktop.startup.length > 0) {
+      lines.push('Launch, from process start:');
+      for (const { stage, at } of input.desktop.startup) {
+        lines.push(`  ${stage.padEnd(20)} ${at} ms`);
+      }
     }
     lines.push('');
   }

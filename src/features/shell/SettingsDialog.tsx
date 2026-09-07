@@ -2045,6 +2045,7 @@ function CopyReport() {
                     pid: shell.companion.pid,
                     log: shell.companion.log,
                   },
+                  ...(shell.startup ? { startup: shell.startup } : {}),
                 },
               }
             : {}),

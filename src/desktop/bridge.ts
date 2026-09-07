@@ -39,6 +39,14 @@ export interface DesktopDiagnostics {
     readonly url: string;
     readonly log: readonly string[];
   };
+  /**
+   * What launch cost, stage by stage, in milliseconds from process start.
+   *
+   * Kept in the product rather than in a benchmark script because a launch
+   * regression is invisible otherwise: it is the one measurement nobody takes
+   * until somebody complains, and by then it is several changes old.
+   */
+  readonly startup?: readonly { readonly stage: string; readonly at: number }[];
 }
 
 export interface DesktopBridge {
