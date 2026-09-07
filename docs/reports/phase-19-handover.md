@@ -44,16 +44,16 @@ he cannot do" to "yes, except he cannot be handed the installer".
 
 ## 2. Git and GitHub
 
-|                        |                                                        |
-| ---------------------- | ------------------------------------------------------ |
-| Branch                 | `master`                                               |
-| Phase 19 begins        | `5fa13c5` (the Phase 18 handover)                      |
-| Last gated code commit | `f9a7ee3`                                              |
-| Handover HEAD          | this commit; `db87742` and `3ebc46a` are documentation |
-| Commits                | **12, before this report**                             |
-| Diff                   | **70 files, +11,065 / −188**                           |
-| New files              | **38**                                                 |
-| Working tree           | clean                                                  |
+|                        |                                   |
+| ---------------------- | --------------------------------- |
+| Branch                 | `master`                          |
+| Phase 19 begins        | `5fa13c5` (the Phase 18 handover) |
+| Last gated code commit | `f9a7ee3`                         |
+| Handover HEAD          | `ece577b`, this report            |
+| Commits                | **13, including this report**     |
+| Diff                   | **70 files, +11,065 / −188**      |
+| New files              | **38**                            |
+| Working tree           | clean                             |
 
 `git log --oneline 5fa13c5..HEAD`:
 
@@ -72,11 +72,10 @@ def44c7 perf: index strategic claims, and make the index reachable
 b1f9cdd feat: make Kingfisher a Mac application that owns its own companion
 ```
 
-**CI.** Run **34125786497** on `db87742`, all four gating jobs green: Quality
-3m07s, Production build 55s, Visual gate 2m59s, Browser tests 29m43s. Run
-**34112154544** built and qualified engines on three platforms. An earlier run
-(**34125058951**) shows as _cancelled_ — it was superseded by the next push at
-test 80 of 222, with its other three jobs already green.
+**CI.** Run **34129245906**, on `ece577b` — this report's own commit — is green
+on all four gating jobs. §28 has the table, and names the two runs in between
+that show as cancelled and why. Run **34112154544** built and qualified engines
+on three platforms.
 
 ---
 
@@ -771,22 +770,27 @@ reverting the implementation and watching it fail.
 
 ## 28. CI
 
-Final completed run **34125786497**, commit `db87742`:
+Final completed run **34129245906**, on **`ece577b` — this report's own
+commit**, so nothing here is written from an in-progress run or from a
+different tree:
 
-| Job                 | Result                                |   Time |
-| ------------------- | ------------------------------------- | -----: |
-| Quality             | ✓ 159 files, 2,132 passed, 11 skipped |  3m07s |
-| Production build    | ✓                                     |    55s |
-| Visual gate (Linux) | ✓ 24 passed                           |  2m59s |
-| Browser tests       | ✓ **222 passed**                      | 29m43s |
+| Job                 | Result                                    |   Time |
+| ------------------- | ----------------------------------------- | -----: |
+| Quality             | ✓ 159 files, **2,132 passed**, 11 skipped |  3m27s |
+| Production build    | ✓                                         |  1m05s |
+| Visual gate (Linux) | ✓ **24 passed**                           |  2m48s |
+| Browser tests       | ✓ **222 passed** (24.9m)                  | 25m42s |
 
 Retries **0**. Flaky **0**.
+
+Run **34125786497** on `db87742` is the same code and was also green on all
+four. Two runs in between show as _cancelled_ — 34125058951 at test 80 of 222,
+and 34128679420 — each superseded by the next push, with their other jobs
+already green. Neither is a test failure, and neither is left unexplained.
 
 Off the gates: **Engine build** run 34112154544, three platforms green.
 **Lichess contract smoke** run 34123549102, green on the public half.
 **Engine fleet** run 34048549010 from Phase 18 stands.
-
-`3ebc46a`, this report's predecessor, is documentation on top of that run.
 
 ---
 
