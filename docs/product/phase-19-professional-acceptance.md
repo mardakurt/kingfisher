@@ -15,33 +15,43 @@ Run on macOS 26.6.2, Apple M3 Pro, Node 24.14.0, against
 
 ## The desktop application
 
-| #   | Step                              | Expected                                                      | Observed                                                                                          | Result |
-| --- | --------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ------ |
-| 1   | Install on macOS                  | A `.dmg` mounts and the app can be placed in Applications     | `Kingfisher-0.1.0-arm64.dmg`, 155 MB, built and mounted; `Kingfisher.app` is 338 MB               | Pass   |
-| 2   | Launch normally                   | A window, with no terminal                                    | Window in **4.8 s** from a cold start of the packaged build; 1.3 s from the checkout              | Pass   |
-| 3   | The companion starts by itself    | Running, and paired, with nothing pasted                      | `diagnostics` reports both services running; the bridge carries a 64-character token nobody typed | Pass   |
-| 4   | No terminal needed                | Nothing about the workflow requires one                       | Confirmed: the shell chose both ports, minted the token and started both processes                | Pass   |
-| 5   | Open a PGN from the shell         | It appears on the board                                       | Move list showed `Bb5 … a6` after a PGN was delivered through the shell's own channel             | Pass   |
-| 6   | Cross-origin isolation            | `crossOriginIsolated` true, so the threaded engine can run    | **true**, and `SharedArrayBuffer` present                                                         | Pass   |
-| 7   | The renderer holds no Node handle | `window.require` undefined under `contextIsolation`+`sandbox` | undefined                                                                                         | Pass   |
-| 8   | The companion answers             | An authenticated request through the bridged URL succeeds     | HTTP 200, `platform darwin-arm64`                                                                 | Pass   |
-| 9   | Quit                              | Both services stop                                            | Both pids gone; **all 5 descendants gone**, 64 ms to close from the checkout, 4.3 s packaged      | Pass   |
-| 10  | Relaunch                          | The session comes back                                        | Relaunched; profile and preferences intact                                                        | Pass   |
+| #   | Step                              | Expected                                                      | Observed                                                                                             | Result |
+| --- | --------------------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ------ |
+| 1   | Install on macOS                  | A `.dmg` mounts and the app can be placed in Applications     | `Kingfisher-0.1.0-arm64.dmg` and `Kingfisher-0.1.0.dmg` (x64) both built; `Kingfisher.app` is 338 MB | Pass   |
+| 2   | Launch normally                   | A window, with no terminal                                    | Window in **5.4 s** from a cold start of the signed packaged build; 1.9 s from the checkout          | Pass   |
+| 3   | The companion starts by itself    | Running, and paired, with nothing pasted                      | `diagnostics` reports both services running; the bridge carries a 64-character token nobody typed    | Pass   |
+| 4   | No terminal needed                | Nothing about the workflow requires one                       | Confirmed: the shell chose both ports, minted the token and started both processes                   | Pass   |
+| 5   | Open a PGN from the shell         | It appears on the board                                       | Move list showed `Bb5 … a6` after a PGN was delivered through the shell's own channel                | Pass   |
+| 6   | Cross-origin isolation            | `crossOriginIsolated` true, so the threaded engine can run    | **true**, and `SharedArrayBuffer` present                                                            | Pass   |
+| 7   | The renderer holds no Node handle | `window.require` undefined under `contextIsolation`+`sandbox` | undefined                                                                                            | Pass   |
+| 8   | The companion answers             | An authenticated request through the bridged URL succeeds     | HTTP 200, `platform darwin-arm64`                                                                    | Pass   |
+| 9   | Quit                              | Both services stop                                            | Both pids gone; **all 5 descendants gone**, 64 ms to close from the checkout, 4.3 s packaged         | Pass   |
+| 10  | Relaunch                          | The session comes back                                        | Relaunched; profile and preferences intact                                                           | Pass   |
 
 Steps 2–9 are `npm run desktop:smoke`, which drives the real application through
 Playwright and asserts each of them. **14 of 14 checks pass**, against the
 checkout and against the packaged `.app`.
 
-| #   | Step                    | Expected                                | Observed                                                                                              | Result  |
-| --- | ----------------------- | --------------------------------------- | ----------------------------------------------------------------------------------------------------- | ------- |
-| 11  | Signed                  | Gatekeeper accepts it without a warning | **Not signed.** `codesign -dv` reports `adhoc, linker-signed`, identifier `Electron`                  | Blocked |
-| 12  | Notarised               | Distributable to another Mac            | **Not notarised.** Both need an Apple Developer identity, which is a credential                       | Blocked |
-| 13  | Auto-update             | An update is offered and applied safely | **Not implemented.** No updater is configured, so there is nothing to test                            | Blocked |
-| 14  | `.pgn` file association | Double-clicking a PGN opens Kingfisher  | Declared in the bundle; not exercised, because registering it reliably needs an installed, signed app | Blocked |
+| #   | Step                    | Expected                                  | Observed                                                                                                                                                                                  | Result  |
+| --- | ----------------------- | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| 11  | Code signed             | A real signature, hardened runtime, valid | **Signed.** `Identifier=dev.kingfisher.app`, `flags=0x10000(runtime)`, authority `Apple Development: Metin Arda KURT`, `valid on disk`, `satisfies its Designated Requirement`            | Pass    |
+| 12  | Entitlements applied    | The six the trust model needs             | All six present in the signed bundle: `allow-jit`, `allow-unsigned-executable-memory`, `disable-library-validation`, `files.user-selected.read-write`, `network.client`, `network.server` | Pass    |
+| 13  | Gatekeeper accepts it   | It opens on another Mac                   | **`spctl` rejects it**, `origin=Apple Development` — a development certificate is not a distribution identity                                                                             | Blocked |
+| 14  | Notarised               | A ticket stapled                          | **No ticket.** `stapler validate` → "does not have a ticket stapled to it"                                                                                                                | Blocked |
+| 15  | Auto-update             | An update offered and applied safely      | **Not implemented.** No updater is configured, so there is nothing to test                                                                                                                | Blocked |
+| 16  | `.pgn` file association | Double-clicking a PGN opens Kingfisher    | Declared in the bundle; not exercised, because registering it reliably needs a Gatekeeper-accepted app                                                                                    | Blocked |
 
-The hardened runtime and its entitlements are configured and committed, so 11
-and 12 are one credential away. 13 and 14 are not started, and the report says
-so rather than implying otherwise.
+**What 13 and 14 actually need**, stated precisely rather than as "an Apple
+Developer identity". This machine's keychain holds two identities — _Apple
+Development_ and _Apple Distribution_ — and neither is the one required.
+Notarised direct distribution needs a **Developer ID Application** certificate,
+which is a third kind: _Apple Distribution_ is for the App Store and TestFlight,
+and _Apple Development_ is for running on registered devices, which is exactly
+what the signature above is good for and no more.
+
+So the bundle is properly signed, with the hardened runtime and the right
+entitlements, and it validates and runs here — and it is **not distributable**.
+That is one certificate away, and the certificate is the user's to obtain.
 
 ---
 
@@ -94,17 +104,17 @@ reaching a position and opening the games that got there.
 
 ## The rest of the workstation
 
-| #   | Step                       | Expected                                   | Observed                                                                  | Result  |
-| --- | -------------------------- | ------------------------------------------ | ------------------------------------------------------------------------- | ------- |
-| 34  | Analyse Game               | Engine, side, limit, MultiPV, opening skip | All five reach the job; `analyse-game.spec.ts` reads the job back         | Pass    |
-| 35  | Critical position → Review | Transparent rules, no badges               | Reasons and signals; the words blunder and brilliant appear nowhere       | Pass    |
-| 36  | Training from a position   | Reuses the existing queue                  | One scheduler for repertoire prompts and tactics cards alike              | Pass    |
-| 37  | Repertoire decision        | Saved by position                          | `repertoire-review.spec.ts`                                               | Pass    |
-| 38  | Repertoire review          | A selection, not a syllabus                | The chain soak walks it four times: **prompts steady at 5**               | Pass    |
-| 39  | Board theme and pieces     | Change what is drawn                       | `visual.spec.ts`, with a 0.2% tolerance on the board itself               | Pass    |
-| 40  | Create a Study             | Survives reload                            | `reliability.spec.ts`                                                     | Pass    |
-| 41  | Probe local Syzygy         | Answers from disk                          | **Not exercised here**: no tablebase files are installed on this machine  | Blocked |
-| 42  | Go offline                 | Local features keep working                | `chaos.spec.ts` drives an offline machine; the board, tree and notes work | Pass    |
+| #   | Step                       | Expected                                   | Observed                                                                                                                                                                                          | Result  |
+| --- | -------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| 34  | Analyse Game               | Engine, side, limit, MultiPV, opening skip | All five reach the job; `analyse-game.spec.ts` reads the job back                                                                                                                                 | Pass    |
+| 35  | Critical position → Review | Transparent rules, no badges               | Reasons and signals; the words blunder and brilliant appear nowhere                                                                                                                               | Pass    |
+| 36  | Training from a position   | Reuses the existing queue                  | One scheduler for repertoire prompts and tactics cards alike                                                                                                                                      | Pass    |
+| 37  | Repertoire decision        | Saved by position                          | `repertoire-review.spec.ts`                                                                                                                                                                       | Pass    |
+| 38  | Repertoire review          | A selection, not a syllabus                | The chain soak walks it four times: **prompts steady at 5**                                                                                                                                       | Pass    |
+| 39  | Board theme and pieces     | Change what is drawn                       | `visual.spec.ts`, with a 0.2% tolerance on the board itself                                                                                                                                       | Pass    |
+| 40  | Create a Study             | Survives reload                            | `reliability.spec.ts`                                                                                                                                                                             | Pass    |
+| 41  | Probe local Syzygy         | Answers from disk                          | **Not exercised here**: no tablebase files are installed on this machine                                                                                                                          | Blocked |
+| 42  | Go offline                 | Local features keep working                | `npm run desktop:smoke -- --offline` blocks every non-loopback request: **22 of 22 pass**; the board is drawn and `/studies`, `/repertoire`, `/training`, `/openings` and `/databases` all render | Pass    |
 
 ---
 
@@ -127,7 +137,8 @@ reaching a position and opening the games that got there.
 
 Named rather than omitted:
 
-- **Signing, notarisation, auto-update and file association** — 11 to 14 above.
+- **Gatekeeper acceptance, notarisation, auto-update and file association** —
+  13 to 16 above. Signing itself is done and verified.
 - **Lc0 in the packaged application** — 23. It is verified on this machine
   through the companion from a checkout; it is not installed in the packaged
   app's engine directory, and claiming otherwise would be the sort of platform

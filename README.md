@@ -528,19 +528,25 @@ including what it cost.
 **What is and is not true of the desktop build today**, stated rather than
 implied:
 
-|                                     |                                                                                 |
-| ----------------------------------- | ------------------------------------------------------------------------------- |
-| macOS arm64 — builds, installs, run | **yes**, and driven end to end by `npm run desktop:smoke`                       |
-| macOS x64                           | builds from the same configuration; not manually run here                       |
-| Windows, Linux                      | configured in `desktop/electron-builder.yml`; not built or run here             |
-| Code signed                         | **no** — needs an Apple Developer identity                                      |
-| Notarised                           | **no** — same                                                                   |
-| Auto-update                         | **not implemented**                                                             |
-| `.pgn` file association             | declared in the bundle; opening from the Finder is untested on a signed install |
+|                                     |                                                                              |
+| ----------------------------------- | ---------------------------------------------------------------------------- |
+| macOS arm64 — builds, installs, run | **yes**, and driven end to end by `npm run desktop:smoke`                    |
+| macOS x64                           | builds from the same configuration; not manually run here                    |
+| Windows, Linux                      | configured in `desktop/electron-builder.yml`; not built or run here          |
+| Code signed                         | **yes** — hardened runtime, all six entitlements, signature valid            |
+| Accepted by Gatekeeper              | **no** — signed with an _Apple Development_ identity, not a distribution one |
+| Notarised                           | **no** — no ticket stapled                                                   |
+| Auto-update                         | **not implemented**                                                          |
+| `.pgn` file association             | declared in the bundle; not exercised                                        |
+| Runs with the network cut           | **yes** — 22 of 22 offline checks                                            |
 
-The hardened runtime and its entitlements are configured and committed, so
-signing is one credential away. Until it happens, the `.dmg` is an unsigned
-development artifact and macOS will say so.
+The bundle is properly signed: `Identifier=dev.kingfisher.app`, hardened
+runtime on, `valid on disk`, `satisfies its Designated Requirement`. What it is
+not is _distributable_. Notarised distribution needs a **Developer ID
+Application** certificate, which is a different kind from either identity this
+machine holds — _Apple Distribution_ is for the App Store, and _Apple
+Development_ is for running on registered devices, which is what the current
+signature is good for and no more.
 
 ---
 
