@@ -1,6 +1,6 @@
 # Where Kingfisher stands, strictly
 
-Checked September 2026, and re-checked in Phase 18. The rule for this file is the one in `AGENTS.md`:
+Checked September 2026, and re-checked in Phases 18 and 19. The rule for this file is the one in `AGENTS.md`:
 **do not claim Kingfisher has more data.** It does not, and the honest
 comparison is more useful than a flattering one.
 
@@ -18,23 +18,24 @@ comparison is more useful than a flattering one.
 
 Ratings are **strict**: ✅ genuinely competitive, ◐ real but narrower, ✗ absent.
 
-|                                 |         ChessBase         |      Lichess       |   En Croissant   | ChessMonitor |                      **Kingfisher**                       |
-| ------------------------------- | :-----------------------: | :----------------: | :--------------: | :----------: | :-------------------------------------------------------: |
-| Database breadth                |     ✅ 11.7M, to 1475     | ✅ online; Masters | ✗ bring your own | ◐ your games |           ◐ **507k across three packs, 2020–**            |
-| Historical coverage             |       ✅ 550 years        |     ◐ Masters      |        ✗         |      ✗       |        ◐ **none shipped; Masters online to ~1952**        |
-| Opening book / theory           | ✅ authored encyclopaedia |    ◐ names only    |   ◐ names only   |      ✗       |    ◐ **3,810 named positions, browsable, 157 briefs**     |
-| Opening explorer                |            ✅             |         ✅         |        ✅        |      ◐       |               ✅ **0.1 ms local, offline**                |
-| Several populations at once     |             ◐             |         ✗          |        ✗         |      ✗       |              ✅ **up to four, never merged**              |
-| Where a number came from        |             ◐             |         ◐          |        ✗         |      ◐       |         ✅ **source and licence on every figure**         |
-| One-click reference data        |          ✅ paid          |        n/a         |        ✗         |     n/a      |        ✅ **three packs, free, verified digests**         |
-| Works with nothing installed    |             ✗             |         ✅         |        ✗         |      ✅      |                            ✅                             |
-| Offline                         |            ✅             |         ✗          |        ✅        |      ✗       |             ✅ **book, explorer and engine**              |
-| Player encyclopedia             |            ✅             |         ◐          |        ◐         |      ◐       | ◐ **12,589 searchable; browse sets always lead to games** |
-| Preparation against an opponent |            ✅             |         ◐          |        ◐         |      ◐       |                            ✅                             |
-| Engine management               |            ✅             |         ✗          |        ✅        |      ✗       |      ✅ **six verified by interrogation, incl. Lc0**      |
-| Repertoire + training           |            ✅             |         ◐          |        ✅        |      ✗       |                            ✅                             |
-| Ease of setup                   |    ✗ install, licence     |         ✅         |    ◐ install     |      ✅      |                    ✅ **open a page**                     |
-| Open source                     |             ✗             |         ✅         |        ✅        |      ✗       |                            ✅                             |
+|                                 |         ChessBase         |      Lichess       |   En Croissant   | ChessMonitor |                              **Kingfisher**                              |
+| ------------------------------- | :-----------------------: | :----------------: | :--------------: | :----------: | :----------------------------------------------------------------------: |
+| Database breadth                |     ✅ 11.7M, to 1475     | ✅ online; Masters | ✗ bring your own | ◐ your games |                   ◐ **507k across three packs, 2020–**                   |
+| Historical coverage             |       ✅ 550 years        |     ◐ Masters      |        ✗         |      ✗       |               ◐ **none shipped; Masters online to ~1952**                |
+| Opening book / theory           | ✅ authored encyclopaedia |    ◐ names only    |   ◐ names only   |      ✗       |            ◐ **3,810 named positions, browsable, 157 briefs**            |
+| Opening explorer                |            ✅             |         ✅         |        ✅        |      ◐       |                       ✅ **0.1 ms local, offline**                       |
+| Several populations at once     |             ◐             |         ✗          |        ✗         |      ✗       |                     ✅ **up to four, never merged**                      |
+| Where a number came from        |             ◐             |         ◐          |        ✗         |      ◐       |                ✅ **source and licence on every figure**                 |
+| One-click reference data        |          ✅ paid          |        n/a         |        ✗         |     n/a      |                ✅ **three packs, free, verified digests**                |
+| Works with nothing installed    |             ✗             |         ✅         |        ✗         |      ✅      |                                    ✅                                    |
+| Offline                         |            ✅             |         ✗          |        ✅        |      ✗       |                     ✅ **book, explorer and engine**                     |
+| Player encyclopedia             |            ✅             |         ◐          |        ◐         |      ◐       |        ◐ **12,589 searchable; browse sets always lead to games**         |
+| Preparation against an opponent |            ✅             |         ◐          |        ◐         |      ◐       |                                    ✅                                    |
+| Engine management               |            ✅             |         ✗          |        ✅        |      ✗       | ✅ **seven on Apple Silicon, verified by interrogation; one built here** |
+| Repertoire + training           |            ✅             |         ◐          |        ✅        |      ✗       |                                    ✅                                    |
+| Desktop application             |     ✅ Windows-first      |         ✗          |   ✅ all three   |      ✗       |       ◐ **macOS built, signed and driven; not yet distributable**        |
+| Ease of setup                   |    ✗ install, licence     |         ✅         |    ◐ install     |      ✅      |                  ✅ **open a page, or install the app**                  |
+| Open source                     |             ✗             |         ✅         |        ✅        |      ✗       |                                    ✅                                    |
 
 ## What Kingfisher is genuinely better at
 
@@ -55,6 +56,24 @@ Croissant ships no games; ChessBase ships more than anyone, for a fee.
 
 **Every figure carries its provenance.** Source, licence and population are on
 the row before you install a pack and beside the number afterwards.
+
+## The desktop row, stated exactly
+
+Kingfisher is now a Mac application: one launch, no terminal, the companion
+started and paired by the shell, native engines and SQLite collections of any
+size, a PGN opened from a file dialog, and nothing left running when it quits.
+That is a real change of category and it earns a ◐ rather than a ✅ for one
+reason: **the bundle is signed but not distributable.** It has a valid
+signature and the hardened runtime; Gatekeeper still rejects it, because
+notarised distribution needs a Developer ID Application certificate. Until
+that exists, En Croissant and ChessBase ship something a stranger can install
+and Kingfisher does not.
+
+Where it is already ahead of En Croissant on the desktop: the application is
+the same one the browser runs, so there is no second renderer to keep in step,
+and the shell owns the companion's lifetime with a shutdown contract tested
+against real processes. Where it is behind: three platforms are configured and
+only macOS has been built and driven.
 
 ## What it is worse at, plainly
 

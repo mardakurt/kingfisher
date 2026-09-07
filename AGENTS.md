@@ -192,6 +192,39 @@ tokenised. The standard database holds about ninety million games a month and
 the high-rated pack keeps one in two hundred and fifty; without early rejection
 the build is not slow, it is infeasible.
 
+## Two identities, one application
+
+Kingfisher runs in a browser and as a Mac application, and they are the _same_
+application: `desktop/` serves the same Next.js build, and the whole surface
+between shell and page is one preload file plus `src/desktop/bridge.ts`, which
+returns `null` in a browser. Five rules hold, and each has cost something:
+
+- **The desktop shell holds no chess state.** No board, no move tree, no engine
+  session, no query. A desktop feature needing a second copy of any of them is
+  a bug in the arrangement, not a feature of it.
+- **The shell owns the companion's lifetime, and the shutdown is a contract.**
+  `SIGTERM` first so the companion ends its own engines, escalation if it will
+  not go, and an IPC channel it watches so a shell that is _killed_ still takes
+  them with it — engines are spawned detached, which is exactly what lets them
+  outlive a parent nobody told to stop.
+- **Native file access goes through one boundary.** Everything readable was
+  chosen in a dialog or dropped on the window. There is no `readFile(path)` on
+  the bridge, and `/db/attach` — the one route that names a path — opens the
+  file read-only and refuses anything that is not already a Kingfisher
+  collection.
+- **The web build is never changed to suit the desktop.** Standalone output and
+  cross-origin isolation are opt-in behind environment variables that only
+  `scripts/build-desktop-web.mjs` sets.
+- **A platform claim needs evidence.** "Builds" is not "runs". `npm run
+desktop:smoke` drives the real application and checks the fourteen things
+  only the shell can be wrong about; README states which platforms it has
+  actually been run on, and which it has not.
+
+Managed engines stay provenance-verified whichever identity is running, and one
+of them is now built here: an exact upstream tag that must still resolve to a
+recorded commit, a checkout verified clean so nothing is patched, and a
+provenance record with the compiler, the flags and the resulting SHA-256.
+
 ## Interoperability
 
 `src/database/encroissant/` reads another program's database. Two rules:
