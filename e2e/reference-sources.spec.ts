@@ -113,9 +113,12 @@ test('an install that cannot reach its files leaves nothing installed', async ({
   const elite = page.locator('[data-source-row="kingfisher-elite-otb"]');
   await elite.getByRole('button', { name: 'Install' }).click();
 
-  await expect(elite).toContainText(/not published at the address this version of Kingfisher looks for/, {
-    timeout: 60_000,
-  });
+  await expect(elite).toContainText(
+    /not published at the address this version of Kingfisher looks for/,
+    {
+      timeout: 60_000,
+    },
+  );
   // Still offered, still not installed, and nothing half-written behind it.
   await expect(elite).toContainText('Available');
   const stored = await page.evaluate(async () => {
