@@ -264,19 +264,59 @@ Nothing here is marked verified on the strength of an earlier report.
 
 ---
 
+## Phase 22 — the corner, the packs nobody can install, and the report
+
+| Capability                                   | Implementation                                 | Invariant                                                                                                                                             | Unit evidence               | Browser evidence                | Status              | Regression                                                                                                                                             | Fix      |
+| -------------------------------------------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- | ------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- |
+| The macOS corner is composed, not just clear | `desktop/src/window-chrome.mjs`, `Sidebar.tsx` | The mark's left edge is `MAC_BRAND_REGION.x`, exactly one `MAC_TITLEBAR_GAP` from the last button, sharing its centre line, inside the header's inset | —                           | `desktop:chrome` — 107          | **Held (repaired)** | The reservation was applied inside a header already inset by 14, then followed by a 10 px flex gap: 32 px of dead space, and buttons eight pixels high | Phase 22 |
+| The web build still reserves nothing         | `src/app/globals.css`, `TitleBarSafeArea`      | `max(<inset>, var(--titlebar-safe-w))` resolves to the header's own inset in a browser; mark at (14, 10), sidebar 228, header 56                      | —                           | `window-chrome.spec.ts`, visual | **Held**            | 22 visual baselines unchanged by the corner rework, which is what says the web build was not altered to suit the desktop                               | Phase 22 |
+| An unpublished pack says so                  | `src/reference/install.ts`, `manager.ts`       | A 404 is reported as "not published at the address this version looks for", never as a connection problem, and the remedy reaches the panel           | `install.test.ts`           | —                               | **Held (repaired)** | All three optional packs 404; the user was told to check their connection and retry, and no retry could ever succeed. Mutation-checked                 | Phase 22 |
+| Diagnostics records the address tried        | `src/features/shell/diagnostic-report.ts`      | Every reference source appears with its manifest URL, state and last error — the sentence the install failure shows is backed by the report           | `diagnostic-report.test.ts` | —                               | **Held (repaired)** | The failure copy promised Diagnostics recorded the address. It did not; the section did not exist                                                      | Phase 22 |
+| A report says which machine                  | `desktop/src/main.mjs`, `bridge.ts`            | The shell reports `process.platform`/`arch`; a browser reports `userAgentData.platform` marked as unverified                                          | `diagnostic-report.test.ts` | —                               | **Held (repaired)** | `navigator.userAgent` says "Intel Mac OS X" on Apple silicon, so arm64 and x64 bug reports were indistinguishable                                      | Phase 22 |
+| A start-up failure survives the quit         | `desktop/src/log.mjs`                          | Launch, companion failure and quit are written to a bounded local file, redacted at the point of writing, never uploaded                              | —                           | `desktop:suspend`               | **Held**            | The companion log lived only in memory, so "it would not start" was unanswerable once the person reopened the application                              | Phase 22 |
+| A pack installs at real scale                | `src/reference/install.ts`                     | 80 chunks and 33.9 MB through the application's own UI, then answering the Explorer; one flipped byte and the source never becomes usable             | `install.test.ts`           | `reference-packs.spec.ts`       | **Held**            | Never exercised end to end at scale before; mutation-checked by disabling the byte flip, which fails it                                                | Phase 22 |
+| A suspend and resume changes nothing         | `scripts/desktop-suspend.mjs`                  | SIGSTOP for 20 s to every Kingfisher process, then SIGCONT: same board, same game, both services answering, nothing duplicated, clean quit            | —                           | `desktop:suspend` — 12          | **Held**            | Listed as unreached by Phase 21. Two of the first twelve checks failed on the harness, not the product — see the note below                            | Phase 22 |
+| The move list can be named                   | `src/features/movetree/MoveTreePanel.tsx`      | `[data-move-tree]` exists, so a test asserting on the move list is asserting on the move list                                                         | —                           | `fresh-user.spec.ts`            | **Held (repaired)** | The attribute had never existed; `fresh-user.spec.ts` fell back to `body` and asserted a move order against the whole page, navigation included        | Phase 22 |
+
+**Phase 22's shape is one thing, and it is not "found by a failing test".** All
+four repaired rows were found by writing down the sentence the product shows a
+user and then checking whether it was true.
+
+The install failure said "check your connection and try again" for a fault that
+was entirely ours and could never be retried into working. Its replacement said
+Diagnostics records the address — which was not true either, until the section
+existed. The corner passed a contract that asked whether anything overlapped,
+which any amount of space satisfies, so it kept a shape nobody had chosen. And
+the move-list assertion had been comparing the whole page against itself.
+
+**Two of the twelve suspend checks failed on their first run, and both were the
+harness.** The move comparison found the list unchanged because it was empty
+both times, and the databases check read `document.body.textContent` and got
+Next's streaming payload — `self.__next_f.push([0])` — and called it a screen.
+Six engines failing identically is a harness; so is a check that can only pass.
+
+---
+
 ## How to use this
 
 Before changing something, find the row. If the invariant in that row is what
 your change would alter, the evidence named there should fail — and if it does
 not, the evidence is the thing to fix first.
 
-**Forty-two rows say Held (repaired)**: thirteen fixed in Phase 16 or
-earlier, eight in Phase 17, seven in Phase 18, six in Phase 19, and eight in
-Phase 20. Counted by
-matching each row's fix commit against the commits of each phase, because the
-tally that stood here before Phase 18 said fifteen and had been out of date for
-a phase and a half — which is the sort of thing this document exists to stop
-happening to the rows themselves.
+**Forty-nine rows say Held (repaired)**: thirteen fixed in Phase 16 or earlier,
+eight in Phase 17, seven in Phase 18, six in Phase 19, eight in Phase 20, two in
+Phase 21 and five in Phase 22.
+
+The number is worth re-deriving rather than trusting, and it is one line:
+
+```bash
+grep -c '^| .*\*\*Held (repaired)\*\*' docs/product/phase-verification.md
+```
+
+It has been wrong twice. Before Phase 18 it said fifteen and had been stale for
+a phase and a half; before Phase 22 it said forty-two and had missed Phase 21's
+two — which is exactly the thing this document exists to stop happening to the
+rows themselves, happening to the document's own summary.
 
 Phase 19's six have their own pattern, and it is the one Phase 18 named and did
 not escape. Four of them are capabilities that were **built, tested, documented
