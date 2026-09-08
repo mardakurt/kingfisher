@@ -207,6 +207,18 @@ returns `null` in a browser. Five rules hold, and each has cost something:
   not go, and an IPC channel it watches so a shell that is _killed_ still takes
   them with it — engines are spawned detached, which is exactly what lets them
   outlive a parent nobody told to stop.
+- **The origin is a property of the profile, not of the launch.** The shell
+  serves the application over loopback, and a browser partitions IndexedDB and
+  `localStorage` by origin — which includes the port. A shell that took a fresh
+  free port each launch therefore handed the user a brand-new empty machine
+  every time they reopened Kingfisher, and did, for two release candidates:
+  every study, repertoire, note and preference, gone on every quit.
+  `desktop/src/origin.mjs` chooses the port once, writes it beside the data it
+  addresses, adopts what an older profile already holds, and **refuses to start**
+  rather than quietly serving from somewhere the work is not.
+  `npm run desktop:restart` is the check, and the reason it exists is that
+  nothing in twenty-one phases had ever quit the application and opened it
+  again.
 - **Native file access goes through one boundary.** Everything readable was
   chosen in a dialog or dropped on the window. There is no `readFile(path)` on
   the bridge, and `/db/attach` — the one route that names a path — opens the
@@ -290,6 +302,8 @@ npm run desktop:smoke -- --packaged # a built Kingfisher.app
 npm run desktop:chrome -- --packaged # the window buttons, against every layout
 npm run desktop:engines -- --packaged # every managed engine, installed and searched in the bundle
 npm run desktop:suspend -- --packaged # stop every process for 20 s and resume, as a sleep does
+npm run desktop:restart -- --packaged # quit and reopen, and check the work is still there
+KINGFISHER_DESKTOP_PREV=<older out> npm run desktop:upgrade # a previous release's data, read by this one
 ```
 
 These are not in CI and cannot be: signing needs a certificate in a keychain

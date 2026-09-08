@@ -534,6 +534,8 @@ npm run desktop:smoke      # drive the real application and check seventeen thin
 npm run desktop:chrome     # the macOS window buttons, against every layout the app has
 npm run desktop:engines    # install and search with every managed engine, inside the bundle
 npm run desktop:suspend    # stop every Kingfisher process for 20 s, then resume it
+npm run desktop:restart    # quit and reopen, and check the work is still there
+npm run desktop:upgrade    # a previous release's profile, read by this build
 ```
 
 The desktop shell is Electron, and that was a measured decision rather than a

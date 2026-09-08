@@ -53,6 +53,18 @@ disable a system-wide protection for every application on the machine, for as
 long as you leave it off, to solve a problem with one file. Nothing in this beta
 is worth that, and Kingfisher will not ask you to do it.
 
+## If you already tried rc.1 or rc.2
+
+Those builds lost your work every time you quit — a defect in how the
+application addressed its own storage, fixed in rc.3. **Your old work is not
+gone**; it was still on disk and unreachable. rc.3 looks at what your profile
+already holds on first launch and opens the workspace you last used, so install
+it over the top and your studies should be there.
+
+If they are not, Settings → Diagnostics → **Copy full diagnostic report** and
+send it: the report names the address the application is serving from, which is
+the fact that decides what happened.
+
 ## First five minutes
 
 Kingfisher opens on the analysis board with a game position and the tools beside
@@ -92,6 +104,11 @@ whether the companion is up. Paste that into your report.
 
 **Copy full diagnostic report** is what to attach. Neither contains your games,
 studies, notes, tokens or keys.
+
+**If Kingfisher says another program is using its port**, that is deliberate. It
+keeps your work at one fixed loopback port recorded in your profile, and it
+would rather stop and tell you than open an empty workspace somewhere else.
+Close whatever is using the port it names, and open Kingfisher again.
 
 **If Kingfisher did not get as far as a window**, there is nothing on screen to
 copy from. The shell keeps its own log — launch, companion failures, quit —
