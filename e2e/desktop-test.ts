@@ -5,9 +5,17 @@ import path from 'node:path';
 
 /** Run the same acceptance assertions inside a real packaged application. */
 export const test = browserTest.extend({
-  page: async ({ page }, use) => {
+  /*
+    `use` is Playwright's fixture callback, not React's. It is bound to a local
+    name here because `eslint-plugin-react-hooks` matches on the identifier
+    alone: a parameter called `use` reads to it as a hook called outside a
+    component, and it reports three errors in a file that has never seen React.
+    Renaming at the boundary is cheaper and more honest than disabling the rule
+    for the file, which would also hide a real one.
+  */
+  page: async ({ page }, provide) => {
     const binary = process.env.KINGFISHER_ACCEPTANCE_BINARY;
-    if (!binary) return use(page);
+    if (!binary) return provide(page);
     const profile = mkdtempSync(path.join(tmpdir(), 'kingfisher-acceptance-'));
     const app = await _electron.launch({
       executablePath: binary,
@@ -17,7 +25,7 @@ export const test = browserTest.extend({
     try {
       const window = await app.firstWindow();
       await window.locator('html[data-kingfisher-ready="true"]').waitFor({ timeout: 120_000 });
-      await use(window);
+      await provide(window);
     } finally {
       await app.close();
       rmSync(profile, { recursive: true, force: true });

@@ -156,8 +156,9 @@ export const gameRef = (game: PackGame): DatabaseGameRef => ({
  * came out of a licensed reference should carry that fact into whatever study
  * or repertoire it is saved into.
  */
-export function packGamePgn(game: PackGame, manifest: PackManifest): string {
-  const tag = (name: string, value: string | number) => `[${name} "${String(value)}"]`;
+export function packGamePgn(game: PackGame, manifest: Pick<PackManifest, 'name'>): string {
+  const tag = (name: string, value: string | number) =>
+    `[${name} "${String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"]`;
   const header = [
     tag('Event', game.event || 'Kingfisher reference'),
     tag('Site', game.url || manifest.name),
