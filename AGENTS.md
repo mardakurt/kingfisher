@@ -283,6 +283,7 @@ And on macOS, where the shell is the product rather than a build target:
 npm run desktop:smoke               # the shell, from the checkout
 npm run desktop:smoke -- --packaged # a built Kingfisher.app
 npm run desktop:chrome -- --packaged # the window buttons, against every layout
+npm run desktop:engines -- --packaged # every managed engine, installed and searched in the bundle
 ```
 
 These are not in CI and cannot be: signing needs a certificate in a keychain

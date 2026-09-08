@@ -516,6 +516,7 @@ npm run desktop            # build the web bundle and launch it
 npm run desktop:dist       # Kingfisher.app and a .dmg
 npm run desktop:smoke      # drive the real application and check seventeen things
 npm run desktop:chrome     # the macOS window buttons, against every layout the app has
+npm run desktop:engines    # install and search with every managed engine, inside the bundle
 ```
 
 The desktop shell is Electron, and that was a measured decision rather than a
@@ -529,22 +530,22 @@ including what it cost.
 **What is and is not true of the desktop build today**, stated rather than
 implied:
 
-|                                     |                                                                                   |
-| ----------------------------------- | --------------------------------------------------------------------------------- |
-| macOS arm64 — builds, installs, run | **yes**, and driven end to end by `npm run desktop:smoke` — 17 checks             |
-| macOS x64                           | builds from the same configuration; **never launched**                            |
-| Windows x64                         | **builds** in CI; never installed or launched, so **not supported**               |
-| Linux x64                           | **builds** in CI; never installed or launched, so **not supported**               |
-| Code signed                         | **yes** — hardened runtime, all six entitlements, signature valid                 |
-| Accepted by Gatekeeper              | **no** — signed with an _Apple Development_ identity, not a distribution one      |
-| Notarised                           | **no** — no ticket stapled                                                        |
-| Auto-update                         | **not implemented**, deliberately; see the release notes                          |
-| `.pgn` file association             | declared, and **exercised** — a double-clicked PGN opens on the board             |
-| Native engines, packaged            | **yes**, including Lc0 on its metal backend                                       |
-| Local Syzygy tablebases, packaged   | **yes** — a real probe, asserted in the smoke run                                 |
-| Runs with the network cut           | **yes** — 23 of 23 offline checks                                                 |
-| Launch to a visible window          | **~630 ms** on an M3 Pro; `KINGFISHER_STARTUP_TRACE=1` prints the stages          |
-| macOS window buttons                | **native**, placed by the shell at (14, 12); `npm run desktop:chrome` — 51 checks |
+|                                     |                                                                                                                 |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| macOS arm64 — builds, installs, run | **yes**, and driven end to end by `npm run desktop:smoke` — 17 checks                                           |
+| macOS x64                           | builds from the same configuration; **never launched**                                                          |
+| Windows x64                         | **builds** in CI; never installed or launched, so **not supported**                                             |
+| Linux x64                           | **builds** in CI; never installed or launched, so **not supported**                                             |
+| Code signed                         | **yes** — hardened runtime, all six entitlements, signature valid                                               |
+| Accepted by Gatekeeper              | **no** — signed with an _Apple Development_ identity, not a distribution one                                    |
+| Notarised                           | **no** — no ticket stapled                                                                                      |
+| Auto-update                         | **not implemented**, deliberately; see the release notes                                                        |
+| `.pgn` file association             | declared, and **exercised** — a double-clicked PGN opens on the board                                           |
+| Native engines, packaged            | **yes** — all six offered here, installed and searched inside the bundle; `npm run desktop:engines` — 25 checks |
+| Local Syzygy tablebases, packaged   | **yes** — a real probe, asserted in the smoke run                                                               |
+| Runs with the network cut           | **yes** — 23 of 23 offline checks                                                                               |
+| Launch to a visible window          | **~630 ms** on an M3 Pro; `KINGFISHER_STARTUP_TRACE=1` prints the stages                                        |
+| macOS window buttons                | **native**, placed by the shell at (14, 12); `npm run desktop:chrome` — 51 checks                               |
 
 The bundle is properly signed: `Identifier=dev.kingfisher.app`, hardened
 runtime on, `valid on disk`, `satisfies its Designated Requirement`. What it is

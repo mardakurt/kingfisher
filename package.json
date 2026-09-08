@@ -26,6 +26,7 @@
     "desktop:dist": "npm run desktop:build:web && npm --prefix desktop run dist",
     "desktop:smoke": "node scripts/desktop-smoke.mjs",
     "desktop:chrome": "node scripts/desktop-chrome.mjs",
+    "desktop:engines": "node scripts/desktop-engines.mjs",
     "engines:install": "node scripts/install-engines.mjs",
     "tablebase:install": "node scripts/install-tablebase.mjs",
     "openings:build": "node scripts/build-opening-index.mjs && prettier --write src/theory/opening-index.generated.ts",
