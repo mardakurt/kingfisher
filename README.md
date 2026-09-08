@@ -559,7 +559,14 @@ signature is good for and no more.
 
 ## Getting started
 
+**Node 24 or later**, which is what CI runs and what `.nvmrc` names. This is a
+version floor rather than a preference: the companion reads SQLite through
+`node:sqlite` and the reference pipeline decompresses through `node:zlib`'s
+zstd, and neither built-in exists before Node 22. On Node 20 the suite does not
+fail informatively — it reports fourteen files erroring on a missing module.
+
 ```bash
+nvm use          # or any Node >= 24
 npm install
 ```
 
