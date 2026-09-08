@@ -273,7 +273,25 @@ export async function startInstall(id: string): Promise<boolean> {
   } finally {
     controllers.delete(id);
     setProgress(id, null);
-    await refresh(store);
+    /*
+      The one place that could break this function's own promise.
+
+      The contract at the top is "returns rather than throws", because both
+      callers are click handlers that `void` the result. A `finally` that throws
+      replaces the return value with a rejection, so the cleanup written to keep
+      that promise was the only thing able to break it.
+
+      Not hypothetical: deleting a profile's IndexedDB databases while a pack was
+      installing closed the connection under `refresh`, and the click handler
+      turned a recoverable cleanup failure into an unhandled rejection with no
+      row to explain it. A refresh that cannot read the store is worth recording
+      against the source and is not worth raising.
+    */
+    try {
+      await refresh(store);
+    } catch (error) {
+      setError(id, error instanceof Error ? error.message : String(error));
+    }
   }
 }
 

@@ -10,6 +10,7 @@ import { createTree } from '@/chess/tree/tree';
 import type { Fen } from '@/chess/types';
 import { Export, Plus, Repertoire as RepertoireIcon, Target, Trash } from '@/components/icons';
 import { Button, IconButton } from '@/components/ui/Button';
+import { Dialog } from '@/components/ui/Dialog';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState, Panel, PanelBody, PanelHeader } from '@/components/ui/Panel';
 import { useExplorer } from '@/features/explorer/useExplorer';
@@ -325,49 +326,67 @@ export function RepertoireWorkspace() {
         />
       </div>
 
-      {creating ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <form
-            className="w-[420px] max-w-full rounded-[6px] border border-line-strong bg-surface-1 p-4 shadow-2xl"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void create();
-            }}
-          >
-            <h2 className="text-[13px] font-semibold text-primary">New repertoire</h2>
-            <p className="mt-1 text-2xs leading-relaxed text-tertiary">
-              A repertoire stores decisions at canonical positions, so transpositions share one
-              entry.
-            </p>
-            <label className="mt-3 block text-2xs text-tertiary">
-              Title
-              <input
-                autoFocus
-                value={newTitle}
-                onChange={(event) => setNewTitle(event.target.value)}
-                className="mt-1 h-8 w-full rounded-[4px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
-              />
-            </label>
-            <label className="mt-3 block text-2xs text-tertiary">
-              Side
-              <select
-                value={newColor}
-                onChange={(event) => setNewColor(event.target.value as 'w' | 'b')}
-                className="mt-1 h-8 w-full rounded-[4px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
-              >
-                <option value="w">White</option>
-                <option value="b">Black</option>
-              </select>
-            </label>
-            <div className="mt-4 flex justify-end gap-2">
-              <Button onClick={() => setCreating(false)}>Cancel</Button>
-              <Button variant="accent" type="submit" disabled={!newTitle.trim()}>
-                Create
-              </Button>
-            </div>
-          </form>
-        </div>
-      ) : null}
+      {/*
+        The one modal in the application that was not a dialog.
+
+        This was a hand-rolled overlay: no `role="dialog"`, no `aria-modal`, no
+        label, no focus trap and no Escape — so a screen reader was told nothing
+        had happened, and Tab walked straight out of it into the page behind.
+        Every other modal here already went through `Dialog`, which has all four;
+        this one predated it and nothing had gone looking. Moving it over is the
+        fix, rather than adding the attributes again by hand.
+      */}
+      <Dialog
+        open={creating}
+        onClose={() => setCreating(false)}
+        title="New repertoire"
+        description="A repertoire stores decisions at canonical positions, so transpositions share one entry."
+        width="w-[420px]"
+        footer={
+          <>
+            <Button onClick={() => setCreating(false)}>Cancel</Button>
+            <Button
+              variant="accent"
+              disabled={!newTitle.trim()}
+              onClick={() => {
+                void create();
+              }}
+            >
+              Create
+            </Button>
+          </>
+        }
+      >
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            void create();
+          }}
+        >
+          <label className="block text-2xs text-tertiary">
+            Title
+            <input
+              autoFocus
+              value={newTitle}
+              onChange={(event) => setNewTitle(event.target.value)}
+              className="mt-1 h-8 w-full rounded-[4px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
+            />
+          </label>
+          <label className="mt-3 block text-2xs text-tertiary">
+            Side
+            <select
+              value={newColor}
+              onChange={(event) => setNewColor(event.target.value as 'w' | 'b')}
+              className="mt-1 h-8 w-full rounded-[4px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
+            >
+              <option value="w">White</option>
+              <option value="b">Black</option>
+            </select>
+          </label>
+          {/* Enter submits, which is why the form survives the move. */}
+          <button type="submit" className="hidden" aria-hidden tabIndex={-1} />
+        </form>
+      </Dialog>
       <ConfirmDialog
         open={deleteOpen}
         title={`Delete ${repertoire.data?.repertoire.title ?? 'this repertoire'}?`}

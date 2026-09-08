@@ -12,6 +12,7 @@ import {
   packReader,
   referenceSnapshot,
   resetReferenceManagerForTests,
+  startInstall,
 } from './manager';
 import { referencePackStore, resetReferencePackStoreForTests } from './store';
 
@@ -208,5 +209,39 @@ describe('bringing the bundled reference up on start-up', () => {
     const source = referenceSnapshot().sources.find((entry) => entry.id === BUNDLED_PACK_ID);
     expect(source?.state, 'the installed pack still answers').toBe('ready');
     expect(source?.version).toBe('1');
+  });
+});
+
+/**
+ * `startInstall` promises it returns rather than throws, and its own cleanup
+ * was the one thing able to break that.
+ *
+ * Found by a browser test that deleted every IndexedDB database while the
+ * bundled pack was installing — a real sequence, since that is what "restore
+ * onto a fresh profile" looks like from the inside. The connection closed under
+ * `refresh` in the `finally`, and because both callers are click handlers that
+ * `void` the result, a recoverable cleanup failure became an unhandled
+ * rejection with nothing on screen to explain it.
+ */
+describe('a cleanup failure is recorded, not raised', () => {
+  it('still resolves when the store cannot be read afterwards', async () => {
+    vi.stubGlobal(
+      'fetch',
+      serve(() => bundled('1', 'First')),
+    );
+    const store = await referencePackStore();
+    const list = store.list.bind(store);
+    store.list = async () => {
+      throw new Error('Failed to execute “transaction”: the database connection is closing.');
+    };
+
+    try {
+      await expect(startInstall(BUNDLED_PACK_ID)).resolves.not.toThrow();
+    } finally {
+      store.list = list;
+    }
+
+    // And it said so, rather than failing silently.
+    expect(referenceSnapshot().errors[BUNDLED_PACK_ID]).toMatch(/connection is closing/i);
   });
 });
