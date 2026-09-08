@@ -327,3 +327,16 @@ happened. If it could not be run in your environment, say exactly that.
 Keep `README.md`, `ARCHITECTURE.md`, `THIRD_PARTY_DATA.md` and the `docs/`
 tree true. Stale counts, old engine versions and capability claims that outran
 the code are treated as defects here, not as untidiness.
+
+## Packaged acceptance added in Phase 22
+
+Use `KINGFISHER_ACCEPTANCE_BINARY=/absolute/path/to/Kingfisher.app/Contents/MacOS/Kingfisher npm run desktop:soak`
+for the actual packaged navigation soak. `KINGFISHER_SOAK_CYCLES=50` and
+`KINGFISHER_SOAK_CHAIN_PASSES=12` select the long run. The synthetic cache
+injection case is explicitly browser-only; do not expose its development hook
+in production just to make a test pass.
+
+`KINGFISHER_DESKTOP_OUT=/path/to/output npm run desktop:field` installs all
+locally built packs, restarts the package and queries them offline. Await an
+enabled source, not text containing the advertised game count: that text may
+already be present in an uninstalled catalog row.

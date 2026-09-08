@@ -19,9 +19,10 @@
  * nothing.
  */
 
-import { expect, test, type Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 
 import { selectTool } from './tools';
+import { test, analysisUrl } from './desktop-test';
 
 /**
  * How many full cycles to drive after the warm-up snapshot.
@@ -79,12 +80,19 @@ async function instrument(page: Page) {
     if (typeof ResizeObserver !== 'undefined') {
       const NativeObserver = ResizeObserver;
       class CountedObserver extends NativeObserver {
+        private closed = false;
         constructor(callback: ResizeObserverCallback) {
           super(callback);
           live.resizeObservers += 1;
         }
+        override observe(target: Element, options?: ResizeObserverOptions) {
+          if (this.closed) live.resizeObservers += 1;
+          this.closed = false;
+          super.observe(target, options);
+        }
         override disconnect() {
-          live.resizeObservers -= 1;
+          if (!this.closed) live.resizeObservers -= 1;
+          this.closed = true;
           super.disconnect();
         }
       }
@@ -93,12 +101,14 @@ async function instrument(page: Page) {
 
     const NativeWorker = window.Worker;
     class CountedWorker extends NativeWorker {
+      private closed = false;
       constructor(url: string | URL, options?: WorkerOptions) {
         super(url, options);
         live.workers += 1;
       }
       override terminate() {
-        live.workers -= 1;
+        if (!this.closed) live.workers -= 1;
+        this.closed = true;
         super.terminate();
       }
     }
@@ -107,12 +117,14 @@ async function instrument(page: Page) {
     if (typeof BroadcastChannel !== 'undefined') {
       const NativeChannel = BroadcastChannel;
       class CountedChannel extends NativeChannel {
+        private closed = false;
         constructor(name: string) {
           super(name);
           live.channels += 1;
         }
         override close() {
-          live.channels -= 1;
+          if (!this.closed) live.channels -= 1;
+          this.closed = true;
           super.close();
         }
       }
@@ -122,12 +134,14 @@ async function instrument(page: Page) {
     if (typeof EventSource !== 'undefined') {
       const NativeSource = EventSource;
       class CountedSource extends NativeSource {
+        private closed = false;
         constructor(url: string | URL, options?: EventSourceInit) {
           super(url, options);
           live.eventSources += 1;
         }
         override close() {
-          live.eventSources -= 1;
+          if (!this.closed) live.eventSources -= 1;
+          this.closed = true;
           super.close();
         }
       }
@@ -458,7 +472,7 @@ test('an afternoon of tool, engine and route switching leaks no observable resou
   });
 
   await instrument(page);
-  await page.goto('/analysis');
+  await page.goto(analysisUrl(page));
   await ready(page);
 
   // Two warm-up cycles first: the first pass opens caches, the engine's WASM
@@ -507,6 +521,7 @@ test('an afternoon of tool, engine and route switching leaks no observable resou
     const memory = (performance as unknown as { memory?: { usedJSHeapSize: number } }).memory;
     return memory ? memory.usedJSHeapSize : null;
   });
+  for (const count of Object.values(after)) expect(count).toBeGreaterThanOrEqual(0);
   if (heap !== null) {
     // eslint-disable-next-line no-console
     console.log(
@@ -530,8 +545,12 @@ test('an afternoon of tool, engine and route switching leaks no observable resou
 test('an all-day research session cannot grow the explorer cache without bound', async ({
   page,
 }) => {
+  test.skip(
+    Boolean(process.env.KINGFISHER_ACCEPTANCE_BINARY),
+    'Synthetic cache injection requires the development-only query-client hook; production is covered by the real navigation soaks.',
+  );
   test.setTimeout(180_000);
-  await page.goto('/analysis');
+  await page.goto(analysisUrl(page));
   await ready(page);
 
   // Genuine entries first, from genuine navigation.
@@ -613,7 +632,7 @@ test('the same research chain, walked repeatedly, stays correct and stays bounde
   page.on('pageerror', (error) => consoleFailures.push(`pageerror: ${error.message}`));
 
   await instrument(page);
-  await page.goto('/analysis');
+  await page.goto(analysisUrl(page));
   await ready(page);
 
   const CHAIN_REPERTOIRE = 'Chain repertoire';

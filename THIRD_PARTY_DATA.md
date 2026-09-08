@@ -24,14 +24,14 @@ harder than it looks, and both are why this file exists:
 
 ## Lichess broadcast archive
 
-| Field         | Value                                                                  |
-| ------------- | ---------------------------------------------------------------------- |
-| Source        | lichess.org open database — <https://database.lichess.org/#broadcasts> |
-| Files         | `lichess_db_broadcast_YYYY-MM.pgn.zst`, one per month from 2020-01     |
-| Licence       | **CC BY-SA 4.0** — <https://creativecommons.org/licenses/by-sa/4.0/>   |
-| What it is    | Games relayed by lichess.org from official over-the-board tournaments  |
-| Upstream size | 1,186,335 games at the time of writing                                 |
-| Verification  | `sha256sums.txt`, published by lichess.org alongside the archives      |
+| Field         | Value                                                                            |
+| ------------- | -------------------------------------------------------------------------------- |
+| Source        | lichess.org open database — <https://database.lichess.org/#broadcasts>           |
+| Files         | `lichess_db_broadcast_YYYY-MM.pgn.zst`, one per month from 2020-01               |
+| Licence       | **CC BY-SA 4.0** — <https://creativecommons.org/licenses/by-sa/4.0/>             |
+| What it is    | Games relayed by lichess.org from tournament broadcasts, including online events |
+| Upstream size | 1,186,335 games at the time of writing                                           |
+| Verification  | `sha256sums.txt`, published by lichess.org alongside the archives                |
 
 This is the source of every reference pack Kingfisher ships or installs.
 
@@ -255,3 +255,18 @@ found. Rather than fill the gap from a source with unstated provenance, the
 catalog states the count it actually has, including when that count is zero.
 A player page that says "no games in your installed sources" is worth more than
 one that shows games nobody can account for.
+
+## Phase 22 opening-walk fixtures
+
+`e2e/fixtures/opening-walk.json` retains forty plies from each of nine real
+Starter-pack games, with the pack game id, players, date and original broadcast
+URL. These are CC-BY-SA-4.0 game excerpts from the already documented broadcast
+archive, attributed to Lichess. They test navigation and classification, not a
+claim that every played move is established theory. The Catalan fixture uses a
+closed Catalan; an earlier candidate transposed to a named Bogo-Indian position
+and was correctly classified as such.
+
+The Starter catalog, manifest and build definition now describe **broadcast**
+coverage, including online events. The archive is not an exclusively OTB
+population: the fixtures include Chessable Masters. No records, counts or chunk
+digests were changed by this wording correction.

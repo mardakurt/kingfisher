@@ -110,15 +110,19 @@ async function main() {
 
   const STUDY = 'Upgrade walk study';
   const THEME = 'midnight';
+  let running = null;
 
   try {
     // --- 1. The old build, with work in it. --------------------------------
     let { app, window } = await open(previous, profile);
+    running = app;
     const before = await versionOf(app);
     console.log(`  … opened ${before}\n`);
 
-    await window.getByRole('link', { name: 'Studies', exact: true }).click();
-    await wait(2000);
+    // The old binary's navigation is not under test; load the authoring route
+    // directly so its hydration timing cannot swallow the first sidebar click.
+    await window.goto(new URL('/studies', window.url()).href);
+    await window.locator('html[data-kingfisher-ready="true"]').waitFor();
     await window
       .getByRole('button', { name: /New study|Create study/i })
       .first()
@@ -158,10 +162,12 @@ async function main() {
     await wait(1000);
 
     await app.close();
+    running = null;
     await wait(1500);
 
     // --- 2. The new build, on the same directory. --------------------------
     ({ app, window } = await open(current, profile));
+    running = app;
     const after = await versionOf(app);
     console.log(`  … reopened as ${after}\n`);
 
@@ -248,8 +254,10 @@ async function main() {
     check('and still opens a board', usable > 300, `${usable}px`);
 
     await app.close();
+    running = null;
     await wait(1000);
   } finally {
+    await running?.close();
     if (!args.keep) rmSync(profile, { recursive: true, force: true });
   }
 

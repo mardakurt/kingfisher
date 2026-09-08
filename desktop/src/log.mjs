@@ -63,6 +63,17 @@ export function redactInLog(value) {
 function scrub(text) {
   let output = String(text);
   for (const secret of secrets) output = output.split(secret).join('[redacted]');
+  // Custom manifest addresses and echoed request URLs may carry credentials
+  // that were never entered in Settings. Keep the endpoint, not its secrets.
+  output = output.replace(/https?:\/\/[^\s<>"']+/gi, (raw) => {
+    try {
+      const url = new URL(raw);
+      return `${url.origin}${url.pathname}${url.search ? '?[redacted]' : ''}${url.hash ? '#[redacted]' : ''}`;
+    } catch {
+      return '[redacted URL]';
+    }
+  });
+  output = output.replace(/(?:\/Users\/|\/home\/|[A-Za-z]:\\Users\\)[^/\\\s]+/g, '[home]');
   // Bearer tokens and long hex strings, whether or not we know their value.
   output = output.replace(/Bearer\s+[\w.-]+/gi, 'Bearer [redacted]');
   output = output.replace(/\b[0-9a-f]{32,}\b/gi, '[redacted]');

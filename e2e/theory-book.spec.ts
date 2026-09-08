@@ -25,6 +25,23 @@ async function openBook(page: Page) {
 
 const book = (page: Page) => page.locator('[data-theory-book]');
 
+test('a reader can return to all openings without discarding the loaded line', async ({ page }) => {
+  await openBook(page);
+  await openBranch(page, "King's Pawn Game");
+  await openBranch(page, 'Sicilian Defense');
+  await openBranch(page, 'Najdorf Variation');
+  await book(page).getByRole('button', { name: 'All openings', exact: true }).click();
+  await expect(book(page)).toHaveAttribute('data-theory-book', 'roots');
+  await expect(page.getByRole('gridcell', { name: /^e2, white pawn/i })).toBeVisible();
+  // Returning to the index moves the cursor; the line is still available.
+  await page.getByRole('button', { name: 'End of line (End)', exact: true }).click();
+  await expect(book(page)).toHaveAttribute('data-theory-book', 'located');
+  await expect(book(page).locator('[data-book-crumbs]')).toContainText('Najdorf');
+  await book(page).getByRole('button', { name: 'All openings', exact: true }).click();
+  await openBranch(page, "Queen's Pawn Game");
+  await expect(book(page).locator('[data-book-crumbs]')).toContainText("Queen's Pawn Game");
+});
+
 async function openBranch(page: Page, name: string) {
   await page.locator('[data-book-branch]').filter({ hasText: name }).first().click();
   await expect(book(page)).toHaveAttribute('data-theory-book', 'located');

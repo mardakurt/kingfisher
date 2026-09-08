@@ -36,7 +36,7 @@ export const PACK_DEFINITIONS = {
     id: 'kingfisher-starter',
     name: 'Kingfisher Starter Reference',
     description:
-      'Recent elite over-the-board games, bundled with Kingfisher so the ' +
+      'Recent elite broadcast games, including online events, bundled with Kingfisher so the ' +
       'opening explorer, player search and model games work before anything ' +
       'is installed or imported.',
     version: '2',

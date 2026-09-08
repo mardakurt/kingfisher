@@ -57,9 +57,11 @@ export function TheoryBookPanel() {
   const { tree, currentId } = useChessWorkspace();
   const loadPgn = useAnalysis((state) => state.loadPgn);
   const toEnd = useAnalysis((state) => state.toEnd);
+  const toStart = useAnalysis((state) => state.toStart);
   const notify = useUi((state) => state.notify);
   const showBrief = usePreferences((state) => state.showVariationBrief);
   const [book, setBook] = useState<TheoryBook | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   useEffect(() => {
     let live = true;
@@ -68,7 +70,7 @@ export function TheoryBookPanel() {
         if (live) setBook(loaded);
       },
       () => {
-        /* A failed chunk load leaves the panel empty; nothing else depends on it. */
+        if (live) setLoadFailed(true);
       },
     );
     return () => {
@@ -89,6 +91,17 @@ export function TheoryBookPanel() {
   }
 
   const match = book?.deepest(line) ?? null;
+
+  // Move only the cursor: returning to the index must not discard the line.
+  const allOpenings = (
+    <button
+      type="button"
+      onClick={toStart}
+      className="rounded-[3px] px-1 py-1 text-xs text-secondary hover:bg-surface-2"
+    >
+      All openings
+    </button>
+  );
 
   const openLine = (moves: readonly string[]) => {
     /*
@@ -115,7 +128,14 @@ export function TheoryBookPanel() {
       <div className="flex min-h-0 flex-col">
         <PanelHeader>Theory Book</PanelHeader>
         <PanelBody>
-          <p className="text-xs text-tertiary">Loading the opening library…</p>
+          {loadFailed ? (
+            <EmptyState
+              title="The opening library could not be loaded."
+              description="Your analysis is still available. Reload the application to try loading the library again."
+            />
+          ) : (
+            <p className="text-xs text-tertiary">Loading the opening library…</p>
+          )}
         </PanelBody>
       </div>
     );
@@ -165,7 +185,7 @@ export function TheoryBookPanel() {
   if (!match) {
     return (
       <div className="flex min-h-0 flex-col" data-theory-book="unnamed">
-        <PanelHeader>Theory Book</PanelHeader>
+        <PanelHeader actions={allOpenings}>Theory Book</PanelHeader>
         <PanelBody>
           <EmptyState
             title="Not a named opening"
@@ -196,12 +216,11 @@ export function TheoryBookPanel() {
 
   return (
     <div className="flex min-h-0 flex-col" data-theory-book="located">
-      <PanelHeader actions={<span className="font-mono text-2xs text-tertiary">{node.eco}</span>}>
-        Theory Book
-      </PanelHeader>
+      <PanelHeader actions={allOpenings}>Theory Book</PanelHeader>
       <PanelBody>
         {/* Where the reader is, family first, each step clickable. */}
         <nav className="flex flex-wrap items-center gap-x-1 gap-y-0.5" data-book-crumbs>
+          <span className="font-mono text-2xs text-tertiary">{node.eco}</span>
           {crumbs.map((crumb, index) => (
             <span key={crumb.key} className="flex items-center gap-1">
               {index > 0 ? <span className="text-tertiary">›</span> : null}

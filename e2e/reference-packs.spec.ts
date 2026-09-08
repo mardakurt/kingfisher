@@ -43,11 +43,13 @@ import { selectTool } from './tools';
 const ROOT = process.cwd();
 
 /** The pack this suite uses, smallest first so the walk stays affordable. */
-const CANDIDATES = [
-  '.packs/kingfisher-recent-theory',
-  '.packs/kingfisher-high-rated-online',
-  '.packs/kingfisher-elite-otb',
-];
+const CANDIDATES = process.env.KINGFISHER_REFERENCE_PACK
+  ? [process.env.KINGFISHER_REFERENCE_PACK]
+  : [
+      '.packs/kingfisher-recent-theory',
+      '.packs/kingfisher-high-rated-online',
+      '.packs/kingfisher-elite-otb',
+    ];
 
 const packDirectory = CANDIDATES.map((relative) => path.join(ROOT, relative)).find((directory) =>
   existsSync(path.join(directory, 'manifest.json')),
@@ -62,13 +64,21 @@ const packDirectory = CANDIDATES.map((relative) => path.join(ROOT, relative)).fi
  * second is the one a mirror, a proxy or a bad disk produces, and the one the
  * digest exists for.
  */
-function servePack(directory: string, options: { corrupt?: boolean } = {}) {
+function servePack(
+  directory: string,
+  options: { corrupt?: boolean; version?: string; delayMs?: number } = {},
+) {
   const server: Server = createServer((request, response) => {
     const name = path.basename(new URL(request.url ?? '/', 'http://x').pathname);
     const file = path.join(directory, name);
     response.setHeader('Access-Control-Allow-Origin', '*');
     if (!name || !existsSync(file) || !statSync(file).isFile()) {
       response.writeHead(404).end('no');
+      return;
+    }
+    if (name === 'manifest.json' && options.version) {
+      const manifest = JSON.parse(readFileSync(file, 'utf8'));
+      response.writeHead(200).end(JSON.stringify({ ...manifest, version: options.version }));
       return;
     }
     if (options.corrupt && name === 'explorer-000.kfp.gz') {
@@ -79,7 +89,9 @@ function servePack(directory: string, options: { corrupt?: boolean } = {}) {
       return;
     }
     response.writeHead(200, { 'content-length': String(statSync(file).size) });
-    createReadStream(file).pipe(response);
+    setTimeout(() => {
+      if (!response.destroyed) createReadStream(file).pipe(response);
+    }, options.delayMs ?? 0);
   });
   return new Promise<{ url: string; close: () => Promise<void> }>((resolve) => {
     server.listen(0, '127.0.0.1', () => {
@@ -116,8 +128,9 @@ async function openReferenceSources(page: Page) {
 }
 
 async function installFromUrl(page: Page, url: string) {
-  await page.getByRole('button', { name: 'Install from a URL' }).click();
   const form = page.locator('form:has(#pack-url)');
+  if (!(await form.isVisible()))
+    await page.getByRole('button', { name: 'Install from a URL' }).click();
   await form.locator('#pack-url').fill(url);
   // Scoped to the form: every catalog row has an Install button of its own.
   await form.getByRole('button', { name: 'Install', exact: true }).click();
@@ -130,6 +143,7 @@ test.describe('installing a reference pack a person could actually download', ()
       'the packs are gitignored build output, so CI never has one.',
   );
   test.slow();
+  test.use({ actionTimeout: 30_000 });
 
   test('installs at real scale, answers a chess question, and can be removed again', async ({
     page,
@@ -174,8 +188,7 @@ test.describe('installing a reference pack a person could actually download', ()
         moves here, so the assertion is on the count the panel attributes to
         *this* source being one this pack could produce and Starter could not.
       */
-      const answered = await dock.locator('[data-explorer-move]').count();
-      expect(answered, 'the installed pack answered the opening position').toBeGreaterThan(0);
+      await expect(dock).toContainText(`${manifest!.counts.games.toLocaleString()} games here`);
 
       // Verification is clean on a pack that just installed.
       await openReferenceSources(page);
@@ -194,6 +207,64 @@ test.describe('installing a reference pack a person could actually download', ()
       );
     } finally {
       await pack.close();
+    }
+  });
+
+  test('recovers from full storage, resumes a cancellation and upgrades without losing the source', async ({
+    page,
+  }) => {
+    test.setTimeout(600_000);
+    const pack = await servePack(packDirectory!, { delayMs: 150 });
+    const update = await servePack(packDirectory!, { version: 'phase22-upgrade-check' });
+    const id = manifest!.id;
+    try {
+      await openReferenceSources(page);
+      // Stub the browser storage boundary, not the installer or its state.
+      await page.evaluate((packId) => {
+        const original = IDBObjectStore.prototype.put;
+        IDBObjectStore.prototype.put = function (value, ...args) {
+          if (this.name === 'referenceChunks' && value?.packId === packId) {
+            throw new DOMException('Test device storage is full', 'QuotaExceededError');
+          }
+          return original.call(this, value, ...args);
+        };
+      }, id);
+      await installFromUrl(page, pack.url);
+      const row = page.locator(`[data-source-row="${id}"]`);
+      await expect(row).toContainText(/storage|space|quota|full/i, { timeout: 60_000 });
+      await expect(row.getByRole('switch', { name: `Use ${manifest!.name}` })).toBeDisabled();
+      // Reload removes the injected failure; the partial source is still not Ready.
+      await page.reload();
+      await openReferenceSources(page);
+      await installFromUrl(page, pack.url);
+      await row.getByRole('button', { name: /cancel/i }).click();
+      await expect(row.getByRole('switch', { name: `Use ${manifest!.name}` })).toBeDisabled();
+      await installFromUrl(page, pack.url);
+      await expect(row).toContainText(manifest!.counts.games.toLocaleString(), {
+        timeout: 480_000,
+      });
+      const toggle = row.getByRole('switch', { name: `Use ${manifest!.name}` });
+      await toggle.click();
+      await expect(toggle).toHaveAttribute('aria-checked', 'false');
+      await toggle.click();
+      await expect(toggle).toHaveAttribute('aria-checked', 'true');
+      // A real pack with a test-only version label: same licensed bytes, new generation.
+      await installFromUrl(page, update.url);
+      await row.getByRole('button', { name: /^Show details of/ }).click();
+      await expect(row).toContainText('phase22-upgrade-check', { timeout: 480_000 });
+      await row.getByRole('button', { name: 'Verify integrity' }).click();
+      await expect(page.getByText(/all chunks verified/i)).toBeVisible({ timeout: 300_000 });
+      await row.getByRole('button', { name: /^Remove /i }).click();
+      await page.getByRole('dialog').getByRole('button', { name: 'Remove', exact: true }).click();
+      await expect(toggle).toBeDisabled();
+      await expect(row).toContainText('Available');
+      await installFromUrl(page, pack.url);
+      await expect(row).toContainText(manifest!.counts.games.toLocaleString(), {
+        timeout: 480_000,
+      });
+    } finally {
+      await pack.close();
+      await update.close();
     }
   });
 

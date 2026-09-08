@@ -2006,3 +2006,22 @@ with the network switched off.
 **Later — assistance.** A `ChessContext` assembled from engine output, database
 evidence, position features and the user's own history, so that an explanation
 is grounded in structured evidence rather than generated from a number.
+
+## Phase 22 navigation and acceptance boundaries
+
+Theory Book's **All openings** action uses the existing analysis cursor's
+`toStart`; it does not replace or clear the game tree. Named branches continue
+to use the existing PGN import boundary. A library load failure renders a
+terminal explanation rather than an indefinite loading label.
+
+Diagnostics and desktop logs remove URL credentials, query strings, fragments
+and home-directory identities, including values not registered as application
+secrets. Both have regression tests at their output boundary.
+
+`playwright.packaged.config.ts` runs the same long navigation assertions through
+`e2e/desktop-test.ts` in a fresh packaged Electron profile. Development servers
+are not started for that run. The synthetic query-cache injection test remains
+browser-only because production deliberately exposes no query-client test hook.
+Resource counters treat repeated close/terminate/disconnect calls as idempotent.
+`scripts/desktop-field.mjs` installs all real optional packs through the UI and
+checks restart, source-specific offline answers and Theory Book navigation.

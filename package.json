@@ -60,7 +60,9 @@
     "engines:build": "node scripts/build-engine.mjs",
     "reference:build": "node scripts/build-reference-pack.mjs",
     "polyglot:constants": "node scripts/build-polyglot-constants.mjs && prettier --write src/book/polyglot-constants.generated.ts",
-    "pieces:measure": "node scripts/measure-piece-scale.mjs"
+    "pieces:measure": "node scripts/measure-piece-scale.mjs",
+    "desktop:field": "node scripts/desktop-field.mjs",
+    "desktop:soak": "playwright test --config playwright.packaged.config.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.102.8",

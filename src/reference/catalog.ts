@@ -62,7 +62,7 @@ export const CATALOG_PACKS: readonly CatalogPack[] = [
     id: 'kingfisher-starter',
     name: 'Kingfisher Starter Reference',
     description:
-      'Recent elite over-the-board games. Ships with Kingfisher, works ' +
+      'Recent elite broadcast games, including online events. Ships with Kingfisher, works ' +
       'offline, and is what the opening explorer, player search and model ' +
       'games read before anything is imported.',
     manifestUrl: '/reference/kingfisher-starter/manifest.json',

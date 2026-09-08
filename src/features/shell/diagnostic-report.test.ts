@@ -113,6 +113,23 @@ describe('what the report must never contain', () => {
     expect(redact(`token=${'a'.repeat(64)}`, [])).toBe('token=[redacted]');
   });
 
+  it('removes credentials from custom URLs and home paths without knowing their values', () => {
+    const report = redact(
+      'https://alice:private-password@example.org/pack/manifest.json?key=private-key#private-fragment /Users/alice/Library/test /home/bob/log C:\\Users\\Carol\\AppData',
+      [],
+    );
+    for (const value of [
+      'alice',
+      'private-password',
+      'private-key',
+      'private-fragment',
+      'bob',
+      'Carol',
+    ])
+      expect(report).not.toContain(value);
+    expect(report).toContain('https://example.org/pack/manifest.json');
+  });
+
   it('leaves short values alone rather than mangling ordinary text', () => {
     expect(redact('depth 30 nodes 4500000', [])).toBe('depth 30 nodes 4500000');
     // A short "secret" is not used as a needle; it would match everywhere.

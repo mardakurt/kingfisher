@@ -280,6 +280,12 @@ Nothing here is marked verified on the strength of an earlier report.
 | A suspend and resume changes nothing         | `scripts/desktop-suspend.mjs`                  | SIGSTOP for 20 s to every Kingfisher process, then SIGCONT: same board, same game, both services answering, nothing duplicated, clean quit            | —                           | `desktop:suspend` — 12          | **Held**            | Listed as unreached by Phase 21. Two of the first twelve checks failed on the harness, not the product — see the note below                                            | Phase 22 |
 | The move list can be named                   | `src/features/movetree/MoveTreePanel.tsx`      | `[data-move-tree]` exists, so a test asserting on the move list is asserting on the move list                                                         | —                           | `fresh-user.spec.ts`            | **Held (repaired)** | The attribute had never existed; `fresh-user.spec.ts` fell back to `body` and asserted a move order against the whole page, navigation included                        | Phase 22 |
 
+| Return from a Theory Book branch | `TheoryBookPanel.tsx` | All openings moves the existing cursor to the root and retains the loaded line | — | `theory-book.spec.ts`, packaged field walk | **Held (repaired)** | There was no route back to the opening index | Phase 22 |
+| Opening-library failure settles | `TheoryBookPanel.tsx` | A rejected load renders an explanation instead of indefinite Loading | — | error branch review, typecheck | **Held (repaired)** | Rejections were silently swallowed | Phase 22 |
+| Support exports and logs exclude unknown URL secrets | `diagnostic-report.ts`, `desktop/src/log.mjs` | Credentials, query/fragment values and home names never reach exported text or log bytes | redaction and log tests, failed before fix | — | **Held (repaired)** | Custom URLs can contain secrets not registered in Settings | Phase 22 |
+| Starter names its actual population | `catalog.ts`, Starter manifest, pack definition | Broadcast coverage explicitly includes online events | catalog tests | sourced opening-walk fixtures | **Held (repaired)** | The blanket OTB description exceeded the archive's guarantees | Phase 22 |
+| Soak counters cannot decrement twice | `soak.spec.ts` | Repeated close/terminate/disconnect is idempotent; counters must stay nonnegative | — | browser and packaged soak | **Held (repaired)** | A twice-terminated worker produced a negative live count | Phase 22 |
+
 **Phase 22's shape is one thing, and it is not "found by a failing test".** The
 repaired rows were found by writing down the sentence the product shows a user
 and then checking whether it was true — or, in the worst case, by asking the
@@ -315,9 +321,9 @@ Before changing something, find the row. If the invariant in that row is what
 your change would alter, the evidence named there should fail — and if it does
 not, the evidence is the thing to fix first.
 
-**Fifty rows say Held (repaired)**: thirteen fixed in Phase 16 or earlier,
+**Fifty-five rows say Held (repaired)**: thirteen fixed in Phase 16 or earlier,
 eight in Phase 17, seven in Phase 18, six in Phase 19, eight in Phase 20, two in
-Phase 21 and six in Phase 22.
+Phase 21 and eleven in Phase 22.
 
 The number is worth re-deriving rather than trusting, and it is one line:
 

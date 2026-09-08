@@ -379,13 +379,28 @@ mirror or a bad disk produces and the one the digest exists for, rather than a
 truncation or a 404, which fail at the transport instead. It was
 mutation-checked: with the byte flip disabled the test fails, as it must.
 
-### Not yet certified
+### Phase 22 continuation: complete installation and restart evidence
 
-- **Upgrade behaviour** (`reference-elite-v2` → a later version directory)
-  cannot be exercised without a publisher, since it turns on two version
-  directories existing at one address.
-- **Disk-space exhaustion** during a 339 MB install.
-- Memory with all four packs installed at once.
+`npm run desktop:field` installs all three real optional packs through the URL
+form into a fresh packaged profile, explicitly waits for an enabled source and
+its Remove action, quits and reopens, and queries each source with external
+network access blocked. All three passed. The fresh renderer was ready in
+1,148 ms, the profile holding all four packs in 1,346 ms; source selection plus
+first offline answer took 107 ms (Recent), 332 ms (Elite) and 453 ms (Online).
+These are single local runs under concurrent validation load, not percentiles.
+
+The original matrix's "absent/n/a" startup and offline cells describe the
+unpublished catalog path. The local installation path is now exercised for all
+three packs; publication remains separate. Waiting only for a catalog game
+count is insufficient: catalog text can contain that count before installation
+finishes. The field harness waits for actual usability.
+
+`reference-packs.spec.ts` additionally exercises quota failure by making the
+browser storage boundary throw `QuotaExceededError`, cancellation/resumption,
+disable/enable, a test-only manifest version with the same licensed bytes,
+verification, removal and reinstall. It does not fill the maintainer's real disk.
+The version transition can be tested with a local server; a public publisher is
+not required to verify the installer's atomic generation switch.
 
 ## What is not here, and why
 
