@@ -1,0 +1,50 @@
+# GitHub labels seeded by `gh label sync`.
+#
+# This file is the source of truth for the post-release label set.
+# A small set; the brief is to avoid a project-management bureaucracy.
+#
+# Run:
+#   gh label sync --file .github/labels.yml
+
+- name: bug
+  color: d73a4a
+  description: Something is not working the way the docs say it should.
+- name: regression
+  color: b60205
+  description: A previously working behaviour has stopped working.
+- name: enhancement
+  color: a2eeef
+  description: A new feature or a meaningful change to an existing one.
+- name: documentation
+  color: 0075ca
+  description: Improvements or corrections to the docs.
+- name: performance
+  color: fbca04
+  description: A speed, memory or render-time concern.
+- name: desktop
+  color: 7057ff
+  description: Specific to the macOS desktop application.
+- name: web
+  color: 1d76db
+  description: Specific to the web application.
+- name: opening-explorer
+  color: 5319e7
+  description: Around the Opening Explorer or the reference data.
+- name: database
+  color: c5def5
+  description: Around SQLite collections, import, or attach.
+- name: engine
+  color: 0e8a16
+  description: Around Stockfish, native engines, or Lc0.
+- name: player
+  color: bfdadc
+  description: Around player search, profiles or preparation.
+- name: ui
+  color: e99695
+  description: Around the board, the workspace, or the windows.
+- name: critical
+  color: b60205
+  description: A data-loss or unusable-app defect. Triage immediately.
+- name: high
+  color: d93f0b
+  description: A defect that blocks a real user workflow. Triage same day.
