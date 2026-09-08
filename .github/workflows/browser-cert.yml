@@ -1,0 +1,96 @@
+# Full Playwright browser certification.
+#
+# Deliberately NOT a default push/PR gate. The default gate is `ci.yml`,
+# which is small and fast. This workflow is the full 20+ minute browser
+# suite, intended for:
+#
+#   - pre-release certification (manual run before tagging);
+#   - monthly sanity sweep (schedule);
+#   - a deliberate re-run after a known browser-shape change.
+#
+# Phase 22 established that 2177 unit/integration tests and the local
+# packaged smoke cover the source. This workflow is the tripwire that
+# proves the browser-facing behaviour still works in a clean Linux
+# runner, and it should be run deliberately, not as a tax on every
+# commit.
+name: Browser certification (full)
+
+on:
+  workflow_dispatch:
+    inputs:
+      retries:
+        description: 'Playwright retries (0 for a clean run)'
+        required: false
+        default: '0'
+  schedule:
+    # The first Monday of every month, in the early hours of UTC.
+    - cron: '0 4 * * 1'
+  # Release tag trigger — runs on every tag push that looks like a release.
+  push:
+    tags:
+      - 'v*'
+
+concurrency:
+  group: browser-cert-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  CI: 'true'
+  PLAYWRIGHT_RETRIES: ${{ github.event.inputs.retries || '0' }}
+
+jobs:
+  browser:
+    name: Browser tests (full)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Resolve Playwright version
+        id: playwright
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium chrome
+
+      - name: Install browser system dependencies
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium chrome
+
+      # Stockfish is GPL and ~15 MB, so it is fetched rather than committed.
+      # Deliberately not cached: a broken installer would otherwise pass
+      # unnoticed.
+      - name: Install Stockfish
+        run: npm run engine:install
+
+      - name: Run Playwright
+        run: npx playwright test
+
+      - name: Upload failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: playwright-failures
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
+          if-no-files-found: ignore

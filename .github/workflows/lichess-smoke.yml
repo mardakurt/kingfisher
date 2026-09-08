@@ -1,8 +1,9 @@
 name: Lichess contract smoke
 
 on:
-  schedule:
-    - cron: '23 6 * * 1'
+  # Schedule intentionally removed for the public preview. The auth
+  # contract is exercised by a manual run; running it every Monday is
+  # not something GitHub minutes can support during the public release.
   workflow_dispatch:
 
 permissions:

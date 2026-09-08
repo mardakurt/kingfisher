@@ -1,0 +1,78 @@
+# Visual review of the deliberate workstation compositions.
+#
+# Visual baselines are per-platform because Chromium rasterises text
+# differently on macOS and Linux. The committed Linux set is the one
+# CI compares against; a deliberate re-baseline is a separate, manual
+# job — `workflow_dispatch` with the `update` input set — and the
+# reviewer commits the updated snapshots.
+#
+# Moved out of `ci.yml` in Phase 23. Visual gating is expensive (Playwright
+# install + visual suite) and informative for product composition but not
+# a useful default push gate. The default `ci.yml` runs the unit tests and
+# the build; this workflow is invoked when the composition itself changes.
+name: Visual review
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'compare (gate) or update (regenerate Linux baselines)'
+        required: true
+        default: 'compare'
+        type: choice
+        options:
+          - compare
+          - update
+
+concurrency:
+  group: visual-review-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  visual:
+    name: Visual review (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - run: npx playwright install --with-deps chromium chrome
+
+      - name: Install Stockfish
+        run: npm run engine:install
+
+      - name: Compare against committed baselines
+        if: github.event.inputs.mode == 'compare'
+        run: npx playwright test e2e/visual.spec.ts
+
+      - name: Update Linux baselines
+        if: github.event.inputs.mode == 'update'
+        run: npm run visual:baselines
+
+      - name: Upload regenerated baselines
+        if: github.event.inputs.mode == 'update'
+        uses: actions/upload-artifact@v6
+        with:
+          name: visual-baselines-linux
+          path: e2e/visual.spec.ts-snapshots/
+
+      - name: Upload visual failures
+        if: failure() && github.event.inputs.mode == 'compare'
+        uses: actions/upload-artifact@v6
+        with:
+          name: visual-failures
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+          if-no-files-found: ignore

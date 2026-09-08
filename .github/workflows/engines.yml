@@ -25,10 +25,14 @@ name: Engine fleet
 
 on:
   workflow_dispatch:
-  schedule:
-    # Monthly. Engine releases are not frequent, and a stale matrix is worse
-    # than an absent one only if nobody notices it is stale — so it refreshes.
-    - cron: '0 5 1 * *'
+  # Schedule intentionally removed for the public preview. The fleet
+  # qualification is several hundred MB of downloads per platform per
+  # run, and the value of running it monthly is small once the engine
+  # catalogue is recorded. Re-enable when the public release proves a
+  # recurring need.
+  push:
+    tags:
+      - 'v*'
 
 permissions:
   contents: read

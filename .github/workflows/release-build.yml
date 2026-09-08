@@ -1,0 +1,63 @@
+# Release build.
+#
+# Triggers only on a `v*` tag push. Produces:
+#   - the web production build (`next build`);
+#   - the macOS Apple Silicon desktop DMG (the supported platform);
+#   - the SHA-256 checksums file and the release manifest;
+#   - uploads all of the above to the GitHub Release for the tag.
+#
+# The macOS step is wrapped in a workflow_dispatch allowlist so the actual
+# sign step can be enabled locally; on a runner without a Developer ID
+# Application certificate the `desktop:dist` step will produce an
+# unsigned DMG and the maintainer signs it on the local machine.
+#
+# The Linux/Windows packaging is intentionally NOT here. Those targets
+# are not supported; the artefact workflow `desktop-package.yml` exists
+# for somebody who decides to spend minutes on them.
+name: Release build
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to build (must already exist on master)'
+        required: true
+
+concurrency:
+  group: release-build-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  web:
+    name: Web production build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build the web application
+        run: npm run build
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: web-build
+          path: |
+            .next/
+            public/
+          retention-days: 7
+          if-no-files-found: error

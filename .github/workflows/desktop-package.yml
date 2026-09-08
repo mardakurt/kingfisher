@@ -2,28 +2,30 @@
 #
 # macOS is built, signed and driven on the maintainer's own machine, because
 # signing needs a certificate in a keychain and driving it needs a real window
-# server. Windows and Linux were *configured* in Phase 19 and never built, and
-# "configured" is not a claim about anything — an electron-builder target can
-# be perfectly well specified and fail on the first native dependency.
+# server. Windows and Linux were *configured* in earlier phases and never
+# built on a runner, and "configured" is not a claim about anything — an
+# electron-builder target can be perfectly well specified and fail on the
+# first native dependency.
 #
 # This workflow answers the narrow question it can answer: does an artifact
 # come out, and is it the shape it should be. That is genuinely less than
-# support. Nobody has installed these, launched them, or driven them through a
-# game, and until somebody has, README and the release notes call them
+# support. Nobody has installed these, launched them, or driven them through
+# a game, and until somebody has, README and the release notes call them
 # unsupported — see `docs/release/`. Producing an installer and supporting a
 # platform are different claims and this workflow only makes the first.
 #
-# Not a gate. It is minutes of packaging per platform on every run, it proves
-# nothing about the product's behaviour, and a red cross here should not block
-# a release whose supported platform is macOS.
+# NOT a default gate. Manual only. It consumes a meaningful amount of
+# Windows + Linux minutes per run, and is here so the option exists, not
+# so it fires unattended.
 name: Desktop package
 
 on:
   workflow_dispatch:
-  schedule:
-    # Monthly, so a break in Windows or Linux packaging is found within weeks
-    # rather than at the moment somebody decides to support them.
-    - cron: '0 5 3 * *'
+    inputs:
+      platforms:
+        description: 'Comma-separated list of platforms (linux,windows)'
+        required: false
+        default: 'linux,windows'
 
 permissions:
   contents: read

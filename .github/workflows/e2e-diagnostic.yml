@@ -1,12 +1,12 @@
-# A deliberately separate, non-gating twin of ci.yml's `e2e` job.
-#
-# The release gate runs Playwright at zero retries (see playwright.config.ts):
-# a browser test that only passes on a second attempt is a bug in the test or
-# the product, not something a gate should paper over. But telling a flaky
-# test apart from a one-off infrastructure hiccup is still useful, and that
-# is what this workflow is for — run by hand, retries enabled, its result
-# never blocks a merge because nothing in branch protection points at it.
-name: E2E diagnostic (retries enabled)
+# A deliberately separate, non-gating twin of the Browser certification
+# workflow. The release gate runs Playwright at zero retries (see
+# playwright.config.ts): a browser test that only passes on a second
+# attempt is a bug in the test or the product, not something a gate should
+# paper over. But telling a flaky test apart from a one-off infrastructure
+# hiccup is still useful, and that is what this workflow is for — run by
+# hand, retries enabled, its result never blocks a merge because nothing
+# in branch protection points at it.
+name: Browser diagnostic (retries enabled)
 
 on:
   workflow_dispatch:

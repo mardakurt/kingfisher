@@ -29,9 +29,13 @@ name: Engine build
 
 on:
   workflow_dispatch:
-  schedule:
-    # Monthly, the day after the fleet matrix, so the two records are adjacent.
-    - cron: '0 5 2 * *'
+  # Schedule intentionally removed for the public preview. The build
+  # matrices are real minutes — they run when somebody decides they want
+  # them, not on a calendar. Re-enable by adding `schedule:` here when
+  # the public release proves a recurring need.
+  push:
+    tags:
+      - 'v*'
 
 permissions:
   contents: read
