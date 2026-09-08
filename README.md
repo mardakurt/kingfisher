@@ -33,13 +33,17 @@ clear redistribution terms was found. Morphy is in the player catalog with no
 games behind him, and the page says so. See
 [`THIRD_PARTY_DATA.md`](THIRD_PARTY_DATA.md).
 
-### Optional, one click each
+### Optional
 
 - **Connect Lichess** — OAuth with PKCE, no token to paste, no scopes requested.
 - **Connect Chess.com** — a username; the API is public.
-- **Install a reference pack** — three of them, one click each, no file to
-  find, resumable, and verified chunk by chunk against the manifest's own
-  digests. All index through twenty full moves.
+- **Install a reference pack** — resumable, and verified chunk by chunk against
+  the manifest's own digests. Three exist, all indexing through twenty full
+  moves, and **none of them is published yet**: their catalog rows point at a
+  data repository that has not been created, so pressing Install answers 404
+  and says so. They are built and integrity-checked here; what is missing is a
+  publisher, not code. See
+  [`docs/data/reference-packs.md`](docs/data/reference-packs.md).
   - **Elite OTB**, the whole broadcast archive since 2020: 407,538 games,
     every one openable, 5,438,808 position aggregates, 339 MB.
   - **Recent Theory**, the last two years at a lower frequency threshold so
@@ -50,6 +54,11 @@ games behind him, and the page says so. See
     295,695 of them — and one month of it. It answers what strong players are
     playing online, which is not the same question as how a line scores over
     the board, and the row says so before you install it.
+
+  Any address that serves a Kingfisher manifest can be installed from today —
+  Databases → Reference sources → **Install from a URL** — through the identical
+  verified path.
+
 - **Install an engine** — Stockfish 19, Stormphrax 8, Viridithas 20, Halogen 16,
   PlentyChess 8 or Lc0, downloaded, digest-checked and UCI-tested without
   leaving the application. Capabilities are read from the engine rather than a
@@ -58,7 +67,14 @@ games behind him, and the page says so. See
 
 ---
 
-## Status: Phase 15 — deep enough to prepare with
+## How it got here
+
+The sections below are the record of what each phase set out to fix, kept
+because the reasons are still the reasons. They are history, not a status line:
+the current release is **1.0.0-rc.3**, and what it does and does not do is in
+[`docs/release/1.0.0-rc.3.md`](docs/release/1.0.0-rc.3.md).
+
+### Phase 15 — deep enough to prepare with
 
 Phase 15's question was how far into a line Kingfisher keeps answering. It used
 to be about move ten. The reference packs are rebuilt to index twenty full
@@ -72,7 +88,7 @@ Thirty plies of a mainstream line on an empty profile is a release gate, not a
 claim: `e2e/fresh-user.spec.ts` walks it and reads the opening identity after
 every single ply.
 
-## Status: Phase 13 — useful before you add anything
+### Phase 13 — useful before you add anything
 
 Phase 13's question was not "what else can it do" but "what does it do on the
 day you install it". The answer used to be: very little. The explorer had no
@@ -86,7 +102,7 @@ All of that is fixed, and the fresh-profile flow is a release gate rather than
 a claim. What follows is the record of the twelve phases that built the
 workstation underneath it.
 
-## Status: Phase 12 — the last four reasons to open something else
+### Phase 12 — the last four reasons to open something else
 
 Phase 1 built the workstation, Phase 2 made the work durable, Phase 3 turned the
 stored material into preparation, and Phase 4 gave it real engines, real artwork
@@ -517,6 +533,7 @@ npm run desktop:dist       # Kingfisher.app and a .dmg
 npm run desktop:smoke      # drive the real application and check seventeen things
 npm run desktop:chrome     # the macOS window buttons, against every layout the app has
 npm run desktop:engines    # install and search with every managed engine, inside the bundle
+npm run desktop:suspend    # stop every Kingfisher process for 20 s, then resume it
 ```
 
 The desktop shell is Electron, and that was a measured decision rather than a
@@ -530,22 +547,23 @@ including what it cost.
 **What is and is not true of the desktop build today**, stated rather than
 implied:
 
-|                                     |                                                                                                                 |
-| ----------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| macOS arm64 — builds, installs, run | **yes**, and driven end to end by `npm run desktop:smoke` — 17 checks                                           |
-| macOS x64                           | builds from the same configuration; **never launched**                                                          |
-| Windows x64                         | **builds** in CI; never installed or launched, so **not supported**                                             |
-| Linux x64                           | **builds** in CI; never installed or launched, so **not supported**                                             |
-| Code signed                         | **yes** — hardened runtime, all six entitlements, signature valid                                               |
-| Accepted by Gatekeeper              | **no** — signed with an _Apple Development_ identity, not a distribution one                                    |
-| Notarised                           | **no** — no ticket stapled                                                                                      |
-| Auto-update                         | **not implemented**, deliberately; see the release notes                                                        |
-| `.pgn` file association             | declared, and **exercised** — a double-clicked PGN opens on the board                                           |
-| Native engines, packaged            | **yes** — all six offered here, installed and searched inside the bundle; `npm run desktop:engines` — 25 checks |
-| Local Syzygy tablebases, packaged   | **yes** — a real probe, asserted in the smoke run                                                               |
-| Runs with the network cut           | **yes** — 23 of 23 offline checks                                                                               |
-| Launch to a visible window          | **~630 ms** on an M3 Pro; `KINGFISHER_STARTUP_TRACE=1` prints the stages                                        |
-| macOS window buttons                | **native**, placed by the shell at (14, 12); `npm run desktop:chrome` — 51 checks                               |
+|                                     |                                                                                                                                                                          |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| macOS arm64 — builds, installs, run | **yes**, and driven end to end by `npm run desktop:smoke` — 17 checks                                                                                                    |
+| macOS x64                           | builds from the same configuration; **never launched**                                                                                                                   |
+| Windows x64                         | **builds** in CI; never installed or launched, so **not supported**                                                                                                      |
+| Linux x64                           | **builds** in CI; never installed or launched, so **not supported**                                                                                                      |
+| Code signed                         | **yes** — hardened runtime, all six entitlements, signature valid                                                                                                        |
+| Accepted by Gatekeeper              | **no** — signed with an _Apple Development_ identity, not a distribution one                                                                                             |
+| Notarised                           | **no** — no ticket stapled                                                                                                                                               |
+| Auto-update                         | **not implemented**, deliberately; see the release notes                                                                                                                 |
+| `.pgn` file association             | declared, and **exercised** — a double-clicked PGN opens on the board                                                                                                    |
+| Native engines, packaged            | **yes** — all six offered here, installed and searched inside the bundle; `npm run desktop:engines` — 25 checks                                                          |
+| Local Syzygy tablebases, packaged   | **yes** — a real probe, asserted in the smoke run                                                                                                                        |
+| Runs with the network cut           | **yes** — 23 of 23 offline checks                                                                                                                                        |
+| Launch to a visible window          | **~630 ms** on an M3 Pro; `KINGFISHER_STARTUP_TRACE=1` prints the stages                                                                                                 |
+| macOS window buttons                | **native**, placed by the shell at (14, 20); `npm run desktop:chrome` — 107 checks, geometry in [docs/design/macos-window-chrome.md](docs/design/macos-window-chrome.md) |
+| Survives a suspend and resume       | **yes** — `npm run desktop:suspend`, 12 checks; an analogue of sleep/wake, not a real one                                                                                |
 
 The bundle is properly signed: `Identifier=dev.kingfisher.app`, hardened
 runtime on, `valid on disk`, `satisfies its Designated Requirement`. What it is

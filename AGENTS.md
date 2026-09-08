@@ -222,7 +222,12 @@ returns `null` in a browser. Five rules hold, and each has cost something:
   component hard-codes a padding for them, the reservation is zero in a browser
   and off macOS, and the traffic lights are the operating system's own controls
   rather than circles drawn in HTML. `npm run desktop:chrome` intersects the two
-  and fails on any overlap.
+  and fails on any overlap — and, since Phase 22, on any _composition_ drift as
+  well: the mark's left edge, the gap from the last button and their shared
+  centre line are each asserted, because "nothing collides" was satisfied by a
+  corner with 32 px of dead space in it and buttons riding eight pixels high.
+  `docs/design/macos-window-chrome.md` states the four regions and why each
+  number is what it is.
 - **A platform claim needs evidence.** "Builds" is not "runs". `npm run
 desktop:smoke` drives the real application and checks the seventeen things
   only the shell can be wrong about; README states which platforms it has
@@ -284,6 +289,7 @@ npm run desktop:smoke               # the shell, from the checkout
 npm run desktop:smoke -- --packaged # a built Kingfisher.app
 npm run desktop:chrome -- --packaged # the window buttons, against every layout
 npm run desktop:engines -- --packaged # every managed engine, installed and searched in the bundle
+npm run desktop:suspend -- --packaged # stop every process for 20 s and resume, as a sleep does
 ```
 
 These are not in CI and cannot be: signing needs a certificate in a keychain
