@@ -136,7 +136,11 @@ export function CriticalInbox({
           <p className="px-3 py-4 text-xs text-tertiary">Reading your review queue…</p>
         ) : listed.length === 0 ? (
           <EmptyState
-            title={status === 'unreviewed' ? 'Nothing waiting.' : 'Nothing here yet.'}
+            title={
+              status === 'unreviewed'
+                ? 'Nothing waiting.'
+                : 'No position has been worked through yet.'
+            }
             description={
               status === 'unreviewed'
                 ? 'Mark a position critical while analysing, or ask for review candidates from an analysed game.'

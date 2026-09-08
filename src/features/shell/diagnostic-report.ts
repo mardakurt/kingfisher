@@ -27,6 +27,17 @@ export interface DiagnosticInput {
   readonly appVersion: string;
   readonly commit?: string;
   readonly userAgent: string;
+  /**
+   * The operating system and instruction set, as plainly as they can be had.
+   *
+   * A bug report that says "macOS" and a bug report that says "macOS arm64"
+   * are different bug reports the moment a native engine is involved, and the
+   * user agent is not a reliable answer: it is frozen, it says "Intel Mac OS X"
+   * on Apple silicon, and on the desktop it describes Chromium rather than the
+   * machine. The shell knows the truth and is asked for it; a browser gets the
+   * best guess `navigator` can give, marked as such.
+   */
+  readonly platform: { readonly os: string; readonly arch: string };
   readonly language: string;
   readonly viewport: { readonly width: number; readonly height: number };
   readonly crossOriginIsolated: boolean;
@@ -62,6 +73,30 @@ export interface DiagnosticInput {
     readonly configured: boolean;
     readonly model?: string;
   };
+  /**
+   * Every reference source, with the address it is fetched from.
+   *
+   * The address is the point. When a pack fails to install, the sentence the
+   * user is shown says the source is not published at the address this version
+   * looks for, and tells them Diagnostics records which address that was — so
+   * this section is what makes that sentence true rather than a gesture. It is
+   * also the fastest way to tell a build pointing at a withdrawn version
+   * directory apart from a genuinely broken download.
+   *
+   * Manifest URLs are public by construction; a pack anyone can install is
+   * served from somewhere anyone can reach. A URL a user pasted in themselves
+   * still goes through the redaction pass with everything else.
+   */
+  readonly references: readonly {
+    readonly id: string;
+    readonly name: string;
+    readonly state: string;
+    readonly version?: string;
+    readonly games?: number;
+    readonly bytes?: number;
+    readonly manifestUrl?: string;
+    readonly lastError?: string;
+  }[];
   readonly integrity: IntegrityReport | null;
   readonly failures: readonly RecordedFailure[];
   readonly counts: Readonly<Record<string, number>>;
@@ -144,6 +179,7 @@ export function buildDiagnosticReport(
   lines.push(`Generated       ${at}`);
   lines.push(`Version         ${input.appVersion}${input.commit ? ` (${input.commit})` : ''}`);
   lines.push(`Runs as         ${input.desktop ? 'desktop application' : 'web page'}`);
+  lines.push(`System          ${input.platform.os} ${input.platform.arch}`);
   lines.push(`Browser         ${input.userAgent}`);
   lines.push(`Language        ${input.language}`);
   lines.push(`Viewport        ${input.viewport.width}x${input.viewport.height}`);
@@ -213,6 +249,23 @@ export function buildDiagnosticReport(
   }
   lines.push('');
 
+  lines.push('## Reference sources');
+  if (input.references.length === 0) {
+    lines.push('None known to this build.');
+  } else {
+    for (const source of input.references) {
+      const facts = [
+        source.version ? `v${source.version}` : null,
+        source.games !== undefined ? `${source.games.toLocaleString()} games` : null,
+        source.bytes !== undefined ? bytes(source.bytes) : null,
+      ].filter((fact): fact is string => fact !== null);
+      lines.push(`${source.name.padEnd(30)} ${source.state.padEnd(16)}${facts.join(' · ')}`);
+      if (source.manifestUrl) lines.push(`  from ${source.manifestUrl}`);
+      if (source.lastError) lines.push(`  last error: ${source.lastError}`);
+    }
+  }
+  lines.push('');
+
   lines.push('## Data providers');
   for (const provider of input.providers) {
     const health = provider.health;
@@ -258,6 +311,66 @@ export function buildDiagnosticReport(
   }
   lines.push('');
   lines.push('No games, studies, notes, tokens or keys are included in this report.');
+
+  return redact(lines.join('\n'), secrets);
+}
+
+/**
+ * The short form, for pasting into a chat or the top of an issue.
+ *
+ * The full report is the right thing to attach to a bug and the wrong thing to
+ * open a conversation with: nobody reads sixty lines to answer "which build are
+ * you on?". This is the eight or so facts that decide what the next question
+ * is — which version, which identity, which machine, is the companion up, is an
+ * engine ready, is there any chess data.
+ *
+ * It is a *view* of the same input rather than a second collector, which is the
+ * only arrangement that cannot drift: a field that is not in `DiagnosticInput`
+ * cannot appear here, and the redaction pass runs over both.
+ */
+export function buildSupportSummary(
+  input: DiagnosticInput,
+  secrets: readonly string[] = [],
+): string {
+  const lines: string[] = [];
+
+  lines.push(`Kingfisher ${input.appVersion}${input.commit ? ` (${input.commit})` : ''}`);
+  lines.push(`${input.platform.os} ${input.platform.arch} · ${input.desktop ? 'Desktop' : 'Web'}`);
+  if (input.desktop) {
+    lines.push(
+      `Shell Electron ${input.desktop.shell.version}, Chromium ${input.desktop.shell.chrome}`,
+    );
+  }
+
+  /*
+    Sources by name and state, and nothing when there are none.
+
+    "Starter ready, Elite OTB available" is the line that most often ends a
+    support conversation before it starts, because "the explorer is empty" and
+    "the explorer has no source installed" look identical from the outside.
+  */
+  const sources = input.references.filter((source) => source.state !== 'unavailable');
+  lines.push(
+    sources.length > 0
+      ? `Sources: ${sources.map((source) => `${source.name} ${source.state}`).join(', ')}`
+      : 'Sources: none',
+  );
+
+  const engines = input.engines.filter((engine) => engine.status !== 'not started');
+  lines.push(
+    engines.length > 0
+      ? `Engines: ${engines.map((engine) => `${engine.name} ${engine.status}`).join(', ')}`
+      : `Engines: ${input.engines.length} known, none started this session`,
+  );
+
+  lines.push(`Companion: ${input.companion.state}`);
+  lines.push(
+    `Storage: ${bytes(input.storage.usageBytes)} used` +
+      `${input.storage.persisted === true ? ', persistent' : ''}`,
+  );
+
+  const failures = input.failures.length;
+  if (failures > 0) lines.push(`Component failures this session: ${failures}`);
 
   return redact(lines.join('\n'), secrets);
 }

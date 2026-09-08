@@ -31,6 +31,18 @@ export interface DesktopChoice {
 export interface DesktopDiagnostics {
   readonly shell: { readonly name: string; readonly version: string; readonly chrome: string };
   readonly node: string;
+  /**
+   * The machine, from the process that is on it.
+   *
+   * A renderer cannot find this out. `navigator.userAgent` is frozen and
+   * describes Chromium; on Apple silicon it still reports "Intel Mac OS X", so
+   * an M-series Mac and a 2019 Intel Mac produce identical bug reports — and
+   * they are not the same bug report the moment a native engine is involved,
+   * because the arm64 and x64 builds are different downloads.
+   */
+  readonly platform: { readonly os: string; readonly arch: string; readonly release: string };
+  /** Where the shell's own log is, so Diagnostics can name it and open it. */
+  readonly logPath: string | null;
   readonly packaged: boolean;
   readonly web: { readonly running: boolean; readonly pid: number | null; readonly url: string };
   readonly companion: {
@@ -86,6 +98,16 @@ export interface DesktopBridge {
   openPaths(paths: readonly string[]): Promise<{ opened: number }>;
   recentDocuments(): Promise<readonly DesktopDocument[]>;
   diagnostics(): Promise<DesktopDiagnostics>;
+  /**
+   * Reveal the shell's log in the Finder.
+   *
+   * Reveal rather than read: the renderer never gets file contents over the
+   * bridge, which is the same rule as everywhere else here — everything
+   * readable was chosen in a dialog or dropped on the window. Handing a support
+   * log to the operating system's file browser gets the user to it without
+   * `readFile(path)` existing at all.
+   */
+  openLogs(): Promise<boolean>;
   onOpenDocument(listener: (document: DesktopDocument) => void): () => void;
   onShowDiagnostics(listener: () => void): () => void;
 }

@@ -104,6 +104,13 @@ export const BRIDGE_CONTRACTS: readonly BridgeContract[] = [
     caller: 'features/shell/SettingsDialog.tsx',
   },
   {
+    method: 'openLogs',
+    purpose:
+      'Reveal the shell’s own log in the Finder, for the failures that happen before there is ' +
+      'a window to show them in.',
+    caller: 'features/shell/SettingsDialog.tsx',
+  },
+  {
     method: 'onOpenDocument',
     purpose: 'Documents arriving from the Finder, a drop, or the File menu.',
     caller: 'desktop/useDesktop.ts',

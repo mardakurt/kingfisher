@@ -5,7 +5,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { buildDiagnosticReport, redact } from './diagnostic-report';
+import { buildDiagnosticReport, buildSupportSummary, redact } from './diagnostic-report';
 import type { DiagnosticInput } from './diagnostic-report';
 
 const LICHESS_TOKEN = 'lip_9f3aB2cD4eF6gH8iJ0kL';
@@ -16,6 +16,7 @@ const input: DiagnosticInput = {
   appVersion: '0.1.0',
   commit: 'abc1234',
   userAgent: 'Mozilla/5.0 (Macintosh) Chrome/141',
+  platform: { os: 'darwin', arch: 'arm64' },
   language: 'en-GB',
   viewport: { width: 1440, height: 900 },
   crossOriginIsolated: true,
@@ -38,6 +39,24 @@ const input: DiagnosticInput = {
   ],
   engines: [{ id: 'stockfish-wasm', name: 'Stockfish 17.1', transport: 'worker', status: 'ready' }],
   companion: { state: 'online', engines: 2, databases: 1 },
+  references: [
+    {
+      id: 'kingfisher-starter',
+      name: 'Kingfisher Starter Reference',
+      state: 'ready',
+      version: '2',
+      games: 172_376,
+      bytes: 12_348_080,
+      manifestUrl: '/reference/kingfisher-starter/manifest.json',
+    },
+    {
+      id: 'kingfisher-elite-otb',
+      name: 'Elite OTB Reference',
+      state: 'available',
+      manifestUrl: 'https://mardakurt.github.io/kingfisher-data/reference-elite-v2/manifest.json',
+      lastError: 'This reference source is not published at the address this version looks for.',
+    },
+  ],
   secrets: { lichessToken: true, companionToken: true, assistantApiKey: true },
   assistant: { configured: true, model: 'local-model' },
   integrity: {
@@ -228,5 +247,53 @@ describe('the application shell section', () => {
     };
     const report = buildDiagnosticReport({ ...input, desktop: leaky }, secrets);
     expect(report).not.toContain(COMPANION_TOKEN);
+  });
+});
+
+/**
+ * The short form, which people paste far more often than the long one.
+ *
+ * It is a view of the same input, so the safety tests above already cover it —
+ * these are about it being *useful*: the facts that decide what the next
+ * support question is, and no more than that.
+ */
+describe('the support summary', () => {
+  const summary = buildSupportSummary(input, secrets);
+
+  it('carries no secret either', () => {
+    expect(summary).not.toContain(LICHESS_TOKEN);
+    expect(summary).not.toContain(ASSISTANT_KEY);
+    expect(summary).not.toContain(COMPANION_TOKEN);
+  });
+
+  it('says which build, which machine and which identity', () => {
+    expect(summary).toContain('Kingfisher 0.1.0');
+    expect(summary).toContain('darwin arm64');
+    expect(summary).toContain('Web');
+  });
+
+  it('says which sources exist and what state each is in', () => {
+    expect(summary).toContain('Kingfisher Starter Reference ready');
+    expect(summary).toContain('Elite OTB Reference available');
+  });
+
+  it('stays short enough to paste into a chat', () => {
+    expect(summary.split('\n').length).toBeLessThanOrEqual(12);
+  });
+});
+
+describe('the address a pack was fetched from', () => {
+  const report = buildDiagnosticReport(input, secrets);
+
+  /*
+    The failure copy tells a user that Diagnostics records the address that was
+    tried. This is the assertion that keeps that sentence from being a gesture:
+    remove the section and the promise the application makes becomes false.
+  */
+  it('is in the report, because the install failure promises it is', () => {
+    expect(report).toContain(
+      'https://mardakurt.github.io/kingfisher-data/reference-elite-v2/manifest.json',
+    );
+    expect(report).toContain('not published at the address');
   });
 });

@@ -98,6 +98,7 @@ contextBridge.exposeInMainWorld('kingfisher', {
 
   recentDocuments: () => ipcRenderer.invoke('kingfisher:recent'),
   diagnostics: () => ipcRenderer.invoke('kingfisher:diagnostics'),
+  openLogs: () => ipcRenderer.invoke('kingfisher:open-logs'),
 
   /**
    * A document the user opened from the Finder, the menu, or a drop.

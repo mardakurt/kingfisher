@@ -21,9 +21,11 @@
 
 import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron';
 import { randomBytes } from 'node:crypto';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { log, logFile, openLog, redactInLog } from './log.mjs';
 import { buildTemplate } from './menu.mjs';
 import {
   DATABASE_EXTENSIONS,
@@ -111,6 +113,9 @@ async function startServices() {
   state.appUrl = `http://${HOST}:${webPort}`;
   state.companionUrl = `http://${HOST}:${companionPort}`;
   state.companionToken = newToken();
+  // Registered before anything can print it. See log.mjs on why redaction
+  // happens at the write and not at the read.
+  redactInLog(state.companionToken);
 
   const companionData = path.join(app.getPath('userData'), 'companion');
 
@@ -185,6 +190,8 @@ async function startServices() {
         is the only place the reason exists.
       */
       state.companionError = error instanceof Error ? error.message : String(error);
+      log('companion', `did not start: ${state.companionError}`);
+      for (const line of state.companion?.log.slice(-20) ?? []) log('companion', line);
       console.error(`The Kingfisher companion did not start: ${state.companionError}`);
       return false;
     },
@@ -466,6 +473,21 @@ function registerIpc() {
     flushPending();
   });
 
+  /*
+    Open the log directory in the Finder.
+
+    A path is not a way to reach a file for most people, and the two folders it
+    lives under are hidden by default. `showItemInFolder` reveals it selected,
+    which is the difference between a support instruction somebody follows and
+    one they give up on.
+  */
+  ipcMain.handle('kingfisher:open-logs', () => {
+    const target = logFile();
+    if (!target) return false;
+    shell.showItemInFolder(target);
+    return true;
+  });
+
   ipcMain.handle('kingfisher:diagnostics', () => ({
     shell: {
       name: 'Electron',
@@ -473,6 +495,17 @@ function registerIpc() {
       chrome: process.versions.chrome,
     },
     node: process.versions.node,
+    /*
+      The machine, from the process that is actually on it.
+
+      A renderer cannot find this out. `navigator.userAgent` is frozen and
+      describes Chromium; on Apple silicon it still says "Intel Mac OS X", so a
+      report from an M-series Mac and one from a 2019 Intel Mac read the same —
+      and they are entirely different bug reports the moment a native engine is
+      involved, since the arm64 and x64 binaries are different downloads.
+    */
+    platform: { os: process.platform, arch: process.arch, release: os.release() },
+    logPath: logFile(),
     packaged: app.isPackaged,
     web: { running: Boolean(state.web?.running), pid: state.web?.pid ?? null, url: state.appUrl },
     companion: {
@@ -528,11 +561,24 @@ if (!app.requestSingleInstanceLock()) {
 
   app.whenReady().then(async () => {
     mark('electron ready');
+    /*
+      The log is opened before anything can fail, because the failures worth
+      recording are the ones that happen before there is a window to show them
+      in. A start that dies in `startServices` currently produces a modal, an
+      exit, and no trace at all once the dialog is dismissed.
+    */
+    openLog(app.getPath('userData'));
+    log(
+      'launch',
+      `Kingfisher ${app.getVersion()} · Electron ${process.versions.electron} · ` +
+        `${process.platform}-${process.arch} ${os.release()} · packaged=${app.isPackaged}`,
+    );
     registerIpc();
     rebuildMenu();
     try {
       await startServices();
     } catch (error) {
+      log('launch', `could not start: ${String(error?.message ?? error)}`);
       dialog.showErrorBox('Kingfisher could not start', String(error?.message ?? error));
       app.exit(1);
       return;
@@ -559,7 +605,11 @@ if (!app.requestSingleInstanceLock()) {
     if (stopping) return;
     stopping = true;
     event.preventDefault();
-    void stopServices().finally(() => app.exit(0));
+    log('quit', 'stopping services');
+    void stopServices().finally(() => {
+      log('quit', 'services stopped');
+      app.exit(0);
+    });
   });
 
   // The Mac convention is that closing the window does not quit. Kingfisher

@@ -10,7 +10,7 @@
  * piece set is the piece set.
  */
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { Check } from '@/components/icons';
@@ -63,7 +63,11 @@ import {
 import { useWorkspaceLayout } from '@/stores/workspace-layout-store';
 import { APP_VERSION } from '@/lib/version';
 
-import { buildDiagnosticReport } from './diagnostic-report';
+import {
+  buildDiagnosticReport,
+  buildSupportSummary,
+  type DiagnosticInput,
+} from './diagnostic-report';
 import { searchSettings, type SettingsSection } from './settings-index';
 import { exportSettings, parseSettingsExport } from './settings-transfer';
 import { useShortcuts } from '@/stores/shortcuts-store';
@@ -76,6 +80,7 @@ import { cn } from '@/lib/cn';
 import type { PieceType } from '@/chess/types';
 import { DEFAULT_PREFERENCES, usePreferences, type Preferences } from '@/stores/preferences-store';
 import { catalogPack } from '@/reference/catalog';
+import { useReferenceSources } from '@/reference/use-references';
 import { installedReferenceSources, startInstall } from '@/reference/manager';
 import { formatBytes } from '@/features/databases/CollectionList';
 import { useUi } from '@/stores/ui-store';
@@ -1960,14 +1965,24 @@ function RecoveryActions() {
 }
 
 function CopyReport() {
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<'report' | 'summary' | null>(null);
   const notify = useUi((state) => state.notify);
   const providers = useDatabaseProviders();
   const companion = useCompanionStatus();
+  const references = useReferenceSources();
   const primary = useEngine((state) => state.primary);
   const client = useQueryClient();
 
-  const copy = async () => {
+  /*
+    One collector, two views.
+
+    The full report is what a bug wants attached and the wrong way to open a
+    conversation; the summary is the eight facts that decide what the next
+    question is. Building both from one `DiagnosticInput` is the only
+    arrangement that cannot drift — a field the summary shows is a field the
+    report has already been trusted with, and the redaction pass runs once.
+  */
+  const copy = async (kind: 'report' | 'summary') => {
     try {
       const preferences = usePreferences.getState();
       const repositories = await getRepositories();
@@ -1986,80 +2001,111 @@ function CopyReport() {
       const bridge = desktop();
       const shell = bridge ? await bridge.diagnostics().catch(() => null) : null;
 
-      const report = buildDiagnosticReport(
-        {
-          appVersion: APP_VERSION,
-          userAgent: navigator.userAgent,
-          language: navigator.language,
-          viewport: { width: window.innerWidth, height: window.innerHeight },
-          crossOriginIsolated: window.crossOriginIsolated,
-          storage: {
-            indexedDb: typeof indexedDB === 'undefined' ? 'unavailable' : 'available',
-            ...(estimate?.usage !== undefined ? { usageBytes: estimate.usage } : {}),
-            ...(estimate?.quota !== undefined ? { quotaBytes: estimate.quota } : {}),
-            ...((await navigator.storage?.persisted?.().catch(() => undefined)) !== undefined
-              ? { persisted: await navigator.storage.persisted() }
-              : {}),
-          },
-          providers: providers.map((provider) => ({
-            id: provider.id,
-            name: provider.name,
-            health: client.getQueryData<ProviderHealth>(['provider-health', provider.id]) ?? null,
-          })),
-          engines: engineDefinitions().map((engine) => ({
-            id: engine.id,
-            name: engine.name,
-            transport: engine.transport,
-            status: primary.engineId === engine.id ? primary.status : 'not started',
-          })),
-          companion: companion.data
-            ? {
-                state: 'online',
-                engines: companion.data.engines.length,
-                databases: companion.data.databases.length,
-              }
-            : companion.isError
-              ? { state: 'offline', error: companion.error.message }
-              : { state: 'not-paired' },
-          secrets: {
-            lichessToken: preferences.lichessToken.length > 0,
-            companionToken: preferences.companionToken.length > 0,
-            assistantApiKey: preferences.assistantApiKey.length > 0,
-          },
-          assistant: {
-            configured: Boolean(preferences.assistantBaseUrl && preferences.assistantModel),
-            ...(preferences.assistantModel ? { model: preferences.assistantModel } : {}),
-          },
-          integrity,
-          failures: lastFailures,
-          counts: integrity.counts,
-          ...(shell
-            ? {
-                desktop: {
-                  shell: shell.shell,
-                  node: shell.node,
-                  packaged: shell.packaged,
-                  webServer: { running: shell.web.running, pid: shell.web.pid },
-                  companionProcess: {
-                    running: shell.companion.running,
-                    pid: shell.companion.pid,
-                    log: shell.companion.log,
-                  },
-                  ...(shell.startup ? { startup: shell.startup } : {}),
-                },
-              }
+      const input: DiagnosticInput = {
+        appVersion: APP_VERSION,
+        userAgent: navigator.userAgent,
+        /*
+            The shell's answer when there is a shell, and a marked guess when
+            there is not. `navigator.userAgent` says "Intel Mac OS X" on Apple
+            silicon, so a browser genuinely cannot be certain — and a guess
+            labelled as one is worth more in a bug report than a confident
+            wrong answer.
+          */
+        platform: shell
+          ? { os: shell.platform.os, arch: shell.platform.arch }
+          : {
+              os: navigatorPlatform(),
+              arch: 'reported by the browser, not verified',
+            },
+        language: navigator.language,
+        viewport: { width: window.innerWidth, height: window.innerHeight },
+        crossOriginIsolated: window.crossOriginIsolated,
+        storage: {
+          indexedDb: typeof indexedDB === 'undefined' ? 'unavailable' : 'available',
+          ...(estimate?.usage !== undefined ? { usageBytes: estimate.usage } : {}),
+          ...(estimate?.quota !== undefined ? { quotaBytes: estimate.quota } : {}),
+          ...((await navigator.storage?.persisted?.().catch(() => undefined)) !== undefined
+            ? { persisted: await navigator.storage.persisted() }
             : {}),
         },
-        // Passed so a secret that leaked into an error message is caught even
-        // though no field above ever reads one.
-        [preferences.lichessToken, preferences.companionToken, preferences.assistantApiKey].filter(
-          (value) => value.length > 0,
-        ),
-      );
+        providers: providers.map((provider) => ({
+          id: provider.id,
+          name: provider.name,
+          health: client.getQueryData<ProviderHealth>(['provider-health', provider.id]) ?? null,
+        })),
+        engines: engineDefinitions().map((engine) => ({
+          id: engine.id,
+          name: engine.name,
+          transport: engine.transport,
+          status: primary.engineId === engine.id ? primary.status : 'not started',
+        })),
+        companion: companion.data
+          ? {
+              state: 'online',
+              engines: companion.data.engines.length,
+              databases: companion.data.databases.length,
+            }
+          : companion.isError
+            ? { state: 'offline', error: companion.error.message }
+            : { state: 'not-paired' },
+        secrets: {
+          lichessToken: preferences.lichessToken.length > 0,
+          companionToken: preferences.companionToken.length > 0,
+          assistantApiKey: preferences.assistantApiKey.length > 0,
+        },
+        assistant: {
+          configured: Boolean(preferences.assistantBaseUrl && preferences.assistantModel),
+          ...(preferences.assistantModel ? { model: preferences.assistantModel } : {}),
+        },
+        references: references.sources.map((source) => ({
+          id: source.id,
+          name: source.name,
+          state: source.state,
+          ...(source.version ? { version: source.version } : {}),
+          ...(source.gameCount !== undefined ? { games: source.gameCount } : {}),
+          ...(source.size !== undefined ? { bytes: source.size } : {}),
+          // The address is what makes the failure copy's promise true.
+          ...(catalogPack(source.id)?.manifestUrl
+            ? { manifestUrl: catalogPack(source.id)!.manifestUrl }
+            : {}),
+          ...(references.errors[source.id] ? { lastError: references.errors[source.id]! } : {}),
+        })),
+        integrity,
+        failures: lastFailures,
+        counts: integrity.counts,
+        ...(shell
+          ? {
+              desktop: {
+                shell: shell.shell,
+                node: shell.node,
+                packaged: shell.packaged,
+                webServer: { running: shell.web.running, pid: shell.web.pid },
+                companionProcess: {
+                  running: shell.companion.running,
+                  pid: shell.companion.pid,
+                  log: shell.companion.log,
+                },
+                ...(shell.startup ? { startup: shell.startup } : {}),
+              },
+            }
+          : {}),
+      };
 
-      await navigator.clipboard.writeText(report);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
+      // Passed so a secret that leaked into an error message is caught even
+      // though no field above ever reads one.
+      const secrets = [
+        preferences.lichessToken,
+        preferences.companionToken,
+        preferences.assistantApiKey,
+      ].filter((value) => value.length > 0);
+
+      await navigator.clipboard.writeText(
+        kind === 'summary'
+          ? buildSupportSummary(input, secrets)
+          : buildDiagnosticReport(input, secrets),
+      );
+      setCopied(kind);
+      setTimeout(() => setCopied(null), 2500);
     } catch (error) {
       notify({
         tone: 'error',
@@ -2072,15 +2118,93 @@ function CopyReport() {
   return (
     <DiagnosticGroup title="Support">
       <div className="flex flex-wrap items-center gap-2 py-2">
-        <Button size="sm" variant="accent" onClick={() => void copy()}>
-          {copied ? 'Copied' : 'Copy diagnostic report'}
+        <Button size="sm" variant="accent" onClick={() => void copy('summary')}>
+          {copied === 'summary' ? 'Copied' : 'Copy support information'}
         </Button>
-        <span className="text-[10px] leading-relaxed text-tertiary">
-          Plain text for a bug report. Contains no games, notes, tokens or keys.
-        </span>
+        <Button size="sm" variant="subtle" onClick={() => void copy('report')}>
+          {copied === 'report' ? 'Copied' : 'Copy full diagnostic report'}
+        </Button>
       </div>
+      <p className="pb-2 text-[10px] leading-relaxed text-tertiary">
+        Support information is eight lines for a chat or the top of an issue; the full report is
+        what to attach to it. Neither contains games, studies, notes, tokens or keys.
+      </p>
+      <ShellLog />
     </DiagnosticGroup>
   );
+}
+
+/**
+ * The shell's own log, for the failures that happen before there is a screen.
+ *
+ * Desktop only, and absent rather than disabled in a browser: a page has no
+ * file to open, and a control that explains why it cannot work is worse than
+ * one that is not there. Nothing is uploaded and nothing is read over the
+ * bridge — the operating system's file browser is handed the path, which is
+ * how a person actually reaches a folder two hidden directories deep.
+ */
+function ShellLog() {
+  const bridge = desktop();
+  const [path, setPath] = useState<string | null>(null);
+  const notify = useUi((state) => state.notify);
+
+  useEffect(() => {
+    if (!bridge) return;
+    let live = true;
+    void bridge
+      .diagnostics()
+      .then((shell) => {
+        if (live) setPath(shell.logPath);
+      })
+      .catch(() => {
+        /* The button still works; only the path is unknown. */
+      });
+    return () => {
+      live = false;
+    };
+  }, [bridge]);
+
+  if (!bridge) return null;
+
+  return (
+    <div className="border-t border-line-subtle pt-2">
+      <div className="flex flex-wrap items-center gap-2 py-1">
+        <Button
+          size="sm"
+          variant="subtle"
+          onClick={() => {
+            void bridge.openLogs().then((opened) => {
+              if (!opened) {
+                notify({ tone: 'error', message: 'Kingfisher has no log file to open.' });
+              }
+            });
+          }}
+        >
+          Show log in Finder
+        </Button>
+        <span className="min-w-0 truncate font-mono text-[10px] text-tertiary">
+          {path ?? 'finding the log…'}
+        </span>
+      </div>
+      <p className="pb-1 text-[10px] leading-relaxed text-tertiary">
+        Launch, companion and quit events, on this machine only. Bounded to about a megabyte and
+        never sent anywhere.
+      </p>
+    </div>
+  );
+}
+
+/**
+ * The best a browser can say about the machine it is on.
+ *
+ * Deliberately not a user-agent parse. `navigator.userAgentData.platform` is
+ * the supported question and answers "macOS", "Windows", "Linux"; where it is
+ * absent the honest answer is that the browser did not say, which is more use
+ * in a bug report than a string scraped out of a frozen user agent.
+ */
+function navigatorPlatform(): string {
+  const data = (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData;
+  return data?.platform && data.platform.length > 0 ? data.platform : 'not reported by the browser';
 }
 
 function ProviderDiagnostic({ provider }: { provider: ChessDatabaseProvider }) {
