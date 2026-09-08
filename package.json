@@ -1,6 +1,6 @@
 {
   "name": "kingfisher",
-  "version": "1.0.0-rc.3",
+  "version": "1.0.0-rc.4",
   "private": true,
   "engines": {
     "node": ">=24"
@@ -62,7 +62,11 @@
     "polyglot:constants": "node scripts/build-polyglot-constants.mjs && prettier --write src/book/polyglot-constants.generated.ts",
     "pieces:measure": "node scripts/measure-piece-scale.mjs",
     "desktop:field": "node scripts/desktop-field.mjs",
-    "desktop:soak": "playwright test --config playwright.packaged.config.ts"
+    "desktop:soak": "playwright test --config playwright.packaged.config.ts",
+    "release:verify": "node scripts/release-verify.mjs",
+    "release:verify:full": "node scripts/release-verify-full.mjs",
+    "release:manifest": "node scripts/release-manifest.mjs",
+    "public:check": "node scripts/public-link-check.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.102.8",
