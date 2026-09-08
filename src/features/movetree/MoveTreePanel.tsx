@@ -32,7 +32,16 @@ export function MoveTreePanel({
   return (
     <Panel className={cn('h-full', className)}>
       {withHeader ? <PanelHeader>Moves &amp; variations</PanelHeader> : null}
-      <div className="min-h-0 flex-1">
+      {/*
+        Named, so a test can say "the move list" and mean it.
+
+        `e2e/fresh-user.spec.ts` and `scripts/desktop-suspend.mjs` both looked
+        for `[data-move-tree]`; it had never existed, so the first fell back to
+        `body` — asserting a move order against the whole page, including the
+        navigation — and the second read an empty string and compared it with
+        another empty string. Neither could have failed for the right reason.
+      */}
+      <div data-move-tree className="min-h-0 flex-1">
         <MoveTree
           tree={tree}
           currentId={currentId}

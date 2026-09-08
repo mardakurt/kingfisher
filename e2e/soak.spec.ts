@@ -23,8 +23,21 @@ import { expect, test, type Page } from '@playwright/test';
 
 import { selectTool } from './tools';
 
-/** How many full cycles to drive after the warm-up snapshot. */
-const CYCLES = 8;
+/**
+ * How many full cycles to drive after the warm-up snapshot.
+ *
+ * Eight in the release gate, because the gate has to finish and eight is
+ * already enough to turn a per-cycle leak into tens of anything. The long
+ * professional soak the phase brief asks for is the same test with the number
+ * turned up — `KINGFISHER_SOAK_CYCLES=50 npx playwright test e2e/soak.spec.ts`
+ * — rather than a second harness that would drift from this one. The count is
+ * printed with the result, so a reader always knows which run they are looking
+ * at.
+ */
+const CYCLES = Math.max(1, Number(process.env.KINGFISHER_SOAK_CYCLES ?? 8));
+
+/** Passes of the research chain, for the same reason. */
+const CHAIN_PASSES = Math.max(1, Number(process.env.KINGFISHER_SOAK_CHAIN_PASSES ?? 3));
 
 interface LiveResources {
   readonly workers: number;
@@ -408,7 +421,15 @@ async function cycle(page: Page, index: number) {
 test('an afternoon of tool, engine and route switching leaks no observable resource', async ({
   page,
 }) => {
-  test.setTimeout(600_000);
+  /*
+    Scaled, because the cycle count is now a knob.
+
+    A fixed ten minutes was right for eight cycles and silently wrong for fifty:
+    the long soak the brief asks for would have died on the timeout and been
+    read as a failure of the application. Twenty seconds a cycle with the same
+    ten-minute floor, so the gate's own budget is unchanged.
+  */
+  test.setTimeout(Math.max(600_000, (CYCLES + 2) * 20_000));
   const consoleFailures: string[] = [];
   page.on('console', (message) => {
     if (message.type() === 'error') consoleFailures.push(message.text());
@@ -584,7 +605,7 @@ test('an all-day research session cannot grow the explorer cache without bound',
 test('the same research chain, walked repeatedly, stays correct and stays bounded', async ({
   page,
 }) => {
-  test.setTimeout(600_000);
+  test.setTimeout(Math.max(600_000, (CHAIN_PASSES + 1) * 90_000));
   const consoleFailures: string[] = [];
   page.on('console', (message) => {
     if (message.type() === 'error') consoleFailures.push(message.text());
@@ -714,7 +735,7 @@ test('the same research chain, walked repeatedly, stays correct and stays bounde
   const baseline = await live(page);
 
   const passes = [];
-  for (let index = 1; index <= 3; index += 1) passes.push(await chain(index));
+  for (let index = 1; index <= CHAIN_PASSES; index += 1) passes.push(await chain(index));
   const after = await live(page);
 
   /*

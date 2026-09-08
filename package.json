@@ -28,6 +28,7 @@
     "desktop:pack": "npm run desktop:build:web && npm --prefix desktop run pack",
     "desktop:dist": "npm run desktop:build:web && npm --prefix desktop run dist",
     "desktop:smoke": "node scripts/desktop-smoke.mjs",
+    "desktop:suspend": "node scripts/desktop-suspend.mjs",
     "desktop:chrome": "node scripts/desktop-chrome.mjs",
     "desktop:engines": "node scripts/desktop-engines.mjs",
     "engines:install": "node scripts/install-engines.mjs",
