@@ -51,6 +51,7 @@
  * here" for every profile created before this file existed.
  */
 
+import { createHash } from 'node:crypto';
 import { createServer } from 'node:http';
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -58,11 +59,25 @@ import path from 'node:path';
 /**
  * Where the first choice comes from.
  *
- * Ninety ports, above the registered range and below the ephemeral one, so a
- * fresh profile almost always gets the first and a machine already running
- * something there quietly gets the next.
+ * Ninety ports, above the registered range and below the ephemeral one.
+ *
+ * Where in the band a profile *starts* looking is derived from its own path,
+ * not fixed at the first entry. Two profiles that both scanned from 43110 while
+ * the other was not running would both record 43110 and then be unable to run
+ * at the same time — which is the ordinary case of a checkout shell and a
+ * packaged application on one machine, or two harnesses in parallel. Deriving
+ * the starting point makes that collision as unlikely as the band is wide,
+ * while keeping the choice completely deterministic for any one profile.
  */
 export const PORT_BAND = { first: 43110, last: 43199 };
+
+const BAND_SIZE = PORT_BAND.last - PORT_BAND.first + 1;
+
+/** Where this profile starts scanning. Deterministic, and spread across the band. */
+export function preferredPort(userData) {
+  const digest = createHash('sha256').update(String(userData)).digest();
+  return PORT_BAND.first + (digest.readUInt32BE(0) % BAND_SIZE);
+}
 
 const RECORD = 'origin.json';
 
@@ -167,7 +182,9 @@ export async function resolveAppPort(userData, free = portFree, host = '127.0.0.
     return recorded;
   }
 
-  for (let port = PORT_BAND.first; port <= PORT_BAND.last; port += 1) {
+  const start = preferredPort(userData);
+  for (let step = 0; step < BAND_SIZE; step += 1) {
+    const port = PORT_BAND.first + ((start - PORT_BAND.first + step) % BAND_SIZE);
     if (await free(host, port)) {
       writeRecord(userData, port);
       return port;

@@ -19,7 +19,13 @@ import { mkdtempSync, mkdirSync, readFileSync, utimesSync, writeFileSync } from 
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import { PORT_BAND, PortUnavailableError, adoptedPort, resolveAppPort } from './origin.mjs';
+import {
+  PORT_BAND,
+  PortUnavailableError,
+  adoptedPort,
+  preferredPort,
+  resolveAppPort,
+} from './origin.mjs';
 
 const profile = () => mkdtempSync(path.join(tmpdir(), 'kingfisher-origin-'));
 
@@ -37,16 +43,39 @@ const idb = (userData, port, at) => {
 };
 
 describe('choosing the port a profile is served on', () => {
-  it('takes the first port in the band on a fresh profile', async () => {
+  it('takes the port its own path prefers, on a fresh profile', async () => {
     const userData = profile();
-    const port = await resolveAppPort(userData, allow(PORT_BAND.first));
-    expect(port).toBe(PORT_BAND.first);
+    const port = await resolveAppPort(userData, allow(preferredPort(userData)));
+    expect(port).toBe(preferredPort(userData));
   });
 
-  it('steps past a port something else is holding', async () => {
+  it('steps on when that one is held by something else', async () => {
     const userData = profile();
-    const port = await resolveAppPort(userData, allow(PORT_BAND.first + 2));
-    expect(port).toBe(PORT_BAND.first + 2);
+    const next = PORT_BAND.first + ((preferredPort(userData) - PORT_BAND.first + 2) % 90);
+    const port = await resolveAppPort(userData, allow(next));
+    expect(port).toBe(next);
+  });
+
+  /**
+   * The reason the starting point is derived rather than fixed.
+   *
+   * A checkout shell and a packaged application are two profiles on one
+   * machine. If both scanned from the same entry while the other was not
+   * running, both would record it and then refuse to run together — turning a
+   * data-safety rule into an inability to open two Kingfishers.
+   */
+  it('spreads different profiles across the band', () => {
+    const ports = new Set(Array.from({ length: 40 }, () => preferredPort(profile())));
+    expect(ports.size, 'forty profiles should not share one preferred port').toBeGreaterThan(20);
+    for (const port of ports) {
+      expect(port).toBeGreaterThanOrEqual(PORT_BAND.first);
+      expect(port).toBeLessThanOrEqual(PORT_BAND.last);
+    }
+  });
+
+  it('is the same answer every time for one profile', () => {
+    const userData = profile();
+    expect(preferredPort(userData)).toBe(preferredPort(userData));
   });
 
   /**
@@ -54,16 +83,20 @@ describe('choosing the port a profile is served on', () => {
    */
   it('gives the same port back on every later launch', async () => {
     const userData = profile();
-    const first = await resolveAppPort(userData, allow(PORT_BAND.first));
-    // The band's first port is now busy from the operating system's view, and
-    // a second one is free — the exact situation that used to move the origin.
-    const second = await resolveAppPort(userData, allow(PORT_BAND.first, PORT_BAND.first + 1));
+    const mine = preferredPort(userData);
+    const first = await resolveAppPort(userData, allow(mine));
+    // Another port is free too — the exact situation that used to move the
+    // origin, and with it every study the profile held.
+    const second = await resolveAppPort(
+      userData,
+      allow(mine, mine === PORT_BAND.last ? PORT_BAND.first : mine + 1),
+    );
     expect(second, 'the profile must be served where its data is').toBe(first);
   });
 
   it('writes the decision down beside the data it addresses', async () => {
     const userData = profile();
-    const port = await resolveAppPort(userData, allow(PORT_BAND.first));
+    const port = await resolveAppPort(userData, allow(preferredPort(userData)));
     const record = JSON.parse(readFileSync(path.join(userData, 'origin.json'), 'utf8'));
     expect(record.port).toBe(port);
   });
@@ -78,15 +111,15 @@ describe('choosing the port a profile is served on', () => {
    */
   it('refuses to start elsewhere when its own port is taken', async () => {
     const userData = profile();
-    await resolveAppPort(userData, allow(PORT_BAND.first));
+    const mine = preferredPort(userData);
+    await resolveAppPort(userData, allow(mine));
 
-    const failure = await resolveAppPort(userData, allow(PORT_BAND.first + 1)).catch(
-      (error) => error,
-    );
+    const other = mine === PORT_BAND.last ? PORT_BAND.first : mine + 1;
+    const failure = await resolveAppPort(userData, allow(other)).catch((error) => error);
     expect(failure).toBeInstanceOf(PortUnavailableError);
-    expect(failure.port).toBe(PORT_BAND.first);
+    expect(failure.port).toBe(mine);
     expect(failure.message).toContain('still there');
-    expect(failure.message).toContain(String(PORT_BAND.first));
+    expect(failure.message).toContain(String(mine));
   });
 });
 
@@ -119,14 +152,16 @@ describe('adopting a profile written before any of this existed', () => {
   it('serves an older profile at the port its work is actually at', async () => {
     const userData = profile();
     idb(userData, 56531, Date.now() - 60_000);
-    const port = await resolveAppPort(userData, allow(56531, PORT_BAND.first));
+    const port = await resolveAppPort(userData, allow(56531, preferredPort(userData)));
     expect(port).toBe(56531);
   });
 
   it('and refuses to start rather than abandoning it, if that port is taken', async () => {
     const userData = profile();
     idb(userData, 56531, Date.now() - 60_000);
-    const failure = await resolveAppPort(userData, allow(PORT_BAND.first)).catch((error) => error);
+    const failure = await resolveAppPort(userData, allow(preferredPort(userData))).catch(
+      (error) => error,
+    );
     expect(failure).toBeInstanceOf(PortUnavailableError);
     expect(failure.port).toBe(56531);
   });
