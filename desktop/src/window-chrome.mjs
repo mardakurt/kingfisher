@@ -19,26 +19,61 @@
  * over the bridge and reserves exactly that much. There is no second constant,
  * and no component hard-codes a padding.
  *
- * ## The numbers
+ * ## The four regions
  *
- * `trafficLight` is passed to Electron as `trafficLightPosition`, which places
- * the close button's frame origin. macOS then lays the three buttons out on its
- * own metrics: 14 pt frames, 20 pt centre-to-centre, so the group spans
- * `x .. x + 54` horizontally and `y .. y + 16` vertically.
+ * Phase 21 made the buttons and the application stop overlapping. It did not
+ * make the result look composed, and the owner said so. The difference is that
+ * "no collision" is satisfied by *any* amount of space, so the corner drifted
+ * into the shape a safety margin produces rather than the shape a designer
+ * would choose. What follows is therefore stated as a composition, in four
+ * regions across the window's first 56 pixels, each with a reason:
  *
- * `safe` is that rectangle plus a gutter — the region no Kingfisher control may
- * occupy. It is deliberately larger than the buttons: a control that merely
- * *touches* the zoom button is one a user aiming for zoom will hit by mistake.
+ * ```
+ *   0    14                68   84                            214
+ *   │    │                 │    │                              │
+ *   ├────┤  ●  ●  ●  ├─────┤    ├──────────────────────────────┤
+ *   inset  traffic lights   gap  brand region                   header
+ *                                (mark, then the wordmark)      right inset
+ * ```
  *
- * The width has one hard constraint. Kingfisher's collapsed navigation rail is
- * 72 px (`--sidebar-collapsed`), and the buttons must fit inside it, because a
- * button hanging over the rail's edge onto the board is worse than the bug this
- * replaces. 14 + 54 = 68 leaves four pixels, and the safe width clamps to the
- * rail rather than overflowing it.
+ * **1. The inset.** `x = 14`, and it is not a free choice. Kingfisher's
+ * collapsed navigation rail is 72 px (`--sidebar-collapsed`), and the buttons
+ * must fit inside it, because a button hanging over the rail's edge onto the
+ * board is worse than the bug this replaces. 14 + 54 = 68 leaves four pixels.
+ * Any larger inset stops fitting.
+ *
+ * **2. The buttons.** macOS lays them out on its own metrics given that
+ * origin: 14 pt frames, 20 pt centre to centre, so the group spans `x .. x+54`
+ * and `y .. y+16`. Derived, not chosen.
+ *
+ * **3. The gap.** 16 px, and it is a *design* gap rather than a safety margin.
+ * The two are easy to confuse and Phase 21 confused them: it picked 8 px as
+ * "enough that a user aiming at zoom does not hit a Kingfisher control", which
+ * is a floor, and then the corner ended up with 32 px of dead space anyway
+ * because the reservation was applied inside a container that had already
+ * inset itself by 14 (see `TitleBarSafeArea.tsx`). 16 px is what the last
+ * button to the first Kingfisher pixel should actually be, and it is now what
+ * it measures.
+ *
+ * **4. The brand region.** Everything from `MAC_TITLEBAR_SAFE.width` to the
+ * sidebar header's own right inset. At the expanded sidebar's 228 px that is
+ * 84 .. 214: the 36 px mark, a 10 px gap, and the 77 px wordmark end at 207,
+ * leaving the header's right inset intact. Under the old numbers the group
+ * started at 100 and ran to 223 — past the header's right inset by 9 px and
+ * within 5 px of the sidebar's edge, which is the crowding the owner reported.
+ *
+ * ## The vertical
+ *
+ * `y = 20`, so the 16 px button group spans 20 .. 36 and its centre lands on
+ * 28 — the centre line of the 56 px sidebar header, which is where the mark
+ * and the wordmark are already centred. At Phase 21's `y = 12` the buttons
+ * centred on 20 and everything Kingfisher drew beside them centred on 28, so
+ * the controls rode eight pixels high against their own row. That is small,
+ * and it is most of what "does not look intentional" was pointing at.
  */
 
 /** The close button's frame origin, in window coordinates. */
-export const MAC_TRAFFIC_LIGHT_POSITION = { x: 14, y: 12 };
+export const MAC_TRAFFIC_LIGHT_POSITION = { x: 14, y: 20 };
 
 /** What macOS draws there, given that origin. Derived, not chosen. */
 export const MAC_TRAFFIC_LIGHT_BOUNDS = {
@@ -48,13 +83,34 @@ export const MAC_TRAFFIC_LIGHT_BOUNDS = {
   height: 16,
 };
 
-/** The gutter between the last button and the first thing Kingfisher draws. */
-const GUTTER = 8;
+/**
+ * The gap between the last button and the first thing Kingfisher draws.
+ *
+ * Region 3 above. Applied on both axes: horizontally it separates the buttons
+ * from the brand, vertically it separates them from whatever a workspace draws
+ * under them when no sidebar header owns the corner.
+ */
+export const MAC_TITLEBAR_GAP = 16;
 
 /** The rectangle the application must leave empty. */
 export const MAC_TITLEBAR_SAFE = {
-  width: MAC_TRAFFIC_LIGHT_BOUNDS.x + MAC_TRAFFIC_LIGHT_BOUNDS.width + GUTTER,
-  height: MAC_TRAFFIC_LIGHT_BOUNDS.y + MAC_TRAFFIC_LIGHT_BOUNDS.height + GUTTER,
+  width: MAC_TRAFFIC_LIGHT_BOUNDS.x + MAC_TRAFFIC_LIGHT_BOUNDS.width + MAC_TITLEBAR_GAP,
+  height: MAC_TRAFFIC_LIGHT_BOUNDS.y + MAC_TRAFFIC_LIGHT_BOUNDS.height + MAC_TITLEBAR_GAP,
+};
+
+/**
+ * Where the first Kingfisher pixel goes, and the line it centres on.
+ *
+ * Stated so the composition can be *asserted* rather than looked at.
+ * `scripts/desktop-chrome.mjs` checks the mark against both: a build where the
+ * brand has drifted right again, or has stopped sharing a centre line with the
+ * controls, fails there rather than in somebody's screenshot six weeks later.
+ */
+export const MAC_BRAND_REGION = {
+  /** The mark's left edge, in window coordinates. */
+  x: MAC_TITLEBAR_SAFE.width,
+  /** The centre both the buttons and the brand sit on. */
+  centreY: MAC_TRAFFIC_LIGHT_BOUNDS.y + MAC_TRAFFIC_LIGHT_BOUNDS.height / 2,
 };
 
 /**

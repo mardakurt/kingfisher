@@ -45,10 +45,13 @@
  *
  * ## Dragging
  *
- * Both shapes are drag regions. A window whose title bar is hidden still has to
- * be movable, and these are the two pieces of chrome guaranteed to be empty —
- * which is the requirement, because `app-region: drag` swallows clicks for
- * every descendant. Nothing interactive is ever placed inside one.
+ * A window whose title bar is hidden still has to be movable. Both shapes here
+ * are drag regions, and so is the sidebar header as a whole — see
+ * `data-titlebar-drag` in `globals.css`, which also restores `no-drag` for any
+ * interactive descendant, because `app-region: drag` otherwise swallows clicks
+ * for every child. Dragging a Mac window by its top chrome is the behaviour a
+ * person expects, and reserving the corner without granting it was half a
+ * title bar.
  */
 
 import { cn } from '@/lib/cn';
@@ -60,27 +63,42 @@ import { cn } from '@/lib/cn';
 const DRAGGABLE = { WebkitAppRegion: 'drag' } as React.CSSProperties;
 
 /**
- * The horizontal reservation, for a header that already spans the corner.
+ * The rectangle itself, as a marker rather than as layout.
  *
- * Rendered unconditionally and sized entirely from the custom properties, so
- * the server's markup and the browser's agree and there is no hydration seam.
- * In a browser it is a zero-by-zero element with no border, no background and
- * no content — present in the tree, absent from the layout.
+ * The space is made by the sidebar header's own left inset —
+ * `max(<the header's inset>, var(--titlebar-safe-w))` — and not by this
+ * element, which is the whole of the Phase 22 correction. Phase 21 made this a
+ * zero-or-76-pixel flex child *inside* a header that had already inset itself
+ * by 14 and then put a 10 px flex gap after it, so the mark landed at 100 when
+ * the geometry said 76: the inset was paid twice and a gap nobody had designed
+ * was added on top. Thirty-two pixels of dead space between the last window
+ * button and the Kingfisher mark is what the owner was looking at.
+ *
+ * What survives is the rectangle, drawn where `window-chrome.mjs` says it is,
+ * carrying the drag region and nothing else. It is what
+ * `scripts/desktop-chrome.mjs` measures, and it is in the tree in a browser
+ * too — sized entirely from the custom properties, so it is zero by zero
+ * there. A test that looked for the *absence* of an element would pass for the
+ * wrong reason the day somebody rendered it unconditionally with a hard-coded
+ * width.
+ *
+ * `min()` against the container keeps the collapsed navigation rail honest:
+ * the rail is 72 px and the safe width is 84, and a marker wider than the rail
+ * would be claiming space the rail does not have. The buttons themselves end
+ * at 68, so they still fit — see the note on the inset in `window-chrome.mjs`,
+ * which is where that constraint is stated.
  */
-export function TitleBarSafeCorner({ className }: { readonly className?: string }) {
+export function TitleBarSafeCorner() {
   return (
     <div
       aria-hidden
       data-titlebar-safe="corner"
-      className={cn('shrink-0 self-stretch', className)}
-      /*
-        `min()` against the container is what keeps the collapsed navigation
-        rail honest. The rail is 72 px and the safe width is 76 px; without the
-        clamp the reservation would push the rail's own content out of it. The
-        buttons themselves end at 68 px, so they still fit — see the note on the
-        width in `window-chrome.mjs`, which is where that constraint is stated.
-      */
-      style={{ width: 'min(var(--titlebar-safe-w), 100%)', ...DRAGGABLE }}
+      className="absolute left-0 top-0"
+      style={{
+        width: 'min(var(--titlebar-safe-w), 100%)',
+        height: 'var(--titlebar-safe-h)',
+        ...DRAGGABLE,
+      }}
     />
   );
 }

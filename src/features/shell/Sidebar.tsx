@@ -46,12 +46,43 @@ export function Sidebar({ variant = 'desktop', onClose }: SidebarProps) {
     >
       <div
         className={cn(
-          'flex h-14 shrink-0 items-center border-b border-line-subtle',
-          drawer || !compact ? 'gap-2.5 px-3.5' : 'justify-center px-2',
+          'relative flex h-14 shrink-0 items-center border-b border-line-subtle',
+          drawer || !compact ? 'gap-2.5' : 'justify-center',
         )}
+        /*
+          The macOS window buttons sit over the top-left of this header, and the
+          room for them *is* the header's own left inset rather than a spacer
+          placed inside it. `max()` is what makes one expression serve both
+          identities: `--titlebar-safe-w` is 0px in a browser, on Windows and on
+          Linux, so the header keeps the inset it always had and every web pixel
+          is unchanged; in the Mac shell it resolves to the reserved width and
+          the mark lands one design gap clear of the last button.
+
+          Phase 21 added the reservation *inside* this inset and then let the
+          flex gap follow it, which paid the 14 px twice and put 32 px of dead
+          space where 16 was meant to be. See docs/design/macos-window-chrome.md.
+
+          Two layouts take the plain inset and reserve nothing. The drawer is
+          the mobile overlay rather than the window's corner. And the collapsed
+          rail is 72 px against an 84 px reservation, so the mark is hidden
+          there by `globals.css` and the header is empty — there is no brand to
+          inset, and insetting an empty box only pushes its padding past the
+          rail's own edge.
+        */
+        style={
+          drawer || compact
+            ? {
+                paddingLeft: compact ? '0.5rem' : '0.875rem',
+                paddingRight: compact ? '0.5rem' : '0.875rem',
+              }
+            : {
+                paddingLeft: 'max(0.875rem, var(--titlebar-safe-w))',
+                paddingRight: '0.875rem',
+              }
+        }
+        /* Drag the window by its top chrome. Inert off macOS; see globals.css. */
+        data-titlebar-drag={drawer ? undefined : ''}
       >
-        {/* The macOS window buttons sit here, over the top-left of the window.
-            Zero-width everywhere else. */}
         {drawer ? null : <TitleBarSafeCorner />}
         <BrandMark className="kf-titlebar-yield h-9 w-9 shrink-0 text-accent" />
         <span

@@ -355,7 +355,7 @@ body {
 /*
  * The collapsed navigation rail, under a macOS hidden title bar.
  *
- * The rail is 72 px and the window buttons need 76 px of it, so there is no
+ * The rail is 72 px and the window buttons need 84 px of it, so there is no
  * room left for the Kingfisher mark that normally sits there — and a mark drawn
  * under the close button is the bug this whole mechanism exists to prevent. The
  * rail therefore shows the operating system's controls and nothing else, which
@@ -367,4 +367,42 @@ body {
  */
 :root[data-titlebar='mac-hidden-titlebar'] nav[data-sidebar='collapsed'] .kf-titlebar-yield {
   display: none;
+}
+
+/*
+ * Dragging the window by its top chrome.
+ *
+ * A hidden title bar removes the strip a person grabs to move a Mac window, so
+ * the application has to grant one back. The sidebar header is it: 56 px across
+ * the top of the window, containing nothing interactive in the desktop variant.
+ *
+ * Scoped to `data-titlebar` for the same reason the reservation is. In a
+ * browser `-webkit-app-region` is inert but not harmless — Chrome honours it
+ * inside an installed PWA, where a drag region over the interface swallows
+ * clicks for a window move that never happens — so a browser declares nothing
+ * at all, and `e2e/window-chrome.spec.ts` fails if that ever stops being true.
+ *
+ * The second rule is not optional. `drag` is inherited by every descendant and
+ * takes their clicks with it, so anything a person can operate has to opt back
+ * out. It is written as a selector rather than trusted to the header's current
+ * contents, because the day somebody puts a button in there is exactly the day
+ * nobody re-reads this comment.
+ */
+:root[data-titlebar='mac-hidden-titlebar'] [data-titlebar-drag] {
+  -webkit-app-region: drag;
+}
+
+:root[data-titlebar='mac-hidden-titlebar']
+  [data-titlebar-drag]
+  :is(
+    a,
+    button,
+    input,
+    select,
+    textarea,
+    summary,
+    [role='button'],
+    [tabindex]:not([tabindex='-1'])
+  ) {
+  -webkit-app-region: no-drag;
 }

@@ -34,7 +34,12 @@ import path from 'node:path';
 import { argv, exit } from 'node:process';
 import { fileURLToPath } from 'node:url';
 
-import { MAC_TRAFFIC_LIGHT_BOUNDS, MAC_TITLEBAR_SAFE } from '../desktop/src/window-chrome.mjs';
+import {
+  MAC_TRAFFIC_LIGHT_BOUNDS,
+  MAC_TITLEBAR_SAFE,
+  MAC_TITLEBAR_GAP,
+  MAC_BRAND_REGION,
+} from '../desktop/src/window-chrome.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const args = { packaged: argv.includes('--packaged'), keepOpen: argv.includes('--keep-open') };
@@ -142,10 +147,38 @@ async function survey(window) {
     const markRect = mark ? mark.getBoundingClientRect() : null;
     const markVisible = mark ? getComputedStyle(mark).display !== 'none' : false;
 
+    /*
+      Whether the brand group still fits inside the header it lives in.
+
+      The third symptom of the Phase 21 corner, and the one a person notices
+      without being able to name: with the mark pushed to 100 the wordmark ran
+      to 223 in a 228 px sidebar, nine pixels past the header's own right inset.
+      It never clipped, so nothing failed; it just looked crowded. This measures
+      the group's right edge against the header's content box so that "crowded"
+      is a number.
+    */
+    const header = document.querySelector('nav[data-sidebar]')?.firstElementChild ?? null;
+    let brandGroup = null;
+    if (header) {
+      const headerRect = header.getBoundingClientRect();
+      const padRight = parseFloat(getComputedStyle(header).paddingRight) || 0;
+      let right = null;
+      for (const child of header.children) {
+        if (child.dataset.titlebarSafe) continue;
+        const r = child.getBoundingClientRect();
+        if (r.width === 0 || r.height === 0) continue;
+        right = right === null ? r.right : Math.max(right, r.right);
+      }
+      if (right !== null) {
+        brandGroup = { right, contentRight: headerRect.right - padRight };
+      }
+    }
+
     const board = document.querySelector('[data-board], [data-testid="board"], .board-surface');
     const boardRect = board?.getBoundingClientRect() ?? null;
     return {
       controls,
+      brandGroup,
       safeWidth: style.getPropertyValue('--titlebar-safe-w').trim(),
       safeHeight: style.getPropertyValue('--titlebar-safe-h').trim(),
       titlebar: root.dataset.titlebar ?? null,
@@ -186,6 +219,60 @@ async function assertClear(window, light, label) {
       : 'not painted in this layout',
   );
   return clear && brandClear;
+}
+
+/**
+ * Not "does it collide" but "is it composed".
+ *
+ * Phase 21 asserted the first and shipped a corner that satisfied it with 32
+ * pixels of dead space, buttons riding eight pixels high against their own row,
+ * and a brand group overrunning the header's right inset. "No collision" is
+ * true of every arrangement with enough room in it, which makes it a safety
+ * check and not a design one — so the design is stated in `window-chrome.mjs`
+ * and checked here, exactly, in whole pixels.
+ *
+ * Only meaningful where Kingfisher actually paints a brand into the corner. In
+ * the collapsed rail and in focus mode nothing is painted there and there is no
+ * composition to hold; those states are covered by `assertClear`.
+ */
+async function assertComposed(window, light, label) {
+  const state = await survey(window);
+  if (!state.brand) return check(`composition — ${label}`, true, 'no brand painted in this layout');
+
+  const brand = state.brand;
+  const gap = Math.round(brand.x - (light.x + light.width));
+  const brandCentre = brand.y + brand.height / 2;
+  const lightCentre = light.y + light.height / 2;
+
+  const placed = check(
+    `the mark starts where the geometry says — ${label}`,
+    Math.round(brand.x) === MAC_BRAND_REGION.x,
+    `x ${Math.round(brand.x)}, expected ${MAC_BRAND_REGION.x}`,
+  );
+  const spaced = check(
+    `one design gap between the last button and the mark — ${label}`,
+    gap === MAC_TITLEBAR_GAP,
+    `${gap}px, expected ${MAC_TITLEBAR_GAP}`,
+  );
+  /*
+    One pixel of tolerance, and only one. The mark is 36 px in a 56 px header,
+    so its centre is exact; the buttons' centre is derived from a rectangle
+    macOS lays out from the origin it was given. Half a pixel of rounding is
+    real and eight pixels of misalignment is the defect.
+  */
+  const aligned = check(
+    `the buttons and the mark share a centre line — ${label}`,
+    Math.abs(brandCentre - lightCentre) <= 1,
+    `mark centre ${brandCentre.toFixed(1)}, buttons ${lightCentre.toFixed(1)}`,
+  );
+  const fits = check(
+    `the brand group stays inside the header's own inset — ${label}`,
+    !state.brandGroup || state.brandGroup.right <= state.brandGroup.contentRight + 0.5,
+    state.brandGroup
+      ? `ends at ${state.brandGroup.right.toFixed(1)}, header content edge ${state.brandGroup.contentRight.toFixed(1)}`
+      : 'no brand group in this layout',
+  );
+  return placed && spaced && aligned && fits;
 }
 
 async function main() {
@@ -275,6 +362,7 @@ async function main() {
     }, size);
     await window.waitForTimeout(250);
     await assertClear(window, light, size.name);
+    await assertComposed(window, light, size.name);
   }
 
   // Back to a normal laptop for the state walk.
@@ -291,6 +379,7 @@ async function main() {
     }, route);
     await window.waitForTimeout(600);
     await assertClear(window, light, `route ${route}`);
+    await assertComposed(window, light, `route ${route}`);
   }
 
   // 3. The collapsed rail — 72 px, narrower than the reservation.
@@ -343,6 +432,7 @@ async function main() {
   });
   await window.waitForTimeout(400);
   await assertClear(window, light, 'light theme');
+  await assertComposed(window, light, 'light theme');
   await window.evaluate(() => {
     const button = [...document.querySelectorAll('button')].find((b) =>
       /theme/i.test(b.textContent ?? ''),
@@ -375,6 +465,7 @@ async function main() {
     `${returned.position?.x},${returned.position?.y}`,
   );
   await assertClear(window, light, 'after leaving full screen');
+  await assertComposed(window, light, 'after leaving full screen');
 
   /*
     6b. The smallest window the shell will make, and whether it is honest.
@@ -448,6 +539,7 @@ async function main() {
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].maximize());
   await window.waitForTimeout(800);
   await assertClear(window, light, 'maximized');
+  await assertComposed(window, light, 'maximized');
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].unmaximize());
   await window.waitForTimeout(800);
   await assertClear(window, light, 'restored');
