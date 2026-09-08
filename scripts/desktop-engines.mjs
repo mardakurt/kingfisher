@@ -252,6 +252,24 @@ async function main() {
           });
 
           /*
+            Wait for the engine, not just for the socket.
+
+            `/engine/start` returns when the session exists, which is not the
+            same as the engine having finished coming up, and `EventSource`
+            opening says only that the stream is attached. A `position` sent
+            into that window can be dropped: Halogen answered one run and timed
+            out the next from exactly here. `isready`/`readyok` is what UCI
+            provides for it, and it turns a race into a wait.
+          */
+          const ready = lines.length;
+          await call('/engine/send', { session: key, line: 'isready' });
+          const readyBy = Date.now() + 20_000;
+          while (Date.now() < readyBy) {
+            if (lines.slice(ready).some((line) => line === 'readyok')) break;
+            await new Promise((resolve) => setTimeout(resolve, 50));
+          }
+
+          /*
             Everything said before this point is somebody else's answer.
 
             `subscribe` replays the session's backlog to a new listener, and a
