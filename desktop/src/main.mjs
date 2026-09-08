@@ -37,6 +37,7 @@ import {
   readPgn,
 } from './files.mjs';
 import { missingParts, resolveLayout } from './paths.mjs';
+import { PortUnavailableError, portFree, resolveAppPort } from './origin.mjs';
 import { Service, freePort } from './services.mjs';
 import { MAC_TRAFFIC_LIGHT_POSITION, windowChromeFor } from './window-chrome.mjs';
 
@@ -109,7 +110,22 @@ async function startServices() {
   }
   state.layout = layout;
 
-  const [webPort, companionPort] = await Promise.all([freePort(HOST), freePort(HOST)]);
+  /*
+    The web port is a property of the profile; the companion's is not.
+
+    A browser partitions IndexedDB and localStorage by origin, and an origin
+    includes the port — so a shell that took a fresh free port every launch was
+    giving the user a brand-new, empty machine every time they reopened
+    Kingfisher. It did, and it threw away every study, repertoire, note and
+    preference on every restart. `origin.mjs` has the measurement.
+
+    The companion keeps a free port because nothing is stored against it: the
+    renderer is handed its URL and a token at launch, and neither is persisted.
+  */
+  const [webPort, companionPort] = await Promise.all([
+    resolveAppPort(app.getPath('userData'), portFree, HOST),
+    freePort(HOST),
+  ]);
   state.appUrl = `http://${HOST}:${webPort}`;
   state.companionUrl = `http://${HOST}:${companionPort}`;
   state.companionToken = newToken();
@@ -579,7 +595,12 @@ if (!app.requestSingleInstanceLock()) {
       await startServices();
     } catch (error) {
       log('launch', `could not start: ${String(error?.message ?? error)}`);
-      dialog.showErrorBox('Kingfisher could not start', String(error?.message ?? error));
+      dialog.showErrorBox(
+        error instanceof PortUnavailableError
+          ? 'Kingfisher needs its own port'
+          : 'Kingfisher could not start',
+        String(error?.message ?? error),
+      );
       app.exit(1);
       return;
     }
