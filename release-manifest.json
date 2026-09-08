@@ -1,0 +1,35 @@
+{
+  "schema": "kingfisher-release-manifest/1",
+  "kingfisher": {
+    "name": "kingfisher",
+    "version": "1.0.0-rc.3",
+    "description": "Kingfisher — a chess research workspace for strong players."
+  },
+  "git": {
+    "head": "4e54dc594a6bdabd66ebea534823b92ad1cb7867",
+    "short": "4e54dc5",
+    "branch": "master",
+    "dirty": true
+  },
+  "build": {
+    "timestamp": "2026-09-08T17:41:54.126Z",
+    "platform": "darwin",
+    "architecture": "arm64",
+    "node": "v24.14.0"
+  },
+  "web": {
+    "status": "present",
+    "buildId": "HL4V3dQvuQReS8Djs7O6a"
+  },
+  "desktop": [],
+  "referenceCatalogue": {
+    "eliteOtb": "v2",
+    "recentTheory": "v1",
+    "highRatedOnline": "v1"
+  },
+  "public": {
+    "web": null,
+    "landing": null,
+    "repository": "https://github.com/mardakurt/kingfisher"
+  }
+}

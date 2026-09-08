@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Kingfisher — a chess research workstation</title>
+    <meta
+      name="description"
+      content="Kingfisher is a local-first chess research workstation for serious players: opening research across separate evidence sources, native engines, large personal databases, repertoire and review. Web and macOS."
+    />
+    <meta name="theme-color" content="#10151e" />
+    <meta name="color-scheme" content="dark light" />
+    <link rel="canonical" href="https://mardakurt.github.io/kingfisher-data/" />
+    <link rel="icon" type="image/svg+xml" href="assets/img/kingfisher-mark.svg" />
+    <link rel="apple-touch-icon" href="assets/img/kingfisher-mark.svg" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Kingfisher" />
+    <meta property="og:title" content="Kingfisher — a chess research workstation" />
+    <meta
+      property="og:description"
+      content="Local-first chess research for serious players. Opening research, engines, databases, repertoire, review. Web and macOS."
+    />
+    <meta property="og:url" content="https://mardakurt.github.io/kingfisher-data/" />
+    <meta property="og:image" content="assets/img/og.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Kingfisher — a chess research workstation" />
+    <meta
+      name="twitter:description"
+      content="Local-first chess research for serious players. Web and macOS."
+    />
+    <meta name="twitter:image" content="assets/img/og.png" />
+    <link rel="stylesheet" href="assets/style.css" />
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+
+    <header class="site-header" role="banner">
+      <a class="brand" href="#top" aria-label="Kingfisher home">
+        <img
+          src="assets/img/kingfisher-mark.svg"
+          alt=""
+          width="32"
+          height="32"
+          decoding="async"
+        />
+        <span class="brand-wordmark">Kingfisher</span>
+      </a>
+      <nav class="site-nav" aria-label="Primary">
+        <a href="#research">Research</a>
+        <a href="#engines">Engines</a>
+        <a href="#databases">Databases</a>
+        <a href="#local">Local-first</a>
+        <a href="#download">Download</a>
+      </nav>
+      <a class="cta cta-ghost" href="#download">Get Kingfisher</a>
+    </header>
+
+    <main id="main">
+      <section id="top" class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Chess research, in one place</p>
+          <h1>Your chess research, in one place.</h1>
+          <p class="lede">
+            Kingfisher is a local-first chess workstation for serious players. It
+            brings together opening research across separate evidence sources,
+            native engines, your own databases, repertoire and review — without
+            an account, without a subscription, without sending your work
+            anywhere.
+          </p>
+          <div class="cta-row">
+            <a class="cta cta-primary" href="#download">Launch Kingfisher</a>
+            <a class="cta cta-secondary" href="#download-mac">Download for macOS</a>
+            <a
+              class="cta cta-ghost"
+              href="https://github.com/mardakurt/kingfisher"
+              rel="noopener"
+              >View on GitHub</a
+            >
+          </div>
+          <p class="fineprint">
+            Public preview · 1.0.0-rc.4 · No telemetry · No account
+          </p>
+        </div>
+
+        <div class="hero-visual" aria-hidden="true">
+          <div class="board-stage" data-stage="board">
+            <div class="board" data-board>
+              <!-- 8x8 grid; rank 8 → rank 1, file a → file h -->
+              <div class="sq light" data-f="a" data-r="8"></div>
+              <div class="sq dark" data-f="b" data-r="8"></div>
+              <div class="sq light" data-f="c" data-r="8"></div>
+              <div class="sq dark" data-f="d" data-r="8"></div>
+              <div class="sq light" data-f="e" data-r="8"></div>
+              <div class="sq dark" data-f="f" data-r="8"></div>
+              <div class="sq light" data-f="g" data-r="8"></div>
+              <div class="sq dark" data-f="h" data-r="8"></div>
+
+              <div class="sq dark" data-f="a" data-r="7"></div>
+              <div class="sq light" data-f="b" data-r="7"></div>
+              <div class="sq dark" data-f="c" data-r="7">
+                <span class="piece" data-p="p" data-side="b">♟</span>
+              </div>
+              <div class="sq light" data-f="d" data-r="7"></div>
+              <div class="sq dark" data-f="e" data-r="7"></div>
+              <div class="sq light" data-f="f" data-r="7">
+                <span class="piece" data-p="n" data-side="b">♞</span>
+              </div>
+              <div class="sq dark" data-f="g" data-r="7"></div>
+              <div class="sq light" data-f="h" data-r="7"></div>
+
+              <div class="sq light" data-f="a" data-r="6"></div>
+              <div class="sq dark" data-f="b" data-r="6"></div>
+              <div class="sq light" data-f="c" data-r="6"></div>
+              <div class="sq dark" data-f="d" data-r="6"></div>
+              <div class="sq light" data-f="e" data-r="6">
+                <span class="piece" data-p="p" data-side="b">♟</span>
+              </div>
+              <div class="sq dark" data-f="f" data-r="6"></div>
+              <div class="sq light" data-f="g" data-r="6"></div>
+              <div class="sq dark" data-f="h" data-r="6"></div>
+
+              <div class="sq dark" data-f="a" data-r="5"></div>
+              <div class="sq light" data-f="b" data-r="5"></div>
+              <div class="sq dark" data-f="c" data-r="5">
+                <span class="piece" data-p="n" data-side="w">♘</span>
+              </div>
+              <div class="sq light" data-f="d" data-r="5">
+                <span class="piece" data-p="p" data-side="w">♙</span>
+              </div>
+              <div class="sq dark" data-f="e" data-r="5"></div>
+              <div class="sq light" data-f="f" data-r="5"></div>
+              <div class="sq dark" data-f="g" data-r="5"></div>
+              <div class="sq light" data-f="h" data-r="5"></div>
+
+              <div class="sq light" data-f="a" data-r="4"></div>
+              <div class="sq dark" data-f="b" data-r="4"></div>
+              <div class="sq light" data-f="c" data-r="4"></div>
+              <div class="sq dark" data-f="d" data-r="4">
+                <span class="piece" data-p="p" data-side="w">♙</span>
+              </div>
+              <div class="sq light" data-f="e" data-r="4">
+                <span class="piece" data-p="k" data-side="w">♔</span>
+              </div>
+              <div class="sq dark" data-f="f" data-r="4"></div>
+              <div class="sq light" data-f="g" data-r="4"></div>
+              <div class="sq dark" data-f="h" data-r="4"></div>
+
+              <div class="sq dark" data-f="a" data-r="3"></div>
+              <div class="sq light" data-f="b" data-r="3">
+                <span class="piece" data-p="n" data-side="w">♘</span>
+              </div>
+              <div class="sq dark" data-f="c" data-r="3"></div>
+              <div class="sq light" data-f="d" data-r="3">
+                <span class="piece" data-p="b" data-side="w">♗</span>
+              </div>
+              <div class="sq dark" data-f="e" data-r="3"></div>
+              <div class="sq light" data-f="f" data-r="3">
+                <span class="piece" data-p="q" data-side="w">♕</span>
+              </div>
+              <div class="sq dark" data-f="g" data-r="3">
+                <span class="piece" data-p="r" data-side="w">♖</span>
+              </div>
+              <div class="sq light" data-f="h" data-r="3"></div>
+
+              <div class="sq light" data-f="a" data-r="2"></div>
+              <div class="sq dark" data-f="b" data-r="2">
+                <span class="piece" data-p="p" data-side="w">♙</span>
+              </div>
+              <div class="sq light" data-f="c" data-r="2">
+                <span class="piece" data-p="p" data-side="w">♙</span>
+              </div>
+              <div class="sq dark" data-f="d" data-r="2">
+                <span class="piece" data-p="p" data-side="w">♙</span>
+              </div>
+              <div class="sq light" data-f="e" data-r="2">
+                <span class="piece" data-p="p" data-side="w">♙</span>
+              </div>
+              <div class="sq dark" data-f="f" data-r="2">
+                <span class="piece" data-p="p" data-side="w">♙</span>
+              </div>
+              <div class="sq light" data-f="g" data-r="2"></div>
+              <div class="sq dark" data-f="h" data-r="2">
+                <span class="piece" data-p="r" data-side="w">♖</span>
+              </div>
+
+              <div class="sq dark" data-f="a" data-r="1">
+                <span class="piece" data-p="r" data-side="w">♖</span>
+              </div>
+              <div class="sq light" data-f="b" data-r="1"></div>
+              <div class="sq dark" data-f="c" data-r="1"></div>
+              <div class="sq light" data-f="d" data-r="1"></div>
+              <div class="sq dark" data-f="e" data-r="1">
+                <span class="piece" data-p="k" data-side="b">♚</span>
+              </div>
+              <div class="sq light" data-f="f" data-r="1"></div>
+              <div class="sq dark" data-f="g" data-r="1"></div>
+              <div class="sq light" data-f="h" data-r="1"></div>
+            </div>
+            <div class="board-rh">
+              <div class="rh-line" data-ev>
+                <span class="rh-label">Eval</span>
+                <span class="rh-value" data-ev-value>+0.32</span>
+                <span class="rh-bar"><span data-ev-bar style="width: 56%"></span></span>
+              </div>
+              <div class="rh-line" data-pv>
+                <span class="rh-label">PV</span>
+                <span class="rh-pv" data-pv-value
+                  ><span class="pv-move">Nbd2</span>
+                  <span class="pv-sep">·</span>
+                  <span class="pv-move">c5</span>
+                  <span class="pv-sep">·</span>
+                  <span class="pv-move">c4</span>
+                  <span class="pv-sep">·</span>
+                  <span class="pv-move">d6</span></span
+                >
+              </div>
+              <div class="rh-line" data-depth>
+                <span class="rh-label">Depth</span>
+                <span class="rh-value" data-depth-value>22</span>
+                <span class="rh-spacer"></span>
+                <span class="rh-value rh-muted" data-nps-value>1.4 Mnps</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="research" class="section research">
+        <header class="section-head">
+          <p class="eyebrow">Opening research</p>
+          <h2>Compare sources. Never merge them silently.</h2>
+          <p class="section-lede">
+            Most chess tools show one "truth" score that quietly blends
+            everything. Kingfisher shows what each population of games says,
+            and lets you read them against each other.
+          </p>
+        </header>
+
+        <div class="research-grid">
+          <article class="source source-elite">
+            <header>
+              <h3>Elite OTB</h3>
+              <p>Rating- and title-filtered broadcast games since 2020.</p>
+            </header>
+            <dl>
+              <div><dt>Games</dt><dd>407,538</dd></div>
+              <div><dt>Positions</dt><dd>5,438,808</dd></div>
+              <div><dt>Source</dt><dd>Lichess broadcast archive</dd></div>
+            </dl>
+          </article>
+          <article class="source source-recent">
+            <header>
+              <h3>Recent Theory</h3>
+              <p>Last two years, kept at a low frequency threshold.</p>
+            </header>
+            <dl>
+              <div><dt>Games</dt><dd>44,200</dd></div>
+              <div><dt>Positions</dt><dd>918,069</dd></div>
+              <div><dt>Source</dt><dd>Lichess broadcast archive</dd></div>
+            </dl>
+          </article>
+          <article class="source source-online">
+            <header>
+              <h3>High-Rated Online</h3>
+              <p>Both players 2400+ in classical, rapid and blitz.</p>
+            </header>
+            <dl>
+              <div><dt>Games</dt><dd>305,169</dd></div>
+              <div><dt>Positions</dt><dd>315,668</dd></div>
+              <div><dt>Source</dt><dd>Lichess standard rated database</dd></div>
+            </dl>
+          </article>
+          <article class="source source-starter">
+            <header>
+              <h3>Kingfisher Starter</h3>
+              <p>Bundled, offline, ready on first launch.</p>
+            </header>
+            <dl>
+              <div><dt>Games</dt><dd>172,376</dd></div>
+              <div><dt>Positions</dt><dd>246,870</dd></div>
+              <div><dt>Source</dt><dd>Lichess broadcast archive</dd></div>
+            </dl>
+          </article>
+        </div>
+        <p class="research-foot">
+          Each source keeps its own licence and provenance, and the
+          Explorer never produces a single merged score from a row that
+          spans them.
+        </p>
+      </section>
+
+      <section id="engines" class="section">
+        <header class="section-head">
+          <p class="eyebrow">Engines</p>
+          <h2>From a browser Stockfish to a Leela workstation.</h2>
+          <p class="section-lede">
+            Stockfish 18 is in the browser, sandboxed and instant. Native
+            engines install through Settings, with their digest verified
+            and their licence on the row. Two engines can run side by
+            side.
+          </p>
+        </header>
+        <ul class="engine-list">
+          <li><strong>Stockfish 18</strong><span>WebAssembly (browser) · native (desktop)</span></li>
+          <li><strong>Berserk 14</strong><span>native, digest-verified</span></li>
+          <li><strong>Halogen 16.0.0</strong><span>native, digest-verified</span></li>
+          <li><strong>Koivisto 9.0</strong><span>native, digest-verified</span></li>
+          <li><strong>Obsidian 16.0</strong><span>native, digest-verified</span></li>
+          <li><strong>PlentyChess 8.0</strong><span>native, digest-verified</span></li>
+          <li><strong>Stormphrax 8</strong><span>native, digest-verified</span></li>
+          <li><strong>Viridithas 20</strong><span>native, digest-verified</span></li>
+          <li><strong>Lc0 0.32.1</strong><span>system Leela, qualification on macOS</span></li>
+        </ul>
+        <p class="engine-foot">
+          Engines run on your machine. Their digests are checked before
+          they run. The interface says which one is running and why.
+        </p>
+      </section>
+
+      <section id="databases" class="section">
+        <header class="section-head">
+          <p class="eyebrow">Databases</p>
+          <h2>Search what you already have.</h2>
+          <p class="section-lede">
+            Attach large personal collections and run position, player,
+            structure, and claim searches against them. Copy, move,
+            merge, dedupe, federate. Open positions and games back
+            into the board.
+          </p>
+        </header>
+        <div class="db-grid">
+          <div class="db-tile">
+            <h3>Position search</h3>
+            <p>Material, piece placement, pawn structure, king position.</p>
+          </div>
+          <div class="db-tile">
+            <h3>Player search</h3>
+            <p>12,522 identities, plus historical figures. Diacritics and aliases.</p>
+          </div>
+          <div class="db-tile">
+            <h3>Structure search</h3>
+            <p>Find the positions in your collection that share a shape.</p>
+          </div>
+          <div class="db-tile">
+            <h3>Backup &amp; restore</h3>
+            <p>Round-trip your authored work without round-tripping the reference data.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="local" class="section local">
+        <header class="section-head">
+          <p class="eyebrow">Local-first</p>
+          <h2>Your chess stays on your machine.</h2>
+          <p class="section-lede">
+            No account is required. No data is sent back. Stockfish
+            answers without leaving the browser. Reference data installs
+            once and works offline. The diagnostic report is local; the
+            log file is local; your studies and repertoire are local.
+          </p>
+        </header>
+        <div class="local-grid">
+          <div class="local-tile">
+            <h3>No telemetry</h3>
+            <p>The product does not phone home. There is nothing in the network panel during a normal session except the engines and reference data you asked for.</p>
+          </div>
+          <div class="local-tile">
+            <h3>No hidden upload</h3>
+            <p>Studies, repertoire, training and notes are stored locally. Restoring from backup does not require contacting a server.</p>
+          </div>
+          <div class="local-tile">
+            <h3>Open source</h3>
+            <p>Every line that runs on your machine is in the repository. Releases, digests and the changelog are public.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="download" class="section download">
+        <header class="section-head">
+          <p class="eyebrow">Get Kingfisher</p>
+          <h2>Launch it on the web, or download the macOS preview.</h2>
+        </header>
+
+        <div class="download-grid">
+          <article class="download-card">
+            <h3>Web app</h3>
+            <p>Run Kingfisher in any modern browser. The Stockfish engine is in the page; no install. Reference data installs from public URLs.</p>
+            <a class="cta cta-primary" href="https://kingfisher-app.example/" rel="noopener"
+              >Launch the web app</a
+            >
+            <p class="fineprint">
+              The web app is hosted on Vercel. The first time you open it,
+              the bundled Kingfisher Starter installs itself.
+            </p>
+          </article>
+
+          <article id="download-mac" class="download-card">
+            <h3>macOS preview</h3>
+            <p>
+              Apple Silicon · code-signed · <strong>preview build</strong> ·
+              not notarized.
+            </p>
+            <ul class="download-meta">
+              <li><span>Version</span><strong>1.0.0-rc.4</strong></li>
+              <li><span>Architecture</span><strong>arm64</strong></li>
+              <li><span>File</span><strong>Kingfisher-1.0.0-rc.4-arm64.dmg</strong></li>
+            </ul>
+            <a
+              class="cta cta-primary"
+              href="https://github.com/mardakurt/kingfisher/releases/latest"
+              rel="noopener"
+              >Download the macOS preview</a
+            >
+            <p class="fineprint">
+              Because the build is not notarized, Gatekeeper will refuse
+              the first launch. Right-click the app, choose Open, then
+              Open again. The full guide is in
+              <a href="https://github.com/mardakurt/kingfisher/blob/master/docs/release/install-macos.md" rel="noopener"
+                >docs/release/install-macos.md</a
+              >.
+            </p>
+          </article>
+
+          <article class="download-card">
+            <h3>From the source</h3>
+            <p>
+              The repository is the product. Releases, source, issue
+              tracker and changelog are on GitHub.
+            </p>
+            <a
+              class="cta cta-secondary"
+              href="https://github.com/mardakurt/kingfisher"
+              rel="noopener"
+              >View on GitHub</a
+            >
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer" role="contentinfo">
+      <div class="footer-cols">
+        <div>
+          <div class="brand">
+            <img src="assets/img/kingfisher-mark.svg" alt="" width="24" height="24" />
+            <span class="brand-wordmark">Kingfisher</span>
+          </div>
+          <p class="fineprint">
+            Kingfisher 1.0.0-rc.4. No account. No telemetry. No subscription.
+          </p>
+        </div>
+        <div>
+          <h4>Product</h4>
+          <ul>
+            <li><a href="https://github.com/mardakurt/kingfisher/releases/latest" rel="noopener">Latest release</a></li>
+            <li><a href="https://github.com/mardakurt/kingfisher/blob/master/CHANGELOG.md" rel="noopener">Changelog</a></li>
+            <li><a href="https://github.com/mardakurt/kingfisher" rel="noopener">Source on GitHub</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Support</h4>
+          <ul>
+            <li><a href="https://github.com/mardakurt/kingfisher/issues" rel="noopener">Report an issue</a></li>
+            <li><a href="https://github.com/mardakurt/kingfisher/discussions" rel="noopener">Discussions</a></li>
+            <li><a href="https://github.com/mardakurt/kingfisher/blob/master/docs/release/install-macos.md" rel="noopener">Install guide</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Data</h4>
+          <ul>
+            <li><a href="reference-elite-v2/manifest.json" rel="noopener">Elite OTB manifest</a></li>
+            <li><a href="reference-recent-v1/manifest.json" rel="noopener">Recent Theory manifest</a></li>
+            <li><a href="reference-online-v1/manifest.json" rel="noopener">High-Rated Online manifest</a></li>
+            <li><a href="https://github.com/mardakurt/kingfisher-data" rel="noopener">kingfisher-data</a></li>
+          </ul>
+        </div>
+      </div>
+      <p class="fineprint copyright">
+        © Kingfisher. Released under the project licence. Reference data is
+        © its respective publishers; see each pack’s manifest for licence,
+        source and provenance.
+      </p>
+    </footer>
+
+    <script src="assets/anim.js" defer></script>
+  </body>
+</html>

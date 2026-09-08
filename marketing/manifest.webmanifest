@@ -1,0 +1,16 @@
+{
+  "name": "Kingfisher",
+  "short_name": "Kingfisher",
+  "description": "A local-first chess research workstation for serious players.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0c1118",
+  "theme_color": "#10151e",
+  "icons": [
+    {
+      "src": "assets/img/kingfisher-mark.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
