@@ -1,0 +1,37 @@
+# Dependabot configuration.
+#
+# Phase 25: enable lightweight npm dependency review with
+# weekly cadence and a low open-PR cap, so Dependabot does
+# not become a flood source. The remote CI is intentionally
+# minimal; Dependabot itself does not consume ordinary
+# Actions minutes the way the test matrices do.
+#
+# `versioning-strategy: increase` lets Dependabot propose
+# version bumps in lockstep, and the maintainer reviews and
+# merges the PRs at their own cadence.
+
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    versioning-strategy: increase
+    labels:
+      - "dependencies"
+    # Skip non-runtime packages. The runtime is the only
+    # attack surface that matters; devDependencies are
+    # covered by the local `npm audit --omit=dev` in
+    # `npm run security:scan`.
+    ignore:
+      - dependency-name: "*"
+        versions: [">=0"]
+    # Allow patches and minor bumps for runtime; major
+    # bumps still need a maintainer review.
+    allow:
+      - dependency-type: "direct:production"
+        update-type: "version-update:semver-patch"
+      - dependency-type: "direct:production"
+        update-type: "version-update:semver-minor"

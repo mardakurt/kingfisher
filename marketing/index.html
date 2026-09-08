@@ -6,7 +6,7 @@
     <title>Kingfisher — chess research, in one place</title>
     <meta
       name="description"
-      content="Kingfisher is a local-first chess research workstation for serious players. Opening research across separate evidence sources, native engines, large personal databases, repertoire and review. Web and macOS."
+      content="Kingfisher is a local-first chess workstation for serious players. Opening research across separate evidence sources, native engines, large personal databases, repertoire and review. Web and macOS."
     />
     <meta name="theme-color" content="#0a0e14" />
     <meta name="color-scheme" content="dark light" />
@@ -19,7 +19,7 @@
     <meta property="og:title" content="Kingfisher — chess research, in one place" />
     <meta
       property="og:description"
-      content="Local-first chess research for serious players. Opening research across separate evidence sources, native engines, large personal databases, repertoire and review. Web and macOS."
+      content="Local-first chess research for serious players. Opening research, engines, databases, repertoire, review. Web and macOS."
     />
     <meta property="og:url" content="https://mardakurt.github.io/kingfisher-data/" />
     <meta property="og:image" content="assets/img/og.png" />
@@ -45,585 +45,266 @@
     <header class="nav" role="banner">
       <a class="nav-brand" href="#top" aria-label="Kingfisher home">
         <span class="nav-mark" aria-hidden="true">
-          <img
-            src="assets/img/kingfisher-mark.svg"
-            alt=""
-            width="28"
-            height="28"
-            decoding="async"
-          />
+          <img src="assets/img/kingfisher-mark.svg" alt="" width="28" height="28" decoding="async" />
         </span>
         <span class="nav-wordmark">Kingfisher</span>
       </a>
       <nav class="nav-links" aria-label="Primary">
+        <a href="#why">Why</a>
         <a href="#research">Research</a>
-        <a href="#databases">Databases</a>
         <a href="#engines">Engines</a>
-        <a href="#local">Local-first</a>
-        <a href="#download">Download</a>
+        <a href="#local">Local</a>
       </nav>
-      <a class="nav-cta" href="https://kingfisher.vercel.app" rel="noopener" data-cta="web">
-        Launch app
-        <span aria-hidden="true">→</span>
-      </a>
+      <a class="nav-cta" href="https://kingfisher.vercel.app" rel="noopener">Launch</a>
     </header>
 
     <main id="main">
       <!-- ============================== HERO ============================== -->
       <section id="top" class="hero">
-        <div class="hero-grid" aria-hidden="true"></div>
-        <div class="hero-vignette" aria-hidden="true"></div>
-
-        <div class="hero-inner">
-          <p class="hero-eyebrow">
-            <span class="hero-eyebrow-dot"></span>
-            Public preview · 1.0.0-rc.4
-          </p>
-          <h1 class="hero-title">
-            Chess research,<br />
-            <span class="hero-title-accent">in one place.</span>
-          </h1>
-          <p class="hero-lede">
-            Kingfisher is a local-first chess workstation for serious players. Opening research
-            across separate evidence sources, native engines, large personal databases, repertoire
-            and review &mdash; without an account, without a subscription, without sending your work
-            anywhere.
-          </p>
-          <div class="hero-cta-row">
-            <a
-              class="btn btn-primary"
-              href="https://kingfisher.vercel.app"
-              rel="noopener"
-              data-cta="web"
-            >
-              <span class="btn-label">Launch the web app</span>
-              <span class="btn-arrow" aria-hidden="true">→</span>
-            </a>
-            <a class="btn btn-secondary" href="#download-mac" data-cta="mac">
-              <span class="btn-dot" aria-hidden="true"></span>
-              Download for macOS
-              <span class="btn-meta">Preview</span>
-            </a>
-            <a
-              class="btn btn-ghost"
-              href="https://github.com/mardakurt/kingfisher"
-              rel="noopener"
-              data-cta="github"
-            >
-              <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true" width="16" height="16">
-                <path
-                  fill="currentColor"
-                  d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.8 10.9.6.1.8-.2.8-.6v-2.1c-3.2.7-3.9-1.5-3.9-1.5-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2.9-.3 1.9-.4 2.9-.4s2 .1 2.9.4c2.3-1.5 3.3-1.2 3.3-1.2.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6 4.5-1.5 7.8-5.8 7.8-10.9C23.5 5.7 18.3.5 12 .5z"
-                />
-              </svg>
-              View on GitHub
-            </a>
-          </div>
-          <p class="hero-fineprint">
-            No account &middot; no telemetry &middot; no subscription &middot; MIT-licensed source.
-          </p>
+        <div class="hero-bg" aria-hidden="true">
+          <div class="hero-bg-grid"></div>
+          <div class="hero-bg-glow"></div>
         </div>
 
-        <div class="hero-stage" aria-hidden="true">
-          <div class="hero-stage-frame" data-stage>
-            <div class="hero-stage-chrome">
-              <span class="hero-stage-dot"></span>
-              <span class="hero-stage-dot"></span>
-              <span class="hero-stage-dot"></span>
-              <span class="hero-stage-title" data-stage-title>Kingfisher · Analysis</span>
+        <div class="hero-inner">
+          <div class="hero-copy">
+            <p class="hero-eyebrow">
+              <span class="hero-eyebrow-pulse"></span>
+              Public preview · 1.0.0-rc.4
+            </p>
+            <h1 class="hero-title">
+              Chess research,<br />
+              <span class="hero-title-accent">in one place.</span>
+            </h1>
+            <p class="hero-lede">
+              Kingfisher is a local-first chess workstation for serious
+              players. Opening research across separate evidence
+              sources, native engines, large personal databases,
+              repertoire and review &mdash; without an account and
+              without sending your work anywhere.
+            </p>
+            <div class="hero-cta-row">
+              <a class="btn btn-primary" href="https://kingfisher.vercel.app" rel="noopener">
+                <span class="btn-dot"></span>
+                Launch Kingfisher
+                <span class="btn-arrow" aria-hidden="true">→</span>
+              </a>
+              <a class="btn btn-secondary" href="#download-mac">
+                Download for macOS
+                <span class="btn-meta">Preview</span>
+              </a>
             </div>
-            <div class="hero-stage-body">
-              <div class="hero-stage-board" data-board>
-                <div class="hero-sq light" data-f="a" data-r="8"></div>
-                <div class="hero-sq dark" data-f="b" data-r="8"></div>
-                <div class="hero-sq light" data-f="c" data-r="8"></div>
-                <div class="hero-sq dark" data-f="d" data-r="8"></div>
-                <div class="hero-sq light" data-f="e" data-r="8"></div>
-                <div class="hero-sq dark" data-f="f" data-r="8"></div>
-                <div class="hero-sq light" data-f="g" data-r="8"></div>
-                <div class="hero-sq dark" data-f="h" data-r="8"></div>
+            <p class="hero-meta">
+              No account · no telemetry · no subscription · MIT-licensed source
+            </p>
+          </div>
 
-                <div class="hero-sq dark" data-f="a" data-r="7">
-                  <span class="hero-piece" data-side="b" data-p="p">♟</span>
-                </div>
-                <div class="hero-sq light" data-f="b" data-r="7"></div>
-                <div class="hero-sq dark" data-f="c" data-r="7">
-                  <span class="hero-piece" data-side="b" data-p="p">♟</span>
-                </div>
-                <div class="hero-sq light" data-f="d" data-r="7"></div>
-                <div class="hero-sq dark" data-f="e" data-r="7"></div>
-                <div class="hero-sq light" data-f="f" data-r="7">
-                  <span class="hero-piece" data-side="b" data-p="n">♞</span>
-                </div>
-                <div class="hero-sq dark" data-f="g" data-r="7"></div>
-                <div class="hero-sq light" data-f="h" data-r="7"></div>
-
-                <div class="hero-sq light" data-f="a" data-r="6"></div>
-                <div class="hero-sq dark" data-f="b" data-r="6"></div>
-                <div class="hero-sq light" data-f="c" data-r="6"></div>
-                <div class="hero-sq dark" data-f="d" data-r="6"></div>
-                <div class="hero-sq light" data-f="e" data-r="6">
-                  <span class="hero-piece" data-side="b" data-p="p">♟</span>
-                </div>
-                <div class="hero-sq dark" data-f="f" data-r="6"></div>
-                <div class="hero-sq light" data-f="g" data-r="6"></div>
-                <div class="hero-sq dark" data-f="h" data-r="6"></div>
-
-                <div class="hero-sq dark" data-f="a" data-r="5"></div>
-                <div class="hero-sq light" data-f="b" data-r="5">
-                  <span class="hero-piece" data-side="w" data-p="n">♘</span>
-                </div>
-                <div class="hero-sq dark" data-f="c" data-r="5"></div>
-                <div class="hero-sq light" data-f="d" data-r="5">
-                  <span class="hero-piece" data-side="w" data-p="p">♙</span>
-                </div>
-                <div class="hero-sq dark" data-f="e" data-r="5"></div>
-                <div class="hero-sq light" data-f="f" data-r="5"></div>
-                <div class="hero-sq dark" data-f="g" data-r="5"></div>
-                <div class="hero-sq light" data-f="h" data-r="5"></div>
-
-                <div class="hero-sq light" data-f="a" data-r="4"></div>
-                <div class="hero-sq dark" data-f="b" data-r="4"></div>
-                <div class="hero-sq light" data-f="c" data-r="4"></div>
-                <div class="hero-sq dark" data-f="d" data-r="4">
-                  <span class="hero-piece" data-side="w" data-p="p">♙</span>
-                </div>
-                <div class="hero-sq light" data-f="e" data-r="4">
-                  <span class="hero-piece" data-side="w" data-p="k">♔</span>
-                </div>
-                <div class="hero-sq dark" data-f="f" data-r="4"></div>
-                <div class="hero-sq light" data-f="g" data-r="4"></div>
-                <div class="hero-sq dark" data-f="h" data-r="4"></div>
-
-                <div class="hero-sq dark" data-f="a" data-r="3"></div>
-                <div class="hero-sq light" data-f="b" data-r="3">
-                  <span class="hero-piece" data-side="w" data-p="n">♘</span>
-                </div>
-                <div class="hero-sq dark" data-f="c" data-r="3"></div>
-                <div class="hero-sq light" data-f="d" data-r="3">
-                  <span class="hero-piece" data-side="w" data-p="b">♗</span>
-                </div>
-                <div class="hero-sq dark" data-f="e" data-r="3"></div>
-                <div class="hero-sq light" data-f="f" data-r="3">
-                  <span class="hero-piece" data-side="w" data-p="q">♕</span>
-                </div>
-                <div class="hero-sq dark" data-f="g" data-r="3">
-                  <span class="hero-piece" data-side="w" data-p="r">♖</span>
-                </div>
-                <div class="hero-sq light" data-f="h" data-r="3"></div>
-
-                <div class="hero-sq light" data-f="a" data-r="2"></div>
-                <div class="hero-sq dark" data-f="b" data-r="2">
-                  <span class="hero-piece" data-side="w" data-p="p">♙</span>
-                </div>
-                <div class="hero-sq light" data-f="c" data-r="2">
-                  <span class="hero-piece" data-side="w" data-p="p">♙</span>
-                </div>
-                <div class="hero-sq dark" data-f="d" data-r="2">
-                  <span class="hero-piece" data-side="w" data-p="p">♙</span>
-                </div>
-                <div class="hero-sq light" data-f="e" data-r="2">
-                  <span class="hero-piece" data-side="w" data-p="p">♙</span>
-                </div>
-                <div class="hero-sq dark" data-f="f" data-r="2">
-                  <span class="hero-piece" data-side="w" data-p="p">♙</span>
-                </div>
-                <div class="hero-sq light" data-f="g" data-r="2"></div>
-                <div class="hero-sq dark" data-f="h" data-r="2">
-                  <span class="hero-piece" data-side="w" data-p="r">♖</span>
-                </div>
-
-                <div class="hero-sq dark" data-f="a" data-r="1">
-                  <span class="hero-piece" data-side="w" data-p="r">♖</span>
-                </div>
-                <div class="hero-sq light" data-f="b" data-r="1"></div>
-                <div class="hero-sq dark" data-f="c" data-r="1"></div>
-                <div class="hero-sq light" data-f="d" data-r="1"></div>
-                <div class="hero-sq dark" data-f="e" data-r="1">
-                  <span class="hero-piece" data-side="b" data-p="k">♚</span>
-                </div>
-                <div class="hero-sq light" data-f="f" data-r="1"></div>
-                <div class="hero-sq dark" data-f="g" data-r="1"></div>
-                <div class="hero-sq light" data-f="h" data-r="1"></div>
+          <div class="hero-product" aria-hidden="true">
+            <div class="hero-product-frame">
+              <div class="hero-product-chrome">
+                <span class="hero-product-dot"></span>
+                <span class="hero-product-dot"></span>
+                <span class="hero-product-dot"></span>
+                <span class="hero-product-title">Kingfisher · Analysis</span>
               </div>
-              <div class="hero-stage-side">
-                <div class="hero-stage-card">
-                  <div class="hero-stage-card-head">
-                    <span class="hero-stage-card-title">Opening Explorer</span>
-                    <span class="hero-stage-card-tag" data-source-tag>Elite OTB</span>
-                  </div>
-                  <div class="hero-stage-rows" data-explorer-rows>
-                    <div class="hero-stage-row" data-active="true">
-                      <span class="hero-stage-move">e4</span>
-                      <span class="hero-stage-pct" data-pct>41%</span>
-                      <span class="hero-stage-bar"><span data-bar style="width: 41%"></span></span>
-                      <span class="hero-stage-games">165,402</span>
-                    </div>
-                    <div class="hero-stage-row">
-                      <span class="hero-stage-move">Nf3</span>
-                      <span class="hero-stage-pct" data-pct>22%</span>
-                      <span class="hero-stage-bar"><span data-bar style="width: 22%"></span></span>
-                      <span class="hero-stage-games">88,761</span>
-                    </div>
-                    <div class="hero-stage-row">
-                      <span class="hero-stage-move">d4</span>
-                      <span class="hero-stage-pct" data-pct>19%</span>
-                      <span class="hero-stage-bar"><span data-bar style="width: 19%"></span></span>
-                      <span class="hero-stage-games">76,506</span>
-                    </div>
-                    <div class="hero-stage-row">
-                      <span class="hero-stage-move">c4</span>
-                      <span class="hero-stage-pct" data-pct>11%</span>
-                      <span class="hero-stage-bar"><span data-bar style="width: 11%"></span></span>
-                      <span class="hero-stage-games">44,333</span>
-                    </div>
-                  </div>
-                  <div class="hero-stage-foot">
-                    <span class="hero-stage-meta" data-explorer-count>407,538 games</span>
-                    <span class="hero-stage-meta" data-explorer-provenance
-                      >Lichess broadcast archive, 2020&ndash;</span
-                    >
-                  </div>
-                </div>
-
-                <div class="hero-stage-card hero-stage-card-tight">
-                  <div class="hero-stage-card-head">
-                    <span class="hero-stage-card-title">Engine</span>
-                    <span class="hero-stage-card-tag">Stockfish 18</span>
-                  </div>
-                  <div class="hero-stage-engine">
-                    <div class="hero-stage-engine-row">
-                      <span class="hero-stage-engine-label">Eval</span>
-                      <span class="hero-stage-engine-value" data-eval>+0.32</span>
-                      <span class="hero-stage-engine-bar"
-                        ><span data-eval-bar style="width: 56%"></span
-                      ></span>
-                    </div>
-                    <div class="hero-stage-engine-row">
-                      <span class="hero-stage-engine-label">PV</span>
-                      <span class="hero-stage-engine-pv" data-pv
-                        >Nc6 &middot; Nf3 &middot; Bb5</span
-                      >
-                    </div>
-                    <div class="hero-stage-engine-row">
-                      <span class="hero-stage-engine-label">Depth</span>
-                      <span class="hero-stage-engine-value" data-depth>22</span>
-                      <span class="hero-stage-engine-spacer"></span>
-                      <span class="hero-stage-engine-meta" data-nps>1.4 Mnps</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <img
+                src="assets/img/hero-product.png"
+                alt="Kingfisher analysis view: board, engine panel, opening Explorer"
+                width="1248"
+                height="864"
+                loading="eager"
+                fetchpriority="high"
+                decoding="async"
+                class="hero-product-img"
+              />
             </div>
+          </div>
+        </div>
+
+        <div class="hero-strip" aria-hidden="true">
+          <div class="hero-strip-item">
+            <span class="hero-strip-num">172,376</span>
+            <span class="hero-strip-label">games in the bundled Starter</span>
+          </div>
+          <div class="hero-strip-sep"></div>
+          <div class="hero-strip-item">
+            <span class="hero-strip-num">407,538</span>
+            <span class="hero-strip-label">Elite OTB broadcast games available</span>
+          </div>
+          <div class="hero-strip-sep"></div>
+          <div class="hero-strip-item">
+            <span class="hero-strip-num">3,810</span>
+            <span class="hero-strip-label">named opening positions with ECO codes</span>
+          </div>
+          <div class="hero-strip-sep"></div>
+          <div class="hero-strip-item">
+            <span class="hero-strip-num">9</span>
+            <span class="hero-strip-label">open-source engines, including Stockfish &amp; Lc0</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================== WHY ============================== -->
+      <section id="why" class="section section-why">
+        <div class="section-head">
+          <p class="section-eyebrow">Why Kingfisher</p>
+          <h2 class="section-title">
+            A workstation, not a website.
+          </h2>
+        </div>
+        <div class="why-grid">
+          <div class="why-item">
+            <h3>Evidence stays separate.</h3>
+            <p>
+              Compare elite OTB, recent theory and high-rated
+              online play side by side. Kingfisher never
+              silently merges populations into a single "truth"
+              score &mdash; you read each source against the
+              others.
+            </p>
+          </div>
+          <div class="why-item">
+            <h3>Real databases, real engines.</h3>
+            <p>
+              Open Stockfish in the browser instantly, or add
+              native Stockfish, Berserk, Halogen, Koivisto,
+              Obsidian, PlentyChess, Stormphrax, Viridithas
+              and Lc0 on macOS, each digest-verified.
+            </p>
+          </div>
+          <div class="why-item">
+            <h3>Local-first by design.</h3>
+            <p>
+              No account. Studies, repertoire, training and
+              notes are stored on your machine. Restoring from
+              backup never talks to a server.
+            </p>
           </div>
         </div>
       </section>
 
       <!-- ============================== RESEARCH ============================== -->
       <section id="research" class="section section-research">
-        <div class="section-head">
-          <p class="section-eyebrow">Opening research</p>
-          <h2 class="section-title">
-            Compare sources. <span class="title-accent">Never merge them silently.</span>
-          </h2>
-          <p class="section-lede">
-            Most chess tools show one "truth" score that quietly blends every population of games.
-            Kingfisher shows what each source says &mdash; and lets you read them against each other
-            rather than pretending they say the same thing.
-          </p>
-        </div>
+        <div class="research-layout">
+          <div class="research-copy">
+            <p class="section-eyebrow">Opening research</p>
+            <h2 class="section-title">
+              See what every population of games says.
+            </h2>
+            <p class="section-lede">
+              Theory Book names the opening. The Explorer answers
+              for the position. Each source keeps its own
+              licence, provenance and game count, and the
+              column headers show which is which.
+            </p>
+            <ul class="research-list">
+              <li>
+                <strong>Elite OTB</strong>
+                <span>407,538 broadcast games since 2020.</span>
+              </li>
+              <li>
+                <strong>Recent Theory</strong>
+                <span>44,200 games from the last two years.</span>
+              </li>
+              <li>
+                <strong>High-Rated Online</strong>
+                <span>305,169 Lichess 2400+ games.</span>
+              </li>
+              <li>
+                <strong>Kingfisher Starter</strong>
+                <span>172,376 games, bundled and offline.</span>
+              </li>
+            </ul>
+          </div>
 
-        <div class="source-grid">
-          <article class="source source-elite">
-            <div class="source-bar"></div>
-            <header class="source-head">
-              <h3>Elite OTB</h3>
-              <p>Rating- and title-filtered broadcast games since 2020.</p>
-            </header>
-            <dl class="source-stats">
-              <div>
-                <dt>Games</dt>
-                <dd>407,538</dd>
-              </div>
-              <div>
-                <dt>Positions</dt>
-                <dd>5,438,808</dd>
-              </div>
-              <div>
-                <dt>Source</dt>
-                <dd>lichess.org broadcast</dd>
-              </div>
-            </dl>
-            <p class="source-licence">CC BY-SA 4.0</p>
-          </article>
-          <article class="source source-recent">
-            <div class="source-bar"></div>
-            <header class="source-head">
-              <h3>Recent Theory</h3>
-              <p>Last two years, at a low frequency threshold.</p>
-            </header>
-            <dl class="source-stats">
-              <div>
-                <dt>Games</dt>
-                <dd>44,200</dd>
-              </div>
-              <div>
-                <dt>Positions</dt>
-                <dd>918,069</dd>
-              </div>
-              <div>
-                <dt>Source</dt>
-                <dd>lichess.org broadcast</dd>
-              </div>
-            </dl>
-            <p class="source-licence">CC BY-SA 4.0</p>
-          </article>
-          <article class="source source-online">
-            <div class="source-bar"></div>
-            <header class="source-head">
-              <h3>High-Rated Online</h3>
-              <p>2400+ classical, rapid and blitz on Lichess.</p>
-            </header>
-            <dl class="source-stats">
-              <div>
-                <dt>Games</dt>
-                <dd>305,169</dd>
-              </div>
-              <div>
-                <dt>Positions</dt>
-                <dd>315,668</dd>
-              </div>
-              <div>
-                <dt>Source</dt>
-                <dd>lichess.org standard</dd>
-              </div>
-            </dl>
-            <p class="source-licence">CC0 1.0</p>
-          </article>
-          <article class="source source-starter">
-            <div class="source-bar"></div>
-            <header class="source-head">
-              <h3>Kingfisher Starter</h3>
-              <p>Bundled with the application. Works offline.</p>
-            </header>
-            <dl class="source-stats">
-              <div>
-                <dt>Games</dt>
-                <dd>172,376</dd>
-              </div>
-              <div>
-                <dt>Positions</dt>
-                <dd>246,870</dd>
-              </div>
-              <div>
-                <dt>Source</dt>
-                <dd>lichess.org broadcast</dd>
-              </div>
-            </dl>
-            <p class="source-licence">CC BY-SA 4.0</p>
-          </article>
-        </div>
-      </section>
-
-      <!-- ============================== DATABASES ============================== -->
-      <section id="databases" class="section section-dark">
-        <div class="section-head">
-          <p class="section-eyebrow">Databases</p>
-          <h2 class="section-title">Search what you already have.</h2>
-          <p class="section-lede">
-            Attach large personal collections. Run position, player, structure and claim searches
-            against them. Open positions and games back into the board.
-          </p>
-        </div>
-
-        <div class="db-grid">
-          <div class="db-tile">
-            <h3>Position search</h3>
-            <p>Material, piece placement, pawn structure, king position.</p>
-          </div>
-          <div class="db-tile">
-            <h3>Player search</h3>
-            <p>12,522 identities plus historical figures. Diacritics and aliases.</p>
-          </div>
-          <div class="db-tile">
-            <h3>Structure search</h3>
-            <p>Find the positions in your collection that share a shape.</p>
-          </div>
-          <div class="db-tile">
-            <h3>En Croissant import</h3>
-            <p>Bring collections from En Croissant and other PGN/SQLite tools.</p>
-          </div>
-          <div class="db-tile">
-            <h3>Backup &amp; restore</h3>
-            <p>Round-trip your authored work without round-tripping the reference data.</p>
-          </div>
-          <div class="db-tile">
-            <h3>Copy, move, merge</h3>
-            <p>Combine and dedupe collections. Federated search across them.</p>
+          <div class="research-visual">
+            <div class="research-frame">
+              <img
+                src="assets/img/research-explorer.png"
+                alt="The Kingfisher Opening Explorer with four sources side by side"
+                width="1100"
+                height="780"
+                loading="lazy"
+                decoding="async"
+                class="research-img"
+              />
+            </div>
           </div>
         </div>
       </section>
 
       <!-- ============================== ENGINES ============================== -->
-      <section id="engines" class="section">
-        <div class="section-head">
-          <p class="section-eyebrow">Engines</p>
-          <h2 class="section-title">From a browser Stockfish to a Leela workstation.</h2>
-          <p class="section-lede">
-            Stockfish 18 is in the browser, sandboxed and instant. On macOS, native engines install
-            through Settings with their digest verified and their licence on the row. Two engines
-            can run side by side.
-          </p>
-        </div>
+      <section id="engines" class="section section-engines">
+        <div class="engines-layout">
+          <div class="engines-visual">
+            <div class="engines-frame">
+              <img
+                src="assets/img/engines-comparison.png"
+                alt="Two engines running side by side in Kingfisher"
+                width="1100"
+                height="780"
+                loading="lazy"
+                decoding="async"
+                class="engines-img"
+              />
+            </div>
+          </div>
 
-        <div class="engine-list">
-          <div class="engine-row">
-            <span class="engine-name">Stockfish 18</span>
-            <span class="engine-tag">WebAssembly (browser)</span>
-            <span class="engine-tag engine-tag-soft">Native (macOS)</span>
-          </div>
-          <div class="engine-row">
-            <span class="engine-name">Lc0 0.32.1</span>
-            <span class="engine-tag">System Leela</span>
-            <span class="engine-tag engine-tag-soft">Qualified on macOS</span>
-          </div>
-          <div class="engine-row">
-            <span class="engine-name">Berserk 14</span>
-            <span class="engine-tag">Native</span>
-            <span class="engine-tag engine-tag-soft">Digest verified</span>
-          </div>
-          <div class="engine-row">
-            <span class="engine-name">Halogen 16.0.0</span>
-            <span class="engine-tag">Native</span>
-            <span class="engine-tag engine-tag-soft">Digest verified</span>
-          </div>
-          <div class="engine-row">
-            <span class="engine-name">Koivisto 9.0</span>
-            <span class="engine-tag">Native</span>
-            <span class="engine-tag engine-tag-soft">Digest verified</span>
-          </div>
-          <div class="engine-row">
-            <span class="engine-name">Obsidian 16.0</span>
-            <span class="engine-tag">Native</span>
-            <span class="engine-tag engine-tag-soft">Digest verified</span>
-          </div>
-          <div class="engine-row">
-            <span class="engine-name">PlentyChess 8.0</span>
-            <span class="engine-tag">Native</span>
-            <span class="engine-tag engine-tag-soft">Digest verified</span>
-          </div>
-          <div class="engine-row">
-            <span class="engine-name">Stormphrax 8</span>
-            <span class="engine-tag">Native</span>
-            <span class="engine-tag engine-tag-soft">Digest verified</span>
-          </div>
-          <div class="engine-row">
-            <span class="engine-name">Viridithas 20</span>
-            <span class="engine-tag">Native</span>
-            <span class="engine-tag engine-tag-soft">Digest verified</span>
+          <div class="engines-copy">
+            <p class="section-eyebrow">Engines</p>
+            <h2 class="section-title">
+              From a browser Stockfish to a Leela workstation.
+            </h2>
+            <p class="section-lede">
+              Stockfish 18 is in the browser, sandboxed and
+              instant. On macOS, native engines install through
+              Settings with their digest verified and their
+              licence on the row. Two engines can run side by
+              side.
+            </p>
+            <p class="section-lede">
+              Lc0 (Leela Chess Zero) is qualified on macOS at
+              <code>/opt/homebrew/bin/lc0</code>. Local Syzygy
+              tablebases work out of the box.
+            </p>
           </div>
         </div>
-        <p class="section-fineprint">
-          Engines run on your machine. Their digests are checked before they run. The interface says
-          which one is running and why.
-        </p>
       </section>
 
       <!-- ============================== LOCAL ============================== -->
       <section id="local" class="section section-local">
-        <div class="section-head">
+        <div class="local-statement">
           <p class="section-eyebrow">Local-first</p>
-          <h2 class="section-title">Your chess stays on your machine.</h2>
+          <h2 class="section-title">
+            Your chess stays on your machine.
+          </h2>
           <p class="section-lede">
-            No account is required. No data is sent back. Stockfish answers without leaving the
-            browser. Reference data installs once and works offline. The diagnostic report is local;
-            the log file is local; your studies and repertoire are local.
+            Kingfisher does not phone home. There is no
+            account, no telemetry, no upload. Reference data
+            installs once and works offline. The diagnostic
+            report is local; the log file is local; your
+            studies and repertoire are local.
           </p>
-        </div>
-        <div class="local-grid">
-          <div class="local-tile">
-            <div class="local-tile-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="20" height="20">
-                <path
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.6"
-                  d="M4 7l8-3 8 3v10l-8 3-8-3V7zm0 0l8 3 8-3M12 10v10"
-                />
-              </svg>
-            </div>
-            <h3>No account</h3>
-            <p>Open Kingfisher, use it. There is no sign-up, no subscription, no email capture.</p>
-          </div>
-          <div class="local-tile">
-            <div class="local-tile-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="20" height="20">
-                <path
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.6"
-                  d="M4 4h16v16H4z M4 9h16 M9 4v16"
-                />
-              </svg>
-            </div>
-            <h3>No telemetry</h3>
-            <p>
-              There is nothing in the network panel during a normal session except the engines and
-              reference data you asked for.
-            </p>
-          </div>
-          <div class="local-tile">
-            <div class="local-tile-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="20" height="20">
-                <path
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.6"
-                  d="M5 12l4 4 10-10 M5 19h14"
-                />
-              </svg>
-            </div>
-            <h3>Open source</h3>
-            <p>
-              Every line that runs on your machine is in the repository. MIT-licensed, public,
-              transparent.
-            </p>
-          </div>
         </div>
       </section>
 
       <!-- ============================== DOWNLOAD ============================== -->
       <section id="download" class="section section-download">
-        <div class="section-head">
+        <div class="download-head">
           <p class="section-eyebrow">Get Kingfisher</p>
-          <h2 class="section-title">Launch it on the web, or download the macOS preview.</h2>
+          <h2 class="section-title">One click. Two ways to run it.</h2>
         </div>
-        <div class="download-grid">
-          <article class="download-card download-card-primary">
-            <h3>Web</h3>
-            <p>
-              Open Kingfisher in any modern browser. Stockfish runs in the page; no install. The
-              bundled Kingfisher Starter installs on first run.
-            </p>
-            <a
-              class="btn btn-primary btn-block"
-              href="https://kingfisher.vercel.app"
-              rel="noopener"
-              data-cta="web"
-            >
-              <span class="btn-label">Launch the web app</span>
-              <span class="btn-arrow" aria-hidden="true">→</span>
-            </a>
-            <p class="download-meta">
-              Hosted on Vercel. Cross-origin isolated. Threaded Stockfish.
-            </p>
-          </article>
 
-          <article id="download-mac" class="download-card">
-            <h3>macOS <span class="download-pill">Preview</span></h3>
+        <div class="download-grid">
+          <article class="download-card download-card-primary" id="download-mac">
+            <div class="download-card-top">
+              <span class="download-card-tag">macOS</span>
+              <span class="download-card-pill">Preview</span>
+            </div>
+            <h3>Run the local workstation.</h3>
             <p>
-              Apple Silicon, code-signed. <strong>Not notarized yet</strong> &mdash; right-click
-              &rarr; Open on first launch.
+              Apple Silicon. Code-signed. Not notarized yet
+              &mdash; right-click, Open, Open on first launch.
             </p>
             <ul class="download-spec">
               <li><span>Version</span><strong>1.0.0-rc.4</strong></li>
@@ -631,40 +312,35 @@
               <li><span>File</span><strong>Kingfisher-1.0.0-rc.4-arm64.dmg</strong></li>
               <li><span>Size</span><strong>150 MB</strong></li>
             </ul>
-            <a
-              class="btn btn-secondary btn-block"
-              href="https://github.com/mardakurt/kingfisher/releases/latest"
-              rel="noopener"
-              data-cta="mac"
-            >
-              Download the macOS preview
+            <a class="btn btn-primary btn-block" href="https://github.com/mardakurt/kingfisher/releases/latest" rel="noopener">
+              Download for macOS
             </a>
             <p class="download-meta">
-              Full install guide:
-              <a
-                href="https://github.com/mardakurt/kingfisher/blob/master/docs/release/install-macos.md"
-                rel="noopener"
-                >docs/release/install-macos.md</a
-              >.
+              <a href="https://github.com/mardakurt/kingfisher/blob/master/docs/release/install-macos.md" rel="noopener">Install guide</a>
             </p>
           </article>
 
           <article class="download-card">
-            <h3>Source</h3>
+            <div class="download-card-top">
+              <span class="download-card-tag">Web</span>
+              <span class="download-card-pill download-card-pill-ok">Live</span>
+            </div>
+            <h3>Launch in your browser.</h3>
             <p>
-              The repository is the product. Releases, source, issue tracker, changelog, and
-              discussions are on GitHub.
+              Stockfish runs in the page. No install. The
+              bundled Kingfisher Starter installs itself on
+              first run.
             </p>
-            <a
-              class="btn btn-ghost btn-block"
-              href="https://github.com/mardakurt/kingfisher"
-              rel="noopener"
-              data-cta="github"
-            >
-              View on GitHub
+            <ul class="download-spec">
+              <li><span>Engine</span><strong>Stockfish 18, threaded</strong></li>
+              <li><span>Storage</span><strong>IndexedDB, on your machine</strong></li>
+              <li><span>Account</span><strong>None</strong></li>
+            </ul>
+            <a class="btn btn-secondary btn-block" href="https://kingfisher.vercel.app" rel="noopener">
+              Launch the web app
             </a>
             <p class="download-meta">
-              Issues, discussions, README, architecture, and phase reports.
+              <a href="https://github.com/mardakurt/kingfisher" rel="noopener">Source on GitHub</a>
             </p>
           </article>
         </div>
@@ -672,7 +348,7 @@
     </main>
 
     <footer class="site-footer" role="contentinfo">
-      <div class="footer-cols">
+      <div class="footer-inner">
         <div class="footer-brand">
           <div class="nav-brand">
             <span class="nav-mark" aria-hidden="true">
@@ -680,70 +356,48 @@
             </span>
             <span class="nav-wordmark">Kingfisher</span>
           </div>
-          <p>
-            A local-first chess research workstation. No account, no telemetry, no subscription.
+          <p class="footer-tag">
+            A local-first chess workstation. MIT-licensed
+            source. Public preview.
           </p>
         </div>
-        <div>
-          <h4>Product</h4>
-          <ul>
-            <li><a href="https://kingfisher.vercel.app" rel="noopener">Web app</a></li>
-            <li>
-              <a href="https://github.com/mardakurt/kingfisher/releases/latest" rel="noopener"
-                >Latest release</a
-              >
-            </li>
-            <li>
-              <a
-                href="https://github.com/mardakurt/kingfisher/blob/master/CHANGELOG.md"
-                rel="noopener"
-                >Changelog</a
-              >
-            </li>
-          </ul>
-        </div>
-        <div>
-          <h4>Source</h4>
-          <ul>
-            <li><a href="https://github.com/mardakurt/kingfisher" rel="noopener">Repository</a></li>
-            <li>
-              <a href="https://github.com/mardakurt/kingfisher/issues" rel="noopener"
-                >Issue tracker</a
-              >
-            </li>
-            <li>
-              <a href="https://github.com/mardakurt/kingfisher/discussions" rel="noopener"
-                >Discussions</a
-              >
-            </li>
-          </ul>
-        </div>
-        <div>
-          <h4>Data</h4>
-          <ul>
-            <li>
-              <a href="reference-elite-v2/manifest.json" rel="noopener">Elite OTB manifest</a>
-            </li>
-            <li>
-              <a href="reference-recent-v1/manifest.json" rel="noopener">Recent Theory manifest</a>
-            </li>
-            <li>
-              <a href="reference-online-v1/manifest.json" rel="noopener"
-                >High-Rated Online manifest</a
-              >
-            </li>
-          </ul>
+        <div class="footer-cols">
+          <div>
+            <h4>Product</h4>
+            <ul>
+              <li><a href="https://kingfisher.vercel.app" rel="noopener">Web app</a></li>
+              <li><a href="https://github.com/mardakurt/kingfisher/releases/latest" rel="noopener">Latest release</a></li>
+              <li><a href="https://github.com/mardakurt/kingfisher/blob/master/CHANGELOG.md" rel="noopener">Changelog</a></li>
+            </ul>
+          </div>
+          <div>
+            <h4>Source</h4>
+            <ul>
+              <li><a href="https://github.com/mardakurt/kingfisher" rel="noopener">Repository</a></li>
+              <li><a href="https://github.com/mardakurt/kingfisher/issues" rel="noopener">Issues</a></li>
+              <li><a href="https://github.com/mardakurt/kingfisher/discussions" rel="noopener">Discussions</a></li>
+            </ul>
+          </div>
+          <div>
+            <h4>Reference data</h4>
+            <ul>
+              <li><a href="reference-elite-v2/manifest.json" rel="noopener">Elite OTB</a></li>
+              <li><a href="reference-recent-v1/manifest.json" rel="noopener">Recent Theory</a></li>
+              <li><a href="reference-online-v1/manifest.json" rel="noopener">High-Rated Online</a></li>
+            </ul>
+          </div>
+          <div>
+            <h4>Safety</h4>
+            <ul>
+              <li><a href="https://github.com/mardakurt/kingfisher/security/policy" rel="noopener">Security policy</a></li>
+              <li><a href="https://github.com/mardakurt/kingfisher/blob/master/SECURITY.md" rel="noopener">SECURITY.md</a></li>
+            </ul>
+          </div>
         </div>
       </div>
       <p class="footer-fineprint">
-        Kingfisher source under the
-        <a href="https://github.com/mardakurt/kingfisher/blob/master/LICENSE" rel="noopener"
-          >MIT licence</a
-        >. Reference data under the licence declared in each pack's manifest. Lichess &copy;
-        lichess.org, used under CC0 / CC BY-SA 4.0 as marked.
+        Reference data is © its respective publishers; see each pack’s manifest for licence, source, and provenance. Lichess © lichess.org, used under CC0 / CC BY-SA 4.0 as marked.
       </p>
     </footer>
-
-    <script src="assets/anim.js" defer></script>
   </body>
 </html>

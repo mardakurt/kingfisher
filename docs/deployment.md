@@ -41,24 +41,68 @@ Where each surface is hosted, and how to publish a new release.
 The web app is a Next.js production build. Vercel is the
 recommended host.
 
-1. Sign in to <https://vercel.com> with the GitHub account that
-   owns `mardakurt/kingfisher`.
-2. _Add New… → Project_ and import the `mardakurt/kingfisher`
-   repository.
-3. Accept the default Next.js detection (no `Root Directory`
-   change; the build is `next build`, the install is `npm ci`).
-4. Deploy. The first deployment is the _Production_ environment.
-5. Copy the project URL (something like
-   `https://kingfisher-<hash>.vercel.app`) and put it in the
-   landing page's `Launch the web app` button and in
-   `KINGFISHER_PUBLIC_WEB_URL` for `npm run public:check`.
+### One-click import (recommended for the maintainer)
 
-Optional: configure a custom domain in _Settings → Domains_.
+Open:
 
-The build does not need any environment variable. The optional
-cross-origin isolation variable (`KINGFISHER_CROSS_ORIGIN_ISOLATION=1`)
-enables `SharedArrayBuffer` for the multi-threaded Stockfish
-build, at the cost of forbidding third-party embeds.
+> <https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fmardakurt%2Fkingfisher>
+
+Then:
+
+1. Sign in to Vercel with the GitHub account that owns the
+   `mardakurt/kingfisher` repository.
+2. Accept the default Next.js detection. The `Root
+   Directory` stays at the repository root. The build is
+   `next build`, the install is `npm ci`.
+3. Click **Deploy**. The first deployment is the
+   *Production* environment.
+4. Copy the project URL (it will be something like
+   `https://kingfisher-<hash>.vercel.app`).
+5. In the Vercel project *Settings → Environment
+   Variables*, set the Production variable:
+   ```
+   KINGFISHER_PUBLIC_WEB_URL = <your project URL>
+   ```
+6. Trigger a redeploy so the new environment variable is
+   picked up.
+7. Update the canonical default in
+   `src/release/public-urls.ts` (the `web` field) to match
+   the new URL, then commit and push. The landing page and
+   every other surface will follow.
+8. Re-run `npm run public:check` locally. The five web-app
+   routes turn 200; the total is **19/19**.
+
+The `vercel.json` at the repository root sets the same
+production security headers as `next.config.ts` (CSP,
+COOP, COEP, HSTS, Referrer-Policy, Permissions-Policy,
+X-Content-Type-Options). Vercel applies it on every
+deploy.
+
+### CLI deployment (alternative)
+
+`npm run deploy:vercel` uses the Vercel CLI with a token
+from `VERCEL_TOKEN`. Useful when the maintainer prefers
+the terminal over the web UI, or when scripting. The
+script falls back to the one-click URL when the token is
+not set; it never blocks the release flow.
+
+### Custom domain
+
+Optional, post-launch. Configure in
+*Settings → Domains* once the project exists. Avoid
+purchasing or configuring a domain without explicit
+maintainer approval.
+
+### Environment variables
+
+The build does not need any environment variable by
+default. The optional cross-origin-isolation variable
+(`KINGFISHER_CROSS_ORIGIN_ISOLATION=1`) enables
+`SharedArrayBuffer` for the multi-threaded Stockfish build,
+at the cost of forbidding third-party embeds. The
+default in `next.config.ts` is `credentialless` COEP,
+which keeps Stockfish threaded while allowing cross-origin
+reads from the GitHub Pages data mirror.
 
 ## Hosting the landing page
 

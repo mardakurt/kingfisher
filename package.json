@@ -69,7 +69,8 @@
     "public:check": "node scripts/public-link-check.mjs",
     "publish:site": "node scripts/publish-site.mjs",
     "publish:data": "node scripts/publish-data.mjs",
-    "security:scan": "node scripts/security-scan.mjs"
+    "security:scan": "node scripts/security-scan.mjs",
+    "deploy:vercel": "node scripts/vercel-deploy.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.102.8",
