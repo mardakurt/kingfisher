@@ -535,4 +535,38 @@ describe('fetching a manifest', () => {
       }),
     ).rejects.toThrow(/HTTP 503/);
   });
+
+  /*
+    A 404 is Kingfisher's fault, and the copy has to say so.
+
+    This is not hypothetical. All three installable reference packs point at a
+    Pages site that does not exist yet, so pressing Install on Elite OTB is a
+    404 every time — and what a chess player was told was "The pack description
+    could not be downloaded (HTTP 404). Check your connection and try again."
+    Both halves of that are wrong: their connection is fine, and no number of
+    retries will publish the pack.
+  */
+  it('does not blame the user’s connection for a source that was never published', async () => {
+    const failure = await fetchManifest('https://example.invalid/reference/manifest.json', {
+      fetcher: (async () => new Response('not found', { status: 404 })) as typeof fetch,
+    }).catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(PackInstallError);
+    const error = failure as PackInstallError;
+    expect(error.message).toMatch(/not published/i);
+    expect(`${error.message} ${error.remedy}`).not.toMatch(/check your connection/i);
+    expect(error.remedy).toMatch(/newer release|Diagnostics/i);
+    // No raw status code in the sentence a player reads.
+    expect(error.message).not.toMatch(/HTTP \d/);
+  });
+
+  it('still blames the network for a failure that really is one', async () => {
+    const failure = await fetchManifest('/packs/manifest.json', {
+      fetcher: (async () => {
+        throw new TypeError('Failed to fetch');
+      }) as typeof fetch,
+    }).catch((error: unknown) => error as PackInstallError);
+
+    expect((failure as PackInstallError).remedy).toMatch(/check your connection/i);
+  });
 });

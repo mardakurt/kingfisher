@@ -60,18 +60,24 @@ Three reasons, and the second is the one that is easy to miss:
    supports. (`zstd` is not — which is why the _upstream_ archives, which are
    `.zst`, are decompressed by the build script and never by the browser.)
 
-## The three packs
+## The four packs
 
-|                     | `kingfisher-starter`                             | `kingfisher-recent-theory` | `kingfisher-elite-otb` |
-| ------------------- | ------------------------------------------------ | -------------------------- | ---------------------- |
-| Distribution        | Committed to this repository, ships with the app | Installed on demand        | Installed on demand    |
-| Upstream            | The 36 most recent monthly broadcast archives    | The 24 most recent         | All 79, from 2020      |
-| Games counted       | 172,376                                          | 44,200                     | 407,538                |
-| Full game scores    | 10,707 (rated 2600+)                             | 18,151 (rated 2500+)       | 407,538 — every game   |
-| Position aggregates | 246,870                                          | 918,069                    | 5,438,808              |
-| Deepest query ply   | 40 (20 full moves)                               | 40 (20 full moves)         | 40 (20 full moves)     |
-| Player identities   | 12,522                                           | 2,567                      | 33,607                 |
-| Size                | 12.3 MB in 88 chunks                             | 33.8 MB in 80 chunks       | 339.3 MB in 160 chunks |
+Three are drawn from the same over-the-board broadcast archive and differ by a
+threshold; the fourth is a different population entirely, and is kept apart for
+exactly that reason.
+
+|                     | `kingfisher-starter`                             | `kingfisher-recent-theory` | `kingfisher-elite-otb`    | `kingfisher-high-rated-online` |
+| ------------------- | ------------------------------------------------ | -------------------------- | ------------------------- | ------------------------------ |
+| Distribution        | Committed to this repository, ships with the app | Installed on demand        | Installed on demand       | Installed on demand            |
+| Population          | Broadcast, over the board                        | Broadcast, over the board  | Broadcast, over the board | Lichess rated, online, 2400+   |
+| Upstream            | The 36 most recent monthly broadcast archives    | The 24 most recent         | All 79, from 2020         | One monthly standard archive   |
+| Licence             | CC-BY-SA-4.0                                     | CC-BY-SA-4.0               | CC-BY-SA-4.0              | CC0-1.0                        |
+| Games counted       | 172,376                                          | 44,200                     | 407,538                   | 305,169                        |
+| Full game scores    | 10,707 (rated 2600+)                             | 18,151 (rated 2500+)       | 407,538 — every game      | 305,169 — every game           |
+| Position aggregates | 246,870                                          | 918,069                    | 5,438,808                 | 315,668                        |
+| Deepest query ply   | 40 (20 full moves)                               | 40 (20 full moves)         | 40 (20 full moves)        | 40 (20 full moves)             |
+| Player identities   | 12,522                                           | 2,567                      | 33,607                    | 12,315                         |
+| Size                | 12.4 MB in 88 chunks                             | 33.9 MB in 80 chunks       | 339.4 MB in 160 chunks    | 85.8 MB in 160 chunks          |
 
 Separate thresholds for statistics and for stored games, because the two cost
 very different amounts: a game's contribution to the statistics is a handful of
@@ -80,10 +86,10 @@ wide and the stored games narrow is what lets a pack small enough to commit
 still answer from a large population.
 
 Explorer depth is measured in **plies**, never ambiguously as “moves”. All
-three packs index the outgoing move at ply 40, which is 20 full moves.
+four packs index the outgoing move at ply 40, which is 20 full moves.
 
-`kingfisher-recent-theory` exists because the other two answer the wrong
-question for preparation. They weigh evidence over three and seven years; a
+`kingfisher-recent-theory` exists because the two broader broadcast packs answer
+the wrong question for preparation. They weigh evidence over three and seven years; a
 line played twice in the last eighteen months by 2600s is news, and in a
 seven-year aggregate it is a rounding error. Recent Theory is the same
 pipeline over a two-year window with a lower deep threshold, so it is a
@@ -263,15 +269,46 @@ explorer reading one stops working on a train — and a source that every fresh
 profile uses would have been the one source no test of installation, failure or
 removal ever exercised.
 
-## Where the packs are published
+## Where the packs are published — and the fact that they are not
 
-`kingfisher-elite-otb` and `kingfisher-recent-theory` are served from the
-public, data-only `mardakurt/kingfisher-data` repository's GitHub Pages site,
-under one directory per pack version:
+**Nothing optional is published. Every Install button for a pack that is not
+bundled fails.** Verified 8 September 2026:
+
+```
+$ curl -s -o /dev/null -w '%{http_code}\n' \
+    https://mardakurt.github.io/kingfisher-data/reference-elite-v2/manifest.json
+404
+$ curl -s -o /dev/null -w '%{http_code}\n' https://github.com/mardakurt/kingfisher-data
+404
+```
+
+The `mardakurt/kingfisher-data` repository does not exist, so its Pages site
+does not either, and all three catalog entries — Elite OTB, Recent Theory and
+High-Rated Online — point at addresses that answer 404. The packs themselves
+are built and verified (see the matrix below); they have never been uploaded.
+
+This is the single largest thing standing between Kingfisher and a useful first
+week for somebody who is not the maintainer. Three of the four reference sources
+in the product are visible, described, sized, licensed — and unobtainable.
+Publishing them is an owner action: it needs a public repository created under
+the owner's account and about 460 MB pushed to it. No amount of application work
+substitutes for it.
+
+Until then the application is at least **honest about it**. A 404 no longer
+tells a chess player to check their connection and try again — both halves of
+which were wrong, since their connection is fine and no retry can publish a
+pack. It says the source is not published at the address this version looks for,
+and that Diagnostics records the address that was tried.
+`src/reference/install.test.ts` holds that copy in place.
+
+### What publishing looks like when it happens
+
+The intended arrangement, which the catalog already encodes:
 
 ```
 https://mardakurt.github.io/kingfisher-data/reference-elite-v2/manifest.json
 https://mardakurt.github.io/kingfisher-data/reference-recent-v1/manifest.json
+https://mardakurt.github.io/kingfisher-data/reference-online-v1/manifest.json
 ```
 
 **Pages rather than release assets**, which is not a matter of taste. A release
@@ -285,29 +322,77 @@ making the Kingfisher application source public. That repository contains
 manifests, chunks, checksums and licence text — no application code.
 
 Version directories are not replaced in place: `reference-elite-v3` will be a
-new directory, so a build that shipped against v2 keeps working. The one
-exception so far was `reference-elite-v1`, withdrawn on 5 September 2026 four
-days after publication because no released build ever referred to it and
-keeping two generations would have doubled a site that has to stay cheap to
-serve.
+new directory, so a build that shipped against v2 keeps working.
 
-The catalog also accepts any compatible manifest URL a user pastes in; its
-verification path is identical.
+The catalog also accepts any compatible manifest URL a user pastes in, and its
+verification path is identical — which is what makes the certification below
+possible without a publisher.
+
+## Certification matrix
+
+Measured 8 September 2026 on darwin-arm64, Node 24.14.0, from the packs built on
+5 September 2026.
+
+|                                                            | Starter                                         | Elite OTB                 | Recent Theory              | High-Rated Online              |
+| ---------------------------------------------------------- | ----------------------------------------------- | ------------------------- | -------------------------- | ------------------------------ |
+| Pack id                                                    | `kingfisher-starter`                            | `kingfisher-elite-otb`    | `kingfisher-recent-theory` | `kingfisher-high-rated-online` |
+| Version                                                    | 2                                               | 2                         | 1                          | 1                              |
+| Licence                                                    | CC-BY-SA-4.0                                    | CC-BY-SA-4.0              | CC-BY-SA-4.0               | **CC0-1.0**                    |
+| Source                                                     | Lichess broadcast archive                       | Lichess broadcast archive | Lichess broadcast archive  | Lichess standard rated games   |
+| Upstream months                                            | 2023-08 … 2026-07                               | 2020-01 … 2026-07         | 2024-08 … 2026-07          | 2026-07                        |
+| Games represented                                          | 172,376                                         | 407,538                   | 44,200                     | 305,169                        |
+| Full games openable                                        | 10,707                                          | 407,538                   | 18,151                     | 305,169                        |
+| Positions                                                  | 246,870                                         | 5,438,808                 | 918,069                    | 315,668                        |
+| Players                                                    | 12,522                                          | 33,607                    | 2,567                      | 12,315                         |
+| Deepest query position                                     | ply 40 (20 moves)                               | ply 40                    | ply 40                     | ply 40                         |
+| Chunks                                                     | 88                                              | 160                       | 80                         | 160                            |
+| Size on disk                                               | 12.4 MB                                         | 339.4 MB                  | 33.9 MB                    | 85.8 MB                        |
+| **Integrity** — every chunk re-hashed against the manifest | **88/88**                                       | **160/160**               | **80/80**                  | **160/160**                    |
+| Installed state                                            | bundled, installs itself on first run           | built, **not published**  | built, **not published**   | built, **not published**       |
+| Startup behaviour                                          | installs on first run, then read from IndexedDB | absent                    | absent                     | absent                         |
+| Offline behaviour                                          | answers with the network cut                    | n/a                       | n/a                        | n/a                            |
+
+488 chunks were re-hashed; **none mismatched and none was missing.**
+
+### What was exercised through the application, and how
+
+The three unpublished packs cannot be installed from their catalog rows, so the
+install path was certified through the same code by way of the catalog's
+"Install from a URL" control, with a pack served from a local static server.
+That is not a substitute for publication and it is not claimed as one — it is
+the identical `installPack` path, and it is what makes the rows below evidence
+rather than intention. `e2e/reference-packs.spec.ts`, against Recent Theory
+(33.9 MB, 80 chunks), in **40.6 s** for both tests:
+
+| Behaviour                                  | Result                                                                            |
+| ------------------------------------------ | --------------------------------------------------------------------------------- |
+| Install at real scale through the UI       | 80/80 chunks, progress reported in MB, source becomes usable                      |
+| Reports its own manifest's counts          | row shows 44,200 games                                                            |
+| The Explorer offers it and answers from it | selected as Evidence source, moves returned                                       |
+| Verify integrity after install             | all chunks verified                                                               |
+| Remove                                     | source gone; the bundled Starter untouched                                        |
+| **A chunk that hashes wrong**              | source never becomes usable, toggle stays disabled, never offered to the Explorer |
+
+The corruption test flips one byte in the middle of `explorer-000.kfp.gz` — a
+body that arrives whole and hashes to the wrong thing, which is the failure a
+mirror or a bad disk produces and the one the digest exists for, rather than a
+truncation or a 404, which fail at the transport instead. It was
+mutation-checked: with the byte flip disabled the test fails, as it must.
+
+### Not yet certified
+
+- **Upgrade behaviour** (`reference-elite-v2` → a later version directory)
+  cannot be exercised without a publisher, since it turns on two version
+  directories existing at one address.
+- **Disk-space exhaustion** during a 339 MB install.
+- Memory with all four packs installed at once.
 
 ## What is not here, and why
 
-**High-rated online play.** The most obvious missing population is strong
-online chess, and Lichess publishes it openly under CC0 — but as complete
-monthly dumps of every rated game. One recent month is 29.05 GB compressed
-(measured 5 September 2026), downloading at 11.85 MB/s from
-`database.lichess.org`, which is 41 minutes of transfer and something over
-100 million games to parse before any of it is filtered down to the 2200+
-subset a reference would keep. That is a build-machine job with a schedule, not
-something a session can honestly finish, and a pack row pointing at an artifact
-that does not exist would be worse than an absent one.
-
-The pipeline needs no new concepts to do it — a source entry, a pack
-definition and a rating filter — so this is scheduling and bandwidth rather
-than architecture. In the meantime the Lichess opening explorer's `lichess`
-database answers the same question live for a connected account, and is listed
-in the catalog as its own source rather than folded into a pack.
+**Nothing, now, that was listed here before.** This section used to say that
+high-rated online play was the obvious missing population and that building it
+was a scheduling problem rather than an architectural one. It was built:
+`kingfisher-high-rated-online` streams one month of the Lichess standard
+archive — 89,288,421 games considered, 305,169 retained — and is described in
+[`high-rated-online.md`](high-rated-online.md). What remains missing is not a
+population but a publisher; see the section above.

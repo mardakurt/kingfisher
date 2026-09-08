@@ -189,9 +189,28 @@ export async function fetchManifest(url: string, options: InstallOptions = {}) {
     );
   }
   if (!response.ok) {
+    /*
+      A 404 is not a connection problem, and telling somebody to check theirs is
+      worse than saying nothing: it sends them to their router over a fault that
+      is entirely ours, and "try again" is advice that cannot work. The server
+      answered — it said this source is not published at the address this build
+      was given, which is a sentence about Kingfisher's publishing rather than
+      about the user's machine.
+
+      The failure *kind* stays `unreachable` deliberately. It is what decides
+      whether a background update check stays quiet, and a pack whose address
+      has gone away should not start reporting an error on every launch; the
+      person who needs to know is the one who just pressed Install, and they get
+      the message below.
+    */
+    const notPublished = response.status === 404 || response.status === 410;
     throw new PackInstallError(
-      `The pack description could not be downloaded (HTTP ${response.status}).`,
-      'Check your connection and try again.',
+      notPublished
+        ? 'This reference source is not published at the address this version of Kingfisher looks for.'
+        : `The pack description could not be downloaded (HTTP ${response.status}).`,
+      notPublished
+        ? 'Nothing is wrong with your connection or your copy of Kingfisher. Check for a newer release; Diagnostics records the address that was tried.'
+        : 'Check your connection and try again.',
       'unreachable',
     );
   }

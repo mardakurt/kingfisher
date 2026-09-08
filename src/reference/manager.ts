@@ -257,7 +257,17 @@ export async function startInstall(id: string): Promise<boolean> {
     return true;
   } catch (error) {
     if (!controller.signal.aborted) {
-      setError(id, error instanceof Error ? error.message : String(error));
+      /*
+        The remedy, not only the message.
+
+        `PackInstallError` carries both and the panel only ever showed the
+        first, so a failure said what had happened and never what to do about
+        it — "The pack description could not be downloaded (HTTP 404)." on its
+        own is a status code shown to a chess player. Every other failure
+        surface in the application already joins the two this way.
+      */
+      const remedy = error instanceof PackInstallError && error.remedy ? ` ${error.remedy}` : '';
+      setError(id, error instanceof Error ? `${error.message}${remedy}` : String(error));
     }
     return false;
   } finally {
