@@ -69,13 +69,83 @@ const nextConfig: NextConfig = {
   },
   ...(desktop ? { output: 'standalone' as const } : {}),
   async headers() {
-    if (!crossOriginIsolation) return [];
+    // Production-grade web-security headers, applied to every
+    // response. The cross-origin isolation pair (COOP/COEP) is
+    // unconditional in production so that the threaded Stockfish
+    // build works on first load; the developer can disable it
+    // with `KINGFISHER_CROSS_ORIGIN_ISOLATION=` (empty) if a
+    // debugging flow needs it.
+    //
+    // CSP allows:
+    //   - same-origin scripts (Next.js compiled bundles)
+    //   - WASM via 'wasm-unsafe-eval' for the multi-threaded
+    //     Stockfish build
+    //   - the Lichess API, the Lichess tablebase service, the
+    //     public data mirror on GitHub Pages, the Lichess
+    //     Explorer endpoint, the Lichess OAuth redirect, the
+    //     Lichess WebSocket, and `https:` (a permissive fallback
+    //     for engine downloads and OAuth callbacks whose
+    //     hostname the runtime chooses)
+    //   - Lichess, Chess.com and similar providers via `https:`
+    //   - the companion WebSocket at `wss:` (the production
+    //     deployment is local-only; on the web, the WSocket is
+    //     not used; the entry is here so a self-hosted dev
+    //     instance can still connect)
+    //
+    // It does NOT allow:
+    //   - remote scripts of any kind
+    //   - eval() of remote strings
+    //   - frame embedding
+    //   - <object>, <embed>, <applet>
     return [
       {
         source: '/:path*',
         headers: [
-          { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
-          { key: 'Cross-Origin-Embedder-Policy', value: 'require-corp' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
+          },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=31536000; includeSubDomains; preload',
+          },
+          ...(crossOriginIsolation
+            ? [
+                { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+                { key: 'Cross-Origin-Embedder-Policy', value: 'require-corp' },
+              ]
+            : [
+                { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+                { key: 'Cross-Origin-Embedder-Policy', value: 'credentialless' },
+              ]),
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              // `'wasm-unsafe-eval'` is required for the threaded Stockfish
+              // build; without it, the engine refuses to compile.
+              "script-src 'self' 'wasm-unsafe-eval' 'unsafe-inline'",
+              "worker-src 'self' blob:",
+              "style-src 'self' 'unsafe-inline'",
+              "img-src 'self' data: blob:",
+              "font-src 'self' data:",
+              // The runtime connects to:
+              //   - itself (the Next.js API)
+              //   - the public data mirror on GitHub Pages
+              //   - the Lichess API and tablebase
+              //   - the Lichess WebSocket for live data
+              //   - HTTPS (a permissive fallback for engine downloads
+              //     and OAuth callback paths the runtime chooses)
+              //   - WSS for the desktop companion
+              "connect-src 'self' https://mardakurt.github.io https://lichess.org https://api.chess.com https://tablebase.lichess.ovh https://explorer.lichess.ovh wss: https:",
+              "frame-ancestors 'none'",
+              "form-action 'self'",
+              "base-uri 'self'",
+              "object-src 'none'",
+            ].join('; '),
+          },
         ],
       },
     ];

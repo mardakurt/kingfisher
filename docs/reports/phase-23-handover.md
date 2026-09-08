@@ -33,19 +33,19 @@
 
 ## 2. Release channels
 
-| Channel                | URL                                                                                       |
-| ---------------------- | ----------------------------------------------------------------------------------------- |
-| Landing page           | <https://mardakurt.github.io/kingfisher-data/>                                            |
-| Web app (deploy step)  | <https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fmardakurt%2Fkingfisher> |
-| GitHub repository      | <https://github.com/mardakurt/kingfisher>                                                 |
-| GitHub latest release  | <https://github.com/mardakurt/kingfisher/releases/latest>                                 |
-| macOS preview DMG      | <https://github.com/mardakurt/kingfisher/releases/download/v1.0.0-rc.4/Kingfisher-1.0.0-rc.4-arm64.dmg> |
-| Reference data (Elite) | <https://mardakurt.github.io/kingfisher-data/reference-elite-v2/manifest.json>            |
-| Reference data (Recent)| <https://mardakurt.github.io/kingfisher-data/reference-recent-v1/manifest.json>           |
-| Reference data (Online)| <https://mardakurt.github.io/kingfisher-data/reference-online-v1/manifest.json>           |
-| Issue tracker          | <https://github.com/mardakurt/kingfisher/issues>                                          |
-| Discussions            | <https://github.com/mardakurt/kingfisher/discussions>                                     |
-| Install guide          | <https://github.com/mardakurt/kingfisher/blob/master/docs/release/install-macos.md>       |
+| Channel                 | URL                                                                                                     |
+| ----------------------- | ------------------------------------------------------------------------------------------------------- |
+| Landing page            | <https://mardakurt.github.io/kingfisher-data/>                                                          |
+| Web app (deploy step)   | <https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fmardakurt%2Fkingfisher>         |
+| GitHub repository       | <https://github.com/mardakurt/kingfisher>                                                               |
+| GitHub latest release   | <https://github.com/mardakurt/kingfisher/releases/latest>                                               |
+| macOS preview DMG       | <https://github.com/mardakurt/kingfisher/releases/download/v1.0.0-rc.4/Kingfisher-1.0.0-rc.4-arm64.dmg> |
+| Reference data (Elite)  | <https://mardakurt.github.io/kingfisher-data/reference-elite-v2/manifest.json>                          |
+| Reference data (Recent) | <https://mardakurt.github.io/kingfisher-data/reference-recent-v1/manifest.json>                         |
+| Reference data (Online) | <https://mardakurt.github.io/kingfisher-data/reference-online-v1/manifest.json>                         |
+| Issue tracker           | <https://github.com/mardakurt/kingfisher/issues>                                                        |
+| Discussions             | <https://github.com/mardakurt/kingfisher/discussions>                                                   |
+| Install guide           | <https://github.com/mardakurt/kingfisher/blob/master/docs/release/install-macos.md>                     |
 
 ## 3. Landing page
 
@@ -120,32 +120,32 @@ remote safety net only**.
 
 ### Before (Phase 22)
 
-| Workflow            | Trigger                                  | Approx minutes / run      | Notes |
-| ------------------- | ---------------------------------------- | ------------------------- | ----- |
-| `ci.yml`            | push to master, pull request             | ~12 (Quality + build + 25-min browser) | Always ran the full Playwright suite on every commit. |
-| `e2e-diagnostic.yml`| manual                                   | 30                        | Retries-on diagnostic. |
-| `desktop-package.yml`| monthly cron + manual                    | 45 × 2 platforms          | Windows + Linux packaging monthly. |
-| `engine-build.yml`  | monthly cron + manual                    | 45 × 3 platforms          | macOS + Linux monthly. |
-| `engines.yml`       | monthly cron + manual                    | 45 × 4 platforms          | Monthly fleet qualification. |
-| `lichess-smoke.yml` | weekly cron + manual                     | 10                        | Weekly authenticated contract check. |
-| `visual` job (inside ci.yml) | every push                  | +15                       | Linux-only visual baseline. |
+| Workflow                     | Trigger                      | Approx minutes / run                   | Notes                                                 |
+| ---------------------------- | ---------------------------- | -------------------------------------- | ----------------------------------------------------- |
+| `ci.yml`                     | push to master, pull request | ~12 (Quality + build + 25-min browser) | Always ran the full Playwright suite on every commit. |
+| `e2e-diagnostic.yml`         | manual                       | 30                                     | Retries-on diagnostic.                                |
+| `desktop-package.yml`        | monthly cron + manual        | 45 × 2 platforms                       | Windows + Linux packaging monthly.                    |
+| `engine-build.yml`           | monthly cron + manual        | 45 × 3 platforms                       | macOS + Linux monthly.                                |
+| `engines.yml`                | monthly cron + manual        | 45 × 4 platforms                       | Monthly fleet qualification.                          |
+| `lichess-smoke.yml`          | weekly cron + manual         | 10                                     | Weekly authenticated contract check.                  |
+| `visual` job (inside ci.yml) | every push                   | +15                                    | Linux-only visual baseline.                           |
 
 The monthly and weekly schedules meant GitHub Actions minutes
 were spent whether or not the code changed.
 
 ### After (Phase 23)
 
-| Workflow            | Trigger                                  | Approx minutes / run      | Notes |
-| ------------------- | ---------------------------------------- | ------------------------- | ----- |
-| `ci.yml` (new)      | push to master, pull request             | ~5 (Quality + build)      | The browser suite is **gone** from this file. `paths-ignore` for docs, brand, marketing, the landing page, screenshots, and issue templates. |
-| `browser-cert.yml` (new) | tag `v*` push, monthly cron, manual  | 30+                       | The full Playwright suite, run deliberately. |
-| `visual-review.yml` (new) | manual (compare or update baselines)| 15–30                    | Visual baseline update path is explicit. |
-| `release-build.yml` (new) | tag `v*` push                     | ~10                       | Web production build on tag, no DMG (DMG is built locally). |
-| `desktop-package.yml` (revised) | manual only                    | 45 × 2 (on demand)         | Monthly schedule removed. |
-| `engine-build.yml` (revised) | manual + tag `v*` push         | 45 × 3 (on demand)         | Monthly schedule removed. |
-| `engines.yml` (revised) | manual + tag `v*` push            | 45 × 4 (on demand)         | Monthly schedule removed. |
-| `e2e-diagnostic.yml` (revised) | manual only                   | 30                        | Retries-on diagnostic, no schedule. |
-| `lichess-smoke.yml` (revised) | manual only                    | 10                        | Weekly schedule removed. |
+| Workflow                        | Trigger                              | Approx minutes / run | Notes                                                                                                                                        |
+| ------------------------------- | ------------------------------------ | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ci.yml` (new)                  | push to master, pull request         | ~5 (Quality + build) | The browser suite is **gone** from this file. `paths-ignore` for docs, brand, marketing, the landing page, screenshots, and issue templates. |
+| `browser-cert.yml` (new)        | tag `v*` push, monthly cron, manual  | 30+                  | The full Playwright suite, run deliberately.                                                                                                 |
+| `visual-review.yml` (new)       | manual (compare or update baselines) | 15–30                | Visual baseline update path is explicit.                                                                                                     |
+| `release-build.yml` (new)       | tag `v*` push                        | ~10                  | Web production build on tag, no DMG (DMG is built locally).                                                                                  |
+| `desktop-package.yml` (revised) | manual only                          | 45 × 2 (on demand)   | Monthly schedule removed.                                                                                                                    |
+| `engine-build.yml` (revised)    | manual + tag `v*` push               | 45 × 3 (on demand)   | Monthly schedule removed.                                                                                                                    |
+| `engines.yml` (revised)         | manual + tag `v*` push               | 45 × 4 (on demand)   | Monthly schedule removed.                                                                                                                    |
+| `e2e-diagnostic.yml` (revised)  | manual only                          | 30                   | Retries-on diagnostic, no schedule.                                                                                                          |
+| `lichess-smoke.yml` (revised)   | manual only                          | 10                   | Weekly schedule removed.                                                                                                                     |
 
 ### Expected savings
 
@@ -153,7 +153,7 @@ were spent whether or not the code changed.
   tax. At even one commit per day that is ~10 hours of
   minutes per month reclaimed.
 - The monthly desktop-package cron alone is ~3 hours of Windows
-  + Linux minutes per month reclaimed.
+  - Linux minutes per month reclaimed.
 - The monthly engine-fleet and engine-build crons are another
   ~12 hours of cross-platform minutes per month reclaimed.
 - The weekly lichess-smoke cron is ~7 hours per month
@@ -194,16 +194,16 @@ Release manifest: present
 Release gate: GREEN
 ```
 
-| Suite                          | Count                | Status |
-| ------------------------------ | -------------------- | ------ |
-| `npm run typecheck`            | 0 errors             | GREEN  |
-| `npm run lint`                 | 0 errors             | GREEN  |
-| `npm test` (vitest)            | 165 files, 2177 passed, 11 skipped | GREEN |
-| `npm run build` (next build)   | succeeds             | GREEN  |
-| `git diff --check HEAD`        | clean                | GREEN  |
-| `npm run desktop:smoke -- --packaged` | 17/17         | GREEN  |
-| `npm run desktop:restart -- --packaged` | 5/5        | GREEN  |
-| `npm run format:check`         | known pre-existing issue in `docs/product/phase-22-handover.md` (long prose, hand-edited; left for the next agent that rewrites the phase doc) | SOFT |
+| Suite                                   | Count                                                                                                                                          | Status |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| `npm run typecheck`                     | 0 errors                                                                                                                                       | GREEN  |
+| `npm run lint`                          | 0 errors                                                                                                                                       | GREEN  |
+| `npm test` (vitest)                     | 165 files, 2177 passed, 11 skipped                                                                                                             | GREEN  |
+| `npm run build` (next build)            | succeeds                                                                                                                                       | GREEN  |
+| `git diff --check HEAD`                 | clean                                                                                                                                          | GREEN  |
+| `npm run desktop:smoke -- --packaged`   | 17/17                                                                                                                                          | GREEN  |
+| `npm run desktop:restart -- --packaged` | 5/5                                                                                                                                            | GREEN  |
+| `npm run format:check`                  | known pre-existing issue in `docs/product/phase-22-handover.md` (long prose, hand-edited; left for the next agent that rewrites the phase doc) | SOFT   |
 
 `npm run release:verify:full` adds the full Playwright suite,
 the desktop chrome, the desktop engine fleet, and the desktop
@@ -212,16 +212,16 @@ run; it is **not** the default.
 
 ## 6. Remote CI
 
-| Workflow            | What was run for this release           |
-| ------------------- | --------------------------------------- |
-| `ci.yml`            | run locally (re-ran on commit `4fd0360`, green) |
-| `release-build.yml` | **not run** — would have run on the v1.0.0-rc.4 tag push if the local web build were the gate, but the local production build is already in the artefact list and the web build is identical to the build the desktop shell bundles. |
-| `browser-cert.yml`  | **not run.** The local full Playwright suite is the gate for this release. The Phase 22 long professional soak remains the most recent full sweep (18.9 minutes, no resource growth). |
-| `engine-build.yml`  | **not run.** Engine catalogue is unchanged from Phase 22. |
-| `engines.yml`       | **not run.** Engine catalogue is unchanged from Phase 22. |
-| `desktop-package.yml` | **not run.** Linux/Windows packaging is not a supported path. |
-| `lichess-smoke.yml` | **not run.** Manual-only. |
-| `visual-review.yml` | **not run.** Visual baseline is unchanged from Phase 22. |
+| Workflow              | What was run for this release                                                                                                                                                                                                        |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ci.yml`              | run locally (re-ran on commit `4fd0360`, green)                                                                                                                                                                                      |
+| `release-build.yml`   | **not run** — would have run on the v1.0.0-rc.4 tag push if the local web build were the gate, but the local production build is already in the artefact list and the web build is identical to the build the desktop shell bundles. |
+| `browser-cert.yml`    | **not run.** The local full Playwright suite is the gate for this release. The Phase 22 long professional soak remains the most recent full sweep (18.9 minutes, no resource growth).                                                |
+| `engine-build.yml`    | **not run.** Engine catalogue is unchanged from Phase 22.                                                                                                                                                                            |
+| `engines.yml`         | **not run.** Engine catalogue is unchanged from Phase 22.                                                                                                                                                                            |
+| `desktop-package.yml` | **not run.** Linux/Windows packaging is not a supported path.                                                                                                                                                                        |
+| `lichess-smoke.yml`   | **not run.** Manual-only.                                                                                                                                                                                                            |
+| `visual-review.yml`   | **not run.** Visual baseline is unchanged from Phase 22.                                                                                                                                                                             |
 
 The deliberate choice is to spend the GitHub minutes that
 remain on the tag-push `release-build.yml` and the
@@ -243,10 +243,10 @@ host. The deployment steps are documented in
 [`docs/deployment.md`](../deployment.md). The maintainer (not
 the agent) performs the one-click Vercel import. Once the
 project URL is known, it is set as `KINGFISHER_PUBLIC_WEB_URL`
-and the landing page's *Launch the web app* button is updated
+and the landing page's _Launch the web app_ button is updated
 to point at it.
 
-Until then, the landing page's *Launch the web app* button
+Until then, the landing page's _Launch the web app_ button
 points at a placeholder URL (`https://kingfisher-app.example/`).
 The honest move is to document the deployment step rather than
 to invent a URL.
@@ -258,37 +258,37 @@ the desktop shell (`desktop:smoke` 17/17).
 
 ## 8. macOS
 
-| Field          | Value                                                              |
-| -------------- | ------------------------------------------------------------------ |
-| Version        | 1.0.0-rc.4                                                         |
-| Architecture   | Apple Silicon (arm64)                                              |
-| File           | `Kingfisher-1.0.0-rc.4-arm64.dmg`                                  |
-| Size           | 150 MB                                                             |
-| SHA-256        | `6dc1a3e0a4ccf000502ae374aa8d5982aaff15cc2ceb190a2d2ed533e3662304` |
-| Code signing   | yes, with the development certificate                              |
-| Notarization   | **no** — Developer ID Application certificate is not available     |
-| Gatekeeper     | refuses first launch; right-click → Open → Open works              |
-| Install guide  | [`docs/release/install-macos.md`](../release/install-macos.md)    |
+| Field         | Value                                                              |
+| ------------- | ------------------------------------------------------------------ |
+| Version       | 1.0.0-rc.4                                                         |
+| Architecture  | Apple Silicon (arm64)                                              |
+| File          | `Kingfisher-1.0.0-rc.4-arm64.dmg`                                  |
+| Size          | 150 MB                                                             |
+| SHA-256       | `6dc1a3e0a4ccf000502ae374aa8d5982aaff15cc2ceb190a2d2ed533e3662304` |
+| Code signing  | yes, with the development certificate                              |
+| Notarization  | **no** — Developer ID Application certificate is not available     |
+| Gatekeeper    | refuses first launch; right-click → Open → Open works              |
+| Install guide | [`docs/release/install-macos.md`](../release/install-macos.md)     |
 
 The DMG is attached to the
 [v1.0.0-rc.4 release](https://github.com/mardakurt/kingfisher/releases/tag/v1.0.0-rc.4).
-It is labelled honestly as a *preview build* that is *not
-notarized*. The release notes say so; the landing page says
+It is labelled honestly as a _preview build_ that is _not
+notarized_. The release notes say so; the landing page says
 so; the install guide says so.
 
 When a Developer ID Application certificate is added to the
 keychain, the next DMG can be signed with it, notarised, and
-stapled in a single `desktop:dist` run, and the *preview*
+stapled in a single `desktop:dist` run, and the _preview_
 label drops. The install guide stays the same.
 
 ## 9. Optional reference data
 
-| Pack                   | State                  | Public URL                                                                                          | Bytes | SHA-256 (first chunk)         |
-| ---------------------- | ---------------------- | --------------------------------------------------------------------------------------------------- | ----- | ----------------------------- |
-| Kingfisher Starter     | Ready, in bundle       | shipped inside the application                                                                      | n/a   | n/a                           |
-| Elite OTB (v2)         | **Ready, published**   | <https://mardakurt.github.io/kingfisher-data/reference-elite-v2/manifest.json>                      | 324 MB | 7595b9e6541604ffa22352a351d5e39e73e47b9cc45c871decc2ca7791db2f6f |
-| Recent Theory (v1)     | **Ready, published**   | <https://mardakurt.github.io/kingfisher-data/reference-recent-v1/manifest.json>                     | 32 MB | 97520d0db173b54490773dfe68166eb88b4280d0f37f416b9732fd3f9ca425aa |
-| High-Rated Online (v1) | **Ready, published**   | <https://mardakurt.github.io/kingfisher-data/reference-online-v1/manifest.json>                     | 82 MB | 0f28b0e87922d2205047bea9d22ed8806f9b0f2b05f77282ffe87f602b919e0e |
+| Pack                   | State                | Public URL                                                                      | Bytes  | SHA-256 (first chunk)                                            |
+| ---------------------- | -------------------- | ------------------------------------------------------------------------------- | ------ | ---------------------------------------------------------------- |
+| Kingfisher Starter     | Ready, in bundle     | shipped inside the application                                                  | n/a    | n/a                                                              |
+| Elite OTB (v2)         | **Ready, published** | <https://mardakurt.github.io/kingfisher-data/reference-elite-v2/manifest.json>  | 324 MB | 7595b9e6541604ffa22352a351d5e39e73e47b9cc45c871decc2ca7791db2f6f |
+| Recent Theory (v1)     | **Ready, published** | <https://mardakurt.github.io/kingfisher-data/reference-recent-v1/manifest.json> | 32 MB  | 97520d0db173b54490773dfe68166eb88b4280d0f37f416b9732fd3f9ca425aa |
+| High-Rated Online (v1) | **Ready, published** | <https://mardakurt.github.io/kingfisher-data/reference-online-v1/manifest.json> | 82 MB  | 0f28b0e87922d2205047bea9d22ed8806f9b0f2b05f77282ffe87f602b919e0e |
 
 ### End-to-end install smoke
 
@@ -313,7 +313,7 @@ the previous broken state).
 
 - **Tag:** `v1.0.0-rc.4` (pushed)
 - **Pre-release:** yes (until stable 1.0)
-- **Title:** *Kingfisher 1.0.0-rc.4 — public preview*
+- **Title:** _Kingfisher 1.0.0-rc.4 — public preview_
 - **Notes:** [`docs/release/1.0.0-rc.4.md`](../release/1.0.0-rc.4.md)
 - **Assets:**
   - `Kingfisher-1.0.0-rc.4-arm64.dmg` (150 MB)
@@ -374,8 +374,8 @@ agent prepared the copy; the maintainer pastes it.
   <https://github.com/mardakurt/kingfisher/issues>. The
   bug-report template asks for what happened, what was being
   done, what was expected, the Kingfisher version, web or
-  desktop, OS, the *Copy support information* line, and (if
-  useful) the *Copy full diagnostic report*. The
+  desktop, OS, the _Copy support information_ line, and (if
+  useful) the _Copy full diagnostic report_. The
   feature-request template asks what chess workflow is being
   improved, what currently happens, and what would improve it.
 - **Discussions:** enabled, with the default General, Ideas,
@@ -390,8 +390,8 @@ agent prepared the copy; the maintainer pastes it.
 
 ## 14. User data safety
 
-The Phase 22 regression test for *work survives a desktop
-quit* was re-run on the 1.0.0-rc.4 build:
+The Phase 22 regression test for _work survives a desktop
+quit_ was re-run on the 1.0.0-rc.4 build:
 
 ```
 $ npm run desktop:restart -- --packaged
@@ -438,18 +438,18 @@ claim search. Backup and restore unchanged.
 
 ## 18. Engines
 
-| Engine               | Status (Phase 22 + Phase 23 re-verify)                          |
-| -------------------- | --------------------------------------------------------------- |
-| Stockfish 18 (worker)| bundled in the web build; native install through Settings → Engine |
-| Stockfish 18 (native)| download through Settings → Engine; digest verified            |
-| Berserk 14           | same                                                          |
-| Halogen 16.0.0       | same                                                          |
-| Koivisto 9.0         | same                                                          |
-| Obsidian 16.0        | same                                                          |
-| PlentyChess 8.0      | same                                                          |
-| Stormphrax 8         | same                                                          |
-| Viridithas 20        | same                                                          |
-| Lc0 0.32.1           | found at `/opt/homebrew/bin/lc0`, qualified in the packaged app |
+| Engine                | Status (Phase 22 + Phase 23 re-verify)                             |
+| --------------------- | ------------------------------------------------------------------ |
+| Stockfish 18 (worker) | bundled in the web build; native install through Settings → Engine |
+| Stockfish 18 (native) | download through Settings → Engine; digest verified                |
+| Berserk 14            | same                                                               |
+| Halogen 16.0.0        | same                                                               |
+| Koivisto 9.0          | same                                                               |
+| Obsidian 16.0         | same                                                               |
+| PlentyChess 8.0       | same                                                               |
+| Stormphrax 8          | same                                                               |
+| Viridithas 20         | same                                                               |
+| Lc0 0.32.1            | found at `/opt/homebrew/bin/lc0`, qualified in the packaged app    |
 
 The Phase 22 qualification matrix is unchanged. No engine
 catalogue change in this phase; the next agent that wants to
@@ -536,7 +536,7 @@ released. The work that remains is:
 - deploy the web app to Vercel when the project is created;
 - replace the `1.0.0-rc.4` artefacts with the new versions.
 
-The owner handoff for *how* to do each of those is below.
+The owner handoff for _how_ to do each of those is below.
 
 ### How to release `1.0.0-rc.5`
 
@@ -581,7 +581,7 @@ landing page is live.
 
 ### How to upload a new macOS build
 
-See *How to release 1.0.0-rc.5* above. The build lives at
+See _How to release 1.0.0-rc.5_ above. The build lives at
 `desktop/dist/` (when the path allows it) or in
 `$KINGFISHER_DESKTOP_OUT` (when it does not). The DMG is
 uploaded to the GitHub Release at tag-push time.

@@ -43,7 +43,7 @@
   - `d06b77d test: update two e2e specs to the Phase 22 product copy`
   - `4d5ea6d test: reformat one spec after prettier disagreed`
 - The earlier Phase 22 work (`macOS corner composition`, `work survives a
-  quit`, `Theory Book return navigation`, `Reference pack install at scale`,
+quit`, `Theory Book return navigation`, `Reference pack install at scale`,
   `Phase 22 support information`, `Connection error copy`, etc.) is
   already on master at `b66d7a0` — verified by `git log --oneline -25`.
 - CI: local gates green (see §25–26). Remote CI is configured in
@@ -92,16 +92,16 @@ inset  traffic lights   gap  brand region                   header
                               (mark, then the wordmark)      right inset
 ```
 
-| Measurement                              | Value       | Source                             |
-| ---------------------------------------- | ----------- | ---------------------------------- |
-| Button frame origin                      | `(14, 20)`  | `MAC_TRAFFIC_LIGHT_POSITION`       |
-| Button group rectangle                   | `54 × 16`   | derived (14 pt frames, 20 pt pitch) |
-| Design gap to first Kingfisher pixel     | `16` px     | `MAC_TITLEBAR_GAP`                 |
-| Mark left edge                           | `x = 84`    | `MAC_BRAND_REGION.x`               |
-| Buttons centre line                      | `y = 28`    | `MAC_TRAFFIC_LIGHT_BOUNDS.y + h/2` |
-| Mark and wordmark share it               | yes         | `MAC_BRAND_REGION.centreY = 28`    |
-| Brand region right edge                  | `x ≤ 207.4` | mark 36 + gap 10 + wordmark 77     |
-| Sidebar header content edge              | `x = 213.0` | sidebar 228, right inset 15        |
+| Measurement                          | Value       | Source                              |
+| ------------------------------------ | ----------- | ----------------------------------- |
+| Button frame origin                  | `(14, 20)`  | `MAC_TRAFFIC_LIGHT_POSITION`        |
+| Button group rectangle               | `54 × 16`   | derived (14 pt frames, 20 pt pitch) |
+| Design gap to first Kingfisher pixel | `16` px     | `MAC_TITLEBAR_GAP`                  |
+| Mark left edge                       | `x = 84`    | `MAC_BRAND_REGION.x`                |
+| Buttons centre line                  | `y = 28`    | `MAC_TRAFFIC_LIGHT_BOUNDS.y + h/2`  |
+| Mark and wordmark share it           | yes         | `MAC_BRAND_REGION.centreY = 28`     |
+| Brand region right edge              | `x ≤ 207.4` | mark 36 + gap 10 + wordmark 77      |
+| Sidebar header content edge          | `x = 213.0` | sidebar 228, right inset 15         |
 
 These values are **asserted, not looked at**:
 `scripts/desktop-chrome.mjs --packaged` walks 107 checks across:
@@ -124,6 +124,7 @@ full moves in. There is no multi-page onboarding funnel, no marketing
 slides, no forced account, and no required database expertise.
 
 The first screen shows:
+
 - a board on the left
 - the engine panel on the right (Stockfish 18 — WebAssembly, sandboxed
   by the browser on web, running in-process on desktop)
@@ -142,6 +143,7 @@ save something, quit, reopen, find it still there.
 ## 6. First-user support
 
 **Diagnostics.** `Settings → Diagnostics` shows:
+
 - Data providers (Kingfisher Starter, Masters, Lichess, Player, My games)
   with state, last error, and a Test button
 - Engines with role, architecture, licence, and idle/running state
@@ -162,8 +164,8 @@ value was never registered as a Settings secret. The test in
 asserts the token is not in the report — green. The diagnostic report
 explicitly says "Lichess token configured: yes" rather than quoting the
 token. (The product uses the better Phase 22 split: a short
-*support information* summary for chat/issues, and a *full diagnostic
-report* for attachment.)
+_support information_ summary for chat/issues, and a _full diagnostic
+report_ for attachment.)
 
 **Local logs.** `desktop/src/log.mjs` writes launch, companion failure
 and quit events to a bounded local file, rotated at ~1 MB. The companion
@@ -237,12 +239,12 @@ Nothing sends it anywhere.
 
 ## 11. Reference data
 
-| Pack                   | State               | Source                                                      | Notes                                                                                |
-| ---------------------- | ------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| Kingfisher Starter     | **Ready, in bundle** | Lichess open database, broadcast games, online + OTB, 2023– | 172,376 games, 246,870 position aggregates, 20 moves deep. Works offline.           |
-| Elite OTB              | Built, **not published** | Lichess open database, rating/title filtered, 2020–          | 407,538 games. The Install button is honest: "This reference source is not published at the address this version of Kingfisher looks for." |
-| Recent Theory          | Built, **not published** | Lichess open database, recent theory games                  | 44,200 games. Same honest failure.                                                   |
-| High-Rated Online      | Built, **not published** | Lichess open database, 2400+ blitz                          | 305,169 games. Same honest failure.                                                   |
+| Pack               | State                    | Source                                                      | Notes                                                                                                                                      |
+| ------------------ | ------------------------ | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Kingfisher Starter | **Ready, in bundle**     | Lichess open database, broadcast games, online + OTB, 2023– | 172,376 games, 246,870 position aggregates, 20 moves deep. Works offline.                                                                  |
+| Elite OTB          | Built, **not published** | Lichess open database, rating/title filtered, 2020–         | 407,538 games. The Install button is honest: "This reference source is not published at the address this version of Kingfisher looks for." |
+| Recent Theory      | Built, **not published** | Lichess open database, recent theory games                  | 44,200 games. Same honest failure.                                                                                                         |
+| High-Rated Online  | Built, **not published** | Lichess open database, 2400+ blitz                          | 305,169 games. Same honest failure.                                                                                                        |
 
 The install path is certified end-to-end against a real 33.9 MB, 80-chunk
 pack, including a corrupted chunk that correctly refuses to become a
@@ -281,18 +283,18 @@ the test for the new copy.
 Every managed engine on macOS arm64, driven inside the packaged
 application by `npm run desktop:engines -- --packaged`:
 
-| Engine               | Version        | Install   | UCI | Search | Stop | Stop on 2nd pos | Ready |
-| -------------------- | -------------- | --------- | --- | ------ | ---- | ---------------- | ----- |
-| Stockfish 18 (worker) | 18.0           | bundled   | ✓   | ✓      | ✓    | ✓                | ✓     |
-| Stockfish 18 (native) | 18.0          | download  | ✓   | ✓      | ✓    | ✓                | ✓     |
-| Berserk              | 14             | download  | ✓   | ✓      | ✓    | ✓                | ✓     |
-| Halogen              | 16.0.0         | download  | ✓   | ✓      | ✓    | ✓                | ✓     |
-| Koivisto             | 9.0            | download  | ✓   | ✓      | ✓    | ✓                | ✓     |
-| Obsidian             | 16.0           | download  | ✓   | ✓      | ✓    | ✓                | ✓     |
-| PlentyChess          | 8.0            | download  | ✓   | ✓      | ✓    | ✓                | ✓     |
-| Stormphrax           | 8              | download  | ✓   | ✓      | ✓    | ✓                | ✓     |
-| Viridithas           | 20             | download  | ✓   | ✓      | ✓    | ✓                | ✓     |
-| Lc0                  | 0.32.1+git.dirty | system   | ✓   | ✓      | ✓    | ✓                | ✓     |
+| Engine                | Version          | Install  | UCI | Search | Stop | Stop on 2nd pos | Ready |
+| --------------------- | ---------------- | -------- | --- | ------ | ---- | --------------- | ----- |
+| Stockfish 18 (worker) | 18.0             | bundled  | ✓   | ✓      | ✓    | ✓               | ✓     |
+| Stockfish 18 (native) | 18.0             | download | ✓   | ✓      | ✓    | ✓               | ✓     |
+| Berserk               | 14               | download | ✓   | ✓      | ✓    | ✓               | ✓     |
+| Halogen               | 16.0.0           | download | ✓   | ✓      | ✓    | ✓               | ✓     |
+| Koivisto              | 9.0              | download | ✓   | ✓      | ✓    | ✓               | ✓     |
+| Obsidian              | 16.0             | download | ✓   | ✓      | ✓    | ✓               | ✓     |
+| PlentyChess           | 8.0              | download | ✓   | ✓      | ✓    | ✓               | ✓     |
+| Stormphrax            | 8                | download | ✓   | ✓      | ✓    | ✓               | ✓     |
+| Viridithas            | 20               | download | ✓   | ✓      | ✓    | ✓               | ✓     |
+| Lc0                   | 0.32.1+git.dirty | system   | ✓   | ✓      | ✓    | ✓               | ✓     |
 
 Result: 25/25 checks across all 10 engines. Digest-verified, single
 named member extracted, no shell. **Not sandboxed**, and the interface
@@ -366,16 +368,16 @@ work from earlier phases continues to hold.
 
 ## 21. Performance — actual measured values
 
-| Measurement                          | Value               | Source                                  |
-| ------------------------------------ | ------------------- | --------------------------------------- |
-| Desktop packaged renderer ready      | 2.8 s               | `desktop:smoke -- --packaged`           |
-| Web renderer ready                   | ~1.6 s              | `desktop:smoke` (against the checkout)  |
-| Ordinary position (200 runs, median) | 0.004 ms            | `scripts/bench-evidence.mjs`            |
-| Large explorer result                | 0.004 ms            | same                                    |
-| Every source present                 | 0.006 ms            | same                                    |
-| Build only (no render)               | 0.001 ms            | same                                    |
-| Heaviest route                       | /review, 372.6 kB gz | `scripts/bundle-report.mjs`            |
-| Total client JavaScript              | 3510.8 kB across 108 files | `scripts/bundle-report.mjs`     |
+| Measurement                          | Value                      | Source                                 |
+| ------------------------------------ | -------------------------- | -------------------------------------- |
+| Desktop packaged renderer ready      | 2.8 s                      | `desktop:smoke -- --packaged`          |
+| Web renderer ready                   | ~1.6 s                     | `desktop:smoke` (against the checkout) |
+| Ordinary position (200 runs, median) | 0.004 ms                   | `scripts/bench-evidence.mjs`           |
+| Large explorer result                | 0.004 ms                   | same                                   |
+| Every source present                 | 0.006 ms                   | same                                   |
+| Build only (no render)               | 0.001 ms                   | same                                   |
+| Heaviest route                       | /review, 372.6 kB gz       | `scripts/bundle-report.mjs`            |
+| Total client JavaScript              | 3510.8 kB across 108 files | `scripts/bundle-report.mjs`            |
 
 The previous ~0.6 s desktop start number from Phase 21 is not asserted
 in this phase; the re-measured value is 2.8 s including WebServer and
@@ -409,7 +411,7 @@ companion.
 - **High** (closed in Phase 22): PGN tag values with quotes or
   backslashes produced malformed PGN — a real Elite pack game is
   played at a tournament called `Chess Festival "O KRÁLE
-  MATTONI ARÉNY" | Rapid`. Closed by `d8f8d5f`.
+MATTONI ARÉNY" | Rapid`. Closed by `d8f8d5f`.
 - **Medium** (closed in Phase 22): `npm run lint` was red because
   `eslint-plugin-react-hooks` matched on the identifier alone, and
   Playwright's fixture callback conventionally named `use` read to
@@ -440,23 +442,23 @@ companion.
 
 ## 25. Tests — exact counts
 
-| Suite                                                | Count              | Status |
-| ---------------------------------------------------- | ------------------ | ------ |
-| `npm run typecheck` (tsc)                            | 0 errors           | GREEN  |
-| `npm test` (vitest, src/)                            | 165 files, 2177 passed, 11 skipped | GREEN |
-| `npm run lint` (eslint)                              | 0 errors           | GREEN  |
-| `npm run format:check` (prettier)                    | All match          | GREEN  |
-| `npm run build` (next build)                         | succeeds           | GREEN  |
-| `npm run test:e2e` (playwright, 33 specs)            | 241 passed         | GREEN  |
-| `npm run benchmark`                                  | every command 0    | GREEN  |
-| `git diff --check`                                   | clean              | GREEN  |
-| `npm run desktop:smoke -- --packaged`                | 17/17              | GREEN  |
-| `npm run desktop:chrome -- --packaged`               | 107/107            | GREEN  |
-| `npm run desktop:suspend -- --packaged`              | 12/12              | GREEN  |
-| `npm run desktop:restart -- --packaged`              | 5/5                | GREEN  |
-| `npm run desktop:upgrade -- --packaged`              | 7/7                | GREEN  |
-| `npm run desktop:engines -- --packaged`              | 25/25              | GREEN  |
-| `KINGFISHER_SOAK_CYCLES=50 KINGFISHER_SOAK_CHAIN_PASSES=10 npx playwright test e2e/soak.spec.ts` | 3/3 | GREEN (18.9 min) |
+| Suite                                                                                            | Count                              | Status           |
+| ------------------------------------------------------------------------------------------------ | ---------------------------------- | ---------------- |
+| `npm run typecheck` (tsc)                                                                        | 0 errors                           | GREEN            |
+| `npm test` (vitest, src/)                                                                        | 165 files, 2177 passed, 11 skipped | GREEN            |
+| `npm run lint` (eslint)                                                                          | 0 errors                           | GREEN            |
+| `npm run format:check` (prettier)                                                                | All match                          | GREEN            |
+| `npm run build` (next build)                                                                     | succeeds                           | GREEN            |
+| `npm run test:e2e` (playwright, 33 specs)                                                        | 241 passed                         | GREEN            |
+| `npm run benchmark`                                                                              | every command 0                    | GREEN            |
+| `git diff --check`                                                                               | clean                              | GREEN            |
+| `npm run desktop:smoke -- --packaged`                                                            | 17/17                              | GREEN            |
+| `npm run desktop:chrome -- --packaged`                                                           | 107/107                            | GREEN            |
+| `npm run desktop:suspend -- --packaged`                                                          | 12/12                              | GREEN            |
+| `npm run desktop:restart -- --packaged`                                                          | 5/5                                | GREEN            |
+| `npm run desktop:upgrade -- --packaged`                                                          | 7/7                                | GREEN            |
+| `npm run desktop:engines -- --packaged`                                                          | 25/25                              | GREEN            |
+| `KINGFISHER_SOAK_CYCLES=50 KINGFISHER_SOAK_CHAIN_PASSES=10 npx playwright test e2e/soak.spec.ts` | 3/3                                | GREEN (18.9 min) |
 
 ## 26. CI
 
@@ -514,6 +516,7 @@ changelog. None of these are software work.
 **Passes.**
 
 A professional receiving Kingfisher on a Mac can:
+
 - open the application
 - study an opening (Theory Book → Explorer → model game)
 - search a player (Players → "Carlsen" → profile → games)

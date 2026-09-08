@@ -66,7 +66,10 @@
     "release:verify": "node scripts/release-verify.mjs",
     "release:verify:full": "node scripts/release-verify-full.mjs",
     "release:manifest": "node scripts/release-manifest.mjs",
-    "public:check": "node scripts/public-link-check.mjs"
+    "public:check": "node scripts/public-link-check.mjs",
+    "publish:site": "node scripts/publish-site.mjs",
+    "publish:data": "node scripts/publish-data.mjs",
+    "security:scan": "node scripts/security-scan.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.102.8",

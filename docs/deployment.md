@@ -4,13 +4,13 @@ Where each surface is hosted, and how to publish a new release.
 
 ## The public surfaces
 
-| Surface             | Where                                                                          |
-| ------------------- | ------------------------------------------------------------------------------ |
-| Landing page        | <https://mardakurt.github.io/kingfisher-data/>                                 |
-| Optional reference data | the `kingfisher-data` Pages site, at `/reference-{pack}-{version}/`         |
-| macOS preview build | a `Kingfisher-*.dmg` attached to a GitHub Release on this repository          |
-| Web app             | deployed to Vercel from the repository root                                   |
-| Source / issues     | <https://github.com/mardakurt/kingfisher>                                      |
+| Surface                 | Where                                                                |
+| ----------------------- | -------------------------------------------------------------------- |
+| Landing page            | <https://mardakurt.github.io/kingfisher-data/>                       |
+| Optional reference data | the `kingfisher-data` Pages site, at `/reference-{pack}-{version}/`  |
+| macOS preview build     | a `Kingfisher-*.dmg` attached to a GitHub Release on this repository |
+| Web app                 | deployed to Vercel from the repository root                          |
+| Source / issues         | <https://github.com/mardakurt/kingfisher>                            |
 
 ## How a release happens
 
@@ -43,17 +43,17 @@ recommended host.
 
 1. Sign in to <https://vercel.com> with the GitHub account that
    owns `mardakurt/kingfisher`.
-2. *Add New… → Project* and import the `mardakurt/kingfisher`
+2. _Add New… → Project_ and import the `mardakurt/kingfisher`
    repository.
 3. Accept the default Next.js detection (no `Root Directory`
    change; the build is `next build`, the install is `npm ci`).
-4. Deploy. The first deployment is the *Production* environment.
+4. Deploy. The first deployment is the _Production_ environment.
 5. Copy the project URL (something like
    `https://kingfisher-<hash>.vercel.app`) and put it in the
    landing page's `Launch the web app` button and in
    `KINGFISHER_PUBLIC_WEB_URL` for `npm run public:check`.
 
-Optional: configure a custom domain in *Settings → Domains*.
+Optional: configure a custom domain in _Settings → Domains_.
 
 The build does not need any environment variable. The optional
 cross-origin isolation variable (`KINGFISHER_CROSS_ORIGIN_ISOLATION=1`)
@@ -125,7 +125,7 @@ To publish a new pack version:
 - The current naming scheme is `<major>.<minor>.<patch>-rc.<n>`
   for release candidates and `<major>.<minor>.<patch>` for
   stable releases.
-- A release candidate is marked as a *pre-release* on GitHub. A
+- A release candidate is marked as a _pre-release_ on GitHub. A
   stable release is published without the flag.
 - The pre-release flag is the only difference. The artefact
   pipeline is identical.

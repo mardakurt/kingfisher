@@ -51,7 +51,7 @@ is open source under the MIT licence.
 > - **Web app** at <https://mardakurt.github.io/kingfisher-data/>
 >   — Stockfish 18 in the page, no install.
 > - **macOS preview** (`Kingfisher-1.0.0-rc.4-arm64.dmg`) — Apple
->   Silicon, code-signed. *Not notarized yet* — right-click →
+>   Silicon, code-signed. _Not notarized yet_ — right-click →
 >   Open on the first launch.
 > - **Optional reference data**, installable from a fresh
 >   profile: Elite OTB (407,538 games), Recent Theory (44,200
@@ -61,8 +61,8 @@ is open source under the MIT licence.
 >   licence, provenance and counts. The Explorer never produces
 >   a single "truth" score that quietly blends them.
 > - **Diagnostics that are answerable** — Settings → Diagnostics
->   has a *Copy support information* line and a *Copy full
->   diagnostic report* button, both with credentials redacted.
+>   has a _Copy support information_ line and a _Copy full
+>   diagnostic report_ button, both with credentials redacted.
 > - **No account, no telemetry, no subscription.**
 >
 > **Known limitations**

@@ -8,6 +8,12 @@ import { describe, expect, it } from 'vitest';
 import { buildDiagnosticReport, buildSupportSummary, redact } from './diagnostic-report';
 import type { DiagnosticInput } from './diagnostic-report';
 
+// gitleaks:allow — these are deterministic test fixtures used to
+// exercise the diagnostic-report redaction layer in
+// src/features/shell/diagnostic-report.ts. They are not real
+// credentials. The Phase 24 security review at
+// docs/security/phase-24-security-review.md documents the four
+// `generic-api-key` false positives this file produces.
 const LICHESS_TOKEN = 'lip_9f3aB2cD4eF6gH8iJ0kL';
 const ASSISTANT_KEY = 'sk-proj-abcdefghijklmnopqrstuvwxyz012345';
 const COMPANION_TOKEN = 'c223a6466c46b3b2c71f7c9335639ad9018fe5f93dba8486f2b985151e138975';

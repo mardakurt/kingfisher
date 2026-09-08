@@ -31,8 +31,8 @@ data is published.
   own licence, provenance and counts. The Explorer never produces a
   combined "truth" score that quietly blends them.
 - **Diagnostics that are answerable.** Settings → Diagnostics now
-  has a *Copy support information* line and a *Copy full diagnostic
-  report* button, both with credentials redacted at write time. The
+  has a _Copy support information_ line and a _Copy full diagnostic
+  report_ button, both with credentials redacted at write time. The
   log file is local, rotated, and never uploaded.
 - **Local-first.** No account, no telemetry, no upload. Studies,
   repertoire, training and notes are stored locally. Restoring from

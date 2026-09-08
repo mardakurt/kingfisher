@@ -431,6 +431,11 @@ test.describe('settings', () => {
     await page.evaluate(() => {
       const raw = window.localStorage.getItem('kingfisher.preferences');
       const parsed = raw ? JSON.parse(raw) : { state: {}, version: 4 };
+      // gitleaks:allow — deterministic e2e fixtures used to
+      // exercise the redaction layer in the renderer. They are
+      // not real credentials. The Phase 24 security review at
+      // docs/security/phase-24-security-review.md documents the
+      // four `generic-api-key` false positives this file produces.
       parsed.state = {
         ...parsed.state,
         lichessToken: 'lip_e2e_secret',

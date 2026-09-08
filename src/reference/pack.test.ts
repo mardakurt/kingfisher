@@ -25,6 +25,10 @@ import {
  * the round-trip is the promise.
  */
 
+// gitleaks:allow — a literal PGN position key used in the pack
+// test fixture. It is not a credential. The Phase 24 security
+// review at docs/security/phase-24-security-review.md documents
+// the four `generic-api-key` false positives this file produces.
 const POSITION: PackPosition = {
   key: 'rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq c6',
   moves: [

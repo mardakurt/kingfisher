@@ -1,7 +1,7 @@
 ---
 name: Feature request
 about: Suggest a change to Kingfisher
-title: "[feature] "
+title: '[feature] '
 labels: enhancement
 ---
 

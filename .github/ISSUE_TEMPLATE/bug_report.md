@@ -1,7 +1,7 @@
 ---
 name: Bug report
 about: Tell us something that went wrong
-title: "[bug] "
+title: '[bug] '
 labels: bug
 ---
 
@@ -35,11 +35,11 @@ macOS / Windows / Linux and the version (e.g. macOS 14.5).
 
 ## Support information
 
-Paste the *Copy support information* line from
+Paste the _Copy support information_ line from
 `Settings → Diagnostics`. It is short and contains no
 personal data.
 
-For a deeper problem, attach the *full diagnostic report* (also from
+For a deeper problem, attach the _full diagnostic report_ (also from
 that panel) — URL credentials, query strings and home-directory
 names are redacted at write time.
 

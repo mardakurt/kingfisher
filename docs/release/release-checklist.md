@@ -48,7 +48,7 @@ tick again when the public link validator passes.
       attached.
 - [ ] Discussion categories enabled (optional, see
       <https://github.com/mardakurt/kingfisher/discussions>).
-- [ ] Issue templates for *Bug report* and *Feature request*
+- [ ] Issue templates for _Bug report_ and _Feature request_
       are present under `.github/ISSUE_TEMPLATE/`.
 
 ## Reference data
@@ -67,7 +67,7 @@ tick again when the public link validator passes.
 ## After publishing
 
 - [ ] `npm run public:check` is green.
-- [ ] README's *Public preview* banner points at the right
+- [ ] README's _Public preview_ banner points at the right
       version.
 - [ ] CHANGELOG.md has a new top entry.
 - [ ] `docs/release/<version>.md` exists.

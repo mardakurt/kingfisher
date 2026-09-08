@@ -5,13 +5,13 @@ A local-first chess research workstation for serious players.
 > **Public preview · 1.0.0-rc.4**
 > No account. No telemetry. No subscription.
 
-| | |
-| --- | --- |
-| 🌐 **[Launch the web app](https://mardakurt.github.io/kingfisher-data/)** | Open in any modern browser. The Stockfish engine is in the page; no install. |
-| 🍎 **[Download for macOS](https://github.com/mardakurt/kingfisher/releases/latest)** | Apple Silicon, code-signed. *Preview build — not notarized.* |
-| 📦 **[Source on GitHub](https://github.com/mardakurt/kingfisher)** | Releases, source, issue tracker, changelog. |
-| 📖 **[Changelog](CHANGELOG.md)** | What changed in each release. |
-| 🐛 **[Report a problem](https://github.com/mardakurt/kingfisher/issues)** | Issue templates for bugs and feature requests. |
+|                                                                                      |                                                                              |
+| ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
+| 🌐 **[Launch the web app](https://mardakurt.github.io/kingfisher-data/)**            | Open in any modern browser. The Stockfish engine is in the page; no install. |
+| 🍎 **[Download for macOS](https://github.com/mardakurt/kingfisher/releases/latest)** | Apple Silicon, code-signed. _Preview build — not notarized._                 |
+| 📦 **[Source on GitHub](https://github.com/mardakurt/kingfisher)**                   | Releases, source, issue tracker, changelog.                                  |
+| 📖 **[Changelog](CHANGELOG.md)**                                                     | What changed in each release.                                                |
+| 🐛 **[Report a problem](https://github.com/mardakurt/kingfisher/issues)**            | Issue templates for bugs and feature requests.                               |
 
 Engine analysis, opening databases, annotation and game trees in one interface,
 built for someone who already knows what a Najdorf is and wants better tools —
@@ -21,7 +21,7 @@ calls it analysis.
 ## At a glance
 
 - **Web app** at <https://mardakurt.github.io/kingfisher-data/> — click
-  *Launch the web app*.
+  _Launch the web app_.
 - **macOS app** as a `.dmg` on the
   [latest release page](https://github.com/mardakurt/kingfisher/releases/latest).
   Apple Silicon only. Right-click → Open → Open on the first launch — see
@@ -29,8 +29,8 @@ calls it analysis.
 - **Source** at <https://github.com/mardakurt/kingfisher>. Releases, source,
   issues and changelog live here.
 - **Optional reference data** (Elite OTB, Recent Theory, High-Rated Online)
-  installs in-app from a public data mirror — see *Databases → Reference
-  sources → Install* in the application.
+  installs in-app from a public data mirror — see _Databases → Reference
+  sources → Install_ in the application.
 
 ## What it does
 
@@ -38,15 +38,15 @@ Opening research, engine analysis, large personal databases, repertoire
 and review. A local-first workstation: nothing leaves your machine that
 you did not put in the address bar.
 
-|                          |                                                                                                                                                                                                                                                          |
-| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Opening research**     | Compare Elite OTB, Recent Theory, and High-Rated Online *side by side*. The Explorer never produces a single "truth" score that quietly blends them.                                                                                                       |
-| **Engines**              | Stockfish 18 in the browser (sandboxed). Native Stockfish, Berserk, Halogen, Koivisto, Obsidian, PlentyChess, Stormphrax, Viridithas and Lc0 on macOS, with their digests verified and their licence on the row.                                       |
-| **Databases**            | Attach large personal collections (SQLite), search by position, structure, player, or claim. Copy, move, merge, dedupe, federate. Open positions and games back into the board.                                                                          |
-| **Theory Book**          | 3,810 named positions with ECO codes, browsable. Explains a variation by name only; never invents an evaluation.                                                                                                                                         |
-| **Players**              | 12,522 identities plus 106 historical figures. Diacritics, aliases, rapid typing, backspacing. Profile, what they play as White, what they play as Black, what changed recently.                                                                          |
-| **Repertoire & review**  | Add positions to repertoire, drill them, mark progress. Repertoire survives quit. Backup and restore work.                                                                                                                                              |
-| **Local-first**          | No account required. No hidden telemetry. Studies, repertoire, training and notes are stored locally. The diagnostic report is local; the log file is local.                                                                                            |
+|                         |                                                                                                                                                                                                                  |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Opening research**    | Compare Elite OTB, Recent Theory, and High-Rated Online _side by side_. The Explorer never produces a single "truth" score that quietly blends them.                                                             |
+| **Engines**             | Stockfish 18 in the browser (sandboxed). Native Stockfish, Berserk, Halogen, Koivisto, Obsidian, PlentyChess, Stormphrax, Viridithas and Lc0 on macOS, with their digests verified and their licence on the row. |
+| **Databases**           | Attach large personal collections (SQLite), search by position, structure, player, or claim. Copy, move, merge, dedupe, federate. Open positions and games back into the board.                                  |
+| **Theory Book**         | 3,810 named positions with ECO codes, browsable. Explains a variation by name only; never invents an evaluation.                                                                                                 |
+| **Players**             | 12,522 identities plus 106 historical figures. Diacritics, aliases, rapid typing, backspacing. Profile, what they play as White, what they play as Black, what changed recently.                                 |
+| **Repertoire & review** | Add positions to repertoire, drill them, mark progress. Repertoire survives quit. Backup and restore work.                                                                                                       |
+| **Local-first**         | No account required. No hidden telemetry. Studies, repertoire, training and notes are stored locally. The diagnostic report is local; the log file is local.                                                     |
 
 ## Privacy
 

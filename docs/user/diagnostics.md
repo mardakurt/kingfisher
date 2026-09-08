@@ -25,7 +25,7 @@ This is the screen the support team asks for. It has:
   is what you paste into a GitHub issue; the second is what you
   attach if the maintainer asks for more.
 
-## What the diagnostic report does *not* contain
+## What the diagnostic report does _not_ contain
 
 - Lichess tokens, API keys, passwords, companion secret.
 - Full PGN libraries, private Study content, user notes.
