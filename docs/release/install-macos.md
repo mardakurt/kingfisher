@@ -1,7 +1,8 @@
-# Installing Kingfisher on a Mac — closed beta
+# Installing Kingfisher on macOS
 
-This is the honest version. Kingfisher is finished software with an unfinished
-signature, and the difference will be the first thing you meet.
+This is the honest version. Kingfisher 1.0.0-rc.4 is finished software
+with an unfinished signature, and the difference will be the first
+thing you meet.
 
 ## What you need
 
@@ -11,7 +12,8 @@ signature, and the difference will be the first thing you meet.
 
 ## The normal path
 
-1. Download `Kingfisher-1.0.0-rc.3-arm64.dmg`.
+1. Download `Kingfisher-1.0.0-rc.4-arm64.dmg` from the
+   [latest release page](https://github.com/mardakurt/kingfisher/releases/latest).
 2. Double-click it. A window opens with the Kingfisher icon and a shortcut to
    Applications.
 3. Drag Kingfisher onto Applications.
@@ -19,34 +21,35 @@ signature, and the difference will be the first thing you meet.
 5. Open Kingfisher from Applications or Spotlight.
 
 On first launch Kingfisher starts everything it needs by itself, unpacks the
-bundled reference data, and opens on a board. There is nothing to configure and
-nothing to sign in to.
+bundled reference data, and opens on a board. There is nothing to configure
+and nothing to sign in to.
 
 ## What Gatekeeper will do, and why
 
-**Kingfisher is code-signed but not notarised**, so on a Mac that has never seen
-it, macOS will refuse to open it and say the application is damaged or cannot be
-checked for malicious software.
+**Kingfisher is code-signed but not notarised**, so on a Mac that has
+never seen the build, macOS will refuse to open it and say the
+application is damaged or cannot be checked for malicious software.
 
-That is not a diagnosis of the file. Notarisation is an Apple service that
-requires a **Developer ID Application** certificate, and this build does not have
-one — the identity it was signed with is a development certificate, which is a
-different kind. Nothing about the application changes when the right certificate
-exists; only the ability to hand you the installer does.
+That is not a diagnosis of the file. Notarisation is an Apple service
+that requires a **Developer ID Application** certificate, and this
+build does not have one — the identity it was signed with is a
+development certificate, which is a different kind. Nothing about the
+application changes when the right certificate exists; only the
+ability to hand you the installer does.
 
-### Opening it anyway, in a closed beta
+### Opening it anyway, in this preview
 
-You were given this build by somebody you know, from a source you trust. If that
-is not true of your copy, stop here.
+You downloaded this build from the public Kingfisher release page on
+GitHub. If that is not true of your copy, stop here.
 
-Right-click (or Control-click) Kingfisher in Applications and choose **Open**,
-then **Open** again in the dialog. macOS remembers the decision for that copy of
-the application.
+Right-click (or Control-click) Kingfisher in Applications and choose
+**Open**, then **Open** again in the dialog. macOS remembers the
+decision for that copy of the application.
 
-If macOS refuses even that, it is because the file carries a quarantine
-attribute from the download. Open **System Settings → Privacy & Security**,
-scroll to the Security section, and click **Open Anyway** beside the message
-about Kingfisher.
+If macOS refuses even that, the file is carrying a quarantine attribute
+from the download. Open **System Settings → Privacy & Security**,
+scroll to the Security section, and click **Open Anyway** beside the
+message about Kingfisher.
 
 **Do not turn Gatekeeper off.** `spctl --master-disable` and its relatives
 disable a system-wide protection for every application on the machine, for as

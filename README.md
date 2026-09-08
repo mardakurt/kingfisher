@@ -1,13 +1,115 @@
 # Kingfisher
 
-A chess research workspace for players who study.
+A local-first chess research workstation for serious players.
+
+> **Public preview · 1.0.0-rc.4**
+> No account. No telemetry. No subscription.
+
+| | |
+| --- | --- |
+| 🌐 **[Launch the web app](https://mardakurt.github.io/kingfisher-data/)** | Open in any modern browser. The Stockfish engine is in the page; no install. |
+| 🍎 **[Download for macOS](https://github.com/mardakurt/kingfisher/releases/latest)** | Apple Silicon, code-signed. *Preview build — not notarized.* |
+| 📦 **[Source on GitHub](https://github.com/mardakurt/kingfisher)** | Releases, source, issue tracker, changelog. |
+| 📖 **[Changelog](CHANGELOG.md)** | What changed in each release. |
+| 🐛 **[Report a problem](https://github.com/mardakurt/kingfisher/issues)** | Issue templates for bugs and feature requests. |
 
 Engine analysis, opening databases, annotation and game trees in one interface,
 built for someone who already knows what a Najdorf is and wants better tools —
 not a tutorial, not a puzzle streak, and not a wrapper that prints `+0.34` and
 calls it analysis.
 
+## At a glance
+
+- **Web app** at <https://mardakurt.github.io/kingfisher-data/> — click
+  *Launch the web app*.
+- **macOS app** as a `.dmg` on the
+  [latest release page](https://github.com/mardakurt/kingfisher/releases/latest).
+  Apple Silicon only. Right-click → Open → Open on the first launch — see
+  [`docs/release/install-macos.md`](docs/release/install-macos.md).
+- **Source** at <https://github.com/mardakurt/kingfisher>. Releases, source,
+  issues and changelog live here.
+- **Optional reference data** (Elite OTB, Recent Theory, High-Rated Online)
+  installs in-app from a public data mirror — see *Databases → Reference
+  sources → Install* in the application.
+
+## What it does
+
+Opening research, engine analysis, large personal databases, repertoire
+and review. A local-first workstation: nothing leaves your machine that
+you did not put in the address bar.
+
+|                          |                                                                                                                                                                                                                                                          |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Opening research**     | Compare Elite OTB, Recent Theory, and High-Rated Online *side by side*. The Explorer never produces a single "truth" score that quietly blends them.                                                                                                       |
+| **Engines**              | Stockfish 18 in the browser (sandboxed). Native Stockfish, Berserk, Halogen, Koivisto, Obsidian, PlentyChess, Stormphrax, Viridithas and Lc0 on macOS, with their digests verified and their licence on the row.                                       |
+| **Databases**            | Attach large personal collections (SQLite), search by position, structure, player, or claim. Copy, move, merge, dedupe, federate. Open positions and games back into the board.                                                                          |
+| **Theory Book**          | 3,810 named positions with ECO codes, browsable. Explains a variation by name only; never invents an evaluation.                                                                                                                                         |
+| **Players**              | 12,522 identities plus 106 historical figures. Diacritics, aliases, rapid typing, backspacing. Profile, what they play as White, what they play as Black, what changed recently.                                                                          |
+| **Repertoire & review**  | Add positions to repertoire, drill them, mark progress. Repertoire survives quit. Backup and restore work.                                                                                                                                              |
+| **Local-first**          | No account required. No hidden telemetry. Studies, repertoire, training and notes are stored locally. The diagnostic report is local; the log file is local.                                                                                            |
+
+## Privacy
+
+Kingfisher is local-first. The application does not phone home. There
+is nothing in the network panel during a normal session except the
+engines and reference data you asked for. Diagnostics exports never
+include Lichess tokens, API keys, full PGN libraries, or home-directory
+paths — credentials are redacted at write time.
+
+The web build is hosted on Vercel (when deployed) and the optional
+reference data lives in the public
+[mardakurt/kingfisher-data](https://github.com/mardakurt/kingfisher-data)
+mirror. There is no client-side analytics on the landing page.
+
+## Known limitations
+
+- **macOS preview is not notarized** — a Developer ID Application
+  certificate is the missing piece. Until then the install guide
+  walks through right-click → Open.
+- **No auto-update** — open Help → Check for updates, or browse the
+  releases page.
+- **Windows and Linux build but are unsupported** — the supported
+  desktop platform is Apple Silicon.
+- **macOS Intel** builds but has not been launched. The supported
+  desktop architecture is arm64.
+- **No games before 2020** in any first-party reference.
+- **Chess960 is not supported**, deliberately.
+- **Local Syzygy** needs table files the user supplies; the bundled
+  probe only goes up to 3 pieces.
+
+See [`CHANGELOG.md`](CHANGELOG.md) for the full list of release notes
+and [`docs/release/install-macos.md`](docs/release/install-macos.md) for
+the macOS install walkthrough.
+
+## Development
+
+See [`AGENTS.md`](AGENTS.md) for the project conventions, the
+`scripts/` directory for the build and verification scripts, and
+[`ARCHITECTURE.md`](ARCHITECTURE.md) for the deeper structure.
+
+The default remote CI is the lightweight one in `.github/workflows/ci.yml`
+(typecheck, lint, unit/integration tests, build). The heavy gates —
+full Playwright suite, desktop packaging, engine fleet, long soak — are
+deliberately manual; run them with `npm run release:verify:full`.
+
+## License
+
+Kingfisher source: [MIT](LICENSE). Reference data: see the licence
+declared in each pack's manifest, in the
+[kingfisher-data mirror](https://github.com/mardakurt/kingfisher-data).
+Engines: each engine carries its own licence (GPL-3.0 or AGPL-3.0 in
+the default catalogue); see [`docs/ENGINES.md`](docs/ENGINES.md).
+
 ---
+
+# Kingfisher (the original product README)
+
+A chess research workspace for players who study.
+
+Engine analysis, opening databases, annotation and game trees in one interface,
+built for someone who already knows what a Najdorf is and wants better tools —
+not a tutorial, not a puzzle streak, and not a wrapper that prints `+0.34` and
+calls it analysis.
 
 ## What you get on a fresh installation
 
