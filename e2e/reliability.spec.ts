@@ -206,7 +206,9 @@ test('the diagnostic report carries no secrets', async ({ page, context }) => {
   await settings.getByLabel('Lichess personal access token').fill('lip_secretTokenValue123456');
 
   await settings.getByRole('tab', { name: 'Diagnostics' }).click();
-  await settings.getByRole('button', { name: 'Copy diagnostic report' }).click();
+  // The full diagnostic report is the only one that includes a "Lichess token
+  // configured" line, so a configured token is what this test is protecting.
+  await settings.getByRole('button', { name: 'Copy full diagnostic report' }).click();
   await expect(settings.getByRole('button', { name: 'Copied' })).toBeVisible({ timeout: 15_000 });
 
   const report = await page.evaluate(() => navigator.clipboard.readText());
