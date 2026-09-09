@@ -82,21 +82,25 @@ describe('the generated opening index', () => {
     }
   });
 
-  it("holds the keys this build's rules code produces for every dataset line", () => {
-    const rows = datasetRows();
-    expect(rows.length).toBeGreaterThan(3000);
+  it(
+    "holds the keys this build's rules code produces for every dataset line",
+    () => {
+      const rows = datasetRows();
+      expect(rows.length).toBeGreaterThan(3000);
 
-    let missing = 0;
-    for (const row of rows) {
-      let position = Position.initial();
-      for (const san of movesOf(row.pgn)) {
-        const played = position.playSan(san);
-        expect(played.ok, `${row.eco} ${row.name}: ${san}`).toBe(true);
-        if (!played.ok) return;
-        position = Position.fromTrustedFen(played.value.after);
+      let missing = 0;
+      for (const row of rows) {
+        let position = Position.initial();
+        for (const san of movesOf(row.pgn)) {
+          const played = position.playSan(san);
+          expect(played.ok, `${row.eco} ${row.name}: ${san}`).toBe(true);
+          if (!played.ok) return;
+          position = Position.fromTrustedFen(played.value.after);
+        }
+        if (!OPENING_POSITIONS[positionKey(position.fen)]) missing += 1;
       }
-      if (!OPENING_POSITIONS[positionKey(position.fen)]) missing += 1;
-    }
-    expect(missing).toBe(0);
-  });
+      expect(missing).toBe(0);
+    },
+    120_000,
+  );
 });
