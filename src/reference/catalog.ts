@@ -30,6 +30,33 @@ export interface CatalogPack {
   readonly license: PackLicense;
   /** One line on where the data came from, shown before installation. */
   readonly origin: string;
+  /**
+   * Filter summary, so the catalog row can show what the build actually kept.
+   * Optional — older catalog rows and custom-URL packs may not carry one.
+   */
+  readonly filter?: PackFilterSummary;
+  /**
+   * The current published pack's freshness — earliest and latest game years
+   * the build retained. Carried here so the catalog UI can show "Recent
+   * Theory, Oct 2025–Sep 2026" without having to fetch a manifest.
+   */
+  readonly window?: PackWindowSummary;
+}
+
+/** One-line summary of a pack's filters, suitable for a catalog row. */
+export interface PackFilterSummary {
+  readonly minRating?: number;
+  readonly speeds?: readonly string[] | null;
+  readonly excludeOnline?: boolean;
+  readonly titles?: readonly string[];
+}
+
+/** Window the published pack actually covers, in human form. */
+export interface PackWindowSummary {
+  readonly firstYear?: number;
+  readonly lastYear: number;
+  /** Months the pack was assembled from, newest first. */
+  readonly archiveMonths?: readonly (string | undefined)[];
 }
 
 const LICHESS_STANDARD_LICENSE: PackLicense = {
@@ -137,6 +164,14 @@ export const CATALOG_PACKS: readonly CatalogPack[] = [
       '44,200 games, 918,069 positions, ' +
       '2,567 players. Published in the public, ' +
       'data-only mardakurt/kingfisher-data repository.',
+    filter: {
+      minRating: 2400,
+      titles: ['GM', 'IM', 'WGM'],
+      excludeOnline: true,
+    },
+    window: {
+      lastYear: 2026,
+    },
   },
   {
     id: 'kingfisher-high-rated-online',
@@ -173,6 +208,15 @@ export const CATALOG_PACKS: readonly CatalogPack[] = [
       '12,315 players. Bullet and ultrabullet are excluded. Not ' +
       'over-the-board master practice. Published in the public, data-only ' +
       'mardakurt/kingfisher-data repository.',
+    filter: {
+      minRating: 2400,
+      speeds: ['classical', 'rapid', 'blitz'],
+      excludeOnline: false,
+    },
+    window: {
+      lastYear: 2026,
+      archiveMonths: ['2026-07'],
+    },
   },
 ];
 

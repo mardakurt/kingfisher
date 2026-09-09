@@ -224,6 +224,7 @@ async function main() {
       retainedBySpeed: scanned.retainedBySpeed,
       speeds: definition.limits.speeds ?? null,
       minRating: definition.limits.minRating,
+      rejectedByReason: scanned.rejectedByReason,
       archiveMonths: wanted.map((file) => /\d{4}-\d{2}/.exec(file)?.[0]),
       buildImplementation: createHash('sha256')
         .update(readFileSync(fileURLToPath(import.meta.url)))
@@ -240,6 +241,57 @@ async function main() {
     compressedBytes,
   };
   writeFileSync(path.join(outDir, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
+
+  /*
+    Machine-readable build report. Written beside the manifest so every release
+    has, by its own contents, the receipt for where its numbers came from. No
+    paths leaked; everything is relative to the output directory or absolute
+    upstream URLs already in the manifest.
+  */
+  const buildReport = {
+    packId: definition.id,
+    packVersion: definition.version,
+    source: definition.source.name,
+    license: definition.source.license.id,
+    buildCommit: process.env.KINGFISHER_BUILD_COMMIT ?? null,
+    buildDate: new Date().toISOString(),
+    window: {
+      firstYear: scanned.kept > 0 ? undefined : undefined,
+      lastYear: scanned.maxYear,
+      archiveMonths: wanted.map((file) => /\d{4}-\d{2}/.exec(file)?.[0]),
+      speeds: definition.limits.speeds ?? null,
+      minRating: definition.limits.minRating,
+    },
+    filter: {
+      minPlies: definition.limits.minPlies,
+      minGames: definition.limits.minGames,
+      deepFromPly: definition.limits.deepFromPly ?? null,
+      deepMinGames: definition.limits.deepMinGames ?? null,
+      maxPly: definition.limits.maxPly,
+      maxRating: definition.limits.maxRating,
+      openRating: definition.limits.openRating,
+      titles: definition.limits.titles,
+      openTitles: definition.limits.openTitles,
+      excludeOnline: definition.limits.excludeOnline ?? false,
+    },
+    inputGames: scanned.seen,
+    acceptedGames: scanned.kept,
+    rejectedGames: scanned.rejected,
+    rejectedByReason: scanned.rejectedByReason,
+    duplicates: scanned.duplicates,
+    replayFailures: scanned.replayFailures,
+    openedGames: scanned.opened,
+    positions: counts.positions,
+    players: counts.players,
+    openableGames: counts.openable,
+    fullGames: counts.openable,
+    compressedBytes,
+    rawBytes,
+    chunks: chunks.length,
+    maxPly: definition.limits.maxPly - 1,
+    retainedBySpeed: scanned.retainedBySpeed,
+  };
+  writeFileSync(path.join(outDir, 'build-report.json'), `${JSON.stringify(buildReport, null, 2)}\n`);
 
   // Keep the incremental scan cache; it is derived data in .archive-cache.
   console.log(`games    ${counts.games.toLocaleString()} counted`);
@@ -307,9 +359,25 @@ function scan(archives, work, shards, limits, limit) {
     kept: 0,
     opened: 0,
     rejected: 0,
+    rejectedByReason: {
+      bad_result: 0,
+      too_short: 0,
+      non_standard_variant: 0,
+      set_up_position: 0,
+      missing_player: 0,
+      missing_rating: 0,
+      below_min_rating: 0,
+      above_max_rating: 0,
+      bot_match: 0,
+      online_event: 0,
+      duplicate: 0,
+      illegal_moves: 0,
+    },
     maxYear: 0,
     retainedBySpeed: {},
     directories: queue.map((item) => item.directory),
+    duplicates: 0,
+    replayFailures: 0,
   };
   const workerFile = new URL('./reference/scan.worker.mjs', import.meta.url);
   const workers = new Set();
@@ -327,11 +395,15 @@ function scan(archives, work, shards, limits, limit) {
       for (const [speed, count] of Object.entries(message.retainedBySpeed ?? {})) {
         totals.retainedBySpeed[speed] = (totals.retainedBySpeed[speed] ?? 0) + count;
       }
+      for (const [reason, count] of Object.entries(message.rejectedByReason ?? {})) {
+        totals.rejectedByReason[reason] = (totals.rejectedByReason[reason] ?? 0) + count;
+      }
       totals.seen += message.seen;
       totals.kept += message.kept;
       totals.opened += message.opened;
       totals.maxYear = Math.max(totals.maxYear, message.maxYear);
       totals.rejected += message.rejected;
+      totals.replayFailures += message.rejectedByReason?.illegal_moves ?? 0;
     };
     const pump = () => {
       if (failed) return;

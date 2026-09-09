@@ -59,6 +59,41 @@ describe('reference pipeline evidence counts', () => {
         );
       });
       expect(result).toMatchObject({ seen: 5, kept: 2, rejected: 1, opened: 2 });
+      /*
+        Categorised rejections. The historic `rejected` counter specifically
+        tracked games that failed chess replay; everything else that did not
+        make the pack was filtered out without being named, which is the gap
+        the categorisation closes. For this fixture:
+
+          - the BOT game     -> bot_match: 1
+          - the TCEC game    -> online_event: 1
+          - the Qh9 game     -> illegal_moves: 1 (also `rejected: 1`)
+
+        So the categories sum to (seen - kept), and `rejected` equals the
+        illegal_moves category — the part a build report must specifically
+        record, because it is the only one that means the rules code disagreed
+        with the source.
+      */
+      expect(result.rejectedByReason).toEqual({
+        bad_result: 0,
+        too_short: 0,
+        non_standard_variant: 0,
+        set_up_position: 0,
+        missing_player: 0,
+        missing_rating: 0,
+        below_min_rating: 0,
+        above_max_rating: 0,
+        bot_match: 1,
+        online_event: 1,
+        duplicate: 0,
+        illegal_moves: 1,
+      });
+      const rejectSum = Object.values(result.rejectedByReason).reduce(
+        (sum, value) => sum + value,
+        0,
+      );
+      expect(rejectSum + result.kept).toBe(result.seen);
+      expect(result.rejected).toBe(result.rejectedByReason.illegal_moves);
       const raw = readFileSync(path.join(dir, 'explorer/0.txt'), 'utf8').trim().split('\n');
       expect(raw).toHaveLength(8); // Four positions, two identical relay records.
       expect(readFileSync(path.join(dir, 'players/0.txt'), 'utf8')).not.toContain('Illegal');

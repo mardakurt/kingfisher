@@ -72,6 +72,13 @@ export interface PackManifest {
   readonly license: PackLicense;
   readonly provenance: PackProvenance;
   readonly counts: PackCounts;
+  /**
+   * The build's own receipt for how the pack was assembled. Surfaced in the
+   * data inventory, not in the install path; the install only verifies chunks,
+   * and a manifest whose `counts` does not agree with its `population` is
+   * checked at build time rather than re-derived on every install.
+   */
+  readonly population?: PackPopulation;
   /** Deepest position for which the build attempted to retain outgoing moves. */
   readonly maxPositionPly?: number;
   /** Games from this calendar year onwards are counted in the `recent` totals. */
@@ -82,6 +89,25 @@ export interface PackManifest {
   /** Total decompressed bytes, so an installer can show a real size. */
   readonly rawBytes: number;
   readonly compressedBytes: number;
+}
+
+/**
+ * A summary of how a pack was assembled. Lives on the manifest so every install
+ * carries the receipt, and lives in `docs/data/builds/` next to the
+ * machine-readable build report so a build can be reconstructed.
+ */
+export interface PackPopulation {
+  readonly gamesConsidered: number;
+  readonly gamesRetainedBeforeDeduplication: number;
+  readonly retainedBySpeed?: Readonly<Record<string, number>>;
+  readonly speeds?: readonly string[] | null;
+  readonly minRating?: number;
+  /**
+   * Categorised rejection counts, one per filter the worker applies. Present
+   * on packs built by the current pipeline; older packs omit it.
+   */
+  readonly rejectedByReason?: Readonly<Record<string, number>>;
+  readonly archiveMonths?: readonly (string | undefined)[];
 }
 
 /**

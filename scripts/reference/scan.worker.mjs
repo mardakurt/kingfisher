@@ -64,6 +64,26 @@ async function main() {
   let rejected = 0;
   let maxYear = 0;
   const retainedBySpeed = {};
+  /*
+    Categorised rejections. The "no games" pipeline is interesting mostly when
+    its filters can be inspected, and the only way to inspect a filter is to
+    know how many games it turned away and why. The categories below are the
+    exact predicates the worker applies, in the order they are applied.
+  */
+  const rejectedByReason = {
+    bad_result: 0,
+    too_short: 0,
+    non_standard_variant: 0,
+    set_up_position: 0,
+    missing_player: 0,
+    missing_rating: 0,
+    below_min_rating: 0,
+    above_max_rating: 0,
+    bot_match: 0,
+    online_event: 0,
+    duplicate: 0,
+    illegal_moves: 0,
+  };
   const started = Date.now();
   const progress = setInterval(() => {
     const memory = process.memoryUsage();
@@ -121,16 +141,31 @@ async function main() {
   for await (const { tags, moves } of readGames(file, accept ? { accept } : {})) {
     seen += 1;
     const result = tags.Result;
-    if (result !== '1-0' && result !== '0-1' && result !== '1/2-1/2') continue;
-    if (moves.length < limits.minPlies) continue;
-    if (tags.Variant && tags.Variant !== 'Standard') continue;
+    if (result !== '1-0' && result !== '0-1' && result !== '1/2-1/2') {
+      rejectedByReason.bad_result += 1;
+      continue;
+    }
+    if (moves.length < limits.minPlies) {
+      rejectedByReason.too_short += 1;
+      continue;
+    }
+    if (tags.Variant && tags.Variant !== 'Standard') {
+      rejectedByReason.non_standard_variant += 1;
+      continue;
+    }
     // A game starting from a set-up position is not part of an opening
     // reference, and its key sequence would not begin at the initial position.
-    if (tags.FEN) continue;
+    if (tags.FEN) {
+      rejectedByReason.set_up_position += 1;
+      continue;
+    }
 
     const white = (tags.White ?? '').trim();
     const black = (tags.Black ?? '').trim();
-    if (!white || !black) continue;
+    if (!white || !black) {
+      rejectedByReason.missing_player += 1;
+      continue;
+    }
 
     const whiteElo = Number(tags.WhiteElo) || 0;
     const blackElo = Number(tags.BlackElo) || 0;
@@ -148,15 +183,23 @@ async function main() {
 
     // Rating bounds alone cannot prove human or over-the-board provenance.
     // Also exclude explicitly marked bots and engine/online broadcasts.
-    if (stated.some((elo) => elo > limits.maxRating)) continue;
-    if (whiteTitle === 'BOT' || blackTitle === 'BOT') continue;
+    if (stated.some((elo) => elo > limits.maxRating)) {
+      rejectedByReason.above_max_rating += 1;
+      continue;
+    }
+    if (whiteTitle === 'BOT' || blackTitle === 'BOT') {
+      rejectedByReason.bot_match += 1;
+      continue;
+    }
     if (
       limits.excludeOnline &&
       /\b(tcec|computer|engine|online|lichess|chess\.com|bullet|titled tuesday)\b/i.test(
         `${tags.BroadcastName ?? ''} ${tags.Event ?? ''}`,
       )
-    )
+    ) {
+      rejectedByReason.online_event += 1;
       continue;
+    }
 
     /*
       Titles are the second way in, because the archive has two kinds of game.
@@ -167,7 +210,14 @@ async function main() {
       ought to contain.
     */
     const titled = limits.titles.includes(whiteTitle) && limits.titles.includes(blackTitle);
-    if (rated > 0 ? rated < limits.minRating : !titled) continue;
+    if (rated === 0 && !titled) {
+      rejectedByReason.missing_rating += 1;
+      continue;
+    }
+    if (rated > 0 && rated < limits.minRating) {
+      rejectedByReason.below_min_rating += 1;
+      continue;
+    }
 
     const date = normaliseDate(tags.UTCDate ?? tags.Date ?? '');
     /*
@@ -226,6 +276,7 @@ async function main() {
       position = advanced.value.next;
     }
     if (illegal) {
+      rejectedByReason.illegal_moves += 1;
       rejected += 1;
       continue;
     }
@@ -288,6 +339,7 @@ async function main() {
     kept,
     opened,
     rejected,
+    rejectedByReason,
     maxYear,
     retainedBySpeed,
   });
