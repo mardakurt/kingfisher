@@ -221,6 +221,11 @@ function useReferenceCoverage(
      */
     let cancelled = false;
     const abort = new AbortController();
+    // Mark the run as pending so the row can render a spinner.
+    // The rule against setState in effects is real, but here
+    // the effect is *itself* the run; the render that follows
+    // its synchronous prefix is exactly what we want.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setState({ data: [], pending: true });
     (async () => {
       const results = await runBounded({

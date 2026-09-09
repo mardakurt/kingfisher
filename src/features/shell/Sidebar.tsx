@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { ChevronLeft, ChevronRight, Close, Moon, Settings, Sun } from '@/components/icons';
 import { IconButton } from '@/components/ui/Button';
 import { cn } from '@/lib/cn';
+import { StoragePersistenceStatus } from '@/persistence/StoragePersistenceStatus';
 import { useUi } from '@/stores/ui-store';
 import { usePreferences } from '@/stores/preferences-store';
 import { useWorkspaceLayout } from '@/stores/workspace-layout-store';
@@ -223,6 +224,21 @@ export function Sidebar({ variant = 'desktop', onClose }: SidebarProps) {
           <span className={cn('truncate', compact && 'hidden')}>Settings</span>
           <kbd className={cn('ml-auto font-mono text-[10px]', compact && 'hidden')}>⌘,</kbd>
         </button>
+        {/*
+          Phase 29 (PART AJ-AK): a quiet "Saved on this device"
+          status, with copy that does not overpromise. Hidden in
+          the collapsed sidebar; the title attribute carries the
+          detail for screen readers and the hover tooltip.
+        */}
+        {!compact ? (
+          <div className="mt-1 flex min-h-6 items-center px-3">
+            <StoragePersistenceStatus />
+          </div>
+        ) : (
+          <div className="mt-1 flex min-h-6 items-center justify-center">
+            <StoragePersistenceStatus compact />
+          </div>
+        )}
       </div>
     </nav>
   );
