@@ -455,8 +455,8 @@ export function ExplorerPanel() {
                         className="px-1.5 py-1.5 text-right font-medium"
                         title={
                           carriedSince !== undefined && window.years === 0
-                            ? `Games in this source from ${carriedSince} onwards`
-                            : `Games in the last ${window.label.toLowerCase()}`
+                            ? `Games in this source from ${carriedSince} onwards. The colour of the percentage is the trend: ↑ when it grew by more than the move's own share or 2 percentage points, ↓ when it shrank by that much, → otherwise. A move with too few games to judge is marked "small sample".`
+                            : `Games in the last ${window.label.toLowerCase()}. The colour of the percentage is the trend: ↑ when it grew by more than the move's own share or 2 percentage points, ↓ when it shrank by that much, → otherwise. A move with too few games to judge is marked "small sample".`
                         }
                       >
                         {carriedSince !== undefined && window.years === 0
@@ -628,6 +628,29 @@ function Row({
   readonly onPlay: () => void;
 }) {
   const trend = trendOf(entry);
+  /*
+    Honest trend reporting. A move with only a handful of games gets a small-
+    sample marker and never a colour, because a "rise" or "fall" calculated
+    over three games is not a finding. The marker is the same word, not a
+    derived "confidence 23%", because the only confidence this product is
+    entitled to claim is "this is what the data you asked for shows".
+  */
+  const trendLabel: string =
+    trend === 'rising'
+      ? '↑'
+      : trend === 'falling'
+        ? '↓'
+        : trend === 'steady'
+          ? '→'
+          : trend === 'insufficient'
+            ? 'small sample'
+            : '';
+  const trendClass =
+    trend === 'rising'
+      ? 'text-positive'
+      : trend === 'falling'
+        ? 'text-negative'
+        : 'text-secondary';
   return (
     <tr className={cn(selected && 'bg-accent-muted')}>
       <td className="px-1.5 py-1.5">
@@ -660,17 +683,24 @@ function Row({
       </td>
       {showRecent ? (
         <td className="px-1.5 py-1.5 text-right tabular">
-          <span
-            className={cn(
-              trend === 'rising' && 'text-positive',
-              trend === 'falling' && 'text-negative',
-              (trend === 'steady' || trend === 'insufficient') && 'text-secondary',
-            )}
-          >
-            {entry.recentFrequency === undefined
-              ? '—'
-              : `${Math.round(entry.recentFrequency * 100)}%`}
-          </span>
+          <div className="flex flex-col items-end leading-tight">
+            <span className={cn(trendClass)}>
+              {entry.recentFrequency === undefined
+                ? '—'
+                : `${Math.round(entry.recentFrequency * 100)}%`}
+              {trendLabel ? (
+                <span className="ml-1 text-[10px]" aria-label={`Trend: ${trend}`}>
+                  {trendLabel}
+                </span>
+              ) : null}
+            </span>
+            {entry.recentGames !== undefined ? (
+              <span className="text-[9px] text-tertiary" aria-label="Recent sample size">
+                {entry.recentGames.toLocaleString()}
+                {trend === 'insufficient' ? ' · small sample' : ''}
+              </span>
+            ) : null}
+          </div>
         </td>
       ) : null}
       <td className="px-1.5 py-1.5 text-right text-secondary tabular">

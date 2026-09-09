@@ -141,6 +141,14 @@ describe('calling something a trend', () => {
     })[0]!;
     expect(trendOf(evidence)).toBe('insufficient');
   });
+
+  it('marks 3-of-7 evidence as insufficient, never as a trend', () => {
+    // The brief's warning: 3/7 games must not look equivalent to 3,000/7,000.
+    const tiny = withRecent(7, 3, 7);
+    expect(tiny.recentGames).toBe(3);
+    expect(tiny.database.games).toBe(7);
+    expect(trendOf(tiny)).toBe('insufficient');
+  });
 });
 
 describe('the comparison summary', () => {
