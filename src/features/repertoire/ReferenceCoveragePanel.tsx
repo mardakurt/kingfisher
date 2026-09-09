@@ -21,6 +21,7 @@ import { useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/Button';
 import { useDatabaseProviders } from '@/database/use-database-providers';
 import type { ExplorerQuery, ExplorerResult } from '@/database/types';
+import { runBounded } from '@/lib/bounded-parallelism';
 import { getRepositories } from '@/persistence/repositories';
 import type { RepertoirePositionRecord } from '@/persistence/domain';
 import { isActionable, topGaps, computeCoverage } from '@/repertoire/coverage';
@@ -207,13 +208,33 @@ function useReferenceCoverage(
     if (!provider || positions.length === 0) {
       return;
     }
+    /*
+     * Phase 29 BJ-BL: replace the sequential "20 awaits" with
+     * a bounded-concurrency pool. The provider's own
+     * `explore` is the network boundary, so a concurrency of
+     * 4 keeps the wire busy without ever starving the UI
+     * thread on a phone. Cancellation goes through the
+     * effect's own `cancelled` flag rather than the bounded
+     * runner's signal — the in-flight `explore` call is not
+     * interruptible in every provider, but no new ones are
+     * started once the user moves on.
+     */
     let cancelled = false;
-    const reports: CoverageReport[] = [];
+    const abort = new AbortController();
+    setState({ data: [], pending: true });
     (async () => {
-      for (const position of positions) {
-        if (cancelled) return;
-        const result = await provider.explore({ fen: position.fen, limit: 10 });
-        if (cancelled) return;
+      const results = await runBounded({
+        items: positions,
+        concurrency: 4,
+        signal: abort.signal,
+        worker: (position) => provider.explore({ fen: position.fen, limit: 10 }),
+      });
+      if (cancelled) return;
+      const reports: CoverageReport[] = [];
+      for (let index = 0; index < positions.length; index += 1) {
+        const position = positions[index];
+        const result = results[index];
+        if (!position || !result) continue;
         for (const report of computeCoverage(position, [
           { id: provider.id, name: provider.id, result },
         ])) {
@@ -226,6 +247,7 @@ function useReferenceCoverage(
     });
     return () => {
       cancelled = true;
+      abort.abort();
     };
   }, [providerId, positionsLength, provider, positions]);
 
