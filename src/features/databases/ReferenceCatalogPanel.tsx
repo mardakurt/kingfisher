@@ -34,6 +34,7 @@ import {
 } from '@/reference/manager';
 import { useDataSources, useSourceActions } from '@/reference/sources';
 import { useReferenceSources } from '@/reference/use-references';
+import { describeError } from '@/lib/describe-error';
 import {
   CAPABILITY_LABELS,
   DEFAULT_SOURCE_PREFERENCE,
@@ -217,10 +218,16 @@ export function ReferenceCatalogPanel() {
                                 : `${source.name}: all chunks verified.`,
                             });
                           } catch (error) {
+                            // Phase 29 CH: a verification failure
+                            // surfaces the user-facing line, not a
+                            // raw exception. The remedy is appended
+                            // when one is available.
+                            const described = describeError(error);
                             notify({
                               tone: 'error',
-                              message:
-                                error instanceof Error ? error.message : 'Verification failed.',
+                              message: described.remedy
+                                ? `${described.message} ${described.remedy}`
+                                : described.message || 'Verification failed.',
                             });
                           } finally {
                             setVerifying(null);

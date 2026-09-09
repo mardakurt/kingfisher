@@ -21,7 +21,7 @@ import Link from 'next/link';
 import { formatScore } from '@/chess/evaluation';
 import { moveIntent } from '@/chess/moves';
 import { positionKey, START_FEN } from '@/chess/fen';
-import { DatabaseError, type DatabaseMove } from '@/database/types';
+import type { DatabaseMove } from '@/database/types';
 import { useDatabaseProviders } from '@/database/use-database-providers';
 import { Button, IconButton } from '@/components/ui/Button';
 import { EmptyState, PanelBody, PanelHeader } from '@/components/ui/Panel';
@@ -31,6 +31,7 @@ import { useChessWorkspace } from '@/features/workspace/ChessWorkspaceContext';
 import { useRepertoiresAtPosition } from '@/features/persistence/queries';
 import { Database, Filter, Plus, Target } from '@/components/icons';
 import { cn } from '@/lib/cn';
+import { describeError } from '@/lib/describe-error';
 import { useAnalysis } from '@/stores/analysis-store';
 import { useEngine } from '@/stores/engine-store';
 import { usePreferences } from '@/stores/preferences-store';
@@ -51,10 +52,13 @@ import { usePositionContext } from './usePositionContext';
 
 /** Whatever went wrong, in the words the source itself used. */
 function describeFailure(error: unknown): string {
-  if (error instanceof DatabaseError) {
-    return `${error.message}${error.remedy ? ` ${error.remedy}` : ''}`;
-  }
-  return error instanceof Error ? error.message : 'The lookup failed.';
+  // Phase 29 CH: the user-facing line is what `describeError`
+  // produces, not the raw exception. DatabaseError still flows
+  // its `remedy` through, but a TypeError or DOMException
+  // becomes the standard "temporarily unavailable" line.
+  const described = describeError(error);
+  if (!described.remedy) return described.message;
+  return `${described.message} ${described.remedy}`;
 }
 
 /** How far back "recent" reaches, for the theory comparison. */
