@@ -1,6 +1,6 @@
 {
   "name": "kingfisher-desktop",
-  "version": "1.0.0-rc.4",
+  "version": "1.0.0-rc.5",
   "private": true,
   "description": "The desktop shell for Kingfisher. Owns the companion, serves the web application, and adds the native file workflows a browser cannot.",
   "type": "module",

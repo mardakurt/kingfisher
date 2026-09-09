@@ -46,21 +46,21 @@ self-consistent, with two documented operational gaps.**
 
 ## 2. Public URL map
 
-| Surface             | URL                                                                              | Status                 |
-| ------------------- | -------------------------------------------------------------------------------- | ---------------------- |
-| Landing page        | <https://mardakurt.github.io/kingfisher-data/>                                   | LIVE (redesigned)      |
-| Web app             | <https://kingfisher.vercel.app>                                                  | DEPLOY PENDING (Vercel) |
-| GitHub repository   | <https://github.com/mardakurt/kingfisher>                                        | LIVE (public)          |
-| Latest release      | <https://github.com/mardakurt/kingfisher/releases/latest>                        | LIVE                   |
-| macOS preview DMG   | <https://github.com/mardakurt/kingfisher/releases/download/v1.0.0-rc.4/Kingfisher-1.0.0-rc.4-arm64.dmg> | LIVE (150 MB) |
-| Issue tracker       | <https://github.com/mardakurt/kingfisher/issues>                                 | LIVE                   |
-| Discussions         | <https://github.com/mardakurt/kingfisher/discussions>                            | LIVE                   |
-| Docs                | <https://github.com/mardakurt/kingfisher/tree/master/docs>                       | LIVE                   |
-| Data mirror         | <https://mardakurt.github.io/kingfisher-data>                                    | LIVE (public)          |
-| Pack — Elite OTB    | <https://mardakurt.github.io/kingfisher-data/reference-elite-v2/manifest.json>   | LIVE                   |
-| Pack — Recent       | <https://mardakurt.github.io/kingfisher-data/reference-recent-v1/manifest.json>  | LIVE                   |
-| Pack — High-Rated   | <https://mardakurt.github.io/kingfisher-data/reference-online-v1/manifest.json>  | LIVE                   |
-| Security policy     | <https://github.com/mardakurt/kingfisher/security/policy>                       | LIVE (this commit)     |
+| Surface           | URL                                                                                                     | Status                  |
+| ----------------- | ------------------------------------------------------------------------------------------------------- | ----------------------- |
+| Landing page      | <https://mardakurt.github.io/kingfisher-data/>                                                          | LIVE (redesigned)       |
+| Web app           | <https://kingfisher.vercel.app>                                                                         | DEPLOY PENDING (Vercel) |
+| GitHub repository | <https://github.com/mardakurt/kingfisher>                                                               | LIVE (public)           |
+| Latest release    | <https://github.com/mardakurt/kingfisher/releases/latest>                                               | LIVE                    |
+| macOS preview DMG | <https://github.com/mardakurt/kingfisher/releases/download/v1.0.0-rc.4/Kingfisher-1.0.0-rc.4-arm64.dmg> | LIVE (150 MB)           |
+| Issue tracker     | <https://github.com/mardakurt/kingfisher/issues>                                                        | LIVE                    |
+| Discussions       | <https://github.com/mardakurt/kingfisher/discussions>                                                   | LIVE                    |
+| Docs              | <https://github.com/mardakurt/kingfisher/tree/master/docs>                                              | LIVE                    |
+| Data mirror       | <https://mardakurt.github.io/kingfisher-data>                                                           | LIVE (public)           |
+| Pack — Elite OTB  | <https://mardakurt.github.io/kingfisher-data/reference-elite-v2/manifest.json>                          | LIVE                    |
+| Pack — Recent     | <https://mardakurt.github.io/kingfisher-data/reference-recent-v1/manifest.json>                         | LIVE                    |
+| Pack — High-Rated | <https://mardakurt.github.io/kingfisher-data/reference-online-v1/manifest.json>                         | LIVE                    |
+| Security policy   | <https://github.com/mardakurt/kingfisher/security/policy>                                               | LIVE (this commit)      |
 
 The canonical URL configuration lives in
 [`src/release/public-urls.ts`](../../src/release/public-urls.ts).
@@ -73,22 +73,22 @@ the project is created.
 
 ## 3. Landing page — before / after
 
-| Metric              | Before (Phase 23)        | After (Phase 24)             |
-| ------------------- | ------------------------ | ---------------------------- |
-| HTML                | 22 KB                    | 31 KB                        |
-| CSS                | 14 KB                    | 24 KB                        |
-| JS                 | 5 KB                     | 7 KB                         |
-| Brand mark         | 0.7 KB                   | 0.7 KB                       |
-| OG image            | 150 KB                   | 150 KB                       |
-| Total above-fold   | ~190 KB                  | ~210 KB                      |
-| Hero content        | single board, no source | board + Explorer + engine panel |
-| Sources section     | cards, 4 columns         | cards, 4 columns, license + counts |
-| Engine list         | 9 cards                  | 9 rows, with role tags       |
-| Mobile widths       | 320 / 375 / 390 / 430    | same + 1024 / 1440 / 1920    |
-| CSP                 | none (static site)       | strict meta, no remote scripts |
-| `prefers-reduced-motion` | respected             | respected                    |
-| Telemetry           | none                     | none (unchanged)             |
-| Visual direction    | warm, single hero        | dark, premium, multi-panel  |
+| Metric                   | Before (Phase 23)       | After (Phase 24)                   |
+| ------------------------ | ----------------------- | ---------------------------------- |
+| HTML                     | 22 KB                   | 31 KB                              |
+| CSS                      | 14 KB                   | 24 KB                              |
+| JS                       | 5 KB                    | 7 KB                               |
+| Brand mark               | 0.7 KB                  | 0.7 KB                             |
+| OG image                 | 150 KB                  | 150 KB                             |
+| Total above-fold         | ~190 KB                 | ~210 KB                            |
+| Hero content             | single board, no source | board + Explorer + engine panel    |
+| Sources section          | cards, 4 columns        | cards, 4 columns, license + counts |
+| Engine list              | 9 cards                 | 9 rows, with role tags             |
+| Mobile widths            | 320 / 375 / 390 / 430   | same + 1024 / 1440 / 1920          |
+| CSP                      | none (static site)      | strict meta, no remote scripts     |
+| `prefers-reduced-motion` | respected               | respected                          |
+| Telemetry                | none                    | none (unchanged)                   |
+| Visual direction         | warm, single hero       | dark, premium, multi-panel         |
 
 ## 4. Landing design
 
@@ -132,22 +132,22 @@ set to `strict-origin-when-cross-origin`.
 Every CTA and link in the application and the landing
 page was checked against the public URL map above.
 
-| From → To                                | Result        | Verified                |
-| ---------------------------------------- | ------------- | ----------------------- |
-| Landing → Web app                        | points at `kingfisher.vercel.app` | the URL exists; the project does not yet. |
-| Landing → macOS download                 | points at the v1.0.0-rc.4 release asset | 200, 150 MB.           |
-| Landing → GitHub                         | points at the kingfisher repository | 200.                    |
-| Landing → Issues                         | points at the kingfisher issue tracker | 200.                    |
-| Landing → Docs / install guide           | points at the install-macos guide in master | 200. |
-| Landing → Pack manifests                 | points at the three pack manifests on the data mirror | 200, byte-for-byte match. |
-| App (About) → Website                    | points at the landing page | 200.                    |
-| App (Help) → GitHub                      | points at the kingfisher repository | 200.                    |
-| App (Help) → Issues                      | points at the kingfisher issue tracker | 200.                    |
-| App (Help) → Latest release              | points at `…/releases/latest` | 200.                    |
-| README → Landing / Web / macOS / GitHub  | matches the URL map | all 200.                |
-| CHANGELOG → Releases page                | matches                                          | 200.                    |
-| Release notes 1.0.0-rc.4 → Install guide | matches                                          | 200.                    |
-| Web → Data mirror (CORS)                 | the Vercel deployment will be tested with this | deploy-pending.        |
+| From → To                                | Result                                                | Verified                                  |
+| ---------------------------------------- | ----------------------------------------------------- | ----------------------------------------- |
+| Landing → Web app                        | points at `kingfisher.vercel.app`                     | the URL exists; the project does not yet. |
+| Landing → macOS download                 | points at the v1.0.0-rc.4 release asset               | 200, 150 MB.                              |
+| Landing → GitHub                         | points at the kingfisher repository                   | 200.                                      |
+| Landing → Issues                         | points at the kingfisher issue tracker                | 200.                                      |
+| Landing → Docs / install guide           | points at the install-macos guide in master           | 200.                                      |
+| Landing → Pack manifests                 | points at the three pack manifests on the data mirror | 200, byte-for-byte match.                 |
+| App (About) → Website                    | points at the landing page                            | 200.                                      |
+| App (Help) → GitHub                      | points at the kingfisher repository                   | 200.                                      |
+| App (Help) → Issues                      | points at the kingfisher issue tracker                | 200.                                      |
+| App (Help) → Latest release              | points at `…/releases/latest`                         | 200.                                      |
+| README → Landing / Web / macOS / GitHub  | matches the URL map                                   | all 200.                                  |
+| CHANGELOG → Releases page                | matches                                               | 200.                                      |
+| Release notes 1.0.0-rc.4 → Install guide | matches                                               | 200.                                      |
+| Web → Data mirror (CORS)                 | the Vercel deployment will be tested with this        | deploy-pending.                           |
 
 ## 6. Vercel
 
@@ -163,9 +163,9 @@ The path is:
 2. Sign in with the GitHub account that owns the
    `mardakurt/kingfisher` repository.
 3. Accept the default Next.js detection. No `Root
-   Directory` change. The build is `next build`, the
+Directory` change. The build is `next build`, the
    install is `npm ci`.
-4. Deploy. The first deployment is the *Production*
+4. Deploy. The first deployment is the _Production_
    environment.
 5. Copy the project URL (something like
    `https://kingfisher-<hash>.vercel.app` or a custom
@@ -222,21 +222,21 @@ The full report is in
 No Critical or High issue is open. The four findings are
 all INFORMATIONAL (intentional test fixtures).
 
-| Scope                | Tool                  | Result                  |
-| -------------------- | --------------------- | ----------------------- |
-| source tree         | gitleaks 8.30.1       | 4 INFORMATIONAL         |
-| git history          | gitleaks 8.30.1       | same 4 INFORMATIONAL    |
-| data mirror          | gitleaks 8.30.1       | 0 findings              |
-| personal paths       | regex sweep           | 0 findings              |
-| production runtime   | `npm audit --omit=dev`| 0 High / 0 Critical     |
-| Electron baseline    | manual review         | 0 findings              |
-| Companion loopback   | manual review         | 0 findings              |
-| Engine downloads     | manual review         | 0 findings              |
-| Pack downloads       | manual review         | 0 findings              |
-| OAuth                | manual review         | 0 findings              |
-| GitHub Actions       | manual review         | 0 findings              |
-| Release artefact     | manual review         | 0 findings              |
-| Public data repo     | gitleaks + manual     | 0 findings              |
+| Scope              | Tool                   | Result               |
+| ------------------ | ---------------------- | -------------------- |
+| source tree        | gitleaks 8.30.1        | 4 INFORMATIONAL      |
+| git history        | gitleaks 8.30.1        | same 4 INFORMATIONAL |
+| data mirror        | gitleaks 8.30.1        | 0 findings           |
+| personal paths     | regex sweep            | 0 findings           |
+| production runtime | `npm audit --omit=dev` | 0 High / 0 Critical  |
+| Electron baseline  | manual review          | 0 findings           |
+| Companion loopback | manual review          | 0 findings           |
+| Engine downloads   | manual review          | 0 findings           |
+| Pack downloads     | manual review          | 0 findings           |
+| OAuth              | manual review          | 0 findings           |
+| GitHub Actions     | manual review          | 0 findings           |
+| Release artefact   | manual review          | 0 findings           |
+| Public data repo   | gitleaks + manual      | 0 findings           |
 
 ## 9. Secret scan
 
@@ -332,11 +332,11 @@ channel.
 
 The three reference packs are public and verified:
 
-| Pack                | URL                                                                              | Bytes | SHA-256 (first chunk)         |
-| ------------------- | -------------------------------------------------------------------------------- | ----- | ----------------------------- |
-| Elite OTB v2        | <https://mardakurt.github.io/kingfisher-data/reference-elite-v2/manifest.json>   | 324 MB | 7595b9e6541604ffa22352a351d5e39e73e47b9cc45c871decc2ca7791db2f6f |
-| Recent Theory v1    | <https://mardakurt.github.io/kingfisher-data/reference-recent-v1/manifest.json>  | 32 MB | 97520d0db173b54490773dfe68166eb88b4280d0f37f416b9732fd3f9ca425aa |
-| High-Rated Online v1 | <https://mardakurt.github.io/kingfisher-data/reference-online-v1/manifest.json> | 82 MB | 0f28b0e87922d2205047bea9d22ed8806f9b0f2b05f77282ffe87f602b919e0e |
+| Pack                 | URL                                                                             | Bytes  | SHA-256 (first chunk)                                            |
+| -------------------- | ------------------------------------------------------------------------------- | ------ | ---------------------------------------------------------------- |
+| Elite OTB v2         | <https://mardakurt.github.io/kingfisher-data/reference-elite-v2/manifest.json>  | 324 MB | 7595b9e6541604ffa22352a351d5e39e73e47b9cc45c871decc2ca7791db2f6f |
+| Recent Theory v1     | <https://mardakurt.github.io/kingfisher-data/reference-recent-v1/manifest.json> | 32 MB  | 97520d0db173b54490773dfe68166eb88b4280d0f37f416b9732fd3f9ca425aa |
+| High-Rated Online v1 | <https://mardakurt.github.io/kingfisher-data/reference-online-v1/manifest.json> | 82 MB  | 0f28b0e87922d2205047bea9d22ed8806f9b0f2b05f77282ffe87f602b919e0e |
 
 A clean-profile install walkthrough was verified during
 the Phase 22 handover; Phase 24 did not re-run it because
@@ -406,6 +406,7 @@ relied on `gitleaks` (run locally in 1-3 seconds) and
 scheduled remote workflow.
 
 Tag-push triggers are unchanged:
+
 - `ci.yml` (Quality + build) on push to master and PRs;
 - `release-build.yml` (web build) on tag push;
 - `browser-cert.yml` on tag push and a monthly schedule;
@@ -420,40 +421,40 @@ correct manual workflow for the subsystem that changed.
 
 Local:
 
-| Suite                                            | Result           |
-| ------------------------------------------------ | ---------------- |
-| `npm run typecheck`                              | 0 errors         |
-| `npm run lint`                                   | 0 errors         |
-| `npm run format:check` (was soft-failed)        | **GREEN**        |
-| `npm test` (vitest, src/)                        | 2177 passed, 11 skipped |
-| `npm run build` (next build)                     | succeeds         |
-| `git diff --check`                               | clean            |
-| `npm run security:scan` (gitleaks + npm audit)   | 0 High / 0 Critical |
-| `npm run public:check` (live public URLs)        | 14/19, 5 are Vercel-pending |
-| `npm run desktop:smoke -- --packaged`           | 17/17            |
-| `npm run desktop:restart -- --packaged`         | 5/5 (work survives quit) |
+| Suite                                          | Result                      |
+| ---------------------------------------------- | --------------------------- |
+| `npm run typecheck`                            | 0 errors                    |
+| `npm run lint`                                 | 0 errors                    |
+| `npm run format:check` (was soft-failed)       | **GREEN**                   |
+| `npm test` (vitest, src/)                      | 2177 passed, 11 skipped     |
+| `npm run build` (next build)                   | succeeds                    |
+| `git diff --check`                             | clean                       |
+| `npm run security:scan` (gitleaks + npm audit) | 0 High / 0 Critical         |
+| `npm run public:check` (live public URLs)      | 14/19, 5 are Vercel-pending |
+| `npm run desktop:smoke -- --packaged`          | 17/17                       |
+| `npm run desktop:restart -- --packaged`        | 5/5 (work survives quit)    |
 
 Remote:
 
-| Workflow                       | What was run                                  |
-| ------------------------------ | --------------------------------------------- |
-| `ci.yml`                       | not run (local gate is sufficient)             |
-| `release-build.yml`            | not run (no v* tag in Phase 24)                |
-| `browser-cert.yml`             | not run (no v* tag in Phase 24)                |
-| `engine-build.yml`             | not run (engine catalogue unchanged)           |
-| `engines.yml`                  | not run (engine catalogue unchanged)           |
-| `desktop-package.yml`          | not run (Linux/Windows are not supported)      |
-| `lichess-smoke.yml`            | not run (manual only)                          |
-| `visual-review.yml`            | not run (visual baseline unchanged)            |
+| Workflow              | What was run                              |
+| --------------------- | ----------------------------------------- |
+| `ci.yml`              | not run (local gate is sufficient)        |
+| `release-build.yml`   | not run (no v* tag in Phase 24)           |
+| `browser-cert.yml`    | not run (no v* tag in Phase 24)           |
+| `engine-build.yml`    | not run (engine catalogue unchanged)      |
+| `engines.yml`         | not run (engine catalogue unchanged)      |
+| `desktop-package.yml` | not run (Linux/Windows are not supported) |
+| `lichess-smoke.yml`   | not run (manual only)                     |
+| `visual-review.yml`   | not run (visual baseline unchanged)       |
 
 ## 20. Bugs / security findings
 
-| # | Severity        | Title                                                                                              | Status     |
-| - | --------------- | -------------------------------------------------------------------------------------------------- | ---------- |
-| 1 | INFORMATIONAL   | 4 gitleaks false positives in test fixtures (Lichess token, OpenAI key, companion token, PGN key) | Documented, marked `gitleaks:allow` |
-| 2 | MEDIUM          | Phase 23 used `rsync --delete` on the data mirror, which is unsafe                                   | **Resolved** — `npm run publish:site` is the new path |
-| 3 | INFORMATIONAL   | Web app is not yet deployed to a public URL                                                          | **Open** — Vercel one-click import is the single remaining operator action |
-| 4 | INFORMATIONAL   | macOS preview is not notarized                                                                       | **Open** — Developer ID Application certificate is the missing piece |
+| #   | Severity      | Title                                                                                             | Status                                                                     |
+| --- | ------------- | ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| 1   | INFORMATIONAL | 4 gitleaks false positives in test fixtures (Lichess token, OpenAI key, companion token, PGN key) | Documented, marked `gitleaks:allow`                                        |
+| 2   | MEDIUM        | Phase 23 used `rsync --delete` on the data mirror, which is unsafe                                | **Resolved** — `npm run publish:site` is the new path                      |
+| 3   | INFORMATIONAL | Web app is not yet deployed to a public URL                                                       | **Open** — Vercel one-click import is the single remaining operator action |
+| 4   | INFORMATIONAL | macOS preview is not notarized                                                                    | **Open** — Developer ID Application certificate is the missing piece       |
 
 ## 21. Known limitations
 

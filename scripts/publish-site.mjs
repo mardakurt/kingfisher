@@ -139,6 +139,7 @@ for (const path of walk(marketingDir)) {
 // 2) Verify no protected path is touched in the stage.
 for (const path of walk(STAGE)) {
   const rel = relative(STAGE, path);
+  if (rel === '.git' || rel.startsWith('.git/')) continue;
   if (PROTECTED.some((re) => re.test(rel))) {
     // data, leave alone
     continue;
@@ -151,7 +152,7 @@ for (const path of walk(STAGE)) {
     // It exists in stage but not in marketing. Refuse to delete
     // it; the human is the only one who can remove a path the
     // landing does not own.
-    if (rel === '.git' || rel === '.nojekyll' || rel === 'README.md') continue;
+    if (rel === '.nojekyll' || rel === 'README.md') continue;
     console.error(`Refusing to delete ${rel} from the data repository.`);
     console.error(`This path is not in the marketing allow-list and may belong to a`);
     console.error(`reference pack or a non-landing artefact. Remove it by hand if it`);

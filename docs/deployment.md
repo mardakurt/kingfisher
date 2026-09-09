@@ -9,7 +9,7 @@ Where each surface is hosted, and how to publish a new release.
 | Landing page            | <https://mardakurt.github.io/kingfisher-data/>                       |
 | Optional reference data | the `kingfisher-data` Pages site, at `/reference-{pack}-{version}/`  |
 | macOS preview build     | a `Kingfisher-*.dmg` attached to a GitHub Release on this repository |
-| Web app                 | deployed to Vercel from the repository root                          |
+| Web app                 | <https://kingfisher-chess.vercel.app/>                               |
 | Source / issues         | <https://github.com/mardakurt/kingfisher>                            |
 
 ## How a release happens
@@ -52,14 +52,15 @@ Then:
 1. Sign in to Vercel with the GitHub account that owns the
    `mardakurt/kingfisher` repository.
 2. Accept the default Next.js detection. The `Root
-   Directory` stays at the repository root. The build is
-   `next build`, the install is `npm ci`.
+Directory` stays at the repository root. `vercel.json`
+   installs the verified browser engine before the Next.js
+   build; the install command is `npm ci`.
 3. Click **Deploy**. The first deployment is the
-   *Production* environment.
+   _Production_ environment.
 4. Copy the project URL (it will be something like
    `https://kingfisher-<hash>.vercel.app`).
-5. In the Vercel project *Settings → Environment
-   Variables*, set the Production variable:
+5. In the Vercel project _Settings → Environment
+   Variables_, set the Production variable:
    ```
    KINGFISHER_PUBLIC_WEB_URL = <your project URL>
    ```
@@ -89,7 +90,7 @@ not set; it never blocks the release flow.
 ### Custom domain
 
 Optional, post-launch. Configure in
-*Settings → Domains* once the project exists. Avoid
+_Settings → Domains_ once the project exists. Avoid
 purchasing or configuring a domain without explicit
 maintainer approval.
 

@@ -1,6 +1,11 @@
-import { redirect } from 'next/navigation';
+import { LandingPage } from './landing/LandingPage';
 
-/** The application opens into the analysis workspace, not a landing page. */
+export const metadata = {
+  title: 'Kingfisher — chess research, in one place',
+  description:
+    'Kingfisher is a local-first chess workstation for serious players. Opening research, engines, databases, repertoire and review. Web and macOS.',
+};
+
 export default function Home() {
-  redirect('/analysis');
+  return <LandingPage />;
 }

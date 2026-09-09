@@ -45,23 +45,29 @@ const hasGitleaks = (() => {
 })();
 
 if (!hasGitleaks) {
-  warnings.push('gitleaks is not installed; the secret scan was skipped. Install with: brew install gitleaks');
+  warnings.push(
+    'gitleaks is not installed; the secret scan was skipped. Install with: brew install gitleaks',
+  );
   log('gitleaks is not installed. Skipping the secret scan.');
 } else {
   const scan = (label, args) => {
     log(`\n--- ${label} ---`);
     const tmp = `/tmp/kingfisher-gitleaks-${Math.random().toString(36).slice(2)}.json`;
-    const result = spawnSync('gitleaks', [
-      ...args,
-      '--no-banner',
-      '--redact',
-      '--report-format',
-      'json',
-      '--report-path',
-      tmp,
-      '--exit-code',
-      '0',
-    ], { encoding: 'utf8', cwd: ROOT });
+    const result = spawnSync(
+      'gitleaks',
+      [
+        ...args,
+        '--no-banner',
+        '--redact',
+        '--report-format',
+        'json',
+        '--report-path',
+        tmp,
+        '--exit-code',
+        '0',
+      ],
+      { encoding: 'utf8', cwd: ROOT },
+    );
     if (result.stdout) process.stdout.write(result.stdout);
     if (result.stderr) process.stderr.write(result.stderr);
     let parsed = [];
@@ -84,11 +90,7 @@ if (!hasGitleaks) {
     return parsed;
   };
 
-  const sourceFindings = scan('Secret scan (current source tree)', [
-    'detect',
-    '--source',
-    ROOT,
-  ]);
+  const sourceFindings = scan('Secret scan (current source tree)', ['detect', '--source', ROOT]);
   if (sourceFindings.length > 0) {
     findings.push({ scope: 'source-tree', findings: sourceFindings });
   }
@@ -105,11 +107,7 @@ if (!hasGitleaks) {
   }
 
   if (existsSync(STAGE)) {
-    const dataFindings = scan('Secret scan (data mirror)', [
-      'detect',
-      '--source',
-      STAGE,
-    ]);
+    const dataFindings = scan('Secret scan (data mirror)', ['detect', '--source', STAGE]);
     if (dataFindings.length > 0) {
       findings.push({ scope: 'data-mirror', findings: dataFindings });
     }
@@ -118,42 +116,30 @@ if (!hasGitleaks) {
   }
 }
 
-// 3) Personal filesystem path sweep.
-const personalRe = [/\/Users\/(?!metinardakurt|node_modules|you\/)/];
+// 3) Personal filesystem path sweep. Search tracked files only so generated
+// build output cannot create noise, then retain documented synthetic fixtures
+// and human-readable placeholders while rejecting real home-directory names.
 const personalGrep = spawnSync(
-  'grep',
+  'git',
   [
-    '-RIE',
-    personalRe.map((r) => r.source).join('|'),
-    '--exclude-dir=node_modules',
-    '--exclude-dir=.next',
-    '--exclude-dir=.git',
-    '--exclude-dir=.engine-fleet',
-    '--exclude-dir=.engine-build',
-    '--exclude-dir=.packs',
-    '--exclude-dir=.real-scale',
-    '--exclude-dir=.compaction',
-    '--exclude-dir=playwright-report',
-    '--exclude-dir=test-results',
-    '--exclude-dir=public/engine',
-    '--exclude-dir=companion/data',
-    '--exclude-dir=desktop/dist',
-    '--exclude-dir=desktop/web',
-    '--exclude-dir=desktop/resources',
-    '--exclude-dir=desktop/node_modules',
-    '--exclude-dir=engines',
-    '--exclude-dir=scripts/reference',
-    '--exclude-dir=.archive-cache',
-    '--exclude-dir=public/bench',
-    '--exclude-dir=public/brandlab',
-    '--exclude-dir=.playwright-mcp',
+    'grep',
+    '-n',
+    '-I',
+    '-E',
+    String.raw`/Users/[^/<]+/|/home/[^/<]+/|[A-Za-z]:\\Users\\[^\\<]+\\`,
+    '--',
     '.',
+    ':(exclude)scripts/security-scan.mjs',
+    ':(exclude)security-scan-report.json',
   ],
   { encoding: 'utf8', cwd: ROOT },
 );
+const syntheticPaths =
+  /\/Users\/(?:you|alice)\/|\/home\/(?:player|bob)\/|[A-Za-z]:\\Users\\Carol\\/;
 const personalHits = (personalGrep.stdout || '')
   .split('\n')
   .filter((l) => l.trim() && !/^Binary file/.test(l))
+  .filter((l) => !syntheticPaths.test(l))
   .slice(0, 25);
 if (personalHits.length > 0) {
   findings.push({ scope: 'personal-paths', findings: personalHits });
@@ -161,12 +147,10 @@ if (personalHits.length > 0) {
 
 // 4) npm audit for the production runtime.
 log('\n--- npm audit (production runtime) ---');
-const npmAudit = spawnSync('npm', [
-  'audit',
-  '--omit=dev',
-  '--json',
-  '--audit-level=high',
-], { encoding: 'utf8', cwd: ROOT });
+const npmAudit = spawnSync('npm', ['audit', '--omit=dev', '--json', '--audit-level=high'], {
+  encoding: 'utf8',
+  cwd: ROOT,
+});
 if (npmAudit.stdout) {
   try {
     const data = JSON.parse(npmAudit.stdout);
@@ -189,7 +173,9 @@ if (npmAudit.stdout) {
 const report = {
   schema: 'kingfisher-security-scan/1',
   generatedAt: new Date().toISOString(),
-  root: ROOT,
+  // This report is committed as release evidence. Never publish the build
+  // machine's username or checkout location with it.
+  root: '<repository-root>',
   findings,
   warnings,
 };

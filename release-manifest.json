@@ -2,24 +2,24 @@
   "schema": "kingfisher-release-manifest/1",
   "kingfisher": {
     "name": "kingfisher",
-    "version": "1.0.0-rc.4",
+    "version": "1.0.0-rc.5",
     "description": "Kingfisher — a chess research workspace for strong players."
   },
   "git": {
-    "head": "4fd0360a91f3d61a214fe26de72e13c0859ee350",
-    "short": "4fd0360",
+    "head": "61015956d8c86898627325b378fa6e47145d295f",
+    "short": "6101595",
     "branch": "master",
     "dirty": true
   },
   "build": {
-    "timestamp": "2026-09-08T18:03:59.147Z",
+    "timestamp": "2026-09-09T11:35:11.880Z",
     "platform": "darwin",
     "architecture": "arm64",
-    "node": "v24.14.0"
+    "node": "v26.8.1"
   },
   "web": {
     "status": "present",
-    "buildId": "cfHnkjTVotOd5_9DfA6av"
+    "buildId": "CVlWBX3lZUOsnqEcLJ1z0"
   },
   "desktop": [
     {
@@ -27,6 +27,18 @@
       "path": "desktop/dist/Kingfisher-1.0.0-rc.4-arm64.dmg",
       "bytes": 157665362,
       "sha256": "6dc1a3e0a4ccf000502ae374aa8d5982aaff15cc2ceb190a2d2ed533e3662304"
+    },
+    {
+      "name": "Kingfisher-1.0.0-rc.5.dmg",
+      "path": "desktop/dist/Kingfisher-1.0.0-rc.5.dmg",
+      "bytes": 164436559,
+      "sha256": "29d936a2c8fd246492993eddfa2f5575e0c68375de5e29e0a504b45c56ba2381"
+    },
+    {
+      "name": "Kingfisher-1.0.0-rc.5-arm64.dmg",
+      "path": "desktop/dist/Kingfisher-1.0.0-rc.5-arm64.dmg",
+      "bytes": 157672646,
+      "sha256": "c8f4ef238b48c5c30c051f1b99d16360b15ab160712c32c2b1e94a54a2c5d5ed"
     }
   ],
   "referenceCatalogue": {

@@ -1,66 +1,7 @@
 {
   "schema": "kingfisher-security-scan/1",
-  "generatedAt": "2026-09-08T19:00:32.230Z",
-  "root": "/Users/metinardakurt/Desktop/Projects/chess&poker/chess/studying hub",
-  "findings": [
-    {
-      "scope": "source-tree",
-      "findings": [
-        {
-          "rule": "generic-api-key",
-          "file": "src/reference/pack.test.ts",
-          "line": 29,
-          "description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations."
-        },
-        {
-          "rule": "generic-api-key",
-          "file": "e2e/phase10.spec.ts",
-          "line": 387,
-          "description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations."
-        },
-        {
-          "rule": "generic-api-key",
-          "file": "src/features/shell/diagnostic-report.test.ts",
-          "line": 11,
-          "description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations."
-        },
-        {
-          "rule": "generic-api-key",
-          "file": "src/features/shell/diagnostic-report.test.ts",
-          "line": 13,
-          "description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations."
-        }
-      ]
-    },
-    {
-      "scope": "git-history",
-      "findings": [
-        {
-          "rule": "generic-api-key",
-          "file": "src/reference/pack.test.ts",
-          "line": 29,
-          "description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations."
-        },
-        {
-          "rule": "generic-api-key",
-          "file": "e2e/phase10.spec.ts",
-          "line": 387,
-          "description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations."
-        },
-        {
-          "rule": "generic-api-key",
-          "file": "src/features/shell/diagnostic-report.test.ts",
-          "line": 11,
-          "description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations."
-        },
-        {
-          "rule": "generic-api-key",
-          "file": "src/features/shell/diagnostic-report.test.ts",
-          "line": 13,
-          "description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations."
-        }
-      ]
-    }
-  ],
+  "generatedAt": "2026-09-09T11:25:17.338Z",
+  "root": "<repository-root>",
+  "findings": [],
   "warnings": []
 }

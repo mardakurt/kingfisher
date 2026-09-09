@@ -18,11 +18,8 @@
  *      commit.
  *   3. Print the production URL when the deployment
  *      succeeds.
- *   4. Update `src/release/public-urls.ts` to point the
- *      `web` default at the new production URL.
- *   5. Write `KINGFISHER_PUBLIC_WEB_URL=<url>` to a
- *      `.env.production.local` file (git-ignored) so the
- *      next local run reports the right value.
+ *   4. Print the canonical environment value and source file
+ *      that should be checked after deployment.
  *
  * If `VERCEL_TOKEN` is unset, the script prints the manual
  * one-click URL and exits 0. It does not block the release
@@ -40,14 +37,20 @@ if (!VERCEL_TOKEN) {
   console.log('VERCEL_TOKEN is not set; falling back to the one-click import.');
   console.log('');
   console.log('Open:');
-  console.log('  https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fmardakurt%2Fkingfisher');
+  console.log(
+    '  https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fmardakurt%2Fkingfisher',
+  );
   console.log('');
   console.log('After the first deploy, set KINGFISHER_PUBLIC_WEB_URL to the project URL.');
   exit(0);
 }
 
 const run = (cmd, args, options = {}) => {
-  const result = spawnSync(cmd, args, { encoding: 'utf8', env: { ...process.env, VERCEL_TOKEN }, ...options });
+  const result = spawnSync(cmd, args, {
+    encoding: 'utf8',
+    env: { ...process.env, VERCEL_TOKEN },
+    ...options,
+  });
   if (result.stdout) process.stdout.write(result.stdout);
   if (result.stderr) process.stderr.write(result.stderr);
   return { stdout: result.stdout || '', stderr: result.stderr || '', status: result.status ?? -1 };

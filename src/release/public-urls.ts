@@ -43,7 +43,9 @@ export const publicUrl = {
   landing: trimTrailingSlash(
     fromEnv('KINGFISHER_PUBLIC_LANDING_URL', 'https://mardakurt.github.io/kingfisher-data'),
   ),
-  web: trimTrailingSlash(fromEnv('KINGFISHER_PUBLIC_WEB_URL', 'https://kingfisher.vercel.app')),
+  web: trimTrailingSlash(
+    fromEnv('KINGFISHER_PUBLIC_WEB_URL', 'https://kingfisher-chess.vercel.app'),
+  ),
   repository: trimTrailingSlash(
     fromEnv('KINGFISHER_PUBLIC_REPOSITORY_URL', 'https://github.com/mardakurt/kingfisher'),
   ),
@@ -84,7 +86,7 @@ export const publicUrl = {
   // We do not hardcode a version here — that is the point of a
   // `/releases/latest` URL.
   get macosDmg(): string {
-    return `${this.release}/download/Kingfisher-1.0.0-rc.4-arm64.dmg`;
+    return `${this.release}/download/Kingfisher-1.0.0-rc.5-arm64.dmg`;
   },
 } as const;
 

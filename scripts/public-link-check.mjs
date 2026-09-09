@@ -35,19 +35,18 @@ const ALLOWED_HOSTS = new Set([
   'github.com',
   'objects.githubusercontent.com',
   'raw.githubusercontent.com',
-  'kingfisher.vercel.app',
-  'kingfisher-app.example', // placeholder until Vercel is wired
+  'kingfisher-chess.vercel.app',
 ]);
 
 const config = {
   landing: env.KINGFISHER_PUBLIC_LANDING_URL || 'https://mardakurt.github.io/kingfisher-data',
-  web: env.KINGFISHER_PUBLIC_WEB_URL || 'https://kingfisher.vercel.app',
+  web: env.KINGFISHER_PUBLIC_WEB_URL || 'https://kingfisher-chess.vercel.app',
   repository: env.KINGFISHER_PUBLIC_REPOSITORY_URL || 'https://github.com/mardakurt/kingfisher',
   release:
     env.KINGFISHER_PUBLIC_RELEASE_URL || 'https://github.com/mardakurt/kingfisher/releases/latest',
   dmg:
     env.KINGFISHER_PUBLIC_DMG_URL ||
-    'https://github.com/mardakurt/kingfisher/releases/download/v1.0.0-rc.4/Kingfisher-1.0.0-rc.4-arm64.dmg',
+    'https://github.com/mardakurt/kingfisher/releases/download/v1.0.0-rc.5/Kingfisher-1.0.0-rc.5-arm64.dmg',
   issues: env.KINGFISHER_PUBLIC_ISSUES_URL || 'https://github.com/mardakurt/kingfisher/issues',
   discussions:
     env.KINGFISHER_PUBLIC_DISCUSSIONS_URL || 'https://github.com/mardakurt/kingfisher/discussions',

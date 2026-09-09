@@ -12,26 +12,26 @@
 
 version: 2
 updates:
-  - package-ecosystem: "npm"
-    directory: "/"
+  - package-ecosystem: 'npm'
+    directory: '/'
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: 'weekly'
+      day: 'monday'
     open-pull-requests-limit: 3
     versioning-strategy: increase
     labels:
-      - "dependencies"
+      - 'dependencies'
     # Skip non-runtime packages. The runtime is the only
     # attack surface that matters; devDependencies are
     # covered by the local `npm audit --omit=dev` in
     # `npm run security:scan`.
     ignore:
-      - dependency-name: "*"
-        versions: [">=0"]
+      - dependency-name: '*'
+        versions: ['>=0']
     # Allow patches and minor bumps for runtime; major
     # bumps still need a maintainer review.
     allow:
-      - dependency-type: "direct:production"
-        update-type: "version-update:semver-patch"
-      - dependency-type: "direct:production"
-        update-type: "version-update:semver-minor"
+      - dependency-type: 'direct:production'
+        update-type: 'version-update:semver-patch'
+      - dependency-type: 'direct:production'
+        update-type: 'version-update:semver-minor'

@@ -1,11 +1,11 @@
 {
   "name": "kingfisher",
-  "version": "1.0.0-rc.4",
+  "version": "1.0.0-rc.5",
   "private": true,
   "engines": {
     "node": ">=24"
   },
-  "description": "Kingfisher \u2014 a chess research workspace for strong players.",
+  "description": "Kingfisher — a chess research workspace for strong players.",
   "scripts": {
     "dev": "next dev --port 3210",
     "build": "next build",

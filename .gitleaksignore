@@ -1,0 +1,7 @@
+# Exact historical false-positive fingerprints. These values are deterministic
+# chess/redaction fixtures, not credentials. Fingerprints keep the exception
+# tied to one commit, file, rule and line so future findings still fail review.
+550a2d9c30b46fd49e7faab852c467f4fd2404f8:src/reference/pack.test.ts:generic-api-key:29
+cf64dcf7b7435748d6d009974b667deaf5cff0db:e2e/phase10.spec.ts:generic-api-key:387
+7f83453e0ba473790dd379ded3e4fc1baffe852a:src/features/shell/diagnostic-report.test.ts:generic-api-key:11
+7f83453e0ba473790dd379ded3e4fc1baffe852a:src/features/shell/diagnostic-report.test.ts:generic-api-key:13

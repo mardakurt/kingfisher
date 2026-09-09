@@ -1,0 +1,34 @@
+# Local dependency and build output
+.git
+.next
+node_modules
+*.tsbuildinfo
+
+# Generated browser engine. The Vercel build installs and verifies a fresh
+# copy through `npm run engine:install`.
+public/engine
+
+# Local reference, benchmark and browser-test artefacts
+.archive-cache
+.compaction
+.engine-build
+.engine-fleet
+.packs
+.playwright-mcp
+.real-scale
+kf-compaction-run
+playwright-report
+test-results*
+public/bench
+public/brandlab
+
+# Desktop-only generated dependencies and packages
+companion/data
+desktop/dist
+desktop/node_modules
+desktop/resources
+desktop/web
+engines
+
+# Public landing source is deployed separately to GitHub Pages
+marketing

@@ -1,4 +1,4 @@
-# Launch kit — Kingfisher 1.0.0-rc.4
+# Launch kit — Kingfisher 1.0.0-rc.5
 
 The copy prepared for first channels. Replace placeholders before
 publishing.
@@ -40,7 +40,7 @@ is open source under the MIT licence.
 
 ## GitHub release announcement
 
-> ## Kingfisher 1.0.0-rc.4 — public preview
+> ## Kingfisher 1.0.0-rc.5 — public preview
 >
 > The first public release of Kingfisher. The web app is live,
 > the macOS preview is downloadable, the optional reference
@@ -48,9 +48,9 @@ is open source under the MIT licence.
 >
 > **What's in it**
 >
-> - **Web app** at <https://mardakurt.github.io/kingfisher-data/>
+> - **Web app** at <https://kingfisher-chess.vercel.app/>
 >   — Stockfish 18 in the page, no install.
-> - **macOS preview** (`Kingfisher-1.0.0-rc.4-arm64.dmg`) — Apple
+> - **macOS preview** (`Kingfisher-1.0.0-rc.5-arm64.dmg`) — Apple
 >   Silicon, code-signed. _Not notarized yet_ — right-click →
 >   Open on the first launch.
 > - **Optional reference data**, installable from a fresh
@@ -81,7 +81,7 @@ is open source under the MIT licence.
 
 ## Reddit (r/chess, r/ComputerChess) post draft
 
-> **Title:** Kingfisher 1.0.0-rc.4 — a local-first chess research
+> **Title:** Kingfisher 1.0.0-rc.5 — a local-first chess research
 > workstation is now in public preview
 >
 > I've been building Kingfisher for the last couple of years: a
@@ -95,9 +95,9 @@ is open source under the MIT licence.
 > It is local-first: no account, no telemetry, no subscription. No
 > data leaves your machine that you didn't put in the address bar.
 >
-> The 1.0.0-rc.4 public preview is now live:
+> The 1.0.0-rc.5 public preview is now live:
 >
-> - Web app: <https://mardakurt.github.io/kingfisher-data/>
+> - Web app: <https://kingfisher-chess.vercel.app/>
 > - macOS preview: <https://github.com/mardakurt/kingfisher/releases/latest>
 > - Source (MIT): <https://github.com/mardakurt/kingfisher>
 >
@@ -113,13 +113,13 @@ is open source under the MIT licence.
 
 ## Lichess forum post draft
 
-> **Title:** Kingfisher 1.0.0-rc.4 — public preview (web + macOS)
+> **Title:** Kingfisher 1.0.0-rc.5 — public preview (web + macOS)
 >
 > Kingfisher is a local-first chess research workstation for
 > serious players, and the first public preview is now live.
 >
-> The web app is at <https://mardakurt.github.io/kingfisher-data/>.
-> The macOS preview (`Kingfisher-1.0.0-rc.4-arm64.dmg`, Apple
+> The web app is at <https://kingfisher-chess.vercel.app/>.
+> The macOS preview (`Kingfisher-1.0.0-rc.5-arm64.dmg`, Apple
 > Silicon, code-signed but not notarized) is on the
 > [GitHub releases page](https://github.com/mardakurt/kingfisher/releases/latest).
 >
@@ -145,17 +145,17 @@ is open source under the MIT licence.
 
 ## Short social post
 
-> Kingfisher 1.0.0-rc.4 is in public preview — a local-first
+> Kingfisher 1.0.0-rc.5 is in public preview — a local-first
 > chess research workstation for serious players, on the web
 > and on macOS. No account. No telemetry. No subscription.
 > Source on GitHub: <https://github.com/mardakurt/kingfisher>
 
 ## Technical / open-source post
 
-> **Title:** Kingfisher 1.0.0-rc.4 — release notes
+> **Title:** Kingfisher 1.0.0-rc.5 — release notes
 >
 > Kingfisher is a local-first chess research workstation
-> (Next.js + Electron). 1.0.0-rc.4 is the first public
+> (Next.js + Electron). 1.0.0-rc.5 is the current public
 > preview, with the public landing page live, the optional
 > reference data published, the macOS preview build
 > downloadable, and the source repository public.

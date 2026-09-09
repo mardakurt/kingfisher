@@ -70,12 +70,12 @@ Out of scope:
 **intentional test fixtures** in unit tests, with low entropy
 and well-known test prefixes:
 
-| File                                                  | Line | What it is                                                                                                |
-| ----------------------------------------------------- | ---- | --------------------------------------------------------------------------------------------------------- |
-| `src/reference/pack.test.ts`                          | 29   | A literal PGN castling-rights key (`'... w KQkq c6'`). Falsely flagged as a generic API key.            |
-| `e2e/phase10.spec.ts`                                 | 387  | A literal `companionToken` used to test the redaction path.                                                |
-| `src/features/shell/diagnostic-report.test.ts`        | 11   | A literal `LICHESS_TOKEN` fixture used to test the diagnostic-report redaction.                           |
-| `src/features/shell/diagnostic-report.test.ts`        | 13   | A literal `COMPANION_TOKEN` fixture used to test the diagnostic-report redaction.                           |
+| File                                           | Line | What it is                                                                                   |
+| ---------------------------------------------- | ---- | -------------------------------------------------------------------------------------------- |
+| `src/reference/pack.test.ts`                   | 29   | A literal PGN castling-rights key (`'... w KQkq c6'`). Falsely flagged as a generic API key. |
+| `e2e/phase10.spec.ts`                          | 387  | A literal `companionToken` used to test the redaction path.                                  |
+| `src/features/shell/diagnostic-report.test.ts` | 11   | A literal `LICHESS_TOKEN` fixture used to test the diagnostic-report redaction.              |
+| `src/features/shell/diagnostic-report.test.ts` | 13   | A literal `COMPANION_TOKEN` fixture used to test the diagnostic-report redaction.            |
 
 **Severity:** INFORMATIONAL. None of these are real
 credentials. The `LICHESS_TOKEN` is a deterministic string
@@ -142,14 +142,14 @@ and do not reach the production bundle or the desktop shell.
 `desktop/src/main.mjs` (the desktop shell) is reviewed against
 the brief's expected security baseline:
 
-| Setting              | Value                | Status   |
-| -------------------- | -------------------- | -------- |
-| `contextIsolation`   | `true`               | CORRECT  |
-| `nodeIntegration`    | `false`              | CORRECT  |
-| `sandbox`            | `true`               | CORRECT  |
-| `webSecurity`        | `true`               | CORRECT  |
-| `preload`            | `desktop/src/preload.cjs` | CORRECT |
-| `navigate` lock      | pinned to local origin | CORRECT |
+| Setting              | Value                       | Status  |
+| -------------------- | --------------------------- | ------- |
+| `contextIsolation`   | `true`                      | CORRECT |
+| `nodeIntegration`    | `false`                     | CORRECT |
+| `sandbox`            | `true`                      | CORRECT |
+| `webSecurity`        | `true`                      | CORRECT |
+| `preload`            | `desktop/src/preload.cjs`   | CORRECT |
+| `navigate` lock      | pinned to local origin      | CORRECT |
 | `openExternal` allow | `https:` and `mailto:` only | CORRECT |
 
 External links are routed through `shell.openExternal` with a
@@ -222,7 +222,7 @@ redacted at write time from:
 - the diagnostic report (`src/features/shell/diagnostic-report.ts`);
 - the local log file (`desktop/src/log.mjs`);
 - the GitHub issue template (the bug-report template asks
-  the user to paste the *Copy support information* line and
+  the user to paste the _Copy support information_ line and
   not the raw token).
 
 Lichess OAuth uses PKCE (`src/database/providers/lichess-pkce.ts`).
@@ -325,21 +325,21 @@ of these are secrets.
 
 ## Findings
 
-| # | Severity        | Title                                                                                              | Status     |
-| - | --------------- | -------------------------------------------------------------------------------------------------- | ---------- |
-| 1 | INFORMATIONAL   | 4 gitleaks false positives in test fixtures                                                        | Documented |
-| 2 | NONE            | 0 personal filesystem paths in tracked files                                                       | Resolved   |
-| 3 | NONE            | 0 npm-audit advisories in production runtime                                                       | Resolved   |
-| 4 | NONE            | 0 secrets in the data mirror                                                                      | Resolved   |
-| 5 | NONE            | Electron contextIsolation, sandbox, webSecurity all correct                                         | Resolved   |
-| 6 | NONE            | Companion loopback-only, token-authenticated                                                       | Resolved   |
-| 7 | NONE            | Engine download digest-verified, single-member extraction                                           | Resolved   |
-| 8 | NONE            | Reference-pack download digest-verified, transactional install                                       | Resolved   |
-| 9 | NONE            | OAuth tokens redacted from diagnostic, log, and issue template                                      | Resolved   |
-| 10| NONE            | Production CSP, COOP, COEP, HSTS, Referrer-Policy, Permissions-Policy all set                       | Resolved   |
-| 11| MEDIUM          | Phase 23 used `rsync --delete` on the data mirror, which is unsafe                                    | **Resolved (Phase 24)** — `npm run publish:site` is the new path; refuses to delete `reference-*` |
-| 12| INFORMATIONAL   | Landing page has no remote web-app URL; the web app is not yet deployed                              | **Open**   |
-| 13| INFORMATIONAL   | macOS preview is not notarized                                                                       | **Open**   |
+| #   | Severity      | Title                                                                         | Status                                                                                            |
+| --- | ------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| 1   | INFORMATIONAL | 4 gitleaks false positives in test fixtures                                   | Documented                                                                                        |
+| 2   | NONE          | 0 personal filesystem paths in tracked files                                  | Resolved                                                                                          |
+| 3   | NONE          | 0 npm-audit advisories in production runtime                                  | Resolved                                                                                          |
+| 4   | NONE          | 0 secrets in the data mirror                                                  | Resolved                                                                                          |
+| 5   | NONE          | Electron contextIsolation, sandbox, webSecurity all correct                   | Resolved                                                                                          |
+| 6   | NONE          | Companion loopback-only, token-authenticated                                  | Resolved                                                                                          |
+| 7   | NONE          | Engine download digest-verified, single-member extraction                     | Resolved                                                                                          |
+| 8   | NONE          | Reference-pack download digest-verified, transactional install                | Resolved                                                                                          |
+| 9   | NONE          | OAuth tokens redacted from diagnostic, log, and issue template                | Resolved                                                                                          |
+| 10  | NONE          | Production CSP, COOP, COEP, HSTS, Referrer-Policy, Permissions-Policy all set | Resolved                                                                                          |
+| 11  | MEDIUM        | Phase 23 used `rsync --delete` on the data mirror, which is unsafe            | **Resolved (Phase 24)** — `npm run publish:site` is the new path; refuses to delete `reference-*` |
+| 12  | INFORMATIONAL | Landing page has no remote web-app URL; the web app is not yet deployed       | **Open**                                                                                          |
+| 13  | INFORMATIONAL | macOS preview is not notarized                                                | **Open**                                                                                          |
 
 ## Open items
 
@@ -368,5 +368,5 @@ accidentally execute against the data mirror.
    `npm run public:check` so the link validator stops
    reporting the web app as a 404.
 5. When a Developer ID Application certificate is available,
-   sign and notarise the macOS build; the *preview* label
+   sign and notarise the macOS build; the _preview_ label
    drops.

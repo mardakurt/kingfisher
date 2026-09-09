@@ -4,6 +4,15 @@ The user-facing changelog. Internal phase history is in
 `docs/reports/` and `docs/product/phase-*.md`; the list below is what
 real users notice.
 
+## 1.0.0-rc.5 — public preview live
+
+The web application and landing page are now public. This release adds a real
+`/settings` deep link, points every current entry point at the production web
+origin, and tightens the public-release security and deployment checks.
+
+The macOS preview remains Apple Silicon-only and not notarized. Its release
+artifact is signed, checksum-published, and validated on macOS.
+
 ## 1.0.0-rc.4 — public preview release
 
 The first public release of Kingfisher. The product is on the web and

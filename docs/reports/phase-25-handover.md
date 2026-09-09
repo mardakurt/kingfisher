@@ -49,21 +49,21 @@ release verdict moves from
 
 ## 2. Public URL map
 
-| Surface             | URL                                                                              | Status                       |
-| ------------------- | -------------------------------------------------------------------------------- | ---------------------------- |
-| Landing page        | <https://mardakurt.github.io/kingfisher-data/>                                   | LIVE (redesigned)            |
-| Web app             | <https://kingfisher.vercel.app>                                                  | DEPLOY PENDING (one-click)   |
-| GitHub repository   | <https://github.com/mardakurt/kingfisher>                                        | LIVE (public)                |
-| Latest release      | <https://github.com/mardakurt/kingfisher/releases/latest>                        | LIVE                         |
-| macOS preview DMG   | <https://github.com/mardakurt/kingfisher/releases/download/v1.0.0-rc.4/Kingfisher-1.0.0-rc.4-arm64.dmg> | LIVE (150 MB) |
-| Issue tracker       | <https://github.com/mardakurt/kingfisher/issues>                                 | LIVE                         |
-| Discussions         | <https://github.com/mardakurt/kingfisher/discussions>                            | LIVE                         |
-| Docs                | <https://github.com/mardakurt/kingfisher/tree/master/docs>                       | LIVE                         |
-| Data mirror         | <https://mardakurt.github.io/kingfisher-data>                                    | LIVE (public)                |
-| Pack — Elite OTB    | <https://mardakurt.github.io/kingfisher-data/reference-elite-v2/manifest.json>   | LIVE                         |
-| Pack — Recent       | <https://mardakurt.github.io/kingfisher-data/reference-recent-v1/manifest.json>  | LIVE                         |
-| Pack — High-Rated   | <https://mardakurt.github.io/kingfisher-data/reference-online-v1/manifest.json>  | LIVE                         |
-| Security policy     | <https://github.com/mardakurt/kingfisher/security/policy>                       | LIVE                         |
+| Surface           | URL                                                                                                     | Status                     |
+| ----------------- | ------------------------------------------------------------------------------------------------------- | -------------------------- |
+| Landing page      | <https://mardakurt.github.io/kingfisher-data/>                                                          | LIVE (redesigned)          |
+| Web app           | <https://kingfisher.vercel.app>                                                                         | DEPLOY PENDING (one-click) |
+| GitHub repository | <https://github.com/mardakurt/kingfisher>                                                               | LIVE (public)              |
+| Latest release    | <https://github.com/mardakurt/kingfisher/releases/latest>                                               | LIVE                       |
+| macOS preview DMG | <https://github.com/mardakurt/kingfisher/releases/download/v1.0.0-rc.4/Kingfisher-1.0.0-rc.4-arm64.dmg> | LIVE (150 MB)              |
+| Issue tracker     | <https://github.com/mardakurt/kingfisher/issues>                                                        | LIVE                       |
+| Discussions       | <https://github.com/mardakurt/kingfisher/discussions>                                                   | LIVE                       |
+| Docs              | <https://github.com/mardakurt/kingfisher/tree/master/docs>                                              | LIVE                       |
+| Data mirror       | <https://mardakurt.github.io/kingfisher-data>                                                           | LIVE (public)              |
+| Pack — Elite OTB  | <https://mardakurt.github.io/kingfisher-data/reference-elite-v2/manifest.json>                          | LIVE                       |
+| Pack — Recent     | <https://mardakurt.github.io/kingfisher-data/reference-recent-v1/manifest.json>                         | LIVE                       |
+| Pack — High-Rated | <https://mardakurt.github.io/kingfisher-data/reference-online-v1/manifest.json>                         | LIVE                       |
+| Security policy   | <https://github.com/mardakurt/kingfisher/security/policy>                                               | LIVE                       |
 
 ## 3. Vercel
 
@@ -85,7 +85,7 @@ project exists:
 - Threaded Stockfish will run; the WASM-unsafe-eval CSP
   exception covers it.
 - The maintainer sets `KINGFISHER_PUBLIC_WEB_URL` in
-  *Settings → Environment Variables*, triggers a redeploy,
+  _Settings → Environment Variables_, triggers a redeploy,
   and `npm run public:check` goes from 14/19 to 19/19.
 
 A `vercel-deploy.mjs` CLI alternative exists
@@ -149,16 +149,16 @@ Phase 25 fixes:
 
 ## 5. Landing performance
 
-| Metric             | Phase 24        | Phase 25        | Notes |
-| ------------------ | --------------- | --------------- | ----- |
-| HTML               | 31 KB           | 17 KB           | fewer sections, no inline script tag |
-| CSS                | 24 KB           | 17 KB           | one stylesheet, fewer utility selectors |
-| JS                 | 7 KB            | 0 KB            | no JS animation, the hero is a static screenshot |
-| Brand mark         | 0.7 KB          | 0.7 KB          | unchanged |
-| OG image           | 150 KB          | 150 KB          | unchanged |
-| Above-fold image   | —               | ~720 KB         | one big hero screenshot (PNG) |
-| Total above-fold   | ~210 KB         | ~890 KB         | the only added weight is the one product screenshot |
-| Sections           | 5 (Hero, Research, Engines, Local, Download) | 5 (Hero, Why, Research, Engines, Local, Download) | six sections, but the Why section is text-only |
+| Metric           | Phase 24                                     | Phase 25                                          | Notes                                               |
+| ---------------- | -------------------------------------------- | ------------------------------------------------- | --------------------------------------------------- |
+| HTML             | 31 KB                                        | 17 KB                                             | fewer sections, no inline script tag                |
+| CSS              | 24 KB                                        | 17 KB                                             | one stylesheet, fewer utility selectors             |
+| JS               | 7 KB                                         | 0 KB                                              | no JS animation, the hero is a static screenshot    |
+| Brand mark       | 0.7 KB                                       | 0.7 KB                                            | unchanged                                           |
+| OG image         | 150 KB                                       | 150 KB                                            | unchanged                                           |
+| Above-fold image | —                                            | ~720 KB                                           | one big hero screenshot (PNG)                       |
+| Total above-fold | ~210 KB                                      | ~890 KB                                           | the only added weight is the one product screenshot |
+| Sections         | 5 (Hero, Research, Engines, Local, Download) | 5 (Hero, Why, Research, Engines, Local, Download) | six sections, but the Why section is text-only      |
 
 The total transfer went up because the hero is now a real
 product screenshot rather than a built-in animation. The
@@ -214,11 +214,11 @@ expected time is roughly 60 seconds of human action
 
 ## 8. Reference packs
 
-| Pack                | URL                                                                              | Bytes | Public since  |
-| ------------------- | -------------------------------------------------------------------------------- | ----- | -------------- |
-| Elite OTB v2        | <https://mardakurt.github.io/kingfisher-data/reference-elite-v2/manifest.json>   | 324 MB | Phase 24 |
-| Recent Theory v1    | <https://mardakurt.github.io/kingfisher-data/reference-recent-v1/manifest.json>  | 32 MB  | Phase 24 |
-| High-Rated Online v1 | <https://mardakurt.github.io/kingfisher-data/reference-online-v1/manifest.json> | 82 MB  | Phase 24 |
+| Pack                 | URL                                                                             | Bytes  | Public since   |
+| -------------------- | ------------------------------------------------------------------------------- | ------ | -------------- |
+| Elite OTB v2         | <https://mardakurt.github.io/kingfisher-data/reference-elite-v2/manifest.json>  | 324 MB | Phase 24       |
+| Recent Theory v1     | <https://mardakurt.github.io/kingfisher-data/reference-recent-v1/manifest.json> | 32 MB  | Phase 24       |
+| High-Rated Online v1 | <https://mardakurt.github.io/kingfisher-data/reference-online-v1/manifest.json> | 82 MB  | Phase 24       |
 | Kingfisher Starter   | bundled with the application                                                    | 12 MB  | since Phase 22 |
 
 A clean-profile install walk-through on the **real
@@ -308,40 +308,40 @@ storage identity; the local-host data does not transfer.
 
 Local:
 
-| Suite                                     | Result              |
-| ----------------------------------------- | ------------------- |
-| `npm run typecheck`                       | 0 errors            |
-| `npm run lint`                            | 0 errors            |
-| `npm run format:check`                    | GREEN               |
-| `npm test` (vitest)                       | 2177 passed, 11 skipped |
-| `npm run build`                           | succeeds            |
-| `git diff --check`                        | clean               |
-| `npm run security:scan`                   | 0 High / 0 Critical |
-| `npm run public:check`                    | 14/19 (5 are Vercel-pending) |
-| `npm run desktop:smoke -- --packaged`    | 17/17               |
-| `npm run desktop:restart -- --packaged`  | 5/5                 |
+| Suite                                   | Result                       |
+| --------------------------------------- | ---------------------------- |
+| `npm run typecheck`                     | 0 errors                     |
+| `npm run lint`                          | 0 errors                     |
+| `npm run format:check`                  | GREEN                        |
+| `npm test` (vitest)                     | 2177 passed, 11 skipped      |
+| `npm run build`                         | succeeds                     |
+| `git diff --check`                      | clean                        |
+| `npm run security:scan`                 | 0 High / 0 Critical          |
+| `npm run public:check`                  | 14/19 (5 are Vercel-pending) |
+| `npm run desktop:smoke -- --packaged`   | 17/17                        |
+| `npm run desktop:restart -- --packaged` | 5/5                          |
 
 Remote:
 
-| Workflow                  | What was run                                  |
-| ------------------------- | --------------------------------------------- |
-| `ci.yml`                  | not run (local gate is sufficient)            |
-| `release-build.yml`       | not run (no v* tag in Phase 25)               |
-| `browser-cert.yml`        | not run (no v* tag in Phase 25)               |
-| `engine-build.yml`        | not run (engine catalogue unchanged)          |
-| `engines.yml`             | not run (engine catalogue unchanged)          |
-| `desktop-package.yml`     | not run (Linux/Windows are not supported)     |
-| `lichess-smoke.yml`       | not run (manual only)                         |
-| `visual-review.yml`       | not run (visual baseline unchanged)           |
+| Workflow              | What was run                              |
+| --------------------- | ----------------------------------------- |
+| `ci.yml`              | not run (local gate is sufficient)        |
+| `release-build.yml`   | not run (no v* tag in Phase 25)           |
+| `browser-cert.yml`    | not run (no v* tag in Phase 25)           |
+| `engine-build.yml`    | not run (engine catalogue unchanged)      |
+| `engines.yml`         | not run (engine catalogue unchanged)      |
+| `desktop-package.yml` | not run (Linux/Windows are not supported) |
+| `lichess-smoke.yml`   | not run (manual only)                     |
+| `visual-review.yml`   | not run (visual baseline unchanged)       |
 
 ## 15. Bugs
 
-| # | Severity    | Title                                                                  | Status      |
-| - | ----------- | ---------------------------------------------------------------------- | ----------- |
-| 1 | INFORMATIONAL | 4 gitleaks false positives in test fixtures                          | Documented, marked `gitleaks:allow` |
-| 2 | INFORMATIONAL | Web app is not yet deployed to a public URL                         | **Open** — one-click Vercel import  |
-| 3 | INFORMATIONAL | macOS preview is not notarized                                       | **Open** — Developer ID Application certificate |
-| 4 | INFORMATIONAL | Hero no longer auto-cycles the source labels — the visual is static | **By design** — owner feedback said the animation was distracting |
+| #   | Severity      | Title                                                               | Status                                                            |
+| --- | ------------- | ------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| 1   | INFORMATIONAL | 4 gitleaks false positives in test fixtures                         | Documented, marked `gitleaks:allow`                               |
+| 2   | INFORMATIONAL | Web app is not yet deployed to a public URL                         | **Open** — one-click Vercel import                                |
+| 3   | INFORMATIONAL | macOS preview is not notarized                                      | **Open** — Developer ID Application certificate                   |
+| 4   | INFORMATIONAL | Hero no longer auto-cycles the source labels — the visual is static | **By design** — owner feedback said the animation was distracting |
 
 No Critical, no High, no Critical UI, no High UI defects.
 
@@ -399,7 +399,7 @@ The recommended workflow from here:
 1. The maintainer performs the Vercel one-click import.
 2. The maintainer attaches a Developer ID Application
    certificate when available; the macOS build is
-   notarised; the *preview* label drops.
+   notarised; the _preview_ label drops.
 3. Filed bugs become tests. Point releases fix them.
 4. `1.0.0-rc.5` is the next RC if a real change is needed.
 5. The agent's job is to respond to filed issues and ship
@@ -420,14 +420,14 @@ new step is the Vercel import.
    Directory stays at the repository root.
 4. Click **Deploy**.
 5. Copy the project URL.
-6. *Settings → Environment Variables → Production*: set
+6. _Settings → Environment Variables → Production_: set
    `KINGFISHER_PUBLIC_WEB_URL` to that URL.
 7. Trigger a redeploy.
 8. Update `src/release/public-urls.ts` (the `web` field
    default) to match the new URL, then commit and push.
 9. `npm run public:check` → 19/19.
 10. Update the `verdict` in this document from
-    *DEPLOY-PENDING* to *LIVE*.
+    _DEPLOY-PENDING_ to _LIVE_.
 
 ### How to update the landing page
 
@@ -513,17 +513,18 @@ git push
 ### How to roll back the Vercel deployment
 
 Vercel retains every deployment. In the project UI,
-*Deployments → click a previous successful deployment →
-Promote to Production*. The CLI equivalent is
+_Deployments → click a previous successful deployment →
+Promote to Production_. The CLI equivalent is
 `vercel rollback`.
 
 ## 21. Final word
 
 The public surface is now:
+
 - A landing page that looks like a real product.
 - A web app one click away from being live.
 - A macOS preview that downloads, code-signed, with an
-  honest *preview* label.
+  honest _preview_ label.
 - A reference-data mirror that is installable from
   production.
 - A GitHub repository with the changelog, the issue

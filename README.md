@@ -2,12 +2,12 @@
 
 A local-first chess research workstation for serious players.
 
-> **Public preview · 1.0.0-rc.4**
+> **Public preview · 1.0.0-rc.5**
 > No account. No telemetry. No subscription.
 
 |                                                                                      |                                                                              |
 | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
-| 🌐 **[Launch the web app](https://mardakurt.github.io/kingfisher-data/)**            | Open in any modern browser. The Stockfish engine is in the page; no install. |
+| 🌐 **[Launch the web app](https://kingfisher-chess.vercel.app/)**                    | Open in any modern browser. The Stockfish engine is in the page; no install. |
 | 🍎 **[Download for macOS](https://github.com/mardakurt/kingfisher/releases/latest)** | Apple Silicon, code-signed. _Preview build — not notarized._                 |
 | 📦 **[Source on GitHub](https://github.com/mardakurt/kingfisher)**                   | Releases, source, issue tracker, changelog.                                  |
 | 📖 **[Changelog](CHANGELOG.md)**                                                     | What changed in each release.                                                |
@@ -20,7 +20,7 @@ calls it analysis.
 
 ## At a glance
 
-- **Web app** at <https://mardakurt.github.io/kingfisher-data/> — click
+- **Web app** at <https://kingfisher-chess.vercel.app/> — click
   _Launch the web app_.
 - **macOS app** as a `.dmg` on the
   [latest release page](https://github.com/mardakurt/kingfisher/releases/latest).

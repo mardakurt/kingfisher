@@ -1,8 +1,8 @@
 # Installing Kingfisher on macOS
 
-This is the honest version. Kingfisher 1.0.0-rc.4 is finished software
-with an unfinished signature, and the difference will be the first
-thing you meet.
+This is the honest version. Kingfisher 1.0.0-rc.5 is preview software
+signed with an Apple Development identity, not a notarized Developer ID
+release; Gatekeeper may therefore block the first launch.
 
 ## What you need
 
@@ -12,7 +12,7 @@ thing you meet.
 
 ## The normal path
 
-1. Download `Kingfisher-1.0.0-rc.4-arm64.dmg` from the
+1. Download `Kingfisher-1.0.0-rc.5-arm64.dmg` from the
    [latest release page](https://github.com/mardakurt/kingfisher/releases/latest).
 2. Double-click it. A window opens with the Kingfisher icon and a shortcut to
    Applications.
@@ -60,7 +60,7 @@ is worth that, and Kingfisher will not ask you to do it.
 
 Those builds lost your work every time you quit — a defect in how the
 application addressed its own storage, fixed in rc.3. **Your old work is not
-gone**; it was still on disk and unreachable. rc.3 looks at what your profile
+gone**; it was still on disk and unreachable. rc.3 and later look at what your profile
 already holds on first launch and opens the workspace you last used, so install
 it over the top and your studies should be there.
 
