@@ -21,7 +21,7 @@ export type PlayerColor = 'w' | 'b';
 
 /** A period the user asked about, resolved to a year range. */
 export interface PlayerPeriod {
-  readonly id: 'all' | 'last-5' | 'last-3' | 'last-12m' | 'custom';
+  readonly id: 'all' | 'last-5' | 'last-3' | 'last-24m' | 'last-12m' | 'custom';
   readonly label: string;
   readonly fromYear?: number;
   readonly toYear?: number;
@@ -31,6 +31,7 @@ export const PERIODS: readonly PlayerPeriod[] = [
   { id: 'all', label: 'All time' },
   { id: 'last-5', label: 'Last 5 years' },
   { id: 'last-3', label: 'Last 3 years' },
+  { id: 'last-24m', label: 'Last 24 months' },
   { id: 'last-12m', label: 'Last 12 months' },
 ];
 
@@ -38,6 +39,7 @@ export function resolvePeriod(period: PlayerPeriod, now = new Date()): PlayerPer
   const year = now.getFullYear();
   if (period.id === 'last-5') return { ...period, fromYear: year - 4 };
   if (period.id === 'last-3') return { ...period, fromYear: year - 2 };
+  if (period.id === 'last-24m') return { ...period, fromYear: year - 1 };
   // Twelve months is approximated by the current and previous calendar year,
   // because a PGN date is often only a year. Stated rather than hidden: the
   // panel prints the resolved range next to the label.
@@ -298,3 +300,80 @@ export function aggregatePlayer(
 /** Average plies per game, when the caller has ply counts to give. */
 export const averageLength = (plies: readonly number[]): number | null =>
   plies.length === 0 ? null : plies.reduce((sum, value) => sum + value, 0) / plies.length / 2;
+
+/**
+ * One opening shown side by side: career and recent, with the change in
+ * percentages between them.
+ *
+ * The two halves are kept numerically separate. There is no combined
+ * percentage and no weighted average; the row reports what career said, what
+ * recent said, and the difference between them, all on the same line, so a
+ * reader can read any one of the three and know where it came from.
+ */
+export interface CareerVsRecentEntry {
+  readonly key: string;
+  readonly label: string;
+  readonly career: OpeningShare;
+  readonly recent: OpeningShare | null;
+  /** percentage points (recent.share − career.share). Null when one side has no games. */
+  readonly delta: number | null;
+  /** absolute change in game count (recent.games − career.games). */
+  readonly gameDelta: number | null;
+}
+
+export interface OpeningShare {
+  readonly games: number;
+  readonly share: number;
+}
+
+/**
+ * Minimum combined sample (career + recent) before a row is included in the
+ * comparison. A three-game comparison is not a finding, and showing it as
+ * "Nigerian 0% → 100%" would read as confidence the data does not earn.
+ */
+export const MINIMUM_CHANGE_GAMES = 10;
+
+/**
+ * Career vs recent for one side's openings.
+ *
+ * The "share" is against that side's own games (career vs recent), so a
+ * reader can read either column as a percentage of what the player plays with
+ * White. The function expects the caller to have computed the share already;
+ * it is the difference, not the share, that this function produces.
+ */
+export function compareCareerVsRecent<T>(
+  career: readonly T[],
+  recent: readonly T[],
+  keyOf: (entry: T) => string,
+  labelOf: (entry: T) => string,
+  gamesOf: (entry: T) => number,
+  shareOf: (entry: T) => number,
+): readonly CareerVsRecentEntry[] {
+  const careerByKey = new Map(career.map((entry) => [keyOf(entry), entry]));
+  const recentByKey = new Map(recent.map((entry) => [keyOf(entry), entry]));
+  const keys = new Set<string>([...careerByKey.keys(), ...recentByKey.keys()]);
+  const rows: CareerVsRecentEntry[] = [];
+  for (const key of keys) {
+    const careerEntry = careerByKey.get(key);
+    const recentEntry = recentByKey.get(key);
+    if (!careerEntry && !recentEntry) continue;
+    const careerGames = careerEntry ? gamesOf(careerEntry) : 0;
+    const recentGames = recentEntry ? gamesOf(recentEntry) : 0;
+    if (careerGames + recentGames < MINIMUM_CHANGE_GAMES) continue;
+    const careerShare = careerEntry ? shareOf(careerEntry) : 0;
+    const recentShare = recentEntry ? shareOf(recentEntry) : null;
+    const recentView: OpeningShare | null =
+      recentEntry && recentShare !== null
+        ? { games: recentGames, share: recentShare }
+        : null;
+    rows.push({
+      key,
+      label: labelOf((careerEntry ?? recentEntry) as T),
+      career: { games: careerGames, share: careerShare },
+      recent: recentView,
+      delta: recentView ? recentView.share - careerShare : null,
+      gameDelta: recentView ? recentView.games - careerGames : null,
+    });
+  }
+  return rows.sort((a, b) => b.career.games - a.career.games);
+}

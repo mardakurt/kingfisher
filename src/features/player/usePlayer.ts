@@ -202,5 +202,23 @@ export function usePlayerTendencies(
   });
 }
 
+/**
+ * Two aggregates at once: career and the chosen recent window.
+ *
+ * Used to answer "what has this player changed?" with two columns of numbers
+ * and the delta between them, in arithmetic the reader can check. The recent
+ * window defaults to the last 12 months but is settable; both aggregates are
+ * computed independently and never averaged.
+ */
+export function usePlayerCareerAndRecent(identity: PlayerIdentityView | undefined) {
+  const recent: PlayerPeriod = {
+    id: 'last-12m',
+    label: 'Recent 12 months',
+  };
+  const career = usePlayerAggregate(identity, PERIODS[0] as PlayerPeriod);
+  const recentAgg = usePlayerAggregate(identity, recent);
+  return { career, recent: recentAgg, recentPeriod: recent };
+}
+
 /** The canonical route id for a name, so links agree with stored identities. */
 export const playerRouteId = (name: string): string => playerKey(name);

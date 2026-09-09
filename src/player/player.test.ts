@@ -7,7 +7,14 @@ import type { GameSummary } from '@/persistence/types';
 import { classifyTree } from '@/theory/classify-games';
 import { loadOpeningIndex } from '@/theory/openings';
 
-import { aggregatePlayer, pointsFor, resolvePeriod, scorePercent } from './aggregate';
+import {
+  aggregatePlayer,
+  compareCareerVsRecent,
+  MINIMUM_CHANGE_GAMES,
+  pointsFor,
+  resolvePeriod,
+  scorePercent,
+} from './aggregate';
 import {
   measureTendencies,
   playerGameView,
@@ -252,5 +259,95 @@ describe('factual tendencies', () => {
     expect(report.examined).toBe(0);
     expect(report.averagePlies).toBeNull();
     expect(report.results.every((entry) => entry.denominator === 0)).toBe(true);
+  });
+});
+
+/**
+ * The Player 2.0 difference table. Two aggregates over the same opening set,
+ * one over the whole archive, one over the recent window. The numbers are kept
+ * numerically separate; the UI shows both columns and the difference in
+ * percentage points, never a weighted average that pretends to be one.
+ */
+describe('Career vs Recent', () => {
+  /*
+    Toy opener rows: a stable career entry (B90, lots of games) and a
+    rising entry (C50, lots of recent games, few career games). The numbers
+    here are deliberate, not measured.
+  */
+  const opening = (key: string, label: string, games: number, share: number) => ({
+    key,
+    label,
+    games,
+    share,
+  });
+
+  it('computes the percentage point change between career and recent', () => {
+    const career = [opening('B90', 'Najdorf', 100, 0.5), opening('C50', 'Italian', 20, 0.1)];
+    const recent = [opening('B90', 'Najdorf', 30, 0.3), opening('C50', 'Italian', 25, 0.25)];
+    const rows = compareCareerVsRecent(
+      career,
+      recent,
+      (entry) => entry.key,
+      (entry) => entry.label,
+      (entry) => entry.games,
+      (entry) => entry.share,
+    );
+    const najdorf = rows.find((row) => row.key === 'B90')!;
+    expect(najdorf.delta).toBeCloseTo(-0.2, 6);
+    expect(najdorf.recent?.share).toBeCloseTo(0.3, 6);
+    const italian = rows.find((row) => row.key === 'C50')!;
+    expect(italian.delta).toBeCloseTo(0.15, 6);
+  });
+
+  it('drops rows whose combined sample is below the threshold', () => {
+    const career = [opening('B90', 'Najdorf', MINIMUM_CHANGE_GAMES - 1, 0.5)];
+    const recent = [];
+    const rows = compareCareerVsRecent(
+      career,
+      recent,
+      (entry) => entry.key,
+      (entry) => entry.label,
+      (entry) => entry.games,
+      (entry) => entry.share,
+    );
+    expect(rows.find((row) => row.key === 'B90')).toBeUndefined();
+  });
+
+  it('reports recent as null when an opening only exists in the career window', () => {
+    const career = [opening('B90', 'Najdorf', 50, 0.4)];
+    const recent: typeof career = [];
+    const rows = compareCareerVsRecent(
+      career,
+      recent,
+      (entry) => entry.key,
+      (entry) => entry.label,
+      (entry) => entry.games,
+      (entry) => entry.share,
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.recent).toBeNull();
+    expect(rows[0]?.delta).toBeNull();
+  });
+
+  it('sorts by career games, not by who changed the most', () => {
+    const career = [
+      opening('A', 'Quiet', 200, 0.6),
+      opening('B', 'Sharp', 80, 0.25),
+      opening('C', 'Tactical', 60, 0.15),
+    ];
+    const recent = [
+      opening('A', 'Quiet', 50, 0.5),
+      opening('B', 'Sharp', 50, 0.3),
+      opening('C', 'Tactical', 30, 0.2),
+    ];
+    const rows = compareCareerVsRecent(
+      career,
+      recent,
+      (entry) => entry.key,
+      (entry) => entry.label,
+      (entry) => entry.games,
+      (entry) => entry.share,
+    );
+    expect(rows.map((row) => row.key)).toEqual(['A', 'B', 'C']);
   });
 });
