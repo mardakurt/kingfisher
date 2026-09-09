@@ -106,6 +106,24 @@ interface CachedChunk {
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
+/**
+ * Default ceiling for the in-memory chunk cache of one
+ * `RemoteReferenceProvider`. The ADR's first-pass online-cache prototype
+ * is 32 MiB compressed, measured against thirteen maximum-size Elite
+ * explorer chunks (~2.4 MB each). One provider rarely sees more than
+ * one pack at a time, so a per-provider budget matches the
+ * one-source-per-tab model the explorer already uses.
+ */
+const DEFAULT_MAX_CACHE_BYTES = 32 * 1024 * 1024;
+
+/**
+ * Hard ceiling on chunk count, independent of byte size, so that an
+ * adversary controlling the mirror cannot make one provider pin a huge
+ * number of small chunks. Eight is the same bound the installed reader
+ * uses; the on-demand case usually wants fewer, not more.
+ */
+const DEFAULT_MAX_CACHE_ENTRIES = 8;
+
 async function sha256Hex(bytes: Uint8Array): Promise<string> {
   /*
    * SubtleCrypto is available in every browser this app supports
@@ -114,7 +132,11 @@ async function sha256Hex(bytes: Uint8Array): Promise<string> {
    * (under 64 MiB) is hashed in well under a millisecond.
    */
   if (typeof crypto !== 'undefined' && crypto.subtle) {
-    const digest = await crypto.subtle.digest('SHA-256', bytes);
+    // crypto.subtle.digest requires a BufferSource backed by ArrayBuffer;
+    // copy into a fresh buffer to drop any SharedArrayBuffer provenance.
+    const buffer = new ArrayBuffer(bytes.byteLength);
+    new Uint8Array(buffer).set(bytes);
+    const digest = await crypto.subtle.digest('SHA-256', buffer);
     return Array.from(new Uint8Array(digest))
       .map((byte) => byte.toString(16).padStart(2, '0'))
       .join('');
@@ -166,6 +188,9 @@ export class RemoteReferenceProvider implements ChessDatabaseProvider {
   private readonly baseUrl: string;
   private readonly shards: RemoteShards;
   private readonly cache = new Map<string, CachedChunk>();
+  private readonly cacheByteBudget: number;
+  private readonly maxCacheEntries: number;
+  private cachedBytes = 0;
 
   constructor(options: {
     readonly id: string;
@@ -174,6 +199,8 @@ export class RemoteReferenceProvider implements ChessDatabaseProvider {
     readonly manifest: PackManifest;
     readonly baseUrl: string;
     readonly shards: RemoteShards;
+    readonly maxCacheBytes?: number;
+    readonly maxCacheEntries?: number;
   }) {
     this.id = options.id;
     this.name = options.name;
@@ -181,6 +208,8 @@ export class RemoteReferenceProvider implements ChessDatabaseProvider {
     this.manifest = options.manifest;
     this.baseUrl = options.baseUrl;
     this.shards = options.shards;
+    this.cacheByteBudget = options.maxCacheBytes ?? DEFAULT_MAX_CACHE_BYTES;
+    this.maxCacheEntries = options.maxCacheEntries ?? DEFAULT_MAX_CACHE_ENTRIES;
     this.cacheVersion = `${options.manifest.id}@${options.manifest.version}`;
     this.capabilities = {
       ratingFilter: true,
@@ -200,6 +229,10 @@ export class RemoteReferenceProvider implements ChessDatabaseProvider {
   private async ensureChunk(file: string, sha: string, bytes: number): Promise<Uint8Array> {
     const cached = this.cache.get(file);
     if (cached && cached.sha256 === sha && cached.expiresAt > Date.now()) {
+      // Re-insert so the most recently used entry is last, which is what
+      // the eviction below relies on.
+      this.cache.delete(file);
+      this.cache.set(file, cached);
       return cached.bytes;
     }
     const url = `${this.baseUrl.replace(/\/$/, '')}/${file}`;
@@ -217,12 +250,41 @@ export class RemoteReferenceProvider implements ChessDatabaseProvider {
         'Not installed. Try installing for offline use instead.',
       );
     }
-    this.cache.set(file, {
+    this.putCache(file, {
       bytes: data,
       sha256: sha,
       expiresAt: Date.now() + CACHE_TTL_MS,
     });
     return data;
+  }
+
+  /**
+   * Insert a chunk, evicting the oldest entries until both the byte
+   * budget and the entry-count ceiling fit. A single chunk that
+   * exceeds the byte budget is refused rather than cached, so a
+   * misbehaving mirror cannot grow this provider without bound by
+   * serving an oversized object.
+   */
+  private putCache(file: string, chunk: CachedChunk): void {
+    if (chunk.bytes.byteLength > this.cacheByteBudget) {
+      return;
+    }
+    this.evictUntilFits(chunk.bytes.byteLength);
+    this.cache.set(file, chunk);
+    this.cachedBytes += chunk.bytes.byteLength;
+  }
+
+  private evictUntilFits(incomingBytes: number): void {
+    while (
+      this.cache.size >= this.maxCacheEntries ||
+      this.cachedBytes + incomingBytes > this.cacheByteBudget
+    ) {
+      const oldestKey = this.cache.keys().next().value;
+      if (oldestKey === undefined) return;
+      const oldest = this.cache.get(oldestKey);
+      this.cache.delete(oldestKey);
+      if (oldest) this.cachedBytes -= oldest.bytes.byteLength;
+    }
   }
 
   async explore(_query: ExplorerQuery): Promise<ExplorerResult> {
@@ -241,9 +303,7 @@ export class RemoteReferenceProvider implements ChessDatabaseProvider {
     }
     const bytes = await this.ensureChunk(descriptor.file, descriptor.sha256, descriptor.bytes);
     const text = new TextDecoder().decode(bytes);
-    const rowLine = text
-      .split('\n')
-      .find((row) => row.startsWith(`${key}|`));
+    const rowLine = text.split('\n').find((row) => row.startsWith(`${key}|`));
     if (!rowLine) {
       return {
         fen: _query.fen,
@@ -261,9 +321,7 @@ export class RemoteReferenceProvider implements ChessDatabaseProvider {
     // return. That is the property that makes a partial cache
     // equivalent to part of an install.
     const parsed = decodeExplorerLine(rowLine);
-    const moves: DatabaseMove[] = parsed
-      ? parsed.moves.map(packMoveToDatabaseMove)
-      : [];
+    const moves: DatabaseMove[] = parsed ? parsed.moves.map(packMoveToDatabaseMove) : [];
     return {
       fen: _query.fen,
       source: { id: this.id, name: this.name },
@@ -277,9 +335,12 @@ export class RemoteReferenceProvider implements ChessDatabaseProvider {
 
   /** Cache size in bytes — useful for the catalog UX. */
   cacheBytes(): number {
-    let total = 0;
-    for (const chunk of this.cache.values()) total += chunk.bytes.byteLength;
-    return total;
+    return this.cachedBytes;
+  }
+
+  /** Cache byte budget advertised to the catalog UX. */
+  maxCacheBytes(): number {
+    return this.cacheByteBudget;
   }
 
   /** Number of cached chunks — useful for the catalog UX. */
