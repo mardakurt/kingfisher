@@ -412,3 +412,42 @@ function validateRecord(store: StoreName, value: unknown, index: number): void {
 
   if (!valid) throw invalid(`${store}[${index}] is malformed.`);
 }
+
+/**
+ * Create a backup and offer it as a download to the user.
+ *
+ * Phase 30 (PART AI): makes the "Saved on this device" status
+ * click into a one-click backup download, without inventing a
+ * new backup format. The download uses the existing
+ * `createWorkspaceBackup` and the same JSON shape `restore`
+ * accepts, so what the user downloads is exactly what
+ * `Restore` reads.
+ */
+export async function downloadWorkspaceBackup(options: {
+  readonly includeGames?: boolean;
+} = {}): Promise<{ readonly ok: true; readonly bytes: number } | { readonly ok: false; readonly message: string }> {
+  try {
+    const { openPersistenceDatabase } = await import('./indexeddb/database');
+    const database = await openPersistenceDatabase();
+    const backup = await createWorkspaceBackup(database, {}, {
+      includeGames: options.includeGames,
+    });
+    const json = JSON.stringify(backup, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    const stamp = new Date().toISOString().slice(0, 10);
+    anchor.href = url;
+    anchor.download = `kingfisher-backup-${stamp}.json`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+    return { ok: true, bytes: blob.size };
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : String(error),
+    };
+  }
+}

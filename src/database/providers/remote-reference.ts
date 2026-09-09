@@ -208,11 +208,20 @@ export class RemoteReferenceProvider implements ChessDatabaseProvider {
         persistent: options.persistent ?? new IndexedDbStreamingCacheStorage(),
       });
     this.cacheVersion = `${options.manifest.id}@${options.manifest.version}`;
+    // Phase 30 (PART T): reference packs carry a single
+    // speed window (Elite OTB is over-the-board only, Recent
+    // Theory is whatever the manifest says). The remote
+    // provider does not actually filter by speed — it serves
+    // whatever the chunk contains. The honest answer is
+    // therefore `speedFilter: false` for the remote-reference
+    // provider; the catalog's "high rated online" warning is
+    // for the lichess provider, which IS categorised by
+    // speed, and the explorer UI shows the appropriate copy.
     this.capabilities = {
       ratingFilter: true,
       dateFilter: true,
       playerFilter: false,
-      speedFilter: true,
+      speedFilter: false,
       topGames: true,
       offline: false,
     };

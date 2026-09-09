@@ -48,7 +48,6 @@ describe('XSS regression — user data round-trips as text', () => {
     const file = await repositories.openingFiles.create({
       name: PAYLOAD,
       color: 'w',
-      positions: [],
     });
     expect(file.name).toBe(PAYLOAD);
     const list = await repositories.openingFiles.list();
@@ -57,7 +56,7 @@ describe('XSS regression — user data round-trips as text', () => {
 
   it('Source-set name with HTML payload round-trips literally', async () => {
     const repositories = await createMemoryRepositories();
-    await repositories.sourceSets.create({ name: PAYLOAD });
+    await repositories.sourceSets.create({ name: PAYLOAD, collectionIds: [] });
     const list = await repositories.sourceSets.list();
     expect(list.find((entry) => entry.name === PAYLOAD)).toBeDefined();
   });
@@ -87,10 +86,8 @@ describe('XSS regression — user data round-trips as text', () => {
   it('Repertoire title with HTML payload round-trips literally', async () => {
     const repositories = await createMemoryRepositories();
     const rep = await repositories.repertoires.create({
-      id: 'rep-payload',
       title: PAYLOAD,
       color: 'w',
-      positions: [],
     });
     expect(rep.title).toBe(PAYLOAD);
     const list = await repositories.repertoires.list();
