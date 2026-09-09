@@ -16,8 +16,8 @@ development branch.
 - **Visible chunk reuse.** When a reference pack is updated, the install
   progress now reports how many bytes were saved by re-using chunks
   already on disk — the same number the content-addressed store sees,
-  not a rounded estimate. *120 MB of 324 MB · 204 MB reused from the
-  previous install.*
+  not a rounded estimate. _120 MB of 324 MB · 204 MB reused from the
+  previous install._
 - **Categorised build reports.** Every reference pack build now writes
   a `build-report.json` next to its manifest. Every rejection reason
   the worker counts — bad result, too short, non-standard variant,
@@ -33,7 +33,7 @@ development branch.
 
 - **Trend with a sample-size label.** The Explorer Recent column shows
   the trend arrow only when the move has enough games to support one.
-  Below the threshold, the column says *small sample* in plain text
+  Below the threshold, the column says _small sample_ in plain text
   and prints the recent games count next to it, so 3 of 7 never looks
   equivalent to 3,000 of 7,000. The header tooltip spells out the
   threshold and the rise/fall/steady rule.
@@ -59,7 +59,7 @@ development branch.
   into a list of training prompts — position-keyed, deduplicated by
   canonical position, and provenance-tagged with the source the gap
   came from. The solution is intentionally left empty: the
-  reference data tells the player *what* to train; the player's own
+  reference data tells the player _what_ to train; the player's own
   repertoire move is the answer.
 
 ## 1.0.0 — public stable release

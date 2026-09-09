@@ -646,11 +646,7 @@ function Row({
             ? 'small sample'
             : '';
   const trendClass =
-    trend === 'rising'
-      ? 'text-positive'
-      : trend === 'falling'
-        ? 'text-negative'
-        : 'text-secondary';
+    trend === 'rising' ? 'text-positive' : trend === 'falling' ? 'text-negative' : 'text-secondary';
   return (
     <tr className={cn(selected && 'bg-accent-muted')}>
       <td className="px-1.5 py-1.5">

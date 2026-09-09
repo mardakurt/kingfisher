@@ -54,50 +54,41 @@ const position = (moves: ReturnType<typeof move>[]): RepertoirePositionRecord =>
 
 describe('data-driven training generation', () => {
   it('produces one prompt per coverage gap', () => {
-    const reports = computeCoverage(
-      position([move('e2e4', 'e4', 'main')]),
-      [
-        {
-          id: 'elite',
-          name: 'Elite OTB',
-          result: result([
-            { uci: 'e2e4', san: 'e4', games: 1000, total: 1600 },
-            { uci: 'd2d4', san: 'd4', games: 600, total: 1600 },
-          ]),
-        },
-      ],
-    );
+    const reports = computeCoverage(position([move('e2e4', 'e4', 'main')]), [
+      {
+        id: 'elite',
+        name: 'Elite OTB',
+        result: result([
+          { uci: 'e2e4', san: 'e4', games: 1000, total: 1600 },
+          { uci: 'd2d4', san: 'd4', games: 600, total: 1600 },
+        ]),
+      },
+    ]);
     const prompts = buildTrainingPrompts(reports, 'Elite OTB');
     expect(prompts).toHaveLength(1);
     expect(prompts[0]?.opponentMove.uci).toBe('d2d4');
   });
 
   it('names the source the gap was derived from', () => {
-    const reports = computeCoverage(
-      position([]),
-      [
-        {
-          id: 'elite',
-          name: 'Elite OTB',
-          result: result([{ uci: 'd2d4', san: 'd4', games: 500, total: 500 }]),
-        },
-      ],
-    );
+    const reports = computeCoverage(position([]), [
+      {
+        id: 'elite',
+        name: 'Elite OTB',
+        result: result([{ uci: 'd2d4', san: 'd4', games: 500, total: 500 }]),
+      },
+    ]);
     const prompts = buildTrainingPrompts(reports, 'Elite OTB');
     expect(prompts[0]?.source.name).toBe('Elite OTB');
   });
 
   it('writes a prompt that names the move, games, and population', () => {
-    const reports = computeCoverage(
-      position([]),
-      [
-        {
-          id: 'elite',
-          name: 'Elite OTB',
-          result: result([{ uci: 'd2d4', san: 'd4', games: 600, total: 1500 }]),
-        },
-      ],
-    );
+    const reports = computeCoverage(position([]), [
+      {
+        id: 'elite',
+        name: 'Elite OTB',
+        result: result([{ uci: 'd2d4', san: 'd4', games: 600, total: 1500 }]),
+      },
+    ]);
     const prompts = buildTrainingPrompts(reports, 'Elite OTB');
     const text = defaultPrompt(prompts[0]!);
     expect(text).toContain('d4');
@@ -123,35 +114,29 @@ describe('data-driven training generation', () => {
      * key. The transposition-aware dedup keeps only one. The fixture uses
      * the starting FEN for both gaps, so they share a position key.
      */
-    const reports = computeCoverage(
-      position([]),
-      [
-        {
-          id: 'elite',
-          name: 'Elite OTB',
-          result: result([
-            { uci: 'd2d4', san: 'd4', games: 600, total: 1500 },
-            { uci: 'd2d3', san: 'd3', games: 500, total: 1500 },
-          ]),
-        },
-      ],
-    );
+    const reports = computeCoverage(position([]), [
+      {
+        id: 'elite',
+        name: 'Elite OTB',
+        result: result([
+          { uci: 'd2d4', san: 'd4', games: 600, total: 1500 },
+          { uci: 'd2d3', san: 'd3', games: 500, total: 1500 },
+        ]),
+      },
+    ]);
     expect(reports[0]!.gaps).toHaveLength(2);
     const prompts = buildTrainingPrompts(reports, 'Elite OTB');
     expect(prompts).toHaveLength(1);
   });
 
   it('emits a draft that is keyed, named, and provenance-tagged', () => {
-    const reports = computeCoverage(
-      position([]),
-      [
-        {
-          id: 'elite',
-          name: 'Elite OTB',
-          result: result([{ uci: 'd2d4', san: 'd4', games: 600, total: 1500 }]),
-        },
-      ],
-    );
+    const reports = computeCoverage(position([]), [
+      {
+        id: 'elite',
+        name: 'Elite OTB',
+        result: result([{ uci: 'd2d4', san: 'd4', games: 600, total: 1500 }]),
+      },
+    ]);
     const drafts = draftTrainingSet(reports, 'Elite OTB');
     expect(drafts).toHaveLength(1);
     const draft = drafts[0]!;
@@ -184,20 +169,19 @@ describe('data-driven training generation', () => {
     const prompts = buildTrainingPrompts(reports, 'Elite OTB');
     expect(prompts).toHaveLength(1);
     // Sanity: the positionKey helper is stable for a real FEN.
-    expect(positionKeyForTraining('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -')).toBe('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -');
+    expect(positionKeyForTraining('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -')).toBe(
+      'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -',
+    );
   });
 
   it('reuses draftTrainingItem on a single prompt', () => {
-    const reports = computeCoverage(
-      position([]),
-      [
-        {
-          id: 'elite',
-          name: 'Elite OTB',
-          result: result([{ uci: 'd2d4', san: 'd4', games: 600, total: 1500 }]),
-        },
-      ],
-    );
+    const reports = computeCoverage(position([]), [
+      {
+        id: 'elite',
+        name: 'Elite OTB',
+        result: result([{ uci: 'd2d4', san: 'd4', games: 600, total: 1500 }]),
+      },
+    ]);
     const prompts = buildTrainingPrompts(reports, 'Elite OTB');
     const draft = draftTrainingItem(prompts[0]!);
     expect(draft.positionKey).toBe(prompts[0]?.positionKey);

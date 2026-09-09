@@ -7,7 +7,14 @@ import { createHash } from 'node:crypto';
 import { openPersistenceDatabaseAt } from '@/persistence/indexeddb/database';
 import { DATABASE_VERSION } from '@/persistence/schema/migrations';
 
-import { fetchManifest, installPack, parseManifest, verifyPack, PackInstallError, type InstallProgress } from './install';
+import {
+  fetchManifest,
+  installPack,
+  parseManifest,
+  verifyPack,
+  PackInstallError,
+  type InstallProgress,
+} from './install';
 import { PACK_FORMAT, chunkFile, chunkId, type PackManifest } from './pack';
 import { PackReader } from './reader';
 import { ReferencePackStore } from './store';
@@ -469,11 +476,7 @@ describe('transactional pack updates', () => {
     const { manifest: v2Manifest, chunks: v2Bodies } = update();
     const gameChunk = v2Manifest.chunks.find((chunk) => chunk.kind === 'game')!;
     // Stage a corrupted-but-same-length chunk under the new manifest's digest.
-    await store.putChunk(
-      v2Manifest.id,
-      gameChunk.sha256,
-      new Uint8Array(gameChunk.bytes),
-    );
+    await store.putChunk(v2Manifest.id, gameChunk.sha256, new Uint8Array(gameChunk.bytes));
 
     const downloadedFiles: string[] = [];
     const fetcher = vi.fn(async (input: RequestInfo | URL) => {

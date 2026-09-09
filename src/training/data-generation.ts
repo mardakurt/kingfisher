@@ -83,7 +83,7 @@ export function buildTrainingPrompts(
     for (const gap of report.gaps) {
       prompts.push({
         positionKey: report.positionKey,
-        fen: gap.san.length > 0 ? report.positionKey : report.positionKey,
+        fen: positionKeyForTraining(report.positionKey) as Fen,
         sideToMove: 'w',
         opponentMove: {
           uci: gap.uci,
@@ -146,11 +146,7 @@ export function draftTrainingItem(prompt: TrainingSetPrompt): DraftTrainingItem 
     positionKey: prompt.positionKey,
     fen: prompt.fen,
     sideToMove: prompt.sideToMove,
-    tags: [
-      `source:${prompt.source.id}`,
-      'data-generated',
-      `opponent:${prompt.opponentMove.uci}`,
-    ],
+    tags: [`source:${prompt.source.id}`, 'data-generated', `opponent:${prompt.opponentMove.uci}`],
     explanation: `Generated from ${prompt.source.name} (${prompt.opponentMove.games} games). The repertoire does not currently have a decision for this position.`,
   };
 }

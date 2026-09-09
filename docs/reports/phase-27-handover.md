@@ -35,12 +35,12 @@ same Phase 27.
 
 ## 2. Completed in this session
 
-| Item                                                | Where                                               |
-| --------------------------------------------------- | --------------------------------------------------- |
-| Data inventory document (PART C)                    | `docs/data/data-inventory.md`                        |
+| Item                                                    | Where                                                                          |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Data inventory document (PART C)                        | `docs/data/data-inventory.md`                                                  |
 | Chunk-reuse savings surfaced in the install UI (PART O) | `src/reference/install.ts`, `src/features/databases/ReferenceCatalogPanel.tsx` |
-| Targeted reference-pack unit suite re-run           | `npx vitest run src/reference` → 86/86 green        |
-| Type and lint stay green                            | `npm run typecheck` + `npm run lint` → clean         |
+| Targeted reference-pack unit suite re-run               | `npx vitest run src/reference` → 86/86 green                                   |
+| Type and lint stay green                                | `npm run typecheck` + `npm run lint` → clean                                   |
 
 The data inventory records, for every source Kingfisher
 knows about, the values the manifests actually published
@@ -201,13 +201,13 @@ Phase 27 — no Phase 28.
 
 ## 4. Application
 
-| Field        | Value                                                                 |
-| ------------ | --------------------------------------------------------------------- |
-| Starting ver | 1.0.0                                                                 |
-| Final ver    | 1.0.0 (unchanged on master; 1.1 deferred to continuation)            |
-| Commit       | `ed4cf22`                                                             |
-| Vercel       | `kingfisher-chess.vercel.app` — production 1.0 build                 |
-| GitHub       | `v1.0.0` is the current Latest release                               |
+| Field        | Value                                                     |
+| ------------ | --------------------------------------------------------- |
+| Starting ver | 1.0.0                                                     |
+| Final ver    | 1.0.0 (unchanged on master; 1.1 deferred to continuation) |
+| Commit       | `ed4cf22`                                                 |
+| Vercel       | `kingfisher-chess.vercel.app` — production 1.0 build      |
+| GitHub       | `v1.0.0` is the current Latest release                    |
 
 ## 5. Data inventory (PART C)
 
@@ -246,13 +246,13 @@ introduced.
 
 Local:
 
-| Check                          | Result                       |
-| ------------------------------ | ---------------------------- |
-| `npm run typecheck`            | 0 errors                     |
-| `npm run lint`                 | 0 errors                     |
+| Check                          | Result                        |
+| ------------------------------ | ----------------------------- |
+| `npm run typecheck`            | 0 errors                      |
+| `npm run lint`                 | 0 errors                      |
 | `npm test`                     | 2177 pass, 11 skipped, 0 fail |
-| `npx vitest run src/reference` | 86 / 86 green                |
-| `npm run security:scan`        | 0 leaks, 0 advisories        |
+| `npx vitest run src/reference` | 86 / 86 green                 |
+| `npm run security:scan`        | 0 leaks, 0 advisories         |
 
 Remote CI: not triggered by this commit. The Phase 26 CI
 policy stays.

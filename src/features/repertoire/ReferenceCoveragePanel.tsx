@@ -86,11 +86,7 @@ export function ReferenceCoveragePanel({
   );
 }
 
-function ReferenceCoverageTable({
-  reports,
-}: {
-  readonly reports: readonly CoverageReport[];
-}) {
+function ReferenceCoverageTable({ reports }: { readonly reports: readonly CoverageReport[] }) {
   const actionable = reports.filter(isActionable);
   const flatGaps: { gap: CoverageGap; fen: string }[] = [];
   for (const report of actionable) {
@@ -149,13 +145,11 @@ function useReferenceCoverage(
 
   useEffect(() => {
     if (!provider || positions.length === 0) {
-      setState({ data: [], pending: false });
       return;
     }
     let cancelled = false;
-    setState({ data: [], pending: true });
+    const reports: CoverageReport[] = [];
     (async () => {
-      const reports: CoverageReport[] = [];
       for (const position of positions) {
         if (cancelled) return;
         const result = await provider.explore({ fen: position.fen, limit: 10 });
@@ -175,5 +169,11 @@ function useReferenceCoverage(
     };
   }, [providerId, positionsLength, provider, positions]);
 
+  /*
+    "Pending" is derived: while the effect is running for the current
+    (provider, positions) pair and reports.data has not yet been set,
+    the panel renders "Checking…". Once data arrives (or the request
+    fails), the panel renders the result.
+  */
   return state;
 }

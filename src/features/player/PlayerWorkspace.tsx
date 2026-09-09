@@ -318,13 +318,17 @@ export function PlayerWorkspace({ playerId }: { readonly playerId: string }) {
                     title="As White"
                     line={aggregate.asWhite}
                     openings={aggregate.openingsAsWhite}
-                    onOpen={(opening) => void openOnBoard(opening.exampleGameId, opening.examplePly)}
+                    onOpen={(opening) =>
+                      void openOnBoard(opening.exampleGameId, opening.examplePly)
+                    }
                   />
                   <OpeningTable
                     title="As Black"
                     line={aggregate.asBlack}
                     openings={aggregate.openingsAsBlack}
-                    onOpen={(opening) => void openOnBoard(opening.exampleGameId, opening.examplePly)}
+                    onOpen={(opening) =>
+                      void openOnBoard(opening.exampleGameId, opening.examplePly)
+                    }
                   />
                 </div>
               </div>
@@ -595,9 +599,7 @@ function CareerVsRecentSection({
   openingsAsWhite,
   openingsAsBlack,
 }: {
-  readonly identity: ReturnType<typeof usePlayerIdentity>['data'] extends infer T
-    ? T
-    : never;
+  readonly identity: ReturnType<typeof usePlayerIdentity>['data'] extends infer T ? T : never;
   readonly openingsAsWhite: readonly OpeningCount[];
   readonly openingsAsBlack: readonly OpeningCount[];
 }) {
@@ -634,8 +636,8 @@ function CareerVsRecentSection({
     <section>
       <h2 className="text-sm font-semibold text-primary">What has this player changed?</h2>
       <p className="mt-1 text-xs text-tertiary">
-        Career vs the last 12 months, by opening. Each row shows both periods and the
-        difference in percentage points.
+        Career vs the last 12 months, by opening. Each row shows both periods and the difference in
+        percentage points.
         {recent
           ? ` Career ${careerWhiteTotal + careerBlackTotal} games, recent 12 months ${
               recentWhiteTotal + recentBlackTotal
@@ -707,7 +709,9 @@ function ChangeTable({
                     {row.career.games} · {(row.career.share * 100).toFixed(1)}%
                   </td>
                   <td className="py-1.5 text-right tabular text-secondary">
-                    {row.recent ? `${row.recent.games} · ${(row.recent.share * 100).toFixed(1)}%` : '—'}
+                    {row.recent
+                      ? `${row.recent.games} · ${(row.recent.share * 100).toFixed(1)}%`
+                      : '—'}
                   </td>
                   <td className={`py-1.5 text-right tabular ${colour}`}>{arrow}</td>
                 </tr>

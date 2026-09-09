@@ -291,7 +291,10 @@ async function main() {
     maxPly: definition.limits.maxPly - 1,
     retainedBySpeed: scanned.retainedBySpeed,
   };
-  writeFileSync(path.join(outDir, 'build-report.json'), `${JSON.stringify(buildReport, null, 2)}\n`);
+  writeFileSync(
+    path.join(outDir, 'build-report.json'),
+    `${JSON.stringify(buildReport, null, 2)}\n`,
+  );
 
   // Keep the incremental scan cache; it is derived data in .archive-cache.
   console.log(`games    ${counts.games.toLocaleString()} counted`);

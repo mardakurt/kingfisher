@@ -84,7 +84,7 @@ normalisation is allowed; chess move reconstruction is not.
   - openable: 18,151
   - positions: 918,069
   - players: 2,567
-- **Time window:** *last 24 months of broadcast archive* (a recency
+- **Time window:** _last 24 months of broadcast archive_ (a recency
   source, not a weight-of-evidence one)
 - **Distribution:** GitHub Pages data mirror; installed on demand
 - **Update mechanism:** new version published to the data mirror as
@@ -108,7 +108,7 @@ normalisation is allowed; chess move reconstruction is not.
   - openable: 305,169
   - positions: 315,668
   - players: 12,315
-- **Time window:** *rolling 3 months* (a current-events source, not
+- **Time window:** _rolling 3 months_ (a current-events source, not
   historical)
 - **Distribution:** GitHub Pages data mirror; installed on demand
 - **Update mechanism:** new version published to the data mirror as

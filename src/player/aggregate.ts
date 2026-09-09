@@ -363,9 +363,7 @@ export function compareCareerVsRecent<T>(
     const careerShare = careerEntry ? shareOf(careerEntry) : 0;
     const recentShare = recentEntry ? shareOf(recentEntry) : null;
     const recentView: OpeningShare | null =
-      recentEntry && recentShare !== null
-        ? { games: recentGames, share: recentShare }
-        : null;
+      recentEntry && recentShare !== null ? { games: recentGames, share: recentShare } : null;
     rows.push({
       key,
       label: labelOf((careerEntry ?? recentEntry) as T),

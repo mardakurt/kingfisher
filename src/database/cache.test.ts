@@ -20,10 +20,14 @@ describe('Explorer cache identity', () => {
       source: 'v2',
     });
 
-    expect(client.getQueryData(['explorer', 'elite', 'kingfisher-elite-otb@v1', 'fen-A', {}])).toEqual({
+    expect(
+      client.getQueryData(['explorer', 'elite', 'kingfisher-elite-otb@v1', 'fen-A', {}]),
+    ).toEqual({
       source: 'v1',
     });
-    expect(client.getQueryData(['explorer', 'elite', 'kingfisher-elite-otb@v2', 'fen-A', {}])).toEqual({
+    expect(
+      client.getQueryData(['explorer', 'elite', 'kingfisher-elite-otb@v2', 'fen-A', {}]),
+    ).toEqual({
       source: 'v2',
     });
     // A collision (same key for both versions) would have overwritten; the
@@ -51,12 +55,24 @@ describe('Explorer cache identity', () => {
 
   it('keeps Rapid and Blitz in separate cache entries', () => {
     const client = new QueryClient();
-    const rapid = ['explorer', 'high-rated', 'kingfisher-high-rated-online@v1', 'fen-R', {
-      speeds: ['rapid'],
-    }];
-    const blitz = ['explorer', 'high-rated', 'kingfisher-high-rated-online@v1', 'fen-R', {
-      speeds: ['blitz'],
-    }];
+    const rapid = [
+      'explorer',
+      'high-rated',
+      'kingfisher-high-rated-online@v1',
+      'fen-R',
+      {
+        speeds: ['rapid'],
+      },
+    ];
+    const blitz = [
+      'explorer',
+      'high-rated',
+      'kingfisher-high-rated-online@v1',
+      'fen-R',
+      {
+        speeds: ['blitz'],
+      },
+    ];
     client.setQueryData(rapid, { share: 0.42 });
     client.setQueryData(blitz, { share: 0.58 });
 

@@ -124,7 +124,11 @@ function coverageForOne(
  * separate from the panel so a test can pin the rule.
  */
 export function walkRepertoireCoverage<
-  T extends { readonly id: string; readonly name: string; queryPosition(key: string): Promise<ExplorerResult> },
+  T extends {
+    readonly id: string;
+    readonly name: string;
+    queryPosition(key: string): Promise<ExplorerResult>;
+  },
 >(params: {
   readonly positions: readonly RepertoirePositionRecord[];
   readonly sources: readonly T[];

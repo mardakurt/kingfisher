@@ -29,24 +29,24 @@
 
 ## 2. Current public URL map
 
-| Surface            | URL                                                                                            | Status          |
-| ------------------ | ---------------------------------------------------------------------------------------------- | --------------- |
-| Landing page       | <https://mardakurt.github.io/kingfisher-data/>                                                 | LIVE            |
-| Landing page       | <https://kingfisher-chess.vercel.app/>                                                         | LIVE            |
-| Web app            | <https://kingfisher-chess.vercel.app/analysis>                                                 | LIVE (stable)   |
-| GitHub repository  | <https://github.com/mardakurt/kingfisher>                                                      | LIVE (public)   |
-| Latest application | <https://github.com/mardakurt/kingfisher/releases/latest>                                      | 1.0.0 (normal)  |
-| Specific 1.0 tag   | <https://github.com/mardakurt/kingfisher/releases/tag/v1.0.0>                                  | LIVE            |
-| macOS arm64 DMG    | <https://github.com/mardakurt/kingfisher/releases/download/v1.0.0/Kingfisher-1.0.0-arm64.dmg> | LIVE (Preview)  |
-| macOS x64 DMG      | <https://github.com/mardakurt/kingfisher/releases/download/v1.0.0/Kingfisher-1.0.0.dmg>       | LIVE (Preview)  |
-| Issues             | <https://github.com/mardakurt/kingfisher/issues>                                               | LIVE            |
-| Discussions        | <https://github.com/mardakurt/kingfisher/discussions>                                          | LIVE            |
-| Docs               | <https://github.com/mardakurt/kingfisher/tree/master/docs>                                     | LIVE            |
-| Security policy    | <https://github.com/mardakurt/kingfisher/security/policy>                                      | LIVE            |
-| Data mirror        | <https://mardakurt.github.io/kingfisher-data>                                                  | LIVE            |
-| Pack — Elite OTB   | <https://mardakurt.github.io/kingfisher-data/reference-elite-v2/manifest.json>                 | LIVE            |
-| Pack — Recent      | <https://mardakurt.github.io/kingfisher-data/reference-recent-v1/manifest.json>                | LIVE            |
-| Pack — High-Rated  | <https://mardakurt.github.io/kingfisher-data/reference-online-v1/manifest.json>                | LIVE            |
+| Surface            | URL                                                                                           | Status         |
+| ------------------ | --------------------------------------------------------------------------------------------- | -------------- |
+| Landing page       | <https://mardakurt.github.io/kingfisher-data/>                                                | LIVE           |
+| Landing page       | <https://kingfisher-chess.vercel.app/>                                                        | LIVE           |
+| Web app            | <https://kingfisher-chess.vercel.app/analysis>                                                | LIVE (stable)  |
+| GitHub repository  | <https://github.com/mardakurt/kingfisher>                                                     | LIVE (public)  |
+| Latest application | <https://github.com/mardakurt/kingfisher/releases/latest>                                     | 1.0.0 (normal) |
+| Specific 1.0 tag   | <https://github.com/mardakurt/kingfisher/releases/tag/v1.0.0>                                 | LIVE           |
+| macOS arm64 DMG    | <https://github.com/mardakurt/kingfisher/releases/download/v1.0.0/Kingfisher-1.0.0-arm64.dmg> | LIVE (Preview) |
+| macOS x64 DMG      | <https://github.com/mardakurt/kingfisher/releases/download/v1.0.0/Kingfisher-1.0.0.dmg>       | LIVE (Preview) |
+| Issues             | <https://github.com/mardakurt/kingfisher/issues>                                              | LIVE           |
+| Discussions        | <https://github.com/mardakurt/kingfisher/discussions>                                         | LIVE           |
+| Docs               | <https://github.com/mardakurt/kingfisher/tree/master/docs>                                    | LIVE           |
+| Security policy    | <https://github.com/mardakurt/kingfisher/security/policy>                                     | LIVE           |
+| Data mirror        | <https://mardakurt.github.io/kingfisher-data>                                                 | LIVE           |
+| Pack — Elite OTB   | <https://mardakurt.github.io/kingfisher-data/reference-elite-v2/manifest.json>                | LIVE           |
+| Pack — Recent      | <https://mardakurt.github.io/kingfisher-data/reference-recent-v1/manifest.json>               | LIVE           |
+| Pack — High-Rated  | <https://mardakurt.github.io/kingfisher-data/reference-online-v1/manifest.json>               | LIVE           |
 
 ## 3. GitHub release semantics
 
@@ -78,12 +78,12 @@ location: https://github.com/mardakurt/kingfisher/releases/tag/v1.0.0
 The four release rows on the GitHub Releases page are now
 correctly stratified:
 
-| Title                              | Type       |
-| ---------------------------------- | ---------- |
-| Kingfisher 1.0.0                   | Latest     |
-| Kingfisher 1.0.0-rc.5              | Pre-release |
-| Kingfisher 1.0.0-rc.4              | Pre-release |
-| Elite OTB Reference (pack v1)      | Pre-release |
+| Title                         | Type        |
+| ----------------------------- | ----------- |
+| Kingfisher 1.0.0              | Latest      |
+| Kingfisher 1.0.0-rc.5         | Pre-release |
+| Kingfisher 1.0.0-rc.4         | Pre-release |
+| Elite OTB Reference (pack v1) | Pre-release |
 
 A first user can now follow the
 "Download for macOS" button on the landing page straight to
@@ -159,9 +159,9 @@ digest-verified managed engine.
 
 ## 10. macOS
 
-| Channel | Status                                                                                  |
-| ------- | --------------------------------------------------------------------------------------- |
-| arm64   | Built, signed (Apple Development), checksum published, not notarized — **Preview**     |
+| Channel | Status                                                                                         |
+| ------- | ---------------------------------------------------------------------------------------------- |
+| arm64   | Built, signed (Apple Development), checksum published, not notarized — **Preview**             |
 | x64     | Built, signed, checksum published, not notarized, not manually runtime-certified — **Preview** |
 
 The arm64 binary is the primary desktop artifact. The
@@ -226,7 +226,7 @@ Fast release gate:
 What runs automatically:
 
 - `ci.yml` (Quality): typecheck + lint + unit/integration
-  + production build. Paths-ignore for docs and marketing.
+  - production build. Paths-ignore for docs and marketing.
 - `release-build.yml` (tag): web production build +
   arm64 DMG + checksums + release manifest upload. No
   cross-platform packaging, no engine matrix, no long
@@ -242,17 +242,17 @@ pushed.
 
 Local 1.0 gate run, exact counts:
 
-| Check                        | Result        |
-| ---------------------------- | ------------- |
-| `npm run typecheck`          | 0 errors      |
-| `npm run lint`               | 0 errors      |
-| `npm run format:check`       | clean         |
-| `npm test`                   | 2177 pass, 11 skipped, 0 fail |
-| `npm run security:scan`      | 0 leaks, 0 advisories |
-| `npm run build`              | production build succeeded |
-| `node scripts/public-link-check.mjs` | 19/19 |
-| `npm run desktop:dist`       | arm64 + x64 DMG built |
-| `vercel deploy --prod`       | aliased to kingfisher-chess.vercel.app |
+| Check                                | Result                                 |
+| ------------------------------------ | -------------------------------------- |
+| `npm run typecheck`                  | 0 errors                               |
+| `npm run lint`                       | 0 errors                               |
+| `npm run format:check`               | clean                                  |
+| `npm test`                           | 2177 pass, 11 skipped, 0 fail          |
+| `npm run security:scan`              | 0 leaks, 0 advisories                  |
+| `npm run build`                      | production build succeeded             |
+| `node scripts/public-link-check.mjs` | 19/19                                  |
+| `npm run desktop:dist`               | arm64 + x64 DMG built                  |
+| `vercel deploy --prod`               | aliased to kingfisher-chess.vercel.app |
 
 Remote CI:
 
@@ -266,16 +266,16 @@ Remote CI:
 
 ## 16. Bugs found
 
-| Severity | Defect                                                                 | Resolution                                                                                            |
-| -------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| High     | `releases/latest` resolves to `reference-elite-v1`, not the app.       | Marked `reference-elite-v1` as `prerelease`. Released `v1.0.0` as a **normal** release.              |
-| High     | `package.json` and `desktop/package.json` still on `1.0.0-rc.5`.      | Bumped to `1.0.0`.                                                                                    |
-| High     | Landing page still shows "Public preview · 1.0.0-rc.5".                | Updated to "Public release · 1.0.0" in both `marketing/index.html` and `src/app/landing/LandingPage.tsx`. |
-| High     | Landing page still downloads the `1.0.0-rc.5-arm64.dmg`.                | Updated download URL and the file name in the spec block.                                              |
-| High     | GitHub Pages landing still linked to the old `/` root of Vercel.       | Re-ran `scripts/publish-site.mjs --apply`.                                                             |
-| Medium   | Prettier found 6 unformatted files after the version bump.             | `npx prettier --write …` for each, then `prettier --check .` is clean.                                |
-| Medium   | `dist/release-manifest.json` still recorded rc.4 / rc.5 artefacts.     | Regenerated with the v1.0.0 artefacts; rc.4 / rc.5 entries kept for historical completeness.          |
-| Low      | A `.DS_Store` was created by Finder inside `marketing/` and blocked the publish gate. | Removed. The publish script refused correctly; no data deleted.                                |
+| Severity | Defect                                                                                | Resolution                                                                                                |
+| -------- | ------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| High     | `releases/latest` resolves to `reference-elite-v1`, not the app.                      | Marked `reference-elite-v1` as `prerelease`. Released `v1.0.0` as a **normal** release.                   |
+| High     | `package.json` and `desktop/package.json` still on `1.0.0-rc.5`.                      | Bumped to `1.0.0`.                                                                                        |
+| High     | Landing page still shows "Public preview · 1.0.0-rc.5".                               | Updated to "Public release · 1.0.0" in both `marketing/index.html` and `src/app/landing/LandingPage.tsx`. |
+| High     | Landing page still downloads the `1.0.0-rc.5-arm64.dmg`.                              | Updated download URL and the file name in the spec block.                                                 |
+| High     | GitHub Pages landing still linked to the old `/` root of Vercel.                      | Re-ran `scripts/publish-site.mjs --apply`.                                                                |
+| Medium   | Prettier found 6 unformatted files after the version bump.                            | `npx prettier --write …` for each, then `prettier --check .` is clean.                                    |
+| Medium   | `dist/release-manifest.json` still recorded rc.4 / rc.5 artefacts.                    | Regenerated with the v1.0.0 artefacts; rc.4 / rc.5 entries kept for historical completeness.              |
+| Low      | A `.DS_Store` was created by Finder inside `marketing/` and blocked the publish gate. | Removed. The publish script refused correctly; no data deleted.                                           |
 
 0 Critical, 0 Critical UI, 0 High UI defects.
 
@@ -300,17 +300,17 @@ Remote CI:
 
 ## 18. 1.0 release artefacts
 
-| Field            | Value                                                                                  |
-| ---------------- | -------------------------------------------------------------------------------------- |
-| Commit           | `64cfd2b` (master)                                                                     |
-| Tag              | `v1.0.0` (annotated)                                                                   |
-| GitHub Release   | <https://github.com/mardakurt/kingfisher/releases/tag/v1.0.0>                           |
-| Vercel           | <https://kingfisher-chess.vercel.app/> — aliased from the production build             |
+| Field            | Value                                                                                                     |
+| ---------------- | --------------------------------------------------------------------------------------------------------- |
+| Commit           | `64cfd2b` (master)                                                                                        |
+| Tag              | `v1.0.0` (annotated)                                                                                      |
+| GitHub Release   | <https://github.com/mardakurt/kingfisher/releases/tag/v1.0.0>                                             |
+| Vercel           | <https://kingfisher-chess.vercel.app/> — aliased from the production build                                |
 | DMG (arm64)      | `Kingfisher-1.0.0-arm64.dmg` — SHA-256 `f7b50af58bfc123691ec58eaf3d00ff4e6d028d773eb24d3b8701436b0bf9fd0` |
-| DMG (x64)        | `Kingfisher-1.0.0.dmg` — SHA-256 `9932f957a7a4fa6baacc4a5a2c67166ac325d5a8c1f1112eed920a96f5fbd37b` |
-| SHA-256 file     | `SHA256SUMS.txt` (attached)                                                            |
-| Release manifest | `release-manifest.json` (attached)                                                     |
-| Landing          | <https://mardakurt.github.io/kingfisher-data/> (GitHub Pages rebuild queued)          |
+| DMG (x64)        | `Kingfisher-1.0.0.dmg` — SHA-256 `9932f957a7a4fa6baacc4a5a2c67166ac325d5a8c1f1112eed920a96f5fbd37b`       |
+| SHA-256 file     | `SHA256SUMS.txt` (attached)                                                                               |
+| Release manifest | `release-manifest.json` (attached)                                                                        |
+| Landing          | <https://mardakurt.github.io/kingfisher-data/> (GitHub Pages rebuild queued)                              |
 
 ## 19. Release verdict
 
