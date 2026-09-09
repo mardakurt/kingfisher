@@ -1,0 +1,179 @@
+'use client';
+
+/**
+ * Repertoire coverage against a chosen reference source.
+ *
+ * The existing local-coverage panel answers "what have opponents in my own
+ * games done that I have not prepared for?". This one answers the same shape
+ * of question against a reference source — Elite OTB, Recent Theory, High-
+ * Rated Online — so a player can see the population they care about rather
+ * than only the games that happen to be on disk.
+ *
+ * Coverage is position-keyed and therefore transposition-aware: a move order
+ * that reaches the same canonical position is the same row, even when the
+ * opponent plays it from three different openings. The panel never invents
+ * a score; every figure is one the source's own Explorer result carries.
+ */
+
+import { useEffect, useMemo, useState } from 'react';
+
+import { useDatabaseProviders } from '@/database/use-database-providers';
+import type { ExplorerQuery, ExplorerResult } from '@/database/types';
+import type { RepertoirePositionRecord } from '@/persistence/domain';
+import { isActionable, topGaps, computeCoverage } from '@/repertoire/coverage';
+import type { CoverageGap, CoverageReport } from '@/repertoire/coverage';
+
+const SOURCES = [
+  { id: 'kingfisher-elite-otb', label: 'Elite OTB' },
+  { id: 'kingfisher-recent-theory', label: 'Recent Theory' },
+  { id: 'kingfisher-high-rated-online', label: 'High-Rated Online' },
+] as const;
+
+type SourceId = (typeof SOURCES)[number]['id'];
+
+export function ReferenceCoveragePanel({
+  positions,
+}: {
+  readonly positions: readonly RepertoirePositionRecord[];
+}) {
+  const providers = useDatabaseProviders();
+  const [sourceId, setSourceId] = useState<SourceId>('kingfisher-elite-otb');
+  const provider = useMemo(
+    () => providers.find((entry) => entry.id === sourceId) ?? null,
+    [providers, sourceId],
+  );
+
+  const reports = useReferenceCoverage(positions, provider as ReferenceProvider | null);
+
+  if (positions.length === 0) {
+    return (
+      <section className="shrink-0 border-b border-line-subtle px-3 py-2 text-[10.5px] text-tertiary">
+        Add positions to see what your repertoire misses.
+      </section>
+    );
+  }
+
+  return (
+    <section className="shrink-0 border-b border-line-subtle">
+      <div className="flex h-8 items-center gap-2 px-3">
+        <h2 className="text-[10px] uppercase tracking-wide text-tertiary">
+          Coverage against reference
+        </h2>
+        <select
+          value={sourceId}
+          onChange={(event) => setSourceId(event.target.value as SourceId)}
+          className="ml-auto h-6 rounded-[3px] border border-line bg-surface-inset px-1.5 text-[10px] text-primary outline-none focus:border-accent/60"
+        >
+          {SOURCES.map((entry) => (
+            <option key={entry.id} value={entry.id}>
+              {entry.label}
+            </option>
+          ))}
+        </select>
+      </div>
+      {!provider ? (
+        <p className="border-t border-line-subtle px-3 py-2 text-[10.5px] text-tertiary">
+          This reference is not installed.
+        </p>
+      ) : reports.pending ? (
+        <p className="border-t border-line-subtle px-3 py-2 text-[10.5px] text-tertiary">
+          Checking…
+        </p>
+      ) : (
+        <ReferenceCoverageTable reports={reports.data} />
+      )}
+    </section>
+  );
+}
+
+function ReferenceCoverageTable({
+  reports,
+}: {
+  readonly reports: readonly CoverageReport[];
+}) {
+  const actionable = reports.filter(isActionable);
+  const flatGaps: { gap: CoverageGap; fen: string }[] = [];
+  for (const report of actionable) {
+    for (const gap of topGaps(report, 3)) {
+      flatGaps.push({ gap, fen: report.positionKey });
+    }
+  }
+  flatGaps.sort((a, b) => b.gap.games - a.gap.games);
+  if (flatGaps.length === 0) {
+    return (
+      <p className="border-t border-line-subtle px-3 py-2 text-[10.5px] text-tertiary">
+        Every high-frequency reply in this source is in the repertoire.
+      </p>
+    );
+  }
+  return (
+    <ol className="max-h-40 overflow-y-auto border-t border-line-subtle">
+      {flatGaps.map(({ gap, fen }, index) => (
+        <li
+          key={`${fen}:${gap.uci}:${index}`}
+          className="flex items-center gap-2 px-3 py-1.5 text-[10.5px]"
+        >
+          <span className="font-medium text-primary">{gap.san}</span>
+          <span className="text-tertiary">
+            {gap.share ? `${(gap.share * 100).toFixed(1)}%` : '—'}
+          </span>
+          <span className="ml-auto text-[10px] text-tertiary tabular">
+            {gap.games.toLocaleString()} games
+          </span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+/** Minimal shape the hook requires from the registry. */
+export interface ReferenceProvider {
+  readonly id: string;
+  readonly explore: (query: ExplorerQuery) => Promise<ExplorerResult>;
+}
+
+function useReferenceCoverage(
+  positions: readonly RepertoirePositionRecord[],
+  provider: ReferenceProvider | null,
+) {
+  const [state, setState] = useState<{
+    data: readonly CoverageReport[];
+    pending: boolean;
+  }>({ data: [], pending: false });
+
+  // Re-run when the source or the position count changes. The provider
+  // object identity is the live registry's, so this is the right cache key
+  // for "different source", "added positions", "removed positions".
+  const providerId = provider?.id ?? null;
+  const positionsLength = positions.length;
+
+  useEffect(() => {
+    if (!provider || positions.length === 0) {
+      setState({ data: [], pending: false });
+      return;
+    }
+    let cancelled = false;
+    setState({ data: [], pending: true });
+    (async () => {
+      const reports: CoverageReport[] = [];
+      for (const position of positions) {
+        if (cancelled) return;
+        const result = await provider.explore({ fen: position.fen, limit: 10 });
+        if (cancelled) return;
+        for (const report of computeCoverage(position, [
+          { id: provider.id, name: provider.id, result },
+        ])) {
+          reports.push(report);
+        }
+      }
+      if (!cancelled) setState({ data: reports, pending: false });
+    })().catch(() => {
+      if (!cancelled) setState({ data: [], pending: false });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [providerId, positionsLength, provider, positions]);
+
+  return state;
+}

@@ -38,6 +38,7 @@ import { CanonicalBoardSurface } from '@/features/workspace/CanonicalBoardSurfac
 import { WorkspaceLowerPanel } from '@/features/workspace/WorkspaceLowerPanel';
 import { WorkspaceToolDock } from '@/features/workspace/WorkspaceToolDock';
 import { RepertoireReviewDialog } from './RepertoireReviewDialog';
+import { ReferenceCoveragePanel } from './ReferenceCoveragePanel';
 
 const ROLE_LABEL: Record<RepertoireRole, string> = {
   main: 'Main',
@@ -308,6 +309,7 @@ export function RepertoireWorkspace() {
                   )
                 }
               />
+              <ReferenceCoveragePanel positions={positions} />
               <div className="min-h-0 flex-1">
                 <PositionEvidence
                   position={current}
