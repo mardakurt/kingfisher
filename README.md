@@ -7,7 +7,7 @@ A local-first chess research workstation for serious players.
 
 |                                                                                      |                                                                              |
 | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
-| 🌐 **[Launch the web app](https://kingfisher-chess.vercel.app/)**                    | Open in any modern browser. The Stockfish engine is in the page; no install. |
+| 🌐 **[Launch the web app](https://studio.kingfisher-chess.vercel.app/)**            | Open in any modern browser. The Stockfish engine is in the page; no install. |
 | 🍎 **[Download for macOS](https://github.com/mardakurt/kingfisher/releases/latest)** | Apple Silicon, code-signed. _Preview build — not notarized._                 |
 | 📦 **[Source on GitHub](https://github.com/mardakurt/kingfisher)**                   | Releases, source, issue tracker, changelog.                                  |
 | 📖 **[Changelog](CHANGELOG.md)**                                                     | What changed in each release.                                                |
@@ -20,8 +20,15 @@ calls it analysis.
 
 ## At a glance
 
-- **Web app** at <https://kingfisher-chess.vercel.app/> — click
-  _Launch the web app_.
+- **Landing page** at <https://kingfisher-chess.vercel.app/>. One
+  marketing surface, one canonical URL. The legacy
+  `mardakurt.github.io/kingfisher-data/` redirects here.
+- **Studio** at <https://studio.kingfisher-chess.vercel.app/>. The
+  application, on its own origin, reachable directly without going
+  through the landing page. Both URLs are served by the same Vercel
+  project; the host header decides which surface the visitor sees.
+  See [`docs/adr/00xx-optional-account-sync.md`](docs/adr/00xx-optional-account-sync.md)
+  for the architecture rationale.
 - **macOS app** as a `.dmg` on the
   [latest release page](https://github.com/mardakurt/kingfisher/releases/latest).
   Apple Silicon only. Right-click → Open → Open on the first launch — see
