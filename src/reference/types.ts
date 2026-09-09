@@ -40,6 +40,7 @@ export type SourceKind =
   | 'bundled' // ships inside the application; works offline, never changes
   | 'installed' // a pack downloaded into this browser's storage
   | 'catalog' // a pack Kingfisher knows how to install but has not
+  | 'streaming' // a pack the user has chosen to query online; chunks cache on demand
   | 'online' // a remote service, reachable only with a network
   | 'local' // the user's own imported games
   | 'companion'; // a SQLite collection on this machine, via the companion
@@ -79,6 +80,14 @@ export interface ReferenceSource {
   readonly capabilities: readonly SourceCapability[];
   /** Why the source cannot answer right now, when it cannot. */
   readonly note?: string;
+  /**
+   * Streaming-only: bytes the on-demand cache is currently holding for this
+   * source. Set on a `kind: 'streaming'` row; absent elsewhere. Surfaced by
+   * the catalog so the user can see what their online use has accumulated.
+   */
+  readonly cacheBytes?: number;
+  /** Streaming-only: number of cached chunks. */
+  readonly cacheChunks?: number;
 }
 
 /** Per-source switches. Absent means "the source's own defaults". */

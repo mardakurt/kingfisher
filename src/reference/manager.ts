@@ -15,6 +15,8 @@
  */
 
 import { setDynamicDatabaseProviders } from '@/database/registry';
+import { DatabaseError } from '@/database/types';
+import { RemoteReferenceProvider } from '@/database/providers/remote-reference';
 
 import { BUNDLED_PACK_ID, CATALOG_PACKS, catalogPack, type CatalogPack } from './catalog';
 import {
@@ -28,6 +30,7 @@ import { withPackLock } from './lock';
 import type { PackManifest } from './pack';
 import { PackReader } from './reader';
 import { ReferencePackProvider } from './provider';
+import { StreamingCache } from './streaming-cache';
 import { referencePackStore, type InstalledPack, type ReferencePackStore } from './store';
 import type { ReferenceSource, SourceState } from './types';
 
@@ -48,6 +51,27 @@ const controllers = new Map<string, AbortController>();
 let installed: readonly InstalledPack[] = [];
 let remoteVersions: Readonly<Record<string, string>> = {};
 
+/**
+ * Packs the user has chosen to use online (Phase 29, PART AN-AU).
+ *
+ * Each entry is a (manifest, baseUrl) pair. The corresponding
+ * `RemoteReferenceProvider` is created on demand, registered in
+ * the dynamic 'reference' group, and torn down on disable.
+ *
+ * The choice is kept in module state for the same reason
+ * `installed` is: it is the truth the explorer queries, and the
+ * catalog UI reflects it. Persistence (so the choice survives a
+ * reload) is a follow-up once the wired path is stable.
+ */
+const streamingProviders = new Map<
+  string,
+  {
+    readonly provider: RemoteReferenceProvider;
+    readonly cache: StreamingCache;
+    readonly baseUrl: string;
+  }
+>();
+
 const emit = () => {
   for (const listener of listeners) listener();
 };
@@ -61,7 +85,7 @@ export const referenceSnapshot = (): ReferenceSnapshot => snapshot;
 
 /** Providers for every ready pack, newest-installed last, for the registry. */
 function publish(): void {
-  const providers = installed
+  const installedProviders = installed
     .filter((pack) => pack.state === 'ready')
     .map((pack) => {
       const reader = readers.get(pack.id);
@@ -75,7 +99,11 @@ function publish(): void {
       );
     })
     .filter((provider): provider is ReferencePackProvider => provider !== null);
-  setDynamicDatabaseProviders('reference', providers);
+  const streamingList = Array.from(streamingProviders.values()).map((entry) => entry.provider);
+  // Installed first (they answer without a network), then streaming,
+  // then the built-in providers. Order matters because the explorer
+  // picks the first source in its list.
+  setDynamicDatabaseProviders('reference', [...installedProviders, ...streamingList]);
 
   snapshot = {
     loaded: true,
@@ -142,6 +170,23 @@ function describe(
   const ready = pack?.state === 'ready';
   const remote = remoteVersions[catalog.id];
   const updateAvailable = ready && remote !== undefined && remote !== pack.manifest.version;
+  const streaming = streamingProviders.get(catalog.id);
+
+  /*
+   * Installed beats streaming: an installed pack answers from
+   * disk with no network, which is what the user picked when
+   * they installed it. Streaming is the fallback for packs the
+   * user wants to query without paying the install cost.
+   */
+  const kind: ReferenceSource['kind'] = ready
+    ? catalog.bundled
+      ? 'bundled'
+      : 'installed'
+    : streaming
+      ? 'streaming'
+      : catalog.bundled
+        ? 'bundled'
+        : 'catalog';
 
   const state: SourceState = installing
     ? 'installing'
@@ -149,19 +194,22 @@ function describe(
       ? updateAvailable
         ? 'update-available'
         : 'ready'
-      : 'available';
+      : streaming
+        ? 'needs-connection'
+        : 'available';
 
   return {
     id: catalog.id,
     name: pack?.manifest.name ?? catalog.name,
     description: catalog.description,
-    kind: catalog.bundled ? 'bundled' : ready ? 'installed' : 'catalog',
+    kind,
     state,
     license: pack?.manifest.license ?? catalog.license,
     ...(pack ? { provenance: pack.manifest.provenance } : {}),
     ...(pack ? { version: pack.manifest.version } : {}),
-    installed: ready,
-    enabled: ready,
+    ...(streaming ? { version: streaming.provider.cacheVersion.split('@')[1] } : {}),
+    installed: ready || streaming !== undefined,
+    enabled: ready || streaming !== undefined,
     updateAvailable,
     ...(pack
       ? {
@@ -180,8 +228,14 @@ function describe(
             ? { maxPositionPly: catalog.maxPositionPly }
             : {}),
         }),
-    offline: true,
+    offline: ready,
     capabilities: catalog.capabilities,
+    ...(streaming
+      ? {
+          cacheBytes: streaming.cache.bytes(),
+          cacheChunks: streaming.cache.size(),
+        }
+      : {}),
     ...(catalog.bundled && !ready && !installing
       ? { note: 'Preparing the bundled reference…' }
       : {}),
@@ -368,6 +422,143 @@ export async function checkForPackUpdates(): Promise<void> {
 const customPacks = new Map<string, CatalogPack>();
 
 /**
+ * Compute the streaming base URL for a catalog pack.
+ *
+ * The `manifestUrl` is the address of `manifest.json`; the base
+ * URL for the chunk files is the directory above. Trailing
+ * slashes are normalised to a single one so the provider can do
+ * `base + file` without `path.join` confusion.
+ */
+function baseUrlForManifestUrl(manifestUrl: string): string {
+  const lastSlash = manifestUrl.lastIndexOf('/');
+  if (lastSlash < 0) return manifestUrl;
+  return manifestUrl.slice(0, lastSlash + 1);
+}
+
+/**
+ * Turn a pack on for online use.
+ *
+ * Creates a `RemoteReferenceProvider` for it, wires it into the
+ * dynamic 'reference' provider group so the explorer can answer
+ * from it, and records cache stats on the catalog row. Idempotent:
+ * a second call for the same id is a no-op so the catalog button
+ * can be wired to a plain `onClick`.
+ */
+export async function enableStreamingForPack(
+  id: string,
+): Promise<{ ok: boolean; message: string }> {
+  const saved = installed.find((pack) => pack.id === id);
+  const catalog =
+    customPacks.get(id) ?? catalogPack(id) ?? (saved ? fromManifest(saved) : undefined);
+  if (!catalog) return { ok: false, message: `${id} is not a known reference pack.` };
+  if (saved?.state === 'ready') {
+    return { ok: false, message: `${catalog.name} is installed. Use it without online.` };
+  }
+  if (streamingProviders.has(id)) return { ok: true, message: `${catalog.name} is online.` };
+  setError(id, null);
+  try {
+    const manifest = await fetchManifest(catalog.manifestUrl);
+    if (manifest.id !== id)
+      throw new Error('The online pack identity does not match this catalog entry.');
+    const cache = new StreamingCache({ packId: manifest.id, packVersion: manifest.version });
+    const provider = new RemoteReferenceProvider({
+      id: manifest.id,
+      name: manifest.name,
+      description: catalog.description,
+      manifest,
+      baseUrl: baseUrlForManifestUrl(catalog.manifestUrl),
+      shards: defaultRemoteShards(),
+      cache,
+    });
+    streamingProviders.set(id, { provider, cache, baseUrl: catalog.manifestUrl });
+    publish();
+    return { ok: true, message: `${manifest.name} ready. Chunks are cached on demand.` };
+  } catch (error) {
+    setError(
+      id,
+      `Could not use ${catalog.name} online. ${error instanceof Error ? error.message : String(error)}`,
+    );
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : `Could not use ${catalog.name} online.`,
+    };
+  }
+}
+
+/**
+ * Stop using a pack online.
+ *
+ * The cache is dropped; future queries for the same pack will
+ * have to re-fetch and re-verify. The catalog row returns to
+ * 'Available' and the explorer stops being able to query it.
+ */
+export function stopStreamingPack(id: string): void {
+  const entry = streamingProviders.get(id);
+  if (!entry) return;
+  entry.cache.clear();
+  streamingProviders.delete(id);
+  publish();
+}
+
+/**
+ * Drop the streaming cache for a pack without disabling it.
+ *
+ * Distinct from "stop using online": the user keeps the source
+ * enabled, but the in-memory LRU is cleared so subsequent
+ * queries re-verify from the origin.
+ */
+export function clearStreamingCache(id: string): void {
+  const entry = streamingProviders.get(id);
+  if (!entry) return;
+  entry.cache.clear();
+  publish();
+}
+
+function defaultRemoteShards(): {
+  fetchText: (url: string, signal?: AbortSignal) => Promise<string>;
+  fetchBytes: (url: string, expectedBytes: number, signal?: AbortSignal) => Promise<Uint8Array>;
+} {
+  return {
+    async fetchText(url, signal) {
+      const response = await fetch(url, { signal });
+      if (!response.ok)
+        throw new DatabaseError(
+          `Could not load ${url} (HTTP ${response.status}).`,
+          'Check the network connection, or install the pack for offline use.',
+          'network-error',
+          response.status,
+        );
+      return response.text();
+    },
+    async fetchBytes(url, expectedBytes, signal) {
+      const response = await fetch(url, { signal });
+      if (!response.ok)
+        throw new DatabaseError(
+          `Could not load ${url} (HTTP ${response.status}).`,
+          'Check the network connection, or install the pack for offline use.',
+          'network-error',
+          response.status,
+        );
+      /*
+       * Trust the Content-Length header as a soft bound, not a
+       * hard one. The decisive check is the SHA-256 verification
+       * that follows; a chunk that lies about its length is
+       * caught at the manifest level.
+       */
+      const contentLength = Number(response.headers.get('content-length') ?? 0);
+      if (contentLength > 0 && contentLength > expectedBytes * 4) {
+        throw new DatabaseError(
+          `Remote chunk ${url} advertises ${contentLength} bytes; manifest says ${expectedBytes}.`,
+          'The remote source is corrupt; the install path is safer.',
+        );
+      }
+      const buffer = await response.arrayBuffer();
+      return new Uint8Array(buffer);
+    },
+  };
+}
+
+/**
  * Install a pack from any URL that serves a Kingfisher manifest.
  *
  * The advanced path, and the honest one. Kingfisher's own published packs live
@@ -529,4 +720,6 @@ export function resetReferenceManagerForTests(): void {
   installed = [];
   remoteVersions = {};
   started = null;
+  for (const entry of streamingProviders.values()) entry.cache.clear();
+  streamingProviders.clear();
 }

@@ -19,6 +19,7 @@ const KIND_LABEL: Record<SourceKind, string> = {
   bundled: 'Built in',
   installed: 'Installed',
   catalog: 'Not installed',
+  streaming: 'Streaming',
   online: 'Online',
   local: 'This device',
   companion: 'Companion',

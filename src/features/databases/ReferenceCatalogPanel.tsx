@@ -24,9 +24,12 @@ import { Toggle } from '@/components/ui/Toggle';
 import {
   cancelInstall,
   checkForPackUpdates,
+  clearStreamingCache,
+  enableStreamingForPack,
   installFromUrl,
   removePack,
   startInstall,
+  stopStreamingPack,
   verifyInstalledPack,
 } from '@/reference/manager';
 import { useDataSources, useSourceActions } from '@/reference/sources';
@@ -47,6 +50,7 @@ const KIND_LABELS: Record<SourceKind, string> = {
   bundled: 'Built in',
   installed: 'Installed',
   catalog: 'Available',
+  streaming: 'Streaming',
   online: 'Online',
   local: 'This browser',
   companion: 'Companion',
@@ -73,6 +77,7 @@ export function ReferenceCatalogPanel() {
   const [url, setUrl] = useState('');
   const [installing, setInstalling] = useState(false);
   const [verifying, setVerifying] = useState<string | null>(null);
+  const [usingOnline, setUsingOnline] = useState<string | null>(null);
 
   const order = sources.map((source) => source.id);
 
@@ -242,9 +247,55 @@ export function ReferenceCatalogPanel() {
                         Cancel
                       </Button>
                     ) : source.kind === 'catalog' ? (
-                      <Button icon={<Download />} onClick={() => void startInstall(source.id)}>
-                        Install
-                      </Button>
+                      <>
+                        <Button
+                          variant="subtle"
+                          disabled={usingOnline === source.id}
+                          onClick={async () => {
+                            setUsingOnline(source.id);
+                            const result = await enableStreamingForPack(source.id);
+                            setUsingOnline(null);
+                            notify({
+                              tone: result.ok ? 'success' : 'error',
+                              message: result.message,
+                            });
+                          }}
+                        >
+                          {usingOnline === source.id ? 'Connecting…' : 'Use online'}
+                        </Button>
+                        <Button icon={<Download />} onClick={() => void startInstall(source.id)}>
+                          Install
+                        </Button>
+                      </>
+                    ) : source.kind === 'streaming' ? (
+                      <>
+                        <Button
+                          variant="subtle"
+                          onClick={() => {
+                            clearStreamingCache(source.id);
+                            notify({
+                              tone: 'info',
+                              message: `Cleared the cached chunks for ${source.name}.`,
+                            });
+                          }}
+                        >
+                          Clear cache
+                        </Button>
+                        <Button
+                          variant="subtle"
+                          icon={<Trash />}
+                          onClick={() => {
+                            stopStreamingPack(source.id);
+                            notify({
+                              tone: 'info',
+                              message: `${source.name} is no longer used online.`,
+                            });
+                          }}
+                          aria-label={`Stop using ${source.name} online`}
+                        >
+                          Stop online
+                        </Button>
+                      </>
                     ) : source.updateAvailable ? (
                       <Button onClick={() => void startInstall(source.id)}>Update</Button>
                     ) : null}
@@ -363,7 +414,16 @@ function Facts({ source }: { readonly source: ReferenceSource }) {
     );
   }
   if (source.size !== undefined) facts.push(formatSize(source.size));
-  facts.push(source.offline ? 'Works offline' : 'Needs a connection');
+  if (source.kind === 'streaming') {
+    facts.push(
+      source.cacheBytes && source.cacheBytes > 0
+        ? `${formatSize(source.cacheBytes)} cached · ${source.cacheChunks ?? 0} chunks`
+        : 'Cache empty',
+    );
+    facts.push('Install any time for offline use');
+  } else {
+    facts.push(source.offline ? 'Works offline' : 'Needs a connection');
+  }
   if (source.note) facts.push(source.note);
   return <p className="mt-1 text-[11px] text-tertiary">{facts.join(' · ')}</p>;
 }

@@ -55,6 +55,7 @@ import {
   type PackManifest,
   type PackMove,
 } from '@/reference/pack';
+import { StreamingCache } from '@/reference/streaming-cache';
 import type {
   ChessDatabaseProvider,
   DatabaseMove,
@@ -97,14 +98,6 @@ export interface RemoteShards {
    */
   fetchBytes(url: string, expectedBytes: number, signal?: AbortSignal): Promise<Uint8Array>;
 }
-
-interface CachedChunk {
-  readonly bytes: Uint8Array;
-  readonly sha256: string;
-  readonly expiresAt: number;
-}
-
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 async function sha256Hex(bytes: Uint8Array): Promise<string> {
   /*
@@ -172,7 +165,8 @@ export class RemoteReferenceProvider implements ChessDatabaseProvider {
   private readonly manifest: PackManifest;
   private readonly baseUrl: string;
   private readonly shards: RemoteShards;
-  private readonly cache = new Map<string, CachedChunk>();
+  private readonly cache: StreamingCache;
+  private readonly inflight = new Map<string, Promise<Uint8Array>>();
 
   constructor(options: {
     readonly id: string;
@@ -181,6 +175,13 @@ export class RemoteReferenceProvider implements ChessDatabaseProvider {
     readonly manifest: PackManifest;
     readonly baseUrl: string;
     readonly shards: RemoteShards;
+    /**
+     * Injected cache. The default is a fresh in-memory LRU
+     * sized per the platform (256 MB web, 512 MB desktop). The
+     * test suite injects a deterministic cache to make bytes and
+     * chunk counts observable.
+     */
+    readonly cache?: StreamingCache;
   }) {
     this.id = options.id;
     this.name = options.name;
@@ -188,6 +189,12 @@ export class RemoteReferenceProvider implements ChessDatabaseProvider {
     this.manifest = options.manifest;
     this.baseUrl = options.baseUrl;
     this.shards = options.shards;
+    this.cache =
+      options.cache ??
+      new StreamingCache({
+        packId: options.manifest.id,
+        packVersion: options.manifest.version,
+      });
     this.cacheVersion = `${options.manifest.id}@${options.manifest.version}`;
     this.capabilities = {
       ratingFilter: true,
@@ -203,33 +210,41 @@ export class RemoteReferenceProvider implements ChessDatabaseProvider {
    * the manifest's published SHA-256 — the same rule the
    * installed pack reader follows. A 200 OK from the host is not
    * enough on its own.
+   *
+   * A single in-flight promise is shared across concurrent
+   * callers so twenty positions in the same shard trigger one
+   * network round-trip rather than twenty. The cache key is the
+   * content hash, not the URL: a chunk that lives in the cache
+   * is verified once and reused.
    */
   private async ensureChunk(file: string, sha: string, bytes: number): Promise<Uint8Array> {
-    const cached = this.cache.get(file);
-    if (cached && cached.sha256 === sha && cached.expiresAt > Date.now()) {
-      return cached.bytes;
-    }
-    const url = `${this.baseUrl.replace(/\/$/, '')}/${file}`;
-    const data = await this.shards.fetchBytes(url, bytes);
-    if (data.byteLength !== bytes) {
-      throw new DatabaseError(
-        `Remote chunk ${file} arrived at ${data.byteLength} bytes; ${bytes} expected.`,
-        'The remote source is corrupt; the install path is safer.',
-      );
-    }
-    const digest = await sha256Hex(data);
-    if (digest !== sha) {
-      throw new DatabaseError(
-        `Remote chunk ${file} failed SHA-256 verification.`,
-        'Not installed. Try installing for offline use instead.',
-      );
-    }
-    this.cache.set(file, {
-      bytes: data,
-      sha256: sha,
-      expiresAt: Date.now() + CACHE_TTL_MS,
+    const cached = this.cache.get(sha);
+    if (cached) return cached;
+    const existing = this.inflight.get(sha);
+    if (existing) return existing;
+    const fetchPromise = (async () => {
+      const url = `${this.baseUrl.replace(/\/$/, '')}/${file}`;
+      const data = await this.shards.fetchBytes(url, bytes);
+      if (data.byteLength !== bytes) {
+        throw new DatabaseError(
+          `Remote chunk ${file} arrived at ${data.byteLength} bytes; ${bytes} expected.`,
+          'The remote source is corrupt; the install path is safer.',
+        );
+      }
+      const digest = await sha256Hex(data);
+      if (digest !== sha) {
+        throw new DatabaseError(
+          `Remote chunk ${file} failed SHA-256 verification.`,
+          'Not installed. Try installing for offline use instead.',
+        );
+      }
+      this.cache.put(sha, data);
+      return data;
+    })().finally(() => {
+      this.inflight.delete(sha);
     });
-    return data;
+    this.inflight.set(sha, fetchPromise);
+    return fetchPromise;
   }
 
   async explore(_query: ExplorerQuery): Promise<ExplorerResult> {
@@ -280,13 +295,16 @@ export class RemoteReferenceProvider implements ChessDatabaseProvider {
 
   /** Cache size in bytes — useful for the catalog UX. */
   cacheBytes(): number {
-    let total = 0;
-    for (const chunk of this.cache.values()) total += chunk.bytes.byteLength;
-    return total;
+    return this.cache.bytes();
   }
 
   /** Number of cached chunks — useful for the catalog UX. */
   cacheChunkCount(): number {
-    return this.cache.size;
+    return this.cache.size();
+  }
+
+  /** Drop the streaming cache for this provider. */
+  clearCache(): void {
+    this.cache.clear();
   }
 }

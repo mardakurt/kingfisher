@@ -39,6 +39,32 @@ describe('reference source state', () => {
     expect(stateOf(source({ installed: true, state: 'unavailable' }))).toBe('failed');
   });
 
+  it('reports online-empty for a streaming source with no cached chunks', () => {
+    expect(stateOf(source({ kind: 'streaming', installed: true, state: 'needs-connection' }))).toBe(
+      'online-empty',
+    );
+  });
+
+  it('reports online-cached for a streaming source with bytes in the cache', () => {
+    expect(
+      stateOf(
+        source({
+          kind: 'streaming',
+          installed: true,
+          state: 'needs-connection',
+          cacheBytes: 1024,
+          cacheChunks: 1,
+        }),
+      ),
+    ).toBe('online-cached');
+  });
+
+  it('a failed streaming source is reported as failed, not online', () => {
+    expect(stateOf(source({ kind: 'streaming', installed: true, state: 'unavailable' }))).toBe(
+      'failed',
+    );
+  });
+
   it('returns the right tone per state', () => {
     expect(badgeForSource(source())).toMatchObject({
       label: 'Available online',
