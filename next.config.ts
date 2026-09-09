@@ -126,7 +126,9 @@ const nextConfig: NextConfig = {
               "default-src 'self'",
               // `'wasm-unsafe-eval'` is required for the threaded Stockfish
               // build; without it, the engine refuses to compile.
-              "script-src 'self' 'wasm-unsafe-eval' 'unsafe-inline'",
+              // Next's development stack reconstruction requires eval. Keep
+              // that permission absent from production and desktop builds.
+              `script-src 'self' 'wasm-unsafe-eval' 'unsafe-inline'${process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''}`,
               "worker-src 'self' blob:",
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob:",

@@ -58,6 +58,10 @@ export type RoutingAction =
   | { readonly kind: 'rewrite'; readonly to: string };
 
 export function routingFor(host: string | null, pathname: string): RoutingAction {
+  // Browser development and packaged desktop use loopback with profile-specific
+  // ports. They share both surfaces and must not be treated as marketing hosts.
+  const localHost = host?.toLowerCase().match(/^(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/);
+  if (localHost) return { kind: 'next' };
   const studio = studioHostFor(host);
   if (!studio) {
     if (pathname !== '/' && !isLandingAsset(pathname)) {

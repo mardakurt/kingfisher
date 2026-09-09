@@ -26,7 +26,7 @@
  * development at `localhost:3210` working without configuration.
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 
 import { routingFor } from './middleware-host-rules';
 
