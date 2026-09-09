@@ -7,7 +7,7 @@ import { createHash } from 'node:crypto';
 import { openPersistenceDatabaseAt } from '@/persistence/indexeddb/database';
 import { DATABASE_VERSION } from '@/persistence/schema/migrations';
 
-import { fetchManifest, installPack, parseManifest, verifyPack, PackInstallError } from './install';
+import { fetchManifest, installPack, parseManifest, verifyPack, PackInstallError, type InstallProgress } from './install';
 import { PACK_FORMAT, chunkFile, chunkId, type PackManifest } from './pack';
 import { PackReader } from './reader';
 import { ReferencePackStore } from './store';
@@ -379,6 +379,188 @@ describe('transactional pack updates', () => {
     expect((await new PackReader(manifest, store).game('g1'))?.white).toBe('Updated');
     // An already open tab's old reader still has its exact evidence available.
     expect((await oldReader.game('g1'))?.white).toBe('A');
+  });
+
+  /**
+   * The visible chunk-reuse number the install progress bar prints is a real
+   * measurement of how many of the new pack's chunks were already on disk from
+   * the previous install. The number is what the user sees, so it has to be the
+   * number the content-addressed store agrees with, and it has to match the
+   * exact bytes the reused chunks occupied — not "approximately" and not
+   * "whichever way the install rounded".
+   *
+   * The fixture gives v1 four chunks (explorer, game, players, playergames).
+   * `update()` produces v2 by replacing the `game` chunk's body. So:
+   *   - v2.explorer.sha      = v1.explorer.sha          → REUSED
+   *   - v2.game.sha          ≠ v1.game.sha              → DOWNLOADED
+   *   - v2.players.sha       = v1.players.sha           → REUSED
+   *   - v2.playergames.sha   = v1.playergames.sha       → REUSED
+   *
+   * Expected:
+   *   - 3 chunks reused, 1 chunk downloaded
+   *   - bytesReused = sum of the three unchanged chunk sizes
+   *   - The new manifest is the active one; v1's reader still reads 'A'.
+   */
+  it('measures chunk reuse exactly across a v1 → v2 with one changed chunk', async () => {
+    const store = await freshStore();
+    const { manifest: v1Manifest, chunks: v1Bodies } = fixture();
+    await installPack(v1Manifest, '/packs/manifest.json', store, {
+      fetcher: responder(v1Manifest, v1Bodies) as typeof fetch,
+    });
+
+    const { manifest: v2Manifest, chunks: v2Bodies } = update();
+
+    const progress: InstallProgress[] = [];
+    const fetched: string[] = [];
+    const fetcher = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      fetched.push(url.slice(url.lastIndexOf('/') + 1));
+      if (url.endsWith('manifest.json')) return new Response(JSON.stringify(v2Manifest));
+      const body = v2Bodies.get(url.slice(url.lastIndexOf('/') + 1));
+      return body ? new Response(body as BodyInit) : new Response('missing', { status: 404 });
+    });
+
+    const installed = await installPack(v2Manifest, '/packs/manifest.json', store, {
+      fetcher: fetcher as typeof fetch,
+      onProgress: (event) => progress.push(event),
+    });
+
+    expect(installed.state).toBe('ready');
+    expect(installed.manifest.version).toBe('2');
+
+    /*
+      The fetcher was called once for the one chunk that actually changed —
+      `installPack` does not fetch the manifest; the caller has done that
+      already and passed the parsed object in. The three unchanged chunks were
+      not requested because content-addressed reuse means no fetch.
+    */
+    expect(fetched).toEqual(['game-000.kfp.gz']);
+
+    const last = progress.at(-1)!;
+    expect(last.phase).toBe('done');
+    expect(last.chunksTotal).toBe(4);
+    expect(last.chunksReused).toBe(3);
+    const expectedReused =
+      v2Bodies.get(chunkFile('explorer', 0))!.byteLength +
+      v2Bodies.get(chunkFile('players', 0))!.byteLength +
+      v2Bodies.get(chunkFile('playergames', 0))!.byteLength;
+    expect(last.bytesReused).toBe(expectedReused);
+    expect(last.bytesTotal).toBe([...v2Bodies.values()].reduce((sum, b) => sum + b.byteLength, 0));
+    expect(last.bytesDone).toBe(last.bytesTotal);
+
+    // No negative numbers, no over-count.
+    expect(last.bytesReused).toBeGreaterThan(0);
+    expect(last.bytesReused).toBeLessThan(last.bytesTotal);
+  });
+
+  /*
+   * Reuse is a *measurement* — the install trusts only the digest in the
+   * manifest. A v1 chunk whose bytes survived but whose digest the manifest no
+   * longer claims must be re-downloaded, because the on-disk bytes might be
+   * anything.
+   */
+  it('does not trust a same-length staged chunk whose digest is wrong', async () => {
+    const store = await freshStore();
+    const { manifest: v1Manifest, chunks: v1Bodies } = fixture();
+    await installPack(v1Manifest, '/packs/manifest.json', store, {
+      fetcher: responder(v1Manifest, v1Bodies) as typeof fetch,
+    });
+
+    const { manifest: v2Manifest, chunks: v2Bodies } = update();
+    const gameChunk = v2Manifest.chunks.find((chunk) => chunk.kind === 'game')!;
+    // Stage a corrupted-but-same-length chunk under the new manifest's digest.
+    await store.putChunk(
+      v2Manifest.id,
+      gameChunk.sha256,
+      new Uint8Array(gameChunk.bytes),
+    );
+
+    const downloadedFiles: string[] = [];
+    const fetcher = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.endsWith('manifest.json')) return new Response(JSON.stringify(v2Manifest));
+      const file = url.slice(url.lastIndexOf('/') + 1);
+      downloadedFiles.push(file);
+      const body = v2Bodies.get(file);
+      return body ? new Response(body as BodyInit) : new Response('missing', { status: 404 });
+    });
+
+    const progress: InstallProgress[] = [];
+    await installPack(v2Manifest, '/packs/manifest.json', store, {
+      fetcher: fetcher as typeof fetch,
+      onProgress: (event) => progress.push(event),
+    });
+
+    // The corrupted chunk had to be re-fetched — digest is authoritative.
+    expect(downloadedFiles.filter((file) => file.startsWith('game-'))).toHaveLength(1);
+    const finalEvent = progress.at(-1)!;
+    // The other three were reused; only the corrupted one was downloaded.
+    expect(finalEvent.chunksReused).toBe(3);
+    expect(finalEvent.bytesReused).toBeGreaterThan(0);
+  });
+
+  /*
+   * A cancelled install partway through v2 must leave v1 ready and let a retry
+   * continue from where it stopped, not from scratch. Chunk reuse is the
+   * property that makes a cancel cheap: every chunk v1 had on disk is still
+   * there for v2.
+   */
+  it('lets a cancelled v2 install resume from the v1 state', async () => {
+    const store = await freshStore();
+    const { manifest: originalManifest, chunks: originalBodies } = fixture();
+    const { manifest: v2Manifest, chunks: v2Bodies } = update();
+
+    await installPack(originalManifest, '/packs/manifest.json', store, {
+      fetcher: responder(originalManifest, originalBodies) as typeof fetch,
+    });
+
+    // Abort the v2 install after the manifest is fetched but before the chunk
+    // loop completes. The store keeps the old manifest active; v1 still answers.
+    const controller = new AbortController();
+    let served = 0;
+    await expect(
+      installPack(v2Manifest, '/packs/manifest.json', store, {
+        signal: controller.signal,
+        fetcher: (async (input: RequestInfo | URL) => {
+          const url = String(input);
+          if (url.endsWith('manifest.json')) return new Response(JSON.stringify(v2Manifest));
+          served += 1;
+          // Abort the first time we are asked for the game chunk (the only
+          // changed one), so the loop exits mid-install and nothing is left
+          // ready.
+          if (served === 1) {
+            controller.abort();
+            controller.signal.throwIfAborted();
+          }
+          const body = v2Bodies.get(url.slice(url.lastIndexOf('/') + 1));
+          return body ? new Response(body as BodyInit) : new Response('missing', { status: 404 });
+        }) as typeof fetch,
+      }),
+    ).rejects.toThrow();
+
+    const halfway = await store.get(v2Manifest.id);
+    // The old manifest version is still active — the failed v2 install did
+    // not promote itself to ready, and the ready guard on `stage` means the
+    // v1 record is left untouched.
+    expect(halfway?.state).toBe('ready');
+    expect(halfway?.manifest.version).toBe('1');
+
+    // Resume. Reuse must pick up from disk; only the missing chunk is downloaded.
+    served = 0;
+    const resumed = await installPack(v2Manifest, '/packs/manifest.json', store, {
+      fetcher: (async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.endsWith('manifest.json')) return new Response(JSON.stringify(v2Manifest));
+        served += 1;
+        const body = v2Bodies.get(url.slice(url.lastIndexOf('/') + 1));
+        return body ? new Response(body as BodyInit) : new Response('missing', { status: 404 });
+      }) as typeof fetch,
+    });
+
+    expect(resumed.state).toBe('ready');
+    expect(resumed.manifest.version).toBe('2');
+    // The resumed pass only needs to download the changed chunk.
+    expect(served).toBe(1);
   });
 
   it.each(['download', 'digest', 'cancel-before-activation'] as const)(
