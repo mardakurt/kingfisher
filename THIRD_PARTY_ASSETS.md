@@ -179,3 +179,13 @@ and self-hosts them at build time. Both are SIL Open Font License 1.1.
 `src/features/shell/BrandMark.tsx`) are original work for this project, drawn
 as plain geometry rather than traced from any photograph or existing logo.
 Regenerate the rasters with `python3 scripts/render-brand-icons.py`.
+
+## Landing page product capture
+
+`public/landing/img/engine-analysis-v2.webp` is a capture of the real Kingfisher
+production build at `d30aa50`, taken on 2026-09-10 at 1440 × 900. It shows
+Stockfish 18 Lite WASM Multithreaded analysing after `1. e4 e5 2. Nf3`
+at depth 22/29. The engine was started on that position before capture.
+It replaces an empty-workspace image on the landing page; no evaluations or
+pieces were added to the screenshot. The displayed piece and board artwork
+retains the attribution recorded above. The image was encoded as WebP.

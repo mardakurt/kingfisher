@@ -7,7 +7,7 @@ A local-first chess research workstation for serious players.
 
 |                                                                                      |                                                                              |
 | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
-| 🌐 **[Launch the web app](https://studio.kingfisher-chess.vercel.app/)**             | Open in any modern browser. The Stockfish engine is in the page; no install. |
+| 🌐 **[Launch the web app](https://kingfisher-roan.vercel.app/)**                     | Open in any modern browser. The Stockfish engine is in the page; no install. |
 | 🍎 **[Download for macOS](https://github.com/mardakurt/kingfisher/releases/latest)** | Apple Silicon, code-signed. _Preview build — not notarized._                 |
 | 📦 **[Source on GitHub](https://github.com/mardakurt/kingfisher)**                   | Releases, source, issue tracker, changelog.                                  |
 | 📖 **[Changelog](CHANGELOG.md)**                                                     | What changed in each release.                                                |
@@ -23,7 +23,7 @@ calls it analysis.
 - **Landing page** at <https://kingfisher-chess.vercel.app/>. One
   marketing surface, one canonical URL. The legacy
   `mardakurt.github.io/kingfisher-data/` redirects here.
-- **Studio** at <https://studio.kingfisher-chess.vercel.app/>. The
+- **Studio** at <https://kingfisher-roan.vercel.app/>. The
   application, on its own origin, reachable directly without going
   through the landing page. Both URLs are served by the same Vercel
   project; the host header decides which surface the visitor sees.

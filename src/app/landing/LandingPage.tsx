@@ -11,7 +11,7 @@ import './landing.css';
  * without coming back through this page. The marketing origin must
  * never serve the studio.
  *
- * Renders server-side; no client JS, no React hydration, no analytics, no
+ * The landing component renders server-side; no event handlers, analytics or
  * third-party scripts. The static assets live under `/landing/img/` and are
  * served from the same origin as the page so the application CSP, which is
  * `default-src 'self'`, accepts them.
@@ -56,25 +56,16 @@ export function LandingPage() {
 
       <main id="main">
         <section id="top" className="hero">
-          <div className="hero-bg" aria-hidden="true">
-            <div className="hero-bg-grid"></div>
-            <div className="hero-bg-glow"></div>
-          </div>
-
           <div className="hero-inner">
             <div className="hero-copy">
-              <p className="hero-eyebrow">
-                <span className="hero-eyebrow-pulse"></span>
-                Public release · 1.0.0
-              </p>
               <h1 className="hero-title">
                 Chess research,
                 <br />
                 <span className="hero-title-accent">in one place.</span>
               </h1>
               <p className="hero-lede">
-                Kingfisher brings opening evidence, engines, databases, studies and repertoire into
-                one local-first chess workspace. No account required.
+                Opening evidence, engines, databases, studies and repertoire.
+                <br className="hero-lede-break" /> Together in one local-first workspace.
               </p>
               <div className="hero-cta-row">
                 <a
@@ -83,23 +74,16 @@ export function LandingPage() {
                   rel="noopener"
                   aria-label="Launch Kingfisher (opens the studio on a separate origin)"
                 >
-                  <span className="btn-dot"></span>
                   Launch Kingfisher
-                  <span className="btn-arrow" aria-hidden="true">
-                    →
-                  </span>
                 </a>
                 <a className="btn btn-secondary" href="#download-mac">
                   Download for macOS
-                  <span className="btn-meta">Preview</span>
                 </a>
               </div>
-              <p className="hero-meta">
-                No account · no telemetry · no subscription · MIT-licensed source
-              </p>
+              <p className="hero-meta">No account · No telemetry · Open source</p>
             </div>
 
-            <div className="hero-product" aria-hidden="true">
+            <div className="hero-product">
               <div className="hero-product-frame">
                 <div className="hero-product-chrome">
                   <span className="hero-product-dot"></span>
@@ -124,27 +108,25 @@ export function LandingPage() {
             </div>
           </div>
 
-          <div className="hero-strip" aria-hidden="true">
+          <div className="hero-strip">
             <div className="hero-strip-item">
               <span className="hero-strip-num">172,376</span>
-              <span className="hero-strip-label">games in the bundled Starter</span>
+              <span className="hero-strip-label">bundled Starter games</span>
             </div>
             <div className="hero-strip-sep"></div>
             <div className="hero-strip-item">
               <span className="hero-strip-num">407,538</span>
-              <span className="hero-strip-label">Elite OTB broadcast games available</span>
+              <span className="hero-strip-label">Elite OTB games available</span>
             </div>
             <div className="hero-strip-sep"></div>
             <div className="hero-strip-item">
               <span className="hero-strip-num">3,810</span>
-              <span className="hero-strip-label">named opening positions with ECO codes</span>
+              <span className="hero-strip-label">named opening positions</span>
             </div>
             <div className="hero-strip-sep"></div>
             <div className="hero-strip-item">
               <span className="hero-strip-num">9</span>
-              <span className="hero-strip-label">
-                open-source engines, including Stockfish &amp; Lc0
-              </span>
+              <span className="hero-strip-label">native open-source engines</span>
             </div>
           </div>
         </section>
@@ -152,23 +134,21 @@ export function LandingPage() {
         <section id="why" className="section section-why">
           <div className="section-head">
             <p className="section-eyebrow">Why Kingfisher</p>
-            <h2 className="section-title">A workstation, not a website.</h2>
+            <h2 className="section-title">A place for serious chess.</h2>
           </div>
           <div className="why-grid">
             <div className="why-item">
               <h3>Evidence stays separate.</h3>
               <p>
-                Compare elite OTB, recent theory and high-rated online play side by side. Kingfisher
-                never silently merges populations into a single &ldquo;truth&rdquo; score — you read
-                each source against the others.
+                Compare elite OTB, recent theory and high-rated online play side by side. Each
+                source keeps its own game count and provenance.
               </p>
             </div>
             <div className="why-item">
               <h3>Real databases, real engines.</h3>
               <p>
-                Open Stockfish in the browser instantly, or add native Stockfish, Berserk, Halogen,
-                Koivisto, Obsidian, PlentyChess, Stormphrax, Viridithas and Lc0 on macOS, each
-                digest-verified.
+                Start with Stockfish in your browser. On macOS, add nine native engines, including
+                Lc0, with every download digest-verified.
               </p>
             </div>
             <div className="why-item">
@@ -185,7 +165,7 @@ export function LandingPage() {
           <div className="research-layout">
             <div className="research-copy">
               <p className="section-eyebrow">Opening research</p>
-              <h2 className="section-title">See what every population of games says.</h2>
+              <h2 className="section-title">Every source. Its own perspective.</h2>
               <p className="section-lede">
                 Theory Book names the opening. The Explorer answers for the position. Each source
                 keeps its own licence, provenance and game count, and the column headers show which
@@ -235,10 +215,10 @@ export function LandingPage() {
             <div className="engines-visual">
               <div className="engines-frame">
                 <picture>
-                  <source srcSet="/landing/img/engines-comparison.webp" type="image/webp" />
+                  <source srcSet="/landing/img/engine-analysis-v2.webp" type="image/webp" />
                   <img
-                    src="/landing/img/engines-comparison.png"
-                    alt="Two engines running side by side in Kingfisher"
+                    src="/landing/img/engine-analysis-v2.webp"
+                    alt="Stockfish 18 analysing the position after 1. e4 e5 2. Nf3 in Kingfisher"
                     width="1440"
                     height="900"
                     loading="lazy"
@@ -251,7 +231,7 @@ export function LandingPage() {
 
             <div className="engines-copy">
               <p className="section-eyebrow">Engines</p>
-              <h2 className="section-title">From a browser Stockfish to a Leela workstation.</h2>
+              <h2 className="section-title">More than one way to see a position.</h2>
               <p className="section-lede">
                 Stockfish 18 is in the browser, sandboxed and instant. On macOS, native engines
                 install through Settings with their digest verified and their licence on the row.
@@ -268,11 +248,10 @@ export function LandingPage() {
         <section id="local" className="section section-local">
           <div className="local-statement">
             <p className="section-eyebrow">Local-first</p>
-            <h2 className="section-title">Your chess stays on your machine.</h2>
+            <h2 className="section-title">Your chess. Your machine.</h2>
             <p className="section-lede">
-              Kingfisher does not phone home. There is no account, no telemetry, no upload.
-              Reference data installs once and works offline. The diagnostic report is local; the
-              log file is local; your studies and repertoire are local.
+              Your studies, repertoire and notes stay on your machine. Reference data installs once
+              and works offline. No account. No telemetry. Chess on your terms.
             </p>
           </div>
         </section>
@@ -280,7 +259,7 @@ export function LandingPage() {
         <section id="download" className="section section-download">
           <div className="download-head">
             <p className="section-eyebrow">Get Kingfisher</p>
-            <h2 className="section-title">One click. Two ways to run it.</h2>
+            <h2 className="section-title">One workspace. Two ways in.</h2>
           </div>
 
           <div className="download-grid">
@@ -289,7 +268,7 @@ export function LandingPage() {
                 <span className="download-card-tag">macOS</span>
                 <span className="download-card-pill">Preview</span>
               </div>
-              <h3>Run the local workstation.</h3>
+              <h3>The local workstation.</h3>
               <p>
                 Apple Silicon. Code-signed. Not notarized yet — right-click, Open, Open on first
                 launch.
@@ -312,11 +291,7 @@ export function LandingPage() {
                   <strong>150 MB</strong>
                 </li>
               </ul>
-              <a
-                className="btn btn-primary btn-block"
-                href={`${publicUrl.release}/download/v1.0.0/Kingfisher-1.0.0-arm64.dmg`}
-                rel="noopener"
-              >
+              <a className="btn btn-primary btn-block" href={publicUrl.macosDmg} rel="noopener">
                 Download for macOS
               </a>
               <p className="download-meta">
@@ -334,7 +309,7 @@ export function LandingPage() {
                 <span className="download-card-tag">Web</span>
                 <span className="download-card-pill download-card-pill-ok">Live</span>
               </div>
-              <h3>Launch in your browser.</h3>
+              <h3>Straight to the board.</h3>
               <p>
                 Stockfish runs in the page. No install. The bundled Kingfisher Starter installs
                 itself on first run.
