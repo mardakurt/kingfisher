@@ -4,6 +4,64 @@ The user-facing changelog. Internal phase history is in
 `docs/reports/` and `docs/product/phase-*.md`; the list below is what
 real users notice.
 
+## Unreleased
+
+This is development work. Kingfisher 1.0.0 remains the public stable
+release; nothing here has shipped yet. The notes below describe what
+the next release will contain if it is cut from the current
+development branch.
+
+### Data
+
+- **Visible chunk reuse.** When a reference pack is updated, the install
+  progress now reports how many bytes were saved by re-using chunks
+  already on disk — the same number the content-addressed store sees,
+  not a rounded estimate. *120 MB of 324 MB · 204 MB reused from the
+  previous install.*
+- **Categorised build reports.** Every reference pack build now writes
+  a `build-report.json` next to its manifest. Every rejection reason
+  the worker counts — bad result, too short, non-standard variant,
+  missing player, missing rating, below the rating floor, above the
+  rating ceiling, bot match, online event, illegal moves — is recorded
+  individually, so a giant unexplained gap between the input game
+  count and the retained game count cannot ship silently.
+- **Freshness on the catalog rows.** The Recent Theory and High-Rated
+  Online catalog rows state their filter and date window so the choice
+  of "recent" is visible before install, not hidden in a document.
+
+### Opening research
+
+- **Trend with a sample-size label.** The Explorer Recent column shows
+  the trend arrow only when the move has enough games to support one.
+  Below the threshold, the column says *small sample* in plain text
+  and prints the recent games count next to it, so 3 of 7 never looks
+  equivalent to 3,000 of 7,000. The header tooltip spells out the
+  threshold and the rise/fall/steady rule.
+- **Repertoire coverage against a reference source.** The Repertoire
+  workspace has a new panel that picks a reference source (Elite OTB,
+  Recent Theory, High-Rated Online) and lists the high-frequency
+  opponent replies the repertoire has not decided, with the games
+  count and share for each. Transpositions collapse to one entry.
+
+### Players
+
+- **What has this player changed?** Each colour's section in a profile
+  gains a Career vs Recent openings table. Each row shows the career
+  share, the last-12-months share, and the percentage-point change
+  between them. Rows below ten combined games are dropped, so a
+  3-vs-0 comparison cannot look like a confident finding. The two
+  columns are independent; recent is reported as — for openings that
+  exist only in the career window, never as a fake zero.
+
+### Training
+
+- **Data-driven training generation.** A coverage report can be turned
+  into a list of training prompts — position-keyed, deduplicated by
+  canonical position, and provenance-tagged with the source the gap
+  came from. The solution is intentionally left empty: the
+  reference data tells the player *what* to train; the player's own
+  repertoire move is the answer.
+
 ## 1.0.0 — public stable release
 
 The first stable public release of Kingfisher. The web application is
