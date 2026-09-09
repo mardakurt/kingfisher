@@ -50,6 +50,35 @@ describe('describeError', () => {
     expect(out.message).toBe('The request took too long.');
   });
 
+  it('redacts filesystem paths in error messages', () => {
+    const out = describeError(new Error('ENOENT: /Users/alice/secret/study.pgn'));
+    expect(out.message).not.toContain('/Users/alice');
+    expect(out.message).not.toContain('secret');
+  });
+
+  it('redacts OAuth-style tokens from error messages', () => {
+    const out = describeError(new Error('Bearer abc123def456ghi789jkl012mno345pqr678stu901vwx234yz is invalid'));
+    expect(out.message).not.toContain('abc123def456');
+    expect(out.message).not.toContain('ghi789jkl');
+  });
+
+  it('redacts Authorization headers from error messages', () => {
+    const out = describeError(new Error('Server rejected Authorization: Bearer my-secret-key'));
+    expect(out.message).not.toContain('my-secret-key');
+    expect(out.message).not.toMatch(/Authorization:\s*Bearer/i);
+  });
+
+  it('redacts private URL query strings', () => {
+    const out = describeError(new Error('GET https://example.com/?token=my-secret-123&user=alice'));
+    expect(out.message).not.toContain('my-secret-123');
+    expect(out.message).not.toContain('alice');
+  });
+
+  it('redacts companion secrets from error messages', () => {
+    const out = describeError(new Error('Companion auth failed: secret-abcdef0123456789'));
+    expect(out.message).not.toContain('abcdef0123456789');
+  });
+
   it('wraps a non-network Error in a generic prefix and includes the detail as remedy', () => {
     const out = describeError(new Error('SQLITE_BUSY'));
     expect(out.message).toBe('The action did not complete.');

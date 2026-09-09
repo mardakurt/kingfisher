@@ -101,4 +101,38 @@ describe('routingFor', () => {
       to: '/',
     });
   });
+
+  it('refuses studio-like hosts that are not on the allow-list', () => {
+    // Trailing dot (FQDN canonical form)
+    expect(studioHostFor('studio.kingfisher-chess.vercel.app.')).toBeNull();
+    // Subdomain attack
+    expect(studioHostFor('studio.kingfisher-chess.vercel.app.attacker.com')).toBeNull();
+    // Prefix attack
+    expect(studioHostFor('notstudio.localhost')).toBeNull();
+    // Suffix attack
+    expect(studioHostFor('studio.localhost.attacker.com')).toBeNull();
+  });
+
+  it('uppercase host headers are normalized to lowercase', () => {
+    expect(studioHostFor('STUDIO.LOCALHOST')).toBe('studio.localhost');
+    expect(studioHostFor('Studio.LocalHost:3210')).toBe('studio.localhost');
+  });
+
+  it('does not confuse empty string with a missing header', () => {
+    expect(studioHostFor('')).toBeNull();
+  });
+
+  it('redirects an evil studio host away from the studio interior', () => {
+    // A request to /openings on a host that is NOT a
+    // configured studio host is treated as the landing
+    // surface; the studio interior must not answer.
+    expect(routingFor('evil-studio.com', '/openings')).toEqual({
+      kind: 'redirect',
+      to: '/',
+    });
+    expect(routingFor('studio.evil.com', '/openings')).toEqual({
+      kind: 'redirect',
+      to: '/',
+    });
+  });
 });

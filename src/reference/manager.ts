@@ -621,13 +621,41 @@ function defaultStreamingCacheStorage(): StreamingCacheStorage {
   return new InMemoryStreamingCacheStorage();
 }
 
+/**
+ * The hosts Kingfisher is willing to fetch streamed chunks from.
+ * Anything else is rejected, regardless of HTTP status or
+ * redirect chain, because a verified chunk under a known digest
+ * coming from a foreign origin is the wrong shape of trust.
+ */
+const TRUSTED_DATA_ORIGINS: readonly RegExp[] = [
+  /^https:\/\/mardakurt\.github\.io\//,
+  /^https:\/\/kingfisher-chess\.vercel\.app\//,
+  /^https:\/\/studio\.kingfisher-chess\.vercel\.app\//,
+];
+
+/**
+ * Verify the final URL of a streaming fetch still comes from a
+ * trusted data origin. A 301/302/307/308 redirect to a foreign
+ * domain must not be followed to a chunk fetch — the chunk's
+ * digest is checked, but we should not be giving unknown origins
+ * the bytes in the first place.
+ */
+function assertTrustedOrigin(landing: string, finalUrl: string): void {
+  if (TRUSTED_DATA_ORIGINS.some((re) => re.test(finalUrl))) return;
+  throw new DatabaseError(
+    `Streaming source redirected to an untrusted origin (${landing} → ${finalUrl}).`,
+    'The pack manifest points somewhere we do not fetch from. Install the pack for offline use instead.',
+    'misconfigured',
+  );
+}
+
 function defaultRemoteShards(): {
   fetchText: (url: string, signal?: AbortSignal) => Promise<string>;
   fetchBytes: (url: string, expectedBytes: number, signal?: AbortSignal) => Promise<Uint8Array>;
 } {
   return {
     async fetchText(url, signal) {
-      const response = await fetch(url, { signal });
+      const response = await fetch(url, { signal, redirect: 'follow' });
       if (!response.ok)
         throw new DatabaseError(
           `Could not load ${url} (HTTP ${response.status}).`,
@@ -635,10 +663,11 @@ function defaultRemoteShards(): {
           'network-error',
           response.status,
         );
+      assertTrustedOrigin(url, response.url);
       return response.text();
     },
     async fetchBytes(url, expectedBytes, signal) {
-      const response = await fetch(url, { signal });
+      const response = await fetch(url, { signal, redirect: 'follow' });
       if (!response.ok)
         throw new DatabaseError(
           `Could not load ${url} (HTTP ${response.status}).`,
@@ -646,6 +675,7 @@ function defaultRemoteShards(): {
           'network-error',
           response.status,
         );
+      assertTrustedOrigin(url, response.url);
       /*
        * Trust the Content-Length header as a soft bound, not a
        * hard one. The decisive check is the SHA-256 verification
@@ -660,6 +690,18 @@ function defaultRemoteShards(): {
         );
       }
       const buffer = await response.arrayBuffer();
+      // Decompression-bomb guard. A chunk that decompresses to
+      // a multiple of its compressed size is the textbook
+      // "tiny input, huge output" attack. The cap is generous
+      // (32×) because real-world compression ratios are bounded
+      // for our data, and the SHA-256 check is the second
+      // line of defence.
+      if (buffer.byteLength > expectedBytes * 32) {
+        throw new DatabaseError(
+          `Remote chunk ${url} decompressed to ${buffer.byteLength} bytes; manifest says ${expectedBytes}.`,
+          'The remote source is corrupt; the install path is safer.',
+        );
+      }
       return new Uint8Array(buffer);
     },
   };

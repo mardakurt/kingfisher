@@ -12,6 +12,7 @@ export default defineConfig({
       'src/**/*.test.ts',
       'companion/**/*.test.mjs',
       'scripts/**/*.test.mjs',
+      'scripts/**/*.test.ts',
       'desktop/src/**/*.test.mjs',
     ],
   },

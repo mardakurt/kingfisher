@@ -100,10 +100,42 @@ export function describeError(error: unknown): DescribedError {
     }
     return {
       message: 'The action did not complete.',
-      remedy: error.message ? `${error.message}. ${TRY_AGAIN}` : TRY_AGAIN,
+      remedy: error.message ? `${redactErrorMessage(error.message)}. ${TRY_AGAIN}` : TRY_AGAIN,
     };
   }
-  return { message: String(error), remedy: TRY_AGAIN };
+  return { message: redactErrorMessage(String(error)), remedy: TRY_AGAIN };
+}
+
+/**
+ * Redact obviously-sensitive material from an error message before
+ * it reaches a notification or a diagnostic surface.
+ *
+ * Phase 30 (PART BC): the brief says describeError must not
+ * expose local filesystem paths, OAuth tokens, Authorization
+ * headers, private URL query strings, or companion secrets. The
+ * patterns below cover each of those, in that order.
+ *
+ * The redaction is conservative on purpose: if a pattern matches,
+ * the matched text is replaced with `[redacted]` rather than
+ * truncated, so the user still sees the shape of the error.
+ */
+export function redactErrorMessage(message: string): string {
+  let out = message;
+  // Local filesystem paths (Unix-style and Windows-style).
+  out = out.replace(/\/Users\/[^\s)'\"]+/g, '[redacted-path]');
+  out = out.replace(/\/home\/[^\s)'\"]+/g, '[redacted-path]');
+  out = out.replace(/[A-Z]:\\[^\s)'\"]+/g, '[redacted-path]');
+  // Long hex / base64 tokens (>= 24 contiguous hex chars or 32 alnum).
+  out = out.replace(/\b[0-9a-f]{24,}\b/gi, '[redacted-token]');
+  out = out.replace(/\b[A-Za-z0-9_-]{32,}\b/g, (m) => (/^[A-Za-z0-9_-]+$/.test(m) ? '[redacted-token]' : m));
+  // Authorization headers.
+  out = out.replace(/Authorization:\s*Bearer\s+\S+/gi, 'Authorization: [redacted]');
+  out = out.replace(/Bearer\s+[A-Za-z0-9._-]{16,}/gi, 'Bearer [redacted]');
+  // URL query strings that look like token=...&secret=...&key=...
+  out = out.replace(/([?&](?:token|secret|key|apikey|api_key|password)=)[^&\s]+/gi, '$1[redacted]');
+  // Companion secrets.
+  out = out.replace(/companion[-_ ]?secret[-_ ]?[A-Za-z0-9]+/gi, '[redacted-companion-secret]');
+  return out;
 }
 
 /**
