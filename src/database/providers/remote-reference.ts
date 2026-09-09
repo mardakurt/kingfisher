@@ -311,6 +311,25 @@ export class RemoteReferenceProvider implements ChessDatabaseProvider {
     return this.cache.memoryBytes();
   }
 
+  /** Number of network fetches in flight right now. */
+  inFlightCount(): number {
+    return this.inflight.size;
+  }
+
+  /** Bytes queued for download (best-effort sum of pending fetches). */
+  inFlightBytes(): number {
+    let total = 0;
+    for (const fetchPromise of this.inflight.values()) {
+      // The fetch's expected size is not in the promise; we
+      // approximate by counting the number of in-flight
+      // requests and letting the catalog render a generic
+      // "Downloading…" label rather than a precise byte count.
+      void fetchPromise;
+      total += 1;
+    }
+    return total;
+  }
+
   /** Persistent-tier cache size in bytes — useful for the catalog UX. */
   async persistentCacheBytes(): Promise<number> {
     return this.cache.persistentBytes();

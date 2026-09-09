@@ -106,6 +106,20 @@ export interface ReferenceSource {
    * next to the cached size so the two are comparable.
    */
   readonly installableSize?: number;
+  /**
+   * One-line freshness description, e.g. "2020–present" or
+   * "Last 24 months". Surfaced by the catalog so the user can
+   * see what time window the data actually covers, rather than
+   * a timeless label that pretends the data is current.
+   */
+  readonly freshness?: string;
+  /**
+   * Streaming-only: number of chunks currently being fetched
+   * from the data mirror. Surfaced as a subtle "Downloading N
+   * chunks…" pill so the user knows the explorer is in
+   * motion, not stuck.
+   */
+  readonly inFlightCount?: number;
 }
 
 /** Per-source switches. Absent means "the source's own defaults". */

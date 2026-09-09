@@ -170,6 +170,20 @@ export function ReferenceCatalogPanel() {
                     <span className="truncate text-sm font-medium text-primary">{source.name}</span>
                     <Badge kind={source.kind} />
                     <StateBadgePill source={source} />
+                    {source.inFlightCount && source.inFlightCount > 0 ? (
+                      <span
+                        className="inline-flex items-center gap-1 rounded-[3px] border border-line px-1.5 py-0.5 text-[10px] text-tertiary"
+                        data-streaming-pill
+                        aria-label={`${source.inFlightCount} chunks downloading`}
+                      >
+                        <span
+                          className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent"
+                          aria-hidden
+                        />
+                        Downloading {source.inFlightCount} chunk
+                        {source.inFlightCount === 1 ? '' : 's'}…
+                      </span>
+                    ) : null}
                   </div>
                   <p className="mt-0.5 text-xs text-tertiary">{source.description}</p>
 
@@ -407,6 +421,7 @@ const StateBadgePill = ({ source }: { readonly source: ReferenceSource }) => {
 
 function Facts({ source }: { readonly source: ReferenceSource }) {
   const facts: string[] = [];
+  if (source.freshness) facts.push(source.freshness);
   if (source.gameCount !== undefined) facts.push(`${formatCount(source.gameCount)} games`);
   if (source.openableCount !== undefined && source.openableCount !== source.gameCount) {
     facts.push(`${formatCount(source.openableCount)} openable`);
@@ -420,15 +435,29 @@ function Facts({ source }: { readonly source: ReferenceSource }) {
       `through ${source.maxPositionPly} plies (${(source.maxPositionPly / 2).toFixed(1).replace('.0', '')} full moves)`,
     );
   }
-  if (source.size !== undefined) facts.push(formatSize(source.size));
   if (source.kind === 'streaming') {
-    facts.push(
-      source.cacheBytes && source.cacheBytes > 0
-        ? `${formatSize(source.cacheBytes)} cached · ${source.cacheChunks ?? 0} chunks`
-        : 'Cache empty',
-    );
-    facts.push('Install any time for offline use');
+    // The brief asks the catalog to communicate four things: WHAT IT
+    // IS, HOW FRESH IT IS, HOW LARGE IT IS, HOW IT IS ACCESSED. A
+    // streaming source's "HOW IT IS ACCESSED" is the cache state
+    // (in-memory + persistent), the install size is "HOW LARGE".
+    const cacheBytes = source.cacheBytes ?? 0;
+    const persistentBytes = source.persistentCacheBytes ?? 0;
+    const cached = cacheBytes + persistentBytes;
+    if (cached > 0) {
+      facts.push(
+        `${formatSize(cached)} cached${persistentBytes > 0 ? ` (${formatSize(persistentBytes)} on disk)` : ''} · ${(source.cacheChunks ?? 0) + (source.persistentCacheChunks ?? 0)} chunks`,
+      );
+    } else {
+      facts.push('Cache empty');
+    }
+    if (source.installableSize) {
+      facts.push(`${formatSize(source.installableSize)} to install for offline`);
+    }
+  } else if (source.kind === 'installed' || source.kind === 'bundled') {
+    facts.push(source.offline ? 'Works offline' : 'Needs a connection');
+    if (source.size !== undefined) facts.push(formatSize(source.size));
   } else {
+    if (source.size !== undefined) facts.push(formatSize(source.size));
     facts.push(source.offline ? 'Works offline' : 'Needs a connection');
   }
   if (source.note) facts.push(source.note);

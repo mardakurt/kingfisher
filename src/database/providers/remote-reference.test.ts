@@ -145,4 +145,33 @@ describe('RemoteReferenceProvider', () => {
     // interchangeable.
     expect(provider.cacheVersion).toBe('kingfisher-elite-otb@2');
   });
+
+  it('fans three concurrent queries to one network round-trip', async () => {
+    let fetchCount = 0;
+    const shards = {
+      fetchBytes: async (_url: string, _expected: number) => {
+        fetchCount += 1;
+        return CHUNK_BYTES;
+      },
+      fetchText: async () => '',
+    };
+    const provider = new RemoteReferenceProvider({
+      id: 'kingfisher-elite-otb',
+      name: 'Elite OTB',
+      description: 'streamed',
+      manifest: FAKE_MANIFEST,
+      baseUrl: 'https://example.test/data',
+      shards,
+    });
+    // The three positions map to the same shard in
+    // FAKE_MANIFEST (which has one explorer shard). All three
+    // promises should share the single in-flight fetch.
+    const results = await Promise.all([
+      provider.explore({ fen: START_FEN }),
+      provider.explore({ fen: START_FEN }),
+      provider.explore({ fen: START_FEN }),
+    ]);
+    expect(results.every((r) => r.moves.length === 2)).toBe(true);
+    expect(fetchCount).toBe(1);
+  });
 });

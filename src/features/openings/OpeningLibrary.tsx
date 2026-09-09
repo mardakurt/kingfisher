@@ -113,16 +113,29 @@ export function OpeningLibrary() {
               <button
                 type="button"
                 onClick={() => setSelectedKey(entry.key)}
+                title={entry.label}
                 className={cn(
-                  'w-full px-3 py-2 text-left transition-colors hover:bg-surface-2',
+                  'flex w-full flex-col gap-0.5 px-3 py-2 text-left transition-colors hover:bg-surface-2',
                   selected?.key === entry.key && 'bg-surface-3',
                 )}
               >
                 <span className="flex items-baseline gap-2">
                   <span className="shrink-0 font-mono text-[11px] text-accent">{entry.eco}</span>
-                  <span className="truncate text-sm text-primary">{entry.label}</span>
+                  <span
+                    className="min-w-0 flex-1 text-sm leading-snug text-primary"
+                    style={{
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                      wordBreak: 'normal',
+                      overflowWrap: 'break-word',
+                    }}
+                  >
+                    {entry.label}
+                  </span>
                 </span>
-                <span className="mt-0.5 block truncate font-mono text-[10px] text-tertiary">
+                <span className="block truncate font-mono text-[10px] text-tertiary">
                   {numbered(entry.moves)}
                 </span>
               </button>

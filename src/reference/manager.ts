@@ -128,6 +128,21 @@ function publish(): void {
 }
 
 /**
+ * Render a catalog's `window` summary as a short, honest freshness
+ * line, e.g. "2020–2026" or "Last 24 months". Returns undefined
+ * for packs that do not declare a window, so the catalog UI can
+ * decide whether to show "this source's data window is unclear"
+ * or simply nothing.
+ */
+function windowSummaryForCatalog(catalog: CatalogPack): string | undefined {
+  const w = catalog.window;
+  if (!w) return undefined;
+  if (w.firstYear && w.firstYear < w.lastYear) return `${w.firstYear}–${w.lastYear}`;
+  if (w.firstYear === w.lastYear) return `${w.lastYear}`;
+  return undefined;
+}
+
+/**
  * The catalog rows, which is the known packs *plus* anything installed that
  * this build has never heard of.
  *
@@ -244,6 +259,7 @@ function describe(
     offline: ready,
     capabilities: catalog.capabilities,
     installableSize: catalog.approximateBytes,
+    freshness: windowSummaryForCatalog(catalog),
     ...(streaming
       ? {
           cacheBytes: streaming.cache.memoryBytes(),
@@ -256,6 +272,7 @@ function describe(
           // the second paint is honest.
           persistentCacheBytes: streaming.persistentBytesCached ?? 0,
           persistentCacheChunks: streaming.persistentChunksCached ?? 0,
+          inFlightCount: streaming.provider.inFlightCount(),
         }
       : {}),
     ...(catalog.bundled && !ready && !installing

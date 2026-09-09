@@ -415,27 +415,55 @@ function PositionNavigator({
 }) {
   if (positions.length === 0) return null;
   return (
-    <ol className="divide-y divide-line-subtle">
-      {positions.map((position) => (
-        <li key={position.id}>
-          <button
-            type="button"
-            onClick={() => onSelect(position.id)}
-            className={cn(
-              'flex w-full items-center gap-2 px-2.5 py-2 text-left transition-colors hover:bg-surface-2',
-              selectedId === position.id && 'bg-accent-muted',
-            )}
-          >
-            <span className="w-8 shrink-0 text-[10px] text-tertiary tabular">
-              d{position.depth}
-            </span>
-            <span className="min-w-0 flex-1 truncate text-[11.5px] text-secondary">
-              {position.moves.map((move) => move.san).join(' / ') || 'Position note'}
-            </span>
-            <span className="text-[10px] text-tertiary tabular">{position.moves.length}</span>
-          </button>
-        </li>
-      ))}
+    <ol
+      className="divide-y divide-line-subtle"
+      aria-label="Repertoire positions"
+      data-repertoire-navigator
+    >
+      {positions.map((position) => {
+        const line = position.moves.map((move) => move.san).join(' / ') || 'Position note';
+        return (
+          <li key={position.id}>
+            <button
+              type="button"
+              onClick={() => onSelect(position.id)}
+              title={line}
+              className={cn(
+                // Mobile: vertical layout with the move line
+                // wrapping to multiple lines. Desktop: single
+                // line with truncation, because the panel is
+                // narrow on the side and density matters.
+                'flex w-full flex-col gap-0.5 px-2.5 py-2 text-left transition-colors hover:bg-surface-2 sm:flex-row sm:items-center sm:gap-2 sm:py-1.5',
+                selectedId === position.id && 'bg-accent-muted',
+              )}
+            >
+              <div className="flex items-center gap-2">
+                <span className="w-8 shrink-0 text-[10px] text-tertiary tabular">
+                  d{position.depth}
+                </span>
+                <span className="text-[10px] text-tertiary tabular sm:hidden">
+                  {position.moves.length} ply
+                </span>
+              </div>
+              <span
+                className="min-w-0 flex-1 text-[12px] leading-snug text-secondary sm:text-[11.5px]"
+                style={{
+                  display: '-webkit-box',
+                  WebkitLineClamp: 3,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                  overflowWrap: 'anywhere',
+                }}
+              >
+                {line}
+              </span>
+              <span className="hidden text-[10px] text-tertiary tabular sm:inline">
+                {position.moves.length}
+              </span>
+            </button>
+          </li>
+        );
+      })}
     </ol>
   );
 }
