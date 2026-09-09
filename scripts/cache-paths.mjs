@@ -88,4 +88,30 @@ export const cachePaths = {
    * clone stays small. Set `KINGFISHER_REAL_SCALE_DIR` to override.
    */
   realScale: resolve('KINGFISHER_REAL_SCALE_DIR', 'real-scale'),
+  /**
+   * The incremental Lichess-archive scan cache. The
+   * `build-reference-pack` script keeps derived scan state here
+   * so a fresh pack build does not have to re-hash every
+   * monthly archive from scratch. Override with
+   * `KINGFISHER_ARCHIVE_CACHE`.
+   */
+  archiveCache: resolve('KINGFISHER_ARCHIVE_CACHE', 'archive-cache'),
+  /**
+   * Candidate reference pack builds. `npm run reference:build`
+   * writes here by default. The committed `public/reference/`
+   * contains the published artifacts; the build directory holds
+   * intermediate candidates. Override with `KINGFISHER_PACKS_DIR`.
+   */
+  packs: resolve('KINGFISHER_PACKS_DIR', 'packs'),
+  /**
+   * Where `npm run engines:build` writes the locally compiled
+   * engine binaries. Heavy and reproducible from an exact upstream
+   * tag. Override with `KINGFISHER_ENGINE_BUILD_DIR`.
+   */
+  engineBuild: resolve('KINGFISHER_ENGINE_BUILD_DIR', 'engine-build'),
+  /**
+   * Where `npm run engines:verify` writes the downloaded
+   * engine fleet. Override with `KINGFISHER_FLEET_DIR`.
+   */
+  engineFleet: resolve('KINGFISHER_FLEET_DIR', 'engine-fleet'),
 };

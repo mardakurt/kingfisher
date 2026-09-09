@@ -19,9 +19,15 @@ import { fileURLToPath } from 'node:url';
 import { ManagedEngines } from '../companion/src/managed-engines.mjs';
 import { cpuFeatures } from '../companion/src/cpu.mjs';
 import { CATALOGUE, DIGESTS, PLATFORM } from './engine-catalogue.mjs';
+import { cachePaths } from './cache-paths.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
-const DIR = process.env.KINGFISHER_FLEET_DIR ?? path.join(ROOT, '.engine-fleet');
+/*
+ * Phase 29 (PART BC): the engine fleet lives outside the project
+ * by default. Honour KINGFISHER_FLEET_DIR for back-compat, then
+ * fall through to `cachePaths.engineFleet`.
+ */
+const DIR = process.env.KINGFISHER_FLEET_DIR ?? cachePaths.engineFleet;
 
 async function main() {
   const keep = process.argv.includes('--keep');

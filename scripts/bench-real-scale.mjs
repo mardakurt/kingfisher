@@ -53,7 +53,15 @@ import { closeApp, loadApp } from './load-app.mjs';
 import { readGameTexts } from './reference/pgn-stream.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
-const CACHE = process.env.KINGFISHER_ARCHIVE_CACHE ?? path.join(ROOT, '.archive-cache');
+/*
+ * Phase 29: default the archive cache to the external user-cache
+ * location. Honour the legacy KINGFISHER_ARCHIVE_CACHE env var for
+ * back-compat, then `cache-paths.archiveCache` as the canonical
+ * default. After `npm run data:cache:migrate` the contents of the
+ * old `.archive-cache/` live at the external path.
+ */
+const { cachePaths } = await import('./cache-paths.mjs');
+const CACHE = process.env.KINGFISHER_ARCHIVE_CACHE ?? cachePaths.archiveCache;
 
 /** Games handed to `parsePgn` at once. Large enough to amortise, small enough
  *  that one batch's trees never approach the heap. */

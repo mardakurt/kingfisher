@@ -12,6 +12,18 @@
 
 import { LICHESS_BROADCAST, LICHESS_STANDARD } from './sources.mjs';
 
+/*
+ * Phase 29 (PART BB) wants candidate pack builds to live outside
+ * the project. The `output` for non-starter packs is therefore
+ * the external `packs` cache path. `starter` stays in
+ * `public/reference/kingfisher-starter` because it ships with the
+ * app and must be committed. Developers can override with
+ * `KINGFISHER_PACKS_DIR`; tests and benchmarks can `import`
+ * `cachePaths` to learn the resolved location.
+ */
+const { cachePaths } = await import('../cache-paths.mjs');
+const externalPacks = cachePaths.packs;
+
 /** Standard-database months, newest first, as the published digest list names them. */
 const standardMonths = (digests) =>
   [...digests.keys()]
@@ -89,7 +101,7 @@ export const PACK_DEFINITIONS = {
       'games, kept at a low frequency threshold so that recent and rare ' +
       'continuations survive. A recency source, not a weight-of-evidence one.',
     version: '1',
-    output: '.packs/kingfisher-recent-theory',
+    output: `${externalPacks}/kingfisher-recent-theory`,
     source: LICHESS_BROADCAST,
     transformation: TRANSFORMATION,
     files: (digests) => broadcastMonths(digests).slice(0, 24),
@@ -127,7 +139,7 @@ export const PACK_DEFINITIONS = {
       'explicit bot, engine and online event labels. Broadcast metadata is ' +
       'not proof of complete over-the-board coverage.',
     version: '2',
-    output: '.packs/kingfisher-elite-otb',
+    output: `${externalPacks}/kingfisher-elite-otb`,
     source: LICHESS_BROADCAST,
     transformation: TRANSFORMATION,
     files: (digests) => broadcastMonths(digests),
@@ -188,7 +200,7 @@ export const PACK_DEFINITIONS = {
       'rapid and blitz. Bullet and ultrabullet are excluded because they ' +
       'dominate the high-rated population and are not played as theory.',
     version: '1',
-    output: '.packs/kingfisher-high-rated-online',
+    output: `${externalPacks}/kingfisher-high-rated-online`,
     source: LICHESS_STANDARD,
     transformation:
       'Games were streamed from the published archive, filtered by speed and ' +

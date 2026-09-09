@@ -1,67 +1,130 @@
 #!/usr/bin/env node
 /**
- * One-time migration: move the existing .real-scale/ inside the
- * project to the external user-cache directory.
+ * One-time migration: move the project's in-tree heavy cache
+ * directories to the external user-cache location.
  *
- * The .real-scale/ folder is a 5+ GB SQLite database produced by
- * `node scripts/bench-real-scale.mjs`. It is gitignored but it
- * bloats the project workspace. Phase 29 moves it to the OS user
- * cache (default `~/Library/Caches/Kingfisher/real-scale` on macOS,
- * `~/.cache/kingfisher/real-scale` on Linux, `%LOCALAPPDATA%\Kingfisher\Cache\real-scale`
- * on Windows) so a normal project clone stays small.
+ * Phase 29 (PART AY-AZ, BA-BC) demands that the project workspace
+ * stay small. A normal `git clone` should not need to download
+ * five-plus gigabytes of upstream Lichess archives, candidate pack
+ * builds, or the engine fleet. Every directory this script moves
+ * is already gitignored, so it does not bloat git history; the
+ * issue is purely on-disk development comfort.
  *
- * Safe to run multiple times. The migration is a `mv`, not a copy.
- * After it runs, set `KINGFISHER_REAL_SCALE_DIR` to the new path
- * before invoking `bench-real-scale` or any tooling that reads
- * the file.
+ * Targets and their default external paths:
  *
- *   node scripts/migrate-external-cache.mjs              # default location
- *   KINGFISHER_REAL_SCALE_DIR=/some/where node scripts/migrate-external-cache.mjs
+ *   .archive-cache → archiveCache
+ *   .packs         → packs
+ *   .engine-build  → engineBuild
+ *   .engine-fleet  → engineFleet
+ *   .real-scale    → realScale  (already migrated by the previous
+ *                                 step; this script tolerates the
+ *                                 "nothing to do" case)
+ *
+ * Each can be overridden by its KINGFISHER_*_DIR environment
+ * variable. The script is a `mv`, not a copy; it does not waste
+ * disk. If the destination already has files, the source file is
+ * kept (we never overwrite user data).
+ *
+ * Usage:
+ *   node scripts/migrate-external-cache.mjs
+ *   node scripts/migrate-external-cache.mjs --only archiveCache
+ *   KINGFISHER_PACKS_DIR=/some/where node scripts/migrate-external-cache.mjs
+ *
+ * The first run prints a summary of where the bytes went. Re-runs
+ * are safe.
  */
-import { existsSync, mkdirSync, renameSync, statSync } from 'node:fs';
+import { existsSync, mkdirSync, renameSync, rmdirSync, statSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
-const { realScale: externalDir } = await import('./cache-paths.mjs').then((m) => m.cachePaths);
-const sourceDir = path.join(ROOT, '.real-scale');
+const { cachePaths } = await import('./cache-paths.mjs');
 
-if (!existsSync(sourceDir)) {
-  console.log(`No .real-scale/ at ${sourceDir} — nothing to migrate.`);
-  process.exit(0);
-}
-const stat = statSync(sourceDir);
-if (!stat.isDirectory()) {
-  console.error(`${sourceDir} is not a directory; refusing to migrate.`);
-  process.exit(1);
-}
+const argv = process.argv.slice(2);
+const onlyArg = argv.find((arg) => arg.startsWith('--only='));
+const only = onlyArg ? new Set(onlyArg.slice('--only='.length).split(',')) : null;
 
-mkdirSync(externalDir, { recursive: true });
-const entries = ['real.sqlite', 'result.json'];
-let moved = 0;
-for (const entry of entries) {
-  const from = path.join(sourceDir, entry);
-  if (!existsSync(from)) continue;
-  const to = path.join(externalDir, entry);
-  if (existsSync(to)) {
-    console.log(`Skip ${entry}: already exists at ${to}`);
+const TARGETS = [
+  { source: '.archive-cache', external: cachePaths.archiveCache, label: 'archiveCache' },
+  { source: '.packs', external: cachePaths.packs, label: 'packs' },
+  { source: '.engine-build', external: cachePaths.engineBuild, label: 'engineBuild' },
+  { source: '.engine-fleet', external: cachePaths.engineFleet, label: 'engineFleet' },
+  { source: '.real-scale', external: cachePaths.realScale, label: 'realScale' },
+];
+
+let totalMoved = 0;
+let totalSkipped = 0;
+
+for (const target of TARGETS) {
+  if (only && !only.has(target.label)) continue;
+  const sourceDir = path.join(ROOT, target.source);
+  if (!existsSync(sourceDir)) {
+    console.log(`Skip ${target.source}: does not exist`);
+    totalSkipped += 1;
     continue;
   }
-  renameSync(from, to);
-  console.log(`Moved ${entry} → ${to}`);
-  moved += 1;
-}
-
-if (moved > 0) {
-  try {
-    const { rmdirSync } = await import('node:fs');
-    rmdirSync(sourceDir);
-    console.log(`Removed empty ${sourceDir}`);
-  } catch (error) {
-    console.log(`Left ${sourceDir} in place (not empty or remove failed)`);
+  const stat = statSync(sourceDir);
+  if (!stat.isDirectory()) {
+    console.error(`Refuse ${target.source}: not a directory`);
+    continue;
+  }
+  const entries = readdirSync(sourceDir);
+  if (entries.length === 0) {
+    try {
+      rmdirSync(sourceDir);
+      console.log(`Removed empty ${sourceDir}`);
+    } catch {
+      console.log(`Left empty ${sourceDir}`);
+    }
+    continue;
+  }
+  mkdirSync(target.external, { recursive: true });
+  let moved = 0;
+  let kept = 0;
+  for (const entry of entries) {
+    const from = path.join(sourceDir, entry);
+    const to = path.join(target.external, entry);
+    if (existsSync(to)) {
+      kept += 1;
+      continue;
+    }
+    try {
+      const entryStat = statSync(from);
+      if (entryStat.isDirectory()) {
+        // Recursive move. Node's fs.cpSync with recursive:true
+        // is the safe cross-platform equivalent. We do not have
+        // to copy through Node; a rename works if the destination
+        // is on the same filesystem. Use cp+rm as the safe path
+        // because rename across mount points can fail.
+        const { cpSync } = await import('node:fs');
+        cpSync(from, to, { recursive: true });
+        // Best-effort cleanup of the source subtree.
+        const { rmSync } = await import('node:fs');
+        rmSync(from, { recursive: true, force: true });
+      } else {
+        renameSync(from, to);
+      }
+      moved += 1;
+    } catch (error) {
+      console.error(`Failed to move ${from} -> ${to}: ${error.message}`);
+    }
+  }
+  totalMoved += moved;
+  totalSkipped += kept;
+  console.log(`${target.source} → ${target.external}: moved=${moved} kept=${kept}`);
+  if (moved > 0 || kept === 0) {
+    try {
+      rmdirSync(sourceDir);
+      console.log(`Removed empty ${sourceDir}`);
+    } catch {
+      /* not empty or not removable */
+    }
   }
 }
 
 console.log('');
-console.log(`External real-scale path: ${externalDir}`);
-console.log(`Run future commands with: KINGFISHER_REAL_SCALE_DIR=${externalDir}`);
+console.log(`Total moved: ${totalMoved}, kept (already at destination): ${totalSkipped}`);
+console.log('External paths summary:');
+for (const target of TARGETS) {
+  console.log(`  ${target.label.padEnd(14)} ${target.external}`);
+}

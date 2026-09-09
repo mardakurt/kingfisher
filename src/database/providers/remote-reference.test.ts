@@ -2,11 +2,7 @@ import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 
 import { asFen } from '@/chess/types';
-import {
-  chunkFile,
-  decodeExplorerLine,
-  type PackManifest,
-} from '@/reference/pack';
+import { chunkFile, decodeExplorerLine, type PackManifest } from '@/reference/pack';
 
 import { RemoteReferenceProvider } from './remote-reference';
 
@@ -25,9 +21,7 @@ function sha256(bytes: Uint8Array): string {
 
 const START_FEN = asFen('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -');
 const START_KEY = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -';
-const AFTER_E4_FEN = asFen(
-  'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1',
-);
+const AFTER_E4_FEN = asFen('rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1');
 const AFTER_E4_KEY = 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3';
 
 const ROW_START = `${START_KEY}|e2e4,e2e4,100,40,35,25,2500,126,60,60,35,25;d2d4,d2d4,80,30,30,20,2400,100,40,40,30,20|g1\n`;
@@ -119,9 +113,7 @@ describe('RemoteReferenceProvider', () => {
       baseUrl: 'https://example.test/data',
       shards: FAKE_SHARDS,
     });
-    const unseenFen = asFen(
-      'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2',
-    );
+    const unseenFen = asFen('rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2');
     const result = await provider.explore({ fen: unseenFen });
     expect(result.moves).toEqual([]);
     expect(result.totalGames).toBe(0);

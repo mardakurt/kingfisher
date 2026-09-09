@@ -8,6 +8,7 @@ import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
+const { cachePaths } = await import('./cache-paths.mjs');
 const out = process.env.KINGFISHER_DESKTOP_OUT;
 if (!out) throw new Error('Set KINGFISHER_DESKTOP_OUT to the packaged output directory.');
 const binary = path.join(out, 'mac-arm64/Kingfisher.app/Contents/MacOS/Kingfisher');
@@ -16,15 +17,24 @@ const directories = [
   'kingfisher-elite-otb',
   'kingfisher-high-rated-online',
 ];
+/*
+ * Phase 29 (PART BB): pack builds live outside the project. The
+ * field script reads its candidates from the external `packs`
+ * path, falling back to the legacy `.packs` location for one
+ * release cycle so an in-progress build is not stranded.
+ */
+const packsRoot = process.env.KINGFISHER_PACKS_DIR ?? cachePaths.packs;
+const legacyPacks = path.join(root, '.packs');
+const packsBase = existsSync(packsRoot) ? packsRoot : legacyPacks;
 const manifests = directories.map((id) =>
-  JSON.parse(readFileSync(path.join(root, '.packs', id, 'manifest.json'))),
+  JSON.parse(readFileSync(path.join(packsBase, id, 'manifest.json'))),
 );
 const profile = mkdtempSync(path.join(tmpdir(), 'kingfisher-field-'));
 const server = createServer((request, response) => {
   const parts = new URL(request.url, 'http://local').pathname.split('/').filter(Boolean);
   if (parts.length !== 2 || !directories.includes(parts[0]) || path.basename(parts[1]) !== parts[1])
     return response.writeHead(404).end();
-  const file = path.join(root, '.packs', ...parts);
+  const file = path.join(packsBase, ...parts);
   if (!existsSync(file)) return response.writeHead(404).end();
   response.writeHead(200, {
     'Access-Control-Allow-Origin': '*',

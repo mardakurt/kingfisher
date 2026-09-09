@@ -305,7 +305,7 @@ async function main() {
     `${JSON.stringify(buildReport, null, 2)}\n`,
   );
 
-  // Keep the incremental scan cache; it is derived data in .archive-cache.
+  // Keep the incremental scan cache; it is derived data in the external archive cache.
   console.log(`games    ${counts.games.toLocaleString()} counted`);
   console.log(`openable ${counts.openable.toLocaleString()} full scores`);
   console.log(`positions${counts.positions.toLocaleString().padStart(10)}`);

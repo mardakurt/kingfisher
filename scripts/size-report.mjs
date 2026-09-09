@@ -28,6 +28,15 @@ const argv = process.argv.slice(2);
 const topArg = argv.find((arg) => arg.startsWith('--top='));
 const TOP_N = topArg ? Math.max(1, Number(topArg.slice('--top='.length))) : 10;
 
+/*
+ * External cache locations. The brief (PART BD) asks the report to
+ * show "external cache, external real-scale, external data builds,
+ * external engine cache" alongside the project bytes so a developer
+ * can see the full picture: how much stayed in the workspace and
+ * how much got moved out under the user cache root.
+ */
+const { cachePaths } = await import('./cache-paths.mjs');
+
 const SECTIONS = [
   '.git',
   'node_modules',
@@ -198,3 +207,23 @@ if (persistent > BUDGET_HARD) {
 if (persistent > BUDGET_NORMAL) {
   console.warn(`PERSISTENT OVER NORMAL BUDGET by ${fmt(persistent - BUDGET_NORMAL)}`);
 }
+
+console.log(``);
+console.log(`External cache (outside repo):`);
+const externalRows = [
+  ['archives', cachePaths.archives],
+  ['dataBuilds', cachePaths.dataBuilds],
+  ['engines', cachePaths.engines],
+  ['realScale', cachePaths.realScale],
+  ['archiveCache', cachePaths.archiveCache],
+  ['packs', cachePaths.packs],
+  ['engineBuild', cachePaths.engineBuild],
+  ['engineFleet', cachePaths.engineFleet],
+];
+let externalTotal = 0;
+for (const [label, dir] of externalRows) {
+  const size = totalOf(dir);
+  externalTotal += size;
+  console.log(`  ${label.padEnd(14)} ${fmt(size).padStart(10)}   ${dir}`);
+}
+console.log(`  ${'TOTAL'.padEnd(14)} ${fmt(externalTotal).padStart(10)}`);

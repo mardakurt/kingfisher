@@ -30,9 +30,9 @@ describe('reference source state', () => {
   });
 
   it('reports update-available when an installed source has a newer version', () => {
-    expect(
-      stateOf(source({ installed: true, state: 'ready', updateAvailable: true })),
-    ).toBe('update-available');
+    expect(stateOf(source({ installed: true, state: 'ready', updateAvailable: true }))).toBe(
+      'update-available',
+    );
   });
 
   it('reports failed when an installed source has an error', () => {

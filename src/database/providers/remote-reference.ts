@@ -248,9 +248,7 @@ export class RemoteReferenceProvider implements ChessDatabaseProvider {
     }
     const bytes = await this.ensureChunk(descriptor.file, descriptor.sha256, descriptor.bytes);
     const text = new TextDecoder().decode(bytes);
-    const rowLine = text
-      .split('\n')
-      .find((row) => row.startsWith(`${key}|`));
+    const rowLine = text.split('\n').find((row) => row.startsWith(`${key}|`));
     if (!rowLine) {
       return {
         fen: _query.fen,
@@ -268,9 +266,7 @@ export class RemoteReferenceProvider implements ChessDatabaseProvider {
     // return. That is the property that makes a partial cache
     // equivalent to part of an install.
     const parsed = decodeExplorerLine(rowLine);
-    const moves: DatabaseMove[] = parsed
-      ? parsed.moves.map(packMoveToDatabaseMove)
-      : [];
+    const moves: DatabaseMove[] = parsed ? parsed.moves.map(packMoveToDatabaseMove) : [];
     return {
       fen: _query.fen,
       source: { id: this.id, name: this.name },

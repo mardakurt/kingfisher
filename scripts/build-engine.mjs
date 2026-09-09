@@ -43,14 +43,22 @@ import { argv, exit } from 'node:process';
 import { fileURLToPath } from 'node:url';
 
 import { SOURCES, sourcesFor } from './engine-sources.mjs';
+import { cachePaths } from './cache-paths.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const PLATFORM = `${process.platform}-${process.arch}`;
 
 function parseArgs(list) {
+  /*
+   * Phase 29 (PART BC): the default engine build output is the
+   * external `engineBuild` cache path. The CLI flag still works
+   * for one-off builds inside the project; passing `--out
+   * .engine-build` is a no-op because `.engine-build` is
+   * gitignored and now the user should use `--out <custom>`.
+   */
   const args = {
     engine: null,
-    out: path.join(ROOT, '.engine-build'),
+    out: cachePaths.engineBuild,
     keep: false,
     platform: PLATFORM,
   };

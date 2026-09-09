@@ -11,12 +11,7 @@
 import type { ReferenceSource } from '@/reference/types';
 
 export type ReferenceSourceState =
-  | 'not-installed'
-  | 'available-online'
-  | 'cached'
-  | 'installed'
-  | 'update-available'
-  | 'failed';
+  'not-installed' | 'available-online' | 'cached' | 'installed' | 'update-available' | 'failed';
 
 export interface StateBadge {
   readonly label: string;
