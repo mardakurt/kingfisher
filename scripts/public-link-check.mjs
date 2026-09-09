@@ -111,6 +111,7 @@ for (const c of chunkChecks) {
 
 const results = [];
 for (const [label, url, expectations] of targets) {
+  // The first pass already pushes; do nothing here.
   const result = { label, url };
   try {
     const res = await fetch(url, { method: 'GET', redirect: 'follow' });
@@ -154,6 +155,52 @@ for (const [label, url, expectations] of targets) {
 
 if (asJson) {
   console.log(JSON.stringify({ config, results }, null, 2));
+}
+
+/*
+  `releases/latest` regression check.
+
+  GitHub redirects `/releases/latest` to the *current* latest release.
+  If a reference-data release (e.g. `reference-elite-v1`) is ever
+  marked as a normal release again, the `Latest` semantic starts
+  pointing at the data release instead of the application, and a
+  first user who clicks "Download for macOS" downloads reference
+  data instead of the Kingfisher application. This check verifies
+  the redirect resolves to a `v<semver>` tag, which is the
+  application's tag shape, and fails loudly if a `reference-` /
+  `data-` / `pack-` tag ever reclaims the Latest slot.
+*/
+{
+  const latestUrl = config.release;
+  const latestResult = {
+    label: 'Latest release points at application tag',
+    url: latestUrl,
+  };
+  try {
+    const res = await fetch(latestUrl, { method: 'GET', redirect: 'follow' });
+    const finalPath = new URL(res.url).pathname;
+    const tag = finalPath.split('/').pop() || '';
+    const isAppTag = /^v\d+\.\d+\.\d+/.test(tag);
+    latestResult.status = res.status;
+    latestResult.finalTag = tag;
+    latestResult.ok = res.status === 200 && isAppTag;
+    if (!latestResult.ok) {
+      latestResult.error = isAppTag
+        ? `Non-2xx status ${res.status}`
+        : `Latest release tag "${tag}" is not an application tag (expected v<semver>)`;
+    }
+  } catch (err) {
+    latestResult.ok = false;
+    latestResult.error = String(err.message ?? err);
+  }
+  results.push(latestResult);
+  if (!asJson) {
+    const mark = latestResult.ok ? '✓' : '✗';
+    const note = latestResult.error ? `  (${latestResult.error})` : '';
+    console.log(
+      `${mark}  ${String(latestResult.status ?? 'ERR').padEnd(4)}  ${latestResult.label.padEnd(36)}  ${latestResult.url}${note}`,
+    );
+  }
 }
 
 const failed = results.filter((r) => !r.ok);
