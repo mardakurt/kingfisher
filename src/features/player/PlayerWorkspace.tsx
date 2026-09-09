@@ -37,8 +37,10 @@ import { getRepositories } from '@/persistence/repositories';
 import type { PreparationSessionRecord } from '@/persistence/domain';
 import {
   PERIODS,
+  compareCareerVsRecent,
   resolvePeriod,
   scorePercent,
+  type CareerVsRecentEntry,
   type OpeningCount,
   type PlayerPeriod,
   type ScoreLine,
@@ -48,7 +50,12 @@ import { useUi } from '@/stores/ui-store';
 import { PlayerIdentityPanel } from './PlayerIdentityPanel';
 import { ReferenceGamesPanel } from './ReferenceGamesPanel';
 import { TendencyPanel } from './TendencyPanel';
-import { usePlayerAggregate, usePlayerIdentity, usePlayerTendencies } from './usePlayer';
+import {
+  usePlayerAggregate,
+  usePlayerCareerAndRecent,
+  usePlayerIdentity,
+  usePlayerTendencies,
+} from './usePlayer';
 
 type Section =
   'overview' | 'openings' | 'opponents' | 'tendencies' | 'games' | 'reference' | 'identity';
@@ -300,19 +307,26 @@ export function PlayerWorkspace({ playerId }: { readonly playerId: string }) {
             ) : null}
 
             {section === 'openings' ? (
-              <div className="grid gap-6 lg:grid-cols-2">
-                <OpeningTable
-                  title="As White"
-                  line={aggregate.asWhite}
-                  openings={aggregate.openingsAsWhite}
-                  onOpen={(opening) => void openOnBoard(opening.exampleGameId, opening.examplePly)}
+              <div className="space-y-6">
+                <CareerVsRecentSection
+                  identity={identity.data}
+                  openingsAsWhite={aggregate.openingsAsWhite}
+                  openingsAsBlack={aggregate.openingsAsBlack}
                 />
-                <OpeningTable
-                  title="As Black"
-                  line={aggregate.asBlack}
-                  openings={aggregate.openingsAsBlack}
-                  onOpen={(opening) => void openOnBoard(opening.exampleGameId, opening.examplePly)}
-                />
+                <div className="grid gap-6 lg:grid-cols-2">
+                  <OpeningTable
+                    title="As White"
+                    line={aggregate.asWhite}
+                    openings={aggregate.openingsAsWhite}
+                    onOpen={(opening) => void openOnBoard(opening.exampleGameId, opening.examplePly)}
+                  />
+                  <OpeningTable
+                    title="As Black"
+                    line={aggregate.asBlack}
+                    openings={aggregate.openingsAsBlack}
+                    onOpen={(opening) => void openOnBoard(opening.exampleGameId, opening.examplePly)}
+                  />
+                </div>
               </div>
             ) : null}
 
@@ -561,6 +575,147 @@ function OverviewSection(props: {
           )}
         </section>
       </div>
+    </div>
+  );
+}
+
+/**
+ * The Player 2.0 Career vs Recent table.
+ *
+ * Two aggregates — one over the whole archive, one over the last 12 months
+ * by default — folded into one row per opening. Each row carries its own
+ * career and recent numbers; a reader can read any of the three columns
+ * (career share, recent share, percentage-point change) and know which
+ * aggregate it came from. Nothing is averaged, and rows below the minimum
+ * combined sample are not shown, so a small change cannot look like a
+ * confident finding.
+ */
+function CareerVsRecentSection({
+  identity,
+  openingsAsWhite,
+  openingsAsBlack,
+}: {
+  readonly identity: ReturnType<typeof usePlayerIdentity>['data'] extends infer T
+    ? T
+    : never;
+  readonly openingsAsWhite: readonly OpeningCount[];
+  readonly openingsAsBlack: readonly OpeningCount[];
+}) {
+  const both = usePlayerCareerAndRecent(identity);
+  const recent = both.recent.data?.aggregate;
+  const recentAsWhite = recent?.openingsAsWhite ?? [];
+  const recentAsBlack = recent?.openingsAsBlack ?? [];
+
+  const careerWhiteTotal = openingsAsWhite.reduce((sum, entry) => sum + entry.games, 0);
+  const careerBlackTotal = openingsAsBlack.reduce((sum, entry) => sum + entry.games, 0);
+  const recentWhiteTotal = recentAsWhite.reduce((sum, entry) => sum + entry.games, 0);
+  const recentBlackTotal = recentAsBlack.reduce((sum, entry) => sum + entry.games, 0);
+  const share = (entries: readonly OpeningCount[], total: number) =>
+    entries.map((entry) => ({ ...entry, share: total > 0 ? entry.games / total : 0 }));
+
+  const whiteRows = compareCareerVsRecent(
+    share(openingsAsWhite, careerWhiteTotal),
+    share(recentAsWhite, recentWhiteTotal),
+    (entry) => entry.key,
+    (entry) => entry.label,
+    (entry) => entry.games,
+    (entry) => entry.share,
+  );
+  const blackRows = compareCareerVsRecent(
+    share(openingsAsBlack, careerBlackTotal),
+    share(recentAsBlack, recentBlackTotal),
+    (entry) => entry.key,
+    (entry) => entry.label,
+    (entry) => entry.games,
+    (entry) => entry.share,
+  );
+
+  return (
+    <section>
+      <h2 className="text-sm font-semibold text-primary">What has this player changed?</h2>
+      <p className="mt-1 text-xs text-tertiary">
+        Career vs the last 12 months, by opening. Each row shows both periods and the
+        difference in percentage points.
+        {recent
+          ? ` Career ${careerWhiteTotal + careerBlackTotal} games, recent 12 months ${
+              recentWhiteTotal + recentBlackTotal
+            } games.`
+          : ''}
+      </p>
+      <div className="mt-3 grid gap-4 md:grid-cols-2">
+        <ChangeTable title="As White" rows={whiteRows} />
+        <ChangeTable title="As Black" rows={blackRows} />
+      </div>
+      {both.recent.isPending ? (
+        <p className="mt-2 text-[10px] text-tertiary">Reading the last 12 months…</p>
+      ) : null}
+    </section>
+  );
+}
+
+function ChangeTable({
+  title,
+  rows,
+}: {
+  readonly title: string;
+  readonly rows: readonly CareerVsRecentEntry[];
+}) {
+  return (
+    <div>
+      <h3 className="text-[10px] font-semibold uppercase tracking-wide text-tertiary">{title}</h3>
+      {rows.length === 0 ? (
+        <p className="mt-2 text-xs text-tertiary">Not enough games in either window.</p>
+      ) : (
+        <table className="mt-2 w-full text-xs">
+          <thead className="border-b border-line-subtle text-left text-[10px] uppercase tracking-wide text-tertiary">
+            <tr>
+              <th className="py-1.5">Opening</th>
+              <th className="py-1.5 text-right" title="Career share of this side's games">
+                Career
+              </th>
+              <th className="py-1.5 text-right" title="Recent share of this side's games">
+                Recent 12m
+              </th>
+              <th className="py-1.5 text-right" title="Recent share minus career share">
+                Change
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => {
+              const change = row.delta;
+              const arrow =
+                change === null
+                  ? '—'
+                  : change > 0.005
+                    ? `+${(change * 100).toFixed(1)} pp`
+                    : change < -0.005
+                      ? `${(change * 100).toFixed(1)} pp`
+                      : 'unchanged';
+              const colour =
+                change === null
+                  ? 'text-tertiary'
+                  : change > 0.005
+                    ? 'text-positive'
+                    : change < -0.005
+                      ? 'text-negative'
+                      : 'text-tertiary';
+              return (
+                <tr key={row.key} className="border-b border-line-subtle last:border-0">
+                  <td className="py-1.5 text-primary">{row.label}</td>
+                  <td className="py-1.5 text-right tabular text-secondary">
+                    {row.career.games} · {(row.career.share * 100).toFixed(1)}%
+                  </td>
+                  <td className="py-1.5 text-right tabular text-secondary">
+                    {row.recent ? `${row.recent.games} · ${(row.recent.share * 100).toFixed(1)}%` : '—'}
+                  </td>
+                  <td className={`py-1.5 text-right tabular ${colour}`}>{arrow}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 }

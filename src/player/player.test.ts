@@ -301,7 +301,7 @@ describe('Career vs Recent', () => {
 
   it('drops rows whose combined sample is below the threshold', () => {
     const career = [opening('B90', 'Najdorf', MINIMUM_CHANGE_GAMES - 1, 0.5)];
-    const recent = [];
+    const recent: typeof career = [];
     const rows = compareCareerVsRecent(
       career,
       recent,
@@ -335,7 +335,7 @@ describe('Career vs Recent', () => {
       opening('B', 'Sharp', 80, 0.25),
       opening('C', 'Tactical', 60, 0.15),
     ];
-    const recent = [
+    const recent: typeof career = [
       opening('A', 'Quiet', 50, 0.5),
       opening('B', 'Sharp', 50, 0.3),
       opening('C', 'Tactical', 30, 0.2),

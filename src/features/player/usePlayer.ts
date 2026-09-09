@@ -20,6 +20,7 @@ import { getRepositories } from '@/persistence/repositories';
 import { playerKey } from '@/persistence/schema/migrations';
 import type { GameSummary } from '@/persistence/types';
 import {
+  PERIODS,
   aggregatePlayer,
   playerSide,
   resolvePeriod,
