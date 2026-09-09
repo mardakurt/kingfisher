@@ -30,21 +30,19 @@
  *   node scripts/bench-claim-search.mjs --db … --skip-build   # re-time only
  */
 
+import { developmentPaths } from './development-cache.mjs';
 import { DatabaseSync } from 'node:sqlite';
 import { statSync } from 'node:fs';
 import path from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { argv, exit } from 'node:process';
-import { fileURLToPath } from 'node:url';
 
 import { GameDatabase } from '../companion/src/database.mjs';
 import { buildClaimIndex, claimIndexReady } from '../companion/src/position-schema.mjs';
 
-const ROOT = fileURLToPath(new URL('..', import.meta.url));
-
 function parseArgs(list) {
   const args = {
-    db: path.join(ROOT, '.real-scale', 'real.sqlite'),
+    db: path.join(developmentPaths.realScale, 'real.sqlite'),
     /*
       Modest on purpose. At this scale each "before" query reads millions of
       rows out of a five-gigabyte file, so forty runs of the same slow query

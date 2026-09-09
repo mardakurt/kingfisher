@@ -5,7 +5,7 @@
   "engines": {
     "node": ">=24"
   },
-  "description": "Kingfisher — a chess research workspace for strong players.",
+  "description": "Kingfisher \u2014 a chess research workspace for strong players.",
   "scripts": {
     "dev": "next dev --port 3210",
     "build": "next build",
@@ -72,11 +72,11 @@
     "security:scan": "node scripts/security-scan.mjs",
     "deploy:vercel": "node scripts/vercel-deploy.mjs",
     "size:report": "node scripts/size-report.mjs",
-    "size:check": "node scripts/size-report.mjs --top=20",
-    "clean:dev": "rm -rf .next test-results playwright-report .engine-fleet .packs && echo 'cleaned: .next, test-results, playwright-report, .engine-fleet, .packs (rerun npm install / build to repopulate)'",
+    "size:check": "node scripts/workspace-size.mjs",
+    "clean:dev": "node scripts/clean-development.mjs",
     "data:cache:report": "node scripts/size-report.mjs 2>&1 | head -25",
-    "data:cache:prune": "rm -rf .archive-cache .packs .engine-build && echo 'pruned reproducible cache (engines re-fetch via npm run engines:install)'",
-    "data:cache:paths": "node -e \"import('./scripts/cache-paths.mjs').then(m => console.log(JSON.stringify(m.cachePaths, null, 2)))\"",
+    "data:cache:prune": "node scripts/clean-development.mjs --cache",
+    "data:cache:paths": "node -e \"import('./scripts/development-cache.mjs').then(m => console.log(JSON.stringify(m.developmentPaths, null, 2)))\"",
     "bench:compression": "node scripts/bench-compression.mjs"
   },
   "dependencies": {
