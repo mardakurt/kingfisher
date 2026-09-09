@@ -67,6 +67,22 @@ const RECENT_WINDOWS = [
 
 type RecentWindowId = (typeof RECENT_WINDOWS)[number]['id'];
 
+/**
+ * Phase 29 BL: a speed facet for sources that distinguish
+ * classical / rapid / blitz. Only shown when the chosen source
+ * declares `speedFilter: true` — a reference pack that was
+ * already built from a single speed window would be
+ * misleadingly filtered if the facet were on for it.
+ */
+const SPEED_FACETS = [
+  { id: 'all', label: 'All', speeds: undefined },
+  { id: 'classical', label: 'Classical', speeds: ['classical'] },
+  { id: 'rapid', label: 'Rapid', speeds: ['rapid'] },
+  { id: 'blitz', label: 'Blitz', speeds: ['blitz'] },
+] as const;
+
+type SpeedFacetId = (typeof SPEED_FACETS)[number]['id'];
+
 export function ExplorerPanel() {
   const { node, position } = useAnalysisPosition();
   const { tree, currentId } = useChessWorkspace();
@@ -80,6 +96,7 @@ export function ExplorerPanel() {
 
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [recentWindow, setRecentWindow] = useState<RecentWindowId>('off');
+  const [speedFacet, setSpeedFacet] = useState<SpeedFacetId>('all');
   const [selected, setSelected] = useState<readonly string[]>([]);
   const [comparing, setComparing] = useState(false);
   const [comparedSources, setComparedSources] = useState<readonly string[]>([]);
@@ -99,10 +116,13 @@ export function ExplorerPanel() {
     (source) => source.offline && source.installed && source.id !== provider?.id,
   );
   const playerFilter = provider?.capabilities.playerFilter ?? false;
+  const speedFilter = provider?.capabilities.speedFilter ?? false;
+  const speedFacetEntry = SPEED_FACETS.find((entry) => entry.id === speedFacet) ?? SPEED_FACETS[0];
 
   const filters = {
     ...(prefs.explorerMinRating ? { minRating: prefs.explorerMinRating } : {}),
     ...(prefs.explorerSinceYear ? { sinceYear: prefs.explorerSinceYear } : {}),
+    ...(speedFilter && speedFacetEntry.speeds ? { speeds: speedFacetEntry.speeds } : {}),
     ...(playerFilter && player.trim() ? { player: player.trim(), playerColor } : {}),
   };
 
@@ -379,6 +399,25 @@ export function ExplorerPanel() {
               onChange={setRecentWindow}
             />
           </div>
+          {/*
+            Phase 29 BL: speed facet for sources that distinguish
+            speeds. The facet is only shown when the chosen source
+            declares the capability, and the source's identity is
+            printed in the row so the user knows what they are
+            looking at — e.g. "Blitz" on the High-Rated Online
+            reference is not the same dataset as "Blitz" on
+            Lichess.
+          */}
+          {speedFilter ? (
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-tertiary">Speed</span>
+              <Segmented
+                items={SPEED_FACETS.map((entry) => ({ id: entry.id, label: entry.label }))}
+                value={speedFacet}
+                onChange={setSpeedFacet}
+              />
+            </div>
+          ) : null}
           {!provider?.capabilities.dateFilter && window.years > 0 ? (
             <p className="text-[10px] text-caution">
               {provider?.name} cannot filter by date.

@@ -36,6 +36,7 @@ const CAPABILITIES: DatabaseCapabilities = {
   ratingFilter: false,
   dateFilter: false,
   playerFilter: false,
+  speedFilter: false,
   topGames: true,
   offline: true,
 };

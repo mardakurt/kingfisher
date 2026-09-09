@@ -200,6 +200,7 @@ export class RemoteReferenceProvider implements ChessDatabaseProvider {
       ratingFilter: true,
       dateFilter: true,
       playerFilter: false,
+      speedFilter: true,
       topGames: true,
       offline: false,
     };

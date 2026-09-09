@@ -102,6 +102,7 @@ export interface DatabaseCapabilities {
   readonly ratingFilter: boolean;
   readonly dateFilter: boolean;
   readonly playerFilter: boolean;
+  readonly speedFilter: boolean;
   readonly topGames: boolean;
   /** True when queries do not leave the machine. */
   readonly offline: boolean;

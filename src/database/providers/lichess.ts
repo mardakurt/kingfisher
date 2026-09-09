@@ -106,6 +106,7 @@ export class LichessExplorerProvider implements ChessDatabaseProvider {
       ratingFilter: database === 'lichess',
       dateFilter: true,
       playerFilter: player,
+      speedFilter: database === 'lichess',
       topGames: true,
       offline: false,
     };

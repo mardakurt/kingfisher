@@ -51,6 +51,7 @@ export class CompanionSqliteProvider implements ChessDatabaseProvider {
     ratingFilter: true,
     dateFilter: true,
     playerFilter: true,
+    speedFilter: true,
     topGames: true,
     offline: true,
   };
