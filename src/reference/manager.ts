@@ -30,7 +30,12 @@ import { withPackLock } from './lock';
 import type { PackManifest } from './pack';
 import { PackReader } from './reader';
 import { ReferencePackProvider } from './provider';
-import { StreamingCache } from './streaming-cache';
+import { TieredStreamingCache } from './tiered-streaming-cache';
+import {
+  IndexedDbStreamingCacheStorage,
+  type StreamingCacheStorage,
+} from '@/persistence/streaming-cache-storage';
+import { InMemoryStreamingCacheStorage } from '@/persistence/indexeddb/streaming-cache-storage.memory';
 import { referencePackStore, type InstalledPack, type ReferencePackStore } from './store';
 import type { ReferenceSource, SourceState } from './types';
 
@@ -67,8 +72,16 @@ const streamingProviders = new Map<
   string,
   {
     readonly provider: RemoteReferenceProvider;
-    readonly cache: StreamingCache;
+    readonly cache: TieredStreamingCache;
     readonly baseUrl: string;
+    /**
+     * Cached persistent byte/chunk counts. The persistent tier
+     * is read async; the catalog row wants sync numbers, so we
+     * remember the last successful read and refresh it in the
+     * background when the streaming source is enabled.
+     */
+    persistentBytesCached?: number;
+    persistentChunksCached?: number;
   }
 >();
 
@@ -230,10 +243,19 @@ function describe(
         }),
     offline: ready,
     capabilities: catalog.capabilities,
+    installableSize: catalog.approximateBytes,
     ...(streaming
       ? {
-          cacheBytes: streaming.cache.bytes(),
-          cacheChunks: streaming.cache.size(),
+          cacheBytes: streaming.cache.memoryBytes(),
+          cacheChunks: streaming.cache.memorySize(),
+          // Persistent cache fields are read async; the
+          // snapshot is built from the cached value if a
+          // previous read populated it, or zero on first
+          // read. The catalog refreshes the persistent
+          // numbers when a streaming source is enabled, so
+          // the second paint is honest.
+          persistentCacheBytes: streaming.persistentBytesCached ?? 0,
+          persistentCacheChunks: streaming.persistentChunksCached ?? 0,
         }
       : {}),
     ...(catalog.bundled && !ready && !installing
@@ -460,7 +482,11 @@ export async function enableStreamingForPack(
     const manifest = await fetchManifest(catalog.manifestUrl);
     if (manifest.id !== id)
       throw new Error('The online pack identity does not match this catalog entry.');
-    const cache = new StreamingCache({ packId: manifest.id, packVersion: manifest.version });
+    const cache = new TieredStreamingCache({
+      packId: manifest.id,
+      packVersion: manifest.version,
+      persistent: defaultStreamingCacheStorage(),
+    });
     const provider = new RemoteReferenceProvider({
       id: manifest.id,
       name: manifest.name,
@@ -470,8 +496,13 @@ export async function enableStreamingForPack(
       shards: defaultRemoteShards(),
       cache,
     });
-    streamingProviders.set(id, { provider, cache, baseUrl: catalog.manifestUrl });
+    const entry = { provider, cache, baseUrl: catalog.manifestUrl };
+    streamingProviders.set(id, entry);
     publish();
+    // Read the persistent cache once, in the background, so the
+    // catalog row reports the surviving bytes. The read is best-
+    // effort; a failure here would surface on the next read.
+    void refreshPersistentCacheInfo(id);
     return { ok: true, message: `${manifest.name} ready. Chunks are cached on demand.` };
   } catch (error) {
     setError(
@@ -510,8 +541,67 @@ export function stopStreamingPack(id: string): void {
 export function clearStreamingCache(id: string): void {
   const entry = streamingProviders.get(id);
   if (!entry) return;
-  entry.cache.clear();
+  // Fire and forget: the underlying clear is awaited by the
+  // provider, but the public clear is sync to keep the
+  // button click handler simple. A failure here would
+  // surface on the next read.
+  void entry.cache.clear().then(() => {
+    if (streamingProviders.get(id) === entry) {
+      entry.persistentBytesCached = 0;
+      entry.persistentChunksCached = 0;
+      publish();
+    }
+  });
   publish();
+}
+
+/**
+ * Read the persistent cache's current bytes and chunk count, and
+ * republish the catalog snapshot so the row reflects what the
+ * user actually has on disk. Best-effort: a failure here is
+ * silent, because a missing number is better than an exception
+ * in the catalog UI.
+ */
+export async function refreshPersistentCacheInfo(id: string): Promise<void> {
+  const entry = streamingProviders.get(id);
+  if (!entry) return;
+  try {
+    const [bytes, chunks] = await Promise.all([
+      entry.cache.persistentBytes(),
+      entry.cache.persistentSize(),
+    ]);
+    if (streamingProviders.get(id) !== entry) return;
+    entry.persistentBytesCached = bytes;
+    entry.persistentChunksCached = chunks;
+    publish();
+  } catch {
+    // The persistent tier is a "best effort" surface; a failure
+    // to read it does not block the streaming source from
+    // answering. The next publish will catch it up.
+  }
+}
+
+/**
+ * Build the default persistent storage for the streaming cache.
+ *
+ * The IndexedDB implementation is the production path; tests
+ * inject their own. The factory exists so the manager does not
+ * import the browser-only implementation at the top of a file
+ * that may be evaluated in a node test runner.
+ *
+ * The IndexedDB branch is detected by the global, not by an
+ * `import` statement, so a node test that does not load
+ * `fake-indexeddb/auto` simply falls through to the memory
+ * double and the streaming cache still works in tests.
+ */
+function defaultStreamingCacheStorage(): StreamingCacheStorage {
+  if (typeof indexedDB !== 'undefined' && typeof IDBObjectStore !== 'undefined') {
+    return new IndexedDbStreamingCacheStorage();
+  }
+  // The in-memory double is dynamically required because it
+  // shares the contract but not the path; a synchronous
+  // `new` keeps the call site simple.
+  return new InMemoryStreamingCacheStorage();
 }
 
 function defaultRemoteShards(): {

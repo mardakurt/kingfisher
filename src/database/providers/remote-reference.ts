@@ -55,7 +55,11 @@ import {
   type PackManifest,
   type PackMove,
 } from '@/reference/pack';
-import { StreamingCache } from '@/reference/streaming-cache';
+import { TieredStreamingCache } from '@/reference/tiered-streaming-cache';
+import {
+  IndexedDbStreamingCacheStorage,
+  type StreamingCacheStorage,
+} from '@/persistence/streaming-cache-storage';
 import type {
   ChessDatabaseProvider,
   DatabaseMove,
@@ -165,7 +169,7 @@ export class RemoteReferenceProvider implements ChessDatabaseProvider {
   private readonly manifest: PackManifest;
   private readonly baseUrl: string;
   private readonly shards: RemoteShards;
-  private readonly cache: StreamingCache;
+  private readonly cache: TieredStreamingCache;
   private readonly inflight = new Map<string, Promise<Uint8Array>>();
 
   constructor(options: {
@@ -176,12 +180,19 @@ export class RemoteReferenceProvider implements ChessDatabaseProvider {
     readonly baseUrl: string;
     readonly shards: RemoteShards;
     /**
-     * Injected cache. The default is a fresh in-memory LRU
-     * sized per the platform (256 MB web, 512 MB desktop). The
-     * test suite injects a deterministic cache to make bytes and
-     * chunk counts observable.
+     * Injected cache. The default is a fresh two-tier cache
+     * with the in-memory LRU sized per the platform and a
+     * persistent IndexedDB tier sized per the same heuristic.
+     * The test suite injects a deterministic cache to make
+     * bytes and chunk counts observable.
      */
-    readonly cache?: StreamingCache;
+    readonly cache?: TieredStreamingCache;
+    /**
+     * Optional persistent storage injection. Production code
+     * uses the IndexedDB-backed default; tests use a
+     * deterministic in-memory double.
+     */
+    readonly persistent?: StreamingCacheStorage;
   }) {
     this.id = options.id;
     this.name = options.name;
@@ -191,9 +202,10 @@ export class RemoteReferenceProvider implements ChessDatabaseProvider {
     this.shards = options.shards;
     this.cache =
       options.cache ??
-      new StreamingCache({
+      new TieredStreamingCache({
         packId: options.manifest.id,
         packVersion: options.manifest.version,
+        persistent: options.persistent ?? new IndexedDbStreamingCacheStorage(),
       });
     this.cacheVersion = `${options.manifest.id}@${options.manifest.version}`;
     this.capabilities = {
@@ -219,7 +231,7 @@ export class RemoteReferenceProvider implements ChessDatabaseProvider {
    * is verified once and reused.
    */
   private async ensureChunk(file: string, sha: string, bytes: number): Promise<Uint8Array> {
-    const cached = this.cache.get(sha);
+    const cached = await this.cache.get(sha);
     if (cached) return cached;
     const existing = this.inflight.get(sha);
     if (existing) return existing;
@@ -294,18 +306,28 @@ export class RemoteReferenceProvider implements ChessDatabaseProvider {
     };
   }
 
-  /** Cache size in bytes — useful for the catalog UX. */
+  /** Memory-tier cache size in bytes — useful for the catalog UX. */
   cacheBytes(): number {
-    return this.cache.bytes();
+    return this.cache.memoryBytes();
   }
 
-  /** Number of cached chunks — useful for the catalog UX. */
+  /** Persistent-tier cache size in bytes — useful for the catalog UX. */
+  async persistentCacheBytes(): Promise<number> {
+    return this.cache.persistentBytes();
+  }
+
+  /** Number of memory-tier cached chunks — useful for the catalog UX. */
   cacheChunkCount(): number {
-    return this.cache.size();
+    return this.cache.memorySize();
   }
 
-  /** Drop the streaming cache for this provider. */
-  clearCache(): void {
-    this.cache.clear();
+  /** Number of persistent-tier cached chunks — useful for the catalog UX. */
+  async persistentCacheChunkCount(): Promise<number> {
+    return this.cache.persistentSize();
+  }
+
+  /** Drop both cache tiers for this provider. */
+  async clearCache(): Promise<void> {
+    await this.cache.clear();
   }
 }

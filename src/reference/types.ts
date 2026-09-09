@@ -81,13 +81,31 @@ export interface ReferenceSource {
   /** Why the source cannot answer right now, when it cannot. */
   readonly note?: string;
   /**
-   * Streaming-only: bytes the on-demand cache is currently holding for this
-   * source. Set on a `kind: 'streaming'` row; absent elsewhere. Surfaced by
-   * the catalog so the user can see what their online use has accumulated.
+   * Streaming-only: bytes the in-memory tier of the on-demand
+   * cache is currently holding for this source. Set on a
+   * `kind: 'streaming'` row; absent elsewhere. Surfaced by
+   * the catalog so the user can see what their online use
+   * has accumulated in this session.
    */
   readonly cacheBytes?: number;
-  /** Streaming-only: number of cached chunks. */
+  /** Streaming-only: number of chunks the in-memory tier is holding. */
   readonly cacheChunks?: number;
+  /**
+   * Streaming-only: bytes the persistent (IndexedDB) tier is
+   * holding. Set on a `kind: 'streaming'` row once the
+   * persistent cache has been read once. This is the value
+   * that survives a refresh.
+   */
+  readonly persistentCacheBytes?: number;
+  /** Streaming-only: chunks the persistent tier is holding. */
+  readonly persistentCacheChunks?: number;
+  /**
+   * Streaming-only: the catalog the user is looking at, which
+   * is "what they can ask for", distinct from "what the source
+   * would need to install". Surfaced as the installable size
+   * next to the cached size so the two are comparable.
+   */
+  readonly installableSize?: number;
 }
 
 /** Per-source switches. Absent means "the source's own defaults". */
