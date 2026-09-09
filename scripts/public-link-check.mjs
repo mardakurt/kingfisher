@@ -46,7 +46,7 @@ const config = {
     env.KINGFISHER_PUBLIC_RELEASE_URL || 'https://github.com/mardakurt/kingfisher/releases/latest',
   dmg:
     env.KINGFISHER_PUBLIC_DMG_URL ||
-    'https://github.com/mardakurt/kingfisher/releases/download/v1.0.0-rc.5/Kingfisher-1.0.0-rc.5-arm64.dmg',
+    'https://github.com/mardakurt/kingfisher/releases/download/v1.0.0/Kingfisher-1.0.0-arm64.dmg',
   issues: env.KINGFISHER_PUBLIC_ISSUES_URL || 'https://github.com/mardakurt/kingfisher/issues',
   discussions:
     env.KINGFISHER_PUBLIC_DISCUSSIONS_URL || 'https://github.com/mardakurt/kingfisher/discussions',

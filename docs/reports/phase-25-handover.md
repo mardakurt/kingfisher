@@ -54,24 +54,24 @@ the link validator is 19/19.**
 
 ## 2. Public URL map
 
-| Surface           | URL                                                                                                     | Status            |
-| ----------------- | ------------------------------------------------------------------------------------------------------- | ----------------- |
-| Landing page      | <https://mardakurt.github.io/kingfisher-data/>                                                          | LIVE              |
-| Landing page      | <https://kingfisher-chess.vercel.app/>                                                                  | LIVE              |
-| Web app           | <https://kingfisher-chess.vercel.app/analysis>                                                          | LIVE              |
-| GitHub repository | <https://github.com/mardakurt/kingfisher>                                                               | LIVE (public)     |
-| Latest release    | <https://github.com/mardakurt/kingfisher/releases/latest>                                               | LIVE              |
-| Latest tag        | <https://github.com/mardakurt/kingfisher/releases/tag/v1.0.0-rc.5>                                      | LIVE              |
-| macOS preview DMG | <https://github.com/mardakurt/kingfisher/releases/download/v1.0.0-rc.5/Kingfisher-1.0.0-rc.5-arm64.dmg> | LIVE (150 MB)     |
-| macOS x64 DMG     | <https://github.com/mardakurt/kingfisher/releases/download/v1.0.0-rc.5/Kingfisher-1.0.0-rc.5.dmg>       | LIVE (157 MB)     |
-| Issue tracker     | <https://github.com/mardakurt/kingfisher/issues>                                                        | LIVE              |
-| Discussions       | <https://github.com/mardakurt/kingfisher/discussions>                                                   | LIVE              |
-| Docs              | <https://github.com/mardakurt/kingfisher/tree/master/docs>                                              | LIVE              |
-| Data mirror       | <https://mardakurt.github.io/kingfisher-data>                                                           | LIVE (public)     |
-| Pack — Elite OTB  | <https://mardakurt.github.io/kingfisher-data/reference-elite-v2/manifest.json>                          | LIVE              |
-| Pack — Recent     | <https://mardakurt.github.io/kingfisher-data/reference-recent-v1/manifest.json>                         | LIVE              |
-| Pack — High-Rated | <https://mardakurt.github.io/kingfisher-data/reference-online-v1/manifest.json>                         | LIVE              |
-| Security policy   | <https://github.com/mardakurt/kingfisher/security/policy>                                               | LIVE              |
+| Surface           | URL                                                                                                     | Status        |
+| ----------------- | ------------------------------------------------------------------------------------------------------- | ------------- |
+| Landing page      | <https://mardakurt.github.io/kingfisher-data/>                                                          | LIVE          |
+| Landing page      | <https://kingfisher-chess.vercel.app/>                                                                  | LIVE          |
+| Web app           | <https://kingfisher-chess.vercel.app/analysis>                                                          | LIVE          |
+| GitHub repository | <https://github.com/mardakurt/kingfisher>                                                               | LIVE (public) |
+| Latest release    | <https://github.com/mardakurt/kingfisher/releases/latest>                                               | LIVE          |
+| Latest tag        | <https://github.com/mardakurt/kingfisher/releases/tag/v1.0.0-rc.5>                                      | LIVE          |
+| macOS preview DMG | <https://github.com/mardakurt/kingfisher/releases/download/v1.0.0-rc.5/Kingfisher-1.0.0-rc.5-arm64.dmg> | LIVE (150 MB) |
+| macOS x64 DMG     | <https://github.com/mardakurt/kingfisher/releases/download/v1.0.0-rc.5/Kingfisher-1.0.0-rc.5.dmg>       | LIVE (157 MB) |
+| Issue tracker     | <https://github.com/mardakurt/kingfisher/issues>                                                        | LIVE          |
+| Discussions       | <https://github.com/mardakurt/kingfisher/discussions>                                                   | LIVE          |
+| Docs              | <https://github.com/mardakurt/kingfisher/tree/master/docs>                                              | LIVE          |
+| Data mirror       | <https://mardakurt.github.io/kingfisher-data>                                                           | LIVE (public) |
+| Pack — Elite OTB  | <https://mardakurt.github.io/kingfisher-data/reference-elite-v2/manifest.json>                          | LIVE          |
+| Pack — Recent     | <https://mardakurt.github.io/kingfisher-data/reference-recent-v1/manifest.json>                         | LIVE          |
+| Pack — High-Rated | <https://mardakurt.github.io/kingfisher-data/reference-online-v1/manifest.json>                         | LIVE          |
+| Security policy   | <https://github.com/mardakurt/kingfisher/security/policy>                                               | LIVE          |
 
 ## 3. Vercel
 

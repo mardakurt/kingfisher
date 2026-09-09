@@ -2,7 +2,7 @@
 
 A local-first chess research workstation for serious players.
 
-> **Public preview · 1.0.0-rc.5**
+> **Public release · 1.0.0** (web stable · macOS Preview)
 > No account. No telemetry. No subscription.
 
 |                                                                                      |                                                                              |

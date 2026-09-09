@@ -4,6 +4,43 @@ The user-facing changelog. Internal phase history is in
 `docs/reports/` and `docs/product/phase-*.md`; the list below is what
 real users notice.
 
+## 1.0.0 — public stable release
+
+The first stable public release of Kingfisher. The web application is
+production-stable; the macOS desktop application is signed and ships as
+a **Preview** until notarization is available. The landing page now
+serves at the production web origin (`https://kingfisher-chess.vercel.app/`)
+and the studio is one click away.
+
+### What is in this release
+
+- **Web is stable.** Production deployment at
+  <https://kingfisher-chess.vercel.app/>. The landing page is the
+  first surface; the studio is one click in. Starter, Stockfish,
+  Opening Explorer, Players, Databases, Studies, Repertoire, Settings
+  — all working.
+- **macOS is Preview.** Apple Silicon DMG (`Kingfisher-1.0.0-arm64.dmg`),
+  code-signed, checksum published. Not notarized yet — see the
+  installation guide for the right-click / Open path.
+- **Reference data is published.** Elite OTB (407,538 games), Recent
+  Theory (44,200 games), and High-Rated Online (305,169 games) all
+  install from the public data mirror. Kingfisher Starter (172,376
+  games) ships with the application.
+- **No account, no telemetry, no subscription.** MIT-licensed source.
+
+### What users notice
+
+- A landing page that is informative and direct: what Kingfisher is,
+  why it is different, how to launch the web app, how to install
+  macOS, where the source lives.
+- A one-click path from landing → web app.
+- The web app works in a fresh private profile. Studies, repertoire
+  and preferences persist across reloads.
+- The macOS binary still works on Apple Silicon and survives
+  quit / relaunch with all user data intact.
+- GitHub issues and discussions are the public support channel; the
+  in-app diagnostic report redacts OAuth tokens and personal paths.
+
 ## 1.0.0-rc.5 — public preview live
 
 The web application and landing page are now public. This release adds a real

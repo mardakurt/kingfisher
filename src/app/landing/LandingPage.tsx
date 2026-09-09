@@ -59,7 +59,7 @@ export function LandingPage() {
             <div className="hero-copy">
               <p className="hero-eyebrow">
                 <span className="hero-eyebrow-pulse"></span>
-                Public preview · 1.0.0-rc.5
+                Public release · 1.0.0
               </p>
               <h1 className="hero-title">
                 Chess research,
@@ -67,14 +67,16 @@ export function LandingPage() {
                 <span className="hero-title-accent">in one place.</span>
               </h1>
               <p className="hero-lede">
-                Kingfisher brings opening evidence, engines, databases, studies and repertoire
-                into one local-first chess workspace. No account required.
+                Kingfisher brings opening evidence, engines, databases, studies and repertoire into
+                one local-first chess workspace. No account required.
               </p>
               <div className="hero-cta-row">
                 <Link className="btn btn-primary" href="/analysis">
                   <span className="btn-dot"></span>
                   Launch Kingfisher
-                  <span className="btn-arrow" aria-hidden="true">→</span>
+                  <span className="btn-arrow" aria-hidden="true">
+                    →
+                  </span>
                 </Link>
                 <a className="btn btn-secondary" href="#download-mac">
                   Download for macOS
@@ -129,7 +131,9 @@ export function LandingPage() {
             <div className="hero-strip-sep"></div>
             <div className="hero-strip-item">
               <span className="hero-strip-num">9</span>
-              <span className="hero-strip-label">open-source engines, including Stockfish &amp; Lc0</span>
+              <span className="hero-strip-label">
+                open-source engines, including Stockfish &amp; Lc0
+              </span>
             </div>
           </div>
         </section>
@@ -143,17 +147,17 @@ export function LandingPage() {
             <div className="why-item">
               <h3>Evidence stays separate.</h3>
               <p>
-                Compare elite OTB, recent theory and high-rated online play side by side.
-                Kingfisher never silently merges populations into a single &ldquo;truth&rdquo;
-                score — you read each source against the others.
+                Compare elite OTB, recent theory and high-rated online play side by side. Kingfisher
+                never silently merges populations into a single &ldquo;truth&rdquo; score — you read
+                each source against the others.
               </p>
             </div>
             <div className="why-item">
               <h3>Real databases, real engines.</h3>
               <p>
-                Open Stockfish in the browser instantly, or add native Stockfish, Berserk,
-                Halogen, Koivisto, Obsidian, PlentyChess, Stormphrax, Viridithas and Lc0 on
-                macOS, each digest-verified.
+                Open Stockfish in the browser instantly, or add native Stockfish, Berserk, Halogen,
+                Koivisto, Obsidian, PlentyChess, Stormphrax, Viridithas and Lc0 on macOS, each
+                digest-verified.
               </p>
             </div>
             <div className="why-item">
@@ -172,9 +176,9 @@ export function LandingPage() {
               <p className="section-eyebrow">Opening research</p>
               <h2 className="section-title">See what every population of games says.</h2>
               <p className="section-lede">
-                Theory Book names the opening. The Explorer answers for the position. Each
-                source keeps its own licence, provenance and game count, and the column headers
-                show which is which.
+                Theory Book names the opening. The Explorer answers for the position. Each source
+                keeps its own licence, provenance and game count, and the column headers show which
+                is which.
               </p>
               <ul className="research-list">
                 <li>
@@ -239,12 +243,12 @@ export function LandingPage() {
               <h2 className="section-title">From a browser Stockfish to a Leela workstation.</h2>
               <p className="section-lede">
                 Stockfish 18 is in the browser, sandboxed and instant. On macOS, native engines
-                install through Settings with their digest verified and their licence on the
-                row. Two engines can run side by side.
+                install through Settings with their digest verified and their licence on the row.
+                Two engines can run side by side.
               </p>
               <p className="section-lede">
-                Lc0 (Leela Chess Zero) is qualified on Apple Silicon. If you already have
-                Syzygy files, Kingfisher can probe them locally.
+                Lc0 (Leela Chess Zero) is qualified on Apple Silicon. If you already have Syzygy
+                files, Kingfisher can probe them locally.
               </p>
             </div>
           </div>
@@ -256,8 +260,8 @@ export function LandingPage() {
             <h2 className="section-title">Your chess stays on your machine.</h2>
             <p className="section-lede">
               Kingfisher does not phone home. There is no account, no telemetry, no upload.
-              Reference data installs once and works offline. The diagnostic report is local;
-              the log file is local; your studies and repertoire are local.
+              Reference data installs once and works offline. The diagnostic report is local; the
+              log file is local; your studies and repertoire are local.
             </p>
           </div>
         </section>
@@ -276,13 +280,13 @@ export function LandingPage() {
               </div>
               <h3>Run the local workstation.</h3>
               <p>
-                Apple Silicon. Code-signed. Not notarized yet — right-click, Open, Open on
-                first launch.
+                Apple Silicon. Code-signed. Not notarized yet — right-click, Open, Open on first
+                launch.
               </p>
               <ul className="download-spec">
                 <li>
                   <span>Version</span>
-                  <strong>1.0.0-rc.5</strong>
+                  <strong>1.0.0</strong>
                 </li>
                 <li>
                   <span>Architecture</span>
@@ -290,7 +294,7 @@ export function LandingPage() {
                 </li>
                 <li>
                   <span>File</span>
-                  <strong>Kingfisher-1.0.0-rc.5-arm64.dmg</strong>
+                  <strong>Kingfisher-1.0.0-arm64.dmg</strong>
                 </li>
                 <li>
                   <span>Size</span>
@@ -299,7 +303,7 @@ export function LandingPage() {
               </ul>
               <a
                 className="btn btn-primary btn-block"
-                href={`${publicUrl.release}/download/v1.0.0-rc.5/Kingfisher-1.0.0-rc.5-arm64.dmg`}
+                href={`${publicUrl.release}/download/v1.0.0/Kingfisher-1.0.0-arm64.dmg`}
                 rel="noopener"
               >
                 Download for macOS
@@ -321,8 +325,8 @@ export function LandingPage() {
               </div>
               <h3>Launch in your browser.</h3>
               <p>
-                Stockfish runs in the page. No install. The bundled Kingfisher Starter
-                installs itself on first run.
+                Stockfish runs in the page. No install. The bundled Kingfisher Starter installs
+                itself on first run.
               </p>
               <ul className="download-spec">
                 <li>
@@ -342,10 +346,7 @@ export function LandingPage() {
                 Launch the web app
               </Link>
               <p className="download-meta">
-                <a
-                  href="https://github.com/mardakurt/kingfisher"
-                  rel="noopener"
-                >
+                <a href="https://github.com/mardakurt/kingfisher" rel="noopener">
                   Source on GitHub
                 </a>
               </p>
@@ -365,7 +366,7 @@ export function LandingPage() {
               <span className="nav-wordmark">Kingfisher</span>
             </div>
             <p className="footer-tag">
-              A local-first chess workstation. MIT-licensed source. Public preview.
+              A local-first chess workstation. MIT-licensed source. Public release.
             </p>
           </div>
           <div className="footer-cols">
@@ -376,10 +377,7 @@ export function LandingPage() {
                   <Link href="/analysis">Web app</Link>
                 </li>
                 <li>
-                  <a
-                    href="https://github.com/mardakurt/kingfisher/releases/latest"
-                    rel="noopener"
-                  >
+                  <a href="https://github.com/mardakurt/kingfisher/releases/latest" rel="noopener">
                     Latest release
                   </a>
                 </li>
@@ -415,10 +413,7 @@ export function LandingPage() {
                   </a>
                 </li>
                 <li>
-                  <a
-                    href="https://github.com/mardakurt/kingfisher/discussions"
-                    rel="noopener"
-                  >
+                  <a href="https://github.com/mardakurt/kingfisher/discussions" rel="noopener">
                     Discussions
                   </a>
                 </li>
@@ -448,10 +443,7 @@ export function LandingPage() {
               <h4>Safety</h4>
               <ul>
                 <li>
-                  <a
-                    href="https://github.com/mardakurt/kingfisher/security/policy"
-                    rel="noopener"
-                  >
+                  <a href="https://github.com/mardakurt/kingfisher/security/policy" rel="noopener">
                     Security policy
                   </a>
                 </li>
@@ -469,8 +461,7 @@ export function LandingPage() {
         </div>
         <p className="footer-fineprint">
           Reference data is © its respective publishers; see each pack’s manifest for licence,
-          source, and provenance. Lichess © lichess.org, used under CC0 / CC BY-SA 4.0 as
-          marked.
+          source, and provenance. Lichess © lichess.org, used under CC0 / CC BY-SA 4.0 as marked.
         </p>
       </footer>
     </div>

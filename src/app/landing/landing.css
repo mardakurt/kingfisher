@@ -72,7 +72,10 @@
   margin: 0 0 1em;
 }
 
-.kf-landing h1, .kf-landing h2, .kf-landing h3, .kf-landing h4 {
+.kf-landing h1,
+.kf-landing h2,
+.kf-landing h3,
+.kf-landing h4 {
   margin: 0 0 0.6em;
   letter-spacing: -0.018em;
   color: var(--text);

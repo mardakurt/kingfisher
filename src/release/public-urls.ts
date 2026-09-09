@@ -82,11 +82,11 @@ export const publicUrl = {
       online: `${this.data}/reference-online-v1/manifest.json`,
     };
   },
-  // The macOS preview DMG is the asset on the *latest* release page.
+  // The macOS DMG is the asset on the *latest* release page.
   // We do not hardcode a version here — that is the point of a
   // `/releases/latest` URL.
   get macosDmg(): string {
-    return `${this.release}/download/Kingfisher-1.0.0-rc.5-arm64.dmg`;
+    return `${this.release}/download/Kingfisher-1.0.0-arm64.dmg`;
   },
 } as const;
 
