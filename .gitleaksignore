@@ -5,3 +5,6 @@
 cf64dcf7b7435748d6d009974b667deaf5cff0db:e2e/phase10.spec.ts:generic-api-key:387
 7f83453e0ba473790dd379ded3e4fc1baffe852a:src/features/shell/diagnostic-report.test.ts:generic-api-key:11
 7f83453e0ba473790dd379ded3e4fc1baffe852a:src/features/shell/diagnostic-report.test.ts:generic-api-key:13
+582095be1a7b4d8021b66fa34c9e1d8b54b5efae:src/database/providers/remote-reference.test.ts:generic-api-key:31
+# Uncommitted source-tree false positive. Same fixture, different format.
+src/database/providers/remote-reference.test.ts:generic-api-key:31
