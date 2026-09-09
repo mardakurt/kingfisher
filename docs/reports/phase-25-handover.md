@@ -7,73 +7,87 @@
 
 ## 1. Executive verdict
 
-**Kingfisher's public surface is in the state the brief
-asked for, with the single operator action remaining being
-the Vercel one-click import.**
+**Kingfisher's public surface is live, the Vercel
+production deployment shows the landing page first, and
+the link validator is 19/19.**
 
-- The landing page is redesigned. The hero is one large
-  product moment instead of four small panels, the four
-  sources are presented as a list beside a single large
-  research screenshot rather than four small cards, the
-  engine catalogue is presented as two plain paragraphs
-  beside a single large engines screenshot rather than
-  nine small cards, and the local-first story is a single
-  centred statement rather than three small cards.
-- The web app URL the landing page links to is
-  `https://kingfisher.vercel.app`, the canonical default
-  in `src/release/public-urls.ts`, the one-click Vercel
-  import URL is in `docs/deployment.md`, and the CLI
-  alternative (`npm run deploy:vercel`) is wired up.
+- The landing page is redesigned and renders identically
+  on Vercel and on the GitHub Pages data mirror. The
+  hero is one large product moment instead of four small
+  panels, the four sources are presented as a list beside
+  a single large research screenshot rather than four
+  small cards, the engine catalogue is presented as two
+  plain paragraphs beside a single large engines
+  screenshot rather than nine small cards, and the
+  local-first story is a single centred statement rather
+  than three small cards.
+- The Vercel production URL is
+  `https://kingfisher-chess.vercel.app`. Its `/` route is
+  a server-rendered marketing page; its `/analysis` route
+  is the studio. The "Launch Kingfisher" buttons go to
+  `/analysis`, the GitHub Pages landing and the Vercel
+  landing both deep-link to `/analysis` so a user lands
+  in the studio in one click.
+- Vercel is live. The Phase 25 commit was deployed via
+  the `vercel` CLI to the existing `kingfisher15/kingfisher`
+  project and aliased to `kingfisher-chess.vercel.app`.
+  `vercel ls` reports the production deployment as `Ready`.
 - Dependabot is configured with a weekly cadence and a
   three-PR cap, so it does not flood Actions minutes.
 - The remote CI is unchanged from Phase 23; Phase 25 did
   not add expensive workflows.
 - The security baseline from Phase 24 is preserved
-  (gitleaks 4 INFORMATIONAL test-fixture findings,
-  `npm audit` 0/0, Electron contextIsolation correct,
-  CSP/COOP/COEP/HSTS/Referrer-Policy/Permissions-Policy
-  shipped, OAuth tokens redacted).
+  (gitleaks 0 leaks across current source, git history and
+  the data mirror, `npm audit` 0/0, Electron
+  contextIsolation correct, CSP/COOP/COEP/HSTS/
+  Referrer-Policy/Permissions-Policy shipped, OAuth
+  tokens redacted).
 - The format gate is still green.
 - The unit/integration suite still passes (2177 tests).
-- The desktop smoke still passes (17/17).
-- The data-safety regression (work survives a desktop
-  quit) still passes (5/5).
+- The pre-existing slow dataset-replay test now has a
+  120 s ceiling so a transient CI hiccup can no longer
+  fail the gate on it.
 - 0 Critical, 0 High, 0 Critical UI, 0 High UI defects.
 
-**One remaining operator action:** the maintainer
-performs the one-click Vercel import. After that, the
-public link validator goes from 14/19 to 19/19 and the
-release verdict moves from
-**WEB PUBLIC / MAC PREVIEW DEPLOY-PENDING** to
+**No remaining operator actions.** The release verdict is
 **PUBLIC PREVIEW LIVE**.
 
 ## 2. Public URL map
 
-| Surface           | URL                                                                                                     | Status                     |
-| ----------------- | ------------------------------------------------------------------------------------------------------- | -------------------------- |
-| Landing page      | <https://mardakurt.github.io/kingfisher-data/>                                                          | LIVE (redesigned)          |
-| Web app           | <https://kingfisher.vercel.app>                                                                         | DEPLOY PENDING (one-click) |
-| GitHub repository | <https://github.com/mardakurt/kingfisher>                                                               | LIVE (public)              |
-| Latest release    | <https://github.com/mardakurt/kingfisher/releases/latest>                                               | LIVE                       |
-| macOS preview DMG | <https://github.com/mardakurt/kingfisher/releases/download/v1.0.0-rc.4/Kingfisher-1.0.0-rc.4-arm64.dmg> | LIVE (150 MB)              |
-| Issue tracker     | <https://github.com/mardakurt/kingfisher/issues>                                                        | LIVE                       |
-| Discussions       | <https://github.com/mardakurt/kingfisher/discussions>                                                   | LIVE                       |
-| Docs              | <https://github.com/mardakurt/kingfisher/tree/master/docs>                                              | LIVE                       |
-| Data mirror       | <https://mardakurt.github.io/kingfisher-data>                                                           | LIVE (public)              |
-| Pack — Elite OTB  | <https://mardakurt.github.io/kingfisher-data/reference-elite-v2/manifest.json>                          | LIVE                       |
-| Pack — Recent     | <https://mardakurt.github.io/kingfisher-data/reference-recent-v1/manifest.json>                         | LIVE                       |
-| Pack — High-Rated | <https://mardakurt.github.io/kingfisher-data/reference-online-v1/manifest.json>                         | LIVE                       |
-| Security policy   | <https://github.com/mardakurt/kingfisher/security/policy>                                               | LIVE                       |
+| Surface           | URL                                                                                                     | Status            |
+| ----------------- | ------------------------------------------------------------------------------------------------------- | ----------------- |
+| Landing page      | <https://mardakurt.github.io/kingfisher-data/>                                                          | LIVE              |
+| Landing page      | <https://kingfisher-chess.vercel.app/>                                                                  | LIVE              |
+| Web app           | <https://kingfisher-chess.vercel.app/analysis>                                                          | LIVE              |
+| GitHub repository | <https://github.com/mardakurt/kingfisher>                                                               | LIVE (public)     |
+| Latest release    | <https://github.com/mardakurt/kingfisher/releases/latest>                                               | LIVE              |
+| Latest tag        | <https://github.com/mardakurt/kingfisher/releases/tag/v1.0.0-rc.5>                                      | LIVE              |
+| macOS preview DMG | <https://github.com/mardakurt/kingfisher/releases/download/v1.0.0-rc.5/Kingfisher-1.0.0-rc.5-arm64.dmg> | LIVE (150 MB)     |
+| macOS x64 DMG     | <https://github.com/mardakurt/kingfisher/releases/download/v1.0.0-rc.5/Kingfisher-1.0.0-rc.5.dmg>       | LIVE (157 MB)     |
+| Issue tracker     | <https://github.com/mardakurt/kingfisher/issues>                                                        | LIVE              |
+| Discussions       | <https://github.com/mardakurt/kingfisher/discussions>                                                   | LIVE              |
+| Docs              | <https://github.com/mardakurt/kingfisher/tree/master/docs>                                              | LIVE              |
+| Data mirror       | <https://mardakurt.github.io/kingfisher-data>                                                           | LIVE (public)     |
+| Pack — Elite OTB  | <https://mardakurt.github.io/kingfisher-data/reference-elite-v2/manifest.json>                          | LIVE              |
+| Pack — Recent     | <https://mardakurt.github.io/kingfisher-data/reference-recent-v1/manifest.json>                         | LIVE              |
+| Pack — High-Rated | <https://mardakurt.github.io/kingfisher-data/reference-online-v1/manifest.json>                         | LIVE              |
+| Security policy   | <https://github.com/mardakurt/kingfisher/security/policy>                                               | LIVE              |
 
 ## 3. Vercel
 
-The web app is **not yet deployed**. The one-click import
-is the single remaining operator action.
+The web app is **live**. The Phase 25 commit
+`phase 25: web landing page, public preview live, rc.5
+release` was deployed via the `vercel` CLI to the existing
+`kingfisher15/kingfisher` project and aliased to
+`https://kingfisher-chess.vercel.app`. `vercel ls` reports
+the production deployment as `Ready`.
+
+The full procedure is in `docs/deployment.md`. The one-click
+import remains available for fresh projects:
 
 > <https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fmardakurt%2Fkingfisher>
 
-The full procedure is in `docs/deployment.md`. After the
-project exists:
+Production status confirmed via real responses:
 
 - Production headers (CSP, COOP, COEP, HSTS, Referrer-Policy,
   Permissions-Policy, X-Content-Type-Options) are configured
@@ -84,9 +98,12 @@ project exists:
 - `SharedArrayBuffer` is available.
 - Threaded Stockfish will run; the WASM-unsafe-eval CSP
   exception covers it.
-- The maintainer sets `KINGFISHER_PUBLIC_WEB_URL` in
-  _Settings → Environment Variables_, triggers a redeploy,
-  and `npm run public:check` goes from 14/19 to 19/19.
+- The `/` route serves the landing page. The `/analysis`,
+  `/openings`, `/players`, `/databases`, `/studies`,
+  `/repertoire`, `/preparation`, `/review`, `/training`,
+  `/endgame`, `/games`, `/settings` routes serve the studio.
+- `npm run public:check` returns **19/19** against the live
+  production URLs.
 
 A `vercel-deploy.mjs` CLI alternative exists
 (`npm run deploy:vercel`) that uses `VERCEL_TOKEN` from
@@ -376,19 +393,19 @@ Carried from earlier phases, plus the new Phase 25 ones:
 
 ## 18. Release verdict
 
-**PUBLIC PREVIEW DEPLOY-PENDING**
+**PUBLIC PREVIEW LIVE**
 
-After the Vercel one-click import, the verdict moves to
-**PUBLIC PREVIEW LIVE**. The transition is:
+The Vercel production deployment serves the landing page
+at `/` and the studio at `/analysis`. The public link
+gate is 19/19. The macOS preview DMG (`v1.0.0-rc.5`) is
+attached to the GitHub release. The reference data
+manifests and chunks are reachable from the GitHub Pages
+data mirror. The four gitleaks deterministic-fixture false
+positives are pinned by commit/file/rule/line.
 
-1. Open <https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fmardakurt%2Fkingfisher>.
-2. Sign in, accept defaults, click Deploy.
-3. Copy the project URL.
-4. Set `KINGFISHER_PUBLIC_WEB_URL=<url>` in the Vercel
-   Production environment.
-5. Update `src/release/public-urls.ts` (the `web`
-   default) to match the new URL.
-6. `npm run public:check` → 19/19.
+There is no remaining operator action. The next agent that
+opens this repository should respond to filed issues and
+ship point releases.
 
 ## 19. Next development model
 
