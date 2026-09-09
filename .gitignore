@@ -67,3 +67,12 @@ desktop/dist/
 # `scripts/build-desktop-web.mjs`; never edited by hand.
 desktop/resources/
 .vercel
+
+# Project-local cache fallback when the user-cache directory is not
+# writable. `scripts/cache-paths.mjs` documents the resolution order.
+.cache/
+
+# Large generated output that the brief explicitly tells developers
+# to keep outside the source tree. A reference-pack build candidate
+# (hundreds of MB before compression) is a build input, not source.
+kingfisher-data/

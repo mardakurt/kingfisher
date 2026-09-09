@@ -74,8 +74,9 @@
     "size:report": "node scripts/size-report.mjs",
     "size:check": "node scripts/size-report.mjs --top=20",
     "clean:dev": "rm -rf .next test-results playwright-report .engine-fleet .packs && echo 'cleaned: .next, test-results, playwright-report, .engine-fleet, .packs (rerun npm install / build to repopulate)'",
-    "data:cache:report": "du -sh .archive-cache .packs 2>/dev/null || echo 'no cache'",
-    "data:cache:prune": "rm -rf .archive-cache .packs .engine-build && echo 'pruned reproducible cache (engines re-fetch via npm run engines:install)'"
+    "data:cache:report": "node scripts/size-report.mjs 2>&1 | head -25",
+    "data:cache:prune": "rm -rf .archive-cache .packs .engine-build && echo 'pruned reproducible cache (engines re-fetch via npm run engines:install)'",
+    "data:cache:paths": "node -e \"import('./scripts/cache-paths.mjs').then(m => console.log(JSON.stringify(m.cachePaths, null, 2)))\""
   },
   "dependencies": {
     "@tanstack/react-query": "^5.102.8",

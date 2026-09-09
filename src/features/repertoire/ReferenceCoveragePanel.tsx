@@ -16,12 +16,17 @@
  */
 
 import { useEffect, useMemo, useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
 
+import { Button } from '@/components/ui/Button';
 import { useDatabaseProviders } from '@/database/use-database-providers';
 import type { ExplorerQuery, ExplorerResult } from '@/database/types';
+import { getRepositories } from '@/persistence/repositories';
 import type { RepertoirePositionRecord } from '@/persistence/domain';
 import { isActionable, topGaps, computeCoverage } from '@/repertoire/coverage';
 import type { CoverageGap, CoverageReport } from '@/repertoire/coverage';
+import { draftTrainingSet } from '@/training/data-generation';
+import { useUi } from '@/stores/ui-store';
 
 const SOURCES = [
   { id: 'kingfisher-elite-otb', label: 'Elite OTB' },
@@ -95,6 +100,46 @@ function ReferenceCoverageTable({ reports }: { readonly reports: readonly Covera
     }
   }
   flatGaps.sort((a, b) => b.gap.games - a.gap.games);
+  const notify = useUi((state) => state.notify);
+  const createTraining = useMutation({
+    mutationFn: async () => {
+      const drafts = draftTrainingSet(reports, reports[0]?.sourceName ?? 'Reference');
+      if (drafts.length === 0) return { created: 0 };
+      const repositories = await getRepositories();
+      for (const draft of drafts) {
+        await repositories.training.create({
+          mode: draft.mode,
+          positionKey: draft.positionKey,
+          fen: draft.fen,
+          sideToMove: draft.sideToMove,
+          prompt: draft.prompt,
+          solutionUci: [],
+          solutionSan: [],
+          candidatesUci: [],
+          plans: [],
+          tags: draft.tags,
+          explanation: draft.explanation,
+        });
+      }
+      return { created: drafts.length };
+    },
+    onSuccess: ({ created }) => {
+      notify({
+        tone: 'success',
+        message:
+          created > 0
+            ? `Created ${created} training item${created === 1 ? '' : 's'}. Add a repertoire response for each.`
+            : 'Nothing to train here yet.',
+      });
+    },
+    onError: (error) => {
+      notify({
+        tone: 'error',
+        message: 'The training set could not be created.',
+        detail: error instanceof Error ? error.message : undefined,
+      });
+    },
+  });
   if (flatGaps.length === 0) {
     return (
       <p className="border-t border-line-subtle px-3 py-2 text-[10.5px] text-tertiary">
@@ -103,22 +148,37 @@ function ReferenceCoverageTable({ reports }: { readonly reports: readonly Covera
     );
   }
   return (
-    <ol className="max-h-40 overflow-y-auto border-t border-line-subtle">
-      {flatGaps.map(({ gap, fen }, index) => (
-        <li
-          key={`${fen}:${gap.uci}:${index}`}
-          className="flex items-center gap-2 px-3 py-1.5 text-[10.5px]"
+    <div className="border-t border-line-subtle">
+      <ol className="max-h-32 overflow-y-auto">
+        {flatGaps.map(({ gap, fen }, index) => (
+          <li
+            key={`${fen}:${gap.uci}:${index}`}
+            className="flex items-center gap-2 px-3 py-1.5 text-[10.5px]"
+          >
+            <span className="font-medium text-primary">{gap.san}</span>
+            <span className="text-tertiary">
+              {gap.share ? `${(gap.share * 100).toFixed(1)}%` : '—'}
+            </span>
+            <span className="ml-auto text-[10px] text-tertiary tabular">
+              {gap.games.toLocaleString()} games
+            </span>
+          </li>
+        ))}
+      </ol>
+      <div className="flex items-center justify-between border-t border-line-subtle bg-surface-2/40 px-3 py-2 text-[10.5px]">
+        <span className="text-tertiary">
+          {flatGaps.length} top gap{flatGaps.length === 1 ? '' : 's'}
+        </span>
+        <Button
+          size="sm"
+          variant="subtle"
+          disabled={createTraining.isPending}
+          onClick={() => createTraining.mutate()}
         >
-          <span className="font-medium text-primary">{gap.san}</span>
-          <span className="text-tertiary">
-            {gap.share ? `${(gap.share * 100).toFixed(1)}%` : '—'}
-          </span>
-          <span className="ml-auto text-[10px] text-tertiary tabular">
-            {gap.games.toLocaleString()} games
-          </span>
-        </li>
-      ))}
-    </ol>
+          {createTraining.isPending ? 'Creating…' : 'Create training set'}
+        </Button>
+      </div>
+    </div>
   );
 }
 

@@ -40,9 +40,18 @@ import { gzipSync } from 'node:zlib';
 import { closeApp, loadApp } from './load-app.mjs';
 import { PACK_DEFINITIONS } from './reference/packs.mjs';
 import { fetchChecksums, fetchVerified } from './reference/sources.mjs';
+import { cachePaths } from './cache-paths.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
-const CACHE = process.env.KINGFISHER_ARCHIVE_CACHE ?? path.join(ROOT, '.archive-cache');
+/*
+ * Phase 28: the cache lives outside the application repository by
+ * default. A developer who clones the repo without setting
+ * KINGFISHER_CACHE_DIR still gets a working setup: the script
+ * resolves to ~/Library/Caches/Kingfisher/archives on macOS,
+ * ~/.cache/kingfisher/archives on Linux, and falls back to
+ * .archive-cache inside the project root if neither is writable.
+ */
+const CACHE = process.env.KINGFISHER_ARCHIVE_CACHE ?? cachePaths.archives;
 
 function parseArgs(argv) {
   const args = {
