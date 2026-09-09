@@ -20,17 +20,17 @@ situation, as of the current build. Tested behaviours are marked
 **(verified)**; behaviours that depend on a browser vendor decision
 or a user's choices are marked **(with caveats)**.
 
-| Situation | Authored work | Preferences | Reference packs | Personal DBs |
-| --- | --- | --- | --- | --- |
-| Same browser, same profile, **next day** | ✅ kept (verified) | ✅ kept (verified) | ✅ kept (verified) | ✅ kept (verified) |
-| Same browser, **private/incognito** window | ❌ erased on window close (with caveats) | ❌ erased | ❌ erased | ❌ erased |
-| **Browser site-data cleared** | ❌ erased (intentional) | ❌ erased | ❌ erased | ❌ erased |
-| **Different browser profile** on the same machine | ❌ separate IndexedDB origin (with caveats) | ❌ separate | ❌ separate | ❌ separate |
-| **Different device** | ❌ separate IndexedDB origin | ❌ separate | ❌ separate (download required) | ❌ separate |
-| **Quitting the application** (web) | ✅ kept (verified) | ✅ kept | ✅ kept | ✅ kept |
-| **Crash mid-save** | Draft remains in storage (with caveats) | ✅ kept | ✅ kept | ✅ kept |
-| **Quota exceeded** | Save refused, draft kept, error shown | n/a | n/a | n/a |
-| **Browser vendor drops IndexedDB** | ❌ (with caveats) | ❌ | ❌ | ❌ |
+| Situation                                         | Authored work                               | Preferences        | Reference packs                 | Personal DBs       |
+| ------------------------------------------------- | ------------------------------------------- | ------------------ | ------------------------------- | ------------------ |
+| Same browser, same profile, **next day**          | ✅ kept (verified)                          | ✅ kept (verified) | ✅ kept (verified)              | ✅ kept (verified) |
+| Same browser, **private/incognito** window        | ❌ erased on window close (with caveats)    | ❌ erased          | ❌ erased                       | ❌ erased          |
+| **Browser site-data cleared**                     | ❌ erased (intentional)                     | ❌ erased          | ❌ erased                       | ❌ erased          |
+| **Different browser profile** on the same machine | ❌ separate IndexedDB origin (with caveats) | ❌ separate        | ❌ separate                     | ❌ separate        |
+| **Different device**                              | ❌ separate IndexedDB origin                | ❌ separate        | ❌ separate (download required) | ❌ separate        |
+| **Quitting the application** (web)                | ✅ kept (verified)                          | ✅ kept            | ✅ kept                         | ✅ kept            |
+| **Crash mid-save**                                | Draft remains in storage (with caveats)     | ✅ kept            | ✅ kept                         | ✅ kept            |
+| **Quota exceeded**                                | Save refused, draft kept, error shown       | n/a                | n/a                             | n/a                |
+| **Browser vendor drops IndexedDB**                | ❌ (with caveats)                           | ❌                 | ❌                              | ❌                 |
 
 **IndexedDB** is a per-origin per-profile store. A Study on
 `kingfisher-chess.vercel.app` in Chrome profile A is in Chrome
@@ -44,7 +44,7 @@ If a user only ever uses one browser profile on one device, **their
 work is safe across quit, restart, crash, and even an OS reboot**.
 The user does not need to do anything. Studies are autosaved on
 every edit, with both a debounce window and a maximum wait window
-(see `src/persistence/autosave.ts`). A draft is written *before* a
+(see `src/persistence/autosave.ts`). A draft is written _before_ a
 document commit, so the worst case after a crash is "the last few
 keystrokes".
 
@@ -62,13 +62,13 @@ to keep.
 
 The application surfaces a small status line that says **Saved on
 this device** whenever authored content is unchanged from the
-local commit. The status is *derived*, not stored: it is "Saved"
+local commit. The status is _derived_, not stored: it is "Saved"
 when there is no pending autosave and no failed autosave in the
 last few seconds; "Saving…" while an autosave is in flight;
 "Not saved" when the most recent autosave rejected; and
 **Storage protection unavailable** when the browser will not give
 Kingfisher persistent storage (private browsing, vendor policy).
-See the *Storage persistence* section of `src/persistence/...`
+See the _Storage persistence_ section of `src/persistence/...`
 for the implementation.
 
 ## Honest limits

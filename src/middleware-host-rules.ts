@@ -9,10 +9,7 @@
  */
 
 export const STUDIO_HOST_ENV = 'KINGFISHER_STUDIO_HOST';
-export const STUDIO_DEFAULT_HOSTS = [
-  'studio.kingfisher-chess.vercel.app',
-  'studio.localhost',
-];
+export const STUDIO_DEFAULT_HOSTS = ['studio.kingfisher-chess.vercel.app', 'studio.localhost'];
 
 /** A path the marketing surface is allowed to answer. */
 export const LANDING_PATHS = new Set<string>([

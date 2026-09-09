@@ -163,10 +163,9 @@ const rows = SECTIONS.map((section) => {
 const desktopPersistent = desktopPersistentBytes();
 const total = rows.reduce((sum, row) => sum + row.size, 0);
 const persistent =
-  rows.filter((row) => row.section !== 'desktop' && !SECTIONS_GENERATED.has(row.section)).reduce(
-    (sum, row) => sum + row.size,
-    0,
-  ) + desktopPersistent;
+  rows
+    .filter((row) => row.section !== 'desktop' && !SECTIONS_GENERATED.has(row.section))
+    .reduce((sum, row) => sum + row.size, 0) + desktopPersistent;
 
 console.log(`Kingfisher project size report`);
 console.log(`root   ${ROOT}`);
@@ -193,9 +192,7 @@ for (const entry of all.slice(0, TOP_N)) {
 const BUDGET_NORMAL = 2.5e9;
 const BUDGET_HARD = 3e9;
 console.log(``);
-console.log(
-  `Budget: persistent <= ${fmt(BUDGET_NORMAL)} (hard ceiling ${fmt(BUDGET_HARD)})`,
-);
+console.log(`Budget: persistent <= ${fmt(BUDGET_NORMAL)} (hard ceiling ${fmt(BUDGET_HARD)})`);
 if (persistent > BUDGET_HARD) {
   console.error(`PERSISTENT OVER HARD CEILING by ${fmt(persistent - BUDGET_HARD)}`);
   process.exit(2);

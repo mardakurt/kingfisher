@@ -53,7 +53,10 @@ export const publicUrl = {
    * alias so deployments that already set it do not break.
    */
   studio: trimTrailingSlash(
-    fromEnv('KINGFISHER_PUBLIC_STUDIO_URL', fromEnv('KINGFISHER_PUBLIC_WEB_URL', 'https://studio.kingfisher-chess.vercel.app')),
+    fromEnv(
+      'KINGFISHER_PUBLIC_STUDIO_URL',
+      fromEnv('KINGFISHER_PUBLIC_WEB_URL', 'https://studio.kingfisher-chess.vercel.app'),
+    ),
   ),
   /*
    * The full app at the marketing origin. Useful for the launch

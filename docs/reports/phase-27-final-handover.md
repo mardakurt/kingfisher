@@ -25,13 +25,13 @@ tested, buildable set of data-intelligence improvements.
 
 ## 2. Git
 
-| Field | Value |
-| --- | --- |
+| Field         | Value                                              |
+| ------------- | -------------------------------------------------- |
 | Starting HEAD | `cf48d3c` (master, the previous Phase 27 handover) |
-| Final HEAD | `63dbec7` (on `feature/data-intelligence`) |
-| Branch | `feature/data-intelligence` |
-| Commits added | 11 (10 substantive + 1 lint reformat) |
-| Working tree | Clean |
+| Final HEAD    | `63dbec7` (on `feature/data-intelligence`)         |
+| Branch        | `feature/data-intelligence`                        |
+| Commits added | 11 (10 substantive + 1 lint reformat)              |
+| Working tree  | Clean                                              |
 
 ### Commits
 
@@ -54,12 +54,12 @@ e503a86 test(reference): synthetic v1->v2 chunk-reuse proof
 Public sources, unchanged from the previous handover. The current
 catalogue:
 
-| Source | Logical name | Pack version | Window | Distribution |
-| --- | --- | --- | --- | --- |
-| `kingfisher-starter` | Kingfisher Starter | 2 | Bundled with app | Application bundle |
-| `kingfisher-elite-otb` | Elite OTB | 2 | 2020–present | Data mirror |
-| `kingfisher-recent-theory` | Recent Theory | 1 | Last 24 months | Data mirror |
-| `kingfisher-high-rated-online` | High-Rated Online | 1 | One month (2026-07) | Data mirror |
+| Source                         | Logical name       | Pack version | Window              | Distribution       |
+| ------------------------------ | ------------------ | ------------ | ------------------- | ------------------ |
+| `kingfisher-starter`           | Kingfisher Starter | 2            | Bundled with app    | Application bundle |
+| `kingfisher-elite-otb`         | Elite OTB          | 2            | 2020–present        | Data mirror        |
+| `kingfisher-recent-theory`     | Recent Theory      | 1            | Last 24 months      | Data mirror        |
+| `kingfisher-high-rated-online` | High-Rated Online  | 1            | One month (2026-07) | Data mirror        |
 
 The catalog rows now carry a `filter` and `window` summary so the
 date interval and the rating floor are visible before install.
@@ -69,7 +69,7 @@ date interval and the rating floor are visible before install.
 ### Architecture
 
 Content-addressed storage was already in place. The 1.1 work added
-the *measurement* of reuse so the install progress bar reports the
+the _measurement_ of reuse so the install progress bar reports the
 actual reuse number, not a guess.
 
 `InstallProgress` carries `chunksReused` and `bytesReused` alongside
@@ -88,12 +88,12 @@ Three new tests in `src/reference/install.test.ts`:
 
 1. **Exact reuse across a v1 → v2 update.** 3 of 4 chunks reused,
    1 downloaded. `bytesReused = sum of the three unchanged chunks'
-   bytes`. Asserts the fetcher was called only for the one changed
+bytes`. Asserts the fetcher was called only for the one changed
    chunk, not for the three unchanged ones.
 2. **Reuse is a measurement, not a shortcut.** A same-length staged
    chunk whose digest is wrong is re-downloaded. Digest remains
    authoritative.
-4. **Cancelled update leaves v1 ready.** A v2 install that aborts
+3. **Cancelled update leaves v1 ready.** A v2 install that aborts
    mid-download leaves the v1 manifest at `state: 'ready'` with the
    old `version`, and a resume only downloads the chunk that
    actually changed.
@@ -286,8 +286,8 @@ with a "Carlsen as Black" career.
 
 ### Reference source coverage (`a5098bc`)
 
-The Repertoire workspace now has a *Coverage against reference*
-panel alongside the existing *Coverage gaps* (local My Games)
+The Repertoire workspace now has a _Coverage against reference_
+panel alongside the existing _Coverage gaps_ (local My Games)
 panel. The new panel:
 
 - Lets the user pick a reference source: Elite OTB, Recent Theory,
@@ -338,8 +338,8 @@ coverage report → buildTrainingPrompts → one prompt per gap
 Transpositions collapse: two moves at the same canonical position
 produce one prompt.
 
-The reference move is the *opponent* move in the prompt; the
-*answer* is what the player decides. Reference data informs WHAT to
+The reference move is the _opponent_ move in the prompt; the
+_answer_ is what the player decides. Reference data informs WHAT to
 train, not WHAT to play. The existing Training scheduler is the
 destination.
 
@@ -377,19 +377,19 @@ place.
 
 ## 15. Storage
 
-| Surface | What is shown | Reference |
-| --- | --- | --- |
-| Browser (web) | `navigator.storage.estimate()` — usage + quota | Settings → Diagnostic report |
-| Browser (web) | Per-collection storage — used by CollectionDetail | `src/features/databases/CollectionDetail.tsx` |
+| Surface       | What is shown                                        | Reference                                          |
+| ------------- | ---------------------------------------------------- | -------------------------------------------------- |
+| Browser (web) | `navigator.storage.estimate()` — usage + quota       | Settings → Diagnostic report                       |
+| Browser (web) | Per-collection storage — used by CollectionDetail    | `src/features/databases/CollectionDetail.tsx`      |
 | Browser (web) | Reference chunk storage — see `Bytes` row in catalog | `src/features/databases/ReferenceCatalogPanel.tsx` |
-| macOS desktop | SQLite collections (companion) | StorageSection |
-| macOS desktop | Reference packs — same as web, IndexedDB-backed | Same |
-| macOS desktop | Engines / tablebases — under `$KINGFISHER_DATA` | Companion |
+| macOS desktop | SQLite collections (companion)                       | StorageSection                                     |
+| macOS desktop | Reference packs — same as web, IndexedDB-backed      | Same                                               |
+| macOS desktop | Engines / tablebases — under `$KINGFISHER_DATA`      | Companion                                          |
 
 Per the brief's rule:
 
 > Never make: `Clear Reference Data` capable of deleting personal
-  databases.
+> databases.
 
 `removePack` only removes the named pack, not personal data. Backups
 already exclude reference content and include reference metadata.
@@ -398,13 +398,13 @@ already exclude reference content and include reference metadata.
 
 Spot measurements during development (cold / warm where applicable):
 
-| Query | Before | After | Comment |
-| --- | --- | --- | --- |
-| Explorer (local pack, cold) | ~250 ms | ~250 ms | Same — no change to explorer |
-| Explorer (local pack, warm cache) | ~10 ms | ~10 ms | Same |
-| Player aggregate (Career) | ~150 ms / 1000 games | ~150 ms / 1000 games | No change |
-| Player aggregate (Recent) | ~80 ms / 100 games | ~80 ms / 100 games | No change |
-| Reference coverage | n/a | ~5 s for 20 positions, one source | New |
+| Query                             | Before               | After                             | Comment                      |
+| --------------------------------- | -------------------- | --------------------------------- | ---------------------------- |
+| Explorer (local pack, cold)       | ~250 ms              | ~250 ms                           | Same — no change to explorer |
+| Explorer (local pack, warm cache) | ~10 ms               | ~10 ms                            | Same                         |
+| Player aggregate (Career)         | ~150 ms / 1000 games | ~150 ms / 1000 games              | No change                    |
+| Player aggregate (Recent)         | ~80 ms / 100 games   | ~80 ms / 100 games                | No change                    |
+| Reference coverage                | n/a                  | ~5 s for 20 positions, one source | New                          |
 
 Detailed before/after benchmarks live in `docs/benchmark-reports/`
 when produced.
@@ -414,18 +414,18 @@ when produced.
 The existing `install.test.ts` already covers:
 
 - `keeps version 1 readable throughout version 2 download and
-  atomically switches`
+atomically switches`
 - `leaves the superseded generation in place, and reclaims it on
-  request`
+request`
 - `preserves active version after download/digest/cancel-before-
-  activation failure`
+activation failure`
 - `removes a pack and the chunks it owned`
 - `rehashes same-length staged corruption instead of inheriting it`
 
 Plus the three new tests in this session:
 
 - `measures chunk reuse exactly across a v1 → v2 with one changed
-  chunk`
+chunk`
 - `does not trust a same-length staged chunk whose digest is wrong`
 - `lets a cancelled v2 install resume from the v1 state`
 
@@ -472,29 +472,29 @@ those are data logic differences.
 
 ## 21. Tests
 
-| Check | Result |
-| --- | --- |
-| `npm run typecheck` | 0 errors |
-| `npm run lint` | 0 errors |
-| `npm run format:check` | All files formatted |
-| `npm test` | **2204 passed, 11 skipped, 0 failed** (167 files) |
-| `npm run security:scan` | 0 leaks, 0 advisories |
-| `npm run build` | Succeeded |
-| `git diff --check` | Clean |
-| `npx vitest run src/reference` | 89/89 passing |
-| `npx vitest run src/repertoire` | 90/90 passing |
-| `npx vitest run src/training` | All passing |
-| `npx vitest run src/database` | All passing |
+| Check                           | Result                                            |
+| ------------------------------- | ------------------------------------------------- |
+| `npm run typecheck`             | 0 errors                                          |
+| `npm run lint`                  | 0 errors                                          |
+| `npm run format:check`          | All files formatted                               |
+| `npm test`                      | **2204 passed, 11 skipped, 0 failed** (167 files) |
+| `npm run security:scan`         | 0 leaks, 0 advisories                             |
+| `npm run build`                 | Succeeded                                         |
+| `git diff --check`              | Clean                                             |
+| `npx vitest run src/reference`  | 89/89 passing                                     |
+| `npx vitest run src/repertoire` | 90/90 passing                                     |
+| `npx vitest run src/training`   | All passing                                       |
+| `npx vitest run src/database`   | All passing                                       |
 
 Baseline (before this continuation): 2177 tests, 11 skipped.
 After: 2204 tests, 11 skipped. **+27 tests** across the work.
 
 ## 22. Bugs
 
-| Severity | Description | Fix |
-| --- | --- | --- |
-| Low | `useEffect` setState in ReferenceCoveragePanel triggered an extra render | `pending` now derived from data presence |
-| Low | Synthetic chunk bodies needed valid format-passing content for `verifyPack` | Tests use the existing `fixture()` data |
+| Severity | Description                                                                 | Fix                                      |
+| -------- | --------------------------------------------------------------------------- | ---------------------------------------- |
+| Low      | `useEffect` setState in ReferenceCoveragePanel triggered an extra render    | `pending` now derived from data presence |
+| Low      | Synthetic chunk bodies needed valid format-passing content for `verifyPack` | Tests use the existing `fixture()` data  |
 
 0 Critical, 0 High, 0 Critical UI, 0 High UI defects.
 

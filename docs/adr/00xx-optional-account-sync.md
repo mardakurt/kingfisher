@@ -19,7 +19,7 @@ IndexedDB on the user's device. A user who closes the laptop and
 returns tomorrow sees their work; a user who switches device or
 browser does not.
 
-Phase 28 asks: what architecture should a *purely optional*
+Phase 28 asks: what architecture should a _purely optional_
 cross-device sync layer follow?
 
 The constraints are:
@@ -122,17 +122,17 @@ output is part of the CI pipeline (`scripts/security-scan.mjs`).
 
 ### Synced domains (proposed)
 
-| Domain | Why | Why not |
-| --- | --- | --- |
-| Studies | Authored, small, frequently edited | — |
-| Study chapters | Owned by a Study | — |
-| Repertoire decisions | Authored, central to the app | — |
-| Training sets + scheduler state | Authored | — |
-| Preparation sessions | Authored | — |
-| Opening Files | Authored | — |
-| Review / decision journal | Authored | — |
-| Notes | Authored | — |
-| Preferences (theme, recent windows, …) | Carried between devices | — |
+| Domain                                 | Why                                | Why not |
+| -------------------------------------- | ---------------------------------- | ------- |
+| Studies                                | Authored, small, frequently edited | —       |
+| Study chapters                         | Owned by a Study                   | —       |
+| Repertoire decisions                   | Authored, central to the app       | —       |
+| Training sets + scheduler state        | Authored                           | —       |
+| Preparation sessions                   | Authored                           | —       |
+| Opening Files                          | Authored                           | —       |
+| Review / decision journal              | Authored                           | —       |
+| Notes                                  | Authored                           | —       |
+| Preferences (theme, recent windows, …) | Carried between devices            | —       |
 
 ### What does NOT sync
 
@@ -143,7 +143,7 @@ output is part of the CI pipeline (`scripts/security-scan.mjs`).
 - Personal SQLite / En Croissant databases. The user's own
   collection; explicit per-collection export only.
 - The Lichess API token, the assistant API key, the companion
-  token. Sync metadata may *flag* "Lichess connected", never the
+  token. Sync metadata may _flag_ "Lichess connected", never the
   secret itself.
 
 ### Conflict policy (proposed)
@@ -178,7 +178,7 @@ detect local authored content and offer:
 
 > Existing work found on this device.
 > Sync this work to your account?
-> [ Sync my work ]   [ Not now ]
+> [ Sync my work ] [ Not now ]
 
 Sync my work uploads the local content as `revision: 1` and
 records the upload in a sync journal so subsequent updates use

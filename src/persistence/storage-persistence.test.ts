@@ -1,10 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  persistenceState,
-  persistenceStateSync,
-  requestPersistence,
-} from './storage-persistence';
+import { persistenceState, persistenceStateSync, requestPersistence } from './storage-persistence';
 
 /**
  * The persistence helper is tested against the navigator.storage

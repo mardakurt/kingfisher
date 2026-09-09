@@ -18,10 +18,7 @@
  * considers the storage durable before it makes the claim.
  */
 
-export type StoragePersistence =
-  | 'persistent'
-  | 'not-persistent'
-  | 'unavailable';
+export type StoragePersistence = 'persistent' | 'not-persistent' | 'unavailable';
 
 /**
  * What the browser currently guarantees about this origin's

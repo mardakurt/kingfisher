@@ -385,7 +385,9 @@ export function LandingPage() {
               <h4>Product</h4>
               <ul>
                 <li>
-                  <a href={studioUrl} rel="noopener">Web app</a>
+                  <a href={studioUrl} rel="noopener">
+                    Web app
+                  </a>
                 </li>
                 <li>
                   <a href="https://github.com/mardakurt/kingfisher/releases/latest" rel="noopener">
