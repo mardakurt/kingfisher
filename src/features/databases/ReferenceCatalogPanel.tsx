@@ -174,6 +174,7 @@ export function ReferenceCatalogPanel() {
                       done={progress.bytesDone}
                       total={progress.bytesTotal}
                       phase={progress.phase}
+                      reused={progress.bytesReused}
                     />
                   ) : (
                     <Facts source={source} />
@@ -353,10 +354,12 @@ function InstallProgressBar({
   done,
   total,
   phase,
+  reused,
 }: {
   readonly done: number;
   readonly total: number;
   readonly phase: string;
+  readonly reused: number;
 }) {
   const share = total > 0 ? Math.min(1, done / total) : 0;
   return (
@@ -370,7 +373,9 @@ function InstallProgressBar({
       <p className="mt-1 text-[11px] text-tertiary">
         {phase === 'verifying'
           ? 'Verifying…'
-          : `${formatSize(done)} of ${formatSize(total)} · verifying each file as it arrives`}
+          : reused > 0
+            ? `${formatSize(done)} of ${formatSize(total)} · ${formatSize(reused)} reused from the previous install`
+            : `${formatSize(done)} of ${formatSize(total)} · verifying each file as it arrives`}
       </p>
     </div>
   );

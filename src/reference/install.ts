@@ -36,6 +36,15 @@ export interface InstallProgress {
   readonly chunksTotal: number;
   readonly bytesDone: number;
   readonly bytesTotal: number;
+  /**
+   * Chunks whose bytes the previous install already had and that did not need
+   * to be re-downloaded. Content-addressed storage makes this a measurement,
+   * not an optimisation; the user sees the actual reuse number, not a
+   * "should be lower" claim.
+   */
+  readonly chunksReused: number;
+  /** Bytes saved by re-using chunks that were already on disk. */
+  readonly bytesReused: number;
 }
 
 export interface InstallOptions {
@@ -256,6 +265,8 @@ async function installUnlocked(
   options.signal?.throwIfAborted();
   const request = options.fetcher ?? fetch;
   const total = manifest.chunks.reduce((sum, chunk) => sum + chunk.bytes, 0);
+  let chunksReused = 0;
+  let bytesReused = 0;
   const report = (phase: InstallPhase, done: number, bytes: number) =>
     options.onProgress?.({
       packId: manifest.id,
@@ -264,6 +275,8 @@ async function installUnlocked(
       chunksTotal: manifest.chunks.length,
       bytesDone: bytes,
       bytesTotal: total,
+      chunksReused,
+      bytesReused,
     });
 
   const existing = await store.get(manifest.id);
@@ -297,6 +310,8 @@ async function installUnlocked(
       ) {
         // Also migrates legacy chunks without mutating the active generation.
         await store.putChunk(manifest.id, chunk.sha256, present);
+        chunksReused += 1;
+        bytesReused += chunk.bytes;
         done += 1;
         bytes += chunk.bytes;
         report('chunks', done, bytes);
