@@ -1,5 +1,3 @@
-import Link from 'next/link';
-
 import { publicUrl } from '@/release/public-urls';
 
 import './landing.css';
@@ -7,9 +5,11 @@ import './landing.css';
 /**
  * The Kingfisher landing page.
  *
- * Served at `/` of the production Vercel deployment. The studio is reachable
- * from the primary CTA (`/analysis`) and from the secondary CTA in the
- * download section.
+ * Served at the marketing origin. Every link that targets the studio
+ * points at the studio's canonical URL (`publicUrl.studio`), so a
+ * returning player who has the studio bookmarked opens it directly
+ * without coming back through this page. The marketing origin must
+ * never serve the studio.
  *
  * Renders server-side; no client JS, no React hydration, no analytics, no
  * third-party scripts. The static assets live under `/landing/img/` and are
@@ -17,6 +17,7 @@ import './landing.css';
  * `default-src 'self'`, accepts them.
  */
 export function LandingPage() {
+  const studioUrl = publicUrl.studio;
   return (
     <div className="kf-landing">
       <a className="skip" href="#main">
@@ -43,9 +44,14 @@ export function LandingPage() {
           <a href="#engines">Engines</a>
           <a href="#local">Local</a>
         </nav>
-        <Link className="nav-cta" href="/analysis">
+        <a
+          className="nav-cta"
+          href={studioUrl}
+          rel="noopener"
+          aria-label="Launch Kingfisher (opens the studio on a separate origin)"
+        >
           Launch
-        </Link>
+        </a>
       </header>
 
       <main id="main">
@@ -71,13 +77,18 @@ export function LandingPage() {
                 one local-first chess workspace. No account required.
               </p>
               <div className="hero-cta-row">
-                <Link className="btn btn-primary" href="/analysis">
+                <a
+                  className="btn btn-primary"
+                  href={studioUrl}
+                  rel="noopener"
+                  aria-label="Launch Kingfisher (opens the studio on a separate origin)"
+                >
                   <span className="btn-dot"></span>
                   Launch Kingfisher
                   <span className="btn-arrow" aria-hidden="true">
                     →
                   </span>
-                </Link>
+                </a>
                 <a className="btn btn-secondary" href="#download-mac">
                   Download for macOS
                   <span className="btn-meta">Preview</span>
@@ -342,9 +353,9 @@ export function LandingPage() {
                   <strong>None</strong>
                 </li>
               </ul>
-              <Link className="btn btn-secondary btn-block" href="/analysis">
+              <a className="btn btn-secondary btn-block" href={studioUrl} rel="noopener">
                 Launch the web app
-              </Link>
+              </a>
               <p className="download-meta">
                 <a href="https://github.com/mardakurt/kingfisher" rel="noopener">
                   Source on GitHub
@@ -374,7 +385,7 @@ export function LandingPage() {
               <h4>Product</h4>
               <ul>
                 <li>
-                  <Link href="/analysis">Web app</Link>
+                  <a href={studioUrl} rel="noopener">Web app</a>
                 </li>
                 <li>
                   <a href="https://github.com/mardakurt/kingfisher/releases/latest" rel="noopener">

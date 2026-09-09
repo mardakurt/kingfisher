@@ -43,6 +43,24 @@ export const publicUrl = {
   landing: trimTrailingSlash(
     fromEnv('KINGFISHER_PUBLIC_LANDING_URL', 'https://mardakurt.github.io/kingfisher-data'),
   ),
+  /*
+   * The studio is the *application*, served on its own host so a
+   * returning player can bookmark and open it directly without
+   * passing through the marketing page.
+   *
+   * Default: a `studio.` subdomain on the production origin. The
+   * `KINGFISHER_PUBLIC_WEB_URL` env var is honoured as the legacy
+   * alias so deployments that already set it do not break.
+   */
+  studio: trimTrailingSlash(
+    fromEnv('KINGFISHER_PUBLIC_STUDIO_URL', fromEnv('KINGFISHER_PUBLIC_WEB_URL', 'https://studio.kingfisher-chess.vercel.app')),
+  ),
+  /*
+   * The full app at the marketing origin. Useful for the launch
+   * button when the middleware is not configured (single-host
+   * deployment) or when the visitor wants the canonical
+   * `https://kingfisher-chess.vercel.app/analysis` URL.
+   */
   web: trimTrailingSlash(
     fromEnv('KINGFISHER_PUBLIC_WEB_URL', 'https://kingfisher-chess.vercel.app'),
   ),

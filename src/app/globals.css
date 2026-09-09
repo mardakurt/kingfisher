@@ -208,7 +208,17 @@
 
 html,
 body {
-  height: 100%;
+  /*
+    Page-level scroll. `height: 100%` on the body is the historic root
+    cause of "frozen landing" reports: it makes the body exactly the
+    viewport tall, and any `overflow: hidden` then clips the rest of
+    the document into nothing. The body must scroll with the document,
+    not be locked to one viewport height.
+
+    A specific scroll container (a panel, a drawer) sets its own
+    `overflow: auto` — the body itself never does.
+  */
+  min-height: 100%;
 }
 
 body {
@@ -217,8 +227,6 @@ body {
   font-family: var(--font-sans);
   font-feature-settings: 'cv05', 'ss01';
   -webkit-font-smoothing: antialiased;
-  overflow: hidden;
-  overscroll-behavior: none;
 }
 
 ::selection {
