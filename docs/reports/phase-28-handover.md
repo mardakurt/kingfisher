@@ -32,7 +32,7 @@ brief's pillars are uneven.**
 - ⏳ **Sync layer** — ADR written; implementation requires
   owner authorisation and a Supabase project.
 - ⏳ **UI inventory walks** — `phase-28-ui-audit.md` lists what
-  is *not* done; a future phase will run the matrices.
+  is _not_ done; a future phase will run the matrices.
 - ⏳ **Acceptance scenarios** — pieces individually verified;
   walks not run end-to-end in a browser.
 - ✅ **Version policy: 1.0.0 unchanged.** No tag. No release.
@@ -40,13 +40,13 @@ brief's pillars are uneven.**
 
 ## 2. Git
 
-| Field | Value |
-| --- | --- |
+| Field         | Value                                                            |
+| ------------- | ---------------------------------------------------------------- |
 | Starting HEAD | `e72eb54` (`feature/data-intelligence`, Phase 27 final handover) |
-| Final HEAD | `8643f18` (`feature/continuity-data-scale`) |
-| Branch | `feature/continuity-data-scale` |
-| Commits added | 4 substantive + 1 critical fix |
-| Working tree | Clean |
+| Final HEAD    | `8643f18` (`feature/continuity-data-scale`)                      |
+| Branch        | `feature/continuity-data-scale`                                  |
+| Commits added | 4 substantive + 1 critical fix                                   |
+| Working tree  | Clean                                                            |
 
 ### Commits (in this session)
 
@@ -56,6 +56,7 @@ ef570aa data(1.1): external cache paths + Create Training Set + sync ADR
 8de686c fix(critical): unfreeze landing scroll + host-based studio routing
 c20a606 docs: phase-28-handover — critical fix + architecture done, sync deferred
 ```
+
 (plus the prior Phase 27 work, which Phase 28 builds on.)
 
 ## 3. Current continuity
@@ -63,16 +64,16 @@ c20a606 docs: phase-28-handover — critical fix + architecture done, sync defer
 For each scenario, what survives today (see
 `docs/product/work-continuity.md` for the full table):
 
-| Situation | Authored work |
-| --- | --- |
-| Same browser, same profile, next day | ✅ kept (verified) |
-| Same browser, quit + relaunch | ✅ kept (verified) |
-| **Private/incognito** | ❌ erased (intentional) |
-| **Browser site-data cleared** | ❌ erased (intentional) |
-| **Different browser profile** | ❌ separate IndexedDB origin |
-| **Different device** | ❌ separate IndexedDB origin |
-| Quota exceeded | Draft preserved, error shown |
-| Crash mid-save | Draft remains in storage |
+| Situation                            | Authored work                |
+| ------------------------------------ | ---------------------------- |
+| Same browser, same profile, next day | ✅ kept (verified)           |
+| Same browser, quit + relaunch        | ✅ kept (verified)           |
+| **Private/incognito**                | ❌ erased (intentional)      |
+| **Browser site-data cleared**        | ❌ erased (intentional)      |
+| **Different browser profile**        | ❌ separate IndexedDB origin |
+| **Different device**                 | ❌ separate IndexedDB origin |
+| Quota exceeded                       | Draft preserved, error shown |
+| Crash mid-save                       | Draft remains in storage     |
 
 ## 4. Local persistence
 
@@ -86,8 +87,13 @@ For each scenario, what survives today (see
 The critical bug fix:
 
 ```css
-html, body { min-height: 100%; }  /* was: height: 100% */
-body { /* removed: overflow: hidden */ }
+html,
+body {
+  min-height: 100%;
+} /* was: height: 100% */
+body {
+  /* removed: overflow: hidden */
+}
 ```
 
 The body now scrolls with the document. The fix is annotated
@@ -136,14 +142,14 @@ with optimistic revision checks, tombstoned deletes, and a
 
 **Architecture change shipped.**
 
-| Surface | URL | Owner |
-| --- | --- | --- |
-| Landing | `kingfisher-chess.vercel.app/` | The single marketing surface |
-| Studio | `studio.kingfisher-chess.vercel.app/` | The application, on its own origin |
-| Legacy GitHub Pages | `mardakurt.github.io/kingfisher-data/` | Redirects to landing |
-| Repository | `github.com/mardakurt/kingfisher` | Source, releases, issues |
-| Releases | `/releases/latest` | Stable + Latest |
-| Latest DMG | `/releases/latest/download/Kingfisher-1.0.0-arm64.dmg` | Stable |
+| Surface             | URL                                                    | Owner                              |
+| ------------------- | ------------------------------------------------------ | ---------------------------------- |
+| Landing             | `kingfisher-chess.vercel.app/`                         | The single marketing surface       |
+| Studio              | `studio.kingfisher-chess.vercel.app/`                  | The application, on its own origin |
+| Legacy GitHub Pages | `mardakurt.github.io/kingfisher-data/`                 | Redirects to landing               |
+| Repository          | `github.com/mardakurt/kingfisher`                      | Source, releases, issues           |
+| Releases            | `/releases/latest`                                     | Stable + Latest                    |
+| Latest DMG          | `/releases/latest/download/Kingfisher-1.0.0-arm64.dmg` | Stable                             |
 
 The same Vercel project serves both. A Next.js middleware
 (`src/middleware.ts`, `src/middleware-host-rules.ts`, 13 unit
@@ -163,38 +169,38 @@ The landing page's "Launch" button is now an absolute link to
 It is **inventory only** — automated screenshot passes, viewport
 matrix, zoom matrix, and mutation tests are deferred.
 
-| Class | Count |
-| --- | --- |
-| Critical UI defects known | 1 fixed (scroll-freeze); 0 outstanding |
-| High UI defects known | 0 known outstanding |
-| Routes audited at all viewports | 0 of 20 |
-| Zoom-level passes | 0 of 6 |
-| Theme pairs audited | 0 of 2 |
-| Mutation assertions written | 6 listed; none automated |
+| Class                           | Count                                  |
+| ------------------------------- | -------------------------------------- |
+| Critical UI defects known       | 1 fixed (scroll-freeze); 0 outstanding |
+| High UI defects known           | 0 known outstanding                    |
+| Routes audited at all viewports | 0 of 20                                |
+| Zoom-level passes               | 0 of 6                                 |
+| Theme pairs audited             | 0 of 2                                 |
+| Mutation assertions written     | 6 listed; none automated               |
 
 **Honest claim:** the scroll-freeze fix is the only UI defect
 this phase actually fixed end-to-end. The audit document is a
-*commitment to verify*, not a claim that the verifications have
+_commitment to verify_, not a claim that the verifications have
 been done.
 
 ## 11. UI verdict
 
-| Class | Count |
-| --- | --- |
+| Class       | Count                                        |
+| ----------- | -------------------------------------------- |
 | Critical UI | 1 fixed (scroll-freeze). 0 known outstanding |
-| High UI | 0 known outstanding |
-| Medium UI | 0 known outstanding |
-| Low UI | 0 known outstanding |
+| High UI     | 0 known outstanding                          |
+| Medium UI   | 0 known outstanding                          |
+| Low UI      | 0 known outstanding                          |
 
 ## 12. Project size
 
 `scripts/size-report.mjs` measures every consumer.
 
-| Measurement | |
-| --- | --- |
-| Total workspace | 9.73 GB |
+| Measurement            |          |
+| ---------------------- | -------- |
+| Total workspace        | 9.73 GB  |
 | Persistent (committed) | ~3.92 GB |
-| Gitignored generated | ~5.81 GB |
+| Gitignored generated   | ~5.81 GB |
 
 Persistent detail (`.git` + `public` + `desktop` committed only):
 
@@ -210,15 +216,15 @@ Gitignored detail:
 - `.packs` — 459 MB
 - `.engine-fleet` — 293 MB
 
-| Command | Action |
-| --- | --- |
-| `npm run size:report` | Reports sections + top-N |
-| `npm run size:check` | Same with `--top=20` |
-| `npm run data:cache:paths` | Resolved external cache paths |
-| `npm run data:cache:prune` | Removes reproducible cache |
-| `npm run data:cache:report` | Summary only |
-| `npm run clean:dev` | Removes dev-only outputs |
-| `npm run bench:compression` | gzip vs brotli comparison |
+| Command                     | Action                        |
+| --------------------------- | ----------------------------- |
+| `npm run size:report`       | Reports sections + top-N      |
+| `npm run size:check`        | Same with `--top=20`          |
+| `npm run data:cache:paths`  | Resolved external cache paths |
+| `npm run data:cache:prune`  | Removes reproducible cache    |
+| `npm run data:cache:report` | Summary only                  |
+| `npm run clean:dev`         | Removes dev-only outputs      |
+| `npm run bench:compression` | gzip vs brotli comparison     |
 
 ## 13. External cache
 
@@ -265,11 +271,11 @@ because another algorithm compresses 8% smaller." 40% is
 larger than 8%, but the platform support story is the real
 constraint, not the percentage.
 
-| Codec | Bytes | Ratio |
-| --- | --- | --- |
-| plain | 9949 | 1.000 |
-| gzip -9 | 174 | 0.017 |
-| brotli q11 | 105 | 0.011 |
+| Codec      | Bytes | Ratio |
+| ---------- | ----- | ----- |
+| plain      | 9949  | 1.000 |
+| gzip -9    | 174   | 0.017 |
+| brotli q11 | 105   | 0.011 |
 
 ## 16. Remote data performance
 
@@ -315,15 +321,15 @@ acceptance: blocked on sync (not implemented).
 
 ## 23. Tests
 
-| Check | Result |
-| --- | --- |
-| `npm run typecheck` | 0 errors |
-| `npm run lint` | 0 errors |
-| `npm run format:check` | All files formatted |
-| `npm test` | **2233 passed, 11 skipped, 0 failed** (171 files) |
-| `npm run security:scan` | 0 leaks, 0 advisories |
-| `npm run build` | Succeeded |
-| `git diff --check` | Clean |
+| Check                   | Result                                            |
+| ----------------------- | ------------------------------------------------- |
+| `npm run typecheck`     | 0 errors                                          |
+| `npm run lint`          | 0 errors                                          |
+| `npm run format:check`  | All files formatted                               |
+| `npm test`              | **2233 passed, 11 skipped, 0 failed** (171 files) |
+| `npm run security:scan` | 0 leaks, 0 advisories                             |
+| `npm run build`         | Succeeded                                         |
+| `git diff --check`      | Clean                                             |
 
 Baseline (start of Phase 28 session): 2204 tests. After: 2233.
 **+29 tests** for:
@@ -335,11 +341,11 @@ Baseline (start of Phase 28 session): 2204 tests. After: 2233.
 
 ## 24. Bugs
 
-| Severity | Description | Fix |
-| --- | --- | --- |
-| Critical UI | Landing page scroll frozen (`body { overflow: hidden }` + `html, body { height: 100% }`) | `src/app/globals.css` — `min-height: 100%`, removed `overflow: hidden` lock |
-| Medium | Two landing implementations drifting (`marketing/index.html` vs `src/app/landing/LandingPage.tsx`) | `marketing/index.html` now a 30-line redirect to canonical Vercel landing |
-| Low | Same browser private mode: persistence is undetectable; users will see "Saved on this device" wrongly | Documented; the persistence helper returns `'unavailable'` in this case, but it is not yet wired to UI |
+| Severity    | Description                                                                                           | Fix                                                                                                    |
+| ----------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Critical UI | Landing page scroll frozen (`body { overflow: hidden }` + `html, body { height: 100% }`)              | `src/app/globals.css` — `min-height: 100%`, removed `overflow: hidden` lock                            |
+| Medium      | Two landing implementations drifting (`marketing/index.html` vs `src/app/landing/LandingPage.tsx`)    | `marketing/index.html` now a 30-line redirect to canonical Vercel landing                              |
+| Low         | Same browser private mode: persistence is undetectable; users will see "Saved on this device" wrongly | Documented; the persistence helper returns `'unavailable'` in this case, but it is not yet wired to UI |
 
 ## 25. Known limitations
 
@@ -371,7 +377,7 @@ the work is substantial + stable + field-tested, at which point
 the owner bumps to `1.1.0`.
 
 The scroll-freeze fix is the kind of bug that warrants a public
-hotfix per the brief's PART CV — *if* the owner chooses to deploy
+hotfix per the brief's PART CV — _if_ the owner chooses to deploy
 the fix to production while the marketing copy still says 1.0.0.
 
 ## 27. Recommendation

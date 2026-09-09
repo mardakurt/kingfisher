@@ -10,7 +10,7 @@ thing up front.
 
 ## What the pack format already supports
 
-The investigation found the format was *designed* for streaming.
+The investigation found the format was _designed_ for streaming.
 Every chunk carries its own SHA-256 and lives at a stable path
 on the data mirror:
 
@@ -58,16 +58,16 @@ domain that serves the data mirror at per-shard URLs with
 
 ## What the brief required, and where it stands
 
-| Item | Status |
-| --- | --- |
-| Audit current pack format for streamability | ✅ done |
-| Reuse installed chunk store from partial cache | ✅ content-addressed store already supports it; `RemoteReferenceProvider` writes to the same shape |
-| Trust model: HTTPS + manifest + SHA-256 | ✅ done in skeleton |
-| Cached chunks vs Installed chunks separation | ⏳ schema exists in `reference-source-state.ts`; UI badge added; full catalog wiring is a UI phase |
-| LRU cache eviction | ❌ skeleton uses a TTL only; LRU + bounded size in a later phase |
-| Streaming parser for partial chunks | ❌ today's pack chunks are ≤64 MiB; "download then parse" is acceptable. A 10x-elite pack would need a streaming parser |
-| Performance benchmarks | ❌ deferred until a real data mirror is wired |
-| Full UI integration | ❌ the catalog already shows Online/Cached/Installed badges; the explorer needs a `kind: 'remote'` provider wired into the registry |
+| Item                                           | Status                                                                                                                              |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Audit current pack format for streamability    | ✅ done                                                                                                                             |
+| Reuse installed chunk store from partial cache | ✅ content-addressed store already supports it; `RemoteReferenceProvider` writes to the same shape                                  |
+| Trust model: HTTPS + manifest + SHA-256        | ✅ done in skeleton                                                                                                                 |
+| Cached chunks vs Installed chunks separation   | ⏳ schema exists in `reference-source-state.ts`; UI badge added; full catalog wiring is a UI phase                                  |
+| LRU cache eviction                             | ❌ skeleton uses a TTL only; LRU + bounded size in a later phase                                                                    |
+| Streaming parser for partial chunks            | ❌ today's pack chunks are ≤64 MiB; "download then parse" is acceptable. A 10x-elite pack would need a streaming parser             |
+| Performance benchmarks                         | ❌ deferred until a real data mirror is wired                                                                                       |
+| Full UI integration                            | ❌ the catalog already shows Online/Cached/Installed badges; the explorer needs a `kind: 'remote'` provider wired into the registry |
 
 ## What is gated
 

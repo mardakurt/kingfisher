@@ -7,7 +7,7 @@ A local-first chess research workstation for serious players.
 
 |                                                                                      |                                                                              |
 | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
-| 🌐 **[Launch the web app](https://studio.kingfisher-chess.vercel.app/)**            | Open in any modern browser. The Stockfish engine is in the page; no install. |
+| 🌐 **[Launch the web app](https://studio.kingfisher-chess.vercel.app/)**             | Open in any modern browser. The Stockfish engine is in the page; no install. |
 | 🍎 **[Download for macOS](https://github.com/mardakurt/kingfisher/releases/latest)** | Apple Silicon, code-signed. _Preview build — not notarized._                 |
 | 📦 **[Source on GitHub](https://github.com/mardakurt/kingfisher)**                   | Releases, source, issue tracker, changelog.                                  |
 | 📖 **[Changelog](CHANGELOG.md)**                                                     | What changed in each release.                                                |

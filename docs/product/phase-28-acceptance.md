@@ -89,12 +89,12 @@ assertions are architectural, not verified.
 
 ## Verification matrix
 
-| Scenario | Pieces | Walked | Notes |
-| --- | --- | --- | --- |
-| 1 — Professional prep | ✅ all 6 | ⏳ not run | Each piece has its own test |
-| 2 — Continuity | ✅ same-device | ⏳ cross-device | Sync layer not implemented |
-| 3 — Large data | ✅ skeleton | ⏳ end-to-end | Wiring + benchmark deferred |
-| 4 — Offline | ✅ documented | ⏳ browser run | Architectural assertions |
+| Scenario              | Pieces         | Walked          | Notes                       |
+| --------------------- | -------------- | --------------- | --------------------------- |
+| 1 — Professional prep | ✅ all 6       | ⏳ not run      | Each piece has its own test |
+| 2 — Continuity        | ✅ same-device | ⏳ cross-device | Sync layer not implemented  |
+| 3 — Large data        | ✅ skeleton    | ⏳ end-to-end   | Wiring + benchmark deferred |
+| 4 — Offline           | ✅ documented  | ⏳ browser run  | Architectural assertions    |
 
 ## What this section claims
 
