@@ -81,4 +81,11 @@ export const cachePaths = {
   archives: resolve('KINGFISHER_CACHE_DIR', 'archives'),
   dataBuilds: resolve('KINGFISHER_DATA_BUILD_DIR', 'data-builds'),
   engines: resolve('KINGFISHER_ENGINE_DIR', 'engines'),
+  /**
+   * The real-scale benchmark database. Five gigabytes, rebuilt by
+   * `node scripts/bench-real-scale.mjs` from cached upstream
+   * archives. Lives outside the project by default so a normal
+   * clone stays small. Set `KINGFISHER_REAL_SCALE_DIR` to override.
+   */
+  realScale: resolve('KINGFISHER_REAL_SCALE_DIR', 'real-scale'),
 };

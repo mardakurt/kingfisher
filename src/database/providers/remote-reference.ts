@@ -114,7 +114,14 @@ async function sha256Hex(bytes: Uint8Array): Promise<string> {
    * (under 64 MiB) is hashed in well under a millisecond.
    */
   if (typeof crypto !== 'undefined' && crypto.subtle) {
-    const digest = await crypto.subtle.digest('SHA-256', bytes);
+    // Copy into a fresh ArrayBuffer so the SubtleCrypto signature is
+    // satisfied regardless of the underlying ArrayBufferLike kind
+    // (TypedArrays backed by SharedArrayBuffer in cross-origin-isolated
+    // contexts are valid input data but the TS overload signature
+    // requires the precise ArrayBuffer brand).
+    const copy = new Uint8Array(bytes.byteLength);
+    copy.set(bytes);
+    const digest = await crypto.subtle.digest('SHA-256', copy);
     return Array.from(new Uint8Array(digest))
       .map((byte) => byte.toString(16).padStart(2, '0'))
       .join('');

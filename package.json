@@ -77,6 +77,7 @@
     "data:cache:report": "node scripts/size-report.mjs 2>&1 | head -25",
     "data:cache:prune": "rm -rf .archive-cache .packs .engine-build && echo 'pruned reproducible cache (engines re-fetch via npm run engines:install)'",
     "data:cache:paths": "node -e \"import('./scripts/cache-paths.mjs').then(m => console.log(JSON.stringify(m.cachePaths, null, 2)))\"",
+    "data:cache:migrate": "node scripts/migrate-external-cache.mjs",
     "bench:compression": "node scripts/bench-compression.mjs"
   },
   "dependencies": {

@@ -36,7 +36,6 @@ const SECTIONS = [
   '.archive-cache',
   '.engine-build',
   '.engine-fleet',
-  '.real-scale',
   'public',
   'desktop',
   'dist',
@@ -54,7 +53,6 @@ const SECTIONS_GENERATED = new Set([
   '.archive-cache',
   '.engine-build',
   '.engine-fleet',
-  '.real-scale',
   'dist',
 ]);
 
