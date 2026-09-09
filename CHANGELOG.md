@@ -11,6 +11,13 @@ release; nothing here has shipped yet. The notes below describe what
 the next release will contain if it is cut from the current
 development branch.
 
+### Critical hotfix shipped (in production at 1.0.0)
+
+- **Landing page no longer freezes the scroll.** A `body { overflow:
+hidden }` rule was preventing scroll on the marketing page; the fix
+  is a one-line CSS change deployed at master `4793827` without a
+  version bump. This is the only Phase 29 change in production.
+
 ### Data
 
 - **Visible chunk reuse.** When a reference pack is updated, the install
@@ -28,6 +35,17 @@ development branch.
 - **Freshness on the catalog rows.** The Recent Theory and High-Rated
   Online catalog rows state their filter and date window so the choice
   of "recent" is visible before install, not hidden in a document.
+- **Use a pack online, with cached chunks.** A catalog pack that is not
+  installed can now be queried online. The Explorer fetches the
+  required shards, verifies each against the manifest's SHA-256,
+  caches the verified chunks in a byte-budgeted LRU, and answers
+  later queries from the cache. Cached chunks are reused when the
+  same pack is later installed, so a research session does not
+  download what the user has already fetched.
+- **Project size, not a blocker.** `.real-scale`, `.archive-cache`,
+  `.packs`, `.engine-build`, and `.engine-fleet` now live under the
+  OS user-cache directory by default. A normal `git clone` no longer
+  ships five-plus gigabytes of generated cache.
 
 ### Opening research
 
@@ -37,6 +55,14 @@ development branch.
   and prints the recent games count next to it, so 3 of 7 never looks
   equivalent to 3,000 of 7,000. The header tooltip spells out the
   threshold and the rise/fall/steady rule.
+- **Speed facet for the Explorer.** A Speed segmented control
+  (All / Classical / Rapid / Blitz) appears on sources that
+  distinguish speeds — Lichess, the user's own games, and any
+  streaming pack. Reference packs that were built from a single
+  speed window do not show the facet, because the facet would
+  be a filter over the wrong axis. The active speed is part of
+  the Explorer query key, so a result and its cache reflect the
+  choice.
 - **Repertoire coverage against a reference source.** The Repertoire
   workspace has a new panel that picks a reference source (Elite OTB,
   Recent Theory, High-Rated Online) and lists the high-frequency
@@ -61,6 +87,18 @@ development branch.
   came from. The solution is intentionally left empty: the
   reference data tells the player _what_ to train; the player's own
   repertoire move is the answer.
+
+### Continuity and errors
+
+- **"Saved on this device" status, in the sidebar.** A quiet
+  indicator reports whether the browser considers the IndexedDB
+  origin durable. If it does not, the user can click to ask the
+  browser for that protection. The copy is careful to never imply
+  cross-device backup, because no such backup exists.
+- **Errors the user can read.** A fetch failure, an aborted request,
+  a SQLITE_BUSY, an ERR_CONNECTION_REFUSED — they all surface in
+  the UI as plain English with a short next step. The raw
+  exception still appears in Diagnostics for the power user.
 
 ## 1.0.0 — public stable release
 
