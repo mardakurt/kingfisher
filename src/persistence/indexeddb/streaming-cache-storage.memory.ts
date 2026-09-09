@@ -56,10 +56,7 @@ export class InMemoryStreamingCacheStorage implements StreamingCacheStorage {
     return this.records.size;
   }
 
-  async pruneToBudget(
-    candidates: readonly string[],
-    budgetBytes: number,
-  ): Promise<number> {
+  async pruneToBudget(candidates: readonly string[], budgetBytes: number): Promise<number> {
     const total = await this.totalBytes();
     const over = total - budgetBytes;
     if (over <= 0) return 0;

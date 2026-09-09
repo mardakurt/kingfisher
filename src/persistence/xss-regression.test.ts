@@ -94,4 +94,3 @@ describe('XSS regression — user data round-trips as text', () => {
     expect(list.find((entry) => entry.title === PAYLOAD)).toBeDefined();
   });
 });
-

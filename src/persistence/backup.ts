@@ -423,15 +423,23 @@ function validateRecord(store: StoreName, value: unknown, index: number): void {
  * accepts, so what the user downloads is exactly what
  * `Restore` reads.
  */
-export async function downloadWorkspaceBackup(options: {
-  readonly includeGames?: boolean;
-} = {}): Promise<{ readonly ok: true; readonly bytes: number } | { readonly ok: false; readonly message: string }> {
+export async function downloadWorkspaceBackup(
+  options: {
+    readonly includeGames?: boolean;
+  } = {},
+): Promise<
+  { readonly ok: true; readonly bytes: number } | { readonly ok: false; readonly message: string }
+> {
   try {
     const { openPersistenceDatabase } = await import('./indexeddb/database');
     const database = await openPersistenceDatabase();
-    const backup = await createWorkspaceBackup(database, {}, {
-      includeGames: options.includeGames,
-    });
+    const backup = await createWorkspaceBackup(
+      database,
+      {},
+      {
+        includeGames: options.includeGames,
+      },
+    );
     const json = JSON.stringify(backup, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);

@@ -79,10 +79,7 @@ export interface TieredStreamingCacheOptions {
    * Optional callback fired when a chunk is evicted from the
    * persistent tier.
    */
-  readonly onPersistentEvict?: (entry: {
-    readonly sha256: string;
-    readonly bytes: number;
-  }) => void;
+  readonly onPersistentEvict?: (entry: { readonly sha256: string; readonly bytes: number }) => void;
 }
 
 /**
@@ -126,8 +123,7 @@ export class TieredStreamingCache {
     this.packVersion = options.packVersion;
     this.persistent = options.persistent;
     this.onPersistentEvict = options.onPersistentEvict;
-    this.memoryBudget =
-      options.memoryBudgetBytes ?? options.memory?.budget() ?? 256 * 1024 * 1024;
+    this.memoryBudget = options.memoryBudgetBytes ?? options.memory?.budget() ?? 256 * 1024 * 1024;
     this.persistentBudget =
       options.persistentBudgetBytes ??
       (isDesktop() ? DEFAULT_PERSISTENT_DESKTOP_BUDGET : DEFAULT_PERSISTENT_WEB_BUDGET);

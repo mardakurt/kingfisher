@@ -16,8 +16,7 @@ const digestOf = async (bytes: Uint8Array): Promise<string> => {
     .join('');
 };
 
-const sampleBytes = (fill: number, size = 8): Uint8Array =>
-  new Uint8Array(size).fill(fill);
+const sampleBytes = (fill: number, size = 8): Uint8Array => new Uint8Array(size).fill(fill);
 
 describe('TieredStreamingCache', () => {
   it('serves a put chunk from memory on the next read', async () => {
@@ -252,12 +251,10 @@ describe('TieredStreamingCache', () => {
     cache.put(digest, bytes);
     await cache.drain();
     const original = persistent.get.bind(persistent);
-    const failingSpy = vi
-      .spyOn(persistent, 'get')
-      .mockImplementation(async (d: string) => {
-        if (d === digest) throw new Error('synthetic IDB failure');
-        return original(d);
-      });
+    const failingSpy = vi.spyOn(persistent, 'get').mockImplementation(async (d: string) => {
+      if (d === digest) throw new Error('synthetic IDB failure');
+      return original(d);
+    });
     const got = await cache.get(digest);
     expect(got).not.toBeNull();
     // Memory is still intact: a second read should serve from

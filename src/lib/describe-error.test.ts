@@ -57,7 +57,9 @@ describe('describeError', () => {
   });
 
   it('redacts OAuth-style tokens from error messages', () => {
-    const out = describeError(new Error('Bearer abc123def456ghi789jkl012mno345pqr678stu901vwx234yz is invalid'));
+    const out = describeError(
+      new Error('Bearer abc123def456ghi789jkl012mno345pqr678stu901vwx234yz is invalid'),
+    );
     expect(out.message).not.toContain('abc123def456');
     expect(out.message).not.toContain('ghi789jkl');
   });

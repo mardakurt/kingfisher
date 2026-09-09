@@ -298,25 +298,22 @@ function useReferenceCoverage(
           completed += 1;
           if (!cancelled) {
             setState({
-              data: [...reports].filter(
-                (report): report is CoverageReport => report !== undefined,
-              ),
+              data: [...reports].filter((report): report is CoverageReport => report !== undefined),
               pending: completed < positions.length,
               completed,
               total: positions.length,
             });
           }
         }),
-    })
-      .catch(() => {
-        if (!cancelled)
-          setState({
-            data: reports.filter((r): r is CoverageReport => r !== undefined),
-            pending: false,
-            completed,
-            total: positions.length,
-          });
-      });
+    }).catch(() => {
+      if (!cancelled)
+        setState({
+          data: reports.filter((r): r is CoverageReport => r !== undefined),
+          pending: false,
+          completed,
+          total: positions.length,
+        });
+    });
     return () => {
       cancelled = true;
       abort.abort();

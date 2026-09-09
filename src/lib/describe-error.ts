@@ -127,7 +127,9 @@ export function redactErrorMessage(message: string): string {
   out = out.replace(/[A-Z]:\\[^\s)'\"]+/g, '[redacted-path]');
   // Long hex / base64 tokens (>= 24 contiguous hex chars or 32 alnum).
   out = out.replace(/\b[0-9a-f]{24,}\b/gi, '[redacted-token]');
-  out = out.replace(/\b[A-Za-z0-9_-]{32,}\b/g, (m) => (/^[A-Za-z0-9_-]+$/.test(m) ? '[redacted-token]' : m));
+  out = out.replace(/\b[A-Za-z0-9_-]{32,}\b/g, (m) =>
+    /^[A-Za-z0-9_-]+$/.test(m) ? '[redacted-token]' : m,
+  );
   // Authorization headers.
   out = out.replace(/Authorization:\s*Bearer\s+\S+/gi, 'Authorization: [redacted]');
   out = out.replace(/Bearer\s+[A-Za-z0-9._-]{16,}/gi, 'Bearer [redacted]');

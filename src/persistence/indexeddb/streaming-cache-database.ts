@@ -27,8 +27,7 @@ export const STREAMING_CACHE_DATABASE = 'kingfisher-stream-cache';
 export const STREAMING_CACHE_VERSION = 1;
 export const STREAMING_CACHE_STORE = 'streamChunks';
 
-const isBrowser =
-  typeof indexedDB !== 'undefined' && typeof IDBObjectStore !== 'undefined';
+const isBrowser = typeof indexedDB !== 'undefined' && typeof IDBObjectStore !== 'undefined';
 
 /**
  * Open (or create) the IndexedDB streaming cache database.
@@ -98,8 +97,7 @@ class IndexedDbStreamingCacheDatabase implements StreamingCacheStorage {
         // record rather than serve corrupt bytes.
         resolve(record.bytes ?? null);
       };
-      request.onerror = () =>
-        reject(request.error ?? new Error('Streaming cache get failed.'));
+      request.onerror = () => reject(request.error ?? new Error('Streaming cache get failed.'));
     });
   }
 
@@ -110,10 +108,8 @@ class IndexedDbStreamingCacheDatabase implements StreamingCacheStorage {
       const store = tx.objectStore(STREAMING_CACHE_STORE);
       const request = store.put(record);
       request.onsuccess = () => resolve();
-      request.onerror = () =>
-        reject(request.error ?? new Error('Streaming cache put failed.'));
-      tx.onabort = () =>
-        reject(tx.error ?? new Error('Streaming cache put transaction aborted.'));
+      request.onerror = () => reject(request.error ?? new Error('Streaming cache put failed.'));
+      tx.onabort = () => reject(tx.error ?? new Error('Streaming cache put transaction aborted.'));
     });
   }
 
@@ -123,8 +119,7 @@ class IndexedDbStreamingCacheDatabase implements StreamingCacheStorage {
       const tx = db.transaction(STREAMING_CACHE_STORE, 'readwrite');
       const request = tx.objectStore(STREAMING_CACHE_STORE).delete(digest);
       request.onsuccess = () => resolve();
-      request.onerror = () =>
-        reject(request.error ?? new Error('Streaming cache delete failed.'));
+      request.onerror = () => reject(request.error ?? new Error('Streaming cache delete failed.'));
     });
   }
 
@@ -134,8 +129,7 @@ class IndexedDbStreamingCacheDatabase implements StreamingCacheStorage {
       const tx = db.transaction(STREAMING_CACHE_STORE, 'readwrite');
       const request = tx.objectStore(STREAMING_CACHE_STORE).clear();
       request.onsuccess = () => resolve();
-      request.onerror = () =>
-        reject(request.error ?? new Error('Streaming cache clear failed.'));
+      request.onerror = () => reject(request.error ?? new Error('Streaming cache clear failed.'));
     });
   }
 
@@ -216,15 +210,11 @@ class IndexedDbStreamingCacheDatabase implements StreamingCacheStorage {
       const tx = db.transaction(STREAMING_CACHE_STORE, 'readonly');
       const request = tx.objectStore(STREAMING_CACHE_STORE).count();
       request.onsuccess = () => resolve(request.result);
-      request.onerror = () =>
-        reject(request.error ?? new Error('Streaming cache count failed.'));
+      request.onerror = () => reject(request.error ?? new Error('Streaming cache count failed.'));
     });
   }
 
-  async pruneToBudget(
-    candidates: readonly string[],
-    budgetBytes: number,
-  ): Promise<number> {
+  async pruneToBudget(candidates: readonly string[], budgetBytes: number): Promise<number> {
     if (candidates.length === 0) return 0;
     const total = await this.totalBytes();
     const over = total - budgetBytes;

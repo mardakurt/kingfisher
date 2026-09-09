@@ -26,7 +26,10 @@ const reportDir = resolve(repoRoot, 'docs/benchmark-reports');
 mkdirSync(reportDir, { recursive: true });
 
 const args = ['run', 'scripts/bench-streaming-cache.test.ts', '--reporter=verbose'];
-const child = spawn('npx', ['vitest', ...args], { cwd: repoRoot, stdio: ['inherit', 'pipe', 'inherit'] });
+const child = spawn('npx', ['vitest', ...args], {
+  cwd: repoRoot,
+  stdio: ['inherit', 'pipe', 'inherit'],
+});
 
 let output = '';
 child.stdout.on('data', (chunk) => {

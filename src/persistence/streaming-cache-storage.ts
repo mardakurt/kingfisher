@@ -168,10 +168,7 @@ export class IndexedDbStreamingCacheStorage implements StreamingCacheStorage {
  * dominant cost; the cost of *not* doing it is serving a corrupt
  * chunk as if it were a verified one, and that is not a tradeoff.
  */
-export async function verifyChunkDigest(
-  digest: string,
-  bytes: Uint8Array,
-): Promise<boolean> {
+export async function verifyChunkDigest(digest: string, bytes: Uint8Array): Promise<boolean> {
   if (typeof crypto === 'undefined' || !crypto.subtle) return false;
   // The SubtleCrypto digest overload wants an ArrayBuffer, and a TypedArray
   // backed by SharedArrayBuffer in a cross-origin-isolated context is
