@@ -1,0 +1,448 @@
+/* Public documentation pages: /install, /privacy, /security,
+   /data-licences, /terms. Editorial palette aligned with the
+   landing so a user stepping from the marketing surface into
+   the docs sees the same brand, not a different product. */
+
+.kf-docs {
+  --ink: #0b1823;
+  --paper: #f4efe5;
+  --bg: var(--paper);
+  --text: var(--ink);
+  --text-dim: #4b5962;
+  --text-mute: #596873;
+  --accent: #296780;
+  --line: #d5d1c8;
+  --line-strong: #8b9597;
+  --font: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-editorial: Georgia, 'Times New Roman', serif;
+  --max: 920px;
+  --gutter: clamp(24px, 5vw, 56px);
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.kf-docs *,
+.kf-docs *::before,
+.kf-docs *::after {
+  box-sizing: border-box;
+}
+
+.kf-docs :is(h1, h2, h3, h4, p, ul, ol, figure, pre, blockquote) {
+  margin: 0;
+}
+
+.kf-docs :is(h1, h2, h3) {
+  text-wrap: balance;
+  color: var(--text);
+}
+
+.kf-docs a {
+  color: var(--accent);
+  text-decoration: none;
+  text-underline-offset: 5px;
+}
+
+.kf-docs a:hover {
+  text-decoration: underline;
+}
+
+.kf-docs a:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 5px;
+  border-radius: 3px;
+}
+
+.kf-docs ::selection {
+  background: #86bdd1;
+  color: #0b1823;
+}
+
+.kf-docs img,
+.kf-docs picture {
+  display: block;
+  max-width: 100%;
+}
+
+.kf-docs img {
+  height: auto;
+}
+
+.kf-docs code {
+  font-family: var(--font-mono), 'JetBrains Mono', SFMono-Regular, Menlo, monospace;
+  font-size: 0.92em;
+  background: #e9e2d3;
+  color: #1b2a35;
+  padding: 0.1em 0.35em;
+  border-radius: 3px;
+}
+
+.kf-docs pre {
+  background: #0b1823;
+  color: #d4e0e6;
+  padding: 18px 22px;
+  border-radius: 5px;
+  overflow-x: auto;
+  font-size: 13.5px;
+  line-height: 1.55;
+  margin: 18px 0;
+}
+
+.kf-docs pre code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  font-size: inherit;
+  border-radius: 0;
+}
+
+.kf-docs ul,
+.kf-docs ol {
+  padding-left: 24px;
+  margin: 16px 0;
+}
+
+.kf-docs li {
+  margin: 6px 0;
+}
+
+.kf-docs li::marker {
+  color: var(--text-mute);
+}
+
+.kf-docs table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 18px 0;
+  font-size: 14px;
+}
+
+.kf-docs th,
+.kf-docs td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+.kf-docs th {
+  color: var(--text-dim);
+  font-weight: 600;
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.kf-docs .skip {
+  position: fixed;
+  left: 24px;
+  top: -100px;
+  z-index: 100;
+  padding: 12px 20px;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.kf-docs .skip:focus {
+  top: 16px;
+}
+
+.kf-docs .docs-nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  padding: 16px var(--gutter);
+  min-height: 64px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+}
+
+.kf-docs .docs-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.kf-docs .docs-brand:hover {
+  text-decoration: none;
+}
+
+.kf-docs .docs-wordmark {
+  font-family: var(--font-editorial);
+  font-size: 22px;
+  letter-spacing: -0.5px;
+}
+
+.kf-docs .docs-links {
+  display: flex;
+  gap: 22px;
+  margin: 0 auto;
+  font-size: 13px;
+}
+
+.kf-docs .docs-links a {
+  color: var(--text-dim);
+}
+
+.kf-docs .docs-links a:hover {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.kf-docs .docs-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 8px 18px;
+  background: var(--ink);
+  color: var(--paper);
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 550;
+  text-decoration: none;
+  transition:
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.kf-docs .docs-cta:hover {
+  background: var(--accent);
+  color: var(--paper);
+  text-decoration: none;
+}
+
+.kf-docs .docs-main {
+  flex: 1;
+  padding: 64px var(--gutter) 96px;
+}
+
+.kf-docs .docs-article {
+  max-width: var(--max);
+  margin: 0 auto;
+}
+
+.kf-docs .docs-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 16px;
+}
+
+.kf-docs .docs-title {
+  font-family: var(--font-editorial);
+  font-size: clamp(34px, 4.4vw, 56px);
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: -1.5px;
+  margin-bottom: 22px;
+}
+
+.kf-docs .docs-lede {
+  color: var(--text-dim);
+  font-size: 17px;
+  line-height: 1.6;
+  margin-bottom: 44px;
+  text-wrap: balance;
+}
+
+.kf-docs .docs-body > :first-child {
+  margin-top: 0;
+}
+
+.kf-docs .docs-body h2 {
+  font-family: var(--font-editorial);
+  font-size: clamp(24px, 2.4vw, 32px);
+  font-weight: 400;
+  line-height: 1.18;
+  letter-spacing: -0.6px;
+  margin: 44px 0 16px;
+  padding-top: 8px;
+  scroll-margin-top: 80px;
+}
+
+.kf-docs .docs-body h3 {
+  font-family: var(--font-editorial);
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 1.25;
+  letter-spacing: -0.3px;
+  margin: 32px 0 10px;
+  scroll-margin-top: 80px;
+}
+
+.kf-docs .docs-body p {
+  margin: 12px 0;
+  color: var(--text);
+}
+
+.kf-docs .docs-body strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.kf-docs .docs-body em {
+  color: var(--text-dim);
+}
+
+.kf-docs .docs-body a {
+  color: var(--accent);
+}
+
+.kf-docs .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 22px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: var(--ink);
+  color: var(--paper);
+  font-weight: 550;
+  font-size: 14px;
+  text-decoration: none;
+  transition: background 160ms ease;
+}
+
+.kf-docs .btn:hover {
+  background: var(--accent);
+  color: var(--paper);
+  text-decoration: none;
+}
+
+.kf-docs .docs-footer {
+  background: var(--ink);
+  color: var(--paper);
+  padding: 48px var(--gutter) 24px;
+  margin-top: auto;
+}
+
+.kf-docs .docs-footer-inner {
+  max-width: var(--max);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 48px;
+}
+
+.kf-docs .docs-footer-brand .docs-wordmark {
+  color: var(--paper);
+  font-size: 26px;
+}
+
+.kf-docs .docs-footer-tag {
+  color: #bcc9ce;
+  font-size: 12px;
+  margin-top: 12px;
+  max-width: 240px;
+}
+
+.kf-docs .docs-footer-cols {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.kf-docs .docs-footer-cols h4 {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  color: var(--paper);
+}
+
+.kf-docs .docs-footer-cols ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 7px;
+}
+
+.kf-docs .docs-footer-cols a {
+  color: #bcc9ce;
+  font-size: 13px;
+}
+
+.kf-docs .docs-footer-cols a:hover {
+  color: var(--paper);
+  text-decoration: none;
+}
+
+.kf-docs .docs-footer-fineprint {
+  max-width: var(--max);
+  margin: 32px auto 0;
+  padding-top: 22px;
+  border-top: 1px solid #293c48;
+  color: #a0b1bb;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.kf-docs .docs-footer-fineprint a {
+  color: #bcc9ce;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+@media (max-width: 759px) {
+  .kf-docs .docs-nav {
+    flex-wrap: wrap;
+    gap: 14px;
+    padding: 12px var(--gutter);
+  }
+
+  .kf-docs .docs-links {
+    order: 3;
+    width: 100%;
+    justify-content: flex-start;
+    gap: 16px;
+    overflow-x: auto;
+    margin: 0;
+    padding: 4px 0 0;
+  }
+
+  .kf-docs .docs-cta {
+    margin-left: auto;
+  }
+
+  .kf-docs .docs-main {
+    padding: 36px var(--gutter) 64px;
+  }
+
+  .kf-docs .docs-footer-inner {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .kf-docs .docs-footer-cols {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .kf-docs .docs-footer-cols div:last-child ul {
+    columns: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kf-docs *,
+  .kf-docs *::before,
+  .kf-docs *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
