@@ -34,14 +34,14 @@ A professional workflow in three keystrokes. The first ten minutes.
 
 A few examples worth trying:
 
-| Query                       | Result                                                                                |
-| --------------------------- | ------------------------------------------------------------------------------------- |
-| `Najdorf`                   | The Sicilian Defence family, ECO B90–B99, with the variations ranked by depth.        |
-| `Carlsen`                   | The Magnus Carlsen player profile, with one Enter to Career / Recent / As White / As Black. |
-| `1.e4 c5 2.Nf3 d6`          | The Najdorf main line, with one Enter to the Explorer / Analysis / Databases.        |
-| A pasted FEN string         | Position actions, never a confused "no results" panel.                               |
-| A typed study title         | Your Study, with the cursor restored to where you last left it.                      |
-| `recent`                    | Your Continue card and pinned items, without leaving the keyboard.                   |
+| Query               | Result                                                                                      |
+| ------------------- | ------------------------------------------------------------------------------------------- |
+| `Najdorf`           | The Sicilian Defence family, ECO B90–B99, with the variations ranked by depth.              |
+| `Carlsen`           | The Magnus Carlsen player profile, with one Enter to Career / Recent / As White / As Black. |
+| `1.e4 c5 2.Nf3 d6`  | The Najdorf main line, with one Enter to the Explorer / Analysis / Databases.               |
+| A pasted FEN string | Position actions, never a confused "no results" panel.                                      |
+| A typed study title | Your Study, with the cursor restored to where you last left it.                             |
+| `recent`            | Your Continue card and pinned items, without leaving the keyboard.                          |
 
 When the board is on a position you care about, press <kbd>Cmd</kbd>+<kbd>K</kbd>
 and choose **Search this position** to query the local databases and the

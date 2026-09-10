@@ -131,6 +131,57 @@ hidden }` rule was preventing scroll on the marketing page; the fix
   that is 1 GB or larger, so the online path is the recommended
   default for huge sources.
 
+### Public release — Phase 32
+
+- **Master convergence.** The complete Phase 31 work
+  (universal search, FEN / move sequence recognition,
+  Open in … action registry, lastAccessed-indexed cache
+  eviction, storage-quota warning, recent work polish) is
+  now on `master` as of `c341718`. The pre-Phase 31 master
+  (`042ba36`) is no longer the canonical mainline.
+- **Production deployment.** The web product is live at
+  <https://kingfisher-roan.vercel.app> and the marketing
+  surface at <https://kingfisher-chess.vercel.app>.
+  `/analysis`, `/openings`, `/players`, `/databases`,
+  `/repertoire`, `/training`, `/settings` all return 200
+  with the new code; the public link check reports
+  20/20 endpoints live.
+- **README quickstart.** Three steps to a professional
+  workflow: open Kingfisher, press <kbd>Cmd</kbd>+<kbd>K</kbd>,
+  type and Enter. The quickstart lists `Najdorf`, `Carlsen`,
+  `1.e4 c5 2.Nf3 d6`, FEN paste, study title, and `recent`
+  as the first six things worth trying. Position search
+  ("Search this position"), Continue with last-opened,
+  online vs offline reference data, and local persistence /
+  backup are documented in the same place.
+- **Help and feedback.** Settings → Diagnostics gains a
+  "Help and feedback" group with external links to the
+  GitHub issue templates, the community discussion, the
+  changelog, and the security policy. A new `data`
+  issue template asks for the source name, the question
+  the player wanted answered, the actual answer, and the
+  source state — so a maintainer can reproduce without a
+  private PGN.
+- **Kingfisher 404.** A bad studio URL no longer lands on
+  the Next.js framework default. The 404 page offers
+  "Open a fresh analysis", "Search Kingfisher" (which
+  opens the universal palette via a window event), and
+  "Open the landing page" as the three recovery actions.
+- **Synthetic huge-source fixtures.** A new
+  `src/reference/synthetic-huge-sources.ts` declares 1 GB,
+  5 GB, and 20 GB fixtures with no payload. The catalog
+  row, the storage-quota confirm dialog, and the
+  `verdictForInstall` code path are exercised in a real
+  browser without downloading a real pack.
+- **Deployment model.** Push-to-master auto-deployment is
+  not yet wired on the Vercel account. The Phase 32
+  release used `vercel deploy --prod --yes` via the
+  authenticated CLI. Future pushes will continue to
+  deploy through the same CLI until the GitHub
+  connection is set up; the one-click import path
+  documented in `docs/deployment.md` is the recommended
+  replacement.
+
 - **"Saved on this device" status, in the sidebar.** A quiet
   indicator reports whether the browser considers the IndexedDB
   origin durable. If it does not, the user can click to ask the

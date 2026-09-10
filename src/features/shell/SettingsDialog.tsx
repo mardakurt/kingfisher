@@ -2158,8 +2158,8 @@ function HelpSection() {
             Report a problem →
           </a>
           <span className="ml-2 text-[11px] text-tertiary">
-            Bug report or feature request. Use the templates; they ask for
-            the same support information the button above captures.
+            Bug report or feature request. Use the templates; they ask for the same support
+            information the button above captures.
           </span>
         </li>
         <li>

@@ -22,9 +22,8 @@ export default function NotFound() {
       <div>
         <h1 className="text-base font-semibold text-primary">Page not found</h1>
         <p className="mt-1 max-w-[44ch] text-xs text-tertiary">
-          The address you opened is not part of the Kingfisher studio. The
-          page may have moved, or the link was never current. Pick a starting
-          point below and pick up where you were.
+          The address you opened is not part of the Kingfisher studio. The page may have moved, or
+          the link was never current. Pick a starting point below and pick up where you were.
         </p>
       </div>
       <div className="flex flex-wrap items-center justify-center gap-2">
