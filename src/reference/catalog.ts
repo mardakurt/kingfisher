@@ -174,6 +174,49 @@ export const CATALOG_PACKS: readonly CatalogPack[] = [
     },
   },
   {
+    /*
+      Phase 35 (PART BB): the v2 narrow-window Recent Theory pack.
+      Same content shape as v1, with the last 6 months instead of
+      24. Lives next to v1 in the catalog rather than replacing
+      it: a user who installed v1 keeps using it until they choose
+      otherwise, and the v1 directory remains immutable.
+    */
+    id: 'kingfisher-recent-theory',
+    name: 'Recent Theory Reference (6 months)',
+    description:
+      'The last six months only, kept at a lower frequency threshold so ' +
+      'that recent and rare continuations survive. A narrower window than ' +
+      'the v1 pack; smaller download, faster cadence, same provenance.',
+    manifestUrl: `${packRelease('reference-recent-v2')}manifest.json`,
+    bundled: false,
+    capabilities: [
+      'explorer',
+      'games',
+      'player-search',
+      'player-profiles',
+      'position-report',
+      'model-games',
+      'preparation',
+    ],
+    approximateBytes: 0, // populated by the build's `build-report.json`; pre-publish this is the floor
+    maxPositionPly: 40,
+    license: LICHESS_BROADCAST_LICENSE,
+    origin:
+      'Built from the last six months of the Lichess broadcast archive: ' +
+      '2026-03 through 2026-08. Same rating and title filter as v1, ' +
+      'narrower window.',
+    filter: {
+      minRating: 2400,
+      titles: ['GM', 'IM', 'WGM'],
+      excludeOnline: true,
+    },
+    window: {
+      firstYear: 2026,
+      lastYear: 2026,
+      archiveMonths: ['2026-08', '2026-07', '2026-06', '2026-05', '2026-04', '2026-03'],
+    },
+  },
+  {
     id: 'kingfisher-high-rated-online',
     name: 'High-Rated Online Reference',
     description:

@@ -8,7 +8,11 @@
   "scripts": {
     "start": "electron .",
     "pack": "node scripts/build.mjs --dir",
-    "dist": "node scripts/build.mjs"
+    "dist": "node scripts/build.mjs",
+    "dmg:background": "python3 scripts/build-dmg-background.py",
+    "dmg:icon": "bash scripts/build-dmg-icon.sh",
+    "dmg:assets": "npm run dmg:background && npm run dmg:icon",
+    "dmg:verify": "node scripts/verify-dmg.mjs"
   },
   "devDependencies": {
     "electron": "44.2.0",

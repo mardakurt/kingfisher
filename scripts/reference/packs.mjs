@@ -131,6 +131,73 @@ export const PACK_DEFINITIONS = {
     shards: { explorer: 48, game: 24, players: 4, playergames: 4 },
   },
 
+  /**
+   * Phase 35 (PART BB): the same idea, with a narrower window.
+   *
+   * `recent` is two years; this one is six months. The brief
+   * measured the tradeoff and the 6-month candidate has the best
+   * bytes-per-freshness. The narrower window means:
+   *   - smaller download (the 6 most recent Lichess broadcast
+   *     months are roughly 130 MB compressed);
+   *   - faster publication cadence (six months is short enough to
+   *     rebuild every release);
+   *   - same per-position population, so the comparisons that
+   *     work for v1 also work for v2.
+   *
+   * v1 remains published and served from the same catalog; v2 is
+   * an additional entry, not a replacement. The install path lets
+   * the user choose either one and re-use the bytes they already
+   * downloaded because the chunk format is content-addressed.
+   */
+  'recent-v2': {
+    id: 'kingfisher-recent-theory',
+    name: 'Recent Theory Reference',
+    description:
+      'The last six months of rating- and title-filtered Lichess broadcast ' +
+      'games, kept at a low frequency threshold so that recent and rare ' +
+      'continuations survive. A narrower window than the v1 pack; same ' +
+      'provenance, smaller download, faster cadence.',
+    version: '2',
+    output: `${externalPacks}/kingfisher-recent-theory-v2`,
+    source: LICHESS_BROADCAST,
+    transformation: TRANSFORMATION,
+    files: (digests) => broadcastMonths(digests).slice(0, 6),
+    limits: {
+      minRating: 2400,
+      openRating: 2500,
+      maxRating: 2900,
+      excludeOnline: true,
+      titles: ['GM', 'IM', 'WGM'],
+      openTitles: ['GM', 'IM'],
+      minPlies: 12,
+      // Same query depth as v1 — the population is smaller but the
+      // query shape is what users have learned to expect.
+      maxPly: 41,
+      // Two games, not one, in the shallow half. A single six-month
+      // sample can mislead; two is the threshold at which a recent
+      // source stops indexing the same player's whole score as
+      // "theory".
+      minGames: 2,
+      // At depth, one game is enough: a recency source values
+      // recent evidence more than multiple older ones.
+      deepFromPly: 18,
+      deepMinGames: 1,
+      maxMoves: 256,
+      topGames: 6,
+      // Smaller per-player cap because the window is narrower;
+      // 60 is still a generous game sample for an active GM/IM.
+      gamesPerPlayer: 60,
+      recentYears: 1,
+    },
+    // 6 months of high-rated games is a smaller population than 24
+    // months; the shard counts are tightened accordingly to keep
+    // the per-shard size useful. Shard count is a publishing
+    // concern, not a query one — the reader sees a single binary
+    // chunk file regardless of how many shards the publisher
+    // produced.
+    shards: { explorer: 24, game: 16, players: 4, playergames: 4 },
+  },
+
   elite: {
     id: 'kingfisher-elite-otb',
     name: 'Elite OTB Reference',

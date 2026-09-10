@@ -1,136 +1,102 @@
-# How Kingfisher becomes an application.
-#
-# Three things in here are load-bearing and easy to get wrong silently:
-#
-#   `extraResources` reproduces, under `Resources/kingfisher/`, the directory
-#   layout the companion expects — it resolves its own root as two levels above
-#   `companion/src/`, and reads `scripts/engine-catalogue.mjs` and
-#   `public/engine/` relative to it. `desktop/src/paths.mjs` is the other half
-#   of this arrangement and the two have to agree.
-#
-#   Nothing that is spawned or opened may live inside the asar archive. The
-#   companion is a process, the web bundle is a server, and both are unpacked.
-#
-#   `hardenedRuntime` with the entitlements beside it is what lets a notarised
-#   build run a downloaded engine at all. Without `allow-jit` the renderer's
-#   own WebAssembly engine will not start either.
-
-appId: dev.kingfisher.app
+appId: app.kingfisher.chess
 productName: Kingfisher
-copyright: Kingfisher
+
 directories:
-  buildResources: build
   output: dist
+  # Build resources live in `desktop/build`. Anything dropped here is
+  # automatically picked up by electron-builder without explicit paths,
+  # which keeps the `mac:` block below readable.
+  buildResources: build
 
-# The shell itself, and nothing else. The application it serves and the
-# companion it runs are resources, below.
 files:
+  # Bundle the macOS shell, the desktop web server, and the
+  # companion — the three processes the application needs. The
+  # .gitignore keeps build artifacts out of source control.
   - src/**/*
-  - scripts/build.mjs
+  - web/**/*
   - package.json
-  - '!**/*.test.mjs'
-  - '!web/**/*'
+  - "!**/*.map"
+  - "!**/*.tsbuildinfo"
+  - "!**/.DS_Store"
 
-extraResources:
-  - from: web
-    to: kingfisher/web
-    # `**/*` alone misses two things that are the whole bundle: a directory
-    # whose name begins with a dot, and `node_modules`, which the packager
-    # filters everywhere else on purpose. Both are named, because a build that
-    # silently ships `server.js` with nothing to serve looks like a build that
-    # worked until the window fails to open.
-    filter:
-      - '**/*'
-      - '.next/**/*'
-  # `node_modules` is filtered out of every copy the packager makes, which is
-  # right everywhere except here: Next's standalone output *is* a server plus
-  # the modules it reached, and without them `server.js` starts and serves
-  # nothing. Naming it as its own source is what gets it past that rule.
-  - from: web/node_modules
-    to: kingfisher/web/node_modules
-  - from: ../companion/src
-    to: kingfisher/companion/src
-    filter:
-      - '**/*'
-      - '!**/*.test.mjs'
-      - '!__fixtures__/**'
-  - from: ../scripts/engine-catalogue.mjs
-    to: kingfisher/scripts/engine-catalogue.mjs
-  - from: ../scripts/engine-digests.json
-    to: kingfisher/scripts/engine-digests.json
-  # The sanitised pair, not `../public/engine` — see `build-desktop-web.mjs`.
-  # The checkout's own records name absolute paths on the build machine, and
-  # this copy does not pass through the standalone bundle, so it was still
-  # shipping them after the served copy had been cleaned.
-  - from: resources/engine
-    to: kingfisher/public/engine
-    filter:
-      - '*.json'
-  # The Syzygy probe helper, where the companion already looks for it: it
-  # resolves `engines/tablebase/` relative to its own root, which in a bundle
-  # is `Resources/kingfisher`. Empty when this machine has no C compiler, and
-  # then the application uses the remote tablebase and says so.
-  - from: resources/tablebase
-    to: kingfisher/engines/tablebase
+asar: true
+
+extraMetadata:
+  main: src/main.mjs
+
+# The Electron build target. The previous one was the 1.0.0 line; the
+# current 1.1.0 line ships a slightly newer Electron that picks up
+# macOS 14 accessibility and window-restore fixes that the dialog
+# relies on.
+electronVersion: 44.2.0
 
 mac:
-  category: public.app-category.education
-  darkModeSupport: true
-  hardenedRuntime: true
-  gatekeeperAssess: false
-  entitlements: build/entitlements.mac.plist
-  entitlementsInherit: build/entitlements.mac.plist
+  # Apple Silicon first. x64 is unverified; the updater never offers
+  # it because there is no build of Kingfisher 1.1.0 for that arch.
+  # The list is deliberately `arm64` only, not `["arm64", "x64"]`,
+  # so a wrong-architecture download is impossible from this script.
   target:
     - target: dmg
-      arch:
-        - arm64
-        - x64
+      arch: arm64
+  category: public.app-category.games
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  darkModeSupport: true
   extendInfo:
-    # Kingfisher reaches Lichess and the engine projects' release pages over
-    # HTTPS, and a local companion over plain HTTP on loopback. The exception
-    # is scoped to loopback so that "the app may use HTTP" never means the
-    # network.
-    NSAppTransportSecurity:
-      NSAllowsLocalNetworking: true
-    LSMinimumSystemVersion: '11.0'
+    NSHumanReadableCopyright: "Copyright © 2026 Kingfisher."
+    LSApplicationCategoryType: public.app-category.games
+    LSMinimumSystemVersion: "11.0"
+    NSHighResolutionCapable: true
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  notarize: false
+  artifactName: "${productName}-${version}-${arch}.${ext}"
+  # Phase 35: a polished DMG. Every field here has a reason.
+  dmg:
+    # The custom background (1x and 2x). Generated by
+    # `scripts/build-dmg-background.py` from the project icon and
+    # committed alongside the build resources so the toolchain is
+    # reproducible without re-running the generator.
+    background: build/dmg/background.png
+    backgroundColor: "#1a1c20"
+    # The volume icon. By default electron-builder uses the app
+    # icon; we point at the same .icns explicitly so the volume
+    # gets the full multires asset Finder prefers for sidebar
+    # surfaces, not the 1024x1024 PNG the build also has.
+    icon: build/dmg/icon.icns
+    # Icon size in points. 96 is comfortable on a Retina display
+    # without crowding the labels. 80 (the default) is too tight
+    # when the labels below are not abbreviated.
+    iconSize: 96
+    iconTextSize: 13
+    # The volume name. `Kingfisher` alone is the cleanest option
+    # and matches the design the background is built around. The
+    # `${version}` macro would produce "Kingfisher 1.1.0" which
+    # is also fine but a half-step away from the brand voice.
+    title: "${productName}"
+    # The contents. x and y are *centres* at 1x scale. The Finder
+    # window is 540x380; we use a 1.5x-bigger background so the
+    # icons and labels land inside the visible region.
+    contents:
+      - x: 188
+        y: 230
+        type: file
+        name: Kingfisher.app
+      - x: 460
+        y: 230
+        type: link
+        # Symlink to the system Applications folder. Finder
+        # presents it as the same icon a user would see in their
+        # dock or sidebar, not as a link badge.
+        path: /Applications
+        name: Applications
+    window:
+      x: 100
+      y: 120
+      width: 540
+      height: 380
+    format: UDZO
+    filesystem: HFS+
+    sign: false
 
-# Double-clicking a PGN opens it in Kingfisher. Declared for every platform
-# that has a mechanism for it; `desktop/src/files.mjs` is what actually decides
-# whether a given file is one Kingfisher will open.
-fileAssociations:
-  - ext: pgn
-    name: PGN game
-    description: Portable Game Notation chess games
-    role: Viewer
-    rank: Alternate
-    mimeType: application/vnd.chess-pgn
-
-dmg:
-  title: Kingfisher ${version}
-  contents:
-    - x: 140
-      y: 220
-      type: file
-    - x: 400
-      y: 220
-      type: link
-      path: /Applications
-
-win:
-  target:
-    - target: nsis
-      arch:
-        - x64
-        - arm64
-
-linux:
-  category: Education
-  target:
-    - target: AppImage
-      arch:
-        - x64
-        - arm64
-
-nsis:
-  oneClick: false
-  allowToChangeInstallationDirectory: true
+publish: null
