@@ -57,11 +57,7 @@ export function StoragePersistenceStatus({ compact = false }: { readonly compact
   const router = useRouter();
   const notify = useUi((state) => state.notify);
   const [popoverOpen, setPopoverOpen] = useState(false);
-  const view = composeSavedState(
-    persistence as SavedStatePersistence,
-    writeStatus,
-    failureLabel,
-  );
+  const view = composeSavedState(persistence as SavedStatePersistence, writeStatus, failureLabel);
 
   return (
     <div
@@ -126,8 +122,8 @@ export function StoragePersistenceStatus({ compact = false }: { readonly compact
           <p className="mt-1 text-[11px] text-tertiary">{view.detail}</p>
           {writeStatus === 'failed' ? (
             <p className="mt-2 text-[11px] text-tertiary">
-              The most recent change did not reach local storage. A retry or a backup download is the safest
-              next step.
+              The most recent change did not reach local storage. A retry or a backup download is
+              the safest next step.
             </p>
           ) : (
             <p className="mt-2 text-[11px] text-tertiary">

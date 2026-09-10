@@ -46,13 +46,13 @@ The maintainer is the only person triaging. The flow is:
 
 ## Severity
 
-| Severity    | Definition                                                                                       | Target response |
-| ----------- | ------------------------------------------------------------------------------------------------ | --------------- |
-| Critical    | Data loss, repeated crash, dead primary control, security exposure, broken core workflow.        | Same day        |
-| High        | Wrong result the user would notice (wrong move list, stale engine verdict, wrong opening).       | Same day        |
-| Medium      | Defect a user would notice but a workaround exists.                                             | Within a week   |
-| Low         | Cosmetic defect a user might mention.                                                            | Backlog         |
-| Improvement | Software works correctly; could be faster, clearer, more polished, or more powerful.             | Backlog         |
+| Severity    | Definition                                                                                 | Target response |
+| ----------- | ------------------------------------------------------------------------------------------ | --------------- |
+| Critical    | Data loss, repeated crash, dead primary control, security exposure, broken core workflow.  | Same day        |
+| High        | Wrong result the user would notice (wrong move list, stale engine verdict, wrong opening). | Same day        |
+| Medium      | Defect a user would notice but a workaround exists.                                        | Within a week   |
+| Low         | Cosmetic defect a user might mention.                                                      | Backlog         |
+| Improvement | Software works correctly; could be faster, clearer, more polished, or more powerful.       | Backlog         |
 
 A "Support with limitation" environment target cannot produce a
 report at Low or Medium: a known limitation is a known

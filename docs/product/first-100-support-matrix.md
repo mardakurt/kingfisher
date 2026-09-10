@@ -22,30 +22,30 @@ end-to-end Playwright suite.
 
 ## Web / PWA (the primary surface for the first 100 users)
 
-| OS                        | Browser        | Result                  | Limitation                                                                                                          |
-| ------------------------- | -------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| macOS 14+ Apple Silicon   | Safari 17+     | SUPPORTED WITH LIMITATION | WebKit has no `crossOriginIsolated` by default — Stockfish WASM runs in single-threaded mode. Service worker optional. |
-| macOS 14+ Apple Silicon   | Chrome 130+    | SUPPORTED               | PWA install, offline shell, full Stockfish multithreading.                                                          |
-| macOS 14+ Apple Silicon   | Firefox 130+   | SUPPORTED WITH LIMITATION | Service worker is supported; PWA install on macOS is exposed as "Add to Dock" rather than Chrome's install bar.      |
-| Windows 10 / 11           | Chrome 130+    | SUPPORTED               | Full PWA install, full Stockfish, cross-origin isolated.                                                            |
-| Windows 10 / 11           | Edge 130+     | SUPPORTED               | Same as Chrome; Chromium-based.                                                                                      |
-| Windows 10 / 11           | Firefox 130+   | SUPPORTED WITH LIMITATION | PWA install on Windows is exposed as "Add to Apps" rather than the Chromium-style install bar.                       |
-| Linux (Ubuntu 22+)        | Chrome / Chromium 130+ | SUPPORTED WITH LIMITATION | No system-tray native integration. Web/PWA work as in Chrome; persistent storage prompt appears as in any browser.   |
-| Linux (Ubuntu 22+)        | Firefox 130+   | SUPPORTED WITH LIMITATION | Same Firefox PWA limitations.                                                                                       |
+| OS                      | Browser                | Result                    | Limitation                                                                                                             |
+| ----------------------- | ---------------------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| macOS 14+ Apple Silicon | Safari 17+             | SUPPORTED WITH LIMITATION | WebKit has no `crossOriginIsolated` by default — Stockfish WASM runs in single-threaded mode. Service worker optional. |
+| macOS 14+ Apple Silicon | Chrome 130+            | SUPPORTED                 | PWA install, offline shell, full Stockfish multithreading.                                                             |
+| macOS 14+ Apple Silicon | Firefox 130+           | SUPPORTED WITH LIMITATION | Service worker is supported; PWA install on macOS is exposed as "Add to Dock" rather than Chrome's install bar.        |
+| Windows 10 / 11         | Chrome 130+            | SUPPORTED                 | Full PWA install, full Stockfish, cross-origin isolated.                                                               |
+| Windows 10 / 11         | Edge 130+              | SUPPORTED                 | Same as Chrome; Chromium-based.                                                                                        |
+| Windows 10 / 11         | Firefox 130+           | SUPPORTED WITH LIMITATION | PWA install on Windows is exposed as "Add to Apps" rather than the Chromium-style install bar.                         |
+| Linux (Ubuntu 22+)      | Chrome / Chromium 130+ | SUPPORTED WITH LIMITATION | No system-tray native integration. Web/PWA work as in Chrome; persistent storage prompt appears as in any browser.     |
+| Linux (Ubuntu 22+)      | Firefox 130+           | SUPPORTED WITH LIMITATION | Same Firefox PWA limitations.                                                                                          |
 
 ## Mobile (secondary, but must not be visibly broken)
 
-| OS                 | Browser              | Result                  | Limitation                                                                                                            |
-| ------------------ | -------------------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| iOS 17 / 18        | Safari               | SUPPORTED WITH LIMITATION | Add-to-Home-Screen PWA is the only "install" path; some PWA features (crossOriginIsolated, multithreaded Stockfish) are not available; the workstation is not the primary recommended environment. |
-| Android 13+        | Chrome 130+          | SUPPORTED WITH LIMITATION | Same mobile constraints; usable for review and read-only paths.                                                       |
+| OS          | Browser     | Result                    | Limitation                                                                                                                                                                                         |
+| ----------- | ----------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| iOS 17 / 18 | Safari      | SUPPORTED WITH LIMITATION | Add-to-Home-Screen PWA is the only "install" path; some PWA features (crossOriginIsolated, multithreaded Stockfish) are not available; the workstation is not the primary recommended environment. |
+| Android 13+ | Chrome 130+ | SUPPORTED WITH LIMITATION | Same mobile constraints; usable for review and read-only paths.                                                                                                                                    |
 
 ## Desktop shell (Preview until Developer ID Application is available)
 
-| Identity                              | Result                  | Limitation                                                                                                          |
-| ------------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| macOS 14+ Apple Silicon, dev-signed   | SUPPORTED WITH LIMITATION | Preview: Gatekeeper requires right-click → Open. The in-app Settings → Diagnostics card states this in plain English. The first 100 users can be invited to a Preview track with this warning. |
-| macOS 14+ Apple Silicon, Developer ID Application | NOT CERTIFIED       | No certificate on the build host. The 1.1.0 trusted release runbook is prepared; once a certificate appears, an owner-decision run can cut a notarised 1.1.0. |
+| Identity                                          | Result                    | Limitation                                                                                                                                                                                     |
+| ------------------------------------------------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| macOS 14+ Apple Silicon, dev-signed               | SUPPORTED WITH LIMITATION | Preview: Gatekeeper requires right-click → Open. The in-app Settings → Diagnostics card states this in plain English. The first 100 users can be invited to a Preview track with this warning. |
+| macOS 14+ Apple Silicon, Developer ID Application | NOT CERTIFIED             | No certificate on the build host. The 1.1.0 trusted release runbook is prepared; once a certificate appears, an owner-decision run can cut a notarised 1.1.0.                                  |
 
 ## What "SUPPORTED" means here
 

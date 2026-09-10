@@ -22,11 +22,7 @@ export type SavedStatePersistence = 'pending' | 'persistent' | 'not-persistent' 
 export type SavedStateWrite = 'saved' | 'saving' | 'failed';
 
 export type SavedStateTone =
-  | 'text-tertiary'
-  | 'text-positive'
-  | 'text-warning'
-  | 'text-caution'
-  | 'text-negative';
+  'text-tertiary' | 'text-positive' | 'text-warning' | 'text-caution' | 'text-negative';
 
 export interface SavedStateView {
   readonly label: string;
