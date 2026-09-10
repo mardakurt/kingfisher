@@ -196,3 +196,104 @@ describe('position changes invalidate evidence and pending searches', () => {
     expect(useEngine.getState().primary.running).toBe(false);
   });
 });
+
+describe('a snapshot from a search the user has already moved past is dropped (Phase 38 PART AS)', () => {
+  beforeEach(() => {
+    useEngine.getState().shutdown();
+    create.mockReset();
+  });
+
+  it('a late snapshot for a stale position never lands on the live slot', async () => {
+    /*
+      The first search on a position is still going. The user has already
+      moved to a second position, and that search is producing snapshots. The
+      first search finally emits a snapshot. The slot must keep the second
+      position's verdict, not the first one's late straggler.
+    */
+    const sessions: EngineSession[] = [];
+    function recordingSession(): EngineSession {
+      let listener: ((snapshot: unknown) => void) | null = null;
+      const handle: AnalysisHandle = {
+        stop: vi.fn(),
+        finished: new Promise<never>(() => undefined),
+      };
+      const session: EngineSession = {
+        identity: { name: 'Test engine' },
+        capabilities: { multiPv: true, searchMoves: true, threads: false, hash: true },
+        configure: vi.fn(async () => undefined),
+        analyse: vi.fn((_req, l) => {
+          listener = l as (snapshot: unknown) => void;
+          return handle;
+        }),
+        stop: vi.fn(),
+        dispose: vi.fn(),
+      } as unknown as EngineSession;
+      sessions.push(session);
+      return Object.assign(session, {
+        emit(snapshot: unknown) {
+          listener?.(snapshot);
+        },
+      });
+    }
+
+    const first = recordingSession();
+    const second = recordingSession();
+    create.mockImplementation(async () => {
+      const next = sessions[0] === undefined ? first : second;
+      return next;
+    });
+
+    // Start the first search. It holds the session open without producing
+    // a snapshot so the user can move to the next position.
+    const firstRun = useEngine
+      .getState()
+      .analyse('primary', START_FEN, { kind: 'infinite' }, { multiPv: 1, threads: 1, hashMb: 16 });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    // Move the board. The store is told the user is on a different FEN,
+    // so the first session's late snapshot must be dropped.
+    const other = START_FEN.replace(' w ', ' b ') as typeof START_FEN;
+    useEngine.getState().invalidatePosition(other);
+    // Start a new search for the new position.
+    const secondRun = useEngine
+      .getState()
+      .analyse('primary', other, { kind: 'infinite' }, { multiPv: 1, threads: 1, hashMb: 16 });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    // The first search finally emits a snapshot. The slot must keep the
+    // second search's verdict, not absorb this straggler.
+    (first as unknown as { emit: (snapshot: unknown) => void }).emit({
+      fen: START_FEN,
+      depth: 10,
+      seldepth: 12,
+      nodes: 1000,
+      nps: 0,
+      timeMs: 0,
+      lines: [{ moves: [], score: { kind: 'cp', value: 30 } }],
+      complete: false,
+    });
+
+    // The second search produces a snapshot. That one lands.
+    (second as unknown as { emit: (snapshot: unknown) => void }).emit({
+      fen: other,
+      depth: 6,
+      seldepth: 8,
+      nodes: 200,
+      nps: 0,
+      timeMs: 0,
+      lines: [{ moves: [], score: { kind: 'cp', value: 12 } }],
+      complete: false,
+    });
+    await Promise.resolve();
+
+    const slot = useEngine.getState().primary;
+    expect(slot.analysedFen).toBe(other);
+    expect(slot.analysis?.fen).toBe(other);
+    // The straggler from the first session must not be on the live slot.
+    expect(slot.analysis?.lines[0]?.score).toEqual({ kind: 'cp', value: 12 });
+    await firstRun.catch(() => undefined);
+    await secondRun;
+  });
+});

@@ -245,3 +245,44 @@ describe('loading and exporting', () => {
     expect(nodeCount(store().tree)).toBe(0);
   });
 });
+
+describe('saving is revision-aware (Phase 38 PART P, R)', () => {
+  /*
+    The brief says a Save indicator that turns green while a write
+    is still in flight is dishonest. The store pins the captured
+    revision on a save and ignores a markSaved() that returns a
+    revision older than the current document. An edit made while
+    the write is in flight bumps `revision`; the stale markSaved()
+    must not overwrite `savedRevision` with the older value.
+  */
+  it('a late markSaved() with an older revision does not move savedRevision', () => {
+    const start = store().revision;
+    store().markSaving();
+    // Another edit lands while the save is in flight.
+    playLine(['e4']);
+    expect(store().revision).toBeGreaterThan(start);
+    const liveRevision = store().revision;
+    // The save comes back with the revision it captured, not the new one.
+    store().markSaved(start);
+    expect(store().savedRevision).toBeLessThan(liveRevision);
+    expect(store().saving).toBe(false);
+  });
+
+  it('a markSaved() with the live revision clears the save state', () => {
+    playLine(['e4']);
+    const revision = store().revision;
+    store().markSaving();
+    expect(store().saving).toBe(true);
+    store().markSaved(revision);
+    expect(store().savedRevision).toBe(revision);
+    expect(store().saveError).toBeNull();
+  });
+
+  it('markSaveFailed sets the error and stops the spinner', () => {
+    playLine(['e4']);
+    store().markSaving();
+    store().markSaveFailed('IndexedDB transaction aborted');
+    expect(store().saving).toBe(false);
+    expect(store().saveError).toBe('IndexedDB transaction aborted');
+  });
+});
