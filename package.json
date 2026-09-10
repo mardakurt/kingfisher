@@ -47,6 +47,7 @@
     "bench:claim-search": "node scripts/bench-claim-search.mjs",
     "bench:preparation": "node scripts/bench-preparation.mjs",
     "bench:streaming-cache": "node scripts/bench-streaming-cache.mjs",
+    "bench:cache-eviction": "node scripts/bench-cache-eviction.mjs",
     "benchmark": "node scripts/benchmark.mjs",
     "bundle:report": "node scripts/bundle-report.mjs",
     "smoke:lichess": "node scripts/smoke-lichess.mjs",

@@ -265,38 +265,29 @@ export class TieredStreamingCache {
    * in memory survives in persistent; a chunk the memory tier
    * has dropped is a candidate to be pruned here.
    *
-   * The walk is bounded by 256 records at a time, so a single
-   * put is not allowed to scan the whole persistent tier
-   * looking for victims. If we cannot free enough room, the
-   * new chunk is still written: a budget overrun is a soft
-   * signal, not a hard refusal, and the user can always
-   * clear the cache explicitly.
+   * The walk is bounded by 256 records at a time, using the
+   * `lastAccessed` index the persistent store keeps for exactly
+   * this purpose. A single put never scans more than 256 records,
+   * which keeps the eviction O(1) on the size of the cache.
    */
   private async enforcePersistentBudget(incomingBytes: number): Promise<void> {
     const total = await this.persistent.totalBytes();
     const budget = this.persistentBudget;
     if (total + incomingBytes <= budget) return;
     const over = total + incomingBytes - budget;
-    // Walk the persistent store in iteration order, which is the
-    // order the records were inserted. The memory LRU on top
-    // touches `lastAccessed` on every hit, so anything that is
-    // still in the memory tier is a recent hit; anything that has
-    // been evicted from memory is older, and older is what we
-    // want to evict from persistent.
+    // Oldest-first, indexed by `lastAccessed`. Anything still
+    // resident in memory is younger than the oldest persistent
+    // record, so we never evict something the user just touched.
     const memoryDigests = new Set<string>();
     for (const digest of this.memoryKeys()) memoryDigests.add(digest);
-    const candidates: { digest: string; bytes: number }[] = [];
-    for await (const record of this.persistent.entries()) {
-      if (memoryDigests.has(record.digest)) continue;
-      candidates.push({ digest: record.digest, bytes: record.bytesLength });
-      if (candidates.length >= 256) break;
-    }
+    const candidates = await this.persistent.oldestEntries(512);
     let freed = 0;
     for (const candidate of candidates) {
       if (freed >= over) break;
+      if (memoryDigests.has(candidate.digest)) continue;
       await this.persistent.delete(candidate.digest).catch(() => undefined);
-      freed += candidate.bytes;
-      this.onPersistentEvict?.({ sha256: candidate.digest, bytes: candidate.bytes });
+      freed += candidate.bytesLength;
+      this.onPersistentEvict?.({ sha256: candidate.digest, bytes: candidate.bytesLength });
     }
   }
 

@@ -99,6 +99,14 @@ export interface StreamingCacheStorage {
    * Used by the LRU to make room before writing a new chunk.
    */
   pruneToBudget(candidates: readonly string[], budgetBytes: number): Promise<number>;
+  /**
+   * Return up to `limit` least-recently-accessed records.
+   *
+   * The IndexedDB implementation uses the `lastAccessed` index; the
+   * in-memory shim sorts on read. Either way the result is sorted
+   * oldest-first, so the caller can evict in order.
+   */
+  oldestEntries(limit: number): Promise<readonly StreamingCacheRecord[]>;
 }
 
 const openDatabase = async (): Promise<StreamingCacheStorage> => openStreamingCacheDatabase();
@@ -154,6 +162,11 @@ export class IndexedDbStreamingCacheStorage implements StreamingCacheStorage {
   async pruneToBudget(candidates: readonly string[], budgetBytes: number): Promise<number> {
     const db = await this.dbPromise;
     return db.pruneToBudget(candidates, budgetBytes);
+  }
+
+  async oldestEntries(limit: number): Promise<readonly StreamingCacheRecord[]> {
+    const db = await this.dbPromise;
+    return db.oldestEntries(limit);
   }
 }
 

@@ -44,6 +44,12 @@ import {
 } from '@/reference/types';
 import { usePreferences } from '@/stores/preferences-store';
 import { useUi } from '@/stores/ui-store';
+import {
+  formatBytesShort,
+  readStorageQuota,
+  verdictForInstall,
+  type StorageQuotaReport,
+} from '@/reference/storage-quota';
 
 import { badgeForSource } from './reference-source-state';
 
@@ -79,6 +85,27 @@ export function ReferenceCatalogPanel() {
   const [installing, setInstalling] = useState(false);
   const [verifying, setVerifying] = useState<string | null>(null);
   const [usingOnline, setUsingOnline] = useState<string | null>(null);
+  // A pack install that is too big for the browser's reported free
+  // space pauses behind a confirm dialog. The dialog does not block
+  // the install — a player who insists on a 5 GB download on a 6 GB
+  // device gets to make that call themselves.
+  const [pendingInstall, setPendingInstall] = useState<ReferenceSource | null>(null);
+  const [quotaReport, setQuotaReport] = useState<StorageQuotaReport | null>(null);
+
+  const requestInstall = async (source: ReferenceSource) => {
+    if (!source.installableSize) {
+      void startInstall(source.id);
+      return;
+    }
+    const report = await readStorageQuota();
+    setQuotaReport(report);
+    const verdict = verdictForInstall(report, source.installableSize);
+    if (verdict.kind === 'overflows') {
+      setPendingInstall(source);
+      return;
+    }
+    void startInstall(source.id);
+  };
 
   const order = sources.map((source) => source.id);
 
@@ -253,7 +280,7 @@ export function ReferenceCatalogPanel() {
                       <Button
                         variant="subtle"
                         disabled={Boolean(progress) || verifying !== null}
-                        onClick={() => void startInstall(source.id)}
+                        onClick={() => void requestInstall(source)}
                       >
                         Reinstall
                       </Button>
@@ -284,7 +311,7 @@ export function ReferenceCatalogPanel() {
                         >
                           {usingOnline === source.id ? 'Connecting…' : 'Use online'}
                         </Button>
-                        <Button icon={<Download />} onClick={() => void startInstall(source.id)}>
+                        <Button icon={<Download />} onClick={() => void requestInstall(source)}>
                           Install
                         </Button>
                       </>
@@ -318,7 +345,7 @@ export function ReferenceCatalogPanel() {
                         </Button>
                       </>
                     ) : source.updateAvailable ? (
-                      <Button onClick={() => void startInstall(source.id)}>Update</Button>
+                      <Button onClick={() => void requestInstall(source)}>Update</Button>
                     ) : null}
                     {source.kind === 'installed' && !progress ? (
                       <Button
@@ -389,6 +416,49 @@ export function ReferenceCatalogPanel() {
           if (target) await removePack(target.id);
         }}
       />
+      <ConfirmDialog
+        open={pendingInstall !== null}
+        title={
+          pendingInstall?.installableSize
+            ? `Install ${pendingInstall.name} (${formatSize(pendingInstall.installableSize)})?`
+            : `Install ${pendingInstall?.name ?? ''}?`
+        }
+        description={
+          pendingInstall?.installableSize && quotaReport
+            ? (() => {
+                const verdict = verdictForInstall(quotaReport, pendingInstall.installableSize);
+                if (verdict.kind === 'overflows') {
+                  return (
+                    'The browser reports ' +
+                    formatBytesShort(verdict.shortByBytes) +
+                    ' less free space than this pack needs. The download will probably fail. ' +
+                    'You can still try — Kingfisher uses online chunks on demand when offline ' +
+                    'use is too large, and you can keep working that way without downloading ' +
+                    'the whole pack.'
+                  );
+                }
+                if (verdict.kind === 'tight') {
+                  return (
+                    'The browser reports only ' +
+                    formatBytesShort(verdict.headroomBytes) +
+                    ' of free space after the install. The download may run out before it finishes.'
+                  );
+                }
+                return (
+                  'The browser reports enough free space. Kingfisher will resume the download if it ' +
+                  'is interrupted.'
+                );
+              })()
+            : 'Kingfisher will resume the download if it is interrupted.'
+        }
+        confirmLabel="Install anyway"
+        onCancel={() => setPendingInstall(null)}
+        onConfirm={() => {
+          const target = pendingInstall;
+          setPendingInstall(null);
+          if (target) void startInstall(target.id);
+        }}
+      />
     </div>
   );
 }
@@ -452,6 +522,16 @@ function Facts({ source }: { readonly source: ReferenceSource }) {
     }
     if (source.installableSize) {
       facts.push(`${formatSize(source.installableSize)} to install for offline`);
+    }
+    /*
+     * A source is "huge" when its logical pack is more than 1 GB.
+     * The brief is explicit: do not block online use just because
+     * the offline install is huge, but make the size unmistakable
+     * on the catalog row so a player who is short on disk can plan
+     * for it. The online path remains the recommended default.
+     */
+    if (source.installableSize && source.installableSize >= 1_000_000_000) {
+      facts.push('Use online to avoid downloading the full pack');
     }
   } else if (source.kind === 'installed' || source.kind === 'bundled') {
     facts.push(source.offline ? 'Works offline' : 'Needs a connection');

@@ -233,4 +233,35 @@ class IndexedDbStreamingCacheDatabase implements StreamingCacheStorage {
     }
     return freed;
   }
+
+  /**
+   * Return the `limit` least-recently-accessed records.
+   *
+   * This uses the `lastAccessed` index in cursor order, so it costs one
+   * index scan rather than a full table walk. Eviction above the LRU
+   * asks for it instead of `entries()` when the cache is large, which
+   * is the case Phase 30's handover identified as the next bottleneck.
+   */
+  async oldestEntries(limit: number): Promise<readonly StreamingCacheRecord[]> {
+    if (limit <= 0) return [];
+    const db = await this.open();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STREAMING_CACHE_STORE, 'readonly');
+      const store = tx.objectStore(STREAMING_CACHE_STORE);
+      const index = store.index('lastAccessed');
+      const collected: StreamingCacheRecord[] = [];
+      const request = index.openCursor();
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (!cursor || collected.length >= limit) {
+          resolve(collected);
+          return;
+        }
+        collected.push(cursor.value as StreamingCacheRecord);
+        cursor.continue();
+      };
+      request.onerror = () =>
+        reject(request.error ?? new Error('Streaming cache oldestEntries failed.'));
+    });
+  }
 }

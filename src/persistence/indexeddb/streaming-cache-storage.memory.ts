@@ -70,4 +70,11 @@ export class InMemoryStreamingCacheStorage implements StreamingCacheStorage {
     }
     return freed;
   }
+
+  async oldestEntries(limit: number): Promise<readonly StreamingCacheRecord[]> {
+    if (limit <= 0) return [];
+    return [...this.records.values()]
+      .sort((a, b) => a.lastAccessed - b.lastAccessed)
+      .slice(0, limit);
+  }
 }
