@@ -393,3 +393,65 @@ A public surface change is a deliberate change. Update
 `public-urls.ts`, the matching page, the matching docs
 page, the matching `public-claims.md` row, and run
 `npm run docs:check` before considering the change done.
+
+## Phase 35 — the desktop update service
+
+The macOS application menu's *Kingfisher → Check for Updates…*
+item is the primary entry point for the desktop update flow.
+There is exactly one update service for the whole application:
+
+- The Electron main process owns the network and the filesystem.
+  The renderer never sees `fetch` and never sees `fs`. The
+  preload exposes a four-method bridge:
+  `showUpdateDialog`, `updateStatus`, `subscribeUpdates`, and the
+  callback for the dialog action (`check`, `download`, `cancel`,
+  `open`, `close`, `release`).
+- The macOS application menu, the *File* menu, the
+  *Settings → Application* panel and the *Check for Updates…*
+  command in the command palette all reach the same
+  `DesktopUpdateService` instance. The menu tests in
+  `desktop/src/menu.test.mjs` pin this; removing
+  *Check for Updates…* from the application menu fails the gate.
+- The check is **manual** — one HTTPS request on click, no
+  background poller, no telemetry. The brief calls this
+  "the user's click is the only network event" and the
+  implementation is the same rule.
+- The release source is the GitHub release manifest at
+  `…/releases/latest/download/kingfisher-release-manifest.json`.
+  The manifest is the only thing the service trusts; the
+  release page is for the *View Release Notes* button.
+  The full schema is in
+  [`docs/release/release-manifest.md`](docs/release/release-manifest.md).
+- The DMG is downloaded into
+  `~/Library/Caches/Kingfisher/updates/` and verified against
+  its SHA-256 **before** the dialog offers *Open Installer*. A
+  failed verification unlinks the partial file and reports
+  *The downloaded update could not be verified.*
+- The DMG that lands on the user is never the only copy of
+  the user's work. Studies, repertoire, training, preferences
+  and reference state live in
+  `~/Library/Application Support/Kingfisher/`, which the
+  updater never touches.
+
+## Phase 35 — the polished DMG
+
+The DMG is now a Kingfisher-branded volume, not a generic
+developer disk. The design is built around one question: does
+the user know what to drag? Every DMG that ships is checked by
+`npm run desktop:dmg:verify`, which mounts the image and
+asserts:
+
+- the volume name is `Kingfisher`,
+- the volume has a `.VolumeIcon.icns` at the root,
+- the only visible Finder items are `Kingfisher.app` and the
+  `Applications` symlink,
+- the `Applications` symlink resolves to `/Applications`,
+- the embedded `Info.plist` carries the right bundle id and
+  short version, and
+- the Mach-O `lipo` reports `arm64`.
+
+The background and the volume icon are generated from committed
+sources (`desktop/scripts/build-dmg-background.py`,
+`desktop/scripts/build-dmg-icon.sh`) so the visual is
+reproducible from the repository, not a screenshot a designer
+remembers.
