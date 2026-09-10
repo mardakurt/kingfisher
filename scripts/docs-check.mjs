@@ -207,6 +207,8 @@ const allowLegacyPages = new Set([
   'docs/data/reference-packs.md',
   'src/app/privacy/PrivacyPage.tsx',
   'CHANGELOG.md',
+  'AGENTS.md',
+  'CLAUDE.md',
 ]);
 for (const rel of CANONICAL) {
   if (allowLegacyPages.has(rel)) continue;
