@@ -26,6 +26,15 @@ export const LANDING_PATHS = new Set<string>([
   '/manifest.webmanifest',
   '/robots.txt',
   '/sitemap.xml',
+  // Public trust surfaces added in Phase 33. The canonical
+  // docs and install guide; the marketing surface answers
+  // them on the landing host. Keep this list in lockstep
+  // with `src/app/{install,privacy,security,data-licences,terms}/page.tsx`.
+  '/install',
+  '/privacy',
+  '/security',
+  '/data-licences',
+  '/terms',
 ]);
 
 /**
