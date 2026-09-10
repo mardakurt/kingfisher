@@ -1,14 +1,22 @@
 # Installing Kingfisher on macOS
 
 This is the **honest version** of the install guide. Kingfisher
-1.1.0 for macOS is **Developer ID signed** and **notarised by
-Apple**; the notarization ticket is stapled to the deliverable
-so a normal double-click is all a first launch needs. There is
-no Gatekeeper workaround and no system-wide setting to flip.
+1.0.0 for macOS is a Preview build — code-signed with an Apple
+**Development** identity, **not** a notarised Developer ID release.
+Gatekeeper may therefore block the first launch. This page tells
+you exactly what to do about that, without disabling anything
+system-wide.
 
-If you are on a 1.0.x build and the installer still asks you
-to right-click → Open, you are looking at a pre-Phase 36 build
-and the new version's first launch will be silent.
+> **Note on 1.1.0 and notarisation.** The 1.1.0 release is
+> **planned** to be Developer ID signed and Apple-notarised, with
+> a stapled ticket, and a normal double-click as the only step a
+> first launch needs. That release is **not yet published**. Until
+> it is, every macOS build that exists is the 1.0.0 Preview and
+> follows the Gatekeeper instructions below. The release runbook
+> for the trusted 1.1.0 build lives in
+> [`macos-trusted-release.md`](./macos-trusted-release.md); do
+> **not** apply that document to the 1.0.0 binary you actually
+> download from the latest release.
 
 ## What you need
 
@@ -58,166 +66,111 @@ the eject button next to it in Finder).
 Open Kingfisher from Applications or Spotlight. The first launch
 is the one Gatekeeper cares about.
 
-**Kingfisher 1.1.0 is Developer ID signed and notarised by
-Apple.** The notarization ticket is stapled to the application,
-so the offline Gatekeeper decision is in your favor. A normal
-double-click is enough. There is no right-click → Open step
-and there is no system-wide setting to change.
+**Kingfisher 1.0.0 is code-signed but not notarised.** On a Mac
+that has not seen this build, macOS will refuse to open it and say
+the application is *damaged* or *cannot be checked for malicious
+software*. That is not a diagnosis of the file. Notarisation is
+an Apple service that requires a **Developer ID Application**
+certificate, and this build does not have one — the identity it
+was signed with is a development certificate, which is a
+different kind. Nothing about the application changes when the
+right certificate exists; only the ability to hand you the
+installer does.
 
-If you have an older 1.0.x build that you signed-out, the new
-build will be detected by the auto-update path on the next
-launch; the macOS menu's **Kingfisher → Check for Updates…**
-item offers **Install Update** as the primary action.
+**The safe, supported way through Gatekeeper:**
 
-**Do not turn Gatekeeper off.** `spctl --master-disable` and
-its relatives disable a system-wide protection for every
-application on the machine, for as long as you leave it off,
-to solve a problem with one file. Nothing in Kingfisher is
-worth that, and Kingfisher will not ask you to do it.
+1. Open Finder and go to **Applications**.
+2. **right-click → Open** the Kingfisher icon (or Control-click
+   and choose **Open** from the menu). This is the only step
+   that is different from a normal app launch.
+3. macOS will show a confirmation dialog: *“Kingfisher” is from
+   an unidentified developer. Are you sure you want to open it?*
+   Click **Open**.
+4. From this point on Kingfisher opens normally, including
+   through Spotlight and Launchpad.
 
-## 6. First five minutes
+The first right-click is the only friction. Gatekeeper records
+the exception per application, per machine, and remembers it.
 
-Kingfisher opens on the analysis board with a game position and
-the tools beside it.
+## 6. If the first launch still fails
 
-1. **Play a few moves** on the board, or click one in the
-   Explorer.
-2. **Press _Analyse this position_.** Stockfish 18 runs in the
-   application; nothing is downloaded and nothing is sent
-   anywhere.
-3. **Open the _Explorer_ tool.** It answers from Kingfisher
-   Starter — 172,376 over-the-board games — and keeps answering
-   twenty full moves in.
-4. **Open the _Theory Book_ tool.** It names the opening you
-   are in, with its ECO code, and shows no numbers at all: a
-   name is the only claim it makes.
-5. **Search a player.** Players → type "Carlsen".
-6. **Save something.** Save to study, then quit and reopen. It
-   is still there.
+If macOS still refuses to open the application after step 5, or
+if your Mac is set to only allow App Store and identified
+developers, do **not** flip a system-wide setting. The
+instructions above are the supported path for an unnotarised
+preview. The only thing that removes the right-click step is a
+Developer ID build of the application, which does not exist yet
+for 1.0.0.
 
-## 7. Updating
+If the file truly is damaged (a `shasum` mismatch, for example),
+delete the DMG and download it again. A corrupt download is a
+real problem; the Gatekeeper message by itself is not.
 
-**The normal path** is in-app and one click:
+## 7. Updates
 
-1. **Kingfisher → Check for Updates…** in the macOS menu bar.
-2. If a newer version is published, the dialog shows
-   **Kingfisher 1.X.Y is ready to install.** with two
-   buttons: **Install Update** (primary) and **View Release
-   Notes** (secondary).
-3. Click **Install Update**. Kingfisher downloads the update
-   in the background, verifies it against the signed
-   manifest, asks any open windows to finish saving your work,
-   and replaces the running application. The previous version
-   closes; the new version opens. There is no second "Open
-   Installer" click.
-4. On the first launch of the new version, Kingfisher shows a
-   small "Kingfisher was updated to 1.X.Y" notice once. The
-   notice is dismissed by clicking the **What's New** link or
-   by simply closing it; it does not appear again.
+Kingfisher checks for updates through the application itself:
+**Kingfisher → Check for Updates…** in the macOS menu, or
+**Settings → Check for Updates** in the application. The check
+is manual — there is no background poller and no surprise
+restart.
 
-Your studies, repertoire, training, recent work, settings and
-preferences are kept; they live in
-`~/Library/Application Support/Kingfisher/` and are not
-touched by replacing the application bundle. The save barrier
-that runs before the install refuses to replace the application
-if any of those writes are still in flight.
-
-**The manual fallback** is the same DMG you downloaded for the
-first install. The dialog offers **Download Installer** if
-auto-install cannot run on your machine (read-only volume,
-permission failure, or any other reason). The download is the
-same signed and notarized artifact the auto-update path
-would have used; verify its SHA-256 against the release page
-and drag it over the existing application.
+The first launch after an update shows a one-time notice in the
+application ("Kingfisher was updated to 1.1.0"). The notice is
+non-modal and dismissable. Acknowledging it tells the desktop
+you have seen it, so the next launch starts clean.
 
 ## 8. Uninstalling
 
-1. **Export a backup first** if you want to keep your studies:
-   _Settings → Database → Export backup_.
-2. Quit Kingfisher.
-3. Drag Kingfisher from Applications to the Trash.
-4. Optionally, delete the application-support folder to remove
-   the last copy of your local work:
-   `~/Library/Application Support/Kingfisher`.
+Kingfisher stores its data outside the application bundle, in
+`~/Library/Application Support/Kingfisher/`. To remove the
+application and start fresh:
 
-## Troubleshooting
+1. Quit Kingfisher.
+2. Move the Kingfisher icon from **Applications** to the Trash.
+3. (Optional) remove the user-data directory:
+   ```bash
+   rm -rf ~/Library/Application\ Support/Kingfisher
+   ```
+   This deletes local Studies, Repertoire, Training, Recent
+   Work, and Settings. Reference cache and downloaded data packs
+   are also in this directory; they are safe to delete and will
+   be re-fetched on demand.
 
-### "Kingfisher is damaged"
+The first launch of a fresh install will not recover deleted
+user data. Backups created from **Settings → Backup** are the
+supported way to keep that work.
 
-That is Gatekeeper saying the same thing as _cannot be checked
-for malicious software_. It should not happen on a 1.1.0
-build: the notarization ticket is stapled and the offline
-decision is in your favor. If you see this on 1.1.0:
+## Common questions
 
-- The download was corrupted. Re-download and verify the
-  SHA-256 against the release page.
-- The DMG is being opened from a quarantined location the OS
-  does not recognize. Move it to `~/Downloads/` or
-  `~/Desktop/` and re-open it from there.
-- The build is a 1.0.x line on your machine, not 1.1.0. The
-  1.0.x build is code-signed with a development identity and
-  Gatekeeper treats it as untrusted. Open the **Check for
-  Updates…** menu item and use **Install Update** to move to
-  1.1.0.
+**Is this build the same as the web app?** The application is
+the same Next.js application the web runs, with the same
+features and the same data. The desktop adds a Mac window
+around it, a long-lived companion process, and the engine and
+database integrations that the browser cannot host.
 
-### "Another program is using its port"
+**Why is the 1.0.0 binary not notarised?** Notarisation
+requires a **Developer ID Application** certificate, which has
+to be applied for through the Apple Developer Program and
+minted by the team that signs the build. Kingfisher 1.0.0 is
+signed with the developer's **Apple Development** identity,
+which is the right identity for development and testing but is
+not trusted by Gatekeeper for distribution. The 1.1.0 release
+will use a Developer ID Application identity and a notarised
+ticket; the runbook for that release is in
+[`macos-trusted-release.md`](./macos-trusted-release.md).
 
-That is deliberate. The desktop companion keeps your work at one
-fixed loopback port recorded in your profile, and Kingfisher
-would rather stop and tell you than open an empty workspace
-somewhere else. Close whatever is using the port it names, and
-open Kingfisher again.
+**Where are my Studies, Repertoire, and Training saved?** In
+the per-user data directory at
+`~/Library/Application Support/Kingfisher/`. The directory is
+created on first launch. Backups, made from **Settings →
+Backup**, are a JSON file you choose a path for. A backup
+restores the same data; uninstalling the app does not delete
+the directory, but moving the .app to the Trash and emptying
+it does not delete it either — the directory only goes away
+when the user explicitly removes it.
 
-### Kingfisher did not get as far as a window
-
-There is nothing on screen to copy from. The shell keeps its own
-log — launch, companion failures, quit — at:
-
-```
-~/Library/Application Support/Kingfisher/logs/kingfisher.log
-```
-
-The log is bounded to about a megabyte, it never leaves your
-machine on its own, and the companion's pairing token is
-replaced with `[redacted]` before anything is written.
-
-_Settings → Diagnostics → Copy support information_ puts eight
-lines on the clipboard: version, machine, which sources are
-ready, which engines started, whether the companion is up. Paste
-that into your report.
-
-_Copy full diagnostic report_ is what to attach. Neither contains
-your games, studies, notes, tokens or keys.
-
-### A useful report is four sentences
-
-What you were doing. What happened. What you expected. The
-support-information line.
-
-## Optional, when you want it
-
-None of this is needed to use Kingfisher, and none of it is part
-of first run.
-
-- **Native engines.** _Settings → Engine_. Each is downloaded
-  from the project's own release page, checked against a
-  recorded SHA-256, and made to complete a real search before
-  it is listed as ready. They run with your user account's
-  permissions and are not sandboxed; the interface says so.
-- **Local tablebases.** _Settings → Companion → Browse…_ and
-  point it at a folder of Syzygy files. The probe helper is
-  inside the bundle; there is nothing to compile.
-- **A Lichess or Chess.com account**, to study your own games.
-- **Larger reference data.** _Databases → Reference sources →
-  Install_ lists Elite OTB, Recent Theory and High-Rated
-  Online. The install button does the full download + checksum
-  - install for you. Sizes are honest; pick the pack that
-    matches the question you actually have.
-
-## See also
-
-- [Getting started](getting-started.md) — the five-minute tour
-  of the application.
-- [Release notes](1.0.0.md) — what is in this build.
-- [Data licences](../legal/data-licences.md) — every reference
-  source and its licence.
+**Does the application phone home?** No. The application
+contacts the network only when the user explicitly asks it
+to: a check for updates, an Explorer query that hits a remote
+source, a Reference pack install from the Data Center. None
+of those run on a timer.
