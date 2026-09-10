@@ -198,13 +198,15 @@ export const CATALOG_PACKS: readonly CatalogPack[] = [
       'model-games',
       'preparation',
     ],
-    approximateBytes: 0, // populated by the build's `build-report.json`; pre-publish this is the floor
+    approximateBytes: 8_985_913,
     maxPositionPly: 40,
     license: LICHESS_BROADCAST_LICENSE,
     origin:
-      'Built from the last six months of the Lichess broadcast archive: ' +
-      '2026-03 through 2026-08. Same rating and title filter as v1, ' +
-      'narrower window.',
+      'Built from the last six months of the Lichess broadcast archive ' +
+      '(2026-03 through 2026-08): 11,280 games accepted from 223,248 ' +
+      'candidates, 4,600 openable full scores, 250,498 position ' +
+      'aggregates and 1,577 player identities. Published in the public, ' +
+      'data-only mardakurt/kingfisher-data repository.',
     filter: {
       minRating: 2400,
       titles: ['GM', 'IM', 'WGM'],

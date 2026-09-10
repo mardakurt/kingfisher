@@ -66,18 +66,19 @@ Three are drawn from the same over-the-board broadcast archive and differ by a
 threshold; the fourth is a different population entirely, and is kept apart for
 exactly that reason.
 
-|                     | `kingfisher-starter`                             | `kingfisher-recent-theory` | `kingfisher-elite-otb`    | `kingfisher-high-rated-online` |
-| ------------------- | ------------------------------------------------ | -------------------------- | ------------------------- | ------------------------------ |
-| Distribution        | Committed to this repository, ships with the app | Installed on demand        | Installed on demand       | Installed on demand            |
-| Population          | Broadcast, over the board                        | Broadcast, over the board  | Broadcast, over the board | Lichess rated, online, 2400+   |
-| Upstream            | The 36 most recent monthly broadcast archives    | The 24 most recent         | All 79, from 2020         | One monthly standard archive   |
-| Licence             | CC-BY-SA-4.0                                     | CC-BY-SA-4.0               | CC-BY-SA-4.0              | CC0-1.0                        |
-| Games counted       | 172,376                                          | 44,200                     | 407,538                   | 305,169                        |
-| Full game scores    | 10,707 (rated 2600+)                             | 18,151 (rated 2500+)       | 407,538 — every game      | 305,169 — every game           |
-| Position aggregates | 246,870                                          | 918,069                    | 5,438,808                 | 315,668                        |
-| Deepest query ply   | 40 (20 full moves)                               | 40 (20 full moves)         | 40 (20 full moves)        | 40 (20 full moves)             |
-| Player identities   | 12,522                                           | 2,567                      | 33,607                    | 12,315                         |
-| Size                | 12.4 MB in 88 chunks                             | 33.9 MB in 80 chunks       | 339.4 MB in 160 chunks    | 85.8 MB in 160 chunks          |
+|                     | `kingfisher-starter`                             | `kingfisher-recent-theory` (v1) | `kingfisher-recent-theory` (v2, 6 months) | `kingfisher-elite-otb`    | `kingfisher-high-rated-online` |
+| ------------------- | ------------------------------------------------ | ------------------------------ | ----------------------------------------- | ------------------------- | ------------------------------ |
+| Distribution        | Committed to this repository, ships with the app | Installed on demand            | Installed on demand                        | Installed on demand       | Installed on demand            |
+| Population          | Broadcast, over the board                        | Broadcast, over the board      | Broadcast, over the board                 | Broadcast, over the board | Lichess rated, online, 2400+   |
+| Upstream            | The 36 most recent monthly broadcast archives    | The 24 most recent             | The 6 most recent                          | All 79, from 2020         | One monthly standard archive   |
+| Window              | 2023-08 → most recent                            | 2024-09 → most recent          | 2026-03 → 2026-08                          | 2020-01 → most recent     | one month                      |
+| Licence             | CC-BY-SA-4.0                                     | CC-BY-SA-4.0                   | CC-BY-SA-4.0                               | CC-BY-SA-4.0              | CC0-1.0                        |
+| Games counted       | 172,376                                          | 44,200                         | 11,280                                     | 407,538                   | 305,169                        |
+| Full game scores    | 10,707 (rated 2600+)                             | 18,151 (rated 2500+)           | 4,600 (rated 2500+)                        | 407,538 — every game      | 305,169 — every game           |
+| Position aggregates | 246,870                                          | 918,069                        | 250,498                                    | 5,438,808                 | 315,668                        |
+| Deepest query ply   | 40 (20 full moves)                               | 40 (20 full moves)             | 40 (20 full moves)                         | 40 (20 full moves)        | 40 (20 full moves)             |
+| Player identities   | 12,522                                           | 2,567                          | 1,577                                      | 33,607                    | 12,315                         |
+| Size                | 12.4 MB in 88 chunks                             | 33.9 MB in 80 chunks           | 8.7 MB in 48 chunks                        | 339.4 MB in 160 chunks    | 85.8 MB in 160 chunks          |
 
 Separate thresholds for statistics and for stored games, because the two cost
 very different amounts: a game's contribution to the statistics is a handful of

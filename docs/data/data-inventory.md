@@ -66,7 +66,7 @@ normalisation is allowed; chess move reconstruction is not.
 - **Update mechanism:** new version published to the data mirror as
   `reference-elite-v<N>/`; installable from the Databases workspace
 
-### Recent Theory
+### Recent Theory (v1)
 
 - **Pack id:** `kingfisher-recent-theory`
 - **Logical name:** Recent Theory Reference
@@ -89,6 +89,45 @@ normalisation is allowed; chess move reconstruction is not.
 - **Distribution:** GitHub Pages data mirror; installed on demand
 - **Update mechanism:** new version published to the data mirror as
   `reference-recent-v<N>/`
+
+### Recent Theory (v2, 6 months)
+
+- **Pack id:** `kingfisher-recent-theory`
+- **Logical name:** Recent Theory Reference (6 months)
+- **Pack version:** 2
+- **Built at:** 2026-09-10
+- **Source:** Lichess broadcast archive
+- **Licence:** CC BY-SA 4.0 (Lichess broadcast archive)
+- **Upstream files (most recent first):** last 6 months of
+  `lichess_db_broadcast_YYYY-MM.pgn.zst`
+  (2026-03, 2026-04, 2026-05, 2026-06, 2026-07, 2026-08)
+- **Population:** rating ≥ 2400 (open: 2500), ceiling 2900, GM/IM/WGM
+  titles, exclude online events, minimum 12 plies, recent years
+  window 1 — same thresholds as v1
+- **Counts (Phase 35 actual build):**
+  - input games: 223,248
+  - accepted games: 11,280
+  - rejected games: 211,968 (178,350 below min rating; 12,416 bad
+    result; 8,440 missing rating; 4,797 online event; 4,559 too
+    short; 2,438 non-standard variant; 950 above max rating; 14
+    bot match; 4 set up position)
+  - duplicates: 0
+  - replay failures: 0
+  - openable full scores: 4,600
+  - positions: 250,498
+  - players: 1,577
+  - compressed bytes: 8,985,913 (8.6 MB on disk, 29.4 MB raw)
+  - chunks: 48
+- **Time window:** 2026-03 → 2026-08 (six complete Lichess broadcast
+  months). A recency source, narrower than v1.
+- **Distribution:** GitHub Pages data mirror; installed on demand.
+  The v1 directory remains published and is not deleted when v2
+  lands — users who installed v1 keep using it until they choose
+  otherwise.
+- **Update mechanism:** new version published to the data mirror as
+  `reference-recent-v<N>/`. v1 → v2 reuses chunks with matching
+  SHA-256 across versions because the chunk format is
+  content-addressed.
 
 ### High-Rated Online
 
@@ -239,19 +278,49 @@ run that has not been executed in Phase 34.
 | 18 m   | 18     | ~83 GB         | ~360 k       | ~280 MB                   | Approaches Elite OTB in size; exceeds the "remote, on demand" intent.                 |
 | 24 m   | 24     | ~110 GB        | ~480 k       | ~370 MB                   | The v1 input. Building it from the same source does not improve anything.             |
 
+> **Phase 35 audit, 2026-09-10.** The Phase 34 sketch over-estimated
+> the compressed size of a 6-month build by a factor of 10. The
+> filter pipeline discards ~95% of input games (rating, title,
+> online-event, length), so the published pack is **8.6 MB**, not
+> the ~95 MB the file-size sketch suggested. The sketch was right
+> about the **shape** of the answer (the 6-month window is the best
+> bytes-per-recency candidate) and wrong about the magnitude of the
+> result. The Phase 35 actual build numbers are in the *Recent
+> Theory (v2, 6 months)* section above.
+
+### Phase 35 v1 vs v2
+
+The values the build script reports for the v2 candidate
+(2026-09-10, six months 2026-03 → 2026-08), against the v1
+values from the same source family:
+
+|                          | v1 (24 months) | v2 (6 months) | Ratio v2 / v1 |
+| ------------------------ | -------------- | ------------- | ------------- |
+| Accepted games           | 44,200         | 11,280        | 0.26          |
+| Openable full scores     | 18,151         | 4,600         | 0.25          |
+| Position aggregates      | 918,069        | 250,498       | 0.27          |
+| Player identities        | 2,567          | 1,577         | 0.61          |
+| Compressed bytes on disk | ~32.3 MB       | 8.6 MB        | 0.27          |
+| Per-month games          | ~1,842         | ~1,880        | 1.02          |
+| Per-month players        | ~107           | ~263          | 2.46          |
+| Window                   | 2024-09 → 2026-08 | 2026-03 → 2026-08 | 1/4        |
+
+The v2 is smaller on every absolute metric (it covers a quarter of
+the calendar), and substantially **denser** on the recency question
+it exists to answer: 263 unique 2400+ players per month against
+v1's 107 per month. A position question the v1 build has to dilute
+across two years is the same answer in v2 against six months of
+recent play, which is what the user is reading off the page.
+
+The v1 pack is **not** deprecated. Users who installed v1 keep
+using it; the v2 directory lands beside v1 in the catalog and the
+data mirror. Chunk reuse is content-addressed, so a v1 → v2
+install only downloads the chunks that changed.
+
 ### Recommendation
 
-Do **not** publish a v2 in Phase 34. The candidate that
-optimises bytes-per-recency is the 6-month window, but the audit
-shows that the v1 build pipeline runs out-of-repo, takes many
-minutes, and would require a follow-up phase to land safely.
-The freshness UX work in this phase (date window visible in
-Data Center, version-by-source identities in the player and
-explorer caches) is the part of "fresher data" that does not
-depend on a build.
-
-The 6-month v2 build is documented in
-`docs/reports/phase-34-handover.md` §14 as the next data
-priority. It is independently versioned from Kingfisher 1.0 and
-can ship as `reference-recent-v2` while the application stays
-1.0.0.
+Publish `reference-recent-v2` as soon as the data mirror is ready.
+It is independently versioned from Kingfisher 1.0.0 (it is
+dataset version 2, not application version 1.1), and the brief
+explicitly says: *"Recent Theory v2 remains: data version 2. It
+does not mean: Kingfisher 2.0."*
