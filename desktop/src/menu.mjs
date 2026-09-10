@@ -6,6 +6,12 @@
  * Exported as a template rather than installed here so it can be asserted on
  * without an Electron window: every item this file adds has to lead somewhere,
  * and `menu.test.mjs` is what checks that none of them is decorative.
+ *
+ * Phase 35: the macOS application menu now carries a *Check for Updates…*
+ * item directly under the product name. The renderer, the command palette
+ * and the Settings panel all dispatch into the same update service the menu
+ * calls — there is exactly one implementation, and the menu is its primary
+ * surface.
  */
 
 const isMac = process.platform === 'darwin';
@@ -16,9 +22,14 @@ export function buildTemplate({
   onOpenDatabase = () => {},
   onOpenRecent = () => {},
   onClearRecent = () => {},
+  onCheckForUpdates = () => {},
+  onOpenSettings = () => {},
+  onOpenDocumentation = () => {},
+  onReportIssue = () => {},
   onDiagnostics = () => {},
   appName = 'Kingfisher',
   platform = process.platform,
+  updateStatus = { status: 'idle' },
 } = {}) {
   const mac = platform === 'darwin';
   const recentItems = recent.map((entry) => ({
@@ -29,6 +40,9 @@ export function buildTemplate({
     click: () => onOpenRecent(entry.path),
   }));
 
+  const updateLabel = menuLabelForUpdate(updateStatus);
+  const updateEnabled = menuEnabledForUpdate(updateStatus);
+
   return [
     ...(mac
       ? [
@@ -37,7 +51,19 @@ export function buildTemplate({
             submenu: [
               { role: 'about' },
               { type: 'separator' },
-              { label: 'Diagnostics…', click: () => onDiagnostics() },
+              {
+                // Phase 35: the macOS application menu's primary updater
+                // entry. Lives directly under the product name, in the
+                // slot a Mac user expects; the Settings panel and the
+                // command palette are secondary surfaces that dispatch
+                // into the same handler.
+                label: updateLabel,
+                enabled: updateEnabled,
+                accelerator: 'CmdOrCtrl+Shift+U',
+                click: () => onCheckForUpdates(),
+              },
+              { type: 'separator' },
+              { label: 'Settings…', accelerator: 'Cmd+,', click: () => onOpenSettings() },
               { type: 'separator' },
               { role: 'services' },
               { type: 'separator' },
@@ -72,8 +98,21 @@ export function buildTemplate({
         },
         { type: 'separator' },
         ...(mac
-          ? [{ role: 'close' }]
-          : [{ label: 'Diagnostics…', click: () => onDiagnostics() }, { role: 'quit' }]),
+          ? [
+              { label: 'Check for Updates…', click: () => onCheckForUpdates() },
+              { type: 'separator' },
+              { role: 'close' },
+            ]
+          : [
+              {
+                label: updateLabel,
+                enabled: updateEnabled,
+                click: () => onCheckForUpdates(),
+              },
+              { type: 'separator' },
+              { label: 'Diagnostics…', click: () => onDiagnostics() },
+              { role: 'quit' },
+            ]),
       ],
     },
     {
@@ -108,7 +147,57 @@ export function buildTemplate({
         ? [{ role: 'minimize' }, { role: 'zoom' }, { type: 'separator' }, { role: 'front' }]
         : [{ role: 'minimize' }, { role: 'close' }],
     },
+    {
+      label: 'Help',
+      submenu: [
+        {
+          label: 'Kingfisher on GitHub',
+          click: () => onOpenDocumentation(),
+        },
+        {
+          label: 'Report an Issue…',
+          click: () => onReportIssue(),
+        },
+        { type: 'separator' },
+        { label: 'Diagnostics…', click: () => onDiagnostics() },
+      ],
+    },
   ];
 }
+
+function menuLabelForUpdate(status) {
+  if (!status) return 'Check for Updates…';
+  switch (status.status) {
+    case 'checking':
+      return 'Checking for Updates…';
+    case 'newer-available':
+      return 'An Update Is Available…';
+    case 'downloading':
+      return 'Downloading Update…';
+    case 'verifying':
+      return 'Verifying Update…';
+    case 'ready':
+      return 'Update Ready to Install…';
+    case 'failed':
+      return 'Update Verification Failed…';
+    default:
+      return 'Check for Updates…';
+  }
+}
+
+function menuEnabledForUpdate(status) {
+  if (!status) return true;
+  // While a check is in flight or a download is active, the menu is
+  // disabled — the user has already asked, the request is running, and
+  // a second click would only be a single-flight no-op.
+  return !['checking', 'downloading', 'verifying'].includes(status.status);
+}
+
+// The *Settings…* entry uses a callback the main process passes in, the
+// same way *Check for Updates…* and the document openers do. A click on
+// the menu item runs the callback; the callback is responsible for telling
+// the renderer to open its settings dialog. The shell does not need to
+// know what the settings URL is or that the settings dialog exists at
+// all — the application does.
 
 export { isMac };

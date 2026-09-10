@@ -93,4 +93,57 @@ describe('the application menu', () => {
       ).toBe(true);
     }
   });
+
+  /*
+    Phase 35: *Check for Updates…* is the primary updater surface. The
+    owner explicitly asked for it to live directly in the Kingfisher
+    application menu on macOS, and the menu is the only place this test
+    stands between the next agent and a quiet "the menu looked tidier
+    without it" regression. Removing the item must make the test fail.
+  */
+  it('keeps a "Check for Updates…" entry in the macOS application menu', () => {
+    const root = buildTemplate({ platform: 'darwin' });
+    const application = root[0];
+    expect(application.label).toBe('Kingfisher');
+    const updateItem = application.submenu.find(
+      (entry) => typeof entry.label === 'string' && entry.label.startsWith('Check for Updates'),
+    );
+    expect(updateItem, 'macOS application menu must offer Check for Updates…').toBeDefined();
+    expect(typeof updateItem.click).toBe('function');
+  });
+
+  it('disables the menu entry while an update is already in flight', () => {
+    const onCheckForUpdates = vi.fn();
+    const root = buildTemplate({
+      platform: 'darwin',
+      onCheckForUpdates,
+      updateStatus: { status: 'checking' },
+    });
+    const updateItem = root[0].submenu.find(
+      (entry) => typeof entry.label === 'string' && entry.label.startsWith('Checking for Updates'),
+    );
+    expect(updateItem.enabled).toBe(false);
+    updateItem.click();
+    // Click still routes to the handler — disabled is visual, not a
+    // no-op, so a tester (or the keyboard menu accelerator) can still
+    // reach the same code path.
+    expect(onCheckForUpdates).toHaveBeenCalledOnce();
+  });
+
+  it('reaches the same handler from File on every platform', () => {
+    const onCheckForUpdates = vi.fn();
+    for (const platform of ['darwin', 'win32', 'linux']) {
+      onCheckForUpdates.mockClear();
+      const file = buildTemplate({ platform, onCheckForUpdates }).find(
+        (entry) => entry.label === 'File',
+      );
+      const updateItem = file.submenu.find(
+        (entry) => typeof entry.label === 'string' && entry.label.includes('Update'),
+      );
+      expect(updateItem, `${platform} File menu must offer an Update entry`).toBeDefined();
+      expect(typeof updateItem.click).toBe('function');
+      updateItem.click();
+      expect(onCheckForUpdates).toHaveBeenCalledOnce();
+    }
+  });
 });

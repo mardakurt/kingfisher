@@ -101,6 +101,16 @@ contextBridge.exposeInMainWorld('kingfisher', {
   openLogs: () => ipcRenderer.invoke('kingfisher:open-logs'),
 
   /**
+   * Phase 35: the renderer-facing surface of the desktop update service.
+   * See `src/desktop/bridge.ts` for the full contract and the rationale
+   * for what is and is not exposed here. The check itself is manual;
+   * the macOS menu's *Check for Updates…* item is the primary entry point.
+   */
+  updateStatus: () => ipcRenderer.invoke('kingfisher:update-status'),
+  subscribeUpdates: (listener) => on('kingfisher:update-verdict', listener),
+  showUpdateDialog: () => ipcRenderer.send('kingfisher:show-update-dialog'),
+
+  /**
    * A document the user opened from the Finder, the menu, or a drop.
    *
    * Attaching the first listener tells the shell that this renderer can now
@@ -120,4 +130,5 @@ contextBridge.exposeInMainWorld('kingfisher', {
     return off;
   },
   onShowDiagnostics: (listener) => on('kingfisher:show-diagnostics', listener),
+  onShowSettings: (listener) => on('kingfisher:show-settings', listener),
 });

@@ -40,6 +40,15 @@ import { missingParts, resolveLayout } from './paths.mjs';
 import { PortUnavailableError, portFree, resolveAppPort } from './origin.mjs';
 import { Service, freePort } from './services.mjs';
 import { MAC_TRAFFIC_LIGHT_POSITION, windowChromeFor } from './window-chrome.mjs';
+import {
+  cancelUpdate,
+  checkForUpdates,
+  downloadUpdate,
+  openInstaller,
+  pruneUpdateCache,
+  subscribe as subscribeToUpdates,
+} from './update-service.mjs';
+import * as updateWindow from './update-window.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const HOST = '127.0.0.1';
@@ -85,6 +94,35 @@ const state = {
   pending: [],
   /** Whether the renderer has attached its document listener. */
   documentsWanted: false,
+  /**
+   * The current update verdict, mirrored into the application menu and
+   * the Check for Updates dialog. Mutated only through `updateStatus.set`,
+   * which also rebuilds the menu and forwards the verdict to the dialog
+   * if it is open.
+   */
+  updateStatus: { value: { status: 'idle' } },
+};
+
+/**
+ * A small reactive cell for the update verdict.
+ *
+ * The application menu's *Check for Updates…* label depends on whether
+ * a check is in flight, whether an update is ready, etc., so changing
+ * the verdict has to rebuild the menu. The dialog subscribes through
+ * `subscribeToUpdates` from `update-service.mjs`, which is how the
+ * progress bar moves while a download runs.
+ */
+const updateStatus = {
+  get value() {
+    return state.updateStatus.value;
+  },
+  set(next) {
+    state.updateStatus.value = next ?? { status: 'idle' };
+    rebuildMenu();
+    updateWindow.sendVerdict(state.updateStatus.value);
+    state.window?.webContents.send('kingfisher:update-verdict', state.updateStatus.value);
+    log('update', `verdict: ${state.updateStatus.value.status}`);
+  },
 };
 
 /**
@@ -429,11 +467,94 @@ function rebuildMenu() {
           state.recent.clear();
           rebuildMenu();
         },
+        onCheckForUpdates: () => openUpdateDialog(),
+        onOpenSettings: () => state.window?.webContents.send('kingfisher:show-settings'),
+        onOpenDocumentation: () => {
+          const url = `${process.env.KINGFISHER_PUBLIC_REPOSITORY_URL || 'https://github.com/mardakurt/kingfisher'}`;
+          void shell.openExternal(url);
+        },
+        onReportIssue: () => {
+          const url = `${process.env.KINGFISHER_PUBLIC_ISSUES_URL || 'https://github.com/mardakurt/kingfisher/issues'}/new`;
+          void shell.openExternal(url);
+        },
         onDiagnostics: () => state.window?.webContents.send('kingfisher:show-diagnostics'),
         appName: app.getName(),
+        updateStatus: updateStatus.value,
       }),
     ),
   );
+}
+
+/**
+ * Open the Check for Updates… dialog. The single entry point used by
+ * the application menu, the File menu (non-mac), the Settings panel and
+ * the command palette. The dialog is single-instance; a second call
+ * focuses the existing window.
+ */
+async function openUpdateDialog() {
+  await updateWindow.open({
+    parent: state.window ?? undefined,
+    onAction: handleUpdateAction,
+    onClose: () => {
+      // Re-enable the menu when the dialog closes; the menu's own label
+      // reverts because the verdict listener drives `updateStatus.value`.
+    },
+  });
+  // Send the verdict the dialog is currently on so it does not blank to
+  // 'idle' if the user opens the dialog a second time after a previous
+  // verdict is still cached.
+  updateWindow.sendVerdict(updateStatus.value);
+}
+
+/**
+ * Dispatch an action from the dialog to the update service.
+ *
+ * `action` is one of: 'check', 'download', 'cancel', 'open', 'close',
+ * 'release'. Anything unknown is a no-op; the dialog should not
+ * produce them, but the service does not trust its own callers.
+ */
+async function handleUpdateAction(action) {
+  try {
+    switch (action) {
+      case 'check': {
+        updateStatus.set({ status: 'checking' });
+        const verdict = await checkForUpdates({
+          repository:
+            process.env.KINGFISHER_PUBLIC_REPOSITORY_URL || 'https://github.com/mardakurt/kingfisher',
+        });
+        updateStatus.set(verdict);
+        return;
+      }
+      case 'download': {
+        const verdict = await downloadUpdate();
+        updateStatus.set(verdict);
+        return;
+      }
+      case 'cancel':
+        cancelUpdate();
+        return;
+      case 'open': {
+        const result = await openInstaller();
+        if (!result.ok) {
+          updateStatus.set({ status: 'failed', reason: result.reason });
+        }
+        return;
+      }
+      case 'release': {
+        const url = `${process.env.KINGFISHER_PUBLIC_RELEASE_URL || 'https://github.com/mardakurt/kingfisher/releases/latest'}`;
+        void shell.openExternal(url);
+        return;
+      }
+      case 'close':
+        updateWindow.close();
+        return;
+      default:
+        return;
+    }
+  } catch (err) {
+    log('update', `dialog action failed: ${String(err?.message ?? err)}`);
+    updateStatus.set({ status: 'unable-to-check', reason: 'The updater could not complete the request.' });
+  }
 }
 
 // --- ipc -------------------------------------------------------------------
@@ -546,6 +667,18 @@ function registerIpc() {
     /** What launch cost, stage by stage. See `marks` for why it is kept. */
     startup: marks.map(({ stage, at }) => ({ stage, at })),
   }));
+
+  /*
+    Phase 35: the canonical update surface. The main window never calls
+    `fetch` or `fs` to check for updates; it asks the main process, and
+    the main process is the only place network and filesystem happen.
+    This is what keeps the renderer trust boundary small.
+  */
+  ipcMain.handle('kingfisher:update-status', () => updateStatus.value);
+
+  ipcMain.on('kingfisher:show-update-dialog', () => {
+    void openUpdateDialog();
+  });
 }
 
 // --- lifecycle -------------------------------------------------------------
@@ -591,6 +724,28 @@ if (!app.requestSingleInstanceLock()) {
     );
     registerIpc();
     rebuildMenu();
+    // Mirror every update-service verdict through `updateStatus` so the
+    // menu and the dialog stay in lockstep with the service's own state.
+    subscribeToUpdates((verdict) => {
+      // The service emits progress events; update the menu on the
+      // status changes that matter to its label.
+      const next = verdict ?? { status: 'idle' };
+      if (
+        state.updateStatus.value.status !== next.status ||
+        state.updateStatus.value.latestVersion !== next.latestVersion ||
+        state.updateStatus.value.path !== next.path ||
+        state.updateStatus.value.reason !== next.reason
+      ) {
+        state.updateStatus.value = next;
+        rebuildMenu();
+        updateWindow.sendVerdict(next);
+        state.window?.webContents.send('kingfisher:update-verdict', next);
+      } else {
+        // Same shape, but the progress numbers have moved.
+        updateWindow.sendVerdict(next);
+        state.window?.webContents.send('kingfisher:update-verdict', next);
+      }
+    });
     try {
       await startServices();
     } catch (error) {
@@ -627,6 +782,19 @@ if (!app.requestSingleInstanceLock()) {
     stopping = true;
     event.preventDefault();
     log('quit', 'stopping services');
+    // Cancel any in-flight update before the children are stopped, so
+    // the user does not return to a half-finished download and a
+    // `READY` verdict that the next launch inherits as stale state.
+    cancelUpdate();
+    // Bounded cleanup of the update cache. Keeps the most recent
+    // verified download (the user may quit and reopen expecting it)
+    // and unlinks everything else.
+    try {
+      const removed = pruneUpdateCache();
+      if (removed > 0) log('quit', `pruned ${removed} cached update files`);
+    } catch (err) {
+      log('quit', `prune failed: ${String(err?.message ?? err)}`);
+    }
     void stopServices().finally(() => {
       log('quit', 'services stopped');
       app.exit(0);

@@ -110,6 +110,31 @@ export interface DesktopBridge {
   openLogs(): Promise<boolean>;
   onOpenDocument(listener: (document: DesktopDocument) => void): () => void;
   onShowDiagnostics(listener: () => void): () => void;
+  onShowSettings(listener: () => void): () => void;
+  /**
+   * Phase 35: the renderer-facing surface of the desktop update service.
+   *
+   * The renderer never makes the HTTPS request to GitHub, never sees the
+   * manifest, and never sees the asset URL. The main process owns the
+   * network, the download, the SHA-256 verification and the dialog. The
+   * three calls the renderer needs are:
+   *
+   *   - `updateStatus()` to read the current verdict when a Settings
+   *      panel mounts, so it does not start at *idle* if a check has
+   *      already been run;
+   *   - `subscribeUpdates(listener)` to receive every verdict the main
+   *      process emits, including the progress events while a download
+   *      is running;
+   *   - `showUpdateDialog()` to open the small native dialog from a
+   *      control in the application (Settings, command palette).
+   *
+   * The check itself is **manual** — it runs only because the user
+   * clicked the macOS menu item, the Settings button, or the command
+   * palette entry. There is no auto-update and no background poller.
+   */
+  updateStatus(): Promise<unknown>;
+  subscribeUpdates(listener: (verdict: unknown) => void): () => void;
+  showUpdateDialog(): void;
 }
 
 declare global {

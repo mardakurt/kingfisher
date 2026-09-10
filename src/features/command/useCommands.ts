@@ -16,6 +16,7 @@ import { useEngine } from '@/stores/engine-store';
 import { usePreferences } from '@/stores/preferences-store';
 import { useWorkspaceLayout } from '@/stores/workspace-layout-store';
 import { useUi } from '@/stores/ui-store';
+import { desktop } from '@/desktop/bridge';
 import { showTool } from '@/features/workspace/select-tool';
 
 export interface Command {
@@ -495,6 +496,34 @@ export function useCommands(): readonly Command[] {
         run: () => router.push('/analysis'),
       },
     ];
+
+    // The *Check for Updates* command is desktop-only. The web and PWA
+    // builds do not have a desktop shell, so the command is not offered
+    // there — opening the dialog is something only the shell can do, and
+    // promising a command that does nothing is the bug this guard exists
+    // to prevent.
+    if (typeof window !== 'undefined' && desktop()) {
+      commands.push({
+        id: 'check-for-updates',
+        title: 'Check for Updates…',
+        group: 'Application',
+        keywords: 'update version new release desktop app mac',
+        run: () => {
+          desktop()?.showUpdateDialog();
+        },
+      });
+      commands.push({
+        id: 'install-kingfisher',
+        title: 'Install Kingfisher for macOS',
+        group: 'Application',
+        keywords: 'download macos app install pwa',
+        run: () => {
+          const url =
+            'https://github.com/mardakurt/kingfisher/releases/latest';
+          window.open(url, '_blank', 'noopener,noreferrer');
+        },
+      });
+    }
 
     return commands;
   }, [pathname, router]);

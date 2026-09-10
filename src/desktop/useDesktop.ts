@@ -167,4 +167,18 @@ export function useDesktopIntegration(): void {
       useUi.getState().openSettingsAt('companion');
     });
   }, []);
+
+  /**
+   * The shell's Settings… menu item (and the macOS `Cmd+,` accelerator)
+   * opens the settings dialog. The web build has no menu and no
+   * listener, which is the point of the bridge: this only happens
+   * when the shell is in front of the application.
+   */
+  useEffect(() => {
+    const bridge = desktop();
+    if (!bridge) return;
+    return bridge.onShowSettings(() => {
+      useUi.getState().setSettingsOpen(true);
+    });
+  }, []);
 }

@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Kingfisher — Check for Updates</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:;" />
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: rgba(28, 28, 32, 0.78);
+        --bg-solid: #1c1c20;
+        --fg: #f4f4f6;
+        --fg-dim: #a1a1aa;
+        --accent: #6fb1ff;
+        --positive: #6bd58a;
+        --caution: #ffb86b;
+        --danger: #ff7a85;
+        --line: rgba(255, 255, 255, 0.08);
+        --bar: rgba(255, 255, 255, 0.08);
+        --bar-fill: #6fb1ff;
+        --radius: 14px;
+      }
+      @media (prefers-color-scheme: light) {
+        :root {
+          --bg: rgba(244, 244, 246, 0.78);
+          --bg-solid: #f4f4f6;
+          --fg: #1c1c20;
+          --fg-dim: #5d5d65;
+          --line: rgba(0, 0, 0, 0.08);
+          --bar: rgba(0, 0, 0, 0.08);
+          --bar-fill: #1a73e8;
+        }
+      }
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        background: transparent;
+        color: var(--fg);
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+        font-size: 13px;
+        line-height: 1.45;
+        -webkit-font-smoothing: antialiased;
+        user-select: none;
+      }
+      .window {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        background: var(--bg);
+        backdrop-filter: saturate(180%) blur(28px);
+        -webkit-backdrop-filter: saturate(180%) blur(28px);
+        border-radius: var(--radius);
+        border: 1px solid var(--line);
+        overflow: hidden;
+      }
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 16px 8px;
+        -webkit-app-region: drag;
+      }
+      header h1 {
+        margin: 0;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+      }
+      .close {
+        -webkit-app-region: no-drag;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: transparent;
+        border: 0;
+        color: var(--fg-dim);
+        font-size: 14px;
+        line-height: 1;
+        cursor: pointer;
+        padding: 0;
+      }
+      .close:hover { background: var(--line); color: var(--fg); }
+      main {
+        flex: 1 1 auto;
+        padding: 8px 18px 4px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .version-line {
+        font-size: 11px;
+        color: var(--fg-dim);
+        letter-spacing: 0.02em;
+      }
+      .headline {
+        font-size: 15px;
+        font-weight: 600;
+        margin: 0;
+      }
+      .detail {
+        font-size: 12px;
+        color: var(--fg-dim);
+        margin: 0;
+        min-height: 1.2em;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+      }
+      .progress {
+        width: 100%;
+        height: 6px;
+        background: var(--bar);
+        border-radius: 3px;
+        overflow: hidden;
+      }
+      .progress > div {
+        height: 100%;
+        background: var(--bar-fill);
+        width: 0%;
+        transition: width 0.15s ease-out;
+      }
+      .progress.hidden { visibility: hidden; }
+      footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        padding: 10px 16px 16px;
+      }
+      button {
+        -webkit-app-region: no-drag;
+        font: inherit;
+        background: transparent;
+        color: var(--fg);
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        padding: 5px 12px;
+        cursor: pointer;
+        min-width: 88px;
+      }
+      button.primary {
+        background: var(--accent);
+        color: #0b0d11;
+        border-color: transparent;
+        font-weight: 600;
+      }
+      button.danger {
+        background: transparent;
+        color: var(--danger);
+        border-color: var(--line);
+      }
+      button:hover:not(:disabled) { filter: brightness(1.07); }
+      button:active:not(:disabled) { filter: brightness(0.95); }
+      button:disabled { opacity: 0.5; cursor: default; }
+      .positive { color: var(--positive); }
+      .caution { color: var(--caution); }
+      .danger { color: var(--danger); }
+      .small {
+        font-size: 11px;
+        color: var(--fg-dim);
+      }
+      .row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="window" role="dialog" aria-labelledby="title" aria-describedby="detail">
+      <header>
+        <h1 id="title">Kingfisher — Check for Updates</h1>
+        <button class="close" type="button" id="close" aria-label="Close">×</button>
+      </header>
+      <main>
+        <p class="version-line" id="version-line">Kingfisher 1.0.0</p>
+        <p class="headline" id="headline">Checking for updates…</p>
+        <p class="detail" id="detail">Reaching the release host.</p>
+        <div class="progress hidden" id="progress"><div id="progress-fill"></div></div>
+      </main>
+      <footer>
+        <button type="button" id="secondary" hidden></button>
+        <button type="button" id="primary" class="primary" disabled>Check for Updates</button>
+      </footer>
+    </div>
+    <script src="update.js"></script>
+  </body>
+</html>
