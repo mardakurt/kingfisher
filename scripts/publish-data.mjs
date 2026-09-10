@@ -55,6 +55,15 @@ const arg = (name) => {
 const packId = arg('id');
 const version = arg('version');
 const from = arg('from');
+/**
+ * Override the target directory name. The default strips the
+ * `kingfisher-` prefix from the pack id; existing published
+ * directories used a shorter form (e.g. `reference-recent-v1`
+ * rather than `reference-recent-theory-v1`) and the override is
+ * what keeps the new pack on the same path the catalog already
+ * advertises.
+ */
+const dirOverride = arg('dir');
 
 if (!packId || !version || !from) {
   console.error(
@@ -76,7 +85,9 @@ if (!existsSync(from)) {
   process.exit(1);
 }
 
-const targetName = `reference-${packId.replace(/^kingfisher-/, '')}-v${version}`;
+const targetName = dirOverride
+  ? `reference-${dirOverride.replace(/^reference-/, '')}-v${version}`
+  : `reference-${packId.replace(/^kingfisher-/, '')}-v${version}`;
 const target = join(STAGE, targetName);
 
 if (!existsSync(STAGE)) {
