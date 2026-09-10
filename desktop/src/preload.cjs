@@ -105,10 +105,50 @@ contextBridge.exposeInMainWorld('kingfisher', {
    * See `src/desktop/bridge.ts` for the full contract and the rationale
    * for what is and is not exposed here. The check itself is manual;
    * the macOS menu's *Check for Updates…* item is the primary entry point.
+   *
+   * Phase 36 adds `onSaveBarrierRequest`: the main process asks the
+   * renderer to flush any in-flight writes before the install path
+   * proceeds. The renderer is the only place that knows whether
+   * authored data is mid-persist, so the question has to be asked
+   * there. The handler is expected to return a `Promise<{ ok, reason? }>`;
+   * a `false` reply aborts the install.
    */
   updateStatus: () => ipcRenderer.invoke('kingfisher:update-status'),
   subscribeUpdates: (listener) => on('kingfisher:update-verdict', listener),
+  onSaveBarrierRequest: (handler) => {
+    const wrapped = async (_event, requestId) => {
+      let payload = { requestId, ok: false, reason: 'No save barrier handler is registered.' };
+      try {
+        const result = await handler();
+        if (result && typeof result === 'object' && 'ok' in result) {
+          payload = {
+            requestId,
+            ok: Boolean(result.ok),
+            reason: result.ok ? undefined : result.reason || 'Renderer reported a failed save.',
+          };
+        } else {
+          // A truthy return is treated as success; anything else
+          // is treated as a failed save barrier.
+          payload = {
+            requestId,
+            ok: Boolean(result),
+            reason: result ? undefined : 'Renderer save barrier returned a falsy result.',
+          };
+        }
+      } catch (err) {
+        payload = {
+          requestId,
+          ok: false,
+          reason: String((err && err.message) || err),
+        };
+      }
+      ipcRenderer.send('kingfisher:save-barrier:response', payload);
+    };
+    ipcRenderer.on('kingfisher:save-barrier:request', wrapped);
+    return () => ipcRenderer.removeListener('kingfisher:save-barrier:request', wrapped);
+  },
   showUpdateDialog: () => ipcRenderer.send('kingfisher:show-update-dialog'),
+  acknowledgeUpdate: () => ipcRenderer.send('kingfisher:update-acknowledge'),
 
   /**
    * A document the user opened from the Finder, the menu, or a drop.

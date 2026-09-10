@@ -41,11 +41,14 @@ import { PortUnavailableError, portFree, resolveAppPort } from './origin.mjs';
 import { Service, freePort } from './services.mjs';
 import { MAC_TRAFFIC_LIGHT_POSITION, windowChromeFor } from './window-chrome.mjs';
 import {
-  cancelUpdate,
-  checkForUpdates,
-  downloadUpdate,
-  openInstaller,
+  STATUS,
+  acknowledgeUpdate,
+  cancelDownload,
+  check,
+  hasAcknowledgedUpdate,
+  installAndRestart,
   pruneUpdateCache,
+  setStagingFeed,
   subscribe as subscribeToUpdates,
 } from './update-service.mjs';
 import * as updateWindow from './update-window.mjs';
@@ -509,41 +512,50 @@ async function openUpdateDialog() {
 /**
  * Dispatch an action from the dialog to the update service.
  *
- * `action` is one of: 'check', 'download', 'cancel', 'open', 'close',
- * 'release'. Anything unknown is a no-op; the dialog should not
+ * `action` is one of: 'check', 'install', 'cancel', 'close', 'notes',
+ * 'fallback'. Anything unknown is a no-op; the dialog should not
  * produce them, but the service does not trust its own callers.
+ *
+ * The action names map to user-visible intent. `install` is the
+ * canonical "Install Update" button — it owns the entire chain from
+ * download through auto-relaunch. `cancel` is meaningful only
+ * mid-download; once the engine is in `ready` the button is
+ * replaced by the in-progress messaging rather than a fake cancel.
  */
 async function handleUpdateAction(action) {
   try {
     switch (action) {
       case 'check': {
-        updateStatus.set({ status: 'checking' });
-        const verdict = await checkForUpdates({
-          repository:
-            process.env.KINGFISHER_PUBLIC_REPOSITORY_URL ||
-            'https://github.com/mardakurt/kingfisher',
-        });
-        updateStatus.set(verdict);
+        await check();
         return;
       }
-      case 'download': {
-        const verdict = await downloadUpdate();
-        updateStatus.set(verdict);
+      case 'install': {
+        // The Install Update flow owns the full chain: download
+        // (if needed), save barrier, engine shutdown, quit, install,
+        // relaunch. The verdict listener updates the dialog in
+        // lockstep as the state machine moves.
+        await installAndRestart({ onSaveBarrier: requestSaveBarrier });
         return;
       }
-      case 'cancel':
-        cancelUpdate();
-        return;
-      case 'open': {
-        const result = await openInstaller();
-        if (!result.ok) {
-          updateStatus.set({ status: 'failed', reason: result.reason });
-        }
+      case 'cancel': {
+        await cancelDownload();
         return;
       }
-      case 'release': {
+      case 'notes': {
         const url = `${process.env.KINGFISHER_PUBLIC_RELEASE_URL || 'https://github.com/mardakurt/kingfisher/releases/latest'}`;
         void shell.openExternal(url);
+        return;
+      }
+      case 'fallback': {
+        // Manual fallback: open the polished DMG download page.
+        // Used when auto-install is not viable on this machine.
+        const url = `${process.env.KINGFISHER_PUBLIC_REPOSITORY_URL || 'https://github.com/mardakurt/kingfisher'}/releases/latest`;
+        void shell.openExternal(url);
+        return;
+      }
+      case 'acknowledge': {
+        acknowledgeUpdate();
+        state.window?.webContents.send('kingfisher:update-acknowledged');
         return;
       }
       case 'close':
@@ -555,10 +567,71 @@ async function handleUpdateAction(action) {
   } catch (err) {
     log('update', `dialog action failed: ${String(err?.message ?? err)}`);
     updateStatus.set({
-      status: 'unable-to-check',
+      status: STATUS.FAILED,
       reason: 'The updater could not complete the request.',
     });
   }
+}
+
+/**
+ * Save barrier: ask the main window to flush any in-flight writes
+ * and report back. The renderer is the only thing that knows
+ * whether authored data is in the middle of being persisted, so the
+ * question has to be asked there.
+ *
+ * The contract is small:
+ *
+ *   - We send a `kingfisher:save-barrier:request` with a unique
+ *     `requestId`. The renderer's preload forwards it to a
+ *     registered handler, awaits the result, and sends the response
+ *     on `kingfisher:save-barrier:response`.
+ *   - We resolve on the first matching response, or on a timeout.
+ *   - The handler is responsible for waiting until its own writes
+ *     have actually been committed (not "the next microtask" but
+ *     "the data is on disk"); a `true` reply is a strong claim and
+ *     a `false` reply aborts the install path.
+ *   - If no renderer is registered, or the renderer never
+ *     responds, we treat it as suspicious but allow the install to
+ *     proceed. The user has already clicked Install Update; a
+ *     missing handler is a *preference* state ("the renderer
+ *     doesn't know about the save barrier yet"), not a hard
+ *     failure of the data path.
+ */
+function requestSaveBarrier({ timeoutMs = 5000 } = {}) {
+  if (!state.window || state.window.isDestroyed()) {
+    return Promise.resolve({ ok: true, reason: 'no-window', timedOut: false });
+  }
+  const requestId = randomBytes(8).toString('hex');
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      ipcMain.removeListener('kingfisher:save-barrier:response', listener);
+      log('update', `save barrier timed out after ${timeoutMs} ms`);
+      resolve({ ok: true, reason: 'no-renderer-handler', timedOut: true });
+    }, timeoutMs);
+    const listener = (event, payload) => {
+      if (!payload || payload.requestId !== requestId) return;
+      clearTimeout(timer);
+      ipcMain.removeListener('kingfisher:save-barrier:response', listener);
+      if (payload.ok) {
+        resolve({ ok: true, timedOut: false });
+      } else {
+        resolve({
+          ok: false,
+          reason: payload.reason || 'Renderer reported an unfinished save.',
+          timedOut: false,
+        });
+      }
+    };
+    ipcMain.on('kingfisher:save-barrier:response', listener);
+    try {
+      state.window.webContents.send('kingfisher:save-barrier:request', requestId);
+    } catch (err) {
+      clearTimeout(timer);
+      ipcMain.removeListener('kingfisher:save-barrier:response', listener);
+      log('update', `save barrier dispatch failed: ${String(err?.message ?? err)}`);
+      resolve({ ok: true, reason: 'send-failed', timedOut: false });
+    }
+  });
 }
 
 // --- ipc -------------------------------------------------------------------
@@ -683,6 +756,16 @@ function registerIpc() {
   ipcMain.on('kingfisher:show-update-dialog', () => {
     void openUpdateDialog();
   });
+
+  /*
+    Phase 36: the renderer confirms it has shown the
+    "Kingfisher was updated to X.Y.Z" surface. The main process
+    records the current version as acknowledged so the next launch
+    starts with a clean slate.
+  */
+  ipcMain.on('kingfisher:update-acknowledge', () => {
+    acknowledgeUpdate();
+  });
 }
 
 // --- lifecycle -------------------------------------------------------------
@@ -767,6 +850,39 @@ if (!app.requestSingleInstanceLock()) {
     mark('window created');
     void openPaths(openableFromArgv(process.argv));
 
+    /*
+      Phase 36: the small "Kingfisher was updated to X.Y.Z" notice.
+      We only know the previous version because the last launch
+      recorded it; if the user has never acknowledged this version,
+      ask the renderer to surface the post-update surface once.
+      Doing it from the main process means the renderer never has
+      to read the userData directory itself.
+    */
+    const currentVersion = app.getVersion();
+    if (app.isPackaged && !hasAcknowledgedUpdate(currentVersion)) {
+      state.window?.webContents.once('did-finish-load', () => {
+        state.window?.webContents.send('kingfisher:update-installed', {
+          version: currentVersion,
+        });
+      });
+    }
+
+    /*
+      Phase 36: staging feed override. The local E2E test sets
+      `KINGFISHER_UPDATER_FEED_URL` to point at a staging HTTP
+      server so the same packaged binary can be exercised against a
+      deterministic candidate. Production builds never set this.
+    */
+    const stagingFeed = process.env.KINGFISHER_UPDATER_FEED_URL;
+    if (stagingFeed) {
+      try {
+        await setStagingFeed({ url: stagingFeed, channel: 'latest' });
+        log('update', `staging feed configured: ${stagingFeed}`);
+      } catch (err) {
+        log('update', `staging feed set failed: ${String(err?.message ?? err)}`);
+      }
+    }
+
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow();
     });
@@ -789,7 +905,7 @@ if (!app.requestSingleInstanceLock()) {
     // Cancel any in-flight update before the children are stopped, so
     // the user does not return to a half-finished download and a
     // `READY` verdict that the next launch inherits as stale state.
-    cancelUpdate();
+    cancelDownload();
     // Bounded cleanup of the update cache. Keeps the most recent
     // verified download (the user may quit and reopen expecting it)
     // and unlinks everything else.

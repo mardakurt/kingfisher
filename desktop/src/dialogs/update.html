@@ -130,8 +130,16 @@
         width: 0%;
         transition: width 0.15s ease-out;
       }
+      .progress.indeterminate > div {
+        width: 30%;
+        animation: indeterminate 1.4s ease-in-out infinite;
+      }
       .progress.hidden {
         visibility: hidden;
+      }
+      @keyframes indeterminate {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(400%); }
       }
       footer {
         display: flex;
@@ -190,6 +198,12 @@
         align-items: center;
         gap: 12px;
       }
+      .footnote {
+        font-size: 11px;
+        color: var(--fg-dim);
+        margin: 0;
+        min-height: 1.2em;
+      }
     </style>
   </head>
   <body>
@@ -203,6 +217,7 @@
         <p class="headline" id="headline">Checking for updates…</p>
         <p class="detail" id="detail">Reaching the release host.</p>
         <div class="progress hidden" id="progress"><div id="progress-fill"></div></div>
+        <p class="footnote" id="footnote" aria-live="polite"></p>
       </main>
       <footer>
         <button type="button" id="secondary" hidden></button>

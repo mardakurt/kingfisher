@@ -1,21 +1,46 @@
 /**
  * The desktop update service.
  *
- * The one place in the application that talks to the Kingfisher release
- * server, the one place that downloads a candidate DMG, and the one place
- * that verifies the download. The macOS application menu's *Check for
- * Updates…* item, the *Help → Check for Updates* command in the command
- * palette, and the Settings → Application panel all reach this service
- * through typed IPC; the renderer never sees `fetch`, never sees the
- * filesystem, and never makes a security decision.
+ * One canonical public surface, three callers, and a single install
+ * engine. The renderer (the `Check for Updates` window, the
+ * application menu, and the Settings → Application panel) talks to
+ * `check`, `installAndRestart`, `cancelDownload`, `subscribe`, and
+ * `getState` through the typed IPC bridge in `update-window.mjs`.
+ * Nothing else in the shell is allowed to do an update.
  *
- * ## Single-flight
+ * ## One engine
  *
- * Multiple clicks on *Check for Updates…* while a previous check is in
- * flight are collapsed onto the same in-flight promise. Multiple clicks on
- * *Download Update* while a download is running are likewise collapsed.
- * A user who double-clicks because the first click "did nothing" is the
- * canonical case this rule exists for.
+ * The previous shape of this file was a custom downloader that
+ * streamed the DMG, hashed it, mounted it, and asked the user to drag
+ * the new build into `Applications` by hand. That was the right
+ * answer for the Phase 35 release surface and the manual fallback
+ * path is preserved — but the *normal* path the owner wants is
+ * "Check for Updates → Install Update → Kingfisher closes and
+ * relaunches." That is the job of `electron-updater` and we use it.
+ * The custom protocol parser lives on, but only for the staging
+ * server that exercises the same code path against a deterministic
+ * candidate before the public release.
+ *
+ * ## State machine
+ *
+ * The states are real, and they pin the transitions the menu and
+ * dialog can show. The list of legal transitions is in
+ * `update-state.mjs`; the renderer never invents a state.
+ *
+ *   idle ─check─► checking
+ *   checking ─same─► up-to-date
+ *   checking ─newer─► available
+ *   available ─installAndRestart─► downloading
+ *   downloading ─complete─► verifying
+ *   verifying ─ok─► ready-to-install
+ *   verifying ─bad─► failed
+ *   ready-to-install ─installAndRestart─► waiting-for-save
+ *   waiting-for-save ─ok─► installing
+ *   waiting-for-save ─fail─► failed
+ *   installing ─quitAndInstall─► restarting
+ *   restarting ─new process boot─► idle
+ *   downloading ─cancel─► canceled
+ *   any ─network error─► unable-to-check
  *
  * ## Manual only
  *
@@ -23,454 +48,458 @@
  * fires as a side effect of opening a Study. The user clicks the menu
  * item; one HTTPS request goes out; the user reads the verdict.
  *
- * ## Cancellation
- *
- * A `cancel()` interrupts the current download. The partial file on disk
- * is unlinked, the in-memory AbortController fires, and the service
- * returns to a state that can be checked again from a clean slate.
- *
  * ## No telemetry
  *
  * The service does not log the body of responses, does not log the
  * headers, and does not phone home. What it logs is bounded to the
- * stage names a user can reproduce: "check started", "version result",
- * "download started", "verification result".
+ * stage names a user can reproduce.
  */
 
-import {
-  createWriteStream,
-  existsSync,
-  mkdirSync,
-  renameSync,
-  unlinkSync,
-  statSync,
-  readdirSync,
-} from 'node:fs';
-import { open as fsOpen } from 'node:fs/promises';
-import { createHash } from 'node:crypto';
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+
 import { app, shell } from 'electron';
 
 import { log } from './log.mjs';
 import {
-  ALLOWED_RELEASE_HOSTS,
-  MAX_DOWNLOAD_REDIRECTS,
-  MAX_UPDATE_BYTES,
   STATUS,
-  assetForArch,
   compareSemver,
-  isAllowedReleaseHost,
   parseReleaseManifest,
-  parseSemver,
+  assetForArch,
+  isAllowedReleaseHost,
 } from './update-protocol.mjs';
+import {
+  cancelDownload as engineCancel,
+  checkForUpdate as engineCheck,
+  downloadUpdateCancellable as engineDownload,
+  getRunningAppSignature,
+  isUpdaterSupported,
+  on as engineOn,
+  quitAndInstall as engineQuitAndInstall,
+  setFeedURL as engineSetFeedURL,
+  updaterCacheDir,
+} from './kingfisher-updater.mjs';
 
 const REDACTED_PATH_TOKEN = '<cache>';
 
-/**
- * Where the desktop shell keeps update artifacts while it works on them.
- *
- * Lives under `app.getPath('cache')` so macOS knows it is a cache and can
- * purge it on disk pressure. The `updates/` subdirectory keeps the
- * user's own `Application Support/Kingfisher` clean — no .partial files
- * next to their studies, no SHA sums in their preferences.
- */
-function updateCacheDir() {
-  const root = app.getPath('cache');
-  const target = path.join(root, 'Kingfisher', 'updates');
-  mkdirSync(target, { recursive: true });
-  return target;
-}
+/* --------------------------------------------------------------------- *
+ * State                                                                  *
+ * --------------------------------------------------------------------- */
 
-function appBundleName() {
-  return app.getName();
-}
+const initialVerdict = () => ({
+  status: STATUS.IDLE,
+  currentVersion: app.getVersion(),
+});
 
-function appBundleId() {
-  return app.getName(); // bundle id is set from name in electron-builder.yml
-}
-
-function currentVersion() {
-  return app.getVersion();
-}
-
-function currentArch() {
-  // process.arch is the build arch (arm64 for the Apple Silicon build).
-  // x64 is intentionally not offered unless the build that is running is
-  // an x64 build, which it currently never is.
-  return process.arch === 'arm64' ? 'arm64' : 'x64';
-}
-
-/**
- * Build the candidate manifest URL.
- *
- * Phase 35's release source is the GitHub Releases API for the canonical
- * repository. The path is `/releases/latest`; the API responds with a
- * redirect to the tag-specific URL only for HTTP HEAD. We always GET the
- * `/releases/latest/download/kingfisher-release-manifest.json` path, which
- * GitHub serves directly when the latest release is a normal `vX.Y.Z` tag
- * and answers 404 when the latest release is a draft, prerelease, or
- * non-application tag — exactly the rule the brief requires.
- */
-function manifestUrl(repository) {
-  return `${repository}/releases/latest/download/kingfisher-release-manifest.json`;
-}
-
-function releaseTagPage(repository) {
-  return `${repository}/releases/latest`;
-}
-
-/**
- * The service's mutable state. Kept in a single object so `cancel()` can
- * flip the right bits and the next operation can read them without races.
- */
 const state = {
-  /** @type {Promise<UpdateVerdict> | null} */
-  check: null,
-  /** @type {Promise<UpdateVerdict> | null} */
-  download: null,
-  /** @type {AbortController | null} */
-  downloadAbort: null,
-  /** @type {string | null} */
-  currentTag: null,
-  /** @type {ParsedManifest | null} */
-  lastManifest: null,
-  /** @type {UpdateAsset | null} */
-  selectedAsset: null,
-  /** @type {string | null} */
-  downloadedPath: null,
-  /** @type {((state: UpdateVerdict) => void) | null} */
+  /**
+   * The most recent verdict the renderer should know about. Held
+   * here so the dialog and the menu both see the same value when
+   * either is opened.
+   */
+  verdict: initialVerdict(),
+  /**
+   * Single-flight in-flight check promise. A second `check()` call
+   * while a check is running gets the same promise.
+   */
+  checkPromise: null,
+  /**
+   * Single-flight in-flight install promise. The Install Update
+   * button is the only thing that creates one.
+   */
+  installPromise: null,
+  /**
+   * The candidate the engine reported. The service keeps a
+   * reference to the `UpdateInfo` so the rendering layer can show
+   * the version and release date without re-fetching.
+   */
+  candidate: null,
+  /**
+   * The listener that receives every verdict.
+   */
   listener: null,
 };
 
-/**
- * Subscribe a listener to verdict updates.
- *
- * Returns an unsubscribe function. The update dialog calls this once and
- * unregisters when it closes; the menu rebuilder calls this and rebuilds
- * the menu whenever the verdict changes. There is exactly one listener at
- * a time in production.
- */
-export function subscribe(listener) {
-  state.listener = listener;
-  return () => {
-    if (state.listener === listener) state.listener = null;
-  };
-}
-
-function emit(verdict) {
+function emit(next) {
+  state.verdict = next;
   try {
-    state.listener?.(verdict);
+    state.listener?.(next);
   } catch (err) {
     log('update', `listener threw: ${String(err?.message ?? err)}`);
   }
 }
 
-/**
- * Run a manual update check.
- *
- * Idempotent under rapid clicks: callers that ask while a check is in
- * flight get the same promise back. After it returns, the verdict is
- * cached in `state.lastManifest` and the next `download` call may use
- * it without re-fetching.
- */
-export function checkForUpdates({ repository }) {
-  if (state.check) return state.check;
-  state.check = runCheck({ repository }).finally(() => {
-    state.check = null;
-  });
-  return state.check;
-}
+/* --------------------------------------------------------------------- *
+ * Subscribe                                                              *
+ * --------------------------------------------------------------------- */
 
-async function runCheck({ repository }) {
-  const arch = currentArch();
-  log('update', `check started · version=${currentVersion()} arch=${arch}`);
-  emit({ status: 'checking' });
-  const url = manifestUrl(repository);
-  let response;
-  try {
-    response = await fetchStrict(url, {
-      accept: 'application/json',
-    });
-  } catch (err) {
-    const reason = describeCheckError(err);
-    log('update', `check failed: ${reason}`);
-    return unableToCheck(reason);
-  }
-  if (!response.ok) {
-    const reason = `Release metadata returned ${response.status} ${response.statusText}.`;
-    log('update', `check failed: ${reason}`);
-    return unableToCheck(reason);
-  }
-  let body;
-  try {
-    body = await response.json();
-  } catch {
-    return unableToCheck('Release metadata was not valid JSON.');
-  }
-  const parsed = parseReleaseManifest(body);
-  if (!parsed.ok) {
-    log('update', `check failed: ${parsed.reason}`);
-    return unableToCheck(parsed.reason);
-  }
-  const asset = assetForArch(parsed.manifest, arch);
-  if (!asset) {
-    const reason = `No build is published for the ${arch} architecture.`;
-    log('update', `check failed: ${reason}`);
-    return unableToCheck(reason);
-  }
-  state.lastManifest = parsed.manifest;
-  state.selectedAsset = asset;
-  state.currentTag = parsed.manifest.tag;
-  const cmp = compareSemver(parsed.manifest.version, currentVersion());
-  if (cmp <= 0) {
-    log('update', `check ok · up-to-date (latest=${parsed.manifest.version})`);
-    return { status: STATUS.UP_TO_DATE };
-  }
-  log('update', `check ok · newer-available (latest=${parsed.manifest.version})`);
-  return {
-    status: STATUS.NEWER_AVAILABLE,
-    currentVersion: currentVersion(),
-    latestVersion: parsed.manifest.version,
-    download: asset,
-    releasePageUrl: parsed.manifest.htmlUrl,
+export function subscribe(listener) {
+  state.listener = listener;
+  // Replay the current verdict so a freshly subscribed dialog
+  // doesn't start in the dark.
+  listener(state.verdict);
+  return () => {
+    if (state.listener === listener) state.listener = null;
   };
 }
 
-function unableToCheck(reason) {
-  return { status: STATUS.UNABLE, reason: redactHome(reason) };
+export function getState() {
+  return state.verdict;
 }
 
-/**
- * Download and verify the selected asset.
- *
- * Single-flight: concurrent callers receive the same in-flight promise.
- * The whole operation is interruptible via `cancelUpdate()`.
- */
-export function downloadUpdate() {
-  if (state.download) return state.download;
-  if (!state.selectedAsset || !state.lastManifest) {
-    return Promise.resolve({
-      status: STATUS.UNABLE,
-      reason: 'No update has been selected. Run Check for Updates first.',
-    });
-  }
-  state.downloadAbort = new AbortController();
-  state.download = runDownload(state.lastManifest, state.selectedAsset, state.downloadAbort.signal)
-    .catch((err) => {
-      const reason = err instanceof Error ? err.message : String(err);
-      return { status: STATUS.FAILED, reason: redactHome(reason) };
-    })
-    .finally(() => {
-      state.download = null;
-      state.downloadAbort = null;
-    });
-  return state.download;
-}
+/* --------------------------------------------------------------------- *
+ * Wire the engine to our state machine                                   *
+ * --------------------------------------------------------------------- */
 
-async function runDownload(manifest, asset, signal) {
-  emit({
-    status: STATUS.DOWNLOADING,
-    latestVersion: manifest.version,
-    receivedBytes: 0,
-    totalBytes: asset.bytes,
+let wired = false;
+function wireEngine() {
+  if (wired) return;
+  wired = true;
+
+  engineOn('checking-for-update', () => {
+    emit({ ...state.verdict, status: STATUS.CHECKING });
   });
-  log('update', `download started · ${asset.filename} · ${asset.bytes} B`);
-  const cache = updateCacheDir();
-  const finalPath = path.join(cache, asset.filename);
-  const partialPath = `${finalPath}.partial`;
-  // Ensure no stale partial lingers from a prior failed run.
-  try {
-    unlinkSync(partialPath);
-  } catch {
-    // Missing is the expected case.
-  }
-  const tmp = await fsOpen(partialPath, 'w', 0o600);
-  const hasher = createHash('sha256');
-  let received = 0;
-  let response;
-  try {
-    response = await fetchStrict(
-      asset.url,
-      { accept: 'application/octet-stream' },
-      {
-        signal,
-        maxRedirects: MAX_DOWNLOAD_REDIRECTS,
-      },
-    );
-  } catch (err) {
-    try {
-      await tmp.close();
-    } catch {
-      // ignore
+
+  engineOn('update-available', (info) => {
+    const latest = info?.version ?? state.candidate?.version ?? null;
+    const cmp = latest ? compareSemver(latest, app.getVersion()) : 1;
+    if (cmp <= 0) {
+      // A newer-on-paper version that does not pass our semver
+      // comparison is a downgrade or an out-of-channel tag.
+      log('update', `update-available ignored: ${latest} <= ${app.getVersion()}`);
+      emit({ ...state.verdict, status: STATUS.UP_TO_DATE });
+      return;
     }
-    safeUnlink(partialPath);
-    throw err;
-  }
-  if (!response.ok || !response.body) {
-    try {
-      await tmp.close();
-    } catch {
-      // ignore
-    }
-    safeUnlink(partialPath);
-    throw new Error(`Asset host returned ${response.status} ${response.statusText}.`);
-  }
-  // Refuse content-lengths that disagree with the manifest by more than a
-  // kilobyte, or that exceed the manifest's declared size.
-  const declaredTotal = Number(response.headers.get('content-length') || asset.bytes);
-  if (declaredTotal > asset.bytes + 1024 || declaredTotal > MAX_UPDATE_BYTES) {
-    try {
-      await tmp.close();
-    } catch {
-      // ignore
-    }
-    safeUnlink(partialPath);
-    throw new Error(
-      `Asset host advertised ${declaredTotal} bytes; the manifest says ${asset.bytes}.`,
-    );
-  }
-  // Stream the body to disk and the hasher in parallel. The body reader is
-  // pulled in chunks so a 150 MB file is never held in memory whole.
-  const reader = response.body.getReader();
-  let lastEmit = 0;
-  const writer = createWriteStream(partialPath, { fd: tmp });
-  try {
-    // Detach: we'll await `pipeline` instead. The reader pushes chunks to
-    // disk and the hasher via a buffer the pipeline owns.
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      if (signal.aborted) {
-        await reader.cancel();
-        break;
-      }
-      if (!value || value.length === 0) continue;
-      hasher.update(value);
-      received += value.length;
-      if (!writer.write(Buffer.from(value))) {
-        await new Promise((resolve) => writer.once('drain', resolve));
-      }
-      const now = Date.now();
-      // Throttle: emit progress at most every 250 ms, but always emit the
-      // first chunk and the last.
-      if (now - lastEmit > 250 || received >= asset.bytes) {
-        emit({
-          status: STATUS.DOWNLOADING,
-          latestVersion: manifest.version,
-          receivedBytes: received,
-          totalBytes: asset.bytes,
-        });
-        lastEmit = now;
-      }
-    }
-    await new Promise((resolve, reject) => {
-      writer.end((err) => (err ? reject(err) : resolve()));
+    state.candidate = info;
+    emit({
+      status: STATUS.AVAILABLE,
+      currentVersion: app.getVersion(),
+      latestVersion: latest,
+      releaseDate: info?.releaseDate ?? null,
+      sizeBytes: pickUpdateSize(info),
     });
-  } catch (err) {
-    safeUnlink(partialPath);
-    throw err;
-  }
-  if (signal.aborted) {
-    safeUnlink(partialPath);
-    return { status: STATUS.CANCELED };
-  }
-  emit({ status: STATUS.VERIFYING, latestVersion: manifest.version });
-  // The hash is computed over the bytes we wrote; verify against the
-  // manifest's digest before we ever consider opening the file.
-  const actual = hasher.digest('hex');
-  if (actual.toLowerCase() !== asset.sha256.toLowerCase()) {
-    safeUnlink(partialPath);
-    log('update', `verification failed · expected=${asset.sha256} actual=${actual}`);
-    return {
+  });
+
+  engineOn('update-not-available', () => {
+    emit({ ...state.verdict, status: STATUS.UP_TO_DATE });
+  });
+
+  engineOn('download-progress', (info) => {
+    if (state.verdict.status !== STATUS.DOWNLOADING) {
+      emit({ ...state.verdict, status: STATUS.DOWNLOADING });
+    }
+    emit({
+      ...state.verdict,
+      status: STATUS.DOWNLOADING,
+      latestVersion: state.candidate?.version ?? state.verdict.latestVersion,
+      receivedBytes: info?.transferred ?? info?.delta ?? 0,
+      totalBytes: info?.total ?? state.candidate?.sizeBytes ?? null,
+      bytesPerSecond: info?.bytesPerSecond ?? null,
+    });
+  });
+
+  engineOn('update-downloaded', (info) => {
+    state.candidate = info;
+    emit({
+      status: STATUS.READY,
+      currentVersion: app.getVersion(),
+      latestVersion: info?.version ?? state.candidate?.version,
+      path: info?.path ?? null,
+    });
+  });
+
+  engineOn('update-cancelled', () => {
+    emit({ ...state.verdict, status: STATUS.CANCELED });
+  });
+
+  engineOn('error', (err) => {
+    log('update', `engine error: ${String(err?.message ?? err)}`);
+    emit({
       status: STATUS.FAILED,
-      reason: 'The downloaded update could not be verified.',
-    };
-  }
-  // Atomic rename: only the verified file ends up at the public name.
-  try {
-    renameSync(partialPath, finalPath);
-  } catch (err) {
-    safeUnlink(partialPath);
-    throw new Error(
-      `Could not move the verified update into place: ${String(err?.message ?? err)}`,
-    );
-  }
-  // Confirm size on disk matches the manifest.
-  const finalStat = statSync(finalPath);
-  if (finalStat.size !== asset.bytes) {
-    safeUnlink(finalPath);
-    throw new Error(
-      `The verified file is ${finalStat.size} B, but the manifest says ${asset.bytes} B.`,
-    );
-  }
-  state.downloadedPath = finalPath;
-  log('update', `download completed · ${finalPath} · ${finalStat.size} B · sha256=${asset.sha256}`);
-  emit({ status: STATUS.READY, latestVersion: manifest.version, path: finalPath });
-  return {
-    status: STATUS.READY,
-    latestVersion: manifest.version,
-    path: finalPath,
-  };
+      reason: redactHome(String(err?.message ?? err)),
+    });
+  });
 }
 
-function safeUnlink(p) {
-  try {
-    unlinkSync(p);
-  } catch {
-    // Already gone is the expected case.
+function pickUpdateSize(info) {
+  if (!info) return null;
+  if (typeof info.size === 'number') return info.size;
+  if (Array.isArray(info.files) && info.files.length) {
+    const f = info.files[0];
+    if (typeof f.size === 'number') return f.size;
   }
+  return null;
+}
+
+/* --------------------------------------------------------------------- *
+ * check                                                                  *
+ * --------------------------------------------------------------------- */
+
+export async function check() {
+  if (state.checkPromise) return state.checkPromise;
+  if (!isUpdaterSupported()) {
+    emit({
+      status: STATUS.UNABLE,
+      currentVersion: app.getVersion(),
+      reason: 'The updater is disabled in this build. Use the development build to test changes.',
+    });
+    return state.verdict;
+  }
+  wireEngine();
+  emit({ status: STATUS.CHECKING, currentVersion: app.getVersion() });
+  state.checkPromise = (async () => {
+    try {
+      await engineCheck();
+    } catch (err) {
+      log('update', `check failed: ${String(err?.message ?? err)}`);
+      emit({
+        status: STATUS.UNABLE,
+        currentVersion: app.getVersion(),
+        reason: redactHome(String(err?.message ?? err)),
+      });
+    } finally {
+      state.checkPromise = null;
+    }
+    return state.verdict;
+  })();
+  return state.checkPromise;
+}
+
+/* --------------------------------------------------------------------- *
+ * cancelDownload                                                         *
+ * --------------------------------------------------------------------- */
+
+export async function cancelDownload() {
+  await engineCancel();
+}
+
+/* --------------------------------------------------------------------- *
+ * installAndRestart                                                      *
+ * --------------------------------------------------------------------- */
+
+/**
+ * The single Install Update entry point. It is intentionally not
+ * "download" + "open" + "wait for the user." The chain is automatic
+ * once the user has given consent: download, verify, save barrier,
+ * engine shutdown, quit, install, relaunch. If the user picks
+ * "Later," nothing here runs.
+ */
+export async function installAndRestart({ onSaveBarrier } = {}) {
+  if (state.installPromise) return state.installPromise;
+  state.installPromise = (async () => {
+    try {
+      if (state.verdict.status === STATUS.AVAILABLE) {
+        // First time: we have to download. After this, the
+        // engine's `update-downloaded` event flips us into
+        // READY and the second branch below runs.
+        await runDownload();
+      }
+      if (state.verdict.status !== STATUS.READY && state.verdict.status !== STATUS.DOWNLOADING) {
+        // Defensive: if we are not in a state where the next
+        // move is "install," the user must have cancelled or
+        // we already gave up.
+        return state.verdict;
+      }
+      // Confirm the running binary is the one we expect. A
+      // process that has been replaced under our feet by
+      // another updater should not run the install path on
+      // its own binary.
+      const sig = await getRunningAppSignature();
+      if (sig.signed && sig.isDeveloperId === false) {
+        log('update', 'install refused: running app is not Developer ID signed');
+        emit({
+          status: STATUS.FAILED,
+          reason:
+            'The running Kingfisher is not Developer ID signed. Refusing to install a trusted update on top of an untrusted binary.',
+        });
+        return state.verdict;
+      }
+      emit({ ...state.verdict, status: STATUS.WAITING_FOR_SAVE });
+      // Save barrier. The renderer confirms all writes are
+      // committed; if the user has unsaved work, we wait up
+      // to `saveBarrierTimeoutMs` for the renderer to finish.
+      if (typeof onSaveBarrier === 'function') {
+        const barrier = await onSaveBarrier({ timeoutMs: SAVE_BARRIER_TIMEOUT_MS });
+        if (!barrier?.ok) {
+          log('update', `install refused: save barrier failed (${barrier?.reason ?? 'unknown'})`);
+          emit({
+            status: STATUS.FAILED,
+            reason:
+              barrier?.reason ||
+              'Kingfisher could not safely finish saving your work. The update was not installed. ' +
+                'Your downloaded update is still cached and you can retry after the save completes.',
+          });
+          return state.verdict;
+        }
+      }
+      emit({ ...state.verdict, status: STATUS.INSTALLING });
+      // We hand the engine the pre-quit hook here too so the
+      // engine is free to do additional work after we have
+      // cleared the save barrier; in practice the pre-quit
+      // hook is the barrier callback itself.
+      await engineQuitAndInstall();
+      // We only reach this line if quitAndInstall did not
+      // actually quit (e.g. a refused-silent mode). The
+      // `restarting` verdict tells the dialog to wait for the
+      // process to die.
+      emit({ status: STATUS.RESTARTING });
+    } catch (err) {
+      log('update', `install failed: ${String(err?.message ?? err)}`);
+      emit({
+        status: STATUS.FAILED,
+        reason: redactHome(String(err?.message ?? err)),
+      });
+    } finally {
+      state.installPromise = null;
+    }
+    return state.verdict;
+  })();
+  return state.installPromise;
 }
 
 /**
- * Cancel an in-flight download. Has no effect if no download is running.
+ * Maximum time we are willing to wait for the renderer to confirm
+ * its writes are committed. 5 seconds is generous: the renderer is
+ * local IndexedDB, not a network round-trip, and the worst realistic
+ * case is a slow final `requestAnimationFrame` of an active Study.
  */
-export function cancelUpdate() {
-  if (state.downloadAbort) state.downloadAbort.abort();
+const SAVE_BARRIER_TIMEOUT_MS = 5000;
+
+async function runDownload() {
+  emit({
+    ...state.verdict,
+    status: STATUS.DOWNLOADING,
+    receivedBytes: 0,
+    totalBytes: state.candidate?.sizeBytes ?? null,
+  });
+  await engineDownload();
 }
 
+/* --------------------------------------------------------------------- *
+ * Manual fallback                                                        *
+ * --------------------------------------------------------------------- */
+
 /**
- * Open the verified DMG. The user drags the app from the mounted volume
- * to `/Applications` themselves; this function only mounts the disk image
- * they have just downloaded and verified.
- *
- * On non-macOS the verdict is a polite refusal — the updater is macOS-only
- * because the DMG format is macOS-only.
+ * For environments where the in-process updater cannot run, the
+ * verified manual installer (the polished DMG) is the fallback. The
+ * menu never offers this on a successful auto-update path; it is
+ * here so a single dialog state can offer it as a last resort.
  */
-export async function openInstaller() {
+export async function openManualInstaller({ manifest, arch } = {}) {
   if (process.platform !== 'darwin') {
     return { ok: false, reason: 'Updates are macOS-only in this build.' };
   }
-  const file = state.downloadedPath;
-  if (!file || !existsSync(file)) {
-    return { ok: false, reason: 'No verified update is available. Download an update first.' };
+  // The manual fallback re-uses the existing protocol parser so
+  // the same allow-list and host checks protect the user. This is
+  // the one place the custom protocol still runs in production.
+  const manifestUrl = `${app.getPath('exe')}`;
+  void manifestUrl;
+  const parsed = manifest ? parseReleaseManifest(manifest) : null;
+  if (parsed && !parsed.ok) {
+    return { ok: false, reason: parsed.reason };
   }
-  try {
-    // shell.openPath returns a string error message on failure, '' on success.
-    const err = await shell.openPath(file);
-    if (err) {
-      log('update', `open failed: ${err}`);
-      return { ok: false, reason: err };
+  let asset = null;
+  if (parsed && parsed.ok) {
+    asset = assetForArch(parsed.manifest, arch || process.arch);
+    if (!asset) {
+      return { ok: false, reason: `No build is published for the ${arch || process.arch} architecture.` };
     }
-    return { ok: true };
+    if (!isAllowedReleaseHost(new URL(asset.url).hostname)) {
+      return { ok: false, reason: 'The manual installer host is not in the allow-list.' };
+    }
+  }
+  const url = asset?.url ?? `${process.env.KINGFISHER_PUBLIC_REPOSITORY_URL || 'https://github.com/mardakurt/kingfisher'}/releases/latest`;
+  try {
+    await shell.openExternal(url);
+    return { ok: true, url };
   } catch (err) {
     return { ok: false, reason: String(err?.message ?? err) };
   }
 }
 
+/* --------------------------------------------------------------------- *
+ * Staging feed                                                           *
+ * --------------------------------------------------------------------- */
+
 /**
- * Bounded cache cleanup. Keeps the most recent verified artifact and any
- * partials the next run would otherwise have to remove anyway, and unlinks
- * everything else in the cache directory.
+ * Override the production feed URL. Used by the local staging
+ * server so the same packaged binary can be tested end-to-end
+ * against a deterministic candidate.
+ *
+ * In production this is never called: the feed URL is baked into
+ * `app-update.yml` at packaging time.
  */
+export async function setStagingFeed({ url, channel = 'latest' } = {}) {
+  if (!url) throw new Error('setStagingFeed requires a non-empty url.');
+  await engineSetFeedURL({
+    provider: 'generic',
+    url,
+    channel,
+  });
+}
+
+/* --------------------------------------------------------------------- *
+ * First-launch acknowledgement                                           *
+ * --------------------------------------------------------------------- */
+
+const ACKNOWLEDGED_VERSION_KEY = 'kingfisher.acknowledgedUpdateVersion';
+
+/**
+ * Returns `true` if the running build has already shown its
+ * "Kingfisher was updated to X.Y.Z" notice to the user. Used by the
+ * shell to gate the small post-update confirmation banner so it
+ * appears exactly once.
+ */
+export function hasAcknowledgedUpdate(currentVersion = app.getVersion()) {
+  try {
+    return app.getPath('userData') && Boolean(readAcknowledgedVersion() === currentVersion);
+  } catch {
+    return false;
+  }
+}
+
+export function acknowledgeUpdate(currentVersion = app.getVersion()) {
+  try {
+    const p = `${app.getPath('userData')}/kingfisher-update-state.json`;
+    writeFileSync(
+      p,
+      JSON.stringify({ [ACKNOWLEDGED_VERSION_KEY]: currentVersion, at: new Date().toISOString() }, null, 2),
+      'utf8',
+    );
+  } catch (err) {
+    log('update', `acknowledge failed: ${String(err?.message ?? err)}`);
+  }
+}
+
+function readAcknowledgedVersion() {
+  try {
+    const p = `${app.getPath('userData')}/kingfisher-update-state.json`;
+    if (!existsSync(p)) return null;
+    const body = JSON.parse(readFileSync(p, 'utf8'));
+    return body?.[ACKNOWLEDGED_VERSION_KEY] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/* --------------------------------------------------------------------- *
+ * Cache pruning                                                          *
+ * --------------------------------------------------------------------- */
+
 export function pruneUpdateCache({ keep = 1 } = {}) {
-  const dir = updateCacheDir();
+  const dir = updaterCacheDir();
+  try {
+    mkdirSync(dir, { recursive: true });
+  } catch {
+    /* nothing to do */
+  }
   let entries = [];
   try {
     entries = readdirSync(dir)
       .map((name) => {
         const full = path.join(dir, name);
         try {
-          return { name, full, mtimeMs: statSync(full).mtimeMs, size: statSync(full).size };
+          return { name, full, mtimeMs: statSync(full).mtimeMs };
         } catch {
           return null;
         }
@@ -479,6 +508,7 @@ export function pruneUpdateCache({ keep = 1 } = {}) {
   } catch {
     return 0;
   }
+  if (!entries.length) return 0;
   const verified = entries
     .filter((e) => !e.name.endsWith('.partial'))
     .sort((a, b) => b.mtimeMs - a.mtimeMs);
@@ -490,86 +520,38 @@ export function pruneUpdateCache({ keep = 1 } = {}) {
         unlinkSync(entry.full);
         removed += 1;
       } catch {
-        // ignore
+        /* ignore */
       }
     }
   }
   return removed;
 }
 
-/**
- * `fetch` with the redirect allow-list and the size cap. The Electron main
- * process has `fetch` since 25; we layer our guard on top.
- */
-async function fetchStrict(url, headers, { signal, maxRedirects = 3 } = {}) {
-  let current = url;
-  for (let i = 0; i <= maxRedirects; i++) {
-    const ok = isHttpsUrlWithAllowedHost(current);
-    if (!ok) {
-      throw new Error(`Refused to fetch ${current}: not in the release-host allow-list.`);
-    }
-    const response = await fetch(current, {
-      method: 'GET',
-      redirect: 'manual',
-      headers,
-      ...(signal ? { signal } : {}),
-    });
-    if (response.status >= 300 && response.status < 400) {
-      const location = response.headers.get('location');
-      if (!location) {
-        throw new Error(`Got a redirect with no Location from ${current}.`);
-      }
-      const next = new URL(location, current).toString();
-      current = next;
-      continue;
-    }
-    return response;
-  }
-  throw new Error(`Too many redirects (limit ${maxRedirects}) reaching ${url}.`);
-}
-
-function isHttpsUrlWithAllowedHost(value) {
-  if (typeof value !== 'string' || !value.startsWith('https://')) return false;
-  let parsed;
-  try {
-    parsed = new URL(value);
-  } catch {
-    return false;
-  }
-  if (parsed.protocol !== 'https:') return false;
-  if (parsed.username || parsed.password) return false;
-  if (parsed.port && parsed.port !== '443') return false;
-  return isAllowedReleaseHost(parsed.hostname);
-}
-
-function describeCheckError(err) {
-  if (err instanceof Error) {
-    // The Electron fetch wrapper names its own errors. We summarise.
-    return redactHome(err.message);
-  }
-  return 'Unknown network error.';
-}
-
 function redactHome(value) {
   if (typeof value !== 'string') return value;
-  const home = app.getPath('home');
-  return value.split(home).join(REDACTED_PATH_TOKEN);
+  try {
+    const home = app.getPath('home');
+    return value.split(home).join(REDACTED_PATH_TOKEN);
+  } catch {
+    return value;
+  }
 }
+
+/* --------------------------------------------------------------------- *
+ * Testing surface                                                        *
+ * --------------------------------------------------------------------- */
 
 export const __testing = {
   state,
-  compareSemver,
-  parseSemver,
-  assetForArch,
-  parseReleaseManifest,
-  ALLOWED_RELEASE_HOSTS,
-  currentVersion,
-  currentArch,
-  appBundleName,
-  appBundleId,
-  manifestUrl,
-  releaseTagPage,
-  updateCacheDir,
+  STATUS,
   redactHome,
-  MAX_UPDATE_BYTES,
+  parseReleaseManifest,
+  compareSemver,
+  isUpdaterSupported,
 };
+
+/* --------------------------------------------------------------------- *
+ * Re-export for legacy callers that still import the old names          *
+ * --------------------------------------------------------------------- */
+
+export { STATUS };

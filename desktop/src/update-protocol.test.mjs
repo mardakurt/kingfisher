@@ -275,14 +275,20 @@ describe('assetForArch', () => {
 
 describe('STATUS', () => {
   it('exposes the verdicts the menu and dialog render against', () => {
+    expect(STATUS.IDLE).toBe('idle');
+    expect(STATUS.CHECKING).toBe('checking');
     expect(STATUS.UP_TO_DATE).toBe('up-to-date');
-    expect(STATUS.NEWER_AVAILABLE).toBe('newer-available');
-    expect(STATUS.UNABLE).toBe('unable-to-check');
+    expect(STATUS.AVAILABLE).toBe('available');
     expect(STATUS.DOWNLOADING).toBe('downloading');
+    expect(STATUS.DOWNLOADED).toBe('downloaded');
     expect(STATUS.VERIFYING).toBe('verifying');
     expect(STATUS.READY).toBe('ready');
-    expect(STATUS.FAILED).toBe('failed');
+    expect(STATUS.WAITING_FOR_SAVE).toBe('waiting-for-save');
+    expect(STATUS.INSTALLING).toBe('installing');
+    expect(STATUS.RESTARTING).toBe('restarting');
+    expect(STATUS.UNABLE).toBe('unable-to-check');
     expect(STATUS.CANCELED).toBe('canceled');
+    expect(STATUS.FAILED).toBe('failed');
   });
 });
 

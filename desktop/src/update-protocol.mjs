@@ -75,14 +75,30 @@ export function isAllowedReleaseHost(hostname) {
  * that talks to GitHub, but the data shape it hands back to the renderer is
  * this — never the raw response body.
  */
+/**
+ * The verdict set the update service can hand to the renderer.
+ *
+ * Phase 35 introduced the original eight. Phase 36 splits the
+ * download into two events (`downloading` and `downloaded`) and
+ * adds three install-side states: `waiting-for-save`, `installing`,
+ * and `restarting`. The renderer's switch in `update.js` is keyed
+ * off these strings; adding a state is a renderer change in
+ * lockstep with a service change. The list below is the source of
+ * truth.
+ */
 export const STATUS = Object.freeze({
+  IDLE: 'idle',
+  CHECKING: 'checking',
   UP_TO_DATE: 'up-to-date',
-  NEWER_AVAILABLE: 'newer-available',
-  UNABLE: 'unable-to-check',
+  AVAILABLE: 'available',
   DOWNLOADING: 'downloading',
   DOWNLOADED: 'downloaded',
   VERIFYING: 'verifying',
   READY: 'ready',
+  WAITING_FOR_SAVE: 'waiting-for-save',
+  INSTALLING: 'installing',
+  RESTARTING: 'restarting',
+  UNABLE: 'unable-to-check',
   CANCELED: 'canceled',
   FAILED: 'failed',
 });

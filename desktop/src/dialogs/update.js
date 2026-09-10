@@ -7,12 +7,20 @@
  * bridge the preload exposes; there is no `fetch`, no
  * `XMLHttpRequest`, and no Node here.
  *
- * The goal of the dialog is to *not feel* like a Kingfisher app
- * surface: a player who clicks the macOS menu item expects a small,
- * calm, native panel. Buttons follow the platform's
- * "primary on the right" convention, Escape cancels or closes, and
- * the whole window is keyboard-operable without reaching for the
- * mouse.
+ * Phase 36 redesigns the dialog around the user's actual flow:
+ *
+ *   1. The user opens *Check for Updates…*
+ *   2. The verdict is one of: up-to-date, available, unable-to-check.
+ *   3. If available, the primary action is **Install Update** — a
+ *      single click that owns the entire download → verify → save
+ *      barrier → install → relaunch chain. The dialog does not
+ *      make the user click through intermediate states.
+ *   4. Progress is shown in the dialog until the OS takes over
+ *      for the actual install.
+ *
+ * Every state name in the switch below is also a value of
+ * `STATUS` in `update-protocol.mjs`. Adding a state on the main
+ * side without a matching case here is a bug.
  */
 
 (function () {
@@ -25,6 +33,7 @@
     secondary: document.getElementById('secondary'),
     progress: document.getElementById('progress'),
     progressFill: document.getElementById('progress-fill'),
+    footnote: document.getElementById('footnote'),
   };
 
   const bridge = window.kingfisherUpdate;
@@ -46,79 +55,132 @@
 
   function render(verdict) {
     if (!verdict) return;
-    const version = (verdict.currentVersion || '').trim() || 'Kingfisher';
-    els.versionLine.textContent = `Kingfisher ${version}`;
+    const current = (verdict.currentVersion || '').trim() || 'Kingfisher';
+    const latest = (verdict.latestVersion || '').trim();
+    els.versionLine.textContent = `Kingfisher ${current}`;
     switch (verdict.status) {
+      case 'idle':
+        paint({
+          headline: 'Kingfisher updates itself in the background.',
+          detail: 'Click Check for Updates to ask the release host whether a newer version is available.',
+          progress: null,
+          footnote: '',
+          primary: { label: 'Check for Updates', enabled: true, action: 'check' },
+          secondary: null,
+        });
+        break;
       case 'checking':
         paint({
           headline: 'Checking for updates…',
           detail: 'Reaching the release host.',
-          progress: null,
+          progress: { value: 0, indeterminate: true },
+          footnote: '',
           primary: { label: 'Checking…', enabled: false },
           secondary: null,
         });
         break;
       case 'up-to-date':
         paint({
-          headline: `Kingfisher ${verdict.currentVersion} is the latest available version.`,
-          detail: 'You are up to date.',
+          headline: latest ? `Kingfisher ${current} is the latest available version.` : 'Kingfisher is up to date.',
+          detail: latest ? `Kingfisher ${current} is the latest version published on the release channel.` : '',
           progress: null,
+          footnote: '',
           primary: { label: 'Done', enabled: true, action: 'close' },
           secondary: { label: 'Check Again', enabled: true, action: 'check' },
         });
         break;
-      case 'newer-available':
+      case 'available':
         paint({
-          headline: `Kingfisher ${verdict.latestVersion} is available.`,
-          detail: `You're running ${verdict.currentVersion}. The macOS ${verdict.download.arch} build is ${formatBytes(verdict.download.bytes)}.`,
+          headline: `Kingfisher ${latest || 'a new version'} is ready to install.`,
+          detail: `You're running ${current}. ${releaseNotesTeaser(verdict)}`,
           progress: null,
-          primary: { label: 'Download Update', enabled: true, action: 'download' },
-          secondary: { label: 'View Release Notes', enabled: true, action: 'release' },
+          footnote: 'Kingfisher will close and reopen automatically.',
+          primary: { label: 'Install Update', enabled: true, action: 'install' },
+          secondary: { label: 'View Release Notes', enabled: true, action: 'notes' },
         });
         break;
       case 'downloading':
         paint({
-          headline: `Downloading Kingfisher ${verdict.latestVersion}…`,
+          headline: `Downloading Kingfisher ${latest || 'the update'}…`,
           detail: formatProgress(verdict),
           progress: progressFraction(verdict),
+          footnote: 'Verifying the download when this finishes.',
           primary: { label: 'Cancel', enabled: true, action: 'cancel' },
           secondary: null,
         });
         break;
+      case 'downloaded':
       case 'verifying':
         paint({
-          headline: 'Verifying download…',
-          detail: 'Checking the SHA-256 against the release manifest.',
+          headline: 'Verifying the update…',
+          detail: 'Confirming the download matches the release manifest.',
           progress: { value: 1, indeterminate: false },
+          footnote: '',
           primary: { label: 'Cancel', enabled: false },
           secondary: null,
         });
         break;
       case 'ready':
+        // Reached only if the user opened the dialog after a
+        // previous download completed but before Install Update
+        // was clicked. The chain is normally automatic.
         paint({
-          headline: `Kingfisher ${verdict.latestVersion} is ready to install.`,
-          detail: 'The DMG has been verified and is safe to open.',
+          headline: `Kingfisher ${latest || 'the update'} is ready to install.`,
+          detail: 'The update has been verified.',
           progress: null,
-          primary: { label: 'Open Installer', enabled: true, action: 'open' },
-          secondary: { label: 'Close', enabled: true, action: 'close' },
+          footnote: 'Kingfisher will close and reopen automatically.',
+          primary: { label: 'Install Update', enabled: true, action: 'install' },
+          secondary: null,
+        });
+        break;
+      case 'waiting-for-save':
+        paint({
+          headline: 'Finishing saving your work…',
+          detail: 'Kingfisher is making sure your last edits are committed before the install.',
+          progress: { value: 0, indeterminate: true },
+          footnote: 'This only takes a moment.',
+          primary: { label: 'Saving…', enabled: false },
+          secondary: null,
+        });
+        break;
+      case 'installing':
+        paint({
+          headline: 'Installing the update…',
+          detail: 'Kingfisher will close and reopen automatically.',
+          progress: { value: 1, indeterminate: false },
+          footnote: 'Do not turn off your computer until this finishes.',
+          primary: { label: 'Installing…', enabled: false },
+          secondary: null,
+        });
+        break;
+      case 'restarting':
+        paint({
+          headline: 'Restarting Kingfisher…',
+          detail: 'The new version is opening now.',
+          progress: { value: 1, indeterminate: false },
+          footnote: '',
+          primary: { label: 'Restarting…', enabled: false },
+          secondary: null,
         });
         break;
       case 'canceled':
         paint({
           headline: 'Download canceled.',
-          detail: 'No update was installed.',
+          detail: `Kingfisher ${current} is still installed. You can try again any time.`,
           progress: null,
-          primary: { label: 'Download Again', enabled: true, action: 'download' },
+          footnote: '',
+          primary: { label: 'Try Again', enabled: true, action: 'check' },
           secondary: { label: 'Close', enabled: true, action: 'close' },
         });
         break;
       case 'failed':
         paint({
-          headline: 'The downloaded update could not be verified.',
-          detail: 'The file did not match the expected SHA-256. The download has been removed.',
+          headline: 'The update could not be installed.',
+          detail: verdict.reason || 'The download was incomplete or the signature did not verify.',
           progress: null,
-          primary: { label: 'Try Again', enabled: true, action: 'download' },
-          secondary: { label: 'Close', enabled: true, action: 'close' },
+          footnote: 'Your installed Kingfisher is unchanged.',
+          primary: { label: 'Try Again', enabled: true, action: 'check' },
+          secondary: { label: 'Download Installer', enabled: true, action: 'fallback' },
         });
         break;
       case 'unable-to-check':
@@ -126,6 +188,7 @@
           headline: 'Unable to check for updates right now.',
           detail: verdict.reason || 'Try again later.',
           progress: null,
+          footnote: 'No data was downloaded and nothing was changed on this machine.',
           primary: { label: 'Try Again', enabled: true, action: 'check' },
           secondary: { label: 'Close', enabled: true, action: 'close' },
         });
@@ -135,20 +198,29 @@
           headline: 'Checking for updates…',
           detail: '',
           progress: null,
+          footnote: '',
           primary: { label: 'Check for Updates', enabled: false },
           secondary: null,
         });
     }
   }
 
-  function paint({ headline, detail, progress, primary, secondary }) {
+  function paint({ headline, detail, progress, footnote, primary, secondary }) {
     els.headline.textContent = headline;
     els.detail.textContent = detail || '';
+    els.footnote.textContent = footnote || '';
     if (progress == null) {
       els.progress.classList.add('hidden');
+      els.progress.classList.remove('indeterminate');
     } else {
       els.progress.classList.remove('hidden');
-      els.progressFill.style.width = `${Math.min(100, Math.max(0, (progress.value || 0) * 100))}%`;
+      if (progress.indeterminate) {
+        els.progress.classList.add('indeterminate');
+        els.progressFill.style.width = '30%';
+      } else {
+        els.progress.classList.remove('indeterminate');
+        els.progressFill.style.width = `${Math.min(100, Math.max(0, (progress.value || 0) * 100))}%`;
+      }
     }
     setButton(els.primary, primary);
     setButton(els.secondary, secondary);
@@ -186,6 +258,14 @@
     }
   }
 
+  function releaseNotesTeaser(verdict) {
+    const bytes = Number(verdict.sizeBytes ?? verdict.download?.bytes ?? 0);
+    if (bytes > 0) {
+      return `The macOS arm64 build is ${formatBytes(bytes)}.`;
+    }
+    return 'A new macOS build is available.';
+  }
+
   function formatBytes(n) {
     const mb = n / (1024 * 1024);
     if (mb < 1) return `${(n / 1024).toFixed(0)} KB`;
@@ -196,7 +276,7 @@
   function formatProgress(v) {
     const rec = v.receivedBytes || 0;
     const tot = v.totalBytes || 0;
-    if (!tot) return '';
+    if (!tot) return 'Downloading…';
     const pct = Math.floor((rec / tot) * 100);
     return `${formatBytes(rec)} of ${formatBytes(tot)} · ${pct}%`;
   }
@@ -211,6 +291,7 @@
     paint({
       headline: 'The updater could not start.',
       detail: message,
+      footnote: '',
       progress: null,
       primary: { label: 'Close', enabled: true, action: 'close' },
       secondary: null,

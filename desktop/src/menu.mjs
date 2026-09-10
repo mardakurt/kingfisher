@@ -168,18 +168,34 @@ export function buildTemplate({
 function menuLabelForUpdate(status) {
   if (!status) return 'Check for Updates…';
   switch (status.status) {
+    case 'idle':
+      return 'Check for Updates…';
     case 'checking':
       return 'Checking for Updates…';
-    case 'newer-available':
+    case 'up-to-date':
+      return 'Kingfisher Is Up to Date…';
+    case 'available':
       return 'An Update Is Available…';
     case 'downloading':
       return 'Downloading Update…';
+    case 'downloaded':
+      return 'Verifying Update…';
     case 'verifying':
       return 'Verifying Update…';
     case 'ready':
       return 'Update Ready to Install…';
+    case 'waiting-for-save':
+      return 'Finishing Saving Your Work…';
+    case 'installing':
+      return 'Installing Update…';
+    case 'restarting':
+      return 'Restarting…';
+    case 'canceled':
+      return 'Update Canceled…';
     case 'failed':
-      return 'Update Verification Failed…';
+      return 'Update Failed…';
+    case 'unable-to-check':
+      return 'Check for Updates…';
     default:
       return 'Check for Updates…';
   }
@@ -187,10 +203,24 @@ function menuLabelForUpdate(status) {
 
 function menuEnabledForUpdate(status) {
   if (!status) return true;
-  // While a check is in flight or a download is active, the menu is
-  // disabled — the user has already asked, the request is running, and
-  // a second click would only be a single-flight no-op.
-  return !['checking', 'downloading', 'verifying'].includes(status.status);
+  /*
+    While a check is in flight or a download/install is active, the
+    menu is disabled — the user has already asked, the request is
+    running, and a second click would only be a single-flight no-op.
+    Phase 36 widens this: once the user has committed to the install
+    (waiting-for-save, installing, restarting), the menu reflects
+    that commitment rather than inviting a new one.
+  */
+  return ![
+    'checking',
+    'downloading',
+    'downloaded',
+    'verifying',
+    'ready',
+    'waiting-for-save',
+    'installing',
+    'restarting',
+  ].includes(status.status);
 }
 
 // The *Settings…* entry uses a callback the main process passes in, the
