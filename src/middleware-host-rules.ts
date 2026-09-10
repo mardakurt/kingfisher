@@ -59,6 +59,7 @@ export function isLandingAsset(pathname: string): boolean {
   if (pathname.startsWith('/landing/')) return true;
   if (pathname.startsWith('/reference/')) return true;
   if (pathname.startsWith('/_next/')) return true;
+  if (pathname.startsWith('/.well-known/')) return true;
   return false;
 }
 
