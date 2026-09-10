@@ -1,51 +1,150 @@
 # Security policy
 
-Kingfisher is an open-source chess research workstation published
-under the MIT licence. This page is the maintainer-facing
-security policy. The user-facing landing page does not link to
-it; it is referenced from the GitHub Security tab.
+Kingfisher is an open-source chess research workstation published under
+the MIT licence. This page is the **security policy** — what the
+product does, what it does not do, and how to report a vulnerability
+to the maintainer privately.
 
-## Supported versions
+The user-facing surfaces link here from their footers and from
+`/.well-known/security.txt`.
 
-Only the most recent release receives security fixes. Older
-release candidates are not patched. The current supported
-release is the one tagged `Latest` on
-<https://github.com/mardakurt/kingfisher/releases>.
+## What the current public product is
 
-| Version               | Supported     |
-| --------------------- | ------------- |
-| 1.0.0-rc.4            | yes (current) |
-| 1.0.0-rc.3            | no            |
-| 1.0.0-rc.2            | no            |
-| 1.0.0-rc.1            | no            |
-| anything < 1.0.0-rc.1 | no            |
+| Surface           | Version                                                                                                                                     | Status                                                                                 |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Web application   | Kingfisher 1.0                                                                                                                              | Current. Hosted at the Vercel landing/studio host.                                     |
+| macOS application | Kingfisher 1.0.0 Preview                                                                                                                    | Apple Silicon DMG, code-signed, **not notarised**; right-click → Open on first launch. |
+| Reference data    | Pack manifest version is the source of truth; the current packs are listed in [`docs/data/data-inventory.md`](docs/data/data-inventory.md). |
+
+Only the **current** web build and the **current** macOS Preview DMG
+receive security fixes. Older release candidates were not patched; if
+a regression is reported against one, the answer is to upgrade.
+
+## What is actually enforced today
+
+This section describes the controls that are in code, not a marketing
+claim about the product. Every item below maps to a file or a header
+in the running deployment.
+
+### Browser / web application
+
+- **Content Security Policy** — `vercel.json` ships a strict CSP with
+  `default-src 'self'`, no `script-src` third parties, `frame-ancestors
+'none'`, `base-uri 'self'`, `object-src 'none'`. The only `script-src`
+  allowances are `'self'`, `'wasm-unsafe-eval'` (Stockfish WebAssembly)
+  and `'unsafe-inline'` (no scripts are inlined; this allowance is
+  retained for Next.js style attributes and does not allow arbitrary
+  inline JavaScript).
+- **Cross-Origin-Opener-Policy: same-origin** and
+  **Cross-Origin-Embedder-Policy: credentialless** are sent on every
+  response, which is what enables `SharedArrayBuffer` for the
+  Stockfish multi-threaded build.
+- **HSTS** with `max-age=31536000; includeSubDomains; preload` and a
+  **Referrer-Policy: strict-origin-when-cross-origin** header on every
+  response.
+- **Permissions-Policy** disables `camera`, `microphone`, `geolocation`
+  and `interest-cohort` (FLoC) at the document level.
+- **Trusted remote origins** for the application's network calls are
+  listed in `connect-src`: the application's own host, the GitHub
+  Pages data mirror (`mardakurt.github.io`), Lichess
+  (`lichess.org`, `api.chess.com`, `tablebase.lichess.ovh`,
+  `explorer.lichess.ovh`), and the desktop companion's loopback
+  range (`127.0.0.1`, `localhost`, `ws://`). Any other host is
+  refused at the CSP layer.
+- **External link restrictions** — outbound links are validated
+  against an allow-list before the application will follow them; see
+  `src/middleware-host-rules.ts` and `src/lib/redirect-validation.ts`.
+- **Downloaded data is verified.** Every reference-pack chunk and
+  every managed engine binary is checked against a SHA-256 recorded
+  in the manifest before it is used; a mismatch is reported, never
+  silently accepted. See `src/reference/install.ts`,
+  `src/engine/manager.ts` and [`THIRD_PARTY_DATA.md`](THIRD_PARTY_DATA.md).
+- **Decompression bounds** — every decompression path uses
+  `DecompressionStream` with an explicit byte budget and rejects a
+  chunk whose decompressed size exceeds the manifest's record. See
+  `src/reference/pack.ts`.
+- **IndexedDB streaming cache** — the explorer caches shards in
+  IndexedDB with a byte budget and a TTL; cached bytes are
+  re-verified against the manifest before they are reused.
+- **Backup portability** — backups are portable JSON with the same
+  schema-versioned envelope as persistence; see `docs/deployment.md`.
+
+### macOS Preview application
+
+- The desktop shell is **Electron** with `contextIsolation: true`,
+  `nodeIntegration: false`, `sandbox: true` for the renderer, and a
+  preload that exposes a typed bridge. The bridge returns `null`
+  in a browser, so the same application is safe to serve over a
+  public origin.
+- The companion's loopback server authenticates any HTTP request
+  with a per-profile pairing token; the token is generated on
+  first launch, written to the profile directory, and the
+  shell and the companion are the only two processes that ever
+  hold it. Cross-origin requests are refused by CORS.
+- **Native engines are not sandboxed.** They run with the user's
+  own operating-system permissions, and a settings panel checkbox
+  is the only thing that prevents them from being launched. This
+  is documented in the Settings → Engine dialog and in
+  [`AGENTS.md`](AGENTS.md). Do not describe managed engines as
+  sandboxed.
+- The window cannot open a file that was not chosen in a dialog
+  or dropped on the window; there is no `readFile(path)` on the
+  bridge.
+- The shell holds no chess state. A desktop feature that needs
+  a second copy of the board, the move tree, the engine session
+  or the query is a bug in the arrangement, not a feature of it.
+
+### What the product deliberately does **not** do
+
+- **No cross-device Sync.** Studies, repertoire, training, notes
+  and preferences are local to one browser profile. There is no
+  account, no cloud copy, no replication to a server. The
+  documented way to move work between machines is
+  _Settings → Database → Export backup_ and Import on the other
+  side.
+- **No telemetry, no analytics, no third-party scripts.** The web
+  build does not load Google Analytics, Plausible, Hotjar, Segment,
+  or any equivalent. CSP would refuse them anyway.
+- **No advertising cookies, no advertising scripts.** The web
+  build does not set any cookie; what state the application
+  needs is held in `localStorage` and IndexedDB, scoped to the
+  origin. See [`docs/legal/privacy.md`](docs/legal/privacy.md).
+- **No auto-update.** The macOS Preview is downloaded again from
+  the GitHub release page when the user wants to upgrade. The
+  web build is whatever is currently deployed; if a fix is
+  urgent, a manual refresh picks it up.
 
 ## How to report a vulnerability
 
-**Do not** open a public GitHub issue for a security problem.
-Public issues are indexed by search engines and will be seen
-by every attacker in the world before a fix is in the next
-release.
+**Do not** open a public GitHub issue, discussion, tweet or forum
+post for a security problem. Public issues are indexed by search
+engines and will be read by every attacker in the world before a
+fix is in the next release.
 
-Use one of the following channels, in this order:
+Use the **private** GitHub Security Advisory flow — it is the
+private channel the maintainer is set up to receive. From the
+repository's Security tab:
 
-1. **GitHub private security advisory** (preferred). Open
-   <https://github.com/mardakurt/kingfisher/security/advisories/new>
-   and write the report there. The maintainer is notified
-   privately and can disclose a fix alongside the patch.
-2. **Email** the maintainer at the address in their GitHub
-   profile. Use the same key as for code review if you have one.
+> <https://github.com/mardakurt/kingfisher/security/advisories/new>
+
+If the GitHub security flow is unavailable for any reason, open
+a private issue at the same repository with the word
+`SECURITY:` at the start of the title and **without** exploit
+detail in the body — the maintainer will move the conversation
+to the private advisory flow. The public-facing report should
+say enough to be acknowledged and no more.
 
 The report should include:
 
-- the affected version (e.g. `1.0.0-rc.4`);
+- the affected version (e.g. `Kingfisher 1.0` for the web build
+  or `Kingfisher 1.0.0` for the macOS Preview);
 - a minimal reproduction;
 - what you observed and what you expected;
 - any workarounds you tried.
 
 A diagnostic export from _Settings → Diagnostics_ is safe to
 attach. The export never includes Lichess tokens, API keys, the
-companion pairing token, home-directory paths, or full PGN
+companion pairing token, home-directory paths or full PGN
 libraries.
 
 ## What to expect
@@ -53,8 +152,8 @@ libraries.
 The maintainer aims to:
 
 - acknowledge the report within seven days;
-- ship a fix in the next release candidate, or sooner if the
-  issue is severe;
+- ship a fix in the next release, or sooner if the issue is
+  severe;
 - publish a CVE if the report warrants one;
 - credit the reporter in the release notes (unless the
   reporter prefers to remain anonymous).
@@ -73,16 +172,25 @@ The maintainer aims to:
 
 ## Out of scope
 
-- Engine binary vulnerabilities. Kingfisher verifies the
+- **Engine binary vulnerabilities.** Kingfisher verifies the
   SHA-256 of every engine it downloads against the manifest
   shipped in the repository, but the engines themselves are
   third-party and are covered by their own security policies
   (Stockfish, Lc0, Berserk, Halogen, Koivisto, Obsidian,
   PlentyChess, Stormphrax, Viridithas).
-- Reference data vulnerabilities. Kingfisher verifies the
+- **Reference data vulnerabilities.** Kingfisher verifies the
   SHA-256 of every chunk it downloads against the manifest
   shipped in the data repository. The data sources are
   themselves Lichess and the broadcast archives.
-- Phishing, social engineering, or supply-chain attacks on
-  the user's _machine_. Kingfisher is local-first; the
-  product is not a hosted service.
+- **Phishing, social engineering, or supply-chain attacks on
+  the user's machine.** Kingfisher is local-first; the product
+  is not a hosted service.
+
+## See also
+
+- [`AGENTS.md`](AGENTS.md) — the maintainer-facing rules of the
+  project, including the desktop and persistence boundaries.
+- [`docs/legal/privacy.md`](docs/legal/privacy.md) — what
+  the application does and does not collect.
+- [`docs/legal/data-licences.md`](docs/legal/data-licences.md) —
+  every third-party data source and its licence.

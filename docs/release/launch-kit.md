@@ -1,7 +1,9 @@
-# Launch kit — Kingfisher 1.0.0-rc.5
+# Launch kit — Kingfisher 1.0.0
 
-The copy prepared for first channels. Replace placeholders before
-publishing.
+The copy prepared for first channels. Replace placeholders
+before publishing. The product is **Kingfisher 1.0** on the web
+and **Kingfisher 1.0.0 Preview** for macOS (Apple Silicon, code-
+signed, not notarised).
 
 ## One-sentence description
 
@@ -40,23 +42,24 @@ is open source under the MIT licence.
 
 ## GitHub release announcement
 
-> ## Kingfisher 1.0.0-rc.5 — public preview
+> ## Kingfisher 1.0.0 — first public release
 >
-> The first public release of Kingfisher. The web app is live,
-> the macOS preview is downloadable, the optional reference
-> data is published, and the source is open on GitHub.
+> The first stable public release of Kingfisher. The web app is
+> live, the macOS Preview is downloadable, the bundled
+> reference data ships with the app, and the source is open on
+> GitHub.
 >
 > **What's in it**
 >
-> - **Web app** at <https://kingfisher-chess.vercel.app/>
->   — Stockfish 18 in the page, no install.
-> - **macOS preview** (`Kingfisher-1.0.0-rc.5-arm64.dmg`) — Apple
->   Silicon, code-signed. _Not notarized yet_ — right-click →
+> - **Web app** at <https://kingfisher-chess.vercel.app/> —
+>   Stockfish 18 in the page, no install.
+> - **macOS Preview** (`Kingfisher-1.0.0-arm64.dmg`) — Apple
+>   Silicon, code-signed. _Not notarised_ — right-click →
 >   Open on the first launch.
-> - **Optional reference data**, installable from a fresh
->   profile: Elite OTB (407,538 games), Recent Theory (44,200
->   games), High-Rated Online (305,169 games). The bundled
->   Kingfisher Starter is offline-ready out of the box.
+> - **Bundled reference data** — Kingfisher Starter, 172,376
+>   over-the-board games, ships in the app. Elite OTB, Recent
+>   Theory and High-Rated Online are listed in the catalogue
+>   and can be installed on demand.
 > - **Source-comparison Explorer** — every source keeps its own
 >   licence, provenance and counts. The Explorer never produces
 >   a single "truth" score that quietly blends them.
@@ -67,10 +70,12 @@ is open source under the MIT licence.
 >
 > **Known limitations**
 >
-> - macOS preview is not notarized.
+> - macOS Preview is not notarised.
 > - No auto-update.
 > - Windows and Linux build but are unsupported. The supported
 >   desktop platform is Apple Silicon.
+> - No cross-device Sync; the supported way to move work
+>   between machines is the backup / restore flow.
 > - No games before 2020 in any first-party source.
 >
 > **Reporting problems** — open an issue, paste the support
@@ -81,8 +86,8 @@ is open source under the MIT licence.
 
 ## Reddit (r/chess, r/ComputerChess) post draft
 
-> **Title:** Kingfisher 1.0.0-rc.5 — a local-first chess research
-> workstation is now in public preview
+> **Title:** Kingfisher 1.0.0 — a local-first chess research
+> workstation is now publicly released
 >
 > I've been building Kingfisher for the last couple of years: a
 > local-first chess research workstation for serious players, with
@@ -95,13 +100,13 @@ is open source under the MIT licence.
 > It is local-first: no account, no telemetry, no subscription. No
 > data leaves your machine that you didn't put in the address bar.
 >
-> The 1.0.0-rc.5 public preview is now live:
+> Kingfisher 1.0 is now live:
 >
 > - Web app: <https://kingfisher-chess.vercel.app/>
-> - macOS preview: <https://github.com/mardakurt/kingfisher/releases/latest>
+> - macOS Preview: <https://github.com/mardakurt/kingfisher/releases/latest>
 > - Source (MIT): <https://github.com/mardakurt/kingfisher>
 >
-> The macOS build is a preview, not a notarized release. The
+> The macOS build is a Preview, not a notarised release. The
 > install guide is the right-click-Open dance for now. A
 > Developer ID Application certificate is the missing piece.
 >
@@ -113,14 +118,15 @@ is open source under the MIT licence.
 
 ## Lichess forum post draft
 
-> **Title:** Kingfisher 1.0.0-rc.5 — public preview (web + macOS)
+> **Title:** Kingfisher 1.0.0 — first public release (web + macOS)
 >
 > Kingfisher is a local-first chess research workstation for
-> serious players, and the first public preview is now live.
+> serious players, and the first stable public release is now
+> live.
 >
 > The web app is at <https://kingfisher-chess.vercel.app/>.
-> The macOS preview (`Kingfisher-1.0.0-rc.5-arm64.dmg`, Apple
-> Silicon, code-signed but not notarized) is on the
+> The macOS Preview (`Kingfisher-1.0.0-arm64.dmg`, Apple
+> Silicon, code-signed but not notarised) is on the
 > [GitHub releases page](https://github.com/mardakurt/kingfisher/releases/latest).
 >
 > Three optional reference packs are now published and
@@ -145,19 +151,19 @@ is open source under the MIT licence.
 
 ## Short social post
 
-> Kingfisher 1.0.0-rc.5 is in public preview — a local-first
-> chess research workstation for serious players, on the web
-> and on macOS. No account. No telemetry. No subscription.
-> Source on GitHub: <https://github.com/mardakurt/kingfisher>
+> Kingfisher 1.0 is publicly released — a local-first chess
+> research workstation for serious players, on the web and on
+> macOS. No account. No telemetry. No subscription. Source on
+> GitHub: <https://github.com/mardakurt/kingfisher>
 
 ## Technical / open-source post
 
-> **Title:** Kingfisher 1.0.0-rc.5 — release notes
+> **Title:** Kingfisher 1.0.0 — release notes
 >
 > Kingfisher is a local-first chess research workstation
-> (Next.js + Electron). 1.0.0-rc.5 is the current public
-> preview, with the public landing page live, the optional
-> reference data published, the macOS preview build
+> (Next.js + Electron). 1.0.0 is the first stable public
+> release, with the public landing page live, the bundled
+> reference data shipping in the app, the macOS Preview build
 > downloadable, and the source repository public.
 >
 > The reference data is in a separate data-only repository
@@ -186,5 +192,5 @@ announcement goes on the GitHub release page itself. The
 post drafts are starting points — replace placeholders,
 read them aloud, and check that the local news is honest.
 
-Do not post anywhere automatically. The brief is real users,
-real feedback, and the first weeks of public preview.
+Do not post anywhere automatically. The brief is real users
+and real feedback from the public release.

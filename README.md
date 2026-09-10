@@ -234,8 +234,9 @@ games behind him, and the page says so. See
 
 The sections below are the record of what each phase set out to fix, kept
 because the reasons are still the reasons. They are history, not a status line:
-the current release is **1.0.0-rc.3**, and what it does and does not do is in
-[`docs/release/1.0.0-rc.3.md`](docs/release/1.0.0-rc.3.md).
+the current public release is **Kingfisher 1.0.0** (web stable at 1.0;
+macOS Preview at 1.0.0), and what it does and does not do is in
+[`docs/release/1.0.0.md`](docs/release/1.0.0.md).
 
 ### Phase 15 — deep enough to prepare with
 
