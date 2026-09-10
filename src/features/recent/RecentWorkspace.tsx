@@ -88,7 +88,7 @@ export function RecentWorkspace() {
   // is a stale "5m ago" on a card that has been on screen for an
   // hour, which is exactly the kind of small lie the brief asks
   // the product to stop telling.
-  const [, setNow] = useState(Date.now());
+  const [, setNow] = useState(() => Date.now());
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 60_000);
     return () => clearInterval(id);
