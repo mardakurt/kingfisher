@@ -147,6 +147,44 @@ export function useCommands(): readonly Command[] {
         run: () => router.push('/games'),
       },
       {
+        id: 'search-this-position',
+        title: 'Search this position',
+        group: 'Position',
+        keywords: 'database explorer repertoire find games this here',
+        run: () => {
+          const fen = analysis().tree.nodes[analysis().currentId]?.fen;
+          if (!fen || fen === START_FEN) {
+            ui().notify({
+              tone: 'info',
+              message: 'Move to a position first.',
+            });
+            return;
+          }
+          router.push(`/games?q=${encodeURIComponent(fen)}`);
+        },
+      },
+      {
+        id: 'open-position-in-analysis',
+        title: 'Open this position in Analysis',
+        group: 'Position',
+        keywords: 'analysis board engine evaluate',
+        run: () => {
+          // Re-opening the current document does not lose cursor state.
+          ui().setCommandPaletteOpen(false);
+        },
+      },
+      {
+        id: 'open-position-in-explorer',
+        title: 'Open this position in Explorer',
+        group: 'Position',
+        keywords: 'opening explorer reference theory',
+        run: () => {
+          const fen = analysis().tree.nodes[analysis().currentId]?.fen;
+          if (!fen) return;
+          router.push(`/openings?fen=${encodeURIComponent(fen)}`);
+        },
+      },
+      {
         id: 'add-comment',
         title: 'Comment on this move…',
         group: 'Editing',

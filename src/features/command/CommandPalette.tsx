@@ -18,15 +18,21 @@ import { useQuery } from '@tanstack/react-query';
 import type { WorkspaceSearchHit } from '@/persistence/search';
 import { useAnalysis } from '@/stores/analysis-store';
 import { useUi } from '@/stores/ui-store';
+import { searchLegends, type PlayerSearchHit } from '@/features/search/players';
+import { searchOpenings, type OpeningSearchHit } from '@/features/search/openings';
+import { parseMoveSequence } from '@/features/search/move-sequence';
+import { assessQuery } from '@/features/search/query-limits';
 
 import { useCommands, type Command } from './useCommands';
 
 /**
  * Command palette.
  *
- * Ranking is subsequence matching with a bonus for prefix hits — enough to make
- * "cpgn" find "Copy PGN" without pulling in a fuzzy-search dependency for
- * twenty entries.
+ * The single front door for everything the user can reach. Four providers
+ * feed it: the static `useCommands` list, the workspace search, the opening
+ * index, and the legends index. Position and move-sequence search are
+ * detected on the input itself, with a FEN / line parser that returns
+ * grouped actions instead of trying to text-match a position string.
  */
 export function CommandPalette() {
   const open = useUi((state) => state.commandPaletteOpen);
@@ -49,6 +55,47 @@ function PaletteDialog() {
   const entities = useWorkspaceSearch(query);
 
   /*
+   * Openings and legends are local metadata — small enough to search
+   * synchronously, so the React query layer would only add latency. They
+   * are read through `useMemo` rather than `useQuery` because the data
+   * source is already cached on the module (see openings.ts / players.ts).
+   */
+  /*
+   * The opening index is module-cached, so once it has loaded the search is
+   * effectively synchronous. The first render starts the load, and a state
+   * variable holds the resolved hits. The render is allowed to show fewer
+   * results than the query could match on the very first frame, because the
+   * catalog is heavy and the user has just opened the palette.
+   */
+  const [openingHits, setOpeningHits] = useState<readonly OpeningSearchHit[]>([]);
+  useEffect(() => {
+    const trimmed = query.trim();
+    if (trimmed.length < 2) return;
+    let cancelled = false;
+    searchOpenings(trimmed, 6).then((hits) => {
+      if (!cancelled) setOpeningHits(hits);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [query]);
+  // `openingHits` is read through this derived value so an out-of-date
+  // resolution cannot be shown against a different query. The dependency on
+  // `query` keeps the change cheap.
+  const openingCommands = useMemo<readonly Command[]>(
+    () =>
+      query.trim().length >= 2 ? openingHits.map((hit) => commandForOpening(hit, router)) : [],
+    [openingHits, query, router],
+  );
+  const playerCommands = useMemo<readonly Command[]>(
+    () =>
+      query.trim().length >= 2
+        ? searchLegends(query, 5).map((hit) => commandForPlayer(hit, router))
+        : [],
+    [query, router],
+  );
+
+  /*
     A pasted FEN is not a text query and must not be run as one — a position
     string shares no words with anything and would return nothing while
     looking like a broken search. The palette recognises it and answers the
@@ -63,9 +110,21 @@ function PaletteDialog() {
     queryFn: async () => searchByPosition(await getRepositories(), pastedPosition!),
   });
 
-  const positionCommands = useMemo<readonly Command[]>(
-    () =>
-      (positions.data?.hits ?? []).map((hit) => ({
+  /*
+   * A move sequence typed in plain text (`1.e4 c5 2.Nf3 d6`) is not a text
+   * query either, but the position parser does not know how to read it. We
+   * try the move-sequence parser and, on success, expose the same position
+   * actions the FEN branch already uses.
+   */
+  const parsedSequence = useMemo(() => {
+    if (pastedPosition) return null;
+    return parseMoveSequence(query);
+  }, [pastedPosition, query]);
+  const sequencePosition = parsedSequence?.ok ? parsedSequence.fen : null;
+
+  const positionCommands = useMemo<readonly Command[]>(() => {
+    if (pastedPosition) {
+      return (positions.data?.hits ?? []).map((hit) => ({
         id: `position:${hit.id}`,
         title: hit.subtitle ? `${hit.title} — ${hit.subtitle}` : hit.title,
         // The palette renders the group and the title, so the kind goes in the
@@ -82,9 +141,38 @@ function PaletteDialog() {
             router.push('/review');
           } else router.push('/training');
         },
-      })),
-    [positions.data, router],
-  );
+      }));
+    }
+    if (sequencePosition) {
+      // The user typed a move sequence, not pasted a FEN. The hits are the
+      // same set of routes the FEN branch would offer, but the "primary"
+      // action is the reached position in the Explorer — a move sequence is
+      // almost always typed because the player wants to see what an opening
+      // is called, not because they want to query their library.
+      const moves = parsedSequence?.moves ?? [];
+      return [
+        {
+          id: 'position:explorer',
+          title: `Open in Explorer — ${moves.join(' ')}`,
+          group: 'Position',
+          run: () => router.push(`/openings?fen=${encodeURIComponent(sequencePosition)}`),
+        },
+        {
+          id: 'position:analysis',
+          title: `Open in Analysis — ${moves.join(' ')}`,
+          group: 'Position',
+          run: () => router.push(`/analysis?fen=${encodeURIComponent(sequencePosition)}`),
+        },
+        {
+          id: 'position:databases',
+          title: `Search my databases from this position`,
+          group: 'Position',
+          run: () => router.push(`/games?q=${encodeURIComponent(sequencePosition)}`),
+        },
+      ];
+    }
+    return [];
+  }, [parsedSequence, pastedPosition, positions.data, router, sequencePosition]);
   const entityCommands = useMemo(
     () =>
       (entities.data ?? []).map((hit) =>
@@ -150,8 +238,18 @@ function PaletteDialog() {
     () =>
       // A pasted position answers itself: ranking its hits against the FEN as
       // a text query would score them all zero and hide them.
-      pastedPosition ? [...positionCommands] : rank([...commands, ...entityCommands], query),
-    [commands, entityCommands, positionCommands, pastedPosition, query],
+      pastedPosition
+        ? [...positionCommands]
+        : rank([...openingCommands, ...playerCommands, ...commands, ...entityCommands], query),
+    [
+      commands,
+      entityCommands,
+      openingCommands,
+      playerCommands,
+      positionCommands,
+      pastedPosition,
+      query,
+    ],
   );
   const selected = Math.min(index, Math.max(0, matches.length - 1));
 
@@ -248,9 +346,10 @@ function PaletteDialog() {
 
         <div ref={listRef} className="max-h-[min(46vh,calc(100dvh-8rem))] overflow-y-auto py-1">
           {matches.length === 0 ? (
-            <p className="px-4 py-6 text-center text-xs text-tertiary">
-              {entities.isFetching ? 'Searching the workspace…' : 'No matching command or item.'}
-            </p>
+            <EmptyState
+              fetching={entities.isFetching}
+              reason={query.length > 0 ? assessQuery(query).reason : undefined}
+            />
           ) : (
             matches.map((command, position) => (
               <button
@@ -278,6 +377,42 @@ function PaletteDialog() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Empty state for the palette.
+ *
+ * The brief is explicit: never show a useless blank panel. Three branches:
+ *   1. The query was rejected (too long, looks like PGN) — show the reason
+ *      and a pointer to the right tool.
+ *   2. The query is fine but nothing matched — show what the user can do
+ *      next: search openings, search players, or paste a FEN.
+ *   3. The query is still being looked up — show a loading hint.
+ */
+function EmptyState({
+  fetching,
+  reason,
+}: {
+  readonly fetching: boolean;
+  readonly reason?: string;
+}) {
+  if (reason) {
+    return (
+      <div className="px-4 py-6 text-center text-xs text-tertiary">
+        <p>{reason}</p>
+        <p className="mt-1 text-[11px]">Open the import dialog with ⌘O for long PGN.</p>
+      </div>
+    );
+  }
+  if (fetching) {
+    return <p className="px-4 py-6 text-center text-xs text-tertiary">Searching the workspace…</p>;
+  }
+  return (
+    <div className="px-4 py-6 text-center text-xs text-tertiary">
+      <p>No matching command or item.</p>
+      <p className="mt-1 text-[11px]">Try an opening, a player, a FEN, or 1.e4 c5.</p>
     </div>
   );
 }
@@ -310,6 +445,34 @@ function commandForHit(
     group: HIT_GROUP[hit.kind],
     keywords: hit.subtitle,
     run: () => open(hit),
+  };
+}
+
+function commandForOpening(hit: OpeningSearchHit, router: ReturnType<typeof useRouter>): Command {
+  return {
+    id: `opening:${hit.id}`,
+    title: hit.label,
+    // The group label is the ECO plus the family, which the ranker
+    // already used to score the entry; showing it again here would be
+    // repetition. Just keep the family so the user knows what shelf
+    // they are on.
+    group: 'Opening',
+    keywords: [hit.eco, hit.name, hit.variation ?? ''].join(' '),
+    run: () => {
+      router.push(`/openings?fen=${encodeURIComponent(hit.id)}`);
+    },
+  };
+}
+
+function commandForPlayer(hit: PlayerSearchHit, router: ReturnType<typeof useRouter>): Command {
+  return {
+    id: `player:${hit.key}`,
+    title: hit.name,
+    group: 'Player',
+    keywords: `${hit.title} ${hit.note}`,
+    run: () => {
+      router.push(`/player/${encodeURIComponent(hit.key)}`);
+    },
   };
 }
 
