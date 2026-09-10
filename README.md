@@ -18,6 +18,55 @@ built for someone who already knows what a Najdorf is and wants better tools —
 not a tutorial, not a puzzle streak, and not a wrapper that prints `+0.34` and
 calls it analysis.
 
+## Quickstart
+
+A professional workflow in three keystrokes. The first ten minutes.
+
+1. **Open Kingfisher.** From the landing page or the
+   [Studio link above](#), the application opens directly. There is no
+   login, no sign-up, no companion to install.
+2. **Press <kbd>Cmd</kbd>+<kbd>K</kbd>** (or <kbd>Ctrl</kbd>+<kbd>K</kbd>
+   on Windows / Linux). The search box appears at the top of the screen.
+3. **Type and Enter.** The same box finds openings, players, your studies,
+   your games, your repertoire, your databases, your commands and the
+   position you are sitting on. Press <kbd>↑</kbd> / <kbd>↓</kbd> to
+   navigate, <kbd>Enter</kbd> to act, <kbd>Esc</kbd> to dismiss.
+
+A few examples worth trying:
+
+| Query                       | Result                                                                                |
+| --------------------------- | ------------------------------------------------------------------------------------- |
+| `Najdorf`                   | The Sicilian Defence family, ECO B90–B99, with the variations ranked by depth.        |
+| `Carlsen`                   | The Magnus Carlsen player profile, with one Enter to Career / Recent / As White / As Black. |
+| `1.e4 c5 2.Nf3 d6`          | The Najdorf main line, with one Enter to the Explorer / Analysis / Databases.        |
+| A pasted FEN string         | Position actions, never a confused "no results" panel.                               |
+| A typed study title         | Your Study, with the cursor restored to where you last left it.                      |
+| `recent`                    | Your Continue card and pinned items, without leaving the keyboard.                   |
+
+When the board is on a position you care about, press <kbd>Cmd</kbd>+<kbd>K</kbd>
+and choose **Search this position** to query the local databases and the
+optional reference data without re-entering the FEN. The same search box
+also offers **Open in Analysis**, **Open in Explorer**, **Search databases
+from here**, **Add to Study**, **Add to Repertoire** and **Create
+training** — six routes to the same FEN, one keystroke to each.
+
+Recent work lives behind a single click on **Continue** on the recent
+workspace. The card shows what you were doing, the last position the board
+held, and when you last touched it. Closing the tab does not lose the
+work; reopening the application brings you back to the same chapter, the
+same move, the same orientation.
+
+Reference data is **online by default** and **installable for offline use**.
+A first install of a pack can be a few hundred megabytes; the catalog row
+says exactly how much, and a 1 GB+ source is flagged with "Use online to
+avoid downloading the full pack". Online use is always available, even
+when offline install is impossible, so a player on a small disk is not
+locked out of strong data.
+
+Authored work — studies, repertoires, training, notes — is stored in this
+browser. **Settings → Backup** downloads a JSON file the same browser can
+re-import. No cloud sync is required and none is implied.
+
 ## At a glance
 
 - **Landing page** at <https://kingfisher-chess.vercel.app/>. One
