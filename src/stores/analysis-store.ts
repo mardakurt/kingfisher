@@ -116,6 +116,14 @@ interface AnalysisState {
   /** What is being edited: an untitled analysis, a chapter, or a database game. */
   document: AnalysisDocument;
   /**
+   * When the current document was last opened. The "Continue" card on
+   * the recent workspace reads this for the "5 min ago" hint, and
+   * the studio route reads it for breadcrumb context. It is set by
+   * `openDocument` and is not persisted: it is a session-level hint
+   * for what the user just touched, not a record of every visit.
+   */
+  openedAt: number;
+  /**
    * Bumped by every change worth persisting. Autosave compares it against
    * `savedRevision` rather than diffing trees, so a save can be recognised as
    * stale the moment a further edit lands while it is in flight.
@@ -218,6 +226,7 @@ function opened(state: AnalysisState, input: OpenDocumentInput): Partial<Analysi
     savedRevision: input.clean === false ? revision - 1 : revision,
     saving: false,
     saveError: null,
+    openedAt: Date.now(),
   };
 }
 
@@ -229,6 +238,7 @@ export const useAnalysis = create<AnalysisState>((set, get) => ({
   future: [],
   generation: 0,
   document: UNTITLED_DOCUMENT,
+  openedAt: 0,
   revision: 0,
   savedRevision: 0,
   saving: false,

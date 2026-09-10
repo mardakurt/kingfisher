@@ -15,7 +15,7 @@
  * the honest description of what continuing actually is.
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
@@ -68,6 +68,7 @@ const FIRST_RUN_KEY = 'kingfisher.first-run-done';
 export function RecentWorkspace() {
   const router = useRouter();
   const document = useAnalysis((state) => state.document);
+  const openedAt = useAnalysis((state) => state.openedAt);
   const openDocument = useAnalysis((state) => state.openDocument);
   const notify = useUi((state) => state.notify);
   const pins = usePins((state) => state.pins);
@@ -82,6 +83,16 @@ export function RecentWorkspace() {
       return false;
     }
   });
+  // The "X minutes ago" hint on the Continue card needs to update
+  // without a full reload. A minute ticker is cheap; the alternative
+  // is a stale "5m ago" on a card that has been on screen for an
+  // hour, which is exactly the kind of small lie the brief asks
+  // the product to stop telling.
+  const [, setNow] = useState(Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   const data = useQuery({
     queryKey: ['recent-work'],
@@ -233,6 +244,7 @@ export function RecentWorkspace() {
                   ? `A game from ${document.sourceName}`
                   : 'Your unsaved analysis'}
             {' · board, position and tools as you left them'}
+            {openedAt > 0 ? ` · last opened ${ago(openedAt)}` : ''}
           </span>
         </div>
 
