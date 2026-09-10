@@ -1797,6 +1797,7 @@ function DiagnosticsSection() {
       <IntegritySection />
       <RecoveryActions />
       <CopyReport />
+      <HelpSection />
     </div>
   );
 }
@@ -2130,6 +2131,77 @@ function CopyReport() {
         what to attach to it. Neither contains games, studies, notes, tokens or keys.
       </p>
       <ShellLog />
+    </DiagnosticGroup>
+  );
+}
+
+/**
+ * Public help and feedback links.
+ *
+ * The brief asks for an under-one-minute path to "Report a problem".
+ * Settings → Diagnostics is the natural home: a player who has just
+ * captured a diagnostic report is one click away from the GitHub
+ * issue template that asks for it. The links are external, open in
+ * a new tab, and never carry credentials.
+ */
+function HelpSection() {
+  return (
+    <DiagnosticGroup title="Help and feedback">
+      <ul className="flex flex-col gap-1 py-2 text-xs">
+        <li>
+          <a
+            href="https://github.com/mardakurt/kingfisher/issues/new/choose"
+            target="_blank"
+            rel="noopener"
+            className="text-accent hover:underline"
+          >
+            Report a problem →
+          </a>
+          <span className="ml-2 text-[11px] text-tertiary">
+            Bug report or feature request. Use the templates; they ask for
+            the same support information the button above captures.
+          </span>
+        </li>
+        <li>
+          <a
+            href="https://github.com/mardakurt/kingfisher/discussions"
+            target="_blank"
+            rel="noopener"
+            className="text-accent hover:underline"
+          >
+            Ask the community →
+          </a>
+          <span className="ml-2 text-[11px] text-tertiary">
+            For workflows and how-to questions that are not bugs.
+          </span>
+        </li>
+        <li>
+          <a
+            href="https://github.com/mardakurt/kingfisher/blob/master/CHANGELOG.md"
+            target="_blank"
+            rel="noopener"
+            className="text-accent hover:underline"
+          >
+            Changelog →
+          </a>
+          <span className="ml-2 text-[11px] text-tertiary">
+            What changed in each release, including unreleased work.
+          </span>
+        </li>
+        <li>
+          <a
+            href="https://github.com/mardakurt/kingfisher/blob/master/SECURITY.md"
+            target="_blank"
+            rel="noopener"
+            className="text-accent hover:underline"
+          >
+            Security policy →
+          </a>
+          <span className="ml-2 text-[11px] text-tertiary">
+            How to report a vulnerability, and what the project promises.
+          </span>
+        </li>
+      </ul>
     </DiagnosticGroup>
   );
 }
