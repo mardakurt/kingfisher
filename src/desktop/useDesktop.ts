@@ -32,6 +32,7 @@ import { usePreferences } from '@/stores/preferences-store';
 import { useUi } from '@/stores/ui-store';
 
 import { desktop, type DesktopDocument } from './bridge';
+import { installSaveBarrierHandler } from './save-barrier-handler';
 
 export function useDesktopIntegration(): void {
   const setPreference = usePreferences((state) => state.set);
@@ -180,5 +181,21 @@ export function useDesktopIntegration(): void {
     return bridge.onShowSettings(() => {
       useUi.getState().setSettingsOpen(true);
     });
+  }, []);
+
+  /**
+   * Phase 37: install the save-barrier handler. The main process
+   * asks the renderer to confirm that all authored writes are
+   * committed before installing an update. The handler is wired
+   * once, on mount, and the unsubscribe it returns is the
+   * "uninstall" function. The hook itself is mounted for the
+   * whole life of the application, so a no-op teardown is fine,
+   * but the explicit return is here in case a future test
+   * wants to assert the wire-up without the lifetime.
+   */
+  useEffect(() => {
+    const bridge = desktop();
+    if (!bridge) return;
+    return installSaveBarrierHandler(bridge);
   }, []);
 }

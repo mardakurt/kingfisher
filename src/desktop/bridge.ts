@@ -135,6 +135,55 @@ export interface DesktopBridge {
   updateStatus(): Promise<unknown>;
   subscribeUpdates(listener: (verdict: unknown) => void): () => void;
   showUpdateDialog(): void;
+  /**
+   * Phase 37: a single IPC channel the main process uses to ask the
+   * renderer whether its authored writes are committed, before it
+   * replaces the running app. The handler is registered once on
+   * mount; the main process is single-flight on the install side.
+   *
+   * The handler must answer with a `SaveBarrierResponse` shape
+   * (see `save-barrier-handler.ts`):
+   *   - `{ ok: true }` when no in-flight write is open;
+   *   - `{ ok: false, reason: 'pending-writes' | 'write-failed' }`
+   *     otherwise.
+   *
+   * A handler that throws is treated as `write-failed` by the
+   * main process — the install is refused. The renderer's preload
+   * already wraps the registered function in a try/catch; the
+   * renderer's handler module does its own too.
+   */
+  onSaveBarrierRequest(
+    listener: (requestId: string) => Promise<{
+      ok: boolean;
+      reason?: 'pending-writes' | 'write-failed';
+      detail?: string;
+    }>,
+  ): () => void;
+  /**
+   * Phase 37: acknowledge that the user has seen a "Kingfisher was
+   * updated" notice. The main process records this in
+   * `userData/kingfisher-update-state.json` so the next launch can
+   * tell the difference between "new version, first launch" and
+   * "same version, normal launch".
+   *
+   * The version argument is the application's current version, so
+   * the main process can compare it to the last acknowledged one
+   * before sending the `kingfisher:update-installed` event in the
+   * first place. The renderer never has to invent that comparison.
+   */
+  acknowledgeUpdate(version: string): Promise<void>;
+  /**
+   * Phase 37: subscribe to the one-shot "this app was just
+   * installed over a previous version" event. The main process
+   * sends it on the first did-finish-load of a build that is
+   * strictly newer than the one the user has acknowledged. The
+   * renderer is responsible for showing the notice and for
+   * calling `acknowledgeUpdate(version)` once the user has seen
+   * it.
+   */
+  onUpdateInstalled(
+    listener: (payload: { version: string; previousVersion: string | null }) => void,
+  ): () => void;
 }
 
 declare global {

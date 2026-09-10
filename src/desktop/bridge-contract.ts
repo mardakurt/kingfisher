@@ -147,4 +147,28 @@ export const BRIDGE_CONTRACTS: readonly BridgeContract[] = [
       'The macOS application menu does not go through this bridge — it calls the dialog directly.',
     caller: 'release/UpdateCheckSection.tsx',
   },
+  {
+    method: 'onSaveBarrierRequest',
+    purpose:
+      'Phase 37: receive the main process’s save-barrier request, flush the renderer’s persistence ' +
+      'tracker, and reply with `{ ok: true }` only when every authored write is committed. The main ' +
+      'process refuses the install otherwise. The handler is registered once on mount.',
+    caller: 'desktop/save-barrier-handler.ts',
+  },
+  {
+    method: 'acknowledgeUpdate',
+    purpose:
+      'Phase 37: tell the main process that the user has seen the post-update notice for the current ' +
+      'version. The main process records the version in `kingfisher-update-state.json` so the next ' +
+      'launch can decide whether to show the notice again.',
+    caller: 'desktop/post-update-notice.tsx',
+  },
+  {
+    method: 'onUpdateInstalled',
+    purpose:
+      'Phase 37: receive the one-shot "this app was just installed over a previous version" event ' +
+      'from the main process. The renderer is responsible for showing the notice and for calling ' +
+      '`acknowledgeUpdate` once the user has seen it.',
+    caller: 'desktop/post-update-notice.tsx',
+  },
 ];

@@ -10,6 +10,7 @@ import { useWorkspacePersistence } from '@/features/persistence/useWorkspacePers
 import { ShortcutsDialog } from '@/features/shell/ShortcutsDialog';
 import { useCompanionSync } from '@/companion/useCompanion';
 import { useDesktopIntegration } from '@/desktop/useDesktop';
+import { PostUpdateNotice } from '@/desktop/post-update-notice';
 import { useReferenceSources } from '@/reference/use-references';
 import { useUi } from '@/stores/ui-store';
 import { useWorkspaceLayout } from '@/stores/workspace-layout-store';
@@ -165,6 +166,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <main className="flex min-w-0 flex-1 flex-col">
             {/* Above the workspace, not inside it: the notice has to be visible
                 on whichever route the conflicting chapter is open in. */}
+            <PostUpdateNotice />
             <PwaUpdateBanner />
             <ConflictNotice />
             <RecoveryNotice />

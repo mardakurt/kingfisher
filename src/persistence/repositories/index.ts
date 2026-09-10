@@ -2,6 +2,7 @@ import { importGames } from '../import-game';
 import type { AppRepositories } from '../types';
 import { openPersistenceDatabase, type PersistenceDatabase } from '../indexeddb/database';
 import { MemoryPersistenceDatabase } from '../indexeddb/memory';
+import { withWriteTracking } from '../write-tracker';
 import { LocalDraftRepository } from './draft-repository';
 import { LocalGameRepository } from './game-repository';
 import { LocalModelGameRepository, LocalProfileRepository } from './library-repository';
@@ -47,12 +48,16 @@ let repositories: Promise<AppRepositories> | null = null;
 
 export function getRepositories(): Promise<AppRepositories> {
   repositories ??= openPersistenceDatabase().then((database) => {
-    const resolved = fromDatabase(database);
     /*
-      A development-only handle for benchmarking and for inspecting the store
-      from the console. `process.env.NODE_ENV` is inlined at build time, so this
-      branch is removed entirely from a production bundle.
+      Wrap the database in a write tracker *before* any repository
+      is constructed, so every readwrite transaction through
+      `repositories.raw` (and every per-table write through the
+      repositories built on top) registers with the tracker. The
+      save barrier before an update uses the tracker to know
+      whether the user has any unsaved work in flight.
     */
+    const tracked = withWriteTracking(database);
+    const resolved = fromDatabase(tracked);
     if (process.env.NODE_ENV !== 'production' && typeof globalThis !== 'undefined') {
       (
         globalThis as { __kingfisher?: AppRepositories & { importGames: typeof importGames } }
