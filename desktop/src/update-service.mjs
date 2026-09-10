@@ -118,6 +118,26 @@ const state = {
    * The listener that receives every verdict.
    */
   listener: null,
+  /**
+   * The id of the currently-live check operation. Every event the
+   * engine emits is bound to the operation that produced it; a
+   * late event from a previous check (the user clicked Check
+   * twice, the second click superseded the first) must not
+   * overwrite the verdict the second check is computing.
+   * Incremented on every `check()` call; the engine event
+   * handlers compare the id they were bound to against the
+   * current `state.activeCheckId` and drop the event if they
+   * disagree.
+   */
+  activeCheckId: 0,
+  /**
+   * The unsubscribers for the engine event handlers bound to the
+   * current check. Stashed so a new check can detach the old
+   * handlers before the new ones fire — which is what enforces
+   * the generation id at the engine layer, not just at the
+   * state-machine layer.
+   */
+  engineUnsubscribers: [],
 };
 
 function emit(next) {
@@ -151,74 +171,124 @@ export function getState() {
  * Wire the engine to our state machine                                   *
  * --------------------------------------------------------------------- */
 
-let wired = false;
-function wireEngine() {
-  if (wired) return;
-  wired = true;
+/**
+ * Bind the engine's events to the state machine, *for one check*.
+ *
+ * Every `check()` call gets a fresh generation id; the handlers
+ * this function returns close over that id. When a subsequent
+ * check starts, the previous handlers' unsubscribe functions run
+ * first, and any late event from the previous check is dropped
+ * (the listener is no longer in the engine's set). This is the
+ * generation id requirement (PART T) — a slow `error` from
+ * check A must not overwrite a successful check B's verdict.
+ *
+ * Phase 37 hardening: previously, every check reused the same
+ * singleton handlers bound at module load. That worked in
+ * practice because the engine fires events in order, but a slow
+ * failure after a fast success could land *after* the success's
+ * render and would overwrite it. The generation id is the
+ * definitive answer; the unsubscribe list is the implementation.
+ */
+function wireEngineForCheck(checkId) {
+  // Detach any handlers bound to the previous check.
+  for (const off of state.engineUnsubscribers) {
+    try {
+      off();
+    } catch (err) {
+      log('update', `engine unsubscribe threw: ${String(err?.message ?? err)}`);
+    }
+  }
+  state.engineUnsubscribers = [];
 
-  engineOn('checking-for-update', () => {
-    emit({ ...state.verdict, status: STATUS.CHECKING });
-  });
+  const isCurrent = () => state.activeCheckId === checkId;
+  const bound = [];
 
-  engineOn('update-available', (info) => {
-    const latest = info?.version ?? state.candidate?.version ?? null;
-    const cmp = latest ? compareSemver(latest, app.getVersion()) : 1;
-    if (cmp <= 0) {
-      // A newer-on-paper version that does not pass our semver
-      // comparison is a downgrade or an out-of-channel tag.
-      log('update', `update-available ignored: ${latest} <= ${app.getVersion()}`);
+  bound.push(
+    engineOn('checking-for-update', () => {
+      if (!isCurrent()) return;
+      emit({ ...state.verdict, status: STATUS.CHECKING });
+    }),
+  );
+
+  bound.push(
+    engineOn('update-available', (info) => {
+      if (!isCurrent()) return;
+      const latest = info?.version ?? state.candidate?.version ?? null;
+      const cmp = latest ? compareSemver(latest, app.getVersion()) : 1;
+      if (cmp <= 0) {
+        // A newer-on-paper version that does not pass our semver
+        // comparison is a downgrade or an out-of-channel tag.
+        log('update', `update-available ignored: ${latest} <= ${app.getVersion()}`);
+        emit({ ...state.verdict, status: STATUS.UP_TO_DATE });
+        return;
+      }
+      state.candidate = info;
+      emit({
+        status: STATUS.AVAILABLE,
+        currentVersion: app.getVersion(),
+        latestVersion: latest,
+        releaseDate: info?.releaseDate ?? null,
+        sizeBytes: pickUpdateSize(info),
+      });
+    }),
+  );
+
+  bound.push(
+    engineOn('update-not-available', () => {
+      if (!isCurrent()) return;
       emit({ ...state.verdict, status: STATUS.UP_TO_DATE });
-      return;
-    }
-    state.candidate = info;
-    emit({
-      status: STATUS.AVAILABLE,
-      currentVersion: app.getVersion(),
-      latestVersion: latest,
-      releaseDate: info?.releaseDate ?? null,
-      sizeBytes: pickUpdateSize(info),
-    });
-  });
+    }),
+  );
 
-  engineOn('update-not-available', () => {
-    emit({ ...state.verdict, status: STATUS.UP_TO_DATE });
-  });
+  bound.push(
+    engineOn('download-progress', (info) => {
+      if (!isCurrent()) return;
+      if (state.verdict.status !== STATUS.DOWNLOADING) {
+        emit({ ...state.verdict, status: STATUS.DOWNLOADING });
+      }
+      emit({
+        ...state.verdict,
+        status: STATUS.DOWNLOADING,
+        latestVersion: state.candidate?.version ?? state.verdict.latestVersion,
+        receivedBytes: info?.transferred ?? info?.delta ?? 0,
+        totalBytes: info?.total ?? state.candidate?.sizeBytes ?? null,
+        bytesPerSecond: info?.bytesPerSecond ?? null,
+      });
+    }),
+  );
 
-  engineOn('download-progress', (info) => {
-    if (state.verdict.status !== STATUS.DOWNLOADING) {
-      emit({ ...state.verdict, status: STATUS.DOWNLOADING });
-    }
-    emit({
-      ...state.verdict,
-      status: STATUS.DOWNLOADING,
-      latestVersion: state.candidate?.version ?? state.verdict.latestVersion,
-      receivedBytes: info?.transferred ?? info?.delta ?? 0,
-      totalBytes: info?.total ?? state.candidate?.sizeBytes ?? null,
-      bytesPerSecond: info?.bytesPerSecond ?? null,
-    });
-  });
+  bound.push(
+    engineOn('update-downloaded', (info) => {
+      if (!isCurrent()) return;
+      state.candidate = info;
+      emit({
+        status: STATUS.READY,
+        currentVersion: app.getVersion(),
+        latestVersion: info?.version ?? state.candidate?.version,
+        path: info?.path ?? null,
+      });
+    }),
+  );
 
-  engineOn('update-downloaded', (info) => {
-    state.candidate = info;
-    emit({
-      status: STATUS.READY,
-      currentVersion: app.getVersion(),
-      latestVersion: info?.version ?? state.candidate?.version,
-      path: info?.path ?? null,
-    });
-  });
+  bound.push(
+    engineOn('update-cancelled', () => {
+      if (!isCurrent()) return;
+      emit({ ...state.verdict, status: STATUS.CANCELED });
+    }),
+  );
 
-  engineOn('update-cancelled', () => {
-    emit({ ...state.verdict, status: STATUS.CANCELED });
-  });
+  bound.push(
+    engineOn('error', (err) => {
+      if (!isCurrent()) return;
+      log('update', `engine error: ${String(err?.message ?? err)}`);
+      emit({
+        status: STATUS.FAILED,
+        reason: redactHome(String(err?.message ?? err)),
+      });
+    }),
+  );
 
-  engineOn('error', (err) => {
-    log('update', `engine error: ${String(err?.message ?? err)}`);
-    emit({
-      status: STATUS.FAILED,
-      reason: redactHome(String(err?.message ?? err)),
-    });
-  });
+  state.engineUnsubscribers = bound;
 }
 
 function pickUpdateSize(info) {
@@ -245,20 +315,38 @@ export async function check() {
     });
     return state.verdict;
   }
-  wireEngine();
+  // Phase 37: generation id (PART T). Every check bumps the
+  // id; the previous check's engine event handlers are detached
+  // before the new ones are bound, so a slow event from a
+  // previous check cannot overwrite a current verdict.
+  state.activeCheckId += 1;
+  const checkId = state.activeCheckId;
+  wireEngineForCheck(checkId);
   emit({ status: STATUS.CHECKING, currentVersion: app.getVersion() });
   state.checkPromise = (async () => {
     try {
       await engineCheck();
     } catch (err) {
+      // The error is the engine's; the engine event handler
+      // will have already emitted the FAILED verdict, gated on
+      // the current id. If the handler has been superseded, this
+      // log line is the only record.
       log('update', `check failed: ${String(err?.message ?? err)}`);
-      emit({
-        status: STATUS.UNABLE,
-        currentVersion: app.getVersion(),
-        reason: redactHome(String(err?.message ?? err)),
-      });
+      if (state.activeCheckId === checkId) {
+        emit({
+          status: STATUS.UNABLE,
+          currentVersion: app.getVersion(),
+          reason: redactHome(String(err?.message ?? err)),
+        });
+      }
     } finally {
-      state.checkPromise = null;
+      // Only clear the in-flight slot if the operation that set
+      // it is still the current one. A check that was superseded
+      // by a newer check must not null out the newer check's
+      // slot.
+      if (state.activeCheckId === checkId) {
+        state.checkPromise = null;
+      }
     }
     return state.verdict;
   })();
@@ -269,8 +357,51 @@ export async function check() {
  * cancelDownload                                                         *
  * --------------------------------------------------------------------- */
 
+/**
+ * Cancel an in-flight download.
+ *
+ * Phase 37 (PART U): the cancel race at 99%.
+ *
+ * The previous implementation called `engineCancel()` and let the
+ * event-driven state machine handle the rest. A late
+ * `update-downloaded` event after the cancel could land in the
+ * same tick and flip the verdict from CANCELED to READY, leaving
+ * the user with a "ready" state they did not ask for and a
+ * download they tried to abort. The fix is to invalidate the
+ * current check's generation id *before* the engine's events
+ * arrive — the existing `isCurrent()` gate in the event handlers
+ * then drops the late events.
+ */
 export async function cancelDownload() {
-  await engineCancel();
+  // Invalidate the current check so a late `update-downloaded` or
+  // `error` event from the cancelled download cannot mutate the
+  // verdict. The engine will still emit `update-cancelled`; the
+  // handler will see the new id and drop the event too — the
+  // verdict is set explicitly to CANCELED below instead.
+  const cancelledId = state.activeCheckId;
+  state.activeCheckId += 1;
+  // Detach the engine handlers for the cancelled check; the
+  // unsubscribe list is now stale.
+  for (const off of state.engineUnsubscribers) {
+    try {
+      off();
+    } catch (err) {
+      log('update', `cancel unsubscribe threw: ${String(err?.message ?? err)}`);
+    }
+  }
+  state.engineUnsubscribers = [];
+  try {
+    await engineCancel();
+  } catch (err) {
+    log('update', `cancel failed: ${String(err?.message ?? err)}`);
+  }
+  // Emit CANCELED directly; the engine's `update-cancelled` event
+  // has been orphaned by the unsubscribe above.
+  emit({ status: STATUS.CANCELED });
+  // Clear the in-flight check promise so the user can start a
+  // fresh check after the cancel.
+  state.checkPromise = null;
+  void cancelledId;
 }
 
 /* --------------------------------------------------------------------- *
@@ -284,8 +415,23 @@ export async function cancelDownload() {
  * engine shutdown, quit, install, relaunch. If the user picks
  * "Later," nothing here runs.
  */
-export async function installAndRestart({ onSaveBarrier } = {}) {
+export async function installAndRestart({ onSaveBarrier, isQuitting = () => false } = {}) {
   if (state.installPromise) return state.installPromise;
+  // Phase 37 (PART W): do not start a new install if the
+  // application is already on its way out. The user clicking
+  // Quit while the dialog was open, or the macOS app menu's
+  // Quit command racing an Install Update click, must not
+  // produce a half-completed install on top of a shutdown.
+  if (typeof isQuitting === 'function' && isQuitting()) {
+    log('update', 'install refused: app is quitting');
+    emit({
+      status: STATUS.FAILED,
+      reason:
+        'Kingfisher is shutting down. The update was not installed. ' +
+        'Open Kingfisher again and try Check for Updates.',
+    });
+    return state.verdict;
+  }
   state.installPromise = (async () => {
     try {
       if (state.verdict.status === STATUS.AVAILABLE) {
@@ -317,17 +463,19 @@ export async function installAndRestart({ onSaveBarrier } = {}) {
       emit({ ...state.verdict, status: STATUS.WAITING_FOR_SAVE });
       // Save barrier. The renderer confirms all writes are
       // committed; if the user has unsaved work, we wait up
-      // to `saveBarrierTimeoutMs` for the renderer to finish.
+      // to `SAVE_BARRIER_TIMEOUT_MS` for the renderer to finish.
+      // The barrier fails closed on every unexpected path: a
+      // timeout, a missing window, a transport failure, or an
+      // explicit `ok: false` from the renderer all refuse the
+      // install. DATA SAFETY > UPDATE CONVENIENCE.
       if (typeof onSaveBarrier === 'function') {
         const barrier = await onSaveBarrier({ timeoutMs: SAVE_BARRIER_TIMEOUT_MS });
         if (!barrier?.ok) {
-          log('update', `install refused: save barrier failed (${barrier?.reason ?? 'unknown'})`);
+          const failureReason = barrier?.reason ?? 'unknown';
+          log('update', `install refused: save barrier failed (${failureReason})`);
           emit({
             status: STATUS.FAILED,
-            reason:
-              barrier?.reason ||
-              'Kingfisher could not safely finish saving your work. The update was not installed. ' +
-                'Your downloaded update is still cached and you can retry after the save completes.',
+            reason: humanizeSaveBarrierFailure(barrier),
           });
           return state.verdict;
         }
@@ -362,8 +510,10 @@ export async function installAndRestart({ onSaveBarrier } = {}) {
  * its writes are committed. 5 seconds is generous: the renderer is
  * local IndexedDB, not a network round-trip, and the worst realistic
  * case is a slow final `requestAnimationFrame` of an active Study.
+ * The actual constant lives in `save-barrier.mjs` so the main
+ * process and the test suite agree on one value.
  */
-const SAVE_BARRIER_TIMEOUT_MS = 5000;
+import { DEFAULT_TIMEOUT_MS as SAVE_BARRIER_TIMEOUT_MS } from './save-barrier.mjs';
 
 async function runDownload() {
   emit({
@@ -537,6 +687,50 @@ function redactHome(value) {
   }
 }
 
+/**
+ * Translate a `BarrierResult` failure into a sentence the dialog can
+ * show. The user gets the actionable reason; the raw reason is
+ * preserved for diagnostics.
+ */
+function humanizeSaveBarrierFailure(barrier) {
+  const reason = barrier?.reason ?? 'unknown';
+  const detail = barrier?.detail ? ` (${barrier.detail})` : '';
+  switch (reason) {
+    case 'pending-writes':
+      return (
+        'Kingfisher could not safely finish saving your work. The update was not installed. ' +
+        'Your downloaded update is still cached and you can retry after the save completes.' +
+        detail
+      );
+    case 'write-failed':
+      return (
+        'Kingfisher could not commit a recent change to local storage. ' +
+        'The update was not installed. Try again after closing the file that may be locked, ' +
+        'or after freeing disk space.' +
+        detail
+      );
+    case 'timeout':
+      return (
+        'Kingfisher could not confirm that your work finished saving. ' +
+        'The update was not installed. Your downloaded update is still cached ' +
+        'and you can try again.' +
+        detail
+      );
+    case 'renderer-unavailable':
+      return (
+        'Kingfisher could not reach the application window to confirm your work. ' +
+        'The update was not installed.' +
+        detail
+      );
+    default:
+      return (
+        'Kingfisher could not safely finish saving your work. The update was not installed. ' +
+        'Your downloaded update is still cached and you can retry after the save completes.' +
+        detail
+      );
+  }
+}
+
 /* --------------------------------------------------------------------- *
  * Testing surface                                                        *
  * --------------------------------------------------------------------- */
@@ -549,6 +743,39 @@ export const __testing = {
   compareSemver,
   isUpdaterSupported,
 };
+
+/**
+ * Read-only accessors for the unit-test suite. These are the only
+ * ways tests should inspect the state machine — direct `state`
+ * access would tie the tests to the internal field layout.
+ */
+export function __getVerdictForTests() {
+  return { ...state.verdict };
+}
+
+/**
+ * Reset the state machine. The unit tests rely on this; production
+ * code never calls it. Detaches any leftover engine handlers and
+ * clears the in-flight slots.
+ */
+export function __resetForTests() {
+  for (const off of state.engineUnsubscribers) {
+    try {
+      off();
+    } catch {
+      /* nothing to do */
+    }
+  }
+  state.engineUnsubscribers = [];
+  state.checkPromise = null;
+  state.installPromise = null;
+  state.activeCheckId = 0;
+  state.candidate = null;
+  state.verdict = {
+    status: 'idle',
+    currentVersion: app.getVersion(),
+  };
+}
 
 /* --------------------------------------------------------------------- *
  * Re-export for legacy callers that still import the old names          *

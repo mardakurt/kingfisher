@@ -38,6 +38,7 @@ import {
 } from './files.mjs';
 import { missingParts, resolveLayout } from './paths.mjs';
 import { PortUnavailableError, portFree, resolveAppPort } from './origin.mjs';
+import { createSaveBarrier, DEFAULT_TIMEOUT_MS as SAVE_BARRIER_TIMEOUT_MS } from './save-barrier.mjs';
 import { Service, freePort } from './services.mjs';
 import { MAC_TRAFFIC_LIGHT_POSITION, windowChromeFor } from './window-chrome.mjs';
 import {
@@ -534,7 +535,10 @@ async function handleUpdateAction(action) {
         // (if needed), save barrier, engine shutdown, quit, install,
         // relaunch. The verdict listener updates the dialog in
         // lockstep as the state machine moves.
-        await installAndRestart({ onSaveBarrier: requestSaveBarrier });
+        await installAndRestart({
+          onSaveBarrier: requestSaveBarrier,
+          isQuitting: () => Boolean(state.quitting),
+        });
         return;
       }
       case 'cancel': {
@@ -579,59 +583,53 @@ async function handleUpdateAction(action) {
  * whether authored data is in the middle of being persisted, so the
  * question has to be asked there.
  *
- * The contract is small:
+ * The contract is enforced by `createSaveBarrier` in
+ * `save-barrier.mjs`: it fails closed on every unexpected path
+ * (no usable window, send failure, timeout, renderer's own
+ * `ok: false` reply). DATA SAFETY > UPDATE CONVENIENCE — a barrier
+ * that resolves `ok: true` for any reason other than an explicit
+ * `ok: true` from every window that may own authored writes is a
+ * bug.
  *
- *   - We send a `kingfisher:save-barrier:request` with a unique
- *     `requestId`. The renderer's preload forwards it to a
- *     registered handler, awaits the result, and sends the response
- *     on `kingfisher:save-barrier:response`.
- *   - We resolve on the first matching response, or on a timeout.
- *   - The handler is responsible for waiting until its own writes
- *     have actually been committed (not "the next microtask" but
- *     "the data is on disk"); a `true` reply is a strong claim and
- *     a `false` reply aborts the install path.
- *   - If no renderer is registered, or the renderer never
- *     responds, we treat it as suspicious but allow the install to
- *     proceed. The user has already clicked Install Update; a
- *     missing handler is a *preference* state ("the renderer
- *     doesn't know about the save barrier yet"), not a hard
- *     failure of the data path.
+ * The handler in the renderer's preload (`onSaveBarrierRequest`)
+ * forwards the request to a registered function. That function
+ * must call into the persistence layer, await the flush, and
+ * answer `{ ok: true }` only when the bytes are on disk.
  */
-function requestSaveBarrier({ timeoutMs = 5000 } = {}) {
-  if (!state.window || state.window.isDestroyed()) {
-    return Promise.resolve({ ok: true, reason: 'no-window', timedOut: false });
-  }
-  const requestId = randomBytes(8).toString('hex');
-  return new Promise((resolve) => {
-    const timer = setTimeout(() => {
-      ipcMain.removeListener('kingfisher:save-barrier:response', listener);
-      log('update', `save barrier timed out after ${timeoutMs} ms`);
-      resolve({ ok: true, reason: 'no-renderer-handler', timedOut: true });
-    }, timeoutMs);
-    const listener = (event, payload) => {
-      if (!payload || payload.requestId !== requestId) return;
-      clearTimeout(timer);
-      ipcMain.removeListener('kingfisher:save-barrier:response', listener);
-      if (payload.ok) {
-        resolve({ ok: true, timedOut: false });
-      } else {
-        resolve({
-          ok: false,
-          reason: payload.reason || 'Renderer reported an unfinished save.',
-          timedOut: false,
-        });
-      }
-    };
-    ipcMain.on('kingfisher:save-barrier:response', listener);
+const saveBarrier = createSaveBarrier({
+  send: (window, channel, payload) => {
+    if (!window || !window.webContents || window.webContents.isDestroyed?.()) return false;
+    if (window.isDestroyed?.()) return false;
     try {
-      state.window.webContents.send('kingfisher:save-barrier:request', requestId);
-    } catch (err) {
-      clearTimeout(timer);
-      ipcMain.removeListener('kingfisher:save-barrier:response', listener);
-      log('update', `save barrier dispatch failed: ${String(err?.message ?? err)}`);
-      resolve({ ok: true, reason: 'send-failed', timedOut: false });
+      window.webContents.send(channel, payload);
+      return true;
+    } catch {
+      return false;
     }
-  });
+  },
+  on: (channel, listener) => {
+    const wrapped = (event, payload) => listener(event, payload);
+    ipcMain.on(channel, wrapped);
+    return () => ipcMain.removeListener(channel, wrapped);
+  },
+  getWindows: () => (state.window && !state.window.isDestroyed() ? [state.window] : []),
+  isWindowUsable: (window) =>
+    Boolean(window) && !window.isDestroyed() && !window.webContents?.isDestroyed?.(),
+  log: (tag, message) => log(tag, message),
+});
+
+/**
+ * Ask the main window to confirm its writes are committed.
+ *
+ * The result is a `BarrierResult` (see `save-barrier.mjs`). The
+ * update service treats `ok: false` as a refusal to install and
+ * surfaces the reason in the dialog. The `onQuitRequested` flag is
+ * reserved for a future tightening where the user's own Quit
+ * cancels an in-flight barrier; today the install path is the only
+ * caller.
+ */
+function requestSaveBarrier({ timeoutMs = SAVE_BARRIER_TIMEOUT_MS } = {}) {
+  return saveBarrier.dispatch({ timeoutMs });
 }
 
 // --- ipc -------------------------------------------------------------------
@@ -758,13 +756,17 @@ function registerIpc() {
   });
 
   /*
-    Phase 36: the renderer confirms it has shown the
+    Phase 37: the renderer confirms it has shown the
     "Kingfisher was updated to X.Y.Z" surface. The main process
     records the current version as acknowledged so the next launch
-    starts with a clean slate.
+    starts with a clean slate. The renderer passes the version it
+    has just shown; the main process falls back to the running
+    app's version if the renderer omits it (which a future preload
+    could be tempted to do).
   */
-  ipcMain.on('kingfisher:update-acknowledge', () => {
-    acknowledgeUpdate();
+  ipcMain.handle('kingfisher:update-acknowledge', (_event, version) => {
+    const v = typeof version === 'string' && version ? version : null;
+    acknowledgeUpdate(v ?? undefined);
   });
 }
 
@@ -901,6 +903,10 @@ if (!app.requestSingleInstanceLock()) {
     if (stopping) return;
     stopping = true;
     event.preventDefault();
+    // Phase 37 (PART W): once the quit has been requested, refuse
+    // any new install. The renderer may have already sent
+    // `kingfisher-update:install` and is racing the shutdown.
+    state.quitting = true;
     log('quit', 'stopping services');
     // Cancel any in-flight update before the children are stopped, so
     // the user does not return to a half-finished download and a

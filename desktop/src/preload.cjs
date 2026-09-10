@@ -106,40 +106,65 @@ contextBridge.exposeInMainWorld('kingfisher', {
    * for what is and is not exposed here. The check itself is manual;
    * the macOS menu's *Check for Updates…* item is the primary entry point.
    *
-   * Phase 36 adds `onSaveBarrierRequest`: the main process asks the
+   * Phase 36 added `onSaveBarrierRequest`: the main process asks the
    * renderer to flush any in-flight writes before the install path
    * proceeds. The renderer is the only place that knows whether
    * authored data is mid-persist, so the question has to be asked
-   * there. The handler is expected to return a `Promise<{ ok, reason? }>`;
-   * a `false` reply aborts the install.
+   * there. Phase 37 tightened the contract: the handler is called
+   * with the requestId, and its `reason` field is one of a fixed
+   * set (`pending-writes` | `write-failed`) so the main process can
+   * pick the right user-facing message. A thrown handler becomes
+   * `write-failed` — the install is refused.
    */
   updateStatus: () => ipcRenderer.invoke('kingfisher:update-status'),
   subscribeUpdates: (listener) => on('kingfisher:update-verdict', listener),
   onSaveBarrierRequest: (handler) => {
     const wrapped = async (_event, requestId) => {
-      let payload = { requestId, ok: false, reason: 'No save barrier handler is registered.' };
+      let payload = {
+        requestId,
+        ok: false,
+        reason: 'No save barrier handler is registered.',
+      };
       try {
-        const result = await handler();
+        const result = await handler(requestId);
         if (result && typeof result === 'object' && 'ok' in result) {
+          const ok = Boolean(result.ok);
+          let reason = result.reason;
+          if (!ok) {
+            // The main process recognises four reasons. Anything
+            // else becomes `write-failed` — the safe default, the
+            // install is refused.
+            if (
+              reason !== 'pending-writes' &&
+              reason !== 'write-failed' &&
+              reason !== 'timeout' &&
+              reason !== 'renderer-unavailable'
+            ) {
+              reason = 'write-failed';
+            }
+          } else {
+            reason = undefined;
+          }
           payload = {
             requestId,
-            ok: Boolean(result.ok),
-            reason: result.ok ? undefined : result.reason || 'Renderer reported a failed save.',
+            ok,
+            reason,
+            detail: result.detail,
           };
         } else {
-          // A truthy return is treated as success; anything else
-          // is treated as a failed save barrier.
+          // A non-object return is treated as a failed save barrier.
           payload = {
             requestId,
-            ok: Boolean(result),
-            reason: result ? undefined : 'Renderer save barrier returned a falsy result.',
+            ok: false,
+            reason: 'write-failed',
           };
         }
       } catch (err) {
         payload = {
           requestId,
           ok: false,
-          reason: String((err && err.message) || err),
+          reason: 'write-failed',
+          detail: String((err && err.message) || err),
         };
       }
       ipcRenderer.send('kingfisher:save-barrier:response', payload);
@@ -148,7 +173,15 @@ contextBridge.exposeInMainWorld('kingfisher', {
     return () => ipcRenderer.removeListener('kingfisher:save-barrier:request', wrapped);
   },
   showUpdateDialog: () => ipcRenderer.send('kingfisher:show-update-dialog'),
-  acknowledgeUpdate: () => ipcRenderer.send('kingfisher:update-acknowledge'),
+  acknowledgeUpdate: (version) => ipcRenderer.invoke('kingfisher:update-acknowledge', version),
+  /**
+   * Phase 37: receive the one-shot "this app was just installed over
+   * a previous version" event. The main process decides whether to
+   * send it by comparing the current version to the last one the
+   * renderer has acknowledged (via `acknowledgeUpdate`). The
+   * renderer never has to invent that comparison.
+   */
+  onUpdateInstalled: (listener) => on('kingfisher:update-installed', listener),
 
   /**
    * A document the user opened from the Finder, the menu, or a drop.
