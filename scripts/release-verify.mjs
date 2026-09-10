@@ -34,6 +34,8 @@ const steps = [
   ['Unit and integration tests', ['npm', ['test']]],
   ['Production build', ['npm', ['run', 'build']]],
   ['Whitespace', ['git', ['diff', '--check', 'HEAD']]],
+  ['Security mutation tests', ['npm', ['run', 'desktop:update:mutations']]],
+  ['Auto-update E2E (wire mode)', ['npm', ['run', 'desktop:update:e2e']]],
 ];
 
 if (strictFormat) {

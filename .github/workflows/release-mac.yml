@@ -1,0 +1,174 @@
+name: Release macOS
+
+# A trusted Kingfisher build is a small, expensive job: it signs
+# and notarizes the production artefact, runs the full release
+# gate, and publishes to a GitHub Release. It is *not* a job
+# that runs on every push; it is invoked by hand from the
+# repository owner when a release is being cut.
+#
+# The workflow is keyed off a `workflow_dispatch` trigger. The
+# `version` input defaults to the value in `package.json`, and
+# the `title` input defaults to the same string. The job runs
+# on a macOS runner because the sign + notarize path uses
+# Xcode's `codesign` and `notarytool` utilities, which are
+# only present on a Mac host.
+#
+# All sensitive inputs (the Developer ID .p12, the App Store
+# Connect API key, the certificate password) come from the
+# repository's `release` environment, never from the workflow
+# file or a PR. The job does not run on PR builds at all.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Kingfisher version to release (e.g. 1.1.0). Defaults to package.json.'
+        required: false
+        default: ''
+      title:
+        description: 'GitHub Release title. Defaults to "Kingfisher <version>".'
+        required: false
+        default: ''
+      dry_run:
+        description: 'Build and notarize, but skip publishing to GitHub Releases.'
+        required: false
+        default: 'false'
+
+concurrency:
+  group: release-mac
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Sign, notarize, gate, publish
+    runs-on: macos-14
+    timeout-minutes: 60
+    environment:
+      name: release
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Use the maintained version of `npm`
+        run: npm install -g npm@^10
+
+      - name: Install the build dependencies
+        run: npm ci
+
+      - name: Restore the Developer ID Application .p12
+        env:
+          CSC_LINK_P12_BASE64: ${{ secrets.CSC_LINK_P12_BASE64 }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          mkdir -p .keys
+          echo "$CSC_LINK_P12_BASE64" | base64 --decode > .keys/DeveloperIDApplication.p12
+          chmod 600 .keys/DeveloperIDApplication.p12
+          security import .keys/DeveloperIDApplication.p12 -k login -P "$CSC_KEY_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$CSC_KEY_PASSWORD" login
+
+      - name: Restore the App Store Connect API key
+        env:
+          APPLE_API_KEY_P8_BASE64: ${{ secrets.APPLE_API_KEY_P8_BASE64 }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+        run: |
+          set -euo pipefail
+          mkdir -p .keys
+          echo "$APPLE_API_KEY_P8_BASE64" | base64 --decode > .keys/AuthKey_${APPLE_API_KEY_ID}.p8
+          chmod 600 .keys/AuthKey_${APPLE_API_KEY_ID}.p8
+          echo "APPLE_API_KEY=.keys/AuthKey_${APPLE_API_KEY_ID}.p8" >> "$GITHUB_ENV"
+          echo "APPLE_API_KEY_ID=${APPLE_API_KEY_ID}" >> "$GITHUB_ENV"
+          echo "APPLE_API_ISSUER=${APPLE_API_ISSUER}" >> "$GITHUB_ENV"
+
+      - name: Preflight
+        env:
+          CSC_LINK: .keys/DeveloperIDApplication.p12
+        run: npm run desktop:release:preflight:mac
+
+      - name: Build the web application
+        run: npm run build
+
+      - name: Build the desktop bundle
+        env:
+          CSC_LINK: .keys/DeveloperIDApplication.p12
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npm run desktop:dist
+
+      - name: Sign + notarize + staple
+        run: |
+          set -euo pipefail
+          npm run release:mac:notarize
+
+      - name: Trust gate
+        run: npm run desktop:trust:verify
+
+      - name: Auto-update mutations
+        run: npm run desktop:update:mutations
+
+      - name: Auto-update E2E (wire mode)
+        run: npm run desktop:update:e2e
+
+      - name: Decide version
+        id: decide
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          if [ -n "$INPUT_VERSION" ]; then
+            echo "version=$INPUT_VERSION" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Decide title
+        id: title
+        env:
+          INPUT_TITLE: ${{ inputs.title }}
+          VERSION: ${{ steps.decide.outputs.version }}
+        run: |
+          set -euo pipefail
+          if [ -n "$INPUT_TITLE" ]; then
+            echo "title=$INPUT_TITLE" >> "$GITHUB_OUTPUT"
+          else
+            echo "title=Kingfisher $VERSION" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish
+        if: inputs.dry_run != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          npm run release:mac:publish "v${{ steps.decide.outputs.version }}" "${{ steps.title.outputs.title }}"
+
+      - name: Upload the build artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kingfisher-${{ steps.decide.outputs.version }}-dist
+          path: |
+            desktop/dist/Kingfisher-*.dmg
+            desktop/dist/Kingfisher-*-mac.zip
+            desktop/dist/latest-mac.yml
+            desktop/dist/SHA256SUMS
+            desktop/dist/kingfisher-release-manifest.json
+          if-no-files-found: warn
+
+      - name: Clean the build keychain
+        if: always()
+        run: |
+          security delete-identity -Z "Developer ID Application:" login 2>/dev/null || true
+          rm -rf .keys

@@ -49,16 +49,17 @@ These are not claims to drop. They are the truthful limits of
 the product and the install guide and the security page must
 keep stating them.
 
-| Limitation                                                           | Where it appears                | Truth source                                                                              |
-| -------------------------------------------------------------------- | ------------------------------- | ----------------------------------------------------------------------------------------- |
-| macOS Preview is not notarised.                                      | Landing, install guide, README  | The build identity is a development certificate; no Developer ID.                         |
-| No auto-update.                                                      | README, install guide, privacy  | The application does not have an auto-update surface.                                     |
-| Windows and Linux build but are unsupported.                         | README                          | `npm run desktop:smoke` is run on macOS only.                                             |
-| No cross-device Sync.                                                | README, security, privacy       | There is no Sync module; the supported way to move work is the backup flow.               |
-| No games before 2020 in any first-party reference.                   | README, landing                 | `scripts/reference/packs.mjs` filter; the Lichess broadcast archive begins in 2020.       |
-| Chess960 is not supported.                                           | README                          | `src/chess/` rules code is standard-chess only; ADR 0047.                                 |
-| Local Syzygy through 3 pieces bundled; 4- and 5-piece user-supplied. | Install guide                   | `companion/fixtures/syzygy-3/` exists; the rest is the user's.                            |
-| Managed native engines are not sandboxed.                            | Install guide, security, README | The Settings → Engine dialog states this; the engines run with the user's OS permissions. |
+| Limitation                                                                              | Where it appears                | Truth source                                                                                                                                                                                                                       |
+| --------------------------------------------------------------------------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| macOS Preview 1.0.0 is code-signed but not notarised.                                  | Landing, install guide, README  | The 1.0.0 build identity is a development certificate, no Developer ID. The 1.1.0 line is Developer ID signed and notarised by Apple.                                                                                              |
+| 1.1.0 has in-app auto-update with explicit user consent.                                | Install guide, security         | `desktop/src/kingfisher-updater.mjs` and `desktop/src/update-service.mjs`; the menu and the dialog both walk through the chain.                                                                                                    |
+| Windows and Linux build but are unsupported.                                            | README                          | `npm run desktop:smoke` is run on macOS only.                                                                                                                                                                                     |
+| No cross-device Sync.                                                                   | README, security, privacy       | There is no Sync module; the supported way to move work is the backup flow.                                                                                                                                                       |
+| No games before 2020 in any first-party reference.                                      | README, landing                 | `scripts/reference/packs.mjs` filter; the Lichess broadcast archive begins in 2020.                                                                                                                                               |
+| Chess960 is not supported.                                                              | README                          | `src/chess/` rules code is standard-chess only; ADR 0047.                                                                                                                                                                         |
+| Local Syzygy through 3 pieces bundled; 4- and 5-piece user-supplied.                    | Install guide                   | `companion/fixtures/syzygy-3/` exists; the rest is the user's.                                                                                                                                                                    |
+| Managed native engines are not sandboxed.                                               | Install guide, security, README | The Settings → Engine dialog states this; the engines run with the user's OS permissions.                                                                                                                                         |
+| Apple notarisation is automated security/signing review, not App Store review.          | Security, privacy               | `notarytool` is an Apple-controlled service, not a product endorsement. The public claim may say "Developer ID signed and notarised by Apple" — never "Apple approved" or "Apple certified."                                        |
 
 ## Things that must NOT be claimed
 
@@ -69,9 +70,13 @@ update this section and the public surface together.
 - "Cross-device Sync" — there is no Sync. Saying there is,
   even obliquely, would mislead users about what the product
   does.
-- "macOS is notarised" or "macOS is signed and notarised" —
-  false as of the current build. The build is code-signed with
-  a development identity, not a Developer ID.
+- "Apple approved" or "Apple certified" — those are App Store
+  review outcomes. Kingfisher is **Developer ID signed** and
+  **notarised by Apple**; notarisation is an automated
+  security check, not a product endorsement.
+- "macOS is signed and notarised" — true for 1.1.0 once the
+  release gate passes. If the build predates the gate, do
+  not claim it.
 - "Windows / Linux support" — the desktop build is not run
   there. The web build is, of course; the claim would be about
   the desktop.

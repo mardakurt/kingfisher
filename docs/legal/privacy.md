@@ -93,6 +93,21 @@ product needs:
 - **The application's own origin** for the static assets
   (Stockfish WASM, piece art, the marketing/landing assets,
   the app code itself).
+- **GitHub Releases** for the macOS desktop build's update
+  feed. The macOS application's **Check for Updates…** menu
+  item is the only thing that issues this request, and it
+  only issues the request when the user clicks the menu item.
+  The request fetches `latest-mac.yml` from
+  `https://github.com/mardakurt/kingfisher/releases/latest/download/`,
+  validates it against the production host allow-list, and
+  reads the version, size, and signed SHA-512 of the update
+  ZIP. The user must click **Install Update** before the
+  bytes leave GitHub; the updater does not run on a timer
+  and does not run on launch. If the user picks **Later**,
+  nothing is downloaded and no further request is made. The
+  updater never reads or writes the renderer side: the
+  renderer has no `fetch` and no filesystem access; the main
+  process is the only place network and disk happen.
 
 The Content-Security-Policy in `vercel.json` is the enforced
 allow-list. Any other host is refused at the browser layer,

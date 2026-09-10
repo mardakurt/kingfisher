@@ -1,11 +1,14 @@
 # Installing Kingfisher on macOS
 
 This is the **honest version** of the install guide. Kingfisher
-1.0.0 for macOS is a **Preview** build: code-signed with an Apple
-Development identity, not a notarised Developer ID release;
-Gatekeeper may therefore block the first launch. This page tells
-you exactly what to do about that, without disabling anything
-system-wide.
+1.1.0 for macOS is **Developer ID signed** and **notarised by
+Apple**; the notarization ticket is stapled to the deliverable
+so a normal double-click is all a first launch needs. There is
+no Gatekeeper workaround and no system-wide setting to flip.
+
+If you are on a 1.0.x build and the installer still asks you
+to right-click → Open, you are looking at a pre-Phase 36 build
+and the new version's first launch will be silent.
 
 ## What you need
 
@@ -55,39 +58,21 @@ the eject button next to it in Finder).
 Open Kingfisher from Applications or Spotlight. The first launch
 is the one Gatekeeper cares about.
 
-**Kingfisher 1.0.0 is code-signed but not notarised.** On a Mac
-that has not seen this build, macOS will refuse to open it and
-say the application is _damaged_ or _cannot be checked for
-malicious software_. That is not a diagnosis of the file.
-Notarisation is an Apple service that requires a **Developer ID
-Application** certificate, and this build does not have one —
-the identity it was signed with is a development certificate,
-which is a different kind. Nothing about the application changes
-when the right certificate exists; only the ability to hand you
-the installer does.
+**Kingfisher 1.1.0 is Developer ID signed and notarised by
+Apple.** The notarization ticket is stapled to the application,
+so the offline Gatekeeper decision is in your favor. A normal
+double-click is enough. There is no right-click → Open step
+and there is no system-wide setting to change.
 
-**The safe, supported way through Gatekeeper:**
-
-1. **Right-click** (or **Control-click**) Kingfisher in
-   Applications and choose **Open**. A dialog asks you to
-   confirm.
-2. Click **Open** in the dialog. macOS records the exception
-   for this copy of the application, so the second launch is
-   silent.
-3. From then on, double-clicking Kingfisher in Applications is
-   enough.
-
-If macOS refuses even that, the file is carrying a quarantine
-attribute from the browser. Open **System Settings → Privacy &
-Security**, scroll to the **Security** section, and click
-**Open Anyway** beside the message about Kingfisher. You may
-need to scroll past the recent entries to find it. The same
-exception is then recorded.
+If you have an older 1.0.x build that you signed-out, the new
+build will be detected by the auto-update path on the next
+launch; the macOS menu's **Kingfisher → Check for Updates…**
+item offers **Install Update** as the primary action.
 
 **Do not turn Gatekeeper off.** `spctl --master-disable` and
 its relatives disable a system-wide protection for every
 application on the machine, for as long as you leave it off,
-to solve a problem with one file. Nothing in this Preview is
+to solve a problem with one file. Nothing in Kingfisher is
 worth that, and Kingfisher will not ask you to do it.
 
 ## 6. First five minutes
@@ -112,15 +97,38 @@ the tools beside it.
 
 ## 7. Updating
 
-There is no auto-update. When a new build is published:
+**The normal path** is in-app and one click:
 
-1. Quit Kingfisher.
-2. Download the new DMG from the release page.
-3. Drag the new `Kingfisher.app` over the old one in
-   Applications. macOS asks whether to replace — confirm.
-4. Your studies, repertoire, notes and preferences are kept;
-   they live in `~/Library/Application Support/Kingfisher/`
-   and are not touched by replacing the application bundle.
+1. **Kingfisher → Check for Updates…** in the macOS menu bar.
+2. If a newer version is published, the dialog shows
+   **Kingfisher 1.X.Y is ready to install.** with two
+   buttons: **Install Update** (primary) and **View Release
+   Notes** (secondary).
+3. Click **Install Update**. Kingfisher downloads the update
+   in the background, verifies it against the signed
+   manifest, asks any open windows to finish saving your work,
+   and replaces the running application. The previous version
+   closes; the new version opens. There is no second "Open
+   Installer" click.
+4. On the first launch of the new version, Kingfisher shows a
+   small "Kingfisher was updated to 1.X.Y" notice once. The
+   notice is dismissed by clicking the **What's New** link or
+   by simply closing it; it does not appear again.
+
+Your studies, repertoire, training, recent work, settings and
+preferences are kept; they live in
+`~/Library/Application Support/Kingfisher/` and are not
+touched by replacing the application bundle. The save barrier
+that runs before the install refuses to replace the application
+if any of those writes are still in flight.
+
+**The manual fallback** is the same DMG you downloaded for the
+first install. The dialog offers **Download Installer** if
+auto-install cannot run on your machine (read-only volume,
+permission failure, or any other reason). The download is the
+same signed and notarized artifact the auto-update path
+would have used; verify its SHA-256 against the release page
+and drag it over the existing application.
 
 ## 8. Uninstalling
 
@@ -137,8 +145,20 @@ There is no auto-update. When a new build is published:
 ### "Kingfisher is damaged"
 
 That is Gatekeeper saying the same thing as _cannot be checked
-for malicious software_. Go back to step 5; right-click → Open
-is the supported fix.
+for malicious software_. It should not happen on a 1.1.0
+build: the notarization ticket is stapled and the offline
+decision is in your favor. If you see this on 1.1.0:
+
+- The download was corrupted. Re-download and verify the
+  SHA-256 against the release page.
+- The DMG is being opened from a quarantined location the OS
+  does not recognize. Move it to `~/Downloads/` or
+  `~/Desktop/` and re-open it from there.
+- The build is a 1.0.x line on your machine, not 1.1.0. The
+  1.0.x build is code-signed with a development identity and
+  Gatekeeper treats it as untrusted. Open the **Check for
+  Updates…** menu item and use **Install Update** to move to
+  1.1.0.
 
 ### "Another program is using its port"
 

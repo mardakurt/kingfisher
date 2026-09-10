@@ -235,6 +235,83 @@ hidden }` rule was preventing scroll on the marketing page; the fix
   the UI as plain English with a short next step. The raw
   exception still appears in Diagnostics for the power user.
 
+## 1.1.0 — Apple notarised, seamless updates
+
+The current development line. The release date is the day
+the Phase 36 release gate passes; the date is therefore not
+a date yet, and Kingfisher 1.0.0 remains the public stable
+release until this line is tagged.
+
+### Professional macOS experience
+
+- **Developer ID signed.** The macOS binary is signed with a
+  `Developer ID Application` identity, with a secure timestamp
+  and the macOS Hardened Runtime enabled. The signature chain
+  covers the outer `.app` and every nested executable —
+  Electron Framework, the `Kingfisher Helper` family, the GPU
+  and plugin helpers, and the bundled engine binaries.
+- **Notarised by Apple.** The notarisation ticket is stapled
+  to the `.app` and the `.dmg`, so a normal double-click is
+  all the first launch needs. There is no right-click → Open
+  workaround and no system-wide setting to change.
+
+  The public claim is **Developer ID signed and notarised
+  by Apple**, not "Apple approved" or "Apple certified".
+  Notarisation is an automated security/signing check, not
+  a product endorsement.
+
+### Seamless secure updates
+
+- **In-app auto-update.** _Kingfisher → Check for Updates…_
+  in the macOS application menu now offers a one-click
+  **Install Update** flow: download, verify, save barrier,
+  engine shutdown, install, and relaunch. The previous
+  _open the verified DMG by hand_ step is no longer the
+  normal path; the polished DMG is still produced as the
+  manual fallback.
+- **Save barrier.** Before the install runs, Kingfisher asks
+  the renderer to flush any in-flight writes. If the renderer
+  reports a failed save, the install is **aborted** and the
+  verified update remains cached for a retry.
+- **Signature-continuity check.** The updater refuses to
+  install a candidate whose Developer ID identity does not
+  match the running app, refuses a downgrade, refuses an
+  HTTP feed URL, and refuses a host outside the production
+  allow-list. Eleven mutation tests pin these guards in
+  source.
+- **No background polling.** Check for Updates is the only
+  thing that issues a network request to the release host.
+  The updater does not run on a timer and does not run on
+  launch.
+
+### Reliability and security
+
+- **State machine, not status flag.** The updater has a
+  real state machine — `idle` / `checking` / `up-to-date` /
+  `available` / `downloading` / `verifying` / `ready` /
+  `waiting-for-save` / `installing` / `restarting` / `failed`
+  / `canceled` — and the dialog renders a different copy for
+  every state.
+- **Single-flight.** A second click of the menu item during
+  a check or a download is a no-op, not a second
+  install. The check promise, the install promise, and the
+  save-barrier response are each single-flight.
+- **Cache pruning.** The update cache is bounded; the most
+  recent verified candidate is kept, older downloads are
+  unlinked.
+
+### What stays the same
+
+- The version stays at 1.0.0 throughout Phase 36 development.
+  The bump to 1.1.0 happens in one release commit once the
+  release gate passes.
+- The application is still a desktop companion to the web
+  Studio; the in-app update flow does not introduce any
+  background service and does not introduce any analytics.
+- The reference data is unchanged. Recent Theory v2 remains
+  the live dataset; the `data:recent:status` command reports
+  the next candidate window without rebuilding.
+
 ## 1.0.0 — public stable release
 
 The first stable public release of Kingfisher. The web application is
