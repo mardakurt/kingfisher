@@ -518,8 +518,7 @@ export function useCommands(): readonly Command[] {
         group: 'Application',
         keywords: 'download macos app install pwa',
         run: () => {
-          const url =
-            'https://github.com/mardakurt/kingfisher/releases/latest';
+          const url = 'https://github.com/mardakurt/kingfisher/releases/latest';
           window.open(url, '_blank', 'noopener,noreferrer');
         },
       });

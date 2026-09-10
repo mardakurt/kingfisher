@@ -3,7 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <title>Kingfisher — Check for Updates</title>
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:;" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:;"
+    />
     <style>
       :root {
         color-scheme: light dark;
@@ -31,14 +34,18 @@
           --bar-fill: #1a73e8;
         }
       }
-      * { box-sizing: border-box; }
-      html, body {
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
         margin: 0;
         padding: 0;
         height: 100%;
         background: transparent;
         color: var(--fg);
-        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
         font-size: 13px;
         line-height: 1.45;
         -webkit-font-smoothing: antialiased;
@@ -81,7 +88,10 @@
         cursor: pointer;
         padding: 0;
       }
-      .close:hover { background: var(--line); color: var(--fg); }
+      .close:hover {
+        background: var(--line);
+        color: var(--fg);
+      }
       main {
         flex: 1 1 auto;
         padding: 8px 18px 4px;
@@ -120,7 +130,9 @@
         width: 0%;
         transition: width 0.15s ease-out;
       }
-      .progress.hidden { visibility: hidden; }
+      .progress.hidden {
+        visibility: hidden;
+      }
       footer {
         display: flex;
         justify-content: flex-end;
@@ -149,12 +161,25 @@
         color: var(--danger);
         border-color: var(--line);
       }
-      button:hover:not(:disabled) { filter: brightness(1.07); }
-      button:active:not(:disabled) { filter: brightness(0.95); }
-      button:disabled { opacity: 0.5; cursor: default; }
-      .positive { color: var(--positive); }
-      .caution { color: var(--caution); }
-      .danger { color: var(--danger); }
+      button:hover:not(:disabled) {
+        filter: brightness(1.07);
+      }
+      button:active:not(:disabled) {
+        filter: brightness(0.95);
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+      .positive {
+        color: var(--positive);
+      }
+      .caution {
+        color: var(--caution);
+      }
+      .danger {
+        color: var(--danger);
+      }
       .small {
         font-size: 11px;
         color: var(--fg-dim);

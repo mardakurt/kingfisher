@@ -8,8 +8,8 @@ GitHub release page is for humans and is not a primary source.
 
 `https://github.com/mardakurt/kingfisher/releases/latest/download/kingfisher-release-manifest.json`
 
-The desktop update service reads this URL on every *Check for
-Updates…* click. GitHub serves the file at the URL of the
+The desktop update service reads this URL on every _Check for
+Updates…_ click. GitHub serves the file at the URL of the
 **latest non-draft, non-prerelease, application release** —
 exactly the rule the brief lists as a non-negotiable security
 boundary. A draft, a `prerelease: true` tag, a `reference-*`
@@ -22,7 +22,7 @@ desktop shell will never offer any of them as an update.
 {
   "kingfisher": {
     "version": "1.1.0",
-    "tag": "v1.1.0"
+    "tag": "v1.1.0",
   },
   "htmlUrl": "https://github.com/mardakurt/kingfisher/releases/tag/v1.1.0",
   "desktop": [
@@ -30,9 +30,9 @@ desktop shell will never offer any of them as an update.
       "name": "Kingfisher-1.1.0-arm64.dmg",
       "url": "https://github.com/mardakurt/kingfisher/releases/download/v1.1.0/Kingfisher-1.1.0-arm64.dmg",
       "sha256": "…",
-      "bytes": 157286400
-    }
-  ]
+      "bytes": 157286400,
+    },
+  ],
 }
 ```
 
@@ -42,16 +42,16 @@ Every field is validated by `desktop/src/update-protocol.mjs` —
 a malformed manifest is rejected with a polite "Unable to check
 for updates right now" verdict rather than a crash.
 
-| Field         | Rule                                                                                          |
-| ------------- | --------------------------------------------------------------------------------------------- |
-| `kingfisher.version` | Strict `MAJOR.MINOR.PATCH`. Pre-release tags, build metadata and v-prefixes are rejected. |
-| `kingfisher.tag`     | Must be `v${version}`. A mismatch is a sign the manifest was hand-edited.            |
-| `htmlUrl`            | Must be `https://github.com/<owner>/<repo>/releases/tag/<tag>`.                       |
-| `desktop`            | Non-empty array.                                                                              |
-| `desktop[].name`     | `Kingfisher-<version>-<arch>.dmg`, where `<arch>` is `arm64` or `x64`. The version in the filename MUST equal `kingfisher.version`. |
+| Field                | Rule                                                                                                                                                                       |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `kingfisher.version` | Strict `MAJOR.MINOR.PATCH`. Pre-release tags, build metadata and v-prefixes are rejected.                                                                                  |
+| `kingfisher.tag`     | Must be `v${version}`. A mismatch is a sign the manifest was hand-edited.                                                                                                  |
+| `htmlUrl`            | Must be `https://github.com/<owner>/<repo>/releases/tag/<tag>`.                                                                                                            |
+| `desktop`            | Non-empty array.                                                                                                                                                           |
+| `desktop[].name`     | `Kingfisher-<version>-<arch>.dmg`, where `<arch>` is `arm64` or `x64`. The version in the filename MUST equal `kingfisher.version`.                                        |
 | `desktop[].url`      | `https://` to one of: `github.com`, `api.github.com`, `release-assets.githubusercontent.com`, `objects.githubusercontent.com`. No userinfo, no non-default ports, no HTTP. |
-| `desktop[].sha256`   | Strict 64-character hex digest.                                                                |
-| `desktop[].bytes`    | Positive integer, ≤ **700 MB** (the configured update size ceiling, see *Limits* below).    |
+| `desktop[].sha256`   | Strict 64-character hex digest.                                                                                                                                            |
+| `desktop[].bytes`    | Positive integer, ≤ **700 MB** (the configured update size ceiling, see _Limits_ below).                                                                                   |
 
 Anything outside these rules is a hard failure; the service does
 not partial-match and it does not warn.
@@ -63,13 +63,13 @@ Three reasons, in order of how much they matter for security:
 1. **The release page is for humans.** The HTML is not a
    contract; the asset order changes, the formatting drifts, and
    a manifest-only update flow is the only way the desktop shell
-   can be sure it is reading the *current* intent rather than
+   can be sure it is reading the _current_ intent rather than
    a snapshot.
 2. **The manifest is the only thing the application trusts.**
    The desktop shell reads the manifest, validates every field,
    and uses the asset list to decide what to download. The
-   GitHub release page exists for the link in the *View Release
-   Notes* button, and never as a source of data.
+   GitHub release page exists for the link in the _View Release
+   Notes_ button, and never as a source of data.
 3. **The redirect-allow-list lives in the manifest reader.**
    A manifest URL on `github.com` legitimately redirects to
    `release-assets.githubusercontent.com`; the desktop shell
@@ -126,7 +126,8 @@ manifest, because they are the same for every release:
    Only the `ready` verdict enables *Open Installer*.
 ```
 
-## Failure modes that the design *deliberately* turns into
+## Failure modes that the design _deliberately_ turns into
+
 polite "Unable to check" verdicts
 
 - The manifest URL returns a non-2xx HTTP code.
@@ -143,15 +144,15 @@ polite "Unable to check" verdicts
   over the 700 MB ceiling.
 - The SHA-256 is not a 64-character hex string.
 
-The user sees one line: *Unable to check for updates right now.*
+The user sees one line: _Unable to check for updates right now._
 The technical detail is logged at a stage name and the
 re-rendered verdict is `unable-to-check`; nothing else.
 
-## What the design *does* do well
+## What the design _does_ do well
 
 - **A single canonical service.** The macOS application menu,
-  the *File* menu, the *Settings → Application* panel, the
-  *Check for Updates…* command in the command palette and the
+  the _File_ menu, the _Settings → Application_ panel, the
+  _Check for Updates…_ command in the command palette and the
   manual help section all dispatch into the same
   `DesktopUpdateService` instance. There is no second network
   path, no second parser, no second verdict source.
@@ -166,9 +167,9 @@ re-rendered verdict is `unable-to-check`; nothing else.
   `…/Kingfisher-<version>-arm64.dmg.partial`; the SHA-256 is
   computed as the bytes arrive. On a digest mismatch the
   partial is unlinked, the verdict is `failed`, and the user
-  sees *The downloaded update could not be verified.* A
+  sees _The downloaded update could not be verified._ A
   successful verification renames the file to its final
-  name, after which the dialog offers *Open Installer*.
+  name, after which the dialog offers _Open Installer_.
 - **Bounded cache.** The update cache directory keeps one
   verified artifact and unlinks the rest on quit. The user's
   studies, repertoire and training live in

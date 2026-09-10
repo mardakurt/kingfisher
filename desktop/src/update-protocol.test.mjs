@@ -187,10 +187,7 @@ describe('parseReleaseManifest', () => {
   it('skips malformed entries without rejecting the whole manifest', () => {
     const r = parseReleaseManifest({
       ...GOOD_MANIFEST,
-      desktop: [
-        { not: 'an asset' },
-        GOOD_MANIFEST.desktop[0],
-      ],
+      desktop: [{ not: 'an asset' }, GOOD_MANIFEST.desktop[0]],
     });
     expect(r.ok).toBe(true);
     if (r.ok) expect(r.manifest.assets).toHaveLength(1);

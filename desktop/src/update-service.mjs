@@ -37,7 +37,15 @@
  * "download started", "verification result".
  */
 
-import { createWriteStream, existsSync, mkdirSync, renameSync, unlinkSync, statSync, readdirSync } from 'node:fs';
+import {
+  createWriteStream,
+  existsSync,
+  mkdirSync,
+  renameSync,
+  unlinkSync,
+  statSync,
+  readdirSync,
+} from 'node:fs';
 import { open as fsOpen } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
@@ -260,7 +268,12 @@ export function downloadUpdate() {
 }
 
 async function runDownload(manifest, asset, signal) {
-  emit({ status: STATUS.DOWNLOADING, latestVersion: manifest.version, receivedBytes: 0, totalBytes: asset.bytes });
+  emit({
+    status: STATUS.DOWNLOADING,
+    latestVersion: manifest.version,
+    receivedBytes: 0,
+    totalBytes: asset.bytes,
+  });
   log('update', `download started · ${asset.filename} · ${asset.bytes} B`);
   const cache = updateCacheDir();
   const finalPath = path.join(cache, asset.filename);
@@ -276,10 +289,14 @@ async function runDownload(manifest, asset, signal) {
   let received = 0;
   let response;
   try {
-    response = await fetchStrict(asset.url, { accept: 'application/octet-stream' }, {
-      signal,
-      maxRedirects: MAX_DOWNLOAD_REDIRECTS,
-    });
+    response = await fetchStrict(
+      asset.url,
+      { accept: 'application/octet-stream' },
+      {
+        signal,
+        maxRedirects: MAX_DOWNLOAD_REDIRECTS,
+      },
+    );
   } catch (err) {
     try {
       await tmp.close();
@@ -308,7 +325,9 @@ async function runDownload(manifest, asset, signal) {
       // ignore
     }
     safeUnlink(partialPath);
-    throw new Error(`Asset host advertised ${declaredTotal} bytes; the manifest says ${asset.bytes}.`);
+    throw new Error(
+      `Asset host advertised ${declaredTotal} bytes; the manifest says ${asset.bytes}.`,
+    );
   }
   // Stream the body to disk and the hasher in parallel. The body reader is
   // pulled in chunks so a 150 MB file is never held in memory whole.
@@ -372,13 +391,17 @@ async function runDownload(manifest, asset, signal) {
     renameSync(partialPath, finalPath);
   } catch (err) {
     safeUnlink(partialPath);
-    throw new Error(`Could not move the verified update into place: ${String(err?.message ?? err)}`);
+    throw new Error(
+      `Could not move the verified update into place: ${String(err?.message ?? err)}`,
+    );
   }
   // Confirm size on disk matches the manifest.
   const finalStat = statSync(finalPath);
   if (finalStat.size !== asset.bytes) {
     safeUnlink(finalPath);
-    throw new Error(`The verified file is ${finalStat.size} B, but the manifest says ${asset.bytes} B.`);
+    throw new Error(
+      `The verified file is ${finalStat.size} B, but the manifest says ${asset.bytes} B.`,
+    );
   }
   state.downloadedPath = finalPath;
   log('update', `download completed · ${finalPath} · ${finalStat.size} B · sha256=${asset.sha256}`);
@@ -443,18 +466,22 @@ export function pruneUpdateCache({ keep = 1 } = {}) {
   const dir = updateCacheDir();
   let entries = [];
   try {
-    entries = readdirSync(dir).map((name) => {
-      const full = path.join(dir, name);
-      try {
-        return { name, full, mtimeMs: statSync(full).mtimeMs, size: statSync(full).size };
-      } catch {
-        return null;
-      }
-    }).filter(Boolean);
+    entries = readdirSync(dir)
+      .map((name) => {
+        const full = path.join(dir, name);
+        try {
+          return { name, full, mtimeMs: statSync(full).mtimeMs, size: statSync(full).size };
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean);
   } catch {
     return 0;
   }
-  const verified = entries.filter((e) => !e.name.endsWith('.partial')).sort((a, b) => b.mtimeMs - a.mtimeMs);
+  const verified = entries
+    .filter((e) => !e.name.endsWith('.partial'))
+    .sort((a, b) => b.mtimeMs - a.mtimeMs);
   const toKeep = new Set(verified.slice(0, keep).map((e) => e.full));
   let removed = 0;
   for (const entry of entries) {

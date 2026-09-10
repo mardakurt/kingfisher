@@ -83,10 +83,15 @@ async function hdiutilVerify(dmg) {
 
 async function hdiutilAttach(dmg) {
   const tmp = await mkdtemp(path.join(os.tmpdir(), 'kingfisher-dmg-verify-'));
-  const { code, stdout, stderr } = await runCapture(
-    'hdiutil',
-    ['attach', '-nobrowse', '-readonly', '-noverify', '-mountrandom', tmp, dmg],
-  );
+  const { code, stdout, stderr } = await runCapture('hdiutil', [
+    'attach',
+    '-nobrowse',
+    '-readonly',
+    '-noverify',
+    '-mountrandom',
+    tmp,
+    dmg,
+  ]);
   if (code !== 0) {
     rmSync(tmp, { recursive: true, force: true });
     die('hdiutil attach', stderr.trim() || `exit ${code}`);
@@ -128,7 +133,14 @@ async function readInfoPlist(mount) {
   // isn't, the verifier fails before this point on the .app layout.
   const plist = path.join(mount, 'Kingfisher.app', 'Contents', 'Info.plist');
   if (!existsSync(plist)) return null;
-  const fields = ['CFBundleIdentifier', 'CFBundleShortVersionString', 'CFBundleVersion', 'CFBundleExecutable', 'CFBundleName', 'LSMinimumSystemVersion'];
+  const fields = [
+    'CFBundleIdentifier',
+    'CFBundleShortVersionString',
+    'CFBundleVersion',
+    'CFBundleExecutable',
+    'CFBundleName',
+    'LSMinimumSystemVersion',
+  ];
   const result = {};
   for (const field of fields) {
     try {
@@ -157,7 +169,9 @@ async function readArchitecture(mount) {
 async function main() {
   const args = parseArgs(process.argv);
   if (!args.dmg) {
-    console.error('usage: node desktop/scripts/verify-dmg.mjs <path-to.dmg> [--version X.Y.Z] [--arch arm64|x64]');
+    console.error(
+      'usage: node desktop/scripts/verify-dmg.mjs <path-to.dmg> [--version X.Y.Z] [--arch arm64|x64]',
+    );
     process.exit(2);
   }
   if (!existsSync(args.dmg)) {
@@ -215,7 +229,10 @@ async function main() {
     }
     ok('bundle id', plist.CFBundleIdentifier);
     if (args.expectVersion && plist.CFBundleShortVersionString !== args.expectVersion) {
-      die('short version', `expected ${args.expectVersion}, got ${plist.CFBundleShortVersionString}`);
+      die(
+        'short version',
+        `expected ${args.expectVersion}, got ${plist.CFBundleShortVersionString}`,
+      );
     }
     if (plist.CFBundleShortVersionString) {
       ok('short version', plist.CFBundleShortVersionString);

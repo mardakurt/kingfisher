@@ -285,8 +285,8 @@ run that has not been executed in Phase 34.
 > the ~95 MB the file-size sketch suggested. The sketch was right
 > about the **shape** of the answer (the 6-month window is the best
 > bytes-per-recency candidate) and wrong about the magnitude of the
-> result. The Phase 35 actual build numbers are in the *Recent
-> Theory (v2, 6 months)* section above.
+> result. The Phase 35 actual build numbers are in the _Recent
+> Theory (v2, 6 months)_ section above.
 
 ### Phase 35 v1 vs v2
 
@@ -294,16 +294,16 @@ The values the build script reports for the v2 candidate
 (2026-09-10, six months 2026-03 → 2026-08), against the v1
 values from the same source family:
 
-|                          | v1 (24 months) | v2 (6 months) | Ratio v2 / v1 |
-| ------------------------ | -------------- | ------------- | ------------- |
-| Accepted games           | 44,200         | 11,280        | 0.26          |
-| Openable full scores     | 18,151         | 4,600         | 0.25          |
-| Position aggregates      | 918,069        | 250,498       | 0.27          |
-| Player identities        | 2,567          | 1,577         | 0.61          |
-| Compressed bytes on disk | ~32.3 MB       | 8.6 MB        | 0.27          |
-| Per-month games          | ~1,842         | ~1,880        | 1.02          |
-| Per-month players        | ~107           | ~263          | 2.46          |
-| Window                   | 2024-09 → 2026-08 | 2026-03 → 2026-08 | 1/4        |
+|                          | v1 (24 months)    | v2 (6 months)     | Ratio v2 / v1 |
+| ------------------------ | ----------------- | ----------------- | ------------- |
+| Accepted games           | 44,200            | 11,280            | 0.26          |
+| Openable full scores     | 18,151            | 4,600             | 0.25          |
+| Position aggregates      | 918,069           | 250,498           | 0.27          |
+| Player identities        | 2,567             | 1,577             | 0.61          |
+| Compressed bytes on disk | ~32.3 MB          | 8.6 MB            | 0.27          |
+| Per-month games          | ~1,842            | ~1,880            | 1.02          |
+| Per-month players        | ~107              | ~263              | 2.46          |
+| Window                   | 2024-09 → 2026-08 | 2026-03 → 2026-08 | 1/4           |
 
 The v2 is smaller on every absolute metric (it covers a quarter of
 the calendar), and substantially **denser** on the recency question
@@ -322,5 +322,5 @@ install only downloads the chunks that changed.
 Publish `reference-recent-v2` as soon as the data mirror is ready.
 It is independently versioned from Kingfisher 1.0.0 (it is
 dataset version 2, not application version 1.1), and the brief
-explicitly says: *"Recent Theory v2 remains: data version 2. It
-does not mean: Kingfisher 2.0."*
+explicitly says: _"Recent Theory v2 remains: data version 2. It
+does not mean: Kingfisher 2.0."_

@@ -99,9 +99,9 @@ export function UpdateCheckSection() {
           ) : null}
         </div>
         <p className="text-[10px] text-tertiary">
-          The check is manual. Nothing is sent from Kingfisher unless you click the button. Auto-update
-          is not implemented; the verified DMG is opened from the dialog and you replace the app in
-          Applications.
+          The check is manual. Nothing is sent from Kingfisher unless you click the button.
+          Auto-update is not implemented; the verified DMG is opened from the dialog and you replace
+          the app in Applications.
         </p>
       </div>
     </section>

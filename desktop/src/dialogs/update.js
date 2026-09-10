@@ -34,7 +34,10 @@
   }
 
   bridge.onVerdict(render);
-  bridge.getInitial().then(render).catch((err) => showFatal(String(err?.message ?? err)));
+  bridge
+    .getInitial()
+    .then(render)
+    .catch((err) => showFatal(String(err?.message ?? err)));
 
   els.close.addEventListener('click', () => bridge.close());
   els.primary.addEventListener('click', onPrimary);

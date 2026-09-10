@@ -520,7 +520,8 @@ async function handleUpdateAction(action) {
         updateStatus.set({ status: 'checking' });
         const verdict = await checkForUpdates({
           repository:
-            process.env.KINGFISHER_PUBLIC_REPOSITORY_URL || 'https://github.com/mardakurt/kingfisher',
+            process.env.KINGFISHER_PUBLIC_REPOSITORY_URL ||
+            'https://github.com/mardakurt/kingfisher',
         });
         updateStatus.set(verdict);
         return;
@@ -553,7 +554,10 @@ async function handleUpdateAction(action) {
     }
   } catch (err) {
     log('update', `dialog action failed: ${String(err?.message ?? err)}`);
-    updateStatus.set({ status: 'unable-to-check', reason: 'The updater could not complete the request.' });
+    updateStatus.set({
+      status: 'unable-to-check',
+      reason: 'The updater could not complete the request.',
+    });
   }
 }
 

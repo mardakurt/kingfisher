@@ -121,23 +121,23 @@ in the running deployment.
   release page in their own browser and downloads, verifies
   and installs by hand.
 - **Phase 35 — in-app download, same manual boundary.** The
-  *Kingfisher → Check for Updates…* menu item now downloads
+  _Kingfisher → Check for Updates…_ menu item now downloads
   the verified DMG inside the application. The download and
   the verification run inside the Electron main process; the
   renderer never sees `fetch` and never sees the filesystem.
   The flow is the same **manual** check the brief asked for:
   the user clicks, one HTTPS request goes out, the user reads
   the verdict. The download still needs an explicit
-  *Download Update* click; the install still needs the user
+  _Download Update_ click; the install still needs the user
   to drag the verified DMG into Applications. The exact
   security boundary is in
   [`docs/release/release-manifest.md`](docs/release/release-manifest.md)
   — the desktop shell trusts the GitHub release manifest
   only, the manifest's URLs are restricted to the canonical
   release hosts, the downloaded asset is verified against
-  SHA-256 *before* it is offered, and a failed verification
+  SHA-256 _before_ it is offered, and a failed verification
   unlinks the partial download and reports
-  *The downloaded update could not be verified.*
+  _The downloaded update could not be verified._
 
 ### Service worker / PWA boundaries (added in Phase 34)
 

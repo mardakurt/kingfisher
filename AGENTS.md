@@ -396,7 +396,7 @@ page, the matching `public-claims.md` row, and run
 
 ## Phase 35 — the desktop update service
 
-The macOS application menu's *Kingfisher → Check for Updates…*
+The macOS application menu's _Kingfisher → Check for Updates…_
 item is the primary entry point for the desktop update flow.
 There is exactly one update service for the whole application:
 
@@ -406,12 +406,12 @@ There is exactly one update service for the whole application:
   `showUpdateDialog`, `updateStatus`, `subscribeUpdates`, and the
   callback for the dialog action (`check`, `download`, `cancel`,
   `open`, `close`, `release`).
-- The macOS application menu, the *File* menu, the
-  *Settings → Application* panel and the *Check for Updates…*
+- The macOS application menu, the _File_ menu, the
+  _Settings → Application_ panel and the _Check for Updates…_
   command in the command palette all reach the same
   `DesktopUpdateService` instance. The menu tests in
   `desktop/src/menu.test.mjs` pin this; removing
-  *Check for Updates…* from the application menu fails the gate.
+  _Check for Updates…_ from the application menu fails the gate.
 - The check is **manual** — one HTTPS request on click, no
   background poller, no telemetry. The brief calls this
   "the user's click is the only network event" and the
@@ -419,14 +419,14 @@ There is exactly one update service for the whole application:
 - The release source is the GitHub release manifest at
   `…/releases/latest/download/kingfisher-release-manifest.json`.
   The manifest is the only thing the service trusts; the
-  release page is for the *View Release Notes* button.
+  release page is for the _View Release Notes_ button.
   The full schema is in
   [`docs/release/release-manifest.md`](docs/release/release-manifest.md).
 - The DMG is downloaded into
   `~/Library/Caches/Kingfisher/updates/` and verified against
-  its SHA-256 **before** the dialog offers *Open Installer*. A
+  its SHA-256 **before** the dialog offers _Open Installer_. A
   failed verification unlinks the partial file and reports
-  *The downloaded update could not be verified.*
+  _The downloaded update could not be verified._
 - The DMG that lands on the user is never the only copy of
   the user's work. Studies, repertoire, training, preferences
   and reference state live in
