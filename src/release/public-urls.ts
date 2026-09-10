@@ -40,17 +40,29 @@ const fromEnv = (name: string, fallback: string): string => {
 const trimTrailingSlash = (s: string): string => s.replace(/\/+$/, '');
 
 export const publicUrl = {
+  /*
+   * The canonical public landing. The Vercel production host is
+   * the only origin the application prints, the documentation
+   * links to, and the social metadata names. The legacy
+   * `mardakurt.github.io/kingfisher-data/` origin still serves
+   * a tiny redirect-only backup and is not a canonical surface.
+   */
   landing: trimTrailingSlash(
-    fromEnv('KINGFISHER_PUBLIC_LANDING_URL', 'https://mardakurt.github.io/kingfisher-data'),
+    fromEnv('KINGFISHER_PUBLIC_LANDING_URL', 'https://kingfisher-chess.vercel.app'),
   ),
   /*
    * The studio is the *application*, served on its own host so a
    * returning player can bookmark and open it directly without
    * passing through the marketing page.
    *
-   * Default: a `studio.` subdomain on the production origin. The
-   * `KINGFISHER_PUBLIC_WEB_URL` env var is honoured as the legacy
-   * alias so deployments that already set it do not break.
+   * Default: a separate Vercel host. The host header is what
+   * decides which surface the visitor sees, so a deployment that
+   * serves both can still point at a single canonical studio
+   * URL here. **Do not change this lightly** — IndexedDB is
+   * origin-scoped, and changing the studio hostname would strand
+   * the existing local data of every existing user. See
+   * `docs/reports/phase-33-handover.md` for the persistence /
+   * migration analysis.
    */
   studio: trimTrailingSlash(
     fromEnv(
@@ -91,6 +103,15 @@ export const publicUrl = {
       'https://github.com/mardakurt/kingfisher/tree/master/docs',
     ),
   ),
+  /*
+   * The data mirror is still `mardakurt.github.io/kingfisher-data`
+   * in production terms, but the *public* path through Kingfisher
+   * does not yet ship a public repository there. Packs are built
+   * and verified (see `docs/data/data-inventory.md`); the
+   * installer answers 404 honestly. The default below is the
+   * reserved path; the install catalogue exposes it as a typed
+   * `installFromUrl` flow.
+   */
   data: trimTrailingSlash(
     fromEnv('KINGFISHER_PUBLIC_DATA_ROOT_URL', 'https://mardakurt.github.io/kingfisher-data'),
   ),

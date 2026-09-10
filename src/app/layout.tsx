@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 
+import { publicUrl } from '@/release/public-urls';
 import { AppProviders } from './providers';
 import './globals.css';
 
@@ -16,14 +17,52 @@ const mono = JetBrains_Mono({
   display: 'swap',
 });
 
+const LANDING = publicUrl.landing;
+const OG_IMAGE = `${LANDING}/landing/img/og.png`;
+
 export const metadata: Metadata = {
+  metadataBase: new URL(LANDING),
   title: {
     default: 'Kingfisher — chess research workspace',
     template: '%s · Kingfisher',
   },
   description:
-    'Engine analysis, opening databases and repertoire work in one workspace, for players who study.',
+    'Engine analysis, opening databases and repertoire work in one workspace, for players who study. Local-first. No account. No telemetry.',
   applicationName: 'Kingfisher',
+  keywords: ['chess', 'opening research', 'Stockfish', 'repertoire', 'local-first', 'open source'],
+  authors: [{ name: 'mardakurt' }],
+  creator: 'mardakurt',
+  publisher: 'Kingfisher',
+  category: 'productivity',
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    type: 'website',
+    siteName: 'Kingfisher',
+    title: 'Kingfisher — chess research workspace',
+    description:
+      'Opening research, engines, databases, repertoire and review. Local-first. No account. No telemetry.',
+    url: LANDING,
+    locale: 'en',
+    images: [
+      {
+        url: OG_IMAGE,
+        width: 1200,
+        height: 630,
+        alt: 'Kingfisher — a chess research workstation showing engine analysis, an explorer and a board.',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    site: '@kingfisher',
+    creator: '@kingfisher',
+    title: 'Kingfisher — chess research workspace',
+    description:
+      'Opening research, engines, databases, repertoire and review. Local-first. No account. No telemetry.',
+    images: [OG_IMAGE],
+  },
   appleWebApp: { capable: true, title: 'Kingfisher', statusBarStyle: 'black-translucent' },
   /*
     `icon.svg` and `apple-icon.png` in this directory are picked up by the file
