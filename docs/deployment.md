@@ -6,11 +6,21 @@ Where each surface is hosted, and how to publish a new release.
 
 | Surface                 | Where                                                                |
 | ----------------------- | -------------------------------------------------------------------- |
-| Landing page            | <https://mardakurt.github.io/kingfisher-data/>                       |
+| Landing page            | <https://kingfisher-chess.vercel.app/>                               |
+| Studio (the application) | <https://kingfisher-roan.vercel.app/>                              |
+| Public docs             | the same landing host, at `/install`, `/privacy`, `/security`, `/data-licences`, `/terms` |
 | Optional reference data | the `kingfisher-data` Pages site, at `/reference-{pack}-{version}/`  |
 | macOS preview build     | a `Kingfisher-*.dmg` attached to a GitHub Release on this repository |
-| Web app                 | <https://kingfisher-chess.vercel.app/>                               |
+| Web app (fallback)      | <https://kingfisher-chess.vercel.app/>                               |
 | Source / issues         | <https://github.com/mardakurt/kingfisher>                            |
+
+The legacy `mardakurt.github.io/kingfisher-data/` origin still
+serves a small redirect-only backup of the marketing page (see
+`marketing/index.html`) and is the documented compatibility
+path for any old link that still points at it. It is not a
+canonical surface. The canonical landing identity is the Vercel
+host above; `src/release/public-urls.ts` is the single source of
+truth.
 
 ## How a release happens
 
@@ -107,35 +117,28 @@ reads from the GitHub Pages data mirror.
 
 ## Hosting the landing page
 
-The landing page lives in the `marketing/` directory of the main
-repository, AND is mirrored into the
-[`mardakurt/kingfisher-data`](https://github.com/mardakurt/kingfisher-data)
-repository's Pages site, so it is reachable at
-<https://mardakurt.github.io/kingfisher-data/>.
+The **canonical** landing page is the Vercel production build at
+<https://kingfisher-chess.vercel.app/>. The Next.js build
+compiles `src/app/landing/LandingPage.tsx` to a static page; Vercel
+serves it from the `kingfisher` project. The marketing surface
+is therefore deployed together with the application — there is
+no separate landing deploy step. `npm run public:check` checks
+the live Vercel host.
 
-The mirror is rebuilt by pushing the contents of `marketing/` to
-the data repository's `main` branch and waiting for the Pages
-build to complete. This is the operational path:
+A small static backup of the marketing surface still lives in
+the [`mardakurt/kingfisher-data`](https://github.com/mardakurt/kingfisher-data)
+repository's Pages site, at
+<https://mardakurt.github.io/kingfisher-data/>. The file at
+`marketing/index.html` is a redirect-only stub. It exists so
+older external links that still point at the legacy origin
+reach a meaningful page; it is **not** a canonical surface, is
+served with `X-Robots-Tag: noindex`, and is not the source of
+truth for any product fact. The `marketing/README.md` and the
+landing component itself both say so.
 
-```sh
-# from the kingfisher repository root
-rsync -av --delete \
-  --exclude='README.md' \
-  marketing/ /tmp/kingfisher-data-stage/
-
-(cd /tmp/kingfisher-data-stage && \
-  git add . && \
-  git commit -m "site: refresh the public landing page" && \
-  git push)
-```
-
-The data repository's `index.html` is the landing page. The
-`reference-*` directories stay as the publish location for the
-pack data. The mirror is single-purpose — no application
-source, no CMS, no analytics.
-
-If the Pages site stops responding, check the build status at
-`gh api repos/mardakurt/kingfisher-data/pages`.
+If a future change moves the canonical landing to a custom
+domain, the GitHub Pages stub can be retired; until then it
+stays as a compatibility shim.
 
 ## Hosting the reference data
 

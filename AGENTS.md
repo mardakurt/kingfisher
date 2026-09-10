@@ -340,3 +340,56 @@ in production just to make a test pass.
 locally built packs, restarts the package and queries them offline. Await an
 enabled source, not text containing the advertised game count: that text may
 already be present in an uninstalled catalog row.
+
+## Public surface added in Phase 33
+
+The repository exposes a small set of public surfaces. The single
+source of truth for the URLs the application prints is
+`src/release/public-urls.ts`; do not hard-code a second copy.
+
+- **Canonical landing:** `https://kingfisher-chess.vercel.app/`.
+  The default in `publicUrl.landing` and the
+  `metadataBase` in `src/app/layout.tsx` agree. The legacy
+  `mardakurt.github.io/kingfisher-data/` origin still serves a
+  tiny redirect-only backup in `marketing/index.html`; it is
+  not canonical and must not be linked as the primary surface.
+- **Studio (the application):** `https://kingfisher-roan.vercel.app/`.
+  IndexedDB is origin-scoped. Changing this hostname strands the
+  existing local data of every existing user. A change requires
+  a typed persistence / migration plan before the
+  `publicUrl.studio` default is touched.
+- **macOS Preview DMG:** `Kingfisher-1.0.0-arm64.dmg` on the
+  `/releases/latest` page. The filename and the
+  `publicUrl.macosDmg` getter agree. A version bump changes
+  the file name in three places: the build, the landing, the
+  install guide.
+- **Public routes under `src/app/`:** `/install`, `/privacy`,
+  `/security`, `/data-licences`, `/terms`. Each has its own
+  metadata with a unique title, description, canonical URL and
+  `robots` directive. The shared chrome is `src/app/_docs/`.
+- **Landing JSON-LD:** `src/app/landing/LandingPage.tsx`
+  embeds a single `WebApplication` payload. Only fields that
+  are true and visible are included. Adding a field is a
+  "what is true" decision, not a "what is on the page"
+  decision.
+- **Trust file:** `public/.well-known/security.txt` points at
+  the GitHub Security Advisory flow with a 2027 expiry. The
+  link is verified by `npm run docs:check` and the
+  `public:check` script.
+- **Sitemap & robots:** `src/app/sitemap.ts` and
+  `src/app/robots.ts`. The sitemap lists only the indexable
+  public pages; the robots file disallows `/api/` and lets
+  everything else through.
+- **`npm run docs:check`:** the local audit script. Runs in
+  under a second, does not hit the network, and asserts the
+  invariants the public surface depends on: the canonical
+  landing is the Vercel host, the install guide names the
+  current DMG, the security policy does not claim Sync or
+  notarisation, the privacy and data-licences pages exist
+  with the right content, the landing has structured data
+  and a FAQ, and the footer is concise.
+
+A public surface change is a deliberate change. Update
+`public-urls.ts`, the matching page, the matching docs
+page, the matching `public-claims.md` row, and run
+`npm run docs:check` before considering the change done.

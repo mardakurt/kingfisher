@@ -8,9 +8,12 @@ the phase history has repeatedly shown matters as much as knowing the code.
 
 ## Start by finding out where you actually are
 
-Kingfisher is built in numbered phases, each handed over in `docs/product/`.
+Kingfisher is built in numbered phases, each handed over in
+[`docs/reports/`](docs/reports) (`phase-NN-handover.md`).
 Handovers are written by an agent that may have run out of context mid-phase, so
-they describe intent as much as fact.
+they describe intent as much as fact. The index of current vs. historical
+documentation is at [`docs/README.md`](docs/README.md); do not treat a phase
+report as a current doc without checking that file.
 
 - **Read the most recent handover, then verify it against the repository.** The
   commit a handover names is often not `master`, and a documentation-only commit
