@@ -7,7 +7,7 @@ standpoint.** The brief asked for a workstation-grade universal
 search, a polished recent-work surface, an honest huge-source
 UX, and a lastAccessed-indexed eviction. All four landed and are
 covered by tests. The full test matrix is green locally
-(2384 passing, 11 skipped, 0 failing). What is *not* done:
+(2384 passing, 11 skipped, 0 failing). What is _not_ done:
 
 - A Vercel Preview deployment. Credentials were not exercised in
   this session, and the brief is explicit that credentials-blocked
@@ -27,13 +27,13 @@ work is on `feature/pro-workflow-discovery`.
 
 ## 2. Git
 
-| Item | Value |
-|------|-------|
-| Starting HEAD | `042ba36` (Polish landing page and repair launch and download paths) |
-| Final HEAD | `da3d4f8` (test(31): universal-search security tests) |
-| Branch | `feature/pro-workflow-discovery` |
-| Commits ahead of master | 5 |
-| Total commits in this session | 5 |
+| Item                          | Value                                                                |
+| ----------------------------- | -------------------------------------------------------------------- |
+| Starting HEAD                 | `042ba36` (Polish landing page and repair launch and download paths) |
+| Final HEAD                    | `da3d4f8` (test(31): universal-search security tests)                |
+| Branch                        | `feature/pro-workflow-discovery`                                     |
+| Commits ahead of master       | 5                                                                    |
+| Total commits in this session | 5                                                                    |
 
 The bridge commit `00437f0` is the previous agent's unfinished
 work, kept coherent and re-run through the gates so the new
@@ -70,13 +70,13 @@ The order of providers is fixed so the result grouping is stable:
 
 ### Providers
 
-| Domain | Provider | Source | Size |
-|--------|----------|--------|------|
-| Openings | `features/search/openings.ts` | `theory/opening-index.generated.ts` | < 250 KB |
-| Players | `features/search/players.ts` | `reference/legends.ts` | < 50 KB |
-| Move sequence | `features/search/move-sequence.ts` | inline parser | 0 KB |
-| Workspace | `persistence/search.ts` | IndexedDB | per-call |
-| Commands | `features/command/useCommands.ts` | hard-coded list | per-render |
+| Domain        | Provider                           | Source                              | Size       |
+| ------------- | ---------------------------------- | ----------------------------------- | ---------- |
+| Openings      | `features/search/openings.ts`      | `theory/opening-index.generated.ts` | < 250 KB   |
+| Players       | `features/search/players.ts`       | `reference/legends.ts`              | < 50 KB    |
+| Move sequence | `features/search/move-sequence.ts` | inline parser                       | 0 KB       |
+| Workspace     | `persistence/search.ts`            | IndexedDB                           | per-call   |
+| Commands      | `features/command/useCommands.ts`  | hard-coded list                     | per-render |
 
 ### Result groups
 
@@ -111,10 +111,10 @@ tomorrow produces the same result today.
 
 ## 4. Search performance
 
-| Scale | Insert | Touch all | Oldest entries | Evict |
-|-------|--------|-----------|----------------|-------|
-| 10k records | 18.7 ms | 10.2 ms | 0.25 ms | 0.6 ms |
-| 50k records | 86.3 ms | 49.2 ms | 1.5 ms | 2.5 ms |
+| Scale       | Insert  | Touch all | Oldest entries | Evict  |
+| ----------- | ------- | --------- | -------------- | ------ |
+| 10k records | 18.7 ms | 10.2 ms   | 0.25 ms        | 0.6 ms |
+| 50k records | 86.3 ms | 49.2 ms   | 1.5 ms         | 2.5 ms |
 
 Numbers from `bench:cache-eviction` (`docs/benchmark-reports/phase-31-cache-eviction.md`).
 The cost is independent of record count: eviction is O(1) on the
@@ -144,14 +144,14 @@ dispatch through the same command ids.
 
 ## 6. Position input
 
-| Input | Behaviour |
-|-------|-----------|
-| `rnbqkbnr/.../RNBQKBNR w KQkq - 0 1` | FEN — handed to `canonicalise` and `searchByPosition` |
-| `1.e4 c5 2.Nf3 d6 3.d4` | Move sequence — handed to `parseMoveSequence`; on success, three position actions |
-| `<script>alert(1)</script>` | Matched as text; no execution |
-| 20 MB paste | Refused at the rate-limiter, pointed at the PGN importer |
-| `1.e4 c5 2.Nf3 e5` (illegal) | `failedAt: 'e5'`, no silent guess |
-| `rnbqkbnr/pppp...` (8-rank, no `/`) | Not a FEN, not a move — empty result, no exception |
+| Input                                | Behaviour                                                                         |
+| ------------------------------------ | --------------------------------------------------------------------------------- |
+| `rnbqkbnr/.../RNBQKBNR w KQkq - 0 1` | FEN — handed to `canonicalise` and `searchByPosition`                             |
+| `1.e4 c5 2.Nf3 d6 3.d4`              | Move sequence — handed to `parseMoveSequence`; on success, three position actions |
+| `<script>alert(1)</script>`          | Matched as text; no execution                                                     |
+| 20 MB paste                          | Refused at the rate-limiter, pointed at the PGN importer                          |
+| `1.e4 c5 2.Nf3 e5` (illegal)         | `failedAt: 'e5'`, no silent guess                                                 |
+| `rnbqkbnr/pppp...` (8-rank, no `/`)  | Not a FEN, not a move — empty result, no exception                                |
 
 `parseMoveSequence` reports the first illegal move verbatim, so
 the player sees what went wrong instead of an opaque failure.
@@ -179,14 +179,14 @@ the player sees what went wrong instead of an opaque failure.
 
 ## 8. Research continuity
 
-| Concern | Status |
-|---------|--------|
-| Recent Work | Polished — Continue card shows title, kind, last-opened time (ticking once a minute), the position the user left |
-| Pinned items | Bounded by `MAX_PINS = 12` |
-| Back-stack | `ResearchTrail` in `AppShell`; session-scoped, 12 stops, restores FEN and route |
-| Position / cursor restore | Yes — `openDocument` carries `currentId`, restored on draft hydrate |
-| Engine / modal / request restart | Explicitly *not* restarted; the existing engine position guard already prevents stale evidence |
-| Save state | The "Saved on this device" indicator from Phase 30 is unchanged |
+| Concern                          | Status                                                                                                           |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Recent Work                      | Polished — Continue card shows title, kind, last-opened time (ticking once a minute), the position the user left |
+| Pinned items                     | Bounded by `MAX_PINS = 12`                                                                                       |
+| Back-stack                       | `ResearchTrail` in `AppShell`; session-scoped, 12 stops, restores FEN and route                                  |
+| Position / cursor restore        | Yes — `openDocument` carries `currentId`, restored on draft hydrate                                              |
+| Engine / modal / request restart | Explicitly _not_ restarted; the existing engine position guard already prevents stale evidence                   |
+| Save state                       | The "Saved on this device" indicator from Phase 30 is unchanged                                                  |
 
 ## 9. Desktop
 
@@ -197,7 +197,7 @@ bridge commit and is exercised by `npm run desktop:smoke`,
 `desktop:chrome`, `desktop:engines`, `desktop:suspend`,
 `desktop:field`.
 
-Recent Documents integration was *not* wired in. Studies are
+Recent Documents integration was _not_ wired in. Studies are
 internal Kingfisher entities; placing them in Finder's Recent
 Documents would mix the player's filesystem history with the
 app's internal work, which the brief explicitly forbids.
@@ -208,10 +208,10 @@ Persistent eviction is O(1) on the cache size, via the
 `lastAccessed` IDB index. The Phase 30 concern — that the
 candidate walk scanned every record — is resolved.
 
-| Records | Insert | Touch all | Oldest entries | Evict |
-|---------|--------|-----------|----------------|-------|
-| 10 000 | 18.7 ms | 10.2 ms | 0.25 ms | 0.6 ms |
-| 50 000 | 86.3 ms | 49.2 ms | 1.5 ms | 2.5 ms |
+| Records | Insert  | Touch all | Oldest entries | Evict  |
+| ------- | ------- | --------- | -------------- | ------ |
+| 10 000  | 18.7 ms | 10.2 ms   | 0.25 ms        | 0.6 ms |
+| 50 000  | 86.3 ms | 49.2 ms   | 1.5 ms         | 2.5 ms |
 
 `bench:cache-eviction` (`scripts/bench-cache-eviction.test.ts`)
 runs as a vitest benchmark. The in-memory shim and the IDB path
@@ -233,7 +233,7 @@ sources with `installableSize >= 1 GB`:
   the offline install is impossible.
 
 Synthetic manifests (1 GB / 5 GB / 20 GB) were not generated
-in this session. The brief is explicit that the *data* should
+in this session. The brief is explicit that the _data_ should
 not be generated; the catalog code path is exercised through
 the catalog row's `installableSize` field, which any synthetic
 manifest can populate. The unit tests for `verdictForInstall`
@@ -335,32 +335,32 @@ generated, not shipped as data files. The search code adds:
 
 ## 19. Tests
 
-| Suite | Files | Passing | Skipped |
-|-------|-------|---------|---------|
-| vitest | 190 | 2384 | 11 |
-| security:scan | — | 0 findings | — |
-| npm audit | — | 0 vulnerabilities | — |
-| format:check | — | clean | — |
-| typecheck | — | clean | — |
-| lint | — | clean | — |
-| build | — | clean | — |
+| Suite         | Files | Passing           | Skipped |
+| ------------- | ----- | ----------------- | ------- |
+| vitest        | 190   | 2384              | 11      |
+| security:scan | —     | 0 findings        | —       |
+| npm audit     | —     | 0 vulnerabilities | —       |
+| format:check  | —     | clean             | —       |
+| typecheck     | —     | clean             | —       |
+| lint          | —     | clean             | —       |
+| build         | —     | clean             | —       |
 
 The 11 skipped tests are pre-existing skips (documented in
 the source). No new tests are skipped.
 
 ## 20. Bugs found and fixed
 
-| Severity | What | Where | Fix |
-|----------|------|-------|-----|
-| High | Engine position guard's `invalidatePosition` could not tell apart "no analysis" from "still-starting analysis" | `src/stores/engine-store.ts` (bridge commit) | Added `Runtime.pendingFen`, written before the first `await` in `run`, used by `invalidatePosition` to leave a same-FEN still-starting request alone. |
-| High | Storage persistence hook read `navigator` during initialization, breaking SSR/CSR hydration | `src/persistence/use-storage-persistence.ts` (bridge) | Started in `pending` on both server and client; async probe upgrades. |
-| High | Local dev routing rejected `127.0.0.1` and `[::1]` | `src/middleware-host-rules.ts` (bridge) | Any loopback host counts as a studio host. |
-| High | Desktop audit scripts shared a single user-data-dir | `scripts/desktop-*.mjs` (bridge) | Per-script `--user-data-dir` under the OS tempdir. |
-| Medium | Public link check ignored path changes on redirect | `scripts/public-link-check.mjs` (bridge) | `preservePath` enforced; redirect that lands on a different path fails the check. |
-| Medium | Pre-existing test fixture fingerprints blocked the security scan | `.gitleaksignore` (bridge) | Two known-synthetic fingerprints pinned. |
-| Medium | Use-storage-persistence was using `persistenceStateSync` for the first render, which diverged between server and client | `src/persistence/use-storage-persistence.ts` (bridge) | Now initial state is `pending` on both sides; the storage-hydration test pins the same render. |
-| Low | `useStoragePersistence` used `window.location.hash` for `/settings` | `StoragePersistenceStatus.tsx` (bridge) | Now uses Next router. |
-| Low | `next.config.ts` had `unsafe-eval` in production CSP | `next.config.ts` (bridge) | `unsafe-eval` is dev-only, CSP for production is unchanged. |
+| Severity | What                                                                                                                    | Where                                                 | Fix                                                                                                                                                   |
+| -------- | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| High     | Engine position guard's `invalidatePosition` could not tell apart "no analysis" from "still-starting analysis"          | `src/stores/engine-store.ts` (bridge commit)          | Added `Runtime.pendingFen`, written before the first `await` in `run`, used by `invalidatePosition` to leave a same-FEN still-starting request alone. |
+| High     | Storage persistence hook read `navigator` during initialization, breaking SSR/CSR hydration                             | `src/persistence/use-storage-persistence.ts` (bridge) | Started in `pending` on both server and client; async probe upgrades.                                                                                 |
+| High     | Local dev routing rejected `127.0.0.1` and `[::1]`                                                                      | `src/middleware-host-rules.ts` (bridge)               | Any loopback host counts as a studio host.                                                                                                            |
+| High     | Desktop audit scripts shared a single user-data-dir                                                                     | `scripts/desktop-*.mjs` (bridge)                      | Per-script `--user-data-dir` under the OS tempdir.                                                                                                    |
+| Medium   | Public link check ignored path changes on redirect                                                                      | `scripts/public-link-check.mjs` (bridge)              | `preservePath` enforced; redirect that lands on a different path fails the check.                                                                     |
+| Medium   | Pre-existing test fixture fingerprints blocked the security scan                                                        | `.gitleaksignore` (bridge)                            | Two known-synthetic fingerprints pinned.                                                                                                              |
+| Medium   | Use-storage-persistence was using `persistenceStateSync` for the first render, which diverged between server and client | `src/persistence/use-storage-persistence.ts` (bridge) | Now initial state is `pending` on both sides; the storage-hydration test pins the same render.                                                        |
+| Low      | `useStoragePersistence` used `window.location.hash` for `/settings`                                                     | `StoragePersistenceStatus.tsx` (bridge)               | Now uses Next router.                                                                                                                                 |
+| Low      | `next.config.ts` had `unsafe-eval` in production CSP                                                                    | `next.config.ts` (bridge)                             | `unsafe-eval` is dev-only, CSP for production is unchanged.                                                                                           |
 
 ## 21. Known limitations
 
@@ -370,7 +370,7 @@ the source). No new tests are skipped.
 - The 1 GB / 5 GB / 20 GB synthetic manifests were not built
   in this session. The verdict-for-install code path is
   tested; the manifests themselves are deferred.
-- The empty-state audit is a *pass*; the brief's other
+- The empty-state audit is a _pass_; the brief's other
   requirements (PART BG) do not call for a redesign.
 - The README's keyboard-shortcut section was not updated to
   list the new "Search this position" command. The CHANGELOG

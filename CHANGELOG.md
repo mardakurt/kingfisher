@@ -113,7 +113,7 @@ hidden }` rule was preventing scroll on the marketing page; the fix
   once a minute, so a card left on screen does not silently age
   into a lie. The cursor inside a study chapter or game is the one
   the user left, with the engine, modals and in-flight requests
-  explicitly *not* restarted.
+  explicitly _not_ restarted.
 
 ### Data scale — Phase 31
 
