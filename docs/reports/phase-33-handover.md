@@ -9,19 +9,19 @@ production deployment.
 
 ## 1. Executive verdict
 
-| | |
-| --- | --- |
-| Phase complete? | Yes |
-| Production deployed? | Yes (Vercel production) |
-| Version | Kingfisher 1.0.0 (web stable at 1.0, macOS Preview at 1.0.0) |
-| Critical | 0 |
-| High | 0 (the documented "stale install guide" and "stale SECURITY.md" bugs are fixed) |
-| Critical UI | 0 |
-| High UI | 0 |
-| Security High | 0 |
-| `docs:check` | 203/203 passing |
-| Tests | 192 files, 2393 tests passing, 11 skipped, 0 failing |
-| Typecheck / Lint / Format | green |
+|                           |                                                                                 |
+| ------------------------- | ------------------------------------------------------------------------------- |
+| Phase complete?           | Yes                                                                             |
+| Production deployed?      | Yes (Vercel production)                                                         |
+| Version                   | Kingfisher 1.0.0 (web stable at 1.0, macOS Preview at 1.0.0)                    |
+| Critical                  | 0                                                                               |
+| High                      | 0 (the documented "stale install guide" and "stale SECURITY.md" bugs are fixed) |
+| Critical UI               | 0                                                                               |
+| High UI                   | 0                                                                               |
+| Security High             | 0                                                                               |
+| `docs:check`              | 203/203 passing                                                                 |
+| Tests                     | 192 files, 2393 tests passing, 11 skipped, 0 failing                            |
+| Typecheck / Lint / Format | green                                                                           |
 
 Phase 33 is `PUBLIC SURFACE ACCURATE / OWNER SEO ACTIONS REMAIN`.
 The technical preparation for Google Search Console is in
@@ -48,15 +48,15 @@ token and the Search Console login are owner-only.
 
 ## 3. Public URL truth
 
-| Role | Host | Notes |
-| --- | --- | --- |
-| Canonical landing | `https://kingfisher-chess.vercel.app/` | The single marketing origin. New homepage, new FAQ, new /install, /privacy, /security, /data-licences, /terms routes, JSON-LD, OG/Twitter, sitemap.xml, robots.txt, .well-known/security.txt. |
-| Studio (the application) | `https://kingfisher-roan.vercel.app/` | Unchanged. IndexedDB is origin-scoped; see "Persistence / origin decision" below. |
-| Legacy compatibility shim | `https://mardakurt.github.io/kingfisher-data/` | Serves `marketing/index.html` only. The file is a redirect-only stub with `noindex, nofollow`. Not a canonical surface. |
-| GitHub repository | `https://github.com/mardakurt/kingfisher` | Source, releases, issues, discussions. |
-| Latest release | `https://github.com/mardakurt/kingfisher/releases/latest` | Hosts `Kingfisher-1.0.0-arm64.dmg`. |
-| Data mirror | `https://mardakurt.github.io/kingfisher-data/` | Pack manifests and chunks. The installer answers 404 honestly when a pack is not yet published. |
-| Mac DMG | `…/releases/latest/download/Kingfisher-1.0.0-arm64.dmg` | Single source: `publicUrl.macosDmg`. |
+| Role                      | Host                                                      | Notes                                                                                                                                                                                         |
+| ------------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Canonical landing         | `https://kingfisher-chess.vercel.app/`                    | The single marketing origin. New homepage, new FAQ, new /install, /privacy, /security, /data-licences, /terms routes, JSON-LD, OG/Twitter, sitemap.xml, robots.txt, .well-known/security.txt. |
+| Studio (the application)  | `https://kingfisher-roan.vercel.app/`                     | Unchanged. IndexedDB is origin-scoped; see "Persistence / origin decision" below.                                                                                                             |
+| Legacy compatibility shim | `https://mardakurt.github.io/kingfisher-data/`            | Serves `marketing/index.html` only. The file is a redirect-only stub with `noindex, nofollow`. Not a canonical surface.                                                                       |
+| GitHub repository         | `https://github.com/mardakurt/kingfisher`                 | Source, releases, issues, discussions.                                                                                                                                                        |
+| Latest release            | `https://github.com/mardakurt/kingfisher/releases/latest` | Hosts `Kingfisher-1.0.0-arm64.dmg`.                                                                                                                                                           |
+| Data mirror               | `https://mardakurt.github.io/kingfisher-data/`            | Pack manifests and chunks. The installer answers 404 honestly when a pack is not yet published.                                                                                               |
+| Mac DMG                   | `…/releases/latest/download/Kingfisher-1.0.0-arm64.dmg`   | Single source: `publicUrl.macosDmg`.                                                                                                                                                          |
 
 ### Persistence / origin decision (PART AR)
 
@@ -263,12 +263,12 @@ The guide describes the actual macOS Preview build:
 The full inventory is in `docs/README.md`. The
 high-level numbers:
 
-| Category | Count | Note |
-| --- | --- | --- |
-| Total Markdown files (under `docs/`) | 35+ | incl. the new `docs/README.md`, `docs/legal/*`, `docs/operations/*`, `docs/product/public-claims.md` |
-| Canonical / current | 14 | describe the product as it is |
-| Historical | 20+ | phase handovers in `docs/reports/` and `docs/product/`, older `1.0.0-rc.*` release notes, `docs/adr/`, `docs/benchmark-reports/`, `docs/performance/`, `docs/design/` |
-| Internal agent instructions | 2 | `AGENTS.md`, `CLAUDE.md` (root) |
+| Category                             | Count | Note                                                                                                                                                                  |
+| ------------------------------------ | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Total Markdown files (under `docs/`) | 35+   | incl. the new `docs/README.md`, `docs/legal/*`, `docs/operations/*`, `docs/product/public-claims.md`                                                                  |
+| Canonical / current                  | 14    | describe the product as it is                                                                                                                                         |
+| Historical                           | 20+   | phase handovers in `docs/reports/` and `docs/product/`, older `1.0.0-rc.*` release notes, `docs/adr/`, `docs/benchmark-reports/`, `docs/performance/`, `docs/design/` |
+| Internal agent instructions          | 2     | `AGENTS.md`, `CLAUDE.md` (root)                                                                                                                                       |
 
 `docs/README.md` is the documentation index. It explicitly
 labels each file as "canonical" or "historical", with a one-
@@ -277,24 +277,24 @@ the next person to add a file picks the right bucket.
 
 ## 9. Documentation changes
 
-| File | Before | After |
-| --- | --- | --- |
-| `README.md` | "the current release is 1.0.0-rc.3" in a historical aside | "the current public release is Kingfisher 1.0.0 (web stable at 1.0; macOS Preview at 1.0.0)" |
-| `SECURITY.md` | Stale rc.4 matrix; vague about Sync, notarisation, supported versions | Rewritten: supported versions, the controls in code (CSP, COOP, COEP, HSTS, Permissions-Policy, sandboxed Electron, SHA-256 chunk verification, decompress bounds, IndexedDB streaming cache, companion pairing token), the private reporting path, what the product does not do |
-| `AGENTS.md` | Good | Added a "Public surface added in Phase 33" section: canonical landing, studio origin (IndexedDB continuity warning), macOS Preview DMG, the new public routes, the JSON-LD contract, security.txt, sitemap/robots, `npm run docs:check` |
-| `CLAUDE.md` | Pointed handovers at `docs/product/` | Handovers are at `docs/reports/`; `docs/README.md` is the canonical-vs-historical tie-breaker |
-| `ARCHITECTURE.md` | Unchanged in Phase 33 | Reviewed; no change needed; the architecture already described landing vs. studio hosts, the workspace, the board pipeline, reference data, engines, persistence, security boundaries |
-| `docs/deployment.md` | Said "Landing page: mardakurt.github.io/kingfisher-data" | Now: "Canonical landing: kingfisher-chess.vercel.app". The legacy Pages origin is documented as a `noindex, nofollow` compatibility shim, not a canonical surface |
-| `docs/data/data-inventory.md` | Already current | Reviewed; no change |
-| `docs/data/reference-packs.md` | Already current | Reviewed; no change |
-| `docs/legal/privacy.md` | New | "Short version" + "in detail"; describes what is stored, what leaves the machine, what cookies/trackers do not exist, why there is no Sync, hosting, children, changes, contact |
-| `docs/legal/data-licences.md` | New | Bundled (Starter + Lichess openings), installed (Elite OTB, Recent Theory, High-Rated Online), online (Lichess Explorer, tablebase, Lichess/CCC accounts), engines, deliberately not used, affiliation |
-| `docs/legal/terms.md` | New | MIT-as-is, no warranty of correctness, no warranty of availability, account/sync/telemetry status, native engines not sandboxed, no professional advice, changes, contact |
-| `docs/product/public-claims.md` | New | The single register of every meaningful public claim, where it appears, what backs it, and the list of things that must NOT be claimed |
-| `docs/operations/search-console.md` | New | Technical preparation in place, owner steps to register, decision: index landing; not the Studio |
-| `docs/release/install-macos.md` | "1.0.0-rc.5" everywhere; named the wrong DMG | Updated to 1.0.0; names `Kingfisher-1.0.0-arm64.dmg`; documents the right-click → Open flow; explicit "do not turn Gatekeeper off" |
-| `docs/release/launch-kit.md` | "1.0.0-rc.5" everywhere | Updated to 1.0.0; population counts current |
-| `docs/README.md` | New | The documentation index. Canonical vs. historical, with a rule for how to keep it honest |
+| File                                | Before                                                                | After                                                                                                                                                                                                                                                                            |
+| ----------------------------------- | --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `README.md`                         | "the current release is 1.0.0-rc.3" in a historical aside             | "the current public release is Kingfisher 1.0.0 (web stable at 1.0; macOS Preview at 1.0.0)"                                                                                                                                                                                     |
+| `SECURITY.md`                       | Stale rc.4 matrix; vague about Sync, notarisation, supported versions | Rewritten: supported versions, the controls in code (CSP, COOP, COEP, HSTS, Permissions-Policy, sandboxed Electron, SHA-256 chunk verification, decompress bounds, IndexedDB streaming cache, companion pairing token), the private reporting path, what the product does not do |
+| `AGENTS.md`                         | Good                                                                  | Added a "Public surface added in Phase 33" section: canonical landing, studio origin (IndexedDB continuity warning), macOS Preview DMG, the new public routes, the JSON-LD contract, security.txt, sitemap/robots, `npm run docs:check`                                          |
+| `CLAUDE.md`                         | Pointed handovers at `docs/product/`                                  | Handovers are at `docs/reports/`; `docs/README.md` is the canonical-vs-historical tie-breaker                                                                                                                                                                                    |
+| `ARCHITECTURE.md`                   | Unchanged in Phase 33                                                 | Reviewed; no change needed; the architecture already described landing vs. studio hosts, the workspace, the board pipeline, reference data, engines, persistence, security boundaries                                                                                            |
+| `docs/deployment.md`                | Said "Landing page: mardakurt.github.io/kingfisher-data"              | Now: "Canonical landing: kingfisher-chess.vercel.app". The legacy Pages origin is documented as a `noindex, nofollow` compatibility shim, not a canonical surface                                                                                                                |
+| `docs/data/data-inventory.md`       | Already current                                                       | Reviewed; no change                                                                                                                                                                                                                                                              |
+| `docs/data/reference-packs.md`      | Already current                                                       | Reviewed; no change                                                                                                                                                                                                                                                              |
+| `docs/legal/privacy.md`             | New                                                                   | "Short version" + "in detail"; describes what is stored, what leaves the machine, what cookies/trackers do not exist, why there is no Sync, hosting, children, changes, contact                                                                                                  |
+| `docs/legal/data-licences.md`       | New                                                                   | Bundled (Starter + Lichess openings), installed (Elite OTB, Recent Theory, High-Rated Online), online (Lichess Explorer, tablebase, Lichess/CCC accounts), engines, deliberately not used, affiliation                                                                           |
+| `docs/legal/terms.md`               | New                                                                   | MIT-as-is, no warranty of correctness, no warranty of availability, account/sync/telemetry status, native engines not sandboxed, no professional advice, changes, contact                                                                                                        |
+| `docs/product/public-claims.md`     | New                                                                   | The single register of every meaningful public claim, where it appears, what backs it, and the list of things that must NOT be claimed                                                                                                                                           |
+| `docs/operations/search-console.md` | New                                                                   | Technical preparation in place, owner steps to register, decision: index landing; not the Studio                                                                                                                                                                                 |
+| `docs/release/install-macos.md`     | "1.0.0-rc.5" everywhere; named the wrong DMG                          | Updated to 1.0.0; names `Kingfisher-1.0.0-arm64.dmg`; documents the right-click → Open flow; explicit "do not turn Gatekeeper off"                                                                                                                                               |
+| `docs/release/launch-kit.md`        | "1.0.0-rc.5" everywhere                                               | Updated to 1.0.0; population counts current                                                                                                                                                                                                                                      |
+| `docs/README.md`                    | New                                                                   | The documentation index. Canonical vs. historical, with a rule for how to keep it honest                                                                                                                                                                                         |
 
 ## 10. Docs check
 
@@ -430,14 +430,14 @@ before the change ships.
 
 ## 13. Data licensing
 
-| Source | Where it lives | Licence |
-| --- | --- | --- |
-| `kingfisher-starter` (172,376 OTB games) | Bundled with the application | CC BY-SA 4.0 |
-| Lichess opening classification (3,810 positions, ECO codes) | Bundled, generated TypeScript | CC0 1.0 |
-| `kingfisher-elite-otb` | Public data mirror (`reference-elite-v2/manifest.json`) | CC BY-SA 4.0 |
-| `kingfisher-recent-theory` | Public data mirror (`reference-recent-v1/manifest.json`) | CC BY-SA 4.0 |
-| `kingfisher-high-rated-online` | Public data mirror (`reference-online-v1/manifest.json`) | CC0 1.0 |
-| Lichess Explorer, Lichess tablebase, Lichess account, Chess.com account | Online, user opt-in | Public / Lichess terms / Chess.com API terms |
+| Source                                                                  | Where it lives                                           | Licence                                      |
+| ----------------------------------------------------------------------- | -------------------------------------------------------- | -------------------------------------------- |
+| `kingfisher-starter` (172,376 OTB games)                                | Bundled with the application                             | CC BY-SA 4.0                                 |
+| Lichess opening classification (3,810 positions, ECO codes)             | Bundled, generated TypeScript                            | CC0 1.0                                      |
+| `kingfisher-elite-otb`                                                  | Public data mirror (`reference-elite-v2/manifest.json`)  | CC BY-SA 4.0                                 |
+| `kingfisher-recent-theory`                                              | Public data mirror (`reference-recent-v1/manifest.json`) | CC BY-SA 4.0                                 |
+| `kingfisher-high-rated-online`                                          | Public data mirror (`reference-online-v1/manifest.json`) | CC0 1.0                                      |
+| Lichess Explorer, Lichess tablebase, Lichess account, Chess.com account | Online, user opt-in                                      | Public / Lichess terms / Chess.com API terms |
 
 The human-readable record is at `/data-licences`
 (`docs/legal/data-licences.md`). The technical record of
@@ -531,28 +531,28 @@ or in the issue tracker.
 
 ## 17. 20-item checklist disposition
 
-| # | Item | Disposition | Rationale |
-| -- | ---- | ----------- | --------- |
-| 1 | 404 page | **Already present** (`src/app/not-found.tsx`) | Themed, links to a fresh analysis, search, landing. The brief said do not rebuild. |
-| 2 | Top CTA | **Already present + improved** | "Launch Kingfisher" remains the one dominant primary CTA on the hero; "Download for macOS" is a clear secondary. |
-| 3 | Internal section links | **Implemented** | `#why`, `#research`, `#engines`, `#local`, `#macos`, `#faq`. `scroll-margin-top: 96px` so the sticky header does not clip. |
-| 4 | Thank-you page | **N/A** | No conversion flow that needs one. |
-| 5 | Breadcrumbs | **Selective** | Not on landing / studio / chess workspaces. Only added if/when hierarchical public docs need them. The current `/install`, `/privacy`, `/security`, `/data-licences`, `/terms` are flat. |
-| 6 | Case studies | **Deferred** | No consenting real users. No fabricated case studies. |
-| 7 | FAQ | **Implemented** | Six user-focused questions, native disclosure, no JS. |
-| 8 | Site speed | **Implemented** | Landing is server-rendered with minimal JS. CSS, fonts and hero are preloaded. JSON-LD is in the document, not a separate request. The docs pages are ~3 KB JS each. |
-| 9 | Sticky telephone CTA | **N/A** | Inappropriate for a web/desktop chess product. |
-| 10 | `robots.txt` | **Implemented** | `src/app/robots.ts`. Allows `/`; disallows `/api/`. Declares host. Points at sitemap. |
-| 11 | Unique meta title | **Implemented** | Landing inherits the parent; trust pages override. |
-| 12 | Meta description | **Implemented** | Unique per page. No keyword stuffing. |
-| 13 | Social sharing image | **Implemented** | `/landing/img/og.png` (1440×900, ~150 KB) with `og:image:width=1200` and `og:image:height=630` declared. |
-| 14 | Google Map / address | **N/A** | Not a local business. Would decrease trust. |
-| 15 | Customer reviews | **N/A** | No real, attributable, consented reviews. No fabricated ones. |
-| 16 | Image alt text | **Implemented** | Every meaningful landing image has a real alt; decorative images have `alt=""`. The "prior landing alt-text regression" is covered. |
-| 17 | Structured data | **Selective** | `WebApplication` JSON-LD on the landing with only true fields. No fake ratings, reviews, counts or awards. |
-| 18 | Privacy | **Implemented** | New `/privacy` page; `docs/legal/privacy.md`; the decision to not run analytics or cookies is documented. |
-| 19 | Search Console | **Selective** | Technical preparation complete; owner verification required. |
-| 20 | Team photos | **N/A** | One maintainer; the repository communicates that honestly. |
+| #   | Item                   | Disposition                                   | Rationale                                                                                                                                                                                |
+| --- | ---------------------- | --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | 404 page               | **Already present** (`src/app/not-found.tsx`) | Themed, links to a fresh analysis, search, landing. The brief said do not rebuild.                                                                                                       |
+| 2   | Top CTA                | **Already present + improved**                | "Launch Kingfisher" remains the one dominant primary CTA on the hero; "Download for macOS" is a clear secondary.                                                                         |
+| 3   | Internal section links | **Implemented**                               | `#why`, `#research`, `#engines`, `#local`, `#macos`, `#faq`. `scroll-margin-top: 96px` so the sticky header does not clip.                                                               |
+| 4   | Thank-you page         | **N/A**                                       | No conversion flow that needs one.                                                                                                                                                       |
+| 5   | Breadcrumbs            | **Selective**                                 | Not on landing / studio / chess workspaces. Only added if/when hierarchical public docs need them. The current `/install`, `/privacy`, `/security`, `/data-licences`, `/terms` are flat. |
+| 6   | Case studies           | **Deferred**                                  | No consenting real users. No fabricated case studies.                                                                                                                                    |
+| 7   | FAQ                    | **Implemented**                               | Six user-focused questions, native disclosure, no JS.                                                                                                                                    |
+| 8   | Site speed             | **Implemented**                               | Landing is server-rendered with minimal JS. CSS, fonts and hero are preloaded. JSON-LD is in the document, not a separate request. The docs pages are ~3 KB JS each.                     |
+| 9   | Sticky telephone CTA   | **N/A**                                       | Inappropriate for a web/desktop chess product.                                                                                                                                           |
+| 10  | `robots.txt`           | **Implemented**                               | `src/app/robots.ts`. Allows `/`; disallows `/api/`. Declares host. Points at sitemap.                                                                                                    |
+| 11  | Unique meta title      | **Implemented**                               | Landing inherits the parent; trust pages override.                                                                                                                                       |
+| 12  | Meta description       | **Implemented**                               | Unique per page. No keyword stuffing.                                                                                                                                                    |
+| 13  | Social sharing image   | **Implemented**                               | `/landing/img/og.png` (1440×900, ~150 KB) with `og:image:width=1200` and `og:image:height=630` declared.                                                                                 |
+| 14  | Google Map / address   | **N/A**                                       | Not a local business. Would decrease trust.                                                                                                                                              |
+| 15  | Customer reviews       | **N/A**                                       | No real, attributable, consented reviews. No fabricated ones.                                                                                                                            |
+| 16  | Image alt text         | **Implemented**                               | Every meaningful landing image has a real alt; decorative images have `alt=""`. The "prior landing alt-text regression" is covered.                                                      |
+| 17  | Structured data        | **Selective**                                 | `WebApplication` JSON-LD on the landing with only true fields. No fake ratings, reviews, counts or awards.                                                                               |
+| 18  | Privacy                | **Implemented**                               | New `/privacy` page; `docs/legal/privacy.md`; the decision to not run analytics or cookies is documented.                                                                                |
+| 19  | Search Console         | **Selective**                                 | Technical preparation complete; owner verification required.                                                                                                                             |
+| 20  | Team photos            | **N/A**                                       | One maintainer; the repository communicates that honestly.                                                                                                                               |
 
 ## 18. Performance
 
@@ -597,19 +597,19 @@ performance budget.
 
 Live URLs (post-deploy) on `https://kingfisher-chess.vercel.app/`:
 
-| URL | Status | Notes |
-| --- | --- | --- |
-| `/` | 200 | Landing. JSON-LD present. OG / Twitter present. Canonical present. |
-| `/install` | 200 | Styled render of the install guide. |
-| `/privacy` | 200 | The privacy policy. |
-| `/security` | 200 | The security policy. |
-| `/data-licences` | 200 | The data-licences page. |
-| `/terms` | 200 | The terms summary. |
-| `/sitemap.xml` | 200 | Six indexable URLs. |
-| `/robots.txt` | 200 | `User-Agent: *`, `Allow: /`, `Disallow: /api/`, host, sitemap. |
-| `/.well-known/security.txt` | 200 | `Contact`, `Expires`, `Preferred-Languages`, `Canonical`, `Policy`. |
-| `/landing/img/og.png` | 200 | The social card. |
-| `kingfisher-roan.vercel.app` | 200 | The studio. IndexedDB origin unchanged. |
+| URL                          | Status | Notes                                                               |
+| ---------------------------- | ------ | ------------------------------------------------------------------- |
+| `/`                          | 200    | Landing. JSON-LD present. OG / Twitter present. Canonical present.  |
+| `/install`                   | 200    | Styled render of the install guide.                                 |
+| `/privacy`                   | 200    | The privacy policy.                                                 |
+| `/security`                  | 200    | The security policy.                                                |
+| `/data-licences`             | 200    | The data-licences page.                                             |
+| `/terms`                     | 200    | The terms summary.                                                  |
+| `/sitemap.xml`               | 200    | Six indexable URLs.                                                 |
+| `/robots.txt`                | 200    | `User-Agent: *`, `Allow: /`, `Disallow: /api/`, host, sitemap.      |
+| `/.well-known/security.txt`  | 200    | `Contact`, `Expires`, `Preferred-Languages`, `Canonical`, `Policy`. |
+| `/landing/img/og.png`        | 200    | The social card.                                                    |
+| `kingfisher-roan.vercel.app` | 200    | The studio. IndexedDB origin unchanged.                             |
 
 The headers — CSP, COOP, COEP, HSTS, Permissions-Policy,
 Referrer-Policy, X-Content-Type-Options — are present on
@@ -637,16 +637,16 @@ every response, served by `vercel.json`.
 
 ## 22. Bugs
 
-| Severity | What | Root cause | Fix |
-| --- | --- | --- | --- |
-| HIGH | Install guide said "1.0.0-rc.5" | Stale doc; the guide was last touched in Phase 26 and was not updated when 1.0.0 shipped | Rewrote `docs/release/install-macos.md` and the `/install` route against the current DMG. |
-| HIGH | SECURITY.md claimed 1.0.0-rc.4 was the current supported version | Same; the doc referenced an rc. that had been superseded | Rewrote `SECURITY.md` and the `/security` route against the current architecture. |
-| HIGH | The five new public routes (`/install`, `/privacy`, `/security`, `/data-licences`, `/terms`) 307-redirected to `/` on the marketing host | The middleware's `LANDING_PATHS` set had not been updated when the new routes were added; the middleware's `isLandingAsset` gate did not include them | Added the routes to `LANDING_PATHS` and `/.well-known/*` to `isLandingAsset`. Tested in production after the second deploy. |
-| MEDIUM | Footer carried a long licensing paragraph that compressed several different legal relationships | The line was a half-truth, not a full sentence | Replaced with a short neutral attribution that links to `/data-licences`. |
-| MEDIUM | The README's "How it got here" section was historically labelled but pointed at 1.0.0-rc.3 as the current release | Stale aside; the section is intentionally historical but the wording was ambiguous | Re-pointed the aside at Kingfisher 1.0.0 (web 1.0, macOS Preview 1.0.0) and made the historical nature explicit. |
-| LOW | The marketing legacy Pages origin was the default in `public-urls.landing` | Phase 24 had that as the canonical landing; Phase 24 also had a Vercel web app but the marketing origin was the GitHub Pages mirror | Updated the default to `https://kingfisher-chess.vercel.app`. The Pages origin is now an explicitly `noindex, nofollow` compatibility shim. |
-| LOW | `app/page.tsx` had a long-standing meta title and description that did not match the layout default | Pre-Phase 33 page metadata was set per-page; the layout now has a comprehensive default and the landing renders it correctly | No change to the page title required; the OG / Twitter metadata comes from the layout. |
-| LOW | The `landing.css` did not have a section for the new FAQ | The new component needed a stylesheet that respected the editorial palette | Added the FAQ styles to `landing.css`. |
+| Severity | What                                                                                                                                     | Root cause                                                                                                                                            | Fix                                                                                                                                         |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| HIGH     | Install guide said "1.0.0-rc.5"                                                                                                          | Stale doc; the guide was last touched in Phase 26 and was not updated when 1.0.0 shipped                                                              | Rewrote `docs/release/install-macos.md` and the `/install` route against the current DMG.                                                   |
+| HIGH     | SECURITY.md claimed 1.0.0-rc.4 was the current supported version                                                                         | Same; the doc referenced an rc. that had been superseded                                                                                              | Rewrote `SECURITY.md` and the `/security` route against the current architecture.                                                           |
+| HIGH     | The five new public routes (`/install`, `/privacy`, `/security`, `/data-licences`, `/terms`) 307-redirected to `/` on the marketing host | The middleware's `LANDING_PATHS` set had not been updated when the new routes were added; the middleware's `isLandingAsset` gate did not include them | Added the routes to `LANDING_PATHS` and `/.well-known/*` to `isLandingAsset`. Tested in production after the second deploy.                 |
+| MEDIUM   | Footer carried a long licensing paragraph that compressed several different legal relationships                                          | The line was a half-truth, not a full sentence                                                                                                        | Replaced with a short neutral attribution that links to `/data-licences`.                                                                   |
+| MEDIUM   | The README's "How it got here" section was historically labelled but pointed at 1.0.0-rc.3 as the current release                        | Stale aside; the section is intentionally historical but the wording was ambiguous                                                                    | Re-pointed the aside at Kingfisher 1.0.0 (web 1.0, macOS Preview 1.0.0) and made the historical nature explicit.                            |
+| LOW      | The marketing legacy Pages origin was the default in `public-urls.landing`                                                               | Phase 24 had that as the canonical landing; Phase 24 also had a Vercel web app but the marketing origin was the GitHub Pages mirror                   | Updated the default to `https://kingfisher-chess.vercel.app`. The Pages origin is now an explicitly `noindex, nofollow` compatibility shim. |
+| LOW      | `app/page.tsx` had a long-standing meta title and description that did not match the layout default                                      | Pre-Phase 33 page metadata was set per-page; the layout now has a comprehensive default and the landing renders it correctly                          | No change to the page title required; the OG / Twitter metadata comes from the layout.                                                      |
+| LOW      | The `landing.css` did not have a section for the new FAQ                                                                                 | The new component needed a stylesheet that respected the editorial palette                                                                            | Added the FAQ styles to `landing.css`.                                                                                                      |
 
 ## 23. Known limitations
 

@@ -78,6 +78,8 @@ import { useAccountSync, type AccountSyncState } from '@/stores/account-sync-sto
 import type { LinkedAccountRecord, SyncProvider } from '@/persistence/domain';
 import { cn } from '@/lib/cn';
 import type { PieceType } from '@/chess/types';
+import { PwaInstallCard, PwaDiagnostic } from '@/pwa';
+import { UpdateCheckSection } from '@/release/UpdateCheckSection';
 import { DEFAULT_PREFERENCES, usePreferences, type Preferences } from '@/stores/preferences-store';
 import { catalogPack } from '@/reference/catalog';
 import { useReferenceSources } from '@/reference/use-references';
@@ -1796,8 +1798,11 @@ function DiagnosticsSection() {
 
       <IntegritySection />
       <RecoveryActions />
+      <UpdateCheckSection />
       <CopyReport />
       <HelpSection />
+      <PwaInstallCard />
+      <PwaDiagnostic />
     </div>
   );
 }
@@ -2315,6 +2320,11 @@ function ProviderDiagnostic({ provider }: { provider: ChessDatabaseProvider }) {
 }
 
 function DiagnosticGroup({ title, children }: { title: string; children: React.ReactNode }) {
+  // Re-exported to `src/features/shell/DiagnosticGroup.tsx` so the
+  // PWA panel can match the Diagnostics visual language without
+  // re-implementing it. The implementation here is kept for
+  // callers that have already imported the SettingsDialog
+  // directly; both refer to the same visual contract.
   return (
     <section>
       <h3 className="text-[10px] font-semibold uppercase tracking-[0.08em] text-tertiary">

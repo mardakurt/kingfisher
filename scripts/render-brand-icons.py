@@ -24,15 +24,23 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 MASTER = ROOT / "brand" / "kingfisher-mark.svg"
 SS = 4  # supersampling factor
 
-# (relative path, pixel size)
+# (relative path, pixel size, kind)
+# `kind` controls how the mark is composited into the canvas:
+#   - "fullbleed" — the mark fills the canvas edge to edge (any-purpose icons).
+#   - "maskable"  — the mark is shrunk to ~60% of the canvas so the operating
+#     system's mask (which can crop a circular or rounded square from the icon)
+#     never clips the kingfisher mark. The 60% target follows the Web App
+#     Manifest "maskable" specification's 80% safe-area recommendation, then
+#     tightens to 60% so the bird still reads at very small sizes.
 TARGETS = [
-    ("public/icon-192.png", 192),
-    ("public/icon-512.png", 512),
-    ("src/app/apple-icon.png", 180),
+    ("public/icon-192.png", 192, "fullbleed"),
+    ("public/icon-512.png", 512, "fullbleed"),
+    ("public/icon-maskable-512.png", 512, "maskable"),
+    ("src/app/apple-icon.png", 180, "fullbleed"),
     # The desktop application icon. electron-builder derives every macOS,
     # Windows and Linux size from this one, so it is the largest the packagers
     # ask for rather than a size anything displays directly.
-    ("desktop/build/icon.png", 1024),
+    ("desktop/build/icon.png", 1024, "fullbleed"),
 ]
 
 NS = {"svg": "http://www.w3.org/2000/svg"}
@@ -89,16 +97,28 @@ def flatten_path(d, steps=24):
     return points
 
 
-def render(size):
+def render(size, kind="fullbleed"):
     tree = ET.parse(MASTER)
     root = tree.getroot()
     view = [float(v) for v in root.get("viewBox").split()]
     span = view[2]
-    scale = size * SS / span
+    # `maskable` icons leave a 20% safe area on every side, so the mark is
+    # rendered into the inner 60% of the canvas and centred.
+    if kind == "maskable":
+        inset = 0.2 * size
+        mark_size = size - 2 * inset
+        scale = mark_size * SS / span
+    else:
+        scale = size * SS / span
     canvas = Image.new("RGBA", (size * SS, size * SS), (0, 0, 0, 0))
     draw = ImageDraw.Draw(canvas)
 
     def at(x, y, tx=0.0, ty=0.0, sc=1.0):
+        if kind == "maskable":
+            return (
+                (x * sc + tx) * scale + inset * SS,
+                (y * sc + ty) * scale + inset * SS,
+            )
         return ((x * sc + tx) * scale, (y * sc + ty) * scale)
 
     # Background tile: the rounded rect plus the two lighter board squares,
@@ -111,6 +131,9 @@ def render(size):
         y = float(rect.get("y", 0)) * scale
         w = float(rect.get("width")) * scale
         h = float(rect.get("height")) * scale
+        if kind == "maskable":
+            x += inset * SS
+            y += inset * SS
         tdraw.rectangle([x, y, x + w, y + h], fill=rect.get("fill"))
     mask = Image.new("L", canvas.size, 0)
     ImageDraw.Draw(mask).rounded_rectangle(
@@ -136,10 +159,11 @@ def render(size):
 
 
 def main():
-    for relative, size in TARGETS:
+    for target in TARGETS:
+        relative, size, kind = target
         out = ROOT / relative
         out.parent.mkdir(parents=True, exist_ok=True)
-        render(size).save(out, "PNG", optimize=True)
+        render(size, kind).save(out, "PNG", optimize=True)
         print(f"{relative:32} {size}x{size}  {out.stat().st_size:>7} B")
 
 

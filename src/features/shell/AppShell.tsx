@@ -25,6 +25,7 @@ import { StatusBar } from './StatusBar';
 import { FocusModeBar } from './FocusModeBar';
 import { ResearchTrail } from './ResearchTrail';
 import { MobileNavigation } from './MobileNavigation';
+import { PwaUpdateBanner } from '@/pwa/PwaUpdateBanner';
 import { ChessWorkspaceProvider } from '@/features/workspace/ChessWorkspaceContext';
 import { AnalysisQueueProvider } from '@/features/analysis-queue/AnalysisQueueProvider';
 import { useEnginePositionGuard } from '@/features/analysis/useEnginePositionGuard';
@@ -164,6 +165,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <main className="flex min-w-0 flex-1 flex-col">
             {/* Above the workspace, not inside it: the notice has to be visible
                 on whichever route the conflicting chapter is open in. */}
+            <PwaUpdateBanner />
             <ConflictNotice />
             <RecoveryNotice />
             <ResearchTrail />

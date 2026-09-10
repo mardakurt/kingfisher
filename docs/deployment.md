@@ -4,15 +4,15 @@ Where each surface is hosted, and how to publish a new release.
 
 ## The public surfaces
 
-| Surface                 | Where                                                                |
-| ----------------------- | -------------------------------------------------------------------- |
-| Landing page            | <https://kingfisher-chess.vercel.app/>                               |
-| Studio (the application) | <https://kingfisher-roan.vercel.app/>                              |
-| Public docs             | the same landing host, at `/install`, `/privacy`, `/security`, `/data-licences`, `/terms` |
-| Optional reference data | the `kingfisher-data` Pages site, at `/reference-{pack}-{version}/`  |
-| macOS preview build     | a `Kingfisher-*.dmg` attached to a GitHub Release on this repository |
-| Web app (fallback)      | <https://kingfisher-chess.vercel.app/>                               |
-| Source / issues         | <https://github.com/mardakurt/kingfisher>                            |
+| Surface                  | Where                                                                                     |
+| ------------------------ | ----------------------------------------------------------------------------------------- |
+| Landing page             | <https://kingfisher-chess.vercel.app/>                                                    |
+| Studio (the application) | <https://kingfisher-roan.vercel.app/>                                                     |
+| Public docs              | the same landing host, at `/install`, `/privacy`, `/security`, `/data-licences`, `/terms` |
+| Optional reference data  | the `kingfisher-data` Pages site, at `/reference-{pack}-{version}/`                       |
+| macOS preview build      | a `Kingfisher-*.dmg` attached to a GitHub Release on this repository                      |
+| Web app (fallback)       | <https://kingfisher-chess.vercel.app/>                                                    |
+| Source / issues          | <https://github.com/mardakurt/kingfisher>                                                 |
 
 The legacy `mardakurt.github.io/kingfisher-data/` origin still
 serves a small redirect-only backup of the marketing page (see

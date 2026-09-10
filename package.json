@@ -72,6 +72,7 @@
     "docs:check": "node scripts/docs-check.mjs",
     "publish:site": "node scripts/publish-site.mjs",
     "publish:data": "node scripts/publish-data.mjs",
+    "publish:release-manifest": "node scripts/publish-release-manifest.mjs",
     "security:scan": "node scripts/security-scan.mjs",
     "deploy:vercel": "node scripts/vercel-deploy.mjs",
     "size:report": "node scripts/size-report.mjs",

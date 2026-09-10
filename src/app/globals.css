@@ -417,3 +417,69 @@ body {
   ) {
   -webkit-app-region: no-drag;
 }
+
+/*
+ * Phase 34: installable-web-app components.
+ *
+ * Two new surfaces render inside the studio:
+ *
+ *   - `.pwa-install-card` — a low-key card in the Diagnostics
+ *     section that surfaces the install prompt and the
+ *     no-prompt-yet Help text. The card is intentionally
+ *     unembellished: the directive is explicit that there must
+ *     be no install banner over the chessboard.
+ *
+ *   - `.pwa-update-banner` — a single-line "update ready" row
+ *     above the workspace, below the conflict and recovery
+ *     notices. The Reload button is disabled while saves are
+ *     in flight; the banner is not a popup and does not steal
+ *     focus.
+ */
+.pwa-install-card {
+  border: 1px solid var(--color-line-subtle, currentColor);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  background: var(--color-surface-1, transparent);
+}
+
+.pwa-install-card h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.pwa-install-card p {
+  margin: 0 0 0.5rem;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  opacity: 0.85;
+}
+
+.pwa-install-card p:last-child {
+  margin-bottom: 0;
+}
+
+.pwa-install-card[data-state='available'] {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.pwa-update-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 1rem;
+  background: var(--color-surface-1, #14181f);
+  border-bottom: 1px solid var(--color-line-subtle, currentColor);
+  font-size: 0.8rem;
+}
+
+.pwa-update-banner__copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.pwa-update-banner__copy strong {
+  font-weight: 600;
+}
