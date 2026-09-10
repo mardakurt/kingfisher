@@ -36,6 +36,16 @@ import { useCommands, type Command } from './useCommands';
  */
 export function CommandPalette() {
   const open = useUi((state) => state.commandPaletteOpen);
+  const setOpen = useUi((state) => state.setCommandPaletteOpen);
+  // The 404 page uses `kingfisher:open-search` because the page itself
+  // is a client component but cannot import the ui-store. The event
+  // stays in the same realm the palette already lives in; it is the
+  // cheapest bridge that does not require lifting a context.
+  useEffect(() => {
+    const onOpen = () => setOpen(true);
+    window.addEventListener('kingfisher:open-search', onOpen);
+    return () => window.removeEventListener('kingfisher:open-search', onOpen);
+  }, [setOpen]);
   // Mounting the palette only while it is open means its query and selection
   // start fresh by construction, with no state to reset.
   return open ? <PaletteDialog /> : null;
