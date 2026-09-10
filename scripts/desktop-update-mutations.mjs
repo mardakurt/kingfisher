@@ -106,7 +106,10 @@ mutation('a manifest with a mismatched sha512 is detectable', () => {
      parser will accept; the verification is electron-updater's
      job. We assert the *flag* is set so the updater enforces. */
   const source = readFileSync(join(HERE, 'desktop/src/kingfisher-updater.mjs'), 'utf8');
-  return { ok: source.includes('downloadUpdate'), detail: 'updater uses electron-updater SHA-512 verification' };
+  return {
+    ok: source.includes('downloadUpdate'),
+    detail: 'updater uses electron-updater SHA-512 verification',
+  };
 });
 
 /* 3. Missing notarization ticket: the release script refuses
@@ -121,7 +124,8 @@ mutation('the release pipeline refuses an un-notarized package', () => {
   const hasGatekeeper = verify.includes('spctl') && verify.includes('--assess');
   return {
     ok: hasSubmit && hasStaple && hasStaplerValidate && hasGatekeeper,
-    detail: 'notarytool submit + stapler staple + stapler validate + spctl assess all present in release scripts',
+    detail:
+      'notarytool submit + stapler staple + stapler validate + spctl assess all present in release scripts',
   };
 });
 
@@ -159,7 +163,9 @@ mutation('the updater refuses a downgrade', () => {
   const src = readFileSync(join(HERE, 'desktop/src/kingfisher-updater.mjs'), 'utf8');
   return {
     ok: src.includes('allowDowngrade = false'),
-    detail: src.includes('allowDowngrade = false') ? 'allowDowngrade disabled' : 'allowDowngrade not disabled',
+    detail: src.includes('allowDowngrade = false')
+      ? 'allowDowngrade disabled'
+      : 'allowDowngrade not disabled',
   };
 });
 
@@ -168,7 +174,8 @@ mutation('the updater refuses a downgrade', () => {
       has the early-return guard. */
 mutation('the install path aborts on a save barrier failure', () => {
   const src = readFileSync(join(HERE, 'desktop/src/update-service.mjs'), 'utf8');
-  const hasGuard = src.includes('barrier?.ok') && src.includes('Kingfisher could not safely finish saving');
+  const hasGuard =
+    src.includes('barrier?.ok') && src.includes('Kingfisher could not safely finish saving');
   return {
     ok: hasGuard,
     detail: hasGuard ? 'save barrier aborts install' : 'save barrier guard missing',
@@ -187,8 +194,11 @@ mutation('the renderer preload does not expose raw ipcRenderer', () => {
   const preloadExposed = exposedNames(preload);
   const updatePreloadExposed = exposedNames(updatePreload);
   const allExposed = [...preloadExposed, ...updatePreloadExposed];
-  const leaks = allExposed.filter((n) => n === 'ipcRenderer' || n === 'electron' || n === 'webUtils');
-  const hasKingfisherBridge = preloadExposed.includes('kingfisher') || updatePreloadExposed.includes('kingfisherUpdate');
+  const leaks = allExposed.filter(
+    (n) => n === 'ipcRenderer' || n === 'electron' || n === 'webUtils',
+  );
+  const hasKingfisherBridge =
+    preloadExposed.includes('kingfisher') || updatePreloadExposed.includes('kingfisherUpdate');
   return {
     ok: leaks.length === 0 && hasKingfisherBridge,
     detail:
@@ -236,7 +246,9 @@ mutation('the updater does not auto-download on check', () => {
   const src = readFileSync(join(HERE, 'desktop/src/kingfisher-updater.mjs'), 'utf8');
   return {
     ok: src.includes('autoDownload = false'),
-    detail: src.includes('autoDownload = false') ? 'autoDownload disabled' : 'autoDownload not disabled',
+    detail: src.includes('autoDownload = false')
+      ? 'autoDownload disabled'
+      : 'autoDownload not disabled',
   };
 });
 

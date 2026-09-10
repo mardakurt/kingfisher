@@ -54,7 +54,7 @@ this host without the credentials):
 - `desktop:notary:verify` against a notarised candidate.
 - `desktop:trust:verify` against a notarised candidate.
 - The packaged-mode auto-update e2e (`desktop:update:e2e
-  --packaged`).
+--packaged`).
 - `release:mac:sign` / `release:mac:notarize` /
   `release:mac:publish` (no certificate, no notarization,
   no publish).
@@ -94,15 +94,15 @@ checks on top.
 
 ## 3. Apple Developer ID
 
-| Item                                | Value (this host) |
-| ----------------------------------- | ----------------- |
-| `Developer ID Application:` identity | **Not present.**  |
-| `Apple Development:` identity        | Present (`Metin Arda KURT (YBWWSJYPD6)`). |
-| `Apple Distribution:` identity       | Present (`Metin Arda KURT (3B5CYF9DQ4)`). |
+| Item                                 | Value (this host)                                                              |
+| ------------------------------------ | ------------------------------------------------------------------------------ |
+| `Developer ID Application:` identity | **Not present.**                                                               |
+| `Apple Development:` identity        | Present (`Metin Arda KURT (YBWWSJYPD6)`).                                      |
+| `Apple Distribution:` identity       | Present (`Metin Arda KURT (3B5CYF9DQ4)`).                                      |
 | `notarytool`                         | `1.1.2 (41)`, `/Applications/Xcode.app/Contents/Developer/usr/bin/notarytool`. |
-| `stapler`                            | `/Applications/Xcode.app/Contents/Developer/usr/bin/stapler`. |
-| App Store Connect API key            | Not configured.   |
-| `APPLE_NOTARYTOOL_PROFILE`           | Not configured.   |
+| `stapler`                            | `/Applications/Xcode.app/Contents/Developer/usr/bin/stapler`.                  |
+| App Store Connect API key            | Not configured.                                                                |
+| `APPLE_NOTARYTOOL_PROFILE`           | Not configured.                                                                |
 
 The `security find-identity -v -p codesigning` output is
 recorded above. No secrets, no private keys, no fingerprints.
@@ -136,15 +136,15 @@ nested helpers.
 The full file is the source of truth; the comment in the
 file documents every entitlement.
 
-| Entitlement | Reason |
-| ----------- | ------ |
-| `com.apple.security.cs.allow-jit` | WebAssembly JIT for the Stockfish WASM build. |
-| `com.apple.security.cs.allow-unsigned-executable-memory` | WASM executable-memory pages. |
-| `com.apple.security.cs.disable-library-validation` | Managed native engines (Stockfish, Berserk, et al.) signed by their own upstream projects, not Apple. |
-| `com.apple.security.cs.allow-dyld-environment-variables` | Same engines; some `DYLD_*` paths are read at engine startup. |
-| `com.apple.security.files.user-selected.read-write` | File dialogs for PGN, SQLite, tablebase, engine binaries. |
-| `com.apple.security.network.client` | Lichess, GitHub, the auto-update feed. |
-| `com.apple.security.network.server` | The local HTTP server that serves the bundled Next app to the renderer. |
+| Entitlement                                              | Reason                                                                                                |
+| -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `com.apple.security.cs.allow-jit`                        | WebAssembly JIT for the Stockfish WASM build.                                                         |
+| `com.apple.security.cs.allow-unsigned-executable-memory` | WASM executable-memory pages.                                                                         |
+| `com.apple.security.cs.disable-library-validation`       | Managed native engines (Stockfish, Berserk, et al.) signed by their own upstream projects, not Apple. |
+| `com.apple.security.cs.allow-dyld-environment-variables` | Same engines; some `DYLD_*` paths are read at engine startup.                                         |
+| `com.apple.security.files.user-selected.read-write`      | File dialogs for PGN, SQLite, tablebase, engine binaries.                                             |
+| `com.apple.security.network.client`                      | Lichess, GitHub, the auto-update feed.                                                                |
+| `com.apple.security.network.server`                      | The local HTTP server that serves the bundled Next app to the renderer.                               |
 
 **What was deliberately not added:**
 
@@ -171,12 +171,12 @@ match; a divergence is a release blocker.
 ## 5. Signing
 
 - **Outer .app:** `Developer ID Application: <owner>
-  (<team>)` is the only acceptable outer identity. The
+(<team>)` is the only acceptable outer identity. The
   release preflight refuses to start without it.
 - **Nested helpers:** the sign pipeline signs the outer
   `.app` and the nested code (`--deep`). The
   `desktop:sign:verify` script verifies the outer signature
-  *and* every nested executable (`Kingfisher Helper`,
+  _and_ every nested executable (`Kingfisher Helper`,
   `Kingfisher Helper (Renderer)`, `(GPU)`, `(Plugin)`,
   `Electron Framework.framework`, `Contents/MacOS/Kingfisher`)
   is `Developer ID Application:`-signed. A single
@@ -212,7 +212,7 @@ match; a divergence is a release blocker.
   candidate on this host. The script in
   `scripts/desktop-mac-notarize.mjs` records the
   submission ID from `notarytool submit --output-format
-  json` and prints it.
+json` and prints it.
 - **Log retrieval on failure:** the script invokes
   `xcrun notarytool log <id>` and prints the result when
   the status is anything other than `Accepted`. The brief
@@ -222,7 +222,7 @@ match; a divergence is a release blocker.
   on the `.app` and (when one is produced) on the `.dmg`.
 - **Validation:** `xcrun stapler validate` confirms the
   stapled ticket is well-formed. `spctl --assess --verbose
-  =4 --type execute` confirms Gatekeeper accepts offline.
+=4 --type execute` confirms Gatekeeper accepts offline.
   The `desktop:notary:verify` script runs both.
 - **Gatekeeper result on this host:** the verify scripts
   run only against a notarised artefact; with no
@@ -350,7 +350,7 @@ of a new version emits `kingfisher:update-installed` on
   end-to-end against a fake ZIP, and runs the
   parser-level mutations. Green on this host.
 - **Packaged mode (`--packaged --current <app> --next
-  <app>`):** requires two real `Kingfisher.app` bundles
+<app>`):** requires two real `Kingfisher.app` bundles
   and a graphical session. The script does not mock the
   install path. A maintainer runs it on the release day
   from the maintainer's Mac.
@@ -422,19 +422,19 @@ green on the current host.
 Eleven mutations pin the security-relevant guards
 (`scripts/desktop-update-mutations.mjs`):
 
-| Mutation | Result |
-| -------- | ------ |
-| Foreign host URL | Parser rejects |
-| Mismatched `sha512` | Electron-updater SHA-512 verification wired |
-| Missing notarisation | Release scripts run `notarytool` + `stapler` + `spctl` |
-| `http://` URL on a production host | Parser rejects |
-| `x64` build | `electron-builder` declares `arch: arm64` only |
-| Downgrade | `allowDowngrade = false` |
-| Save barrier failure | Install aborts |
-| Raw `ipcRenderer` exposure | Preloads expose only `kingfisher*` |
-| Auto-check on launch | No module-level `check()` call |
-| Non-Developer-ID running app | Install refuses |
-| `autoDownload` | Disabled |
+| Mutation                           | Result                                                 |
+| ---------------------------------- | ------------------------------------------------------ |
+| Foreign host URL                   | Parser rejects                                         |
+| Mismatched `sha512`                | Electron-updater SHA-512 verification wired            |
+| Missing notarisation               | Release scripts run `notarytool` + `stapler` + `spctl` |
+| `http://` URL on a production host | Parser rejects                                         |
+| `x64` build                        | `electron-builder` declares `arch: arm64` only         |
+| Downgrade                          | `allowDowngrade = false`                               |
+| Save barrier failure               | Install aborts                                         |
+| Raw `ipcRenderer` exposure         | Preloads expose only `kingfisher*`                     |
+| Auto-check on launch               | No module-level `check()` call                         |
+| Non-Developer-ID running app       | Install refuses                                        |
+| `autoDownload`                     | Disabled                                               |
 
 All 11 mutations are green on this host.
 
@@ -442,13 +442,13 @@ All 11 mutations are green on this host.
 
 ## 15. Update artifacts
 
-| Artifact | Size on this host | Notes |
-| -------- | ----------------- | ----- |
-| `Kingfisher-<version>-arm64.dmg` | not built (no certificate) | First-install + manual fallback |
-| `Kingfisher-<version>-arm64-mac.zip` | not built (no certificate) | Auto-update payload |
-| `latest-mac.yml` | not built (no certificate) | electron-builder update feed |
-| `kingfisher-release-manifest.json` | regenerated by `release:mac:publish` | Human-readable release manifest |
-| `SHA256SUMS` | generated by `release:mac:publish` | Digests for cross-check |
+| Artifact                             | Size on this host                    | Notes                           |
+| ------------------------------------ | ------------------------------------ | ------------------------------- |
+| `Kingfisher-<version>-arm64.dmg`     | not built (no certificate)           | First-install + manual fallback |
+| `Kingfisher-<version>-arm64-mac.zip` | not built (no certificate)           | Auto-update payload             |
+| `latest-mac.yml`                     | not built (no certificate)           | electron-builder update feed    |
+| `kingfisher-release-manifest.json`   | regenerated by `release:mac:publish` | Human-readable release manifest |
+| `SHA256SUMS`                         | generated by `release:mac:publish`   | Digests for cross-check         |
 
 `npm run desktop:dist` produces the DMG and the ZIP in
 the same electron-builder run, so the same Developer ID
@@ -612,7 +612,7 @@ present.
   with the artefacts in §15.
 - **`/releases/latest`:** must resolve to `v1.1.0`. The
   release process includes a `gh release view
-  --json tagName` step that asserts this.
+--json tagName` step that asserts this.
 - **Artifacts:** see §15.
 
 ---
@@ -621,16 +621,16 @@ present.
 
 The final-test gate, run on this host, returns green:
 
-| Step | Result |
-| ---- | ------ |
-| `npm run typecheck` | green |
-| `npm run lint` | green |
-| `npm run format:check` | green (skip-not-fail) |
-| `npm test` | green (197 files, 2474 passing, 11 skipped, 0 failing) |
-| `npm run build` | green |
-| `npm run release:verify` | green (incl. mutations + e2e wire mode) |
-| `npm run desktop:update:mutations` | green (11/11) |
-| `npm run desktop:update:e2e` | green (12/12 wire mode) |
+| Step                               | Result                                                 |
+| ---------------------------------- | ------------------------------------------------------ |
+| `npm run typecheck`                | green                                                  |
+| `npm run lint`                     | green                                                  |
+| `npm run format:check`             | green (skip-not-fail)                                  |
+| `npm test`                         | green (197 files, 2474 passing, 11 skipped, 0 failing) |
+| `npm run build`                    | green                                                  |
+| `npm run release:verify`           | green (incl. mutations + e2e wire mode)                |
+| `npm run desktop:update:mutations` | green (11/11)                                          |
+| `npm run desktop:update:e2e`       | green (12/12 wire mode)                                |
 
 The brief lists additional gates that require a notarised
 candidate (`desktop:smoke`, `desktop:chrome`,
@@ -683,7 +683,7 @@ Other known limits:
   responsibility. The previous-version tracking is
   `lastAcknowledgedVersion` in
   `kingfisher-update-state.json`.
-- The Brief asks the renderer to *register* a save
+- The Brief asks the renderer to _register_ a save
   barrier handler. The main process sends the request;
   the renderer's preload exposes the registration
   point. The handler itself is the renderer's job.

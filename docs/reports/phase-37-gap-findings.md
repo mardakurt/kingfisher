@@ -11,32 +11,32 @@ This is **not** the handover. It is the engineering bug audit, the
 short evidence record for each confirmed issue, and the index of
 the fixes that closed them.
 
-| ID    | Severity | Subsystem                | Title                                                  | Fix                            | Status             |
-| ----- | -------- | ------------------------ | ------------------------------------------------------ | ------------------------------ | ------------------ |
-| GAP-01 | Critical | `desktop/main.mjs`       | Save barrier returns `ok: true` on every failure path  | `desktop/src/save-barrier.mjs` | CLOSED             |
-| GAP-02 | Critical | Renderer                 | No renderer-side save barrier handler                  | `src/desktop/save-barrier-handler.ts` | CLOSED       |
-| GAP-03 | Critical | `desktop/main.mjs`       | Save barrier has no single-flight                      | `desktop/src/save-barrier.mjs` | CLOSED             |
-| GAP-04 | Critical | `desktop/main.mjs`       | Save barrier silently succeeds on a destroyed window   | `desktop/src/save-barrier.mjs` | CLOSED             |
-| GAP-05 | High     | Renderer                 | Post-update UI is unwired                              | `src/desktop/post-update-notice.tsx` | CLOSED         |
-| GAP-06 | High     | Renderer                 | Post-update acknowledgement had no version guard        | `src/desktop/post-update-notice.tsx` | CLOSED         |
-| GAP-07 | High     | Docs                     | `install-macos.md` claims 1.1.0 is notarised today     | `docs/release/install-macos.md` | CLOSED             |
-| GAP-08 | High     | `update-service.mjs`     | No operation id for late events                        | `desktop/src/update-service.mjs` | CLOSED             |
-| GAP-09 | High     | `update-service.mjs`     | Cancel race at 99% flips to READY                      | `desktop/src/update-service.mjs` | CLOSED             |
-| GAP-10 | High     | `desktop/main.mjs`       | Install while app is quitting                          | `desktop/src/main.mjs` + `update-service.mjs` | CLOSED   |
-| GAP-11 | High     | `src/desktop/bridge.ts`  | Bridge TypeScript surface missing new methods          | `src/desktop/bridge.ts` + `bridge-contract.ts` | CLOSED      |
-| GAP-12 | High     | `update-service.mjs`     | Save barrier error model is not a typed result         | `desktop/src/update-service.mjs` | CLOSED             |
-| GAP-13 | High     | `persistence/backup.ts`  | Restore transaction safety (PART AH)                   | `src/persistence/backup.test.ts` | CLOSED             |
-| GAP-14 | Medium   | `bridge-contract.ts`     | BRIDGE_CONTRACTS missing new rows                      | `src/desktop/bridge-contract.ts` | CLOSED             |
-| GAP-15 | Medium   | `update-window.mjs`      | Dialog close during download has no documented behavior | documented; kept as future toggle | ACCEPTED LIMITATION |
-| GAP-16 | Medium   | `update-service.mjs`     | Cache ownership audit reveals no duplicate cache       | `pruneUpdateCache` only path; manual fallback external | CLOSED       |
-| GAP-17 | Medium   | Explorer stale requests  | No regression test for late results replacing position | documented as future test        | DEFERRED (LOW RISK) |
-| GAP-18 | Medium   | Player search stale      | No regression test for out-of-order responses          | documented as future test        | DEFERRED (LOW RISK) |
-| GAP-19 | Medium   | Engine listeners         | No repeated mount/unmount test                         | documented as future test        | DEFERRED (LOW RISK) |
-| GAP-20 | Medium   | Engine processes         | No start/stop stress loop                              | documented as future test        | DEFERRED (LOW RISK) |
-| GAP-21 | Medium   | Console cleanliness      | Smoke pass on a real session                           | ran, no issues observed          | CLOSED             |
-| GAP-22 | Medium   | Backup versioning        | `BACKUP_VERSION = 1`, future bump behavior             | documented; path is "v1 = v1"   | ACCEPTED LIMITATION |
-| GAP-23 | Medium   | `pruneUpdateCache`       | Cache prune unguarded for cancel-in-flight             | prune only called on shutdown    | CLOSED             |
-| GAP-24 | Low      | Backup version mismatch  | Silent rejection on minor version mismatch             | `parseWorkspaceBackup` reports  | CLOSED             |
+| ID     | Severity | Subsystem               | Title                                                   | Fix                                                    | Status              |
+| ------ | -------- | ----------------------- | ------------------------------------------------------- | ------------------------------------------------------ | ------------------- |
+| GAP-01 | Critical | `desktop/main.mjs`      | Save barrier returns `ok: true` on every failure path   | `desktop/src/save-barrier.mjs`                         | CLOSED              |
+| GAP-02 | Critical | Renderer                | No renderer-side save barrier handler                   | `src/desktop/save-barrier-handler.ts`                  | CLOSED              |
+| GAP-03 | Critical | `desktop/main.mjs`      | Save barrier has no single-flight                       | `desktop/src/save-barrier.mjs`                         | CLOSED              |
+| GAP-04 | Critical | `desktop/main.mjs`      | Save barrier silently succeeds on a destroyed window    | `desktop/src/save-barrier.mjs`                         | CLOSED              |
+| GAP-05 | High     | Renderer                | Post-update UI is unwired                               | `src/desktop/post-update-notice.tsx`                   | CLOSED              |
+| GAP-06 | High     | Renderer                | Post-update acknowledgement had no version guard        | `src/desktop/post-update-notice.tsx`                   | CLOSED              |
+| GAP-07 | High     | Docs                    | `install-macos.md` claims 1.1.0 is notarised today      | `docs/release/install-macos.md`                        | CLOSED              |
+| GAP-08 | High     | `update-service.mjs`    | No operation id for late events                         | `desktop/src/update-service.mjs`                       | CLOSED              |
+| GAP-09 | High     | `update-service.mjs`    | Cancel race at 99% flips to READY                       | `desktop/src/update-service.mjs`                       | CLOSED              |
+| GAP-10 | High     | `desktop/main.mjs`      | Install while app is quitting                           | `desktop/src/main.mjs` + `update-service.mjs`          | CLOSED              |
+| GAP-11 | High     | `src/desktop/bridge.ts` | Bridge TypeScript surface missing new methods           | `src/desktop/bridge.ts` + `bridge-contract.ts`         | CLOSED              |
+| GAP-12 | High     | `update-service.mjs`    | Save barrier error model is not a typed result          | `desktop/src/update-service.mjs`                       | CLOSED              |
+| GAP-13 | High     | `persistence/backup.ts` | Restore transaction safety (PART AH)                    | `src/persistence/backup.test.ts`                       | CLOSED              |
+| GAP-14 | Medium   | `bridge-contract.ts`    | BRIDGE_CONTRACTS missing new rows                       | `src/desktop/bridge-contract.ts`                       | CLOSED              |
+| GAP-15 | Medium   | `update-window.mjs`     | Dialog close during download has no documented behavior | documented; kept as future toggle                      | ACCEPTED LIMITATION |
+| GAP-16 | Medium   | `update-service.mjs`    | Cache ownership audit reveals no duplicate cache        | `pruneUpdateCache` only path; manual fallback external | CLOSED              |
+| GAP-17 | Medium   | Explorer stale requests | No regression test for late results replacing position  | documented as future test                              | DEFERRED (LOW RISK) |
+| GAP-18 | Medium   | Player search stale     | No regression test for out-of-order responses           | documented as future test                              | DEFERRED (LOW RISK) |
+| GAP-19 | Medium   | Engine listeners        | No repeated mount/unmount test                          | documented as future test                              | DEFERRED (LOW RISK) |
+| GAP-20 | Medium   | Engine processes        | No start/stop stress loop                               | documented as future test                              | DEFERRED (LOW RISK) |
+| GAP-21 | Medium   | Console cleanliness     | Smoke pass on a real session                            | ran, no issues observed                                | CLOSED              |
+| GAP-22 | Medium   | Backup versioning       | `BACKUP_VERSION = 1`, future bump behavior              | documented; path is "v1 = v1"                          | ACCEPTED LIMITATION |
+| GAP-23 | Medium   | `pruneUpdateCache`      | Cache prune unguarded for cancel-in-flight              | prune only called on shutdown                          | CLOSED              |
+| GAP-24 | Low      | Backup version mismatch | Silent rejection on minor version mismatch              | `parseWorkspaceBackup` reports                         | CLOSED              |
 
 ## CRITICAL — Save barrier fail-open
 
@@ -62,7 +62,13 @@ After:
 
 ```js
 if (usable.length === 0) {
-  resolve(fail('renderer-unavailable', 'No window is available to confirm the save.', /* timedOut */ false));
+  resolve(
+    fail(
+      'renderer-unavailable',
+      'No window is available to confirm the save.',
+      /* timedOut */ false,
+    ),
+  );
   return;
 }
 // ...
@@ -128,7 +134,7 @@ After Phase 37:
   `userData/kingfisher-update-state.json` (the file already
   existed; the read path is new in the main process).
 - The main process sends `kingfisher:update-installed` only when
-  the *current* version is strictly greater than the last
+  the _current_ version is strictly greater than the last
   acknowledged one — the previous acknowledgement was
   unconditional and could spam the user on every dev restart.
 
@@ -206,5 +212,5 @@ use it to recover.
 These are documented in the gap register
 (`docs/product/phase-37-gap-register.md`) and were triaged by
 risk. The items deferred to future work are low-risk in the
-sense that the gap is *known* and *documented*, but a future
+sense that the gap is _known_ and _documented_, but a future
 release will be measurably better with them closed.

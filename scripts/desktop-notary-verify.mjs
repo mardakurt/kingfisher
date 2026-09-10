@@ -44,12 +44,19 @@ const report = (label, ok, detail) => {
 };
 
 /* 1. Stapled ticket present. */
-const staplerValidate = spawnSync('xcrun', ['stapler', 'validate', candidate], { encoding: 'utf8' });
-const stapled = staplerValidate.code === 0 && /The staple and validate action worked/.test(staplerValidate.stdout);
+const staplerValidate = spawnSync('xcrun', ['stapler', 'validate', candidate], {
+  encoding: 'utf8',
+});
+const stapled =
+  staplerValidate.code === 0 &&
+  /The staple and validate action worked/.test(staplerValidate.stdout);
 report(
   'stapled notarization ticket is valid',
   stapled,
-  stapled ? 'ticket stapled and validated' : staplerValidate.stderr.split('\n').find(Boolean) || staplerValidate.stdout.split('\n').find(Boolean),
+  stapled
+    ? 'ticket stapled and validated'
+    : staplerValidate.stderr.split('\n').find(Boolean) ||
+        staplerValidate.stdout.split('\n').find(Boolean),
 );
 
 /* 2. The notarization receipt can be read. The receipt is what
@@ -73,11 +80,9 @@ report(
 /* 3. notarytool can read the ticket info. This is the diagnostic
       path: if stapling or Gatekeeper failed, the developer can see
       the underlying ticket fields. */
-const ticketInfo = spawnSync(
-  'xcrun',
-  ['stapler', 'info', candidate, '-t', 'apple notary ticket'],
-  { encoding: 'utf8' },
-);
+const ticketInfo = spawnSync('xcrun', ['stapler', 'info', candidate, '-t', 'apple notary ticket'], {
+  encoding: 'utf8',
+});
 const ticketReadable = ticketInfo.code === 0 && ticketInfo.stdout.includes('hash');
 report(
   'notarization ticket is readable',

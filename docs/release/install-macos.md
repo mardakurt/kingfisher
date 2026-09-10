@@ -68,8 +68,8 @@ is the one Gatekeeper cares about.
 
 **Kingfisher 1.0.0 is code-signed but not notarised.** On a Mac
 that has not seen this build, macOS will refuse to open it and say
-the application is *damaged* or *cannot be checked for malicious
-software*. That is not a diagnosis of the file. Notarisation is
+the application is _damaged_ or _cannot be checked for malicious
+software_. That is not a diagnosis of the file. Notarisation is
 an Apple service that requires a **Developer ID Application**
 certificate, and this build does not have one — the identity it
 was signed with is a development certificate, which is a
@@ -83,8 +83,8 @@ installer does.
 2. **right-click → Open** the Kingfisher icon (or Control-click
    and choose **Open** from the menu). This is the only step
    that is different from a normal app launch.
-3. macOS will show a confirmation dialog: *“Kingfisher” is from
-   an unidentified developer. Are you sure you want to open it?*
+3. macOS will show a confirmation dialog: _“Kingfisher” is from
+   an unidentified developer. Are you sure you want to open it?_
    Click **Open**.
 4. From this point on Kingfisher opens normally, including
    through Spotlight and Launchpad.

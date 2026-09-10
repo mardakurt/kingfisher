@@ -83,7 +83,9 @@ if (!existsSync(manifestPath)) {
     desktop: expected
       .filter((n) => n.endsWith('.dmg') || n.endsWith('.zip'))
       .map((n) => {
-        const hash = createHash('sha256').update(readFileSync(join(distDir, n))).digest('hex');
+        const hash = createHash('sha256')
+          .update(readFileSync(join(distDir, n)))
+          .digest('hex');
         return {
           name: n,
           arch: 'arm64',
@@ -98,9 +100,13 @@ if (!existsSync(manifestPath)) {
 }
 
 /* Confirm the release exists, otherwise create it. */
-const releaseList = spawnSync('gh', ['release', 'list', '--json', 'tagName', '--jq', '.[].tagName'], {
-  encoding: 'utf8',
-});
+const releaseList = spawnSync(
+  'gh',
+  ['release', 'list', '--json', 'tagName', '--jq', '.[].tagName'],
+  {
+    encoding: 'utf8',
+  },
+);
 if (releaseList.status !== 0) {
   console.error('Could not list GitHub releases. Is `gh` authed?');
   exit(1);
@@ -120,9 +126,7 @@ if (!existing.includes(tag)) {
 }
 
 /* Upload artifacts. */
-const files = expected
-  .map((n) => join(distDir, n))
-  .concat([sumPath, manifestPath]);
+const files = expected.map((n) => join(distDir, n)).concat([sumPath, manifestPath]);
 console.log(`Uploading ${files.length} artifacts to ${tag}…`);
 const upload = spawnSync('gh', ['release', 'upload', tag, ...files, '--clobber'], {
   encoding: 'utf8',

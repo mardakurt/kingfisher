@@ -239,7 +239,9 @@ export async function getRunningAppSignature() {
   try {
     const { spawn } = await import('node:child_process');
     return await new Promise((resolve) => {
-      const proc = spawn('codesign', ['-dvvv', app.getPath('exe')], { stdio: ['ignore', 'pipe', 'pipe'] });
+      const proc = spawn('codesign', ['-dvvv', app.getPath('exe')], {
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
       let out = '';
       let err = '';
       proc.stdout.on('data', (chunk) => {
@@ -278,7 +280,7 @@ export async function getRunningAppSignature() {
  * caller does not have to remember which argument was which.
  */
 export function on(event, listener) {
-  const channel = ({
+  const channel = {
     'checking-for-update': 'checking',
     'update-available': 'available',
     'update-not-available': 'notAvailable',
@@ -286,7 +288,7 @@ export function on(event, listener) {
     'update-downloaded': 'downloaded',
     'update-cancelled': 'cancelled',
     error: 'error',
-  })[event];
+  }[event];
   if (!channel) throw new Error(`Unknown updater event: ${event}`);
   listeners[channel].add(listener);
   return () => listeners[channel].delete(listener);

@@ -10,10 +10,10 @@ The user-facing surfaces link here from their footers and from
 
 ## What the current public product is
 
-| Surface           | Version                                                                                                                                     | Status                                                                                 |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| Web application   | Kingfisher 1.0                                                                                                                              | Current. Hosted at the Vercel landing/studio host.                                     |
-| macOS application | Kingfisher 1.0.0 (a 1.1.0 build with Developer ID signing and Apple notarisation is the next planned release) | Apple Silicon DMG + auto-update ZIP. The 1.1.0 binary is **planned** to be Developer ID Application signed and **notarised by Apple**, with a stapled ticket so the deliverable is self-contained offline. Until that release exists, the public binary is the 1.0.0 line, signed with the developer identity but not notarised. The 1.0.0 install guide explains the right-click → Open flow that Gatekeeper requires. |
+| Surface           | Version                                                                                                                                     | Status                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Web application   | Kingfisher 1.0                                                                                                                              | Current. Hosted at the Vercel landing/studio host.                                                                                                                                                                                                                                                                                                                                                                      |
+| macOS application | Kingfisher 1.0.0 (a 1.1.0 build with Developer ID signing and Apple notarisation is the next planned release)                               | Apple Silicon DMG + auto-update ZIP. The 1.1.0 binary is **planned** to be Developer ID Application signed and **notarised by Apple**, with a stapled ticket so the deliverable is self-contained offline. Until that release exists, the public binary is the 1.0.0 line, signed with the developer identity but not notarised. The 1.0.0 install guide explains the right-click → Open flow that Gatekeeper requires. |
 | Reference data    | Pack manifest version is the source of truth; the current packs are listed in [`docs/data/data-inventory.md`](docs/data/data-inventory.md). |
 
 Only the **current** web build and the **current** macOS Preview DMG
@@ -94,7 +94,7 @@ in the running deployment.
   a second copy of the board, the move tree, the engine session
   or the query is a bug in the arrangement, not a feature of it.
 - **Code signing** — the 1.1.0 binary carries a `Developer ID
-  Application` signature with a secure timestamp and the macOS
+Application` signature with a secure timestamp and the macOS
   Hardened Runtime enabled. The signature chain covers the
   outer `.app` and every nested executable: Electron Framework,
   the `Kingfisher Helper` family, the GPU helper, the plugin
@@ -106,7 +106,7 @@ in the running deployment.
   need a network round-trip to retrieve the ticket. The
   audit script `npm run desktop:notary:verify` confirms
   stapling, `stapler validate`, and Gatekeeper `spctl
-  --assess`.
+--assess`.
 - **Hardened Runtime entitlements** — see
   `desktop/build/entitlements.mac.plist` and the comment in
   that file for the justified list. The minimum set is what

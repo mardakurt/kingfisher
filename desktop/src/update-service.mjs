@@ -55,7 +55,15 @@
  * stage names a user can reproduce.
  */
 
-import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  statSync,
+  unlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import path from 'node:path';
 
 import { app, shell } from 'electron';
@@ -552,13 +560,18 @@ export async function openManualInstaller({ manifest, arch } = {}) {
   if (parsed && parsed.ok) {
     asset = assetForArch(parsed.manifest, arch || process.arch);
     if (!asset) {
-      return { ok: false, reason: `No build is published for the ${arch || process.arch} architecture.` };
+      return {
+        ok: false,
+        reason: `No build is published for the ${arch || process.arch} architecture.`,
+      };
     }
     if (!isAllowedReleaseHost(new URL(asset.url).hostname)) {
       return { ok: false, reason: 'The manual installer host is not in the allow-list.' };
     }
   }
-  const url = asset?.url ?? `${process.env.KINGFISHER_PUBLIC_REPOSITORY_URL || 'https://github.com/mardakurt/kingfisher'}/releases/latest`;
+  const url =
+    asset?.url ??
+    `${process.env.KINGFISHER_PUBLIC_REPOSITORY_URL || 'https://github.com/mardakurt/kingfisher'}/releases/latest`;
   try {
     await shell.openExternal(url);
     return { ok: true, url };
@@ -613,7 +626,11 @@ export function acknowledgeUpdate(currentVersion = app.getVersion()) {
     const p = `${app.getPath('userData')}/kingfisher-update-state.json`;
     writeFileSync(
       p,
-      JSON.stringify({ [ACKNOWLEDGED_VERSION_KEY]: currentVersion, at: new Date().toISOString() }, null, 2),
+      JSON.stringify(
+        { [ACKNOWLEDGED_VERSION_KEY]: currentVersion, at: new Date().toISOString() },
+        null,
+        2,
+      ),
       'utf8',
     );
   } catch (err) {

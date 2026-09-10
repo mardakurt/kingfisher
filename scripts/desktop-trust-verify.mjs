@@ -68,7 +68,11 @@ const notaryVerify = spawnSync('node', ['scripts/desktop-notary-verify.mjs', tar
   env: process.env,
 });
 const notaryOk = notaryVerify.code === 0;
-step('notarization is accepted and ticket is stapled', notaryOk, notaryOk ? 'notary:verify passed' : 'notary:verify failed');
+step(
+  'notarization is accepted and ticket is stapled',
+  notaryOk,
+  notaryOk ? 'notary:verify passed' : 'notary:verify failed',
+);
 if (notaryVerify.stdout) process.stdout.write(notaryVerify.stdout);
 if (notaryVerify.stderr) process.stderr.write(notaryVerify.stderr);
 

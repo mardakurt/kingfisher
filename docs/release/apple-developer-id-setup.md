@@ -104,6 +104,7 @@ local signing deterministic.
    ```bash
    base64 -i DeveloperIDApplication.p12 | pbcopy
    ```
+
 2. In the GitHub repository, go to **Settings → Secrets and
    variables → Actions → New repository secret** and create
    `CSC_LINK_P12_BASE64` with the base64 content.
@@ -155,6 +156,7 @@ npm run release:mac:notarize
    ```bash
    base64 -i AuthKey_XXXXXXXXXX.p8 | pbcopy
    ```
+
 2. Create a repository secret `APPLE_API_KEY_P8_BASE64` with
    the base64 content.
 3. Create `APPLE_API_KEY_ID` with the key id.
@@ -165,7 +167,7 @@ npm run release:mac:notarize
 `electron-builder` reads `CSC_LINK` / `CSC_KEY_PASSWORD` to
 sign the produced artifacts. `notarytool` reads `APPLE_API_KEY`
 / `APPLE_API_KEY_ID` / `APPLE_API_ISSUER` to submit. The
-`release:preflight:mac` script checks for the *presence* of
+`release:preflight:mac` script checks for the _presence_ of
 these variables before the build runs and refuses to start
 without them; it never prints their values.
 
@@ -218,6 +220,7 @@ account, the whole setup is roughly:
    ```
 
    All five checks should report green.
+
 8. **Continue with the release** as described in
    `macos-trusted-release.md`.
 

@@ -90,7 +90,9 @@ async function buildFakeZip(targetPath) {
     stdio: 'inherit',
   });
   await new Promise((resolveDone, resolveFail) => {
-    zipProc.on('close', (code) => (code === 0 ? resolveDone() : resolveFail(new Error(`zip exit ${code}`))));
+    zipProc.on('close', (code) =>
+      code === 0 ? resolveDone() : resolveFail(new Error(`zip exit ${code}`)),
+    );
   });
 }
 
@@ -154,11 +156,19 @@ writeFileSync(join(stagingDir, 'latest-mac.yml'), JSON.stringify(liveManifest, n
    download returns the bytes we built. */
 const manifestRes = await fetch(`http://127.0.0.1:${port}/latest-mac.yml`);
 const manifestText = await manifestRes.text();
-step('staging server returns the manifest', manifestRes.ok, `${manifestRes.status} ${manifestText.length}B`);
+step(
+  'staging server returns the manifest',
+  manifestRes.ok,
+  `${manifestRes.status} ${manifestText.length}B`,
+);
 
 const manifestJson = JSON.parse(manifestText);
 const parsed = parseLatestMac(manifestJson);
-step('manifest parses as a valid latest-mac', parsed.ok, parsed.ok ? `version=${parsed.info.version}` : parsed.reason);
+step(
+  'manifest parses as a valid latest-mac',
+  parsed.ok,
+  parsed.ok ? `version=${parsed.info.version}` : parsed.reason,
+);
 if (!parsed.ok) exit(1);
 
 const zipRes = await fetch(`http://127.0.0.1:${port}/Kingfisher-${NEXT_VERSION}-arm64-mac.zip`);
@@ -202,7 +212,10 @@ step('http URL is rejected by the parser for a non-loopback host', !httpParse.ok
 const updateServiceSource = readFileSync(join(HERE, 'desktop/src/kingfisher-updater.mjs'), 'utf8');
 step('updater refuses downgrades', updateServiceSource.includes('allowDowngrade = false'));
 step('updater does not auto-download', updateServiceSource.includes('autoDownload = false'));
-step('updater does not auto-install on quit', updateServiceSource.includes('autoInstallOnAppQuit = false'));
+step(
+  'updater does not auto-install on quit',
+  updateServiceSource.includes('autoInstallOnAppQuit = false'),
+);
 step('updater does not allow prerelease', updateServiceSource.includes('allowPrerelease = false'));
 
 /* Packaged mode: real .app bundles. */

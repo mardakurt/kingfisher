@@ -23,15 +23,15 @@ only public artifact.
 
 ## 2. Git
 
-| Field            | Value                                     |
-| ---------------- | ----------------------------------------- |
-| Branch           | `master`                                  |
-| Starting HEAD    | `42416188a508054c87075e33d1a1ef1df9bb7402` |
-| Final HEAD       | `5cbca4af61cf8b35d2761d33e1a3e4229e4e5a1b` |
-| Working tree     | clean                                     |
-| Files changed    | 18 (test: 5, src: 6, desktop/src: 3, docs: 4) |
-| New files        | `desktop/src/save-barrier.mjs` + `.test.mjs`, `src/persistence/write-tracker.ts` + `.test.ts`, `src/desktop/save-barrier-handler.ts` + `.test.ts`, `src/desktop/post-update-notice.tsx` + `.test.tsx`, `desktop/src/update-service.test.mjs`, `docs/product/phase-37-gap-register.md`, `docs/reports/phase-37-gap-findings.md` |
-| Commits          | 3 (master, ahead of origin by 26 total)   |
+| Field         | Value                                                                                                                                                                                                                                                                                                                          |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Branch        | `master`                                                                                                                                                                                                                                                                                                                       |
+| Starting HEAD | `42416188a508054c87075e33d1a1ef1df9bb7402`                                                                                                                                                                                                                                                                                     |
+| Final HEAD    | `5cbca4af61cf8b35d2761d33e1a3e4229e4e5a1b`                                                                                                                                                                                                                                                                                     |
+| Working tree  | clean                                                                                                                                                                                                                                                                                                                          |
+| Files changed | 18 (test: 5, src: 6, desktop/src: 3, docs: 4)                                                                                                                                                                                                                                                                                  |
+| New files     | `desktop/src/save-barrier.mjs` + `.test.mjs`, `src/persistence/write-tracker.ts` + `.test.ts`, `src/desktop/save-barrier-handler.ts` + `.test.ts`, `src/desktop/post-update-notice.tsx` + `.test.tsx`, `desktop/src/update-service.test.mjs`, `docs/product/phase-37-gap-register.md`, `docs/reports/phase-37-gap-findings.md` |
+| Commits       | 3 (master, ahead of origin by 26 total)                                                                                                                                                                                                                                                                                        |
 
 ## 3. Real Gap Register
 
@@ -145,18 +145,18 @@ terminal verdict, with no stuck states.
 
 ## 7. Persistence
 
-| Store        | Backup | Restore | Notes                                                  |
-| ------------ | ------ | ------- | ------------------------------------------------------ |
-| Studies      | ✓      | ✓       | Restore is atomic (transaction). New safety tests.    |
-| Repertoire   | ✓      | ✓       |                                                        |
-| Training     | ✓      | ✓       |                                                        |
-| Recent Work  | ✓      | ✓       |                                                        |
-| Settings     | ✓      | ✓       |                                                        |
-| Opening Files| ✓      | ✓       |                                                        |
-| Preparation  | ✓      | ✓       |                                                        |
-| Notes        | ✓      | ✓       |                                                        |
-| Reference packs | excluded | excluded | Disposable, as required.                            |
-| Streaming cache | excluded | excluded | Disposable.                                          |
+| Store           | Backup   | Restore  | Notes                                              |
+| --------------- | -------- | -------- | -------------------------------------------------- |
+| Studies         | ✓        | ✓        | Restore is atomic (transaction). New safety tests. |
+| Repertoire      | ✓        | ✓        |                                                    |
+| Training        | ✓        | ✓        |                                                    |
+| Recent Work     | ✓        | ✓        |                                                    |
+| Settings        | ✓        | ✓        |                                                    |
+| Opening Files   | ✓        | ✓        |                                                    |
+| Preparation     | ✓        | ✓        |                                                    |
+| Notes           | ✓        | ✓        |                                                    |
+| Reference packs | excluded | excluded | Disposable, as required.                           |
+| Streaming cache | excluded | excluded | Disposable.                                        |
 
 ## 8. Backup / Restore
 
@@ -179,8 +179,8 @@ terminal verdict, with no stuck states.
   barrier's `write-failed` reason is the user-visible
   surface for a quota-exceeded failure; the message
   produced by `humanizeSaveBarrierFailure` says
-  *"Try again after closing the file that may be locked, or
-  after freeing disk space."*
+  _"Try again after closing the file that may be locked, or
+  after freeing disk space."_
 - **Migration:** No schema changes in Phase 37. Existing
   migration tests pass.
 - **Failure behavior:** The write tracker exposes three
@@ -347,10 +347,11 @@ $ npm test
 - Before Phase 37: 2 474 passing, 11 skipped, 0 failing.
 - After Phase 37: 2 518 passing, 11 skipped, 0 failing.
 - Net new tests: **44** (16 save-barrier + 12 write-tracker
-  + 5 save-barrier-handler + 4 restore-safety +
-  7 update-service).
+  - 5 save-barrier-handler + 4 restore-safety +
+    7 update-service).
 
 GREEN (executed this phase):
+
 - `npm run typecheck`
 - `npm run lint`
 - `npm test`
@@ -363,6 +364,7 @@ GREEN (executed this phase):
 - `git diff --check`
 
 BLOCKED BY DEVELOPER ID:
+
 - `sign verify against Developer ID`
 - `notary verify`
 - `trust verify`

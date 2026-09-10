@@ -62,18 +62,10 @@ const subjectLines = subject.stdout.split('\n');
 const authority = subjectLines
   .filter((line) => line.startsWith('Authority='))
   .map((line) => line.replace(/^Authority=/, '').trim());
-const teamIdMatch = subjectLines
-  .join('\n')
-  .match(/TeamIdentifier=([A-Z0-9]+)/);
-const format = subjectLines
-  .join('\n')
-  .match(/Format=([A-Za-z0-9 ]+)/);
+const teamIdMatch = subjectLines.join('\n').match(/TeamIdentifier=([A-Z0-9]+)/);
+const format = subjectLines.join('\n').match(/Format=([A-Za-z0-9 ]+)/);
 const hasDeveloperId = authority.some((a) => a.startsWith('Developer ID Application:'));
-report(
-  'outer .app is signed with Developer ID Application',
-  hasDeveloperId,
-  authority.join(' | '),
-);
+report('outer .app is signed with Developer ID Application', hasDeveloperId, authority.join(' | '));
 report(
   'outer .app has a team identifier',
   Boolean(teamIdMatch),
@@ -138,7 +130,10 @@ const display = runCodesign(['-d', '--entitlements', '-', candidate]);
 const entBlob = display.stdout.trim();
 const sourceBlob = expected.trim();
 const sameShape = entBlob.replace(/\s+/g, '').endsWith(
-  sourceBlob.replace(/^[\s\S]*?<plist[\s\S]*?>/, '').replace(/<\/plist>\s*$/, '').replace(/\s+/g, ''),
+  sourceBlob
+    .replace(/^[\s\S]*?<plist[\s\S]*?>/, '')
+    .replace(/<\/plist>\s*$/, '')
+    .replace(/\s+/g, ''),
 );
 report(
   'entitlements blob matches desktop/build/entitlements.mac.plist',

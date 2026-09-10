@@ -218,7 +218,7 @@ A red gate is not a fire — it is a known case.
 - **Gatekeeper red**: the ticket was not stapled, or the
   ticket was stapled but the binary is still unsigned.
   Re-run `release:mac:notarize` and confirm `stapler
-  validate` passes.
+validate` passes.
 - **E2E red**: the staging server or the staging ZIP has a
   problem. The wire-level checks usually point to the URL,
   the SHA-512, or the host allow-list. The mutation suite

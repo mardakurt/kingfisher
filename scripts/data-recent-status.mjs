@@ -73,7 +73,9 @@ if (liveEndMonth) {
   const monthDiff = monthDistance(liveEndMonth, candidateEnd);
   if (monthDiff >= 1) {
     recommended = true;
-    console.log(`  reason: live ends ${monthIso(liveEndMonth)}, ${monthDiff} complete month(s) newer available`);
+    console.log(
+      `  reason: live ends ${monthIso(liveEndMonth)}, ${monthDiff} complete month(s) newer available`,
+    );
   } else {
     console.log('  reason: live window already covers the most recent complete month');
   }

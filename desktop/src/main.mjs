@@ -38,7 +38,10 @@ import {
 } from './files.mjs';
 import { missingParts, resolveLayout } from './paths.mjs';
 import { PortUnavailableError, portFree, resolveAppPort } from './origin.mjs';
-import { createSaveBarrier, DEFAULT_TIMEOUT_MS as SAVE_BARRIER_TIMEOUT_MS } from './save-barrier.mjs';
+import {
+  createSaveBarrier,
+  DEFAULT_TIMEOUT_MS as SAVE_BARRIER_TIMEOUT_MS,
+} from './save-barrier.mjs';
 import { Service, freePort } from './services.mjs';
 import { MAC_TRAFFIC_LIGHT_POSITION, windowChromeFor } from './window-chrome.mjs';
 import {

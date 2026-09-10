@@ -544,9 +544,7 @@ describe('restore transaction safety', () => {
       ...good,
       stores: {
         ...good.stores,
-        studies: [
-          { id: 's1', /* missing required fields */ title: 1 },
-        ],
+        studies: [{ id: 's1', /* missing required fields */ title: 1 }],
       },
     };
     expect(() => parseWorkspaceBackup(tampered)).toThrow();

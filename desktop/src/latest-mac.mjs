@@ -73,7 +73,10 @@ export function parseLatestMac(body) {
   const root = /** @type {Record<string, unknown>} */ (body);
   const version = root['version'];
   if (typeof version !== 'string' || !isSemverTriple(version)) {
-    return { ok: false, reason: `Update feed version "${String(version)}" is not a semver triple.` };
+    return {
+      ok: false,
+      reason: `Update feed version "${String(version)}" is not a semver triple.`,
+    };
   }
   const files = root['files'];
   if (!Array.isArray(files) || files.length === 0) {
@@ -134,7 +137,10 @@ function isHttpsUrl(value) {
   if (!value.startsWith('https://') && !value.startsWith('http://')) return false;
   try {
     const parsed = new URL(value);
-    const isLoopback = parsed.hostname === '127.0.0.1' || parsed.hostname === 'localhost' || parsed.hostname === '::1';
+    const isLoopback =
+      parsed.hostname === '127.0.0.1' ||
+      parsed.hostname === 'localhost' ||
+      parsed.hostname === '::1';
     /* Production: HTTPS only. Loopback staging: HTTP allowed because
        the local server has no certificate. The host allow-list is
        what keeps this honest: the production hosts are GitHub, the

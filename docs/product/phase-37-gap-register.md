@@ -7,22 +7,22 @@
 
 Each entry is one concrete gap. Severity follows the brief's table.
 
-| Severity    | Definition                                                   |
-| ----------- | ------------------------------------------------------------ |
-| Critical    | Authored data loss / install while data uncommitted / etc.   |
-| High        | Update correctness, product state truth, recovery, security.  |
-| Medium      | Dead workflow, copy wrong, leaks, accessibility, soft bugs.  |
-| Low         | Cosmetic or doc-only.                                        |
+| Severity | Definition                                                   |
+| -------- | ------------------------------------------------------------ |
+| Critical | Authored data loss / install while data uncommitted / etc.   |
+| High     | Update correctness, product state truth, recovery, security. |
+| Medium   | Dead workflow, copy wrong, leaks, accessibility, soft bugs.  |
+| Low      | Cosmetic or doc-only.                                        |
 
 ## Summary at open
 
-| Bucket                          | Count |
-| ------------------------------- | ----- |
-| Critical                        | 4     |
-| High                            | 6     |
-| Medium                          | 9     |
-| Low                             | 5     |
-| **Total open**                  | **24** |
+| Bucket         | Count  |
+| -------------- | ------ |
+| Critical       | 4      |
+| High           | 6      |
+| Medium         | 9      |
+| Low            | 5      |
+| **Total open** | **24** |
 
 ## Open
 
@@ -35,11 +35,11 @@ Each entry is one concrete gap. Severity follows the brief's table.
   1. `no-window` (line 602) — when the BrowserWindow is destroyed.
   2. timeout (line 609) — when the renderer never answers.
   3. `send-failed` (line 632) — when the IPC `send` throws.
-  The verdict listener treats `ok: true` as "safe to install." A user
-  clicking **Install Update** with a destroyed window, a frozen renderer,
-  or a transport failure would still get the install path. The Phase 36
-  handover explicitly documents the timeout as "proceeds" — the brief
-  calls this out as a Critical gap (PART G).
+     The verdict listener treats `ok: true` as "safe to install." A user
+     clicking **Install Update** with a destroyed window, a frozen renderer,
+     or a transport failure would still get the install path. The Phase 36
+     handover explicitly documents the timeout as "proceeds" — the brief
+     calls this out as a Critical gap (PART G).
 - **Reproduction:** Block the renderer JS thread; click **Install
   Update**; the timeout resolves `ok: true`; `quitAndInstall()` runs.
 - **Affected:** All desktop update paths.
@@ -80,7 +80,7 @@ Each entry is one concrete gap. Severity follows the brief's table.
 - **Severity:** Critical
 - **Subsystem:** `desktop/src/main.mjs:601-602`.
 - **Evidence:** `if (!state.window || state.window.isDestroyed()) return
-  Promise.resolve({ ok: true, reason: 'no-window', timedOut: false });`
+Promise.resolve({ ok: true, reason: 'no-window', timedOut: false });`
   — a renderer that crashed, a window the user closed, or a window the
   OS reclaimed silently passes the save barrier. The user's edits are
   no longer in front of a process that could have flushed them, and
@@ -104,7 +104,8 @@ Each entry is one concrete gap. Severity follows the brief's table.
   by anyone in the renderer.)
 
 ### GAP-06 — Post-update acknowledgement has no "newer than last
-  acknowledged" guard on the renderer side
+
+acknowledged" guard on the renderer side
 
 - **Severity:** High
 - **Subsystem:** `src/...` — the post-update surface would have to
@@ -121,8 +122,8 @@ Each entry is one concrete gap. Severity follows the brief's table.
 - **Severity:** High
 - **Subsystem:** Documentation.
 - **Evidence:** `docs/release/install-macos.md:1-12` claims
-  *"Kingfisher 1.1.0 for macOS is Developer ID signed and notarised
-  by Apple"*. The current public binary is `Kingfisher-1.0.0-arm64.dmg`
+  _"Kingfisher 1.1.0 for macOS is Developer ID signed and notarised
+  by Apple"_. The current public binary is `Kingfisher-1.0.0-arm64.dmg`
   (the file name is also hard-coded in the same doc at line 27), the
   public 1.0.0 build is not Developer ID signed (the only identities
   on this host are `Apple Development` and `Apple Distribution`), and
@@ -174,9 +175,10 @@ Each entry is one concrete gap. Severity follows the brief's table.
   concurrently with the shutdown.
 
 ### GAP-11 — `DesktopBridge` TypeScript surface does not declare
-  `onSaveBarrierRequest` / `acknowledgeUpdate` / `subscribeUpdates`
-  (TS-side) — runtime preload exposes them, but `desktop()` returns
-  a typed bridge that does not include them.
+
+`onSaveBarrierRequest` / `acknowledgeUpdate` / `subscribeUpdates`
+(TS-side) — runtime preload exposes them, but `desktop()` returns
+a typed bridge that does not include them.
 
 - **Severity:** High
 - **Subsystem:** `src/desktop/bridge.ts`.
@@ -207,17 +209,17 @@ Each entry is one concrete gap. Severity follows the brief's table.
 - **Subsystem:** `src/persistence/backup.ts:267-279` (`restoreWorkspaceBackup`).
 - **Evidence:** PART AH requires that a failed restore leaves the
   existing local data intact. The current code does clear+put inside
-  one `readwrite` transaction; the *transaction* is atomic, but the
+  one `readwrite` transaction; the _transaction_ is atomic, but the
   validation is **outside** the transaction (`parseWorkspaceBackup`
   runs first and throws). The PART-AG concern is a backup that parses
   but has a bad record in a later store — the per-record `validateRecord`
   in `parseWorkspaceBackup` is called before the transaction opens,
   so a corrupt record aborts the whole restore before any write. Good.
-  However, PART AH also concerns mid-restore *write* failures (IndexedDB
+  However, PART AH also concerns mid-restore _write_ failures (IndexedDB
   transaction aborts, disk full, etc.). The code does not commit
   record-by-record with a recovery path; a `QuotaExceededError` mid-way
   leaves the database partially written inside an aborted transaction
-  (good — atomic) but the *return value* counts partial records before
+  (good — atomic) but the _return value_ counts partial records before
   the failure (it does not — it throws). A test that the partial
   count is honest, and that the user's prior data is byte-identical
   to before, is required. The existing `backup.test.ts` does not
@@ -227,7 +229,8 @@ Each entry is one concrete gap. Severity follows the brief's table.
   throws, and the partial record count is 0.
 
 ### GAP-14 — `BRIDGE_CONTRACTS` does not list every renderer-facing
-  capability
+
+capability
 
 - **Severity:** Medium
 - **Subsystem:** `src/desktop/bridge-contract.ts`.
@@ -237,7 +240,8 @@ Each entry is one concrete gap. Severity follows the brief's table.
   are missing. PART BN calls for an exhaustive enumeration.
 
 ### GAP-15 — Update dialog close during download does not document
-  behavior
+
+behavior
 
 - **Severity:** Medium
 - **Subsystem:** `desktop/src/dialogs/update.js`,
@@ -289,7 +293,8 @@ Each entry is one concrete gap. Severity follows the brief's table.
   "Caruana" then "Carlsen" rapidly. Out-of-order responses.
 
 ### GAP-19 — Resource leak audit: no repeated mount/unmount test for
-  the engine listeners
+
+the engine listeners
 
 - **Severity:** Medium
 - **Subsystem:** `src/features/engine/`.
@@ -307,7 +312,8 @@ Each entry is one concrete gap. Severity follows the brief's table.
   is missing.
 
 ### GAP-21 — Console cleanliness: stale React `act` warnings in
-  dev-only test paths
+
+dev-only test paths
 
 - **Severity:** Medium
 - **Subsystem:** `src/**/*.test.tsx`.

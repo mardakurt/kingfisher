@@ -47,18 +47,13 @@ const hasApiKey = Boolean(
 const hasKeychainProfile = Boolean(process.env.APPLE_NOTARYTOOL_PROFILE);
 if (!hasApiKey && !hasKeychainProfile) {
   console.error('No notarization credentials set.');
-  console.error('Set APPLE_API_KEY + APPLE_API_KEY_ID + APPLE_API_ISSUER, or APPLE_NOTARYTOOL_PROFILE.');
+  console.error(
+    'Set APPLE_API_KEY + APPLE_API_KEY_ID + APPLE_API_ISSUER, or APPLE_NOTARYTOOL_PROFILE.',
+  );
   exit(1);
 }
 
-const notaryArgs = [
-  'notarytool',
-  'submit',
-  target,
-  '--wait',
-  '--output-format',
-  'json',
-];
+const notaryArgs = ['notarytool', 'submit', target, '--wait', '--output-format', 'json'];
 if (hasApiKey) {
   notaryArgs.push(
     '--key',

@@ -40,7 +40,9 @@ if (!existsSync(target)) {
   exit(1);
 }
 
-const ids = execFileSync('security', ['find-identity', '-v', '-p', 'codesigning'], { encoding: 'utf8' });
+const ids = execFileSync('security', ['find-identity', '-v', '-p', 'codesigning'], {
+  encoding: 'utf8',
+});
 const developerId = ids
   .split('\n')
   .map((line) => line.trim())

@@ -62,7 +62,8 @@
       case 'idle':
         paint({
           headline: 'Kingfisher updates itself in the background.',
-          detail: 'Click Check for Updates to ask the release host whether a newer version is available.',
+          detail:
+            'Click Check for Updates to ask the release host whether a newer version is available.',
           progress: null,
           footnote: '',
           primary: { label: 'Check for Updates', enabled: true, action: 'check' },
@@ -81,8 +82,12 @@
         break;
       case 'up-to-date':
         paint({
-          headline: latest ? `Kingfisher ${current} is the latest available version.` : 'Kingfisher is up to date.',
-          detail: latest ? `Kingfisher ${current} is the latest version published on the release channel.` : '',
+          headline: latest
+            ? `Kingfisher ${current} is the latest available version.`
+            : 'Kingfisher is up to date.',
+          detail: latest
+            ? `Kingfisher ${current} is the latest version published on the release channel.`
+            : '',
           progress: null,
           footnote: '',
           primary: { label: 'Done', enabled: true, action: 'close' },
