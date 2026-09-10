@@ -57,6 +57,20 @@ export interface WriteTracker {
   /** Number of writes currently in flight. */
   inflight(): number;
   /**
+   * A snapshot of the most recent write that rejected. The tracker
+   * records the latest failure so the workspace chrome can keep
+   * "Save failed" visible until a fresh successful write arrives.
+   * Returns `null` once a successful write has happened after the
+   * last failure.
+   */
+  lastFailure(): { readonly label: string; readonly error: unknown } | null;
+  /**
+   * Subscribe to state changes. The listener is invoked whenever
+   * the in-flight count or the last-failure snapshot changes.
+   * The returned function detaches the listener.
+   */
+  subscribe(listener: () => void): () => void;
+  /**
    * Wait for every currently-tracked write to settle, or for the
    * budget to expire. The result is structured so the caller can
    * map it to a save-barrier reason.
@@ -76,6 +90,11 @@ interface Slot {
 
 const createTracker = (): WriteTracker => {
   const slots = new Set<Slot>();
+  let lastFailure: { label: string; error: unknown } | null = null;
+  const listeners = new Set<() => void>();
+  const notify = (): void => {
+    for (const listener of listeners) listener();
+  };
   return {
     begin(label) {
       let resolveSlot: () => void = () => {};
@@ -89,22 +108,38 @@ const createTracker = (): WriteTracker => {
         error: undefined,
       };
       slots.add(slot);
+      notify();
       return {
         release(commit) {
           if (slot.outcome !== null) return;
           if (commit) {
             slot.outcome = 'ok';
+            // A successful write clears the most recent failure so
+            // the workspace status indicator can transition from
+            // "Save failed" back to "Saved on this device".
+            lastFailure = null;
           } else {
             slot.outcome = 'err';
             slot.error = new Error(`write failed: ${label}`);
+            lastFailure = { label, error: slot.error };
           }
           resolveSlot();
           slots.delete(slot);
+          notify();
         },
       };
     },
     inflight() {
       return slots.size;
+    },
+    lastFailure() {
+      return lastFailure;
+    },
+    subscribe(listener) {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
     },
     async flush(budgetMs) {
       const started = Date.now();

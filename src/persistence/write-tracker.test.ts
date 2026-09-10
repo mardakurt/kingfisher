@@ -162,3 +162,90 @@ describe('write tracker — wired through PersistenceDatabase', () => {
     expect(r.ok).toBe(true);
   });
 });
+
+describe('write tracker — lastFailure + subscribe (Phase 38 PART P)', () => {
+  it('records the most recent rejection and clears it after a subsequent success', async () => {
+    resetWriteTrackerForTests();
+    const tracker = getWriteTracker();
+    const mem = createMemoryRepositories();
+    const wrapped = withWriteTracking(mem.raw, tracker);
+    // Trigger a rejection through the tracked transaction so the
+    // wrapper actually registers a slot and the rejection path runs
+    // `release(false)`.
+    const failing = wrapped
+      .transaction(['studies'], 'readwrite', async (tx) => {
+        await tx.put('studies', { title: 'no-id' } as unknown as { id: string });
+      })
+      .catch(() => undefined);
+    await failing;
+    const failure = tracker.lastFailure();
+    expect(failure).not.toBeNull();
+    if (!failure) throw new Error('expected failure');
+    expect(failure.label).toMatch(/^write:studies$/);
+    // A successful write clears the failure snapshot so the
+    // workspace chrome can stop showing "Save failed".
+    const ok = wrapped.transaction(['studies'], 'readwrite', async (tx) => {
+      await tx.put('studies', {
+        id: 's',
+        title: 't',
+        revision: 1,
+        createdAt: 0,
+        updatedAt: 0,
+      });
+    });
+    await ok;
+    expect(tracker.lastFailure()).toBeNull();
+  });
+
+  it('notifies subscribers when inflight count or lastFailure changes', () => {
+    resetWriteTrackerForTests();
+    const tracker = getWriteTracker();
+    const events: number[] = [];
+    const unsubscribe = tracker.subscribe(() => {
+      events.push(tracker.inflight());
+    });
+    const a = tracker.begin('subscribe:a');
+    const b = tracker.begin('subscribe:b');
+    expect(events).toEqual([1, 2]);
+    a.release(true);
+    b.release(true);
+    expect(events).toEqual([1, 2, 1, 0]);
+    unsubscribe();
+    const c = tracker.begin('subscribe:c');
+    c.release(true);
+    // No more events after the listener detached.
+    expect(events).toEqual([1, 2, 1, 0]);
+  });
+
+  it('a subscriber that was attached during a failure still sees the success notification', async () => {
+    resetWriteTrackerForTests();
+    const tracker = getWriteTracker();
+    const mem = createMemoryRepositories();
+    const wrapped = withWriteTracking(mem.raw, tracker);
+    const failing = wrapped
+      .transaction(['studies'], 'readwrite', async (tx) => {
+        await tx.put('studies', { title: 'no-id' } as unknown as { id: string });
+      })
+      .catch(() => undefined);
+    await failing;
+    expect(tracker.lastFailure()).not.toBeNull();
+    let sawSaved = false;
+    const unsubscribe = tracker.subscribe(() => {
+      if (tracker.lastFailure() === null && tracker.inflight() === 0) {
+        sawSaved = true;
+      }
+    });
+    const ok = wrapped.transaction(['studies'], 'readwrite', async (tx) => {
+      await tx.put('studies', {
+        id: 's',
+        title: 't',
+        revision: 1,
+        createdAt: 0,
+        updatedAt: 0,
+      });
+    });
+    await ok;
+    unsubscribe();
+    expect(sawSaved).toBe(true);
+  });
+});

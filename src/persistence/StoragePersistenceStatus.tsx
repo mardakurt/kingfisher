@@ -21,11 +21,21 @@
  * in a browser. The status never mentions IndexedDB, sync
  * or cloud.
  *
- * The state mapping is:
- *   persistent      -> "Saved on this device" / "Saved on this Mac"
- *   not-persistent  -> "Storage is not protected"  (clickable to request)
- *   unavailable     -> "Storage protection unavailable" (informational only)
- *   pending         -> "Storage status…" (placeholder until first async probe)
+ * Phase 38 (PART P-Q): the visible state is now driven by two
+ * signals, not one. The write tracker tells us whether any
+ * user-authored write is in flight or has rejected since the
+ * last success. The storage-persistence probe tells us whether
+ * the runtime will keep our work. The composed copy is:
+ *
+ *   - "Saving…" if a write is in flight (regardless of persistence)
+ *   - "Save failed" if a write has rejected since the last success
+ *   - "Saved on this device" once everything is on disk and durable
+ *   - "Storage is not protected" if durable storage was never granted
+ *   - "Storage protection unavailable" if the runtime has no API
+ *   - "Storage status…" while the first probe is still pending
+ *
+ * The previous "green dot, no text" UX did not say a write was
+ * in flight. Now it does.
  */
 
 import { useState } from 'react';
@@ -34,67 +44,41 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { useUi } from '@/stores/ui-store';
 
+import { composeSavedState, type SavedStatePersistence } from './saved-state';
 import { useStoragePersistence } from './use-storage-persistence';
+import { useWriteTracker } from './use-write-tracker';
 
 const isDesktop =
   typeof navigator !== 'undefined' && /Kingfisher|Electron/i.test(navigator.userAgent);
 
-const COPY = {
-  pending: {
-    label: isDesktop ? 'Storage status…' : 'Storage status…',
-    detail: 'Checking how this runtime stores your work.',
-  },
-  persistent: {
-    label: isDesktop ? 'Saved on this Mac' : 'Saved on this device',
-    detail: isDesktop
-      ? 'Your work is kept on this Mac, even if the application is under pressure.'
-      : 'Your work is kept here, even if the browser is under pressure.',
-  },
-  'not-persistent': {
-    label: 'Storage is not protected',
-    detail: 'Click to ask the runtime to keep your work even under pressure.',
-  },
-  unavailable: {
-    label: 'Storage protection unavailable',
-    detail: isDesktop
-      ? 'This runtime does not expose durable storage, so the OS may evict your work.'
-      : 'This runtime does not expose durable storage, so the browser may evict your work.',
-  },
-} as const;
-
-const TONE = {
-  pending: 'text-tertiary',
-  persistent: 'text-success',
-  'not-persistent': 'text-warning',
-  unavailable: 'text-caution',
-} as const;
-
 export function StoragePersistenceStatus({ compact = false }: { readonly compact?: boolean }) {
-  const { status, request } = useStoragePersistence();
+  const { status: persistence, request } = useStoragePersistence();
+  const { status: writeStatus, failureLabel } = useWriteTracker();
   const router = useRouter();
   const notify = useUi((state) => state.notify);
   const [popoverOpen, setPopoverOpen] = useState(false);
-  const copy = COPY[status];
-  const tone = TONE[status];
-
-  const requestable = status === 'not-persistent';
-  const persistent = status === 'persistent';
+  const view = composeSavedState(
+    persistence as SavedStatePersistence,
+    writeStatus,
+    failureLabel,
+  );
 
   return (
     <div
       className="relative flex items-center gap-2"
-      data-storage-persistence={status}
+      data-storage-persistence={persistence}
+      data-write-state={writeStatus}
       data-testid="storage-persistence-status"
     >
       <span
-        className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${tone === 'text-tertiary' ? 'bg-tertiary' : tone === 'text-success' ? 'bg-success' : tone === 'text-warning' ? 'bg-warning' : 'bg-caution'}`}
+        className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${view.dotClass}`}
         aria-hidden
       />
       <button
         type="button"
-        disabled={!requestable && !persistent}
+        disabled={!view.requestable && !view.openable && writeStatus !== 'failed'}
         onClick={async () => {
-          if (requestable) {
+          if (view.requestable) {
             const granted = await request();
             if (granted === 'persistent') {
               notify({
@@ -117,28 +101,39 @@ export function StoragePersistenceStatus({ compact = false }: { readonly compact
             }
             return;
           }
-          if (persistent) {
+          if (view.openable || writeStatus === 'failed') {
             setPopoverOpen((value) => !value);
           }
         }}
-        title={copy.detail}
-        aria-haspopup={persistent ? 'true' : undefined}
-        aria-expanded={persistent ? popoverOpen : undefined}
-        className={`min-w-0 truncate text-left text-[10.5px] ${tone} ${requestable || persistent ? 'cursor-pointer underline-offset-2 hover:underline' : 'cursor-default'} ${compact ? 'sr-only' : ''}`}
+        title={view.detail}
+        aria-haspopup={view.openable || writeStatus === 'failed' ? 'true' : undefined}
+        aria-expanded={view.openable || writeStatus === 'failed' ? popoverOpen : undefined}
+        className={`min-w-0 truncate text-left text-[10.5px] ${view.tone} ${
+          view.requestable || view.openable || writeStatus === 'failed'
+            ? 'cursor-pointer underline-offset-2 hover:underline'
+            : 'cursor-default'
+        } ${compact ? 'sr-only' : ''}`}
       >
-        {copy.label}
+        {view.label}
       </button>
-      {popoverOpen && persistent ? (
+      {popoverOpen && (view.openable || writeStatus === 'failed') ? (
         <div
           role="dialog"
           aria-label="Saved status"
           className="absolute bottom-full left-0 z-50 mb-2 w-72 rounded-[5px] border border-line bg-surface-1 p-3 text-[12px] text-secondary shadow-lg"
         >
-          <p className="font-medium text-primary">{copy.label}</p>
-          <p className="mt-1 text-[11px] text-tertiary">{copy.detail}</p>
-          <p className="mt-2 text-[11px] text-tertiary">
-            Backups are portable JSON. Streaming cache is excluded — it is reproducible, not work.
-          </p>
+          <p className="font-medium text-primary">{view.label}</p>
+          <p className="mt-1 text-[11px] text-tertiary">{view.detail}</p>
+          {writeStatus === 'failed' ? (
+            <p className="mt-2 text-[11px] text-tertiary">
+              The most recent change did not reach local storage. A retry or a backup download is the safest
+              next step.
+            </p>
+          ) : (
+            <p className="mt-2 text-[11px] text-tertiary">
+              Backups are portable JSON. Streaming cache is excluded — it is reproducible, not work.
+            </p>
+          )}
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <Button
               size="sm"
@@ -168,7 +163,7 @@ export function StoragePersistenceStatus({ compact = false }: { readonly compact
                 }
               }}
             >
-              Download backup
+              {writeStatus === 'failed' ? 'Download backup before retrying' : 'Download backup'}
             </Button>
             <Button
               size="sm"

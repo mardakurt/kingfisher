@@ -85,6 +85,8 @@ describe('save barrier handler', () => {
     const brokenTracker = {
       begin: () => ({ release: () => undefined }),
       inflight: () => 0,
+      lastFailure: () => null,
+      subscribe: () => () => undefined,
       flush: async () => {
         throw new Error('tracker failure');
       },
