@@ -29,6 +29,7 @@
  */
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/Button';
 import { useUi } from '@/stores/ui-store';
@@ -70,6 +71,7 @@ const TONE = {
 
 export function StoragePersistenceStatus({ compact = false }: { readonly compact?: boolean }) {
   const { status, request } = useStoragePersistence();
+  const router = useRouter();
   const notify = useUi((state) => state.notify);
   const [popoverOpen, setPopoverOpen] = useState(false);
   const copy = COPY[status];
@@ -175,7 +177,7 @@ export function StoragePersistenceStatus({ compact = false }: { readonly compact
                 setPopoverOpen(false);
                 // The settings page is the deeper surface for
                 // storage and import/export.
-                window.location.hash = '#/settings';
+                router.push('/settings');
               }}
             >
               Storage settings

@@ -135,3 +135,64 @@ describe('sharing a machine between engines', () => {
     expect(shared.hashMb * engines).toBeLessThanOrEqual(1000);
   });
 });
+
+describe('position changes invalidate evidence and pending searches', () => {
+  beforeEach(() => {
+    useEngine.getState().shutdown();
+    create.mockReset();
+  });
+
+  it('stops the old search and clears its evidence when the board changes', async () => {
+    const { session } = failingSession(new Error('unused'));
+    create.mockResolvedValue(session);
+    await useEngine
+      .getState()
+      .analyse('primary', START_FEN, { kind: 'infinite' }, { multiPv: 1, threads: 1, hashMb: 16 });
+    const other = START_FEN.replace(' w ', ' b ') as typeof START_FEN;
+    useEngine.getState().invalidatePosition(other);
+    expect(session.stop).toHaveBeenCalled();
+    expect(useEngine.getState().primary.running).toBe(false);
+    expect(useEngine.getState().primary.analysedFen).toBeNull();
+    expect(useEngine.getState().primary.analysis).toBeNull();
+  });
+
+  it('keeps a pending search when the mounted workspace has the same position', async () => {
+    const { session } = failingSession(new Error('unused'));
+    let resolve!: (value: EngineSession) => void;
+    create.mockImplementation(
+      () =>
+        new Promise<EngineSession>((r) => {
+          resolve = r;
+        }),
+    );
+    const started = useEngine
+      .getState()
+      .analyse('primary', START_FEN, { kind: 'infinite' }, { multiPv: 1, threads: 1, hashMb: 16 });
+    await Promise.resolve();
+    useEngine.getState().invalidatePosition(START_FEN);
+    resolve(session);
+    await started;
+    expect(session.analyse).toHaveBeenCalledTimes(1);
+    expect(useEngine.getState().primary.running).toBe(true);
+  });
+
+  it('does not revive an old position after a delayed engine start', async () => {
+    const { session } = failingSession(new Error('unused'));
+    let resolve!: (value: EngineSession) => void;
+    create.mockImplementation(
+      () =>
+        new Promise<EngineSession>((r) => {
+          resolve = r;
+        }),
+    );
+    const started = useEngine
+      .getState()
+      .analyse('primary', START_FEN, { kind: 'infinite' }, { multiPv: 1, threads: 1, hashMb: 16 });
+    await Promise.resolve();
+    useEngine.getState().invalidatePosition(START_FEN.replace(' w ', ' b ') as typeof START_FEN);
+    resolve(session);
+    await started;
+    expect(session.analyse).not.toHaveBeenCalled();
+    expect(useEngine.getState().primary.running).toBe(false);
+  });
+});

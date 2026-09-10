@@ -5,3 +5,5 @@
 cf64dcf7b7435748d6d009974b667deaf5cff0db:e2e/phase10.spec.ts:generic-api-key:387
 7f83453e0ba473790dd379ded3e4fc1baffe852a:src/features/shell/diagnostic-report.test.ts:generic-api-key:11
 7f83453e0ba473790dd379ded3e4fc1baffe852a:src/features/shell/diagnostic-report.test.ts:generic-api-key:13
+249d86ab3954e923686eb7217a2eb3450b6b5046:src/lib/describe-error.test.ts:generic-api-key:78
+8643f1879e7874267a3f22784f389401ddc8c3ab:src/database/providers/remote-reference.test.ts:generic-api-key:31

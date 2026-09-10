@@ -149,7 +149,7 @@ export function EnginePanel() {
         <span className="truncate normal-case tracking-normal text-secondary">
           {identity?.name ?? 'Stockfish'}
         </span>
-        {analysis && analysis.depth > 0 && (
+        {analysis && !stale && analysis.depth > 0 && (
           <span className={cn('tabular', stale ? 'text-tertiary/60' : 'text-tertiary')}>
             depth {analysis.depth}
             {analysis.seldepth ? `/${analysis.seldepth}` : ''}
@@ -185,7 +185,7 @@ export function EnginePanel() {
           />
         ) : status === 'loading' ? (
           <EmptyState title="Loading Stockfish…" description="The build is about 7 MB." />
-        ) : !analysis || analysis.lines.length === 0 ? (
+        ) : stale || !analysis || analysis.lines.length === 0 ? (
           <EmptyState
             title="No analysis yet"
             description="Start the engine to see its candidate moves and evaluations for this position."
@@ -264,7 +264,7 @@ export function EnginePanel() {
             ))}
           </ol>
         )}
-        {analysis && preview ? (
+        {analysis && !stale && preview ? (
           <PvPreview
             fen={node.fen}
             line={analysis.lines.find((line) => line.rank === preview.rank)}
@@ -277,7 +277,7 @@ export function EnginePanel() {
         ) : null}
       </PanelBody>
 
-      {analysis && analysis.nodes > 0 && (
+      {analysis && !stale && analysis.nodes > 0 && (
         <footer className="shrink-0 border-t border-line-subtle px-2.5 py-1 text-[10px] text-tertiary tabular">
           <div className="flex items-center gap-3">
             <span>{formatCount(analysis.nodes)} nodes</span>

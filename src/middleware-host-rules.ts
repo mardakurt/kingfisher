@@ -9,13 +9,19 @@
  */
 
 export const STUDIO_HOST_ENV = 'KINGFISHER_STUDIO_HOST';
-export const STUDIO_DEFAULT_HOSTS = ['studio.kingfisher-chess.vercel.app', 'studio.localhost'];
+export const STUDIO_DEFAULT_HOSTS = [
+  'kingfisher-roan.vercel.app',
+  'studio.kingfisher-chess.vercel.app',
+  'studio.localhost',
+];
 
 /** A path the marketing surface is allowed to answer. */
 export const LANDING_PATHS = new Set<string>([
   '/',
   '/favicon.ico',
   '/icon.svg',
+  '/icon-192.png',
+  '/icon-512.png',
   '/apple-icon.png',
   '/manifest.webmanifest',
   '/robots.txt',
@@ -58,6 +64,11 @@ export type RoutingAction =
   | { readonly kind: 'rewrite'; readonly to: string };
 
 export function routingFor(host: string | null, pathname: string): RoutingAction {
+  // Local development and the desktop shell serve both the studio and its assets.
+  // Match the complete authority so similarly named remote hosts cannot qualify.
+  if (host && /^(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/i.test(host)) {
+    return { kind: 'next' };
+  }
   const studio = studioHostFor(host);
   if (!studio) {
     if (pathname !== '/' && !isLandingAsset(pathname)) {

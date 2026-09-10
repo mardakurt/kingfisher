@@ -23,16 +23,15 @@
  *                            async one has not; the indicator
  *                            renders a quiet placeholder.
  *
- * The initial value uses the synchronous probe so the first paint
- * already shows something truthful. The async probe runs once
- * after mount and upgrades the state when it resolves.
+ * Server and first browser render use the same pending state. The async
+ * probe runs after mount; reading browser capabilities during initialization
+ * would produce different HTML on the server and cause a hydration failure.
  */
 
 import { useCallback, useEffect, useState } from 'react';
 
 import {
   persistenceState,
-  persistenceStateSync,
   requestPersistence,
   type StoragePersistence,
 } from './storage-persistence';
@@ -45,7 +44,7 @@ export interface UseStoragePersistenceResult {
 }
 
 export function useStoragePersistence(): UseStoragePersistenceResult {
-  const [status, setStatus] = useState<StoragePersistenceStatus>(persistenceStateSync);
+  const [status, setStatus] = useState<StoragePersistenceStatus>('pending');
 
   useEffect(() => {
     let cancelled = false;

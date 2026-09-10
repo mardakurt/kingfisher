@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import { mkdtempSync as auditTemp } from 'node:fs';
+import { tmpdir as auditTmpdir } from 'node:os';
 /**
  * Every managed engine the packaged application offers, driven inside it.
  *
@@ -132,7 +134,12 @@ async function main() {
     exit(1);
   }
 
-  const app = await electron.launch({ ...launch, timeout: 120_000 });
+  const profile = auditTemp(path.join(auditTmpdir(), 'kingfisher-engines-'));
+  const app = await electron.launch({
+    ...launch,
+    args: [...launch.args, `--user-data-dir=${profile}`],
+    timeout: 120_000,
+  });
   const window = await app.firstWindow({ timeout: 120_000 });
   await window.waitForLoadState('domcontentloaded');
   await window.waitForFunction(

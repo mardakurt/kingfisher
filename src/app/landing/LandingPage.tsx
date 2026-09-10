@@ -197,7 +197,7 @@ export function LandingPage() {
                   <source srcSet="/landing/img/research-explorer.webp" type="image/webp" />
                   <img
                     src="/landing/img/research-explorer.png"
-                    alt="The Kingfisher Opening Explorer with four sources side by side"
+                    alt="Kingfisher Theory Book showing named branches of the Sicilian Defence"
                     width="2880"
                     height="1840"
                     loading="lazy"

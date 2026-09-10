@@ -45,15 +45,15 @@ Opening research, engine analysis, large personal databases, repertoire
 and review. A local-first workstation: nothing leaves your machine that
 you did not put in the address bar.
 
-|                         |                                                                                                                                                                                                                  |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Opening research**    | Compare Elite OTB, Recent Theory, and High-Rated Online _side by side_. The Explorer never produces a single "truth" score that quietly blends them.                                                             |
-| **Engines**             | Stockfish 18 in the browser (sandboxed). Native Stockfish, Berserk, Halogen, Koivisto, Obsidian, PlentyChess, Stormphrax, Viridithas and Lc0 on macOS, with their digests verified and their licence on the row. |
-| **Databases**           | Attach large personal collections (SQLite), search by position, structure, player, or claim. Copy, move, merge, dedupe, federate. Open positions and games back into the board.                                  |
-| **Theory Book**         | 3,810 named positions with ECO codes, browsable. Explains a variation by name only; never invents an evaluation.                                                                                                 |
-| **Players**             | 12,522 identities plus 106 historical figures. Diacritics, aliases, rapid typing, backspacing. Profile, what they play as White, what they play as Black, what changed recently.                                 |
-| **Repertoire & review** | Add positions to repertoire, drill them, mark progress. Repertoire survives quit. Backup and restore work.                                                                                                       |
-| **Local-first**         | No account required. No hidden telemetry. Studies, repertoire, training and notes are stored locally. The diagnostic report is local; the log file is local.                                                     |
+|                         |                                                                                                                                                                                                                                                |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Opening research**    | Compare Elite OTB, Recent Theory, and High-Rated Online _side by side_. The Explorer never produces a single "truth" score that quietly blends them.                                                                                           |
+| **Engines**             | Stockfish 18 in the browser (sandboxed). Native Stockfish, Halogen, PlentyChess, Stormphrax, Viridithas and Lc0 on Apple Silicon. Other catalogue entries depend on published platform builds; availability and licences are shown in the app. |
+| **Databases**           | Attach large personal collections (SQLite), search by position, structure, player, or claim. Copy, move, merge, dedupe, federate. Open positions and games back into the board.                                                                |
+| **Theory Book**         | 3,810 named positions with ECO codes, browsable. Explains a variation by name only; never invents an evaluation.                                                                                                                               |
+| **Players**             | 12,522 identities plus 106 historical figures. Diacritics, aliases, rapid typing, backspacing. Profile, what they play as White, what they play as Black, what changed recently.                                                               |
+| **Repertoire & review** | Add positions to repertoire, drill them, mark progress. Repertoire survives quit. Backup and restore work.                                                                                                                                     |
+| **Local-first**         | No account required. No hidden telemetry. Studies, repertoire, training and notes are stored locally. The diagnostic report is local; the log file is local.                                                                                   |
 
 ## Privacy
 
@@ -98,6 +98,11 @@ The default remote CI is the lightweight one in `.github/workflows/ci.yml`
 (typecheck, lint, unit/integration tests, build). The heavy gates —
 full Playwright suite, desktop packaging, engine fleet, long soak — are
 deliberately manual; run them with `npm run release:verify:full`.
+
+The production landing and studio domains follow the same Vercel deployment.
+This Vercel account still needs its GitHub Login Connection before Git pushes can
+trigger automatic deployments; until then, use the authenticated deployment CLI.
+A successful push alone does not publish the website.
 
 ## License
 

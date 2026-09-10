@@ -6,6 +6,7 @@ import { createReadStream, existsSync, mkdtempSync, readFileSync, rmSync, statSy
 import path from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { publicUrl } from '../src/release/public-urls.ts';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const { cachePaths } = await import('./cache-paths.mjs');
@@ -26,9 +27,18 @@ const directories = [
 const packsRoot = process.env.KINGFISHER_PACKS_DIR ?? cachePaths.packs;
 const legacyPacks = path.join(root, '.packs');
 const packsBase = existsSync(packsRoot) ? packsRoot : legacyPacks;
-const manifests = directories.map((id) =>
-  JSON.parse(readFileSync(path.join(packsBase, id, 'manifest.json'))),
-);
+const publicManifests = process.argv.includes('--public')
+  ? Object.values(publicUrl.packManifests)
+  : null;
+const manifests = publicManifests
+  ? await Promise.all(
+      publicManifests.map(async (url) => {
+        const response = await fetch(url, { signal: AbortSignal.timeout(30_000) });
+        if (!response.ok) throw new Error(`Manifest ${url}: HTTP ${response.status}`);
+        return response.json();
+      }),
+    )
+  : directories.map((id) => JSON.parse(readFileSync(path.join(packsBase, id, 'manifest.json'))));
 const profile = mkdtempSync(path.join(tmpdir(), 'kingfisher-field-'));
 const server = createServer((request, response) => {
   const parts = new URL(request.url, 'http://local').pathname.split('/').filter(Boolean);
@@ -69,7 +79,10 @@ try {
     const form = page.locator('form:has(#pack-url)');
     if (!(await form.isVisible()))
       await page.getByRole('button', { name: 'Install from a URL' }).click();
-    await form.locator('#pack-url').fill(`http://127.0.0.1:${port}/${manifest.id}/manifest.json`);
+    const manifestUrl = publicManifests
+      ? publicManifests[manifests.indexOf(manifest)]
+      : `http://127.0.0.1:${port}/${manifest.id}/manifest.json`;
+    await form.locator('#pack-url').fill(manifestUrl);
     await form.getByRole('button', { name: 'Install', exact: true }).click();
     await expect(page.locator(`[data-source-row="${manifest.id}"]`)).toContainText(
       manifest.counts.games.toLocaleString(),
@@ -86,7 +99,7 @@ try {
   }
   await app.close();
   app = null;
-  page = await boot('Warm profile with all four packs');
+  page = await boot('Warm profile with all three optional packs');
   // Disconnect external services while leaving the application's own loopback server available.
   await page.route('**/*', (route) => {
     const host = new URL(route.request().url()).hostname;

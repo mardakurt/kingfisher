@@ -55,7 +55,7 @@ export const publicUrl = {
   studio: trimTrailingSlash(
     fromEnv(
       'KINGFISHER_PUBLIC_STUDIO_URL',
-      fromEnv('KINGFISHER_PUBLIC_WEB_URL', 'https://studio.kingfisher-chess.vercel.app'),
+      fromEnv('KINGFISHER_PUBLIC_WEB_URL', 'https://kingfisher-roan.vercel.app'),
     ),
   ),
   /*

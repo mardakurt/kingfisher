@@ -37,8 +37,8 @@ export function EngineComparison() {
   const prefs = usePreferences();
 
   const readings = useMemo<EngineReading[]>(
-    () => [toReading(primary), toReading(secondary)],
-    [primary, secondary],
+    () => [primary, secondary].filter((slot) => slot.analysedFen === node.fen).map(toReading),
+    [primary, secondary, node.fen],
   );
   const comparison = useMemo(() => compareEngines(readings), [readings]);
   const running = primary.running || secondary.running;

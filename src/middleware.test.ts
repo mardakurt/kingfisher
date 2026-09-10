@@ -136,3 +136,20 @@ describe('routingFor', () => {
     });
   });
 });
+
+describe('local runtime and install assets', () => {
+  it.each(['localhost:3210', '127.0.0.1:54321', '[::1]:54321'])(
+    'keeps studio routes available on %s',
+    (host) => {
+      expect(routingFor(host, '/analysis')).toEqual({ kind: 'next' });
+      expect(routingFor(host, '/studies')).toEqual({ kind: 'next' });
+      expect(routingFor(host, '/engine/stockfish/manifest.json')).toEqual({ kind: 'next' });
+    },
+  );
+  it.each(['/icon-192.png', '/icon-512.png'])(
+    'serves manifest icon %s on the landing host',
+    (asset) => {
+      expect(routingFor('kingfisher-chess.vercel.app', asset)).toEqual({ kind: 'next' });
+    },
+  );
+});

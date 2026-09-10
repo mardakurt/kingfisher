@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import { mkdtempSync as auditTemp } from 'node:fs';
+import { tmpdir as auditTmpdir } from 'node:os';
 /**
  * What Kingfisher looks like after the machine it is on stops and starts again.
  *
@@ -162,7 +164,12 @@ async function main() {
     exit(1);
   }
 
-  const app = await electron.launch({ ...launch, timeout: 120_000 });
+  const profile = auditTemp(path.join(auditTmpdir(), 'kingfisher-suspend-'));
+  const app = await electron.launch({
+    ...launch,
+    args: [...launch.args, `--user-data-dir=${profile}`],
+    timeout: 120_000,
+  });
   const window = await app.firstWindow({ timeout: 120_000 });
   await window.waitForLoadState('domcontentloaded');
   await window.waitForFunction(

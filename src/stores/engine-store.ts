@@ -115,11 +115,35 @@ interface Runtime {
    * otherwise let a stale, shallower snapshot land on top of a deeper one.
    */
   request: number;
+  /**
+   * The FEN the most recent request is for, set before the first await in
+   * `run` and cleared once the search actually starts. The `analysedFen` on the
+   * store only reflects a search that has begun, which leaves a request still
+   * awaiting `startSession` indistinguishable from a slot that has nothing
+   * pending. That gap is what this field closes: a board "leaving" the same
+   * FEN the request is for should not kill the request, and a board "leaving"
+   * a different FEN should.
+   */
+  pendingFen: Fen | null;
 }
 
 const runtimes: Record<SlotId, Runtime> = {
-  primary: { session: null, handle: null, starting: null, engineId: null, request: 0 },
-  secondary: { session: null, handle: null, starting: null, engineId: null, request: 0 },
+  primary: {
+    session: null,
+    handle: null,
+    starting: null,
+    engineId: null,
+    request: 0,
+    pendingFen: null,
+  },
+  secondary: {
+    session: null,
+    handle: null,
+    starting: null,
+    engineId: null,
+    request: 0,
+    pendingFen: null,
+  },
 };
 
 interface EngineState {
@@ -143,6 +167,8 @@ interface EngineState {
   compare(fen: Fen, limit: AnalysisLimit, config: EngineConfigInput): Promise<void>;
   setComparing(on: boolean): void;
   stop(slot?: SlotId): void;
+  /** Invalidate searches and evidence that belong to a position the board left. */
+  invalidatePosition(fen: Fen): void;
   shutdown(slot?: SlotId): void;
   applyConfig(slot: SlotId, config: EngineConfigInput): Promise<void>;
   pin(rank: number): void;
@@ -279,16 +305,30 @@ export const useEngine = create<EngineState>((set, get) => {
     // Claimed before the first await, so a later request always outranks this
     // one no matter which of them finishes starting first.
     const request = (runtime.request += 1);
+    // A still-starting request is identified by its FEN, not by `analysedFen`,
+    // because `analysedFen` is only written once the search actually starts.
+    // `invalidatePosition` needs that handle to decide whether a board "change"
+    // to the same FEN is really a change.
+    runtime.pendingFen = fen;
 
     const session = await startSession(slot, config);
-    if (!session) return;
-    if (runtime.request !== request) return;
+    if (!session) {
+      runtime.pendingFen = null;
+      return;
+    }
+    if (runtime.request !== request) {
+      runtime.pendingFen = null;
+      return;
+    }
 
     runtime.handle?.stop();
     runtime.handle = null;
 
     await session.configure(config);
-    if (runtime.request !== request) return;
+    if (runtime.request !== request) {
+      runtime.pendingFen = null;
+      return;
+    }
 
     patch(slot, {
       running: true,
@@ -297,6 +337,7 @@ export const useEngine = create<EngineState>((set, get) => {
       analysis: null,
       history: [],
     });
+    runtime.pendingFen = null;
 
     /*
       Restricting the search is a capability, not an assumption. An engine that
@@ -404,6 +445,21 @@ export const useEngine = create<EngineState>((set, get) => {
         runtime.handle = null;
         runtime.session?.stop();
         patch(id, { running: false, status: runtime.session ? 'ready' : get()[id].status });
+      }
+    },
+
+    invalidatePosition: (fen) => {
+      for (const slot of ['primary', 'secondary'] as const) {
+        // A still-running analysis is a match by definition; a still-pending
+        // request matches if the FEN the request is for equals the FEN the
+        // board is now on — same FEN, leave the search alone, the user
+        // navigated away and back rather than to a new position.
+        if (get()[slot].analysedFen === fen) continue;
+        if (runtimes[slot].pendingFen === fen) continue;
+        // stop also invalidates a request waiting for engine startup/configuration.
+        get().stop(slot);
+        patch(slot, { analysedFen: null, analysis: null, history: [] });
+        runtimes[slot].pendingFen = null;
       }
     },
 

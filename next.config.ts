@@ -126,7 +126,7 @@ const nextConfig: NextConfig = {
               "default-src 'self'",
               // `'wasm-unsafe-eval'` is required for the threaded Stockfish
               // build; without it, the engine refuses to compile.
-              "script-src 'self' 'wasm-unsafe-eval' 'unsafe-inline'",
+              `script-src 'self' 'wasm-unsafe-eval' 'unsafe-inline'${process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''}`,
               "worker-src 'self' blob:",
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob:",
@@ -139,7 +139,7 @@ const nextConfig: NextConfig = {
               //   - HTTPS (a permissive fallback for engine downloads
               //     and OAuth callback paths the runtime chooses)
               //   - WSS for the desktop companion
-              "connect-src 'self' https://mardakurt.github.io https://lichess.org https://api.chess.com https://tablebase.lichess.ovh https://explorer.lichess.ovh wss: https:",
+              "connect-src 'self' https://mardakurt.github.io https://lichess.org https://api.chess.com https://tablebase.lichess.ovh https://explorer.lichess.ovh wss: https: http://127.0.0.1:* http://localhost:* ws://127.0.0.1:* ws://localhost:*",
               "frame-ancestors 'none'",
               "form-action 'self'",
               "base-uri 'self'",

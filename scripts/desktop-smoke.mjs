@@ -150,7 +150,11 @@ async function main() {
   }
 
   const started = Date.now();
-  const app = await electron.launch({ ...launch, timeout: 120_000 });
+  const app = await electron.launch({
+    ...launch,
+    args: [...launch.args, `--user-data-dir=${path.join(workspace, 'profile')}`],
+    timeout: 120_000,
+  });
 
   if (args.offline) {
     const blocked = await app.evaluate(({ session }) => {

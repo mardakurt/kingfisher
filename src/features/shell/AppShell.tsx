@@ -27,6 +27,7 @@ import { ResearchTrail } from './ResearchTrail';
 import { MobileNavigation } from './MobileNavigation';
 import { ChessWorkspaceProvider } from '@/features/workspace/ChessWorkspaceContext';
 import { AnalysisQueueProvider } from '@/features/analysis-queue/AnalysisQueueProvider';
+import { useEnginePositionGuard } from '@/features/analysis/useEnginePositionGuard';
 
 // These feature surfaces are large and uncommon at startup. Conditional
 // mounting matters as much as the dynamic import: a closed dialog must not
@@ -82,6 +83,7 @@ const CommentDialog = dynamic(
 
 export function AppShell({ children }: { children: ReactNode }) {
   useGlobalHotkeys();
+  useEnginePositionGuard();
   useWorkspacePersistence();
   useCompanionSync();
   // A no-op in a browser; see src/desktop/bridge.ts.

@@ -24,6 +24,7 @@
  */
 
 import { argv, env, exit } from 'node:process';
+import { publicUrl } from '../src/release/public-urls.ts';
 
 const args = new Set(argv.slice(2));
 const asJson = args.has('--json');
@@ -36,17 +37,16 @@ const ALLOWED_HOSTS = new Set([
   'objects.githubusercontent.com',
   'raw.githubusercontent.com',
   'kingfisher-chess.vercel.app',
+  'kingfisher-roan.vercel.app',
 ]);
 
 const config = {
-  landing: env.KINGFISHER_PUBLIC_LANDING_URL || 'https://mardakurt.github.io/kingfisher-data',
-  web: env.KINGFISHER_PUBLIC_WEB_URL || 'https://kingfisher-chess.vercel.app',
+  landing: env.KINGFISHER_PUBLIC_LANDING_URL || 'https://kingfisher-chess.vercel.app',
+  web: publicUrl.studio,
   repository: env.KINGFISHER_PUBLIC_REPOSITORY_URL || 'https://github.com/mardakurt/kingfisher',
   release:
     env.KINGFISHER_PUBLIC_RELEASE_URL || 'https://github.com/mardakurt/kingfisher/releases/latest',
-  dmg:
-    env.KINGFISHER_PUBLIC_DMG_URL ||
-    'https://github.com/mardakurt/kingfisher/releases/download/v1.0.0/Kingfisher-1.0.0-arm64.dmg',
+  dmg: env.KINGFISHER_PUBLIC_DMG_URL || publicUrl.macosDmg,
   issues: env.KINGFISHER_PUBLIC_ISSUES_URL || 'https://github.com/mardakurt/kingfisher/issues',
   discussions:
     env.KINGFISHER_PUBLIC_DISCUSSIONS_URL || 'https://github.com/mardakurt/kingfisher/discussions',
@@ -66,7 +66,7 @@ const packManifests = {
 const chunkChecks = [];
 for (const [pack, url] of Object.entries(packManifests)) {
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: AbortSignal.timeout(30_000) });
     if (res.ok) {
       const manifest = await res.json();
       for (const chunk of manifest.chunks || []) {
@@ -87,12 +87,12 @@ for (const [pack, url] of Object.entries(packManifests)) {
 }
 
 const targets = [
-  ['Landing page', config.landing, { type: 'text/html' }],
-  ['Web app entry', `${config.web}/analysis`, { type: 'text/html' }],
-  ['Web app /players', `${config.web}/players`, { type: 'text/html' }],
-  ['Web app /databases', `${config.web}/databases`, { type: 'text/html' }],
-  ['Web app /openings', `${config.web}/openings`, { type: 'text/html' }],
-  ['Web app /settings', `${config.web}/settings`, { type: 'text/html' }],
+  ['Landing page', config.landing, { type: 'text/html', preservePath: true }],
+  ['Web app entry', `${config.web}/analysis`, { type: 'text/html', preservePath: true }],
+  ['Web app /players', `${config.web}/players`, { type: 'text/html', preservePath: true }],
+  ['Web app /databases', `${config.web}/databases`, { type: 'text/html', preservePath: true }],
+  ['Web app /openings', `${config.web}/openings`, { type: 'text/html', preservePath: true }],
+  ['Web app /settings', `${config.web}/settings`, { type: 'text/html', preservePath: true }],
   ['GitHub repository', config.repository, { type: 'text/html' }],
   ['GitHub latest release', config.release, { type: 'text/html' }],
   ['macOS DMG (latest)', config.dmg, { type: 'application/octet-stream' }],
@@ -114,7 +114,11 @@ for (const [label, url, expectations] of targets) {
   // The first pass already pushes; do nothing here.
   const result = { label, url };
   try {
-    const res = await fetch(url, { method: 'GET', redirect: 'follow' });
+    const res = await fetch(url, {
+      method: 'GET',
+      redirect: 'follow',
+      signal: AbortSignal.timeout(30_000),
+    });
     const finalUrl = res.url;
     const finalHost = new URL(finalUrl).hostname;
     result.status = res.status;
@@ -127,12 +131,18 @@ for (const [label, url, expectations] of targets) {
       : true;
     const statusOk = res.status >= 200 && res.status < 400;
 
-    result.ok = hostOk && typeOk && statusOk;
+    const pathOk =
+      !expectations.preservePath || new URL(finalUrl).pathname === new URL(url).pathname;
+    await res.body?.cancel();
+    result.ok = hostOk && typeOk && statusOk && pathOk;
+    result.pathOk = pathOk;
     result.hostOk = hostOk;
     result.typeOk = typeOk;
     result.statusOk = statusOk;
 
-    if (!hostOk) {
+    if (!pathOk) {
+      result.error = `Route redirected from ${new URL(url).pathname} to ${new URL(finalUrl).pathname}`;
+    } else if (!hostOk) {
       result.error = `Redirected to a host outside the allow-list: ${finalHost}`;
     } else if (!typeOk) {
       result.error = `Unexpected content-type "${result.contentType}" (wanted ${expectations.type})`;
@@ -151,10 +161,6 @@ for (const [label, url, expectations] of targets) {
       `${mark}  ${String(result.status ?? 'ERR').padEnd(4)}  ${label.padEnd(36)}  ${url}${note}`,
     );
   }
-}
-
-if (asJson) {
-  console.log(JSON.stringify({ config, results }, null, 2));
 }
 
 /*
@@ -177,7 +183,11 @@ if (asJson) {
     url: latestUrl,
   };
   try {
-    const res = await fetch(latestUrl, { method: 'GET', redirect: 'follow' });
+    const res = await fetch(latestUrl, {
+      method: 'GET',
+      redirect: 'follow',
+      signal: AbortSignal.timeout(30_000),
+    });
     const finalPath = new URL(res.url).pathname;
     const tag = finalPath.split('/').pop() || '';
     const isAppTag = /^v\d+\.\d+\.\d+/.test(tag);
@@ -202,6 +212,8 @@ if (asJson) {
     );
   }
 }
+
+if (asJson) console.log(JSON.stringify({ config, results }, null, 2));
 
 const failed = results.filter((r) => !r.ok);
 if (failed.length > 0) {

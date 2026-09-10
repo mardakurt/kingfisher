@@ -76,3 +76,4 @@ desktop/resources/
 # to keep outside the source tree. A reference-pack build candidate
 # (hundreds of MB before compression) is a build input, not source.
 kingfisher-data/
+security-scan-report.json
