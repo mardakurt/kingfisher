@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { TermsPage } from './TermsPage';
 
 export const metadata: Metadata = {
-  title: 'Terms — Kingfisher',
+  title: 'Terms',
   description:
     'The human-readable summary of what you can and cannot expect from Kingfisher. The MIT licence applies.',
   alternates: { canonical: '/terms' },
