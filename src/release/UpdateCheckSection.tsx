@@ -53,9 +53,7 @@ export function UpdateCheckSection() {
         Application updates
       </h3>
       <div className="mt-1 space-y-2 border-y border-line-subtle py-3">
-        <p className="text-xs text-primary">
-          Kingfisher {APP_VERSION} · macOS Preview
-        </p>
+        <p className="text-xs text-primary">Kingfisher {APP_VERSION} · macOS Preview</p>
         <VerdictLine status={status} />
         <div className="flex items-center gap-2">
           <Button variant="accent" onClick={onCheck} disabled={status.status === 'checking'}>
@@ -74,8 +72,8 @@ export function UpdateCheckSection() {
         </div>
         <p className="text-[10px] text-tertiary">
           The check is manual. Nothing is sent from Kingfisher unless you click the button.
-          Auto-update is not implemented; the verified release is opened in your browser,
-          you download the DMG, and you replace the app in Applications.{' '}
+          Auto-update is not implemented; the verified release is opened in your browser, you
+          download the DMG, and you replace the app in Applications.{' '}
           <a
             href={`${publicUrl.repository}/releases`}
             target="_blank"
@@ -103,23 +101,17 @@ function VerdictLine({ status }: { status: Status }) {
     return <p className="text-xs text-tertiary">Reaching the release host…</p>;
   }
   if (status.status === 'up-to-date') {
-    return (
-      <p className="text-xs text-positive">You are up to date.</p>
-    );
+    return <p className="text-xs text-positive">You are up to date.</p>;
   }
   if (status.status === 'newer-available') {
     return (
       <p className="text-xs text-primary">
-        A newer Kingfisher version is available: <strong>{status.latestVersion}</strong>.
-        Your build: <code>{status.currentVersion}</code>.
+        A newer Kingfisher version is available: <strong>{status.latestVersion}</strong>. Your
+        build: <code>{status.currentVersion}</code>.
       </p>
     );
   }
-  return (
-    <p className="text-xs text-caution">
-      Unable to check right now. {status.reason}
-    </p>
-  );
+  return <p className="text-xs text-caution">Unable to check right now. {status.reason}</p>;
 }
 
 async function fetchAndEvaluate(arch: 'arm64' | 'x64'): Promise<UpdateVerdict> {

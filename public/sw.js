@@ -92,13 +92,13 @@ self.addEventListener('activate', (event) => {
       await Promise.all(
         keys
           .filter((key) => key.startsWith('kingfisher-shell-') && key !== expected)
-          .map((key) => caches.delete(key))
+          .map((key) => caches.delete(key)),
       );
       // Do NOT `clients.claim()`. Claiming forces the new worker
       // onto existing clients without the user's consent, which is
       // exactly the "stuck on old build" symptom we are trying to
       // avoid.
-    })()
+    })(),
   );
 });
 

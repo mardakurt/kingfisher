@@ -15,10 +15,7 @@
 
 import { useEffect } from 'react';
 
-import {
-  beginInstallListening,
-  registerStudioWorker,
-} from './index';
+import { beginInstallListening, registerStudioWorker } from './index';
 
 export interface PwaBootstrapResult {
   /**

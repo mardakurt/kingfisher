@@ -29,9 +29,7 @@ interface DeferredInstallEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
 }
 
-function createDeferredEvent(
-  outcome: 'accepted' | 'dismissed' = 'accepted'
-): DeferredInstallEvent {
+function createDeferredEvent(outcome: 'accepted' | 'dismissed' = 'accepted'): DeferredInstallEvent {
   const event = new Event('beforeinstallprompt') as DeferredInstallEvent;
   event.prompt = vi.fn().mockResolvedValue(undefined);
   event.userChoice = Promise.resolve({ outcome, platform: 'web' });
@@ -62,16 +60,17 @@ class FakeWindow extends FakeEventTarget {
   constructor(host: string) {
     super();
     this.location = { host, hostname: host.split(':')[0] ?? '' };
-    this.matchMedia = (() => ({
-      matches: false,
-      media: '',
-      onchange: null,
-      addEventListener: () => {},
-      removeEventListener: () => {},
-      addListener: () => {},
-      removeListener: () => {},
-      dispatchEvent: () => false,
-    } as unknown as MediaQueryList));
+    this.matchMedia = () =>
+      ({
+        matches: false,
+        media: '',
+        onchange: null,
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        addListener: () => {},
+        removeListener: () => {},
+        dispatchEvent: () => false,
+      }) as unknown as MediaQueryList;
   }
 }
 

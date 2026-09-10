@@ -20,12 +20,7 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { useUnsavedWork } from '@/features/shell/unsaved-work';
 
-import {
-  applyUpdate,
-  getUpdateState,
-  subscribeUpdate,
-  type UpdateState,
-} from './register';
+import { applyUpdate, subscribeUpdate, type UpdateState } from './register';
 import { isStudioDocument } from './host';
 
 export function PwaUpdateBanner() {
@@ -34,7 +29,12 @@ export function PwaUpdateBanner() {
 
   useEffect(() => {
     if (!isStudioDocument()) return;
-    setState(getUpdateState());
+    // Read the current state once on mount; subsequent updates
+    // arrive through `subscribeUpdate`. We do not call setState
+    // here at all — the subscription immediately invokes the
+    // listener with the current state, which is the same effect
+    // with one fewer render. See the `subscribe` calls in
+    // `install-prompt.ts` and `register.ts` for the same pattern.
     const unsubscribe = subscribeUpdate(setState);
     return unsubscribe;
   }, []);
@@ -62,8 +62,8 @@ export function PwaUpdateBanner() {
         {blocked ? (
           <span>
             {' '}
-            Your current edits {isSaving ? 'are saving' : 'have not finished saving'};
-            the update will activate on the next reload once they have committed.
+            Your current edits {isSaving ? 'are saving' : 'have not finished saving'}; the update
+            will activate on the next reload once they have committed.
           </span>
         ) : (
           <span> Reload to apply it.</span>

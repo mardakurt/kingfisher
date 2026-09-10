@@ -85,7 +85,10 @@ const CANONICAL = [
   'src/app/sitemap.ts',
   'src/app/robots.ts',
   'src/app/layout.tsx',
-  'src/app/manifest.ts',
+  // Phase 34: the file-based PWA manifest was replaced by a
+  // host-aware route handler at /manifest.webmanifest. See
+  // src/app/manifest.webmanifest/route.ts.
+  'src/app/manifest.webmanifest/route.ts',
   'src/release/public-urls.ts',
 ];
 

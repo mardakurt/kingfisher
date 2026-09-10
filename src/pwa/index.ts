@@ -12,10 +12,7 @@
  * worker. The install prompt is gated to the studio origin too.
  */
 
-export {
-  isStudioDocument,
-  studioHostFor,
-} from './host';
+export { isStudioDocument, studioHostFor } from './host';
 export {
   registerStudioWorker,
   applyUpdate,

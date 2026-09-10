@@ -39,8 +39,7 @@ export function describePwaState(): PwaDiagnosticState {
     typeof window !== 'undefined' &&
     (window.matchMedia?.('(display-mode: standalone)').matches ?? false);
   const installed =
-    standalone ||
-    (navigator as unknown as { standalone?: boolean }).standalone === true;
+    standalone || (navigator as unknown as { standalone?: boolean }).standalone === true;
   return {
     available,
     installed,

@@ -16,16 +16,18 @@ import { isStudioDocument } from './host';
 import { describePwaState, type PwaDiagnosticState } from './diagnostics';
 
 export function PwaDiagnostic() {
-  const [state, setState] = useState<PwaDiagnosticState | null>(null);
+  // The first render of the diagnostic row can be empty if the
+  // service worker has not finished registering; the effect below
+  // populates the row and re-reads once after a short delay to
+  // catch the case where registration finishes after the panel
+  // is opened.
+  const [state, setState] = useState<PwaDiagnosticState | null>(() =>
+    typeof window === 'undefined' || !isStudioDocument() ? null : describePwaState(),
+  );
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (!isStudioDocument()) return;
-    setState(describePwaState());
-    // Re-read once after a moment in case registration completes
-    // after the panel is opened. Service-worker registration is
-    // almost always complete by the time the user navigates to
-    // Settings, but the small re-read costs nothing.
     const t = setTimeout(() => setState(describePwaState()), 250);
     return () => clearTimeout(t);
   }, []);

@@ -49,10 +49,8 @@ function readInstalled(): boolean {
   if (typeof window === 'undefined') return false;
   // `display-mode: standalone` covers installed PWAs and the
   // macOS TWA-style install. iOS Safari uses `navigator.standalone`.
-  const standalone =
-    window.matchMedia?.('(display-mode: standalone)').matches ?? false;
-  const iosStandalone =
-    (navigator as unknown as { standalone?: boolean }).standalone === true;
+  const standalone = window.matchMedia?.('(display-mode: standalone)').matches ?? false;
+  const iosStandalone = (navigator as unknown as { standalone?: boolean }).standalone === true;
   return standalone || iosStandalone;
 }
 
@@ -64,7 +62,7 @@ function notify() {
   for (const listener of listeners) {
     try {
       listener(state);
-    } catch (e) {
+    } catch {
       // A misbehaving listener should not break registration for
       // the rest of the application.
     }
@@ -133,16 +131,14 @@ export function subscribe(listener: Listener): () => void {
  * outcome the browser reported, or `'unavailable'` if no deferred
  * prompt was captured.
  */
-export async function promptInstall(): Promise<
-  'accepted' | 'dismissed' | 'unavailable'
-> {
+export async function promptInstall(): Promise<'accepted' | 'dismissed' | 'unavailable'> {
   if (!captured) return 'unavailable';
   const deferred = captured;
   captured = null;
   notify();
   try {
     await deferred.prompt();
-  } catch (e) {
+  } catch {
     return 'unavailable';
   }
   try {
@@ -152,7 +148,7 @@ export async function promptInstall(): Promise<
       notify();
     }
     return choice.outcome;
-  } catch (e) {
+  } catch {
     return 'unavailable';
   }
 }

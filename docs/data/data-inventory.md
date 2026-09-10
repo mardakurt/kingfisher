@@ -187,3 +187,71 @@ manifests and chunks. The mirror is published via
 new version directory; it refuses to delete or modify a published
 version. No remote catalogue can silently push a new pack version
 into Kingfisher.
+
+## Phase 34 freshness audit
+
+Captured 2026-09-10 against the live
+`https://mardakurt.github.io/kingfisher-data/` mirror. These are
+the values the running manifests actually publish; the previous
+sections of this document were last edited before Phase 34 and
+are kept for context.
+
+| Pack              | Version | Built      | Window    | Games   | Positions | Players | Compressed |
+| ----------------- | ------- | ---------- | --------- | ------- | --------- | ------- | ---------- |
+| Starter (bundled) | 2       | 2026-09-05 | 2024→2026 | 172,376 | 246,870   | 12,522  | 12.3 MB    |
+| Elite OTB         | 2       | 2026-09-05 | 2020→2026 | 407,538 | 5,438,808 | 33,607  | 323.6 MB   |
+| Recent Theory     | 1       | 2026-09-05 | last 24m  | 44,200  | 918,069   | 2,567   | 32.3 MB    |
+| High-Rated Online | 1       | 2026-09-05 | last 3m   | 305,169 | 315,668   | 12,315  | 81.7 MB    |
+
+The audit found two important constraints that any future pack
+build must respect:
+
+1. **Lichess broadcast monthly release cadence.** Each upstream
+   file is one month of broadcast games; Lichess publishes a new
+   file at the start of the following month. As of the audit
+   date the most recent published month is **2026-07**; the
+   2026-08 file is not yet available. A "6-month" candidate
+   today is in practice 6 months minus the most recent month
+   that is not yet published.
+
+2. **Recent Theory v1 is not stale, it is shallow.** With 2,567
+   unique players and 44,200 games the pack is _current_ — every
+   position statistic it produces is up to date as of 2026-07 —
+   but it is _narrow_. The 24-month window in v1 was applied as
+   a "last 24 monthly files" filter, so the only practical
+   improvement a v2 could ship is more depth over the same
+   window (the same Lichess files, the same filters, more
+   permissive rating and length floors) or a tighter window with
+   more depth.
+
+### Recent Theory candidate windows (sketch)
+
+These are the four windows the directive asks for, measured
+against the Lichess archive as it stood at the audit date.
+Numbers are derived from the published monthly file sizes; the
+actual build is a separate `node scripts/build-reference-pack.mjs`
+run that has not been executed in Phase 34.
+
+| Window | Months | Approx raw PGN | Approx games | Approx bytes (compressed) | Notes                                                                                 |
+| ------ | ------ | -------------- | ------------ | ------------------------- | ------------------------------------------------------------------------------------- |
+| 6 m    | 6      | ~28 GB         | ~120 k       | ~95 MB                    | Drops the half of the 24 m file that is older than 2025-02. Best bytes-per-freshness. |
+| 12 m   | 12     | ~55 GB         | ~245 k       | ~190 MB                   | Half a year of additional surface; doubles the size for marginal recency gain.        |
+| 18 m   | 18     | ~83 GB         | ~360 k       | ~280 MB                   | Approaches Elite OTB in size; exceeds the "remote, on demand" intent.                 |
+| 24 m   | 24     | ~110 GB        | ~480 k       | ~370 MB                   | The v1 input. Building it from the same source does not improve anything.             |
+
+### Recommendation
+
+Do **not** publish a v2 in Phase 34. The candidate that
+optimises bytes-per-recency is the 6-month window, but the audit
+shows that the v1 build pipeline runs out-of-repo, takes many
+minutes, and would require a follow-up phase to land safely.
+The freshness UX work in this phase (date window visible in
+Data Center, version-by-source identities in the player and
+explorer caches) is the part of "fresher data" that does not
+depend on a build.
+
+The 6-month v2 build is documented in
+`docs/reports/phase-34-handover.md` §14 as the next data
+priority. It is independently versioned from Kingfisher 1.0 and
+can ship as `reference-recent-v2` while the application stays
+1.0.0.

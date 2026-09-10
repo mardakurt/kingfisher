@@ -38,9 +38,7 @@ export function useUnsavedWork(): UnsavedWorkState {
       const isSaving = all.some((m) => m.state.isPaused || m.state.status === 'pending');
       const hasFailed = all.some((m) => m.state.status === 'error');
       setState((prev) =>
-        prev.isSaving === isSaving && prev.hasFailed === hasFailed
-          ? prev
-          : { isSaving, hasFailed }
+        prev.isSaving === isSaving && prev.hasFailed === hasFailed ? prev : { isSaving, hasFailed },
       );
     };
     const schedule = () => {

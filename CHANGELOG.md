@@ -11,6 +11,49 @@ release; nothing here has shipped yet. The notes below describe what
 the next release will contain if it is cut from the current
 development branch.
 
+### Installable web app (Phase 34)
+
+- The studio origin (`kingfisher-roan.vercel.app`) is now an
+  installable Progressive Web App. Chromium-family browsers
+  offer the standard "Install" affordance and the application
+  now exposes a small "Install Kingfisher" card in
+  _Settings → Diagnostics_. A `beforeinstallprompt` is captured
+  for the studio origin only — the marketing origin
+  (`kingfisher-chess.vercel.app`) does not advertise itself
+  as a PWA.
+- A small same-origin service worker caches the application
+  shell (hashed `_next/static/*`, manifest, icons). Reference
+  data is **not** cached by the worker; the IndexedDB streaming
+  cache remains its sole owner. The cache name is keyed by
+  build identity, so a web deploy invalidates old shell
+  caches without a Kingfisher version bump.
+- A new "A Kingfisher update is ready. [Reload]" banner appears
+  above the workspace when a new service worker is installed.
+  The Reload button is disabled while a save is in flight, and
+  the new worker never auto-activates.
+- The marketing origin remains indexable. The studio origin now
+  sends `X-Robots-Tag: noindex, nofollow, noarchive` on every
+  response so search engines keep working application
+  surfaces out of their index.
+
+### macOS update discovery (Phase 34)
+
+- A manual **Check for updates** action is wired into the
+  macOS application's _Settings → Diagnostics_ panel. The
+  check is one HTTPS request to the public Kingfisher release
+  metadata, validated against SHA-256 and DMG-name
+  constraints. Verdicts are _up to date_, _newer available_
+  (with a link to the verified release page), and _unable to
+  check_ (with a human-readable reason).
+- Auto-update and silent binary replacement remain off. The
+  macOS Preview is not notarised; the user always opens the
+  release page in their own browser and downloads, verifies
+  and installs by hand.
+- The landing-page macOS card now mentions the upgrade
+  workflow: "Already using Kingfisher? Download the latest
+  DMG and replace the app in Applications. Your local
+  Kingfisher work is stored separately and is preserved."
+
 ### Critical hotfix shipped (in production at 1.0.0)
 
 - **Landing page no longer freezes the scroll.** A `body { overflow:

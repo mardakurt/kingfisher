@@ -318,6 +318,14 @@ export function LandingPage(): JSX.Element {
                   Install guide
                 </a>
               </p>
+              <p className="download-upgrade-note">
+                <strong>Already using Kingfisher?</strong> Download the latest DMG and replace the
+                app in Applications. Your local Kingfisher work — Studies, Repertoire, Training,
+                preferences — lives in <code>~/Library/Application Support/Kingfisher/</code> and is
+                preserved by the replacement. The application <em>About → Check for updates</em>{' '}
+                action also reports whether a newer public release is available; auto-update is not
+                enabled.
+              </p>
             </article>
 
             <article className="download-card">

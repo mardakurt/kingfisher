@@ -39,9 +39,10 @@ function makeServiceWorker(state: MockServiceWorker['state']): MockServiceWorker
   return target;
 }
 
-function makeRegistration(
-  state: MockServiceWorker['state'] = 'installing'
-): { reg: MockRegistration; installing: MockServiceWorker } {
+function makeRegistration(state: MockServiceWorker['state'] = 'installing'): {
+  reg: MockRegistration;
+  installing: MockServiceWorker;
+} {
   const listeners = new Map<string, Set<EventListener>>();
   const installing = makeServiceWorker(state);
   const reg: MockRegistration = {
@@ -71,7 +72,7 @@ function installFakeBrowser(host: string) {
 }
 
 function installFakeServiceWorker(
-  options: { register?: ReturnType<typeof vi.fn>; controller?: unknown } = {}
+  options: { register?: ReturnType<typeof vi.fn>; controller?: unknown } = {},
 ) {
   const register = options.register ?? vi.fn();
   Object.defineProperty(globalThis, 'navigator', {

@@ -110,52 +110,6 @@ export interface DesktopBridge {
   openLogs(): Promise<boolean>;
   onOpenDocument(listener: (document: DesktopDocument) => void): () => void;
   onShowDiagnostics(listener: () => void): () => void;
-  /**
-   * Compare the running version against the public Kingfisher release
-   * and return the verdict.
-   *
-   * The check is **manual** and only fires when the renderer asks for
-   * it. Kingfisher does not phone home on a timer, and the bridge
-   * does not open a network socket of its own. The fetch is
-   * performed by the renderer against the public Kingfisher release
-   * metadata, validated against the constraints in
-   * `src/release/update-check.ts`, and only the result is asked
-   * through the bridge. Auto-update and silent binary replacement
-   * are deliberately not implemented; see
-   * `docs/reports/phase-34-handover.md` §10.
-   */
-  readReleaseManifest(): Promise<ReleaseManifest | null>;
-  /**
-   * Open the verified public release page in the user's default
-   * browser. The renderer asks for this only after the user has
-   * accepted a "newer version available" verdict — the bridge
-   * refuses no URLs the release manifest did not authorise, and
-   * refuses to open anything over plain HTTP.
-   */
-  openVerifiedReleaseUrl(kind: 'page' | 'dmg', arch?: 'arm64' | 'x64'): Promise<boolean>;
-}
-
-/**
- * A small subset of the Kingfisher release manifest, restricted to
- * the fields the renderer is allowed to read.
- *
- * The desktop shell owns the *full* manifest (the build manifest
- * contains paths and SHA-256s the renderer must not depend on);
- * the bridge strips the rest before handing the body to the
- * renderer. The check itself is the renderer's responsibility:
- * `src/release/update-check.ts` is the one module that interprets
- * the shape.
- */
-export interface ReleaseManifest {
-  readonly kingfisher: { readonly version: string };
-  readonly desktop: readonly {
-    readonly arch: 'arm64' | 'x64';
-    readonly bytes: number;
-    readonly sha256: string;
-    readonly name: string;
-  }[];
-  readonly publishedAt: string;
-  readonly htmlUrl: string;
 }
 
 declare global {

@@ -483,3 +483,22 @@ body {
 .pwa-update-banner__copy strong {
   font-weight: 600;
 }
+
+.download-upgrade-note {
+  margin-top: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 6px;
+  background: var(--color-surface-1, transparent);
+  font-size: 0.72rem;
+  line-height: 1.4;
+  opacity: 0.8;
+}
+
+.download-upgrade-note code {
+  font-size: 0.7rem;
+  font-family: var(--font-mono-face, monospace);
+}
+
+.update-check-section {
+  margin-top: 0.5rem;
+}

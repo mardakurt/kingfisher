@@ -96,9 +96,7 @@ export function GET(request: NextRequest): NextResponse {
       // the icon paths, both of which are version-controlled and
       // produce a new URL when they change. Five minutes of browser
       // cache on the studio is generous.
-      'cache-control': isStudio
-        ? 'public, max-age=300, must-revalidate'
-        : 'public, max-age=300',
+      'cache-control': isStudio ? 'public, max-age=300, must-revalidate' : 'public, max-age=300',
       // The studio manifest is not a search-engine target. The
       // marketing manifest must remain indexable; it is served with
       // the same content-type either way, so the middleware-applied

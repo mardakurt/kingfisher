@@ -22,12 +22,7 @@ import { isStudioDocument } from './host';
 
 export interface RegistrationOutcome {
   /** What the registration attempt actually did. */
-  readonly status:
-    | 'registered'
-    | 'updated'
-    | 'unsupported'
-    | 'not-studio'
-    | 'failed';
+  readonly status: 'registered' | 'updated' | 'unsupported' | 'not-studio' | 'failed';
   /** The script URL the worker was registered against. */
   readonly scriptUrl: string;
   /** Optional human-readable detail, useful in diagnostics. */
@@ -53,7 +48,7 @@ function notifyUpdate() {
   for (const listener of updateListeners) {
     try {
       listener(state);
-    } catch (e) {
+    } catch {
       /* a misbehaving listener must not break registration */
     }
   }

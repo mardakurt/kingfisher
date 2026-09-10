@@ -112,7 +112,47 @@ in the running deployment.
 - **No auto-update.** The macOS Preview is downloaded again from
   the GitHub release page when the user wants to upgrade. The
   web build is whatever is currently deployed; if a fix is
-  urgent, a manual refresh picks it up.
+  urgent, a manual refresh picks it up. Phase 34 added a
+  _manual_ "Check for updates" action to the macOS application
+  and the web PWA — the check is one HTTPS request to the public
+  Kingfisher release metadata, validated against SHA-256 and
+  DMG-name constraints, and **never downloads or executes a
+  binary automatically**. The user always opens the verified
+  release page in their own browser and downloads, verifies
+  and installs by hand.
+
+### Service worker / PWA boundaries (added in Phase 34)
+
+The studio origin (`kingfisher-roan.vercel.app`) registers a
+service worker (`public/sw.js`) so a player who installs
+Kingfisher from their browser can reopen it like an installed
+application. The worker is a small vanilla script bundled with
+the application — no Workbox, no remote scripts, no
+`importScripts` from third-party origins. Its boundaries are:
+
+- **Same-origin only.** The worker is hosted at
+  `https://kingfisher-roan.vercel.app/sw.js` and the CSP allows
+  only `'self'` script sources. A hostile site cannot register
+  a different worker for the studio origin.
+- **Application shell only.** The worker caches Next.js hashed
+  static assets (`/_next/static/*`), the PWA manifest, and
+  the application icons. It does **not** cache reference data,
+  Lichess or Chess.com API responses, authentication, or any
+  cross-origin resource. The reference data cache lives in
+  IndexedDB and is owned by `src/persistence/streaming-cache.ts`.
+- **No remote code.** The worker script is plain JavaScript
+  served from the same pipeline that ships the application. It
+  contains no `eval`, no remote imports, and no dynamic
+  service-worker source.
+- **Update by user choice.** A new worker installs and waits.
+  The application surfaces a "Reload" button that the user
+  clicks to apply the update; the new worker is never forced
+  active while the player is editing a Study.
+- **Cache versioning by build identity.** The cache name embeds
+  the build identity, not the Kingfisher semantic version. A
+  new deploy that ships a different worker automatically
+  invalidates the previous app-shell cache on first activation.
+  Old caches are explicitly deleted.
 
 ## How to report a vulnerability
 

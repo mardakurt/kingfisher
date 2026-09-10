@@ -12,13 +12,7 @@ import type { ReactNode } from 'react';
 
 import { cn } from '@/lib/cn';
 
-export function DiagnosticGroup({
-  title,
-  children,
-}: {
-  title: string;
-  children: ReactNode;
-}) {
+export function DiagnosticGroup({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section>
       <h3 className="text-[10px] font-semibold uppercase tracking-[0.08em] text-tertiary">
