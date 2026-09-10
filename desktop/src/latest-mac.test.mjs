@@ -68,6 +68,53 @@ describe('parseLatestMac', () => {
     expect(r.ok).toBe(false);
   });
 
+  it('rejects a file pointing at a foreign host', () => {
+    const r = parseLatestMac({
+      ...GOOD,
+      files: [{ ...GOOD.files[0], url: 'https://attacker.example.com/x.zip' }],
+    });
+    expect(r.ok).toBe(false);
+  });
+
+  it('rejects a file with a URL that includes credentials', () => {
+    const r = parseLatestMac({
+      ...GOOD,
+      files: [{ ...GOOD.files[0], url: 'https://user:pass@github.com/x.zip' }],
+    });
+    expect(r.ok).toBe(false);
+  });
+
+  it('rejects a file with a URL on a non-default port', () => {
+    const r = parseLatestMac({
+      ...GOOD,
+      files: [{ ...GOOD.files[0], url: 'https://github.com:8443/x.zip' }],
+    });
+    expect(r.ok).toBe(false);
+  });
+
+  it('accepts a file served by the local staging loopback', () => {
+    const r = parseLatestMac({
+      ...GOOD,
+      files: [
+        {
+          ...GOOD.files[0],
+          url: 'https://127.0.0.1:8443/Kingfisher-1.1.0-arm64-mac.zip',
+        },
+      ],
+    });
+    expect(r.ok).toBe(false); // non-default port still fails
+    const r2 = parseLatestMac({
+      ...GOOD,
+      files: [
+        {
+          ...GOOD.files[0],
+          url: 'https://127.0.0.1/Kingfisher-1.1.0-arm64-mac.zip',
+        },
+      ],
+    });
+    expect(r2.ok).toBe(true);
+  });
+
   it('rejects a file with a malformed sha512', () => {
     const r = parseLatestMac({
       ...GOOD,

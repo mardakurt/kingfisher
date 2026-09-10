@@ -18,6 +18,26 @@
  */
 
 /**
+ * The hosts a production update feed is allowed to point at.
+ *
+ * GitHub release hosts (the production target) plus the loopback
+ * range used by the local staging server. A feed that points at
+ * any other host is rejected before the bytes are downloaded.
+ * Staging traffic on `127.0.0.1` / `::1` is treated as test
+ * infrastructure; an internet-facing staging server would have
+ * to extend this list with a deliberate code review.
+ */
+const ALLOWED_FEED_HOSTS = new Set([
+  'github.com',
+  'api.github.com',
+  'release-assets.githubusercontent.com',
+  'objects.githubusercontent.com',
+  '127.0.0.1',
+  'localhost',
+  '::1',
+]);
+
+/**
  * @typedef {Object} MacUpdateFile
  * @property {string} url
  * @property {string} sha512  base64-encoded SHA-512
@@ -86,7 +106,7 @@ function parseFileEntry(entry) {
   if (!entry || typeof entry !== 'object') return null;
   const root = /** @type {Record<string, unknown>} */ (entry);
   const url = root['url'];
-  if (typeof url !== 'string' || !isHttpUrl(url)) return null;
+  if (typeof url !== 'string' || !isHttpsUrl(url)) return null;
   const sha512 = root['sha512'];
   if (typeof sha512 !== 'string' || !/^[A-Za-z0-9+/=]{64,}$/.test(sha512)) return null;
   const size = root['size'];
@@ -109,12 +129,21 @@ function numberOrUndefined(value) {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 }
 
-function isHttpUrl(value) {
+function isHttpsUrl(value) {
   if (typeof value !== 'string') return false;
-  if (!value.startsWith('https://')) return false;
+  if (!value.startsWith('https://') && !value.startsWith('http://')) return false;
   try {
     const parsed = new URL(value);
-    return parsed.protocol === 'https:';
+    const isLoopback = parsed.hostname === '127.0.0.1' || parsed.hostname === 'localhost' || parsed.hostname === '::1';
+    /* Production: HTTPS only. Loopback staging: HTTP allowed because
+       the local server has no certificate. The host allow-list is
+       what keeps this honest: the production hosts are GitHub, the
+       loopback hosts are local test infrastructure. */
+    if (!isLoopback && parsed.protocol !== 'https:') return false;
+    if (parsed.username || parsed.password) return false;
+    if (!ALLOWED_FEED_HOSTS.has(parsed.hostname.toLowerCase())) return false;
+    if (parsed.protocol === 'https:' && parsed.port && parsed.port !== '443') return false;
+    return true;
   } catch {
     return false;
   }

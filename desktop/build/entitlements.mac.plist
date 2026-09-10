@@ -1,37 +1,98 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  What a hardened Kingfisher is allowed to do, and why each line is here.
+  Hardened Runtime entitlements for Kingfisher.
 
-  `allow-jit` and `allow-unsigned-executable-memory` are for WebAssembly: the
-  browser engine Kingfisher ships is a JIT-compiled Stockfish, and the hardened
-  runtime refuses that by default.
+  This file is the smallest possible set of capabilities the
+  application needs once the macOS hardened runtime is enabled.
+  Each line is justified; an entitlement without a justification
+  in this comment is a bug.
 
-  `disable-library-validation` and `allow-dyld-environment-variables` are for
-  the native engines. A managed engine is a binary from the engine project's
-  own release page, downloaded against a recorded SHA-256 and spawned by the
-  companion. It is signed by that project or by nobody, and without this it
-  cannot be loaded into a hardened process tree at all.
+  Phase 36 audit (the short version):
 
-  That is the trade this application makes, and it is stated rather than
-  implied: a managed native engine runs with the user's own permissions. It is
-  not sandboxed. See docs/adr/0041-engine-trust-and-the-sandbox-we-do-not-have.md.
+    allow-jit                                   Engine.
+    allow-unsigned-executable-memory            Engine.
+    disable-library-validation                   Engine.
+    allow-dyld-environment-variables            Engine.
+    user-selected.read-write                    File dialogs.
+    network.client                              GitHub, Lichess, the
+                                                updater feed.
+    network.server                              Local web server
+                                                that ships the
+                                                Next app to the
+                                                desktop renderer.
 
-  `com.apple.security.files.user-selected.read-write` is the file dialogs:
-  a PGN, a SQLite collection, a Syzygy directory, an engine binary — all of
-  them chosen by the person using the application, never named by the page.
+  The audit rejects, in particular, the broad "copy the Electron
+  template" pattern that grants e.g. `disable-library-validation`
+  plus `com.apple.security.cs.allow-unsigned-executable-memory`
+  plus `com.apple.security.cs.debugger` plus the full network
+  suite. Kingfisher does not debug, does not load arbitrary
+  unsigned memory outside the engine path, and does not need
+  `com.apple.security.cs.allow-dyld-environment-variables`
+  outside that same engine path. The combination of *both*
+  disable-library-validation and allow-dyld-environment-variables
+  is the cost of letting a managed native engine, signed by
+  its own upstream project, run inside the Kingfisher process
+  tree. The trade is documented in
+  docs/adr/0041-engine-trust-and-the-sandbox-we-do-not-have.md.
+
+  If a future feature needs another entitlement, add it here
+  *and* in this comment in the same commit. The release gate
+  refuses a build whose `entitlements.mac.plist` changed
+  without a comment change.
 -->
 <plist version="1.0">
   <dict>
+    <!--
+      WebAssembly JIT. The Stockfish engine Kingfisher ships is
+      a JIT-compiled WASM build; without `allow-jit` and
+      `allow-unsigned-executable-memory` the hardened runtime
+      refuses to allocate the executable memory pages WASM
+      needs to compile. Both must be present; one without the
+      other crashes the engine on first move.
+    -->
     <key>com.apple.security.cs.allow-jit</key>
     <true/>
     <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
     <true/>
+
+    <!--
+      Managed native engines. Stockfish from the engine
+      project's own release page is signed by that project, not
+      by Apple; some engines ship without any signature at all.
+      Without these two, the hardened runtime refuses to load
+      a binary whose signature chain does not reach Apple's
+      root, and a Kingfisher user who has installed a managed
+      engine would see a hard error on first search. The trust
+      model is documented in
+      docs/adr/0041-engine-trust-and-the-sandbox-we-do-not-have.md.
+    -->
     <key>com.apple.security.cs.disable-library-validation</key>
     <true/>
     <key>com.apple.security.cs.allow-dyld-environment-variables</key>
     <true/>
+
+    <!--
+      File dialogs. A user-selected PGN, a chosen SQLite
+      collection, a Syzygy directory, an engine binary — all
+      of these are paths the user just chose. The user-selected
+      read-write entitlement is the smallest scope Apple
+      exposes for that case; it does not give us arbitrary
+      file access, only access to the things the user has
+      explicitly selected.
+    -->
     <key>com.apple.security.files.user-selected.read-write</key>
     <true/>
+
+    <!--
+      Network. The renderer reaches Lichess, GitHub (for the
+      auto-update feed), and other chess data sources; the
+      shell starts a local HTTP server that serves the bundled
+      Next app to the sandboxed renderer. The renderer never
+      binds a public port; the local server is reachable only
+      on 127.0.0.1. We do not need any further network
+      entitlement (no app-sandbox, no special iCloud, no
+      incoming from the network).
+    -->
     <key>com.apple.security.network.client</key>
     <true/>
     <key>com.apple.security.network.server</key>
