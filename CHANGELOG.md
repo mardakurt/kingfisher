@@ -90,6 +90,47 @@ hidden }` rule was preventing scroll on the marketing page; the fix
 
 ### Continuity and errors
 
+### Workflow speed — Phase 31
+
+- **One search box, one parser, one ranking.** The command palette
+  now reads from the same front door for every entity. `Cmd+K`
+  finds openings, players, studies, chapters, repertoires, games,
+  databases, opening files, training, decisions, themes, tags, and
+  commands with the same subsequence ranking. No provider is hidden
+  behind a different palette; there is exactly one.
+- **FEN and move-sequence recognition in the search box.** A pasted
+  FEN opens position search. `1.e4 c5 2.Nf3 d6` is parsed safely,
+  refused to guess on the first illegal move, and offered as
+  Explorer / Analysis / Databases actions on the reached position.
+  Long pastes (over 240 characters) are pointed at the PGN
+  importer rather than crashing the providers.
+- **Open in … is one table.** A small action registry serves the
+  Analysis toolbar, the Study tab, the Repertoire page, the
+  Explorer and the search palette, so a player who learns
+  "Open in Analysis" once has learned it everywhere.
+- **Recent work shows when and where.** The Continue card on the
+  recent workspace now reports the last-opened time and ticks it
+  once a minute, so a card left on screen does not silently age
+  into a lie. The cursor inside a study chapter or game is the one
+  the user left, with the engine, modals and in-flight requests
+  explicitly *not* restarted.
+
+### Data scale — Phase 31
+
+- **lastAccessed-indexed eviction.** The persistent streaming
+  cache walks the `lastAccessed` index instead of scanning every
+  record. Eviction is O(1) on the size of the cache. Benchmark
+  measured 10k and 50k records: insert ~85–100 ms, touch-all
+  ~50 ms, oldestEntries 0.3–1.5 ms, evict ~13 ms regardless of
+  cache size.
+- **Honest storage-quota warning.** A 5 GB pack install on a 6 GB
+  device now pauses behind a confirm dialog that shows the
+  browser's reported free space. The dialog does not block the
+  install — that is a user choice — and the catalog row says
+  "Use online to avoid downloading the full pack" for any source
+  that is 1 GB or larger, so the online path is the recommended
+  default for huge sources.
+
 - **"Saved on this device" status, in the sidebar.** A quiet
   indicator reports whether the browser considers the IndexedDB
   origin durable. If it does not, the user can click to ask the
