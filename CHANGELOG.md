@@ -35,6 +35,93 @@ development branch.
   validated and acknowledged, and the dialog offers an
   "Open GitHub feedback" button as a user-initiated fallback.
 
+### Honest feedback (Phase 41)
+
+- The feedback route no longer claims success when no durable
+  sink is configured. `POST /api/feedback` returns `503` with
+  `code: "unconfigured"` so the modal renders the explicit
+  fallback surface ("Direct feedback is not currently
+  configured — Copy feedback or Open GitHub feedback"). The
+  "Your feedback was sent" message now only appears when the
+  route actually delivered. The same code is also reachable via
+  `useFeedback().probeDirectSubmission()`, so any surface that
+  embeds the modal can branch on it without a separate fetch.
+- `POST /api/feedback` distinguishes 503 (unconfigured) from
+  502 (delivery rejected by an *available* sink) from
+  429/400/403/422 (rejected by validation). The sink tests
+  pin the contract.
+
+### Mark for review — durable, transposition-aware (Phase 41)
+
+- The **Mark for review** button at the top of a reviewed
+  position writes a durable review item that survives reload,
+  backup, and restore. Re-marking the same position from the
+  same game refreshes the note; re-marking the same canonical
+  position from a *different* game (or a different move order
+  that reaches the same position) appends a `MarkedFromGame`
+  occurrence rather than creating a duplicate item. The item's
+  identity key is `marked:${positionKey}` so the work item is
+  one per canonical position; the occurrences list keeps the
+  "I reached this from three of my games" context.
+- After marking, the header switches to **Marked for Review /
+  Open / Remove mark**. Removing the mark clears the item;
+  re-marking the same position creates it again.
+
+### Strategic feature transitions (Phase 41)
+
+- Game Review now attaches deterministic "what changed"
+  statements to critical moments: created passed pawn, created
+  protected passer, created connected passed pawns, newly
+  isolated pawn, doubled pawns, backward pawn, newly opened
+  file, newly semi-open file, rook on a newly open file,
+  bishop pair gained/lost, kingside pawn shield collapsed by
+  two or more. Each statement is a board fact — the user can
+  read it without knowing chess jargon and without knowing what
+  the engine thinks.
+- The detector compares file-by-file (not square-by-square) so
+  a normal one-square pawn advance does not produce a fresh
+  transition. The "no false positives for normal pawn moves"
+  brief item is a passing test.
+
+### Multi-source comparison (Phase 41)
+
+- A new `SourceComparison` normalizer turns raw per-source
+  counts into a uniform row-per-move shape with an explicit
+  `SourceAbsence` (`zero-games` / `unavailable` / `not-loaded`
+  / `unsupported-filter` / `network-failed`). The renderer
+  never sees a "0" that means "source unavailable" — chess-data
+  correctness per the brief.
+- Trend claims are gated by `meetsTrendSampleThreshold` (50
+  games minimum, both sides). Three games is not a trend even
+  when the raw percentage delta is large.
+
+### Clock parsing (Phase 41)
+
+- The PGN clock parser already handled `[%clk H:MM:SS]`;
+  Phase 41 adds a dedicated `chess/clock.ts` module for the
+  derived facts: `thinkTimeSeconds` (refuses zero/negative),
+  `isTimeTrouble` (move≥20 AND remaining<initial/3 AND
+  increment<30 — refuses to label 5+0 bullet or 30+30 rapid
+  as "time trouble"), and `parseTimeControlTag` (handles
+  `300+0` / `5400+30` / plain seconds; returns null for the
+  ambiguous `40/5400+30:3600` moves/seconds form rather than
+  guessing).
+
+### Calculation training (Phase 41)
+
+- A distinct training item type with full provenance. The
+  source kind `'game-review'` joins `'study' / 'game' /
+  'repertoire' / 'analysis'`. The answer's truth source is
+  recorded on every item (`engine-candidates` /
+  `user-selected` / `tablebase`), so the renderer can label
+  the answer accurately and never hide that the answer came
+  from engine analysis.
+- `gradeCalculationPick` scores by rank + delta-centipawns +
+  acceptable-band. It refuses to mark engine-second-line
+  within the band as wrong, and it treats exact-tablebase
+  winners as winning without penalising alternate winning
+  moves. Repertoire training is unchanged.
+
 ### Game Review — evidence-based critical moments (Phase 40)
 
 - A new `runGameReview` driver walks the canonical game
