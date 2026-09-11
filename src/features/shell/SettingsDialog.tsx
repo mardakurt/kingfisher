@@ -2150,21 +2150,35 @@ function CopyReport() {
  * a new tab, and never carry credentials.
  */
 function HelpSection() {
+  const openFeedback = useUi((state) => state.openFeedback);
+  const setSettingsOpen = useUi((state) => state.setSettingsOpen);
+  const onClose = () => setSettingsOpen(false);
   return (
     <DiagnosticGroup title="Help and feedback">
       <ul className="flex flex-col gap-1 py-2 text-xs">
         <li>
-          <a
-            href="https://github.com/mardakurt/kingfisher/issues/new/choose"
-            target="_blank"
-            rel="noopener"
+          {/*
+            Phase 40 (PART V): the Settings help section uses
+            the same in-app Feedback modal as the Sidebar and
+            the command palette. There is exactly one Feedback
+            surface; the external "report on GitHub" route is
+            offered as the fallback when direct submission is
+            unavailable.
+          */}
+          <button
+            type="button"
+            onClick={() => {
+              openFeedback('broken');
+              onClose();
+            }}
             className="text-accent hover:underline"
+            data-feedback-from-settings=""
           >
             Report a problem →
-          </a>
+          </button>
           <span className="ml-2 text-[11px] text-tertiary">
-            Bug report or feature request. Use the templates; they ask for the same support
-            information the button above captures.
+            Opens the in-app feedback form. Sent only when you click Send. No GitHub account
+            required.
           </span>
         </li>
         <li>

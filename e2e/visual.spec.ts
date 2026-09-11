@@ -266,7 +266,10 @@ test.describe(() => {
       ).toBeLessThanOrEqual(2);
 
       if (shot.selector) {
-        await expect(page.locator(shot.selector), `${shot.name}: primary panel missing`).toBeVisible();
+        await expect(
+          page.locator(shot.selector),
+          `${shot.name}: primary panel missing`,
+        ).toBeVisible();
       }
     });
 
@@ -284,7 +287,10 @@ test.describe(() => {
       if (!hasBaselines && !isUpdatingBaselines) {
         const expected = `${shot.name}-${platformSuffix}.png`;
         const present = existsSync(path.join(SNAPSHOTS, expected));
-        expect(present, `${expected} baseline is missing — run \`npm run visual:baselines\` and commit the PNG`).toBe(true);
+        expect(
+          present,
+          `${expected} baseline is missing — run \`npm run visual:baselines\` and commit the PNG`,
+        ).toBe(true);
         return;
       }
       await calmPreferences(page, shot.theme);

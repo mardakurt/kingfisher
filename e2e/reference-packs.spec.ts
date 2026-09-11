@@ -1,6 +1,15 @@
 import { expect, test, type Page } from '@playwright/test';
 import { createServer, type Server } from 'node:http';
-import { createReadStream, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import {
+  createReadStream,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { gzipSync } from 'node:zlib';
@@ -26,8 +35,6 @@ import { selectTool } from './tools';
  * because they are gitignored build output, and a "passing
  * vacuously" suite is worse than a deterministic one.
  */
-
-const ROOT = process.cwd();
 
 async function ready(page: Page) {
   await page.locator('html[data-kingfisher-ready="true"]').waitFor();
@@ -96,12 +103,30 @@ function buildFixturePack(): FixturePack {
   );
   const game = gzipSync(
     Buffer.from(
-      ['g1', 'Test White', 'Test Black', '1-0', '2026', '2026.09.01', 'E', 'B90', 'Najdorf', '2500', '2480', 'https://example.invalid/g1', 'e4 c5'].join('\t') + '\n',
+      [
+        'g1',
+        'Test White',
+        'Test Black',
+        '1-0',
+        '2026',
+        '2026.09.01',
+        'E',
+        'B90',
+        'Najdorf',
+        '2500',
+        '2480',
+        'https://example.invalid/g1',
+        'e4 c5',
+      ].join('\t') + '\n',
       'utf8',
     ),
   );
   const players = gzipSync(
-    Buffer.from(['testwhite', '', 'Test White', '1', 'GM', '10', '2020', '2026', '2500', '2490'].join('\t') + '\n', 'utf8'),
+    Buffer.from(
+      ['testwhite', '', 'Test White', '1', 'GM', '10', '2020', '2026', '2500', '2490'].join('\t') +
+        '\n',
+      'utf8',
+    ),
   );
   const playergames = gzipSync(Buffer.from('testwhite|g1\n', 'utf8'));
 
@@ -109,14 +134,21 @@ function buildFixturePack(): FixturePack {
     { kind: 'explorer', shard: 0, file: 'explorer-000.kfp.gz', bytes: explorer, entries: 2 },
     { kind: 'game', shard: 0, file: 'game-000.kfp.gz', bytes: game, entries: 1 },
     { kind: 'players', shard: 0, file: 'players-000.kfp.gz', bytes: players, entries: 1 },
-    { kind: 'playergames', shard: 0, file: 'playergames-000.kfp.gz', bytes: playergames, entries: 1 },
+    {
+      kind: 'playergames',
+      shard: 0,
+      file: 'playergames-000.kfp.gz',
+      bytes: playergames,
+      entries: 1,
+    },
   ] as const;
 
   const manifest = {
     format: 'kingfisher-pack/1',
     id,
     name,
-    description: 'A pack shipped with the e2e suite so the install flow is exercised end-to-end in CI.',
+    description:
+      'A pack shipped with the e2e suite so the install flow is exercised end-to-end in CI.',
     version,
     builtAt: '2026-09-01',
     license: { id: 'CC0-1.0', name: 'CC0', url: 'https://example.invalid/cc0' },
@@ -141,7 +173,8 @@ function buildFixturePack(): FixturePack {
       entries,
     })),
     rawBytes: explorer.byteLength + game.byteLength + players.byteLength + playergames.byteLength,
-    compressedBytes: explorer.byteLength + game.byteLength + players.byteLength + playergames.byteLength,
+    compressedBytes:
+      explorer.byteLength + game.byteLength + players.byteLength + playergames.byteLength,
   };
 
   mkdirSync(directory, { recursive: true });
@@ -280,7 +313,9 @@ test.describe('installing a reference pack through the real UI', () => {
       await expect(row.getByRole('button', { name: 'Install', exact: true })).toHaveCount(0, {
         timeout: 120_000,
       });
-      await expect(page.locator('[data-source-row="kingfisher-starter"]')).toContainText('Built in');
+      await expect(page.locator('[data-source-row="kingfisher-starter"]')).toContainText(
+        'Built in',
+      );
     } finally {
       await pack.close();
     }

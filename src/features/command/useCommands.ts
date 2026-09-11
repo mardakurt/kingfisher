@@ -500,54 +500,36 @@ export function useCommands(): readonly Command[] {
           Phase 39 (PART K + L + M): the feedback commands sit
           next to navigation rather than inside a separate menu so
           they are reachable through the same Universal Search that
-          already drives the rest of the application. They call the
-          same destinations the Help section in Settings exposes;
-          there is one canonical implementation, not two.
+          already drives the rest of the application.
 
-          Each opens the matching GitHub issue template directly
-          with the title prefixed, so a user landing on the form
-          has the right shape waiting for them. The body is not
-          pre-filled: prefill that contains diagnostics is brittle
-          and easy to mis-trust. "Copy support information" is the
-          way to attach diagnostics — and it is itself a command.
+          Phase 40 (PART G + U): each feedback command opens the
+          same in-app Feedback modal that the Sidebar's
+          "Feedback" button opens. The "Report a problem" command
+          pre-selects the "Something is broken" category;
+          "Report a data issue" pre-selects the chess / data
+          category; "Send feedback" lands on the general category.
+          One form, one architecture, no GitHub tab-switching for
+          the default path.
         */
         id: 'report-problem',
         title: 'Report a problem',
         group: 'Help',
         keywords: 'bug issue github feedback error broken wrong',
-        run: () => {
-          window.open(
-            'https://github.com/mardakurt/kingfisher/issues/new?template=bug_report.md',
-            '_blank',
-            'noopener,noreferrer',
-          );
-        },
+        run: () => ui().openFeedback('broken'),
       },
       {
         id: 'report-data-issue',
         title: 'Report a data issue',
         group: 'Help',
         keywords: 'database explorer opening theory lichess wrong missing stale',
-        run: () => {
-          window.open(
-            'https://github.com/mardakurt/kingfisher/issues/new?template=data_issue.md',
-            '_blank',
-            'noopener,noreferrer',
-          );
-        },
+        run: () => ui().openFeedback('data-issue'),
       },
       {
         id: 'send-feedback',
         title: 'Send feedback',
         group: 'Help',
         keywords: 'idea suggestion thoughts request',
-        run: () => {
-          window.open(
-            'https://github.com/mardakurt/kingfisher/issues/new?template=feature_request.md',
-            '_blank',
-            'noopener,noreferrer',
-          );
-        },
+        run: () => ui().openFeedback('general'),
       },
       {
         /*

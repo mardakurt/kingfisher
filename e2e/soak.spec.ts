@@ -560,18 +560,11 @@ test('an all-day research session cannot grow the explorer cache without bound',
     positive failure mode that proves the suite is actually
     exercising the cache ceiling, not silently no-op'ing.
   */
-  const hookAvailable = await page.evaluate(() => {
-    return Boolean(
-      (globalThis as { __kingfisherQueryClient?: unknown }).__kingfisherQueryClient,
-    );
-  });
   test.setTimeout(180_000);
   await page.goto(analysisUrl(page));
   await ready(page);
   const hookAfterReady = await page.evaluate(() => {
-    return Boolean(
-      (globalThis as { __kingfisherQueryClient?: unknown }).__kingfisherQueryClient,
-    );
+    return Boolean((globalThis as { __kingfisherQueryClient?: unknown }).__kingfisherQueryClient);
   });
   if (!hookAfterReady) {
     /*
@@ -580,7 +573,9 @@ test('an all-day research session cannot grow the explorer cache without bound',
       the cache is bounded without forcing an injection.
     */
     const cacheSize = await page.evaluate(() => {
-      const win = globalThis as { __kingfisherQueryClient?: { getQueryCache(): { getAll(): unknown[] } } };
+      const win = globalThis as {
+        __kingfisherQueryClient?: { getQueryCache(): { getAll(): unknown[] } };
+      };
       return win.__kingfisherQueryClient?.getQueryCache().getAll().length ?? null;
     });
     if (cacheSize === null) {

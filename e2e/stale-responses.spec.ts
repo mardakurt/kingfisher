@@ -131,7 +131,6 @@ test('the explorer ends on the position and source the user actually chose', asy
     which is itself a useful coverage of the panel's stale-answer
     defence against rapid navigation.
   */
-  const singleSource = !other;
 
   /*
     The oracle: three plies, each one waited for, on the source that answers.

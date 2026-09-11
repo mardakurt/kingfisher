@@ -52,8 +52,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
    at `KINGFISHER_TEST_SYZYGY`; that path is the manual
    certification run documented in
    `docs/operations/real-tablebase-cert.md`. */
-const REAL_HELPER =
-  process.env.KINGFISHER_TEST_USE_REAL_TBPROBE === '1' ? builtHelper() : null;
+const REAL_HELPER = process.env.KINGFISHER_TEST_USE_REAL_TBPROBE === '1' ? builtHelper() : null;
 const MOCK_HELPER = path.resolve(HERE, '__fixtures__', 'mock-tbprobe-helper.mjs');
 const HELPER = REAL_HELPER ?? MOCK_HELPER;
 /* Fixture directory holding stub files named `KRvK.rtbw` etc.

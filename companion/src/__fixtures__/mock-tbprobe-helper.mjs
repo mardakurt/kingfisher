@@ -29,8 +29,6 @@
  * without having to spawn a process.
  */
 
-/* eslint-disable no-console */
-
 import { readdirSync } from 'node:fs';
 import { argv } from 'node:process';
 
@@ -62,7 +60,9 @@ if (directory) {
 }
 
 if (!directory || largest === 0) {
-  process.stdout.write(JSON.stringify({ ready: false, reason: 'No Syzygy tables in directory.' }) + '\n');
+  process.stdout.write(
+    JSON.stringify({ ready: false, reason: 'No Syzygy tables in directory.' }) + '\n',
+  );
   process.exit(0);
 }
 

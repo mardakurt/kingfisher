@@ -3,7 +3,15 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-import { ChevronLeft, ChevronRight, Close, Moon, Settings, Sun } from '@/components/icons';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Close,
+  Feedback,
+  Moon,
+  Settings,
+  Sun,
+} from '@/components/icons';
 import { IconButton } from '@/components/ui/Button';
 import { cn } from '@/lib/cn';
 import { StoragePersistenceStatus } from '@/persistence/StoragePersistenceStatus';
@@ -23,6 +31,7 @@ interface SidebarProps {
 export function Sidebar({ variant = 'desktop', onClose }: SidebarProps) {
   const pathname = usePathname();
   const setSettingsOpen = useUi((state) => state.setSettingsOpen);
+  const openFeedback = useUi((state) => state.openFeedback);
   const collapsed = useWorkspaceLayout((state) => state.sidebarCollapsed);
   const setCollapsed = useWorkspaceLayout((state) => state.setSidebarCollapsed);
   const theme = usePreferences((state) => state.theme);
@@ -223,6 +232,31 @@ export function Sidebar({ variant = 'desktop', onClose }: SidebarProps) {
           <Settings className="h-5 w-5 shrink-0" />
           <span className={cn('truncate', compact && 'hidden')}>Settings</span>
           <kbd className={cn('ml-auto font-mono text-[10px]', compact && 'hidden')}>⌘,</kbd>
+        </button>
+        {/*
+          Phase 40 (PART G + H): a visible Feedback button in
+          the bottom block of the sidebar, sitting next to
+          Settings. It opens the same in-app Feedback modal
+          that the Cmd+K commands use — one form, one
+          architecture. Compact sidebar: the label collapses
+          into a tooltip. Mobile: the drawer keeps the label.
+        */}
+        <button
+          type="button"
+          onClick={() => {
+            openFeedback();
+            onClose?.();
+          }}
+          aria-label="Send feedback"
+          title={compact ? 'Send feedback' : undefined}
+          className={cn(
+            'flex h-10 w-full items-center rounded-[4px] text-sm text-tertiary transition-colors hover:bg-surface-2 hover:text-primary',
+            compact ? 'justify-center' : 'gap-3 px-3',
+          )}
+          data-feedback-button=""
+        >
+          <Feedback className="h-5 w-5 shrink-0" />
+          <span className={cn('truncate', compact && 'hidden')}>Feedback</span>
         </button>
         {/*
           Phase 29 (PART AJ-AK): a quiet "Saved on this device"

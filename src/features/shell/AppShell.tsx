@@ -14,6 +14,7 @@ import { PostUpdateNotice } from '@/desktop/post-update-notice';
 import { useReferenceSources } from '@/reference/use-references';
 import { useUi } from '@/stores/ui-store';
 import { useWorkspaceLayout } from '@/stores/workspace-layout-store';
+import { APP_VERSION } from '@/lib/version';
 
 import { ConflictNotice } from '@/features/persistence/ConflictNotice';
 import { RecoveryNotice } from '@/features/persistence/RecoveryNotice';
@@ -47,6 +48,10 @@ const PositionSetupDialog = dynamic(
     import('@/features/position-setup/PositionSetupDialog').then(
       (module) => module.PositionSetupDialog,
     ),
+  { ssr: false },
+);
+const FeedbackModal = dynamic(
+  () => import('@/features/feedback/FeedbackModal').then((module) => module.FeedbackModal),
   { ssr: false },
 );
 const SaveToStudyDialog = dynamic(
@@ -116,6 +121,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   const modelGameOpen = useUi((state) => state.modelGameOpen);
   const analysisQueueOpen = useUi((state) => state.analysisQueueOpen);
   const commentingNodeId = useUi((state) => state.commentingNodeId);
+  const feedbackOpen = useUi((state) => state.feedbackOpen);
+  const feedbackInitialCategory = useUi((state) => state.feedbackInitialCategory);
+  const closeFeedback = useUi((state) => state.closeFeedback);
 
   useEffect(() => {
     // Browser tests and assistive automation need a deterministic signal that
@@ -207,6 +215,16 @@ export function AppShell({ children }: { children: ReactNode }) {
         {modelGameOpen ? <ModelGameDialog /> : null}
         {analysisQueueOpen ? <AnalysisQueueDialog /> : null}
         {commentingNodeId ? <CommentDialog /> : null}
+        {feedbackOpen ? (
+          <FeedbackModal
+            open={feedbackOpen}
+            onClose={closeFeedback}
+            clientVersion={APP_VERSION}
+            surface="web"
+            githubRepositoryUrl="https://github.com/mardakurt/kingfisher"
+            initialCategory={feedbackInitialCategory ?? 'broken'}
+          />
+        ) : null}
         <MoveContextMenu />
         <Notices />
       </div>

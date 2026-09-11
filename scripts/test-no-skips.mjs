@@ -38,18 +38,9 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 
-const SCAN_DIRS = [
-  'src',
-  'companion',
-  'scripts',
-  'desktop',
-  'e2e',
-];
+const SCAN_DIRS = ['src', 'companion', 'scripts', 'desktop', 'e2e'];
 
-const SCAN_CONFIGS = [
-  'vitest.config.mts',
-  'playwright.config.ts',
-];
+const SCAN_CONFIGS = ['vitest.config.mts', 'playwright.config.ts'];
 
 /**
  * Patterns we treat as prohibited skips. The list is exhaustive
@@ -94,16 +85,7 @@ const SKIP_LINE_PATTERN = /[\w$.]*skip[\w$.]*\s*\(/g;
 
 const TEST_FILE_PATTERN = /\.(test|spec)\.(?:[cm]?[jt]s|[jt]sx?)$/i;
 
-const SKIP_KEYWORDS = [
-  'skip',
-  'todo',
-  'fixme',
-  'xit',
-  'xdescribe',
-  'xtest',
-  'skipIf',
-  'runIf',
-];
+const SKIP_KEYWORDS = ['skip', 'todo', 'fixme', 'xit', 'xdescribe', 'xtest', 'skipIf', 'runIf'];
 
 const SKIP_REPORT_LIMIT = 25;
 
@@ -171,9 +153,7 @@ function scanConfigContent(rel, content) {
   // Strip block + line comments before scanning config files.
   // The skip keyword must appear in executable code, not in a
   // explanation of why we don't use it.
-  const stripped = content
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/^\s*\/\/.*$/gm, '');
+  const stripped = content.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
   for (const kw of SKIP_KEYWORDS) {
     const re = new RegExp(`(?<![A-Za-z0-9_])${kw}(?![A-Za-z0-9_])`, 'g');
     let m;

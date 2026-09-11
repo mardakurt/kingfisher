@@ -45,8 +45,7 @@ const ROOT = join(HERE, '..');
    the same one `src/reference/catalog.ts` advertises — there is
    exactly one truth, and this command reads it. */
 const rootUrl =
-  process.env.KINGFISHER_PUBLIC_DATA_ROOT_URL ??
-  'https://mardakurt.github.io/kingfisher-data';
+  process.env.KINGFISHER_PUBLIC_DATA_ROOT_URL ?? 'https://mardakurt.github.io/kingfisher-data';
 const manifestUrl =
   process.env.KINGFISHER_RECENT_MANIFEST ??
   `${rootUrl.replace(/\/$/, '')}/reference-recent-v2/manifest.json`;
@@ -85,14 +84,12 @@ if (live) {
 const now = new Date();
 const candidateEnd = monthFloor(now);
 const candidateStart = addMonths(candidateEnd, -5);
-const liveEndMonth =
-    live?.provenance?.upstream?.length ?
-      monthFromIso(live.provenance.upstream[0].file) :
-      null;
-const liveStartMonth =
-    live?.provenance?.upstream?.length ?
-      monthFromIso(live.provenance.upstream.at(-1).file) :
-      null;
+const liveEndMonth = live?.provenance?.upstream?.length
+  ? monthFromIso(live.provenance.upstream[0].file)
+  : null;
+const liveStartMonth = live?.provenance?.upstream?.length
+  ? monthFromIso(live.provenance.upstream.at(-1).file)
+  : null;
 
 console.log('');
 console.log('Candidate window (no rebuild yet)');

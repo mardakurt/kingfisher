@@ -9,6 +9,8 @@
 
 import { create } from 'zustand';
 
+import type { FeedbackCategory } from '@/features/feedback/feedback-schema';
+
 /**
  * Six, not eight.
  *
@@ -67,6 +69,10 @@ interface UiState {
   moveMenu: MoveMenuTarget | null;
   sidebarOpen: boolean;
   notices: Notice[];
+  feedbackOpen: boolean;
+  /** Initial category for the feedback modal. Lets the Cmd+K
+      commands open the same modal with the right pre-selection. */
+  feedbackInitialCategory: FeedbackCategory | null;
 
   setCommandPaletteOpen(open: boolean): void;
   toggleCommandPalette(): void;
@@ -90,6 +96,8 @@ interface UiState {
   setCommentingNodeId(nodeId: string | null): void;
   setMoveMenu(target: MoveMenuTarget | null): void;
   setSidebarOpen(open: boolean): void;
+  openFeedback(category?: FeedbackCategory): void;
+  closeFeedback(): void;
   notify(notice: Omit<Notice, 'id'>): void;
   dismiss(id: string): void;
 }
@@ -116,6 +124,8 @@ export const useUi = create<UiState>((set) => ({
   moveMenu: null,
   sidebarOpen: false,
   notices: [],
+  feedbackOpen: false,
+  feedbackInitialCategory: null,
 
   setCommandPaletteOpen: (commandPaletteOpen) => set({ commandPaletteOpen }),
   toggleCommandPalette: () => set((state) => ({ commandPaletteOpen: !state.commandPaletteOpen })),
@@ -142,6 +152,9 @@ export const useUi = create<UiState>((set) => ({
   setCommentingNodeId: (commentingNodeId) => set({ commentingNodeId }),
   setMoveMenu: (moveMenu) => set({ moveMenu }),
   setSidebarOpen: (sidebarOpen) => set({ sidebarOpen }),
+  openFeedback: (category?: FeedbackCategory) =>
+    set({ feedbackOpen: true, feedbackInitialCategory: category ?? null }),
+  closeFeedback: () => set({ feedbackOpen: false, feedbackInitialCategory: null }),
 
   notify: (notice) => {
     const id = `notice-${++noticeId}`;

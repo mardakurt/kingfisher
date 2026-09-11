@@ -44,7 +44,10 @@ describe('the Syzygy dictionary the mock carries', () => {
      takes it, and the position after each is a draw. */
   it('marks the rook moves that throw the win away as drawn', () => {
     const result = answers['8/8/8/4k3/8/8/8/K2R4 w - - 0 1'];
-    const drawn = result.moves.filter((move) => move.wdl === 2).map((move) => move.uci).sort();
+    const drawn = result.moves
+      .filter((move) => move.wdl === 2)
+      .map((move) => move.uci)
+      .sort();
     expect(drawn).toEqual(['d1d4', 'd1d5', 'd1d6']);
   });
 
