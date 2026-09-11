@@ -17,7 +17,9 @@ import type { Fen, San, Uci } from '@/chess/types';
 export type EngineKind = 'wasm' | 'native' | 'remote';
 
 export interface EngineIdentity {
+  readonly id?: string;
   readonly name: string;
+  readonly version?: string;
   readonly author?: string;
 }
 

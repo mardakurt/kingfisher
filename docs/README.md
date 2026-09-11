@@ -112,7 +112,7 @@ because the reasons are still the reasons, but the **current**
 state is the canonical section above.
 
 - [`docs/reports/`](reports) — every phase handover, from
-  Phase 13 to Phase 32. Each describes what a phase set out
+  Phase 13 to Phase 40. Each describes what a phase set out
   to fix, what it found, what it shipped and what remained.
 - [`docs/release/1.0.0-rc.1.md`](release/1.0.0-rc.1.md) through
   [`docs/release/1.0.0-rc.5.md`](release/1.0.0-rc.5.md) — older

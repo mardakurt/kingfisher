@@ -20,6 +20,11 @@ export function PrivacyPage(): JSX.Element {
           script.
         </li>
         <li>
+          <strong>Feedback is user-initiated.</strong> The in-app Feedback button is a deliberate
+          channel you open yourself. Nothing leaves the browser until you click Send. See
+          <a href="#feedback">Feedback</a> for what the submission carries and where it goes.
+        </li>
+        <li>
           <strong>No cookies.</strong> The web build does not set any cookie. Application state
           lives in <code>localStorage</code> and IndexedDB, scoped to the origin.
         </li>
@@ -136,6 +141,44 @@ export function PrivacyPage(): JSX.Element {
         <em>Settings → Database → Export backup</em> on the source machine;{}
         <em>Settings → Database → Import backup</em> on the destination machine. The backup file is
         portable JSON and is under your control at all times.
+      </p>
+
+      <h2 id="feedback">Feedback</h2>
+      <p>
+        The in-app Feedback dialog sends a single submission only when you press the
+        <em>Send feedback</em> button. Nothing is uploaded automatically, and the form does not open
+        a connection on its own.
+      </p>
+      <p>The submission carries:</p>
+      <ul>
+        <li>The category you picked (one of five).</li>
+        <li>The message you typed, up to 4000 characters.</li>
+        <li>
+          The current board position (FEN) — only when you tick
+          <em>Include current position</em>. The default is off.
+        </li>
+        <li>
+          A short technical-information block (app version, surface, browser, viewport, storage
+          state) — only when you tick <em>Include technical information</em> and preview it before
+          sending.
+        </li>
+      </ul>
+      <p>
+        The submission never carries your games, studies, chapters, repertoire, training items,
+        notes, preferences, Lichess or companion credentials, or filesystem paths.
+      </p>
+      <p>
+        Where it goes: when the operator has configured the secure sink (a fine-grained GitHub token
+        scoped to a single feedback repository), the submission is forwarded there server-side,
+        never from the browser. When no sink is configured, the submission is validated,
+        acknowledged with a reference handle, and the operator sees it in the server log; the dialog
+        also offers an “Open GitHub feedback” button that opens a pre-filled issue in a new tab.
+      </p>
+      <p>
+        The endpoint enforces same-origin requests, a 64 KB body ceiling, a per-IP rate limit, a
+        minimum form-fill time, and a honeypot field the dialog never fills. The renderer never sees
+        the GitHub token. The fallback link is the user&apos;s explicit choice, not an automatic
+        redirect.
       </p>
 
       <h2 id="children">Children</h2>

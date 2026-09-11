@@ -113,7 +113,10 @@ export class GithubFallbackSink implements FeedbackSink {
     )}&title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
     if (typeof window !== 'undefined' && typeof window.open === 'function') {
       window.open(url, '_blank', 'noopener,noreferrer');
-    } else if (typeof globalThis !== 'undefined' && typeof (globalThis as { open?: unknown }).open === 'function') {
+    } else if (
+      typeof globalThis !== 'undefined' &&
+      typeof (globalThis as { open?: unknown }).open === 'function'
+    ) {
       (globalThis as { open: (url: string) => unknown }).open(url);
     }
     return {

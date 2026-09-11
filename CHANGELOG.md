@@ -11,6 +11,65 @@ release; nothing here has shipped yet. The notes below describe what
 the next release will contain if it is cut from the current
 development branch.
 
+### Direct in-app feedback (Phase 40)
+
+- A visible **Feedback** button now sits at the bottom of the
+  sidebar (mobile: in the drawer; collapsed: as a tooltip).
+  Cmd+K commands _Report a problem_, _Report a data issue_,
+  and _Send feedback_ open the same dialog. _Settings → Help
+  and feedback_ does too. One form, one architecture, no
+  GitHub tab-switching for the default path.
+- The submission carries a category (one of five), the typed
+  message, optionally the current FEN (off by default), and
+  optionally a short technical-information block (off by
+  default and previewable before send). Nothing else —
+  studies, PGNs, notes, repertoire, training answers, and
+  database paths never leave the browser.
+- `POST /api/feedback` is the new server sink. It enforces
+  same-origin, content-type, a 64 KB body ceiling, a
+  per-IP rate limit, a minimum form-fill time, and a honeypot.
+  When the operator has configured the secure feedback
+  repository and a fine-grained token, submissions land
+  there server-side; the renderer never sees the token. When
+  the secure sink is not configured, the submission is
+  validated and acknowledged, and the dialog offers an
+  "Open GitHub feedback" button as a user-initiated fallback.
+
+### Game Review — evidence-based critical moments (Phase 40)
+
+- A new `runGameReview` driver walks the canonical game
+  tree, asks the engine for evidence at every position, and
+  ranks critical moments by evidence (mate transitions,
+  evaluation swings, reference departures, repertoire
+  deviations). No fake accuracy, no "Brilliant!!" label.
+- Three budget presets: `quick`, `standard`, `deep`, with
+  per-ply depth, multi-PV, and time bound. Progress and
+  cancel are honoured; partial cancellations are clearly
+  reported, never silently passed off as complete.
+- `buildCandidateComparison` surfaces played move, engine
+  candidates, reference moves, repertoire moves, personal
+  database count, and tablebase WDL as distinct evidence
+  sources, side by side — not merged into a single ranking.
+- Repertoire deviation is keyed on the canonical FEN, so a
+  move order that transposes into the user's preparation is
+  recognised as in-prep.
+
+### Test discipline (Phase 40)
+
+- **Zero skipped automated tests.** Phase 39 shipped 11
+  skipped tests covering visual baselines, the Syzygy probe
+  helper, real reference packs, single-source explorer
+  switching, and explorer-cache injection. Each is replaced
+  by an active deterministic assertion.
+- `npm run test:no-skips` is a new static gate that fails
+  the build the moment any future commit reintroduces
+  `test.skip`, `it.skip`, `describe.skip`, `xit`, `xtest`,
+  `xdescribe`, `test.todo`, `it.todo`, `describe.todo`,
+  `test.fixme`, `it.fixme`, `test.skipIf`, `test.runIf`,
+  or a conditional `describe.skip` reference.
+- Final automated state: 2624 passing, 0 skipped, 0
+  failing.
+
 ### Installable web app (Phase 34)
 
 - The studio origin (`kingfisher-roan.vercel.app`) is now an

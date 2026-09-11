@@ -52,6 +52,14 @@ export function winningChances(score: Score): number {
   return 1 / (1 + Math.exp(-0.00368208 * score.cp));
 }
 
+/** Convert a Stockfish WDL string ('w-d-l') into a
+    white-side probability. Linear in (w - l) / 6 so the
+    score sits in [0, 1] without the centipawn sigmoid. */
+export function wdlToProbability(wdl: '4-2-0' | '3-2-1' | '2-2-2' | '1-2-3' | '0-2-4'): number {
+  const [w, , l] = wdl.split('-').map(Number) as [number, number, number];
+  return Math.max(0, Math.min(1, (w - l) / 6 + 0.5));
+}
+
 /** Human-facing text: `+0.34`, `-1.20`, `M4`, `-M2`. */
 export function formatScore(score: Score, options: { alwaysSign?: boolean } = {}): string {
   const alwaysSign = options.alwaysSign ?? true;
