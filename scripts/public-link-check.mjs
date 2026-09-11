@@ -59,7 +59,15 @@ const config = {
 const packManifests = {
   elite: `${config.data}/reference-elite-v2/manifest.json`,
   recent: `${config.data}/reference-recent-v1/manifest.json`,
+  'recent-v2': `${config.data}/reference-recent-v2/manifest.json`,
   online: `${config.data}/reference-online-v1/manifest.json`,
+};
+
+const packDir = {
+  elite: 'reference-elite-v2',
+  recent: 'reference-recent-v1',
+  'recent-v2': 'reference-recent-v2',
+  online: 'reference-online-v1',
 };
 
 // Read each manifest and pick a couple of chunk URLs to verify.
@@ -74,7 +82,7 @@ for (const [pack, url] of Object.entries(packManifests)) {
           chunkChecks.push({
             pack,
             file: chunk.file,
-            url: `${config.data}/reference-${pack === 'elite' ? 'elite-v2' : pack === 'recent' ? 'recent-v1' : 'online-v1'}/${chunk.file}`,
+            url: `${config.data}/${packDir[pack]}/${chunk.file}`,
             sha256: chunk.sha256,
           });
           break; // one chunk per pack is enough for the gate
@@ -102,6 +110,7 @@ const targets = [
   ['Install guide', config.installGuide, { type: 'text/html' }],
   ['Pack: elite manifest', packManifests.elite, { type: 'application/json' }],
   ['Pack: recent manifest', packManifests.recent, { type: 'application/json' }],
+  ['Pack: recent v2 manifest', packManifests['recent-v2'], { type: 'application/json' }],
   ['Pack: online manifest', packManifests.online, { type: 'application/json' }],
 ];
 

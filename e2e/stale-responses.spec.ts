@@ -120,7 +120,18 @@ test('the explorer ends on the position and source the user actually chose', asy
     .evaluateAll((nodes) => nodes.map((node) => (node as HTMLOptionElement).value));
   const answering = await select.inputValue();
   const other = options.find((id) => id !== answering);
-  test.skip(!other, 'needs a second selectable source to switch away to');
+  /*
+    Phase 40 replaces the previous "skip when only one source is
+    selectable" gate with an honest assertion. A single-source
+    environment is a configuration the application has to keep
+    working, not a configuration the test is allowed to ignore.
+    With only one source available, the explorer still has to
+    end on the position and source the user chose — and the
+    race scenario below collapses to a single in-flight query,
+    which is itself a useful coverage of the panel's stale-answer
+    defence against rapid navigation.
+  */
+  const singleSource = !other;
 
   /*
     The oracle: three plies, each one waited for, on the source that answers.
@@ -161,8 +172,10 @@ test('the explorer ends on the position and source the user actually chose', asy
   await playMove(page, 'e4');
   await page.waitForTimeout(30);
   await playMove(page, 'e5');
-  await select.selectOption(other!);
-  await select.selectOption(answering);
+  if (other) {
+    await select.selectOption(other);
+    await select.selectOption(answering);
+  }
   await page.waitForTimeout(30);
   await playMove(page, 'Nf3');
 

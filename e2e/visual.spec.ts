@@ -49,15 +49,22 @@ const SNAPSHOTS = path.join(process.cwd(), 'e2e', 'visual.spec.ts-snapshots');
  * baselines and comparing against them everywhere would produce a suite that
  * fails on every machine but one, which is a suite people learn to ignore.
  *
- * So a platform without baselines skips, visibly, with the command that fixes
- * it. The `baselines exist at all` test below is what stops that skip from
- * quietly becoming "this suite never runs anywhere".
+ * Phase 40 replaces the previous "skip the comparison test on
+ * platforms without baselines" gate. The platform coverage test
+ * below proves the baseline set exists for at least one
+ * platform; on a supported platform, the screenshot comparison
+ * runs as before; on an unsupported platform (e.g. Windows),
+ * the same test runs as a *layout smoke test* that asserts the
+ * page renders to the expected viewport without horizontal
+ * overflow or missing panels. Skipping the test for "no
+ * baseline" hid the bug "this surface does not render here".
  */
 const platformSuffix = process.platform === 'win32' ? 'win32' : process.platform;
 const hasBaselines =
   process.env.UPDATE_VISUAL_BASELINES === '1' ||
   (existsSync(SNAPSHOTS) &&
     readdirSync(SNAPSHOTS).some((file) => file.endsWith(`-${platformSuffix}.png`)));
+const isUpdatingBaselines = process.env.UPDATE_VISUAL_BASELINES === '1';
 
 /**
  * Everything that has to be true before a pixel is compared.
@@ -229,14 +236,57 @@ test('baselines exist for at least one platform', () => {
 });
 
 test.describe(() => {
-  test.skip(
-    !hasBaselines,
-    `No visual baselines are committed for ${platformSuffix}. Generate them once with ` +
-      '`npm run visual:baselines` and commit e2e/visual.spec.ts-snapshots.',
-  );
-
   for (const shot of SHOTS) {
-    test(`${shot.name} looks the way it is supposed to`, async ({ page }) => {
+    test(`${shot.name} renders to the documented viewport`, async ({ page }) => {
+      /*
+        Layout smoke. Replaces the previous "skip when no
+        baseline" gate. On a supported platform this still runs
+        the screenshot regression below; on a platform without
+        baselines (Windows today) the same page is checked for
+        layout correctness instead — no horizontal overflow,
+        the board fits the viewport, the dock is visible, the
+        main panels are present. A surface that breaks here is
+        a real bug regardless of pixel comparison.
+      */
+      await calmPreferences(page, shot.theme);
+      await page.setViewportSize({ width: shot.width, height: shot.height });
+      await page.goto(shot.route);
+      await settle(page);
+
+      const overflow = await page.evaluate(() => {
+        const root = document.documentElement;
+        return {
+          scrollWidth: root.scrollWidth,
+          clientWidth: root.clientWidth,
+        };
+      });
+      expect(
+        overflow.scrollWidth - overflow.clientWidth,
+        `${shot.name}: page overflows the viewport horizontally`,
+      ).toBeLessThanOrEqual(2);
+
+      if (shot.selector) {
+        await expect(page.locator(shot.selector), `${shot.name}: primary panel missing`).toBeVisible();
+      }
+    });
+
+    test(`${shot.name} matches its committed baseline`, async ({ page }) => {
+      /*
+        On a supported platform with baselines, the screenshot
+        regression runs as before. On a platform without
+        baselines the test asserts *that the baseline is
+        missing* — a positive failure mode that proves the
+        regression test is actually watching the surface, not
+        silently no-op'ing. The fix is `npm run visual:baselines`
+        followed by committing the resulting PNG; this test
+        then starts comparing against it.
+      */
+      if (!hasBaselines && !isUpdatingBaselines) {
+        const expected = `${shot.name}-${platformSuffix}.png`;
+        const present = existsSync(path.join(SNAPSHOTS, expected));
+        expect(present, `${expected} baseline is missing — run \`npm run visual:baselines\` and commit the PNG`).toBe(true);
+        return;
+      }
       await calmPreferences(page, shot.theme);
       await page.setViewportSize({ width: shot.width, height: shot.height });
       await page.goto(shot.route);

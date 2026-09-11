@@ -14,6 +14,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:no-skips": "node scripts/test-no-skips.mjs",
     "test:e2e": "npm run engine:install && playwright test",
     "test:e2e:ui": "npm run engine:install && playwright test --ui",
     "test:e2e:visual": "npm run engine:install && playwright test e2e/visual.spec.ts",

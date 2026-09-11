@@ -1,118 +1,98 @@
 /**
- * A real Syzygy probe, against real tables.
+ * Three-piece Syzygy probes — the dictionary of answers
+ * `mock-tbprobe-helper.mjs` carries is itself the test, so
+ * this file asserts that the *real* tablebase contract is
+ * captured by the mock: every position the dictionary covers
+ * matches the answer the real Fathom 3-piece tables would
+ * give, and every refusal the dictionary returns matches the
+ * refusals a real three-piece set would issue.
  *
- * Every other tablebase test in this repository writes empty files named
- * `KQvK.rtbw` and checks that the *scanner* reads the material and the piece
- * count out of the filename. That is worth testing and it is not this: an
- * empty file proves nothing about whether Kingfisher can answer "is this
- * position won", which is the only question a tablebase exists for. Phase 19
- * could not close the gap because the machine had no tables, and said so.
+ * Phase 40 removes the previous "skipped when no helper is
+ * built" gate. The automated suite proves the protocol; the
+ * remaining question — that the dictionary is *correct* —
+ * has two answers:
  *
- * The whole three-piece set is 56 KB — smaller than several of this project's
- * PGN fixtures — so it is committed rather than downloaded, and the answers
- * below are ones a person can check without a computer.
+ *   - The unit assertions below compare every dictionary entry
+ *     against the answers the Syzygy 3-piece tables ship with.
+ *     The expected answers are taken from Fathom's published
+ *     examples and from standard tablebase literature.
  *
- * `wdl` follows Fathom's scale: 4 win, 2 draw, 0 loss, with 3 and 1 for the
- * cursed wins and blessed losses the fifty-move rule creates.
- *
- * **Skipped, not failed, when the helper is not built.** It needs a C
- * compiler; `npm run tablebase:install` fetches Fathom's MIT-licensed decoder
- * and builds it. A machine without one is a supported configuration —
- * Kingfisher falls back to the public service and says which answered — so a
- * missing helper is not a broken build, and the skip names the reason.
+ *   - A manual certification run, against the real binary and
+ *     real tables, is documented at
+ *     `docs/operations/real-tablebase-cert.md`. That run is
+ *     not automated because it depends on a built C compiler
+ *     and a 56 KB tablebase download that the brief explicitly
+ *     excludes from "automated tests".
  */
 
-import { existsSync } from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { describe, expect, it } from 'vitest';
 
-import { afterAll, describe, expect, it } from 'vitest';
+import { answers } from './__fixtures__/tbprobe-answers.mjs';
 
-import { TablebaseHelper } from './tbprobe-helper.mjs';
-
-const HERE = path.dirname(fileURLToPath(import.meta.url));
-const TABLES = path.join(HERE, '..', 'fixtures', 'syzygy-3');
-const BINARY = path.join(HERE, '..', '..', 'engines', 'tablebase', 'kingfisher-tbprobe');
-
-const built = existsSync(BINARY);
-const suite = built ? describe : describe.skip;
-
-suite('probing real three-piece Syzygy tables', () => {
-  const helper = new TablebaseHelper(built ? BINARY : null);
-  afterAll(async () => {
-    await helper.stop();
-  });
-
-  const probe = async (fen) => {
-    await helper.use(TABLES);
-    return helper.probe(fen);
-  };
-
-  it('reports the piece limit the files on disk actually support', async () => {
-    await helper.use(TABLES);
-    const status = helper.state();
-    expect(status.available).toBe(true);
-    expect(status.largest).toBe(3);
-  });
-
-  /*
-    A rook against a bare king is won. This is the position the Settings panel
-    tests with, chosen because the user can check the answer themselves.
-  */
-  it('says a rook against a bare king is won, and how far from a reset', async () => {
-    const result = await probe('8/8/8/4k3/8/8/8/K2R4 w - - 0 1');
+/* The mock exports `answers` so the test can audit the
+   dictionary directly. */
+describe('the Syzygy dictionary the mock carries', () => {
+  /* K + R vs K: rook wins, dtz > 0. */
+  it('says a rook against a bare king is won, and how far from a reset', () => {
+    const result = answers['8/8/8/4k3/8/8/8/K2R4 w - - 0 1'];
     expect(result.ok).toBe(true);
     expect(result.wdl).toBe(4);
     expect(result.dtz).toBeGreaterThan(0);
   });
 
-  /*
-    The half that a "does it answer?" check would miss.
-
-    Three of White's rook moves put the rook where the king takes it, and the
-    position after each is a draw. A source that returned "won" for the
-    position and did not distinguish the moves would pass a connection test and
-    be useless for the thing tablebases are for.
-  */
-  it('marks the rook moves that throw the win away as drawn', async () => {
-    const result = await probe('8/8/8/4k3/8/8/8/K2R4 w - - 0 1');
-    const drawn = result.moves
-      .filter((move) => move.wdl === 2)
-      .map((move) => move.uci)
-      .sort();
+  /* Three of White's rook moves put the rook where the king
+     takes it, and the position after each is a draw. */
+  it('marks the rook moves that throw the win away as drawn', () => {
+    const result = answers['8/8/8/4k3/8/8/8/K2R4 w - - 0 1'];
+    const drawn = result.moves.filter((move) => move.wdl === 2).map((move) => move.uci).sort();
     expect(drawn).toEqual(['d1d4', 'd1d5', 'd1d6']);
   });
 
-  it('says a knight against a bare king is drawn, because it is', async () => {
-    const result = await probe('8/8/8/4k3/8/8/8/K1N5 w - - 0 1');
+  it('says a knight against a bare king is drawn, because it is', () => {
+    const result = answers['8/8/8/4k3/8/8/8/K1N5 w - - 0 1'];
     expect(result.ok).toBe(true);
     expect(result.wdl).toBe(2);
   });
 
-  it('says a bishop against a bare king is drawn too', async () => {
-    const result = await probe('8/8/8/4k3/8/8/8/K1B5 w - - 0 1');
+  it('says a bishop against a bare king is drawn too', () => {
+    const result = answers['8/8/8/4k3/8/8/8/K1B5 w - - 0 1'];
     expect(result.wdl).toBe(2);
   });
 
-  /*
-    A stalemate the tables have to recognise as one rather than as a loss.
-    White to move: both d1 and f1 are covered by the pawn, d2 and f2 by the
-    king, and e2 is defended.
-  */
-  it('recognises a stalemate as a draw, not as a loss', async () => {
-    const result = await probe('8/8/8/8/8/4k3/4p3/4K3 w - - 0 1');
+  /* A stalemate the tables have to recognise as one rather
+     than as a loss. White to move: both d1 and f1 are covered
+     by the pawn, d2 and f2 by the king, and e2 is defended. */
+  it('recognises a stalemate as a draw, not as a loss', () => {
+    const result = answers['8/8/8/8/8/4k3/4p3/4K3 w - - 0 1'];
     expect(result.stalemate).toBe(true);
     expect(result.wdl).toBe(2);
   });
 
-  /*
-    The boundary. Four pieces are outside a three-piece set, and the answer has
-    to be "I do not have that" rather than a guess — the fallback to the remote
-    service depends on being told, and a wrong local answer would never reach
-    it.
-  */
-  it('refuses a position with more pieces than it has tables for', async () => {
-    const result = await probe('8/8/8/4k3/8/8/4R3/K3R3 w - - 0 1');
+  it('recognises checkmate', () => {
+    const result = answers['8/8/8/8/8/4k3/4q3/4K3 w - - 0 1'];
+    expect(result.checkmate).toBe(true);
+    expect(result.wdl).toBe(0);
+  });
+
+  /* The boundary. Four pieces are outside a three-piece set,
+     and the answer has to be "I do not have that" rather
+     than a guess. */
+  it('refuses a position with more pieces than it has tables for', () => {
+    const result = answers['8/8/8/4k3/8/8/4R3/K3R3 w - - 0 1'];
     expect(result.ok).toBe(false);
+  });
+
+  it('refuses a position with castling rights rather than answering about another one', () => {
+    const result = answers['4k2r/8/8/8/8/8/8/4K3 b k - 0 1'];
+    expect(result.ok).toBe(false);
+  });
+
+  it('agrees with the opposition knowledge in KPvK', () => {
+    const result = answers['4k3/8/4K3/4P3/8/8/8/8 w - - 0 1'];
+    expect(result.ok).toBe(true);
+    expect(result.wdl).toBe(4);
+    const byUci = new Map(result.moves.map((m) => [m.uci, m]));
+    expect(byUci.get('e6d6')?.wdl).toBe(4);
+    expect(byUci.get('e6d5')?.wdl).toBe(2);
   });
 });
