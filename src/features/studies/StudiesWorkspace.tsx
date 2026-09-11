@@ -36,6 +36,7 @@ import { CanonicalBoardSurface } from '@/features/workspace/CanonicalBoardSurfac
 import { MoveTreePanel } from '@/features/movetree/MoveTreePanel';
 import { WorkspaceLowerPanel } from '@/features/workspace/WorkspaceLowerPanel';
 import { WorkspaceToolDock } from '@/features/workspace/WorkspaceToolDock';
+import { StudySaveStatus } from '@/persistence/StudySaveStatus';
 import {
   invalidateStudies,
   useRepositoryMutation,
@@ -221,6 +222,14 @@ export function StudiesWorkspace() {
             {chapter ? chapter.title : 'Notebooks of chapters, saved on this device.'}
           </p>
         </div>
+        {/*
+          Phase 39 (PART D-E): a small save-state indicator next to
+          the study title. It reuses the same write-tracker truth
+          the sidebar exposes; no duplicate save model. Quiet by
+          design — the dot and label are 10px and tertiary; nothing
+          pulses unless a write is actually in flight.
+        */}
+        <StudySaveStatus />
         <Button
           variant="accent"
           icon={<Plus />}
