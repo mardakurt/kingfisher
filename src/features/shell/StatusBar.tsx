@@ -29,6 +29,7 @@ export function StatusBar() {
   const notify = useUi((state) => state.notify);
   const analysis = useEngine((state) => state.primary.analysis);
   const [copied, setCopied] = useState(false);
+  const [showFen, setShowFen] = useState(false);
 
   const copyFen = async () => {
     try {
@@ -36,11 +37,13 @@ export function StatusBar() {
       setCopied(true);
       setTimeout(() => setCopied(false), 1200);
     } catch {
-      // Silently resetting the label made a denied clipboard look like a
-      // click that did not register. Every other copy in the application
-      // reports this; this one was the exception.
-      setCopied(false);
-      notify({ tone: 'error', message: 'The clipboard is not available in this context.' });
+      setShowFen(true);
+      notify({
+        tone: 'error',
+        message: 'Could not copy FEN',
+        detail:
+          'The clipboard is not available in this context; the FEN is shown next to the button.',
+      });
     }
   };
 
@@ -107,15 +110,68 @@ export function StatusBar() {
       */}
       <BackgroundActivityCentre />
 
-      <button
-        type="button"
-        onClick={copyFen}
-        title="Copy FEN"
-        className="ml-auto hidden max-w-[52ch] truncate font-mono text-[10.5px] text-tertiary transition-colors hover:text-secondary md:block"
-      >
-        {copied ? 'FEN copied' : fen}
-      </button>
+      {/*
+        The status bar used to render the full FEN string as a permanent piece
+        of footer text. That made a position that already has plenty of chrome
+        — move list, evaluation, engine line — feel busier than a player needs.
+        The FEN is still one click away: a compact button copies the canonical
+        current-position FEN, and the full string is shown on hover or on
+        clipboard failure for the user who actually needs to read it.
+      */}
+      <div className="relative ml-auto hidden items-center md:flex">
+        <button
+          type="button"
+          onClick={copyFen}
+          onMouseEnter={() => setShowFen(true)}
+          onMouseLeave={() => setShowFen(false)}
+          onFocus={() => setShowFen(true)}
+          onBlur={() => setShowFen(false)}
+          aria-label="Copy current position as FEN"
+          aria-live="polite"
+          data-copy-fen
+          className={cn(
+            'inline-flex items-center gap-1 rounded-[3px] px-1.5 py-0.5 transition-colors',
+            'text-tertiary hover:bg-surface-2 hover:text-secondary',
+            copied && 'text-positive',
+          )}
+        >
+          <CopyIcon className="h-3 w-3" />
+          <span>{copied ? 'Copied' : 'Copy FEN'}</span>
+        </button>
+        {/*
+          The tooltip is a real element rather than a `title` attribute so it
+          can be styled and so the value it carries can be selected and
+          re-copied by the user. It is also the fallback surface when the
+          clipboard is denied (PART BB).
+        */}
+        <span
+          data-fen-tooltip
+          aria-hidden={!showFen && !copied}
+          className={cn(
+            'pointer-events-none absolute bottom-full right-0 z-30 mb-1 max-w-[60ch] truncate rounded-[3px] border border-line bg-surface-3 px-1.5 py-1 font-mono text-[10px] text-secondary shadow-md transition-opacity',
+            showFen || copied ? 'opacity-100' : 'opacity-0',
+          )}
+        >
+          {fen}
+        </span>
+      </div>
     </footer>
+  );
+}
+
+function CopyIcon({ className }: { readonly className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 12 12"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.4}
+      className={className}
+      aria-hidden
+    >
+      <rect x="3" y="3" width="7" height="7" rx="1" />
+      <path d="M2 8V3a1 1 0 0 1 1-1h5" />
+    </svg>
   );
 }
 

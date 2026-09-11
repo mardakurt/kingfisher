@@ -109,6 +109,14 @@
   --shape-blue: #4d82c4;
   --shape-yellow: #cba43f;
 
+  /*
+   * Engine best-move arrows. Distinct from the PGN brushes above so the
+   * engine's opinion can never be mistaken for one of the four annotation
+   * colours the user picks with Shift / Alt / Ctrl.
+   */
+  --engine-a-color: #4f8df0;
+  --engine-b-color: #e08a3a;
+
   --board-target: rgb(0 0 0 / 0.26);
   --board-check-core: rgb(207 111 104 / 0.92);
   --board-check-mid: rgb(207 111 104 / 0.5);
@@ -152,6 +160,9 @@
   --shape-red: #b24a41;
   --shape-blue: #3a6cad;
   --shape-yellow: #b08a26;
+
+  --engine-a-color: #3a6cad;
+  --engine-b-color: #b86a1c;
 
   --board-target: rgb(20 22 26 / 0.25);
   --board-check-core: rgb(168 68 60 / 0.9);

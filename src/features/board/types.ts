@@ -9,6 +9,7 @@
  */
 
 import type { Shape } from '@/chess/annotations';
+import type { EngineArrow } from '@/features/board/engine-arrows';
 import type { ChessMove, Color, Fen, MoveIntent, PromotionPiece, Square } from '@/chess/types';
 import type { BoardThemeId, CoordinateStyle, PieceSetId } from '@/lib/board-options';
 
@@ -34,6 +35,14 @@ export interface ChessboardProps {
   readonly animationMs?: number;
   /** Squares the rest of the UI wants emphasised, e.g. an explorer hover. */
   readonly emphasis?: readonly Square[];
+  /**
+   * Engine best-move arrows, drawn under the user-drawn `shapes`.
+   *
+   * A separate rendering layer (PART AE) so the engine's opinion never paints
+   * over the user's own annotations, and the engine's identity never gets
+   * mistaken for one of the four PGN brush colours.
+   */
+  readonly engineArrows?: readonly EngineArrow[];
   readonly className?: string;
 }
 

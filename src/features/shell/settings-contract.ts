@@ -152,6 +152,17 @@ export const SETTING_CONTRACTS: readonly SettingContract[] = [
     previewable: true,
   },
   {
+    key: 'showEngineArrows',
+    label: 'Engine best-move arrows',
+    surface: 'settings',
+    control: 'features/shell/SettingsDialog.tsx',
+    consumer: 'features/board/engine-arrows.ts',
+    effect:
+      "The engine's recommended move is drawn on the board; with two engines, both recommendations appear as distinguishable arrows (blue solid, orange dashed).",
+    indexedAs: 'engine-arrows',
+    previewable: true,
+  },
+  {
     key: 'boardPriority',
     label: 'Board priority',
     surface: 'settings',

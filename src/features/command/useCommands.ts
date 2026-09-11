@@ -88,7 +88,7 @@ export function useCommands(): readonly Command[] {
       },
       {
         id: 'copy-fen',
-        title: 'Copy FEN of the current position',
+        title: 'Copy FEN',
         group: 'Game',
         keywords: 'export position',
         run: async () => {

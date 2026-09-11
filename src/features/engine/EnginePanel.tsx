@@ -24,6 +24,7 @@ import { EmptyState, PanelBody, PanelHeader } from '@/components/ui/Panel';
 import { Segmented } from '@/components/ui/Tabs';
 import { useAnalysisPosition } from '@/features/analysis/useAnalysisPosition';
 import { evaluationFromAnalysis } from '@/features/analysis/useEngineSnapshots';
+import { ENGINE_ARROW_STYLES, type EngineArrowIdentity } from '@/features/board/engine-arrows';
 import { cn } from '@/lib/cn';
 import { useAnalysis } from '@/stores/analysis-store';
 import { useEngine, type PinnedLine } from '@/stores/engine-store';
@@ -46,6 +47,9 @@ export function EnginePanel() {
   const pinned = useEngine((state) => state.pinned);
   const pin = useEngine((state) => state.pin);
   const unpin = useEngine((state) => state.unpin);
+  const comparing = useEngine((state) => state.comparing);
+  const secondaryIdentity = useEngine((state) => state.secondary.identity);
+  const showEngineArrows = usePreferences((state) => state.showEngineArrows);
 
   const prefs = usePreferences();
   const insertUciLine = useAnalysis((state) => state.insertUciLine);
@@ -156,6 +160,18 @@ export function EnginePanel() {
           </span>
         )}
       </PanelHeader>
+
+      {showEngineArrows && identity ? (
+        <div
+          className="flex items-center gap-3 border-b border-line-subtle px-2.5 py-1 text-[10px] text-tertiary"
+          data-engine-arrow-legend
+        >
+          <EngineLegendRow identity="engine-a" name={identity.name} />
+          {comparing && secondaryIdentity ? (
+            <EngineLegendRow identity="engine-b" name={secondaryIdentity.name} />
+          ) : null}
+        </div>
+      ) : null}
 
       <PanelBody>
         {pinned.length > 0 && (
@@ -435,6 +451,46 @@ function moveIndexOf(line: PrincipalVariation, tokenIndex: number, startPly: num
     if (tokens[i]?.isMove) moves += 1;
   }
   return Math.max(0, moves);
+}
+
+/**
+ * Compact legend row showing which arrow visual identity belongs to which
+ * engine. The swatch draws the same shape that will appear on the board,
+ * which is the cheapest way to make sure the panel can never disagree with
+ * the board.
+ */
+function EngineLegendRow({
+  identity,
+  name,
+}: {
+  readonly identity: EngineArrowIdentity;
+  readonly name: string;
+}) {
+  const style = ENGINE_ARROW_STYLES[identity];
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <svg
+        viewBox="0 0 16 8"
+        width={22}
+        height={11}
+        aria-hidden
+        data-engine-arrow-legend-marker={identity}
+      >
+        <line
+          x1="1"
+          y1="4"
+          x2="13"
+          y2="4"
+          stroke={style.color}
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeDasharray={style.dashArray ?? undefined}
+        />
+        <path d="M12.5 1.5 L15 4 L12.5 6.5 Z" fill={style.color} />
+      </svg>
+      <span className="truncate">{name}</span>
+    </span>
+  );
 }
 
 const scoreTone = (line: { score: { kind: string; cp?: number; moves?: number } }): string => {

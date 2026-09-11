@@ -65,7 +65,7 @@ export function Toolbar() {
       id: 'copy',
       items: [
         { id: 'pgn', label: 'Copy PGN', shortcut: '', icon: <Export />, run: copy.pgn },
-        { id: 'fen', label: 'Copy FEN of this position', icon: <Copy />, run: copy.fen },
+        { id: 'fen', label: 'Copy FEN', icon: <Copy />, run: copy.fen },
         { id: 'line', label: 'Copy this line (SAN)', icon: <Copy />, run: copy.sanLine },
         { id: 'uci', label: 'Copy this line (UCI)', icon: <Copy />, run: copy.uciLine },
       ],

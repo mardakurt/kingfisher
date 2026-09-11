@@ -12,12 +12,16 @@
  * player asks for them, each carrying the facts that produced it, and every
  * one can be ignored in a single click. A study system that floods its own
  * inbox is a study system people stop opening.
+ *
+ * When a row is selected the panel expands to show the same Compare Sources
+ * surface the Explorer uses — the same component, not a duplicate.
  */
 
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 
+import type { Fen } from '@/chess/types';
 import { Button } from '@/components/ui/Button';
 import { EmptyState, Panel, PanelBody, PanelHeader } from '@/components/ui/Panel';
 import { Segmented } from '@/components/ui/Tabs';
@@ -29,6 +33,7 @@ import { useAnalysis } from '@/stores/analysis-store';
 import { useUi } from '@/stores/ui-store';
 import { cn } from '@/lib/cn';
 
+import { ReviewSourceComparison } from './ReviewSourceComparison';
 import { useReviewItems } from './queries';
 
 const CATEGORIES: readonly { readonly id: ReviewCategory | 'all'; readonly label: string }[] = [
@@ -103,6 +108,8 @@ export function CriticalInbox({
     router.push('/analysis');
   };
 
+  const selectedItem = selectedId ? (listed.find((item) => item.id === selectedId) ?? null) : null;
+
   return (
     <Panel className="h-full border-0">
       <PanelHeader
@@ -148,71 +155,81 @@ export function CriticalInbox({
             }
           />
         ) : (
-          <ol className="divide-y divide-line-subtle">
-            {listed.map((item) => (
-              <li
-                key={item.id}
-                className={cn('px-3 py-2', selectedId === item.id && 'bg-accent-muted')}
-              >
-                <button
-                  type="button"
-                  onClick={() => onOpen(item)}
-                  className="block w-full text-left"
+          <>
+            {selectedItem ? (
+              <div className="border-b border-line-subtle">
+                <ReviewSourceComparison fen={selectedItem.fen as Fen} />
+              </div>
+            ) : null}
+            <ol className="divide-y divide-line-subtle">
+              {listed.map((item) => (
+                <li
+                  key={item.id}
+                  className={cn('px-3 py-2', selectedId === item.id && 'bg-accent-muted')}
                 >
-                  <span className="block truncate text-[11.5px] text-primary">
-                    {item.gameLabel ?? 'Position'}
-                    {item.ply ? (
-                      <span className="text-tertiary"> · move {Math.ceil(item.ply / 2)}</span>
+                  <button
+                    type="button"
+                    onClick={() => onOpen(item)}
+                    className="block w-full text-left"
+                  >
+                    <span className="block truncate text-[11.5px] text-primary">
+                      {item.gameLabel ?? 'Position'}
+                      {item.ply ? (
+                        <span className="text-tertiary"> · move {Math.ceil(item.ply / 2)}</span>
+                      ) : null}
+                    </span>
+                    {item.reason ? (
+                      <span className="mt-0.5 block text-[10.5px] leading-relaxed text-secondary">
+                        {item.reason}
+                      </span>
                     ) : null}
-                  </span>
-                  {item.reason ? (
-                    <span className="mt-0.5 block text-[10.5px] leading-relaxed text-secondary">
-                      {item.reason}
-                    </span>
-                  ) : null}
-                  {item.signals.length > 0 ? (
-                    <span className="mt-0.5 block text-[10px] text-tertiary">
-                      {item.signals.map((signal) => signal.detail).join(' · ')}
-                    </span>
-                  ) : null}
-                  {item.themes.length > 0 ? (
-                    <span className="mt-1 flex flex-wrap gap-1">
-                      {item.themes.map((theme) => (
-                        <span
-                          key={theme}
-                          className="rounded-full border border-line-subtle px-1.5 text-[10px] text-tertiary"
-                        >
-                          {themeLabel(theme)}
-                        </span>
-                      ))}
-                    </span>
-                  ) : null}
-                </button>
-                <div className="mt-1.5 flex flex-wrap gap-1.5">
-                  {item.gameId ? (
-                    <Button variant="ghost" onClick={() => void openInAnalysis(item)}>
-                      Open game
-                    </Button>
-                  ) : null}
-                  {item.status === 'unreviewed' ? (
-                    <>
-                      <Button variant="ghost" onClick={() => void act(item, { status: 'ignored' })}>
-                        Ignore
+                    {item.signals.length > 0 ? (
+                      <span className="mt-0.5 block text-[10px] text-tertiary">
+                        {item.signals.map((signal) => signal.detail).join(' · ')}
+                      </span>
+                    ) : null}
+                    {item.themes.length > 0 ? (
+                      <span className="mt-1 flex flex-wrap gap-1">
+                        {item.themes.map((theme) => (
+                          <span
+                            key={theme}
+                            className="rounded-full border border-line-subtle px-1.5 text-[10px] text-tertiary"
+                          >
+                            {themeLabel(theme)}
+                          </span>
+                        ))}
+                      </span>
+                    ) : null}
+                  </button>
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {item.gameId ? (
+                      <Button variant="ghost" onClick={() => void openInAnalysis(item)}>
+                        Open game
                       </Button>
-                      {item.category ? null : (
+                    ) : null}
+                    {item.status === 'unreviewed' ? (
+                      <>
                         <Button
                           variant="ghost"
-                          onClick={() => void act(item, { category: 'calculation' })}
+                          onClick={() => void act(item, { status: 'ignored' })}
                         >
-                          Mark critical
+                          Ignore
                         </Button>
-                      )}
-                    </>
-                  ) : null}
-                </div>
-              </li>
-            ))}
-          </ol>
+                        {item.category ? null : (
+                          <Button
+                            variant="ghost"
+                            onClick={() => void act(item, { category: 'calculation' })}
+                          >
+                            Mark critical
+                          </Button>
+                        )}
+                      </>
+                    ) : null}
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </>
         )}
       </PanelBody>
     </Panel>

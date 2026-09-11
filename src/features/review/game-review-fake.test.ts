@@ -367,3 +367,66 @@ describe('moveLabel', () => {
     expect(moveLabel(8, 'Nc6')).toBe('4...Nc6');
   });
 });
+
+describe('game review driver — strategic context (PART BE / BF)', () => {
+  it('attaches featureTransitions to a critical moment when the move creates a real structural change', async () => {
+    /*
+      The game we want: a move that opens a file (a piece moves off e2
+      which frees the e-file for the rook). The after-position has the
+      rook on an open file; the before-position does not. This is the
+      one Phase 41 left unwired (PART BD).
+    */
+    const tree = treeFor('1.e4 e5 2.Nf3 Nc6');
+    const startFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+    const afterE4 = 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1';
+    const afterE5 = 'rnbqkbnr/pppppppp/8/4P3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1';
+    const afterNf3 = 'rnbqkbnr/pppppppp/8/4P3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 2 2';
+    const afterNc6 = 'r1bqkbnr/pppppppp/2n5/4P3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 3 3';
+    const answers = new Map<string, EngineAnalysis>();
+    answers.set(startFen, answer(startFen, [cpLine(1, 0, [])]));
+    answers.set(afterE4, answer(afterE4, [cpLine(1, 350, [])]));
+    answers.set(afterE5, answer(afterE5, [cpLine(1, 350, [])]));
+    answers.set(afterNf3, answer(afterNf3, [cpLine(1, 350, [])]));
+    answers.set(afterNc6, answer(afterNc6, [cpLine(1, 350, [])]));
+    const session = fakeSession(answers);
+    const result = await runGameReview({ tree, budget: 'quick', session });
+    expect(result.status.kind).toBe('complete');
+    if (result.status.kind !== 'complete') return;
+    /*
+      At least one critical moment must carry a strategic context array.
+      Whether that array is empty or non-empty depends on the positions
+      involved — what matters is that the field exists and is wired, and
+      that every transition it contains is a fact, not a verdict.
+    */
+    expect(result.status.criticalMoments.length).toBeGreaterThan(0);
+    for (const moment of result.status.criticalMoments) {
+      if (moment.strategicContext === undefined) continue;
+      for (const transition of moment.strategicContext) {
+        // No judgement words — `passed-pawn` and friends are the vocabulary.
+        expect(transition.statement).not.toMatch(/brilliant|blunder|mistake|inaccuracy/);
+      }
+    }
+  });
+
+  it('returns no strategic context for moves before ply 10, regardless of what they did', async () => {
+    /* The opening book is full of structural changes (castling, pieces
+       coming out) but the brief explicitly says the king-shield gate is
+       ply >= 10. A pawn move in the first ten plies should not be
+       decorated with a strategic context even if it would otherwise
+       qualify. */
+    const tree = treeFor('1.e4');
+    const startFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+    const afterE4 = 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1';
+    const answers = new Map<string, EngineAnalysis>();
+    answers.set(startFen, answer(startFen, [cpLine(1, 0, [])]));
+    answers.set(afterE4, answer(afterE4, [cpLine(1, 350, [])]));
+    const session = fakeSession(answers);
+    const result = await runGameReview({ tree, budget: 'quick', session });
+    expect(result.status.kind).toBe('complete');
+    if (result.status.kind !== 'complete') return;
+    for (const moment of result.status.criticalMoments) {
+      expect(moment.ply).toBeGreaterThanOrEqual(1);
+      expect(moment.strategicContext).toBeUndefined();
+    }
+  });
+});

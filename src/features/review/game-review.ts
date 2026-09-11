@@ -47,6 +47,7 @@ import type {
   EngineSession,
   PrincipalVariation,
 } from '@/engine/types';
+import { featureTransitions, type FeatureTransition } from '@/chess/feature-transitions';
 
 export type ReviewBudget = 'quick' | 'standard' | 'deep';
 
@@ -108,6 +109,16 @@ export interface CriticalMoment {
   readonly kind: CriticalMomentKind;
   readonly rank: number;
   readonly explanation: string;
+  /**
+   * Deterministic strategic transitions between the position before this
+   * move and the position after, derived from `featureTransitions`.
+   *
+   * Kept empty when there is nothing to say; the rendering layer is
+   * responsible for showing nothing rather than a heading with no rows.
+   * A tactical critical moment can still be accompanied by strategic
+   * transitions — the two are independent signals, both useful.
+   */
+  readonly strategicContext?: readonly FeatureTransition[];
 }
 
 export type CriticalMomentKind =
@@ -344,6 +355,13 @@ function computeCriticalMoments(
     const kind = detectKind(before, after);
     if (!kind) continue;
     const explanation = `${formatScore(before, { alwaysSign: true })} → ${formatScore(after, { alwaysSign: true })} after ${here.san ?? child.move.san ?? '?'}`;
+    /*
+     * Strategic transitions. Two consecutive positions; the function only
+     * emits a statement when the board fact actually changed, so an
+     * empty list means "this move did not shift any structural feature"
+     * rather than "we forgot to look".
+     */
+    const strategicContext = here.ply >= 10 ? featureTransitions(here.fen, next.fen) : [];
     candidates.push({
       nodeId: here.nodeId,
       ply: here.ply,
@@ -355,6 +373,7 @@ function computeCriticalMoments(
       kind,
       rank: 0,
       explanation,
+      ...(strategicContext.length > 0 ? { strategicContext } : {}),
     });
     /* Reference / repertoire / personal: independent of
        engine evidence, fired when the move played at this

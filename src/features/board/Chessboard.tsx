@@ -82,6 +82,7 @@ export function Chessboard({
   coordinates = 'inside',
   animationMs = 130,
   emphasis = [],
+  engineArrows = [],
   className,
 }: ChessboardProps) {
   const outsideCoordinates = coordinates === 'outside';
@@ -462,6 +463,7 @@ export function Chessboard({
 
         <BoardShapes
           shapes={shapes}
+          engineArrows={engineArrows}
           draft={
             shapeDraft
               ? shapeDraft.from === shapeDraft.to

@@ -59,6 +59,14 @@ export const SETTINGS_INDEX: readonly SettingsEntry[] = [
     keywords: ['arrow', 'colourblind', 'colorblind', 'highlight', 'palette'],
   },
   {
+    id: 'engine-arrows',
+    label: 'Engine best-move arrows',
+    section: 'engine',
+    description:
+      "Draw the engine's recommended move on the board; with two engines, both recommendations appear as distinguishable arrows.",
+    keywords: ['engine', 'arrow', 'best move', 'pv', 'analysis'],
+  },
+  {
     id: 'compact',
     label: 'Compact density',
     section: 'appearance',

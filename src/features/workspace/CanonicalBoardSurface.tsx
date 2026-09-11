@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { Shape } from '@/chess/annotations';
+import type { EngineArrow } from '@/features/board/engine-arrows';
 import type { MoveIntent } from '@/chess/types';
 import { Chessboard } from '@/features/board/Chessboard';
+import { useEngineArrows } from '@/features/board/engine-arrows';
 import { BoardControls } from '@/features/analysis/BoardControls';
 import { EvaluationBar } from '@/features/analysis/EvaluationBar';
 import { EvaluationGraph } from '@/features/analysis/EvaluationGraph';
@@ -70,6 +72,7 @@ export function CanonicalBoardSurface({
   const analysis = useEngine((state) => state.primary.analysis);
   const analysedFen = useEngine((state) => state.primary.analysedFen);
   const engineRunning = useEngine((state) => state.primary.running);
+  const engineArrows = useEngineArrows(node.fen);
   const boardContainer = useRef<HTMLDivElement>(null);
   const [frameSize, setFrameSize] = useState(320);
   /*
@@ -175,6 +178,7 @@ export function CanonicalBoardSurface({
                   isPromotion={(from, to) => position.requiresPromotion(from, to)}
                   promotionColor={position.turn}
                   shapes={caps.showAnnotations ? node.shapes : EMPTY_SHAPES}
+                  engineArrows={caps.showEvaluation ? engineArrows : EMPTY_ARROWS}
                   onShapeToggle={caps.allowAnnotations ? onShapeToggle : undefined}
                   onShapesClear={caps.allowAnnotations ? () => clearShapes(currentId) : undefined}
                   theme={fallback.theme ?? prefs.boardTheme}
@@ -234,3 +238,4 @@ const EVALUATION_BAR_GAP = 12;
 /* Stable empties, so withholding does not remount the board on every render. */
 const EMPTY = new Map<never, never>() as never;
 const EMPTY_SHAPES: readonly Shape[] = [];
+const EMPTY_ARROWS: readonly EngineArrow[] = [];

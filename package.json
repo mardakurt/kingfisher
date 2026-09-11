@@ -87,6 +87,8 @@
     "publish:release-manifest": "node scripts/publish-release-manifest.mjs",
     "security:scan": "node scripts/security-scan.mjs",
     "deploy:vercel": "node scripts/vercel-deploy.mjs",
+    "deploy:status": "node scripts/vercel-status.mjs",
+    "workspace:audit": "node scripts/workspace-audit.mjs",
     "size:report": "node scripts/size-report.mjs",
     "size:check": "node scripts/size-report.mjs --top=20",
     "clean:dev": "rm -rf .next test-results playwright-report .engine-fleet .packs && echo 'cleaned: .next, test-results, playwright-report, .engine-fleet, .packs (rerun npm install / build to repopulate)'",

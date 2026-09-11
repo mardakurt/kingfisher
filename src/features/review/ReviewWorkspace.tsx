@@ -268,15 +268,23 @@ export function ReviewWorkspace() {
           />
           {markedItem ? (
             <>
+              {/*
+                Compact at narrow widths: an icon-only chip with the full text
+                as the accessible label. The chip stays single-row on a
+                390px phone instead of wrapping mid-label and shoving
+                adjacent controls off the end of the header.
+              */}
               <span
-                className="rounded-full border border-accent/40 bg-accent/10 px-2 py-0.5 text-[10.5px] text-primary"
+                className="inline-flex items-center gap-1 rounded-full border border-accent/40 bg-accent/10 px-2 py-0.5 text-[10.5px] text-primary"
                 title={
                   markedItem.markedFromGames.length > 1
                     ? `Marked from ${markedItem.markedFromGames.length} of your games`
                     : 'Marked for review'
                 }
+                aria-label="This position is marked for review"
               >
-                Marked for review
+                <PinMarkIcon className="h-3 w-3" aria-hidden />
+                <span className="hidden sm:inline">Marked for review</span>
               </span>
               <Button
                 variant="ghost"
@@ -289,6 +297,7 @@ export function ReviewWorkspace() {
                 variant="ghost"
                 onClick={() => void removeMark()}
                 aria-label="Remove the mark"
+                className="hidden sm:inline-flex"
               >
                 Remove mark
               </Button>
@@ -386,5 +395,21 @@ export function ReviewWorkspace() {
         />
       </div>
     </div>
+  );
+}
+
+/** A small bookmark glyph used in the compact "marked" chip on narrow screens. */
+function PinMarkIcon({ className }: { readonly className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 12 12"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.4}
+      className={className}
+      aria-hidden
+    >
+      <path d="M3.5 2.5h5v7l-2.5-1.5L3.5 9.5v-7z" strokeLinejoin="round" />
+    </svg>
   );
 }

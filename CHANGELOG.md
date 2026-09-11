@@ -11,6 +11,54 @@ release; nothing here has shipped yet. The notes below describe what
 the next release will contain if it is cut from the current
 development branch.
 
+### Engine best-move arrows and a cleaner FEN line (Phase 42)
+
+- The board now draws the engine's recommended move as a clear,
+  single arrow: solid blue for the primary slot, dashed orange for
+  the second engine. When two engines agree on the same move, the
+  arrows are nudged parallel so the user can _see_ the agreement.
+  When they disagree, both arrows are visible. The colour is paired
+  with a line style, so a colour-blind user can still tell them
+  apart.
+- A stale engine result never paints an arrow on the new position.
+  The board's best-move layer is filtered by exact position match,
+  and the engine arrow disappears the moment the engine is stopped,
+  paused, or crashed.
+- The status bar's permanent full-FEN string is gone. A compact
+  **Copy FEN** button copies the canonical current position; the
+  full value is shown on hover for users who actually need to read
+  it. Clipboard failure is shown as "Could not copy FEN" rather than
+  a silent error.
+
+### Game Review deepening and a shared source comparison (Phase 42)
+
+- Strategic transitions — "Black creates a protected passed pawn",
+  "the e-file becomes open" — are now attached to critical moments,
+  derived from the board facts before and after the move. They do
+  not mark every structural event; the engine still treats a pure
+  opening move as a quiet move.
+- The same **Compare Sources** surface the Explorer uses is now
+  available from the Review queue, defaulting to Elite OTB and
+  Recent Theory. Each source is shown as its own column with its
+  own games and its own score; the populations are never merged
+  silently.
+
+### Auto-deploy and a tidier workspace (Phase 42)
+
+- The Studio's auto-deploy, which Phase 41 had to do by hand, is
+  fixed: a new GitHub Actions workflow on every push to `master`
+  deploys the Studio to Vercel using a Personal Access Token in
+  repository secrets. The Studio hostname (`kingfisher-roan`) is
+  unchanged.
+- `npm run deploy:status` reports, in one row per project, whether
+  each Vercel production deployment matches `origin/master`. "Studio
+  is BEHIND master by N commits" is now a question with an answer.
+- The legacy `kingfisher-phase29-audit-storage` worktree is
+  archived (48 MB of source) under
+  `~/Library/Caches/Kingfisher/legacy-archive/`, out of iCloud sync
+  and out of `~/Desktop/Projects/`. `npm run workspace:audit` keeps
+  the layout honest from here on.
+
 ### Direct in-app feedback (Phase 40)
 
 - A visible **Feedback** button now sits at the bottom of the

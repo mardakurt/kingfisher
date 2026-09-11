@@ -38,6 +38,15 @@ export interface Preferences {
   /** The bar chart of stored evaluations under the board. */
   showEvaluationGraph: boolean;
   /**
+   * Whether to draw the engine's best-move arrow on the board.
+   *
+   * On by default — a study tool that hides the engine's recommendation
+   * from the board is one the user has to open the panel to use, which is
+   * not the design. Off is a single toggle in Settings for the user who
+   * wants the board to show only their own annotations.
+   */
+  showEngineArrows: boolean;
+  /**
    * How much of a workspace the board is entitled to.
    *
    * A policy, not a pixel count — see `BOARD_PRIORITIES`. It sizes the chrome
@@ -149,6 +158,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   arrowPalette: 'standard',
   showEvaluationBar: true,
   showEvaluationGraph: true,
+  showEngineArrows: true,
   autoAnalyse: false,
   engineMultiPv: 3,
   engineThreads: 1,

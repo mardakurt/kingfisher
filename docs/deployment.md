@@ -97,6 +97,53 @@ the terminal over the web UI, or when scripting. The
 script falls back to the one-click URL when the token is
 not set; it never blocks the release flow.
 
+### Production deploy automation
+
+Both the Landing and the Studio Vercel projects deploy from
+the same `master` push. The Landing project uses the
+standard Vercel Git integration; the Studio project is
+backed by the GitHub Actions workflow at
+`.github/workflows/deploy-studio.yml`, which calls the
+Vercel CLI on every push to `master` and is the durable
+replacement for the Phase 41-era manual `vercel deploy
+--prod --yes`.
+
+To enable or re-enable the Studio auto-deploy:
+
+1. In the Vercel dashboard for the Studio project, copy
+   the project id from _Settings → General_.
+2. Create a Personal Access Token at
+   <https://vercel.com/account/tokens> with the minimum
+   scope Vercel allows for production deployment.
+3. In the GitHub repository, add three repository secrets:
+   `VERCEL_TOKEN`, `VERCEL_TEAM_ID` (optional but
+   recommended), and `VERCEL_PROJECT_STUDIO`.
+4. The next push to `master` will be deployed by the
+   workflow. A failed secret configuration is reported as
+   an `:notice:` in the workflow output rather than as a
+   red cross, so a missing secret does not block other
+   CI.
+
+Verify the result with `npm run deploy:status`. The
+script reads `git rev-parse origin/master` and the latest
+Vercel production deployment for each project, and prints:
+
+```
+Landing: up to date (f1336bd)
+Studio:  up to date (f1336bd)
+```
+
+or, when the Studio build is missing or behind:
+
+```
+Landing: up to date (f1336bd)
+Studio:  BEHIND master by 4 commits
+```
+
+This is the script the maintainer runs after a phase to
+answer "is production actually running master?" without
+opening Vercel.
+
 ### Custom domain
 
 Optional, post-launch. Configure in

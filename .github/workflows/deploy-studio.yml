@@ -1,0 +1,121 @@
+# Auto-deploy the Kingfisher Studio to Vercel on every push to master.
+#
+# Why this exists:
+#
+#   The Studio lives at https://kingfisher-roan.vercel.app/ and Phase 41
+#   reported that Vercel Git integration was not auto-deploying every push
+#   — Phase 41 ended up running `vercel deploy --prod --yes` by hand. That
+#   is the failure this workflow exists to retire.
+#
+# What this workflow does:
+#
+#   - Builds the application exactly the way `npm run build` does locally;
+#   - Calls the Vercel CLI to create a production deployment against the
+#     configured Studio project;
+#   - Leaves a comment on the commit (when invoked via workflow_dispatch)
+#     with the resulting URL.
+#
+# What this workflow deliberately does NOT do:
+#
+#   - It does NOT deploy the landing page. The landing and the studio share
+#     a single Next.js build, and one push deploys both: the Vercel Git
+#     integration handles the landing, this workflow only papers over the
+#     gap on the Studio project. If you also need to redeploy the landing
+#     manually, do it from the Vercel dashboard.
+#   - It does NOT touch production secrets other than the deployment token,
+#     which lives in repository secrets. The token has the minimum scope
+#     Vercel allows for production deployments and is rotated by hand.
+#
+# Required secrets (configure per environment in the GitHub UI):
+#
+#   VERCEL_TOKEN         — Personal Access Token from
+#                           https://vercel.com/account/tokens.
+#   VERCEL_TEAM_ID       — The Vercel team that owns the project
+#                           (`team_…`), optional but recommended.
+#   VERCEL_PROJECT_STUDIO — The Vercel project id for the Studio project.
+#                           Find it in the project's Settings → General.
+#
+# Without those secrets, the workflow exits clean (does not block CI). The
+# deploy status script (`npm run deploy:status`) is the way to know if
+# the configuration is missing.
+#
+# Concurrency: only one Studio deploy runs at a time per ref. A second push
+# cancels the in-flight run rather than queueing a stale one behind it.
+
+name: Deploy Studio (Vercel)
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Git ref to deploy (branch or SHA)'
+        required: false
+        default: 'master'
+
+concurrency:
+  group: studio-deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy Studio to Vercel production
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
+      VERCEL_PROJECT_STUDIO: ${{ secrets.VERCEL_PROJECT_STUDIO }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      # Build first so a build failure stops the deploy — there is no point
+      # deploying a red build to production.
+      - name: Production build
+        run: npm run build
+
+      - name: Deploy to Vercel
+        if: env.VERCEL_TOKEN != '' && env.VERCEL_PROJECT_STUDIO != ''
+        run: |
+          set -euo pipefail
+          if [ -n "${VERCEL_TEAM_ID:-}" ]; then
+            TEAM_FLAG="--scope ${VERCEL_TEAM_ID}"
+          else
+            TEAM_FLAG=""
+          fi
+          # The token is the only authentication. `--yes` skips the "are you
+          # sure" prompt that the CLI shows on first contact.
+          npx vercel deploy \
+            --prod \
+            --yes \
+            --token "${VERCEL_TOKEN}" \
+            ${TEAM_FLAG} \
+            --confirm \
+            --archive \
+            > deploy.log 2>&1
+          URL=$(grep -oE 'Production: https://[^ ]+' deploy.log | head -1 | sed 's/Production: //')
+          if [ -n "${URL:-}" ]; then
+            echo "::notice title=Studio deployed::${URL}"
+            echo "DEPLOY_URL=${URL}" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning title=Studio deploy::could not parse the production URL"
+            cat deploy.log
+          fi
+        env:
+          VERCEL_PROJECT_STUDIO: ${{ secrets.VERCEL_PROJECT_STUDIO }}
+
+      - name: Skip notice when secrets are missing
+        if: env.VERCEL_TOKEN == '' || env.VERCEL_PROJECT_STUDIO == ''
+        run: |
+          echo "::notice title=Studio deploy skipped::VERCEL_TOKEN or VERCEL_PROJECT_STUDIO is not set; configure repository secrets to enable auto-deploy."

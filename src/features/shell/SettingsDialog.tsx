@@ -61,7 +61,7 @@ import {
   type IntegrityReport,
 } from '@/persistence/integrity';
 import { useWorkspaceLayout } from '@/stores/workspace-layout-store';
-import { APP_VERSION } from '@/lib/version';
+import { APP_COMMIT, APP_VERSION } from '@/lib/version';
 
 import {
   buildDiagnosticReport,
@@ -474,6 +474,17 @@ function AnalysisSettings() {
           label="Analyse automatically"
           checked={prefs.autoAnalyse}
           onChange={(value) => prefs.set('autoAnalyse', value)}
+        />
+      </Row>
+
+      <Row
+        label="Engine best-move arrows"
+        hint="Draw the engine's recommended move on the board. Two engines at once are drawn in distinguishable styles (blue solid, orange dashed) so agreement and disagreement are immediately visible."
+      >
+        <Toggle
+          label="Engine best-move arrows"
+          checked={prefs.showEngineArrows}
+          onChange={(value) => prefs.set('showEngineArrows', value)}
         />
       </Row>
     </div>
@@ -2009,6 +2020,7 @@ function CopyReport() {
 
       const input: DiagnosticInput = {
         appVersion: APP_VERSION,
+        ...(APP_COMMIT ? { commit: APP_COMMIT } : {}),
         userAgent: navigator.userAgent,
         /*
             The shell's answer when there is a shell, and a marked guess when

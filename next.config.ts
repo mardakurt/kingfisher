@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 
 import type { NextConfig } from 'next';
@@ -63,9 +64,22 @@ const nextConfig: NextConfig = {
   ...(desktop ? { images: { unoptimized: true as const } } : {}),
   env: {
     NEXT_PUBLIC_APP_VERSION: process.env.NEXT_PUBLIC_APP_VERSION ?? manifest.version,
-    ...(process.env.NEXT_PUBLIC_APP_COMMIT
-      ? { NEXT_PUBLIC_APP_COMMIT: process.env.NEXT_PUBLIC_APP_COMMIT }
-      : {}),
+    NEXT_PUBLIC_APP_COMMIT:
+      process.env.NEXT_PUBLIC_APP_COMMIT ??
+      process.env.VERCEL_GIT_COMMIT_SHA ??
+      // Fall back to the local checkout so the diagnostic always has *something*
+      // to report. CI/Vercel override this with the deployed commit so the
+      // answer there is exact, not "what the build environment happened to have".
+      (() => {
+        try {
+          return execFileSync('git', ['rev-parse', 'HEAD'], {
+            cwd: new URL('.', import.meta.url),
+            encoding: 'utf8',
+          }).trim();
+        } catch {
+          return undefined;
+        }
+      })(),
   },
   ...(desktop ? { output: 'standalone' as const } : {}),
   async headers() {
