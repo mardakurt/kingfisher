@@ -274,6 +274,35 @@ export const SETTINGS_INDEX: readonly SettingsEntry[] = [
     description: 'Scan stored records for damage, and repair what can be repaired.',
     keywords: ['integrity', 'repair', 'corrupt', 'scan', 'damage'],
   },
+  /*
+    Phase 39 (PART J, L): a first-100 user searching the Settings
+    search box for "report", "feedback", "support", "github",
+    "issue" or "help" lands here. The label is honest about what
+    is there — diagnostics is where the copy buttons live, and
+    the GitHub issue templates are one click further down the same
+    panel. A separate "Help" tab would duplicate what Diagnostics
+    already exposes; an index entry is the smallest change that
+    meets the discoverability bar without that duplication.
+  */
+  {
+    id: 'help-and-feedback',
+    label: 'Help and feedback',
+    section: 'diagnostics',
+    description:
+      'Copy a short support summary for a bug report, open the matching GitHub issue template, or read the security and changelog policies.',
+    keywords: [
+      'help',
+      'feedback',
+      'report',
+      'support',
+      'github',
+      'issue',
+      'bug',
+      'template',
+      'community',
+      'discussion',
+    ],
+  },
 ];
 
 /**

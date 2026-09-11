@@ -39,6 +39,19 @@ describe('searchSettings', () => {
     expect(searchSettings('hash')[0]?.id).toBe('engine-hash');
   });
 
+  /*
+    Phase 39 (PART J): first-100 users looking for "Report a problem"
+    in the Settings search box land on the Help and feedback entry.
+    Each of these words is one a real user would type rather than
+    the label they would type, which is why the entry has its own
+    keywords rather than relying on the description.
+  */
+  it('finds help and feedback from the words a real user types', () => {
+    for (const query of ['feedback', 'report', 'support', 'help', 'github', 'issue']) {
+      expect(searchSettings(query).map((entry) => entry.id)).toContain('help-and-feedback');
+    }
+  });
+
   it('returns nothing for an empty query rather than the whole list', () => {
     expect(searchSettings('   ')).toEqual([]);
   });

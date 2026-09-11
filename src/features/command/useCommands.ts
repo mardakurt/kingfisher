@@ -495,6 +495,84 @@ export function useCommands(): readonly Command[] {
         group: 'Navigate',
         run: () => router.push('/analysis'),
       },
+      {
+        /*
+          Phase 39 (PART K + L + M): the feedback commands sit
+          next to navigation rather than inside a separate menu so
+          they are reachable through the same Universal Search that
+          already drives the rest of the application. They call the
+          same destinations the Help section in Settings exposes;
+          there is one canonical implementation, not two.
+
+          Each opens the matching GitHub issue template directly
+          with the title prefixed, so a user landing on the form
+          has the right shape waiting for them. The body is not
+          pre-filled: prefill that contains diagnostics is brittle
+          and easy to mis-trust. "Copy support information" is the
+          way to attach diagnostics — and it is itself a command.
+        */
+        id: 'report-problem',
+        title: 'Report a problem',
+        group: 'Help',
+        keywords: 'bug issue github feedback error broken wrong',
+        run: () => {
+          window.open(
+            'https://github.com/mardakurt/kingfisher/issues/new?template=bug_report.md',
+            '_blank',
+            'noopener,noreferrer',
+          );
+        },
+      },
+      {
+        id: 'report-data-issue',
+        title: 'Report a data issue',
+        group: 'Help',
+        keywords: 'database explorer opening theory lichess wrong missing stale',
+        run: () => {
+          window.open(
+            'https://github.com/mardakurt/kingfisher/issues/new?template=data_issue.md',
+            '_blank',
+            'noopener,noreferrer',
+          );
+        },
+      },
+      {
+        id: 'send-feedback',
+        title: 'Send feedback',
+        group: 'Help',
+        keywords: 'idea suggestion thoughts request',
+        run: () => {
+          window.open(
+            'https://github.com/mardakurt/kingfisher/issues/new?template=feature_request.md',
+            '_blank',
+            'noopener,noreferrer',
+          );
+        },
+      },
+      {
+        /*
+          "Open support information" lands the user on the same
+          Diagnostics panel where the "Copy support information"
+          and "Copy full diagnostic report" buttons live. We do
+          not auto-copy here: copy needs the diagnostic collector
+          to have run, and forcing that from a command would race
+          with mount. The user clicks the same button either way,
+          and that button is the canonical handoff — there is one
+          place to update if the report shape ever changes.
+        */
+        id: 'open-support-information',
+        title: 'Open support information',
+        group: 'Help',
+        keywords: 'diagnostics report summary paste github issue copy',
+        run: () => ui().openSettingsAt('diagnostics'),
+      },
+      {
+        id: 'open-shortcuts',
+        title: 'Show keyboard shortcuts',
+        group: 'Help',
+        keywords: 'keyboard cheatsheet help ?',
+        run: () => ui().setShortcutsOpen(true),
+      },
     ];
 
     // The *Check for Updates* command is desktop-only. The web and PWA

@@ -441,4 +441,11 @@ export const NON_PREFERENCE_SETTINGS: Readonly<Record<string, string>> = {
   backup: 'an action, not a stored value',
   'settings-transfer': 'an action, not a stored value',
   integrity: 'an action, not a stored value',
+  /*
+    Phase 39 (PART J): the entry points to the GitHub issue
+    templates and the in-product Copy support information button.
+    It is a navigation target rather than a stored preference,
+    which is why it lives here and not in SETTING_CONTRACTS.
+  */
+  'help-and-feedback': 'a navigation target, not a stored value',
 };
