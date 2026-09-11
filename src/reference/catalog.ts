@@ -180,8 +180,14 @@ export const CATALOG_PACKS: readonly CatalogPack[] = [
       24. Lives next to v1 in the catalog rather than replacing
       it: a user who installed v1 keeps using it until they choose
       otherwise, and the v1 directory remains immutable.
+
+      Phase 39 (PART C): the v2 entry must have a distinct catalog
+      id. The previous 'kingfisher-recent-theory' collision produced
+      a duplicate React `key` warning in the catalog panel and in
+      the Reference Coverage Panel. The narrow-window suffix keeps
+      the historical v1 id intact and gives v2 a stable identity.
     */
-    id: 'kingfisher-recent-theory',
+    id: 'kingfisher-recent-theory-narrow',
     name: 'Recent Theory Reference (6 months)',
     description:
       'The last six months only, kept at a lower frequency threshold so ' +

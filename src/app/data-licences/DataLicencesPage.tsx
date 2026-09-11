@@ -69,7 +69,15 @@ export function DataLicencesPage(): JSX.Element {
             <td>
               <code>kingfisher-recent-theory</code>
             </td>
-            <td>What is being played recently</td>
+            <td>What is being played recently (last two years)</td>
+            <td>CC BY-SA 4.0</td>
+            <td>Public data mirror</td>
+          </tr>
+          <tr>
+            <td>
+              <code>kingfisher-recent-theory-narrow</code>
+            </td>
+            <td>What is being played this season (last six months)</td>
             <td>CC BY-SA 4.0</td>
             <td>Public data mirror</td>
           </tr>

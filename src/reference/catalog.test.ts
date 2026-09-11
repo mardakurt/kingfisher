@@ -82,4 +82,18 @@ describe('the published reference catalog', () => {
     expect(installable.length).toBeGreaterThanOrEqual(3);
     expect(CATALOG_PACKS.filter((pack) => pack.bundled)).toHaveLength(1);
   });
+
+  /*
+    Phase 39 (PART C): a duplicate catalog `id` produces a duplicate
+    React `key` warning in the catalog panel and in any list that
+    renders `CATALOG_PACKS.map(...)`. The Phase 35 v2 narrow-window
+    pack accidentally reused the v1 id; that single line was the
+    entire cause of the warning in the Reference Coverage Panel. The
+    contract this test pins is the only thing that would have caught
+    it earlier and the only thing that will catch the next time.
+  */
+  it('gives every catalog entry a unique id, so React lists never warn about keys', () => {
+    const ids = CATALOG_PACKS.map((pack) => pack.id);
+    expect(new Set(ids).size, `duplicate catalog ids: ${ids.join(', ')}`).toBe(ids.length);
+  });
 });

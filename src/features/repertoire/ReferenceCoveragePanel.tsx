@@ -31,7 +31,8 @@ import { useUi } from '@/stores/ui-store';
 
 const SOURCES = [
   { id: 'kingfisher-elite-otb', label: 'Elite OTB' },
-  { id: 'kingfisher-recent-theory', label: 'Recent Theory' },
+  { id: 'kingfisher-recent-theory', label: 'Recent Theory (2y)' },
+  { id: 'kingfisher-recent-theory-narrow', label: 'Recent Theory (6m)' },
   { id: 'kingfisher-high-rated-online', label: 'High-Rated Online' },
 ] as const;
 
