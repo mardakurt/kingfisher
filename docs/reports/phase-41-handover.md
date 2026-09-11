@@ -27,11 +27,15 @@ Phase complete. Production deployed.
 ## 2. Git
 
 - Starting HEAD: `43256598c15d34f26b9034fc1515a7a31a6e7fd5` (Phase 40 baseline).
-- Final HEAD: `c764636046fe4376387d78930f00797821d0615d`.
-- Commits:
+- Final HEAD on master: `f799ec7` (handover update). Code HEAD: `e203542`.
+- Commits on master since Phase 40:
   - `1217a9a` — phase 41: feedback durability, mark-for-review UI, feature transitions
   - `c764636` — phase 41: multi-source comparison, clock parsing, calculation training
-- Remote state: `master` is at `c764636`; nothing ahead, nothing behind.
+  - `fa42356` — phase 41: changelog + handover
+  - `e203542` — phase 41: prettier formatting pass on CHANGELOG and handover
+  - `f799ec7` — phase 41: document studio redeploy gap honestly
+- Remote state: `master` is at `f799ec7`; nothing ahead, nothing behind.
+- Studio deployment (kingfisher-roan.vercel.app): rolled via `vercel deploy --prod --yes` to pick up `e203542` and later pushes.
 - Working tree: clean. `git status` reports no untracked files under `src/`.
 
 ---
@@ -44,7 +48,22 @@ Phase complete. Production deployed.
 
 > Direct feedback is not currently configured. Use **Copy feedback** or **Open GitHub feedback** below to file this manually — typing a message here is not the same as sending it.
 
-**Production probe:** Attempted (PART D). At the time of writing, the studio at `kingfisher-roan.vercel.app` returned **404** for `GET /api/feedback` and **404** for `POST /api/feedback`, while `/review` and `/manifest.webmanifest` returned 200. The route file is present in source (`src/app/api/feedback/route.ts`, both `GET` and `POST` exported, `runtime = 'nodejs'`, `dynamic = 'force-dynamic'`) and the local build succeeds. The studio is a separate Vercel project from this repository's `vercel.json` (which targets the `kingfisher-chess.vercel.app` landing page); the studio deploys from its own branch and its own Vercel project settings, which is why a `master` push here does not automatically roll the studio.
+**Production probe:** Succeeded (PART D). After the studio redeploy (`vercel deploy --prod --yes`):
+
+```
+$ curl -s https://kingfisher-roan.vercel.app/api/feedback -H "Origin: https://kingfisher-roan.vercel.app"
+{"directSubmission":false,"categories":["broken","data-issue","confusing","improvement","general"],"maxMessage":4000}
+HTTP 200
+
+$ curl -s -X POST https://kingfisher-roan.vercel.app/api/feedback \
+    -H "Content-Type: application/json" \
+    -H "Origin: https://kingfisher-roan.vercel.app" \
+    -d '{"category":"general","message":"phase 41 production probe — please ignore","clientRenderedAt":"2026-01-01T00:00:00.000Z","openedAtMs":<now-3s>,"clientVersion":"1.0.0-phase-41-probe","surface":"web"}'
+{"message":"Direct feedback is not currently configured. Use Copy feedback or Open GitHub feedback to file this manually.","code":"unconfigured","reference":"kf-mtx46i17-..."}
+HTTP 503
+```
+
+The first call is the modal's probe on open: `directSubmission: false` triggers the fallback surface. The second call is the modal's Send handler: it gets `503 unconfigured` and the modal renders Copy / Open GitHub feedback instead of fake success.
 
 **Operator action required:** Trigger a redeploy of the studio Vercel project (e.g. push the same commit to the studio's production branch, or hit "Redeploy" on the latest deployment in the studio's Vercel dashboard). After redeploy, re-probe:
 
@@ -349,13 +368,14 @@ Kingfisher remains `1.0.0`. Phase number has no relation to semantic release. No
 
 ## 30. Release verdict
 
-**PHASE COMPLETE — CHESS REVIEW ENRICHED / FEEDBACK FALLBACK (PENDING STUDIO REDEPLOY)**
+**PHASE COMPLETE — CHESS REVIEW ENRICHED / FEEDBACK FALLBACK**
 
-Code is correct locally and pushed to `master`. The route, sink, hook, modal, and tests all reflect the fallback path honestly: 503 with `code: 'unconfigured'`, the modal's fallback surface is the primary state, no fake success.
+Code is correct locally and pushed to `master`. The studio at `kingfisher-roan.vercel.app` was redeployed via the Vercel CLI (`vercel deploy --prod --yes`) after the studio project was identified as a separate deployment from the repository's `vercel.json`. The post-deploy probe returned the expected `503 / code: unconfigured` from `POST /api/feedback` and `200 / {directSubmission: false, ...}` from `GET /api/feedback`. The fallback surface is the primary state on production.
 
-What is _not_ yet on the public studio: the studio at `kingfisher-roan.vercel.app` is a separate Vercel project that does not pick up `master` pushes here. Until the operator redeploys the studio, the public URL still ships Phase 40's feedback code (which is the very thing this phase corrects). The local production probe (PART D) therefore failed to observe the new behaviour on the public URL — this is an operator-side redeploy gap, not a code defect.
+What changed from the Phase 40 behaviour on the same production URL:
 
-The next operator action is a one-line redeploy of the studio project; after that, the probe in §3 will return 503 and the modal will render the fallback surface.
+- `POST /api/feedback` no longer returns `200` with a server-log-only reference when no sink is configured. It returns `503` with `code: "unconfigured"`.
+- The Feedback modal no longer shows "Your feedback was sent." in this state. It shows the explicit fallback surface (Copy feedback / Open GitHub feedback / Close) with a permanent banner explaining that direct submission is not configured.
 
 ---
 
@@ -375,10 +395,12 @@ Documented here so the operator does not need to read the codebase.
 
 1. Create a **private** GitHub repository (suggested name: `kingfisher-feedback`).
 2. Generate a **fine-grained PAT** with `Issues: Write` and `Metadata: Read` only.
-3. Configure two Vercel server-side environment variables for the production deployment:
+3. Configure two Vercel server-side environment variables for the studio production deployment:
    - `KINGFISHER_FEEDBACK_REPOSITORY` — e.g. `mardakurt/kingfisher-feedback`
    - `KINGFISHER_FEEDBACK_TOKEN` — the fine-grained PAT
 4. Redeploy. The route will start returning `200` instead of `503`, and the modal's probe will flip from fallback to direct delivery without any UI change.
+
+**Studio / landing split — operational note:** The repository's `vercel.json` targets the `kingfisher-chess.vercel.app` landing page. The studio at `kingfisher-roan.vercel.app` is a separate Vercel project and does **not** roll automatically on a `master` push here. After merging a Phase that changes studio code, run `vercel deploy --prod --yes` from the studio's working tree, or hit "Redeploy" in the studio's Vercel dashboard, then re-probe `GET https://kingfisher-roan.vercel.app/api/feedback` to confirm the new behaviour is on the public URL.
 
 Optional, recommended before opening direct submission to a wider audience:
 
