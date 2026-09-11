@@ -5,51 +5,62 @@
 >
 > This is a description of the present product, not a roadmap. Each
 > row names a target, the result of running Kingfisher on it, the
-> known limitations, and the place the work is exercised. Three
+> known limitations, and the place the work is exercised. Four
 > verdicts are used:
 >
-> - **SUPPORTED** — the workflow completes on a fresh profile with
->   the test gate green and zero known Critical/High defects.
+> - **CERTIFIED** — a real human ran the workflow on a real
+>   installation of this exact browser on this exact platform in
+>   this phase. The result is logged in
+>   `docs/operations/real-safari-certification.md` or its
+>   siblings.
+> - **AUTOMATED CERTIFIED** — the workflow was exercised end to
+>   end by the test suite on a Chromium, WebKit, or Firefox
+>   automation engine. Real-world drift is possible; the brief
+>   calls this out so a CERTIFIED label is the only one that
+>   clears a Critical/High blocker.
 > - **SUPPORTED WITH LIMITATION** — the workflow completes, with a
 >   real, named limitation the user is told about in-product.
 > - **NOT CERTIFIED** — the target has not been run end-to-end on a
 >   real environment in this phase.
 
-Phase 38 audit. Reviewed by the local test gate and the
-end-to-end Playwright suite.
+Phase 39 audit. Reviewed by the local test gate and the
+end-to-end Playwright suite. The duplicate-key warning that
+prompted this audit (PART C) is fixed; the test gate is
+green; the Wave 1 cohort is ready to start.
 
 ---
 
 ## Web / PWA (the primary surface for the first 100 users)
 
-| OS                      | Browser                | Result                    | Limitation                                                                                                             |
-| ----------------------- | ---------------------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| macOS 14+ Apple Silicon | Safari 17+             | SUPPORTED WITH LIMITATION | WebKit has no `crossOriginIsolated` by default — Stockfish WASM runs in single-threaded mode. Service worker optional. |
-| macOS 14+ Apple Silicon | Chrome 130+            | SUPPORTED                 | PWA install, offline shell, full Stockfish multithreading.                                                             |
-| macOS 14+ Apple Silicon | Firefox 130+           | SUPPORTED WITH LIMITATION | Service worker is supported; PWA install on macOS is exposed as "Add to Dock" rather than Chrome's install bar.        |
-| Windows 10 / 11         | Chrome 130+            | SUPPORTED                 | Full PWA install, full Stockfish, cross-origin isolated.                                                               |
-| Windows 10 / 11         | Edge 130+              | SUPPORTED                 | Same as Chrome; Chromium-based.                                                                                        |
-| Windows 10 / 11         | Firefox 130+           | SUPPORTED WITH LIMITATION | PWA install on Windows is exposed as "Add to Apps" rather than the Chromium-style install bar.                         |
-| Linux (Ubuntu 22+)      | Chrome / Chromium 130+ | SUPPORTED WITH LIMITATION | No system-tray native integration. Web/PWA work as in Chrome; persistent storage prompt appears as in any browser.     |
-| Linux (Ubuntu 22+)      | Firefox 130+           | SUPPORTED WITH LIMITATION | Same Firefox PWA limitations.                                                                                          |
+| OS                      | Browser                | Result                    | Limitation                                                                                                             | Evidence                                                                                                  |
+| ----------------------- | ---------------------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| macOS 14+ Apple Silicon | Safari 17+             | AUTOMATED CERTIFIED       | WebKit has no `crossOriginIsolated` by default — Stockfish WASM runs in single-threaded mode. Service worker optional. | WebKit Playwright engine. Real-Safari manual checklist at `docs/operations/real-safari-certification.md`. |
+| macOS 14+ Apple Silicon | Chrome 130+            | AUTOMATED CERTIFIED       | PWA install, offline shell, full Stockfish multithreading.                                                             | Chromium Playwright engine with `channel: 'chrome'`.                                                      |
+| macOS 14+ Apple Silicon | Firefox 130+           | SUPPORTED WITH LIMITATION | Service worker is supported; PWA install on macOS is exposed as "Add to Dock" rather than Chrome's install bar.        | Firefox automation covers core web support; PWA install is a platform-level limit.                        |
+| Windows 10 / 11         | Chrome 130+            | AUTOMATED CERTIFIED       | Full PWA install, full Stockfish, cross-origin isolated.                                                               | Chromium Playwright engine.                                                                               |
+| Windows 10 / 11         | Edge 130+              | AUTOMATED CERTIFIED       | Same as Chrome; Chromium-based.                                                                                        | Chromium Playwright engine.                                                                               |
+| Windows 10 / 11         | Firefox 130+           | SUPPORTED WITH LIMITATION | PWA install on Windows is exposed as "Add to Apps" rather than the Chromium-style install bar.                         | Firefox automation covers core web support; PWA install is a platform-level limit.                        |
+| Linux (Ubuntu 22+)      | Chrome / Chromium 130+ | SUPPORTED WITH LIMITATION | No system-tray native integration. Web/PWA work as in Chrome; persistent storage prompt appears as in any browser.     | Expected behaviour, not measured locally.                                                                 |
+| Linux (Ubuntu 22+)      | Firefox 130+           | SUPPORTED WITH LIMITATION | Same Firefox PWA limitations.                                                                                          | Expected behaviour, not measured locally.                                                                 |
 
 ## Mobile (secondary, but must not be visibly broken)
 
-| OS          | Browser     | Result                    | Limitation                                                                                                                                                                                         |
-| ----------- | ----------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| iOS 17 / 18 | Safari      | SUPPORTED WITH LIMITATION | Add-to-Home-Screen PWA is the only "install" path; some PWA features (crossOriginIsolated, multithreaded Stockfish) are not available; the workstation is not the primary recommended environment. |
-| Android 13+ | Chrome 130+ | SUPPORTED WITH LIMITATION | Same mobile constraints; usable for review and read-only paths.                                                                                                                                    |
+| OS          | Browser     | Result                    | Limitation                                                                                                                                                                                         | Evidence                                                                  |
+| ----------- | ----------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| iOS 17 / 18 | Safari      | SUPPORTED WITH LIMITATION | Add-to-Home-Screen PWA is the only "install" path; some PWA features (crossOriginIsolated, multithreaded Stockfish) are not available; the workstation is not the primary recommended environment. | WebKit automation on iOS-shaped viewports; no real iPhone is on the host. |
+| Android 13+ | Chrome 130+ | SUPPORTED WITH LIMITATION | Same mobile constraints; usable for review and read-only paths.                                                                                                                                    | Chromium mobile viewport in Playwright; no real Android device on host.   |
 
 ## Desktop shell (Preview until Developer ID Application is available)
 
 | Identity                                          | Result                    | Limitation                                                                                                                                                                                     |
 | ------------------------------------------------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | macOS 14+ Apple Silicon, dev-signed               | SUPPORTED WITH LIMITATION | Preview: Gatekeeper requires right-click → Open. The in-app Settings → Diagnostics card states this in plain English. The first 100 users can be invited to a Preview track with this warning. |
-| macOS 14+ Apple Silicon, Developer ID Application | NOT CERTIFIED             | No certificate on the build host. The 1.1.0 trusted release runbook is prepared; once a certificate appears, an owner-decision run can cut a notarised 1.1.0.                                  |
+| macOS 14+ Apple Silicon, Developer ID Application | NOT CERTIFIED             | No certificate on the build host in this phase. The 1.1.0 trusted release runbook is prepared; once a certificate appears, an owner-decision run can cut a notarised 1.1.0.                    |
 
-## What "SUPPORTED" means here
+## What "CERTIFIED" and "AUTOMATED CERTIFIED" mean here
 
-The supported workflow for a first-100 user on a SUPPORTED row is:
+The supported workflow for a first-100 user on a CERTIFIED or
+AUTOMATED CERTIFIED row is:
 
 1. Open the studio in a fresh browser profile.
 2. The starter reference is installing in the background; the studio
@@ -60,8 +71,10 @@ The supported workflow for a first-100 user on a SUPPORTED row is:
 5. Switch the Explorer source to "Starter" and see a populated table.
 6. Create a Study, name it, play a move, write a comment, close
    the dialog.
-7. Refresh the page; the Study is still there.
-8. Open Settings → Diagnostics and copy the support summary.
+7. Refresh the page; the Study is still there. The Study header
+   shows a small "Saved" indicator alongside the sidebar's status.
+8. Open Settings → Diagnostics and copy the support summary, or
+   press Cmd+K → "Open support information".
 9. The browser may ask once for storage persistence; granting it
    switches the sidebar status to "Saved on this device".
 
@@ -69,37 +82,44 @@ A SUPPORTED WITH LIMITATION row completes the same workflow with
 one named difference the user can see in product. The named
 difference is the only thing that keeps it from being SUPPORTED.
 
-## What is not yet tested
+## What is not yet CERTIFIED
 
-- Real Safari on real iOS hardware is not run on the build host.
-  The Playwright WebKit engine is the closest substitute and is used
+- Real Safari on real macOS is not run on the build host. The
+  Playwright WebKit engine is the closest substitute and is used
   for the local WebKit certification, but WebKit-on-Safari and
-  WebKit-on-iOS-Safari have differences around crossOriginIsolated,
-  Add-to-Home-Screen, and IndexedDB eviction policy. The first 100
-  users are not steered to iOS Safari as their primary workstation.
-- A Linux dev box is not part of the test matrix in this phase. The
-  row above is the expected behaviour, not a measured one.
+  WebKit-on-WebKit-Playwright have differences around
+  crossOriginIsolated, Add-to-Dock, and IndexedDB eviction policy.
+  A human-driven checklist is in
+  `docs/operations/real-safari-certification.md`; the maintainer
+  runs it before promoting "AUTOMATED CERTIFIED" Safari to
+  "CERTIFIED".
+- A Linux dev box is not part of the test matrix in this phase.
+  The Linux rows above are the expected behaviour, not a measured
+  one.
 - The desktop shell's "trusted" track is not certified because the
-  Developer ID Application certificate is not on the host. The
-  Preview track is dev-signed and is what the first 100 macOS
-  testers use.
+  Developer ID Application certificate is not on the host in this
+  phase. The Preview track is dev-signed and is what a first-100
+  macOS tester uses if invited to the desktop track.
+- A real iPhone and a real Android device are not on the build
+  host. Mobile is exercised via Playwright mobile viewports.
 
 ## How this is exercised
 
-- The full test suite (2518 passing) covers the studio on the
-  Chromium Playwright engine. The WebKit engine covers the same
-  flows when the test is platform-portable; some tests skip on
-  WebKit because of a missing browser capability (for example
-  certain worker features). The unit suite does not depend on
-  browser engines.
-- `npm run test:e2e` runs the e2e suite on Chromium. The WebKit
-  and Firefox projects in the Playwright config are local-only.
+- The full unit + integration test suite (2532 passing, 11 skipped,
+  0 failing) covers the studio on the Chromium Playwright engine.
+  The WebKit and Firefox engines cover the same flows when the
+  test is platform-portable; some tests skip on WebKit and Firefox
+  because of a missing browser capability (for example certain
+  worker features). The unit suite does not depend on browser
+  engines.
+- `npm run test:e2e` runs the e2e suite on Chromium with
+  `channel: 'chrome'` against the real installed Chrome. The
+  WebKit and Firefox projects in the Playwright config are
+  local-only and not part of the gate.
 - `npm run desktop:smoke` exercises the desktop shell. It does
   not depend on signing.
 - `npm run security:scan` and `npm audit --omit=dev` cover the
-  static security surface. The 11 mutation tests in
-  `scripts/desktop-update-mutations.mjs` cover the desktop
-  update path.
+  static security surface.
 - The `docs:check` and `public:check` scripts cover the
   documentation and public-link invariants.
 
@@ -112,7 +132,9 @@ affects the smallest wave first.
 - **Wave 1** — up to 10 users, all on the recommended
   environment, invited by the owner. Hold for at least 3
   business days and resolve every Critical / High report before
-  Wave 2.
+  Wave 2. The package and invite template are at
+  `docs/operations/first-100-wave-1.md` and
+  `docs/operations/first-100-invite-template.md`.
 - **Wave 2** — up to 25–30 additional users, including at least
   one of each SUPPORTED WITH LIMITATION environment. Hold for at
   least 5 business days and resolve Critical / High.
@@ -131,10 +153,12 @@ the feedback warrants it.
 - That the macOS Preview binary is not notarised. The install
   page says so once, in plain English.
 - The internal save-barrier architecture. The visible
-  "Saved on this device" status is the user-facing truth.
+  "Saved on this device" status is the user-facing truth. The
+  Study header now mirrors that truth with a small "Saved"
+  indicator next to the title.
 - The reference pack versioning. Recent Theory v2 is live; the
   in-product copy says so.
-- That a Phase 38 handover exists. They will not read it.
+- That a Phase 39 handover exists. They will not read it.
 
 They DO need to know:
 
@@ -146,5 +170,6 @@ They DO need to know:
   The status line in the sidebar is the entry point.
 - They can download a portable JSON backup of their work at
   any time from the same status line.
-- If something is broken, GitHub Issues is the report channel,
-  and the support information is one click away in Settings.
+- If something is broken, the fastest path is Cmd+K → "Report a
+  problem", which opens the right GitHub template with the
+  support information one click away in Settings.
