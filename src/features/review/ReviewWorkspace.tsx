@@ -48,6 +48,7 @@ import { CriticalInbox } from './CriticalInbox';
 import { DecisionJournal } from './DecisionJournal';
 import { ImprovementSummary } from './ImprovementSummary';
 import { SuggestCandidatesButton } from './SuggestCandidates';
+import { strategicContextForNode } from './strategic-context';
 import { useDecisionAt, useReviewItems } from './queries';
 import { useReviewSession } from './review-session-store';
 
@@ -150,6 +151,7 @@ export function ReviewWorkspace() {
   const markCritical = async () => {
     try {
       const repositories = await getRepositories();
+      const transitions = strategicContextForNode(tree, currentId);
       const item = await repositories.review.upsertReviewItem({
         positionKey: key,
         fen: node.fen,
@@ -161,6 +163,7 @@ export function ReviewWorkspace() {
           ? { gameId: document.gameId, gameLabel: document.title }
           : {}),
         ...(document.kind === 'study-chapter' ? { chapterId: document.chapterId } : {}),
+        ...(transitions.length > 0 ? { strategicContext: transitions } : {}),
       });
       setSelectedItemId(item.id);
       invalidateReview(client);

@@ -96,7 +96,7 @@ export class LichessExplorerProvider implements ChessDatabaseProvider {
     const masters = database === 'masters';
     const player = database === 'player';
     this.id = masters ? 'lichess-masters' : player ? 'lichess-player' : 'lichess-games';
-    this.name = masters ? 'Masters' : player ? 'Player' : 'Lichess';
+    this.name = masters ? 'Lichess Masters' : player ? 'Player' : 'Lichess';
     this.description = masters
       ? 'Over-the-board master games from the Lichess opening explorer.'
       : player

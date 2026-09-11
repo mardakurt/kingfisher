@@ -131,6 +131,13 @@ describe('improvement report', () => {
       reviewedAt: NOW - 4 * DAY,
       signals: [{ kind: 'repertoire-deviation', detail: 'left the Najdorf' }],
     }),
+    item({
+      status: 'reviewed',
+      themes: ['tablebase'],
+      gameId: 'game-c',
+      reviewedAt: NOW - 5 * DAY,
+      signals: [{ kind: 'tablebase-change', detail: 'KRNPP vs KRBN: lost' }],
+    }),
     item({ status: 'unreviewed', createdAt: NOW - DAY }),
     item({ status: 'reviewed', themes: ['calculation'], reviewedAt: NOW - 200 * DAY }),
   ];
@@ -158,8 +165,8 @@ describe('improvement report', () => {
   const figure = (id: string) => report.figures.find((entry) => entry.id === id);
 
   it('counts distinct games rather than positions', () => {
-    expect(figure('games-reviewed')?.value).toBe(2);
-    expect(figure('positions-reviewed')?.value).toBe(3);
+    expect(figure('games-reviewed')?.value).toBe(3);
+    expect(figure('positions-reviewed')?.value).toBe(4);
   });
 
   it('leaves the waiting queue outside the period, and says so', () => {
@@ -172,10 +179,22 @@ describe('improvement report', () => {
     expect(figure('repertoire-deviations')?.value).toBe(1);
   });
 
+  it('counts king-safety critical moments and tablebase WDL losses', () => {
+    /*
+      The fixture includes one `king-safety` theme and one position carrying
+      both a tablebase signal and a tablebase theme. The brief's example list
+      asks for both of these as factual figures, not as a single accuracy
+      score, so both must be visible separately.
+    */
+    expect(figure('king-safety-moments')?.value).toBe(1);
+    expect(figure('tablebase-wdl-losses')?.value).toBe(1);
+  });
+
   it('ranks the themes of the period', () => {
     expect(report.themes.map((entry) => entry.theme)).toEqual([
       'calculation',
       'king-safety',
+      'tablebase',
       'trade-decision',
     ]);
     expect(report.themes[0]?.count).toBe(2);

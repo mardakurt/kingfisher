@@ -10,6 +10,7 @@ import type { Color, Fen, San, Uci } from '@/chess/types';
 import type { NodeId } from '@/chess/tree/types';
 import type { Score } from '@/chess/evaluation';
 import type { AnalysisLimit } from '@/engine/types';
+import type { FeatureTransition } from '@/chess/feature-transitions';
 
 export type RepertoireId = string;
 export type RepertoirePositionId = string;
@@ -564,6 +565,16 @@ export interface ReviewItemRecord {
   readonly themes: readonly string[];
   readonly decisionId?: string;
   readonly trainingItemId?: string;
+  /**
+   * Deterministic strategic transitions for the move that produced this
+   * position, derived from `featureTransitions(beforeFen, afterFen)`.
+   *
+   * Stored as facts, not as prose, so the renderer cannot drift from the
+   * board state. Absent when the move did not change a structural feature
+   * worth surfacing — the renderer treats absence as "show nothing",
+   * not as an empty heading.
+   */
+  readonly strategicContext?: readonly FeatureTransition[];
   /**
    * When to think about this position again.
    *

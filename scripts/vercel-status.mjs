@@ -25,8 +25,9 @@
 
 import { spawnSync } from 'node:child_process';
 import { exit } from 'node:process';
+import { fileURLToPath } from 'node:url';
 
-const ROOT = new URL('..', import.meta.url).pathname;
+const ROOT = fileURLToPath(new URL('../', import.meta.url));
 
 const TOKEN = process.env.VERCEL_TOKEN;
 const TEAM = process.env.VERCEL_TEAM_ID ?? '';

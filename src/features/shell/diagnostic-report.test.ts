@@ -35,7 +35,7 @@ const input: DiagnosticInput = {
   providers: [
     {
       id: 'lichess-masters',
-      name: 'Masters',
+      name: 'Lichess Masters',
       health: {
         state: 'authentication-required',
         checkedAt: 1,

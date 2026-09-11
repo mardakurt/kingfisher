@@ -36,6 +36,7 @@ import { StaleDecisionWriteError, StaleReviewItemWriteError } from '../domain';
 import type { Color, Fen, San, Uci } from '@/chess/types';
 import type { NodeId } from '@/chess/tree/types';
 import { assertValid, isDecisionRecord, isReviewItemRecord } from '../validation';
+import type { FeatureTransition } from '@/chess/feature-transitions';
 
 export interface CreateDecisionInput {
   readonly positionKey: string;
@@ -75,6 +76,15 @@ export interface CreateReviewItemInput {
   readonly category?: ReviewCategory;
   readonly reason?: string;
   readonly signals?: readonly ReviewSignal[];
+  /**
+   * Deterministic strategic transitions for the move that produced this
+   * position, computed by `featureTransitions(beforeFen, afterFen)`.
+   *
+   * Stored as facts so the renderer cannot drift from the board state.
+   * Absent when the move did not change a structural feature; the
+   * renderer treats absence as "show nothing".
+   */
+  readonly strategicContext?: readonly FeatureTransition[];
 }
 
 export interface ReviewRepository {
@@ -386,6 +396,9 @@ export class LocalReviewRepository implements ReviewRepository {
           ...(input.reason ? { reason: input.reason } : {}),
           signals: input.signals ?? [],
           themes: [],
+          ...(input.strategicContext && input.strategicContext.length > 0
+            ? { strategicContext: input.strategicContext }
+            : {}),
           markedFromGames:
             input.source === 'marked' && input.gameId ? [buildMarkedOccurrence(input, now)] : [],
           createdAt: now,

@@ -14,9 +14,10 @@
  */
 
 import type { Shape } from '@/chess/annotations';
-import { useId } from 'react';
+import { useId, useState } from 'react';
 
 import type { Color } from '@/chess/types';
+import { formatScore } from '@/chess/evaluation';
 
 import { ENGINE_ARROW_STYLES, type EngineArrow, type EngineArrowIdentity } from './engine-arrows';
 import { squareOffset } from './layout';
@@ -63,6 +64,7 @@ interface ResolvedArrow {
   readonly toY: number;
   readonly identity: EngineArrowIdentity;
   readonly style: (typeof ENGINE_ARROW_STYLES)[EngineArrowIdentity];
+  readonly arrow: EngineArrow;
 }
 
 /**
@@ -78,7 +80,7 @@ function resolveEngineArrows(
   arrows: readonly EngineArrow[],
   orientation: Color,
 ): readonly ResolvedArrow[] {
-  const byKey = new Map<string, ResolvedArrow[]>();
+  const byKey = new Map<string, { arrow: EngineArrow; resolved: ResolvedArrow }[]>();
   for (const arrow of arrows) {
     const from = centre(arrow.from, orientation);
     const to = centre(arrow.to, orientation);
@@ -86,12 +88,16 @@ function resolveEngineArrows(
     const style = ENGINE_ARROW_STYLES[arrow.identity];
     const list = byKey.get(key) ?? [];
     list.push({
-      fromX: from.cx,
-      fromY: from.cy,
-      toX: to.cx,
-      toY: to.cy,
-      identity: arrow.identity,
-      style,
+      arrow,
+      resolved: {
+        fromX: from.cx,
+        fromY: from.cy,
+        toX: to.cx,
+        toY: to.cy,
+        identity: arrow.identity,
+        style,
+        arrow,
+      },
     });
     byKey.set(key, list);
   }
@@ -100,21 +106,21 @@ function resolveEngineArrows(
     const head = list[0];
     if (!head) continue;
     if (list.length === 1) {
-      resolved.push(head);
+      resolved.push(head.resolved);
       continue;
     }
-    const dx = head.toX - head.fromX;
-    const dy = head.toY - head.fromY;
+    const dx = head.resolved.toX - head.resolved.fromX;
+    const dy = head.resolved.toY - head.resolved.fromY;
     const length = Math.hypot(dx, dy);
     const { nx, ny } = perpendicularOffset(dx, dy, length, 0.18);
-    list.forEach((arrow, index) => {
+    list.forEach((entry, index) => {
       const side = index === 0 ? 1 : -1;
       resolved.push({
-        ...arrow,
-        fromX: arrow.fromX + nx * side,
-        fromY: arrow.fromY + ny * side,
-        toX: arrow.toX + nx * side,
-        toY: arrow.toY + ny * side,
+        ...entry.resolved,
+        fromX: entry.resolved.fromX + nx * side,
+        fromY: entry.resolved.fromY + ny * side,
+        toX: entry.resolved.toX + nx * side,
+        toY: entry.resolved.toY + ny * side,
       });
     });
   }
@@ -125,6 +131,8 @@ export function BoardShapes({ shapes, engineArrows = [], draft, orientation }: B
   const markerPrefix = useId().replaceAll(':', '');
   const all = draft ? [...shapes, draft] : shapes;
   const resolvedEngine = resolveEngineArrows(engineArrows, orientation);
+  const [hoveredArrowId, setHoveredArrowId] = useState<number | null>(null);
+  const hovered = hoveredArrowId !== null ? resolvedEngine[hoveredArrowId] : null;
 
   return (
     <>
@@ -133,8 +141,7 @@ export function BoardShapes({ shapes, engineArrows = [], draft, orientation }: B
           viewBox="0 0 8 8"
           data-engine-arrows
           data-engine-arrow-count={resolvedEngine.length}
-          className="pointer-events-none absolute inset-0 h-full w-full"
-          aria-hidden
+          className="absolute inset-0 h-full w-full"
         >
           <defs>
             {(Object.keys(ENGINE_ARROW_STYLES) as EngineArrowIdentity[]).map((identity) => (
@@ -164,23 +171,57 @@ export function BoardShapes({ shapes, engineArrows = [], draft, orientation }: B
             const endX = arrow.toX - unitX * 0.28;
             const endY = arrow.toY - unitY * 0.28;
             return (
-              <line
-                key={`e${index}-${arrow.identity}`}
-                x1={startX}
-                y1={startY}
-                x2={endX}
-                y2={endY}
-                stroke={arrow.style.color}
-                strokeWidth={0.13}
-                strokeLinecap="round"
-                opacity={0.92}
-                strokeDasharray={arrow.style.dashArray ?? undefined}
-                markerEnd={`url(#${markerPrefix}-engine-${arrow.identity})`}
-              />
+              <g key={`e${index}-${arrow.identity}`}>
+                {/*
+                 * Visible arrow. pointer-events: none so the invisible hit
+                 * test below can take the hover; otherwise the hover would
+                 * be flaky in the small gap at the centre of the shaft.
+                 */}
+                <line
+                  x1={startX}
+                  y1={startY}
+                  x2={endX}
+                  y2={endY}
+                  stroke={arrow.style.color}
+                  strokeWidth={0.13}
+                  strokeLinecap="round"
+                  opacity={0.92}
+                  strokeDasharray={arrow.style.dashArray ?? undefined}
+                  markerEnd={`url(#${markerPrefix}-engine-${arrow.identity})`}
+                  pointerEvents="none"
+                  aria-hidden
+                />
+                {/*
+                 * Invisible hit region. Thick enough to catch a small
+                 * pointing device, but completely transparent. Only this
+                 * group dispatches pointer events for the engine arrows.
+                 */}
+                <line
+                  x1={arrow.fromX}
+                  y1={arrow.fromY}
+                  x2={arrow.toX}
+                  y2={arrow.toY}
+                  stroke="transparent"
+                  strokeWidth={0.34}
+                  strokeLinecap="round"
+                  onPointerEnter={() => setHoveredArrowId(index)}
+                  onPointerLeave={() =>
+                    setHoveredArrowId((current) => (current === index ? null : current))
+                  }
+                  data-engine-arrow-hit={index}
+                />
+              </g>
             );
           })}
         </svg>
       ) : null}
+      {/*
+       * Hover tooltip. Lives outside the SVG so HTML can render the
+       * move/score/depth lines without inheriting stroke conventions.
+       * pointer-events: none so it never steals the cursor from the hit
+       * region above.
+       */}
+      {hovered ? <EngineArrowTooltip arrow={hovered.arrow} /> : null}
       {all.length === 0 ? null : (
         <svg
           viewBox="0 0 8 8"
@@ -258,5 +299,41 @@ export function BoardShapes({ shapes, engineArrows = [], draft, orientation }: B
         </svg>
       )}
     </>
+  );
+}
+
+/**
+ * Floating tooltip for a hovered engine arrow.
+ *
+ * The brief is explicit: show the engine, the move, the evaluation, and the
+ * depth — and keep it compact. A "PV wall" is the failure mode here; if a
+ * player wants more than four lines they can open the engine panel. The
+ * tooltip lives on top of the board overlay layer so its text does not
+ * collide with the arrows themselves, and uses `pointer-events: none` so
+ * the hover region underneath still owns the cursor.
+ *
+ * `aria-live="polite"` is intentional: when a player sweeps the cursor
+ * across two engines' arrows, a screen reader announces the change without
+ * interrupting whatever the user is currently saying.
+ */
+function EngineArrowTooltip({ arrow }: { readonly arrow: EngineArrow }) {
+  const move = arrow.san ?? `${arrow.from}${arrow.to}`;
+  const scoreText = arrow.score ? formatScore(arrow.score) : null;
+  const depthText = arrow.depth !== undefined ? `d/${arrow.depth}` : null;
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      data-engine-arrow-tooltip
+      data-engine-name={arrow.engineName}
+      className="pointer-events-none absolute left-1/2 top-1 z-30 -translate-x-1/2 rounded-md bg-overlay/95 px-2 py-1 text-[10px] leading-tight text-primary shadow"
+    >
+      <div className="font-semibold">{arrow.engineName}</div>
+      <div className="flex gap-1.5 tabular">
+        <span className="font-medium">{move}</span>
+        {scoreText ? <span>{scoreText}</span> : null}
+        {depthText ? <span className="text-tertiary">{depthText}</span> : null}
+      </div>
+    </div>
   );
 }

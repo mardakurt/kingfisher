@@ -34,7 +34,7 @@ const OTB_PGN = `[Event "Wch Blitz"]
 const provider = (overrides: Partial<ChessDatabaseProvider> = {}): ChessDatabaseProvider =>
   ({
     id: 'lichess-masters',
-    name: 'Masters',
+    name: 'Lichess Masters',
     description: 'Over-the-board master games.',
     capabilities: {
       ratingFilter: false,
@@ -71,7 +71,7 @@ describe('opening an online master game', () => {
       kind: 'reference-game',
       title: 'Carlsen, Magnus – Chadaev, Nikolay',
       sourceId: 'lichess-masters',
-      sourceName: 'Masters',
+      sourceName: 'Lichess Masters',
       gameId: 'aAbqI4ey',
     });
   });

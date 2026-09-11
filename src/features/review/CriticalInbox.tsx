@@ -34,6 +34,7 @@ import { useUi } from '@/stores/ui-store';
 import { cn } from '@/lib/cn';
 
 import { ReviewSourceComparison } from './ReviewSourceComparison';
+import { StrategicContextCard } from './StrategicContextCard';
 import { useReviewItems } from './queries';
 
 const CATEGORIES: readonly { readonly id: ReviewCategory | 'all'; readonly label: string }[] = [
@@ -158,6 +159,9 @@ export function CriticalInbox({
           <>
             {selectedItem ? (
               <div className="border-b border-line-subtle">
+                {selectedItem.strategicContext ? (
+                  <StrategicContextCard transitions={selectedItem.strategicContext} />
+                ) : null}
                 <ReviewSourceComparison fen={selectedItem.fen as Fen} />
               </div>
             ) : null}

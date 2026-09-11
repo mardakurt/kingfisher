@@ -11,7 +11,8 @@
 
 import { useMemo } from 'react';
 
-import type { Square, Uci } from '@/chess/types';
+import type { San, Square, Uci } from '@/chess/types';
+import type { Score } from '@/chess/evaluation';
 import { positionKey } from '@/chess/fen';
 import { useEngine } from '@/stores/engine-store';
 import { usePreferences } from '@/stores/preferences-store';
@@ -39,6 +40,16 @@ export interface EngineArrow {
    * engines agreeing do not paint over each other.
    */
   readonly agreedWith?: EngineArrowIdentity;
+  /**
+   * The move as written in standard algebraic notation, for the hover
+   * tooltip. The renderer still draws the arrow by UCI squares; this is
+   * what the user reads.
+   */
+  readonly san?: San;
+  /** Evaluation the engine reported at the head of the line. */
+  readonly score?: Score;
+  /** Search depth when the line was produced. */
+  readonly depth?: number;
 }
 
 export interface EngineArrowStyle {
@@ -86,7 +97,12 @@ export interface EngineArrowInput {
   readonly primary: {
     readonly analysis: {
       readonly bestMove?: Uci;
-      readonly lines: readonly { readonly moves: readonly Uci[] }[];
+      readonly depth?: number;
+      readonly lines: readonly {
+        readonly moves: readonly Uci[];
+        readonly san?: readonly San[];
+        readonly score?: Score;
+      }[];
     } | null;
     readonly analysedFen: string | null;
     readonly identity: { readonly name: string } | null;
@@ -94,7 +110,12 @@ export interface EngineArrowInput {
   readonly secondary: {
     readonly analysis: {
       readonly bestMove?: Uci;
-      readonly lines: readonly { readonly moves: readonly Uci[] }[];
+      readonly depth?: number;
+      readonly lines: readonly {
+        readonly moves: readonly Uci[];
+        readonly san?: readonly San[];
+        readonly score?: Score;
+      }[];
     } | null;
     readonly analysedFen: string | null;
     readonly identity: { readonly name: string } | null;
@@ -123,7 +144,14 @@ export function computeEngineArrows(
   const collect = (
     slot: 'primary' | 'secondary',
     slotInput: EngineArrowInput['primary'],
-  ): { identity: EngineArrowIdentity; uci: Uci; engineName: string } | null => {
+  ): {
+    identity: EngineArrowIdentity;
+    uci: Uci;
+    engineName: string;
+    san?: San;
+    score?: Score;
+    depth?: number;
+  } | null => {
     const { analysis, analysedFen, identity } = slotInput;
     if (!analysis || !analysedFen) return null;
     if (positionKey(analysedFen) !== targetKey) return null;
@@ -132,8 +160,16 @@ export function computeEngineArrows(
     // because it has decided.
     const uci = analysis.bestMove ?? analysis.lines[0]?.moves[0];
     if (!uci) return null;
+    const head = analysis.lines.find((line) => line.moves[0] === uci) ?? analysis.lines[0];
     const name = identity?.name ?? 'Engine';
-    return { identity: identityForSlot(slot), uci, engineName: name };
+    return {
+      identity: identityForSlot(slot),
+      uci,
+      engineName: name,
+      ...(head?.san?.[0] ? { san: head.san[0] } : {}),
+      ...(head?.score !== undefined ? { score: head.score } : {}),
+      ...(analysis.depth ? { depth: analysis.depth } : {}),
+    };
   };
 
   const primary = collect('primary', input.primary);
@@ -158,6 +194,9 @@ export function computeEngineArrows(
       engineName: primary.engineName,
       from: primaryArrow.from,
       to: primaryArrow.to,
+      ...(primary.san ? { san: primary.san } : {}),
+      ...(primary.score ? { score: primary.score } : {}),
+      ...(primary.depth !== undefined ? { depth: primary.depth } : {}),
       ...(agree ? { agreedWith: 'engine-b' } : {}),
     });
   }
@@ -168,6 +207,9 @@ export function computeEngineArrows(
       engineName: secondary.engineName,
       from: secondaryArrow.from,
       to: secondaryArrow.to,
+      ...(secondary.san ? { san: secondary.san } : {}),
+      ...(secondary.score ? { score: secondary.score } : {}),
+      ...(secondary.depth !== undefined ? { depth: secondary.depth } : {}),
       ...(agree ? { agreedWith: 'engine-a' } : {}),
     });
   }

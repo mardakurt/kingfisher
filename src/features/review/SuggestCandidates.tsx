@@ -25,6 +25,7 @@ import { useAnalysis } from '@/stores/analysis-store';
 import { useUi } from '@/stores/ui-store';
 
 import { suggestReviewCandidates, type EvidencePoint } from './candidates';
+import { strategicContextForNode } from './strategic-context';
 
 export function SuggestCandidatesButton() {
   const client = useQueryClient();
@@ -112,6 +113,7 @@ export function SuggestCandidatesButton() {
       }
 
       for (const candidate of candidates) {
+        const transitions = strategicContextForNode(tree, candidate.nodeId);
         await repositories.review.upsertReviewItem({
           positionKey: candidate.positionKey,
           fen: candidate.fen as never,
@@ -124,6 +126,7 @@ export function SuggestCandidatesButton() {
           ...(candidate.category ? { category: candidate.category } : {}),
           reason: candidate.reason,
           signals: candidate.signals,
+          ...(transitions.length > 0 ? { strategicContext: transitions } : {}),
         });
       }
       invalidateReview(client);

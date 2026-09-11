@@ -23,6 +23,7 @@ import type { ReferenceSource } from '@/reference/types';
 
 import { compareSources, type SourceColumn } from './source-comparison';
 import { useExplorerSources } from './useExplorer';
+import { MyGamesOverlay } from './MyGamesOverlay';
 import type { ExplorerFilters } from '@/database/types';
 
 /** Enough columns to see a disagreement; more is a spreadsheet. */
@@ -221,6 +222,7 @@ export function SourceComparison({
           ) : null}
         </>
       )}
+      <MyGamesOverlay fen={fen} />
     </section>
   );
 }

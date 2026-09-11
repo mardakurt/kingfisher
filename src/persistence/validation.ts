@@ -260,6 +260,13 @@ export const isDecisionRecord = (value: unknown): value is DecisionRecord =>
 const isReviewSignal = (value: unknown): boolean =>
   object(value) && text(value.kind) && text(value.detail);
 
+const isFeatureTransition = (value: unknown): boolean =>
+  object(value) &&
+  text(value.id) &&
+  text(value.statement) &&
+  (value.color === 'w' || value.color === 'b') &&
+  text(value.kind);
+
 export const isReviewItemRecord = (value: unknown): value is ReviewItemRecord =>
   object(value) &&
   text(value.id) &&
@@ -275,6 +282,11 @@ export const isReviewItemRecord = (value: unknown): value is ReviewItemRecord =>
   array(value.signals) &&
   value.signals.every(isReviewSignal) &&
   stringArray(value.themes) &&
+  /* `strategicContext` was added in Phase 43; existing rows
+     pre-date it and read as absent, which is the legitimate
+     "no transitions to show" state. */
+  (value.strategicContext === undefined ||
+    (array(value.strategicContext) && value.strategicContext.every(isFeatureTransition))) &&
   /* `markedFromGames` was added in Phase 41; existing rows
      pre-date it and read as an empty list. */
   (value.markedFromGames === undefined ||

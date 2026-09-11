@@ -223,6 +223,57 @@ describe('review queue', () => {
     expect(converted.reviewedAt).toBe(reviewed.reviewedAt);
   });
 
+  it('persists strategic context when the suggester provides it', async () => {
+    const repositories = createMemoryRepositories();
+    const transitions = [
+      {
+        id: 'passed-pawn:w:d',
+        kind: 'passed-pawn' as const,
+        color: 'w' as const,
+        statement: 'White creates a passed pawn on the d-file.',
+      },
+      {
+        id: 'bishop-pair:b',
+        kind: 'bishop-pair' as const,
+        color: 'b' as const,
+        statement: 'Black gives up the bishop pair.',
+      },
+    ];
+    const item = await repositories.review.upsertReviewItem({
+      positionKey: KEY,
+      fen: START_FEN,
+      sideToMove: 'w',
+      source: 'suggested',
+      strategicContext: transitions,
+    });
+    expect(item.strategicContext).toEqual(transitions);
+
+    /*
+      A re-suggest that does not supply transitions must not wipe the
+      previously stored ones — they belong to the position, not to the
+      call that last wrote them.
+    */
+    const refreshed = await repositories.review.upsertReviewItem({
+      positionKey: KEY,
+      fen: START_FEN,
+      sideToMove: 'w',
+      source: 'suggested',
+    });
+    expect(refreshed.strategicContext).toEqual(transitions);
+  });
+
+  it('omits strategic context when the input list is empty', async () => {
+    const repositories = createMemoryRepositories();
+    const item = await repositories.review.upsertReviewItem({
+      positionKey: KEY,
+      fen: START_FEN,
+      sideToMove: 'w',
+      source: 'suggested',
+      strategicContext: [],
+    });
+    expect(item.strategicContext).toBeUndefined();
+  });
+
   it('filters by status through the index', async () => {
     const repositories = createMemoryRepositories();
     const one = await repositories.review.upsertReviewItem({

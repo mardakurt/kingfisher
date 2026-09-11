@@ -25,7 +25,7 @@ const base = () =>
     fen: START_FEN,
     sideToMove: 'w',
     engines: [{ name: 'Stockfish', analysis: analysis(['e4', 'e5']) }],
-    databaseName: 'Masters',
+    databaseName: 'Lichess Masters',
     databaseTotal: 1000,
     databaseMoves: [
       { uci: asUci('e2e4'), san: asSan('e4'), games: 400, white: 160, draws: 160, black: 80 },
@@ -80,7 +80,7 @@ describe('rendering the packet', () => {
   it('labels every section with its source', () => {
     const text = renderPacket(base());
     expect(text).toMatch(/ENGINE \(Stockfish, depth 26\)/);
-    expect(text).toMatch(/DATABASE \(Masters, 1000 games here\)/);
+    expect(text).toMatch(/DATABASE \(Lichess Masters, 1000 games here\)/);
     expect(text).toMatch(/POSITION FEATURES/);
   });
 

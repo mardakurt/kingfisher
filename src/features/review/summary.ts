@@ -155,6 +155,26 @@ export function improvementReport(input: ImprovementReportInput): ImprovementRep
   const deviations = reviewed.filter((item) =>
     item.signals.some((signal) => signal.kind === 'repertoire-deviation'),
   );
+  /*
+   * "Critical moments" counts the positions tagged with a king-safety
+   * theme, which is the single most common critical-moment category in
+   * Phase 42's review data and the closest thing the report has to an
+   * answer for "how many positions did your king get into trouble?". It
+   * is a count of tagged positions, not a claim about safety.
+   */
+  const kingSafety = reviewed.filter((item) => item.themes.includes('king-safety'));
+  /*
+   * "Tablebase WDL losses" is the count of positions where the player
+   * played into a known-loss tablebase verdict. A signal of kind
+   * `tablebase-change` is the canonical marker; a theme of `tablebase`
+   * captures the case where the player tagged the position after the
+   * fact. Both must agree before the count is real.
+   */
+  const tablebaseLosses = reviewed.filter(
+    (item) =>
+      item.themes.includes('tablebase') ||
+      item.signals.some((signal) => signal.kind === 'tablebase-change'),
+  );
   const games = new Set(
     reviewed.map((item) => item.gameId).filter((id): id is string => id !== undefined),
   );
@@ -197,6 +217,20 @@ export function improvementReport(input: ImprovementReportInput): ImprovementRep
       label: 'Repertoire deviations reviewed',
       value: deviations.length,
       drillTo: 'deviations',
+    },
+    {
+      id: 'king-safety-moments',
+      label: 'King-safety critical moments',
+      value: kingSafety.length,
+      drillTo: 'reviewed',
+      detail: 'Reviewed positions tagged for king safety.',
+    },
+    {
+      id: 'tablebase-wdl-losses',
+      label: 'Tablebase WDL losses',
+      value: tablebaseLosses.length,
+      drillTo: 'reviewed',
+      detail: 'Reviewed positions where the verdict was a known loss.',
     },
   ];
 
