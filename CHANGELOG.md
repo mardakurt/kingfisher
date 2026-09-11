@@ -47,7 +47,7 @@ development branch.
   `useFeedback().probeDirectSubmission()`, so any surface that
   embeds the modal can branch on it without a separate fetch.
 - `POST /api/feedback` distinguishes 503 (unconfigured) from
-  502 (delivery rejected by an *available* sink) from
+  502 (delivery rejected by an _available_ sink) from
   429/400/403/422 (rejected by validation). The sink tests
   pin the contract.
 
@@ -57,7 +57,7 @@ development branch.
   position writes a durable review item that survives reload,
   backup, and restore. Re-marking the same position from the
   same game refreshes the note; re-marking the same canonical
-  position from a *different* game (or a different move order
+  position from a _different_ game (or a different move order
   that reaches the same position) appends a `MarkedFromGame`
   occurrence rather than creating a duplicate item. The item's
   identity key is `marked:${positionKey}` so the work item is
@@ -111,7 +111,7 @@ development branch.
 
 - A distinct training item type with full provenance. The
   source kind `'game-review'` joins `'study' / 'game' /
-  'repertoire' / 'analysis'`. The answer's truth source is
+'repertoire' / 'analysis'`. The answer's truth source is
   recorded on every item (`engine-candidates` /
   `user-selected` / `tablebase`), so the renderer can label
   the answer accurately and never hide that the answer came

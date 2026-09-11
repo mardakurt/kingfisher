@@ -47,6 +47,7 @@ Phase complete. Production deployed.
 **Production probe:** Performed (PART D). The modal title flips to **"Feedback — direct delivery not configured"**, the Send button is hidden, and the Copy / Open GitHub feedback buttons are visible. The renderer never claims a successful submission in this state.
 
 **Route contract:**
+
 - `POST /api/feedback` with no sink → **503** `{"code": "unconfigured", "message": "...", "reference": "kf-..."}`
 - `POST /api/feedback` with sink configured but delivery rejected → **502** `{"code": "unavailable", ...}`
 - `POST /api/feedback` successful → **200** `{"reference": "kf-..."}`
@@ -55,6 +56,7 @@ Phase complete. Production deployed.
 - `POST /api/feedback` rate-limited → **429** `{"code": "rate-limited", ...}`
 
 **Files:**
+
 - `src/app/api/feedback/route.ts` — returns 503 instead of fake-success when not configured.
 - `src/features/feedback/feedback-schema.ts` — added `'unconfigured'` to the failure-code union.
 - `src/features/feedback/feedback-sink.ts` — `parseResponse` handles 503/502 distinctly.
@@ -71,6 +73,7 @@ Phase complete. Production deployed.
 - **Backup/restore:** Authored `MarkedFromGame` records are inside the review item, which is in the existing backed-up store. No new schema migration required — the validator permits the field as undefined for pre-Phase-41 rows.
 
 **Tests:** `src/persistence/repositories/review.test.ts` — new cases:
+
 - `merges "marked" entries for the same position across games into one item with multiple occurrences`
 - `does not duplicate the same game occurrence on re-mark`
 - The legacy "separates entries for the same position in different games" was kept but switched to `source: 'suggested'` so the old semantic is still tested.
@@ -82,6 +85,7 @@ Phase complete. Production deployed.
 Implemented in `src/chess/feature-transitions.ts`. Pure, deterministic, file- or feature-based comparison between two `FenParts`.
 
 **Implemented:**
+
 - Passed pawn created (file-based, not square-based)
 - Protected passed pawn created (file-based)
 - Connected passed pawns created (count ≥ 2)
@@ -95,11 +99,13 @@ Implemented in `src/chess/feature-transitions.ts`. Pure, deterministic, file- or
 - Kingside pawn shield collapsed by ≥ 2 pawns
 
 **False-positive safeguards:**
+
 - File-based comparison: a normal one-square pawn advance on a passed-pawn file does **not** re-fire the transition. Tested in `does NOT report structural events for a normal pawn move`.
 - Doubled / isolated / backward pawns are detected by file, not square.
 - King-shield collapse requires ≥ 2 pawns lost, with explicit "the shield weakening message includes the before/after count" so the user can see it is not paranoia.
 
 **Deliberately not implemented:**
+
 - Weak-square / outpost detection — the existing `chess/themes.ts` module documents why "weak square" is a judgement not a fact. The new code does not invent it.
 - Space control deltas — `positionFeatures.pieceCount` is reported, but a "space" transition would require a definition Kingfisher does not yet have.
 
@@ -110,6 +116,7 @@ Implemented in `src/chess/feature-transitions.ts`. Pure, deterministic, file- or
 ## 6. Critical moments
 
 No structural change to the kind taxonomy (Phase 40 already settled it). Phase 41 adds:
+
 - `strategic` kind is reachable through the new transitions module when one or more structural changes fire on the move that produced the critical moment.
 - Ranking still prefers tactical evidence (forcing sequence, mate, tablebase truth) over strategic; strategic only attaches to moments that already matter.
 
@@ -266,19 +273,19 @@ A formal accessibility audit was not run in Phase 41; the existing axe baseline 
 
 ## 24. Tests
 
-| Gate                        | Result    |
-|----------------------------|-----------|
-| `npm test`                 | 2666 pass / 0 skip / 0 fail |
-| `npm run test:no-skips`    | OK — no prohibited skip constructs |
-| `npm run typecheck`        | clean |
-| `npm run lint`             | clean |
-| `npm run format:check`     | clean |
-| `npm run build`            | clean |
-| `npm run docs:check`       | 203/203 |
-| `npm run public:check`     | 22/22 (200 OK) |
-| `npm run size:check`       | clean |
-| `npm run security:scan`    | 0 leaks |
-| `npm audit --omit=dev --audit-level=high` | 0 |
+| Gate                                      | Result                             |
+| ----------------------------------------- | ---------------------------------- |
+| `npm test`                                | 2666 pass / 0 skip / 0 fail        |
+| `npm run test:no-skips`                   | OK — no prohibited skip constructs |
+| `npm run typecheck`                       | clean                              |
+| `npm run lint`                            | clean                              |
+| `npm run format:check`                    | clean                              |
+| `npm run build`                           | clean                              |
+| `npm run docs:check`                      | 203/203                            |
+| `npm run public:check`                    | 22/22 (200 OK)                     |
+| `npm run size:check`                      | clean                              |
+| `npm run security:scan`                   | 0 leaks                            |
+| `npm audit --omit=dev --audit-level=high` | 0                                  |
 
 **Required:** `SKIPPED = 0`, `FAILED = 0`. Both met.
 
@@ -300,12 +307,12 @@ No real user feedback was received during Phase 41 (the feedback route was the v
 
 ## 27. Bugs
 
-| Severity | Count | Notes |
-|----------|-------|-------|
-| Critical | 0 | |
-| High     | 0 | |
-| Medium   | 0 | |
-| Low      | 1 | Feedback route previously returned 200 with a server-log reference when no durable sink was configured. Closed in this phase (`503 unconfigured`). |
+| Severity | Count | Notes                                                                                                                                              |
+| -------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Critical | 0     |                                                                                                                                                    |
+| High     | 0     |                                                                                                                                                    |
+| Medium   | 0     |                                                                                                                                                    |
+| Low      | 1     | Feedback route previously returned 200 with a server-log reference when no durable sink was configured. Closed in this phase (`503 unconfigured`). |
 
 ---
 
@@ -362,8 +369,9 @@ Documented here so the operator does not need to read the codebase.
 4. Redeploy. The route will start returning `200` instead of `503`, and the modal's probe will flip from fallback to direct delivery without any UI change.
 
 Optional, recommended before opening direct submission to a wider audience:
+
 - Durable rate limiting (e.g. Vercel KV or Upstash) before the in-memory limit becomes a single-instance bottleneck.
 
 ---
 
-*Phase 41 closed on `master`. The operator's review queue, the chess-correctness work, and the user's feedback all kept their separate kinds of evidence.*
+_Phase 41 closed on `master`. The operator's review queue, the chess-correctness work, and the user's feedback all kept their separate kinds of evidence._
