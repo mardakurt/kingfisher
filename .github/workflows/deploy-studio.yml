@@ -95,12 +95,16 @@ jobs:
             TEAM_FLAG=""
           fi
           # The token is the only authentication. `--yes` skips the "are you
-          # sure" prompt that the CLI shows on first contact.
+          # sure" prompt that the CLI shows on first contact. `--project` is
+          # critical: without it `vercel deploy` targets the project linked
+          # by `.vercel/project.json`, which on this repo is the Landing
+          # project — so the Studio would never be updated by this workflow.
           npx vercel deploy \
             --prod \
             --yes \
             --token "${VERCEL_TOKEN}" \
             ${TEAM_FLAG} \
+            --project "${VERCEL_PROJECT_STUDIO}" \
             --confirm \
             --archive \
             > deploy.log 2>&1
@@ -109,8 +113,9 @@ jobs:
             echo "::notice title=Studio deployed::${URL}"
             echo "DEPLOY_URL=${URL}" >> "$GITHUB_OUTPUT"
           else
-            echo "::warning title=Studio deploy::could not parse the production URL"
+            echo "::error title=Studio deploy failed::could not parse the production URL"
             cat deploy.log
+            exit 1
           fi
         env:
           VERCEL_PROJECT_STUDIO: ${{ secrets.VERCEL_PROJECT_STUDIO }}
