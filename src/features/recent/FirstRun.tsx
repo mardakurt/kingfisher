@@ -37,6 +37,20 @@ export function FirstRun({ onDismiss }: { readonly onDismiss: () => void }) {
   const progress = references.progress[BUNDLED_PACK_ID];
   const failure = references.errors[BUNDLED_PACK_ID];
 
+  /*
+    Phase 39 (PART AG): the FirstRun panel already says "Engine is
+    ready" and "Opening Explorer is ready", both of which are
+    live-checked. The single workflow that is not signposted
+    anywhere on first run is the universal command palette: every
+    first-100 user who has not learned Cmd+K is one prompt away
+    from a "where is X?" report that could be answered by typing
+    the question. The cue is one line, deliberately quiet, and
+    names the action rather than the binding on platforms where
+    the binding has been rebound.
+  */
+  const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/i.test(navigator.platform);
+  const commandPaletteLabel = isMac ? '⌘K' : 'Ctrl+K';
+
   const referenceState = failure
     ? { ok: false, text: failure }
     : progress
@@ -98,6 +112,18 @@ export function FirstRun({ onDismiss }: { readonly onDismiss: () => void }) {
               Browse the opening library
             </Link>
           </div>
+
+          <p
+            className="mt-3 text-[10px] text-tertiary"
+            data-first-run-cmdk-hint
+            aria-label="Universal Search keyboard shortcut"
+          >
+            Press{' '}
+            <kbd className="rounded border border-line bg-surface-1 px-1 py-0.5 font-mono text-[10px] text-secondary">
+              {commandPaletteLabel}
+            </kbd>{' '}
+            to search anything in Kingfisher — moves, openings, players, reports.
+          </p>
         </div>
 
         <IconButton label="Dismiss the getting-started panel" onClick={onDismiss}>
