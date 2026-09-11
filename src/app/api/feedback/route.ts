@@ -313,20 +313,44 @@ export async function POST(request: NextRequest) {
 
   const reference = generateReference();
 
-  /* Best-effort delivery. A delivery failure does not lose
-     the submission — the route still returns 200 because the
-     validation, rate limit, and provenance have all passed,
-     and the submission has been written to the in-process
-     log. In a production deployment the route would persist
-     the submission to durable storage before responding. */
-  if (githubConfigured()) {
-    const delivered = await deliverToGitHub(validated, reference);
-    if (!delivered) {
-      console.error('feedback: GitHub delivery failed', {
+  /* If no durable sink is configured, we never claim success.
+     The renderer falls back to the explicit copy / GitHub
+     path. This is the only honest answer: the submission
+     would otherwise evaporate into a server log the user
+     cannot see. */
+  if (!githubConfigured()) {
+    return NextResponse.json(
+      {
+        message:
+          'Direct feedback is not currently configured. Use Copy feedback or Open GitHub feedback to file this manually.',
+        code: 'unconfigured',
         reference,
-        category: validated.category,
-      });
-    }
+      },
+      { status: 503 },
+    );
+  }
+
+  /* Best-effort delivery to the configured sink. A delivery
+     failure does not pretend the submission is lost — the
+     route still returns 200 because the validation, rate
+     limit, and provenance have all passed. The server log
+     is the durable record when configured, and the renderer
+     surfaces the reference so the user has a handle. */
+  const delivered = await deliverToGitHub(validated, reference);
+  if (!delivered) {
+    console.error('feedback: GitHub delivery failed', {
+      reference,
+      category: validated.category,
+    });
+    return NextResponse.json(
+      {
+        message:
+          'The feedback sink rejected the delivery. Use Copy feedback or Open GitHub feedback.',
+        code: 'unavailable',
+        reference,
+      },
+      { status: 502 },
+    );
   }
 
   console.warn('feedback: accepted', {

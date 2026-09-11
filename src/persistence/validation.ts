@@ -275,8 +275,17 @@ export const isReviewItemRecord = (value: unknown): value is ReviewItemRecord =>
   array(value.signals) &&
   value.signals.every(isReviewSignal) &&
   stringArray(value.themes) &&
+  /* `markedFromGames` was added in Phase 41; existing rows
+     pre-date it and read as an empty list. */
+  (value.markedFromGames === undefined ||
+    (array(value.markedFromGames) && value.markedFromGames.every(isMarkedFromGame))) &&
   finite(value.createdAt) &&
   finite(value.revision);
+
+const isMarkedFromGame = (value: unknown): boolean =>
+  object(value) &&
+  text(value.gameId) &&
+  finite(value.markedAt);
 
 export const isTrainingSetRecord = (value: unknown): value is TrainingSetRecord =>
   object(value) &&

@@ -488,6 +488,11 @@ export interface ReviewItemRecord {
    *
    * Stored rather than computed at query time so it can carry a unique index,
    * which is what makes "suggest review candidates" idempotent.
+   *
+   * Phase 41: a `marked` review item uses a position-only identity
+   * (`marked:${positionKey}`) so the same canonical position reached via
+   * different move orders does not duplicate the work item. Game occurrences
+   * are kept separately in `markedFromGames`.
    */
   readonly identityKey: string;
   readonly positionKey: PositionKey;
@@ -502,6 +507,15 @@ export interface ReviewItemRecord {
   /** The user's own category, when they marked it themselves. */
   readonly category?: ReviewCategory;
   readonly status: ReviewStatus;
+  /**
+   * Game occurrences for a `marked` item — empty for other sources.
+   *
+   * One record per game the position was marked from. The first occurrence is
+   * also stored in the top-level `gameId`/`nodeId` fields for backward
+   * compatibility with the suggested path. New marks append; an existing
+   * occurrence is refreshed, not duplicated.
+   */
+  readonly markedFromGames: readonly MarkedFromGame[];
   /**
    * Why this position is in the queue, as a sentence naming the facts.
    *
@@ -534,6 +548,26 @@ export type ReviewStatus = 'unreviewed' | 'reviewed' | 'converted' | 'ignored';
 
 /** The categories the game tree already uses for a critical mark. */
 export type ReviewCategory = 'opening' | 'calculation' | 'strategy' | 'endgame' | 'time-trouble';
+
+/**
+ * One game where a `marked` review item was reached.
+ *
+ * Phase 41: the same canonical position can be reached through different
+ * move orders in different games. The record keeps every occurrence so the
+ * UI can show "you marked this from 3 of your games" — useful context,
+ * not duplicate work items.
+ */
+export interface MarkedFromGame {
+  readonly gameId: string;
+  readonly gameLabel?: string;
+  readonly nodeId?: NodeId;
+  readonly ply?: number;
+  readonly playedSan?: San;
+  readonly playedUci?: Uci;
+  /** Free-form note the user attached when they marked it from this game. */
+  readonly note?: string;
+  readonly markedAt: number;
+}
 
 /**
  * A factual reason a position was suggested for review.

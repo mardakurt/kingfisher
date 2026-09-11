@@ -28,6 +28,7 @@ const item = (over: Partial<ReviewItemRecord> = {}): ReviewItemRecord => {
     status: 'reviewed',
     signals: [],
     themes: [],
+    markedFromGames: [],
     createdAt: NOW - DAY,
     reviewedAt: NOW - DAY,
     revision: 0,

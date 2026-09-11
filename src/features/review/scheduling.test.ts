@@ -22,6 +22,7 @@ const item = (id: string, schedule?: ScheduleState): ReviewItemRecord =>
     source: 'marked',
     signals: [],
     themes: [],
+    markedFromGames: [],
     createdAt: NOW,
     revision: 0,
     ...(schedule ? { schedule } : {}),

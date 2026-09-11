@@ -84,7 +84,13 @@ export type FeedbackResult =
   | {
       readonly ok: false;
       readonly code:
-        'unavailable' | 'rejected' | 'rate-limited' | 'too-large' | 'network' | 'timeout';
+        | 'unavailable'
+        | 'unconfigured'
+        | 'rejected'
+        | 'rate-limited'
+        | 'too-large'
+        | 'network'
+        | 'timeout';
       readonly message: string;
     };
 

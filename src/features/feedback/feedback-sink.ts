@@ -140,6 +140,17 @@ async function parseResponse(response: Response): Promise<FeedbackResult> {
     if (typeof reference === 'string') return { ok: true, reference };
     return { ok: true, reference: 'submitted' };
   }
+  if (response.status === 503) {
+    const message = (body as { message?: unknown } | null)?.message;
+    return {
+      ok: false,
+      code: 'unconfigured',
+      message:
+        typeof message === 'string'
+          ? message
+          : 'Direct feedback is not currently configured. Use Copy feedback or Open GitHub feedback.',
+    };
+  }
   if (response.status === 413) {
     return { ok: false, code: 'too-large', message: 'The message is too large to send.' };
   }
@@ -158,6 +169,17 @@ async function parseResponse(response: Response): Promise<FeedbackResult> {
       ok: false,
       code: 'rejected',
       message: typeof message === 'string' ? message : 'The submission was rejected.',
+    };
+  }
+  if (response.status === 502) {
+    const message = (body as { message?: unknown } | null)?.message;
+    return {
+      ok: false,
+      code: 'unavailable',
+      message:
+        typeof message === 'string'
+          ? message
+          : 'The feedback sink is temporarily unavailable. Please try again shortly.',
     };
   }
   return {

@@ -24,6 +24,7 @@ import type {
   DecisionConfidence,
   DecisionRecord,
   EvaluationEstimate,
+  MarkedFromGame,
   ReviewCategory,
   ReviewItemRecord,
   ReviewItemSource,
@@ -132,6 +133,18 @@ export interface ReviewRepository {
 
 export const reviewIdentityKey = (positionKey: string, gameId?: string, nodeId?: string): string =>
   `${positionKey}${gameId ?? ''}${nodeId ?? ''}`;
+
+/**
+ * Identity key for a `Marked for Review` item.
+ *
+ * Phase 41: a position the user marks is one work item regardless of
+ * which move order produced it. Two games reaching the same canonical
+ * position through different move orders map to the same review item.
+ * The game occurrences are kept on the record itself (gameId/nodeId
+ * fields plus a markedFromGames array) so the UI can show `marked
+ * here in three of your games` without duplicating the work item.
+ */
+export const markedReviewIdentityKey = (positionKey: string): string => `marked:${positionKey}`;
 
 export class LocalReviewRepository implements ReviewRepository {
   constructor(private readonly database: PersistenceDatabase) {}
@@ -311,7 +324,15 @@ export class LocalReviewRepository implements ReviewRepository {
     input: CreateReviewItemInput,
     now = Date.now(),
   ): Promise<ReviewItemRecord> {
-    const identityKey = reviewIdentityKey(input.positionKey, input.gameId, input.nodeId);
+    /* Phase 41: a `marked` item is identity-by-position so the
+       same canonical position reached through a different move
+       order maps to the same work item. Other sources stay on
+       the (position, game, node) identity that the suggested
+       path already uses. */
+    const identityKey =
+      input.source === 'marked'
+        ? markedReviewIdentityKey(input.positionKey)
+        : reviewIdentityKey(input.positionKey, input.gameId, input.nodeId);
     return this.database.transaction(
       [STORE_NAMES.reviewItems],
       'readwrite',
@@ -323,14 +344,21 @@ export class LocalReviewRepository implements ReviewRepository {
         );
         const first = existing[0];
         if (first !== undefined) {
-          /*
-            Suggesting review candidates again must not disturb work already
-            done. An entry the player has reviewed, converted or ignored is
-            left exactly as it is; an untouched one has its reason refreshed,
-            because the evidence behind it may have improved.
-          */
           const current = assertValid(first, isReviewItemRecord, 'review item');
-          if (current.status !== 'unreviewed' || input.source !== 'suggested') return current;
+          /* Suggested: a re-suggest refreshes reason/signals on
+             an untouched item, leaves a worked-on item alone. */
+          if (current.status !== 'unreviewed' || input.source !== 'suggested') {
+            /* Marked: a re-mark from a different game adds the
+               new occurrence rather than duplicating. An
+               occurrence from the same gameId is refreshed. */
+            if (input.source === 'marked' && input.gameId) {
+              const refreshed = appendMarkedOccurrence(current, input, now);
+              if (refreshed === current) return current;
+              await transaction.put(STORE_NAMES.reviewItems, refreshed);
+              return refreshed;
+            }
+            return current;
+          }
           const refreshed: ReviewItemRecord = {
             ...current,
             ...(input.reason ? { reason: input.reason } : {}),
@@ -358,6 +386,7 @@ export class LocalReviewRepository implements ReviewRepository {
           ...(input.reason ? { reason: input.reason } : {}),
           signals: input.signals ?? [],
           themes: [],
+          markedFromGames: input.source === 'marked' && input.gameId ? [buildMarkedOccurrence(input, now)] : [],
           createdAt: now,
           revision: 0,
         };
@@ -456,4 +485,66 @@ export function normalizeThemes(themes: readonly string[]): readonly string[] {
     out.push(slug);
   }
   return out;
+}
+
+/** Build the first occurrence record for a new marked item. */
+function buildMarkedOccurrence(
+  input: CreateReviewItemInput,
+  now: number,
+): MarkedFromGame {
+  return {
+    gameId: input.gameId as string,
+    ...(input.gameLabel ? { gameLabel: input.gameLabel } : {}),
+    ...(input.nodeId ? { nodeId: input.nodeId } : {}),
+    ...(input.ply !== undefined ? { ply: input.ply } : {}),
+    ...(input.reason ? { note: input.reason } : {}),
+    markedAt: now,
+  };
+}
+
+/**
+ * Append a new game occurrence to a marked review item, refreshing
+ * an existing occurrence from the same game instead of duplicating.
+ * Returns the original record when nothing changed (no gameId, or
+ * the occurrence list is already complete for that game).
+ */
+function appendMarkedOccurrence(
+  current: ReviewItemRecord,
+  input: CreateReviewItemInput,
+  now: number,
+): ReviewItemRecord {
+  if (!input.gameId) return current;
+  const occurrences = current.markedFromGames;
+  const existingIndex = occurrences.findIndex((occ) => occ.gameId === input.gameId);
+  const nextOccurrence: MarkedFromGame = {
+    gameId: input.gameId,
+    ...(input.gameLabel ? { gameLabel: input.gameLabel } : {}),
+    ...(input.nodeId ? { nodeId: input.nodeId } : {}),
+    ...(input.ply !== undefined ? { ply: input.ply } : {}),
+    ...(input.reason ? { note: input.reason } : {}),
+    markedAt: now,
+  };
+  const nextOccurrences =
+    existingIndex >= 0
+      ? occurrences.map((occ, idx) => (idx === existingIndex ? nextOccurrence : occ))
+      : [...occurrences, nextOccurrence];
+  /* A re-mark from the same game refreshes the occurrence
+     and the top-level note. The top-level reason is the
+     player's reason for marking this position; refreshing
+     it on a re-mark is the right behaviour. */
+  const reasonChanged = Boolean(input.reason) && input.reason !== current.reason;
+  /* A no-op write is wasteful; only skip when both the
+     occurrence list and the reason are unchanged. */
+  const occurrencesUnchanged = existingIndex >= 0 && occurrences.length === nextOccurrences.length;
+  if (occurrencesUnchanged && !reasonChanged) return current;
+  return {
+    ...current,
+    markedFromGames: nextOccurrences,
+    ...(input.reason ? { reason: input.reason } : {}),
+    ...(input.gameLabel && !current.gameLabel ? { gameLabel: input.gameLabel } : {}),
+    ...(input.nodeId && !current.nodeId ? { nodeId: input.nodeId } : {}),
+    ...(input.ply !== undefined && current.ply === undefined ? { ply: input.ply } : {}),
+    ...(input.category && !current.category ? { category: input.category } : {}),
+    revision: current.revision + 1,
+  };
 }

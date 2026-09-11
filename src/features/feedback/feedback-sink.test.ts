@@ -83,6 +83,46 @@ describe('HttpFeedbackSink', () => {
     if (!result.ok) expect(result.code).toBe('unavailable');
   });
 
+  it('maps 503 with code=unconfigured to an unconfigured result', async () => {
+    /* The route uses 503 to mean "no durable sink is
+       configured; the user must use the explicit fallback".
+       This is the test the brief calls out: feedback route
+       says sent without durable sink → this test must
+       fail. */
+    const fetchImpl = (async () =>
+      new Response(
+        JSON.stringify({
+          message: 'Direct feedback is not currently configured.',
+          code: 'unconfigured',
+          reference: 'kf-test',
+        }),
+        { status: 503 },
+      )) as unknown as typeof fetch;
+    const sink = new HttpFeedbackSink({ fetchImpl });
+    const result = await sink.submit(envelope);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.code).toBe('unconfigured');
+      expect(result.message).toMatch(/not currently configured/);
+    }
+  });
+
+  it('maps 502 with code=unavailable to an unavailable result', async () => {
+    const fetchImpl = (async () =>
+      new Response(
+        JSON.stringify({
+          message: 'The feedback sink rejected the delivery.',
+          code: 'unavailable',
+          reference: 'kf-test',
+        }),
+        { status: 502 },
+      )) as unknown as typeof fetch;
+    const sink = new HttpFeedbackSink({ fetchImpl });
+    const result = await sink.submit(envelope);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.code).toBe('unavailable');
+  });
+
   it('maps a network failure to a network result', async () => {
     const fetchImpl = (async () => {
       throw new TypeError('Failed to fetch');

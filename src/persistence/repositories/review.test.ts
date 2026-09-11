@@ -136,7 +136,24 @@ describe('review queue', () => {
     expect(again.revision).toBe(ignored.revision);
   });
 
-  it('separates entries for the same position in different games', async () => {
+  it('separates entries for the same position in different games when source is suggested', async () => {
+    const repositories = createMemoryRepositories();
+    const base = {
+      positionKey: KEY,
+      fen: START_FEN,
+      sideToMove: 'w' as const,
+      source: 'suggested' as const,
+    };
+    await repositories.review.upsertReviewItem({ ...base, gameId: 'a', nodeId: 'n1' });
+    await repositories.review.upsertReviewItem({ ...base, gameId: 'b', nodeId: 'n1' });
+    expect(await repositories.review.listReviewItems()).toHaveLength(2);
+  });
+
+  it('merges "marked" entries for the same position across games into one item with multiple occurrences', async () => {
+    /* Phase 41: a marked review is one work item per
+       canonical position. The same position reached through
+       different move orders maps to the same record, with
+       each occurrence kept on the record. */
     const repositories = createMemoryRepositories();
     const base = {
       positionKey: KEY,
@@ -144,9 +161,43 @@ describe('review queue', () => {
       sideToMove: 'w' as const,
       source: 'marked' as const,
     };
-    await repositories.review.upsertReviewItem({ ...base, gameId: 'a', nodeId: 'n1' });
-    await repositories.review.upsertReviewItem({ ...base, gameId: 'b', nodeId: 'n1' });
-    expect(await repositories.review.listReviewItems()).toHaveLength(2);
+    const first = await repositories.review.upsertReviewItem({
+      ...base,
+      gameId: 'a',
+      nodeId: 'n1',
+      ply: 1,
+    });
+    const second = await repositories.review.upsertReviewItem({
+      ...base,
+      gameId: 'b',
+      nodeId: 'm3',
+      ply: 5,
+      gameLabel: 'Game B',
+    });
+    expect(second.id).toBe(first.id);
+    const stored = await repositories.review.getReviewItem(first.id);
+    expect(stored).not.toBeNull();
+    expect(stored?.markedFromGames).toHaveLength(2);
+    const games = (stored?.markedFromGames ?? []).map((occ) => occ.gameId).sort();
+    expect(games).toEqual(['a', 'b']);
+    expect(await repositories.review.listReviewItems()).toHaveLength(1);
+  });
+
+  it('does not duplicate the same game occurrence on re-mark', async () => {
+    const repositories = createMemoryRepositories();
+    const base = {
+      positionKey: KEY,
+      fen: START_FEN,
+      sideToMove: 'w' as const,
+      source: 'marked' as const,
+      gameId: 'a',
+      nodeId: 'n1',
+    };
+    await repositories.review.upsertReviewItem(base);
+    await repositories.review.upsertReviewItem({ ...base, reason: 'now with a note' });
+    const stored = (await repositories.review.listReviewItems())[0];
+    expect(stored?.markedFromGames).toHaveLength(1);
+    expect(stored?.reason).toBe('now with a note');
   });
 
   it('stamps the review time once, on the first status that is not unreviewed', async () => {
@@ -178,14 +229,16 @@ describe('review queue', () => {
       positionKey: KEY,
       fen: START_FEN,
       sideToMove: 'w',
-      source: 'marked',
+      source: 'suggested',
+      gameId: 'a',
       nodeId: 'n1',
     });
     await repositories.review.upsertReviewItem({
       positionKey: KEY,
       fen: START_FEN,
       sideToMove: 'w',
-      source: 'marked',
+      source: 'suggested',
+      gameId: 'b',
       nodeId: 'n2',
     });
     await repositories.review.updateReviewItem(one.id, one.revision, { status: 'reviewed' });

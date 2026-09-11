@@ -20,7 +20,7 @@
  * already seen the engine on.
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -164,11 +164,42 @@ export function ReviewWorkspace() {
       });
       setSelectedItemId(item.id);
       invalidateReview(client);
-      notify({ tone: 'success', message: 'Added to your review queue.' });
+      notify({
+        tone: 'success',
+        message: 'Marked for review.',
+        detail: `This position is now in your queue. The same canonical position reached from a different move order will map to the same work item.`,
+      });
     } catch (error) {
       notify({
         tone: 'error',
         message: error instanceof Error ? error.message : 'That could not be added.',
+      });
+    }
+  };
+
+  /* Phase 41: find the marked item for the current
+     position so the header can switch between "Mark for
+     review" and "Marked — open / remove". The identity key
+     is canonical-position-only for marked items, so this
+     lookup is exact regardless of which move order reached
+     the position. */
+  const markedItem = useMemo(() => {
+    const items = reviewItems.data ?? [];
+    return items.find((it) => it.source === 'marked' && it.positionKey === key) ?? null;
+  }, [reviewItems.data, key]);
+
+  const removeMark = async () => {
+    if (!markedItem) return;
+    try {
+      const repositories = await getRepositories();
+      await repositories.review.deleteReviewItem(markedItem.id);
+      if (selectedItemId === markedItem.id) setSelectedItemId(null);
+      invalidateReview(client);
+      notify({ tone: 'info', message: 'Removed from your review queue.' });
+    } catch (error) {
+      notify({
+        tone: 'error',
+        message: error instanceof Error ? error.message : 'The mark could not be removed.',
       });
     }
   };
@@ -235,7 +266,36 @@ export function ReviewWorkspace() {
             value={selfAnalysis ? 'hidden' : 'visible'}
             onChange={(value) => setSelfAnalysis(value === 'hidden')}
           />
-          <Button onClick={() => void markCritical()}>Add to queue</Button>
+          {markedItem ? (
+            <>
+              <span
+                className="rounded-full border border-accent/40 bg-accent/10 px-2 py-0.5 text-[10.5px] text-primary"
+                title={
+                  markedItem.markedFromGames.length > 1
+                    ? `Marked from ${markedItem.markedFromGames.length} of your games`
+                    : 'Marked for review'
+                }
+              >
+                Marked for review
+              </span>
+              <Button
+                variant="ghost"
+                onClick={() => void openItem(markedItem)}
+                aria-label="Open the marked position"
+              >
+                Open
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => void removeMark()}
+                aria-label="Remove the mark"
+              >
+                Remove mark
+              </Button>
+            </>
+          ) : (
+            <Button onClick={() => void markCritical()}>Mark for review</Button>
+          )}
           <SuggestCandidatesButton />
           {selfAnalysis && !revealed ? (
             <Button variant="accent" onClick={() => reveal(key)}>

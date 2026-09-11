@@ -84,6 +84,16 @@ export function FeedbackModal(props: FeedbackModalProps) {
   const [previewTechnical, setPreviewTechnical] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<FeedbackResult | null>(null);
+  /* Probed once when the modal opens. The GET endpoint tells
+     us whether a durable sink exists. When it does not, the
+     modal does not pretend a Send button is going to deliver;
+     it shows the Copy / Open GitHub fallback as the primary
+     path. The state goes through three values:
+       - 'unknown': initial, before the probe returns
+       - true: a durable sink exists; the Send button works
+       - false: no sink; the modal renders the explicit
+                fallback surface */
+  const [directAvailable, setDirectAvailable] = useState<boolean | 'unknown'>('unknown');
   /* Captured once at mount via a state initialiser (allowed
      in a render path because the initialiser only runs at
      mount time). The parent remounts the modal on each
@@ -141,6 +151,47 @@ export function FeedbackModal(props: FeedbackModalProps) {
       .catch(() => setPreviewTechnical(null));
   }, [includeTechnical, clientVersion, surface]);
 
+  /* Probe the route once when the modal opens. If the GET
+     returns that no sink is configured, the modal renders the
+     fallback surface — no Send button, no fake success.
+     Network errors default to "unknown" rather than false, so
+     the Send button is still offered in case the route is up
+     but the GET timed out; the route itself will reject any
+     submission without a sink with the explicit 503. */
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    void fetch('/api/feedback', {
+      method: 'GET',
+      headers: { accept: 'application/json' },
+      credentials: 'same-origin',
+    })
+      .then((response) =>
+        response
+          .json()
+          .then((body: { directSubmission?: unknown }) =>
+            typeof body.directSubmission === 'boolean' ? body.directSubmission : null,
+          )
+          .catch(() => null),
+      )
+      .then((available) => {
+        if (cancelled) return;
+        if (available === null) {
+          setDirectAvailable('unknown');
+        } else {
+          setDirectAvailable(available);
+        }
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setDirectAvailable('unknown');
+      });
+    setResult(null);
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
+
   useEffect(() => {
     if (!open || !includeTechnical) return;
     let cancelled = false;
@@ -161,6 +212,11 @@ export function FeedbackModal(props: FeedbackModalProps) {
   const submit = useCallback(async () => {
     if (submitting) return;
     if (validationError) return;
+    /* If the probe told us the route has no durable sink,
+       do not even attempt a submit. The modal renders the
+       fallback panel instead — clicking Send would only
+       produce a 503 we are deliberately returning. */
+    if (directAvailable === false) return;
     const fen = includeFen ? currentFenProvider?.() : undefined;
     const draftEnvelope: FeedbackDraft = {
       category,
@@ -199,6 +255,7 @@ export function FeedbackModal(props: FeedbackModalProps) {
     validationError,
     onDraftChange,
     openedAtMs,
+    directAvailable,
   ]);
 
   const copyFeedback = useCallback(async () => {
@@ -256,17 +313,27 @@ export function FeedbackModal(props: FeedbackModalProps) {
   }, [onClose, submitting]);
 
   if (!open) return null;
+  /* When no durable sink exists, the modal does not pretend
+     to be a "Send" form — it is a "Your message is here, here
+     are the honest ways to file it" surface. The same
+     surface is shown after a 503 returns from the route so a
+     transient misconfiguration is handled identically. */
+  const isUnconfigured = directAvailable === false || result?.ok === false && result.code === 'unconfigured';
   return (
     <Dialog
       open={open}
       onClose={onDialogClose}
-      title="Send feedback"
-      description="Sent only when you click Send. Kingfisher never sends anything automatically."
+      title={isUnconfigured ? 'Feedback — direct delivery not configured' : 'Send feedback'}
+      description={
+        isUnconfigured
+          ? 'Kingfisher does not currently have a private feedback inbox configured. Copy the message below or open a pre-filled GitHub issue instead.'
+          : 'Sent only when you click Send. Kingfisher never sends anything automatically.'
+      }
       footer={
         <div className="flex w-full items-center justify-between gap-2">
           <div className="text-[11px] text-tertiary">{validationError ?? '\u00a0'}</div>
           <div className="flex items-center gap-2">
-            {result && !result.ok && (
+            {isUnconfigured ? (
               <>
                 <Button size="sm" variant="ghost" onClick={copyFeedback}>
                   Copy feedback
@@ -274,19 +341,35 @@ export function FeedbackModal(props: FeedbackModalProps) {
                 <Button size="sm" variant="subtle" onClick={openGitHubFallback}>
                   Open GitHub feedback
                 </Button>
+                <Button size="sm" variant="ghost" onClick={onDialogClose}>
+                  Close
+                </Button>
+              </>
+            ) : (
+              <>
+                {result && !result.ok && (
+                  <>
+                    <Button size="sm" variant="ghost" onClick={copyFeedback}>
+                      Copy feedback
+                    </Button>
+                    <Button size="sm" variant="subtle" onClick={openGitHubFallback}>
+                      Open GitHub feedback
+                    </Button>
+                  </>
+                )}
+                <Button size="sm" variant="ghost" onClick={onDialogClose}>
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  variant="accent"
+                  onClick={submit}
+                  disabled={Boolean(validationError) || submitting}
+                >
+                  {submitting ? 'Sending…' : 'Send feedback'}
+                </Button>
               </>
             )}
-            <Button size="sm" variant="ghost" onClick={onDialogClose}>
-              Cancel
-            </Button>
-            <Button
-              size="sm"
-              variant="accent"
-              onClick={submit}
-              disabled={Boolean(validationError) || submitting}
-            >
-              {submitting ? 'Sending…' : 'Send feedback'}
-            </Button>
           </div>
         </div>
       }
@@ -309,6 +392,7 @@ export function FeedbackModal(props: FeedbackModalProps) {
         }}
         onRefreshTechnical={refreshTechnicalPreview}
         result={result}
+        unconfigured={isUnconfigured}
       />
     </Dialog>
   );
@@ -329,6 +413,7 @@ function FeedbackBody(props: {
   readonly onIncludeTechnicalChange: (next: boolean) => void;
   readonly onRefreshTechnical: () => void;
   readonly result: FeedbackResult | null;
+  readonly unconfigured: boolean;
 }) {
   const {
     categoryId,
@@ -345,6 +430,7 @@ function FeedbackBody(props: {
     onIncludeTechnicalChange,
     onRefreshTechnical,
     result,
+    unconfigured,
   } = props;
 
   return (
@@ -434,6 +520,16 @@ function FeedbackBody(props: {
       {result && !result.ok && (
         <p className="rounded-md border border-rose-500/40 bg-rose-500/10 px-2 py-1.5 text-[11px] text-rose-700">
           {result.message}
+        </p>
+      )}
+      {unconfigured && (
+        <p
+          className="rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-1.5 text-[11px] text-amber-800"
+          role="status"
+        >
+          Direct feedback is not currently configured. Use <strong>Copy feedback</strong> or{' '}
+          <strong>Open GitHub feedback</strong> below to file this manually — typing a message here is
+          not the same as sending it.
         </p>
       )}
     </div>

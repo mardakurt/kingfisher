@@ -33,12 +33,40 @@ const validBody = {
 };
 
 describe('POST /api/feedback', () => {
-  it('accepts a well-formed payload and returns a reference', async () => {
+  it('returns 503 with code=unconfigured when no durable sink is configured', async () => {
+    /* The route never claims success when no sink is set.
+       This is the test the brief calls out: a user must
+       never see "feedback sent" when the message evaporated
+       into a server log they cannot read. */
+    delete process.env.KINGFISHER_FEEDBACK_REPOSITORY;
+    delete process.env.KINGFISHER_FEEDBACK_TOKEN;
     const response = await POST(makeRequest(validBody, { origin: 'http://localhost:3210' }));
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(503);
     const body = await response.json();
+    expect(body.code).toBe('unconfigured');
     expect(typeof body.reference).toBe('string');
     expect(body.reference).toMatch(/^kf-/);
+    expect(typeof body.message).toBe('string');
+    expect(body.message).toMatch(/Direct feedback is not currently configured/);
+  });
+
+  it('accepts a well-formed payload and returns a reference when the sink is configured', async () => {
+    /* A sink is faked by setting env vars; `deliverToGitHub`
+       will still fail because no real GitHub API exists in
+       tests, but the route must accept the envelope and
+       surface the reference through the 502 path. */
+    process.env.KINGFISHER_FEEDBACK_REPOSITORY = 'mardakurt/kingfisher-feedback-test';
+    process.env.KINGFISHER_FEEDBACK_TOKEN = 'test-pat-no-network-access';
+    try {
+      const response = await POST(makeRequest(validBody, { origin: 'http://localhost:3210' }));
+      expect([200, 502]).toContain(response.status);
+      const body = await response.json();
+      expect(typeof body.reference).toBe('string');
+      expect(body.reference).toMatch(/^kf-/);
+    } finally {
+      delete process.env.KINGFISHER_FEEDBACK_REPOSITORY;
+      delete process.env.KINGFISHER_FEEDBACK_TOKEN;
+    }
   });
 
   it('rejects an unknown origin', async () => {
@@ -47,8 +75,14 @@ describe('POST /api/feedback', () => {
   });
 
   it('accepts same-origin requests without an origin header (production behind a proxy)', async () => {
+    delete process.env.KINGFISHER_FEEDBACK_REPOSITORY;
+    delete process.env.KINGFISHER_FEEDBACK_TOKEN;
     const response = await POST(makeRequest(validBody));
-    expect(response.status).toBe(200);
+    /* The route is now strict about durability. With no env
+       vars it returns 503, not 200 — the brief's
+       "feedback route says sent without durable sink" must
+       be a mutation-failing test. */
+    expect(response.status).toBe(503);
   });
 
   it('rejects a non-JSON content-type', async () => {
@@ -108,8 +142,10 @@ describe('POST /api/feedback', () => {
     );
     /* FEN with includeTechnical: false is permitted by this
        route — FEN and technical info are independent. What is
-       rejected is technical info without the toggle. */
-    expect(response.status).toBe(200);
+       rejected is technical info without the toggle. With no
+       durable sink configured, the response is 503 not 200:
+       we do not claim success. */
+    expect(response.status).toBe(503);
   });
 
   it('rejects technical info with non-string values', async () => {

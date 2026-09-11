@@ -58,6 +58,16 @@ export interface UseFeedbackApi {
   readonly result: FeedbackResult | null;
   readonly busy: boolean;
   readonly validationError: string | null;
+  /**
+   * Probe the route's current sink configuration.
+   *
+   * Returns true when the route reports `directSubmission: true`,
+   * false when it does not, and null when the probe itself failed
+   * (network error or non-JSON body). Callers can branch on this
+   * to choose between the Send flow and the explicit Copy /
+   * Open GitHub fallback.
+   */
+  readonly probeDirectSubmission: () => Promise<boolean | null>;
 }
 
 export function useFeedback(options: UseFeedbackOptions): UseFeedbackApi {
@@ -92,6 +102,27 @@ export function useFeedback(options: UseFeedbackOptions): UseFeedbackApi {
     }
   }, [draft, options.clientVersion, options.sink, options.surface]);
 
+  /* Probe whether a durable sink exists. Returns true when
+     the route says direct submission is configured, false
+     when it isn't, and null when the probe failed. The hook
+     callers can branch on this to choose between the Send
+     flow and the Copy/Open GitHub fallback. */
+  const probeDirectSubmission = useCallback(async (): Promise<boolean | null> => {
+    try {
+      const response = await fetch('/api/feedback', {
+        method: 'GET',
+        headers: { accept: 'application/json' },
+        credentials: 'same-origin',
+      });
+      if (!response.ok) return null;
+      const body = (await response.json().catch(() => null)) as { directSubmission?: unknown } | null;
+      if (!body || typeof body.directSubmission !== 'boolean') return null;
+      return body.directSubmission;
+    } catch {
+      return null;
+    }
+  }, []);
+
   const fallback = useCallback(() => {
     const sink = new GithubFallbackSink({
       repositoryUrl: options.githubRepositoryUrl,
@@ -120,6 +151,7 @@ export function useFeedback(options: UseFeedbackOptions): UseFeedbackApi {
     result,
     busy,
     validationError: validateFeedbackDraft(draft),
+    probeDirectSubmission,
   };
 }
 
