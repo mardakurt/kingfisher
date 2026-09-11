@@ -147,7 +147,10 @@ export function featureTransitions(
     }
 
     /* Connected passers (pair) */
-    if (afterHalf.pawns.connectedPassed.length >= 2 && beforeHalf.pawns.connectedPassed.length < 2) {
+    if (
+      afterHalf.pawns.connectedPassed.length >= 2 &&
+      beforeHalf.pawns.connectedPassed.length < 2
+    ) {
       transitions.push({
         id: `connected-passers:${color}`,
         kind: 'connected-passers',

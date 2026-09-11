@@ -283,9 +283,7 @@ export const isReviewItemRecord = (value: unknown): value is ReviewItemRecord =>
   finite(value.revision);
 
 const isMarkedFromGame = (value: unknown): boolean =>
-  object(value) &&
-  text(value.gameId) &&
-  finite(value.markedAt);
+  object(value) && text(value.gameId) && finite(value.markedAt);
 
 export const isTrainingSetRecord = (value: unknown): value is TrainingSetRecord =>
   object(value) &&

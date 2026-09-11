@@ -115,7 +115,9 @@ export function useFeedback(options: UseFeedbackOptions): UseFeedbackApi {
         credentials: 'same-origin',
       });
       if (!response.ok) return null;
-      const body = (await response.json().catch(() => null)) as { directSubmission?: unknown } | null;
+      const body = (await response.json().catch(() => null)) as {
+        directSubmission?: unknown;
+      } | null;
       if (!body || typeof body.directSubmission !== 'boolean') return null;
       return body.directSubmission;
     } catch {

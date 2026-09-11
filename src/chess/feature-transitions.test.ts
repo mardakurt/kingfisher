@@ -40,15 +40,11 @@ describe('featureTransitions', () => {
     const noPair = '4k3/8/8/8/8/8/8/R1B1K1b1 w - - 0 1';
     const gained = featureTransitions(noPair, withPair);
     expect(
-      gained.some(
-        (t) => t.kind === 'bishop-pair' && /now has the bishop pair/.test(t.statement),
-      ),
+      gained.some((t) => t.kind === 'bishop-pair' && /now has the bishop pair/.test(t.statement)),
     ).toBe(true);
     const lost = featureTransitions(withPair, noPair);
     expect(
-      lost.some(
-        (t) => t.kind === 'bishop-pair' && /gives up the bishop pair/.test(t.statement),
-      ),
+      lost.some((t) => t.kind === 'bishop-pair' && /gives up the bishop pair/.test(t.statement)),
     ).toBe(true);
   });
 

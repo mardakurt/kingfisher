@@ -386,7 +386,8 @@ export class LocalReviewRepository implements ReviewRepository {
           ...(input.reason ? { reason: input.reason } : {}),
           signals: input.signals ?? [],
           themes: [],
-          markedFromGames: input.source === 'marked' && input.gameId ? [buildMarkedOccurrence(input, now)] : [],
+          markedFromGames:
+            input.source === 'marked' && input.gameId ? [buildMarkedOccurrence(input, now)] : [],
           createdAt: now,
           revision: 0,
         };
@@ -488,10 +489,7 @@ export function normalizeThemes(themes: readonly string[]): readonly string[] {
 }
 
 /** Build the first occurrence record for a new marked item. */
-function buildMarkedOccurrence(
-  input: CreateReviewItemInput,
-  now: number,
-): MarkedFromGame {
+function buildMarkedOccurrence(input: CreateReviewItemInput, now: number): MarkedFromGame {
   return {
     gameId: input.gameId as string,
     ...(input.gameLabel ? { gameLabel: input.gameLabel } : {}),

@@ -201,10 +201,47 @@ export class StaleTrainingItemWriteError extends Error {
 }
 
 export interface TrainingSource {
-  readonly kind: 'study' | 'game' | 'repertoire' | 'analysis';
+  readonly kind: 'study' | 'game' | 'repertoire' | 'analysis' | 'game-review';
   readonly id?: string;
   readonly label: string;
   readonly nodeId?: NodeId;
+}
+
+/**
+ * Provenance attached to a calculation-review training item.
+ *
+ * Phase 41: a calculation-review item is derived from a
+ * `game-review` source. The provenance record keeps the answer's
+ * truth source honest — engine-derived answers, tablebase-derived
+ * answers and user-selected answers each carry a separate `kind`
+ * so the renderer can label the answer accurately. The brief is
+ * explicit: "Never hide that the answer came from engine analysis."
+ */
+export interface CalculationReviewProvenance {
+  readonly reviewItemId: string;
+  readonly positionKey: PositionKey;
+  readonly fen: Fen;
+  readonly sideToMove: Color;
+  readonly gameId?: string;
+  readonly gameLabel?: string;
+  readonly nodeId?: NodeId;
+  readonly ply?: number;
+  /**
+   * Where the canonical answer(s) came from.
+   *
+   * `engine-candidates` — derived from the engine candidates list
+   * (default for the "Train this position" action).
+   * `user-selected` — the user picked an answer explicitly.
+   * `tablebase` — derived from the WDL/DTZ tablebase.
+   */
+  readonly answerSource: 'engine-candidates' | 'user-selected' | 'tablebase';
+  /** The engine version used to derive the answer, if any. */
+  readonly engineVersion?: string;
+  /** Acceptable-move band used to score the user's pick. */
+  readonly acceptableBandCp?: number;
+  /** Tablebase WDL when answerSource is `tablebase`. */
+  readonly tablebaseWdl?: number;
+  readonly createdAt: number;
 }
 
 export type ReviewGrade = 'again' | 'hard' | 'good' | 'easy';

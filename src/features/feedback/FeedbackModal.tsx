@@ -159,8 +159,17 @@ export function FeedbackModal(props: FeedbackModalProps) {
      but the GET timed out; the route itself will reject any
      submission without a sink with the explicit 503. */
   useEffect(() => {
-    if (!open) return;
+    if (!open) return undefined;
     let cancelled = false;
+    /* Schedule the probe asynchronously so the synchronous setState
+       calls live in callbacks, not in the effect's body. The
+       initial render sees `directAvailable === 'unknown'`; the
+       callbacks below settle it on the next tick. */
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setResult(null);
+      setDirectAvailable('unknown');
+    });
     void fetch('/api/feedback', {
       method: 'GET',
       headers: { accept: 'application/json' },
@@ -176,17 +185,12 @@ export function FeedbackModal(props: FeedbackModalProps) {
       )
       .then((available) => {
         if (cancelled) return;
-        if (available === null) {
-          setDirectAvailable('unknown');
-        } else {
-          setDirectAvailable(available);
-        }
+        setDirectAvailable(available === null ? 'unknown' : available);
       })
       .catch(() => {
         if (cancelled) return;
         setDirectAvailable('unknown');
       });
-    setResult(null);
     return () => {
       cancelled = true;
     };
@@ -318,7 +322,8 @@ export function FeedbackModal(props: FeedbackModalProps) {
      are the honest ways to file it" surface. The same
      surface is shown after a 503 returns from the route so a
      transient misconfiguration is handled identically. */
-  const isUnconfigured = directAvailable === false || result?.ok === false && result.code === 'unconfigured';
+  const isUnconfigured =
+    directAvailable === false || (result?.ok === false && result.code === 'unconfigured');
   return (
     <Dialog
       open={open}
@@ -528,8 +533,8 @@ function FeedbackBody(props: {
           role="status"
         >
           Direct feedback is not currently configured. Use <strong>Copy feedback</strong> or{' '}
-          <strong>Open GitHub feedback</strong> below to file this manually — typing a message here is
-          not the same as sending it.
+          <strong>Open GitHub feedback</strong> below to file this manually — typing a message here
+          is not the same as sending it.
         </p>
       )}
     </div>
