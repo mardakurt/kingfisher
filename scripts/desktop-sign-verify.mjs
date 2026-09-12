@@ -1,153 +1,132 @@
 #!/usr/bin/env node
-/**
- * `npm run desktop:sign:verify` — verify the code-signing chain of
- * a packaged Kingfisher build.
- *
- * The signed app is the deliverable that Gatekeeper, the auto-updater,
- * and the macOS installation system all read. A failure here means
- * the user will be unable to install or update; a "deep" check that
- * silently passes is worse than useless. This script verifies:
- *
- *   1. The outer `.app` has a Developer ID Application signature.
- *   2. The signature carries a secure timestamp (the
- *      `--strict` check on the codesign tool).
- *   3. The Hardened Runtime is enabled.
- *   4. The nested binaries — Electron Framework, the helper apps
- *      and the GPU/renderer helpers — are signed with the same
- *      identity. A `Developer ID Application` outer signature on
- *      an unsigned helper is not a Developer ID signature.
- *   5. The entitlements blob is what we expect.
- *
- * The script is intentionally chatty. A green run is a release
- * gate; a yellow or red run stops the release until the underlying
- * issue is fixed.
- *
- * Usage:
- *   node scripts/desktop-sign-verify.mjs <path-to-Kingfisher.app>
- *   node scripts/desktop-sign-verify.mjs           # picks up dist/mac-arm64/Kingfisher.app
- */
-
+/** Verify the actual signing chain, every nested Mach-O, and release entitlements. */
 import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
-import { exit } from 'node:process';
-
+import { existsSync, readdirSync, openSync, readSync, closeSync } from 'node:fs';
+import { dirname, join, resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { dirname, join, resolve } from 'node:path';
-const HERE = join(dirname(fileURLToPath(import.meta.url)), '..');
-const candidate = process.argv[2]
-  ? resolve(process.argv[2])
-  : join(HERE, 'desktop', 'dist', 'mac-arm64', 'Kingfisher.app');
 
-if (!existsSync(candidate)) {
-  console.error(`No Kingfisher.app at ${candidate}. Run \`npm run desktop:dist\` first.`);
-  exit(1);
-}
-
-console.log(`Verifying code signature of ${candidate}\n`);
-
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const out = process.env.KINGFISHER_DESKTOP_OUT || join(root, 'desktop/dist');
+const candidate = resolve(process.argv[2] || join(out, 'mac-arm64/Kingfisher.app'));
 let failed = false;
-const report = (label, ok, detail) => {
-  const mark = ok ? '✓' : '✗';
-  console.log(`${mark} ${label}${detail ? `  — ${detail}` : ''}`);
+function check(label, ok) {
+  console.log(`${ok ? '✓' : '✗'} ${label}`);
   if (!ok) failed = true;
-};
-
-/* 1. The outer app's signature subject and authority. */
-const subject = runCodesign(['-dvvv', candidate]);
-if (subject.code !== 0) {
-  report('codesign can read the .app', false, subject.stderr.split('\n')[0]);
-  exit(1);
 }
-const subjectLines = subject.stdout.split('\n');
-const authority = subjectLines
-  .filter((line) => line.startsWith('Authority='))
-  .map((line) => line.replace(/^Authority=/, '').trim());
-const teamIdMatch = subjectLines.join('\n').match(/TeamIdentifier=([A-Z0-9]+)/);
-const format = subjectLines.join('\n').match(/Format=([A-Za-z0-9 ]+)/);
-const hasDeveloperId = authority.some((a) => a.startsWith('Developer ID Application:'));
-report('outer .app is signed with Developer ID Application', hasDeveloperId, authority.join(' | '));
-report(
-  'outer .app has a team identifier',
-  Boolean(teamIdMatch),
-  teamIdMatch ? `teamId=${teamIdMatch[1]}` : '',
-);
-report(
-  'outer .app uses the modern signature format',
-  Boolean(format && format[1].includes('extended')),
-  format ? format[1] : '',
-);
-
-/* 2. Hardened Runtime and secure timestamp. */
-const verify = runCodesign(['--verify', '--deep', '--strict', '--verbose=2', candidate]);
-report(
-  'codesign --verify --deep --strict',
-  verify.code === 0,
-  verify.code === 0 ? 'verified' : verify.stderr.split('\n')[0],
-);
-const hardened = subject.stdout.includes('flags=0x10000(runtime)');
-report(
-  'Hardened Runtime is enabled',
-  hardened,
-  hardened ? 'runtime flag set' : 'runtime flag missing',
-);
-
-/* 3. The nested executables. A single unsigned helper invalidates
-      the whole signature chain. */
-const nested = [
+function run(command, args, input) {
+  return spawnSync(command, args, { encoding: 'utf8', input });
+}
+function plist(text) {
+  const start = text.indexOf('<?xml');
+  const r = run(
+    'plutil',
+    ['-convert', 'json', '-o', '-', '--', '-'],
+    start >= 0 ? text.slice(start) : text,
+  );
+  try {
+    return r.status === 0 ? JSON.parse(r.stdout) : null;
+  } catch {
+    return null;
+  }
+}
+function walk(directory) {
+  const found = [];
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    const p = join(directory, entry.name);
+    if (entry.isSymbolicLink()) continue;
+    if (entry.isDirectory()) {
+      if (entry.name.endsWith('.app') || entry.name.endsWith('.framework')) found.push(p);
+      found.push(...walk(p));
+    } else if (entry.isFile()) {
+      const fd = openSync(p, 'r');
+      const magic = Buffer.alloc(4);
+      try {
+        readSync(fd, magic, 0, 4, 0);
+      } finally {
+        closeSync(fd);
+      }
+      if (
+        [
+          'cffaedfe',
+          'cefaedfe',
+          'feedfacf',
+          'feedface',
+          'cafebabe',
+          'bebafeca',
+          'cafebabf',
+          'bfbafeca',
+        ].includes(magic.toString('hex'))
+      )
+        found.push(p);
+    }
+  }
+  return found;
+}
+if (!existsSync(candidate)) {
+  console.error('Candidate app does not exist.');
+  process.exit(1);
+}
+const required = [
+  'Contents/MacOS/Kingfisher',
+  'Contents/Frameworks/Electron Framework.framework',
   'Contents/Frameworks/Kingfisher Helper.app',
   'Contents/Frameworks/Kingfisher Helper (Renderer).app',
   'Contents/Frameworks/Kingfisher Helper (GPU).app',
-  'Contents/Frameworks/Kingfisher Helper (Plugin).app',
-  'Contents/Frameworks/Electron Framework.framework',
-  'Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/Info.plist',
-  'Contents/MacOS/Kingfisher',
 ];
-for (const rel of nested) {
-  const full = join(candidate, rel);
-  if (!existsSync(full)) continue;
-  const r = runCodesign(['-dvvv', full]);
-  if (r.code !== 0) {
-    report(`nested ${rel} readable`, false, r.stderr.split('\n')[0]);
-    continue;
-  }
-  const lines = r.stdout.split('\n');
-  const subAuthority = lines
-    .filter((line) => line.startsWith('Authority='))
-    .map((line) => line.replace(/^Authority=/, '').trim());
-  const ok = subAuthority.some((a) => a.startsWith('Developer ID Application:'));
-  report(
-    `nested ${rel} is Developer ID signed`,
-    ok,
-    ok ? subAuthority[0] : subAuthority.join(' | ') || 'unsigned',
+for (const p of required) check(`required executable ${p}`, existsSync(join(candidate, p)));
+const expectedResult = run('plutil', [
+  '-convert',
+  'json',
+  '-o',
+  '-',
+  join(root, 'desktop/build/entitlements.mac.plist'),
+]);
+const expected = expectedResult.status === 0 ? JSON.parse(expectedResult.stdout) : null;
+check('audited entitlements are readable', !!expected);
+let outerTeam;
+const targets = [candidate, ...walk(candidate)];
+for (const target of targets) {
+  const name = relative(candidate, target) || 'Kingfisher.app';
+  const detail = run('codesign', ['-dvvv', target]);
+  const text = detail.stdout + detail.stderr;
+  const team = /^TeamIdentifier=(\w+)$/m.exec(text)?.[1];
+  if (target === candidate) outerTeam = team;
+  check(
+    `${name}: Developer ID, same team, secure timestamp`,
+    detail.status === 0 &&
+      /^Authority=Developer ID Application:/m.test(text) &&
+      !!team &&
+      team === outerTeam &&
+      /^Timestamp=.+/m.test(text),
   );
+  check(`${name}: valid signature`, run('codesign', ['--verify', '--strict', target]).status === 0);
+  // Hardened Runtime applies to executable code, not resource-only frameworks/dylibs.
+  if (target.endsWith('.app') || text.includes('executable'))
+    check(`${name}: Hardened Runtime`, /flags=.*\bruntime\b/.test(text));
+  const ent = run('codesign', ['-d', '--entitlements', '-', target]);
+  const raw = ent.stdout + ent.stderr;
+  if (raw.includes('<plist')) {
+    const actual = plist(raw);
+    check(
+      `${name}: no unaudited entitlements`,
+      !!actual &&
+        Object.entries(actual).every(([k, v]) => expected?.[k] === v) &&
+        !actual['com.apple.security.get-task-allow'],
+    );
+    if (target === candidate)
+      check(
+        'outer app matches audited entitlements',
+        !!actual &&
+          JSON.stringify(Object.entries(actual).sort()) ===
+            JSON.stringify(Object.entries(expected || {}).sort()),
+      );
+  } else if (target === candidate) check('outer app has audited entitlements', false);
 }
-
-/* 4. Entitlements blob matches the source of truth. The release
-      gate refuses a build whose entitlements diverged from the
-      audited list. */
-const expected = readFileSync(join(HERE, 'desktop', 'build', 'entitlements.mac.plist'), 'utf8');
-const display = runCodesign(['-d', '--entitlements', '-', candidate]);
-const entBlob = display.stdout.trim();
-const sourceBlob = expected.trim();
-const sameShape = entBlob.replace(/\s+/g, '').endsWith(
-  sourceBlob
-    .replace(/^[\s\S]*?<plist[\s\S]*?>/, '')
-    .replace(/<\/plist>\s*$/, '')
-    .replace(/\s+/g, ''),
+check(
+  'complete sealed bundle verifies',
+  run('codesign', ['--verify', '--deep', '--strict', candidate]).status === 0,
 );
-report(
-  'entitlements blob matches desktop/build/entitlements.mac.plist',
-  sameShape,
-  sameShape ? 'matches audited file' : 'diverges — review and update audit',
+console.log(
+  `Signature verification: ${failed ? 'FAILED' : 'PASS'} (${targets.length} code objects)`,
 );
-
-console.log('');
-if (failed) {
-  console.error('Signature verification: FAILED');
-  exit(1);
-}
-console.log('Signature verification: PASS');
-
-function runCodesign(args) {
-  return spawnSync('codesign', args, { encoding: 'utf8' });
-}
+process.exitCode = failed ? 1 : 0;

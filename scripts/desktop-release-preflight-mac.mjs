@@ -29,14 +29,23 @@
  *   node scripts/desktop-release-preflight-mac.mjs
  */
 
-import { execFileSync, spawnSync } from 'node:child_process';
-import { existsSync, readFileSync, statSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { existsSync, readFileSync } from 'node:fs';
 import { exit } from 'node:process';
 
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 const HERE = join(dirname(fileURLToPath(import.meta.url)), '..');
 let failed = false;
+function run(command, args) {
+  const result = spawnSync(command, args, { cwd: HERE, encoding: 'utf8' });
+  if (result.status !== 0) {
+    failed = true;
+    console.error(`Cannot run ${command}: ${result.error?.code ?? 'exit ' + result.status}`);
+    return '';
+  }
+  return result.stdout;
+}
 function check(label, ok, detail) {
   const mark = ok ? '✓' : '✗';
   console.log(`${mark} ${label}${detail ? `  — ${detail}` : ''}`);
@@ -68,7 +77,7 @@ const hasApiKey = Boolean(
   process.env.APPLE_API_KEY && process.env.APPLE_API_KEY_ID && process.env.APPLE_API_ISSUER,
 );
 const hasKeychainProfile = Boolean(process.env.APPLE_NOTARYTOOL_PROFILE);
-const hasNotaryCreds = hasApiKey || hasKeychainProfile;
+const hasNotaryCreds = (hasApiKey && existsSync(process.env.APPLE_API_KEY)) || hasKeychainProfile;
 check(
   'notarization credentials are present',
   hasNotaryCreds,
@@ -88,19 +97,19 @@ const head = run('git', ['rev-parse', 'HEAD']).trim();
 const originMaster = run('git', ['rev-parse', 'origin/master']).trim();
 check(
   'local master is in sync with origin/master',
-  head === originMaster,
+  Boolean(head && originMaster && head === originMaster),
   `local=${head.slice(0, 12)} origin=${originMaster.slice(0, 12)}`,
 );
 
 /* 4. Version coherence. */
-const rootPkg = JSON.parse(readFileSync(`${HERE}package.json`, 'utf8'));
-const desktopPkg = JSON.parse(readFileSync(`${HERE}desktop/package.json`, 'utf8'));
+const rootPkg = JSON.parse(readFileSync(join(HERE, 'package.json'), 'utf8'));
+const desktopPkg = JSON.parse(readFileSync(join(HERE, 'desktop/package.json'), 'utf8'));
 check(
   'root and desktop package.json agree on the version',
   rootPkg.version === desktopPkg.version,
   `root=${rootPkg.version} desktop=${desktopPkg.version}`,
 );
-const manifestPath = `${HERE}release-manifest.json`;
+const manifestPath = join(HERE, 'release-manifest.json');
 if (existsSync(manifestPath)) {
   const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
   const manifestVersion = manifest?.kingfisher?.version;
