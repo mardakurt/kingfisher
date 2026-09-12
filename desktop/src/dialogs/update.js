@@ -100,7 +100,7 @@
       case 'available':
         paint({
           headline: `Kingfisher ${latest || 'a new version'} is available`,
-          detail: `You're running ${current}. ${releaseNotesTeaser(verdict)}`,
+          detail: `You’re running ${current}. ${releaseNotesTeaser(verdict)}`,
           progress: null,
           footnote: 'Kingfisher will close and reopen automatically.',
           primary: { label: 'Install Update', enabled: true, action: 'install' },
@@ -314,7 +314,7 @@
     if (bytes > 0) {
       return `The macOS arm64 build is ${formatBytes(bytes)}.`;
     }
-    return 'A new macOS build is available.';
+    return 'The download starts when you choose Install Update.';
   }
 
   function formatBytes(n) {

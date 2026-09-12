@@ -290,12 +290,12 @@ export function sha256Of(bytes) {
 export function describeVerdict(verdict) {
   switch (verdict.status) {
     case STATUS.UP_TO_DATE:
-      return { headline: `You're up to date.`, detail: null };
+      return { headline: `You’re up to date.`, detail: null };
     case STATUS.NEWER_AVAILABLE: {
       const sizeMb = Math.round(verdict.download.bytes / (1024 * 1024));
       return {
         headline: `Kingfisher ${verdict.latestVersion} is available.`,
-        detail: `You're running ${verdict.currentVersion}. The macOS ${verdict.download.arch} build is ${sizeMb} MB.`,
+        detail: `You’re running ${verdict.currentVersion}. The macOS ${verdict.download.arch} build is ${sizeMb} MB.`,
       };
     }
     case STATUS.UNABLE:
