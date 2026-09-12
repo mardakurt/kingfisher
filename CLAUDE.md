@@ -25,6 +25,23 @@ report as a current doc without checking that file.
   green suites that had never been run, or capabilities that were never
   exercised. Re-run the gates yourself.
 
+## Launch the bundle before believing anything about it
+
+Two handovers said the packaged application "opens correctly from Finder"
+while it exited on launch with "This build is incomplete". A claim about
+`Kingfisher.app` is worth nothing until you have run
+`npm run desktop:smoke -- --packaged` (or `npm run desktop:certify`) against
+the bundle in question and read the result. If a harness reports a timeout,
+read `<profile>/logs/kingfisher.log` — the launcher in
+`scripts/desktop-lib/launch.mjs` prints it for you — before writing "harness
+limitation". A `verify-dmg` that passes is not a bundle that launches.
+
+The public DMG has one name and it is in `src/release/macos-download.json`.
+Do not write a filename, a hash or a trust claim anywhere else without
+changing that file first; `npm run docs:check` will refuse the drift. Do not
+bump the marketing version to freshen a download; publish a preview build
+(`docs/deployment.md`).
+
 ## Continue the phase; do not start a new one
 
 If a phase is unfinished, finish _that_ phase. Do not renumber it, do not

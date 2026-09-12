@@ -11,6 +11,62 @@ release; nothing here has shipped yet. The notes below describe what
 the next release will contain if it is cut from the current
 development branch.
 
+### Desktop reliability
+
+- The packaged macOS application contains the application again. Every
+  build from the polished-DMG work onward had been a shell with no web
+  server and no companion inside it: it launched, showed "This build is
+  incomplete" and exited. The bundle contents are now pinned by test,
+  the DMG verifier refuses a bundle that cannot launch, and the whole
+  packaged gate (`npm run desktop:certify`) runs against the real
+  `Kingfisher.app`.
+- _Kingfisher → Check for Updates…_ works. The dialog's buttons reached
+  nothing in the main process, and the update engine underneath was
+  never loaded; both are fixed, a failed check says one sentence a
+  person can act on, and a preview build says which build it is and
+  opens the download page instead of asking a feed it cannot use.
+- The board can be played while an engine is analysing. The engine
+  arrow's hover layer had been swallowing every click and drag on the
+  board since the arrow tooltip was added.
+- An engine's `bestmove` is checked against the position it was asked
+  about; an illegal answer is dropped rather than drawn.
+- The companion no longer exits on a malformed pairing token — one
+  loopback request with a non-ASCII token of the right length used to
+  take every engine and open database down with it — and it stops
+  reading a request body at its limit instead of after it.
+- Double-clicking a `.pgn` offers Kingfisher again; the file
+  association had been lost with the bundle contents.
+- The bundled three-piece Syzygy tables are real tables again, verified
+  against the publisher's digests; four had been replaced by stubs.
+
+### Distribution
+
+- Every packaged build carries a build number, its commit and its
+  channel (`stable`, `preview`, `dev`) in the bundle and in
+  _Settings → Diagnostics_, so a report about "1.0.0" can be matched to
+  the bytes the person has.
+- The macOS download offered on the landing page is described by one
+  file, `src/release/macos-download.json`; the landing, the install
+  guide and the checks all read it. `npm run desktop:public:verify --
+--full` downloads the public DMG and verifies every byte, its
+  signature and its notarisation state against that description.
+- A **preview channel**: the current source, published as a GitHub
+  pre-release under its own tag with a filename that carries the build
+  number, so the landing always offers the current build without a
+  version bump and without replacing any published bytes. The stable
+  updater cannot see previews.
+
+### Documentation corrections
+
+- The profile directory is `~/Library/Application Support/kingfisher-desktop/`,
+  not `…/Kingfisher/`; the landing, the install guide and the
+  maintainer docs said the latter.
+- The security policy and the public-claims register no longer describe
+  a signed, notarised 1.1.0 as if it existed; the trusted release is a
+  runbook, and every current document says which build is public.
+- Every Markdown file in the repository is now classified in
+  `docs/README.md` as current, operations, records or historical.
+
 ### Engine best-move arrows and a cleaner FEN line (Phase 42)
 
 - The board now draws the engine's recommended move as a clear,

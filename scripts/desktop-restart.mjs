@@ -37,7 +37,9 @@
  */
 
 import { _electron as electron } from 'playwright-core';
-import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
+
+import * as shared from './desktop-lib/launch.mjs';
+import { existsSync, mkdtempSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { argv, exit } from 'node:process';
@@ -54,28 +56,11 @@ const check = (name, ok, detail = '') => {
 };
 
 function shellBinary() {
-  const marker = path.join(ROOT, 'desktop', 'node_modules', 'electron', 'path.txt');
-  if (!existsSync(marker)) {
-    console.error('The desktop shell is not installed. Run npm run desktop:install.');
-    exit(1);
-  }
-  return path.join(
-    ROOT,
-    'desktop',
-    'node_modules',
-    'electron',
-    'dist',
-    readFileSync(marker, 'utf8').trim(),
-  );
+  return shared.shellBinary();
 }
 
 function packagedBinary() {
-  const out = process.env.KINGFISHER_DESKTOP_OUT ?? path.join(ROOT, 'desktop', 'dist');
-  for (const directory of ['mac-arm64', 'mac', 'mac-x64', 'mac-universal']) {
-    const app = path.join(out, directory, 'Kingfisher.app');
-    if (existsSync(app)) return path.join(app, 'Contents', 'MacOS', 'Kingfisher');
-  }
-  return path.join(out, 'mac-arm64', 'Kingfisher.app', 'Contents', 'MacOS', 'Kingfisher');
+  return shared.packagedBinary();
 }
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));

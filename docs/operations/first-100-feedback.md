@@ -19,6 +19,17 @@ The first 100 users do not need an account to read the issue
 trackers, but they DO need a GitHub account to file a report.
 The in-product help card states this honestly.
 
+**The direct sink is not configured in production.** The application
+also has a _Send feedback_ form that posts to `/api/feedback`; that
+route files a GitHub issue only when the deployment holds
+`KINGFISHER_FEEDBACK_REPOSITORY` and `KINGFISHER_FEEDBACK_TOKEN`.
+Neither is set on the Studio deployment today — a probe of the
+production route on 2026-09-12 answered `503 unconfigured` — so the
+form tells the user so and offers **Copy feedback** and **Open GitHub
+feedback** instead. No document may say feedback reaches the
+maintainer on its own until those two variables are set and the
+probe answers `2xx`.
+
 ## Triage
 
 The maintainer is the only person triaging. The flow is:

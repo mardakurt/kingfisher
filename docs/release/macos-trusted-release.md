@@ -1,5 +1,12 @@
 # macOS trusted release process
 
+> **Status: a runbook for a release that has not happened.** No
+> `Developer ID Application` certificate is installed, so no build
+> described here exists. The download the public has today is the
+> preview named by `src/release/macos-download.json`, published by
+> `npm run release:mac:preview` (see `docs/deployment.md`). Nothing on
+> this page describes that download.
+
 This document is the **maintainer's day-of-release runbook**.
 It is also the place to look when a release candidate goes
 red on a gate and you need to know which step is the
@@ -54,16 +61,23 @@ worth notarizing.
 ## Build the desktop bundle
 
 ```bash
-npm run desktop:dist
+git status --porcelain                              # must print nothing: a stable build refuses a dirty tree
+KINGFISHER_DESKTOP_CHANNEL=stable npm run desktop:dist
 ```
 
-This produces, in `desktop/dist/`:
+This produces, in `desktop/dist/` (or `KINGFISHER_DESKTOP_OUT`):
 
 - `Kingfisher-<version>-arm64.dmg` — the first-install
   artifact
-- `Kingfisher-<version>-arm64-mac.zip` — the auto-update
+- `Kingfisher-<version>-arm64.zip` — the auto-update
   payload
-- `latest-mac.yml` — electron-builder's update feed
+- `latest-mac.yml` — electron-builder's update feed, which
+  must be uploaded to the release for _Check for Updates…_ in
+  installed builds to find it
+
+The bundle records its build number, commit and `stable`
+channel; `node desktop/scripts/verify-dmg.mjs <dmg> --version
+<version> --commit $(git rev-parse HEAD)` checks them.
 
 When `CSC_LINK` and `CSC_KEY_PASSWORD` are set, the produced
 `.app` and `.zip` are signed with the Developer ID Application
@@ -118,7 +132,7 @@ running the local staging harness.
 # In one terminal: the staging feed, served from a directory
 # holding the candidate ZIP + latest-mac.yml.
 mkdir -p desktop/dist/staging
-cp desktop/dist/Kingfisher-1.1.0-arm64-mac.zip desktop/dist/staging/
+cp desktop/dist/Kingfisher-1.1.0-arm64.zip desktop/dist/staging/
 # Generate a matching latest-mac.yml here (the e2e script
 # does this automatically when run).
 
@@ -172,16 +186,28 @@ to the new tag.
 
 ## After publication
 
-1. **Confirm the auto-update from a controlled old build.**
-   A `1.0.0` packaged app pointed at the new `1.1.0` feed
-   should detect the new release, offer **Install Update**,
-   and relaunch into `1.1.0` on its own.
+1. **Confirm the auto-update from a controlled old build — and
+   know which old builds cannot.** A previous _stable_ build,
+   signed with the same Developer ID identity and pointed at
+   the new feed, should detect the release, offer **Install
+   Update**, and relaunch into the new version on its own.
+   Two builds that exist today cannot take that path, and the
+   release notes must say so:
 
-   ```bash
-   open -a /Applications/Kingfisher.app
-   ```
+   - the public **1.0.0** (commit `509eb94`) predates the
+     updater entirely — it has no _Check for Updates…_ that
+     reaches a feed;
+   - every **preview** is signed with an `Apple Development`
+     identity, and macOS's update engine refuses an update
+     whose signature does not match the running application.
+     A preview also never consults the feed by design.
 
-   (with a 1.0.0 build installed; the upgrade runs in place.)
+   Both replace themselves the same way: download the DMG,
+   drag it over the old application. Their work lives in
+   `~/Library/Application Support/kingfisher-desktop/` and
+   survives the replacement (`npm run desktop:upgrade`
+   checks that a previous build's profile is read by this
+   one).
 
 2. **Confirm a fresh quarantined launch.** Download the
    notarized DMG from the GitHub release. Mount it. Drag the
@@ -189,15 +215,24 @@ to the new tag.
    should succeed without a right-click → Open workaround
    and without an "unidentified developer" warning.
 
-3. **Update the public claim.**
+3. **Point the landing at it, and update the public claim.**
 
-   The public security claim on the landing page can now
+   Write `src/release/macos-download.json` for the stable
+   build — `channel: stable`, the real SHA-256 and byte count,
+   `signature.identity: "Developer ID Application"`,
+   `notarized: true` — run `npm run docs:check`, update
+   `docs/release/install-macos.md`, commit and push. The
+   landing deploys from master; then
+   `npm run desktop:public:verify -- --landing --full`
+   downloads the public bytes and confirms the stapled ticket.
+
+   The public security claim on the landing page can then
    read:
 
    > Developer ID signed and notarized by Apple.
 
    Not "Apple approved" or "Apple certified." The distinction
-   is in `docs/legal/public-claims.md` and `SECURITY.md`.
+   is in `docs/product/public-claims.md` and `SECURITY.md`.
 
 ## Recovering from a red gate
 

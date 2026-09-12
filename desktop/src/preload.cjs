@@ -98,6 +98,8 @@ contextBridge.exposeInMainWorld('kingfisher', {
 
   recentDocuments: () => ipcRenderer.invoke('kingfisher:recent'),
   diagnostics: () => ipcRenderer.invoke('kingfisher:diagnostics'),
+  /** Start the companion again after it has died; a running one is left alone. */
+  restartCompanion: () => ipcRenderer.invoke('kingfisher:companion-restart'),
   openLogs: () => ipcRenderer.invoke('kingfisher:open-logs'),
 
   /**

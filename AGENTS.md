@@ -297,12 +297,17 @@ All of them, before claiming a release gate is green.
 And on macOS, where the shell is the product rather than a build target:
 
 ```bash
-npm run desktop:smoke               # the shell, from the checkout
-npm run desktop:smoke -- --packaged # a built Kingfisher.app
+npm run desktop:certify             # every packaged gate below, against one Kingfisher.app
+npm run desktop:smoke -- --packaged # a built Kingfisher.app: launch, bridge, companion, PGN, tablebase, quit
 npm run desktop:chrome -- --packaged # the window buttons, against every layout
 npm run desktop:engines -- --packaged # every managed engine, installed and searched in the bundle
 npm run desktop:suspend -- --packaged # stop every process for 20 s and resume, as a sleep does
 npm run desktop:restart -- --packaged # quit and reopen, and check the work is still there
+npm run desktop:walk -- --packaged --seed=46 --actions=1000   # a seeded hostile user, with invariants
+npm run desktop:walk -- --packaged --seed=7 --actions=300 --faults # the same, killing engines and the companion
+npm run desktop:soak                # thirty minutes of the walk, sampling memory and processes
+node desktop/scripts/verify-dmg.mjs <dmg>            # the disk image: launchable, identified, signed
+npm run desktop:public:verify -- --landing --full    # the DMG the public downloads, byte for byte
 KINGFISHER_DESKTOP_PREV=<older out> npm run desktop:upgrade # a previous release's data, read by this one
 ```
 
@@ -330,9 +335,11 @@ the code are treated as defects here, not as untidiness.
 
 ## Packaged acceptance added in Phase 22
 
-Use `KINGFISHER_ACCEPTANCE_BINARY=/absolute/path/to/Kingfisher.app/Contents/MacOS/Kingfisher npm run desktop:soak`
-for the actual packaged navigation soak. `KINGFISHER_SOAK_CYCLES=50` and
-`KINGFISHER_SOAK_CHAIN_PASSES=12` select the long run. The synthetic cache
+Use `KINGFISHER_ACCEPTANCE_BINARY=/absolute/path/to/Kingfisher.app/Contents/MacOS/Kingfisher npm run desktop:soak:leaks`
+for the packaged resource-leak soak (workers, channels, observers counted
+across navigation cycles). `KINGFISHER_SOAK_CYCLES=50` and
+`KINGFISHER_SOAK_CHAIN_PASSES=12` select the long run. The wall-clock soak
+with memory and process sampling is `npm run desktop:soak`. The synthetic cache
 injection case is explicitly browser-only; do not expose its development hook
 in production just to make a test pass.
 
@@ -394,44 +401,93 @@ A public surface change is a deliberate change. Update
 page, the matching `public-claims.md` row, and run
 `npm run docs:check` before considering the change done.
 
-## Phase 35 — the desktop update service
+## The desktop update service
 
-The macOS application menu's _Kingfisher → Check for Updates…_
-item is the primary entry point for the desktop update flow.
-There is exactly one update service for the whole application:
+_Kingfisher → Check for Updates…_ is the only entry point and the user's
+click is the only network event: no poller, no background check, no
+telemetry. One service, in the main process:
 
-- The Electron main process owns the network and the filesystem.
-  The renderer never sees `fetch` and never sees `fs`. The
-  preload exposes a four-method bridge:
-  `showUpdateDialog`, `updateStatus`, `subscribeUpdates`, and the
-  callback for the dialog action (`check`, `download`, `cancel`,
-  `open`, `close`, `release`).
-- The macOS application menu, the _File_ menu, the
-  _Settings → Application_ panel and the _Check for Updates…_
-  command in the command palette all reach the same
-  `DesktopUpdateService` instance. The menu tests in
-  `desktop/src/menu.test.mjs` pin this; removing
-  _Check for Updates…_ from the application menu fails the gate.
-- The check is **manual** — one HTTPS request on click, no
-  background poller, no telemetry. The brief calls this
-  "the user's click is the only network event" and the
-  implementation is the same rule.
-- The release source is the GitHub release manifest at
-  `…/releases/latest/download/kingfisher-release-manifest.json`.
-  The manifest is the only thing the service trusts; the
-  release page is for the _View Release Notes_ button.
-  The full schema is in
-  [`docs/release/release-manifest.md`](docs/release/release-manifest.md).
-- The DMG is downloaded into
-  `~/Library/Caches/Kingfisher/updates/` and verified against
-  its SHA-256 **before** the dialog offers _Open Installer_. A
-  failed verification unlinks the partial file and reports
-  _The downloaded update could not be verified._
-- The DMG that lands on the user is never the only copy of
-  the user's work. Studies, repertoire, training, preferences
-  and reference state live in
-  `~/Library/Application Support/kingfisher-desktop/`, which the
-  updater never touches.
+- The renderer never sees `fetch` or `fs`. The preload exposes
+  `showUpdateDialog`, `updateStatus`, `subscribeUpdates` and the
+  save-barrier request; the dialog's own preload speaks three IPC
+  channels that `desktop/src/update-window.mjs` answers and
+  `update-window.test.mjs` cross-checks against the preload. For ten
+  phases nothing answered them and the dialog was inert.
+- The engine is `electron-updater`, loaded from the **default export**
+  of a CommonJS package whose `autoUpdater` is a getter
+  (`electron-updater-import.test.mjs`); `autoDownload`,
+  `autoInstallOnAppQuit`, `allowPrerelease` and `allowDowngrade` are all
+  false. The feed is the GitHub provider baked into `app-update.yml` by
+  the `publish:` block in `desktop/electron-builder.yml`; `build.mjs`
+  passes `--publish never` so nothing is uploaded at build time.
+- **Channels.** A `stable` build asks the feed once and is offered only
+  a strictly newer release that has `latest-mac.yml` attached. A
+  `preview` build asks nothing: it answers with its build number and a
+  button to the download page, because previews are replaced by
+  downloading the next one and the feed cannot see pre-releases anyway.
+  `configureChannel` in `update-service.mjs`, from the build identity.
+- Install runs download → SHA-512 → save barrier → macOS's own update
+  engine, which refuses an update whose signature does not match the
+  running application. A failed save barrier aborts the install and
+  says so; the verified archive stays cached under
+  `~/Library/Caches/Kingfisher/updater/` for a retry.
+- The user's work lives in
+  `~/Library/Application Support/kingfisher-desktop/` — the package
+  name, not the product name — and the updater never touches it.
+
+## Build identity, channels, and the public DMG
+
+Every packaged Kingfisher records what it is: marketing version, build
+number (`git rev-list --count HEAD`), commit, dirty flag and channel, in
+`CFBundleVersion` and the packaged `package.json`
+(`desktop/src/build-identity.mjs`); _Settings → Diagnostics_ reports
+them. `KINGFISHER_DESKTOP_CHANNEL` is `dev` (default), `preview` or
+`stable`; a publishable channel refuses a dirty tree.
+
+- **The marketing version is 1.0.0 until a real release earns a bump.**
+  Never create a version to freshen a filename.
+- **`src/release/macos-download.json` is the only file that names the
+  public DMG.** The landing, the install guide, `docs:check` and
+  `desktop:public:verify` read it. A preview is published by
+  `npm run release:mac:preview` as a GitHub pre-release under its own
+  `macos-preview-<build>` tag with a filename that carries the build
+  number; a tag that exists is an error, never an overwrite, and
+  `/releases/latest` is never touched. The full procedure is in
+  `docs/deployment.md`.
+- **Never replace the bytes of a published asset.** Same version, same
+  filename, different bytes is a lie to everyone holding the old hash.
+- **Verify the bytes the public gets, not the bytes on disk.**
+  `npm run desktop:public:verify -- --full` downloads the descriptor's
+  DMG from GitHub, hashes it, mounts it, and runs the DMG verifier with
+  the descriptor's version, build and commit as expectations.
+
+## The packaged application is what is certified
+
+`desktop/electron-builder.yml` stages the web server, the companion, the
+engine catalogue and the tablebase helper under `Resources/kingfisher/`
+through `extraResources`. A Phase 35 rewrite dropped that block and every
+packaged build for ten phases launched, logged "This build is
+incomplete" and exited before a window; the harness reported a Playwright
+timeout and two handovers called the packaged application healthy.
+`desktop/src/builder-config.test.mjs` pins the block, `verify-dmg.mjs`
+refuses a bundle without a server in it, and
+`scripts/desktop-lib/launch.mjs` — the one launcher every desktop harness
+uses — puts the shell's own log in the error when the process exits
+before its window.
+
+`npm run desktop:certify` runs every packaged gate against one
+`Kingfisher.app`: smoke, window chrome, restart, the engine fleet,
+suspend, two seeded walks (one with faults), the DMG verifier, the
+zero-skip scan and the unit suite. `npm run desktop:walk -- --packaged
+--seed=N --actions=N` is the seeded hostile user with invariants;
+`npm run desktop:soak` is the same for thirty minutes with memory and
+process sampling (`--duration=2h`, `--duration=8h` for longer). A
+finding prints its seed; the same command reproduces it.
+
+**Zero skipped tests.** `npm run test:no-skips` scans for skip
+constructs and `npm test` reports `0 skipped`; a capability the
+environment lacks is asserted as a deterministic fallback, never
+skipped.
 
 ## Phase 35 — the polished DMG
 

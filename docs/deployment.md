@@ -4,15 +4,15 @@ Where each surface is hosted, and how to publish a new release.
 
 ## The public surfaces
 
-| Surface                  | Where                                                                                     |
-| ------------------------ | ----------------------------------------------------------------------------------------- |
-| Landing page             | <https://kingfisher-chess.vercel.app/>                                                    |
-| Studio (the application) | <https://kingfisher-roan.vercel.app/>                                                     |
-| Public docs              | the same landing host, at `/install`, `/privacy`, `/security`, `/data-licences`, `/terms` |
-| Optional reference data  | the `kingfisher-data` Pages site, at `/reference-{pack}-{version}/`                       |
-| macOS preview build      | a `Kingfisher-*.dmg` attached to a GitHub Release on this repository                      |
-| Web app (fallback)       | <https://kingfisher-chess.vercel.app/>                                                    |
-| Source / issues          | <https://github.com/mardakurt/kingfisher>                                                 |
+| Surface                  | Where                                                                                                              |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| Landing page             | <https://kingfisher-chess.vercel.app/>                                                                             |
+| Studio (the application) | <https://kingfisher-roan.vercel.app/>                                                                              |
+| Public docs              | the same landing host, at `/install`, `/privacy`, `/security`, `/data-licences`, `/terms`                          |
+| Optional reference data  | the `kingfisher-data` Pages site, at `/reference-{pack}-{version}/`                                                |
+| macOS preview build      | the DMG named by `src/release/macos-download.json`, a GitHub pre-release under its own `macos-preview-<build>` tag |
+| Web app (fallback)       | <https://kingfisher-chess.vercel.app/>                                                                             |
+| Source / issues          | <https://github.com/mardakurt/kingfisher>                                                                          |
 
 The legacy `mardakurt.github.io/kingfisher-data/` origin still
 serves a small redirect-only backup of the marketing page (see
@@ -22,29 +22,71 @@ canonical surface. The canonical landing identity is the Vercel
 host above; `src/release/public-urls.ts` is the single source of
 truth.
 
-## How a release happens
+## The macOS preview channel
 
-1. Update `package.json` (and `desktop/package.json`) to the new
-   version. The two must match.
-2. Run `npm run release:verify`. The default gate is
-   typecheck, lint, unit/integration tests, production build, and
-   `git diff --check`. It exits non-zero on a red check.
-3. Run `npm run release:manifest` to produce
-   `release-manifest.json` with the version, commit, build
-   timestamp, and the SHA-256 of every desktop artefact.
-4. Build the macOS DMG: `npm run desktop:pack` (or
-   `npm run desktop:dist` for the signed/notarised variant when
-   the Developer ID Application certificate is available).
-5. Tag the release commit: `git tag -a v<version> -m "Kingfisher <version>"`,
+The landing page must always offer the **current** desktop build, and a
+stable release needs a `Developer ID Application` certificate the project
+does not yet have. The preview channel is what sits between those two facts.
+
+A preview keeps the marketing version (`1.0.0`) and carries a **build
+number** (`git rev-list --count HEAD`), so two previews never share a
+filename and no existing asset's bytes are ever replaced:
+
+```bash
+# 1. a clean tree at the commit to ship, already pushed to origin/master
+git status --porcelain            # must print nothing
+git push origin master
+
+# 2. build on the preview channel (refuses a dirty tree)
+KINGFISHER_DESKTOP_CHANNEL=preview npm run desktop:dist
+
+# 3. certify the packaged application, then publish
+npm run desktop:certify
+npm run release:mac:preview       # pre-release macos-preview-<build>, DMG + SHA256SUMS + descriptor;
+                                  # re-downloads the asset and verifies it; writes src/release/macos-download.json
+
+# 4. commit the descriptor with the docs that name the build, push, and verify the deployed site
+npm run docs:check
+git commit -am "release: macOS preview build <build>"
+git push origin master            # the landing deploys from master
+npm run desktop:public:verify -- --landing --full
+```
+
+The pre-release is invisible to `/releases/latest` and to the stable
+updater feed (`allowPrerelease: false`), so the stable channel is never
+displaced. A preview build's own _Check for Updates…_ names its build number
+and opens the download page rather than asking a feed. Nothing about a
+preview is "1.0.1": a version bump is earned by a real release.
+
+## How a stable release happens
+
+A stable release is a signed, notarised build; without the certificate it
+cannot be made, and nothing below should be run to imitate one.
+
+1. Update `package.json` and `desktop/package.json` to the new version. The
+   two must match.
+2. Run `npm run release:verify` (typecheck, lint, tests, build,
+   `git diff --check`) and `npm run desktop:certify`.
+3. Follow [`release/macos-trusted-release.md`](release/macos-trusted-release.md):
+   `desktop:release:preflight:mac`, a `stable`-channel build
+   (`KINGFISHER_DESKTOP_CHANNEL=stable npm run desktop:dist`), signing,
+   notarisation, stapling, `desktop:trust:verify`.
+4. Tag the release commit: `git tag -a v<version> -m "Kingfisher <version>"`,
    then `git push --tags`.
-6. Publish the GitHub Release:
-   `gh release create v<version> --prerelease --title "Kingfisher <version>" --notes-file docs/release/<version>.md`
-   and upload the DMG + `release-manifest.json` + checksums.
-7. For each reference pack that has changed, push the new
-   versioned directory to `mardakurt/kingfisher-data`, update the
-   `packRelease()` call in `src/reference/catalog.ts`, and add a
-   row to the catalogue's `approximateBytes` if it has changed
-   materially.
+5. Publish the GitHub Release **as a release, not a pre-release** — the
+   updater feed and `/releases/latest` both depend on that — with the DMG,
+   the update ZIP, `latest-mac.yml`, `SHA256SUMS.txt` and
+   `release-manifest.json` (`npm run release:manifest`). The stable updater
+   in every installed build reads `latest-mac.yml` from the latest release;
+   a release without it makes _Check for Updates…_ report that the release
+   carries no feed.
+6. Write `src/release/macos-download.json` for the stable build
+   (`channel: stable`, `notarized: true`), run `npm run docs:check`, commit,
+   push, and verify with `npm run desktop:public:verify -- --landing --full`.
+7. For each reference pack that has changed, push the new versioned
+   directory to `mardakurt/kingfisher-data`, update the `packRelease()` call
+   in `src/reference/catalog.ts`, and add a row to the catalogue's
+   `approximateBytes` if it has changed materially.
 
 ## Hosting the web app on Vercel
 

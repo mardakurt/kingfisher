@@ -10,6 +10,7 @@ import {
   resolveStartupBounds,
   recordBounds,
   WINDOW_BOUNDS_FILE,
+  attachBoundsPersistence,
 } from './window-bounds.mjs';
 
 let tmp;
@@ -181,5 +182,83 @@ describe('recordBounds', () => {
 
   it('refuses null', () => {
     expect(recordBounds(filePath, null)).toBe(false);
+  });
+});
+
+describe('attachBoundsPersistence', () => {
+  function fakeWindow(bounds) {
+    const listeners = new Map();
+    return {
+      destroyed: false,
+      bounds,
+      on(event, fn) {
+        listeners.set(event, fn);
+      },
+      fire(event) {
+        listeners.get(event)?.();
+      },
+      isDestroyed() {
+        return this.destroyed;
+      },
+      getBounds() {
+        if (this.destroyed) throw new TypeError('Object has been destroyed');
+        return this.bounds;
+      },
+    };
+  }
+
+  it('saves the frame after the debounce, once, for a burst of events', () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'kf-bounds-'));
+    const file = path.join(dir, WINDOW_BOUNDS_FILE);
+    const timers = [];
+    const win = fakeWindow({ x: 10, y: 20, width: 1200, height: 800 });
+    attachBoundsPersistence(win, {
+      file,
+      setTimeoutImpl: (fn) => (timers.push(fn), timers.length),
+      clearTimeoutImpl: (id) => {
+        timers[id - 1] = null;
+      },
+    });
+    win.fire('resize');
+    win.fire('move');
+    win.fire('resize');
+    expect(timers.filter(Boolean)).toHaveLength(1);
+    timers.filter(Boolean)[0]();
+    expect(JSON.parse(readFileSync(file, 'utf8'))).toMatchObject({ width: 1200, height: 800 });
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('does not throw when the window is destroyed before the timer fires', () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'kf-bounds-'));
+    const file = path.join(dir, WINDOW_BOUNDS_FILE);
+    const timers = [];
+    const win = fakeWindow({ x: 0, y: 0, width: 1000, height: 700 });
+    attachBoundsPersistence(win, {
+      file,
+      setTimeoutImpl: (fn) => (timers.push(fn), timers.length),
+      clearTimeoutImpl: () => {},
+    });
+    win.fire('resize');
+    win.destroyed = true;
+    expect(() => timers[0]()).not.toThrow();
+    expect(existsSync(file)).toBe(false);
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('flushes the last frame on close, before the window is gone', () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'kf-bounds-'));
+    const file = path.join(dir, WINDOW_BOUNDS_FILE);
+    const cleared = [];
+    const win = fakeWindow({ x: 5, y: 6, width: 1111, height: 777 });
+    attachBoundsPersistence(win, {
+      file,
+      setTimeoutImpl: () => 42,
+      clearTimeoutImpl: (id) => cleared.push(id),
+    });
+    win.fire('move');
+    win.fire('close');
+    expect(cleared).toEqual([42]);
+    expect(JSON.parse(readFileSync(file, 'utf8'))).toMatchObject({ x: 5, y: 6, width: 1111 });
+    rmSync(dir, { recursive: true, force: true });
   });
 });

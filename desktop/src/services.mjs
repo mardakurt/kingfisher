@@ -105,6 +105,7 @@ export function waitForHttp(url, { timeoutMs = READY_TIMEOUT_MS, intervalMs = 12
 export class Service {
   #child = null;
   #exited = null;
+  #gone = false;
   #log = [];
 
   constructor({ name, entry, args = [], env = {}, healthUrl, cwd, forkImpl = fork }) {
@@ -122,7 +123,14 @@ export class Service {
   }
 
   get running() {
-    return Boolean(this.#child) && this.#child.exitCode === null && !this.#child.killed;
+    /*
+      `exitCode` is null for a child that died of a *signal* — Node reports
+      that in `signalCode` instead — so a companion killed from outside
+      (a crash, `kill -9`, the operating system under memory pressure) read
+      as running for ever, and Diagnostics said so. The exit event is the
+      truth, whichever way the child went.
+    */
+    return Boolean(this.#child) && !this.#gone && !this.#child.killed;
   }
 
   /** The last lines the service wrote. Bounded; diagnostics, never a protocol. */
@@ -148,11 +156,16 @@ export class Service {
       env: { ...this.env, ELECTRON_RUN_AS_NODE: '1' },
     });
     this.#child = child;
+    this.#gone = false;
     child.stdout?.on('data', (chunk) => this.#record(chunk));
     child.stderr?.on('data', (chunk) => this.#record(chunk));
 
     this.#exited = new Promise((resolve) => {
-      child.once('exit', (code, signal) => resolve({ code, signal }));
+      child.once('exit', (code, signal) => {
+        this.#gone = true;
+        this.#record(`[exited: ${code ?? signal}]`);
+        resolve({ code, signal });
+      });
     });
 
     const died = this.#exited.then(({ code, signal }) => {
@@ -186,7 +199,7 @@ export class Service {
    */
   async stop({ graceMs = GRACE_MS } = {}) {
     const child = this.#child;
-    if (!child || child.exitCode !== null) return { stopped: true, escalated: false };
+    if (!child || this.#gone) return { stopped: true, escalated: false };
     const exited = this.#exited ?? Promise.resolve({ code: null, signal: null });
 
     child.kill('SIGTERM');

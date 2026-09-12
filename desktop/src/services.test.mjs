@@ -133,6 +133,29 @@ describe('a desktop service', () => {
     expect(service.log.join(' ')).toContain('could not open the collection');
   });
 
+  it('knows a child killed by a signal from outside is gone', async () => {
+    // A companion that crashes, or is `kill -9`ed, exits with a signal and no
+    // exit code. `running` read `exitCode === null` as alive, so Diagnostics
+    // reported a dead companion as running. Found by the fault-injecting walk.
+    const port = await freePort();
+    const service = new Service({
+      name: 'test server',
+      entry: script('good.mjs', WELL_BEHAVED),
+      healthUrl: `http://127.0.0.1:${port}/health`,
+      env: { PORT: String(port) },
+    });
+    await service.start();
+    expect(service.running).toBe(true);
+    process.kill(service.pid, 'SIGKILL');
+    const deadline = Date.now() + 5_000;
+    while (alive(service.pid) && Date.now() < deadline) await new Promise((r) => setTimeout(r, 25));
+    await new Promise((r) => setTimeout(r, 100));
+    expect(service.running).toBe(false);
+    expect(service.log.at(-1)).toMatch(/exited: SIGKILL/);
+    // And stopping it afterwards is a no-op, not a second kill.
+    expect(await service.stop()).toEqual({ stopped: true, escalated: false });
+  });
+
   it('stopping something already stopped is not an error', async () => {
     const port = await freePort();
     const service = new Service({

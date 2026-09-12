@@ -2158,7 +2158,83 @@ function CopyReport() {
         what to attach to it. Neither contains games, studies, notes, tokens or keys.
       </p>
       <ShellLog />
+      <CompanionRecovery />
     </DiagnosticGroup>
+  );
+}
+
+/**
+ * Bring the companion back without reopening Kingfisher.
+ *
+ * Desktop only, and only when the shell says its companion is not running.
+ * A companion can die from outside — a crash, memory pressure, Activity
+ * Monitor — and until Phase 46 the only way back was to quit and reopen.
+ * The shell restarts it on the same port with the same token, so the pairing
+ * this renderer holds keeps working; the companion queries refetch once it
+ * answers. A running companion is never restarted from here.
+ */
+function CompanionRecovery() {
+  const bridge = desktop();
+  const queryClient = useQueryClient();
+  const notify = useUi((state) => state.notify);
+  const [shellSaysRunning, setShellSaysRunning] = useState<boolean | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!bridge) return undefined;
+    let live = true;
+    const ask = () => {
+      void bridge
+        .diagnostics()
+        .then((shell) => {
+          if (live) setShellSaysRunning(shell.companion.running);
+        })
+        .catch(() => {});
+    };
+    ask();
+    const timer = setInterval(ask, 5_000);
+    return () => {
+      live = false;
+      clearInterval(timer);
+    };
+  }, [bridge]);
+
+  if (!bridge?.restartCompanion || shellSaysRunning !== false) return null;
+
+  return (
+    <div className="border-t border-line-subtle pt-2">
+      <div className="flex flex-wrap items-center gap-2 py-1">
+        <Button
+          size="sm"
+          variant="accent"
+          disabled={busy}
+          onClick={() => {
+            setBusy(true);
+            void bridge.restartCompanion!()
+              .then((result) => {
+                setShellSaysRunning(result.running);
+                if (result.running) {
+                  notify({ tone: 'success', message: 'The companion is running again.' });
+                  void queryClient.invalidateQueries({ queryKey: ['companion'] });
+                } else {
+                  notify({
+                    tone: 'error',
+                    message: 'The companion could not be restarted.',
+                    ...(result.error ? { detail: result.error } : {}),
+                  });
+                }
+              })
+              .finally(() => setBusy(false));
+          }}
+        >
+          {busy ? 'Restarting…' : 'Restart companion'}
+        </Button>
+        <span className="text-[10px] text-tertiary">
+          The companion process is not running. Native engines and local databases are unavailable
+          until it is.
+        </span>
+      </div>
+    </div>
   );
 }
 

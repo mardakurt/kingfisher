@@ -106,7 +106,11 @@ normalisation is allowed; chess move reconstruction is not.
   window 1 — same thresholds as v1
 - **Counts (Phase 35 actual build):**
   - input games: 223,248
-  - accepted games: 11,280
+  - accepted games: 11,280 by the build log; the published
+    manifest's `counts.games` is **11,277**, and that is the number
+    the application shows. The three-game difference between the
+    filter's acceptance count and the packed count has not been
+    traced; treat the manifest as authoritative.
   - rejected games: 211,968 (178,350 below min rating; 12,416 bad
     result; 8,440 missing rating; 4,797 online event; 4,559 too
     short; 2,438 non-standard variant; 950 above max rating; 14

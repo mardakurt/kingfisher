@@ -29,7 +29,11 @@ import { fileURLToPath } from 'node:url';
 import { readBuildIdentity } from './build-identity.mjs';
 import { log, logFile, openLog, redactInLog } from './log.mjs';
 import { buildTemplate } from './menu.mjs';
-import { resolveStartupBounds, recordBounds, WINDOW_BOUNDS_FILE } from './window-bounds.mjs';
+import {
+  attachBoundsPersistence,
+  resolveStartupBounds,
+  WINDOW_BOUNDS_FILE,
+} from './window-bounds.mjs';
 import {
   DATABASE_EXTENSIONS,
   PGN_EXTENSIONS,
@@ -423,19 +427,7 @@ function createWindow() {
     cannot trap a window off-screen. The save is debounced because a drag
     or resize fires the event dozens of times per second.
   */
-  let saveTimer = null;
-  const persist = () => {
-    if (saveTimer) clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => {
-      saveTimer = null;
-      const b = window.getBounds();
-      if (recordBounds(boundsFile, b)) {
-        log('window', `saved bounds ${b.width}×${b.height} at (${b.x}, ${b.y})`);
-      }
-    }, 400);
-  };
-  window.on('resize', persist);
-  window.on('move', persist);
+  attachBoundsPersistence(window, { file: boundsFile, log });
 
   state.window = window;
   void window.loadURL(`${state.appUrl}/analysis`);
@@ -754,6 +746,38 @@ function registerIpc() {
     if (!target) return false;
     shell.showItemInFolder(target);
     return true;
+  });
+
+  /*
+    Bring the companion back after it has died.
+
+    A companion can be killed from outside — a crash in a native module, the
+    operating system under memory pressure, a person in Activity Monitor —
+    and until Phase 46 the only way back was to quit and reopen Kingfisher.
+    The same `Service` is started again with the same port and the same
+    token, so the renderer's paired address keeps working; the companion
+    re-reads its own registry of collections and engines from disk. A
+    companion that is running is left alone: this is recovery, not restart.
+  */
+  ipcMain.handle('kingfisher:companion-restart', async (event) => {
+    if (event.sender !== state.window?.webContents) return { restarted: false, running: false };
+    if (!state.companion) return { restarted: false, running: false };
+    if (state.companion.running) return { restarted: false, running: true };
+    log('companion', 'restart requested from Diagnostics');
+    state.companionError = null;
+    state.companionStarted = state.companion.start().then(
+      () => {
+        log('companion', 'restarted');
+        return true;
+      },
+      (error) => {
+        state.companionError = error instanceof Error ? error.message : String(error);
+        log('companion', `did not restart: ${state.companionError}`);
+        return false;
+      },
+    );
+    const running = await state.companionStarted;
+    return { restarted: running, running, error: state.companionError };
   });
 
   ipcMain.handle('kingfisher:diagnostics', () => ({

@@ -113,6 +113,16 @@ export interface DesktopBridge {
   recentDocuments(): Promise<readonly DesktopDocument[]>;
   diagnostics(): Promise<DesktopDiagnostics>;
   /**
+   * Start the companion again after it has died. The shell reuses the same
+   * port and token, so the pairing the renderer already holds keeps working.
+   * Absent from a shell built before Phase 46.
+   */
+  readonly restartCompanion?: () => Promise<{
+    readonly restarted: boolean;
+    readonly running: boolean;
+    readonly error?: string | null;
+  }>;
+  /**
    * Reveal the shell's log in the Finder.
    *
    * Reveal rather than read: the renderer never gets file contents over the

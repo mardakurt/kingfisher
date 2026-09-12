@@ -165,3 +165,53 @@ export function recordBounds(filePath, frame) {
   saveBounds(filePath, { x, y, width, height });
   return true;
 }
+
+/**
+ * Keep a window's frame on disk as it moves and resizes.
+ *
+ * Debounced, because a drag fires the events dozens of times a second. And
+ * guarded, because a window closed inside the debounce interval is gone by
+ * the time the timer fires: asking it for bounds threw "Object has been
+ * destroyed" from the main process, which Electron shows the user as a
+ * JavaScript error dialog. Found by the seeded walk — resize, then close
+ * within 400 ms. `close` flushes the last frame synchronously, so the
+ * position a person left the window in is the one it reopens at.
+ *
+ * @param {{ on(event: string, fn: () => void): unknown, isDestroyed(): boolean, getBounds(): object }} window
+ * @param {{ file: string, log?: (tag: string, message: string) => void, debounceMs?: number, setTimeoutImpl?: typeof setTimeout, clearTimeoutImpl?: typeof clearTimeout }} options
+ * @returns {() => void} a function that saves now, for tests and for close
+ */
+export function attachBoundsPersistence(
+  window,
+  {
+    file,
+    log = () => {},
+    debounceMs = 400,
+    setTimeoutImpl = setTimeout,
+    clearTimeoutImpl = clearTimeout,
+  },
+) {
+  let timer = null;
+  const save = () => {
+    if (window.isDestroyed()) return false;
+    const b = window.getBounds();
+    const saved = recordBounds(file, b);
+    if (saved) log('window', `saved bounds ${b.width}×${b.height} at (${b.x}, ${b.y})`);
+    return saved;
+  };
+  const later = () => {
+    if (timer) clearTimeoutImpl(timer);
+    timer = setTimeoutImpl(() => {
+      timer = null;
+      save();
+    }, debounceMs);
+  };
+  window.on('resize', later);
+  window.on('move', later);
+  window.on('close', () => {
+    if (timer) clearTimeoutImpl(timer);
+    timer = null;
+    save();
+  });
+  return save;
+}

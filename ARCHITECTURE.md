@@ -546,10 +546,57 @@ Four rules hold here and are the ones to keep:
 - **The web build is not changed to suit it.** Standalone output and
   cross-origin isolation are opt-in behind environment variables that only
   `scripts/build-desktop-web.mjs` sets.
-- **A platform claim needs evidence.** `npm run desktop:smoke` drives the real
-  application through Playwright and checks the fourteen things only the shell
-  can be wrong about, including that nothing survives the quit. README states
-  which platforms that has actually been run on.
+- **A platform claim needs evidence — from the packaged bundle.**
+  `npm run desktop:certify` drives the real `Kingfisher.app` electron-builder
+  produced, through Playwright, and checks the things only the shell can be
+  wrong about: the smoke's seventeen (launch, bridge, isolation, companion,
+  a PGN from the command line, a tablebase probe, nothing survives the quit),
+  the window chrome, restart, the engine fleet, suspend, a seeded walk with
+  invariants, and the DMG. The checkout shell is a development convenience.
+  Every packaged build from Phase 35 to Phase 45 launched and exited before
+  a window because the bundle held no server, and the harness of the day
+  reported it as a Playwright timeout; `desktop/src/builder-config.test.mjs`
+  and `scripts/desktop-lib/launch.mjs` are the two things that make that
+  impossible to miss again. README states which platforms have actually
+  been run.
+
+### What a packaged bundle is
+
+`Resources/app.asar` holds the shell (`desktop/src/`). Under
+`Resources/kingfisher/` — unpacked, because they are spawned or served —
+sit the Next.js standalone server and its static assets, the companion
+source, the engine catalogue and digests, the sanitised engine records and
+the Syzygy probe helper. `desktop/src/paths.mjs` resolves that layout and
+`desktop/electron-builder.yml`'s `extraResources` block produces it; the
+two are cross-checked by test.
+
+The bundle records its **identity** — marketing version, build number
+(`git rev-list --count HEAD`), commit, dirty flag and channel — in
+`CFBundleVersion` and the packaged `package.json`
+(`desktop/src/build-identity.mjs`), and _Settings → Diagnostics_ reports
+them. The channel decides two things: the DMG's filename (a `preview`
+carries its build number, so two previews never collide and no published
+bytes are ever overwritten) and what _Check for Updates…_ does.
+
+### Updates
+
+One service, in the main process (`desktop/src/update-service.mjs`,
+`kingfisher-updater.mjs`). The user's click is the only network event. A
+`stable` build asks `electron-updater`, configured with the GitHub
+provider baked into `app-update.yml` and with auto-download,
+install-on-quit, pre-releases and downgrades all off; it is offered only a
+strictly newer release that carries `latest-mac.yml`. Installing runs
+download → SHA-512 → the renderer's save barrier → macOS's own update
+engine, which refuses an update whose signature does not match the running
+application. A `preview` build asks nothing: it answers with its build
+number and a button to the download page. The dialog is its own
+`BrowserWindow` with a three-channel preload that `update-window.mjs`
+answers; `update-window.test.mjs` reads the preload and checks every
+channel has a handler, because for ten phases none did.
+
+The public DMG is named in one place, `src/release/macos-download.json`,
+which the landing, the install guide, `docs:check` and
+`desktop:public:verify` all read.
 
 ## The local companion
 

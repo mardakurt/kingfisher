@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { mkdtempSync as auditTemp } from 'node:fs';
+
 import { tmpdir as auditTmpdir } from 'node:os';
 /**
  * Does anything Kingfisher draws collide with the macOS window buttons?
@@ -31,7 +31,9 @@ import { tmpdir as auditTmpdir } from 'node:os';
  */
 
 import { _electron as electron } from 'playwright-core';
-import { existsSync, readFileSync } from 'node:fs';
+
+import * as shared from './desktop-lib/launch.mjs';
+import { existsSync, readFileSync, mkdtempSync as auditTemp } from 'node:fs';
 import path from 'node:path';
 import { argv, exit } from 'node:process';
 import { fileURLToPath } from 'node:url';
@@ -54,28 +56,11 @@ const check = (name, ok, detail = '') => {
 };
 
 function shellBinary() {
-  const marker = path.join(ROOT, 'desktop', 'node_modules', 'electron', 'path.txt');
-  if (!existsSync(marker)) {
-    console.error('The desktop shell is not installed. Run npm run desktop:install.');
-    exit(1);
-  }
-  return path.join(
-    ROOT,
-    'desktop',
-    'node_modules',
-    'electron',
-    'dist',
-    readFileSync(marker, 'utf8').trim(),
-  );
+  return shared.shellBinary();
 }
 
 function packagedBinary() {
-  const out = process.env.KINGFISHER_DESKTOP_OUT ?? path.join(ROOT, 'desktop', 'dist');
-  for (const directory of ['mac-arm64', 'mac', 'mac-x64', 'mac-universal']) {
-    const app = path.join(out, directory, 'Kingfisher.app');
-    if (existsSync(app)) return path.join(app, 'Contents', 'MacOS', 'Kingfisher');
-  }
-  return path.join(out, 'mac-arm64', 'Kingfisher.app', 'Contents', 'MacOS', 'Kingfisher');
+  return shared.packagedBinary();
 }
 
 /**

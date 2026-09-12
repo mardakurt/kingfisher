@@ -247,9 +247,17 @@ class Walk {
     return new URL(page.url()).pathname;
   }
 
+  /** A route that can show a board, and one on screen right now. */
   async onBoardRoute() {
     const route = await this.route();
-    return route === '/analysis' || route === '/studies' || route === '/repertoire';
+    if (!(route === '/analysis' || route === '/studies' || route === '/repertoire')) return false;
+    // /studies and /repertoire show a list until something is opened.
+    const page = await this.currentPage();
+    return await page
+      .locator('[data-chessboard] [role="gridcell"]')
+      .first()
+      .isVisible()
+      .catch(() => false);
   }
 
   async hasBoard() {
@@ -872,7 +880,6 @@ class Walk {
         name: 'fault-kill-companion',
         weight: 1,
         faults: true,
-        when: () => !w.injected.companionDown,
         async run() {
           const signal = w.pick(['SIGTERM', 'SIGKILL']);
           try {
@@ -884,7 +891,8 @@ class Walk {
           w.injected.expectChildGone = true;
           const p = await page();
           await p.waitForTimeout(1_500);
-          // The application must still be usable without it.
+          // The application must still be usable without it, the shell must
+          // know it is gone, and Diagnostics must be able to bring it back.
           const text = await p.evaluate(() => document.body.innerText.length);
           const diag = await p.evaluate(() => window.kingfisher.diagnostics());
           if (diag.companion.running) {
@@ -895,7 +903,31 @@ class Walk {
               detail: 'diagnostics still say running',
             });
           }
-          return `${signal}; page ${text} chars; diagnostics running=${diag.companion.running}`;
+          const recovered = await p.evaluate(async () => {
+            if (!window.kingfisher.restartCompanion)
+              return { restarted: false, reason: 'no restart on the bridge' };
+            const result = await window.kingfisher.restartCompanion();
+            if (!result.running)
+              return { restarted: false, reason: result.error ?? 'not running after restart' };
+            const { url, token } = window.kingfisher.companion;
+            const response = await fetch(`${url}/status`, {
+              headers: { authorization: `Bearer ${token}` },
+            }).catch(() => null);
+            return { restarted: true, answers: response?.status === 200 };
+          });
+          if (recovered.restarted && recovered.answers) {
+            const after = await p.evaluate(() => window.kingfisher.diagnostics());
+            w.pids.companion = after.companion.pid;
+            w.injected.companionDown = false;
+          } else {
+            w.findings.push({
+              step: w.stepIndex,
+              action: 'fault-kill-companion',
+              name: 'companion-not-recoverable',
+              detail: recovered.reason ?? 'restarted but does not answer',
+            });
+          }
+          return `${signal}; page ${text} chars; detected=${!diag.companion.running}; recovered=${recovered.restarted && recovered.answers}`;
         },
       },
     ];
