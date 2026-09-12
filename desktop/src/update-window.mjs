@@ -22,8 +22,8 @@ import { fileURLToPath } from 'node:url';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
 /** Width and height chosen to feel like a Kingfisher dialog, not a window. */
-const DIALOG_WIDTH = 420;
-const DIALOG_HEIGHT = 280;
+const DIALOG_WIDTH = 400;
+const DIALOG_HEIGHT = 206;
 
 /**
  * The channels the dialog's preload speaks. Named here as well as in
@@ -122,12 +122,14 @@ export async function open({ parent, onClose, onAction } = {}) {
     maximizable: false,
     fullscreenable: false,
     show: false,
-    title: 'Kingfisher — Check for Updates',
+    title: 'Kingfisher Update',
+    useContentSize: true,
     backgroundColor: '#1c1c20',
     parent: parent ?? undefined,
     modal: false,
-    titleBarStyle: 'hiddenInset',
-    trafficLightPosition: { x: 14, y: 14 },
+    // Native titlebar owns the traffic lights and drag region. Content starts
+    // below it, so no renderer inset can collide with the system controls.
+    titleBarStyle: 'default',
     webPreferences: {
       preload: path.join(HERE, 'dialogs', 'update-preload.cjs'),
       contextIsolation: true,
@@ -141,6 +143,7 @@ export async function open({ parent, onClose, onAction } = {}) {
   window.show();
   window.on('closed', () => {
     window = null;
+    if (parent && !parent.isDestroyed()) parent.focus();
     if (typeof onClose === 'function') onClose();
   });
 }
