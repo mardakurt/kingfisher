@@ -132,6 +132,37 @@ export function LandingPage(): JSX.Element {
             </div>
           </div>
 
+          {/*
+            The product, above the fold. A workstation is a thing you look at,
+            and a hero with two buttons and no picture asked the reader to take
+            the headline on trust. The capture is the current build — the
+            analysis workspace with Stockfish running and its best move drawn
+            on the board — made by `scripts/landing-hero-capture.mjs` against
+            the application itself, not a mock-up. Replace it when the
+            workspace changes; a landing that shows an old interface is a
+            claim the product no longer makes.
+          */}
+          <figure className="hero-product-frame">
+            <div className="hero-product-chrome" aria-hidden="true">
+              <span className="hero-product-dot" />
+              <span className="hero-product-dot" />
+              <span className="hero-product-dot" />
+              <span className="hero-product-title">
+                Kingfisher {macosDownload.version} · Analysis
+              </span>
+            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/landing/img/workspace-2026-09.webp"
+              alt="The Kingfisher analysis workspace: the board after 1. e4 e5 2. Nf3 Nc6 3. Bc4 with Stockfish 18 running, its best move drawn as an arrow on the board and three engine lines beside it"
+              width="2240"
+              height="1400"
+              fetchPriority="high"
+              decoding="async"
+              className="hero-product-img"
+            />
+          </figure>
+
           <div className="hero-strip" aria-label="At a glance">
             <div className="hero-strip-item">
               <span className="hero-strip-num">172,376</span>
@@ -318,6 +349,20 @@ export function LandingPage(): JSX.Element {
                   <span>File</span>
                   <strong>
                     {macosDownload.filename} · {formatBytes(macosDownload.bytes)}
+                  </strong>
+                </li>
+                {/*
+                  What the descriptor can vouch for, in Apple's own terms:
+                  a Developer ID signature and a notarisation ticket. Neither
+                  is an endorsement, and the row says no more than the
+                  descriptor does — a preview that is not notarised says so.
+                */}
+                <li>
+                  <span>Trust</span>
+                  <strong>
+                    {macosDownload.signature.notarized
+                      ? 'Signed with Apple Developer ID · Notarised by Apple'
+                      : `${macosDownload.signature.identity} · not notarised`}
                   </strong>
                 </li>
               </ul>

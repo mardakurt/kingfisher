@@ -427,6 +427,14 @@
   margin: 0 auto;
 }
 
+/* The window's one lit edge, so the frame reads as a surface rather than a
+   flat rectangle on the same dark ground. */
+.kf-landing .hero-product-frame {
+  box-shadow:
+    inset 0 1px 0 #ffffff14,
+    0 32px 72px -32px #00000099;
+}
+
 .kf-landing .hero-product-chrome {
   display: flex;
   align-items: center;
@@ -835,6 +843,10 @@
     animation: kf-arrive 650ms 100ms ease-out backwards;
   }
 
+  .kf-landing .hero-product-frame {
+    animation: kf-arrive 700ms 220ms ease-out backwards;
+  }
+
   @media (hover: hover) and (pointer: fine) {
     .kf-landing :is(.btn, .nav-cta):hover {
       transform: translateY(-2px);
@@ -962,6 +974,15 @@
 
   .kf-landing .hero-copy {
     margin-bottom: 32px;
+  }
+
+  .kf-landing .hero-product-frame {
+    border-radius: 6px;
+  }
+
+  .kf-landing .hero-product-chrome {
+    height: 26px;
+    padding: 0 10px;
   }
 
   .kf-landing .hero-strip {

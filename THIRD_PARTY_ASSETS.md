@@ -189,3 +189,12 @@ at depth 22/29. The engine was started on that position before capture.
 It replaces an empty-workspace image on the landing page; no evaluations or
 pieces were added to the screenshot. The displayed piece and board artwork
 retains the attribution recorded above. The image was encoded as WebP.
+
+`public/landing/img/workspace-2026-09.webp` is the hero capture: the analysis
+workspace of the checkout at `8039afa` (Kingfisher 1.1.0), taken on
+2026-09-12 at 1440 × 900 at 2× and encoded at 2240 × 1400. Stockfish 18 Lite
+was started on the position after `1. e4 e5 2. Nf3 Nc6 3. Bc4` and the
+capture waited for the engine's arrow; nothing was drawn or retouched. The
+script that made it is `scripts/landing-hero-capture.mjs`; the procedure is
+in its header. `research-explorer.webp` is the Explorer capture from Phase
+25, unchanged.
