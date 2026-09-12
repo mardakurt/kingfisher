@@ -156,6 +156,29 @@ describe('a desktop service', () => {
     expect(await service.stop()).toEqual({ stopped: true, escalated: false });
   });
 
+  it('reports an exit it did not ask for, and stays quiet about one it did', async () => {
+    const port = await freePort();
+    const seen = [];
+    const service = new Service({
+      name: 'test server',
+      entry: script('good.mjs', WELL_BEHAVED),
+      healthUrl: `http://127.0.0.1:${port}/health`,
+      env: { PORT: String(port) },
+      onUnexpectedExit: (exit) => seen.push(exit),
+    });
+    await service.start();
+    process.kill(service.pid, 'SIGKILL');
+    const deadline = Date.now() + 5_000;
+    while (seen.length === 0 && Date.now() < deadline) await new Promise((r) => setTimeout(r, 25));
+    expect(seen).toEqual([{ code: null, signal: 'SIGKILL' }]);
+    // Started again on the same port — what a revival is — and stopped on purpose.
+    await service.start();
+    expect(service.running).toBe(true);
+    await service.stop();
+    await new Promise((r) => setTimeout(r, 100));
+    expect(seen).toHaveLength(1);
+  });
+
   it('stopping something already stopped is not an error', async () => {
     const port = await freePort();
     const service = new Service({

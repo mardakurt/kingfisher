@@ -206,6 +206,7 @@ async function startServices() {
     entry: layout.webEntry,
     cwd: path.dirname(layout.webEntry),
     healthUrl: `${state.appUrl}/analysis`,
+    onUnexpectedExit: (exit) => void reviveService('web', exit),
     env: {
       ...process.env,
       PORT: String(webPort),
@@ -220,6 +221,7 @@ async function startServices() {
     entry: layout.companionEntry,
     cwd: layout.repo,
     healthUrl: `${state.companionUrl}/health`,
+    onUnexpectedExit: (exit) => void reviveService('companion', exit),
     env: {
       ...process.env,
       KINGFISHER_COMPANION_PORT: String(companionPort),
@@ -284,6 +286,64 @@ async function startServices() {
 
   await state.web.start();
   mark('web server ready');
+}
+
+/**
+ * Bring a service back after it died on its own.
+ *
+ * The web server is what the window is looking at: when it dies the
+ * renderer shows a connection error and, before Phase 46, nothing brought it
+ * back short of quitting Kingfisher. The companion's loss was survivable
+ * but every native engine and collection went with it. Both are the shell's
+ * own children, started with the same port and token, so starting them again
+ * is exactly the launch the renderer already paired with.
+ *
+ * Bounded: three revivals in five minutes, then the service stays down and
+ * the log says so — a child that dies on every start would otherwise be
+ * restarted for ever, and the reason it dies is what a person needs to see.
+ * Never during quit, when an exit is the plan.
+ */
+const revivals = { web: [], companion: [] };
+const REVIVAL_LIMIT = 3;
+const REVIVAL_WINDOW_MS = 5 * 60_000;
+
+async function reviveService(which, exit) {
+  if (state.quitting) return;
+  const service = state[which];
+  if (!service) return;
+  const now = Date.now();
+  revivals[which] = revivals[which].filter((at) => now - at < REVIVAL_WINDOW_MS);
+  const reason = exit?.signal ?? exit?.code ?? 'unknown';
+  if (revivals[which].length >= REVIVAL_LIMIT) {
+    log(
+      which,
+      `exited (${reason}) and was not restarted: ${REVIVAL_LIMIT} restarts in five minutes`,
+    );
+    return;
+  }
+  revivals[which].push(now);
+  log(which, `exited unexpectedly (${reason}); restarting`);
+  try {
+    if (which === 'companion') {
+      state.companionError = null;
+      state.companionStarted = service.start().then(
+        () => true,
+        (error) => {
+          state.companionError = error instanceof Error ? error.message : String(error);
+          return false;
+        },
+      );
+      await state.companionStarted;
+    } else {
+      await service.start();
+      // The window was looking at a server that is gone; the one that
+      // replaced it serves the same origin, so a reload is the whole fix.
+      if (state.window && !state.window.isDestroyed()) state.window.webContents.reload();
+    }
+    log(which, 'restarted');
+  } catch (error) {
+    log(which, `did not restart: ${String(error?.message ?? error)}`);
+  }
 }
 
 /**

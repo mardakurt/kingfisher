@@ -108,7 +108,16 @@ export class Service {
   #gone = false;
   #log = [];
 
-  constructor({ name, entry, args = [], env = {}, healthUrl, cwd, forkImpl = fork }) {
+  constructor({
+    name,
+    entry,
+    args = [],
+    env = {},
+    healthUrl,
+    cwd,
+    forkImpl = fork,
+    onUnexpectedExit = null,
+  }) {
     this.name = name;
     this.entry = entry;
     this.args = args;
@@ -116,7 +125,16 @@ export class Service {
     this.healthUrl = healthUrl;
     this.cwd = cwd;
     this.forkImpl = forkImpl;
+    /**
+     * Called when the child exits without `stop()` having been asked for —
+     * a crash, a kill from outside, the operating system. `stop()` sets a
+     * flag first, so an orderly shutdown never looks like a crash.
+     */
+    this.onUnexpectedExit = onUnexpectedExit;
+    this.#stopping = false;
   }
+
+  #stopping = false;
 
   get pid() {
     return this.#child?.pid ?? null;
@@ -160,11 +178,19 @@ export class Service {
     child.stdout?.on('data', (chunk) => this.#record(chunk));
     child.stderr?.on('data', (chunk) => this.#record(chunk));
 
+    this.#stopping = false;
     this.#exited = new Promise((resolve) => {
       child.once('exit', (code, signal) => {
         this.#gone = true;
         this.#record(`[exited: ${code ?? signal}]`);
         resolve({ code, signal });
+        if (!this.#stopping && typeof this.onUnexpectedExit === 'function') {
+          try {
+            this.onUnexpectedExit({ code, signal });
+          } catch {
+            /* a listener's failure is not the service's */
+          }
+        }
       });
     });
 
@@ -199,6 +225,7 @@ export class Service {
    */
   async stop({ graceMs = GRACE_MS } = {}) {
     const child = this.#child;
+    this.#stopping = true;
     if (!child || this.#gone) return { stopped: true, escalated: false };
     const exited = this.#exited ?? Promise.resolve({ code: null, signal: null });
 

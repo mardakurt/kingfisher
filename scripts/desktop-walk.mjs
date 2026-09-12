@@ -877,6 +877,50 @@ class Walk {
         },
       },
       {
+        name: 'fault-kill-web',
+        weight: 1,
+        faults: true,
+        async run() {
+          // The window is looking at this process. The shell must bring it
+          // back on the same port and reload the window; nothing else can.
+          const signal = w.pick(['SIGTERM', 'SIGKILL']);
+          try {
+            process.kill(w.pids.web, signal);
+          } catch {
+            return 'web server already gone';
+          }
+          w.injected.expectChildGone = true;
+          const p = await page();
+          const deadline = Date.now() + 20_000;
+          let back = false;
+          while (Date.now() < deadline) {
+            await p.waitForTimeout(500);
+            const diag = await p
+              .evaluate(() => window.kingfisher?.diagnostics?.())
+              .catch(() => null);
+            if (diag?.web?.running && diag.web.pid !== w.pids.web) {
+              w.pids.web = diag.web.pid;
+              const text = await p.evaluate(() => document.body.innerText.length).catch(() => 0);
+              if (text > 200) {
+                back = true;
+                break;
+              }
+            }
+          }
+          if (!back) {
+            w.findings.push({
+              step: w.stepIndex,
+              action: 'fault-kill-web',
+              name: 'web-server-not-revived',
+              detail: `after ${signal}, no new server with a rendered page within 20 s`,
+            });
+          } else {
+            await waitForReady(p).catch(() => {});
+          }
+          return `${signal}; revived=${back}`;
+        },
+      },
+      {
         name: 'fault-kill-companion',
         weight: 1,
         faults: true,
