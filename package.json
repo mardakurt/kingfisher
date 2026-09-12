@@ -38,6 +38,7 @@
     "desktop:sign:verify": "node scripts/desktop-sign-verify.mjs",
     "desktop:notary:verify": "node scripts/desktop-notary-verify.mjs",
     "desktop:trust:verify": "node scripts/desktop-trust-verify.mjs",
+    "desktop:certify": "node scripts/desktop-certify.mjs",
     "desktop:release:preflight:mac": "node scripts/desktop-release-preflight-mac.mjs",
     "desktop:update:staging:serve": "node scripts/desktop-update-staging-server.mjs",
     "desktop:update:e2e": "node scripts/desktop-update-e2e.mjs",

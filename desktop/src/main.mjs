@@ -19,7 +19,7 @@
  * a measured decision and not a default.
  */
 
-import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, screen, shell } from 'electron';
 import { randomBytes } from 'node:crypto';
 import os from 'node:os';
 import path from 'node:path';
@@ -27,6 +27,7 @@ import { fileURLToPath } from 'node:url';
 
 import { log, logFile, openLog, redactInLog } from './log.mjs';
 import { buildTemplate } from './menu.mjs';
+import { resolveStartupBounds, recordBounds, WINDOW_BOUNDS_FILE } from './window-bounds.mjs';
 import {
   DATABASE_EXTENSIONS,
   PGN_EXTENSIONS,
@@ -307,9 +308,19 @@ function createWindow() {
     rectangle a number two processes can share — see `window-chrome.mjs`, which
     is the only place either of them gets it from.
   */
+  const defaultSize = { width: 1440, height: 920 };
+  const boundsFile = path.join(app.getPath('userData'), WINDOW_BOUNDS_FILE);
+  const displays = screen.getAllDisplays().map((d) => d.workArea);
+  const startupBounds = resolveStartupBounds(boundsFile, displays, defaultSize) ?? {
+    x: undefined,
+    y: undefined,
+    ...defaultSize,
+  };
   const window = new BrowserWindow({
-    width: 1440,
-    height: 920,
+    width: startupBounds.width,
+    height: startupBounds.height,
+    x: startupBounds.x,
+    y: startupBounds.y,
     minWidth: 900,
     minHeight: 600,
     show: false,
@@ -386,6 +397,32 @@ function createWindow() {
   window.on('closed', () => {
     state.window = null;
   });
+
+  /*
+    Persist the window frame across restarts.
+
+    macOS does not remember an Electron window's position between launches,
+    so without an explicit save a user who has sized and placed Kingfisher
+    redoes it on every launch. Worse, a window last seen on an external
+    display reopens at coordinates nothing can see when that display is gone,
+    and the application looks broken. `resolveStartupBounds` clamps the
+    remembered frame to a display the user actually has, so a stale frame
+    cannot trap a window off-screen. The save is debounced because a drag
+    or resize fires the event dozens of times per second.
+  */
+  let saveTimer = null;
+  const persist = () => {
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      saveTimer = null;
+      const b = window.getBounds();
+      if (recordBounds(boundsFile, b)) {
+        log('window', `saved bounds ${b.width}×${b.height} at (${b.x}, ${b.y})`);
+      }
+    }, 400);
+  };
+  window.on('resize', persist);
+  window.on('move', persist);
 
   state.window = window;
   void window.loadURL(`${state.appUrl}/analysis`);

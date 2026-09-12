@@ -135,7 +135,12 @@ Against `https://kingfisher-roan.vercel.app` after the manual deploy, all HTTP e
 - `security find-identity -v -p codesigning` reports two valid identities:
   1. `Apple Development: Metin Arda KURT (YBWWSJYPD6)` — `9E15B38DA49F6F30C54CF625FD9132E31F49D2A6`
   2. `Apple Distribution: Metin Arda KURT (3B5CYF9DQ4)` — `D49531EA86C9CC9854CDED1D16410253F1561D19`
-- **Status:** Developer ID is PRESENT. This is the gate that was missing in Phase 43.
+- **Status:** **NO `Developer ID Application` identity is installed.** This gate is therefore still **MISSING**. The two identities present are:
+  - `Apple Development` — used to sign builds for the developer's own devices; **not** recognised by Gatekeeper outside the App Store pipeline.
+  - `Apple Distribution` — used for App Store / TestFlight distribution; **not** recognised by Gatekeeper outside that pipeline.
+  - `Developer ID Application` — required to ship outside the Mac App Store to general users; **absent**.
+- **Phase 44 original report error:** the original wording said "Developer ID is PRESENT" because the report was written before the distinction between `Apple Distribution` and `Developer ID Application` was re-checked. They are different certificate families and are not substitutes. `docs/release/apple-developer-id-setup.md` documents the correct identity and the procedure to obtain it; the brief's `PART DC` and `PART DG` are the binding definition.
+- **Trusted outside-App-Store release:** **BLOCKED EXTERNALLY.** No Phase 45 release can be notarized until the owner requests and installs the certificate from <https://developer.apple.com/account/resources/certificates/list>.
 - Per the brief, no automatic version bump and no notarization release in Phase 44; the owner decides desktop release separately.
 
 ## 18. Security

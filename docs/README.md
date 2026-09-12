@@ -59,6 +59,14 @@ tie-breaker lives.
   for the current public release.
 - [`docs/release/release-checklist.md`](release/release-checklist.md) —
   the checks a maintainer runs before tagging a release.
+- [`docs/release/macos-trusted-release.md`](release/macos-trusted-release.md)
+  — the day-of-release runbook for a trusted macOS build.
+- [`docs/release/apple-developer-id-setup.md`](release/apple-developer-id-setup.md)
+  — the procedure for installing the `Developer ID Application`
+  certificate that the trusted runbook requires.
+- [`docs/product/macos-desktop-certification.md`](product/macos-desktop-certification.md)
+  — the current state of the packaged macOS application, every row
+  GREEN / LIMITED / BLOCKED EXTERNALLY / NOT CERTIFIED.
 - [`docs/data/data-inventory.md`](data/data-inventory.md) —
   the canonical pack counts and provenance. Where it matters,
   this is generated from the manifests.
