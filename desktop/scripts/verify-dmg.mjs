@@ -31,6 +31,7 @@
  */
 
 import { execFile as execFileCb } from 'node:child_process';
+import { inspectDesktopResources } from '../src/required-resources.mjs';
 import { existsSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
@@ -141,15 +142,8 @@ export async function verifyDmg(dmg, options = {}) {
     // 3. The bundle is a whole application, not a shell with nothing to serve.
     const app = path.join(mount, 'Kingfisher.app');
     const resources = path.join(app, 'Contents', 'Resources', 'kingfisher');
-    for (const [label, file] of [
-      ['web server in the bundle', 'web/server.js'],
-      ['web static assets in the bundle', 'web/.next/static'],
-      ['browser engine in the bundle', 'web/public/engine/stockfish/manifest.json'],
-      ['companion in the bundle', 'companion/src/server.mjs'],
-      ['engine catalogue in the bundle', 'scripts/engine-catalogue.mjs'],
-      ['engine digests in the bundle', 'scripts/engine-digests.json'],
-    ]) {
-      check(label, existsSync(path.join(resources, file)), `Resources/kingfisher/${file}`);
+    for (const resource of inspectDesktopResources(resources)) {
+      check(`runtime: ${resource.path}`, resource.ok, `Resources/kingfisher/${resource.path}`);
     }
 
     // 4. Info.plist.

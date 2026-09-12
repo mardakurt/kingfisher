@@ -39,6 +39,9 @@ import path from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
+import { packagePipeline } from './package-pipeline.mjs';
+import verifyPackageBoot from './verify-package-boot.mjs';
+
 import { artifactName, CHANNELS } from '../src/build-identity.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -178,9 +181,21 @@ if (existsSync(chosen)) {
   }
 }
 
-const result = spawnSync(process.execPath, [builder, ...process.argv.slice(2), ...config], {
-  cwd: DESKTOP,
-  stdio: 'inherit',
-  env: { ...process.env, KINGFISHER_DESKTOP_OUT: chosen },
+// Build/sign once, boot the finished app, then archive those exact bytes.
+// afterSign is insufficient: electron-builder skips it for unsigned builds.
+await packagePipeline({
+  args: process.argv.slice(2),
+  output: chosen,
+  boot: verifyPackageBoot,
+  runBuilder: async (args) => {
+    const result = spawnSync(process.execPath, [builder, ...args, ...config], {
+      cwd: DESKTOP,
+      stdio: 'inherit',
+      env: { ...process.env, KINGFISHER_DESKTOP_OUT: chosen },
+    });
+    if (result.status !== 0)
+      throw new Error(
+        `electron-builder failed (${result.status ?? result.error?.message ?? result.signal})`,
+      );
+  },
 });
-process.exit(result.status ?? 1);

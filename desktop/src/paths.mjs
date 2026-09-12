@@ -10,6 +10,7 @@
 import path from 'node:path';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { inspectDesktopResources } from './required-resources.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
@@ -51,6 +52,10 @@ export function resolveLayout({ resourcesPath, packaged, here = HERE } = {}) {
  * a stack trace.
  */
 export function missingParts(layout) {
+  if (layout.packaged)
+    return inspectDesktopResources(layout.repo)
+      .filter((r) => !r.ok)
+      .map((r) => r.file);
   const missing = [];
   if (!existsSync(layout.companionEntry)) missing.push(layout.companionEntry);
   if (!existsSync(layout.webEntry)) missing.push(layout.webEntry);

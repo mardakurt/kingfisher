@@ -46,6 +46,10 @@ files:
 
 asar: true
 
+# Missing runtime resources fail packaging before signing.
+# build.mjs then boots the finished app before creating DMG/ZIP archives.
+afterPack: scripts/verify-package.mjs
+
 extraMetadata:
   main: src/main.mjs
 

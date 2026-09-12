@@ -22,6 +22,7 @@ import yaml from 'js-yaml';
 import { describe, expect, it } from 'vitest';
 
 import { missingParts, resolveLayout } from './paths.mjs';
+import { REQUIRED_DESKTOP_RESOURCES } from './required-resources.mjs';
 
 const DESKTOP = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const config = yaml.load(readFileSync(path.join(DESKTOP, 'electron-builder.yml'), 'utf8'));
@@ -29,6 +30,12 @@ const config = yaml.load(readFileSync(path.join(DESKTOP, 'electron-builder.yml')
 const resources = new Map((config.extraResources ?? []).map((entry) => [entry.to, entry]));
 
 describe('electron-builder.yml', () => {
+  it('blocks archives until resource and boot verification pass', () => {
+    expect(config.afterPack).toBe('scripts/verify-package.mjs');
+    const build = readFileSync(path.join(DESKTOP, 'scripts/build.mjs'), 'utf8');
+    expect(build).toContain('await packagePipeline(');
+    expect(build).toContain('boot: verifyPackageBoot');
+  });
   it('stages the web server and the companion where paths.mjs will look for them', () => {
     // The layout the shell resolves inside a bundle, with the resources root
     // it will actually be given.
@@ -135,8 +142,8 @@ describe('electron-builder.yml', () => {
 });
 
 describe('the layout a build must satisfy', () => {
-  it('missingParts names both entry points when a bundle has neither', () => {
+  it('missingParts names every required resource in an empty bundle', () => {
     const layout = resolveLayout({ packaged: true, resourcesPath: '/nowhere' });
-    expect(missingParts(layout)).toHaveLength(2);
+    expect(missingParts(layout)).toHaveLength(REQUIRED_DESKTOP_RESOURCES.length);
   });
 });
