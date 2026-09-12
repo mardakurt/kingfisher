@@ -33,6 +33,7 @@
  */
 
 import { execFileSync, spawnSync } from 'node:child_process';
+import { existsSync, readdirSync, rmSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { tmpdir } from 'node:os';
@@ -157,6 +158,25 @@ const config = [
   '--publish',
   'never',
 ];
+
+/*
+  Superseded development artefacts are removed before the build. Every dev
+  build writes a new 160 MB DMG named by its build number and nothing ever
+  removed the previous one; a day of Phase 46 left 3.4 GB in the output
+  directory. Only `dev` artefacts are touched — a preview or stable DMG is
+  something that may have been published and is never deleted here.
+*/
+if (existsSync(chosen)) {
+  for (const entry of readdirSync(chosen)) {
+    if (
+      /^Kingfisher-.*-dev-\d+-arm64\.(dmg|dmg\.blockmap)$/.test(entry) &&
+      !entry.startsWith(name.replace(/\.dmg$/, ''))
+    ) {
+      rmSync(path.join(chosen, entry), { force: true });
+      console.log(`removed superseded ${entry}`);
+    }
+  }
+}
 
 const result = spawnSync(process.execPath, [builder, ...process.argv.slice(2), ...config], {
   cwd: DESKTOP,
