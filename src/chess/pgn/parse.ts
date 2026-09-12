@@ -328,7 +328,20 @@ function applyCommentData(
   raw: string,
 ): GameTree {
   const node = mustGetNode(tree, nodeId);
-  const text = data.text || (data.shapes.length === 0 && !data.score ? raw.trim() : '');
+  /*
+    A comment with no visible text keeps its raw form only when nothing in it
+    was understood — an unknown command survives as text rather than being
+    lost. A clock or elapsed-time command *is* understood and lives in
+    `meta`; falling back to the raw text for those re-emitted "[%clk …]" as a
+    comment beside the clock the serializer writes from meta, and every
+    round trip through export and import doubled it.
+  */
+  const understood =
+    data.shapes.length > 0 ||
+    data.score !== undefined ||
+    data.clockSeconds !== undefined ||
+    data.elapsedSeconds !== undefined;
+  const text = data.text || (understood ? '' : raw.trim());
   const merged = [node.comment, text].filter(Boolean).join(' ').trim();
 
   return {
