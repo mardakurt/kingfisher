@@ -53,6 +53,21 @@ Subdirectories follow the `cachePaths` table in `scripts/cache-paths.mjs`:
 | `engine-fleet/`   | downloaded engine fleet                                | `KINGFISHER_FLEET_DIR`        |
 | `legacy-archive/` | Phase-29 historical snapshot (archived, never rebuilt) | n/a                           |
 
+Two more directories on the machine are the desktop build's and the
+packaged application's, and are not under `Kingfisher/`:
+
+- **`$TMPDIR/kingfisher-desktop-dist/`** — electron-builder's output when
+  the checkout path contains a character it refuses (this one does).
+  `npm run desktop:dist` removes the previous `dev` DMGs there before
+  building; `preview` and stable DMGs are never removed automatically
+  because they may have been published. Older `rc` images from earlier
+  phases can be deleted by hand; everything there is reproducible.
+- **`~/Library/Caches/kingfisher-desktop-updater/`** — where
+  `electron-updater` keeps a downloaded update (`pending/`) for the
+  packaged application; bounded to the newest archive on quit.
+  Authored work is never here: it lives in
+  `~/Library/Application Support/kingfisher-desktop/`.
+
 The cache lives outside iCloud-synced locations on purpose. A multi-GB
 engine build is the wrong thing to ask iCloud to mirror every time it
 changes, and a stale iCloud placeholder is the wrong thing to start a build
