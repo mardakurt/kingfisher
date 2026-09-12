@@ -105,6 +105,9 @@ jobs:
           CSC_LINK: .keys/DeveloperIDApplication.p12
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          # A stable-channel build: the plain artifact name the updater feed
+          # expects, and a refusal to build from anything but a clean tree.
+          KINGFISHER_DESKTOP_CHANNEL: stable
         run: npm run desktop:dist
 
       - name: Sign + notarize + staple
