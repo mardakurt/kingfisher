@@ -430,7 +430,7 @@ There is exactly one update service for the whole application:
 - The DMG that lands on the user is never the only copy of
   the user's work. Studies, repertoire, training, preferences
   and reference state live in
-  `~/Library/Application Support/Kingfisher/`, which the
+  `~/Library/Application Support/kingfisher-desktop/`, which the
   updater never touches.
 
 ## Phase 35 — the polished DMG

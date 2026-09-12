@@ -1,4 +1,5 @@
 import type { JSX } from 'react';
+import { formatBytes, macosDownload, macosTrustLabel } from '@/release/macos-download';
 import { publicUrl } from '@/release/public-urls';
 
 import './landing.css';
@@ -40,7 +41,7 @@ export function LandingPage(): JSX.Element {
     operatingSystem: 'macOS 11+, Web (Chrome, Safari, Firefox, Edge)',
     softwareRequirements: 'WebAssembly, JavaScript, IndexedDB, Service Worker',
     downloadUrl: downloadUrl,
-    softwareVersion: '1.0.0',
+    softwareVersion: macosDownload.version,
     datePublished: '2026-09-10',
     inLanguage: 'en',
     isAccessibleForFree: true,
@@ -285,21 +286,29 @@ export function LandingPage(): JSX.Element {
             <article className="download-card download-card-primary">
               <div className="download-card-top">
                 <span className="download-card-tag">macOS</span>
-                <span className="download-card-pill">Preview</span>
+                <span
+                  className={`download-card-pill${macosDownload.signature.notarized ? ' download-card-pill-ok' : ''}`}
+                >
+                  {macosDownload.channel === 'preview' ? 'Preview' : 'Stable'}
+                </span>
               </div>
               <h3>The local workstation.</h3>
               <p>
-                Apple Silicon. Code-signed. Not notarised yet — right-click, Open, Open on first
-                launch.
+                {macosDownload.signature.notarized
+                  ? 'Apple Silicon. Signed and notarised — it opens like any other application.'
+                  : 'Apple Silicon. Code-signed. Not notarised yet — right-click, Open, Open on first launch.'}
               </p>
               <ul className="download-spec">
                 <li>
                   <span>Version</span>
-                  <strong>1.0.0</strong>
+                  <strong>
+                    {macosDownload.version}
+                    {macosDownload.build === null ? '' : ` · build ${macosDownload.build}`}
+                  </strong>
                 </li>
                 <li>
                   <span>Architecture</span>
-                  <strong>arm64</strong>
+                  <strong>arm64 (Apple Silicon)</strong>
                 </li>
                 <li>
                   <span>Minimum OS</span>
@@ -307,24 +316,30 @@ export function LandingPage(): JSX.Element {
                 </li>
                 <li>
                   <span>File</span>
-                  <strong>Kingfisher-1.0.0-arm64.dmg</strong>
+                  <strong>
+                    {macosDownload.filename} · {formatBytes(macosDownload.bytes)}
+                  </strong>
                 </li>
               </ul>
               <a className="btn btn-primary btn-block" href={downloadUrl} rel="noopener">
                 Download for macOS
               </a>
               <p className="download-meta">
+                {macosTrustLabel(macosDownload)} ·{' '}
                 <a href="/install" rel="noopener">
                   Install guide
-                </a>
+                </a>{' '}
+                · SHA-256 <code>{macosDownload.sha256.slice(0, 12)}…</code>
               </p>
               <p className="download-upgrade-note">
                 <strong>Already using Kingfisher?</strong> Download the latest DMG and replace the
                 app in Applications. Your local Kingfisher work — Studies, Repertoire, Training,
-                preferences — lives in <code>~/Library/Application Support/Kingfisher/</code> and is
-                preserved by the replacement. The application <em>About → Check for updates</em>{' '}
-                action also reports whether a newer public release is available; auto-update is not
-                enabled.
+                preferences — lives in{' '}
+                <code>~/Library/Application Support/kingfisher-desktop/</code> and is preserved by
+                the replacement.{' '}
+                {macosDownload.channel === 'preview'
+                  ? 'A preview build does not update itself: Kingfisher → Check for Updates… says which build you have and opens this page.'
+                  : 'Kingfisher → Check for Updates… offers a newer release when one is published; nothing is checked in the background.'}
               </p>
             </article>
 
@@ -417,10 +432,10 @@ export function LandingPage(): JSX.Element {
               </summary>
               <p>
                 In your browsers IndexedDB on the web, or in{' '}
-                <code>~/Library/Application Support/Kingfisher/</code> on the macOS Preview. The
-                full data lives on your machine, never on a Kingfisher server. To move work between
-                machines, use <em>Settings → Database → Export backup / Import backup</em>. The
-                backup is a portable JSON file you control.
+                <code>~/Library/Application Support/kingfisher-desktop/</code> on the macOS Preview.
+                The full data lives on your machine, never on a Kingfisher server. To move work
+                between machines, use <em>Settings → Database → Export backup / Import backup</em>.
+                The backup is a portable JSON file you control.
               </p>
             </details>
             <details className="faq-item">
@@ -445,11 +460,15 @@ export function LandingPage(): JSX.Element {
                 </span>
               </summary>
               <p>
-                The build is code-signed with an Apple Development identity, but it has not been
-                notarised yet. Notarisation requires a Developer ID Application certificate, which
-                the project does not have today. Until then macOS Gatekeeper refuses the first
-                launch; the <a href="/install">install guide</a> walks you through the right-click →
-                Open flow that gets past it without disabling system protections.
+                Two reasons. It is built from the current source rather than from a tagged release —
+                the version stays {macosDownload.version} and the build number
+                {macosDownload.build === null ? '' : ` (${macosDownload.build})`} is what changes,
+                so no two previews ever share a filename. And it is code-signed with an Apple
+                Development identity but not notarised: notarisation requires a Developer ID
+                Application certificate, which the project does not have today. Until then macOS
+                Gatekeeper refuses the first launch; the <a href="/install">install guide</a> walks
+                you through the right-click → Open flow that gets past it without disabling system
+                protections.
               </p>
             </details>
             <details className="faq-item">

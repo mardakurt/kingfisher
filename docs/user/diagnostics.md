@@ -41,7 +41,7 @@ report — green.
 ## The local log file
 
 Desktop only: `Show log in Finder` reveals
-`~/Library/Application Support/Kingfisher/logs/kingfisher.log`.
+`~/Library/Application Support/kingfisher-desktop/logs/kingfisher.log`.
 The log is rotated at ~1 MB. The companion pairing token is
 replaced with `[redacted]` before anything is written. Nothing
 in the log is sent anywhere.

@@ -5,7 +5,7 @@
   "engines": {
     "node": ">=24"
   },
-  "description": "Kingfisher — a chess research workspace for strong players.",
+  "description": "Kingfisher \u2014 a chess research workspace for strong players.",
   "scripts": {
     "dev": "next dev --port 3210",
     "build": "next build",
@@ -78,7 +78,7 @@
     "polyglot:constants": "node scripts/build-polyglot-constants.mjs && prettier --write src/book/polyglot-constants.generated.ts",
     "pieces:measure": "node scripts/measure-piece-scale.mjs",
     "desktop:field": "node scripts/desktop-field.mjs",
-    "desktop:soak": "playwright test --config playwright.packaged.config.ts",
+    "desktop:soak": "node scripts/desktop-walk.mjs --packaged --duration=30m",
     "release:verify": "node scripts/release-verify.mjs",
     "release:verify:full": "node scripts/release-verify-full.mjs",
     "release:manifest": "node scripts/release-manifest.mjs",
@@ -98,7 +98,11 @@
     "data:cache:prune": "rm -rf .archive-cache .packs .engine-build && echo 'pruned reproducible cache (engines re-fetch via npm run engines:install)'",
     "data:cache:paths": "node -e \"import('./scripts/cache-paths.mjs').then(m => console.log(JSON.stringify(m.cachePaths, null, 2)))\"",
     "data:cache:migrate": "node scripts/migrate-external-cache.mjs",
-    "bench:compression": "node scripts/bench-compression.mjs"
+    "bench:compression": "node scripts/bench-compression.mjs",
+    "desktop:public:verify": "node scripts/desktop-public-verify.mjs",
+    "desktop:walk": "node scripts/desktop-walk.mjs",
+    "desktop:soak:leaks": "playwright test --config playwright.packaged.config.ts",
+    "release:mac:preview": "node scripts/desktop-mac-preview-publish.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.102.8",

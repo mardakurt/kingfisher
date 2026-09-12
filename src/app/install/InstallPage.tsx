@@ -1,5 +1,11 @@
 import type { JSX } from 'react';
 import { DocsLayout } from '@/app/_docs/DocsLayout';
+import {
+  describeMacosDownload,
+  formatBytes,
+  macosDownload,
+  type MacosDownload,
+} from '@/release/macos-download';
 
 /**
  * The user-facing install guide for the macOS Preview.
@@ -12,17 +18,19 @@ import { DocsLayout } from '@/app/_docs/DocsLayout';
  */
 export function InstallPage({
   downloadUrl,
-  repositoryUrl,
+  download = macosDownload,
 }: {
   downloadUrl: string;
-  repositoryUrl: string;
+  repositoryUrl?: string;
+  download?: MacosDownload;
 }): JSX.Element {
+  const name = describeMacosDownload(download);
+  const notarised = download.signature.notarized;
+  const lede = notarised
+    ? `${name} for macOS is signed with a Developer ID certificate and notarised by Apple. It opens like any other application.`
+    : `The honest version. ${name} for macOS is ${download.channel === 'preview' ? 'a preview build of the current source' : 'a release'} — code-signed with an Apple Development identity, not a notarised Developer ID release. Gatekeeper may therefore block the first launch. This page tells you exactly what to do about that, without disabling anything system-wide.`;
   return (
-    <DocsLayout
-      eyebrow="Install guide"
-      title="Installing Kingfisher on macOS"
-      lede="The honest version. Kingfisher 1.0.0 for macOS is a Preview build — code-signed with an Apple Development identity, not a notarised Developer ID release. Gatekeeper may therefore block the first launch. This page tells you exactly what to do about that, without disabling anything system-wide."
-    >
+    <DocsLayout eyebrow="Install guide" title="Installing Kingfisher on macOS" lede={lede}>
       <h2 id="what-you-need">What you need</h2>
       <ul>
         <li>
@@ -38,37 +46,44 @@ export function InstallPage({
 
       <h2 id="download">1. Download</h2>
       <p>
-        Get the DMG from the latest release on GitHub:{}
-        <a href={`${repositoryUrl}/releases/latest`} rel="noopener">
-          {repositoryUrl}/releases/latest
-        </a>
-        .
-      </p>
-      <p>
-        The file is <code>Kingfisher-1.0.0-arm64.dmg</code>. The download button on the landing page
-        points at the same file. If the file you downloaded has a different name, the release page
-        is the source of truth — stop and check the SHA-256 listed there.
+        The current macOS build is <strong>{name}</strong>, published{' '}
+        {download.publishedAt.slice(0, 10)} from commit <code>{download.commit.slice(0, 7)}</code>.
+        The file is <code>{download.filename}</code>, {formatBytes(download.bytes)}, Apple Silicon
+        only. The download button on the landing page points at the same file; so does this one.
       </p>
       <p>
         <a className="btn" href={downloadUrl} rel="noopener">
-          Download Kingfisher-1.0.0-arm64.dmg
+          Download {download.filename}
         </a>
+      </p>
+      <p>
+        It is attached to{' '}
+        <a href={download.releasePage} rel="noopener">
+          {download.releasePage}
+        </a>
+        {download.channel === 'preview'
+          ? ', a GitHub pre-release: the preview channel is kept apart from the stable release page so that a preview can never be mistaken for a release, and so that no two previews ever share a filename.'
+          : '.'}
       </p>
 
       <h2 id="verify">2. (Optional) verify the download</h2>
-      <p>The release page lists the SHA-256 of the DMG. To check yours:</p>
+      <p>The SHA-256 of the file above is:</p>
       <pre>
-        <code>shasum -a 256 ~/Downloads/Kingfisher-1.0.0-arm64.dmg</code>
+        <code>{download.sha256}</code>
+      </pre>
+      <p>To check yours:</p>
+      <pre>
+        <code>shasum -a 256 ~/Downloads/{download.filename}</code>
       </pre>
       <p>
-        The output should match the value on the release page. If it does not, the download was
-        corrupted or tampered with — delete it and re-download.
+        The output should match. If it does not, the download was corrupted or tampered with —
+        delete it and re-download. Nobody has to do this; it is here for the people who want to.
       </p>
 
       <h2 id="open">3. Open the DMG</h2>
       <p>
-        Double-click <code>Kingfisher-1.0.0-arm64.dmg</code> in your Downloads folder. A window
-        opens with the Kingfisher icon and a shortcut to Applications.
+        Double-click <code>{download.filename}</code> in your Downloads folder. A window opens with
+        the Kingfisher icon and a shortcut to Applications.
       </p>
 
       <h2 id="install">4. Move to Applications</h2>
@@ -83,8 +98,8 @@ export function InstallPage({
         about.
       </p>
       <p>
-        <strong>Kingfisher 1.0.0 is code-signed but not notarised.</strong> On a Mac that has not
-        seen this build, macOS will refuse to open it and say the application is <em>damaged</em> or
+        <strong>{name} is code-signed but not notarised.</strong> On a Mac that has not seen this
+        build, macOS will refuse to open it and say the application is <em>damaged</em> or
         {}
         <em>cannot be checked for malicious software</em>. That is not a diagnosis of the file.
         Notarisation is an Apple service that requires a <strong>Developer ID Application</strong>
@@ -159,18 +174,22 @@ export function InstallPage({
       </ol>
 
       <h2 id="updating">7. Updating</h2>
-      <p>There is no auto-update. When a new build is published:</p>
+      <p>
+        {download.channel === 'preview'
+          ? 'A preview build does not update itself. Kingfisher → Check for Updates… says so, names the build you have, and opens the download page. When a new build is published:'
+          : 'Kingfisher → Check for Updates… asks the release host once, when you click it, and installs a newer release with your confirmation. To update by hand instead:'}
+      </p>
       <ol>
         <li>Quit Kingfisher.</li>
-        <li>Download the new DMG from the release page.</li>
+        <li>Download the new DMG from the landing page.</li>
         <li>
           Drag the new <code>Kingfisher.app</code> over the old one in Applications. macOS asks
           whether to replace — confirm.
         </li>
         <li>
           Your studies, repertoire, notes and preferences are kept; they live in{}
-          <code>~/Library/Application Support/Kingfisher/</code> and are not touched by replacing
-          the application bundle.
+          <code>~/Library/Application Support/kingfisher-desktop/</code> and are not touched by
+          replacing the application bundle.
         </li>
       </ol>
 
@@ -184,7 +203,7 @@ export function InstallPage({
         <li>Drag Kingfisher from Applications to the Trash.</li>
         <li>
           Optionally, delete the application-support folder to remove the last copy of your local
-          work: <code>~/Library/Application Support/Kingfisher</code>.
+          work: <code>~/Library/Application Support/kingfisher-desktop</code>.
         </li>
       </ol>
 
@@ -209,7 +228,7 @@ export function InstallPage({
       <p>
         There is nothing on screen to copy from. The shell keeps its own log — launch, companion
         failures, quit — at{}
-        <code>~/Library/Application Support/Kingfisher/logs/kingfisher.log</code>.
+        <code>~/Library/Application Support/kingfisher-desktop/logs/kingfisher.log</code>.
       </p>
       <p>
         The log is bounded to about a megabyte, it never leaves your machine on its own, and the
@@ -217,9 +236,10 @@ export function InstallPage({
         written.
       </p>
       <p>
-        <em>Settings → Diagnostics → Copy support information</em> puts eight lines on the
-        clipboard: version, machine, which sources are ready, which engines started, whether the
-        companion is up. Paste that into your report.
+        <em>Settings → Diagnostics → Copy support information</em> puts a few lines on the
+        clipboard: version, build number, commit and channel, the machine, which sources are ready,
+        which engines started, whether the companion is up. Paste that into your report — the build
+        number is what lets a report about “1.0.0” be matched to the bytes you actually have.
       </p>
       <p>
         <em>Copy full diagnostic report</em> is what to attach. Neither contains your games,

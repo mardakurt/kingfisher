@@ -222,15 +222,119 @@ for (const rel of CANONICAL) {
   );
 }
 
-// 4. Install guide matches the current DMG filename.
+// 4. The public macOS download: one descriptor, and everything agrees with it.
+//
+// `src/release/macos-download.json` is the only file that names the DMG the
+// landing offers. The install guide (Markdown and page), the landing and the
+// README have to name the same file; the descriptor has to describe an
+// immutable asset with a real digest; and no canonical document may claim a
+// trust state the descriptor does not.
+const descriptor = (() => {
+  const content = mustExist('src/release/macos-download.json');
+  if (content === null) return null;
+  try {
+    return JSON.parse(content);
+  } catch (error) {
+    record('descriptor:parse', false, String(error?.message ?? error));
+    return null;
+  }
+})();
+if (descriptor) {
+  const escaped = descriptor.filename.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const fileRe = new RegExp(escaped);
+  record(
+    'descriptor:shape',
+    descriptor.schema === 'kingfisher-macos-download/1' &&
+      ['stable', 'preview'].includes(descriptor.channel) &&
+      /^[0-9a-f]{64}$/.test(descriptor.sha256) &&
+      /^[0-9a-f]{40}$/.test(descriptor.commit) &&
+      descriptor.architecture === 'arm64' &&
+      descriptor.bytes > 100_000_000,
+    `${descriptor.channel} ${descriptor.version}${descriptor.build === null ? '' : ` build ${descriptor.build}`} · ${descriptor.filename}`,
+  );
+  record(
+    'descriptor:immutable-url',
+    !/releases\/latest/.test(descriptor.url) && descriptor.url.endsWith(`/${descriptor.filename}`),
+    descriptor.url,
+  );
+  record(
+    'descriptor:filename-channel',
+    descriptor.channel === 'preview'
+      ? descriptor.filename ===
+          `Kingfisher-${descriptor.version}-preview-${descriptor.build}-arm64.dmg`
+      : descriptor.filename === `Kingfisher-${descriptor.version}-arm64.dmg`,
+    descriptor.filename,
+  );
+  record(
+    'descriptor:no-phase-in-name',
+    !/phase/i.test(descriptor.filename) && !/phase/i.test(descriptor.url),
+    'a build identity, not a phase number',
+  );
+  record(
+    'descriptor:trust-consistent',
+    !descriptor.signature.notarized || descriptor.signature.identity === 'Developer ID Application',
+    `${descriptor.signature.identity}, notarized=${descriptor.signature.notarized}`,
+  );
+  // The typed reader and the URL registry read the same file.
+  mustMatch(
+    'src/release/public-urls.ts',
+    /macos-download\.json/,
+    'public-urls.ts derives the DMG URL from the descriptor',
+  );
+  mustMatch(
+    'src/app/landing/LandingPage.tsx',
+    /macosDownload/,
+    'the landing renders the download card from the descriptor',
+  );
+  mustMatch(
+    'src/app/install/InstallPage.tsx',
+    /download\.filename/,
+    'the install page renders the filename from the descriptor',
+  );
+  // Prose that names a DMG must name this one.
+  for (const rel of [
+    'docs/release/install-macos.md',
+    'README.md',
+    'docs/README.md',
+    'docs/deployment.md',
+  ]) {
+    const content = mustExist(rel);
+    if (content === null) continue;
+    const named = [...content.matchAll(/Kingfisher-[0-9][^\s`)"']*\.dmg/g)].map((m) => m[0]);
+    const wrong = named.filter(
+      (name) =>
+        name !== descriptor.filename && !/-rc\.|-test|preview-<|<build>|-preview-N/.test(name),
+    );
+    record(
+      `descriptor:names-current-dmg:${rel}`,
+      wrong.length === 0,
+      wrong.length
+        ? `names ${[...new Set(wrong)].join(', ')} but the public build is ${descriptor.filename}`
+        : named.length
+          ? `names ${descriptor.filename}`
+          : 'names no DMG',
+    );
+  }
+  mustMatch('docs/release/install-macos.md', fileRe, 'install guide names the current DMG');
+  mustMatch(
+    'docs/release/install-macos.md',
+    new RegExp(descriptor.sha256.slice(0, 16)),
+    'install guide carries the current SHA-256',
+  );
+  if (!descriptor.signature.notarized) {
+    for (const rel of ['docs/release/install-macos.md', 'README.md', 'SECURITY.md']) {
+      mustMatch(
+        rel,
+        /not\s+(yet\s+)?notari[sz]ed/i,
+        `${rel} says the macOS build is not notarised`,
+      );
+    }
+  }
+}
+
 {
   const content = mustExist('docs/release/install-macos.md');
   if (content !== null) {
-    mustMatch(
-      'docs/release/install-macos.md',
-      /Kingfisher-1\.0\.0-arm64\.dmg/,
-      'install guide names the current DMG',
-    );
     mustMatch(
       'docs/release/install-macos.md',
       /right-click.+Open/,
@@ -240,6 +344,46 @@ for (const rel of CANONICAL) {
       'docs/release/install-macos.md',
       /notar/i,
       'install guide is honest about the not-notarised status',
+    );
+  }
+}
+
+// 4b. Canonical documents are portable: no personal absolute paths.
+{
+  const personal =
+    /\/Users\/[A-Za-z0-9._-]+\/|\/private\/var\/folders\/|\/var\/folders\/[a-z0-9]{2}\//;
+  for (const rel of CANONICAL) {
+    if (!rel.endsWith('.md')) continue;
+    mustNotMatch(
+      rel,
+      personal,
+      'canonical documentation must not name a personal or machine-specific path',
+    );
+  }
+}
+
+// 4c. The application-support directory is named correctly wherever it is named.
+//
+// Electron derives userData from the package name, `kingfisher-desktop`; three
+// public documents said `~/Library/Application Support/Kingfisher/`, a directory
+// that does not exist.
+{
+  const wrongDir = /Application Support\/Kingfisher(?![a-z-])/;
+  for (const rel of [
+    'README.md',
+    'AGENTS.md',
+    'SECURITY.md',
+    'docs/release/install-macos.md',
+    'docs/user/getting-started.md',
+    'docs/user/diagnostics.md',
+    'src/app/install/InstallPage.tsx',
+    'src/app/landing/LandingPage.tsx',
+    'src/app/privacy/PrivacyPage.tsx',
+  ]) {
+    mustNotMatch(
+      rel,
+      wrongDir,
+      'the profile directory is ~/Library/Application Support/kingfisher-desktop/',
     );
   }
 }

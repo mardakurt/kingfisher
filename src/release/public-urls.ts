@@ -32,6 +32,14 @@
  * deploys to Vercel" rather than printing a half-truth URL.
  */
 
+/*
+ * The descriptor is imported as JSON with an import attribute so that the
+ * same file loads under Node's type stripping (the desktop build and the
+ * verification scripts read it) and under the Next bundler. `macos-download.ts`
+ * is the typed reader for application code.
+ */
+import macosDownload from './macos-download.json' with { type: 'json' };
+
 const fromEnv = (name: string, fallback: string): string => {
   const value = process.env[name];
   return value && value.length > 0 ? value : fallback;
@@ -124,11 +132,14 @@ export const publicUrl = {
       online: `${this.data}/reference-online-v1/manifest.json`,
     };
   },
-  // The macOS DMG is the asset on the *latest* release page.
-  // We do not hardcode a version here — that is the point of a
-  // `/releases/latest` URL.
+  /*
+   * The macOS DMG the public is offered, from `macos-download.json` — the
+   * one file that names it (see `macos-download.ts`). Never `/releases/latest`:
+   * that URL is GitHub's idea of the latest *release*, which is the stable
+   * 1.0.0 and may be older than the preview the landing offers.
+   */
   get macosDmg(): string {
-    return `${this.release}/download/Kingfisher-1.0.0-arm64.dmg`;
+    return fromEnv('KINGFISHER_PUBLIC_DMG_URL', macosDownload.url);
   },
 } as const;
 
