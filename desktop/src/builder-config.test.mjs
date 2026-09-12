@@ -21,6 +21,8 @@ import { fileURLToPath } from 'node:url';
 import yaml from 'js-yaml';
 import { describe, expect, it } from 'vitest';
 
+import { MINIMUM_MACOS } from './platform-floor.mjs';
+
 import { missingParts, resolveLayout } from './paths.mjs';
 import { REQUIRED_DESKTOP_RESOURCES } from './required-resources.mjs';
 
@@ -100,7 +102,7 @@ describe('electron-builder.yml', () => {
     expect(config.electronVersion).toBe('44.2.0');
     expect(config.mac.hardenedRuntime).toBe(true);
     expect(config.mac.entitlements).toBe('build/entitlements.mac.plist');
-    expect(config.mac.extendInfo.LSMinimumSystemVersion).toBe('11.0');
+    expect(config.mac.extendInfo.LSMinimumSystemVersion).toBe(MINIMUM_MACOS);
     // The .app is notarised in the directory step when credentials are set,
     // so the boot gate and the archives see a stapled application.
     expect(config.mac.notarize).toBe(true);

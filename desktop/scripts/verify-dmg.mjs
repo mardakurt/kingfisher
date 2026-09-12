@@ -31,6 +31,7 @@
  */
 
 import { execFile as execFileCb } from 'node:child_process';
+import { MINIMUM_MACOS } from '../src/platform-floor.mjs';
 import { inspectDesktopResources } from '../src/required-resources.mjs';
 import { existsSync, readFileSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { mkdtemp } from 'node:fs/promises';
@@ -43,7 +44,7 @@ const execFile = promisify(execFileCb);
 
 export const EXPECTED_BUNDLE = 'app.kingfisher.chess';
 export const EXPECTED_VOLUME = 'Kingfisher';
-export const EXPECTED_MIN_MACOS = '11.0';
+export const EXPECTED_MIN_MACOS = MINIMUM_MACOS;
 
 async function run(cmd, args) {
   try {
@@ -84,6 +85,11 @@ export async function verifyDmg(dmg, options = {}) {
     expectCommit = null,
     expectArch = 'arm64',
     expectBundle = EXPECTED_BUNDLE,
+    // What the bundle must declare to Finder. The public verifier passes the
+    // descriptor's value, because it is checking that the published bytes are
+    // the bytes the descriptor describes; a fresh build is held to the floor
+    // Electron itself declares.
+    expectMinimumMacOS = EXPECTED_MIN_MACOS,
   } = options;
   const absolute = path.resolve(dmg);
   const checks = [];
@@ -163,7 +169,7 @@ export async function verifyDmg(dmg, options = {}) {
     Object.assign(facts, { bundleId: id, version: short, build, minimumMacOS: minimum });
     check('bundle id', id === expectBundle, id ?? 'unreadable');
     check('bundle name', name === 'Kingfisher', name ?? 'unreadable');
-    check('minimum macOS', minimum === EXPECTED_MIN_MACOS, minimum ?? 'unreadable');
+    check('minimum macOS', minimum === expectMinimumMacOS, minimum ?? 'unreadable');
     check(
       '.pgn document type declared',
       /pgn/.test(types ?? ''),

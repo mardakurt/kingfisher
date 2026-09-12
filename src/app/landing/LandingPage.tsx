@@ -1,5 +1,11 @@
 import type { JSX } from 'react';
-import { formatBytes, macosDownload, macosTrustLabel } from '@/release/macos-download';
+import {
+  describeMinimumMacOS,
+  formatBytes,
+  macosDownload,
+  macosTrustLabel,
+  minimumMacOSShort,
+} from '@/release/macos-download';
 import { publicUrl } from '@/release/public-urls';
 
 import './landing.css';
@@ -38,7 +44,7 @@ export function LandingPage(): JSX.Element {
     url: publicUrl.landing,
     applicationCategory: 'GameApplication',
     applicationSubCategory: 'Chess Analysis',
-    operatingSystem: 'macOS 11+, Web (Chrome, Safari, Firefox, Edge)',
+    operatingSystem: `${minimumMacOSShort()}, Web (Chrome, Safari, Firefox, Edge)`,
     softwareRequirements: 'WebAssembly, JavaScript, IndexedDB, Service Worker',
     downloadUrl: downloadUrl,
     softwareVersion: macosDownload.version,
@@ -343,7 +349,7 @@ export function LandingPage(): JSX.Element {
                 </li>
                 <li>
                   <span>Minimum OS</span>
-                  <strong>macOS 11 (Big Sur)</strong>
+                  <strong>{describeMinimumMacOS()}</strong>
                 </li>
                 <li>
                   <span>File</span>

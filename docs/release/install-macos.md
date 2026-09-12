@@ -14,8 +14,9 @@ rendered from that file.
 
 ## What you need
 
-- A Mac with **Apple Silicon** (M1 or later), running **macOS 11
-  (Big Sur)** or later.
+- A Mac with **Apple Silicon** (M1 or later), running **macOS 13
+  (Ventura)** or later. (Electron 44, which the application is built on,
+  does not run on anything older.)
 - About **1 GB** of free disk space for the application and a
   fresh study workspace.
 - Nothing else. No Node, no terminal, no database, no account.

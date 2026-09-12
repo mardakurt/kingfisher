@@ -164,6 +164,10 @@ async function main() {
         // The public 1.0.0 predates the bundle id change; the descriptor says
         // which build this is, so the expectation follows it.
         expectBundle: descriptor.bundleId ?? 'app.kingfisher.chess',
+        // The 1.1.0 bundle declared 11.0 when Electron 44 needs 13.0 (Phase
+        // 49); the descriptor records what that build declares, and this
+        // verifier checks bytes against descriptor, not against the source.
+        expectMinimumMacOS: descriptor.bundleMinimumMacOS ?? descriptor.minimumMacOS,
       });
       for (const row of verified.checks) check(`dmg: ${row.label}`, row.ok, row.detail);
       const family = /Developer ID Application/.test(verified.facts.signingAuthority ?? '')

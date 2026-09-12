@@ -33,7 +33,19 @@ export interface MacosDownload {
   readonly sha256: string;
   readonly bytes: number;
   readonly architecture: 'arm64';
+  /**
+   * The oldest macOS the download runs on — Electron's floor
+   * (`desktop/src/platform-floor.mjs`), which is what the install guide and
+   * the landing state.
+   */
   readonly minimumMacOS: string;
+  /**
+   * What the published bundle's Info.plist declares, when it differs from
+   * `minimumMacOS`. The 1.1.0 bundle declared 11.0 while Electron 44 needs
+   * 13.0; the public verifier checks the bytes against this, the documents
+   * state the truth above. Absent once a build declares its real floor.
+   */
+  readonly bundleMinimumMacOS?: string;
   readonly signature: {
     /** The identity family the bundle was signed with. */
     readonly identity: 'Developer ID Application' | 'Apple Development';
@@ -45,6 +57,28 @@ export interface MacosDownload {
 }
 
 export const macosDownload: MacosDownload = descriptor as MacosDownload;
+
+/** Apple's marketing names, for the sentence that states the floor. */
+const MACOS_NAMES: Readonly<Record<number, string>> = {
+  11: 'Big Sur',
+  12: 'Monterey',
+  13: 'Ventura',
+  14: 'Sonoma',
+  15: 'Sequoia',
+  26: 'Tahoe',
+};
+
+/** `"13.0"` → `"macOS 13 (Ventura)"`: the oldest macOS the download runs on. */
+export function describeMinimumMacOS(d: MacosDownload = macosDownload): string {
+  const major = Number(d.minimumMacOS.split('.')[0]);
+  const name = MACOS_NAMES[major];
+  return name ? `macOS ${major} (${name})` : `macOS ${major}`;
+}
+
+/** `"13.0"` → `"macOS 13+"`, for the landing's structured data. */
+export function minimumMacOSShort(d: MacosDownload = macosDownload): string {
+  return `macOS ${Number(d.minimumMacOS.split('.')[0])}+`;
+}
 
 /** `Kingfisher 1.0.0 (build 431)` — how the download is named to a person. */
 export function describeMacosDownload(d: MacosDownload = macosDownload): string {

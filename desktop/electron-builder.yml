@@ -127,11 +127,13 @@ mac:
   extendInfo:
     NSHumanReadableCopyright: 'Copyright © 2026 Kingfisher.'
     LSApplicationCategoryType: public.app-category.games
-    # Electron 44 itself requires macOS 11 (Big Sur) or newer; this is the
-    # floor the bundle declares so Finder refuses to launch on anything older
-    # instead of crashing. `docs/release/install-macos.md` states the same
-    # number and `docs-check` compares the two.
-    LSMinimumSystemVersion: '11.0'
+    # Electron 44's own bundle declares macOS 13 (Ventura) as its floor; this
+    # is the same number, so Finder refuses to launch on anything older
+    # instead of Chromium crashing. `desktop/src/platform-floor.mjs` is the
+    # one place the number is decided and its test reads Electron's plist;
+    # the install guide and the landing say the same version and
+    # `docs-check` compares them.
+    LSMinimumSystemVersion: '13.0'
     NSHighResolutionCapable: true
     # Kingfisher reaches Lichess and the engine projects' release pages over
     # HTTPS, and a local companion over plain HTTP on loopback. The exception

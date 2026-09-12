@@ -26,7 +26,10 @@ describe('macos-download.json', () => {
     expect(macosDownload.sha256).toMatch(/^[0-9a-f]{64}$/);
     expect(macosDownload.bytes).toBeGreaterThan(100_000_000);
     expect(macosDownload.commit).toMatch(/^[0-9a-f]{40}$/);
-    expect(macosDownload.minimumMacOS).toBe('11.0');
+    // Electron 44 runs on macOS 13 and later; a published build may declare a
+    // newer floor, never an older one (desktop/src/platform-floor.mjs).
+    expect(macosDownload.minimumMacOS).toMatch(/^\d+\.\d+$/);
+    expect(Number(macosDownload.minimumMacOS.split('.')[0])).toBeGreaterThanOrEqual(13);
   });
 
   it('a preview filename carries its build number; a stable one does not', () => {

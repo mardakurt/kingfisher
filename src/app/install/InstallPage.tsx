@@ -2,6 +2,7 @@ import type { JSX } from 'react';
 import { DocsLayout } from '@/app/_docs/DocsLayout';
 import {
   describeMacosDownload,
+  describeMinimumMacOS,
   formatBytes,
   macosDownload,
   type MacosDownload,
@@ -35,7 +36,7 @@ export function InstallPage({
       <ul>
         <li>
           A Mac with <strong>Apple Silicon</strong> (M1 or later), running{}
-          <strong>macOS 11 (Big Sur)</strong> or later.
+          <strong>{describeMinimumMacOS(download)}</strong> or later.
         </li>
         <li>
           About <strong>1 GB</strong> of free disk space for the application and a fresh study

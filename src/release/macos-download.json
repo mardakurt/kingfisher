@@ -9,7 +9,8 @@
   "sha256": "c4b21c2ebeb0a3fd7963d63eb38002e8f955fddf8fb015c3edcec20241ce6b27",
   "bytes": 160503993,
   "architecture": "arm64",
-  "minimumMacOS": "11.0",
+  "minimumMacOS": "13.0",
+  "bundleMinimumMacOS": "11.0",
   "signature": { "identity": "Developer ID Application", "notarized": true },
   "publishedAt": "2026-09-12T17:20:44Z",
   "releasePage": "https://github.com/mardakurt/kingfisher/releases/tag/v1.1.0"

@@ -48,6 +48,7 @@ import { pipeline } from 'node:stream/promises';
 import { argv, exit } from 'node:process';
 import { fileURLToPath } from 'node:url';
 
+import { MINIMUM_MACOS } from '../desktop/src/platform-floor.mjs';
 import { verifyDmg } from '../desktop/scripts/verify-dmg.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
@@ -145,7 +146,7 @@ async function main() {
     sha256,
     bytes,
     architecture: 'arm64',
-    minimumMacOS: verified.facts.minimumMacOS ?? '11.0',
+    minimumMacOS: verified.facts.minimumMacOS ?? MINIMUM_MACOS,
     signature: { identity, notarized: false },
     publishedAt: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
     releasePage: `https://github.com/${REPO}/releases/tag/${tag}`,
