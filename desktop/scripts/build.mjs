@@ -120,6 +120,24 @@ const { version } = require_('../package.json');
 const { publicUrl } = await import('../../src/release/public-urls.ts');
 
 const identity = buildIdentity();
+
+/*
+  A publishable build is notarised in the directory step (electron-builder.yml
+  `notarize: true`), which needs Apple credentials in the environment. Without
+  them electron-builder only warns and skips, and a preview or stable DMG would
+  be signed but not notarised — the state the public 1.0.0 shipped in.
+*/
+if (identity.channel !== 'dev') {
+  const apiKey =
+    process.env.APPLE_API_KEY && process.env.APPLE_API_KEY_ID && process.env.APPLE_API_ISSUER;
+  if (!apiKey && !process.env.APPLE_KEYCHAIN_PROFILE) {
+    console.error(
+      `A ${identity.channel} build is notarised, and no notarization credentials are set.\n` +
+        'Set APPLE_API_KEY, APPLE_API_KEY_ID and APPLE_API_ISSUER (docs/release/apple-developer-id-setup.md).',
+    );
+    process.exit(1);
+  }
+}
 const name = artifactName({ version, build: identity.build, channel: identity.channel });
 console.log(
   `Build identity: ${version} · build ${identity.build ?? '?'} · ${identity.commit?.slice(0, 7) ?? 'no commit'}` +

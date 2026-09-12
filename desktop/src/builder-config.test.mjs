@@ -103,7 +103,16 @@ describe('electron-builder.yml', () => {
     expect(config.mac.hardenedRuntime).toBe(true);
     expect(config.mac.entitlements).toBe('build/entitlements.mac.plist');
     expect(config.mac.extendInfo.LSMinimumSystemVersion).toBe('11.0');
-    expect(config.mac.notarize).toBe(false);
+    // The .app is notarised in the directory step when credentials are set,
+    // so the boot gate and the archives see a stapled application.
+    expect(config.mac.notarize).toBe(true);
+  });
+
+  it('refuses a publishable build without notarization credentials', () => {
+    const build = readFileSync(path.join(DESKTOP, 'scripts/build.mjs'), 'utf8');
+    expect(build).toMatch(
+      /identity\.channel !== 'dev'[\s\S]*APPLE_API_KEY[\s\S]*process\.exit\(1\)/,
+    );
   });
 
   it('builds for Apple silicon only, as a DMG and an update ZIP', () => {

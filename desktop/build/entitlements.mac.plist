@@ -7,12 +7,10 @@
   Each line is justified; an entitlement without a justification
   in this comment is a bug.
 
-  Phase 36 audit (the short version):
+  Phase 47 audit (the short version):
 
-    allow-jit                                   Engine.
-    allow-unsigned-executable-memory            Engine.
-    disable-library-validation                   Engine.
-    allow-dyld-environment-variables            Engine.
+    allow-jit                                   V8 and the WebAssembly engine.
+    allow-unsigned-executable-memory            The same JIT pages.
     user-selected.read-write                    File dialogs.
     network.client                              GitHub, Lichess, the
                                                 updater feed.
@@ -21,24 +19,31 @@
                                                 Next app to the
                                                 desktop renderer.
 
-  The audit rejects, in particular, the broad "copy the Electron
-  template" pattern that grants e.g. `disable-library-validation`
-  plus `com.apple.security.cs.allow-unsigned-executable-memory`
-  plus `com.apple.security.cs.debugger` plus the full network
-  suite. Kingfisher does not debug, does not load arbitrary
-  unsigned memory outside the engine path, and does not need
-  `com.apple.security.cs.allow-dyld-environment-variables`
-  outside that same engine path. The combination of *both*
-  disable-library-validation and allow-dyld-environment-variables
-  is the cost of letting a managed native engine, signed by
-  its own upstream project, run inside the Kingfisher process
-  tree. The trade is documented in
-  docs/adr/0041-engine-trust-and-the-sandbox-we-do-not-have.md.
+  Not granted, and why:
+
+    disable-library-validation   Library validation governs code loaded
+                                 *into* a process: dylibs, native Node
+                                 modules. Kingfisher loads none: the
+                                 companion uses Node built-ins (node:sqlite
+                                 included) and the updater hands its archive
+                                 to macOS's own update engine. Managed
+                                 engines are separate processes the companion
+                                 spawns, and a spawned binary is checked by
+                                 its own signature, not by the parent's
+                                 entitlements. Phase 36 granted this for the
+                                 engines; it never applied to them.
+    allow-dyld-environment-variables
+                                 Only meaningful with the one above.
+    debugger, get-task-allow     Never in a release build.
+
+  The trust model for engines is docs/adr/0041-engine-trust-and-the-
+  sandbox-we-do-not-have.md. the packaged engine gate (desktop:engines) runs
+  every managed engine inside the signed, hardened bundle and is the
+  evidence that this set is sufficient.
 
   If a future feature needs another entitlement, add it here
   *and* in this comment in the same commit. The release gate
-  refuses a build whose `entitlements.mac.plist` changed
-  without a comment change.
+  refuses a build whose entitlements diverge from this file.
 -->
 <plist version="1.0">
   <dict>
@@ -53,22 +58,6 @@
     <key>com.apple.security.cs.allow-jit</key>
     <true/>
     <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
-    <true/>
-
-    <!--
-      Managed native engines. Stockfish from the engine
-      project's own release page is signed by that project, not
-      by Apple; some engines ship without any signature at all.
-      Without these two, the hardened runtime refuses to load
-      a binary whose signature chain does not reach Apple's
-      root, and a Kingfisher user who has installed a managed
-      engine would see a hard error on first search. The trust
-      model is documented in
-      docs/adr/0041-engine-trust-and-the-sandbox-we-do-not-have.md.
-    -->
-    <key>com.apple.security.cs.disable-library-validation</key>
-    <true/>
-    <key>com.apple.security.cs.allow-dyld-environment-variables</key>
     <true/>
 
     <!--

@@ -103,7 +103,8 @@ for (const target of targets) {
   // Hardened Runtime applies to executable code, not resource-only frameworks/dylibs.
   if (target.endsWith('.app') || text.includes('executable'))
     check(`${name}: Hardened Runtime`, /flags=.*\bruntime\b/.test(text));
-  const ent = run('codesign', ['-d', '--entitlements', '-', target]);
+  // ':-' asks for the plist itself; a bare '-' is a human-readable dump on macOS 26.
+  const ent = run('codesign', ['-d', '--entitlements', ':-', target]);
   const raw = ent.stdout + ent.stderr;
   if (raw.includes('<plist')) {
     const actual = plist(raw);

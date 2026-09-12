@@ -138,7 +138,14 @@ mac:
       NSAllowsLocalNetworking: true
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
-  notarize: false
+  # electron-builder notarises the signed .app through @electron/notarize when
+  # APPLE_API_KEY, APPLE_API_KEY_ID and APPLE_API_ISSUER are set (a dev build
+  # without them is signed and not notarised, with a warning). That happens in
+  # the directory step, so the boot gate runs against the stapled app and the
+  # DMG and ZIP are archived from it. The DMG gets its own ticket afterwards:
+  # `npm run release:mac:notarize`. `build.mjs` refuses a preview or stable
+  # build without the credentials.
+  notarize: true
   artifactName: '${productName}-${version}-${arch}.${ext}'
 
 # Double-clicking a PGN opens it in Kingfisher. `desktop/src/files.mjs` is
@@ -161,6 +168,11 @@ fileAssociations:
 # icon and committed alongside the build resources so the toolchain
 # is reproducible without re-running the generator.
 dmg:
+  # The disk image is signed with the same Developer ID as the application, so
+  # that Gatekeeper's assessment of the image itself (`spctl --type open`) has
+  # a signature to evaluate; a notarised but unsigned DMG is rejected with "no
+  # usable signature". `release:mac:notarize` then staples the image's ticket.
+  sign: true
   background: build/dmg/background.png
   # The volume icon. By default electron-builder uses the app icon;
   # we point at the same .icns explicitly so the volume gets the

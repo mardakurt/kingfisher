@@ -1,155 +1,140 @@
 #!/usr/bin/env node
 /**
- * `npm run release:mac:notarize` — submit a packaged Kingfisher
- * build to Apple's notary service and staple the ticket.
+ * `npm run release:mac:notarize [<Kingfisher-*.dmg>]` — notarise and staple
+ * the disk image.
  *
- * The submission uses one of two paths, decided by which
- * credentials are set:
+ * The application inside it is already notarised: electron-builder submits
+ * the signed .app and staples its ticket in the directory step of
+ * `desktop:dist` (see `notarize` in `desktop/electron-builder.yml`), so the
+ * DMG and the update ZIP were archived from a stapled app. What the notary
+ * service has not yet seen is the disk image itself, and a DMG without its
+ * own ticket makes Gatekeeper fetch one over the network on first open.
  *
- *   - **App Store Connect API key** (preferred):
- *       APPLE_API_KEY=path/to/AuthKey_XXXXXXXXXX.p8
- *       APPLE_API_KEY_ID=XXXXXXXXXX
- *       APPLE_API_ISSUER=uuid-…
- *     This is the most CI-friendly path because there is no
- *     password or 2FA prompt. The key file must be present on
- *     the build host.
+ * `notarytool` accepts a zip, a dmg or a pkg — never a bare `.app` — which is
+ * why an earlier version of this script, which submitted the .app directory,
+ * could not have worked.
  *
- *   - **notarytool keychain profile** (legacy):
- *       APPLE_NOTARYTOOL_PROFILE=kingfisher
- *     Set up once with `xcrun notarytool store-credentials`.
- *
- * On success the ticket is stapled to the .app (and to the .dmg
- * if one is present in `desktop/dist`).
- *
- * Usage:
- *   node scripts/desktop-mac-notarize.mjs [<path-to-Kingfisher.app>]
+ * Credentials: APPLE_API_KEY (path to the .p8), APPLE_API_KEY_ID and
+ * APPLE_API_ISSUER; or APPLE_KEYCHAIN_PROFILE for a `notarytool
+ * store-credentials` profile. Nothing secret is printed.
  */
 
 import { spawnSync } from 'node:child_process';
-import { existsSync, readdirSync } from 'node:fs';
-import { exit } from 'node:process';
-
-import { fileURLToPath } from 'node:url';
+import { existsSync, readdirSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
-const HERE = join(dirname(fileURLToPath(import.meta.url)), '..');
-const target = process.argv[2]
-  ? resolve(process.argv[2])
-  : join(HERE, 'desktop', 'dist', 'mac-arm64', 'Kingfisher.app');
+import { fileURLToPath } from 'node:url';
 
-if (!existsSync(target)) {
-  console.error(`No Kingfisher at ${target}.`);
-  exit(1);
-}
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const OUT = resolve(process.env.KINGFISHER_DESKTOP_OUT ?? join(ROOT, 'desktop', 'dist'));
 
-const hasApiKey = Boolean(
-  process.env.APPLE_API_KEY && process.env.APPLE_API_KEY_ID && process.env.APPLE_API_ISSUER,
-);
-const hasKeychainProfile = Boolean(process.env.APPLE_NOTARYTOOL_PROFILE);
-if (!hasApiKey && !hasKeychainProfile) {
-  console.error('No notarization credentials set.');
+function credentialArgs() {
+  const { APPLE_API_KEY, APPLE_API_KEY_ID, APPLE_API_ISSUER, APPLE_KEYCHAIN_PROFILE } = process.env;
+  if (APPLE_API_KEY && APPLE_API_KEY_ID && APPLE_API_ISSUER) {
+    if (!existsSync(APPLE_API_KEY)) {
+      console.error('APPLE_API_KEY names a file that does not exist.');
+      process.exit(1);
+    }
+    return ['--key', APPLE_API_KEY, '--key-id', APPLE_API_KEY_ID, '--issuer', APPLE_API_ISSUER];
+  }
+  if (APPLE_KEYCHAIN_PROFILE) return ['--keychain-profile', APPLE_KEYCHAIN_PROFILE];
   console.error(
-    'Set APPLE_API_KEY + APPLE_API_KEY_ID + APPLE_API_ISSUER, or APPLE_NOTARYTOOL_PROFILE.',
+    'No notarization credentials. Set APPLE_API_KEY + APPLE_API_KEY_ID + APPLE_API_ISSUER, or APPLE_KEYCHAIN_PROFILE.',
   );
-  exit(1);
+  process.exit(1);
 }
 
-const notaryArgs = ['notarytool', 'submit', target, '--wait', '--output-format', 'json'];
-if (hasApiKey) {
-  notaryArgs.push(
-    '--key',
-    process.env.APPLE_API_KEY,
-    '--key-id',
-    process.env.APPLE_API_KEY_ID,
-    '--issuer',
-    process.env.APPLE_API_ISSUER,
-  );
-} else {
-  notaryArgs.push('--keychain-profile', process.env.APPLE_NOTARYTOOL_PROFILE);
-}
-
-console.log(`Submitting ${target} to Apple notary service…`);
-const submit = spawnSync('xcrun', notaryArgs, { encoding: 'utf8' });
-if (submit.status !== 0) {
-  console.error('Submission failed.');
-  console.error(submit.stderr || submit.stdout);
-  exit(1);
-}
-const result = JSON.parse(submit.stdout || '{}');
-const id = result.id;
-const status = result.status;
-console.log(`Submission ${id}: ${status}`);
-if (status !== 'Accepted') {
-  console.error('Notarization was not accepted.');
-  const logArgs = ['notarytool', 'log', id];
-  if (hasApiKey) {
-    logArgs.push(
-      '--key',
-      process.env.APPLE_API_KEY,
-      '--key-id',
-      process.env.APPLE_API_KEY_ID,
-      '--issuer',
-      process.env.APPLE_API_ISSUER,
-    );
-  } else {
-    logArgs.push('--keychain-profile', process.env.APPLE_NOTARYTOOL_PROFILE);
+function pickDmg() {
+  if (process.argv[2]) return resolve(process.argv[2]);
+  let candidates = [];
+  try {
+    candidates = readdirSync(OUT).filter((name) => name.endsWith('.dmg'));
+  } catch {
+    /* reported below */
   }
-  const log = spawnSync('xcrun', logArgs, { encoding: 'utf8' });
-  console.error(log.stdout);
-  exit(1);
+  if (candidates.length !== 1) {
+    console.error(
+      candidates.length === 0
+        ? `No .dmg in ${OUT}. Run npm run desktop:dist first, or name the file.`
+        : `More than one .dmg in ${OUT}; name the one to notarise:\n  ${candidates.join('\n  ')}`,
+    );
+    process.exit(1);
+  }
+  return join(OUT, candidates[0]);
 }
 
-/* Staple the ticket. */
-console.log('Stapling ticket…');
-const staple = spawnSync('xcrun', ['stapler', 'staple', target], { encoding: 'utf8' });
-if (staple.status !== 0) {
-  console.error('Stapling failed.');
-  console.error(staple.stderr);
-  exit(1);
+const dmg = pickDmg();
+if (!existsSync(dmg)) {
+  console.error(`No disk image at ${dmg}.`);
+  process.exit(1);
 }
-console.log('Stapled.');
+const credentials = credentialArgs();
 
-/* If a DMG is present, notarize it as well. */
-const distDir = join(HERE, 'desktop', 'dist');
-let dmg;
+/* The app the DMG was built from must already carry its ticket. */
+const app = join(OUT, 'mac-arm64', 'Kingfisher.app');
+if (existsSync(app)) {
+  const appTicket = spawnSync('xcrun', ['stapler', 'validate', app], { encoding: 'utf8' });
+  if (appTicket.status !== 0) {
+    console.error(
+      `${app} has no stapled ticket. The build was made without notarization credentials;\n` +
+        'rebuild with them set rather than notarising a disk image whose application is not.',
+    );
+    process.exit(1);
+  }
+  console.log('✓ the packaged application carries a stapled ticket');
+}
+
+console.log(`Submitting ${basename(dmg)} to the notary service (this takes a few minutes)…`);
+const submit = spawnSync(
+  'xcrun',
+  ['notarytool', 'submit', dmg, '--wait', '--output-format', 'json', ...credentials],
+  { encoding: 'utf8' },
+);
+let result = {};
 try {
-  dmg = readdirSync(distDir).find((name) => name.endsWith('.dmg'));
+  result = JSON.parse(submit.stdout || '{}');
 } catch {
-  dmg = null;
+  /* handled below */
 }
-if (dmg) {
-  const dmgPath = join(distDir, dmg);
-  console.log(`Notarizing DMG ${basename(dmgPath)}…`);
-  const dmgArgs = ['notarytool', 'submit', dmgPath, '--wait', '--output-format', 'json'];
-  if (hasApiKey) {
-    dmgArgs.push(
-      '--key',
-      process.env.APPLE_API_KEY,
-      '--key-id',
-      process.env.APPLE_API_KEY_ID,
-      '--issuer',
-      process.env.APPLE_API_ISSUER,
-    );
+if (submit.status !== 0 || result.status !== 'Accepted') {
+  console.error(`Notarization was not accepted (${result.status ?? 'no verdict'}).`);
+  if (result.id) {
+    const log = spawnSync('xcrun', ['notarytool', 'log', result.id, ...credentials], {
+      encoding: 'utf8',
+    });
+    console.error(log.stdout || log.stderr);
   } else {
-    dmgArgs.push('--keychain-profile', process.env.APPLE_NOTARYTOOL_PROFILE);
+    console.error(submit.stderr);
   }
-  const dmgSubmit = spawnSync('xcrun', dmgArgs, { encoding: 'utf8' });
-  if (dmgSubmit.status !== 0) {
-    console.error('DMG submission failed.');
-    exit(1);
-  }
-  const dmgStaple = spawnSync('xcrun', ['stapler', 'staple', dmgPath], { encoding: 'utf8' });
-  if (dmgStaple.status !== 0) {
-    console.error('DMG stapling failed.');
-    exit(1);
-  }
-  console.log('DMG notarized and stapled.');
+  process.exit(1);
 }
+console.log(`✓ Accepted — submission ${result.id}`);
 
-/* Verify the result. */
-console.log('Verifying…');
-const verify = spawnSync('node', ['scripts/desktop-notary-verify.mjs', target], {
-  cwd: HERE,
-  encoding: 'utf8',
-  stdio: 'inherit',
-});
-process.exit(verify.status ?? 1);
+const staple = spawnSync('xcrun', ['stapler', 'staple', dmg], { encoding: 'utf8' });
+if (staple.status !== 0) {
+  console.error('Stapling the disk image failed.');
+  console.error(staple.stderr || staple.stdout);
+  process.exit(1);
+}
+const validate = spawnSync('xcrun', ['stapler', 'validate', dmg], { encoding: 'utf8' });
+if (validate.status !== 0) {
+  console.error('The stapled ticket does not validate.');
+  process.exit(1);
+}
+console.log('✓ ticket stapled to the disk image and validated');
+
+/* Record the submission beside the artifact for the release manifest. */
+const record = join(OUT, `${basename(dmg)}.notarization.json`);
+console.log(`Notarization record: ${record}`);
+writeFileSync(
+  record,
+  JSON.stringify(
+    {
+      file: basename(dmg),
+      submission: result.id,
+      status: result.status,
+      at: new Date().toISOString(),
+    },
+    null,
+    2,
+  ) + '\n',
+);
