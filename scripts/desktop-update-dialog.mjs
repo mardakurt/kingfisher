@@ -85,7 +85,7 @@ try {
             receivedBytes: 50,
             totalBytes: 100,
             reason:
-              'Error /Users/private/secret latest-mac.yml Authorization: secret\n at updater (file.js:12)',
+              'Error /Users/<name>/secret latest-mac.yml Authorization: secret\n at updater (file.js:12)',
           }),
         status,
       );
@@ -132,7 +132,7 @@ try {
         layout.buttons.every((b) => /Cancel/.test(b)),
       );
       assert.ok(layout.icon > 0);
-      assert.doesNotMatch(layout.text, /private|latest-mac.yml|Authorization|file.js/);
+      assert.doesNotMatch(layout.text, /<name>|latest-mac.yml|Authorization|file.js/);
       await page.screenshot({ path: path.join(out, `${scheme}-${status}.png`) });
     }
   }
