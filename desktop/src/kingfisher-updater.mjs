@@ -27,6 +27,7 @@
  * exercised in CI.
  */
 
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { app, dialog } from 'electron';
@@ -311,8 +312,24 @@ export function on(event, listener) {
  * can purge it under disk pressure.
  */
 export function updaterCacheDir() {
+  /*
+    The directory electron-updater actually uses: `<cache>/<updaterCacheDirName>`
+    from `app-update.yml`, which electron-builder derives from the package
+    name — `kingfisher-desktop-updater`. The first version of this returned
+    `<cache>/Kingfisher/updater`, a directory nothing wrote to, so the prune
+    on quit pruned nothing. Read from the bundle when packaged; the same
+    derivation otherwise.
+  */
   const root = app.getPath('cache');
-  return path.join(root, 'Kingfisher', 'updater');
+  let name = `${app.getName()}-updater`;
+  try {
+    const yml = readFileSync(path.join(process.resourcesPath, 'app-update.yml'), 'utf8');
+    const match = /^updaterCacheDirName:\s*(.+)$/m.exec(yml);
+    if (match) name = match[1].trim();
+  } catch {
+    /* unpackaged, or no feed baked in */
+  }
+  return path.join(root, name);
 }
 
 /**

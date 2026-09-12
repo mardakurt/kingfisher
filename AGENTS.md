@@ -430,7 +430,7 @@ telemetry. One service, in the main process:
   engine, which refuses an update whose signature does not match the
   running application. A failed save barrier aborts the install and
   says so; the verified archive stays cached under
-  `~/Library/Caches/Kingfisher/updater/` for a retry.
+  `~/Library/Caches/kingfisher-desktop-updater/` for a retry.
 - The user's work lives in
   `~/Library/Application Support/kingfisher-desktop/` — the package
   name, not the product name — and the updater never touches it.

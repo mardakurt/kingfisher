@@ -55,15 +55,7 @@
  * stage names a user can reproduce.
  */
 
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  readdirSync,
-  statSync,
-  unlinkSync,
-  writeFileSync,
-} from 'node:fs';
+import { existsSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { app, shell } from 'electron';
@@ -710,17 +702,22 @@ function readAcknowledgedVersion() {
  * --------------------------------------------------------------------- */
 
 export function pruneUpdateCache({ keep = 1 } = {}) {
+  /*
+    electron-updater keeps the archive it downloaded under `pending/` and
+    remembers it in `update-info.json`, and clears `pending/` itself before a
+    new download — so its cache is bounded by design. What can be left
+    behind is a `.partial` from an interrupted download, and, across
+    versions, more than one archive. Those are removed; the newest archive
+    and the info file are not, because they are what lets a downloaded
+    update be installed on the next launch without downloading it again.
+  */
   const dir = updaterCacheDir();
-  try {
-    mkdirSync(dir, { recursive: true });
-  } catch {
-    /* nothing to do */
-  }
+  const pending = path.join(dir, 'pending');
   let entries = [];
   try {
-    entries = readdirSync(dir)
+    entries = readdirSync(pending)
       .map((name) => {
-        const full = path.join(dir, name);
+        const full = path.join(pending, name);
         try {
           return { name, full, mtimeMs: statSync(full).mtimeMs };
         } catch {
@@ -731,20 +728,18 @@ export function pruneUpdateCache({ keep = 1 } = {}) {
   } catch {
     return 0;
   }
-  if (!entries.length) return 0;
-  const verified = entries
-    .filter((e) => !e.name.endsWith('.partial'))
+  const archives = entries
+    .filter((e) => !/\.(partial|tmp)$/.test(e.name))
     .sort((a, b) => b.mtimeMs - a.mtimeMs);
-  const toKeep = new Set(verified.slice(0, keep).map((e) => e.full));
+  const toKeep = new Set(archives.slice(0, keep).map((e) => e.full));
   let removed = 0;
   for (const entry of entries) {
-    if (!toKeep.has(entry.full)) {
-      try {
-        unlinkSync(entry.full);
-        removed += 1;
-      } catch {
-        /* ignore */
-      }
+    if (toKeep.has(entry.full)) continue;
+    try {
+      rmSync(entry.full, { recursive: true, force: true });
+      removed += 1;
+    } catch {
+      /* a file we cannot remove is not worth failing a quit over */
     }
   }
   return removed;

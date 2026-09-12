@@ -560,6 +560,15 @@ Four rules hold here and are the ones to keep:
   impossible to miss again. README states which platforms have actually
   been run.
 
+- **The shell brings its own services back.** A `Service` reports an exit
+  it was not asked for, and the shell starts it again with the same port
+  and token — the pairing the renderer already holds — reloading the
+  window after the web server returns. Only a crash loop (an exit within
+  thirty seconds of a start, three times in five minutes) exhausts the
+  budget; a healthy service that was killed is simply revived.
+  _Diagnostics → Restart companion_ covers the exhausted case by hand.
+  Found by killing both from the fault-injecting walk in Phase 46.
+
 ### What a packaged bundle is
 
 `Resources/app.asar` holds the shell (`desktop/src/`). Under
