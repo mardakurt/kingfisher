@@ -102,23 +102,32 @@ function PaletteDialog() {
    * (fetched once, lazily) joins as soon as it has — the same shape as the
    * openings above.
    */
-  const [playerHits, setPlayerHits] = useState<readonly PlayerSearchHit[]>([]);
+  const legendHits = useMemo<readonly PlayerSearchHit[]>(
+    () => (query.trim().length >= 2 ? searchLegends(query.trim(), 5) : []),
+    [query],
+  );
+  const [rosterHits, setRosterHits] = useState<{
+    readonly query: string;
+    readonly hits: readonly PlayerSearchHit[];
+  } | null>(null);
   useEffect(() => {
     const trimmed = query.trim();
     if (trimmed.length < 2) return;
     let cancelled = false;
-    setPlayerHits(searchLegends(trimmed, 5));
     searchPlayerRoster(trimmed, 5).then((hits) => {
-      if (!cancelled) setPlayerHits(hits);
+      if (!cancelled) setRosterHits({ query: trimmed, hits });
     });
     return () => {
       cancelled = true;
     };
   }, [query]);
-  const playerCommands = useMemo<readonly Command[]>(
-    () => (query.trim().length >= 2 ? playerHits.map((hit) => commandForPlayer(hit, router)) : []),
-    [playerHits, query, router],
-  );
+  const playerCommands = useMemo<readonly Command[]>(() => {
+    const trimmed = query.trim();
+    if (trimmed.length < 2) return [];
+    // The roster's answer replaces the legends' once it is for this query.
+    const hits = rosterHits?.query === trimmed ? rosterHits.hits : legendHits;
+    return hits.map((hit) => commandForPlayer(hit, router));
+  }, [legendHits, rosterHits, query, router]);
 
   /*
     A pasted FEN is not a text query and must not be run as one — a position
