@@ -209,6 +209,9 @@ export function BoardShapes({ shapes, engineArrows = [], draft, orientation }: B
                     setHoveredArrowId((current) => (current === index ? null : current))
                   }
                   data-engine-arrow-hit={index}
+                  data-engine-arrow-from={arrow.arrow.from}
+                  data-engine-arrow-to={arrow.arrow.to}
+                  data-engine-arrow-engine={arrow.arrow.engineName}
                 />
               </g>
             );

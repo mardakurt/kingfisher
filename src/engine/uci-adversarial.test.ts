@@ -89,4 +89,78 @@ describe('engine evidence cannot cross a failed session boundary', () => {
     expect(Position.initial().playUci('e2e4garbage').ok).toBe(false);
     expect(Position.initial().playUci('e2e4q').ok).toBe(false);
   });
+
+  it('drops a bestmove that is not a legal move in the position it was asked about', async () => {
+    for (const [line, expected] of [
+      ['bestmove a1h8', undefined], // squares exist; the move does not
+      ['bestmove e2e4', 'e2e4'],
+      ['bestmove e7e5', undefined], // the other side's move
+      ['bestmove e1g1', undefined], // castling with the pieces in the way
+      ['bestmove e2e4q', undefined], // a promotion suffix on a pawn push
+      ['bestmove 0000', undefined], // the null move some engines emit
+    ] as const) {
+      const { session, emit } = harness();
+      const handle = session.analyse(request, () => {});
+      await flush();
+      emit('info depth 5 score cp 10 pv e2e4');
+      emit(line);
+      const analysis = await handle.finished;
+      expect(analysis.complete, line).toBe(true);
+      expect(analysis.bestMove, line).toBe(expected);
+    }
+  });
+
+  it('survives any bytes an engine can write, and never throws on a line', async () => {
+    const { session, emit } = harness();
+    const update = vi.fn();
+    const handle = session.analyse(request, update);
+    await flush();
+    let seed = 46;
+    const next = () => {
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+      return seed;
+    };
+    const vocabulary = [
+      'info',
+      'depth',
+      'score',
+      'cp',
+      'mate',
+      'pv',
+      'bestmove',
+      'e2e4',
+      'a1h8',
+      'nodes',
+      '-1',
+      '999999999999',
+      'NaN',
+      'string',
+      '',
+      '\u0000',
+      'multipv',
+      '0',
+      'ponder',
+      'currmove',
+    ];
+    for (let i = 0; i < 2000; i += 1) {
+      const words = Array.from(
+        { length: next() % 12 },
+        () => vocabulary[next() % vocabulary.length],
+      );
+      expect(() => emit(words.join(' '))).not.toThrow();
+    }
+    expect(() => emit('info depth ' + 'x'.repeat(100_000))).not.toThrow();
+    emit('bestmove e2e4');
+    const analysis = await handle.finished;
+    expect(analysis.bestMove).toBe('e2e4');
+    // Whatever the noise said, every published line is a legal continuation.
+    for (const line of analysis.lines) {
+      let position = Position.initial();
+      for (const move of line.moves) {
+        const played = position.playUci(move);
+        if (!played.ok) break;
+        position = Position.fromTrustedFen(played.value.after);
+      }
+    }
+  });
 });

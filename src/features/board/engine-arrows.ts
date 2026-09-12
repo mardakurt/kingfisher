@@ -14,6 +14,7 @@ import { useMemo } from 'react';
 import type { San, Square, Uci } from '@/chess/types';
 import type { Score } from '@/chess/evaluation';
 import { positionKey } from '@/chess/fen';
+import { Position } from '@/chess/position';
 import { useEngine } from '@/stores/engine-store';
 import { usePreferences } from '@/stores/preferences-store';
 
@@ -140,6 +141,11 @@ export function computeEngineArrows(
 ): readonly EngineArrow[] {
   if (!show || !currentFen) return [];
   const targetKey = positionKey(currentFen);
+  const position = Position.fromFen(currentFen);
+  if (!position.ok) return [];
+  // The session already refuses an illegal bestmove; the first PV move is
+  // checked here too, because an arrow is drawn from whichever survives.
+  const legal = (uci: Uci) => position.value.playUci(uci).ok;
 
   const collect = (
     slot: 'primary' | 'secondary',
@@ -159,7 +165,7 @@ export function computeEngineArrows(
     // move. Either is fine; the engine's `bestmove` is a stronger claim
     // because it has decided.
     const uci = analysis.bestMove ?? analysis.lines[0]?.moves[0];
-    if (!uci) return null;
+    if (!uci || !legal(uci)) return null;
     const head = analysis.lines.find((line) => line.moves[0] === uci) ?? analysis.lines[0];
     const name = identity?.name ?? 'Engine';
     return {

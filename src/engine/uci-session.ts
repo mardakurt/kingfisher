@@ -40,6 +40,8 @@ interface Search {
   readonly request: AnalysisRequest;
   readonly listener: AnalysisListener;
   readonly rootTurn: Color;
+  /** The position the engine was asked about, for checking what it answers. */
+  readonly root: Position;
   readonly resolve: (analysis: EngineAnalysis) => void;
   readonly reject: (error: unknown) => void;
   lines: Map<number, PrincipalVariation>;
@@ -145,6 +147,7 @@ export class UciSession implements EngineSession {
 
     const search: Search = {
       id: this.nextSearchId++,
+      root,
       request,
       listener,
       rootTurn,
@@ -262,10 +265,19 @@ export class UciSession implements EngineSession {
       return;
     }
     if (message.kind === 'bestmove') {
+      /*
+        An engine's answer is checked against the question. `bestmove` is
+        recorded only if it is a legal move in the position the engine was
+        given; otherwise it is dropped, and the analysis completes without
+        one. A `bestmove a1h8` — a crashed engine, a protocol slip, a wrong
+        position — would otherwise be drawn on the board as an arrow, and
+        an arrow is a chess claim.
+      */
+      const best = message.best && search.root.playUci(message.best).ok ? message.best : null;
       search.snapshot = {
         ...search.snapshot,
-        ...(message.best ? { bestMove: message.best } : {}),
-        ...(message.ponder ? { ponder: message.ponder } : {}),
+        ...(best ? { bestMove: best } : {}),
+        ...(best && message.ponder ? { ponder: message.ponder } : {}),
         complete: true,
       };
       const restricted = search.request.searchMoves;

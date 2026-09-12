@@ -209,7 +209,10 @@ describe('engine best-move arrows', () => {
   });
 
   it('treats the king move as the castling arrow', () => {
-    const fen = 'rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3';
+    // The bishop has left f1, so O-O is legal. The first fixture kept it on f1
+    // and asserted an arrow for a move the position does not allow; the
+    // legality check added in Phase 46 is what caught it.
+    const fen = 'rnbqkbnr/pppp1ppp/8/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 2 3';
     const arrows = computeEngineArrows(
       {
         primary: {
@@ -271,5 +274,21 @@ describe('uciToArrow', () => {
 
   it('rejects too-short strings', () => {
     expect(uciToArrow('e2' as Uci)).toBeNull();
+  });
+
+  it('never draws a move the position does not allow, whatever the engine said', () => {
+    const fen = 'rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3';
+    for (const uci of ['e1g1', 'a1h8', 'e7e5', 'f3f3']) {
+      const arrows = computeEngineArrows(
+        {
+          primary: { analysis: analysis(uci), analysedFen: fen, identity: { name: 'Fixture' } },
+          secondary: EMPTY_SLOT,
+          comparing: false,
+        },
+        fen,
+        true,
+      );
+      expect(arrows, uci).toHaveLength(0);
+    }
   });
 });
