@@ -41,6 +41,9 @@
  * `THEORY_BOOK_PROVENANCE` says which.
  */
 
+import { positionKey } from '@/chess/fen';
+import { Position } from '@/chess/position';
+
 import { briefForLineage, type ResolvedBrief } from './variation-briefs';
 import { loadOpeningCatalog, OPENING_ALIASES, type OpeningEntry } from './opening-catalog';
 
@@ -350,10 +353,34 @@ function build(entries: readonly OpeningEntry[]): TheoryBook {
       return out;
     },
     deepest: (moves) => {
+      /*
+        Located by *position*, ply by ply, not by the move sequence. The book
+        is keyed on canonical position identity, and the same position reached
+        by another order is the same position: 1.Nf3 d5 2.g3 Nf6 3.Bg2 e6
+        4.O-O Be7 5.c4 O-O 6.d4 is the Closed Catalan, and matching the move
+        string found only the King's Indian Attack three plies in. The board's
+        own classifier (`theory/openings.ts`) has always walked positions; the
+        panel must agree with the board. The line lookup remains as the
+        fallback for a move that does not replay, so a malformed SAN degrades
+        to the old answer rather than to nothing.
+      */
       let best: TheoryBookMatch | null = null;
+      let position: Position | null = Position.initial();
       for (let ply = 1; ply <= moves.length; ply += 1) {
-        const entry = byLine.get(moves.slice(0, ply).join(' '));
-        const node = entry ? nodes.get(entry.key) : undefined;
+        let node: TheoryBookNode | undefined;
+        if (position) {
+          const advanced = position.advanceSan(moves[ply - 1] as string);
+          if (advanced.ok) {
+            position = advanced.value.next;
+            node = nodes.get(positionKey(position.fen));
+          } else {
+            position = null;
+          }
+        }
+        if (!node && !position) {
+          const entry = byLine.get(moves.slice(0, ply).join(' '));
+          node = entry ? nodes.get(entry.key) : undefined;
+        }
         if (node) best = { node, ply, beyond: moves.length - ply };
       }
       return best;

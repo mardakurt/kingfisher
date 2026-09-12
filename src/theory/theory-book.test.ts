@@ -108,6 +108,37 @@ describe('theory book', () => {
     expect(match?.beyond).toBe(5);
   });
 
+  it('locates a line by its positions, so a transposition is the opening it reaches', async () => {
+    const book = await loadTheoryBook();
+    // The Closed Catalan by the Réti move order: matching the move string
+    // finds only "King's Indian Attack" at ply 3.
+    const viaReti = ['Nf3', 'd5', 'g3', 'Nf6', 'Bg2', 'e6', 'O-O', 'Be7', 'c4', 'O-O', 'd4'];
+    const direct = ['d4', 'Nf6', 'c4', 'e6', 'g3', 'd5', 'Bg2', 'Be7', 'Nf3', 'O-O', 'O-O'];
+    const transposed = book.deepest(viaReti);
+    const straight = book.deepest(direct);
+    expect(straight?.node.label).toContain('Catalan');
+    // The two orders pass through different named Catalan positions on the
+    // way; what matters is that the Réti order is located as a Catalan at
+    // the position where it becomes one, not as the KIA at ply 3.
+    expect(transposed?.node.label).toContain('Catalan');
+    expect(transposed?.ply).toBeGreaterThanOrEqual(9);
+    // The Najdorf by the 2...Nf6 order is still the Najdorf, at the same ply.
+    const najdorf = book.deepest([
+      'e4',
+      'c5',
+      'Nf3',
+      'Nf6',
+      'Nc3',
+      'd6',
+      'd4',
+      'cxd4',
+      'Nxd4',
+      'a6',
+    ]);
+    expect(najdorf?.node.label).toContain('Najdorf');
+    expect(najdorf?.beyond).toBe(0);
+  });
+
   it('reports an exact match as nothing beyond', async () => {
     const book = await loadTheoryBook();
     const match = book.deepest(['e4', 'c5', 'Nf3', 'd6', 'd4', 'cxd4', 'Nxd4', 'Nf6', 'Nc3', 'a6']);
