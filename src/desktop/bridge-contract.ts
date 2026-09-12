@@ -104,6 +104,13 @@ export const BRIDGE_CONTRACTS: readonly BridgeContract[] = [
     caller: 'features/shell/SettingsDialog.tsx',
   },
   {
+    method: 'restartCompanion',
+    purpose:
+      'Start the companion again after it has died, on the same port with the same token, so ' +
+      'native engines and local databases come back without reopening Kingfisher.',
+    caller: 'features/shell/SettingsDialog.tsx',
+  },
+  {
     method: 'openLogs',
     purpose:
       'Reveal the shell’s own log in the Finder, for the failures that happen before there is ' +
