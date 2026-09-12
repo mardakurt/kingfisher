@@ -124,13 +124,22 @@ export function useDataSources(): readonly ReferenceSource[] {
   const priority = usePreferences((state) => state.sourcePriority);
 
   return useMemo(() => {
-    const packIds = new Set(CATALOG_PACKS.map((pack) => pack.id));
     const preferenceOf = (id: string) => settings[id] ?? DEFAULT_SOURCE_PREFERENCE;
 
     const packs = references.sources.map((source) => ({
       ...source,
       enabled: source.installed && preferenceOf(source.id).enabled,
     }));
+    /*
+      A pack is listed once, as a pack. Every installed pack also registers a
+      provider, and the registry is filtered by the *catalog's* ids alone
+      until Phase 46 — so a pack installed from a URL appeared twice, the
+      second time as a provider row labelled "Companion", which it is not.
+    */
+    const packIds = new Set([
+      ...CATALOG_PACKS.map((pack) => pack.id),
+      ...references.sources.map((source) => source.id),
+    ]);
     const others = providers
       .filter((provider) => !packIds.has(provider.id))
       .map((provider) => describeProvider(provider, preferenceOf(provider.id)));

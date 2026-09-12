@@ -184,19 +184,33 @@ test('the board can be played while an engine arrow is drawn', async ({ page }) 
   await expect(hit).toBeAttached({ timeout: 30_000 });
   const grid = page.getByRole('grid', { name: 'Chessboard' });
   const gridBox = await grid.boundingBox();
-  const fromSquare = await hit.getAttribute('data-engine-arrow-from');
-  const toSquare = await hit.getAttribute('data-engine-arrow-to');
-  const from = await page
-    .getByRole('gridcell', { name: new RegExp(`^${fromSquare},`) })
-    .boundingBox();
-  const to = await page.getByRole('gridcell', { name: new RegExp(`^${toSquare},`) }).boundingBox();
-  expect(gridBox && from && to).toBeTruthy();
-  // The midpoint of the shaft, in page coordinates.
-  await page.mouse.move(
-    (from!.x + from!.width / 2 + to!.x + to!.width / 2) / 2,
-    (from!.y + from!.height / 2 + to!.y + to!.height / 2) / 2,
-  );
-  await expect(page.locator('[data-engine-arrow-tooltip]')).toBeVisible();
+  expect(gridBox).toBeTruthy();
+  /*
+    The arrow follows the search: the first best move at depth 1 is often
+    not the one a few plies later, so the squares read here can be stale by
+    the time the pointer arrives — and a pointer that is not on the current
+    shaft correctly gets no tooltip. Read, move and check together, and
+    retry until the three describe the same arrow.
+  */
+  await expect(async () => {
+    const fromSquare = await hit.getAttribute('data-engine-arrow-from');
+    const toSquare = await hit.getAttribute('data-engine-arrow-to');
+    const from = await page
+      .getByRole('gridcell', { name: new RegExp(`^${fromSquare},`) })
+      .boundingBox();
+    const to = await page
+      .getByRole('gridcell', { name: new RegExp(`^${toSquare},`) })
+      .boundingBox();
+    expect(from && to).toBeTruthy();
+    // Step off first so the move to the midpoint is a pointermove of its own.
+    await page.mouse.move(gridBox!.x - 40, gridBox!.y - 40);
+    // The midpoint of the shaft, in page coordinates.
+    await page.mouse.move(
+      (from!.x + from!.width / 2 + to!.x + to!.width / 2) / 2,
+      (from!.y + from!.height / 2 + to!.y + to!.height / 2) / 2,
+    );
+    await expect(page.locator('[data-engine-arrow-tooltip]')).toBeVisible({ timeout: 1_000 });
+  }).toPass({ timeout: 20_000 });
   // Away from any shaft, the tooltip goes.
   await page.mouse.move(gridBox!.x - 40, gridBox!.y - 40);
   await expect(page.locator('[data-engine-arrow-tooltip]')).toHaveCount(0);

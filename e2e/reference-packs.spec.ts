@@ -91,12 +91,15 @@ function buildFixturePack(): FixturePack {
   /* The chunk records match what the production packer emits.
      Two positions, one game, one player, one playergames entry —
      enough for the explorer to render a row, the catalog to
-     register a source, and the integrity check to pass. */
+     register a source, and the integrity check to pass. The
+     move counts are the counts one game produces: the panel's
+     "games here" figure is the sum of the moves' games, and the
+     test asserts it equals the manifest's own count. */
   const explorer = gzipSync(
     Buffer.from(
       [
-        'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -|e4,e2e4,100,40,35,25,2500,126,60,25,20,15|g1',
-        'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq -|e5,d7d5,80,40,35,25,2500,150,60,20,15,10|g1',
+        'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -|e4,e2e4,1,1,0,0,2500,126,1,1,0,0|g1',
+        'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq -|d5,d7d5,1,1,0,0,2500,126,1,1,0,0|g1',
       ].join('\n') + '\n',
       'utf8',
     ),
@@ -164,7 +167,10 @@ function buildFixturePack(): FixturePack {
     recentSince: 2026,
     shards: { explorer: 1, game: 1, players: 1, playergames: 1 },
     chunks: chunks.map(({ kind, shard, file, bytes, entries }) => ({
-      id: `${kind}-${shard}`,
+      // Zero-padded, as `chunkId()` in src/reference/pack.ts names them; the
+      // validator that requires it was added after this fixture was written,
+      // and the two install tests failed on it from then on.
+      id: `${kind}-${String(shard).padStart(3, '0')}`,
       kind,
       shard,
       file,

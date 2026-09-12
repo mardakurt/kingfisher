@@ -89,6 +89,31 @@ const RUNTIME: Record<string, (page: Page) => Promise<void>> = {
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   },
 
+  showEngineArrows: async (page) => {
+    /*
+      On, the engine's recommendation is drawn as an arrow on the board; off,
+      the engine still analyses — the depth counter still climbs — and no
+      arrow and no legend appears. Both halves are asserted, because a
+      setting that merely hid the legend would leave the arrow on the board.
+    */
+    const start = page.getByRole('button', { name: 'Start analysis (E)' });
+    const depth = page.getByText(/^depth \d+/).first();
+    await withPreference(page, 'showEngineArrows', true);
+    await start.click();
+    await expect(page.locator('[data-engine-arrow-hit]').first()).toBeAttached({
+      timeout: 30_000,
+    });
+    await expect(page.locator('[data-engine-arrow-legend]')).toBeVisible();
+
+    // The reload inside withPreference stops the engine; start it again.
+    await withPreference(page, 'showEngineArrows', false);
+    await start.click();
+    await expect(depth).toBeVisible({ timeout: 30_000 });
+    await page.waitForTimeout(500);
+    await expect(page.locator('[data-engine-arrow-hit]')).toHaveCount(0);
+    await expect(page.locator('[data-engine-arrow-legend]')).toHaveCount(0);
+  },
+
   boardPriority: async (page) => {
     const size = () =>
       page

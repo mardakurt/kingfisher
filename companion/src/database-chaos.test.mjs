@@ -150,6 +150,7 @@ describe('a collection under a running companion', () => {
   it('a query after the file is renamed away is refused with a reason, and the companion stays up', async () => {
     renameSync(fileFor('chaos'), `${fileFor('chaos')}.moved`);
     const answer = await explore(key);
+    // eslint-disable-next-line no-console -- the register line, for the reader of the run
     console.log(`renamed away: HTTP ${answer.status} ${JSON.stringify(answer.body).slice(0, 80)}`);
     // SQLite may still answer from its open handle (the inode is alive), or
     // it may fail; either is honest. What is not allowed is a 500 or a dead
@@ -166,6 +167,7 @@ describe('a collection under a running companion', () => {
   it('a query after the file is deleted is refused with a reason, and the companion stays up', async () => {
     rmSync(fileFor('chaos'));
     const answer = await explore(key);
+    // eslint-disable-next-line no-console -- the register line, for the reader of the run
     console.log(`deleted: HTTP ${answer.status} ${JSON.stringify(answer.body).slice(0, 80)}`);
     expect([200, 400, 404, 409, 410, 503].includes(answer.status), `HTTP ${answer.status}`).toBe(
       true,
@@ -175,6 +177,7 @@ describe('a collection under a running companion', () => {
     // A write into a deleted file must not claim success: SQLite would put
     // it into an inode with no path and lose it when the handle closes.
     const write = await call('/db/import', { key, games: [game('g4', 'f4', 'f2f4')] });
+    // eslint-disable-next-line no-console -- the register line, for the reader of the run
     console.log(
       `write after delete: HTTP ${write.status} ${JSON.stringify(write.body).slice(0, 80)}`,
     );
@@ -197,6 +200,7 @@ describe('a collection under a running companion', () => {
     // the process survives whatever SQLite does with a handle whose file
     // just lost its permissions.
     const answer = await explore(locked);
+    // eslint-disable-next-line no-console -- the register line, for the reader of the run
     console.log(`chmod 000: HTTP ${answer.status} ${JSON.stringify(answer.body).slice(0, 80)}`);
     expect([200, 400, 403, 404, 409, 503].includes(answer.status), `HTTP ${answer.status}`).toBe(
       true,

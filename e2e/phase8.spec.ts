@@ -211,8 +211,10 @@ test('a marked position joins the queue and can be carried into training', async
   await ready(page);
   await page.getByRole('button', { name: 'Bh4', exact: true }).first().click();
 
-  await page.getByRole('button', { name: 'Add to queue' }).click();
-  await expect(page.getByText('Added to your review queue.')).toBeVisible();
+  // Phase 41 renamed the action; the test had kept the Phase 8 copy and
+  // failed on it since.
+  await page.getByRole('button', { name: 'Mark for review' }).click();
+  await expect(page.getByText('Marked for review.')).toBeVisible();
   await expect(page.getByRole('button', { name: /Alpha, A/ }).first()).toBeVisible();
 
   // Reveal, then hand the position to training inside a new set.

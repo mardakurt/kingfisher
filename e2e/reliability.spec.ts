@@ -344,8 +344,15 @@ test('an engine that is stopped and restarted leaves no stale evaluation', async
     timeout: 30_000,
   });
 
-  // Walk quickly through several positions while it is running. A snapshot
-  // from an abandoned search must never land on the position now on the board.
+  /*
+    Walk quickly through several positions while it is running. A snapshot
+    from an abandoned search must never land on the position now on the
+    board — and since the Phase 30 position guard, leaving the analysed
+    position *stops* the engine rather than letting it follow: evidence never
+    survives a position change, and a person starts it again. The test had
+    kept the pre-guard expectation (a Stop button after four moves) and
+    failed on it since.
+  */
   for (const [from, to] of [
     ['e7', 'e5'],
     ['g1', 'f3'],
@@ -354,9 +361,9 @@ test('an engine that is stopped and restarted leaves no stale evaluation', async
   ] as const) {
     await play(page, from, to);
   }
-
-  await page.getByRole('button', { name: 'Stop analysis (E)' }).click();
   await expect(page.getByRole('button', { name: 'Start analysis (E)' })).toBeVisible();
+  // Nothing from the abandoned search is shown against the new position.
+  await expect(page.locator('[data-engine-arrow-hit]')).toHaveCount(0);
 
   // Restarting must produce a fresh evaluation of the position on the board.
   await page.getByRole('button', { name: 'Start analysis (E)' }).click();

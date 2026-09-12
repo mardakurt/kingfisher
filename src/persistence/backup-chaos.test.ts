@@ -226,6 +226,7 @@ describe('backup chaos', () => {
     expect(outcomes.length).toBe(MUTATIONS.length * 2);
     const rejected = outcomes.filter((o) => o.endsWith('rejected')).length;
     const restored = outcomes.length - rejected;
+    // eslint-disable-next-line no-console -- the register line, for the reader of the run
     console.log(`backup chaos: ${rejected} rejected, ${restored} absorbed`);
     // The comparison must be a real one: a snapshot that could not read the
     // stores would make "unchanged" vacuous.
