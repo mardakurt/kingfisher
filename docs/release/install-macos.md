@@ -1,22 +1,16 @@
 # Installing Kingfisher on macOS
 
-This is the **honest version** of the install guide. Kingfisher
-1.0.0 for macOS is a Preview build — code-signed with an Apple
-**Development** identity, **not** a notarised Developer ID release.
-Gatekeeper may therefore block the first launch. This page tells
-you exactly what to do about that, without disabling anything
-system-wide.
+Kingfisher 1.1.0 for macOS is signed with a **Developer ID** certificate
+and **notarised by Apple**, with the notarisation ticket stapled to the
+disk image and to the application. It opens like any other downloaded
+application: a normal double-click, one confirmation from macOS, done.
+Notarisation is Apple's automated malware screening of the build; it is
+not a review or an endorsement of the product.
 
-> **Note on 1.1.0 and notarisation.** The 1.1.0 release is
-> **planned** to be Developer ID signed and Apple-notarised, with
-> a stapled ticket, and a normal double-click as the only step a
-> first launch needs. That release is **not yet published**. Until
-> it is, every macOS build that exists is the 1.0.0 Preview and
-> follows the Gatekeeper instructions below. The release runbook
-> for the trusted 1.1.0 build lives in
-> [`macos-trusted-release.md`](./macos-trusted-release.md); do
-> **not** apply that document to the 1.0.0 binary you actually
-> download from the latest release.
+The exact build the landing page offers — build number, commit, size and
+SHA-256 — is stated in `src/release/macos-download.json` and on the
+[install page](https://kingfisher-chess.vercel.app/install), which is
+rendered from that file.
 
 ## What you need
 
@@ -28,98 +22,74 @@ system-wide.
 
 ## 1. Download
 
-Get the DMG from the latest release on GitHub:
+Get the DMG from the landing page or the latest release on GitHub:
 
+> <https://kingfisher-chess.vercel.app/#macos>
 > <https://github.com/mardakurt/kingfisher/releases/latest>
 
-The file is **`Kingfisher-1.0.0-arm64.dmg`**. The download button
-on the landing page points at the same file. If the file you
-downloaded has a different name, the release page is the source
-of truth — stop and check the SHA-256 listed there.
+The file is **`Kingfisher-1.1.0-arm64.dmg`**. If the file you downloaded
+has a different name, the release page is the source of truth — stop and
+check the SHA-256 listed there.
 
 ## 2. (Optional) verify the download
 
-The release page lists the SHA-256 of the DMG. To check yours:
+The release page and the install page list the SHA-256 of the DMG:
+
+`c4b21c2ebeb0a3fd7963d63eb38002e8f955fddf8fb015c3edcec20241ce6b27`
+
+To check yours:
 
 ```bash
-shasum -a 256 ~/Downloads/Kingfisher-1.0.0-arm64.dmg
+shasum -a 256 ~/Downloads/Kingfisher-1.1.0-arm64.dmg
 ```
 
-The output should match the value on the release page. If it
-does not, the download was corrupted or tampered with — delete
-it and re-download.
+The output should match. If it does not, the download was corrupted or
+tampered with — delete it and download it again.
 
 ## 3. Open the DMG
 
-Double-click `Kingfisher-1.0.0-arm64.dmg` in your Downloads
-folder. A window opens with the Kingfisher icon and a shortcut
-to Applications.
+Double-click `Kingfisher-1.1.0-arm64.dmg` in your Downloads folder. A
+window opens with the Kingfisher icon and a shortcut to Applications.
 
 ## 4. Move to Applications
 
-Drag the Kingfisher icon onto the Applications shortcut. Eject
-the disk image (right-click the desktop icon, **Eject**, or use
-the eject button next to it in Finder).
+Drag the Kingfisher icon onto the Applications shortcut. Eject the disk
+image (right-click the desktop icon, **Eject**, or use the eject button
+next to it in Finder).
 
-## 5. First launch — Gatekeeper
+## 5. First launch
 
-Open Kingfisher from Applications or Spotlight. The first launch
-is the one Gatekeeper cares about.
+Open Kingfisher from Applications or Spotlight. Because the file was
+downloaded, macOS shows its standard confirmation once — _“Kingfisher” is
+an app downloaded from the Internet. Are you sure you want to open it?_ —
+and names Apple's check. Click **Open**. That is the whole first launch.
 
-**Kingfisher 1.0.0 is code-signed but not notarised.** On a Mac
-that has not seen this build, macOS will refuse to open it and say
-the application is _damaged_ or _cannot be checked for malicious
-software_. That is not a diagnosis of the file. Notarisation is
-an Apple service that requires a **Developer ID Application**
-certificate, and this build does not have one — the identity it
-was signed with is a development certificate, which is a
-different kind. Nothing about the application changes when the
-right certificate exists; only the ability to hand you the
-installer does.
+What you should **not** see: _“cannot be opened because the developer
+cannot be verified”_, _“cannot be checked for malicious software”_, or
+_“damaged”_. Those messages mean the file you have is not the build Apple
+notarised — check the SHA-256 above and download it again from the
+release page. There is no right-click workaround to apply, and no
+system-wide setting to change; if a genuine Kingfisher 1.1.0 download
+does show one of those messages, that is a bug — please report it.
 
-**The safe, supported way through Gatekeeper:**
+## 6. Updates
 
-1. Open Finder and go to **Applications**.
-2. **right-click → Open** the Kingfisher icon (or Control-click
-   and choose **Open** from the menu). This is the only step
-   that is different from a normal app launch.
-3. macOS will show a confirmation dialog: _“Kingfisher” is from
-   an unidentified developer. Are you sure you want to open it?_
-   Click **Open**.
-4. From this point on Kingfisher opens normally, including
-   through Spotlight and Launchpad.
+Kingfisher checks for updates only when you ask: **Kingfisher → Check for
+Updates…** in the macOS menu. There is no background poller and no
+surprise restart. When a newer release exists the window offers
+**Install Update**; Kingfisher downloads it, verifies it, finishes saving
+your work, and macOS's own update engine replaces the application and
+reopens it. The first launch after an update shows a one-time notice
+("Kingfisher was updated to …").
 
-The first right-click is the only friction. Gatekeeper records
-the exception per application, per machine, and remembers it.
+**If you have the 1.0.0 preview installed:** it predates the updater and
+is signed with a different identity, so it cannot update itself. Quit it,
+replace it in Applications with 1.1.0 by hand, and open the new one. Your
+Studies, Repertoire, Training, Recent work and Settings are kept — they
+live in `~/Library/Application Support/kingfisher-desktop/`, outside the
+application bundle, and 1.1.0 reads them as they are.
 
-## 6. If the first launch still fails
-
-If macOS still refuses to open the application after step 5, or
-if your Mac is set to only allow App Store and identified
-developers, do **not** flip a system-wide setting. The
-instructions above are the supported path for an unnotarised
-preview. The only thing that removes the right-click step is a
-Developer ID build of the application, which does not exist yet
-for 1.0.0.
-
-If the file truly is damaged (a `shasum` mismatch, for example),
-delete the DMG and download it again. A corrupt download is a
-real problem; the Gatekeeper message by itself is not.
-
-## 7. Updates
-
-Kingfisher checks for updates through the application itself:
-**Kingfisher → Check for Updates…** in the macOS menu, or
-**Settings → Check for Updates** in the application. The check
-is manual — there is no background poller and no surprise
-restart.
-
-The first launch after an update shows a one-time notice in the
-application ("Kingfisher was updated to 1.1.0"). The notice is
-non-modal and dismissable. Acknowledging it tells the desktop
-you have seen it, so the next launch starts clean.
-
-## 8. Uninstalling
+## 7. Uninstalling
 
 Kingfisher stores its data outside the application bundle, in
 `~/Library/Application Support/kingfisher-desktop/`. To remove the
@@ -142,35 +112,32 @@ supported way to keep that work.
 
 ## Common questions
 
-**Is this build the same as the web app?** The application is
-the same Next.js application the web runs, with the same
-features and the same data. The desktop adds a Mac window
-around it, a long-lived companion process, and the engine and
-database integrations that the browser cannot host.
+**Is this build the same as the web app?** The application is the same
+Next.js application the web runs, with the same features and the same
+data. The desktop adds a Mac window around it, a long-lived companion
+process, and the engine and database integrations that the browser
+cannot host.
 
-**Why is the 1.0.0 binary not notarised?** Notarisation
-requires a **Developer ID Application** certificate, which has
-to be applied for through the Apple Developer Program and
-minted by the team that signs the build. Kingfisher 1.0.0 is
-signed with the developer's **Apple Development** identity,
-which is the right identity for development and testing but is
-not trusted by Gatekeeper for distribution. The 1.1.0 release
-will use a Developer ID Application identity and a notarised
-ticket; the runbook for that release is in
+**What does "notarised" mean?** Apple's notary service scanned the
+signed build for malware and issued a ticket, which is stapled to the
+disk image and the application so Gatekeeper can confirm it offline.
+The signature is a `Developer ID Application` certificate held by the
+maintainer (team `3B5CYF9DQ4`). Neither is an endorsement of what the
+application does; both mean the bytes you run are the bytes that were
+signed and screened. How the build is made and checked is in
 [`macos-trusted-release.md`](./macos-trusted-release.md).
 
-**Where are my Studies, Repertoire, and Training saved?** In
-the per-user data directory at
+**Where are my Studies, Repertoire, and Training saved?** In the
+per-user data directory at
 `~/Library/Application Support/kingfisher-desktop/`. The directory is
-created on first launch. Backups, made from **Settings →
-Backup**, are a JSON file you choose a path for. A backup
-restores the same data; uninstalling the app does not delete
-the directory, but moving the .app to the Trash and emptying
-it does not delete it either — the directory only goes away
-when the user explicitly removes it.
+created on first launch. Backups, made from **Settings → Backup**, are
+a JSON file you choose a path for. A backup restores the same data;
+uninstalling the app does not delete the directory, and moving the .app
+to the Trash does not either — the directory only goes away when you
+remove it.
 
-**Does the application phone home?** No. The application
-contacts the network only when the user explicitly asks it
-to: a check for updates, an Explorer query that hits a remote
-source, a Reference pack install from the Data Center. None
-of those run on a timer.
+**Does the application phone home?** No. The application contacts the
+network only when you explicitly ask it to: a check for updates, an
+Explorer query that reaches a remote source, a reference pack install
+from the Data Center. None of these send anything about you; the
+privacy policy is [`docs/legal/privacy.md`](../legal/privacy.md).

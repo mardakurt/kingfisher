@@ -2,55 +2,37 @@
   "schema": "kingfisher-release-manifest/1",
   "kingfisher": {
     "name": "kingfisher",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "description": "Kingfisher — a chess research workspace for strong players."
   },
   "git": {
-    "head": "509eb943fd7ce838e81ead949f639089c6473851",
-    "short": "509eb94",
+    "head": "a9d3b3e29f97a3499ac6011010321df118ce9bbe",
+    "short": "a9d3b3e",
     "branch": "master",
     "dirty": true
   },
   "build": {
-    "timestamp": "2026-09-09T12:31:20.605Z",
+    "timestamp": "2026-09-12T17:22:14.331Z",
     "platform": "darwin",
     "architecture": "arm64",
-    "node": "v26.8.1"
+    "node": "v24.14.0"
   },
   "web": {
     "status": "present",
-    "buildId": "GWT-MSD2kKBOLQskmrZgp"
+    "buildId": "MCzDUFXIS8d6IVoqEBXHh"
   },
   "desktop": [
     {
-      "name": "Kingfisher-1.0.0.dmg",
-      "path": "desktop/dist/Kingfisher-1.0.0.dmg",
-      "bytes": 164455165,
-      "sha256": "9932f957a7a4fa6baacc4a5a2c67166ac325d5a8c1f1112eed920a96f5fbd37b"
+      "name": "Kingfisher-1.1.0-arm64.dmg",
+      "path": "Kingfisher-1.1.0-arm64.dmg",
+      "bytes": 160503993,
+      "sha256": "c4b21c2ebeb0a3fd7963d63eb38002e8f955fddf8fb015c3edcec20241ce6b27"
     },
     {
-      "name": "Kingfisher-1.0.0-arm64.dmg",
-      "path": "desktop/dist/Kingfisher-1.0.0-arm64.dmg",
-      "bytes": 157723500,
-      "sha256": "f7b50af58bfc123691ec58eaf3d00ff4e6d028d773eb24d3b8701436b0bf9fd0"
-    },
-    {
-      "name": "Kingfisher-1.0.0-rc.4-arm64.dmg",
-      "path": "desktop/dist/Kingfisher-1.0.0-rc.4-arm64.dmg",
-      "bytes": 157665362,
-      "sha256": "6dc1a3e0a4ccf000502ae374aa8d5982aaff15cc2ceb190a2d2ed533e3662304"
-    },
-    {
-      "name": "Kingfisher-1.0.0-rc.5.dmg",
-      "path": "desktop/dist/Kingfisher-1.0.0-rc.5.dmg",
-      "bytes": 164436559,
-      "sha256": "29d936a2c8fd246492993eddfa2f5575e0c68375de5e29e0a504b45c56ba2381"
-    },
-    {
-      "name": "Kingfisher-1.0.0-rc.5-arm64.dmg",
-      "path": "desktop/dist/Kingfisher-1.0.0-rc.5-arm64.dmg",
-      "bytes": 157672646,
-      "sha256": "c8f4ef238b48c5c30c051f1b99d16360b15ab160712c32c2b1e94a54a2c5d5ed"
+      "name": "Kingfisher-1.1.0-arm64.zip",
+      "path": "Kingfisher-1.1.0-arm64.zip",
+      "bytes": 160665693,
+      "sha256": "3a5e2ae485204ccfb01a43c25fa507adf2db976e930e6be5f1c1188d22c5a950"
     }
   ],
   "referenceCatalogue": {

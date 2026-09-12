@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { macosDownload } from './macos-download';
 import { publicUrl } from './public-urls';
 
 describe('publicUrl', () => {
@@ -24,7 +25,9 @@ describe('publicUrl', () => {
     // landing download button and the install guide cannot
     // drift. A change to the version requires a coordinated
     // build + release + landing + install-guide update.
-    expect(publicUrl.macosDmg).toContain('Kingfisher-1.0.0-arm64.dmg');
+    // The name comes from the descriptor, which names the published build.
+    expect(publicUrl.macosDmg).toContain(`Kingfisher-${macosDownload.version}-arm64.dmg`);
+    expect(publicUrl.macosDmg).toBe(macosDownload.url);
   });
 
   it('exposes GitHub URLs for the repository, issues and discussions', () => {

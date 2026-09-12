@@ -21,15 +21,15 @@ export function SecurityPage({ issuesUrl }: { issuesUrl: string }): JSX.Element 
         <tbody>
           <tr>
             <td>Web application</td>
-            <td>Kingfisher 1.0</td>
+            <td>Kingfisher 1.1</td>
             <td>Current. Hosted at the Vercel landing/studio host.</td>
           </tr>
           <tr>
             <td>macOS application</td>
-            <td>Kingfisher 1.0.0 Preview</td>
+            <td>Kingfisher 1.1.0</td>
             <td>
-              Apple Silicon DMG, code-signed, <strong>not notarised</strong>; right-click → Open on
-              first launch.
+              Apple Silicon DMG, signed with Developer ID and <strong>notarised by Apple</strong>;
+              opens with a double-click.
             </td>
           </tr>
         </tbody>
@@ -101,7 +101,7 @@ export function SecurityPage({ issuesUrl }: { issuesUrl: string }): JSX.Element 
         </li>
       </ul>
 
-      <h2 id="macos">macOS Preview application</h2>
+      <h2 id="macos">macOS application</h2>
       <ul>
         <li>
           The desktop shell is <strong>Electron</strong> with <code>contextIsolation: true</code>,{}
@@ -110,10 +110,16 @@ export function SecurityPage({ issuesUrl }: { issuesUrl: string }): JSX.Element 
           the same application is safe to serve over a public origin.
         </li>
         <li>
-          The companions loopback server authenticates any HTTP request with a per-profile pairing
-          token; the token is generated on first launch, written to the profile directory, and the
-          shell and the companion are the only two processes that ever hold it. Cross-origin
-          requests are refused by CORS.
+          The companion&rsquo;s loopback server authenticates every request except{' '}
+          <code>/health</code> with a pairing token the shell mints in memory on each launch and
+          never writes to disk; the shell and the companion are the only two processes that ever
+          hold it. Cross-origin requests are refused by CORS.
+        </li>
+        <li>
+          The application is signed with a <strong>Developer ID Application</strong> certificate
+          with the Hardened Runtime, notarised by Apple, and stapled; the build refuses to sign a
+          bundle missing any required runtime file and launches the notarised application before it
+          makes a disk image.
         </li>
         <li>
           <strong>Native engines are not sandboxed.</strong> They run with the users own
@@ -150,9 +156,11 @@ export function SecurityPage({ issuesUrl }: { issuesUrl: string }): JSX.Element 
           IndexedDB, scoped to the origin.
         </li>
         <li>
-          <strong>No auto-update.</strong> The macOS Preview is downloaded again from the GitHub
-          release page when the user wants to upgrade. The web build is whatever is currently
-          deployed; if a fix is urgent, a manual refresh picks it up.
+          <strong>No background update.</strong> The macOS application checks for a newer release
+          only when you choose <em>Kingfisher → Check for Updates…</em>, and installs one only when
+          you click <em>Install Update</em>; the download is verified against the release feed and
+          your work is saved before the application is replaced. The web build is whatever is
+          currently deployed; if a fix is urgent, a manual refresh picks it up.
         </li>
       </ul>
 
@@ -179,8 +187,8 @@ export function SecurityPage({ issuesUrl }: { issuesUrl: string }): JSX.Element 
       <p>The report should include:</p>
       <ul>
         <li>
-          the affected version (e.g. <code>Kingfisher 1.0</code> for the web build or{}
-          <code>Kingfisher 1.0.0</code> for the macOS Preview);
+          the affected version (e.g. <code>Kingfisher 1.1</code> for the web build or{}
+          <code>Kingfisher 1.1.0</code> and its build number for the macOS application);
         </li>
         <li>a minimal reproduction;</li>
         <li>what you observed and what you expected;</li>

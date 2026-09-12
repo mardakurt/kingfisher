@@ -2,16 +2,16 @@
 
 A local-first chess research workstation for serious players.
 
-> **Public release · 1.0.0** (web stable · macOS Preview)
+> **Public release · 1.1.0** (web · macOS, Developer ID signed and notarised)
 > No account. No telemetry. No subscription.
 
-|                                                                           |                                                                                    |
-| ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| 🌐 **[Launch the web app](https://kingfisher-roan.vercel.app/)**          | Open in any modern browser. The Stockfish engine is in the page; no install.       |
-| 🍎 **[Download for macOS](https://kingfisher-chess.vercel.app/#macos)**   | Apple Silicon, code-signed. _Preview build of the current source — not notarised._ |
-| 📦 **[Source on GitHub](https://github.com/mardakurt/kingfisher)**        | Releases, source, issue tracker, changelog.                                        |
-| 📖 **[Changelog](CHANGELOG.md)**                                          | What changed in each release.                                                      |
-| 🐛 **[Report a problem](https://github.com/mardakurt/kingfisher/issues)** | Issue templates for bugs and feature requests.                                     |
+|                                                                           |                                                                                            |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| 🌐 **[Launch the web app](https://kingfisher-roan.vercel.app/)**          | Open in any modern browser. The Stockfish engine is in the page; no install.               |
+| 🍎 **[Download for macOS](https://kingfisher-chess.vercel.app/#macos)**   | Apple Silicon. Signed with Developer ID and notarised by Apple; opens with a double-click. |
+| 📦 **[Source on GitHub](https://github.com/mardakurt/kingfisher)**        | Releases, source, issue tracker, changelog.                                                |
+| 📖 **[Changelog](CHANGELOG.md)**                                          | What changed in each release.                                                              |
+| 🐛 **[Report a problem](https://github.com/mardakurt/kingfisher/issues)** | Issue templates for bugs and feature requests.                                             |
 
 Engine analysis, opening databases, annotation and game trees in one interface,
 built for someone who already knows what a Najdorf is and wants better tools —
@@ -79,10 +79,11 @@ re-import. No cloud sync is required and none is implied.
   See [`docs/adr/00xx-optional-account-sync.md`](docs/adr/00xx-optional-account-sync.md)
   for the architecture rationale.
 - **macOS app** as a `.dmg` from the
-  [landing page](https://kingfisher-chess.vercel.app/#macos), which always
-  links the current preview build; `src/release/macos-download.json` is the
-  file that names it. Apple Silicon only. Right-click → Open → Open on the
-  first launch — see [`docs/release/install-macos.md`](docs/release/install-macos.md).
+  [landing page](https://kingfisher-chess.vercel.app/#macos), which links
+  the current release; `src/release/macos-download.json` is the file that
+  names it. Apple Silicon only. Developer ID signed and notarised: open the
+  DMG, drag to Applications, double-click — see
+  [`docs/release/install-macos.md`](docs/release/install-macos.md).
 - **Source** at <https://github.com/mardakurt/kingfisher>. Releases, source,
   issues and changelog live here.
 - **Optional reference data** (Elite OTB, Recent Theory, High-Rated Online)
@@ -120,14 +121,12 @@ mirror. There is no client-side analytics on the landing page.
 
 ## Known limitations
 
-- **The macOS build is a preview, not notarised** — a Developer ID
-  Application certificate is the missing piece. Until then the install
-  guide walks through right-click → Open. A preview keeps the marketing
-  version (1.0.0) and carries a build number; two previews never share
-  a filename.
-- **A preview does not update itself** — _Kingfisher → Check for
-  Updates…_ says which build you have and opens the download page.
-  Nothing is checked in the background.
+- **The public 1.0.0 cannot update itself** — it predates the updater and
+  is signed with a different identity, which macOS's update engine
+  rightly refuses. Replace it by hand once; the work in
+  `~/Library/Application Support/kingfisher-desktop/` is kept. From 1.1.0,
+  _Kingfisher → Check for Updates…_ installs the next release. Nothing is
+  checked in the background.
 - **Windows, Linux and Intel Macs are not built and not supported** —
   the packaging configuration is macOS arm64 only.
 - **No games before 2020** in any first-party reference.
@@ -236,8 +235,8 @@ games behind him, and the page says so. See
 
 The sections below are the record of what each phase set out to fix, kept
 because the reasons are still the reasons. They are history, not a status line:
-the current public release is **Kingfisher 1.0.0** (web stable at 1.0;
-macOS Preview at 1.0.0), and what it does and does not do is in
+the current public release is **Kingfisher 1.1.0** (web and macOS), and
+what changed is in [`CHANGELOG.md`](CHANGELOG.md); the 1.0.0 notes are in
 [`docs/release/1.0.0.md`](docs/release/1.0.0.md).
 
 ### Phase 15 — deep enough to prepare with
@@ -724,10 +723,10 @@ implied. Every "yes" names the command that produced it against the packaged
 | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | macOS arm64 — builds, installs, run | **yes** — `npm run desktop:smoke -- --packaged`, 17 checks, window in about 3 s                                                                                           |
 | macOS x64, Windows, Linux           | **not built**; the configuration is `arm64` only and `desktop/src/builder-config.test.mjs` pins it                                                                        |
-| Code signed                         | **yes** — `Apple Development` identity, Hardened Runtime, all seven entitlements, signature valid                                                                         |
-| Accepted by Gatekeeper elsewhere    | **no** — an _Apple Development_ identity is not a distribution one                                                                                                        |
-| Notarised                           | **no** — no ticket stapled                                                                                                                                                |
-| Check for Updates                   | **manual**; a preview build names its build number and opens the download page; a stable build asks the GitHub feed once                                                  |
+| Code signed                         | **yes** — `Developer ID Application` (team 3B5CYF9DQ4), Hardened Runtime, five entitlements, every nested code object; `npm run desktop:sign:verify`                      |
+| Accepted by Gatekeeper elsewhere    | **yes** — `spctl --assess` answers "accepted, source=Notarized Developer ID" for the app and the DMG; a quarantined copy assesses the same                                |
+| Notarised                           | **yes** — ticket stapled to the `.app` and the `.dmg`, `stapler validate` passes; `npm run desktop:notary:verify`                                                         |
+| Check for Updates                   | **yes** — on the click only; `npm run desktop:update:real` performed a real 1.0.5 → 1.1.0 update through the menu and dialog, with the study still there afterwards       |
 | Build identity                      | **yes** — version, build number, commit and channel in `CFBundleVersion`, the bundle and _Settings → Diagnostics_                                                         |
 | `.pgn` file association             | declared and **exercised** — a PGN named on the command line, or handed over while running, opens on the board                                                            |
 | Native engines, packaged            | **yes** — all six, installed and searched inside the bundle; `npm run desktop:engines -- --packaged`, 25 checks                                                           |
@@ -739,16 +738,13 @@ implied. Every "yes" names the command that produced it against the packaged
 | A long random walk                  | `npm run desktop:walk -- --packaged --seed=N --actions=1000`; `npm run desktop:soak` is the same for thirty minutes                                                       |
 | The DMG itself                      | `node desktop/scripts/verify-dmg.mjs <dmg>`; the public one, byte for byte: `npm run desktop:public:verify -- --full`                                                     |
 
-The bundle is properly signed: `Identifier=app.kingfisher.chess`, hardened
-runtime on, `valid on disk`, `satisfies its Designated Requirement`. What it is
-not is _distributable_. Notarised distribution needs a **Developer ID
-Application** certificate, which is a different kind from either identity the
-maintainer's machine holds — _Apple Distribution_ is for the App Store, and
-_Apple Development_ is for running on registered devices, which is what the
-current signature is good for and no more. Until that certificate exists the
-landing offers a clearly labelled **preview** of the current source, published
-by `npm run release:mac:preview` as a GitHub pre-release under its own
-immutable tag.
+The bundle is signed with a `Developer ID Application` identity, hardened
+runtime on, notarised by Apple with the ticket stapled to the `.app` and the
+`.dmg`, and it cannot be built incomplete: the build refuses to sign a bundle
+missing any required runtime file and launches the signed, notarised
+application before it makes a disk image. The procedure is
+[`docs/release/macos-trusted-release.md`](docs/release/macos-trusted-release.md);
+`npm run desktop:certify` is the gate every candidate passes first.
 
 ---
 

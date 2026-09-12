@@ -335,16 +335,48 @@ if (descriptor) {
 {
   const content = mustExist('docs/release/install-macos.md');
   if (content !== null) {
-    mustMatch(
-      'docs/release/install-macos.md',
-      /right-click.+Open/,
-      'install guide documents the right-click → Open Gatekeeper flow',
-    );
-    mustMatch(
-      'docs/release/install-macos.md',
-      /notar/i,
-      'install guide is honest about the not-notarised status',
-    );
+    if (descriptor.signature.notarized) {
+      /*
+        A notarised release opens with a double-click. The right-click
+        workaround was the honest instruction for the preview; keeping it
+        after notarisation would teach people to bypass Gatekeeper for no
+        reason. And notarisation is Apple's malware screening, never an
+        endorsement: "Apple approved" and "Apple certified" are forbidden.
+      */
+      mustNotMatch(
+        'docs/release/install-macos.md',
+        /right-click\s*(→|->)\s*\*{0,2}Open\*{0,2}\s+the/i,
+        'install guide no longer instructs the right-click → Open workaround',
+      );
+      mustMatch(
+        'docs/release/install-macos.md',
+        /Developer ID/,
+        'install guide says the build is signed with Developer ID',
+      );
+      mustMatch(
+        'docs/release/install-macos.md',
+        /notari[sz]ed by Apple/i,
+        'install guide says the build is notarised by Apple',
+      );
+      for (const rel of ['docs/release/install-macos.md', 'README.md', 'SECURITY.md']) {
+        mustNotMatch(
+          rel,
+          /Apple[- ](approved|certified|endorsed)/i,
+          `${rel} does not describe notarisation as an Apple endorsement`,
+        );
+      }
+    } else {
+      mustMatch(
+        'docs/release/install-macos.md',
+        /right-click.+Open/,
+        'install guide documents the right-click → Open Gatekeeper flow',
+      );
+      mustMatch(
+        'docs/release/install-macos.md',
+        /notar/i,
+        'install guide is honest about the not-notarised status',
+      );
+    }
   }
 }
 
@@ -415,19 +447,32 @@ if (descriptor) {
       /Sync is active|cloud sync|cross-device sync is enabled|sync across/i,
       'SECURITY.md must not claim cross-device Sync is active',
     );
-    // Notarisation is fine to *mention* (e.g. "not notarised") but
-    // SECURITY.md must not claim the build *is* notarised.
-    mustNotMatch(
-      'SECURITY.md',
-      /is notarised|are notarised|has been notarised|notarisation (passes|succeeded|is complete)/i,
-      'SECURITY.md must not claim the build is notarised',
-    );
-    // The page should explicitly state the build is not notarised.
-    mustMatch(
-      'SECURITY.md',
-      /not\s+notarised|not\s+notarized|not\s+yet\s+notarised|not\s+yet\s+notarized/i,
-      'SECURITY.md says the macOS build is not notarised',
-    );
+    // SECURITY.md's notarisation claim must agree with the descriptor,
+    // whichever way it goes: the descriptor is written from the published
+    // bytes after `desktop:notary:verify`, and the page follows it.
+    if (descriptor.signature.notarized) {
+      mustMatch(
+        'SECURITY.md',
+        /notarised by Apple|notarized by Apple/i,
+        'SECURITY.md says the macOS build is notarised, as the descriptor records',
+      );
+      mustNotMatch(
+        'SECURITY.md',
+        /Notarisation, today: none|is not notarised|not yet notarised/i,
+        'SECURITY.md does not still describe an unnotarised build',
+      );
+    } else {
+      mustNotMatch(
+        'SECURITY.md',
+        /is notarised|are notarised|has been notarised|notarisation (passes|succeeded|is complete)/i,
+        'SECURITY.md must not claim the build is notarised',
+      );
+      mustMatch(
+        'SECURITY.md',
+        /not\s+notarised|not\s+notarized|not\s+yet\s+notarised|not\s+yet\s+notarized/i,
+        'SECURITY.md says the macOS build is not notarised',
+      );
+    }
   }
 }
 

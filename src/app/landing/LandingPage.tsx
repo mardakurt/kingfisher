@@ -447,28 +447,27 @@ export function LandingPage(): JSX.Element {
               </summary>
               <p>
                 Yes. The bundled Kingfisher Starter answers from your local data once it has been
-                installed on first run. The macOS Preview runs entirely on your machine. The web
+                installed on first run. The macOS application runs entirely on your machine. The web
                 build needs a network only for first load and for an optional, on-demand reference
                 query; a downloaded pack keeps working without the network.
               </p>
             </details>
             <details className="faq-item">
               <summary>
-                <span>Why does the macOS build say “Preview”?</span>
+                <span>
+                  {macosDownload.signature.notarized
+                    ? 'Is the macOS build safe to open?'
+                    : 'Why does the macOS build say “Preview”?'}
+                </span>
                 <span className="faq-icon" aria-hidden="true">
                   +
                 </span>
               </summary>
               <p>
-                Two reasons. It is built from the current source rather than from a tagged release —
-                the version stays {macosDownload.version} and the build number
-                {macosDownload.build === null ? '' : ` (${macosDownload.build})`} is what changes,
-                so no two previews ever share a filename. And it is code-signed with an Apple
-                Development identity but not notarised: notarisation requires a Developer ID
-                Application certificate, which the project does not have today. Until then macOS
-                Gatekeeper refuses the first launch; the <a href="/install">install guide</a> walks
-                you through the right-click → Open flow that gets past it without disabling system
-                protections.
+                {macosDownload.signature.notarized
+                  ? `Kingfisher ${macosDownload.version} is signed with a Developer ID certificate and notarised by Apple, with the ticket stapled to the disk image and the application, so it opens with a normal double-click after macOS's standard "downloaded from the Internet" confirmation. Notarisation is Apple's automated malware screening, not an endorsement. The install guide lists the SHA-256 so you can check the file you have.`
+                  : `Two reasons. It is built from the current source rather than from a tagged release — the version stays ${macosDownload.version} and the build number${macosDownload.build === null ? '' : ` (${macosDownload.build})`} is what changes, so no two previews ever share a filename. And it is code-signed with an Apple Development identity but not notarised: notarisation requires a Developer ID Application certificate. Until then macOS Gatekeeper refuses the first launch; the install guide walks you through the right-click → Open flow that gets past it without disabling system protections.`}{' '}
+                <a href="/install">Install guide</a>.
               </p>
             </details>
             <details className="faq-item">

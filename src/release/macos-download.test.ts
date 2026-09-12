@@ -62,7 +62,7 @@ describe('macos-download.json', () => {
       }),
     ).toBe('Apple Silicon · Notarised');
     expect(describeMacosDownload({ ...macosDownload, channel: 'preview', build: 431 })).toBe(
-      'Kingfisher 1.0.0 preview (build 431)',
+      `Kingfisher ${macosDownload.version} preview (build 431)`,
     );
   });
 });
