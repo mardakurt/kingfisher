@@ -166,28 +166,41 @@ export const CATALOGUE = [
   },
   {
     id: 'halogen',
-    name: 'Halogen 16.0.0',
+    name: 'Halogen 16.8.0',
     family: 'alphabeta',
     kind: 'binary',
-    version: '16.0.0',
+    version: '16.8.0',
     license: 'GPL-3.0-or-later',
     source: 'https://github.com/KierenP/Halogen',
-    notes: 'A compact, strong NNUE engine. The smallest native download here, at about 20 MB.',
+    notes:
+      'A compact, strong NNUE engine. Halogen 16.0.0 ran past its own depth limit on ' +
+      'trivial positions and died with SIGBUS before answering (found by the packaged ' +
+      'engine gate); 16.8.0 stops at depth 65 and answers.',
+    /*
+      Upstream publishes 16.8.0 under a rolling `latest` tag rather than a
+      version tag. The recorded digest is what pins the bytes: if the tag is
+      moved to a newer build, installation is refused with a digest mismatch
+      until the catalogue is deliberately updated — never silently upgraded.
+    */
     assets: {
       'darwin-arm64': {
-        url: 'https://github.com/KierenP/Halogen/releases/download/v16/Halogen-16.0.0-macos-arm64-neon-dotprod',
+        url: 'https://github.com/KierenP/Halogen/releases/download/latest/Halogen-16.8.0-macos-arm64-neon-dotprod',
         file: 'halogen',
       },
       'darwin-x64': {
-        url: 'https://github.com/KierenP/Halogen/releases/download/v16/Halogen-16.0.0-macos-x86_64-legacy',
+        url: 'https://github.com/KierenP/Halogen/releases/download/latest/Halogen-16.8.0-macos-x86_64-legacy',
+        file: 'halogen',
+      },
+      'linux-arm64': {
+        url: 'https://github.com/KierenP/Halogen/releases/download/latest/Halogen-16.8.0-linux-arm64-neon-dotprod',
         file: 'halogen',
       },
       'linux-x64': {
-        url: 'https://github.com/KierenP/Halogen/releases/download/v16/Halogen-16.0.0-linux-x86_64-legacy',
+        url: 'https://github.com/KierenP/Halogen/releases/download/latest/Halogen-16.8.0-linux-x86_64-legacy',
         file: 'halogen',
       },
       'win32-x64': {
-        url: 'https://github.com/KierenP/Halogen/releases/download/v16/Halogen-16.0.0-windows-x86_64-legacy.exe',
+        url: 'https://github.com/KierenP/Halogen/releases/download/latest/Halogen-16.8.0-windows-x86_64-legacy.exe',
         file: 'halogen.exe',
       },
     },
