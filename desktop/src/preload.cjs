@@ -33,6 +33,12 @@ const switchValue = (name) => {
 };
 
 /** Listener registration that hands back its own removal. */
+/** The post-update notice, kept for a listener that attaches after it was sent. */
+let pendingUpdateNotice = null;
+ipcRenderer.on('kingfisher:update-installed', (_event, payload) => {
+  pendingUpdateNotice = payload ?? null;
+});
+
 const on = (channel, listener) => {
   const wrapped = (_event, payload) => listener(payload);
   ipcRenderer.on(channel, wrapped);
@@ -175,7 +181,10 @@ contextBridge.exposeInMainWorld('kingfisher', {
     return () => ipcRenderer.removeListener('kingfisher:save-barrier:request', wrapped);
   },
   showUpdateDialog: () => ipcRenderer.send('kingfisher:show-update-dialog'),
-  acknowledgeUpdate: (version) => ipcRenderer.invoke('kingfisher:update-acknowledge', version),
+  acknowledgeUpdate: (version) => {
+    pendingUpdateNotice = null;
+    return ipcRenderer.invoke('kingfisher:update-acknowledge', version);
+  },
   /**
    * Phase 37: receive the one-shot "this app was just installed over
    * a previous version" event. The main process decides whether to
@@ -183,7 +192,16 @@ contextBridge.exposeInMainWorld('kingfisher', {
    * renderer has acknowledged (via `acknowledgeUpdate`). The
    * renderer never has to invent that comparison.
    */
-  onUpdateInstalled: (listener) => on('kingfisher:update-installed', listener),
+  onUpdateInstalled: (listener) => {
+    const off = on('kingfisher:update-installed', listener);
+    // Sent on did-finish-load, before React has subscribed: hand a late
+    // subscriber what already arrived. Cleared when the notice is dismissed.
+    if (pendingUpdateNotice) {
+      const payload = pendingUpdateNotice;
+      queueMicrotask(() => listener(payload));
+    }
+    return off;
+  },
 
   /**
    * A document the user opened from the Finder, the menu, or a drop.

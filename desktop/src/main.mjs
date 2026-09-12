@@ -59,7 +59,7 @@ import {
   check,
   configureChannel,
   manualDownloadUrl,
-  hasAcknowledgedUpdate,
+  recordLaunch,
   installAndRestart,
   pruneUpdateCache,
   setStagingFeed,
@@ -1075,12 +1075,12 @@ if (!app.requestSingleInstanceLock()) {
       Doing it from the main process means the renderer never has
       to read the userData directory itself.
     */
-    const currentVersion = app.getVersion();
-    if (app.isPackaged && !hasAcknowledgedUpdate(currentVersion)) {
+    const notice = recordLaunch(app.getVersion());
+    if (app.isPackaged && notice) {
+      // The preload keeps this for a renderer that subscribes after it was
+      // sent; React mounts its listener well after did-finish-load.
       state.window?.webContents.once('did-finish-load', () => {
-        state.window?.webContents.send('kingfisher:update-installed', {
-          version: currentVersion,
-        });
+        state.window?.webContents.send('kingfisher:update-installed', notice);
       });
     }
 

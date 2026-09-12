@@ -650,51 +650,84 @@ export async function setStagingFeed({ url, channel = 'latest' } = {}) {
 }
 
 /* --------------------------------------------------------------------- *
- * First-launch acknowledgement                                           *
+ * The post-update notice                                                 *
  * --------------------------------------------------------------------- */
 
+/*
+  One small file in the profile, `kingfisher-update-state.json`:
+
+    lastLaunchedVersion   the version that last ran on this profile
+    noticeFrom            the version an update replaced, until dismissed
+    acknowledgedVersion   the version whose notice was dismissed
+
+  A launch whose version differs from the last one recorded is an update
+  (or a downgrade) and sets `noticeFrom`; a fresh profile has no last
+  version and gets no notice — "Kingfisher was updated to 1.1.0" on a first
+  install was the first version's behaviour. The notice stays pending
+  across launches until the person dismisses it.
+*/
+
 const ACKNOWLEDGED_VERSION_KEY = 'kingfisher.acknowledgedUpdateVersion';
+const STATE_FILE = 'kingfisher-update-state.json';
+
+function stateFile() {
+  return `${app.getPath('userData')}/${STATE_FILE}`;
+}
+
+function readState() {
+  try {
+    const file = stateFile();
+    if (!existsSync(file)) return {};
+    const body = JSON.parse(readFileSync(file, 'utf8'));
+    return body && typeof body === 'object' ? body : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeState(next) {
+  try {
+    writeFileSync(stateFile(), `${JSON.stringify(next, null, 2)}\n`, 'utf8');
+  } catch (err) {
+    log('update', `update state not written: ${String(err?.message ?? err)}`);
+  }
+}
 
 /**
- * Returns `true` if the running build has already shown its
- * "Kingfisher was updated to X.Y.Z" notice to the user. Used by the
- * shell to gate the small post-update confirmation banner so it
- * appears exactly once.
+ * Record this launch. Returns the notice to show, or null: the version an
+ * update replaced, if one did and it has not been dismissed.
  */
+export function recordLaunch(currentVersion = app.getVersion()) {
+  const state = readState();
+  const previous = state.lastLaunchedVersion ?? null;
+  const next = { ...state, lastLaunchedVersion: currentVersion };
+  if (previous && previous !== currentVersion) {
+    next.noticeFrom = previous;
+    delete next[ACKNOWLEDGED_VERSION_KEY];
+  }
+  if (JSON.stringify(next) !== JSON.stringify(state)) writeState(next);
+  if (next.noticeFrom && next[ACKNOWLEDGED_VERSION_KEY] !== currentVersion) {
+    return { version: currentVersion, previousVersion: next.noticeFrom };
+  }
+  return null;
+}
+
+/** Whether the notice for this version has been dismissed. */
 export function hasAcknowledgedUpdate(currentVersion = app.getVersion()) {
-  try {
-    return app.getPath('userData') && Boolean(readAcknowledgedVersion() === currentVersion);
-  } catch {
-    return false;
-  }
+  const state = readState();
+  return !state.noticeFrom || state[ACKNOWLEDGED_VERSION_KEY] === currentVersion;
 }
 
+/** The person dismissed the notice: never again for this version. */
 export function acknowledgeUpdate(currentVersion = app.getVersion()) {
-  try {
-    const p = `${app.getPath('userData')}/kingfisher-update-state.json`;
-    writeFileSync(
-      p,
-      JSON.stringify(
-        { [ACKNOWLEDGED_VERSION_KEY]: currentVersion, at: new Date().toISOString() },
-        null,
-        2,
-      ),
-      'utf8',
-    );
-  } catch (err) {
-    log('update', `acknowledge failed: ${String(err?.message ?? err)}`);
-  }
-}
-
-function readAcknowledgedVersion() {
-  try {
-    const p = `${app.getPath('userData')}/kingfisher-update-state.json`;
-    if (!existsSync(p)) return null;
-    const body = JSON.parse(readFileSync(p, 'utf8'));
-    return body?.[ACKNOWLEDGED_VERSION_KEY] ?? null;
-  } catch {
-    return null;
-  }
+  const state = readState();
+  const next = {
+    ...state,
+    [ACKNOWLEDGED_VERSION_KEY]: currentVersion,
+    at: new Date().toISOString(),
+  };
+  delete next.noticeFrom;
+  writeState(next);
 }
 
 /* --------------------------------------------------------------------- *
