@@ -71,7 +71,22 @@ async function open(binary, profile) {
 }
 
 /** The version the running bundle reports, from the shell rather than the file. */
-const versionOf = (app) => app.evaluate(({ app: electronApp }) => electronApp.getVersion());
+/**
+ * Version *and* build. Two builds of the same marketing version are different
+ * programs — the public 1.0.0 and a 1.0.0 preview from a hundred commits later
+ * — and the identity a build records (`desktop/src/build-identity.mjs`) is
+ * what tells them apart. A build made before the identity existed reports its
+ * version alone.
+ */
+const versionOf = async (app, window) => {
+  const version = await app.evaluate(({ app: electronApp }) => electronApp.getVersion());
+  // The build number comes through the bridge's diagnostics; a build made
+  // before the identity existed has no `build` there and reports its version.
+  const build = await window
+    .evaluate(() => window.kingfisher?.diagnostics?.().then((d) => d.build?.number ?? null))
+    .catch(() => null);
+  return build ? `${version} (build ${build})` : version;
+};
 
 async function main() {
   if (process.platform !== 'darwin') {
@@ -116,7 +131,7 @@ async function main() {
     // --- 1. The old build, with work in it. --------------------------------
     let { app, window } = await open(previous, profile);
     running = app;
-    const before = await versionOf(app);
+    const before = await versionOf(app, window);
     console.log(`  … opened ${before}\n`);
 
     // The old binary's navigation is not under test; load the authoring route
@@ -168,10 +183,10 @@ async function main() {
     // --- 2. The new build, on the same directory. --------------------------
     ({ app, window } = await open(current, profile));
     running = app;
-    const after = await versionOf(app);
+    const after = await versionOf(app, window);
     console.log(`  … reopened as ${after}\n`);
 
-    check('the two builds really are different versions', before !== after, `${before} → ${after}`);
+    check('the two builds really are different builds', before !== after, `${before} → ${after}`);
 
     /*
       A driven click and a poll. `element.click()` from inside `evaluate` does
