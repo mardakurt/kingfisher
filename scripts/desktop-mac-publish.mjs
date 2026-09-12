@@ -6,7 +6,7 @@
  * The artifacts are the same ones the auto-update flow expects:
  *
  *   - Kingfisher-<version>-arm64.dmg        first-install + manual fallback
- *   - Kingfisher-<version>-arm64-mac.zip    auto-update payload
+ *   - Kingfisher-<version>-arm64.zip        auto-update payload
  *   - latest-mac.yml                        electron-builder's update feed
  *   - kingfisher-release-manifest.json      human-readable release manifest
  *   - SHA256SUMS                            digests for cross-checking
@@ -34,7 +34,9 @@ if (!tag) {
 }
 const title = process.argv[3] || tag;
 
-const distDir = join(HERE, 'desktop', 'dist');
+// The build's output directory: `desktop/dist`, or wherever build.mjs was
+// told (or chose, for a checkout path electron-builder refuses) to write.
+const distDir = resolve(process.env.KINGFISHER_DESKTOP_OUT ?? join(HERE, 'desktop', 'dist'));
 const versionMatch = /^v?(\d+\.\d+\.\d+(?:-[A-Za-z0-9.-]+)?)$/.exec(tag);
 if (!versionMatch) {
   console.error(`Tag ${tag} does not look like a semver version.`);
@@ -44,12 +46,12 @@ const version = versionMatch[1];
 
 const expected = [
   `Kingfisher-${version}-arm64.dmg`,
-  `Kingfisher-${version}-arm64-mac.zip`,
+  `Kingfisher-${version}-arm64.zip`,
   'latest-mac.yml',
 ];
 const missing = expected.filter((name) => !existsSync(join(distDir, name)));
 if (missing.length) {
-  console.error(`Missing artifacts in desktop/dist: ${missing.join(', ')}`);
+  console.error(`Missing artifacts in ${distDir}: ${missing.join(', ')}`);
   exit(1);
 }
 
