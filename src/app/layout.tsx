@@ -110,6 +110,13 @@ const THEME_BOOTSTRAP = `
  * application and absent in a browser; a browser therefore falls through and
  * keeps the zero defaults in `globals.css`, which is what stops the web build
  * from reserving space for a control it does not have.
+ *
+ * What is written is the shell's geometry — `--mac-titlebar-safe-*`, the
+ * rectangle macOS is drawing over — and not the reservation itself. The
+ * reservation, `--titlebar-safe-*`, is derived from it in `globals.css`, where
+ * full screen can set it to zero for as long as the buttons are gone. An
+ * inline value on the root would beat any stylesheet rule and the reservation
+ * could never collapse.
  */
 const WINDOW_CHROME_BOOTSTRAP = `
 (function () {
@@ -117,8 +124,8 @@ const WINDOW_CHROME_BOOTSTRAP = `
     var chrome = window.kingfisher && window.kingfisher.windowChrome;
     if (!chrome || !chrome.safe) return;
     var root = document.documentElement;
-    root.style.setProperty('--titlebar-safe-w', chrome.safe.width + 'px');
-    root.style.setProperty('--titlebar-safe-h', chrome.safe.height + 'px');
+    root.style.setProperty('--mac-titlebar-safe-w', chrome.safe.width + 'px');
+    root.style.setProperty('--mac-titlebar-safe-h', chrome.safe.height + 'px');
     root.dataset.titlebar = chrome.kind;
   } catch (error) {
     /* No reservation is the safe failure: the application looks like the web. */

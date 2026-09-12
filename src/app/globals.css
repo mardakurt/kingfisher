@@ -67,9 +67,18 @@
     shell hands them over on the bridge, and the bootstrap in `layout.tsx` sets
     them here before first paint. Nothing else may set them, and no component
     may hard-code the number — see `features/shell/TitleBarSafeArea.tsx`.
+
+    Two pairs, deliberately. `--mac-titlebar-safe-*` is what the shell said:
+    the rectangle macOS draws its buttons over, written inline on the root by
+    the bootstrap and constant for the life of the window. `--titlebar-safe-*`
+    is what the application reserves, which is the same thing — except in
+    full screen, where the buttons are gone and the reservation is zero (see
+    the `data-fullscreen` rule below). Every consumer reads the second pair.
   */
-  --titlebar-safe-w: 0px;
-  --titlebar-safe-h: 0px;
+  --mac-titlebar-safe-w: 0px;
+  --mac-titlebar-safe-h: 0px;
+  --titlebar-safe-w: var(--mac-titlebar-safe-w);
+  --titlebar-safe-h: var(--mac-titlebar-safe-h);
   --panel-header: 36px;
   --focus-ring: 2px;
   --motion-quick: 90ms;
@@ -272,6 +281,24 @@ body {
   border-radius: 3px;
 }
 
+/*
+ * The command palette's search field shows focus as one control.
+ *
+ * The icon and the input share a field, and the ring belongs to the field. The
+ * input's own `:focus-visible` outline is turned off here — unlayered, so it
+ * wins over the global rule above the way that rule wins over a utility class
+ * — because the ring it drew was the input's rectangle: it started after the
+ * icon, ended before the field's edge, and the dialog's rounded top clipped it
+ * into a gold U. `:focus-within` is the whole mechanism; there is no JS state.
+ */
+[data-palette-search]:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+[data-palette-search] input:focus-visible {
+  outline: none;
+}
+
 /* Numeric data must line up in columns: evaluations, node counts, ratings. */
 .tabular {
   font-variant-numeric: tabular-nums;
@@ -375,6 +402,31 @@ body {
 }
 
 /*
+ * Full screen: the buttons are gone, and so is the room kept for them.
+ *
+ * macOS moves the traffic lights into the auto-hiding menu bar when a window
+ * goes full screen. A reservation kept for them then holds the Kingfisher mark
+ * 84 px in from an edge with nothing in the way, which is the corner every Mac
+ * user has seen in an application that did not notice. The shell reports the
+ * window's own `enter-full-screen` / `leave-full-screen` (never a guess from
+ * the viewport), `useDesktop.ts` writes this one attribute, and the leading
+ * inset collapses here: the sidebar header's padding, the corner marker and
+ * the focus-mode band all read `--titlebar-safe-*`, so they move together.
+ *
+ * The transition is on the header's padding only, and short: macOS animates
+ * the window into full screen and a brand that snapped while the frame was
+ * still moving would look like a glitch, while one that drifted for longer
+ * than the frame would look like a second animation.
+ */
+:root[data-fullscreen='true'] {
+  --titlebar-safe-w: 0px;
+  --titlebar-safe-h: 0px;
+}
+:root[data-titlebar] nav[data-sidebar] > [data-titlebar-drag] {
+  transition: padding-left var(--motion-standard) ease-out;
+}
+
+/*
  * The collapsed navigation rail, under a macOS hidden title bar.
  *
  * The rail is 72 px and the window buttons need 84 px of it, so there is no
@@ -387,7 +439,9 @@ body {
  * before first paint by the bootstrap in `layout.tsx`, while a React condition
  * would have to wait for an effect and would render one frame of the overlap.
  */
-:root[data-titlebar='mac-hidden-titlebar'] nav[data-sidebar='collapsed'] .kf-titlebar-yield {
+:root[data-titlebar='mac-hidden-titlebar']:not([data-fullscreen='true'])
+  nav[data-sidebar='collapsed']
+  .kf-titlebar-yield {
   display: none;
 }
 

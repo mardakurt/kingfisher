@@ -136,6 +136,17 @@ export interface DesktopBridge {
   onShowDiagnostics(listener: () => void): () => void;
   onShowSettings(listener: () => void): () => void;
   /**
+   * Whether the window is full screen, from the process that knows.
+   *
+   * Delivered on every change and once on attach. In full screen macOS takes
+   * the traffic lights away, so the reservation `windowChrome` describes has
+   * nothing to reserve for and the application collapses it (see
+   * `useDesktop.ts` and the `data-fullscreen` rules in `globals.css`). One
+   * boolean and nothing else: the renderer is told about the window, and is
+   * given no way to control it.
+   */
+  onFullscreenChange(listener: (fullscreen: boolean) => void): () => void;
+  /**
    * Phase 35: the renderer-facing surface of the desktop update service.
    *
    * The renderer never makes the HTTPS request to GitHub, never sees the

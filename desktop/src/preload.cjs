@@ -224,4 +224,21 @@ contextBridge.exposeInMainWorld('kingfisher', {
   },
   onShowDiagnostics: (listener) => on('kingfisher:show-diagnostics', listener),
   onShowSettings: (listener) => on('kingfisher:show-settings', listener),
+
+  /**
+   * Whether the window is full screen, as the shell sees it.
+   *
+   * One boolean, delivered on every change and once on attach, so the
+   * application can collapse the room it keeps for the window buttons while
+   * macOS has taken them away. Deliberately not the other direction: nothing
+   * here lets the page set full screen, resize, move or otherwise hold the
+   * window. The channel names are the ones `window-chrome.mjs` states; a
+   * CommonJS preload cannot import that module, so `fullscreen-ipc.test.mjs`
+   * checks the two agree.
+   */
+  onFullscreenChange: (listener) => {
+    const off = on('kingfisher:fullscreen', (full) => listener(full === true));
+    ipcRenderer.send('kingfisher:fullscreen-wanted');
+    return off;
+  },
 });

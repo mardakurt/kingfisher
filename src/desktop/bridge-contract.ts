@@ -134,6 +134,13 @@ export const BRIDGE_CONTRACTS: readonly BridgeContract[] = [
     caller: 'desktop/useDesktop.ts',
   },
   {
+    method: 'onFullscreenChange',
+    purpose:
+      'Whether the window is full screen, so the room kept for the macOS window buttons can ' +
+      'collapse while the system has taken them away, and come back when it returns them.',
+    caller: 'desktop/useDesktop.ts',
+  },
+  {
     method: 'updateStatus',
     purpose:
       'Phase 35: read the current update verdict so a freshly-mounted Settings panel can paint ' +

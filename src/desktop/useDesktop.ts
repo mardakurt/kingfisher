@@ -184,6 +184,31 @@ export function useDesktopIntegration(): void {
   }, []);
 
   /**
+   * Full screen, as one attribute on the root.
+   *
+   * The shell reports the window's own `enter-full-screen` and
+   * `leave-full-screen`; this writes `data-fullscreen` and nothing else. The
+   * geometry lives in CSS — `globals.css` collapses `--titlebar-safe-w` and
+   * `--titlebar-safe-h` to zero under that attribute — so the sidebar header,
+   * the corner marker and the band all move in the same frame without any of
+   * them knowing why. Off the desktop there is no bridge, no attribute, and
+   * the rule never applies.
+   */
+  useEffect(() => {
+    const bridge = desktop();
+    if (!bridge || typeof bridge.onFullscreenChange !== 'function') return;
+    const root = document.documentElement;
+    const off = bridge.onFullscreenChange((fullscreen) => {
+      if (fullscreen) root.dataset.fullscreen = 'true';
+      else delete root.dataset.fullscreen;
+    });
+    return () => {
+      off();
+      delete root.dataset.fullscreen;
+    };
+  }, []);
+
+  /**
    * Phase 37: install the save-barrier handler. The main process
    * asks the renderer to confirm that all authored writes are
    * committed before installing an update. The handler is wired

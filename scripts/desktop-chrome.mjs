@@ -80,6 +80,16 @@ const SIZES = [
   { name: '1920×1080', width: 1920, height: 1080 },
 ];
 
+/**
+ * Where the mark sits when there are no buttons to make room for.
+ *
+ * The sidebar header's own inset, `0.875rem` in `Sidebar.tsx` — the same 14 px
+ * a browser shows, because with the buttons gone the desktop has no reason to
+ * differ from the web. Stated here in pixels so the full-screen check is an
+ * equality, not a "less than before".
+ */
+const FULLSCREEN_BRAND_X = 14;
+
 /** Routes whose top-left is owned by a different workspace header. */
 const ROUTES = ['/analysis', '/openings', '/players', '/databases', '/repertoire'];
 
@@ -169,6 +179,7 @@ async function survey(window) {
       safeWidth: style.getPropertyValue('--titlebar-safe-w').trim(),
       safeHeight: style.getPropertyValue('--titlebar-safe-h').trim(),
       titlebar: root.dataset.titlebar ?? null,
+      fullscreen: root.dataset.fullscreen ?? null,
       sidebar: document.querySelector('nav[data-sidebar]')?.dataset.sidebar ?? null,
       reservations: [...document.querySelectorAll('[data-titlebar-safe]')].map((el) => ({
         kind: el.dataset.titlebarSafe,
@@ -444,9 +455,48 @@ async function main() {
   */
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setFullScreen(true));
   await window.waitForTimeout(1500);
-  await assertClear(window, light, 'full screen');
+
+  /*
+    6a. And the way in: the buttons are gone, so the room for them must be too.
+
+    No collision check here, deliberately. `light` is where the buttons are in
+    a window; in full screen macOS draws them in the menu bar and nothing at
+    all in that rectangle, so a mark there collides with nothing — and being
+    there is precisely what this state requires.
+
+    Phase 48. macOS takes the traffic lights into the menu bar in full screen,
+    and a reservation that stayed would hold the brand 84 px from an edge with
+    nothing in the way. The shell reports the state (the renderer must not
+    guess it from the viewport), the root carries `data-fullscreen`, the
+    reservation is zero, and the mark sits at the header's own plain inset —
+    the 14 px it has in a browser — rather than where the buttons were.
+  */
+  const full = await survey(window);
+  check(
+    'the application is told the window is full screen',
+    full.fullscreen === 'true',
+    `data-fullscreen=${full.fullscreen ?? 'unset'}`,
+  );
+  check(
+    'and the reservation collapses to nothing',
+    full.safeWidth === '0px' && full.safeHeight === '0px',
+    `${full.safeWidth} × ${full.safeHeight}`,
+  );
+  check(
+    'so the mark moves left into the freed corner',
+    full.brand !== null && Math.round(full.brand.x) === FULLSCREEN_BRAND_X,
+    full.brand
+      ? `x ${Math.round(full.brand.x)}, expected ${FULLSCREEN_BRAND_X} (windowed: ${MAC_BRAND_REGION.x})`
+      : 'no mark painted',
+  );
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setFullScreen(false));
   await window.waitForTimeout(1500);
+  const back = await survey(window);
+  check(
+    'leaving full screen clears the attribute',
+    back.fullscreen === null,
+    `data-fullscreen=${back.fullscreen ?? 'unset'}`,
+  );
   const returned = await app.evaluate(({ BrowserWindow }) => {
     const w = BrowserWindow.getAllWindows()[0];
     return { full: w.isFullScreen(), position: w.getWindowButtonPosition() };

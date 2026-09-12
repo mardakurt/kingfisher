@@ -114,6 +114,35 @@ export const MAC_BRAND_REGION = {
 };
 
 /**
+ * The IPC channels full screen travels on, named once for both processes.
+ *
+ * ## Why full screen is a state the renderer has to be told about
+ *
+ * In full screen macOS takes the traffic lights away: they live in the
+ * auto-hiding menu bar and are drawn over nothing. The rectangle above is then
+ * a reservation for controls that are not there, and a sidebar that kept
+ * honouring it would hold its brand 84 px in from an edge with nothing in the
+ * way — the corner a person notices in every Mac application that got this
+ * wrong. The reservation therefore collapses to zero for as long as the window
+ * is full screen, and the brand moves into the space, and it moves back when
+ * the buttons do.
+ *
+ * "Is the window full screen" is a fact only the shell has. The renderer must
+ * not infer it from the viewport — an external display at the window's own
+ * size is not full screen, and a full-screen window on a small panel is not
+ * wide — so the shell reports the window's `enter-full-screen` and
+ * `leave-full-screen` events, and the renderer asks once on attach so a
+ * reload inside full screen starts in the right state. What crosses the bridge
+ * is one boolean; the renderer gets no handle on the window and cannot set it.
+ */
+export const FULLSCREEN_CHANNELS = Object.freeze({
+  /** Shell → renderer: `true` on entering full screen, `false` on leaving. */
+  changed: 'kingfisher:fullscreen',
+  /** Renderer → shell: a listener attached; answer with the current state. */
+  wanted: 'kingfisher:fullscreen-wanted',
+});
+
+/**
  * What the renderer is told, for a platform.
  *
  * Null everywhere but macOS, and null is the whole of the Windows and Linux

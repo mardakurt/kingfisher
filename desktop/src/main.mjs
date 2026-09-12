@@ -51,7 +51,11 @@ import {
   DEFAULT_TIMEOUT_MS as SAVE_BARRIER_TIMEOUT_MS,
 } from './save-barrier.mjs';
 import { Service, freePort } from './services.mjs';
-import { MAC_TRAFFIC_LIGHT_POSITION, windowChromeFor } from './window-chrome.mjs';
+import {
+  FULLSCREEN_CHANNELS,
+  MAC_TRAFFIC_LIGHT_POSITION,
+  windowChromeFor,
+} from './window-chrome.mjs';
 import {
   STATUS,
   acknowledgeUpdate,
@@ -491,6 +495,22 @@ function createWindow() {
   });
 
   /*
+    Full screen, reported rather than inferred.
+
+    macOS removes the window buttons in full screen and the renderer's
+    reservation for them has to go with them — see `window-chrome.mjs`. The
+    renderer cannot see the transition, so the shell relays the window's own
+    events as one boolean. The current state is also answered on request, for a
+    renderer that attaches (or reloads) while the window is already full screen.
+  */
+  const sendFullscreen = (full) => {
+    if (window.isDestroyed() || window.webContents.isDestroyed()) return;
+    window.webContents.send(FULLSCREEN_CHANNELS.changed, full);
+  };
+  window.on('enter-full-screen', () => sendFullscreen(true));
+  window.on('leave-full-screen', () => sendFullscreen(false));
+
+  /*
     Persist the window frame across restarts.
 
     macOS does not remember an Electron window's position between launches,
@@ -826,6 +846,14 @@ function registerIpc() {
     if (event.sender !== state.window?.webContents) return;
     state.documentsWanted = true;
     flushPending();
+  });
+
+  // The renderer asking whether the window is full screen right now. See the
+  // window's own `enter-full-screen` relay in `createWindow`.
+  ipcMain.on(FULLSCREEN_CHANNELS.wanted, (event) => {
+    const window = state.window;
+    if (!window || window.isDestroyed() || event.sender !== window.webContents) return;
+    event.sender.send(FULLSCREEN_CHANNELS.changed, window.isFullScreen());
   });
 
   /*
