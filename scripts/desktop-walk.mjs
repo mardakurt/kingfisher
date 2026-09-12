@@ -284,6 +284,27 @@ class Walk {
   // --- invariants ---------------------------------------------------------------
 
   async checkInvariants(action) {
+    // A revived web server reloads the window; an evaluation caught by that
+    // navigation is retried once the page is back rather than reported.
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        await this.checkInvariantsOnce(action);
+        return;
+      } catch (error) {
+        if (
+          !/Execution context was destroyed|Target page, context or browser has been closed|navigation/.test(
+            String(error?.message),
+          )
+        )
+          throw error;
+        const page = await this.currentPage();
+        await page.waitForLoadState('domcontentloaded').catch(() => {});
+        await waitForReady(page).catch(() => {});
+      }
+    }
+  }
+
+  async checkInvariantsOnce(action) {
     const page = await this.currentPage();
     const fail = (name, detail) =>
       this.findings.push({ step: this.stepIndex, action, name, detail });

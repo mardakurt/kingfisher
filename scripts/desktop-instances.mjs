@@ -28,7 +28,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { exit } from 'node:process';
 
-import { bundleOf, packagedBinary } from './desktop-lib/launch.mjs';
+import { bundleOf, descendants, packagedBinary } from './desktop-lib/launch.mjs';
 import { writeCorpus } from './desktop-lib/pgn-corpus.mjs';
 
 const results = [];
@@ -75,8 +75,11 @@ async function waitFor(predicate, timeoutMs, what) {
   return false;
 }
 
+// Anything after `--args` is the application's own argv, which is where a
+// document arrives on a command-line launch; `open` does not deliver a
+// document as an open-file event alongside `--args`.
 const openApp = (...extra) =>
-  spawnSync('open', ['-n', '-a', app, ...extra, '--args', `--user-data-dir=${profile}`], {
+  spawnSync('open', ['-n', '-a', app, '--args', `--user-data-dir=${profile}`, ...extra], {
     encoding: 'utf8',
   });
 
@@ -85,7 +88,13 @@ async function main() {
   console.log(`application ${app}`);
   console.log(`profile     ${profile}\n`);
 
-  // 1. Cold launch with a document, the way a double-clicked PGN starts the app.
+  // 1. Cold launch with a document. A double-clicked PGN reaches a cold
+  //    application as an `open-file` event on the *default* profile, which
+  //    this harness must never touch; `open … --args` does not deliver a
+  //    document alongside a profile switch at all. So the cold-launch route
+  //    exercised here is the command-line one the shell also handles, and
+  //    the `open-file` route is exercised against the running application
+  //    below, where a profile switch is not in the way.
   openApp(corpus.normal);
   const up = await waitFor(
     () =>
@@ -101,16 +110,19 @@ async function main() {
     `${mainProcesses().length} main process(es)`,
   );
   check(
-    'a PGN handed to a cold launch arrived and was opened',
-    /open-file from the system: normal\.pgn/.test(readLog()) &&
-      /opening normal\.pgn/.test(readLog()),
-    'open-file before the window, queued, delivered',
+    'a PGN named on the cold launch command line was opened',
+    /opening normal\.pgn/.test(readLog()),
+    'queued before the window, delivered after',
   );
 
   // 2. The only listeners are loopback; nothing debuggable is open.
+  // The listeners are the shell's forked children — the web server and the
+  // companion — which do not carry the profile switch; walk the tree.
   const listeners = [];
-  for (const line of everyProcess()) {
-    const pid = Number(line.trim().split(/\s+/)[0]);
+  for (const pid of [
+    ...mainProcesses(),
+    ...descendants(mainProcesses()[0] ?? 0).map((p) => p.pid),
+  ]) {
     const lsof = spawnSync('lsof', ['-a', '-p', String(pid), '-iTCP', '-sTCP:LISTEN', '-n', '-P'], {
       encoding: 'utf8',
     });
