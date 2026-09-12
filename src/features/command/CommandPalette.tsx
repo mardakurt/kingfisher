@@ -343,42 +343,55 @@ function PaletteDialog() {
         className="max-h-[calc(100dvh-2rem)] w-[540px] max-w-full overflow-hidden rounded-[6px] border border-line-strong bg-surface-1 shadow-2xl animate-rise sm:max-w-[92vw]"
         onPointerDown={(event) => event.stopPropagation()}
       >
-        <div className="flex items-center gap-2 border-b border-line-subtle px-3">
-          <Search className="h-3.5 w-3.5 shrink-0 text-tertiary" />
-          <input
-            ref={inputRef}
-            value={query}
-            onChange={(event) => {
-              setQuery(event.target.value);
-              setIndex(0);
-            }}
-            onKeyDown={(event) => {
-              if (event.key === 'ArrowDown') {
-                event.preventDefault();
-                setIndex(Math.min(selected + 1, matches.length - 1));
-              } else if (event.key === 'ArrowUp') {
-                event.preventDefault();
-                setIndex(Math.max(selected - 1, 0));
-              } else if (event.key === 'Enter') {
-                event.preventDefault();
-                run(matches[selected]);
-              } else if (event.key === 'Escape') {
-                setOpen(false);
-              }
-            }}
-            placeholder="Search commands, games, studies, players…"
-            /*
+        {/*
+          One control, not two. The icon and the input share a field, and the
+          field — not the input — is what shows focus, through the
+          `[data-palette-search]` rules in globals.css. The input's own outline
+          is suppressed there: the global `:focus-visible` ring used to land on
+          the input alone, a rectangle that started after the icon and was
+          clipped by the dialog's rounded top edge into a gold U.
+        */}
+        <div className="border-b border-line-subtle p-2">
+          <div
+            data-palette-search
+            className="flex h-10 items-center gap-2.5 rounded-[4px] border border-line bg-surface-2 px-2.5"
+          >
+            <Search className="h-3.5 w-3.5 shrink-0 text-tertiary" aria-hidden />
+            <input
+              ref={inputRef}
+              value={query}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setIndex(0);
+              }}
+              onKeyDown={(event) => {
+                if (event.key === 'ArrowDown') {
+                  event.preventDefault();
+                  setIndex(Math.min(selected + 1, matches.length - 1));
+                } else if (event.key === 'ArrowUp') {
+                  event.preventDefault();
+                  setIndex(Math.max(selected - 1, 0));
+                } else if (event.key === 'Enter') {
+                  event.preventDefault();
+                  run(matches[selected]);
+                } else if (event.key === 'Escape') {
+                  setOpen(false);
+                }
+              }}
+              placeholder="Search commands, games, studies, players…"
+              /*
               A placeholder is announced only while the field is empty, so a
               palette that relied on it went nameless the moment somebody typed
               — which is every moment that matters here.
             */
-            aria-label="Search commands, games, studies and players"
-            role="searchbox"
-            className="h-11 w-full bg-transparent text-sm text-primary outline-none placeholder:text-tertiary"
-          />
+              aria-label="Search commands, games, studies and players"
+              role="searchbox"
+              className="h-full w-full min-w-0 bg-transparent text-sm text-primary placeholder:text-tertiary"
+            />
+          </div>
         </div>
 
-        <div ref={listRef} className="max-h-[min(46vh,calc(100dvh-8rem))] overflow-y-auto py-1">
+        <div ref={listRef} className="max-h-[min(46vh,calc(100dvh-8rem))] overflow-y-auto p-2">
           {matches.length === 0 ? (
             <EmptyState
               fetching={entities.isFetching}
@@ -392,17 +405,29 @@ function PaletteDialog() {
                 data-active={position === selected}
                 onPointerEnter={() => setIndex(position)}
                 onClick={() => run(command)}
+                /*
+                  The row's inset is the field's, so the group column starts
+                  where the search icon does and the two read as one column.
+                  Selection is a rounded fill rather than a full-bleed band:
+                  the field above is rounded, and a square band under it looked
+                  like a different component.
+                */
                 className={cn(
-                  'flex w-full items-center gap-3 px-3 py-1.5 text-left text-xs',
+                  'flex w-full items-center gap-3 rounded-[4px] px-2.5 py-1.5 text-left text-xs',
                   position === selected ? 'bg-surface-3 text-primary' : 'text-secondary',
                 )}
               >
-                <span className="w-[74px] shrink-0 text-2xs uppercase tracking-wide text-tertiary">
+                <span
+                  className={cn(
+                    'w-[74px] shrink-0 truncate text-2xs uppercase tracking-wide',
+                    position === selected ? 'text-secondary' : 'text-tertiary',
+                  )}
+                >
                   {command.group}
                 </span>
                 <span className="min-w-0 flex-1 truncate">{command.title}</span>
                 {command.shortcut && (
-                  <kbd className="shrink-0 rounded-[3px] border border-line bg-surface-2 px-1.5 py-0.5 font-mono text-[10px] text-tertiary">
+                  <kbd className="shrink-0 rounded-[3px] border border-line bg-surface-1 px-1.5 py-0.5 font-mono text-[10px] text-tertiary">
                     {command.shortcut}
                   </kbd>
                 )}

@@ -117,6 +117,75 @@ test.describe('every control can be announced', () => {
     await expect(page.getByRole('dialog').first()).toBeVisible();
     expect(await unnamedControls(page)).toEqual([]);
   });
+
+  /*
+    The palette's search field shows focus as one control.
+
+    Phase 48. The global `:focus-visible` outline used to land on the input
+    alone: it started after the search icon, and the dialog's rounded top edge
+    clipped it into a gold U. The ring now belongs to the field that holds
+    both, and the input draws none of its own. Asserted on computed style
+    rather than a screenshot, because the defect was a rectangle in the wrong
+    place and not a colour.
+  */
+  test('the command palette search field carries one focus ring', async ({ page }) => {
+    await page.goto('/analysis');
+    await waitForApp(page);
+    await page.keyboard.press('ControlOrMeta+k');
+    const field = page.locator('[data-palette-search]');
+    const input = field.getByRole('searchbox');
+    await expect(input).toBeFocused();
+
+    const ring = await field.evaluate((el) => {
+      const style = getComputedStyle(el);
+      const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+      const probe = document.createElement('span');
+      probe.style.color = accent;
+      document.body.append(probe);
+      const accentRgb = getComputedStyle(probe).color;
+      probe.remove();
+      const box = el.getBoundingClientRect();
+      const icon = el.querySelector('svg')?.getBoundingClientRect();
+      const inputBox = el.querySelector('input')?.getBoundingClientRect();
+      const inside = (r?: DOMRect) =>
+        Boolean(r) && r!.left >= box.left - 0.5 && r!.right <= box.right + 0.5;
+      return {
+        borderIsAccent: style.borderTopColor === accentRgb,
+        shadowIsAccent: style.boxShadow.includes(accentRgb),
+        iconInside: inside(icon),
+        inputInside: inside(inputBox),
+      };
+    });
+    expect(ring).toEqual({
+      borderIsAccent: true,
+      shadowIsAccent: true,
+      iconInside: true,
+      inputInside: true,
+    });
+    // No second ring: the input's own outline is off, and nothing else in the
+    // dialog is drawing one.
+    await expect(input).toHaveCSS('outline-style', 'none');
+    const stray = await page
+      .getByRole('dialog')
+      .first()
+      .evaluate(
+        (dialog) =>
+          [...dialog.querySelectorAll<HTMLElement>('*')].filter((el) => {
+            const s = getComputedStyle(el);
+            return s.outlineStyle !== 'none' && s.outlineWidth !== '0px';
+          }).length,
+      );
+    expect(stray).toBe(0);
+
+    // The keyboard contract is unchanged: type, move, choose, dismiss.
+    await page.keyboard.type('copy fen');
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('ArrowUp');
+    await expect(input).toBeFocused();
+    await expect(page.locator('[data-active="true"]')).toContainText('Copy FEN');
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog', { name: 'Command palette' })).toBeHidden();
+  });
 });
 
 test.describe('the board is usable from the keyboard', () => {
