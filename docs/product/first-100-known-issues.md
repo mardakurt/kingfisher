@@ -7,6 +7,28 @@
 > lives in the release notes; the entries below are the work the
 > maintainer tracks.
 
+## Closed during Phase 46
+
+Found by adversarial testing of the packaged application and fixed in
+`master`; the full register with reproductions is
+`docs/reports/phase-46-findings.md`. None of these had been reported by
+a user; every packaged build since the polished-DMG work had been unable
+to launch, so no desktop user could have.
+
+- **The packaged macOS application contained no application** (every
+  build since Phase 35 exited on launch). Fixed; the bundle contents are
+  pinned by test and the DMG verifier refuses a bundle that cannot launch.
+- **The board could not be played while an engine arrow was drawn.**
+  Fixed; pinned by an e2e test.
+- **Check for Updates did nothing, then failed.** Fixed end to end; a
+  preview build now says which build it is and opens the download page.
+- **One malformed pairing token could end the companion.** Fixed; the
+  companion is now fuzzed as a real process.
+- **A dead companion read as running, and could not be brought back.**
+  Fixed; _Diagnostics → Restart companion_.
+- **Resize then close within 400 ms raised a main-process error dialog.**
+  Fixed.
+
 ## Closed during Phase 38
 
 The following items were open at the start of Phase 38 and are
@@ -42,9 +64,16 @@ These are real product facts, not defects. The first 100 users
 are told about each of them in product; the relevant docs are
 linked.
 
-- **macOS native is Preview.** The 1.0.0 desktop binary is
-  dev-signed. The Settings → Diagnostics card states this in
-  plain English. The first 100 web/PWA users are not affected.
+- **macOS native is a preview.** The desktop build is the current
+  source, code-signed with a development identity and not notarised,
+  named by `src/release/macos-download.json` with its build number.
+  Diagnostics reports the build, commit and channel. A preview does not
+  update itself; the newest one is on the landing page. The first 100
+  web/PWA users are not affected.
+- **Playing a move stops the engine.** By design (the position guard):
+  evidence never survives a position change, and a person starts the
+  engine again. Recorded because a first-time user may expect the
+  engine to follow the board.
 - **Web local data depends on browser storage.** A user can
   revoke storage protection from the browser settings. The
   status indicator shows this honestly
