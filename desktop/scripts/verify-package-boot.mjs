@@ -28,12 +28,19 @@ export default async function verifyPackageBoot(context) {
     'Resources',
     'app-update.yml',
   );
-  assert.ok(existsSync(feed), `Update feed missing from the bundle: ${feed}`);
-  assert.match(
-    readFileSync(feed, 'utf8'),
-    /provider:\s*github/,
-    'app-update.yml names the GitHub feed',
-  );
+  const archives = (context.targets ?? []).some((t) => t.name === 'dmg' || t.name === 'zip');
+  if (archives) {
+    assert.ok(existsSync(feed), `Update feed missing from the bundle: ${feed}`);
+    assert.match(
+      readFileSync(feed, 'utf8'),
+      /provider:\s*github/,
+      'app-update.yml names the GitHub feed',
+    );
+  } else {
+    // `desktop:pack` (--dir) makes no archive and electron-builder writes no
+    // feed for it; that bundle is for local runs, never for publishing.
+    console.log('Directory-only build: no update feed expected.');
+  }
 
   const launched = await launchKingfisher({ packaged: true, executablePath });
   try {
