@@ -244,14 +244,29 @@ export async function quitAndInstall(onQuitReady) {
  * signature. Used by the release preflight to refuse to ship a build
  * that was signed with the wrong identity.
  */
-export async function getRunningAppSignature() {
+/** What `codesign -dvvv` said about a signed code object. */
+export function parseCodesignDetails(text) {
+  const authorities = (text.match(/^Authority=(.+)$/gm) || [])
+    .map((line) => line.replace(/^Authority=/, '').trim())
+    .filter(Boolean);
+  const teamIdMatch = text.match(/^TeamIdentifier=([A-Z0-9]+)$/m);
+  return {
+    signed: true,
+    isDeveloperId: authorities.some((a) => a.startsWith('Developer ID Application:')),
+    authorities,
+    teamId: teamIdMatch ? teamIdMatch[1] : null,
+    raw: text,
+  };
+}
+
+export async function getRunningAppSignature(executable = app.getPath('exe')) {
   if (process.platform !== 'darwin') {
     return { signed: false, reason: 'not-darwin' };
   }
   try {
     const { spawn } = await import('node:child_process');
     return await new Promise((resolve) => {
-      const proc = spawn('codesign', ['-dvvv', app.getPath('exe')], {
+      const proc = spawn('codesign', ['-dvvv', executable], {
         stdio: ['ignore', 'pipe', 'pipe'],
       });
       let out = '';
@@ -268,18 +283,13 @@ export async function getRunningAppSignature() {
           resolve({ signed: false, reason: err.trim() || `codesign exit ${code}` });
           return;
         }
-        const authority = (out.match(/Authority=(.+)/g) || [])
-          .map((line) => line.replace(/^Authority=/, '').trim())
-          .filter(Boolean);
-        const teamIdMatch = out.match(/TeamIdentifier=([A-Z0-9]+)/);
-        const isDeveloperId = authority.some((a) => a.startsWith('Developer ID Application:'));
-        resolve({
-          signed: true,
-          isDeveloperId,
-          authorities: authority,
-          teamId: teamIdMatch ? teamIdMatch[1] : null,
-          raw: out,
-        });
+        /*
+          codesign -dvvv writes its report to stderr, not stdout. The first
+          version read stdout, found no Authority= line in the empty string,
+          and refused every install as "not Developer ID signed" — on a
+          Developer ID build. Found by desktop:update:real in Phase 47.
+        */
+        resolve(parseCodesignDetails(`${out}\n${err}`));
       });
     });
   } catch (err) {
