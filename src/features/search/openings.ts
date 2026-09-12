@@ -164,7 +164,21 @@ export async function searchOpenings(
   if (query.trim().length < 2) return [];
   const entries = await (cache ??= buildIndex());
   const ranked: readonly RankedHit<IndexedOpening>[] = rank(entries, expandOpeningQuery(query));
-  return ranked.slice(0, limit).map(toHit);
+  /*
+    One hit per name. The dataset names several positions the same way — a
+    line reached by two move orders, or under two ECO codes — and a palette
+    listing "Queen's Gambit Declined: Exchange Variation" four times is not
+    four answers. The best-ranked position for the name is kept.
+  */
+  const seen = new Set<string>();
+  const unique: RankedHit<IndexedOpening>[] = [];
+  for (const hit of ranked) {
+    if (seen.has(hit.item.label)) continue;
+    seen.add(hit.item.label);
+    unique.push(hit);
+    if (unique.length === limit) break;
+  }
+  return unique.map(toHit);
 }
 
 function toHit(ranked: RankedHit<IndexedOpening>): OpeningSearchHit {

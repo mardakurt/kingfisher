@@ -51,6 +51,8 @@
     "engines:install": "node scripts/install-engines.mjs",
     "tablebase:install": "node scripts/install-tablebase.mjs",
     "openings:build": "node scripts/build-opening-index.mjs && prettier --write src/theory/opening-index.generated.ts",
+    "players:roster": "node scripts/build-player-roster.mjs",
+    "players:roster:check": "node scripts/build-player-roster.mjs --check",
     "bench:sqlite": "node scripts/bench-sqlite.mjs",
     "bench:collections": "node scripts/bench-collections.mjs",
     "bench:engines": "node scripts/bench-engines.mjs",

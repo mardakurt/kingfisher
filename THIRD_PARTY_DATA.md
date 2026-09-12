@@ -112,6 +112,35 @@ one of the ECO tables transcribed from the Encyclopaedia or from ChessBase.
 
 ---
 
+## Titled-player roster (Wikidata)
+
+`public/data/players/titled-players.json` is every person Wikidata records as
+holding a FIDE title of GM, WGM, IM or WIM, with the facts Wikidata states
+about them: name, alternative spellings in Latin script, FIDE ID, birth and
+death years, sex, country of citizenship and the highest Elo recorded. It is
+what lets a search for "Dvoretsky", "Nepo" or "Neschmetdinow" find a person
+the installed reference packs hold no games for, and it says so: every row it
+adds to the player library shows zero games until a source supplies some, and
+none of them is offered in a browse list.
+
+| Field    | Value                                                                                                 |
+| -------- | ----------------------------------------------------------------------------------------------------- |
+| Source   | Wikidata, via the public SPARQL endpoint — <https://query.wikidata.org/>                              |
+| Query    | humans (P31 = Q5) with a FIDE title (P2962) of Q105269, Q3417060, Q752119 or Q3314851; see the script |
+| Licence  | CC0 1.0 Public Domain Dedication (all Wikidata structured data)                                       |
+| Fetched  | 2026-09-12, by `scripts/build-player-roster.mjs`                                                      |
+| Entries  | 8,339 people — 2,126 GM, 530 WGM, 4,657 IM, 1,026 WIM (highest title each)                            |
+| Coverage | 7,677 with a FIDE ID, 8,322 with a birth year, 3,442 with at least one alternative spelling           |
+| Size     | 892 KB on disk, about 260 KB compressed; fetched lazily on first player search, never in the bundle   |
+| Verified | `npm run players:roster:check` compares the file's SHA-256 with `titled-players.manifest.json`        |
+
+What the roster is not: a rating list, a game count, or a claim that a person
+is who a pack means by a name. Attachment to a pack row happens only on an
+exact folded-name or alias match, and a person on the curated historical
+roster keeps that entry's checked facts. Aliases are the labels Wikidata
+holds in Latin-script languages, shortest first, at most eight, with handles
+and epithets dropped by rule — nothing is generated.
+
 ## Polyglot book constants
 
 | Field        | Value                                                                                  |

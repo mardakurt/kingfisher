@@ -23,6 +23,7 @@
 import { useState } from 'react';
 import { Fragment } from 'react';
 import { LEGENDS_BY_KEY, legendYears } from '@/reference/legends';
+import { loadTitledRoster } from '@/reference/titled-players';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 
@@ -873,23 +874,63 @@ function Fact({
  * reviewer can check, and none of it implies a game exists.
  */
 function RosterFacts({ playerKey }: { readonly playerKey: string }) {
-  const legend = LEGENDS_BY_KEY.get(playerKey.trim().toLowerCase().replace(/\s+/g, ' '));
-  if (!legend) return null;
+  const key = playerKey.trim().toLowerCase().replace(/\s+/g, ' ');
+  const legend = LEGENDS_BY_KEY.get(key);
+  /*
+    The titled roster is the fallback: a GM, WGM, IM or WIM Wikidata records
+    who is not on the curated list. Its facts are Wikidata's, said so below,
+    and the card is titled for what it is.
+  */
+  const titled = useQuery({
+    queryKey: ['titled-roster-entry', key],
+    queryFn: async () => {
+      const roster = await loadTitledRoster();
+      const fold = (value: string) => value.trim().toLowerCase().replace(/\s+/g, ' ');
+      return (
+        roster.find(
+          (player) => fold(player.name) === key || player.aliases.some((a) => fold(a) === key),
+        ) ?? null
+      );
+    },
+    enabled: !legend,
+    staleTime: Number.POSITIVE_INFINITY,
+  });
+  if (!legend && !titled.data) return null;
 
-  const rows: readonly (readonly [string, string])[] = [
-    ['Title', legend.title],
-    ['Lived', legendYears(legend)],
-    ...(legend.reign ? ([['World champion', legend.reign]] as const) : []),
-    ...(legend.fideId ? ([['FIDE ID', legend.fideId]] as const) : []),
-  ];
+  const rows: readonly (readonly [string, string])[] = legend
+    ? [
+        ['Title', legend.title],
+        ['Lived', legendYears(legend)],
+        ...(legend.reign ? ([['World champion', legend.reign]] as const) : []),
+        ...(legend.fideId ? ([['FIDE ID', legend.fideId]] as const) : []),
+      ]
+    : [
+        ['Title', titled.data!.title],
+        ...(titled.data!.born
+          ? ([
+              [
+                titled.data!.died ? 'Lived' : 'Born',
+                titled.data!.died
+                  ? `${titled.data!.born}–${titled.data!.died}`
+                  : String(titled.data!.born),
+              ],
+            ] as const)
+          : []),
+        ...(titled.data!.citizenship ? ([['Citizenship', titled.data!.citizenship]] as const) : []),
+        ...(titled.data!.peakElo
+          ? ([['Highest Elo recorded', String(titled.data!.peakElo)]] as const)
+          : []),
+        ...(titled.data!.fideId ? ([['FIDE ID', titled.data!.fideId]] as const) : []),
+      ];
 
   return (
     <section
       className="mb-4 rounded-[5px] border border-line-subtle bg-surface-1 p-4"
       data-roster-facts
+      data-roster-source={legend ? 'legend' : 'titled'}
     >
       <h2 className="text-[10px] font-semibold uppercase tracking-[0.08em] text-tertiary">
-        Historical roster
+        {legend ? 'Historical roster' : 'Titled player'}
       </h2>
       <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
         {rows.map(([label, value]) => (
@@ -899,7 +940,13 @@ function RosterFacts({ playerKey }: { readonly playerKey: string }) {
           </Fragment>
         ))}
       </dl>
-      <p className="mt-2 text-xs leading-relaxed text-secondary">{legend.note}</p>
+      {legend ? (
+        <p className="mt-2 text-xs leading-relaxed text-secondary">{legend.note}</p>
+      ) : (
+        <p className="mt-2 text-xs leading-relaxed text-secondary">
+          Recorded by Wikidata (CC0) as holding this FIDE title. Nothing here is a game.
+        </p>
+      )}
       {/*
         What this panel is, and nothing more. It must not say anything about
         how many games exist: it renders whenever the *local collection* is

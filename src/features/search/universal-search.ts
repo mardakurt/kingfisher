@@ -23,7 +23,7 @@ import { canonicalise } from '@/persistence/position-search';
 import { searchWorkspace, type WorkspaceSearchHit } from '@/persistence/search';
 import { getRepositories } from '@/persistence/repositories';
 
-import { searchLegends, type PlayerSearchHit } from './players';
+import { searchPlayerRoster, type PlayerSearchHit } from './players';
 import { openingForKey, searchOpenings, type OpeningSearchHit } from './openings';
 import {
   MOVE_SEQUENCE_MAX_PLIES,
@@ -100,7 +100,7 @@ export async function universalSearch(rawQuery: string): Promise<UniversalSearch
 
   const [openings, players, workspace] = await Promise.all([
     searchOpenings(trimmed, 8),
-    Promise.resolve(searchLegends(trimmed, 6)),
+    searchPlayerRoster(trimmed, 6),
     searchWorkspace(await getRepositories(), trimmed, 24),
   ]);
 

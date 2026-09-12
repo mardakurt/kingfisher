@@ -1,0 +1,31 @@
+{
+  "schema": "kingfisher-titled-players/1",
+  "source": "Wikidata (https://www.wikidata.org/), SPARQL endpoint",
+  "licence": "CC0 1.0 — https://creativecommons.org/publicdomain/zero/1.0/",
+  "query": "humans with a FIDE title (P2962) of GM, WGM, IM or WIM; see scripts/build-player-roster.mjs",
+  "fetchedAt": "2026-09-12T14:32:23.637Z",
+  "count": 8339,
+  "counts": {
+    "GM": 2126,
+    "WGM": 530,
+    "IM": 4657,
+    "WIM": 1026
+  },
+  "withFideId": 7677,
+  "withBirthYear": 8322,
+  "withAliases": 3442,
+  "bytes": 914265,
+  "sha256": "7698184e9811fa9fd9dcb34b607faebcf3d1e718daaf2d6d4e0b66f6d7594665",
+  "fields": {
+    "q": "Wikidata item",
+    "n": "name (English label)",
+    "t": "highest FIDE title",
+    "a": "alternative spellings (Latin script)",
+    "f": "FIDE ID",
+    "b": "birth year",
+    "d": "death year",
+    "w": "1 when Wikidata records the person as female",
+    "c": "federation, ISO 3166-1 alpha-2 of the country of citizenship",
+    "e": "highest Elo Wikidata records"
+  }
+}

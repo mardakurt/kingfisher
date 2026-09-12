@@ -15,7 +15,7 @@
  *          +  200  token          (every query word appears somewhere)
  *          +   20  … per query word that is a whole word
  *          +  100  alias
- *          +  ≤90  fuzzy          (subsequence coverage, minus 5 per edit)
+ *          +  ≤90  fuzzy          (every query word within a typo of a word; 25 per edit)
  *          -   15  per qualifier  ("anti", "reversed") in the text but not the query
  *          +  ≤40  recencyBonus
  *          +  ±40  weight
@@ -133,12 +133,30 @@ function scoreText(
   if (aliases.some((alias) => alias !== text) && text.includes(needle)) {
     score = Math.max(score, 100);
   }
-  // Fuzzy: subsequence coverage of the needle, never above its band.
-  const subs = subsequenceScore(text, needle);
-  if (subs > 0) {
-    const dist = levenshtein(text, needle, 6);
-    const fuzzy = Math.round((90 * subs) / (1.5 * needle.length)) - 5 * dist;
-    score = Math.max(score, fuzzy);
+  /*
+    Fuzzy: a typo, not a resemblance. Every query word must be within a small
+    edit distance of some word of the text — "najdrof" of "najdorf" — and the
+    score falls with the edits. The previous measure, characters of the query
+    found in order anywhere in the text, matched "dvoret" to "Winawer
+    Variation, Retreat Variation", which is not a misspelling of anything.
+  */
+  if (score === 0 && tokens.length > 0) {
+    let edits = 0;
+    for (const token of tokens) {
+      const allowed = token.length >= 8 ? 2 : token.length >= 4 ? 1 : 0;
+      let best = allowed + 1;
+      for (const word of words) {
+        if (Math.abs(word.length - token.length) > allowed) continue;
+        best = Math.min(best, levenshtein(word, token, allowed));
+        if (best === 0) break;
+      }
+      if (best > allowed) {
+        edits = -1;
+        break;
+      }
+      edits += best;
+    }
+    if (edits >= 0) score = 90 - 25 * edits;
   }
   return score > 0 ? score + bonus : 0;
 }
@@ -200,36 +218,34 @@ function wordsOf(value: string): readonly string[] {
   return words;
 }
 
-function subsequenceScore(haystack: string, needle: string): number {
-  if (needle.length === 0) return 0;
-  let cursor = 0;
-  let score = 0;
-  for (const char of needle) {
-    const found = haystack.indexOf(char, cursor);
-    if (found === -1) return 0;
-    score += found === cursor ? 1.5 : 1;
-    cursor = found + 1;
-  }
-  return score;
-}
-
-/** Bounded Levenshtein — caps at `limit` to refuse comparison of very different strings. */
+/**
+ * Bounded edit distance with adjacent transpositions counting one — "najdrof"
+ * is one slip from "najdorf", not two. Caps at `limit` to refuse comparison
+ * of very different strings.
+ */
 function levenshtein(a: string, b: string, limit: number): number {
   if (Math.abs(a.length - b.length) > limit) return limit + 1;
-  const dp = new Array<number>(b.length + 1);
-  for (let j = 0; j <= b.length; j += 1) dp[j] = j;
+  const rows: number[][] = [];
+  rows[0] = Array.from({ length: b.length + 1 }, (_, j) => j);
   for (let i = 1; i <= a.length; i += 1) {
-    let prev = dp[0] ?? 0;
-    dp[0] = i;
+    const row = new Array<number>(b.length + 1);
+    row[0] = i;
     let rowMin = i;
     for (let j = 1; j <= b.length; j += 1) {
-      const tmp = dp[j] ?? 0;
       const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      dp[j] = Math.min((dp[j] ?? 0) + 1, (dp[j - 1] ?? 0) + 1, prev + cost);
-      prev = tmp;
-      if (dp[j]! < rowMin) rowMin = dp[j]!;
+      let value = Math.min(
+        (rows[i - 1]?.[j] ?? 0) + 1,
+        (row[j - 1] ?? 0) + 1,
+        (rows[i - 1]?.[j - 1] ?? 0) + cost,
+      );
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) {
+        value = Math.min(value, (rows[i - 2]?.[j - 2] ?? 0) + 1);
+      }
+      row[j] = value;
+      if (value < rowMin) rowMin = value;
     }
+    rows[i] = row;
     if (rowMin > limit) return limit + 1;
   }
-  return dp[b.length] ?? 0;
+  return rows[a.length]?.[b.length] ?? 0;
 }

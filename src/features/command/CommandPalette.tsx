@@ -18,7 +18,7 @@ import { useQuery } from '@tanstack/react-query';
 import type { WorkspaceSearchHit } from '@/persistence/search';
 import { useAnalysis } from '@/stores/analysis-store';
 import { useUi } from '@/stores/ui-store';
-import { searchLegends, type PlayerSearchHit } from '@/features/search/players';
+import { searchLegends, searchPlayerRoster, type PlayerSearchHit } from '@/features/search/players';
 import { searchOpenings, type OpeningSearchHit } from '@/features/search/openings';
 import { parseMoveSequence } from '@/features/search/move-sequence';
 import { assessQuery } from '@/features/search/query-limits';
@@ -97,12 +97,27 @@ function PaletteDialog() {
       query.trim().length >= 2 ? openingHits.map((hit) => commandForOpening(hit, router)) : [],
     [openingHits, query, router],
   );
+  /*
+   * Players: the curated roster answers at once, and the titled roster
+   * (fetched once, lazily) joins as soon as it has — the same shape as the
+   * openings above.
+   */
+  const [playerHits, setPlayerHits] = useState<readonly PlayerSearchHit[]>([]);
+  useEffect(() => {
+    const trimmed = query.trim();
+    if (trimmed.length < 2) return;
+    let cancelled = false;
+    setPlayerHits(searchLegends(trimmed, 5));
+    searchPlayerRoster(trimmed, 5).then((hits) => {
+      if (!cancelled) setPlayerHits(hits);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [query]);
   const playerCommands = useMemo<readonly Command[]>(
-    () =>
-      query.trim().length >= 2
-        ? searchLegends(query, 5).map((hit) => commandForPlayer(hit, router))
-        : [],
-    [query, router],
+    () => (query.trim().length >= 2 ? playerHits.map((hit) => commandForPlayer(hit, router)) : []),
+    [playerHits, query, router],
   );
 
   /*

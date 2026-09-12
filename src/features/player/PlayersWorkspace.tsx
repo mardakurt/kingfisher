@@ -24,6 +24,7 @@ import { EmptyState } from '@/components/ui/Panel';
 import { NavButton } from '@/features/shell/NavButton';
 import { cn } from '@/lib/cn';
 import { legendYears } from '@/reference/legends';
+import { describeTitledPlayer } from '@/reference/titled-players';
 import {
   searchPlayers,
   usePlayerCatalog,
@@ -95,9 +96,13 @@ export function PlayersWorkspace() {
           <p className="hidden text-xs text-tertiary sm:block">
             {catalog.isPending
               ? 'Reading the installed reference sources…'
-              : `${players.length.toLocaleString()} players from ${installed.length} installed ${
+              : `${players
+                  .filter((player) => player.games > 0)
+                  .length.toLocaleString()} players with games in ${installed.length} installed ${
                   installed.length === 1 ? 'source' : 'sources'
-                }, plus the historical roster.`}
+                }; ${players
+                  .filter((player) => player.games === 0)
+                  .length.toLocaleString()} more titled and historical players by search.`}
           </p>
         </div>
       </header>
@@ -291,5 +296,9 @@ function facts(player: CatalogPlayer): string {
   }
   if (player.fideId) parts.push(`FIDE ${player.fideId}`);
   if (player.sources.length > 0) parts.push(player.sources.join(', '));
+  if (parts.length === 0 && player.titled) {
+    // A person Wikidata records as titled, with nothing behind them here.
+    return `${describeTitledPlayer(player.titled)} · no games in the installed sources`;
+  }
   return parts.join(' · ') || 'No games in the installed sources.';
 }

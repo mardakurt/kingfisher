@@ -20,6 +20,7 @@ import { useQuery } from '@tanstack/react-query';
 import { LEGENDS, type Legend } from './legends';
 import { readyPackReaders } from './manager';
 import type { PackPlayer } from './pack';
+import { loadTitledRoster, type TitledPlayer } from './titled-players';
 import { useReferenceSources } from './use-references';
 
 export interface CatalogPlayer {
@@ -39,12 +40,38 @@ export interface CatalogPlayer {
   readonly sources: readonly string[];
   /** Set when the player is in the curated historical roster. */
   readonly legend?: Legend;
+  /** Set when the player is in the Wikidata titled-player roster. */
+  readonly titled?: TitledPlayer;
 }
 
 const playerKey = (name: string): string => name.trim().toLowerCase().replace(/\s+/g, ' ');
 
+/** "Ian Nepomniachtchi" as a pack would write it: "Nepomniachtchi, Ian". */
+export const surnameFirst = (name: string): string => {
+  const space = name.trim().lastIndexOf(' ');
+  if (space === -1 || name.includes(',')) return name.trim();
+  return `${name.slice(space + 1)}, ${name.slice(0, space)}`;
+};
+
+/**
+ * The comma forms of a natural-order name: last word as surname, and — when
+ * there are three or more words — first word as surname too, which is how
+ * "Hou Yifan" is written and how a pack writes her ("Hou, Yifan").
+ */
+export const nameOrders = (name: string): readonly string[] => {
+  const trimmed = name.trim();
+  if (trimmed.includes(',')) return [trimmed];
+  const words = trimmed.split(/\s+/);
+  if (words.length < 2) return [trimmed];
+  const forms = [`${words[words.length - 1]}, ${words.slice(0, -1).join(' ')}`];
+  forms.push(`${words[0]}, ${words.slice(1).join(' ')}`);
+  return [...new Set(forms)];
+};
+
 /** Every player the installed packs know, merged across packs by identity. */
-async function collect(): Promise<readonly CatalogPlayer[]> {
+export async function collect(
+  titledRoster: () => Promise<readonly TitledPlayer[]> = loadTitledRoster,
+): Promise<readonly CatalogPlayer[]> {
   const merged = new Map<string, CatalogPlayer>();
 
   for (const reader of readyPackReaders()) {
@@ -82,6 +109,58 @@ async function collect(): Promise<readonly CatalogPlayer[]> {
       lastRating: 0,
       sources: [],
       legend,
+    });
+  }
+
+  /*
+    The titled roster is folded in the same way, after the legends so a
+    person on both keeps the curated entry's facts. A row that already
+    exists gains the roster's title and FIDE ID where the packs had none; a
+    person the packs do not hold becomes a zero-game row that only a search
+    can reach.
+  */
+  /*
+    Attachment is by folded name — accents and separators dropped — because
+    the curated roster writes "Polgar, Judit" and Wikidata "Judit Polgár",
+    and those are one person. Every spelling a row is known by points at it.
+  */
+  const byFolded = new Map<string, CatalogPlayer>();
+  for (const entry of merged.values()) {
+    for (const spelling of [entry.key, entry.name, ...(entry.legend?.aliases ?? [])]) {
+      const folded = matchKey(spelling);
+      if (folded && !byFolded.has(folded)) byFolded.set(folded, entry);
+    }
+  }
+  for (const titled of await titledRoster()) {
+    // Packs write "Surname, Given"; Wikidata writes "Given Surname" — or,
+    // for a Chinese name, "Surname Given", so both split points are tried.
+    const spellings = [titled.name, ...nameOrders(titled.name), ...titled.aliases];
+    const hit = spellings
+      .map((spelling) => byFolded.get(matchKey(spelling)))
+      .find((entry) => entry !== undefined);
+    if (hit) {
+      if (hit.titled) continue; // a namesake alias; the first attachment stands
+      merged.set(hit.key, {
+        ...hit,
+        titled,
+        title: hit.title || titled.title,
+        fideId: hit.fideId || titled.fideId,
+      });
+      continue;
+    }
+    const key = playerKey(titled.name);
+    merged.set(key, {
+      key,
+      name: titled.name,
+      title: titled.title,
+      fideId: titled.fideId,
+      games: 0,
+      firstYear: 0,
+      lastYear: 0,
+      peakRating: 0,
+      lastRating: 0,
+      sources: [],
+      titled,
     });
   }
 
@@ -142,7 +221,7 @@ export function usePlayerCatalog() {
 
   return useQuery({
     queryKey: ['player-catalog', installed],
-    queryFn: collect,
+    queryFn: () => collect(),
     staleTime: Number.POSITIVE_INFINITY,
     gcTime: 30 * 60_000,
   });
@@ -303,7 +382,8 @@ export function searchPlayers(
     return (
       matchKey(player.key).includes(loose) ||
       matchKey(player.name).includes(loose) ||
-      (player.legend?.aliases.some((alias) => matchKey(alias).includes(loose)) ?? false)
+      (player.legend?.aliases.some((alias) => matchKey(alias).includes(loose)) ?? false) ||
+      (player.titled?.aliases.some((alias) => matchKey(alias).includes(loose)) ?? false)
     );
   });
 
@@ -382,22 +462,33 @@ function rankOf(player: CatalogPlayer, needle: string): number {
       ? 3
       : player.legend
         ? 2
-        : 0;
+        : player.titled
+          ? 1
+          : 0;
   if (needle.length === 0) return role;
 
   // Normalised on both sides, so ranking agrees with matching about what a
   // name is; otherwise a row can match and then rank as though it had not.
-  const name = matchKey(player.name);
-  const words = name.split(/\s+/).filter(Boolean);
-  const match =
-    name === needle
-      ? 16
-      : words.includes(needle)
-        ? 12
-        : name.startsWith(needle)
-          ? 8
-          : words.some((word) => word.startsWith(needle))
-            ? 6
-            : 2;
+  // An alias counts as a name: "Nepo" is exactly Nepomniachtchi.
+  const names = [
+    player.name,
+    ...(player.legend?.aliases ?? []),
+    ...(player.titled?.aliases ?? []),
+  ].map(matchKey);
+  let match = 2;
+  for (const name of names) {
+    const words = name.split(/\s+/).filter(Boolean);
+    const here =
+      name === needle
+        ? 16
+        : words.includes(needle)
+          ? 12
+          : name.startsWith(needle)
+            ? 8
+            : words.some((word) => word.startsWith(needle))
+              ? 6
+              : 2;
+    if (here > match) match = here;
+  }
   return match + role;
 }
