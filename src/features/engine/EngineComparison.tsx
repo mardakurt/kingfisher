@@ -121,6 +121,20 @@ export function EngineComparison() {
                 ))}
               </select>
               <SlotSummary state={state} />
+              {/*
+                The evaluation bar and the tree's stored evaluations follow the
+                first engine only; the second is compared, never averaged in.
+                Said here so a person changing the first engine knows what
+                else changes with it.
+              */}
+              <p
+                className="mt-1 text-[10px] leading-snug text-tertiary"
+                data-engine-slot-role={slot}
+              >
+                {slot === 'primary'
+                  ? 'Drives the evaluation bar and the saved evaluations.'
+                  : 'Compared beside the first; never blended into it.'}
+              </p>
             </div>
           );
         })}

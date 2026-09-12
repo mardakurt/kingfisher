@@ -234,3 +234,64 @@ test('the board can be played while an engine arrow is drawn', async ({ page }) 
   await expect(page.locator('[data-fen-tooltip]')).toContainText('4p3/4P3');
   await expect(page.locator('[data-engine-arrow-hit]')).toHaveCount(0);
 });
+
+/*
+  The evaluation bar answers one question — which side is better — and the
+  answer must survive turning the board round. Before Phase 49 the bar kept a
+  white fill at the bottom whatever the orientation and gave it Black's share
+  once flipped, so a position White was winning read as one Black dominated.
+  The test loads a position a queen up, waits for a real search, then flips.
+*/
+test('the evaluation bar says the same side is better after the board is flipped', async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  await page.goto('/analysis');
+  await ready(page);
+  await page.getByRole('button', { name: 'Position actions' }).click();
+  await page.getByRole('menuitem', { name: 'Set up position…' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Set up position' });
+  // White: king, queen, pawns; Black: king and pawns. White to move, winning.
+  await dialog.getByLabel('Position FEN').fill('4k3/pppp4/8/8/8/8/PPPP4/3QK3 w - - 0 1');
+  await dialog.getByRole('button', { name: 'Load FEN' }).click();
+  await expect(dialog.getByText('Legal position. Ready to apply.')).toBeVisible();
+  await dialog.getByRole('button', { name: 'Apply position' }).click();
+
+  const bar = page.locator('[data-evaluation-bar]');
+  await expect(bar).toHaveAttribute('data-bottom-side', 'w');
+  await page.getByRole('button', { name: 'Start analysis (E)' }).click();
+  await expect(bar).toHaveAttribute('data-leading', 'w', { timeout: 60_000 });
+  await expect(bar).toHaveAttribute('aria-label', /^Evaluation (\+|M)/);
+
+  const fill = page.locator('[data-evaluation-bar-fill]');
+  const measure = () =>
+    fill.evaluate((el) => {
+      const bar = el.parentElement!;
+      const style = getComputedStyle(el);
+      const tokens = getComputedStyle(document.documentElement);
+      return {
+        share: el.getBoundingClientRect().height / bar.getBoundingClientRect().height,
+        fill: style.backgroundColor,
+        white: tokens.getPropertyValue('--eval-white').trim(),
+        black: tokens.getPropertyValue('--eval-black').trim(),
+      };
+    });
+  const toRgb = (hex: string) => {
+    const n = parseInt(hex.replace('#', ''), 16);
+    return `rgb(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255})`;
+  };
+  // White at the bottom: White's (large) band is the bottom fill, coloured white.
+  await expect.poll(async () => (await measure()).share).toBeGreaterThan(0.6);
+  const upright = await measure();
+  expect(upright.fill).toBe(toRgb(upright.white));
+
+  await page.keyboard.press('f');
+  await expect(bar).toHaveAttribute('data-bottom-side', 'b');
+  // Still White leading, same label; Black's (small) band is now at the
+  // bottom and is coloured black.
+  await expect(bar).toHaveAttribute('data-leading', 'w');
+  await expect(bar).toHaveAttribute('aria-label', /^Evaluation (\+|M)/);
+  await expect.poll(async () => (await measure()).share).toBeLessThan(0.4);
+  const flipped = await measure();
+  expect(flipped.fill).toBe(toRgb(flipped.black));
+});
