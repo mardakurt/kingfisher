@@ -225,3 +225,50 @@ describe('update-service — install while quitting (PART W)', () => {
     }
   });
 });
+
+describe('update-service — the preview channel', () => {
+  it('a preview build answers from what it is, and asks the network nothing', async () => {
+    const engine = makeEngine();
+    const { check, configureChannel, manualDownloadUrl, __resetForTests } =
+      await loadService(engine);
+    try {
+      configureChannel({
+        name: 'preview',
+        build: 431,
+        downloadUrl: 'https://kingfisher-chess.vercel.app',
+      });
+      const verdict = await check();
+      expect(verdict).toMatchObject({
+        status: 'preview',
+        currentVersion: '1.0.0',
+        build: 431,
+        downloadUrl: 'https://kingfisher-chess.vercel.app',
+      });
+      expect(engine.fakeCheck).not.toHaveBeenCalled();
+      expect(listenerCount(engine)).toBe(0);
+      expect(manualDownloadUrl()).toBe('https://kingfisher-chess.vercel.app');
+    } finally {
+      __resetForTests();
+      configureChannel({ name: 'stable' });
+    }
+  });
+
+  it('a stable build — and an unconfigured one — still consults the feed', async () => {
+    const engine = makeEngine();
+    const { check, configureChannel, manualDownloadUrl, __resetForTests } =
+      await loadService(engine);
+    try {
+      for (const name of ['stable', 'dev', undefined]) {
+        configureChannel({ name });
+        engine.fakeCheck.mockClear();
+        const run = check();
+        expect(engine.fakeCheck).toHaveBeenCalledTimes(1);
+        expect(manualDownloadUrl()).toBeNull();
+        await Promise.allSettled([run]);
+        __resetForTests();
+      }
+    } finally {
+      __resetForTests();
+    }
+  });
+});

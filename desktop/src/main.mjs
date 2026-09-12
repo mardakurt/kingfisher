@@ -52,6 +52,8 @@ import {
   acknowledgeUpdate,
   cancelDownload,
   check,
+  configureChannel,
+  manualDownloadUrl,
   hasAcknowledgedUpdate,
   installAndRestart,
   pruneUpdateCache,
@@ -602,9 +604,12 @@ async function handleUpdateAction(action) {
         return;
       }
       case 'fallback': {
-        // Manual fallback: open the polished DMG download page.
-        // Used when auto-install is not viable on this machine.
-        const url = `${process.env.KINGFISHER_PUBLIC_REPOSITORY_URL || 'https://github.com/mardakurt/kingfisher'}/releases/latest`;
+        // Manual fallback: the page this channel's newest build is on. For a
+        // preview that is the landing page, never `/releases/latest`, which
+        // is the *stable* release and may be older than the preview.
+        const url =
+          manualDownloadUrl() ??
+          `${process.env.KINGFISHER_PUBLIC_REPOSITORY_URL || 'https://github.com/mardakurt/kingfisher'}/releases/latest`;
         void shell.openExternal(url);
         return;
       }
@@ -874,6 +879,15 @@ if (!app.requestSingleInstanceLock()) {
       `Kingfisher ${buildIdentity.label} · Electron ${process.versions.electron} · ` +
         `${process.platform}-${process.arch} ${os.release()} · packaged=${app.isPackaged}`,
     );
+    configureChannel({
+      name: buildIdentity.channel,
+      build: buildIdentity.build,
+      downloadUrl:
+        buildIdentity.channel === 'preview'
+          ? (buildIdentity.landing ??
+            `${process.env.KINGFISHER_PUBLIC_REPOSITORY_URL || 'https://github.com/mardakurt/kingfisher'}/releases`)
+          : null,
+    });
     registerIpc();
     rebuildMenu();
     // Mirror every update-service verdict through `updateStatus` so the

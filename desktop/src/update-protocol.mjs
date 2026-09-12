@@ -101,6 +101,14 @@ export const STATUS = Object.freeze({
   UNABLE: 'unable-to-check',
   CANCELED: 'canceled',
   FAILED: 'failed',
+  /**
+   * A preview build: the current-master build the landing page offers
+   * before a trusted, signed release exists. It carries a build number, not
+   * a new version, so the stable feed can never offer it anything and it
+   * never asks — the newest preview is downloaded by hand, from the same
+   * page it came from. No network request is made for this verdict.
+   */
+  PREVIEW: 'preview',
 });
 
 /**
@@ -294,6 +302,13 @@ export function describeVerdict(verdict) {
       return {
         headline: `Unable to check for updates right now.`,
         detail: verdict.reason,
+      };
+    case STATUS.PREVIEW:
+      return {
+        headline: `This is a preview build of Kingfisher ${verdict.currentVersion}.`,
+        detail: `Preview builds do not update themselves. The newest one is on the download page${
+          verdict.build ? ` (you have build ${verdict.build})` : ''
+        }.`,
       };
     case STATUS.DOWNLOADING:
       return {

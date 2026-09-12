@@ -108,6 +108,13 @@ export function buildIdentity({ env = process.env, gitImpl = git } = {}) {
 const require_ = createRequire(import.meta.url);
 const { version } = require_('../package.json');
 
+/*
+  The landing URL, from the one place it is defined. `src/release/public-urls.ts`
+  is TypeScript with only erasable annotations, which Node strips; the desktop
+  build reads it rather than keeping a second copy of the address.
+*/
+const { publicUrl } = await import('../../src/release/public-urls.ts');
+
 const identity = buildIdentity();
 const name = artifactName({ version, build: identity.build, channel: identity.channel });
 console.log(
@@ -139,10 +146,16 @@ const config = [
   `-c.extraMetadata.kingfisher.dirty=${identity.dirty}`,
   ...(identity.commit ? [`-c.extraMetadata.kingfisher.commit=${identity.commit}`] : []),
   ...(identity.build ? [`-c.extraMetadata.kingfisher.build=${identity.build}`] : []),
+  `-c.extraMetadata.kingfisher.landing=${publicUrl.landing}`,
   // The DMG name is the channel's, so a preview can never overwrite a stable
   // release's bytes. The ZIP keeps electron-builder's own name; it is only
   // ever uploaded by the stable release process.
   `-c.dmg.artifactName=${name}`,
+  // The feed is configured (so `app-update.yml` is written into the bundle)
+  // and never published from here: uploads are the release process's job,
+  // after verification.
+  '--publish',
+  'never',
 ];
 
 const result = spawnSync(process.execPath, [builder, ...process.argv.slice(2), ...config], {

@@ -313,8 +313,40 @@ function pickUpdateSize(info) {
  * check                                                                  *
  * --------------------------------------------------------------------- */
 
+/**
+ * Which channel this build is on, as `desktop/scripts/build.mjs` recorded
+ * it. `main.mjs` calls this once at launch. Unconfigured means stable, which
+ * is the conservative reading: a stable build consults the feed and is
+ * offered only a strictly newer semantic version.
+ */
+const channel = { name: 'stable', build: null, downloadUrl: null };
+
+export function configureChannel({ name, build = null, downloadUrl = null } = {}) {
+  channel.name = name === 'preview' ? 'preview' : 'stable';
+  channel.build = build;
+  channel.downloadUrl = downloadUrl;
+}
+
+/** Where a person goes to fetch this channel's newest build by hand. */
+export function manualDownloadUrl() {
+  return channel.downloadUrl;
+}
+
 export async function check() {
   if (state.checkPromise) return state.checkPromise;
+  if (channel.name === 'preview') {
+    // No request is made. A preview is replaced by downloading the next
+    // one; the stable feed would either 404 (no latest-mac.yml on the
+    // release) or, once a stable release exists, correctly offer it — and
+    // that offer is what `stable` builds are for.
+    emit({
+      status: STATUS.PREVIEW,
+      currentVersion: app.getVersion(),
+      build: channel.build,
+      downloadUrl: channel.downloadUrl,
+    });
+    return state.verdict;
+  }
   if (!isUpdaterSupported()) {
     emit({
       status: STATUS.UNABLE,

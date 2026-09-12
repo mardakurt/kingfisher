@@ -45,7 +45,18 @@ let autoUpdaterPromise = null;
 
 function loadAutoUpdater() {
   if (!autoUpdaterPromise) {
-    autoUpdaterPromise = import('electron-updater').then(({ autoUpdater }) => {
+    /*
+      `electron-updater` is CommonJS and exports `autoUpdater` through a
+      getter. Node's named-export detection for CommonJS reads the source
+      statically and cannot see a getter, so `{ autoUpdater }` destructured
+      from the namespace is `undefined` — which is what every packaged build's
+      Check for Updates reported, as "Cannot set properties of undefined
+      (setting 'autoDownload')", once the dialog could dispatch at all. The
+      default export is the real `module.exports`; the getter is read there.
+    */
+    autoUpdaterPromise = import('electron-updater').then((namespace) => {
+      const autoUpdater = (namespace.default ?? namespace).autoUpdater;
+      if (!autoUpdater) throw new Error('electron-updater exposed no autoUpdater.');
       // The four flags that matter. See the module docstring for the
       // threat model that drives each one.
       autoUpdater.autoDownload = false;

@@ -41,7 +41,11 @@ export function readBuildIdentity(pkg, { packaged = true } = {}) {
     typeof raw.commit === 'string' && /^[0-9a-f]{7,40}$/.test(raw.commit) ? raw.commit : null;
   const channel = CHANNELS.includes(raw.channel) ? raw.channel : 'dev';
   const dirty = raw.dirty === true || raw.dirty === 'true';
+  const landing =
+    typeof raw.landing === 'string' && /^https:\/\//.test(raw.landing) ? raw.landing : null;
   return {
+    /** The landing page a preview build sends people to for the next one. */
+    landing,
     version,
     build,
     commit,

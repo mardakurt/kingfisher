@@ -110,8 +110,19 @@ describe('electron-builder.yml', () => {
     expect(pgn.role).toBe('Viewer');
   });
 
-  it('never talks to GitHub at build time', () => {
-    expect(config.publish).toBeNull();
+  it('declares the stable feed so app-update.yml is written, and only ever uploads by hand', () => {
+    // A feed has to be declared for electron-builder to write app-update.yml
+    // into the bundle; with `publish: null` a packaged build had nothing to
+    // ask. Uploading is the release scripts' job: build.mjs passes
+    // `--publish never` on every run.
+    expect(config.publish).toMatchObject({
+      provider: 'github',
+      owner: 'mardakurt',
+      repo: 'kingfisher',
+    });
+    expect(config.publish.releaseType).toBe('release');
+    const build = readFileSync(path.join(DESKTOP, 'scripts', 'build.mjs'), 'utf8');
+    expect(build).toMatch(/'--publish',\s*'never'/);
   });
 
   it('the DMG contract the verifier asserts', () => {

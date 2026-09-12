@@ -15,7 +15,7 @@
  * `open()` focuses the existing window instead of opening a duplicate.
  */
 
-import { BrowserWindow, app } from 'electron';
+import { BrowserWindow, app, ipcMain } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -25,8 +25,59 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const DIALOG_WIDTH = 420;
 const DIALOG_HEIGHT = 280;
 
+/**
+ * The channels the dialog's preload speaks. Named here as well as in
+ * `dialogs/update-preload.cjs` because the two halves have to agree, and
+ * `update-window.test.mjs` reads the preload and checks that every channel it
+ * exposes has a handler here. Until that test existed, none of them did:
+ * every packaged build from Phase 35 to Phase 45 opened a dialog whose Check
+ * for Updates button answered "No handler registered for
+ * 'kingfisher-update:dispatch'", whose Close button did nothing, and whose
+ * initial verdict never arrived.
+ */
+export const CHANNELS = Object.freeze({
+  initial: 'kingfisher-update:initial',
+  verdict: 'kingfisher-update:verdict',
+  dispatch: 'kingfisher-update:dispatch',
+  close: 'kingfisher-update:close',
+});
+
 /** @type {BrowserWindow | null} */
 let window = null;
+
+let ipcRegistered = false;
+
+/**
+ * Answer the dialog. Registered once, on first open, and not per window:
+ * `ipcMain.handle` refuses a second handler on the same channel, and a
+ * dialog that is closed and reopened is a new window on the same channels.
+ */
+export function registerIpc(ipc = ipcMain) {
+  if (ipcRegistered) return;
+  ipcRegistered = true;
+  ipc.handle(CHANNELS.initial, (event) => {
+    if (!isDialog(event.sender)) return null;
+    // The dialog renders a verdict; the initial one is whatever the service
+    // last said, with the version filled in for a dialog opened before any check.
+    return { currentVersion: app.getVersion(), ...lastVerdict };
+  });
+  ipc.handle(CHANNELS.dispatch, async (event, action) => {
+    // Only the dialog may drive the updater; the main window has its own
+    // typed surface for the two things it is allowed to ask for.
+    if (!isDialog(event.sender)) return { ok: false };
+    if (typeof action !== 'string' || action.length > 32) return { ok: false };
+    await dispatchAction(action);
+    return { ok: true };
+  });
+  ipc.on(CHANNELS.close, (event) => {
+    if (isDialog(event.sender)) close();
+  });
+}
+
+/** Is this sender the dialog this module opened? */
+function isDialog(sender) {
+  return Boolean(window && !window.isDestroyed() && sender === window.webContents);
+}
 
 /** @type {((action: string) => Promise<void> | void) | null} */
 let dispatchHandler = null;
@@ -41,7 +92,7 @@ export function setDispatchHandler(handler) {
 export function sendVerdict(verdict) {
   lastVerdict = verdict ?? { status: 'idle' };
   if (!window || window.isDestroyed()) return;
-  window.webContents.send('kingfisher-update:verdict', lastVerdict);
+  window.webContents.send(CHANNELS.verdict, lastVerdict);
 }
 
 export function getLastVerdict() {
@@ -62,6 +113,7 @@ export async function open({ parent, onClose, onAction } = {}) {
     return;
   }
   if (typeof onAction === 'function') dispatchHandler = onAction;
+  registerIpc();
   window = new BrowserWindow({
     width: DIALOG_WIDTH,
     height: DIALOG_HEIGHT,
@@ -107,4 +159,12 @@ export function close() {
   if (window && !window.isDestroyed()) {
     window.close();
   }
+}
+
+/** Test seam: forget that handlers were registered, so a fresh mock can be wired. */
+export function __resetForTests() {
+  ipcRegistered = false;
+  window = null;
+  dispatchHandler = null;
+  lastVerdict = { status: 'idle' };
 }

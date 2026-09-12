@@ -88,3 +88,18 @@ suite('values that came through a command line', () => {
     });
   });
 });
+
+suite('the landing a preview points at', () => {
+  it('is carried when the build recorded one, and only over https', () => {
+    expect(
+      readBuildIdentity({
+        version: '1.0.0',
+        kingfisher: { landing: 'https://kingfisher-chess.vercel.app' },
+      }).landing,
+    ).toBe('https://kingfisher-chess.vercel.app');
+    expect(
+      readBuildIdentity({ version: '1.0.0', kingfisher: { landing: 'http://evil' } }).landing,
+    ).toBeNull();
+    expect(readBuildIdentity({ version: '1.0.0' }).landing).toBeNull();
+  });
+});

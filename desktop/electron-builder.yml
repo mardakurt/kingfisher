@@ -228,8 +228,16 @@ dmg:
 # `release:preflight:mac` gate refuses to run a *trusted* release build
 # without a `Developer ID Application` certificate present.
 #
-# publish is left null on purpose: we still want `latest-mac.yml`
-# produced next to the ZIP, but we do not want electron-builder
-# to talk to GitHub at build time. The release process uploads
-# the artifacts with `gh release upload` after verification.
-publish: null
+# The stable feed. Declaring it is what makes electron-builder write
+# `app-update.yml` into the bundle and `latest-mac.yml` beside the ZIP —
+# with `publish: null` neither existed, and a packaged build's *Check for
+# Updates…* had no feed to ask. `desktop/scripts/build.mjs` always passes
+# `--publish never`, so nothing is uploaded at build time; the release
+# process uploads with `gh release upload` after verification. Prereleases
+# (the macOS preview channel) are invisible to this feed:
+# `allowPrerelease` is false in `kingfisher-updater.mjs`.
+publish:
+  provider: github
+  owner: mardakurt
+  repo: kingfisher
+  releaseType: release

@@ -61,9 +61,9 @@
     switch (verdict.status) {
       case 'idle':
         paint({
-          headline: 'Kingfisher updates itself in the background.',
+          headline: 'Kingfisher checks for updates only when you ask.',
           detail:
-            'Click Check for Updates to ask the release host whether a newer version is available.',
+            'Click Check for Updates to ask the release host whether a newer version is available. Nothing is checked in the background.',
           progress: null,
           footnote: '',
           primary: { label: 'Check for Updates', enabled: true, action: 'check' },
@@ -186,6 +186,18 @@
           footnote: 'Your installed Kingfisher is unchanged.',
           primary: { label: 'Try Again', enabled: true, action: 'check' },
           secondary: { label: 'Download Installer', enabled: true, action: 'fallback' },
+        });
+        break;
+      case 'preview':
+        paint({
+          headline: `This is a preview build of Kingfisher ${current}.`,
+          detail: `Preview builds do not update themselves. The newest one is on the download page${
+            verdict.build ? ` (you have build ${verdict.build})` : ''
+          }.`,
+          progress: null,
+          footnote: 'No request was made. Nothing was changed on this machine.',
+          primary: { label: 'Open Download Page', enabled: true, action: 'fallback' },
+          secondary: { label: 'Close', enabled: true, action: 'close' },
         });
         break;
       case 'unable-to-check':
