@@ -263,6 +263,29 @@ const database = (key) => {
   return open.get(key);
 };
 
+/**
+ * A collection that may be written to: one whose file is still where the
+ * registry says it is.
+ *
+ * SQLite keeps working through an open handle after the file is deleted or
+ * renamed away — POSIX semantics — so a query still answers, honestly, from
+ * the data that is still there. A *write* is different: it goes into an
+ * inode with no path, reports success, and is gone the moment the handle
+ * closes. Found by `database-chaos.test.mjs`: delete the file, import a
+ * game, `{ imported: 1 }`. A person who has removed a collection is told so
+ * before anything they author is written where nobody can find it.
+ */
+const writable = (key) => {
+  const entry = databaseRegistry.resolve(key);
+  if (!existsSync(entry.path)) {
+    throw new Error(
+      `The collection's file is no longer at ${path.basename(entry.path)}. It was moved or ` +
+        'deleted while Kingfisher was running; nothing was written. Put it back, or create a new collection.',
+    );
+  }
+  return database(key);
+};
+
 /** The largest request body the companion will hold in memory. */
 export const MAX_BODY_BYTES = 64 * 1024 * 1024;
 
@@ -619,7 +642,7 @@ async function route(url, request, response) {
 
   if (pathname === '/db/import' && request.method === 'POST') {
     const body = await readBody(request);
-    const result = database(String(body.key)).insertGames(body.games ?? []);
+    const result = writable(String(body.key)).insertGames(body.games ?? []);
     return json(response, 200, result);
   }
 
@@ -909,7 +932,7 @@ async function route(url, request, response) {
   if (pathname === '/db/apply-classification' && request.method === 'POST') {
     const body = await readBody(request);
     const entries = Array.isArray(body.entries) ? body.entries : [];
-    return json(response, 200, database(String(body.key)).applyClassification(entries));
+    return json(response, 200, writable(String(body.key)).applyClassification(entries));
   }
 
   if (pathname === '/db/structure-search' && request.method === 'POST') {
@@ -921,7 +944,7 @@ async function route(url, request, response) {
 
   if (pathname === '/db/delete-games' && request.method === 'POST') {
     const body = await readBody(request);
-    const target = database(String(body.key));
+    const target = writable(String(body.key));
     const result = Array.isArray(body.fingerprints)
       ? target.deleteGamesByFingerprint(body.fingerprints.map(String))
       : target.deleteGamesMatching(body.query ?? {});
@@ -930,7 +953,7 @@ async function route(url, request, response) {
 
   if (pathname === '/db/clear' && request.method === 'POST') {
     const body = await readBody(request);
-    const target = database(String(body.key));
+    const target = writable(String(body.key));
     const result = target.clear();
     return json(response, 200, { ...result, integrity: integrityOf(target) });
   }
