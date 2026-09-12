@@ -71,8 +71,14 @@ export default defineConfig({
     // server advertises localhost; using the canonical host keeps hydration
     // and browser event handlers deterministic.
     baseURL: 'http://localhost:3210',
-    ...devices['Desktop Chrome'],
-    channel: 'chrome',
+    /*
+      No browser here. Each project names its own device and channel; a
+      top-level `channel: 'chrome'` (here since Phase 8, before the projects
+      existed) leaked into the Firefox and WebKit projects, and both failed
+      every test at launch with "Unsupported firefox channel chrome". Phase
+      43's "the matrix passed on Firefox and WebKit" could not have been a
+      run of this configuration.
+    */
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
