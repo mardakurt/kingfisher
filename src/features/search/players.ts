@@ -61,7 +61,30 @@ function toIndexed(legend: Legend): IndexedPlayer {
     source: 'legend',
     text: legend.name,
     aliases,
+    // The curated roster is the prominence: a person is on it because a
+    // player typing the surname means them. Full weight, so within a band a
+    // legend outranks any titled namesake — "Kasparov" is Garry before
+    // Sergey, "Tal" is Mikhail before Tal Shaked, "Firouzja" is Alireza
+    // before a WGM whose Wikidata alias happens to spell it that way.
+    weight: 40,
   };
+}
+
+/**
+ * An alias earns its place by adding a spelling. A thousand Wikidata aliases
+ * are the name's own words in another order or on their own — "Lasker" for
+ * Edward Lasker — and a bare surname as an alias made a surname query an
+ * *exact* match for that one person, above Emanuel Lasker and above any
+ * better-known namesake. Orderings come from `nameOrders`; the rest is noise.
+ */
+function spellingAliases(player: TitledPlayer): readonly string[] {
+  const own = new Set(foldKey(player.name).split(' '));
+  return player.aliases.filter(
+    (alias) =>
+      !foldKey(alias)
+        .split(' ')
+        .every((word) => own.has(word)),
+  );
 }
 
 function toIndexedTitled(player: TitledPlayer): IndexedPlayer {
@@ -74,11 +97,14 @@ function toIndexedTitled(player: TitledPlayer): IndexedPlayer {
     note: describeTitledPlayer(player),
     source: 'titled',
     text: player.name,
-    aliases: Array.from(new Set([player.name, ...nameOrders(player.name), ...player.aliases])),
+    aliases: Array.from(
+      new Set([player.name, ...nameOrders(player.name), ...spellingAliases(player)]),
+    ),
     // Prominence, bounded: a title is a fact about strength, the recorded
     // Elo a fact about how much, and both order namesakes, nothing more.
+    // Capped one below a legend's weight so a titled row never ties one.
     weight: Math.min(
-      40,
+      38,
       (player.title === 'GM' ? 20 : player.title === 'WGM' ? 12 : 6) +
         (player.peakElo > 0 ? Math.round(Math.max(0, player.peakElo - 2400) / 20) : 0),
     ),

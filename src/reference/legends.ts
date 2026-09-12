@@ -758,7 +758,7 @@ const GREATS: readonly Legend[] = [
   ),
   other(
     'Vachier-Lagrave, Maxime',
-    ['Vachier Lagrave, Maxime', 'Vachier-Lagrave, M'],
+    ['Vachier Lagrave, Maxime', 'Vachier-Lagrave, M', 'MVL'],
     'GM',
     1990,
     undefined,
@@ -767,7 +767,7 @@ const GREATS: readonly Legend[] = [
   ),
   other(
     'Nepomniachtchi, Ian',
-    ['Nepomniachtchi, I'],
+    ['Nepomniachtchi, I', 'Nepo'],
     'GM',
     1990,
     undefined,
