@@ -1,11 +1,11 @@
 {
   "name": "kingfisher",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "engines": {
     "node": ">=24"
   },
-  "description": "Kingfisher \u2014 a chess research workspace for strong players.",
+  "description": "Kingfisher — a chess research workspace for strong players.",
   "scripts": {
     "dev": "next dev --port 3210",
     "build": "next build",
@@ -44,6 +44,7 @@
     "desktop:update:e2e": "node scripts/desktop-update-e2e.mjs",
     "desktop:update:mutations": "node scripts/desktop-update-mutations.mjs",
     "desktop:update:dialog": "node scripts/desktop-update-dialog.mjs",
+    "desktop:update:real": "node scripts/desktop-update-e2e-real.mjs",
     "data:recent:status": "node scripts/data-recent-status.mjs",
     "release:mac:sign": "node scripts/desktop-mac-sign.mjs",
     "release:mac:notarize": "node scripts/desktop-mac-notarize.mjs",

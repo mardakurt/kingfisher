@@ -4,12 +4,57 @@ The user-facing changelog. Internal phase history is in
 `docs/reports/` and `docs/product/phase-*.md`; the list below is what
 real users notice.
 
-## Unreleased
+## 1.1.0 — 2026-09-12
 
-This is development work. Kingfisher 1.0.0 remains the public stable
-release; nothing here has shipped yet. The notes below describe what
-the next release will contain if it is cut from the current
-development branch.
+The first release signed with a Developer ID certificate and notarised
+by Apple: the DMG opens and the application starts with a normal
+double-click, with no right-click workaround. Everything since 1.0.0 —
+the desktop repairs, the updater, Game Review, the two-engine
+comparison, the data and search improvements — ships in it. The public
+1.0.0 predates the updater and is signed differently, so it cannot
+update itself; replace the application by hand once, and the work in
+`~/Library/Application Support/kingfisher-desktop/` is kept. From 1.1.0
+on, _Kingfisher → Check for Updates…_ installs the next release.
+
+### Apple trust and the packaged build (Phase 47)
+
+- **Signed with Developer ID and notarised.** The application, every
+  nested helper and the disk image carry a `Developer ID Application`
+  signature with the Hardened Runtime, and Apple's notarisation ticket
+  is stapled to both the `.app` and the `.dmg`, so Gatekeeper's answer
+  is available offline. Notarisation is Apple's malware screening, not
+  an endorsement.
+- **A build cannot ship incomplete.** The list of what the packaged
+  application must contain is one file, the build refuses to sign a
+  bundle missing any of it, and the freshly built application is
+  launched — web server, companion, engine catalogue — before a DMG is
+  made from those bytes. "Kingfisher could not start" from a missing
+  `server.js` is structurally impossible for a published build.
+- **Fewer entitlements.** `disable-library-validation` and
+  `allow-dyld-environment-variables` are gone; they were granted for
+  the engines, which are separate processes and never needed them.
+- **The update window is a native panel.** Small, with the system
+  title bar, one default button per state, keyboard-complete, and
+  plain language for every state including the failures. Nothing
+  internal — paths, manifest names, headers — is ever shown.
+- **Engine arrows redrawn.** A slim, filled arrow that points at the
+  destination instead of covering it; Engine A solid blue, Engine B
+  amber and dashed with an outlined head; when both engines choose the
+  same move there is one two-tone arrow, not two. The tooltip sits by
+  the arrow's head. The board stays playable under an arrow, and the
+  arrows fade while you move a piece.
+- **A titled-player roster.** Every GM, WGM, IM and WIM Wikidata
+  records — 8,339 people, with the spellings and nicknames they are
+  found under — is searchable in the player library and the command
+  palette, each shown as a person the installed sources may hold no
+  games for. Nothing on the roster is a game.
+- **Opening search answers to the names players use.** QGD, KID, KIA,
+  QID, "Sicilian Defence", "Kings Indian", "Gruenfeld", "Spanish";
+  "Berlin" is the Ruy Lopez line, "Sveshnikov" is the Sveshnikov and not
+  the Anti-Sveshnikov, "Dragon" is the Sicilian; one hit per name; a
+  typo still finds the opening and a resemblance no longer does.
+- **Halogen 16.8.0** replaces 16.0.0, which could die at its own depth
+  limit on a trivial endgame.
 
 ### Desktop reliability
 
@@ -485,14 +530,7 @@ hidden }` rule was preventing scroll on the marketing page; the fix
   the UI as plain English with a short next step. The raw
   exception still appears in Diagnostics for the power user.
 
-## 1.1.0 — Apple notarised, seamless updates
-
-The current development line. The release date is the day
-the Phase 36 release gate passes; the date is therefore not
-a date yet, and Kingfisher 1.0.0 remains the public stable
-release until this line is tagged.
-
-### Professional macOS experience
+### Professional macOS experience (as designed in Phase 36, shipped in 1.1.0)
 
 - **Developer ID signed.** The macOS binary is signed with a
   `Developer ID Application` identity, with a secure timestamp
