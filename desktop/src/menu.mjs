@@ -30,6 +30,12 @@ export function buildTemplate({
   appName = 'Kingfisher',
   platform = process.platform,
   updateStatus = { status: 'idle' },
+  /**
+   * A packaged application does not offer Developer Tools in its menu: a
+   * chess workstation's users have no use for them, and the documentation
+   * had said "dev only" while every packaged build shipped the item.
+   */
+  packaged = false,
 } = {}) {
   const mac = platform === 'darwin';
   const recentItems = recent.map((entry) => ({
@@ -49,7 +55,18 @@ export function buildTemplate({
           {
             label: appName,
             submenu: [
-              { role: 'about' },
+              /*
+                The role items name the application after `app.name`, which
+                is the package name — `kingfisher-desktop` — and cannot be
+                changed without moving the profile directory that is derived
+                from it (`~/Library/Application Support/kingfisher-desktop/`),
+                which would strand every user's work. So the three items that
+                name the application are labelled here with the product name.
+                Every packaged build from Phase 19 to Phase 45 read "About
+                kingfisher-desktop", "Hide kingfisher-desktop" and "Quit
+                kingfisher-desktop"; the menu walk photographed it.
+              */
+              { role: 'about', label: `About ${appName}` },
               { type: 'separator' },
               {
                 // Phase 35: the macOS application menu's primary updater
@@ -67,11 +84,11 @@ export function buildTemplate({
               { type: 'separator' },
               { role: 'services' },
               { type: 'separator' },
-              { role: 'hide' },
+              { role: 'hide', label: `Hide ${appName}` },
               { role: 'hideOthers' },
               { role: 'unhide' },
               { type: 'separator' },
-              { role: 'quit' },
+              { role: 'quit', label: `Quit ${appName}` },
             ],
           },
         ]
@@ -138,7 +155,7 @@ export function buildTemplate({
         { role: 'zoomOut' },
         { type: 'separator' },
         { role: 'togglefullscreen' },
-        { role: 'toggleDevTools' },
+        ...(packaged ? [] : [{ role: 'toggleDevTools' }]),
       ],
     },
     {

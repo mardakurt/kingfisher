@@ -80,11 +80,10 @@ describe('the application menu', () => {
   */
   it('keeps Quit and Diagnostics reachable on every platform', () => {
     for (const platform of ['darwin', 'win32', 'linux']) {
-      const labels = leaves(buildTemplate({ platform })).map(
-        (item) => item.label ?? item.role ?? '',
-      );
+      const items = leaves(buildTemplate({ platform }));
+      const labels = items.map((item) => item.label ?? item.role ?? '');
       expect(
-        labels.some((label) => label === 'quit'),
+        items.some((item) => item.role === 'quit'),
         platform,
       ).toBe(true);
       expect(
@@ -145,5 +144,27 @@ describe('the application menu', () => {
       updateItem.click();
       expect(onCheckForUpdates).toHaveBeenCalledOnce();
     }
+  });
+
+  it('offers Developer Tools from a checkout and not from a packaged application', () => {
+    const view = (packaged) =>
+      buildTemplate({ platform: 'darwin', packaged })
+        .find((item) => item.label === 'View')
+        .submenu.map((item) => item.role);
+    expect(view(false)).toContain('toggleDevTools');
+    expect(view(true)).not.toContain('toggleDevTools');
+    // Everything else in View is the same either way.
+    expect(view(true)).toEqual(view(false).filter((role) => role !== 'toggleDevTools'));
+  });
+
+  it('names the application by its product name, never by the package name', () => {
+    const template = buildTemplate({ platform: 'darwin', appName: 'Kingfisher' });
+    const application = template[0];
+    const labels = application.submenu.filter((item) => item.label).map((item) => item.label);
+    expect(application.label).toBe('Kingfisher');
+    expect(labels).toEqual(
+      expect.arrayContaining(['About Kingfisher', 'Hide Kingfisher', 'Quit Kingfisher']),
+    );
+    expect(JSON.stringify(template)).not.toContain('kingfisher-desktop');
   });
 });

@@ -69,6 +69,9 @@ import * as updateWindow from './update-window.mjs';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const HOST = '127.0.0.1';
 
+/** What the application is called where a person reads it. */
+const PRODUCT_NAME = 'Kingfisher';
+
 /**
  * What this build is — version, build number, commit, channel — as
  * `desktop/scripts/build.mjs` recorded it into the packaged `package.json`.
@@ -530,8 +533,12 @@ function rebuildMenu() {
           void shell.openExternal(url);
         },
         onDiagnostics: () => state.window?.webContents.send('kingfisher:show-diagnostics'),
-        appName: app.getName(),
+        // The product name, not `app.getName()`: that is the package name,
+        // `kingfisher-desktop`, and it also names the profile directory, so
+        // it stays what it is. See the note in menu.mjs.
+        appName: PRODUCT_NAME,
         updateStatus: updateStatus.value,
+        packaged: app.isPackaged,
       }),
     ),
   );
@@ -917,6 +924,22 @@ if (!app.requestSingleInstanceLock()) {
           ? (buildIdentity.landing ??
             `${process.env.KINGFISHER_PUBLIC_REPOSITORY_URL || 'https://github.com/mardakurt/kingfisher'}/releases`)
           : null,
+    });
+    /*
+      The About panel: the product name (not the package name), the marketing
+      version, and the build number, commit and channel a support report needs.
+    */
+    app.setAboutPanelOptions({
+      applicationName: PRODUCT_NAME,
+      applicationVersion: buildIdentity.version,
+      version: [
+        buildIdentity.build === null ? null : `build ${buildIdentity.build}`,
+        buildIdentity.commit ? buildIdentity.commit.slice(0, 7) : null,
+        buildIdentity.channel,
+      ]
+        .filter(Boolean)
+        .join(' · '),
+      copyright: 'Copyright © 2026 Kingfisher.',
     });
     registerIpc();
     rebuildMenu();

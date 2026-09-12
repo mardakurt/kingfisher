@@ -1,157 +1,75 @@
-# macOS Desktop Certification Matrix
+# macOS desktop certification matrix
 
-This is the maintainer's one-glance map of what the packaged Kingfisher.app
-does and does not certify against on macOS today. It is the answer the
-Phase 45 brief asks for under "PART B".
+What the packaged `Kingfisher.app` has been shown to do, row by row, with
+the command that showed it. Every GREEN row was run against the packaged
+application — the bundle electron-builder produced, launched as a user
+launches it, with an isolated profile — not against the checkout shell.
 
-Every row says how a real packaged application was exercised, or why it
-could not be exercised, against the current build (`/Applications/Kingfisher.app`
-after `npm run desktop:dist`). Green is "this is in production", amber is
-"this works but has a known limit", red is "this is blocked externally",
-and "not certified" is "the maintainer did not have the environment to run
-this during Phase 45".
+**Current as of:** Phase 46, 2026-09-12, on macOS 26.6.2 (Apple silicon,
+one built-in display), Electron 44.2.0, build 437 unless a row says
+otherwise. `docs/reports/phase-46-findings.md` holds every finding with its
+reproduction and fix; `docs/reports/phase-46-handover.md` holds the run
+records.
 
-The statuses do not stand alone: the test scripts under `scripts/desktop-*.mjs`
-are the evidence, and `docs/reports/phase-45-desktop-findings.md` is the
-list of every finding with a severity and a fix.
+Statuses:
 
-## Code status legend
+- **GREEN** — exercised against the packaged application by the named
+  command; it passes.
+- **LIMITED** — exercised, with a limit the row names.
+- **BLOCKED EXTERNALLY** — the code is in place; something outside the
+  repository (a certificate, hardware) prevents the exercise.
+- **NOT CERTIFIED** — not exercised; the row says what the exercise would be.
 
-- **GREEN** — exercised against a real packaged application; the test
-  script is in `scripts/`, the script passes, and the path is documented.
-- **LIMITED** — works in the architecture but has an acknowledged limit;
-  the limit is named in the row.
-- **BLOCKED EXTERNALLY** — the code is correct, but Apple-side or
-  Apple-cert-side reality makes this red. The maintainer cannot fix it
-  in Kingfisher.
-- **NOT CERTIFIED** — the maintainer did not exercise this in Phase 45.
-  The next phase that touches it must, and the row says what the exercise
-  would look like.
+A word on the previous matrix. The Phase 45 version marked the packaged
+application GREEN on rows its harnesses had never passed — every packaged
+build from Phase 35 to Phase 45 exited on launch with "This build is
+incomplete", and the harness reported that as a Playwright timeout. This
+matrix was rebuilt from runs, not carried forward.
+
+## The gate
+
+```bash
+npm run desktop:certify                      # every packaged row below that a script covers
+npm run desktop:public:verify -- --full      # the bytes the public downloads
+```
 
 ## Matrix
 
-| Area                             | Status             | Evidence / limit                                                                                                                                                           |
-| -------------------------------- | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Development Electron shell       | GREEN              | `npm run desktop:smoke` against `npm run desktop:dev`                                                                                                                      |
-| Packaged `.app` build            | GREEN              | `npm run desktop:dist` produces `Kingfisher-1.0.0-arm64.dmg`                                                                                                               |
-| Installed `/Applications/.app`   | GREEN              | Copy of the packaged build, hand-copied to `/Applications/`                                                                                                                |
-| DMG install path                 | GREEN              | DMG mounts, drag-to-Applications works, code-signed                                                                                                                        |
-| Restart preserves work           | GREEN              | `scripts/desktop-restart.mjs --packaged`                                                                                                                                   |
-| Sleep / wake                     | LIMITED            | `scripts/desktop-suspend.mjs --packaged` passes; real-Mac soak not run during Phase 45                                                                                     |
-| Offline                          | GREEN              | Companion + Explorer fall back; tested by `desktop:smoke` offline step                                                                                                     |
-| Native engines (Stockfish)       | GREEN              | `scripts/desktop-engines.mjs --packaged`; managed-engine sandbox                                                                                                           |
-| Native engines (Lc0)             | LIMITED            | Same harness, deterministic; a real weights file is not bundled.                                                                                                           |
-| Database open / query            | GREEN              | `desktop:smoke`; `desktop:restart` round-trips a study database                                                                                                            |
-| Database missing file            | GREEN              | Renders the reconnect dialog, not an `ENOENT`                                                                                                                              |
-| Updates (manual)                 | GREEN              | `Check for Updates…` against a real staging feed                                                                                                                           |
-| Update save barrier              | GREEN              | `scripts/desktop-update-e2e.mjs --packaged`                                                                                                                                |
-| Update staging end-to-end        | LIMITED            | Staging server up; full relaunch chain exercised in dev, not from /Applications                                                                                            |
-| Update cancel / offline          | GREEN              | `desktop-update-e2e` includes a cancel and an offline variant                                                                                                              |
-| Post-update notice               | GREEN              | One-time toast; persisted acknowledgement                                                                                                                                  |
-| File open (`File → Open PGN…`)   | GREEN              | Native `dialog.showOpenDialog` in `main.mjs`                                                                                                                               |
-| Drag-and-drop PGN                | GREEN              | Renderer `useDesktop` listener; `bridge.openPaths` delivers the path                                                                                                       |
-| Finder Open With (`open-file`)   | GREEN              | `app.on('open-file')` queues before `ready`                                                                                                                                |
-| Multiple PGN files               | GREEN              | Each becomes its own document; `openPaths` handles an array                                                                                                                |
-| Window restoration               | GREEN              | `desktop/src/window-bounds.mjs` saves and restores; clamped to displays                                                                                                    |
-| Multiple displays                | GREEN              | Clamp logic tested in `window-bounds.test.mjs`; live multi-display soak not run during Phase 45                                                                            |
-| Fullscreen                       | LIMITED            | macOS native fullscreen works; no soak run on a 5K display during Phase 45                                                                                                 |
-| Dock behaviour                   | GREEN              | `app.on('activate')`, `window-all-closed` Mac convention                                                                                                                   |
-| Dock reopen (click w/ no window) | GREEN              | `app.on('activate')` creates a window                                                                                                                                      |
-| Single-instance lock             | GREEN              | `app.requestSingleInstanceLock()`, `second-instance` event                                                                                                                 |
-| Quit / Cmd+Q                     | GREEN              | `will-quit` flushes the save barrier and stops services                                                                                                                    |
-| Force-quit recovery              | GREEN              | SQLite write-ahead log; manual force-quit does not corrupt                                                                                                                 |
-| Renderer crash UX                | GREEN              | `render-process-gone` shows an error box; no auto-reload loop                                                                                                              |
-| Main process crash               | LIMITED            | Relaunch manually; no supervisor daemon by design                                                                                                                          |
-| Local crash diagnostics          | GREEN              | `desktop/src/log.mjs` writes to `userData`, redacted, bounded                                                                                                              |
-| Engine child-process tree        | GREEN              | `managed-engines` kills the process group on quit; spot-checked with `ps`                                                                                                  |
-| Engine hang watchdog             | GREEN              | "Engine not responding" surfaces in the UI; tested by `engine-sandbox.test.mjs`                                                                                            |
-| Engine restart (no app restart)  | GREEN              | `Restart Engine` reuses settings; tested by `desktop-engines.mjs`                                                                                                          |
-| Database file moved / deleted    | GREEN              | "Database file not found" + reconnect dialog                                                                                                                               |
-| File permissions (read-only)     | GREEN              | Opens read-only; no `EACCES` in UX                                                                                                                                         |
-| macOS `File` menu                | GREEN              | `desktop/src/menu.mjs`; Open PGN, Import PGN, Open Database, Recent                                                                                                        |
-| `Edit` menu                      | GREEN              | Standard Undo / Redo / Cut / Copy / Paste / Select All                                                                                                                     |
-| `View` menu                      | GREEN              | Reload, Force Reload, Toggle DevTools, Zoom, fullscreen                                                                                                                    |
-| `Window` menu                    | GREEN              | Minimize / Zoom / Bring All to Front                                                                                                                                       |
-| `Help` menu                      | GREEN              | Diagnostics, About, Open Logs Folder                                                                                                                                       |
-| Kingfisher menu                  | GREEN              | About, Check for Updates…, Settings…, Hide, Hide Others, Quit                                                                                                              |
-| Services menu                    | GREEN              | Standard roles; not blocked                                                                                                                                                |
-| About window                     | GREEN              | `role: 'about'` with `app.getVersion()`; no phase numbers                                                                                                                  |
-| `Check for Updates`              | GREEN              | Real menu; manual, not on startup                                                                                                                                          |
-| DMG structure                    | GREEN              | `desktop/scripts/verify-dmg.mjs` checks layout, icon, symlink                                                                                                              |
-| DMG visual                       | LIMITED            | DMG opens and the background, icon, and symlink all render correctly; no visual screenshot pass was scripted                                                               |
-| Installed icons                  | GREEN              | Same `icon.icns` for Finder / Dock / Cmd+Tab / About / DMG volume                                                                                                          |
-| macOS Dark / Light               | GREEN              | Web app follows system; native chrome re-themes                                                                                                                            |
-| System appearance change         | GREEN              | Renderer reads `prefers-color-scheme`; no reload required                                                                                                                  |
-| Accent / titlebar                | GREEN              | `titleBarStyle: 'hidden'`; renderer reserves traffic-light space                                                                                                           |
-| Traffic lights                   | GREEN              | `MAC_TRAFFIC_LIGHT_POSITION` set; not obscured by drag region                                                                                                              |
-| Titlebar double-click            | GREEN              | Standard macOS zoom behaviour; no custom override                                                                                                                          |
-| Context menus                    | GREEN              | Standard `Copy / Paste` retained in text fields                                                                                                                            |
-| Clipboard (FEN / PGN)            | GREEN              | Renderer + preload copy paths; sandbox-safe                                                                                                                                |
-| Copy FEN desktop                 | GREEN              | Six-field FEN; clipboard failure path tested                                                                                                                               |
-| Keyboard shortcuts (Cmd+K, etc)  | GREEN              | Cmd+K in renderer, Cmd+, for Settings, Cmd+W close window                                                                                                                  |
-| `Cmd+W`                          | GREEN              | Closes the window; Mac convention preserved                                                                                                                                |
-| `Cmd+Q`                          | GREEN              | Quits; save barrier flushes before process exit                                                                                                                            |
-| `Escape`                         | GREEN              | Closes dialogs/popovers; does not quit the app                                                                                                                             |
-| Native notifications             | LIMITED            | In-app notices only; no permission prompt, by design                                                                                                                       |
-| Permission audit                 | GREEN              | Zero macOS permissions requested at install time                                                                                                                           |
-| File access permissions          | GREEN              | User-driven `dialog.showOpenDialog` only                                                                                                                                   |
-| Sandbox status                   | LIMITED            | Electron sandbox: enabled (`contextIsolation: true`, `sandbox: true`, `nodeIntegration: false`). macOS App Sandbox: **not used** — Kingfisher ships outside the App Store. |
-| Electron sandbox                 | GREEN              | Three flags asserted in `createWindow` webPreferences                                                                                                                      |
-| Preload surface                  | GREEN              | `preload.cjs`; no raw `fs`, no `child_process`, no `shell` exposed                                                                                                         |
-| External URLs                    | GREEN              | `setWindowOpenHandler` and `will-navigate` reject anything but `https://`                                                                                                  |
-| Desktop persistence              | GREEN              | `~/Library/Application Support/kingfisher-desktop/` survives reinstall                                                                                                     |
-| App uninstall semantics          | GREEN              | Dragging `Kingfisher.app` to Trash leaves Application Support alone; documented                                                                                            |
-| Cache separation                 | GREEN              | Log/Cache dir separated from authored DB; `desktop/src/log.mjs`                                                                                                            |
-| Disk full                        | LIMITED            | Save barrier surfaces "Save failed" on `ENOSPC`; tested by writing until full                                                                                              |
-| Application Support writable     | GREEN              | Fail-fast at startup if `userData` cannot be created                                                                                                                       |
-| Profile locking                  | GREEN              | `requestSingleInstanceLock` prevents two writers                                                                                                                           |
-| Database backup                  | GREEN              | Native Save dialog; round-trips through the file chooser                                                                                                                   |
-| Open backup file                 | GREEN              | User-driven Restore; no Finder association                                                                                                                                 |
-| Desktop Recent Work              | GREEN              | Studies / Review / Analysis surface on Reopen; no dead routes                                                                                                              |
-| macOS Recent Documents           | LIMITED            | PGN may appear after `Open PGN…`; Studies are not filesystem docs                                                                                                          |
-| Touchpad / Magic Mouse           | GREEN              | No gestures hijacked; trackpad zoom is web's existing behaviour                                                                                                            |
-| Retina / high-DPI                | GREEN              | Sharp pieces, arrows, coordinates; assets shipped at 2x                                                                                                                    |
-| Text scaling                     | LIMITED            | Tested at 100% and 125%; 150% not visually exercised                                                                                                                       |
-| Menu-bar fullscreen              | GREEN              | macOS auto-hide menu bar; Cmd+K and Cmd+, still reachable                                                                                                                  |
-| Desktop DB performance           | GREEN              | `companion` queries position / player; no UI freeze                                                                                                                        |
-| Companion lifecycle              | GREEN              | Pairs / serves / stops on every app lifecycle                                                                                                                              |
-| Port collision                   | GREEN              | `origin.mjs` falls back to a free port; verified                                                                                                                           |
-| Loopback security                | GREEN              | Companion binds `127.0.0.1` only; pairing token required                                                                                                                   |
-| Suspend / resume companion       | GREEN              | Companion reconnects on resume; tested by `desktop-suspend.mjs`                                                                                                            |
-| Window / engine / companion soak | LIMITED            | `desktop:soak` not added; current harnesses cover the same paths                                                                                                           |
-| Local logging                    | GREEN              | `desktop/src/log.mjs`; bounded, rotated, redacted                                                                                                                          |
-| Desktop support information      | GREEN              | `kingfisher:diagnostics` IPC returns version / build / mode                                                                                                                |
-| macOS error copy                 | GREEN              | Renderer-facing errors are translated; raw codes stay in log                                                                                                               |
-| Hardened Runtime                 | GREEN              | `hardenedRuntime: true`; entitlements file minimal                                                                                                                         |
-| Notarization                     | BLOCKED EXTERNALLY | `Developer ID Application` certificate is not installed; see below                                                                                                         |
-| Gatekeeper assessment            | BLOCKED EXTERNALLY | Same reason                                                                                                                                                                |
-| Quarantine launch                | BLOCKED EXTERNALLY | Same reason                                                                                                                                                                |
-
-## Notarization / Gatekeeper detail
-
-`security find-identity -v -p codesigning` returns exactly two identities on
-the maintainer's machine:
-
-```
-Apple Development: Metin Arda KURT (YBWWSJYPD6) — 9E15B38DA49F6F30C54CF625FD9132E31F49D2A6
-Apple Distribution: Metin Arda KURT (3B5CYF9DQ4) — D49531EA86C9CC9854CDED1D16410253F1561D19
-```
-
-Neither of these is `Developer ID Application`. `Apple Development` is the
-family that signs builds the maintainer runs on their own device;
-`Apple Distribution` is the family that ships to the Mac App Store.
-**Neither is recognised by Gatekeeper as a direct-distribution signature.**
-
-The current packaged `.app` is therefore signed with `Apple Development`,
-Hardened Runtime enabled. It launches successfully on the maintainer's
-machine because the certificate is local to that machine, and will not
-pass `spctl --assess` on a different user's machine. That is the
-correct behaviour: pretending a different identity would not make the
-binary trustworthy, it would only make it look trustworthy.
-
-`docs/release/apple-developer-id-setup.md` is the procedure for
-installing the missing certificate from
-<https://developer.apple.com/account/resources/certificates/list>.
-Until that certificate is installed, every row that depends on a
-trusted outside-App-Store release stays red, and the rest of the
-matrix stays green.
+| Area                                                           | Status             | Evidence / limit                                                                                                                                                                                                                                                                                                      |
+| -------------------------------------------------------------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Packaged bundle is a whole application                         | GREEN              | `desktop/src/builder-config.test.mjs` cross-checks `extraResources` against `paths.mjs`; `verify-dmg.mjs` refuses a bundle without a server; `desktop:smoke -- --packaged` 17/17, window in ~3 s                                                                                                                      |
+| Build identity                                                 | GREEN              | `CFBundleVersion` = build number; commit, channel and dirty flag in the bundle and in _Settings → Diagnostics_; a publishable channel refuses a dirty tree                                                                                                                                                            |
+| Launch from the operating system                               | GREEN              | `desktop:instances`: `open -a`, `open` with a document, the executable itself; one application per profile; only loopback listeners; no inspector or remote-debugging switch on any process; AppleScript quit stops everything and saves the frame                                                                    |
+| Single instance                                                | GREEN              | `desktop:instances`: a second `open` and a direct executable launch both refused, the first told; six PGNs in two rapid bursts all arrive                                                                                                                                                                             |
+| `.pgn` file association                                        | GREEN              | Declared again (`builder-config.test.mjs`, `verify-dmg.mjs`); a PGN on a cold launch and an `open-file` while running both open (`desktop:smoke`, `desktop:instances`)                                                                                                                                                |
+| Bridge, isolation, no Node handle                              | GREEN              | `desktop:smoke -- --packaged`: bridge present, `crossOriginIsolated`, `SharedArrayBuffer`, `window.require` undefined                                                                                                                                                                                                 |
+| Companion pairing                                              | GREEN              | `desktop:smoke`: authenticated `/status` answers; `desktop:suspend`: still answers after resume                                                                                                                                                                                                                       |
+| Companion loss and recovery                                    | GREEN              | `desktop:walk --faults`: SIGKILL four times in 300 actions, each detected (`Service.running`) and recovered through _Diagnostics → Restart companion_ on the same port and token                                                                                                                                      |
+| Companion under malformed input                                | GREEN              | `companion/src/server-fuzz.test.mjs` against the real process: unsupported methods, hostile paths, eight token shapes, nine body shapes, a 70 MB upload, 200 seeded requests; no 5xx, no exit                                                                                                                         |
+| Native engines in the bundle                                   | GREEN              | `desktop:engines -- --packaged` 25/25: six engines installed, verified by a real search, answer the position just given                                                                                                                                                                                               |
+| Engine process storm                                           | GREEN              | `desktop:engine-chaos`: 100 start/search/stop cycles, 0 leaked processes, 100/100 answered                                                                                                                                                                                                                            |
+| Engine killed while searching                                  | GREEN              | `desktop:engine-chaos`: SIGTERM and SIGKILL of a searching Stockfish — the session stream reports the death, no orphan, a new session answers                                                                                                                                                                         |
+| Two engines, rapid switching                                   | GREEN              | `desktop:engine-chaos`: two engines, twelve rapid position switches, every bestmove legal in the position its search was for                                                                                                                                                                                          |
+| Malformed UCI                                                  | GREEN              | `src/engine/uci-adversarial.test.ts`: six illegal bestmove shapes dropped, 2,000 seeded noise lines and a 100 KB line never throw; an illegal move is never drawn (`engine-arrows.test.ts`)                                                                                                                           |
+| Board playable during analysis                                 | GREEN              | `e2e/engines.spec.ts` "the board can be played while an engine arrow is drawn"; the walk's 135 moves in 1,000 actions                                                                                                                                                                                                 |
+| Local Syzygy probe                                             | GREEN              | `desktop:smoke`: the bundled helper answers "rook against bare king is won, DTZ 29" from real, publisher-verified tables                                                                                                                                                                                              |
+| Window chrome                                                  | GREEN              | `desktop:chrome -- --packaged` 107/107: nothing under the buttons in every layout, full screen, minimum and maximum window                                                                                                                                                                                            |
+| Window resize, full screen, minimise, hide, close, Dock reopen | GREEN              | `desktop:walk` seed 46: 65 resizes, 25 full-screen toggles, 19 minimise/restore, 27 hide/show, 18 close-and-reopen in 1,000 actions; the frame is saved on close                                                                                                                                                      |
+| Restart preserves work                                         | GREEN              | `desktop:restart -- --packaged` 5/5: same origin, the study is still there, one workspace in the profile                                                                                                                                                                                                              |
+| Upgrade from the public 1.0.0                                  | GREEN              | `desktop:upgrade` with the real public DMG (`f7b50af5…`) as the previous build: 7/7 — a study, a preference and pack metadata authored in 1.0.0 are read by build 437                                                                                                                                                 |
+| Suspend / resume                                               | LIMITED            | `desktop:suspend -- --packaged` 12/12 stops every process for 20 s and resumes. An analogue of sleep; a real `pmset sleepnow` would end this session's own automation and was not run                                                                                                                                 |
+| Seeded random walk                                             | GREEN              | `desktop:walk --packaged --seed=46 --actions=1000`: 0 findings, 0 console errors, 0 survivors; memory oscillates 136–472 MB renderer / 139–190 MB main, no monotonic growth                                                                                                                                           |
+| Fault-injecting walk                                           | GREEN              | `desktop:walk --packaged --seed=7 --actions=300 --faults`: offline/online toggles, companion SIGKILL ×4; 0 findings                                                                                                                                                                                                   |
+| Soak                                                           | GREEN              | `desktop:soak` (seed 2026, 30 minutes, packaged): see the handover §5 for the numbers; `--duration=2h` / `8h` are available for the owner's own run                                                                                                                                                                   |
+| Check for Updates                                              | GREEN              | Dialog wired (`update-window.test.mjs`); engine loads (`electron-updater-import.test.mjs`); a preview answers with its build and the download page; a stable build reaches the GitHub feed and, today, reports that v1.0.0 carries none                                                                               |
+| Update install, save barrier                                   | LIMITED            | `desktop:update:e2e` and `desktop:update:mutations` exercise the chain against a staging feed; a real install requires a signed release that does not yet exist                                                                                                                                                       |
+| DMG structure                                                  | GREEN              | `node desktop/scripts/verify-dmg.mjs <dmg>`: `hdiutil verify`, volume name and icon, layout, launchable bundle, bundle id, version, build, commit, `.pgn` type, `arm64`, signature, hardened runtime, no Finder duplicates                                                                                            |
+| DMG visual                                                     | GREEN              | Photographed through the Finder (Phase 46, build 437): one label per item, the Kingfisher icon, the Applications alias, the arrow between them, the caption above the status bar. The first photograph (build 436) showed duplicate labels, a second bird under Applications and a hidden caption; fixed in `b62ba64` |
+| Public download                                                | GREEN              | `desktop:public:verify -- --landing --full`: the descriptor's URL answers with the descriptor's bytes, SHA-256, signing identity and notarisation state; the deployed landing and install guide link it. See the handover §18–20 for the build this was run against                                                   |
+| Code signing                                                   | LIMITED            | `Apple Development` identity, Hardened Runtime, `desktop:sign:verify`; valid on the maintainer's machine, not trusted by Gatekeeper elsewhere                                                                                                                                                                         |
+| Notarisation, Gatekeeper, stapler                              | BLOCKED EXTERNALLY | No `Developer ID Application` certificate is installed (`security find-identity -v -p codesigning` lists `Apple Development` and `Apple Distribution` only); `docs/release/apple-developer-id-setup.md`                                                                                                               |
+| Multiple displays                                              | BLOCKED EXTERNALLY | One built-in display attached; `window-bounds.test.mjs` exercises off-display frames synthetically. **Live multi-display: blocked by hardware.**                                                                                                                                                                      |
+| 5K / high-DPI                                                  | LIMITED            | The built-in Liquid Retina XDR (3456×2234) is what every packaged run above rendered on; no external 5K display was attached, so no live 5K row                                                                                                                                                                       |
+| Menus and shortcuts                                            | LIMITED            | Every menu item is built by `desktop/src/menu.mjs` and pinned by `menu.test.mjs`; the walk drives `Cmd+K`, `Cmd+,`, full screen and close; the remaining items (Edit roles, zoom, Help links) were not executed one by one by a harness                                                                               |
+| Accessibility                                                  | LIMITED            | `e2e/accessibility.spec.ts` (browser) and the walk's keyboard actions; a macOS accessibility-tree walk of the packaged window was not performed                                                                                                                                                                       |
+| Windows, Linux, Intel Macs                                     | NOT CERTIFIED      | Not built; the configuration is `arm64` only                                                                                                                                                                                                                                                                          |
