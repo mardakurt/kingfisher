@@ -31,6 +31,9 @@ const config = [
       'desktop/node_modules/**',
       'desktop/web/**',
       'desktop/dist/**',
+      // Harness evidence (screenshots and the one-off scripts that made
+      // them), git-ignored since Phase 48 and never shipped.
+      'output/**',
     ],
   },
   ...nextCoreWebVitals,
