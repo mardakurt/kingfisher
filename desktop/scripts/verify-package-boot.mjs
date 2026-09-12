@@ -1,5 +1,6 @@
-/** Boot the final signed/ad-hoc app before any DMG/ZIP is made. */
+/** electron-builder afterSign: boot the signed, notarised app before any DMG/ZIP is made. */
 import assert from 'node:assert/strict';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { launchKingfisher, waitForReady } from '../../scripts/desktop-lib/launch.mjs';
 
@@ -14,6 +15,26 @@ export default async function verifyPackageBoot(context) {
     'MacOS',
     context.packager.appInfo.productFilename,
   );
+  /*
+    The update feed. electron-builder writes it in afterPack when the run's
+    targets include the DMG or ZIP; a bundle without it opens Check for
+    Updates onto "no such file: app-update.yml". Found by the real update
+    test in Phase 47 after a split build dropped it.
+  */
+  const feed = path.join(
+    context.appOutDir,
+    `${context.packager.appInfo.productFilename}.app`,
+    'Contents',
+    'Resources',
+    'app-update.yml',
+  );
+  assert.ok(existsSync(feed), `Update feed missing from the bundle: ${feed}`);
+  assert.match(
+    readFileSync(feed, 'utf8'),
+    /provider:\s*github/,
+    'app-update.yml names the GitHub feed',
+  );
+
   const launched = await launchKingfisher({ packaged: true, executablePath });
   try {
     await waitForReady(launched.window);

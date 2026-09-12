@@ -32,7 +32,7 @@
 
 import { execFile as execFileCb } from 'node:child_process';
 import { inspectDesktopResources } from '../src/required-resources.mjs';
-import { existsSync, readdirSync, rmSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -145,6 +145,12 @@ export async function verifyDmg(dmg, options = {}) {
     for (const resource of inspectDesktopResources(resources)) {
       check(`runtime: ${resource.path}`, resource.ok, `Resources/kingfisher/${resource.path}`);
     }
+    const feed = path.join(app, 'Contents', 'Resources', 'app-update.yml');
+    check(
+      'update feed in the bundle',
+      existsSync(feed) && /provider:\s*github/.test(readFileSync(feed, 'utf8')),
+      'Resources/app-update.yml names the GitHub feed',
+    );
 
     // 4. Info.plist.
     const infoPlist = path.join(app, 'Contents', 'Info.plist');

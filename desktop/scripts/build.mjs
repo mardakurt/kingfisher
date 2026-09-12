@@ -39,9 +39,6 @@ import path from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
-import { packagePipeline } from './package-pipeline.mjs';
-import verifyPackageBoot from './verify-package-boot.mjs';
-
 import { artifactName, CHANNELS } from '../src/build-identity.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -199,21 +196,19 @@ if (existsSync(chosen)) {
   }
 }
 
-// Build/sign once, boot the finished app, then archive those exact bytes.
-// afterSign is insufficient: electron-builder skips it for unsigned builds.
-await packagePipeline({
-  args: process.argv.slice(2),
-  output: chosen,
-  boot: verifyPackageBoot,
-  runBuilder: async (args) => {
-    const result = spawnSync(process.execPath, [builder, ...args, ...config], {
-      cwd: DESKTOP,
-      stdio: 'inherit',
-      env: { ...process.env, KINGFISHER_DESKTOP_OUT: chosen },
-    });
-    if (result.status !== 0)
-      throw new Error(
-        `electron-builder failed (${result.status ?? result.error?.message ?? result.signal})`,
-      );
-  },
+/*
+  One electron-builder run. Packaging, signing, notarisation, the boot gate
+  (`afterSign: scripts/verify-package-boot.mjs`, which runs after the
+  signature and the notarisation ticket and before any archive exists) and
+  the DMG and ZIP all happen inside it. A split run — `--dir`, boot, then
+  a prepackaged archive step — was tried in Phase 47 and dropped `app-update.yml`
+  from the bundle: electron-builder writes the feed only in a run whose
+  targets include the DMG or the ZIP, and a bundle without it cannot check
+  for updates. The boot gate and the DMG verifier assert the file now.
+*/
+const result = spawnSync(process.execPath, [builder, ...process.argv.slice(2), ...config], {
+  cwd: DESKTOP,
+  stdio: 'inherit',
+  env: { ...process.env, KINGFISHER_DESKTOP_OUT: chosen },
 });
+process.exit(result.status ?? 1);

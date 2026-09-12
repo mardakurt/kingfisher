@@ -32,7 +32,7 @@
  */
 
 import { spawn, spawnSync } from 'node:child_process';
-import { cpSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -75,7 +75,12 @@ const STUDY = 'Update walk study';
 const install = mkdtempSync(path.join(tmpdir(), 'kingfisher-update-install-'));
 const profile = mkdtempSync(path.join(tmpdir(), 'kingfisher-update-profile-'));
 const app = path.join(install, 'Kingfisher.app');
-cpSync(currentApp, app, { recursive: true });
+// ditto, not fs.cp: a bundle's framework symlinks and modes must arrive intact.
+const copied = spawnSync('ditto', [currentApp, app], { encoding: 'utf8' });
+if (copied.status !== 0) {
+  console.error(copied.stderr);
+  process.exit(2);
+}
 
 const nextZip = readdirSync(nextDir).find((name) => /^Kingfisher-.*-arm64\.zip$/.test(name));
 const feed = path.join(nextDir, 'latest-mac.yml');
@@ -159,6 +164,8 @@ try {
   check('Check for Updates… exists in the application menu', clicked);
   const updates = await updateWindow;
   const headline = updates.locator('#headline');
+  // The window opens idle: checking is the person's click, never automatic.
+  await updates.getByRole('button', { name: 'Check for Updates' }).click();
   await updates.waitForFunction(
     () =>
       !/Check for updates|Checking/.test(document.querySelector('#headline')?.textContent ?? ''),
@@ -271,6 +278,18 @@ try {
 } finally {
   if (instance) await instance.close().catch(() => {});
   server.kill();
+  if (failed) {
+    // The shell's own account of the update, which is the thing to read.
+    const log = path.join(profile, 'logs', 'kingfisher.log');
+    try {
+      const lines = readFileSync(log, 'utf8').split('\n');
+      console.log('\n--- shell log, update lines ---');
+      for (const line of lines.filter((l) => /\[update\]|\[launch\]/.test(l)).slice(-25))
+        console.log(line);
+    } catch {
+      console.log(`\n(no shell log at ${log})`);
+    }
+  }
   rmSync(profile, { recursive: true, force: true });
   rmSync(install, { recursive: true, force: true });
 }

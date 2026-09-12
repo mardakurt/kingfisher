@@ -32,9 +32,7 @@ const resources = new Map((config.extraResources ?? []).map((entry) => [entry.to
 describe('electron-builder.yml', () => {
   it('blocks archives until resource and boot verification pass', () => {
     expect(config.afterPack).toBe('scripts/verify-package.mjs');
-    const build = readFileSync(path.join(DESKTOP, 'scripts/build.mjs'), 'utf8');
-    expect(build).toContain('await packagePipeline(');
-    expect(build).toContain('boot: verifyPackageBoot');
+    expect(config.afterSign).toBe('scripts/verify-package-boot.mjs');
   });
   it('stages the web server and the companion where paths.mjs will look for them', () => {
     // The layout the shell resolves inside a bundle, with the resources root

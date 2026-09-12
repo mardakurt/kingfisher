@@ -1,10 +1,12 @@
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
+import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
+
+const DESKTOP = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 import { REQUIRED_DESKTOP_RESOURCES, assertDesktopResources } from './required-resources.mjs';
 import verifyPackage from '../scripts/verify-package.mjs';
-import { packagePipeline } from '../scripts/package-pipeline.mjs';
 
 const temporary = [];
 function fixture() {
@@ -51,63 +53,18 @@ describe('the actual afterPack resource gate', () => {
   });
 });
 
-describe('archive sequencing', () => {
-  async function pipeline({ failBoot = false, omit = false, args = [] } = {}) {
-    const { context } = fixture();
-    // The pipeline's output points at the parent of builder's mac-arm64 folder.
-    const output = mkdtempSync(path.join(tmpdir(), 'kingfisher-pipeline-'));
-    temporary.push(output);
-    const calls = [];
-    const { cpSync } = await import('node:fs');
-    const run = packagePipeline({
-      output,
-      args,
-      runBuilder: async (args) => {
-        calls.push(args);
-        if (args.includes('--dir')) {
-          cpSync(context.appOutDir, path.join(output, 'mac-arm64'), { recursive: true });
-          if (omit)
-            rmSync(
-              path.join(
-                output,
-                'mac-arm64/Kingfisher.app/Contents/Resources/kingfisher/web/server.js',
-              ),
-            );
-        }
-      },
-      boot: async () => {
-        calls.push('boot');
-        if (failBoot) throw new Error('renderer failed');
-      },
-    });
-    return { calls, run };
-  }
-  it('boots before archiving the same freshly built app', async () => {
-    const { calls, run } = await pipeline();
-    await run;
-    expect(calls[0]).toEqual(['--dir']);
-    expect(calls[1]).toBe('boot');
-    expect(calls[2][0]).toBe('--prepackaged');
-    expect(calls[2][1]).toMatch(/mac-arm64\/Kingfisher.app$/);
+describe('the build hooks', () => {
+  it('runs the resource gate after packing and the boot gate after signing, before any archive', () => {
+    const yml = readFileSync(path.join(DESKTOP, 'electron-builder.yml'), 'utf8');
+    expect(yml).toMatch(/^afterPack: scripts\/verify-package\.mjs$/m);
+    expect(yml).toMatch(/^afterSign: scripts\/verify-package-boot\.mjs$/m);
+    // One electron-builder run: a split run drops app-update.yml.
+    const build = readFileSync(path.join(DESKTOP, 'scripts/build.mjs'), 'utf8');
+    expect(build).not.toMatch(/prepackaged=|packagePipeline|spawnSync\([^)]*--dir/);
   });
-  it('does not produce archives when boot fails', async () => {
-    const { calls, run } = await pipeline({ failBoot: true });
-    await expect(run).rejects.toThrow('renderer failed');
-    expect(calls).toEqual([['--dir'], 'boot']);
-  });
-  it('does not boot or archive an incomplete app, even if the builder hook is bypassed', async () => {
-    const { calls, run } = await pipeline({ omit: true });
-    await expect(run).rejects.toThrow('web/server.js');
-    expect(calls).toEqual([['--dir']]);
-  });
-  it('still boots directory-only builds', async () => {
-    const { calls, run } = await pipeline({ args: ['--dir'] });
-    await run;
-    expect(calls).toEqual([['--dir'], 'boot']);
-  });
-  it('refuses an external prepackaged input', async () => {
-    const { calls, run } = await pipeline({ args: ['--prepackaged', '/old.app'] });
-    await expect(run).rejects.toThrow('Prepackaged input');
-    expect(calls).toEqual([]);
+  it('the boot gate refuses a bundle without an update feed', () => {
+    const boot = readFileSync(path.join(DESKTOP, 'scripts/verify-package-boot.mjs'), 'utf8');
+    expect(boot).toMatch(/app-update\.yml/);
+    expect(boot).toMatch(/provider:\\s\*github/);
   });
 });
