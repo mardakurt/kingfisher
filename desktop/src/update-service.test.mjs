@@ -272,3 +272,42 @@ describe('update-service — the preview channel', () => {
     }
   });
 });
+
+describe('update-service — what a failed check says', () => {
+  it('names the three cases a person can meet, and bounds everything else', async () => {
+    const engine = makeEngine();
+    const { describeCheckFailure } = await loadService(engine);
+    const github =
+      'Cannot find latest-mac.yml in the latest release artifacts (https://github.com/x/y/releases/download/v1.0.0/latest-mac.yml): HttpError: 404 \n"method: GET url: …"\nHeaders: {\n  "cache-control": "no-cache"\n}\n    at createHttpError (/Applications/Kingfisher.app/Contents/Resources/app.asar/node_modules/builder-util-runtime/out/httpExecutor.js:53:12)';
+    expect(describeCheckFailure(new Error(github))).toMatch(/carries no update feed/);
+    expect(describeCheckFailure(new Error(github))).not.toMatch(/app\.asar|Headers|HttpError/);
+    expect(describeCheckFailure(new Error('net::ERR_INTERNET_DISCONNECTED'))).toMatch(
+      /could not be reached/,
+    );
+    expect(describeCheckFailure(new Error('getaddrinfo ENOTFOUND github.com'))).toMatch(
+      /could not be reached/,
+    );
+    expect(describeCheckFailure(new Error('HttpError: 403 rate limit exceeded'))).toMatch(
+      /refused the request for now/,
+    );
+    const long = describeCheckFailure(new Error(`${'x'.repeat(400)}\nsecond line`));
+    expect(long.length).toBeLessThanOrEqual(200);
+    expect(long).not.toContain('second line');
+    expect(describeCheckFailure(undefined)).toBe('The check did not complete.');
+  });
+
+  it('is what the dialog is given when the engine throws', async () => {
+    const engine = makeEngine();
+    engine.fakeCheck.mockImplementation(async () => {
+      throw new Error('Cannot find latest-mac.yml … HttpError: 404 \nHeaders: {}');
+    });
+    const { check, __resetForTests } = await loadService(engine);
+    try {
+      const verdict = await check();
+      expect(verdict.status).toBe('unable-to-check');
+      expect(verdict.reason).toMatch(/carries no update feed/);
+    } finally {
+      __resetForTests();
+    }
+  });
+});

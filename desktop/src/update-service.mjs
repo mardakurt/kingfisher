@@ -332,6 +332,30 @@ export function manualDownloadUrl() {
   return channel.downloadUrl;
 }
 
+/**
+ * One sentence a person can act on, from whatever the engine threw.
+ *
+ * The engine's errors are for developers: an HTTP failure arrives with the
+ * response headers, the request id and a stack naming files inside the
+ * bundle. The dialog showed all of it. The three cases a user can meet are
+ * named; anything else is its first line, with the home directory redacted
+ * and the length bounded.
+ */
+export function describeCheckFailure(err) {
+  const message = String(err?.message ?? err ?? '');
+  if (/latest-mac\.yml/.test(message) && /404/.test(message)) {
+    return 'The current release on the release host carries no update feed, so there is nothing to compare against. The download page always has the newest build.';
+  }
+  if (/ENOTFOUND|ECONNREFUSED|ECONNRESET|ETIMEDOUT|net::ERR_|network|offline/i.test(message)) {
+    return 'The release host could not be reached. Check the connection and try again.';
+  }
+  if (/403|429|rate limit/i.test(message)) {
+    return 'The release host refused the request for now. Try again in a few minutes.';
+  }
+  const first = redactHome(message.split('\n')[0]).replace(/\s+/g, ' ').trim();
+  return first.length > 200 ? `${first.slice(0, 197)}…` : first || 'The check did not complete.';
+}
+
 export async function check() {
   if (state.checkPromise) return state.checkPromise;
   if (channel.name === 'preview') {
@@ -371,12 +395,12 @@ export async function check() {
       // will have already emitted the FAILED verdict, gated on
       // the current id. If the handler has been superseded, this
       // log line is the only record.
-      log('update', `check failed: ${String(err?.message ?? err)}`);
+      log('update', `check failed: ${String(err?.message ?? err).split('\n')[0]}`);
       if (state.activeCheckId === checkId) {
         emit({
           status: STATUS.UNABLE,
           currentVersion: app.getVersion(),
-          reason: redactHome(String(err?.message ?? err)),
+          reason: describeCheckFailure(err),
         });
       }
     } finally {
