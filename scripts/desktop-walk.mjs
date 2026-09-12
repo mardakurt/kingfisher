@@ -960,12 +960,15 @@ class Walk {
           // know it is gone, and Diagnostics must be able to bring it back.
           const text = await p.evaluate(() => document.body.innerText.length);
           const diag = await p.evaluate(() => window.kingfisher.diagnostics());
-          if (diag.companion.running) {
+          // Detected means the shell knows the one it started is gone: either
+          // nothing is running, or what is running is a revival with a new pid.
+          const detected = !diag.companion.running || diag.companion.pid !== w.pids.companion;
+          if (!detected) {
             w.findings.push({
               step: w.stepIndex,
               action: 'fault-kill-companion',
               name: 'companion-loss-undetected',
-              detail: 'diagnostics still say running',
+              detail: `diagnostics still report pid ${diag.companion.pid} running`,
             });
           }
           const recovered = await p.evaluate(async () => {
@@ -992,7 +995,7 @@ class Walk {
               detail: recovered.reason ?? 'restarted but does not answer',
             });
           }
-          return `${signal}; page ${text} chars; detected=${!diag.companion.running}; recovered=${recovered.restarted && recovered.answers}`;
+          return `${signal}; page ${text} chars; detected=${detected}; recovered=${recovered.restarted && recovered.answers}`;
         },
       },
     ];

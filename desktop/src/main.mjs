@@ -261,6 +261,7 @@ async function startServices() {
   */
   const companionStarted = state.companion.start().then(
     () => {
+      startedAt.companion = Date.now();
       mark('companion ready');
       return true;
     },
@@ -285,6 +286,7 @@ async function startServices() {
   state.companionStarted = companionStarted;
 
   await state.web.start();
+  startedAt.web = Date.now();
   mark('web server ready');
 }
 
@@ -304,24 +306,37 @@ async function startServices() {
  * Never during quit, when an exit is the plan.
  */
 const revivals = { web: [], companion: [] };
+const startedAt = { web: 0, companion: 0 };
 const REVIVAL_LIMIT = 3;
 const REVIVAL_WINDOW_MS = 5 * 60_000;
+/** An exit this soon after a start is a crash loop, not a healthy service that was killed. */
+const CRASH_LOOP_MS = 30_000;
 
 async function reviveService(which, exit) {
   if (state.quitting) return;
   const service = state[which];
-  if (!service) return;
+  if (!service || service.running) return;
   const now = Date.now();
-  revivals[which] = revivals[which].filter((at) => now - at < REVIVAL_WINDOW_MS);
   const reason = exit?.signal ?? exit?.code ?? 'unknown';
-  if (revivals[which].length >= REVIVAL_LIMIT) {
+  /*
+    Only a crash loop counts against the budget. A service that ran for
+    minutes and was then killed — by a person, by the operating system, by a
+    test — is simply started again; one that dies within seconds of every
+    start is started three times in five minutes and then left down, with
+    the reason in the log, because restarting it for ever would hide it.
+  */
+  const crashLoop = now - startedAt[which] < CRASH_LOOP_MS;
+  revivals[which] = revivals[which].filter((at) => now - at < REVIVAL_WINDOW_MS);
+  if (crashLoop && revivals[which].length >= REVIVAL_LIMIT) {
     log(
       which,
-      `exited (${reason}) and was not restarted: ${REVIVAL_LIMIT} restarts in five minutes`,
+      `exited (${reason}) ${Math.round((now - startedAt[which]) / 1000)} s after starting and was not restarted: ${REVIVAL_LIMIT} crash-loop restarts in five minutes`,
     );
     return;
   }
-  revivals[which].push(now);
+  if (crashLoop) revivals[which].push(now);
+  else revivals[which] = [];
+  startedAt[which] = now;
   log(which, `exited unexpectedly (${reason}); restarting`);
   try {
     if (which === 'companion') {
@@ -465,6 +480,23 @@ function createWindow() {
       external(url);
     }
   });
+  /*
+    The page could not be fetched from the shell's own server. That is the
+    server being gone — during a revival, or after one failed — and the
+    window is the only thing a person can see. Try once more, then reload.
+  */
+  window.webContents.on('did-fail-load', (_event, code, description, url, isMainFrame) => {
+    if (!isMainFrame || code === -3 /* aborted: a navigation superseded it */) return;
+    log('window', `could not load ${url.replace(/\?.*$/, '')}: ${description} (${code})`);
+    if (state.web && !state.web.running && !state.quitting) {
+      void reviveService('web', { code: 'did-fail-load' });
+    } else if (state.web?.running && !state.quitting) {
+      setTimeout(() => {
+        if (!window.isDestroyed()) window.webContents.reload();
+      }, 1_000);
+    }
+  });
+
   // A renderer that has crashed cannot be recovered by pretending otherwise.
   window.webContents.on('render-process-gone', (_event, details) => {
     dialog.showErrorBox(

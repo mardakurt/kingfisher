@@ -30,7 +30,7 @@ import { test, analysisUrl } from './desktop-test';
  * Eight in the release gate, because the gate has to finish and eight is
  * already enough to turn a per-cycle leak into tens of anything. The long
  * professional soak the phase brief asks for is the same test with the number
- * turned up — `KINGFISHER_SOAK_CYCLES=50 npx playwright test e2e/soak.spec.ts`
+ * turned up — `KINGFISHER_SOAK_CYCLES=50 npx playwright test e2e/soak.spec.ts` (packaged: `npm run desktop:soak:leaks`; the wall-clock soak with memory sampling is `npm run desktop:soak`)
  * — rather than a second harness that would drift from this one. The count is
  * printed with the result, so a reader always knows which run they are looking
  * at.
