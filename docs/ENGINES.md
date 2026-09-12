@@ -17,7 +17,7 @@ it. The results below were produced by that command, not written by hand.
 | Stockfish   | **19**  | alpha-beta + NNUE     | native process     | GPL-3.0-or-later | yes (~82 MB)        |
 | Stormphrax  | 8.0.0   | alpha-beta + NNUE     | native process     | GPL-3.0-or-later | yes (~57 MB)        |
 | Viridithas  | 20.0.0  | alpha-beta + NNUE     | native process     | AGPL-3.0-only    | yes (~57 MB)        |
-| Halogen     | 16.0.0  | alpha-beta + NNUE     | native process     | GPL-3.0-or-later | yes (~20 MB)        |
+| Halogen     | 16.8.0  | alpha-beta + NNUE     | native process     | GPL-3.0-or-later | yes (~72 MB)        |
 | PlentyChess | 8.0.0   | alpha-beta + NNUE     | native process     | GPL-3.0          | yes                 |
 | Lc0         | 0.32.1  | neural network + MCTS | native process     | GPL-3.0-or-later | yes (see below)     |
 
@@ -90,7 +90,7 @@ against its recorded digest, launched and asked:
 | Stockfish   | **Stockfish 19**      | yes     | yes | yes         | yes    | yes          |
 | Stormphrax  | Stormphrax 8.0.0      | yes     | yes | yes         | yes    | yes          |
 | Viridithas  | Viridithas 20.0.0-dev | **no**  | no  | **no**      | yes    | yes          |
-| Halogen     | Halogen 16.0.0        | yes     | no  | **no**      | yes    | yes          |
+| Halogen     | Halogen 16.8.0        | yes     | no  | **no**      | yes    | yes          |
 | PlentyChess | PlentyChess 8.0.0     | yes     | no  | **no**      | yes    | yes          |
 | Lc0         | Lc0 v0.32.1+git.dirty | yes     | yes | yes         | yes    | yes          |
 
@@ -138,7 +138,7 @@ same everywhere:
 | Stockfish 19      |     ✓     |      ✓      |      ✓      |     ✓     |
 | Stormphrax 8.0.0  |     ✓     |      —      |      ✓      |     —     |
 | Viridithas 20.0.0 |     ✓     |      —      |      ✓      |     —     |
-| Halogen 16.0.0    |     ✓     |      ✓      |      ✓      |     ✓     |
+| Halogen 16.8.0    |     ✓     |      ✓      |      ✓      |     ✓     |
 | PlentyChess 8.0.0 |     ✓     |      ✓      |      ✓      |     —     |
 | Koivisto 9.0      |     ✓     |      ✓      |      —      |     —     |
 | Berserk 14        |     —     |      ✓      |      —      |     —     |
@@ -160,7 +160,7 @@ and the Chess960 start — and every protocol sequence except the last.
 | Stockfish 19      |        ✓        |    **exits** (all 4)     |     **exits**     |
 | PlentyChess 8.0.0 |        ✓        |    **exits** (Linux)     |     **exits**     |
 | Koivisto 9.0      |        ✓        |   **exits** (Windows)    | **exits** (Linux) |
-| Halogen 16.0.0    |        ✓        |            ✓             |         ✓         |
+| Halogen 16.8.0    |        ✓        |            ✓             |         ✓         |
 | Stormphrax 8.0.0  |        ✓        |            ✓             |         ✓         |
 | Viridithas 20.0.0 |        ✓        |            ✓             |         ✓         |
 | Berserk 14        |        ✓        |            ✓             |         ✓         |
@@ -240,6 +240,12 @@ processes, nothing mocked:
 | PlentyChess 8.0.0 | two connected pawns, White to move     | `b1a2`   |    51 | 2,907 ms | its own position |
 | Halogen 16.0.0    | knight against pawns, Black to move    | `d6d5`   |    34 | 2,906 ms | its own position |
 | Viridithas 20.0.0 | queenside castling free, Black to move | `a8a5`   |    59 | 3,007 ms | its own position |
+
+The Halogen row is the 16.0.0 build the catalogue carried on that date. It
+was replaced by 16.8.0 in Phase 47 after `npm run desktop:engines --
+--packaged` found 16.0.0 running past its own depth limit on a trivial
+won ending and dying with SIGBUS before answering; 16.8.0 stops at depth
+65 and answers, and passes the same gate.
 
 Stormphrax's 7 ms is not an anomaly to explain away: `a1a8` is mate, and a
 search that has found mate ends. It is also why the concurrency claim is made

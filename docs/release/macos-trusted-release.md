@@ -1,11 +1,11 @@
 # macOS trusted release process
 
-> **Status: a runbook for a release that has not happened.** No
-> `Developer ID Application` certificate is installed, so no build
-> described here exists. The download the public has today is the
-> preview named by `src/release/macos-download.json`, published by
-> `npm run release:mac:preview` (see `docs/deployment.md`). Nothing on
-> this page describes that download.
+> **Status: the process a trusted build goes through.** A
+> `Developer ID Application` certificate for team `3B5CYF9DQ4` has been in
+> the login keychain since 2026-09-12, an App Store Connect API key feeds
+> `notarytool`, and this runbook was executed end to end in Phase 47. Which
+> build the public currently downloads, and whether it is notarised, is
+> stated by `src/release/macos-download.json` and nowhere else.
 
 This document is the **maintainer's day-of-release runbook**.
 It is also the place to look when a release candidate goes
@@ -79,25 +79,41 @@ The bundle records its build number, commit and `stable`
 channel; `node desktop/scripts/verify-dmg.mjs <dmg> --version
 <version> --commit $(git rev-parse HEAD)` checks them.
 
-When `CSC_LINK` and `CSC_KEY_PASSWORD` are set, the produced
-`.app` and `.zip` are signed with the Developer ID Application
-identity. When the Apple notarization variables are also set,
-electron-builder submits the artifacts to the notary service
-as part of the build.
+Signing and notarisation happen inside `desktop:dist`, in this order:
 
-If you want a manual split (build unsigned, sign, notarize,
-staple), use the staged pipeline instead:
+1. electron-builder packages the directory and the `afterPack` hook
+   (`desktop/scripts/verify-package.mjs`) refuses to continue unless every
+   entry of `desktop/src/required-resources.mjs` is present and non-empty.
+2. The `.app` is signed with the `Developer ID Application` identity from
+   the login keychain (`CSC_NAME="Metin Arda Kurt (3B5CYF9DQ4)"` pins it;
+   electron-builder rejects the `Developer ID Application:` prefix), with
+   Hardened Runtime and `desktop/build/entitlements.mac.plist`.
+3. When `APPLE_API_KEY`, `APPLE_API_KEY_ID` and `APPLE_API_ISSUER` are set,
+   electron-builder submits the signed `.app` to the notary service and
+   staples the ticket (`notarize: true` in `electron-builder.yml`). A
+   `stable` or `preview` build without those variables is refused by
+   `build.mjs`; a `dev` build without them is signed and not notarised.
+4. `build.mjs` launches the stapled `.app` through the shared harness
+   launcher and checks the bridge, the web server, the companion and the
+   managed-engine catalogue. A boot failure means no archive.
+5. The DMG and the update ZIP are archived from those exact bytes. The DMG
+   is signed with the same identity (`dmg.sign: true`).
+
+The credentials come from `~/.kingfisher-release/env.sh` on the release
+machine (`source` it first); the file is outside the repository and is
+never printed. Do **not** set `CSC_IDENTITY_AUTO_DISCOVERY=false` without a
+`CSC_LINK` p12 — it disables the keychain lookup and the build comes out
+unsigned.
+
+Then give the disk image its own ticket:
 
 ```bash
-# Build unsigned first
-CSC_LINK= npm run desktop:dist
-
-# Sign manually
-npm run release:mac:sign
-
-# Notarize + staple
-npm run release:mac:notarize
+npm run release:mac:notarize            # notarytool submit --wait, staple, validate; rewrites the DMG row of latest-mac.yml
 ```
+
+`notarytool` accepts a zip, a dmg or a pkg, never a bare `.app`, which is
+why the DMG is what this step submits; the application inside it is
+already stapled.
 
 ## Verify the build
 
@@ -109,13 +125,33 @@ a verdict and exits non-zero on failure.
 #    Hardened Runtime, nested helpers, entitlements blob.
 npm run desktop:sign:verify
 
-# 2. Notarization: stapled ticket validates, Gatekeeper
-#    accepts offline, ticket is readable.
+# 2. Notarization: the stapled ticket validates and Gatekeeper answers
+#    "accepted, source=Notarized Developer ID" for the .app (--type execute)
+#    and for the .dmg (--type open).
 npm run desktop:notary:verify
-
-# 3. Combined trust gate: the above two plus DMG notarization.
+npm run desktop:notary:verify -- /path/to/Kingfisher-<version>-arm64.dmg
+# 3. Combined trust gate: both of the above, and the DMG, failing closed
+#    when either artifact is missing.
 npm run desktop:trust:verify
 ```
+
+Then the launch a user actually performs. Put the quarantine flag a
+browser would set on a copy of the DMG, mount it, copy the application
+out (the flag is inherited), and assess and open the copy:
+
+```bash
+cp Kingfisher-<version>-arm64.dmg /tmp/download.dmg
+xattr -w com.apple.quarantine "0083;$(printf '%x' $(date +%s));Safari;$(uuidgen)" /tmp/download.dmg
+hdiutil attach /tmp/download.dmg -nobrowse -readonly -mountpoint /tmp/kf-dmg
+cp -R /tmp/kf-dmg/Kingfisher.app /tmp/Kingfisher.app && hdiutil detach /tmp/kf-dmg
+spctl --assess --verbose=4 --type execute /tmp/Kingfisher.app   # accepted, source=Notarized Developer ID
+open /tmp/Kingfisher.app
+```
+
+macOS shows its standard first-open sheet ("downloaded from the Internet —
+are you sure?") and starts the application on **Open**. What must not
+appear is "cannot be opened" or "the developer cannot be verified". Do not
+remove the quarantine attribute to make this pass.
 
 A red verdict on any of these is a release blocker. A
 yellow verdict (a warning rather than a hard error) means

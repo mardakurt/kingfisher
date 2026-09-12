@@ -122,14 +122,14 @@ you have seen it, so the next launch starts clean.
 ## 8. Uninstalling
 
 Kingfisher stores its data outside the application bundle, in
-`~/Library/Application Support/Kingfisher/`. To remove the
+`~/Library/Application Support/kingfisher-desktop/`. To remove the
 application and start fresh:
 
 1. Quit Kingfisher.
 2. Move the Kingfisher icon from **Applications** to the Trash.
 3. (Optional) remove the user-data directory:
    ```bash
-   rm -rf ~/Library/Application\ Support/Kingfisher
+   rm -rf ~/Library/Application\ Support/kingfisher-desktop
    ```
    This deletes local Studies, Repertoire, Training, Recent
    Work, and Settings. Reference cache and downloaded data packs
@@ -161,7 +161,7 @@ ticket; the runbook for that release is in
 
 **Where are my Studies, Repertoire, and Training saved?** In
 the per-user data directory at
-`~/Library/Application Support/Kingfisher/`. The directory is
+`~/Library/Application Support/kingfisher-desktop/`. The directory is
 created on first launch. Backups, made from **Settings →
 Backup**, are a JSON file you choose a path for. A backup
 restores the same data; uninstalling the app does not delete

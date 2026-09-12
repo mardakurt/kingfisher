@@ -163,6 +163,16 @@ describe them as if they were.
 
 ## Reference data and provenance
 
+The player library has three populations, kept visibly apart: players
+with games in the installed packs; the curated historical roster
+(`src/reference/legends.ts`, 106 people); and the titled-player roster
+(`public/data/players/titled-players.json`, 8,339 GM/WGM/IM/WIM from
+Wikidata under CC0, built by `npm run players:roster` and digest-checked
+by `players:roster:check`). Roster rows are people, never games: a browse
+set never offers one with nothing behind it, and a search always finds
+one and says it has no games. Rebuild the roster from Wikidata, never by
+hand.
+
 Opening names come from a licensed upstream classification. Do not invent names
 past what the source classifies — a deep position inherits the last named
 opening above it instead of acquiring a new one. Variation briefs are authored or
@@ -446,6 +456,18 @@ them. `KINGFISHER_DESKTOP_CHANNEL` is `dev` (default), `preview` or
 
 - **The marketing version is 1.0.0 until a real release earns a bump.**
   Never create a version to freshen a filename.
+- **A trusted build is made by the pipeline, not by hand.** With the
+  Developer ID identity in the login keychain and `APPLE_API_KEY`,
+  `APPLE_API_KEY_ID` and `APPLE_API_ISSUER` in the environment
+  (`source ~/.kingfisher-release/env.sh` on the release machine),
+  `desktop:dist` signs the app, has electron-builder notarise and staple
+  it, boots it, then archives it and signs the DMG;
+  `release:mac:notarize` staples the DMG's own ticket. A `stable` or
+  `preview` build without the credentials is refused. Entitlements are
+  the five in `desktop/build/entitlements.mac.plist`, each justified
+  there; `desktop:sign:verify` refuses any other.
+  `docs/release/macos-trusted-release.md` is the runbook, including the
+  quarantined-launch check.
 - **`src/release/macos-download.json` is the only file that names the
   public DMG.** The landing, the install guide, `docs:check` and
   `desktop:public:verify` read it. A preview is published by
@@ -475,10 +497,24 @@ refuses a bundle without a server in it, and
 uses — puts the shell's own log in the error when the process exits
 before its window.
 
+Since Phase 47 that cannot happen silently. `desktop/src/required-resources.mjs`
+is the one list of what `Resources/kingfisher/` must contain (web server,
+Next output, browser Stockfish, companion, engine catalogue and digests);
+the shell's startup check, `verify-dmg.mjs`, the yml test and an
+electron-builder `afterPack` hook all read it, and the hook fails the
+build before signing when an entry is missing or empty. `build.mjs`
+then boots the finished, signed (and, with credentials, notarised) app
+through the shared launcher — bridge, web server, companion, engine
+catalogue — and only then archives those bytes as the DMG and ZIP. A
+`--prepackaged` input from outside the run is refused. Add a runtime
+file to the list when you add one to `extraResources`.
+
 `npm run desktop:certify` runs every packaged gate against one
 `Kingfisher.app`: smoke, window chrome, restart, the engine fleet,
 suspend, two seeded walks (one with faults), the DMG verifier, the
-zero-skip scan and the unit suite. `npm run desktop:walk -- --packaged
+zero-skip scan and the unit suite. `npm run desktop:update:dialog`
+drives the Check for Updates window through all fifteen states in light
+and dark with fixture verdicts and saves a screenshot of each. `npm run desktop:walk -- --packaged
 --seed=N --actions=N` is the seeded hostile user with invariants;
 `npm run desktop:soak` is the same for thirty minutes with memory and
 process sampling (`--duration=2h`, `--duration=8h` for longer). A

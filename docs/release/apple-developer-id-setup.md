@@ -1,9 +1,11 @@
 # Apple Developer ID setup
 
-This document is the **single owner action** that gates the
-Phase 36 release. Everything else in the release pipeline is
-already in place; the only thing that does not run without
-you is the production signature itself.
+This document was the **single owner action** that gated a trusted
+release. It was completed on 2026-09-12: a `Developer ID Application`
+certificate for team `3B5CYF9DQ4` (expires 2031-09-13) is in the login
+keychain with its private key, and an App Store Connect API key with the
+Developer role is stored outside the repository. What follows is kept as
+the procedure, with the corrections the real run needed.
 
 ## TL;DR
 
@@ -11,9 +13,7 @@ A `Developer ID Application` certificate is required to ship
 Kingfisher outside the Mac App Store. `Apple Development` and
 `Apple Distribution` are **not** substitutes — they are
 recognized by macOS only inside the App Store / TestFlight
-pipelines. If you are already enrolled in the Apple Developer
-Program, you can produce the certificate in roughly fifteen
-minutes.
+pipelines.
 
 ## What you need
 
@@ -79,23 +79,21 @@ There are two ways to feed the `.p12` to electron-builder:
 
 #### Local release
 
-`electron-builder` reads `CSC_LINK` and `CSC_KEY_PASSWORD`
-from the environment.
+The identity in the login keychain is enough; no `.p12` export is needed
+on the machine that holds the key. Pin it by name — **without** the
+`Developer ID Application:` prefix, which electron-builder rejects:
 
 ```bash
-export CSC_LINK=/path/to/DeveloperIDApplication.p12
-export CSC_KEY_PASSWORD='… the password you set …'
-export CSC_IDENTITY_AUTO_DISCOVERY=false   # see note below
-npm run release:mac:sign
+export CSC_NAME="Metin Arda KURT (3B5CYF9DQ4)"     # the name as codesign prints it, minus the prefix
+npm run desktop:dist
 ```
 
-`CSC_IDENTITY_AUTO_DISCOVERY=false` is the safety belt.
-Without it, electron-builder will silently fall back to an
-`Apple Development` identity when the `.p12` is missing, and
-the resulting signature is **not** trusted by Gatekeeper. The
-release preflight refuses to start a trusted build when this
-fallback is reachable; setting the variable here makes the
-local signing deterministic.
+Do **not** set `CSC_IDENTITY_AUTO_DISCOVERY=false` unless `CSC_LINK` names
+a `.p12`: it turns the keychain lookup off, and with no `.p12` the build
+is produced **unsigned** — an earlier version of this page recommended it
+as a safety belt, and it is the opposite. `npm run desktop:sign:verify`
+is the check that the result carries a Developer ID signature; it walks
+every nested code object.
 
 #### GitHub Actions release
 
@@ -124,15 +122,19 @@ password and no 2FA prompt.
 
 ### Create an App Store Connect API key
 
-1. Go to <https://appstoreconnect.apple.com/access/api-keys>.
-2. Click **Generate API Key** (or the **+** if you have none).
-3. Name it something like `Kingfisher Notarization`. Set
-   **Access** to **Developer** (the minimum scope that can
-   submit for notarization).
-4. Download the resulting `AuthKey_XXXXXXXXXX.p8` file
-   **immediately** — Apple does not let you download it again.
-5. Note the **Key ID** (the `XXXXXXXXXX` part of the file
-   name) and the **Issuer ID** at the top of the page.
+1. Go to <https://appstoreconnect.apple.com/access/integrations/api>.
+   The first visit shows **Request Access**: the Account Holder has to
+   accept Apple's API terms (internal development, testing and reporting
+   only). Approval was immediate.
+2. Under **Team Keys**, click **Generate API Key**. Name it
+   `Kingfisher Notarization`, set **Access** to **Developer** — the least
+   privilege that can submit for notarisation — and generate.
+3. **Download** the `AuthKey_XXXXXXXXXX.p8` at once — Apple lets it be
+   downloaded exactly once, and the download must be a person's click in
+   a normal browser. Note the **Key ID** and the **Issuer ID** shown on
+   the page.
+4. Move the `.p8` to `~/.kingfisher-release/` with mode `0600`. It is a
+   private key: never into the repository, never into a log.
 
 ### Place the key in the build environment
 
