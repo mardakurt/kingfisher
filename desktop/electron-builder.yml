@@ -172,15 +172,17 @@ dmg:
   # design the background is built around; `desktop/scripts/verify-dmg.mjs`
   # asserts it.
   title: '${productName}'
-  # The contents. x and y are *centres* at 1x scale. The Finder
-  # window is 540x380; we use a 1.5x-bigger background so the
-  # icons and labels land inside the visible region.
+  # The contents. x and y are *centres* at 1x, symmetric about the
+  # 720-wide background's middle; `build-dmg-background.py`'s
+  # ICON_CENTRES are the same two points and the arrow is drawn
+  # between them. The background image is 720x460, and Finder sizes
+  # the window to it.
   contents:
-    - x: 188
+    - x: 210
       y: 230
       type: file
       name: Kingfisher.app
-    - x: 460
+    - x: 510
       y: 230
       type: link
       # Symlink to the system Applications folder. Finder
@@ -191,8 +193,8 @@ dmg:
   window:
     x: 100
     y: 120
-    width: 540
-    height: 380
+    width: 720
+    height: 460
   format: UDZO
   filesystem: HFS+
 

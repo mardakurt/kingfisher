@@ -8,20 +8,25 @@ Produces two PNGs from the same source so Finder can use the
     desktop/build/dmg/background.png      720x460  (1x)
     desktop/build/dmg/background@2x.png  1440x920 (2x)
 
-The design is intentionally restrained:
-  - a dark, almost-black background that matches Kingfisher's
-    in-application surfaces;
-  - the Kingfisher.app icon on the left;
-  - the Applications alias on the right;
-  - a thin arrow that runs between them at the same vertical
-    level as the icons;
-  - one short line of text under the icons that names the
-    action in the words a Mac user expects.
+The design is intentionally restrained, and it draws only what Finder
+does not: Finder itself places the Kingfisher.app icon and the
+Applications alias at the positions `desktop/electron-builder.yml`
+names under `dmg.contents`, and labels them. So the background carries
 
-No fake macOS chrome, no extra panels, no fake buttons, no
-"powered by" line. The owner explicitly asked for the install
-action to be obvious without instructions; the design has one
-job and is judged on whether the drag target is unambiguous.
+  - a dark, almost-black surface that matches Kingfisher's in-app
+    surfaces;
+  - the wordmark at the top;
+  - a thin arrow that runs between the two icon positions, at their
+    vertical centre;
+  - one short caption, above the status-bar region, naming the action
+    in the words a Mac user expects.
+
+It carries no icons and no labels. The first version baked the app icon
+at *both* positions — a second Kingfisher bird sat under the
+Applications folder — and baked "Kingfisher" / "Applications" beneath
+them, so a mounted DMG showed every label twice; its caption at 82 % of
+the height was hidden under Finder's status bar. Photographed in
+Phase 46, then fixed. ICON_CENTRES below must agree with the yml.
 """
 
 from __future__ import annotations
@@ -34,6 +39,12 @@ from PIL import Image, ImageDraw, ImageFont
 HERE = pathlib.Path(__file__).resolve().parent
 BUILD_DIR = HERE.parent / "build" / "dmg"
 PROJECT_ICON = HERE.parent / "build" / "icon.png"
+
+# Where electron-builder places the two icons (centres, 1x), and their size.
+# `desktop/electron-builder.yml` `dmg.contents` / `dmg.iconSize` are the
+# same numbers; the arrow is drawn between them.
+ICON_CENTRES = ((210, 230), (510, 230))
+ICON_SIZE = 96
 
 BG = (26, 28, 32, 255)        # matches Kingfisher dialog surface
 FG = (244, 244, 246, 255)
@@ -70,18 +81,6 @@ def find_font(weight: str, size: int) -> ImageFont.FreeTypeFont:
     return ImageFont.load_default()
 
 
-def draw_icon(im: Image.Image, icon: Image.Image, x: int, y: int, size: int) -> None:
-    """Composite the Kingfisher.app icon at the given position.
-
-    macOS Finder draws its own soft drop shadow behind mounted
-    icons, so the DMG background is the *back* of the Finder
-    window and should not duplicate the shadow. We draw the icon
-    flat.
-    """
-    icon_resized = icon.resize((size, size), Image.LANCZOS)
-    im.paste(icon_resized, (x, y), icon_resized)
-
-
 def draw_arrow(draw: ImageDraw.ImageDraw, x1: int, x2: int, y: int, thickness: int) -> None:
     """Draw a thin, calm arrow between the two icons.
 
@@ -103,12 +102,11 @@ def draw_arrow(draw: ImageDraw.ImageDraw, x1: int, x2: int, y: int, thickness: i
     )
 
 
-def draw(w: int, h: int, icon: Image.Image) -> Image.Image:
+def draw(w: int, h: int) -> Image.Image:
+    scale = w / 720
     im = Image.new("RGBA", (w, h), BG)
-    draw_ctx = ImageDraw.Draw(im)
     # 1. A subtle vertical gradient that lifts the top edge enough
-    #    to make the title legible without a chrome bar. Single
-    #    alpha-blended rectangle, not a stripe.
+    #    to make the title legible without a chrome bar.
     overlay = Image.new("RGBA", (w, h), (0, 0, 0, 0))
     overlay_ctx = ImageDraw.Draw(overlay)
     for y in range(0, h // 3):
@@ -116,52 +114,25 @@ def draw(w: int, h: int, icon: Image.Image) -> Image.Image:
         overlay_ctx.line([(0, y), (w, y)], fill=(244, 244, 246, a))
     im = Image.alpha_composite(im, overlay)
     draw_ctx = ImageDraw.Draw(im)
-    # 2. The title.
+    # 2. The wordmark.
     title_font = find_font("regular", size=int(h * 0.058))
-    draw_ctx.text(
-        (w // 2, int(h * 0.10)),
-        "KINGFISHER",
-        font=title_font,
-        fill=FG,
-        anchor="ma",
-    )
-    # 3. The icon row.
-    icon_size = int(h * 0.32)
-    row_y = int(h * 0.50 - icon_size / 2)
-    left_x = int(w * 0.30 - icon_size / 2)
-    right_x = int(w * 0.70 - icon_size / 2)
-    draw_icon(im, icon, left_x, row_y, icon_size)
-    draw_icon(im, icon, right_x, row_y, icon_size)
-    # 4. The labels under each icon. macOS's `contents:` config in
-    #    electron-builder draws the same strings; the background
-    #    still previews the composition so designers can iterate
-    #    without running the full toolchain.
-    label_font = find_font("regular", size=int(h * 0.04))
-    draw_ctx.text(
-        (left_x + icon_size // 2, row_y + icon_size + int(h * 0.04)),
-        "Kingfisher",
-        font=label_font,
-        fill=DIM,
-        anchor="ma",
-    )
-    draw_ctx.text(
-        (right_x + icon_size // 2, row_y + icon_size + int(h * 0.04)),
-        "Applications",
-        font=label_font,
-        fill=DIM,
-        anchor="ma",
-    )
-    # 5. The arrow.
-    arrow_y = row_y + icon_size // 2
-    arrow_start_x = left_x + icon_size + int(w * 0.04)
-    arrow_end_x = right_x - int(w * 0.02)
-    draw_arrow(draw_ctx, arrow_start_x, arrow_end_x, arrow_y, int(h * 0.012))
-    # 6. The action text. One line, in the same display weight as
-    #    the title but a touch smaller, so the eye reads the icons
-    #    first and the text confirms the action.
+    draw_ctx.text((w // 2, int(h * 0.10)), "KINGFISHER", font=title_font, fill=FG, anchor="ma")
+    # 3. The arrow, between the icons Finder will draw. It starts a little
+    #    clear of the left icon's edge and ends a little short of the right
+    #    icon's, so neither icon sits on it.
+    (lx, ly), (rx, _ry) = ICON_CENTRES
+    half = ICON_SIZE / 2
+    arrow_y = int(ly * scale)
+    arrow_start_x = int((lx + half + 22) * scale)
+    arrow_end_x = int((rx - half - 14) * scale)
+    draw_arrow(draw_ctx, arrow_start_x, arrow_end_x, arrow_y, max(2, int(h * 0.012)))
+    # 4. The caption, below the labels Finder draws under the icons (icon
+    #    bottom at ly + 48, label to about ly + 80) and above the status
+    #    bar a user may have switched on. 74 % of the height is 340 px at
+    #    1x: clear of both.
     action_font = find_font("regular", size=int(h * 0.046))
     draw_ctx.text(
-        (w // 2, int(h * 0.82)),
+        (w // 2, int(h * 0.74)),
         "Drag Kingfisher to Applications",
         font=action_font,
         fill=FG,
@@ -173,15 +144,14 @@ def draw(w: int, h: int, icon: Image.Image) -> Image.Image:
 def main() -> int:
     if not PROJECT_ICON.exists():
         print(
-            f"Kingfisher project icon not found at {PROJECT_ICON}. The DMG background needs the app icon as a foreground element.",
+            f"Kingfisher project icon not found at {PROJECT_ICON}; the DMG toolchain expects it beside the background.",
             file=sys.stderr,
         )
         return 1
     BUILD_DIR.mkdir(parents=True, exist_ok=True)
-    icon = Image.open(PROJECT_ICON).convert("RGBA")
     for name, w, h in SIZES:
         out = BUILD_DIR / name
-        image = draw(w, h, icon)
+        image = draw(w, h)
         image.save(out, "PNG", optimize=True)
         print(f"wrote {out} ({w}x{h})")
     return 0
