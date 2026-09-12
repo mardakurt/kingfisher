@@ -114,10 +114,14 @@ if (existsSync(manifestPath)) {
   const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
   const manifestVersion = manifest?.kingfisher?.version;
   if (manifestVersion && manifestVersion !== rootPkg.version) {
-    check(
-      'release-manifest.json matches package.json',
-      false,
-      `manifest=${manifestVersion} package=${rootPkg.version}`,
+    /*
+      The manifest is written from the artifacts after they are built
+      (`npm run release:manifest`), so before a release build it describes
+      the previous release. That is expected, and stated; it is not a reason
+      to refuse the build that will replace it.
+    */
+    console.log(
+      `— release-manifest.json describes ${manifestVersion}; regenerate it after the ${rootPkg.version} build`,
     );
   } else {
     check('release-manifest.json matches package.json', true, manifestVersion || '(absent)');

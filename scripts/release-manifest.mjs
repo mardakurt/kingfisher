@@ -59,12 +59,18 @@ const webBuild = {
 };
 
 const desktopArtifacts = [
-  ...collect(path.join(root, 'desktop/dist'), (p) => p.endsWith('.dmg') || p.endsWith('.zip')),
+  ...collect(
+    process.env.KINGFISHER_DESKTOP_OUT ?? path.join(root, 'desktop/dist'),
+    (p) => p.endsWith('.dmg') || p.endsWith('.zip'),
+  ),
   ...collect(path.join(root, 'desktop/out'), (p) => p.endsWith('.dmg') || p.endsWith('.zip')),
 ].map((file) => {
-  const fullPath = path.join(root, file);
+  // An absolute path is an artifact outside the checkout (KINGFISHER_DESKTOP_OUT);
+  // the manifest records its name and digest, never the build machine's path.
+  const fullPath = path.isAbsolute(file) ? file : path.join(root, file);
   const bytes = statSync(fullPath).size;
-  return { name: path.basename(file), path: file, bytes, sha256: sha256OfFile(fullPath) };
+  const recorded = path.isAbsolute(file) ? path.basename(file) : file;
+  return { name: path.basename(file), path: recorded, bytes, sha256: sha256OfFile(fullPath) };
 });
 
 const referenceCatalogue = (() => {
