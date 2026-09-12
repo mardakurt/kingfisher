@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 /**
- * Run electron-builder, with the one thing it cannot be told in a config file.
+ * Run electron-builder, with the things it cannot be told in a config file.
+ *
+ * ## The output directory
  *
  * electron-builder refuses an output directory whose path contains characters
  * a shell would treat specially, and reports it as "Invalid output directory"
@@ -12,16 +14,35 @@
  * it does not. `KINGFISHER_DESKTOP_OUT` overrides both, and is exported so
  * that `npm run desktop:smoke -- --packaged` looks in the same place without
  * being told twice.
+ *
+ * ## The build identity
+ *
+ * A packaged Kingfisher records what it was built from — see
+ * `desktop/src/build-identity.mjs` for what and why. The values are computed
+ * here, from git, and handed to electron-builder as `buildVersion`
+ * (`CFBundleVersion`) and as `extraMetadata.kingfisher` (the packaged
+ * `package.json`). The channel comes from `KINGFISHER_DESKTOP_CHANNEL`:
+ *
+ *   unset / `dev`   a local build; the tree may be dirty
+ *   `preview`       a build the landing will offer; the tree must be clean
+ *   `stable`        a signed release candidate; the tree must be clean
+ *
+ * A publishable channel from a dirty tree is refused, because the commit it
+ * would record would not describe the bytes it shipped — that is the bug the
+ * public 1.0.0 release manifest records as `"dirty": true`.
  */
 
-import { spawnSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
+import { artifactName, CHANNELS } from '../src/build-identity.mjs';
+
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const DESKTOP = path.resolve(HERE, '..');
+const REPO = path.resolve(DESKTOP, '..');
 
 /**
  * The characters electron-builder rejects in an output path.
@@ -48,6 +69,53 @@ if (chosen !== path.join(DESKTOP, 'dist')) {
   console.log('');
 }
 
+// --- identity ----------------------------------------------------------------
+
+const git = (...args) => {
+  try {
+    return execFileSync('git', args, { cwd: REPO, encoding: 'utf8' }).trim();
+  } catch {
+    return null;
+  }
+};
+
+/** What the tree is, from git. Null fields when this is not a checkout. */
+export function buildIdentity({ env = process.env, gitImpl = git } = {}) {
+  const commit = gitImpl('rev-parse', 'HEAD');
+  const count = Number(gitImpl('rev-list', '--count', 'HEAD'));
+  const porcelain = gitImpl('status', '--porcelain');
+  const dirty = porcelain === null ? true : porcelain.length > 0;
+  const requested = env.KINGFISHER_DESKTOP_CHANNEL ?? 'dev';
+  if (!CHANNELS.includes(requested)) {
+    throw new Error(
+      `KINGFISHER_DESKTOP_CHANNEL=${requested} is not one of ${CHANNELS.join(', ')}.`,
+    );
+  }
+  if (requested !== 'dev' && dirty && env.KINGFISHER_ALLOW_DIRTY !== '1') {
+    throw new Error(
+      `A ${requested} build needs a clean tree, and this one is not:\n\n${porcelain ?? '(not a git checkout)'}\n\n` +
+        'Commit or stash, then build again. The recorded commit must describe the shipped bytes.',
+    );
+  }
+  return {
+    commit,
+    build: Number.isInteger(count) && count > 0 ? count : null,
+    dirty,
+    channel: requested,
+  };
+}
+
+const require_ = createRequire(import.meta.url);
+const { version } = require_('../package.json');
+
+const identity = buildIdentity();
+const name = artifactName({ version, build: identity.build, channel: identity.channel });
+console.log(
+  `Build identity: ${version} · build ${identity.build ?? '?'} · ${identity.commit?.slice(0, 7) ?? 'no commit'}` +
+    `${identity.dirty ? ' (dirty)' : ''} · ${identity.channel}`,
+);
+console.log(`Artifact: ${name}\n`);
+
 /*
   electron-builder's own CLI, run under this Node.
 
@@ -57,15 +125,29 @@ if (chosen !== path.join(DESKTOP, 'dist')) {
   and running it directly needs no shell on any platform, which also means the
   arguments below can never be read as shell syntax.
 */
-const require_ = createRequire(import.meta.url);
 const builder = path.join(
   path.dirname(require_.resolve('electron-builder/package.json')),
   require_('electron-builder/package.json').bin['electron-builder'],
 );
 
-const result = spawnSync(
-  process.execPath,
-  [builder, ...process.argv.slice(2), `-c.directories.output=${chosen}`],
-  { cwd: DESKTOP, stdio: 'inherit', env: { ...process.env, KINGFISHER_DESKTOP_OUT: chosen } },
-);
+const config = [
+  `-c.directories.output=${chosen}`,
+  // CFBundleVersion: the build number, monotonic, distinct from the marketing
+  // version. Falls back to the marketing version outside a checkout.
+  `-c.buildVersion=${identity.build ?? version}`,
+  `-c.extraMetadata.kingfisher.channel=${identity.channel}`,
+  `-c.extraMetadata.kingfisher.dirty=${identity.dirty}`,
+  ...(identity.commit ? [`-c.extraMetadata.kingfisher.commit=${identity.commit}`] : []),
+  ...(identity.build ? [`-c.extraMetadata.kingfisher.build=${identity.build}`] : []),
+  // The DMG name is the channel's, so a preview can never overwrite a stable
+  // release's bytes. The ZIP keeps electron-builder's own name; it is only
+  // ever uploaded by the stable release process.
+  `-c.dmg.artifactName=${name}`,
+];
+
+const result = spawnSync(process.execPath, [builder, ...process.argv.slice(2), ...config], {
+  cwd: DESKTOP,
+  stdio: 'inherit',
+  env: { ...process.env, KINGFISHER_DESKTOP_OUT: chosen },
+});
 process.exit(result.status ?? 1);

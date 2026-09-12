@@ -44,6 +44,20 @@ export interface DesktopDiagnostics {
   /** Where the shell's own log is, so Diagnostics can name it and open it. */
   readonly logPath: string | null;
   readonly packaged: boolean;
+  /**
+   * The build, not just the version. Two `1.0.0`s from different commits are
+   * different programs; `channel` says whether this is a signed release, a
+   * current-master preview from the landing, or a developer's own build.
+   * Absent from a shell built before the identity existed.
+   */
+  readonly build?: {
+    readonly version: string;
+    readonly number: number | null;
+    readonly commit: string | null;
+    readonly channel: 'stable' | 'preview' | 'dev';
+    readonly dirty: boolean;
+    readonly label: string;
+  };
   readonly web: { readonly running: boolean; readonly pid: number | null; readonly url: string };
   readonly companion: {
     readonly running: boolean;

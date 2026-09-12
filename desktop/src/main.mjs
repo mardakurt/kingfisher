@@ -21,10 +21,12 @@
 
 import { app, BrowserWindow, dialog, ipcMain, Menu, screen, shell } from 'electron';
 import { randomBytes } from 'node:crypto';
+import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { readBuildIdentity } from './build-identity.mjs';
 import { log, logFile, openLog, redactInLog } from './log.mjs';
 import { buildTemplate } from './menu.mjs';
 import { resolveStartupBounds, recordBounds, WINDOW_BOUNDS_FILE } from './window-bounds.mjs';
@@ -60,6 +62,15 @@ import * as updateWindow from './update-window.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const HOST = '127.0.0.1';
+
+/**
+ * What this build is — version, build number, commit, channel — as
+ * `desktop/scripts/build.mjs` recorded it into the packaged `package.json`.
+ * Read once; `build-identity.mjs` says why a version alone is not enough.
+ */
+const buildIdentity = readBuildIdentity(createRequire(import.meta.url)('../package.json'), {
+  packaged: app.isPackaged,
+});
 
 /**
  * When each stage of launch finished, measured from process start.
@@ -759,6 +770,18 @@ function registerIpc() {
     platform: { os: process.platform, arch: process.arch, release: os.release() },
     logPath: logFile(),
     packaged: app.isPackaged,
+    /**
+     * The build, not just the version: two `1.0.0`s from different commits
+     * are different programs, and a support report has to say which.
+     */
+    build: {
+      version: buildIdentity.version,
+      number: buildIdentity.build,
+      commit: buildIdentity.commit,
+      channel: buildIdentity.channel,
+      dirty: buildIdentity.dirty,
+      label: buildIdentity.label,
+    },
     web: { running: Boolean(state.web?.running), pid: state.web?.pid ?? null, url: state.appUrl },
     companion: {
       running: Boolean(state.companion?.running),
@@ -848,7 +871,7 @@ if (!app.requestSingleInstanceLock()) {
     openLog(app.getPath('userData'));
     log(
       'launch',
-      `Kingfisher ${app.getVersion()} · Electron ${process.versions.electron} · ` +
+      `Kingfisher ${buildIdentity.label} · Electron ${process.versions.electron} · ` +
         `${process.platform}-${process.arch} ${os.release()} · packaged=${app.isPackaged}`,
     );
     registerIpc();

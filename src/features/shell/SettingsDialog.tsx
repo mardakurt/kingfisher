@@ -2097,6 +2097,16 @@ function CopyReport() {
                 shell: shell.shell,
                 node: shell.node,
                 packaged: shell.packaged,
+                ...(shell.build
+                  ? {
+                      build: {
+                        number: shell.build.number,
+                        commit: shell.build.commit,
+                        channel: shell.build.channel,
+                        dirty: shell.build.dirty,
+                      },
+                    }
+                  : {}),
                 webServer: { running: shell.web.running, pid: shell.web.pid },
                 companionProcess: {
                   running: shell.companion.running,

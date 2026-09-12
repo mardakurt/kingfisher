@@ -240,6 +240,35 @@ describe('the application shell section', () => {
     expect(report).toContain('Runs as         web page');
   });
 
+  it('names the build, the commit and the channel, so "1.0.0" can be matched to bytes', () => {
+    const built = {
+      ...shell,
+      build: {
+        number: 412,
+        commit: 'b77d3a2c291a850217bd',
+        channel: 'preview' as const,
+        dirty: false,
+      },
+    };
+    const report = buildDiagnosticReport({ ...input, desktop: built }, secrets);
+    expect(report).toContain('Build           412');
+    expect(report).toContain('Commit          b77d3a2c291a');
+    expect(report).toContain('Channel         preview');
+    expect(report).not.toContain('dirty tree');
+    expect(report).not.toMatch(/phase/i);
+    const summary = buildSupportSummary({ ...input, desktop: built }, secrets);
+    expect(summary).toContain('Build 412 (b77d3a2) · preview channel');
+
+    const dirty = { ...built, build: { ...built.build, dirty: true } };
+    expect(buildDiagnosticReport({ ...input, desktop: dirty }, secrets)).toContain('(dirty tree)');
+  });
+
+  it('says so when a shell predates the build identity', () => {
+    const report = buildDiagnosticReport({ ...input, desktop: shell }, secrets);
+    expect(report).not.toContain('Build      ');
+    expect(report).not.toContain('Channel    ');
+  });
+
   it('names the shell, the Chromium, the Node and whether it is packaged', () => {
     const report = buildDiagnosticReport({ ...input, desktop: shell }, secrets);
     expect(report).toContain('Runs as         desktop application');

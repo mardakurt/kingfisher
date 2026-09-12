@@ -1,268 +1,313 @@
 #!/usr/bin/env node
 /**
- * Verify a Kingfisher DMG against the Phase 35 contract.
+ * Verify a Kingfisher DMG: the disk image a user actually opens.
  *
- * The script mounts a DMG, walks the mounted volume, and checks:
+ * Mounts the image, walks the volume, and checks
  *
- *   - the volume name is `Kingfisher`,
- *   - the volume carries a `.VolumeIcon.icns`,
- *   - the only visible root item is `Kingfisher.app`,
- *   - the `Applications` symlink resolves to `/Applications`,
- *   - the embedded `Info.plist` matches the expected bundle id and
- *     version (when supplied), and the architecture is `arm64`.
+ *   - `hdiutil verify` passes, so a corrupt image never gets the green light;
+ *   - the volume is named `Kingfisher` and carries a `.VolumeIcon.icns`;
+ *   - the only visible root items are `Kingfisher.app` and an `Applications`
+ *     link that resolves to `/Applications`;
+ *   - the bundle inside is **launchable**: it carries the web server and the
+ *     companion under `Resources/kingfisher/`, which every build from Phase 35
+ *     to Phase 45 did not — those verified as DMGs and exited on launch;
+ *   - `Info.plist` names the expected bundle id, version, build number and
+ *     minimum macOS, and declares the `.pgn` document type;
+ *   - the executable is `arm64` and nothing else;
+ *   - the signature verifies, and the identity that made it is reported;
+ *   - nothing ships that should not — no Finder duplicates (`name 2`), no
+ *     `.DS_Store`, no test files, no `node_modules 2`.
  *
- * It is runnable against any local DMG:
+ * Runnable against any local DMG:
  *
- *   node desktop/scripts/verify-dmg.mjs path/to/Kingfisher-1.1.0-arm64.dmg
+ *   node desktop/scripts/verify-dmg.mjs path/to/Kingfisher-1.0.0-arm64.dmg \
+ *     [--version 1.0.0] [--build 412] [--commit b77d3a2] [--arch arm64] [--json]
  *
- * `hdiutil verify` is run before the structural checks so a corrupt
- * image never gets the green light.
+ * and importable: `verifyDmg(path, options)` returns the same findings as
+ * data, which is how `desktop:public:verify --full` checks the bytes a user
+ * downloads and how `desktop:certify` checks the ones about to be published.
  *
- * The script never deletes the source DMG. Cleanup is the caller's
- * job: a CI run mounts a copy, a developer's interactive run mounts
- * the original. Both should leave the system in the same shape.
+ * The script never deletes the source DMG.
  */
 
-import { spawn } from 'node:child_process';
-import { existsSync, mkdirSync, rmSync } from 'node:fs';
+import { execFile as execFileCb } from 'node:child_process';
+import { existsSync, readdirSync, rmSync, statSync } from 'node:fs';
+import { mkdtemp } from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
-import { exec as execCb } from 'node:child_process';
-import { mkdtemp } from 'node:fs/promises';
-import os from 'node:os';
 
-const exec = promisify(execCb);
-const HERE = path.dirname(fileURLToPath(import.meta.url));
-const ROOT = path.resolve(HERE, '..', '..');
+const execFile = promisify(execFileCb);
 
-const EXPECTED_BUNDLE = 'app.kingfisher.chess';
-const EXPECTED_VOLUME = 'Kingfisher';
+export const EXPECTED_BUNDLE = 'app.kingfisher.chess';
+export const EXPECTED_VOLUME = 'Kingfisher';
+export const EXPECTED_MIN_MACOS = '11.0';
 
-function parseArgs(argv) {
-  const args = { dmg: null, expectVersion: null, expectArch: 'arm64' };
-  for (let i = 2; i < argv.length; i++) {
-    const arg = argv[i];
-    if (arg === '--version') args.expectVersion = argv[++i];
-    else if (arg === '--arch') args.expectArch = argv[++i];
-    else if (!args.dmg) args.dmg = arg;
+async function run(cmd, args) {
+  try {
+    const { stdout, stderr } = await execFile(cmd, args, { maxBuffer: 16 * 1024 * 1024 });
+    return { code: 0, stdout, stderr };
+  } catch (error) {
+    return { code: error.code ?? 1, stdout: error.stdout ?? '', stderr: error.stderr ?? '' };
   }
-  return args;
 }
 
-function die(label, message) {
-  console.error(`✗ ${label}: ${message}`);
-  process.exit(1);
+async function plist(file, key) {
+  const { code, stdout } = await run('/usr/libexec/PlistBuddy', ['-c', `Print :${key}`, file]);
+  return code === 0 ? stdout.trim() : null;
 }
 
-function ok(label, message = '') {
-  console.log(`✓ ${label}${message ? ` — ${message}` : ''}`);
+/** Everything under `root`, relative, files and directories. */
+function walk(root) {
+  const out = [];
+  const visit = (dir) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      out.push(path.relative(root, full));
+      if (entry.isDirectory() && !entry.isSymbolicLink()) visit(full);
+    }
+  };
+  visit(root);
+  return out;
 }
 
-async function runCapture(cmd, args, options = {}) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(cmd, args, { stdio: ['ignore', 'pipe', 'pipe'], ...options });
-    let stdout = '';
-    let stderr = '';
-    child.stdout.on('data', (chunk) => (stdout += chunk.toString()));
-    child.stderr.on('data', (chunk) => (stderr += chunk.toString()));
-    child.on('error', reject);
-    child.on('close', (code) => {
-      resolve({ code, stdout, stderr });
-    });
-  });
-}
+/**
+ * Mount, check, unmount. Returns `{ ok, checks, facts }`; never throws for a
+ * finding, only for a DMG that cannot be mounted at all.
+ */
+export async function verifyDmg(dmg, options = {}) {
+  const {
+    expectVersion = null,
+    expectBuild = null,
+    expectCommit = null,
+    expectArch = 'arm64',
+    expectBundle = EXPECTED_BUNDLE,
+  } = options;
+  const absolute = path.resolve(dmg);
+  const checks = [];
+  const facts = { dmg: absolute, bytes: statSync(absolute).size };
+  const check = (label, ok, detail = '') => {
+    checks.push({ label, ok, detail });
+    return ok;
+  };
 
-async function hdiutilVerify(dmg) {
-  const { code, stderr } = await runCapture('hdiutil', ['verify', '-quiet', dmg]);
-  if (code !== 0) {
-    die('hdiutil verify', stderr.trim() || `exit ${code}`);
+  const verified = await run('hdiutil', ['verify', '-quiet', absolute]);
+  if (!check('hdiutil verify', verified.code === 0, verified.stderr.trim() || 'image is sound')) {
+    return { ok: false, checks, facts };
   }
-  ok('hdiutil verify', 'image is structurally sound');
-}
 
-async function hdiutilAttach(dmg) {
   const tmp = await mkdtemp(path.join(os.tmpdir(), 'kingfisher-dmg-verify-'));
-  const { code, stdout, stderr } = await runCapture('hdiutil', [
+  const attached = await run('hdiutil', [
     'attach',
     '-nobrowse',
     '-readonly',
     '-noverify',
     '-mountrandom',
     tmp,
-    dmg,
+    absolute,
   ]);
-  if (code !== 0) {
+  if (attached.code !== 0) {
     rmSync(tmp, { recursive: true, force: true });
-    die('hdiutil attach', stderr.trim() || `exit ${code}`);
+    throw new Error(`hdiutil attach failed: ${attached.stderr.trim() || attached.code}`);
   }
-  // The last line of stdout is the mount point, e.g. `/Volumes/Kingfisher`.
-  const mount = stdout.trim().split('\n').pop().split('\t').pop().trim();
-  return { mount, tmp };
-}
+  // The last line of stdout is `<device>\t<hint>\t<mount point>`.
+  const mount = attached.stdout.trim().split('\n').pop().split('\t').pop().trim();
 
-async function hdiutilDetach(mount) {
-  const { code, stderr } = await runCapture('hdiutil', ['detach', mount]);
-  if (code !== 0) {
-    die('hdiutil detach', stderr.trim() || `exit ${code}`);
-  }
-}
-
-async function listVisible(mount) {
-  // `ls -A` skips the dotfiles Finder would hide; we *do* still
-  // want to confirm `.VolumeIcon.icns` is present, so the
-  // visibility check is two passes.
-  const { stdout: visible } = await exec(`ls -1 "${mount}"`);
-  return visible.split('\n').filter(Boolean);
-}
-
-async function readVolumeName(mount) {
-  // The Finder- and shell-visible name is the basename of the mount.
-  return path.basename(mount);
-}
-
-async function resolveSymlink(mount, name) {
-  const { stdout, code } = await exec(`readlink "${path.join(mount, name)}"`);
-  if (code !== 0) return null;
-  return stdout.trim();
-}
-
-async function readInfoPlist(mount) {
-  // Use the system `defaults` reader rather than bundling a parser.
-  // The plist is well-formed when the toolchain produced it; if it
-  // isn't, the verifier fails before this point on the .app layout.
-  const plist = path.join(mount, 'Kingfisher.app', 'Contents', 'Info.plist');
-  if (!existsSync(plist)) return null;
-  const fields = [
-    'CFBundleIdentifier',
-    'CFBundleShortVersionString',
-    'CFBundleVersion',
-    'CFBundleExecutable',
-    'CFBundleName',
-    'LSMinimumSystemVersion',
-  ];
-  const result = {};
-  for (const field of fields) {
-    try {
-      const { stdout } = await exec(`defaults read "${path}" "${field}"`);
-      result[field] = stdout.trim();
-    } catch {
-      result[field] = null;
-    }
-  }
-  return result;
-}
-
-async function readArchitecture(mount) {
-  // The .app's `MacOS/<exe>` Mach-O is the source of truth for the
-  // architecture. A `lipo -archs` on the file answers in one call.
-  const exe = path.join(mount, 'Kingfisher.app', 'Contents', 'MacOS', 'Kingfisher');
-  if (!existsSync(exe)) return null;
   try {
-    const { stdout } = await exec(`lipo -archs "${exe}"`);
-    return stdout.trim();
-  } catch {
-    return null;
+    // 1. The volume, as Finder shows it. `-mountrandom` makes the mount
+    //    point's basename random, so the name has to be asked of the volume.
+    const info = await run('diskutil', ['info', '-plist', mount]);
+    const volumeName = /<key>VolumeName<\/key>\s*<string>([^<]*)<\/string>/.exec(info.stdout)?.[1];
+    facts.volumeName = volumeName ?? null;
+    check('volume name', volumeName === EXPECTED_VOLUME, `"${volumeName}"`);
+    check('volume icon', existsSync(path.join(mount, '.VolumeIcon.icns')), '.VolumeIcon.icns');
+
+    // 2. Visible root items.
+    const visible = readdirSync(mount).filter((name) => !name.startsWith('.'));
+    facts.visible = visible;
+    check(
+      'root layout',
+      visible.length === 2 &&
+        visible.includes('Kingfisher.app') &&
+        visible.includes('Applications'),
+      visible.join(', '),
+    );
+    const apps = visible.filter((name) => name.endsWith('.app'));
+    check('exactly one application', apps.length === 1, apps.join(', '));
+    const link = await run('readlink', [path.join(mount, 'Applications')]);
+    check('Applications link', link.stdout.trim() === '/Applications', link.stdout.trim());
+
+    // 3. The bundle is a whole application, not a shell with nothing to serve.
+    const app = path.join(mount, 'Kingfisher.app');
+    const resources = path.join(app, 'Contents', 'Resources', 'kingfisher');
+    for (const [label, file] of [
+      ['web server in the bundle', 'web/server.js'],
+      ['web static assets in the bundle', 'web/.next/static'],
+      ['browser engine in the bundle', 'web/public/engine/stockfish/manifest.json'],
+      ['companion in the bundle', 'companion/src/server.mjs'],
+      ['engine catalogue in the bundle', 'scripts/engine-catalogue.mjs'],
+      ['engine digests in the bundle', 'scripts/engine-digests.json'],
+    ]) {
+      check(label, existsSync(path.join(resources, file)), `Resources/kingfisher/${file}`);
+    }
+
+    // 4. Info.plist.
+    const infoPlist = path.join(app, 'Contents', 'Info.plist');
+    const id = await plist(infoPlist, 'CFBundleIdentifier');
+    const short = await plist(infoPlist, 'CFBundleShortVersionString');
+    const build = await plist(infoPlist, 'CFBundleVersion');
+    const minimum = await plist(infoPlist, 'LSMinimumSystemVersion');
+    const name = await plist(infoPlist, 'CFBundleName');
+    const types = await plist(infoPlist, 'CFBundleDocumentTypes');
+    Object.assign(facts, { bundleId: id, version: short, build, minimumMacOS: minimum });
+    check('bundle id', id === expectBundle, id ?? 'unreadable');
+    check('bundle name', name === 'Kingfisher', name ?? 'unreadable');
+    check('minimum macOS', minimum === EXPECTED_MIN_MACOS, minimum ?? 'unreadable');
+    check(
+      '.pgn document type declared',
+      /pgn/.test(types ?? ''),
+      types ? 'CFBundleDocumentTypes has pgn' : 'none',
+    );
+    if (expectVersion) check('marketing version', short === expectVersion, short ?? 'unreadable');
+    else check('marketing version present', Boolean(short), short ?? 'unreadable');
+    if (expectBuild !== null) {
+      check('build number', String(build) === String(expectBuild), build ?? 'unreadable');
+    }
+
+    // The recorded identity, from the packaged package.json inside the asar.
+    const asar = path.join(app, 'Contents', 'Resources', 'app.asar');
+    const pkg = await run(process.execPath, [
+      '-e',
+      `const a=require(${JSON.stringify(resolveAsar())});process.stdout.write(a.extractFile(process.argv[1],'package.json').toString())`,
+      asar,
+    ]);
+    let identity = null;
+    try {
+      identity = JSON.parse(pkg.stdout).kingfisher ?? null;
+    } catch {
+      identity = null;
+    }
+    facts.identity = identity;
+    if (expectCommit) {
+      const commit = identity?.commit ?? '';
+      const agrees =
+        commit.length >= 7 &&
+        expectCommit.length >= 7 &&
+        (commit.startsWith(expectCommit) || expectCommit.startsWith(commit));
+      check('build commit', agrees, commit || 'unrecorded');
+    }
+    if (identity) {
+      check(
+        'build was not made from a dirty tree',
+        identity.dirty !== true && identity.dirty !== 'true',
+        String(identity.dirty),
+      );
+    }
+
+    // 5. Architecture.
+    const exe = path.join(app, 'Contents', 'MacOS', 'Kingfisher');
+    const archs = (await run('lipo', ['-archs', exe])).stdout.trim();
+    facts.architecture = archs;
+    check('architecture', archs === expectArch, archs || 'unreadable');
+
+    // 6. Signature. Verified strictly; the identity is reported, not asserted,
+    //    because which identity is *correct* is the trust gate's question.
+    const sig = await run('codesign', ['--verify', '--deep', '--strict', '--verbose=2', app]);
+    check('signature verifies', sig.code === 0, sig.stderr.trim().split('\n').pop() ?? '');
+    const detail = await run('codesign', ['-dvv', app]);
+    const authority = /Authority=([^\n]+)/.exec(detail.stderr)?.[1] ?? null;
+    const flags = /flags=([^\s]+)/.exec(detail.stderr)?.[1] ?? null;
+    facts.signingAuthority = authority;
+    facts.hardenedRuntime = /runtime/.test(flags ?? '');
+    check('hardened runtime', facts.hardenedRuntime, flags ?? 'no flags');
+    check('signed by a known identity', Boolean(authority), authority ?? 'unsigned');
+
+    // 7. Nothing that should not ship.
+    const everything = walk(app);
+    const unwanted = everything.filter(
+      (rel) =>
+        /(^|\/)\.DS_Store$/.test(rel) ||
+        /(^|\/)[^/]+ \d+(\.[^/]*)?$/.test(rel) || // "name 2", "name 3.txt"
+        /\.test\.mjs$/.test(rel) ||
+        /(^|\/)__fixtures__(\/|$)/.test(rel),
+    );
+    facts.fileCount = everything.length;
+    check(
+      'no unexpected files',
+      unwanted.length === 0,
+      unwanted.slice(0, 5).join(', ') || `${everything.length} entries`,
+    );
+  } finally {
+    const detached = await run('hdiutil', ['detach', mount]);
+    if (detached.code !== 0) await run('hdiutil', ['detach', '-force', mount]);
+    rmSync(tmp, { recursive: true, force: true });
   }
+
+  return { ok: checks.every((c) => c.ok), checks, facts };
 }
 
-async function main() {
+/** `@electron/asar`, from wherever the desktop or root install put it. */
+function resolveAsar() {
+  const here = path.dirname(fileURLToPath(import.meta.url));
+  for (const candidate of [
+    path.join(here, '..', 'node_modules', '@electron', 'asar'),
+    path.join(here, '..', '..', 'node_modules', '@electron', 'asar'),
+  ]) {
+    if (existsSync(candidate)) return candidate;
+  }
+  return '@electron/asar';
+}
+
+function parseArgs(argv) {
+  const args = {
+    dmg: null,
+    expectVersion: null,
+    expectBuild: null,
+    expectCommit: null,
+    expectArch: 'arm64',
+    json: false,
+  };
+  for (let i = 2; i < argv.length; i += 1) {
+    const arg = argv[i];
+    if (arg === '--version') args.expectVersion = argv[++i];
+    else if (arg === '--build') args.expectBuild = argv[++i];
+    else if (arg === '--commit') args.expectCommit = argv[++i];
+    else if (arg === '--arch') args.expectArch = argv[++i];
+    else if (arg === '--json') args.json = true;
+    else if (!args.dmg) args.dmg = arg;
+  }
+  return args;
+}
+
+const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (isMain) {
   const args = parseArgs(process.argv);
   if (!args.dmg) {
     console.error(
-      'usage: node desktop/scripts/verify-dmg.mjs <path-to.dmg> [--version X.Y.Z] [--arch arm64|x64]',
+      'usage: node desktop/scripts/verify-dmg.mjs <path.dmg> [--version X.Y.Z] [--build N] [--commit SHA] [--arch arm64] [--json]',
     );
     process.exit(2);
   }
   if (!existsSync(args.dmg)) {
-    die('input', `DMG not found at ${args.dmg}`);
+    console.error(`✗ input: DMG not found at ${args.dmg}`);
+    process.exit(1);
   }
-  const absolute = path.resolve(args.dmg);
-  ok('input', `${absolute}`);
-
-  await hdiutilVerify(absolute);
-  const { mount, tmp } = await hdiutilAttach(absolute);
-  try {
-    // 1. Volume name.
-    const name = await readVolumeName(mount);
-    if (name !== EXPECTED_VOLUME) {
-      die('volume name', `expected "${EXPECTED_VOLUME}", got "${name}"`);
-    }
-    ok('volume name', `"${name}"`);
-
-    // 2. Volume icon present.
-    const icns = path.join(mount, '.VolumeIcon.icns');
-    if (!existsSync(icns)) {
-      die('volume icon', `no .VolumeIcon.icns at the mounted root (${icns})`);
-    }
-    ok('volume icon', 'present at root');
-
-    // 3. Visible root items.
-    const visible = await listVisible(mount);
-    const expected = ['Kingfisher.app', 'Applications'];
-    const unexpected = visible.filter((name) => !expected.includes(name));
-    if (unexpected.length) {
-      die('root layout', `unexpected visible items: ${unexpected.join(', ')}`);
-    }
-    if (!visible.includes('Kingfisher.app')) {
-      die('root layout', 'Kingfisher.app is missing');
-    }
-    if (!visible.includes('Applications')) {
-      die('root layout', 'Applications link is missing');
-    }
-    ok('root layout', 'Kingfisher.app + Applications only');
-
-    // 4. Applications symlink.
-    const link = await resolveSymlink(mount, 'Applications');
-    if (link !== '/Applications') {
-      die('Applications link', `expected /Applications, got ${link}`);
-    }
-    ok('Applications link', '/Applications');
-
-    // 5. Info.plist contents.
-    const plist = await readInfoPlist(mount);
-    if (!plist) {
-      die('Info.plist', 'not found inside Kingfisher.app');
-    }
-    if (plist.CFBundleIdentifier !== EXPECTED_BUNDLE) {
-      die('bundle id', `expected ${EXPECTED_BUNDLE}, got ${plist.CFBundleIdentifier}`);
-    }
-    ok('bundle id', plist.CFBundleIdentifier);
-    if (args.expectVersion && plist.CFBundleShortVersionString !== args.expectVersion) {
-      die(
-        'short version',
-        `expected ${args.expectVersion}, got ${plist.CFBundleShortVersionString}`,
-      );
-    }
-    if (plist.CFBundleShortVersionString) {
-      ok('short version', plist.CFBundleShortVersionString);
-    }
-    if (plist.CFBundleName && plist.CFBundleName !== 'Kingfisher') {
-      die('bundle name', `expected Kingfisher, got ${plist.CFBundleName}`);
-    }
-    if (plist.CFBundleName) {
-      ok('bundle name', plist.CFBundleName);
-    }
-
-    // 6. Architecture.
-    const arch = await readArchitecture(mount);
-    if (!arch) {
-      die('architecture', 'could not read Mach-O archs');
-    }
-    if (args.expectArch && !arch.split(' ').includes(args.expectArch)) {
-      die('architecture', `expected ${args.expectArch}, got ${arch}`);
-    }
-    ok('architecture', arch);
-
-    console.log('');
-    console.log(`DMG verified: ${absolute}`);
-  } finally {
-    await hdiutilDetach(mount);
-    rmSync(tmp, { recursive: true, force: true });
-  }
+  verifyDmg(args.dmg, args)
+    .then((result) => {
+      if (args.json) {
+        console.log(JSON.stringify(result, null, 2));
+      } else {
+        for (const { label, ok, detail } of result.checks) {
+          console.log(`${ok ? '✓' : '✗'} ${label}${detail ? ` — ${detail}` : ''}`);
+        }
+        console.log('');
+        console.log(result.ok ? `DMG verified: ${result.facts.dmg}` : 'DMG verification FAILED');
+      }
+      process.exit(result.ok ? 0 : 1);
+    })
+    .catch((error) => {
+      console.error(`✗ ${error.message}`);
+      process.exit(1);
+    });
 }
-
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});

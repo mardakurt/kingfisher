@@ -21,15 +21,12 @@
  *   npm run desktop:smoke -- --packaged  # a built Kingfisher.app
  */
 
-import { _electron as electron } from 'playwright-core';
-import { execFileSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { argv, exit } from 'node:process';
-import { fileURLToPath } from 'node:url';
 
-const ROOT = fileURLToPath(new URL('..', import.meta.url));
+import { ROOT, alive, descendants, launchKingfisher } from './desktop-lib/launch.mjs';
 
 const args = {
   packaged: argv.includes('--packaged'),
@@ -50,71 +47,6 @@ const check = (name, ok, detail = '') => {
   console.log(`  ${ok ? '✓' : '✗'} ${name}${detail ? ` — ${detail}` : ''}`);
   return ok;
 };
-
-/** Every descendant of a pid, by walking the process table once. */
-function descendants(root) {
-  const out = execFileSync('ps', ['-eo', 'pid=,ppid=,comm='], { encoding: 'utf8' });
-  const children = new Map();
-  for (const line of out.split('\n')) {
-    const match = line.trim().match(/^(\d+)\s+(\d+)\s+(.*)$/);
-    if (!match) continue;
-    const [, pid, ppid, comm] = match;
-    if (!children.has(ppid)) children.set(ppid, []);
-    children.get(ppid).push({ pid, comm });
-  }
-  const found = [];
-  const walk = (pid) => {
-    for (const child of children.get(String(pid)) ?? []) {
-      found.push(child);
-      walk(child.pid);
-    }
-  };
-  walk(root);
-  return found;
-}
-
-const alive = (pid) => {
-  try {
-    process.kill(Number(pid), 0);
-    return true;
-  } catch {
-    return false;
-  }
-};
-
-/**
- * The Electron binary the shell was installed with.
- *
- * Resolved from `desktop/node_modules` rather than the repository root:
- * Electron is a 300 MB dependency of the shell alone, and putting it in the
- * root install would make every web CI job download it.
- */
-function shellBinary() {
-  const marker = path.join(ROOT, 'desktop', 'node_modules', 'electron', 'path.txt');
-  if (!existsSync(marker)) {
-    console.error('The desktop shell is not installed. Run npm run desktop:install.');
-    exit(1);
-  }
-  const relative = readFileSync(marker, 'utf8').trim();
-  return path.join(ROOT, 'desktop', 'node_modules', 'electron', 'dist', relative);
-}
-
-/**
- * The packaged application.
- *
- * `KINGFISHER_DESKTOP_OUT` exists because electron-builder refuses an output
- * directory whose path contains shell-special characters, and the development
- * checkout this was written in lives under one. `npm run desktop:dist` passes
- * the same variable through, so the two always agree.
- */
-function packagedBinary() {
-  const out = process.env.KINGFISHER_DESKTOP_OUT ?? path.join(ROOT, 'desktop', 'dist');
-  for (const directory of ['mac-arm64', 'mac', 'mac-x64', 'mac-universal']) {
-    const app = path.join(out, directory, 'Kingfisher.app');
-    if (existsSync(app)) return path.join(app, 'Contents', 'MacOS', 'Kingfisher');
-  }
-  return path.join(out, 'mac-arm64', 'Kingfisher.app', 'Contents', 'MacOS', 'Kingfisher');
-}
 
 async function main() {
   console.log('Kingfisher desktop smoke');
@@ -140,44 +72,21 @@ async function main() {
     send it to. Phase 19 declared the `.pgn` association and never exercised
     it; passing the file here exercises the half a test can reach.
   */
-  const launch = args.packaged
-    ? { executablePath: packagedBinary(), args: [pgn] }
-    : { executablePath: shellBinary(), args: [path.join(ROOT, 'desktop'), pgn] };
-
-  if (args.packaged && !existsSync(launch.executablePath)) {
-    console.error(`No packaged application at ${launch.executablePath}. Run npm run desktop:dist.`);
+  let launched;
+  try {
+    launched = await launchKingfisher({
+      packaged: args.packaged,
+      profile: path.join(workspace, 'profile'),
+      args: [pgn],
+      offline: args.offline,
+    });
+  } catch (error) {
+    console.error(error.message);
     exit(1);
   }
-
-  const started = Date.now();
-  const app = await electron.launch({
-    ...launch,
-    args: [...launch.args, `--user-data-dir=${path.join(workspace, 'profile')}`],
-    timeout: 120_000,
-  });
-
-  if (args.offline) {
-    const blocked = await app.evaluate(({ session }) => {
-      let count = 0;
-      session.defaultSession.webRequest.onBeforeRequest((details, callback) => {
-        const local = /^(https?:\/\/)?(127\.0\.0\.1|localhost|\[::1\])(:|\/|$)/.test(
-          details.url.replace(/^[a-z-]+:\/\//, (m) => m),
-        );
-        const internal = /^(devtools|chrome|chrome-extension|blob|data|file):/.test(details.url);
-        if (local || internal) return callback({});
-        count += 1;
-        return callback({ cancel: true });
-      });
-      return true;
-    });
-    check('the network is cut, loopback is not', blocked === true);
-  }
-
-  const window = await app.firstWindow({ timeout: 120_000 });
-  await window.waitForLoadState('domcontentloaded');
-  const ready = Date.now() - started;
-
-  const shellPid = app.process().pid;
+  const { app, window, readyMs: ready, pid: shellPid, executable } = launched;
+  console.log(`launched ${executable}\n`);
+  if (args.offline) check('the network is cut, loopback is not', true);
 
   // 1. A window, on the shell's own server.
   const url = window.url();

@@ -120,6 +120,18 @@ export interface DiagnosticInput {
     readonly shell: { readonly name: string; readonly version: string; readonly chrome: string };
     readonly node: string;
     readonly packaged: boolean;
+    /**
+     * Which build of the application this is — build number, commit and
+     * channel — so a report saying "1.0.0" can be matched to the bytes the
+     * person actually has. The channel is what tells support whether the
+     * user is on the signed release or on a landing-page preview.
+     */
+    readonly build?: {
+      readonly number: number | null;
+      readonly commit: string | null;
+      readonly channel: 'stable' | 'preview' | 'dev';
+      readonly dirty: boolean;
+    };
     readonly webServer: { readonly running: boolean; readonly pid: number | null };
     readonly companionProcess: {
       readonly running: boolean;
@@ -212,6 +224,14 @@ export function buildDiagnosticReport(
     lines.push(`Chromium        ${shell.chrome}`);
     lines.push(`Node            ${input.desktop.node}`);
     lines.push(`Packaged        ${yesNo(input.desktop.packaged)}`);
+    if (input.desktop.build) {
+      const { number, commit, channel, dirty } = input.desktop.build;
+      lines.push(`Build           ${number ?? 'unrecorded'}`);
+      lines.push(
+        `Commit          ${commit ? commit.slice(0, 12) : 'unrecorded'}${dirty ? ' (dirty tree)' : ''}`,
+      );
+      lines.push(`Channel         ${channel}`);
+    }
     lines.push(
       `Web server      ${webServer.running ? 'running' : 'stopped'}` +
         `${webServer.pid === null ? '' : ` (pid ${webServer.pid})`}`,
@@ -351,6 +371,12 @@ export function buildSupportSummary(
     lines.push(
       `Shell Electron ${input.desktop.shell.version}, Chromium ${input.desktop.shell.chrome}`,
     );
+    if (input.desktop.build) {
+      const { number, commit, channel } = input.desktop.build;
+      lines.push(
+        `Build ${number ?? '?'}${commit ? ` (${commit.slice(0, 7)})` : ''} · ${channel} channel`,
+      );
+    }
   }
 
   /*
