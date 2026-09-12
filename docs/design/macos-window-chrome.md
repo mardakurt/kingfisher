@@ -117,6 +117,29 @@ overlap is ever rendered, and the rail shows the operating system's controls
 and then the navigation icons — which is what a Mac application with a
 collapsed sidebar looks like anyway.
 
+### Full screen
+
+In full screen macOS moves the buttons into the auto-hiding menu bar and draws
+nothing in the corner, so a reservation kept there holds the mark 84 px in from
+an edge with nothing in the way — the corner every Mac user has seen in an
+application that did not notice. The reservation therefore exists while the
+buttons do, and only then.
+
+Two things make that honest. The state is **reported, never inferred**: the
+shell relays the window's own `enter-full-screen` and `leave-full-screen` as
+one boolean on `kingfisher:fullscreen` (and answers the current state when a
+renderer attaches), and nothing on the bridge lets the page set, move or size
+the window. And the geometry stays **in CSS**: the bootstrap writes the shell's
+rectangle as `--mac-titlebar-safe-*`, the reservation `--titlebar-safe-*` is
+derived from it in `globals.css`, and `:root[data-fullscreen='true']` sets the
+derived pair to zero — so the header's inset, the corner marker and the band
+collapse in the same frame, and the mark lands at the header's plain 14 px
+inset, exactly where a browser shows it. An inline reservation on the root, as
+before Phase 48, could never have collapsed: inline beats any stylesheet rule.
+The header's `padding-left` transitions over `--motion-standard`, short enough
+to sit inside macOS's own full-screen animation. In the collapsed rail the mark
+returns for the same reason it was hidden: there is room again.
+
 ## How it is checked
 
 `npm run desktop:chrome -- --packaged` launches the real application, asks the
@@ -124,15 +147,19 @@ main process where it put the buttons, asks the renderer where it drew
 everything, and intersects the two. It checks three kinds of thing:
 
 1. **Nothing collides** — no interactive control and not the mark, across six
-   window sizes, five routes, both sidebar states, focus mode, both themes, a
-   full-screen round trip, maximise/restore, and the smallest window the shell
-   permits.
-2. **The composition holds** — the mark's left edge is exactly
+   window sizes, five routes, both sidebar states, focus mode, both themes,
+   maximise/restore, and the smallest window the shell permits.
+1. **Full screen collapses and returns** — inside full screen the root carries
+   `data-fullscreen`, the reservation reads `0px × 0px` and the mark is at
+   14 px; on the way out the attribute is gone and the composition below holds
+   again. No collision check is made inside full screen, deliberately: the
+   button rectangle is empty there, and the mark being in it is the point.
+1. **The composition holds** — the mark's left edge is exactly
    `MAC_BRAND_REGION.x`, the gap from the last button is exactly
    `MAC_TITLEBAR_GAP`, and the mark's centre line is the buttons' centre line.
    A build where the brand has drifted right again fails here rather than in
    somebody's screenshot six weeks later.
-3. **The web build reserves nothing** — that half is
+1. **The web build reserves nothing** — that half is
    `e2e/window-chrome.spec.ts`, because the mirror-image defect is a browser
    tab carrying an 84-pixel notch for a control it does not have.
 

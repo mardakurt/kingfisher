@@ -248,8 +248,12 @@ returns `null` in a browser. Five rules hold, and each has cost something:
   well: the mark's left edge, the gap from the last button and their shared
   centre line are each asserted, because "nothing collides" was satisfied by a
   corner with 32 px of dead space in it and buttons riding eight pixels high.
-  `docs/design/macos-window-chrome.md` states the four regions and why each
-  number is what it is.
+  In full screen the buttons are gone and so is the reservation: the shell
+  reports the window's own full-screen events as one boolean (never inferred
+  from the viewport), the root carries `data-fullscreen`, and CSS collapses
+  `--titlebar-safe-*` to zero so the brand moves into the corner — asserted
+  by the same harness. `docs/design/macos-window-chrome.md` states the four
+  regions and why each number is what it is.
 - **A platform claim needs evidence.** "Builds" is not "runs". `npm run
 desktop:smoke` drives the real application and checks the seventeen things
   only the shell can be wrong about; README states which platforms it has

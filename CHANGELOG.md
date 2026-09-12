@@ -4,6 +4,35 @@ The user-facing changelog. Internal phase history is in
 `docs/reports/` and `docs/product/phase-*.md`; the list below is what
 real users notice.
 
+## Unreleased
+
+Polish to the released 1.1.0 and its web surface; the version does not
+change.
+
+### macOS
+
+- **Full screen uses the whole corner.** In full screen macOS hides the
+  window buttons, and Kingfisher's mark and wordmark now move into the
+  space they leave, coming back behind them when the window returns.
+  The state comes from the window itself, never from its size.
+- **Check for Updates reads more cleanly.** One apostrophe throughout,
+  and the "available" notice says what happens next instead of
+  repeating itself.
+
+### Everywhere
+
+- **The command palette's search field has one focus ring.** The icon
+  and the field are one control with one border; the clipped gold
+  outline that sat around the text alone is gone, and the results align
+  with the field above them.
+
+### Landing
+
+- **The landing shows the product.** A capture of the current analysis
+  workspace — a real search, its arrow on the board — sits under the
+  headline, and the macOS download card states its trust in Apple's own
+  terms: signed with a Developer ID certificate, notarised by Apple.
+
 ## 1.1.0 — 2026-09-12
 
 The first release signed with a Developer ID certificate and notarised
