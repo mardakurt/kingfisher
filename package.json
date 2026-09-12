@@ -105,7 +105,8 @@
     "release:mac:preview": "node scripts/desktop-mac-preview-publish.mjs",
     "desktop:instances": "node scripts/desktop-instances.mjs",
     "desktop:engine-chaos": "node scripts/desktop-engine-chaos.mjs --packaged",
-    "desktop:menus": "node scripts/desktop-menus.mjs --packaged"
+    "desktop:menus": "node scripts/desktop-menus.mjs --packaged",
+    "desktop:ipc-fuzz": "node scripts/desktop-ipc-fuzz.mjs --packaged"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.102.8",

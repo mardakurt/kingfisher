@@ -696,20 +696,33 @@ function registerIpc() {
   ipcMain.handle('kingfisher:open-pgn', () => chooseAndOpen('pgn'));
   ipcMain.handle('kingfisher:open-database', () => chooseAndOpen('database'));
 
-  ipcMain.handle('kingfisher:choose-directory', async (_event, { title } = {}) => {
+  /*
+    What reaches a native panel is a string and a list of extensions, or the
+    defaults. The renderer is trusted no further than that: a fuzzed call
+    with a number for a title, or objects for extensions, must become a
+    normal chooser or a refusal, not an exception inside the dialog module.
+  */
+  const chooserTitle = (title, fallback) =>
+    typeof title === 'string' && title.trim() ? title.slice(0, 200) : fallback;
+  const chooserExtensions = (extensions) =>
+    Array.isArray(extensions)
+      ? extensions.filter((e) => typeof e === 'string' && /^[a-z0-9]{1,16}$/i.test(e)).slice(0, 32)
+      : [];
+
+  ipcMain.handle('kingfisher:choose-directory', async (_event, options) => {
     const result = await dialog.showOpenDialog(state.window ?? undefined, {
-      title: title ?? 'Choose a folder',
+      title: chooserTitle(options?.title, 'Choose a folder'),
       properties: ['openDirectory'],
     });
     return result.canceled ? { canceled: true } : { canceled: false, path: result.filePaths[0] };
   });
 
-  ipcMain.handle('kingfisher:choose-file', async (_event, { title, extensions } = {}) => {
+  ipcMain.handle('kingfisher:choose-file', async (_event, options) => {
+    const extensions = chooserExtensions(options?.extensions);
     const result = await dialog.showOpenDialog(state.window ?? undefined, {
-      title: title ?? 'Choose a file',
+      title: chooserTitle(options?.title, 'Choose a file'),
       properties: ['openFile'],
-      filters:
-        Array.isArray(extensions) && extensions.length ? [{ name: 'Files', extensions }] : [],
+      filters: extensions.length ? [{ name: 'Files', extensions }] : [],
     });
     return result.canceled ? { canceled: true } : { canceled: false, path: result.filePaths[0] };
   });
