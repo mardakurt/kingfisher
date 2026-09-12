@@ -1,153 +1,203 @@
 # Kingfisher documentation
 
-Documentation for the Kingfisher chess research workstation.
-The tree is split into **canonical / current** documentation —
-the source of truth for today's product — and **historical**
-records that describe what each phase set out to do.
+Every Markdown file in this repository is listed here, in one of four
+sections, so nobody has to guess whether a document describes the product as
+it is or as it was.
 
-If you are a user of Kingfisher looking for help, start at
-[`docs/user/`](user). If you are the maintainer, start at
-[`AGENTS.md`](../AGENTS.md).
+- **Current** — the product today. Kept true; `npm run docs:check` asserts
+  the claims that can be asserted. If a current document disagrees with the
+  code, one of them is a bug.
+- **Operations** — runbooks a maintainer follows: how to release, deploy,
+  certify, and answer a user.
+- **Records** — decisions and investigations. Dated. The reasons are still
+  the reasons; the state they describe may not be.
+- **Historical** — phase handovers, findings registers, old release notes.
+  Snapshots of the work at the time. **Never read one of these as the current
+  state**, and never rewrite one to become it.
 
-## Canonical — current
+If you are a user looking for help, start with the
+[install guide](release/install-macos.md) and
+[getting started](user/getting-started.md). If you are the maintainer, start
+with [`AGENTS.md`](../AGENTS.md).
 
-These documents describe the product **as it is now**. They
-are the source of truth for the public-facing product, the
-project, and the data it ships. If something in
-[`ARCHITECTURE.md`](../ARCHITECTURE.md) or the in-app help is
-not consistent with the documents below, this is where the
-tie-breaker lives.
+## Current
 
-### Public product
+### The public product
 
-- [`../README.md`](../README.md) — current project README.
-- [`../SECURITY.md`](../SECURITY.md) — current security
-  policy, including the supported versions, the actual
-  controls in code, and the private reporting path.
-- [`docs/legal/privacy.md`](legal/privacy.md) — current
-  privacy policy. What the product does and does not collect.
-- [`docs/legal/data-licences.md`](legal/data-licences.md) —
-  every third-party data source and its licence, in a single
-  human-readable place.
-- [`docs/legal/terms.md`](legal/terms.md) — the human-readable
-  summary of the MIT licence and the things the product does
-  not promise.
-- [`docs/product/public-claims.md`](product/public-claims.md) —
-  the public statements the product makes, where they appear,
-  and what implementation backs them. **Read this before
-  changing a landing-page or README sentence.**
-- [`docs/release/install-macos.md`](release/install-macos.md) —
-  the canonical install guide for the macOS Preview. The
-  landing page links here; do not move the link without
-  updating both.
+- [`../README.md`](../README.md) — the project README: what Kingfisher is,
+  where to get it, what is and is not true of the desktop build.
+- [`../SECURITY.md`](../SECURITY.md) — the security policy: the controls in
+  code, the trust state of the macOS build today, the reporting path.
+- [`release/install-macos.md`](release/install-macos.md) — the install guide
+  for the macOS build. Names the exact public DMG; `docs:check` compares it
+  to [`src/release/macos-download.json`](../src/release/macos-download.json).
+- [`legal/privacy.md`](legal/privacy.md), [`legal/terms.md`](legal/terms.md),
+  [`legal/data-licences.md`](legal/data-licences.md) — the privacy policy,
+  the terms, and every data source with its licence.
+- [`product/public-claims.md`](product/public-claims.md) — every public
+  claim, where it appears, what backs it, and what must not be claimed.
+  **Read before changing a landing-page or README sentence.**
+- [`release/1.0.0.md`](release/1.0.0.md) — release notes for the current
+  public release.
+- [`../CHANGELOG.md`](../CHANGELOG.md) — what changed, by version;
+  _Unreleased_ is what master has that 1.0.0 does not.
 
-### User
+### Using Kingfisher
 
-- [`docs/user/getting-started.md`](user/getting-started.md) —
-  the five-minute tour of the application.
-- [`docs/user/diagnostics.md`](user/diagnostics.md) — what
-  _Settings → Diagnostics_ produces, and how to send a useful
-  report.
+- [`user/getting-started.md`](user/getting-started.md) — the five-minute tour.
+- [`user/diagnostics.md`](user/diagnostics.md) — what _Settings → Diagnostics_
+  produces and how to send a useful report.
+- [`product/first-100-user-guide.md`](product/first-100-user-guide.md) — the
+  longer guide written for the first hundred users.
+- [`product/first-100-known-issues.md`](product/first-100-known-issues.md) —
+  known issues, kept current as they are fixed or found.
+- [`product/first-100-support-matrix.md`](product/first-100-support-matrix.md)
+  — which platforms, browsers and configurations are supported, and how each
+  was checked.
+- [`product/work-continuity.md`](product/work-continuity.md) — what survives
+  a quit, a crash, a reinstall, a restore.
+- [`product/web-desktop-parity.md`](product/web-desktop-parity.md) — the web
+  application and the desktop application, feature by feature.
 
-### Deployment, release, data
+### Architecture and the maintainer's rules
 
-- [`docs/deployment.md`](deployment.md) — how the web build is
-  deployed today, the relationship between landing and
-  studio, and the separation between the current production
-  method and the recommended future method.
-- [`docs/release/1.0.0.md`](release/1.0.0.md) — release notes
-  for the current public release.
-- [`docs/release/release-checklist.md`](release/release-checklist.md) —
-  the checks a maintainer runs before tagging a release.
-- [`docs/release/macos-trusted-release.md`](release/macos-trusted-release.md)
-  — the day-of-release runbook for a trusted macOS build.
-- [`docs/release/apple-developer-id-setup.md`](release/apple-developer-id-setup.md)
-  — the procedure for installing the `Developer ID Application`
-  certificate that the trusted runbook requires.
-- [`docs/product/macos-desktop-certification.md`](product/macos-desktop-certification.md)
-  — the current state of the packaged macOS application, every row
-  GREEN / LIMITED / BLOCKED EXTERNALLY / NOT CERTIFIED.
-- [`docs/data/data-inventory.md`](data/data-inventory.md) —
-  the canonical pack counts and provenance. Where it matters,
-  this is generated from the manifests.
-- [`docs/data/reference-packs.md`](data/reference-packs.md) —
-  pack architecture: shape, filters, signing, where the bytes
-  live.
-- [`docs/data/online-integrations-audit.md`](data/online-integrations-audit.md) —
-  the live third-party integrations and the limits each one
-  puts on a query.
+- [`../ARCHITECTURE.md`](../ARCHITECTURE.md) — the territory: hosts, the
+  workspace, the board pipeline, reference data, engines, persistence, the
+  desktop shell, the companion, the updater.
+- [`../AGENTS.md`](../AGENTS.md) — the rules that are not negotiable, the
+  release gates, the desktop gates.
+- [`../CLAUDE.md`](../CLAUDE.md) — how to work here, for an agent.
+- [`ENGINES.md`](ENGINES.md) — every engine in the catalogue, its source,
+  version, licence and how it is qualified.
+- [`../THIRD_PARTY_DATA.md`](../THIRD_PARTY_DATA.md),
+  [`../THIRD_PARTY_ASSETS.md`](../THIRD_PARTY_ASSETS.md) — every third-party
+  dataset and asset, with licence and provenance.
+- [`../companion/README.md`](../companion/README.md) — the companion process:
+  what it does and its trust boundary.
+- [`design/visual-system.md`](design/visual-system.md),
+  [`design/iconography.md`](design/iconography.md),
+  [`design/piece-proportions.md`](design/piece-proportions.md),
+  [`design/macos-window-chrome.md`](design/macos-window-chrome.md) — the
+  design system, the mark, the pieces, the window chrome geometry that
+  `npm run desktop:chrome` asserts.
 
-### Architecture and operations
+### Data
 
-- [`../ARCHITECTURE.md`](../ARCHITECTURE.md) — current
-  architecture. Landing vs. studio hosts, the workspace, the
-  board pipeline, reference data, engines, persistence,
-  security boundaries.
-- [`../AGENTS.md`](../AGENTS.md) — the maintainer's rules. Read
-  this before making a structural change.
-- [`../CLAUDE.md`](../CLAUDE.md) — companion to `AGENTS.md` for
-  working as Claude.
-- [`docs/operations/search-console.md`](operations/search-console.md) —
-  the owner steps to register the landing host in Google
-  Search Console.
+- [`data/data-inventory.md`](data/data-inventory.md) — the canonical pack
+  counts and provenance, generated from the manifests where it matters.
+- [`data/reference-packs.md`](data/reference-packs.md) — pack architecture:
+  shape, filters, verification, where the bytes live.
+- [`data/high-rated-online.md`](data/high-rated-online.md) — the online
+  reference and why its thresholds are what they are.
+- [`data/variation-briefs.md`](data/variation-briefs.md) — where the words in
+  a variation brief come from.
+- [`data/online-integrations-audit.md`](data/online-integrations-audit.md) —
+  the live third-party integrations and the limits on each query.
+- [`../data/openings/SOURCE.md`](../data/openings/SOURCE.md) — the opening
+  classification dataset: upstream, commit and licence.
+- [`../companion/fixtures/syzygy-3/README.md`](../companion/fixtures/syzygy-3/README.md)
+  — the bundled three-piece tablebases and their digests.
 
-### Third-party attribution
+## Operations
 
-- [`../THIRD_PARTY_DATA.md`](../THIRD_PARTY_DATA.md) — every
-  third-party dataset, its licence, and what Kingfisher does
-  with it.
-- [`../THIRD_PARTY_ASSETS.md`](../THIRD_PARTY_ASSETS.md) —
-  every third-party asset, its licence, and where it lives in
-  the repository.
+### Release and distribution
 
-### Design
+- [`deployment.md`](deployment.md) — where each surface is hosted, how the
+  landing and studio deploy, how a release and a macOS preview are published.
+- [`release/release-checklist.md`](release/release-checklist.md) — the checks
+  before tagging a release.
+- [`release/macos-trusted-release.md`](release/macos-trusted-release.md) — the
+  runbook for a signed, notarised macOS release. **A runbook for a future
+  release; it does not describe the current download.**
+- [`release/apple-developer-id-setup.md`](release/apple-developer-id-setup.md)
+  — installing the `Developer ID Application` certificate that runbook needs.
+- [`release/release-manifest.md`](release/release-manifest.md) — the schema
+  of the release manifest a stable release publishes. Its examples use an
+  illustrative future version.
+- [`release/launch-kit.md`](release/launch-kit.md) — the announcement copy
+  for 1.0.0.
+- [`product/macos-desktop-certification.md`](product/macos-desktop-certification.md)
+  — the certification matrix for the packaged macOS application, with the
+  command behind every row.
 
-- [`docs/ENGINES.md`](ENGINES.md) — every engine catalogue
-  entry, its source, version, licence and how it is qualified.
-- [`docs/design/`](design) — design system, piece proportions,
-  macOS window chrome, the Kingfisher mark.
+### Running the project
 
-### Decisions
+- [`operations/local-workspace-layout.md`](operations/local-workspace-layout.md)
+  — where the checkout, caches and build output live on the maintainer's
+  machine; `npm run workspace:audit` checks it.
+- [`operations/search-console.md`](operations/search-console.md) — registering
+  the landing host with Google Search Console.
+- [`operations/real-tablebase-cert.md`](operations/real-tablebase-cert.md) —
+  the manual Syzygy certification run.
+- [`operations/real-safari-certification.md`](operations/real-safari-certification.md)
+  — the manual real-Safari run.
 
-- [`docs/adr/`](adr) — Architecture Decision Records. Short,
-  dated, signed. Each records one decision and what it
-  replaced.
+### The first hundred users
 
-## Historical — phase reports and older RCs
+- [`operations/first-100-wave-1.md`](operations/first-100-wave-1.md) — the
+  Wave 1 package: who, what they get, what to ask.
+- [`operations/first-100-invite-template.md`](operations/first-100-invite-template.md)
+  — the invitation.
+- [`operations/first-100-feedback.md`](operations/first-100-feedback.md) — how
+  feedback is triaged.
+- [`product/first-100-field-findings.md`](product/first-100-field-findings.md)
+  — what real users reported. Only actual reports; nothing invented.
 
-These are records of work that has shipped. They are kept
-because the reasons are still the reasons, but the **current**
-state is the canonical section above.
+## Records
 
-- [`docs/reports/`](reports) — every phase handover, from
-  Phase 13 to Phase 40. Each describes what a phase set out
-  to fix, what it found, what it shipped and what remained.
-- [`docs/release/1.0.0-rc.1.md`](release/1.0.0-rc.1.md) through
-  [`docs/release/1.0.0-rc.5.md`](release/1.0.0-rc.5.md) — older
-  release-candidate notes, kept for the change history. The
-  current release notes are at
-  [`docs/release/1.0.0.md`](release/1.0.0.md).
-- [`docs/product/phase-*.md`](product) — per-phase
-  product-side work records.
-- [`docs/benchmark-reports/`](benchmark-reports) — the
-  performance and capacity work each phase produced.
-- [`docs/performance/`](performance) — the longer performance
-  investigations.
+- [`adr/`](adr) — Architecture Decision Records. Short, dated, one decision
+  each and what it replaced.
+- [`product/pro-workstation-gap-analysis.md`](product/pro-workstation-gap-analysis.md),
+  [`product/competitors.md`](product/competitors.md) — where Kingfisher stood
+  against the tools professionals use, at the date on each.
+- [`data/historical-games-audit.md`](data/historical-games-audit.md) — the
+  audit that concluded no historical corpus could be redistributed.
+- [`data/streaming-reference-investigation.md`](data/streaming-reference-investigation.md)
+  — the Phase 28 investigation into streaming reference data.
+- [`security/phase-24-security-review.md`](security/phase-24-security-review.md),
+  [`security/phase-25-security-review.md`](security/phase-25-security-review.md)
+  — the two security reviews. The controls they describe are re-stated, as
+  they are today, in [`../SECURITY.md`](../SECURITY.md).
+- [`performance/`](performance) — the longer performance investigations.
+- [`benchmark-reports/`](benchmark-reports) — the benchmark and capacity
+  reports.
+- [`product/phase-verification.md`](product/phase-verification.md) — Phases
+  1–21, capability by capability, as verified at the time.
+
+## Historical
+
+- [`reports/`](reports) — every phase handover and findings register. Each
+  describes what a phase set out to do, what it found, what it shipped and
+  what remained. The most recent is the starting point for the next phase;
+  none is a description of the product now. Personal paths have been
+  redacted; some historical command output remains machine-specific.
+- [`product/phase-15-audit.md`](product/phase-15-audit.md),
+  [`product/phase-16-codebase-audit.md`](product/phase-16-codebase-audit.md),
+  [`product/phase-16-field-walk.md`](product/phase-16-field-walk.md),
+  [`product/phase-19-professional-acceptance.md`](product/phase-19-professional-acceptance.md),
+  [`product/phase-22-handover.md`](product/phase-22-handover.md),
+  [`product/phase-28-acceptance.md`](product/phase-28-acceptance.md),
+  [`product/phase-28-ui-audit.md`](product/phase-28-ui-audit.md),
+  [`product/phase-31-workflow-audit.md`](product/phase-31-workflow-audit.md),
+  [`product/phase-37-gap-register.md`](product/phase-37-gap-register.md) —
+  per-phase product audits and acceptance records.
+- [`release/1.0.0-rc.1.md`](release/1.0.0-rc.1.md),
+  [`release/1.0.0-rc.2.md`](release/1.0.0-rc.2.md),
+  [`release/1.0.0-rc.3.md`](release/1.0.0-rc.3.md),
+  [`release/1.0.0-rc.4.md`](release/1.0.0-rc.4.md),
+  [`release/1.0.0-rc.5.md`](release/1.0.0-rc.5.md) — release-candidate notes.
+  The current notes are [`release/1.0.0.md`](release/1.0.0.md).
+- [`../.github/ISSUE_TEMPLATE/`](../.github/ISSUE_TEMPLATE) — issue templates;
+  current, and listed here so nothing is unaccounted for.
+- [`../marketing/README.md`](../marketing/README.md) and
+  [`../marketing/index.html`](../marketing/index.html) — the redirect-only
+  backup of the landing at the legacy GitHub Pages origin. Not canonical.
 
 ## How to keep this index honest
 
-When you add a new file under `docs/`, decide which section
-it belongs in **before** you write it:
-
-- **Canonical** — it describes the product as it is. It must
-  be updated when the product changes. If the answer is "this
-  is the latest of several", it does not belong in canonical
-  and belongs in historical.
-- **Historical** — it describes a past state. It is not
-  rewritten to match the present. The date and the phase
-  number in its title should make the historical nature
-  obvious.
-
-If a canonical file becomes stale, fix the file, do not move
-it. If you are tempted to add a "Last updated" line, prefer
-to leave the file's `git log` to speak.
+When you add a file under `docs/`, decide which section it belongs in before
+you write it. A document that describes the product as it is must be updated
+when the product changes, or moved to Records with its date. A document that
+describes a past state is not rewritten to match the present; its title and
+date should make that obvious. If a current file goes stale, fix the file. Do
+not add a "last updated" line; `git log` already says.

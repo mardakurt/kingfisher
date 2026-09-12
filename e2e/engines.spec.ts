@@ -173,10 +173,32 @@ test('the board can be played while an engine arrow is drawn', async ({ page }) 
   await expect(page.locator('[data-fen-tooltip]')).not.toHaveText(before ?? '');
   await expect(page.locator('[data-fen-tooltip]')).toContainText('4P3');
 
-  // And the arrow is still hoverable: the tooltip appears over its hit stroke.
+  // Leaving the analysed position stops the engine, by the position guard's
+  // contract (Phase 30): evidence never survives a FEN change, and a person
+  // starts it again. So: start again, and the arrow must still be hoverable —
+  // the tooltip appears with the pointer on the shaft, even though nothing in
+  // the arrow layer takes pointer events any more.
+  await expect(page.getByRole('button', { name: 'Start analysis (E)' })).toBeVisible();
+  await page.getByRole('button', { name: 'Start analysis (E)' }).click();
   const hit = page.locator('[data-engine-arrow-hit]').first();
   await expect(hit).toBeAttached({ timeout: 30_000 });
-  await hit.hover({ force: true });
+  const grid = page.getByRole('grid', { name: 'Chessboard' });
+  const gridBox = await grid.boundingBox();
+  const fromSquare = await hit.getAttribute('data-engine-arrow-from');
+  const toSquare = await hit.getAttribute('data-engine-arrow-to');
+  const from = await page
+    .getByRole('gridcell', { name: new RegExp(`^${fromSquare},`) })
+    .boundingBox();
+  const to = await page.getByRole('gridcell', { name: new RegExp(`^${toSquare},`) }).boundingBox();
+  expect(gridBox && from && to).toBeTruthy();
+  // The midpoint of the shaft, in page coordinates.
+  await page.mouse.move(
+    (from!.x + from!.width / 2 + to!.x + to!.width / 2) / 2,
+    (from!.y + from!.height / 2 + to!.y + to!.height / 2) / 2,
+  );
   await expect(page.locator('[data-engine-arrow-tooltip]')).toBeVisible();
+  // Away from any shaft, the tooltip goes.
+  await page.mouse.move(gridBox!.x - 40, gridBox!.y - 40);
+  await expect(page.locator('[data-engine-arrow-tooltip]')).toHaveCount(0);
   await page.getByRole('button', { name: 'Stop analysis (E)' }).click();
 });

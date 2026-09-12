@@ -14,7 +14,7 @@
  */
 
 import type { Shape } from '@/chess/annotations';
-import { useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 
 import type { Color } from '@/chess/types';
 import { formatScore } from '@/chess/evaluation';
@@ -127,12 +127,70 @@ function resolveEngineArrows(
   return resolved;
 }
 
+/** How close, in squares, the pointer must be to an arrow's shaft to hover it. */
+const HOVER_DISTANCE = 0.17;
+
+/** Distance from a point to a segment, all in board units. */
+function distanceToSegment(px: number, py: number, arrow: ResolvedArrow): number {
+  const dx = arrow.toX - arrow.fromX;
+  const dy = arrow.toY - arrow.fromY;
+  const lengthSquared = dx * dx + dy * dy;
+  const t =
+    lengthSquared === 0
+      ? 0
+      : Math.max(
+          0,
+          Math.min(1, ((px - arrow.fromX) * dx + (py - arrow.fromY) * dy) / lengthSquared),
+        );
+  return Math.hypot(px - (arrow.fromX + t * dx), py - (arrow.fromY + t * dy));
+}
+
 export function BoardShapes({ shapes, engineArrows = [], draft, orientation }: BoardShapesProps) {
   const markerPrefix = useId().replaceAll(':', '');
   const all = draft ? [...shapes, draft] : shapes;
   const resolvedEngine = resolveEngineArrows(engineArrows, orientation);
   const [hoveredArrowId, setHoveredArrowId] = useState<number | null>(null);
   const hovered = hoveredArrowId !== null ? resolvedEngine[hoveredArrowId] : null;
+  const engineSvg = useRef<SVGSVGElement | null>(null);
+
+  /*
+    Hover is computed from where the pointer is, not from what it is over.
+
+    Nothing in the engine-arrow layer may receive pointer events: the sheet
+    is a rectangle over every square, and a hit stroke along an arrow's shaft
+    sits exactly on the square a person clicks to play the engine's own
+    suggestion. Phase 43 made the hit strokes hoverable and the board stopped
+    taking clicks under them. So the layer is inert, and the board container
+    reports pointer movement; the nearest shaft within a sixth of a square
+    is the hovered arrow.
+  */
+  useEffect(() => {
+    const container = engineSvg.current?.parentElement;
+    if (!container || resolvedEngine.length === 0) return undefined;
+    const onMove = (event: PointerEvent) => {
+      const rect = container.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return;
+      const px = ((event.clientX - rect.left) / rect.width) * 8;
+      const py = ((event.clientY - rect.top) / rect.height) * 8;
+      let best: number | null = null;
+      let bestDistance = HOVER_DISTANCE;
+      resolvedEngine.forEach((arrow, index) => {
+        const distance = distanceToSegment(px, py, arrow);
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          best = index;
+        }
+      });
+      setHoveredArrowId((current) => (current === best ? current : best));
+    };
+    const onLeave = () => setHoveredArrowId(null);
+    container.addEventListener('pointermove', onMove);
+    container.addEventListener('pointerleave', onLeave);
+    return () => {
+      container.removeEventListener('pointermove', onMove);
+      container.removeEventListener('pointerleave', onLeave);
+    };
+  }, [resolvedEngine]);
 
   return (
     <>
@@ -141,15 +199,10 @@ export function BoardShapes({ shapes, engineArrows = [], draft, orientation }: B
           viewBox="0 0 8 8"
           data-engine-arrows
           data-engine-arrow-count={resolvedEngine.length}
-          /*
-           * The sheet itself must never take the pointer. Phase 43 dropped
-           * `pointer-events-none` here so the hit lines below could be hovered,
-           * and the whole SVG — a rectangle over every square — began
-           * swallowing every click and drag: the board could not be played
-           * while an engine was analysing. `pointer-events` is per element, so
-           * the sheet stays inert and only the hit strokes opt back in.
-           */
+          ref={engineSvg}
+          // Inert, whole layer: see the hover effect above for why.
           className="pointer-events-none absolute inset-0 h-full w-full"
+          aria-hidden
         >
           <defs>
             {(Object.keys(ENGINE_ARROW_STYLES) as EngineArrowIdentity[]).map((identity) => (
@@ -200,9 +253,9 @@ export function BoardShapes({ shapes, engineArrows = [], draft, orientation }: B
                   aria-hidden
                 />
                 {/*
-                 * Invisible hit region. Thick enough to catch a small
-                 * pointing device, but completely transparent. Only this
-                 * group dispatches pointer events for the engine arrows.
+                 * The arrow as data — squares and engine — for anything that
+                 * wants to check what is on the board against the position.
+                 * It receives no pointer events; hover is computed above.
                  */}
                 <line
                   x1={arrow.fromX}
@@ -212,11 +265,7 @@ export function BoardShapes({ shapes, engineArrows = [], draft, orientation }: B
                   stroke="transparent"
                   strokeWidth={0.34}
                   strokeLinecap="round"
-                  pointerEvents="stroke"
-                  onPointerEnter={() => setHoveredArrowId(index)}
-                  onPointerLeave={() =>
-                    setHoveredArrowId((current) => (current === index ? null : current))
-                  }
+                  pointerEvents="none"
                   data-engine-arrow-hit={index}
                   data-engine-arrow-from={arrow.arrow.from}
                   data-engine-arrow-to={arrow.arrow.to}
