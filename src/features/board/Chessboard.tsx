@@ -464,6 +464,7 @@ export function Chessboard({
         <BoardShapes
           shapes={shapes}
           engineArrows={engineArrows}
+          movingPiece={activeSelection !== null || drag !== null}
           draft={
             shapeDraft
               ? shapeDraft.from === shapeDraft.to

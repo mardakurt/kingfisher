@@ -484,9 +484,16 @@ function EngineLegendRow({
           stroke={style.color}
           strokeWidth={2}
           strokeLinecap="round"
-          strokeDasharray={style.dashArray ?? undefined}
+          strokeDasharray={style.dashArray ? '3 2.2' : undefined}
         />
-        <path d="M12.5 1.5 L15 4 L12.5 6.5 Z" fill={style.color} />
+        <path
+          d="M12.5 1.5 L15 4 L12.5 6.5 Z"
+          fill={style.color}
+          fillOpacity={style.dashArray ? 0.35 : 1}
+          stroke={style.color}
+          strokeWidth={style.dashArray ? 1 : 0}
+          strokeLinejoin="round"
+        />
       </svg>
       <span className="truncate">{name}</span>
     </span>

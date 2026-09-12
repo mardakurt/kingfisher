@@ -169,9 +169,15 @@ test('the board can be played while an engine arrow is drawn', async ({ page }) 
 
   const before = await page.locator('[data-fen-tooltip]').textContent();
   await e2.click();
+  await expect(page.locator('[data-engine-arrows]')).toHaveAttribute(
+    'data-engine-arrows-dimmed',
+    'true',
+  );
+  await expect(page.locator('[data-engine-arrow-tooltip]')).toHaveCount(0);
   await page.getByRole('gridcell', { name: /^e4,/ }).click();
   await expect(page.locator('[data-fen-tooltip]')).not.toHaveText(before ?? '');
   await expect(page.locator('[data-fen-tooltip]')).toContainText('4P3');
+  await expect(page.locator('[data-engine-arrow-hit]')).toHaveCount(0);
 
   // Leaving the analysed position stops the engine, by the position guard's
   // contract (Phase 30): evidence never survives a FEN change, and a person
@@ -214,5 +220,17 @@ test('the board can be played while an engine arrow is drawn', async ({ page }) 
   // Away from any shaft, the tooltip goes.
   await page.mouse.move(gridBox!.x - 40, gridBox!.y - 40);
   await expect(page.locator('[data-engine-arrow-tooltip]')).toHaveCount(0);
-  await page.getByRole('button', { name: 'Stop analysis (E)' }).click();
+  const e7 = await page.getByRole('gridcell', { name: /^e7,/ }).boundingBox();
+  const e5 = await page.getByRole('gridcell', { name: /^e5,/ }).boundingBox();
+  expect(e7 && e5).toBeTruthy();
+  await page.mouse.move(e7!.x + e7!.width / 2, e7!.y + e7!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(e5!.x + e5!.width / 2, e5!.y + e5!.height / 2, { steps: 8 });
+  await expect(page.locator('[data-engine-arrows]')).toHaveAttribute(
+    'data-engine-arrows-dimmed',
+    'true',
+  );
+  await page.mouse.up();
+  await expect(page.locator('[data-fen-tooltip]')).toContainText('4p3/4P3');
+  await expect(page.locator('[data-engine-arrow-hit]')).toHaveCount(0);
 });
