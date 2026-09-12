@@ -8,17 +8,34 @@
  * and the formula is documented in one place so a contributor does not
  * invent a new ranking by accident.
  *
- *   score =  1000 * exact
- *          +  400 * prefix
- *          +  200 * token
- *          +  100 * alias
- *          +   50 * subsequence  (per matched character, no penalty for gaps)
- *          -    5 * editDistance
- *          +   10 * recencyBonus (capped at 40)
+ *   score =  1000  exact
+ *          +  450  wholeWords     (every query word is a whole word of the text;
+ *                                  470 when they also begin a name)
+ *          +  400  prefix
+ *          +  200  token          (every query word appears somewhere)
+ *          +   20  … per query word that is a whole word
+ *          +  100  alias
+ *          +  ≤90  fuzzy          (subsequence coverage, minus 5 per edit)
+ *          -   15  per qualifier  ("anti", "reversed") in the text but not the query
+ *          +  ≤40  recencyBonus
+ *          +  ±40  weight
+ *
+ * The bands are disjoint by construction: fuzzy never exceeds 90, so a
+ * misspelling can never outrank a name that matches, however long the
+ * query. (It could, once: fuzzy was 50 per matched character, and
+ * "queen's gambit accepted" scored 1,650 on a London System line.)
  *
  * `recencyBonus` is the only non-pure factor. It is bounded, transparent
  * (lastOpenedAt - epochSeconds), and is never the dominant term — the
  * "exact" band outranks it by two orders of magnitude.
+ *
+ * `weight` is a bounded prominence an index may attach to an item — for an
+ * opening, how many named sub-lines the dataset records beneath it, less a
+ * little for every clause in its name — so that ties between equal-quality
+ * matches ("Berlin" in the Ruy Lopez and in one Nimzo-Indian line) resolve
+ * towards the entry a player almost certainly meant, and resolve the same
+ * way tomorrow. It is never larger than the gap between two bands, so it
+ * only ever orders within one.
  */
 
 export interface Rankable {
@@ -28,6 +45,13 @@ export interface Rankable {
   readonly aliases?: readonly string[];
   /** Most recently the user opened this record, in epoch seconds. */
   readonly lastOpenedAt?: number;
+  /** A bounded prominence bonus, -40..40; see the formula above. */
+  readonly weight?: number;
+  /**
+   * Words of this item that reverse its meaning when the query does not
+   * say them: the Anti-Sveshnikov is not what "Sveshnikov" asks for.
+   */
+  readonly qualifiers?: readonly string[];
 }
 
 export interface RankedHit<T> {
@@ -54,7 +78,15 @@ export function rank<T extends Rankable>(
     if (haystack === EMPTY) continue;
 
     const aliases = (item.aliases ?? []).map(normalize).filter((a) => a !== EMPTY);
-    const score = scoreText(haystack, aliases, needle, item.lastOpenedAt, nowSeconds);
+    const score = scoreText(
+      haystack,
+      aliases,
+      needle,
+      item.lastOpenedAt,
+      nowSeconds,
+      item.weight,
+      item.qualifiers,
+    );
     if (score <= 0) continue;
     scored.push({ item, score, why: explain(haystack, aliases, needle) });
   }
@@ -73,47 +105,42 @@ function scoreText(
   needle: string,
   lastOpenedAt: number | undefined,
   nowSeconds: number,
+  weight = 0,
+  qualifiers: readonly string[] = [],
 ): number {
+  const tokens = needle.split(/\s+/).filter((token) => token.length > 0);
+  const queryWords = new Set(tokens.flatMap(wordsOf));
+  const penalty = qualifiers.filter((q) => !queryWords.has(normalize(q))).length * 15;
+  const bonus =
+    recencyBonus(lastOpenedAt, nowSeconds) + Math.max(-40, Math.min(40, weight)) - penalty;
+
+  for (const candidate of [text, ...aliases]) {
+    if (candidate === needle) return 1000 + bonus;
+  }
+
   let score = 0;
-  let why: string | null = null;
-  for (const candidate of [text, ...aliases]) {
-    if (candidate === needle) {
-      return 1000 + recencyBonus(lastOpenedAt, nowSeconds);
-    }
-  }
-  for (const candidate of [text, ...aliases]) {
-    if (candidate.startsWith(needle)) {
-      score = Math.max(score, 400 + recencyBonus(lastOpenedAt, nowSeconds));
-      why ??= 'prefix';
-    }
-  }
-  const tokens = needle.split(/\s+/);
+  const words = new Set(wordsOf(text));
+  for (const alias of aliases) for (const word of wordsOf(alias)) words.add(word);
+  const whole = tokens.filter((token) => words.has(token)).length;
+  const starts = [text, ...aliases].some((candidate) => candidate.startsWith(needle));
+  // Whole words that also begin a name: "Slav" is the Slav before the Semi-Slav.
+  if (tokens.length > 0 && whole === tokens.length) score = starts ? 470 : 450;
+  else if (starts) score = 400;
   const allTokens = tokens.every(
     (token) => text.includes(token) || aliases.some((a) => a.includes(token)),
   );
-  if (allTokens && tokens.length > 0) {
-    score = Math.max(score, 200 + recencyBonus(lastOpenedAt, nowSeconds));
-    why ??= 'token';
+  if (allTokens && tokens.length > 0) score = Math.max(score, 200 + 20 * whole);
+  if (aliases.some((alias) => alias !== text) && text.includes(needle)) {
+    score = Math.max(score, 100);
   }
-  for (const alias of aliases) {
-    if (alias === text) continue;
-    if (text.includes(needle)) {
-      score = Math.max(score, 100 + recencyBonus(lastOpenedAt, nowSeconds));
-      why ??= 'alias';
-    }
-  }
-  // Fuzzy: a small per-character reward plus a small edit-distance penalty.
+  // Fuzzy: subsequence coverage of the needle, never above its band.
   const subs = subsequenceScore(text, needle);
   if (subs > 0) {
     const dist = levenshtein(text, needle, 6);
-    const fuzzy = 50 * subs - 5 * dist + recencyBonus(lastOpenedAt, nowSeconds);
-    if (fuzzy > score) {
-      score = fuzzy;
-      why = 'fuzzy';
-    }
+    const fuzzy = Math.round((90 * subs) / (1.5 * needle.length)) - 5 * dist;
+    score = Math.max(score, fuzzy);
   }
-  void why;
-  return score;
+  return score > 0 ? score + bonus : 0;
 }
 
 function recencyBonus(lastOpenedAt: number | undefined, nowSeconds: number): number {
@@ -128,23 +155,49 @@ function recencyBonus(lastOpenedAt: number | undefined, nowSeconds: number): num
 
 function explain(text: string, aliases: readonly string[], needle: string): string {
   if (text === needle || aliases.includes(needle)) return 'exact';
+  const tokens = needle.split(/\s+/).filter((t) => t.length > 0);
+  const words = new Set([text, ...aliases].flatMap(wordsOf));
+  if (tokens.length > 0 && tokens.every((t) => words.has(t))) return 'whole words';
   if (text.startsWith(needle) || aliases.some((candidate) => candidate.startsWith(needle)))
     return 'prefix';
-  const tokens = needle.split(/\s+/);
   if (tokens.every((t) => text.includes(t) || aliases.some((candidate) => candidate.includes(t))))
     return 'token';
   if (aliases.some(() => text.includes(needle))) return 'alias';
   return 'fuzzy';
 }
 
-/** Normalise diacritics, lower-case, collapse whitespace. */
-function normalize(input: string): string {
+/**
+ * Normalise diacritics, lower-case, drop apostrophes, collapse whitespace.
+ *
+ * Apostrophes go because "Kings Indian" and "King's Indian" are the same
+ * query typed by two people, and a typographic ’ is the same again.
+ */
+export function normalize(input: string): string {
   return input
     .normalize('NFKD')
     .replace(/\p{M}+/gu, EMPTY)
+    .replace(/['’]/g, EMPTY)
     .toLowerCase()
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+/**
+ * The whole words of a normalised string. Hyphenated compounds stay whole —
+ * "anti-sveshnikov" is one word, and it is not the word "sveshnikov" — but
+ * also contribute their last part, so "indian" is a word of "nimzo-indian".
+ */
+function wordsOf(value: string): readonly string[] {
+  const words: string[] = [];
+  for (const word of value.split(/[^a-z0-9-]+/)) {
+    if (!word) continue;
+    const trimmed = word.replace(/^-+|-+$/g, '');
+    if (!trimmed) continue;
+    words.push(trimmed);
+    const dash = trimmed.lastIndexOf('-');
+    if (dash !== -1) words.push(trimmed.slice(dash + 1));
+  }
+  return words;
 }
 
 function subsequenceScore(haystack: string, needle: string): number {
