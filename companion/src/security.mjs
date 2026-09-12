@@ -65,8 +65,20 @@ export const createToken = () => randomBytes(32).toString('hex');
  * properly is one function.
  */
 export function tokenMatches(expected, given) {
-  if (typeof given !== 'string' || given.length !== expected.length) return false;
-  return timingSafeEqual(Buffer.from(expected), Buffer.from(given));
+  if (typeof given !== 'string') return false;
+  /*
+    Compared as bytes, and the lengths compared as bytes too. The first
+    version compared `.length` — characters — and then handed the *bytes* to
+    `timingSafeEqual`, which throws when they differ. A token of the right
+    number of characters containing one non-ASCII character therefore threw
+    from the request handler, before any try/catch, and ended the companion
+    process: every engine, every open collection, from one unauthenticated
+    loopback request. Found by `server-fuzz.test.mjs`.
+  */
+  const expectedBytes = Buffer.from(expected, 'utf8');
+  const givenBytes = Buffer.from(given, 'utf8');
+  if (givenBytes.length !== expectedBytes.length) return false;
+  return timingSafeEqual(expectedBytes, givenBytes);
 }
 
 /** The token from either the Authorization header or a query parameter. */

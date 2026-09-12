@@ -88,6 +88,16 @@ describe('the trust boundary', () => {
     expect(tokenMatches('a'.repeat(64), '')).toBe(false);
   });
 
+  it('rejects, rather than throws on, a token of the right character length and the wrong byte length', () => {
+    // One multibyte character makes 64 characters into 65 bytes; the first
+    // implementation reached timingSafeEqual with mismatched buffers and threw.
+    expect(() => tokenMatches('a'.repeat(64), `${'a'.repeat(63)}ü`)).not.toThrow();
+    expect(tokenMatches('a'.repeat(64), `${'a'.repeat(63)}ü`)).toBe(false);
+    expect(tokenMatches('a'.repeat(64), 'ü'.repeat(64))).toBe(false);
+    expect(tokenMatches('a'.repeat(64), 'ü'.repeat(32))).toBe(false);
+    expect(tokenMatches('ü'.repeat(32), 'ü'.repeat(32))).toBe(true);
+  });
+
   it('accepts only the exact token', () => {
     const token = 'b'.repeat(64);
     expect(tokenMatches(token, token)).toBe(true);

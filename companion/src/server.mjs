@@ -263,22 +263,41 @@ const database = (key) => {
   return open.get(key);
 };
 
+/** The largest request body the companion will hold in memory. */
+export const MAX_BODY_BYTES = 64 * 1024 * 1024;
+
 const readBody = (request) =>
   new Promise((resolve, reject) => {
-    let body = '';
+    const chunks = [];
+    let received = 0;
+    let refused = false;
     request.on('data', (chunk) => {
-      body += chunk;
+      if (refused) return;
+      received += chunk.length;
       // A companion request is a query or a batch of games, never a stream.
-      if (body.length > 64 * 1024 * 1024) reject(new Error('Request too large.'));
+      // Rejecting the promise is not enough on its own: the socket keeps
+      // delivering, and a client that never stops would still fill memory.
+      // The request is destroyed, which ends the delivery.
+      if (received > MAX_BODY_BYTES) {
+        refused = true;
+        reject(new Error('Request too large.'));
+        request.destroy();
+        return;
+      }
+      chunks.push(chunk);
     });
     request.on('end', () => {
+      if (refused) return;
       try {
+        const body = Buffer.concat(chunks).toString('utf8');
         resolve(body ? JSON.parse(body) : {});
       } catch {
         reject(new Error('Malformed JSON body.'));
       }
     });
-    request.on('error', reject);
+    request.on('error', (error) => {
+      if (!refused) reject(error);
+    });
   });
 
 function cors(request, response) {
