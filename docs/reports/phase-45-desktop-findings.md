@@ -212,7 +212,7 @@ upgraded.
 absolute path of the developer's checkout on their own machine.)
 
 **Reproduction:** `npm run security:scan` reports one finding:
-`docs/reports/phase-43-handover.md:282: path: /Users/metinardakurt/Desktop/Projects/chess&poker/chess/studying hub`.
+`docs/reports/phase-43-handover.md:282: path: <repository-root>`.
 
 **Packaged or dev?** Dev (document only).
 

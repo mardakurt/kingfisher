@@ -279,7 +279,7 @@ No fake "sent" state.
 
 ```
 Canonical source repo
-  path: /Users/metinardakurt/Desktop/Projects/chess&poker/chess/studying hub
+  path: <repository-root>
   HEAD: c00e6fe
   version: 1.0.0
 

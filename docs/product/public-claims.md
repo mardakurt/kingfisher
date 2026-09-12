@@ -17,15 +17,15 @@ to follow.
 
 ## Product identity
 
-| Claim                                                                                    | Where it appears                                   | Backed by                                                                                           |
-| ---------------------------------------------------------------------------------------- | -------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Kingfisher is a local-first chess research workstation.                                  | Landing hero, README lede, install guide           | `src/persistence/`, the `local-first` section of the landing, the security policy.                  |
-| The current public release is Kingfisher 1.0 (web) and Kingfisher 1.0.0 (macOS Preview). | Landing download card, README, install guide       | `package.json` (`"version": "1.0.0"`), `release-manifest.json`, the GitHub release page.            |
-| The supported desktop platform is Apple Silicon.                                         | Landing download card, install guide, README       | `npm run desktop:smoke` is run on darwin-arm64; `vercel.json` does not deploy a desktop artefact.   |
-| The supported desktop architecture is arm64.                                             | Install guide, landing download card               | The current DMG is `Kingfisher-1.0.0-arm64.dmg`; `desktop/package.json` does not list an x64 build. |
-| No account is required.                                                                  | Landing hero strip, install guide, README, privacy | There is no sign-in surface; `src/features/shell/` has no account module.                           |
-| No telemetry, no analytics.                                                              | Landing, README, privacy, security                 | CSP in `vercel.json` is `default-src 'self'`; no third-party script is loaded.                      |
-| No subscription.                                                                         | Landing, README, launch kit                        | There is no billing surface; the application has no subscription state.                             |
+| Claim                                                                                    | Where it appears                                   | Backed by                                                                                                                          |
+| ---------------------------------------------------------------------------------------- | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Kingfisher is a local-first chess research workstation.                                  | Landing hero, README lede, install guide           | `src/persistence/`, the `local-first` section of the landing, the security policy.                                                 |
+| The current public release is Kingfisher 1.0 (web) and Kingfisher 1.0.0 (macOS Preview). | Landing download card, README, install guide       | `package.json` (`"version": "1.0.0"`); `src/release/macos-download.json` names the exact preview build offered.                    |
+| The supported desktop platform is Apple Silicon.                                         | Landing download card, install guide, README       | `npm run desktop:smoke` is run on darwin-arm64; `vercel.json` does not deploy a desktop artefact.                                  |
+| The supported desktop architecture is arm64.                                             | Install guide, landing download card               | `desktop/electron-builder.yml` builds `arm64` only; `desktop/src/builder-config.test.mjs` pins it; the descriptor records `arm64`. |
+| No account is required.                                                                  | Landing hero strip, install guide, README, privacy | There is no sign-in surface; `src/features/shell/` has no account module.                                                          |
+| No telemetry, no analytics.                                                              | Landing, README, privacy, security                 | CSP in `vercel.json` is `default-src 'self'`; no third-party script is loaded.                                                     |
+| No subscription.                                                                         | Landing, README, launch kit                        | There is no billing surface; the application has no subscription state.                                                            |
 
 ## Capabilities
 
@@ -49,17 +49,17 @@ These are not claims to drop. They are the truthful limits of
 the product and the install guide and the security page must
 keep stating them.
 
-| Limitation                                                                     | Where it appears                | Truth source                                                                                                                                                                                 |
-| ------------------------------------------------------------------------------ | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| macOS Preview 1.0.0 is code-signed but not notarised.                          | Landing, install guide, README  | The 1.0.0 build identity is a development certificate, no Developer ID. The 1.1.0 line is Developer ID signed and notarised by Apple.                                                        |
-| 1.1.0 has in-app auto-update with explicit user consent.                       | Install guide, security         | `desktop/src/kingfisher-updater.mjs` and `desktop/src/update-service.mjs`; the menu and the dialog both walk through the chain.                                                              |
-| Windows and Linux build but are unsupported.                                   | README                          | `npm run desktop:smoke` is run on macOS only.                                                                                                                                                |
-| No cross-device Sync.                                                          | README, security, privacy       | There is no Sync module; the supported way to move work is the backup flow.                                                                                                                  |
-| No games before 2020 in any first-party reference.                             | README, landing                 | `scripts/reference/packs.mjs` filter; the Lichess broadcast archive begins in 2020.                                                                                                          |
-| Chess960 is not supported.                                                     | README                          | `src/chess/` rules code is standard-chess only; ADR 0047.                                                                                                                                    |
-| Local Syzygy through 3 pieces bundled; 4- and 5-piece user-supplied.           | Install guide                   | `companion/fixtures/syzygy-3/` exists; the rest is the user's.                                                                                                                               |
-| Managed native engines are not sandboxed.                                      | Install guide, security, README | The Settings → Engine dialog states this; the engines run with the user's OS permissions.                                                                                                    |
-| Apple notarisation is automated security/signing review, not App Store review. | Security, privacy               | `notarytool` is an Apple-controlled service, not a product endorsement. The public claim may say "Developer ID signed and notarised by Apple" — never "Apple approved" or "Apple certified." |
+| Limitation                                                                     | Where it appears                | Truth source                                                                                                                                                                                                                                                                                                                                                          |
+| ------------------------------------------------------------------------------ | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The macOS build is a **preview**: current source, code-signed, not notarised.  | Landing, install guide, README  | `src/release/macos-download.json` is the one file that names the public DMG, its channel, build number, commit, SHA-256 and trust state; `npm run docs:check` fails if a canonical document disagrees with it. No `Developer ID Application` certificate is installed; a signed, notarised 1.1.0 is a runbook (`docs/release/macos-trusted-release.md`), not a build. |
+| Check for Updates is manual; a preview build does not update itself.           | Install guide, security         | `desktop/src/update-service.mjs` (`configureChannel`): a preview answers with its build number and the download page and makes no request; a stable build asks the GitHub feed once, on the click.                                                                                                                                                                    |
+| Windows and Linux build but are unsupported.                                   | README                          | `npm run desktop:smoke` is run on macOS only.                                                                                                                                                                                                                                                                                                                         |
+| No cross-device Sync.                                                          | README, security, privacy       | There is no Sync module; the supported way to move work is the backup flow.                                                                                                                                                                                                                                                                                           |
+| No games before 2020 in any first-party reference.                             | README, landing                 | `scripts/reference/packs.mjs` filter; the Lichess broadcast archive begins in 2020.                                                                                                                                                                                                                                                                                   |
+| Chess960 is not supported.                                                     | README                          | `src/chess/` rules code is standard-chess only; ADR 0047.                                                                                                                                                                                                                                                                                                             |
+| Local Syzygy through 3 pieces bundled; 4- and 5-piece user-supplied.           | Install guide                   | `companion/fixtures/syzygy-3/` exists; the rest is the user's.                                                                                                                                                                                                                                                                                                        |
+| Managed native engines are not sandboxed.                                      | Install guide, security, README | The Settings → Engine dialog states this; the engines run with the user's OS permissions.                                                                                                                                                                                                                                                                             |
+| Apple notarisation is automated security/signing review, not App Store review. | Security, privacy               | `notarytool` is an Apple-controlled service, not a product endorsement. The public claim may say "Developer ID signed and notarised by Apple" — never "Apple approved" or "Apple certified."                                                                                                                                                                          |
 
 ## Things that must NOT be claimed
 
@@ -71,12 +71,16 @@ update this section and the public surface together.
   even obliquely, would mislead users about what the product
   does.
 - "Apple approved" or "Apple certified" — those are App Store
-  review outcomes. Kingfisher is **Developer ID signed** and
-  **notarised by Apple**; notarisation is an automated
-  security check, not a product endorsement.
-- "macOS is signed and notarised" — true for 1.1.0 once the
-  release gate passes. If the build predates the gate, do
-  not claim it.
+  review outcomes. When a release is notarised, the claim is
+  **Developer ID signed** and **notarised by Apple**;
+  notarisation is an automated security check, not a product
+  endorsement.
+- "macOS is signed and notarised" — not true of any build that
+  exists. It becomes true only when `macos-download.json`
+  records `notarized: true`, which the release process writes
+  after `npm run desktop:notary:verify` passes.
+- "Auto-update" — nothing is checked or downloaded without a
+  click, and a preview never updates itself.
 - "Windows / Linux support" — the desktop build is not run
   there. The web build is, of course; the claim would be about
   the desktop.

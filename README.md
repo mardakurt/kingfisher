@@ -5,13 +5,13 @@ A local-first chess research workstation for serious players.
 > **Public release · 1.0.0** (web stable · macOS Preview)
 > No account. No telemetry. No subscription.
 
-|                                                                                      |                                                                              |
-| ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
-| 🌐 **[Launch the web app](https://kingfisher-roan.vercel.app/)**                     | Open in any modern browser. The Stockfish engine is in the page; no install. |
-| 🍎 **[Download for macOS](https://github.com/mardakurt/kingfisher/releases/latest)** | Apple Silicon, code-signed. _Preview build — not notarized._                 |
-| 📦 **[Source on GitHub](https://github.com/mardakurt/kingfisher)**                   | Releases, source, issue tracker, changelog.                                  |
-| 📖 **[Changelog](CHANGELOG.md)**                                                     | What changed in each release.                                                |
-| 🐛 **[Report a problem](https://github.com/mardakurt/kingfisher/issues)**            | Issue templates for bugs and feature requests.                               |
+|                                                                           |                                                                                    |
+| ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| 🌐 **[Launch the web app](https://kingfisher-roan.vercel.app/)**          | Open in any modern browser. The Stockfish engine is in the page; no install.       |
+| 🍎 **[Download for macOS](https://kingfisher-chess.vercel.app/#macos)**   | Apple Silicon, code-signed. _Preview build of the current source — not notarised._ |
+| 📦 **[Source on GitHub](https://github.com/mardakurt/kingfisher)**        | Releases, source, issue tracker, changelog.                                        |
+| 📖 **[Changelog](CHANGELOG.md)**                                          | What changed in each release.                                                      |
+| 🐛 **[Report a problem](https://github.com/mardakurt/kingfisher/issues)** | Issue templates for bugs and feature requests.                                     |
 
 Engine analysis, opening databases, annotation and game trees in one interface,
 built for someone who already knows what a Najdorf is and wants better tools —
@@ -78,10 +78,11 @@ re-import. No cloud sync is required and none is implied.
   project; the host header decides which surface the visitor sees.
   See [`docs/adr/00xx-optional-account-sync.md`](docs/adr/00xx-optional-account-sync.md)
   for the architecture rationale.
-- **macOS app** as a `.dmg` on the
-  [latest release page](https://github.com/mardakurt/kingfisher/releases/latest).
-  Apple Silicon only. Right-click → Open → Open on the first launch — see
-  [`docs/release/install-macos.md`](docs/release/install-macos.md).
+- **macOS app** as a `.dmg` from the
+  [landing page](https://kingfisher-chess.vercel.app/#macos), which always
+  links the current preview build; `src/release/macos-download.json` is the
+  file that names it. Apple Silicon only. Right-click → Open → Open on the
+  first launch — see [`docs/release/install-macos.md`](docs/release/install-macos.md).
 - **Source** at <https://github.com/mardakurt/kingfisher>. Releases, source,
   issues and changelog live here.
 - **Optional reference data** (Elite OTB, Recent Theory, High-Rated Online)
@@ -119,15 +120,16 @@ mirror. There is no client-side analytics on the landing page.
 
 ## Known limitations
 
-- **macOS preview is not notarized** — a Developer ID Application
-  certificate is the missing piece. Until then the install guide
-  walks through right-click → Open.
-- **No auto-update** — open Help → Check for updates, or browse the
-  releases page.
-- **Windows and Linux build but are unsupported** — the supported
-  desktop platform is Apple Silicon.
-- **macOS Intel** builds but has not been launched. The supported
-  desktop architecture is arm64.
+- **The macOS build is a preview, not notarised** — a Developer ID
+  Application certificate is the missing piece. Until then the install
+  guide walks through right-click → Open. A preview keeps the marketing
+  version (1.0.0) and carries a build number; two previews never share
+  a filename.
+- **A preview does not update itself** — _Kingfisher → Check for
+  Updates…_ says which build you have and opens the download page.
+  Nothing is checked in the background.
+- **Windows, Linux and Intel Macs are not built and not supported** —
+  the packaging configuration is macOS arm64 only.
 - **No games before 2020** in any first-party reference.
 - **Chess960 is not supported**, deliberately.
 - **Local Syzygy** needs table files the user supplies; the bundled
@@ -700,6 +702,10 @@ npm run desktop:engines    # install and search with every managed engine, insid
 npm run desktop:suspend    # stop every Kingfisher process for 20 s, then resume it
 npm run desktop:restart    # quit and reopen, and check the work is still there
 npm run desktop:upgrade    # a previous release's profile, read by this build
+npm run desktop:walk       # a seeded random walk through the packaged application, with invariants
+npm run desktop:soak       # the same walk for thirty minutes, sampling memory and processes
+npm run desktop:certify    # the whole packaged gate, one command
+npm run desktop:public:verify -- --full   # the DMG the public downloads, byte for byte
 ```
 
 The desktop shell is Electron, and that was a measured decision rather than a
@@ -711,33 +717,38 @@ declared, so the engine would have silently fallen back to one thread.
 including what it cost.
 
 **What is and is not true of the desktop build today**, stated rather than
-implied:
+implied. Every "yes" names the command that produced it against the packaged
+`Kingfisher.app`, not the checkout:
 
-|                                     |                                                                                                                                                                          |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| macOS arm64 — builds, installs, run | **yes**, and driven end to end by `npm run desktop:smoke` — 17 checks                                                                                                    |
-| macOS x64                           | builds from the same configuration; **never launched**                                                                                                                   |
-| Windows x64                         | **builds** in CI; never installed or launched, so **not supported**                                                                                                      |
-| Linux x64                           | **builds** in CI; never installed or launched, so **not supported**                                                                                                      |
-| Code signed                         | **yes** — hardened runtime, all six entitlements, signature valid                                                                                                        |
-| Accepted by Gatekeeper              | **no** — signed with an _Apple Development_ identity, not a distribution one                                                                                             |
-| Notarised                           | **no** — no ticket stapled                                                                                                                                               |
-| Auto-update                         | **not implemented**, deliberately; see the release notes                                                                                                                 |
-| `.pgn` file association             | declared, and **exercised** — a double-clicked PGN opens on the board                                                                                                    |
-| Native engines, packaged            | **yes** — all six offered here, installed and searched inside the bundle; `npm run desktop:engines` — 25 checks                                                          |
-| Local Syzygy tablebases, packaged   | **yes** — a real probe, asserted in the smoke run                                                                                                                        |
-| Runs with the network cut           | **yes** — 23 of 23 offline checks                                                                                                                                        |
-| Launch to a visible window          | **~630 ms** on an M3 Pro; `KINGFISHER_STARTUP_TRACE=1` prints the stages                                                                                                 |
-| macOS window buttons                | **native**, placed by the shell at (14, 20); `npm run desktop:chrome` — 107 checks, geometry in [docs/design/macos-window-chrome.md](docs/design/macos-window-chrome.md) |
-| Survives a suspend and resume       | **yes** — `npm run desktop:suspend`, 12 checks; an analogue of sleep/wake, not a real one                                                                                |
+|                                     |                                                                                                                                                                           |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| macOS arm64 — builds, installs, run | **yes** — `npm run desktop:smoke -- --packaged`, 17 checks, window in about 3 s                                                                                           |
+| macOS x64, Windows, Linux           | **not built**; the configuration is `arm64` only and `desktop/src/builder-config.test.mjs` pins it                                                                        |
+| Code signed                         | **yes** — `Apple Development` identity, Hardened Runtime, all seven entitlements, signature valid                                                                         |
+| Accepted by Gatekeeper elsewhere    | **no** — an _Apple Development_ identity is not a distribution one                                                                                                        |
+| Notarised                           | **no** — no ticket stapled                                                                                                                                                |
+| Check for Updates                   | **manual**; a preview build names its build number and opens the download page; a stable build asks the GitHub feed once                                                  |
+| Build identity                      | **yes** — version, build number, commit and channel in `CFBundleVersion`, the bundle and _Settings → Diagnostics_                                                         |
+| `.pgn` file association             | declared and **exercised** — a PGN named on the command line, or handed over while running, opens on the board                                                            |
+| Native engines, packaged            | **yes** — all six, installed and searched inside the bundle; `npm run desktop:engines -- --packaged`, 25 checks                                                           |
+| Local Syzygy tablebases, packaged   | **yes** — the bundled probe helper answers from the real three-piece tables in the smoke run                                                                              |
+| Runs with the network cut           | **yes** — `npm run desktop:smoke -- --packaged --offline`                                                                                                                 |
+| macOS window buttons                | **native**, placed by the shell; `npm run desktop:chrome -- --packaged`, 107 checks, geometry in [docs/design/macos-window-chrome.md](docs/design/macos-window-chrome.md) |
+| Survives a suspend and resume       | **yes** — `npm run desktop:suspend -- --packaged`, 12 checks; an analogue of sleep/wake, not a real one                                                                   |
+| Quit, reopen, work still there      | **yes** — `npm run desktop:restart -- --packaged`, 5 checks                                                                                                               |
+| A long random walk                  | `npm run desktop:walk -- --packaged --seed=N --actions=1000`; `npm run desktop:soak` is the same for thirty minutes                                                       |
+| The DMG itself                      | `node desktop/scripts/verify-dmg.mjs <dmg>`; the public one, byte for byte: `npm run desktop:public:verify -- --full`                                                     |
 
-The bundle is properly signed: `Identifier=dev.kingfisher.app`, hardened
+The bundle is properly signed: `Identifier=app.kingfisher.chess`, hardened
 runtime on, `valid on disk`, `satisfies its Designated Requirement`. What it is
 not is _distributable_. Notarised distribution needs a **Developer ID
-Application** certificate, which is a different kind from either identity this
-machine holds — _Apple Distribution_ is for the App Store, and _Apple
-Development_ is for running on registered devices, which is what the current
-signature is good for and no more.
+Application** certificate, which is a different kind from either identity the
+maintainer's machine holds — _Apple Distribution_ is for the App Store, and
+_Apple Development_ is for running on registered devices, which is what the
+current signature is good for and no more. Until that certificate exists the
+landing offers a clearly labelled **preview** of the current source, published
+by `npm run release:mac:preview` as a GitHub pre-release under its own
+immutable tag.
 
 ---
 

@@ -137,3 +137,46 @@ test('opening books are listed, and the engine book is refused out loud', async 
   await expect(settings.getByText(/Engines never play from their own book/)).toBeVisible();
   await expect(settings.getByText(/OwnBook/)).toBeVisible();
 });
+
+/*
+  The board is playable while an engine is analysing.
+
+  Phase 43 gave the engine arrows a hover tooltip and, to make the hit lines
+  hoverable, removed `pointer-events: none` from the SVG that holds them. That
+  SVG is a rectangle over every square, so every click and drag on the board
+  landed on it instead: with an arrow drawn, no move could be made — click or
+  drag — until the engine was stopped. Found by the seeded desktop walk, where
+  every `move` after an `engine-start` timed out. This is the test the fix
+  needed: the element under a square's centre is the square, with an arrow on
+  the board, and a move still goes through.
+*/
+test('the board can be played while an engine arrow is drawn', async ({ page }) => {
+  await page.goto('/analysis');
+  await ready(page);
+  await page.getByRole('button', { name: 'Start analysis (E)' }).click();
+  await expect(page.locator('[data-engine-arrow-hit]').first()).toBeAttached({ timeout: 30_000 });
+
+  const e2 = page.getByRole('gridcell', { name: /^e2,/ });
+  const box = await e2.boundingBox();
+  expect(box).not.toBeNull();
+  const under = await page.evaluate(
+    ({ x, y }) =>
+      document.elementFromPoint(x, y)?.closest('[role="gridcell"]')?.getAttribute('aria-label') ??
+      null,
+    { x: box!.x + box!.width / 2, y: box!.y + box!.height / 2 },
+  );
+  expect(under, 'the square, not the arrow sheet, is under the pointer').toMatch(/^e2,/);
+
+  const before = await page.locator('[data-fen-tooltip]').textContent();
+  await e2.click();
+  await page.getByRole('gridcell', { name: /^e4,/ }).click();
+  await expect(page.locator('[data-fen-tooltip]')).not.toHaveText(before ?? '');
+  await expect(page.locator('[data-fen-tooltip]')).toContainText('4P3');
+
+  // And the arrow is still hoverable: the tooltip appears over its hit stroke.
+  const hit = page.locator('[data-engine-arrow-hit]').first();
+  await expect(hit).toBeAttached({ timeout: 30_000 });
+  await hit.hover({ force: true });
+  await expect(page.locator('[data-engine-arrow-tooltip]')).toBeVisible();
+  await page.getByRole('button', { name: 'Stop analysis (E)' }).click();
+});

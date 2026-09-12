@@ -10,10 +10,10 @@ The user-facing surfaces link here from their footers and from
 
 ## What the current public product is
 
-| Surface           | Version                                                                                                                                     | Status                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Web application   | Kingfisher 1.0                                                                                                                              | Current. Hosted at the Vercel landing/studio host.                                                                                                                                                                                                                                                                                                                                                                      |
-| macOS application | Kingfisher 1.0.0 (a 1.1.0 build with Developer ID signing and Apple notarisation is the next planned release)                               | Apple Silicon DMG + auto-update ZIP. The 1.1.0 binary is **planned** to be Developer ID Application signed and **notarised by Apple**, with a stapled ticket so the deliverable is self-contained offline. Until that release exists, the public binary is the 1.0.0 line, signed with the developer identity but not notarised. The 1.0.0 install guide explains the right-click → Open flow that Gatekeeper requires. |
+| Surface           | Version                                                                                                                                     | Status                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Web application   | Kingfisher 1.0                                                                                                                              | Current. Hosted at the Vercel landing/studio host.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| macOS application | Kingfisher 1.0.0, offered as a **macOS Preview** — a build of the current source with a build number, not a tagged release                  | Apple Silicon DMG. Code-signed with an `Apple Development` identity, **not notarised**: the project has no `Developer ID Application` certificate yet, so Gatekeeper refuses the first launch and the [install guide](docs/release/install-macos.md) documents the right-click → Open flow. The exact file, its SHA-256, build number and commit are in [`src/release/macos-download.json`](src/release/macos-download.json), the one place that names it. A signed, notarised release (planned as 1.1.0) is described under _Trusted release_ below as a runbook, not as something that exists. |
 | Reference data    | Pack manifest version is the source of truth; the current packs are listed in [`docs/data/data-inventory.md`](docs/data/data-inventory.md). |
 
 Only the **current** web build and the **current** macOS Preview DMG
@@ -71,51 +71,81 @@ in the running deployment.
 
 ### macOS application
 
-- The desktop shell is **Electron** with `contextIsolation: true`,
+- The desktop shell is **Electron 44** with `contextIsolation: true`,
   `nodeIntegration: false`, `sandbox: true` for the renderer, and a
-  preload that exposes a typed bridge. The bridge returns `null`
-  in a browser, so the same application is safe to serve over a
-  public origin.
-- The companion's loopback server authenticates any HTTP request
-  with a per-profile pairing token; the token is generated on
-  first launch, written to the profile directory, and the
-  shell and the companion are the only two processes that ever
-  hold it. Cross-origin requests are refused by CORS.
-- **Native engines are not sandboxed.** They run with the user's
-  own operating-system permissions, and a settings panel checkbox
-  is the only thing that prevents them from being launched. This
-  is documented in the Settings → Engine dialog and in
-  [`AGENTS.md`](AGENTS.md). Do not describe managed engines as
-  sandboxed.
-- The window cannot open a file that was not chosen in a dialog
-  or dropped on the window; there is no `readFile(path)` on the
-  bridge.
-- The shell holds no chess state. A desktop feature that needs
-  a second copy of the board, the move tree, the engine session
-  or the query is a bug in the arrangement, not a feature of it.
-- **Code signing** — the 1.1.0 binary carries a `Developer ID
-Application` signature with a secure timestamp and the macOS
-  Hardened Runtime enabled. The signature chain covers the
-  outer `.app` and every nested executable: Electron Framework,
-  the `Kingfisher Helper` family, the GPU helper, the plugin
-  helper, and the bundled engine binaries. The audit script
-  `npm run desktop:sign:verify` checks every level.
-- **Notarization** — the 1.1.0 binary is submitted to Apple's
-  notary service and the resulting ticket is **stapled** to
-  the `.app` and the `.dmg`, so the first launch does not
-  need a network round-trip to retrieve the ticket. The
-  audit script `npm run desktop:notary:verify` confirms
-  stapling, `stapler validate`, and Gatekeeper `spctl
---assess`.
-- **Hardened Runtime entitlements** — see
-  `desktop/build/entitlements.mac.plist` and the comment in
-  that file for the justified list. The minimum set is what
-  is shipped: `allow-jit` + `allow-unsigned-executable-memory`
-  for WebAssembly, `disable-library-validation` +
-  `allow-dyld-environment-variables` for the managed engine
-  path, `user-selected.read-write` for the file dialogs, and
-  the network client/server pair. No debug entitlement, no
-  broad `disable-library-validation`-on-its-own.
+  preload (`desktop/src/preload.cjs`) that exposes a typed bridge and
+  nothing else — no `require`, no `ipcRenderer`, no filesystem. The
+  bridge returns `null` in a browser, so the same application is safe
+  to serve over a public origin. `npm run desktop:smoke -- --packaged`
+  asserts all three flags and the absence of a Node handle in the
+  packaged renderer.
+- The companion is a separate process the shell starts, on a
+  loopback port only. Every request except `/health` needs a
+  **pairing token** the shell mints in memory on each launch, hands
+  to the renderer as a command-line switch, and never writes to
+  disk; the log redacts it. Cross-origin requests are refused by
+  CORS; only the loopback origin the shell serves from is admitted.
+  `companion/src/server-fuzz.test.mjs` sends the real process
+  unsupported methods, hostile paths, wrong tokens of every shape,
+  malformed bodies, a 70 MB upload and two hundred random requests
+  and requires it to answer 4xx and stay up.
+- **Native engines are not sandboxed.** They run with the user's own
+  operating-system permissions. A managed engine is downloaded
+  against a recorded SHA-256 and must complete a real search before
+  it is listed as ready; a custom engine is whatever the user
+  pointed at. The engine process receives a minimal environment
+  (`companion/src/engine-sandbox.mjs`), has its thread and hash
+  requests clamped, and is stopped with its whole process group.
+  Do not describe managed engines as sandboxed.
+- An engine's answer is checked against the question: a `bestmove`
+  that is not a legal move in the position the engine was given is
+  dropped, never drawn on the board.
+- The window cannot open a file that was not chosen in a dialog,
+  dropped on the window, or handed to the application by the
+  Finder; there is no `readFile(path)` on the bridge. Navigation is
+  pinned to the shell's own server; any other URL opens in the
+  user's browser.
+- The shell holds no chess state. A desktop feature that needs a
+  second copy of the board, the move tree, the engine session or
+  the query is a bug in the arrangement, not a feature of it.
+- **Code signing, today.** The public preview is signed with an
+  `Apple Development` identity, Hardened Runtime on, secure
+  timestamp, with the entitlements in
+  `desktop/build/entitlements.mac.plist`: `allow-jit` and
+  `allow-unsigned-executable-memory` for WebAssembly,
+  `disable-library-validation` and
+  `allow-dyld-environment-variables` for the engine path,
+  `files.user-selected.read-write` for the dialogs, and the
+  network client/server pair. No debug entitlement. `npm run
+desktop:sign:verify` checks the chain. This identity satisfies
+  the signature on the machine that made it and is **not trusted
+  by Gatekeeper elsewhere** — that is the whole difference between a
+  preview and a release.
+- **Notarisation, today: none.** There is no ticket to staple.
+  `npm run desktop:public:verify -- --full` downloads the public
+  DMG and checks that its signing identity and notarisation state
+  are exactly what the descriptor and this page claim.
+- **The build is identified.** Every packaged Kingfisher records its
+  marketing version, a monotonic build number
+  (`git rev-list --count`), the commit, whether the tree was dirty,
+  and its channel (`stable`, `preview`, `dev`) in `CFBundleVersion`
+  and the packaged `package.json`; _Settings → Diagnostics_ reports
+  them, so a support report about "1.0.0" can be matched to bytes.
+  A publishable channel refuses to build from a dirty tree.
+
+#### Trusted release — the runbook, not the present
+
+When a `Developer ID Application` certificate is installed
+([`docs/release/apple-developer-id-setup.md`](docs/release/apple-developer-id-setup.md)),
+[`docs/release/macos-trusted-release.md`](docs/release/macos-trusted-release.md)
+produces a build that is Developer ID signed with Hardened Runtime,
+submitted to Apple's notary service, with the ticket **stapled** to
+the `.app` and the `.dmg` so the Gatekeeper decision is offline, and
+launches from a quarantined download with a normal double-click.
+`npm run desktop:notary:verify` and `npm run desktop:trust:verify`
+are the gates. None of this describes the current public download,
+and no document in this repository may say it does until
+`macos-download.json` records `notarized: true`.
 
 ### What the product deliberately does **not** do
 
@@ -132,90 +162,36 @@ Application` signature with a secure timestamp and the macOS
   build does not set any cookie; what state the application
   needs is held in `localStorage` and IndexedDB, scoped to the
   origin. See [`docs/legal/privacy.md`](docs/legal/privacy.md).
-- **No auto-update.** The macOS Preview is downloaded again from
-  the GitHub release page when the user wants to upgrade. The
-  web build is whatever is currently deployed; if a fix is
-  urgent, a manual refresh picks it up. Phase 34 added a
-  _manual_ "Check for updates" action to the macOS application
-  and the web PWA — the check is one HTTPS request to the public
-  Kingfisher release metadata, validated against SHA-256 and
-  DMG-name constraints, and **never downloads or executes a
-  binary automatically**. The user always opens the verified
-  release page in their own browser and downloads, verifies
-  and installs by hand.
-- **Phase 35 — in-app download, same manual boundary.** The
-  _Kingfisher → Check for Updates…_ menu item now downloads
-  the verified DMG inside the application. The download and
-  the verification run inside the Electron main process; the
-  renderer never sees `fetch` and never sees the filesystem.
-  The flow is the same **manual** check the brief asked for:
-  the user clicks, one HTTPS request goes out, the user reads
-  the verdict. The download still needs an explicit
-  _Download Update_ click; the install still needs the user
-  to drag the verified DMG into Applications. The exact
-  security boundary is in
-  [`docs/release/release-manifest.md`](docs/release/release-manifest.md)
-  — the desktop shell trusts the GitHub release manifest
-  only, the manifest's URLs are restricted to the canonical
-  release hosts, the downloaded asset is verified against
-  SHA-256 _before_ it is offered, and a failed verification
-  unlinks the partial download and reports
-  _The downloaded update could not be verified._
-- **Phase 36 — seamless in-place auto-update, gated by the
-  same trust boundary.** The 1.1.0 release flow uses
-  [`electron-updater`](https://www.electron.build/auto-update)
-  for the install-and-relaunch handoff. The renderer does not
-  decide the feed URL, the file system path, the signature
-  policy or the release channel — the main process owns all
-  of these. The updater is configured with
-  `autoDownload: false`, `autoInstallOnAppQuit: false`,
-  `allowPrerelease: false`, and `allowDowngrade: false`. The
-  flow is:
-
-  1. The user clicks **Check for Updates…** in the macOS
-     application menu. One HTTPS request goes out.
-  2. If a newer version is published, the dialog shows the
-     new version with a primary **Install Update** button and
-     a secondary **View Release Notes** button.
-  3. The user clicks **Install Update**. Download, verify, and
-     install run as a single chain: the platform's update
-     engine fetches the verified update ZIP, validates the
-     SHA-512, confirms the code-signature chain matches the
-     running app, and replaces the installed `.app`. The
-     previous version closes, the new version opens. There is
-     no second "Open Installer" click in the normal flow.
-  4. Before the install runs, the main process asks the
-     renderer to flush any in-flight writes (the **save
-     barrier**). If the renderer reports a failed save, the
-     install is **aborted** — the user sees
-     "Kingfisher could not safely finish saving your work.
-     The update was not installed," and the verified update
-     remains cached for a retry.
-  5. The macOS auto-update engine also refuses an update whose
-     signature does not match the running app's Developer ID
-     identity, refuses a downgrade, and refuses an update
-     whose `latest-mac.yml` does not parse against the
-     production host allow-list (`github.com`,
-     `api.github.com`, `release-assets.githubusercontent.com`,
-     `objects.githubusercontent.com`).
-
-  The full contract is in
-  [`docs/release/macos-trusted-release.md`](docs/release/macos-trusted-release.md)
-  and the implementation is in
-  [`desktop/src/kingfisher-updater.mjs`](desktop/src/kingfisher-updater.mjs)
-  and [`desktop/src/update-service.mjs`](desktop/src/update-service.mjs).
-  The release script `npm run desktop:trust:verify` is the
-  combined sign + notarize + Gatekeeper gate, and
-  `npm run desktop:update:mutations` is the security
-  mutation suite.
-
-- **First-launch trust.** A 1.1.0 download on a fresh
-  machine, with the macOS quarantine attribute applied (the
-  scenario the OS actually exercises on a real download), is
-  expected to launch via a normal double-click. There is no
-  "unidentified developer" warning; no right-click → Open
-  workaround. The notarization ticket is stapled so the
-  Gatekeeper decision is offline.
+- **Updates are asked for, never pushed.** _Kingfisher → Check for
+  Updates…_ is the only entry point and the user's click is the only
+  network event: no poller, no background check, no telemetry. A
+  **preview** build answers from what it is — its build number and
+  a button to the download page — and makes no request at all,
+  because previews are replaced by downloading the next one. A
+  **stable** build asks the GitHub release feed baked into the
+  bundle (`app-update.yml`) once, through `electron-updater`
+  configured with `autoDownload: false`, `autoInstallOnAppQuit:
+false`, `allowPrerelease: false` (so the preview channel is
+  invisible to it) and `allowDowngrade: false`. If a newer release
+  is published, the dialog offers **Install Update**; on that click
+  the main process downloads the update ZIP, verifies its SHA-512
+  against the feed, asks the renderer to flush every in-flight
+  write (the **save barrier** — a failed save aborts the install
+  and says so), and hands the verified archive to macOS's own
+  update engine, which refuses an update whose code signature does
+  not match the running application. The renderer never sees
+  `fetch` or the filesystem. Today the public 1.0.0 release carries
+  no update feed, so a stable-channel check reports exactly that;
+  the implementation is in
+  [`desktop/src/update-service.mjs`](desktop/src/update-service.mjs)
+  and [`desktop/src/kingfisher-updater.mjs`](desktop/src/kingfisher-updater.mjs),
+  and `npm run desktop:update:mutations` is its mutation suite.
+- **First-launch trust, today.** A fresh download of the preview
+  carries the browser's quarantine attribute and is refused by
+  Gatekeeper on first launch; right-click → Open records the
+  exception for that copy. The signed, notarised release described
+  in the runbook above would launch with a normal double-click; the
+  preview does not, and nothing here says otherwise.
 
 ### Service worker / PWA boundaries (added in Phase 34)
 

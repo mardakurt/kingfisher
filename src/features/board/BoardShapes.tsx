@@ -141,7 +141,15 @@ export function BoardShapes({ shapes, engineArrows = [], draft, orientation }: B
           viewBox="0 0 8 8"
           data-engine-arrows
           data-engine-arrow-count={resolvedEngine.length}
-          className="absolute inset-0 h-full w-full"
+          /*
+           * The sheet itself must never take the pointer. Phase 43 dropped
+           * `pointer-events-none` here so the hit lines below could be hovered,
+           * and the whole SVG — a rectangle over every square — began
+           * swallowing every click and drag: the board could not be played
+           * while an engine was analysing. `pointer-events` is per element, so
+           * the sheet stays inert and only the hit strokes opt back in.
+           */
+          className="pointer-events-none absolute inset-0 h-full w-full"
         >
           <defs>
             {(Object.keys(ENGINE_ARROW_STYLES) as EngineArrowIdentity[]).map((identity) => (
@@ -204,6 +212,7 @@ export function BoardShapes({ shapes, engineArrows = [], draft, orientation }: B
                   stroke="transparent"
                   strokeWidth={0.34}
                   strokeLinecap="round"
+                  pointerEvents="stroke"
                   onPointerEnter={() => setHoveredArrowId(index)}
                   onPointerLeave={() =>
                     setHoveredArrowId((current) => (current === index ? null : current))

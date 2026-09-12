@@ -326,10 +326,18 @@ class Walk {
     );
     if (windows > this.expectedWindows)
       fail('window-count', `${windows} windows, expected ≤ ${this.expectedWindows}`);
-    const instances = execFileSync('ps', ['-eo', 'pid=,comm='], { encoding: 'utf8' })
+    // Instances of *this profile*: another harness may legitimately run the
+    // same binary against its own profile at the same time.
+    const instances = execFileSync('ps', ['-eo', 'pid=,args='], { encoding: 'utf8' })
       .split('\n')
-      .filter((line) => line.trim().endsWith(this.k.executable)).length;
-    if (instances !== 1) fail('instance-count', `${instances} processes of ${this.k.executable}`);
+      .filter(
+        (line) =>
+          line.includes(this.k.executable) &&
+          line.includes(`--user-data-dir=${this.profile}`) &&
+          !/--type=/.test(line),
+      ).length;
+    if (instances !== 1)
+      fail('instance-count', `${instances} main processes for profile ${this.profile}`);
 
     // 5. No orphan engines.
     const engines = engineProcesses().filter((p) => !this.baselineEngines.includes(p.pid));
