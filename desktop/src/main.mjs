@@ -21,6 +21,7 @@
 
 import { app, BrowserWindow, dialog, ipcMain, Menu, screen, shell } from 'electron';
 import { randomBytes } from 'node:crypto';
+import { RevivalBudget } from './revival.mjs';
 import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
@@ -261,7 +262,7 @@ async function startServices() {
   */
   const companionStarted = state.companion.start().then(
     () => {
-      startedAt.companion = Date.now();
+      revival.companion.started();
       mark('companion ready');
       return true;
     },
@@ -286,7 +287,7 @@ async function startServices() {
   state.companionStarted = companionStarted;
 
   await state.web.start();
-  startedAt.web = Date.now();
+  revival.web.started();
   mark('web server ready');
 }
 
@@ -300,44 +301,23 @@ async function startServices() {
  * own children, started with the same port and token, so starting them again
  * is exactly the launch the renderer already paired with.
  *
- * Bounded: three revivals in five minutes, then the service stays down and
- * the log says so — a child that dies on every start would otherwise be
- * restarted for ever, and the reason it dies is what a person needs to see.
- * Never during quit, when an exit is the plan.
+ * Bounded, by `revival.mjs`: a service that crashes within seconds of every
+ * start is restarted three times in five minutes and then left down with the
+ * reason in the log; a service killed from outside — SIGKILL, SIGTERM — is
+ * restarted every time, ten times in five minutes at most. Never during
+ * quit, when an exit is the plan.
  */
-const revivals = { web: [], companion: [] };
-const startedAt = { web: 0, companion: 0 };
-const REVIVAL_LIMIT = 3;
-const REVIVAL_WINDOW_MS = 5 * 60_000;
-/** An exit this soon after a start is a crash loop, not a healthy service that was killed. */
-const CRASH_LOOP_MS = 30_000;
+const revival = { web: new RevivalBudget(), companion: new RevivalBudget() };
 
 async function reviveService(which, exit) {
   if (state.quitting) return;
   const service = state[which];
   if (!service || service.running) return;
-  const now = Date.now();
-  const reason = exit?.signal ?? exit?.code ?? 'unknown';
-  /*
-    Only a crash loop counts against the budget. A service that ran for
-    minutes and was then killed — by a person, by the operating system, by a
-    test — is simply started again; one that dies within seconds of every
-    start is started three times in five minutes and then left down, with
-    the reason in the log, because restarting it for ever would hide it.
-  */
-  const crashLoop = now - startedAt[which] < CRASH_LOOP_MS;
-  revivals[which] = revivals[which].filter((at) => now - at < REVIVAL_WINDOW_MS);
-  if (crashLoop && revivals[which].length >= REVIVAL_LIMIT) {
-    log(
-      which,
-      `exited (${reason}) ${Math.round((now - startedAt[which]) / 1000)} s after starting and was not restarted: ${REVIVAL_LIMIT} crash-loop restarts in five minutes`,
-    );
-    return;
-  }
-  if (crashLoop) revivals[which].push(now);
-  else revivals[which] = [];
-  startedAt[which] = now;
-  log(which, `exited unexpectedly (${reason}); restarting`);
+  // The rule — crash loops bounded, external kills restarted — is revival.mjs.
+  const decision = revival[which].decide(exit);
+  log(which, decision.detail);
+  if (!decision.restart) return;
+  revival[which].started();
   try {
     if (which === 'companion') {
       state.companionError = null;
