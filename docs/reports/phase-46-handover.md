@@ -90,13 +90,13 @@ hostile-but-legitimate user with invariants checked after every action
 one instance, no orphan engine, no renderer/helper loss, nothing uncaught
 in the main process, something on the page).
 
-| Run                                     | Build | Actions | Duration | Findings | Console errors | Quit                          |
-| --------------------------------------- | ----- | ------- | -------- | -------- | -------------- | ----------------------------- |
-| seed 46, fresh user                     | 437   | 1000    | 515 s    | 0        | 0              | 5 descendants, 0 survivors    |
-| seed 46, fresh user (certify, 200)      | 445   | 200     | 135 s    | 0        | 0              | clean                         |
-| seed 7, faults (offline, companion ×4)  | 437   | 300     | 142 s    | 0        | 0 (offline)    | 5 descendants, 0 survivors    |
-| seed 7, faults (+ web server ×3)        | {{FAULTS_BUILD}} | 300 | {{FAULTS_S}} s | {{FAULTS_FINDINGS}} | — | {{FAULTS_QUIT}} |
-| seed 46, returning user (upgrade path)  | 445   | —       | —        | 7/7      | —              | — |
+| Run                                    | Build            | Actions | Duration       | Findings            | Console errors | Quit                       |
+| -------------------------------------- | ---------------- | ------- | -------------- | ------------------- | -------------- | -------------------------- |
+| seed 46, fresh user                    | 437              | 1000    | 515 s          | 0                   | 0              | 5 descendants, 0 survivors |
+| seed 46, fresh user (certify, 200)     | 445              | 200     | 135 s          | 0                   | 0              | clean                      |
+| seed 7, faults (offline, companion ×4) | 437              | 300     | 142 s          | 0                   | 0 (offline)    | 5 descendants, 0 survivors |
+| seed 7, faults (+ web server ×3)       | {{FAULTS_BUILD}} | 300     | {{FAULTS_S}} s | {{FAULTS_FINDINGS}} | —              | {{FAULTS_QUIT}}            |
+| seed 46, returning user (upgrade path) | 445              | —       | —              | 7/7                 | —              | —                          |
 
 Action mix of the 1000-action run: 184 route changes, 135 moves, 69 engine
 starts, 74 Settings opens, 85 palette uses, 65 resizes, 25 full-screen
@@ -441,11 +441,16 @@ skipped, 0 failing.** `npm run test:no-skips`: OK. Phase start: 219 files,
 2719 tests (the Phase 45 handover's "218 / 2694" was its own starting
 point, stated as such; its "219 / 2719" was correct).
 
+`npm run test:e2e` (Playwright, `retries = 0`): **263 passed, 0
+failed, 0 skipped** at `0e318fb`. It was **28 failed of 263** at the
+Phase 45 handover commit — see HARN-46-05 — a number three handovers had
+reported as green without running it.
+
 ## 33. Bugs found
 
-See [`phase-46-findings.md`](phase-46-findings.md): 13 PRODUCT (1
-Critical, 5 High, 4 Medium, 3 Low), 5 DISTRIBUTION (1 High, 1 Medium, 3
-Low), 8 DOCUMENTATION (1 High), 4 HARNESS, 4 QUALITY. Every one fixed
+See [`phase-46-findings.md`](phase-46-findings.md): 14 PRODUCT (1
+Critical, 5 High, 4 Medium, 4 Low), 5 DISTRIBUTION (1 High, 1 Medium, 3
+Low), 8 DOCUMENTATION (1 High), 5 HARNESS, 4 QUALITY. Every one fixed
 except the recorded-only items (DIST-46-02/03/05, Q-46-03).
 
 ## 34. Real user feedback
