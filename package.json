@@ -102,7 +102,8 @@
     "desktop:public:verify": "node scripts/desktop-public-verify.mjs",
     "desktop:walk": "node scripts/desktop-walk.mjs",
     "desktop:soak:leaks": "playwright test --config playwright.packaged.config.ts",
-    "release:mac:preview": "node scripts/desktop-mac-preview-publish.mjs"
+    "release:mac:preview": "node scripts/desktop-mac-preview-publish.mjs",
+    "desktop:instances": "node scripts/desktop-instances.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.102.8",

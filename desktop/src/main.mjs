@@ -482,6 +482,9 @@ async function documentFor(file) {
 async function openPaths(files) {
   for (const file of files) {
     try {
+      // The name only: the log is local, but a path is more than a support
+      // report needs, and the Finder route is the one worth being able to see.
+      log('document', `opening ${path.basename(file)}`);
       deliver(await documentFor(file));
     } catch (error) {
       dialog.showErrorBox('Kingfisher could not open that file', String(error?.message ?? error));
@@ -875,17 +878,20 @@ if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
   app.on('second-instance', (_event, argv) => {
+    const files = openableFromArgv(argv);
+    log('launch', `a second instance was refused; ${files.length} document(s) handed over`);
     if (state.window) {
       if (state.window.isMinimized()) state.window.restore();
       state.window.focus();
     }
-    void openPaths(openableFromArgv(argv));
+    void openPaths(files);
   });
 
   // macOS delivers a double-clicked document here, and can do so before
   // `ready`. `deliver` queues it until there is a window to hand it to.
   app.on('open-file', (event, file) => {
     event.preventDefault();
+    log('document', `open-file from the system: ${path.basename(file)}`);
     void openPaths([file]);
   });
 
