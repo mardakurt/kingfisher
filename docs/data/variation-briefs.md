@@ -80,6 +80,36 @@ instructions into one answer.
 | Named positions reached by one     |           3,321 |     3,567 |
 | Share of the 3,810 named positions |       **87.2%** | **93.6%** |
 
+### The variation pass (2026-09-13)
+
+A review of every brief against the dataset's own defining lines found eight
+that were wrong or misleading and corrected them: the Berlin does not
+"ignore a threat to the knight"; the Steinitz Defence defends the pawn, not
+the knight; the Caro-Kann Exchange is a Queen's Gambit Exchange with colours
+reversed, so the minority attack is _Black's_; the Karpov Variation's
+4...Nd7 is not a recapture; the Classical Caro-Kann's ...Bf5 hits a knight
+that has not been traded; the Portuguese Gambit leaves a pawn rather than
+"offering one back"; the Russian Grünfeld does not "win the centre with
+cxd5"; and the Rubinstein French is solid rather than symmetrical.
+
+The same pass wrote 188 briefs for the _variations_ a strong player meets —
+the Sozin, the Moscow, the Grand Prix, the Ragozin, the Petrosian King's
+Indian, the Chebanenko, the Vienna Gambit, the Kieseritzky — each keyed to a
+variation label the dataset names, and each defining sentence checked
+against the dataset's shortest line to the position. A new test refuses a
+brief keyed to a variation the dataset does not have.
+
+|                                         | before |     after |
+| --------------------------------------- | -----: | --------: |
+| Briefs                                  |    157 |       345 |
+| Named positions answered by a variation |        |           |
+| brief of their own, rather than the     |        |           |
+| family's inherited one                  |  1,323 | **2,218** |
+| Named positions reached by any brief    |  3,567 |     3,567 |
+
+The last row is unchanged on purpose: the families with no brief are the ones
+the previous paragraph declined to invent, and that decision stands.
+
 Thirteen briefs, not a hundred, and the reason is what the uncovered families
 turned out to be. The 84 families with no brief accounted for **489 of 3,810
 positions** between them, and the largest were the Van Geet Opening, the

@@ -189,4 +189,22 @@ describe('variation briefs', () => {
       expect(ok, `no dataset family named ${family}`).toBe(true);
     }
   });
+
+  it('keys every variation brief to a variation the vendored dataset actually names', () => {
+    /*
+      The same rule one level down. A brief keyed on "Sicilian Defense >
+      Sveshnikov" would never be shown, because the dataset names that line
+      the Lasker-Pelikan; the family test above cannot catch it. Every
+      two-part lineage must be a label of the form "Family: Variation" or
+      "Family: Variation, qualifier".
+    */
+    const labels = new Set(OPENING_LABELS);
+    for (const brief of VARIATION_BRIEFS) {
+      if (brief.lineage.length < 2) continue;
+      const [family, variation] = brief.lineage;
+      const exact = `${family}: ${variation}`;
+      const ok = labels.has(exact) || [...labels].some((label) => label.startsWith(`${exact}, `));
+      expect(ok, `no dataset variation named ${exact}`).toBe(true);
+    }
+  });
 });
