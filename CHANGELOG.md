@@ -4,10 +4,43 @@ The user-facing changelog. Internal phase history is in
 `docs/reports/` and `docs/product/phase-*.md`; the list below is what
 real users notice.
 
-## Unreleased
+## 1.1.1 — 2026-09-13
 
-Polish to the released 1.1.0 and its web surface; the version does not
-change.
+A maintenance release: the polish made after 1.1.0 and the corrections
+found while certifying the product for users, so that the public Mac
+application and the web application are the same build of the same
+code. Nothing in the 1.1.0 release was replaced; 1.1.1 is offered
+through _Kingfisher → Check for Updates…_ and from the landing page.
+
+### Corrections
+
+- **The evaluation bar says the same side is better after the board is
+  flipped.** With Black at the bottom the bar had drawn a white band
+  with Black's share of the height, so a position White was winning
+  read as one Black dominated. The band at the bottom is now the bottom
+  side's, in its own colour; the label sits in the leading side's band;
+  mate saturates and prints M3. The two-engine panel says which engine
+  drives the bar (the first one, only).
+- **A surname finds the person you mean.** "Kasparov" is Garry before
+  Sergey, "Karpov" Anatoly, "Fischer" Bobby, "Tal" Mikhail, "Firouzja"
+  Alireza, "Lasker" Emanuel, "Ding" Ding Liren — each had answered a
+  titled namesake first. "MVL" and "Nepo" work.
+- **The Theory Book locates a line by its positions.** A Catalan
+  reached by 1.Nf3 d5 2.g3 was labelled King's Indian Attack; the panel
+  now agrees with the board's own classifier, and its crumbs are the
+  named positions you actually passed through.
+- **A bare clock comment no longer doubles on every PGN round trip.**
+  Every Lichess or chess.com export re-imported after an export had
+  carried `[%clk …] [%clk …]` on every move.
+- **The system requirement is stated correctly: macOS 13 (Ventura) or
+  later.** The 1.1.0 release page and bundle said macOS 11; the
+  Electron runtime inside the application does not start below 13.
+- **The install page no longer tells users of a notarised build to
+  right-click → Open**, and no longer calls the application a Preview.
+- **No hydration warning on a Firefox reload**, from the storage-status
+  button's remembered disabled state.
+- **The public pages say "Kingfisher's", not "Kingfishers"** — fourteen
+  possessives had lost their apostrophes.
 
 ### macOS
 
