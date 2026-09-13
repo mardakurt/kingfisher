@@ -36,25 +36,26 @@ const log = (msg) => console.log(msg);
 const findings = [];
 const warnings = [];
 
-const hasGitleaks = (() => {
-  try {
-    return spawnSync('gitleaks', ['version']).status === 0;
-  } catch {
-    return false;
-  }
-})();
+// Respect PATH first; GUI-launched shells on macOS may omit Homebrew.
+const gitleaks = [
+  'gitleaks',
+  ...(process.platform === 'darwin'
+    ? ['/opt/homebrew/bin/gitleaks', '/usr/local/bin/gitleaks']
+    : []),
+].find((candidate) => spawnSync(candidate, ['version']).status === 0);
+const hasGitleaks = Boolean(gitleaks);
 
 if (!hasGitleaks) {
   warnings.push(
-    'gitleaks is not installed; the secret scan was skipped. Install with: brew install gitleaks',
+    'gitleaks could not be executed; the secret scan was skipped. Install with: brew install gitleaks',
   );
-  log('gitleaks is not installed. Skipping the secret scan.');
+  log('gitleaks could not be executed. Skipping the secret scan.');
 } else {
   const scan = (label, args) => {
     log(`\n--- ${label} ---`);
     const tmp = `/tmp/kingfisher-gitleaks-${Math.random().toString(36).slice(2)}.json`;
     const result = spawnSync(
-      'gitleaks',
+      gitleaks,
       [
         ...args,
         '--no-banner',
