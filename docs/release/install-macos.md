@@ -83,6 +83,35 @@ your work, and macOS's own update engine replaces the application and
 reopens it. The first launch after an update shows a one-time notice
 ("Kingfisher was updated to …").
 
+### Why macOS asks for your password or Touch ID on every update
+
+This is a **standard macOS behaviour for any Developer ID-signed
+application**, not a Kingfisher quirk. After Apple notarises a build and
+the bundle lands on your Mac, macOS marks it with a `com.apple.macl`
+("mandatory access control") extended attribute. From that moment on, the
+file system will not let an unprivileged process — including the
+unprivileged helper Electron uses to swap the bundle — delete or move the
+old app in order to drop the new one in its place. The updater has to
+ask for admin-level authorisation, and macOS does that with the system
+Touch ID / password prompt. Every Electron app distributed outside the
+Mac App Store (VS Code, Discord, Slack, Spotify, …) hits this on every
+update for the same reason.
+
+Three things to know:
+
+1. The prompt comes from macOS itself, not from Kingfisher. You can
+   cancel it — the update just doesn't happen until you run it again.
+2. It is **not** an indicator that anything is wrong with the
+   download. Kingfisher has already verified the update's SHA-512 against
+   the manifest Apple notarised, and the new bundle is signed by the
+   same Developer ID as the old one.
+3. There is no way to opt out of this prompt with the standard Electron
+   updater. Removing the prompt would require a privileged helper tool
+   (an SMJobBless-style installer) that Kingfisher asks you to authorise
+   **once** on first launch, after which every future update runs
+   silently. That helper is not in 1.1.1; it is a Phase 50 candidate and
+   tracked in `docs/reports/` when the phase opens.
+
 **If you have the 1.0.0 preview installed:** it predates the updater and
 is signed with a different identity, so it cannot update itself. Quit it,
 replace it in Applications with the current release by hand, and open the new one. Your
