@@ -191,6 +191,7 @@ async function main() {
         }
         for (let attempt = 0; attempt < 600; attempt += 1) {
           const progress = await call(`/engine/install-progress?engine=${encodeURIComponent(id)}`);
+          if (progress.body?.error) return { failed: progress.body.error };
           if (!progress.body?.progress) break;
           await new Promise((resolve) => setTimeout(resolve, 500));
         }

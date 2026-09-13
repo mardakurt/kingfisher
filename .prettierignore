@@ -10,3 +10,21 @@ desktop/dist
 
 # Generated roster; one line per person, digest-checked by players:roster:check
 public/data/players/titled-players.json
+
+# Generated test evidence, tool state, caches and local build inputs
+test-results*/
+playwright-report/
+.playwright-mcp/
+.claude/
+output/
+.vercel/
+.cache/
+.engine-fleet/
+.archive-cache/
+.packs/
+.engine-build/
+kingfisher-data/
+engines/
+companion/data/
+*.tsbuildinfo
+*.prettier-cache
