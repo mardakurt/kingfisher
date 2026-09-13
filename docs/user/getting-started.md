@@ -3,9 +3,10 @@
 A 5-minute tour. Built for somebody who has just opened the
 application and wants to find the things that matter.
 
-Open the web application at <https://kingfisher-chess.vercel.app/>, or download
-the Apple Silicon macOS preview from the
-[latest release](https://github.com/mardakurt/kingfisher/releases/latest).
+Open the web application at <https://kingfisher-roan.vercel.app/>, or download
+the Apple Silicon macOS application from the
+[landing page](https://kingfisher-chess.vercel.app/#macos) (macOS 13 or later;
+signed with a Developer ID certificate and notarised by Apple).
 
 ## 1. Open a board
 

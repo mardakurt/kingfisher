@@ -17,7 +17,9 @@ export function TermsPage(): JSX.Element {
         or otherwise, arising from, out of or in connection with the software or the use or other
         dealings in the software.
       </p>
-      <p>That is the MIT licences own wording, in its own words. It means exactly what it says.</p>
+      <p>
+        That is the MIT licence&apos;s own wording, in its own words. It means exactly what it says.
+      </p>
 
       <h2 id="correctness">No warranty of correctness</h2>
       <p>
@@ -36,12 +38,12 @@ export function TermsPage(): JSX.Element {
 
       <h2 id="availability">No warranty of availability</h2>
       <p>
-        The web build is hosted on Vercel. Vercels own availability terms apply. The macOS Preview
-        is a downloadable DMG; once downloaded, the application runs on your machine and your
-        machines availability governs. There is no service-level commitment on the web or the
-        desktop, and the maintainer reserves the right to take a deployment offline for maintenance,
-        change a domain, change a host, or change any public URL with the same notice the source
-        repository receives.
+        The web build is hosted on Vercel. Vercel&apos;s own availability terms apply. The macOS
+        application is a downloadable DMG; once downloaded, the application runs on your machine and
+        your machine&apos;s availability governs. There is no service-level commitment on the web or
+        the desktop, and the maintainer reserves the right to take a deployment offline for
+        maintenance, change a domain, change a host, or change any public URL with the same notice
+        the source repository receives.
       </p>
       <p>
         The “current canonical landing” and “current canonical studio” URLs are recorded in{}

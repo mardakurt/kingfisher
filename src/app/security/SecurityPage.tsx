@@ -68,10 +68,10 @@ export function SecurityPage({ issuesUrl }: { issuesUrl: string }): JSX.Element 
           <code>geolocation</code> and <code>interest-cohort</code> (FLoC) at the document level.
         </li>
         <li>
-          <strong>Trusted remote origins</strong> for the applications network calls are listed in{' '}
-          <code>connect-src</code>: the applications own host, the GitHub Pages data mirror,
-          Lichess, and the desktop companions loopback range. Any other host is refused at the CSP
-          layer.
+          <strong>Trusted remote origins</strong> for the application&apos;s network calls are
+          listed in <code>connect-src</code>: the application&apos;s own host, the GitHub Pages data
+          mirror, Lichess, and the desktop companion&apos;s loopback range. Any other host is
+          refused at the CSP layer.
         </li>
         <li>
           <strong>External link restrictions</strong> — outbound links are validated against an
@@ -122,7 +122,7 @@ export function SecurityPage({ issuesUrl }: { issuesUrl: string }): JSX.Element 
           makes a disk image.
         </li>
         <li>
-          <strong>Native engines are not sandboxed.</strong> They run with the users own
+          <strong>Native engines are not sandboxed.</strong> They run with the user&apos;s own
           operating-system permissions, and a settings panel checkbox is the only thing that
           prevents them from being launched. This is documented in the Settings → Engine dialog and
           in <code>AGENTS.md</code>. Do not describe managed engines as sandboxed.

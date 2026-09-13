@@ -42,8 +42,8 @@ export function DataLicencesPage(): JSX.Element {
       </table>
       <p>
         The bundled pack ships as static assets in the application; the opening classification is
-        replayed through Kingfishers own rules code and the result is a generated TypeScript file.
-        Both are described in <code>THIRD_PARTY_DATA.md</code>.
+        replayed through Kingfisher&apos;s own rules code and the result is a generated TypeScript
+        file. Both are described in <code>THIRD_PARTY_DATA.md</code>.
       </p>
 
       <h2 id="installed">Installed on demand</h2>

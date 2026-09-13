@@ -43,8 +43,8 @@ export function PrivacyPage(): JSX.Element {
       <p>
         <strong>User-authored data</strong> — your studies, chapters, repertoire moves, training
         items, model games, recent positions, notes and preferences — is stored in the browser or in
-        the desktop profile. It is held under the applications own storage key and never read by
-        another origin. The structure is documented in <code>AGENTS.md</code> and the schema is
+        the desktop profile. It is held under the application&apos;s own storage key and never read
+        by another origin. The structure is documented in <code>AGENTS.md</code> and the schema is
         versioned.
       </p>
       <p>
@@ -94,8 +94,8 @@ export function PrivacyPage(): JSX.Element {
           verification is reported and the bytes are discarded.
         </li>
         <li>
-          <strong>The applications own origin</strong> for the static assets (Stockfish WASM, piece
-          art, the marketing/landing assets, the app code itself).
+          <strong>The application&apos;s own origin</strong> for the static assets (Stockfish WASM,
+          piece art, the marketing/landing assets, the app code itself).
         </li>
       </ul>
       <p>
@@ -115,16 +115,17 @@ export function PrivacyPage(): JSX.Element {
       <p>
         No third-party tracker, analytics or advertising tag is loaded. A network panel open during
         a normal session will show Lichess (if you have signed in or queried Lichess), the data
-        mirror (if you have used a reference source) and the applications own origin. Nothing else.
+        mirror (if you have used a reference source) and the application&apos;s own origin. Nothing
+        else.
       </p>
 
       <h2 id="hosting">Hosting</h2>
       <p>
         The web build is hosted on Vercel. Vercel sees every request the way any hosting provider
         does, and the request log will contain the IP address you connected from, the URL you
-        requested and the user agent your browser sent. Vercels own data-handling is described in
-        their privacy policy; the Kingfisher project does not put anything additional in those logs.
-        There is no Kingfisher-side server processing them.
+        requested and the user agent your browser sent. Vercel&apos;s own data-handling is described
+        in their privacy policy; the Kingfisher project does not put anything additional in those
+        logs. There is no Kingfisher-side server processing them.
       </p>
 
       <h2 id="account">Account status</h2>

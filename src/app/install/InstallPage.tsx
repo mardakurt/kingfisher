@@ -286,9 +286,9 @@ export function InstallPage({
       <ul>
         <li>
           <strong>Native engines.</strong> <em>Settings → Engine</em>. Each is downloaded from the
-          projects own release page, checked against a recorded SHA-256, and made to complete a real
-          search before it is listed as ready. They run with your user accounts permissions and are
-          not sandboxed; the interface says so.
+          project&apos;s own release page, checked against a recorded SHA-256, and made to complete
+          a real search before it is listed as ready. They run with your user account&apos;s
+          permissions and are not sandboxed; the interface says so.
         </li>
         <li>
           <strong>Local tablebases.</strong> <em>Settings → Companion → Browse…</em> and point it at

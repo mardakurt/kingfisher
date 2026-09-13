@@ -1,11 +1,11 @@
 # Terms
 
 Kingfisher is open-source software published under the
-[MIT licence](../LICENSE). This page is the human-readable
+[MIT licence](../../LICENSE). This page is the human-readable
 summary of what you can and cannot expect from the product.
 
 The full source of truth is the
-[LICENSE](../LICENSE) file. If anything on this page
+[LICENSE](../../LICENSE) file. If anything on this page
 contradicts the licence, the licence wins.
 
 ## The software is provided "as is"
@@ -43,7 +43,7 @@ product decision, not a defect.
 ## No warranty of availability
 
 The web build is hosted on Vercel. Vercel's own availability
-terms apply. The macOS Preview is a downloadable DMG; once
+terms apply. The macOS application is a downloadable DMG; once
 downloaded, the application runs on your machine and your
 machine's availability governs. There is no service-level
 commitment on the web or the desktop, and the maintainer
