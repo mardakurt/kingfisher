@@ -7,8 +7,8 @@ file plus `src/desktop/bridge.ts`, which returns `null` in a browser.
 This document is the Phase 49 check on that claim, feature by feature,
 with the deliberate differences named and the reason for each.
 
-**Published revision check (2026-09-13, 1.1.3).** The public Mac 1.1.3
-DMG is build 539 from `0600ce1`, the same revision the web deployment
+**Published revision check (2026-09-13, 1.1.4).** The public Mac 1.1.4
+DMG is build 544 from `8f3e1d5` (1.1.3 was build 539 from `0600ce1`), the same revision the web deployment
 serves (`npm run deploy:status` → `up to date (8f3e1d5)`). Every Phase 51
 change — the workspace frame on every board route, position setup
 everywhere, the engine selector, the default board, the player identity

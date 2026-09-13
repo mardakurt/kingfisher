@@ -166,3 +166,12 @@ browser's own conventional favicon request), released as 1.1.4 from
 | `desktop:smoke -- --packaged`                                                                       | 17/17                                                                                                              |
 | publish                                                                                             | https://github.com/mardakurt/kingfisher/releases/tag/v1.1.4, latest; DMG sha256 `bd80bf6e…35a1`, 159,176,584 bytes |
 | `desktop:update:real … --public-feed`, `deploy:status`, `desktop:public:verify -- --landing --full` | recorded below                                                                                                     |
+
+Recorded after the push: `desktop:update:real … --public-feed` — the first
+run's dialog said "You're up to date" (the GitHub `latest` feed had not yet
+turned over, seconds after publishing) while the install that followed still
+landed 1.1.4 build 544; the second run, feed settled, PASS 12/12.
+`deploy:status` → `kingfisherchess.app: up to date (8fccd02)`.
+`desktop:public:verify -- --landing --full` → 55/55, `PUBLIC DMG VERIFIED:
+Kingfisher-1.1.4-arm64.dmg (every byte)`. `/favicon.ico` on the public
+origin → 200. Ending HEAD: the commit that carries this paragraph.
