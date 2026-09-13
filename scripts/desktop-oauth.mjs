@@ -56,7 +56,13 @@ async function main() {
 
     const before = app.windows().length;
     const opened = app.waitForEvent('window', { timeout: 30_000 }).catch(() => null);
-    await connect.click();
+    /*
+      `noWaitAfter`: the button assigns `window.location.href`, which schedules
+      a navigation the shell then cancels in `will-navigate`. Playwright's
+      default click waits for that navigation to settle, and a cancelled one
+      never does.
+    */
+    await connect.click({ noWaitAfter: true });
     const child = await opened;
     check(
       'a second window opens for the sign-in',
@@ -65,13 +71,34 @@ async function main() {
     );
     if (!child) return;
 
-    // The child may still be on about:blank for a moment; wait for Lichess.
-    let url = child.url();
-    for (let attempt = 0; attempt < 60 && !url.startsWith('https://lichess.org/'); attempt += 1) {
-      await wait(500);
-      url = child.url();
+    /*
+      The window is created for `https://lichess.org/oauth?…`, and Lichess —
+      with nobody signed in — sends it straight on to `/login?referrer=/oauth?…`.
+      The authorize request is the one to check, so it is taken from the
+      navigation the window made, not from where it ended up.
+    */
+    let url = '';
+    child.on('framenavigated', (frame) => {
+      if (
+        frame === child.mainFrame() &&
+        !url &&
+        frame.url().startsWith('https://lichess.org/oauth')
+      ) {
+        url = frame.url();
+      }
+    });
+    for (let attempt = 0; attempt < 60 && !url; attempt += 1) {
+      const now = child.url();
+      if (now.startsWith('https://lichess.org/oauth')) url = now;
+      else if (now.startsWith('https://lichess.org/login')) {
+        // Already bounced: the authorize URL rides along as the referrer.
+        const referrer = new URL(now).searchParams.get('referrer');
+        if (referrer?.startsWith('/oauth')) url = `https://lichess.org${referrer}`;
+      }
+      if (!url) await wait(500);
     }
-    const parsed = new URL(url);
+    check('the window went to Lichess', url.length > 0, url ? url.slice(0, 40) : child.url());
+    const parsed = new URL(url || child.url());
     check(
       'it is on the Lichess authorize page',
       parsed.origin === 'https://lichess.org' && parsed.pathname === '/oauth',

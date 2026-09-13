@@ -7,26 +7,21 @@ file plus `src/desktop/bridge.ts`, which returns `null` in a browser.
 This document is the Phase 49 check on that claim, feature by feature,
 with the deliberate differences named and the reason for each.
 
-**Published revision check (2026-09-13, 1.1.2).** The public Mac 1.1.2
-DMG is build 516 from `fc95f4d`. The gap recorded for 1.1.1 (build 494
-from `6df79f8`, which predated the service-worker, Safari shortcut and
-pluralisation fixes on the web) is closed by 1.1.2; the same release
-also carries the feedback-dialog fix and Phase 50's update-experience
-work in both identities.
+**Published revision check (2026-09-13, 1.1.3).** The public Mac 1.1.3
+DMG is build 539 from `0600ce1`, the same revision the web deployment
+serves (`npm run deploy:status` → `up to date (0600ce1)`). Every Phase 51
+change — the workspace frame on every board route, position setup
+everywhere, the engine selector, the default board, the player identity
+merge, the Preparation search over the reference packs — is in both
+identities; the one Mac-only change is the Lichess sign-in window in
+`desktop/src/oauth-window.mjs`, listed below under native capabilities.
+Later web-only commits, if any, are recorded here when they land; the Mac
+release is due when there is a Mac-facing change.
 
-Later the same day the web moved ahead of `fc95f4d` by commits that are
-deliberately web-only, listed so nobody has to diff to know: the public
-address (`kingfisherchess.app`, one host for landing and application —
-the Mac app serves over loopback and the links it prints follow the
-redirect); Vercel Web Analytics, rendered only in a Vercel build and
-never in the Mac app; the retirement of the old studio host; the
-licence and footer corrections; and one behavioural change that also
-runs in the Mac app when it is next built, `ensurePersistenceForAuthoredWork`
-— a request for durable browser storage after the first save, which is
-moot under Electron's own profile. None is a Mac-facing defect; the
-next Mac release is due when there is a Mac-facing change, and it will
-close the revision gap. The feature table below describes the shared
-architecture; the descriptor names the bytes.
+The previous check (1.1.2, build 516 from `fc95f4d`) recorded the web-only
+commits made after it: the public address, Web Analytics, the retirement of
+the old studio host, licence and footer corrections, and the durable-storage
+request after the first save. All are in 1.1.3 as well.
 
 **The rule.** Core chess behaviour should agree when built from the same
 source revision. A difference is legitimate only where a native capability exists
