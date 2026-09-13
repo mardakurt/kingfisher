@@ -1,5 +1,11 @@
 # macOS desktop certification matrix
 
+> **Follow-up, 2026-09-13:** the latest build-494 audit passed 8/10 packaged
+> gates; restart and native engine installation failed in that run. Restart
+> passed on a diagnostic rerun, so its earlier failure remains intermittent.
+> These historical GREEN rows do not override the current
+> [Phase 49 handover](../reports/phase-49-handover.md).
+
 What the packaged `Kingfisher.app` has been shown to do, row by row, with
 the command that showed it. Every GREEN row was run against the packaged
 application — the bundle electron-builder produced, launched as a user

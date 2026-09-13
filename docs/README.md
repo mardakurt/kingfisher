@@ -52,9 +52,6 @@ with [`AGENTS.md`](../AGENTS.md).
   longer guide written for the first hundred users.
 - [`product/first-100-known-issues.md`](product/first-100-known-issues.md) —
   known issues, kept current as they are fixed or found.
-- [`product/first-100-support-matrix.md`](product/first-100-support-matrix.md)
-  — which platforms, browsers and configurations are supported, and how each
-  was checked.
 - [`product/work-continuity.md`](product/work-continuity.md) — what survives
   a quit, a crash, a reinstall, a restore.
 - [`product/platform-parity.md`](product/platform-parity.md) — the web
@@ -155,6 +152,16 @@ with [`AGENTS.md`](../AGENTS.md).
 
 ## Records
 
+- `release-evidence/1.1.0-build-manifest.json` and
+  `release-evidence/1.0.0-runtime-manifest.json` — historical generated
+  snapshots, preserved byte-for-byte. Regenerate a local build manifest with
+  `release:manifest`; `publish:release-manifest` prepares the runtime manifest
+  from the current public download descriptor and does not upload it.
+
+- [`product/first-100-support-matrix.md`](product/first-100-support-matrix.md)
+  — historical Phase 39 support audit of 1.0.0. Its unsigned-preview claims
+  are obsolete; use the current install guide and platform-parity document.
+
 - [`adr/`](adr) — Architecture Decision Records. Short, dated, one decision
   each and what it replaced.
 - [`product/pro-workstation-gap-analysis.md`](product/pro-workstation-gap-analysis.md),
@@ -178,6 +185,11 @@ with [`AGENTS.md`](../AGENTS.md).
   [`product/platform-parity.md`](product/platform-parity.md).
 
 ## Historical
+
+- [`reports/phase-49-handover.md`](reports/phase-49-handover.md) — follow-up
+  release audit, exact public identities, fixes and remaining gates.
+- [`reports/phase-49-final-certification.md`](reports/phase-49-final-certification.md)
+  — original Phase 49 investigation with incomplete verdicts corrected.
 
 - [`reports/`](reports) — every phase handover and findings register. Each
   describes what a phase set out to do, what it found, what it shipped and

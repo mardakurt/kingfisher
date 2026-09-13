@@ -301,3 +301,17 @@ validate` passes.
 When the gate is red, the release does not happen. The
 process is designed so that a red gate is cheap, a red
 release is expensive. Cost-asymmetry is the point.
+
+## Testing the actual public update feed
+
+After publication, run `npm run desktop:update:real -- --current /path/to/older/Kingfisher.app --next-dir /path/to/published-output --public-feed`.
+The harness uses an isolated profile and the GitHub feed embedded in the older
+bundle, without starting or overriding a staging server. `--next-dir` supplies
+the expected next version and release artifacts; it must match the published
+release. Without `--public-feed`, the same command uses the local staging feed.
+
+The public feed request must succeed and name the expected version before the
+menu-driven update test begins. A GitHub outage, HTTP failure or stale feed
+fails this gate; Node fetch does not automatically retry HTTP errors. Record
+that failure as an unavailable public update check, rather than a successful
+update. Do not replace already-published release assets to make a test pass.

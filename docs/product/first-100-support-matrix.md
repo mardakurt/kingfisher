@@ -1,5 +1,11 @@
 # Kingfisher — First-100 Support Matrix
 
+> **Historical record — Phase 39 / 1.0.0.** This is not the current support
+> policy. For the signed and notarised 1.1.1 release (Apple Silicon, macOS 13+),
+> see [installation](../release/install-macos.md) and
+> [platform parity](platform-parity.md). Browser certification status is in
+> [final certification](final-certification.md).
+
 > **Subject:** what we actually support, with evidence, for the first
 > ~100 real users of Kingfisher 1.0.0.
 >

@@ -1,14 +1,22 @@
 # Platform parity — the web application and the macOS application
 
 Kingfisher runs in a browser and as a Mac application, and they are the
-same application: `desktop/` serves the same Next.js build the browser
-loads, and the whole surface between shell and page is one preload
+same application architecture: `desktop/` packages a Next.js build from this
+repository, and the whole surface between shell and page is one preload
 file plus `src/desktop/bridge.ts`, which returns `null` in a browser.
 This document is the Phase 49 check on that claim, feature by feature,
 with the deliberate differences named and the reason for each.
 
-**The rule.** Core chess behaviour is identical because it is the same
-code. A difference is legitimate only where a native capability exists
+**Published revision check (2026-09-13).** Both public Vercel aliases serve
+`ca329f7`; the public Mac 1.1.1 DMG is build 494 from `6df79f8`. They are
+not the same source revision. The web includes the later service-worker fix,
+Safari shortcut focus fix and repertoire pluralisation fix. The packaged
+1.1.1 app predates them. The feature table below describes the shared
+architecture; it does not certify identical deployed bytes or revisions.
+A new, separately versioned Mac release is needed to close that gap.
+
+**The rule.** Core chess behaviour should agree when built from the same
+source revision. A difference is legitimate only where a native capability exists
 that a browser does not have (a process, a file path, a menu bar, an
 update engine, a window), and every such row says what the capability
 is. A row that read "desktop only" for something a browser could do

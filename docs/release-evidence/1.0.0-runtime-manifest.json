@@ -1,0 +1,18 @@
+{
+  "schema": "kingfisher-runtime-release-manifest/1",
+  "kingfisher": {
+    "name": "kingfisher",
+    "version": "1.0.0"
+  },
+  "htmlUrl": "https://github.com/mardakurt/kingfisher/releases/tag/v1.0.0",
+  "publishedAt": "2026-09-10T15:04:42.248Z",
+  "desktop": [
+    {
+      "name": "Kingfisher-1.0.0-arm64.dmg",
+      "arch": "arm64",
+      "sha256": "f7b50af58bfc123691ec58eaf3d00ff4e6d028d773eb24d3b8701436b0bf9fd0",
+      "bytes": 157723500,
+      "url": "https://github.com/mardakurt/kingfisher/releases/download/v1.0.0/Kingfisher-1.0.0-arm64.dmg"
+    }
+  ]
+}
