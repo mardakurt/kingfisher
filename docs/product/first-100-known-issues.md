@@ -18,6 +18,48 @@ are in the [Phase 50 handover](../reports/phase-50-handover.md).
 > lives in the release notes; the entries below are the work the
 > maintainer tracks.
 
+## Closed during Phase 51 — the owner's first-day report
+
+Nineteen items reported by the owner after the first day of public use,
+each reproduced on the running application before it was touched, and
+each closed in 1.1.3. The user-facing wording is the 1.1.3 entry in
+`CHANGELOG.md`; the maintainer's reasons are in the code.
+
+- **The tool dock's More menu showed one item and scrolled the tabs away.**
+  The menu was a child of the row with `overflow-x: auto`, which clips
+  vertically too. Moved out of the row; the strip wraps rather than scrolls.
+- **Position setup was reachable from Analysis only**, two menus deep. A
+  **Set up** button on every board page's header (the workspace frame).
+- **Every board page had its own hand-built layout**, and they had drifted:
+  a fixed 360px dock on Review, a chapter list that could not be folded on
+  Studies, columns in viewport units on Endgame. One frame,
+  `WorkspaceFrame`, with a foldable rail and a width policy that keeps the
+  board the largest thing on a laptop.
+- **"Open on the board" opened the start position** with the opening in
+  the move list; **"Open this position in Explorer" opened the library**.
+  `?fen=` had never been read by any route.
+- **Preparation found nobody.** It searched the local collection only; a
+  new user has none. It now searches the player library and reads the
+  reference packs' games for the player, each source counted on its own.
+- **"Add to repertoire" was not findable** from the page that told you to
+  use it. A board for an empty repertoire, and the button in three places.
+- **Players appeared twice**: the Turkish dotless ı survives accent
+  folding, roster aliases were tried in one word order, and two packs filed
+  one person under two spellings.
+- **Lichess linking said "no account called …" for accounts that exist**:
+  Lichess answers anonymous export requests with 404 since 2026. And on the
+  Mac the sign-in opened in the system browser, where the callback could
+  never reach the verifier; it now opens in a child window.
+- **The chosen engine was saved and not applied** after a reload; the
+  one-engine panel had no selector; native engines failed with a
+  developer's remedy (`npm run …`).
+- **"Storage is not protected" answered with a dead-end toast.**
+- **A selected piece could not be deselected.** Second click clears it.
+- **No way to clear the move tree** without resetting the position.
+- **Settings was 640px wide with twelve tabs scrolling sideways.**
+- **Eight variation briefs were wrong**, one of them describing the
+  Caro-Kann Exchange's minority attack as White's.
+
 ## Closed during Phase 46
 
 Found by adversarial testing of the packaged application and fixed in

@@ -6,6 +6,86 @@ real users notice.
 
 ## Unreleased (web)
 
+- **Every board page is the Analysis page.** Studies, Repertoire,
+  Openings, Preparation, Review, Training, Endgame and Opening Files now
+  render the same frame Analysis does — the board with the move tree
+  under it, the resizable tool dock beside it, and the position menu,
+  position setup, command search, theme and settings in the same places
+  on every page. What a page adds is only what makes it that page: its
+  own list in a rail on the left that folds to a strip, its own actions,
+  and its own panel in the dock. Review's journal no longer sits in a
+  fixed 360px column; Studies with no chapter no longer shows a blank
+  column beside an empty board.
+- **Set up a position from any page.** Adding and removing pieces —
+  the start of any endgame study or "what if" — was reachable from
+  Analysis only, two menus deep. Every board page now has a **Set up**
+  button in its header, and the Position menu beside it.
+- **The More menu opens.** Pressing More on the tool dock used to show
+  one item and scroll the tab row sideways so the pinned tabs vanished;
+  the menu was being clipped by the row it lived in. It now lists every
+  tool, and tabs that do not fit the dock's width move into it instead
+  of scrolling out of sight.
+- **The default board is Midnight**, on the web and in the Mac
+  application. A profile that never chose a theme moves to it once;
+  anyone who preferred Walnut picks it again in Settings → Board.
+- **Choose the engine on the engine panel.** The one-engine panel now
+  has the engine selector; it used to be reachable only by switching to
+  Two engines. Every option says whether it can start here — a native
+  engine needs the companion and needs to be installed — and a panel
+  that cannot start its engine offers the Settings page that fixes it
+  rather than a command line.
+- **Clear the move tree** without losing the position: in the command
+  palette, the Export menu and the Position menu. `New` still resets to
+  the initial position; this keeps the endgame you set up and removes
+  the lines you tried.
+- **Clicking a selected piece again deselects it**, and its legal-move
+  dots go away.
+- **"Open on the board" opens the opening**, at the end of its line;
+  it used to open at the initial position with the moves in the list.
+  "Open this position in Explorer" now opens the Explorer on the
+  position; the command had navigated to the library.
+- **Preparation searches the reference sources.** Typing an opponent's
+  name offers the player library — Carlsen with 452 games in the
+  installed reference, not "no matching local games" — and the report is
+  built from those games and your own, each source counted on its own
+  line. A free-typed name still searches imported games for an
+  unlisted opponent.
+- **A repertoire with no positions shows a board**, oriented for its
+  colour, with **Add to repertoire** in its header, its rail and a
+  banner — the button the empty state told you to find.
+- **Players are one row each.** "Erdogmus, Yagiz Kaan" (IM, from the
+  games) and "Yağız Kaan Erdoğmuş" (GM, from Wikidata) were the same
+  person twice: the Turkish dotless ı survives accent folding, and the
+  roster's aliases were only tried in one word order. Two packs filing
+  one player under two spellings are merged too, the roster's current
+  title wins, and rows now say where the player is from.
+- **"Test connection" on a Lichess source becomes "Connect Lichess"**
+  when what the source needs is a sign-in; testing a source with no
+  token re-ran the test and said the same thing.
+- **Linking a Lichess account says what is wrong.** Lichess now serves
+  game exports only to signed-in clients and answers anonymous requests
+  with 404, which Kingfisher reported as "no account called …" for
+  accounts that exist. It now checks the public profile and says to
+  sign in. Enter links the account. In the Mac application, **Sign in
+  with Lichess** opens in a window of its own and returns to the
+  application; it used to open the system browser, where the sign-in
+  could never complete.
+- **"Storage is not protected" explains itself.** A declined request
+  opens a note saying which browsers protect a site when (installed as
+  an app, bookmarked, asked once), offers **Install as an app** when the
+  browser has offered it, and a backup either way — instead of a toast
+  saying the runtime declined.
+- **Settings is wider**, with the sections down the left, and the
+  engine choice you make is the engine you get after a reload; it had
+  been saved and not applied.
+- **188 more variation briefs**, one for each variation a strong player
+  meets — the Sozin, the Moscow, the Grand Prix, the Ragozin, the
+  Petrosian King's Indian, the Chebanenko, the Kieseritzky — and eight
+  existing briefs corrected against the dataset's own lines (the
+  Caro-Kann Exchange's minority attack is Black's, the Berlin does not
+  "ignore a threat to the knight"). `docs/data/variation-briefs.md`
+  lists them.
+
 - **The website counts page views and load times.** Vercel Web
   Analytics and Speed Insights, served from this origin: page path,
   referrer, and what the request already carries (country, browser and

@@ -3,9 +3,9 @@
 A 5-minute tour. Built for somebody who has just opened the
 application and wants to find the things that matter.
 
-Open the web application at <https://kingfisher-roan.vercel.app/>, or download
+Open the web application at <https://kingfisherchess.app/analysis>, or download
 the Apple Silicon macOS application from the
-[landing page](https://kingfisher-chess.vercel.app/#macos) (macOS 13 or later;
+[landing page](https://kingfisherchess.app/#macos) (macOS 13 or later;
 signed with a Developer ID certificate and notarised by Apple).
 
 ## 1. Open a board
@@ -19,6 +19,13 @@ Play a move. Either drag a piece, or use the keyboard:
 - **Arrows** move the cursor.
 - **Enter** drops the selected piece.
 - **Backspace** takes the move back.
+
+Every board page — Analysis, Studies, Repertoire, Openings,
+Preparation, Review, Endgame — has the same shape: the board with
+the move list under it, the tool dock on the right, and **Position**
+and **Set up** in the header. **Set up** is where you add or remove
+pieces to build an endgame or a "what if" position; the Position
+menu is everything else you can do with what is on the board.
 
 ## 2. Run an analysis
 
@@ -65,9 +72,12 @@ question you actually have.
 
 ## 8. Optional: an opponent preparation
 
-Open **Preparation**, add a name, then click **Research**. The
-panel shows what your opponent plays as White and Black, with
-the same Explorer columns as before.
+Open **Preparation** and start typing a name. The box offers the
+player library — every player the installed reference sources hold
+games for, with the count — and **Prepare** builds the report from
+those games and from any you have imported, each source counted on
+its own line. The profile is in the rail on the left, the opening
+tree in the dock on the right, and the board between them.
 
 That's the five minutes. The same flow works the other way: open
 a game, replay it move by move, drop the engine, drop a reference
