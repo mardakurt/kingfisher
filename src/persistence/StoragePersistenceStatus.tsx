@@ -72,6 +72,15 @@ export function StoragePersistenceStatus({ compact = false }: { readonly compact
       />
       <button
         type="button"
+        /*
+          Firefox restores a button's disabled state from before a reload
+          along with form values. The server and the client both render this
+          button disabled while the storage probe is pending, but a reloaded
+          Firefox page had already enabled it, and the restored DOM disagreed
+          with both — a hydration mismatch on every reload, in Firefox only.
+          autocomplete="off" is the documented opt-out of that restoration.
+        */
+        {...({ autoComplete: 'off' } as Record<string, string>)}
         disabled={!view.requestable && !view.openable && writeStatus !== 'failed'}
         onClick={async () => {
           if (view.requestable) {

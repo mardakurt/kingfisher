@@ -189,9 +189,28 @@ test('a cancelled import keeps whole games and does not duplicate them on retry'
   expect(consoleFailures).toEqual([]);
 });
 
-test('the diagnostic report carries no secrets', async ({ page, context }) => {
+test('the diagnostic report carries no secrets', async ({ page }) => {
   const consoleFailures = watchConsole(page);
-  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  /*
+    The clipboard is the boundary, so it is stubbed rather than granted:
+    Playwright can grant clipboard permissions to Chromium only, and Firefox
+    and WebKit refused the grant before the page opened. What matters is the
+    text the application hands to the clipboard, and this captures exactly
+    that in every engine.
+  */
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: (text: string) => {
+          (window as unknown as { __copied?: string }).__copied = text;
+          return Promise.resolve();
+        },
+        readText: () =>
+          Promise.resolve((window as unknown as { __copied?: string }).__copied ?? ''),
+      },
+    });
+  });
   await page.goto('/analysis');
   await waitForApp(page);
 
