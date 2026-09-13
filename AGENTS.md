@@ -407,7 +407,7 @@ source of truth for the URLs the application prints is
 - **`npm run docs:check`:** the local audit script. Runs in
   under a second, does not hit the network, and asserts the
   invariants the public surface depends on: the canonical
-  landing is the Vercel host, the install guide names the
+  origin is `kingfisherchess.app`, the install guide names the
   current DMG, the security policy matches the implemented Sync and
   descriptor-backed notarisation state, the privacy and data-licences pages exist
   with the right content, the landing has structured data

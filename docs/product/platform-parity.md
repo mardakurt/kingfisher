@@ -8,15 +8,25 @@ This document is the Phase 49 check on that claim, feature by feature,
 with the deliberate differences named and the reason for each.
 
 **Published revision check (2026-09-13, 1.1.2).** The public Mac 1.1.2
-DMG is build 516 from `fc95f4d`, and both public Vercel aliases are
-deployed from the commit that points the landing at it — the same source
-plus the release descriptor and the documents that name it. The gap
-recorded for 1.1.1 (build 494 from `6df79f8`, which predated the
-service-worker, Safari shortcut and pluralisation fixes on the web) is
-closed by 1.1.2; the same release also carries the feedback-dialog fix
-and Phase 50's update-experience work in both identities. The feature
-table below describes the shared architecture; the descriptor names the
-bytes.
+DMG is build 516 from `fc95f4d`. The gap recorded for 1.1.1 (build 494
+from `6df79f8`, which predated the service-worker, Safari shortcut and
+pluralisation fixes on the web) is closed by 1.1.2; the same release
+also carries the feedback-dialog fix and Phase 50's update-experience
+work in both identities.
+
+Later the same day the web moved ahead of `fc95f4d` by commits that are
+deliberately web-only, listed so nobody has to diff to know: the public
+address (`kingfisherchess.app`, one host for landing and application —
+the Mac app serves over loopback and the links it prints follow the
+redirect); Vercel Web Analytics, rendered only in a Vercel build and
+never in the Mac app; the retirement of the old studio host; the
+licence and footer corrections; and one behavioural change that also
+runs in the Mac app when it is next built, `ensurePersistenceForAuthoredWork`
+— a request for durable browser storage after the first save, which is
+moot under Electron's own profile. None is a Mac-facing defect; the
+next Mac release is due when there is a Mac-facing change, and it will
+close the revision gap. The feature table below describes the shared
+architecture; the descriptor names the bytes.
 
 **The rule.** Core chess behaviour should agree when built from the same
 source revision. A difference is legitimate only where a native capability exists

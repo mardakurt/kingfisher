@@ -349,5 +349,18 @@ address, no subdomain — was then built properly:
 
 The 1.1.2 Mac bundle is unaffected: it serves the application over
 loopback, and the links it prints follow the redirect. Its source
-revision is now behind `master` by web-hosting commits only; the next
-Mac release is due when there is a Mac-facing change.
+revision is now behind `master`; what the web has that the bundle does
+not is itemised in `docs/product/platform-parity.md` (the address, the
+page-view count that a Mac build never renders, the durable-storage
+request that is moot under Electron). The next Mac release is due when
+there is a Mac-facing change.
+
+### End of day — the gates on the final tree
+
+`npm run test:e2e` (the Chrome project, locally): **269 passed, 0 failed,
+0 flaky, 0 skipped**, 16.1 min, on the tree after the address change, the
+durable-storage request and the page-view count. `npm test` 2961, typecheck,
+lint, format, `docs:check` 344/344, `public:check` 22/22, `git diff --check`
+clean. The four-browser matrix was not run (owner's instruction). The Mac
+bundle remains 1.1.2 build 516 from `fc95f4d`; what the web has beyond it is
+itemised in `docs/product/platform-parity.md`.
