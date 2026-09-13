@@ -4,9 +4,11 @@
 > `Kingfisher-1.1.2-arm64.dmg` (build 516 from `fc95f4d`); the gates run
 > on that bundle — preflight, `npm run build`, `desktop:dist` (signed,
 > notarised, booted), `release:mac:notarize`, `desktop:trust:verify`,
-> `verify-dmg`, a quarantined Gatekeeper assessment, `desktop:smoke
---packaged` 17/17, and `desktop:public:verify --landing --full` against
-> the published bytes — are recorded with their output in
+> `verify-dmg`, a quarantined Gatekeeper assessment, `desktop:smoke`
+> `--packaged` 17/17, `desktop:public:verify --landing --full` against
+> the published bytes, and the real public 1.1.1 → 1.1.2 update through
+> the menu (`desktop:update:real --public-feed`, PASS) — are recorded
+> with their output in
 > [`docs/reports/phase-50-handover.md`](../reports/phase-50-handover.md).
 > The four-browser matrix was not run for 1.1.2 (the maintainer asked
 > that CI not be used); the Chrome e2e for the one renderer change,
