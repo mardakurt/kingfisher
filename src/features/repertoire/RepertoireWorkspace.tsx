@@ -177,8 +177,11 @@ export function RepertoireWorkspace() {
         {repertoire.data ? (
           <span className="hidden text-2xs text-tertiary sm:inline">
             {repertoire.data.repertoire.color === 'w' ? 'White' : 'Black'} ·{' '}
-            {metrics.answeredPositions} prepared positions
-            {gaps.data?.length ? ` · ${gaps.data.length} evidence-backed gaps` : ''}
+            {metrics.answeredPositions} prepared{' '}
+            {metrics.answeredPositions === 1 ? 'position' : 'positions'}
+            {gaps.data?.length
+              ? ` · ${gaps.data.length} evidence-backed ${gaps.data.length === 1 ? 'gap' : 'gaps'}`
+              : ''}
           </span>
         ) : null}
         <div className="ml-auto flex items-center gap-1.5">
