@@ -79,38 +79,58 @@ Kingfisher checks for updates only when you ask: **Kingfisher → Check for
 Updates…** in the macOS menu. There is no background poller and no
 surprise restart. When a newer release exists the window offers
 **Install Update**; Kingfisher downloads it, verifies it, finishes saving
-your work, and macOS's own update engine replaces the application and
-reopens it. The first launch after an update shows a one-time notice
+your work, and the Squirrel.Mac helper replaces the application bundle
+and reopens it. The first launch after an update shows a one-time notice
 ("Kingfisher was updated to …").
 
-### Why macOS asks for your password or Touch ID on every update
+### Why the very first update asks for your password or Touch ID, and later ones do not
 
-This is a **standard macOS behaviour for any Developer ID-signed
-application**, not a Kingfisher quirk. After Apple notarises a build and
-the bundle lands on your Mac, macOS marks it with a `com.apple.macl`
-("mandatory access control") extended attribute. From that moment on, the
-file system will not let an unprivileged process — including the
-unprivileged helper Electron uses to swap the bundle — delete or move the
-old app in order to drop the new one in its place. The updater has to
-ask for admin-level authorisation, and macOS does that with the system
-Touch ID / password prompt. Every Electron app distributed outside the
-Mac App Store (VS Code, Discord, Slack, Spotify, …) hits this on every
-update for the same reason.
+On a Developer ID-signed, notarised bundle, the stock Electron
+updater (`Squirrel.Mac`) tries to install itself as a privileged helper
+tool the first time it runs, which surfaces the macOS dialog
 
-Three things to know:
+> An update is ready to install. **Kingfisher is trying to add a new
+> helper tool.** Touch ID or enter your password to allow this.
 
-1. The prompt comes from macOS itself, not from Kingfisher. You can
-   cancel it — the update just doesn't happen until you run it again.
-2. It is **not** an indicator that anything is wrong with the
-   download. Kingfisher has already verified the update's SHA-512 against
-   the manifest Apple notarised, and the new bundle is signed by the
-   same Developer ID as the old one.
-3. There is no way to opt out of this prompt with the standard Electron
-   updater. Removing the prompt would require a privileged helper tool
-   (an SMJobBless-style installer) that Kingfisher asks you to authorise
-   **once** on first launch, after which every future update runs
-   silently. That helper is not in 1.1.1; it is a Phase 50 candidate and
-   tracked in `docs/reports/` when the phase opens.
+This is a long-standing Squirrel.Mac bug — see Squirrel/Squirrel.Mac
+issues #192 and #247. The prompt only fires **once** per machine,
+because the very next time the app starts it sets a flag in your user
+defaults that tells Squirrel.Mac to skip the helper-install path:
+
+```
+defaults write app.kingfisher.chess SquirrelMacEnableDirectContentsWrite -string TRUE
+```
+
+The flag must be a string, not a boolean. Squirrel.Mac's check is
+
+```objc
+return [override isEqualToString:@"true"]
+    || [override isEqualToString:@"TRUE"]
+    || [override isEqualToString:@"1"];
+```
+
+and `defaults write -bool TRUE` is stored as the integer `1`, which the
+comparison fails on. Kingfisher's first launch (`main.mjs`,
+`ensureSquirrelMacDirectWrite`) writes the value as a string so the
+flag actually takes effect; the helper is idempotent and logs only on
+change.
+
+Two things to know:
+
+1. The prompt only appears on the **first** update after a fresh
+   install. After you authenticate once and the helper is in place, the
+   flag is set on the next launch and every later update runs without
+   asking again.
+2. The flag does not weaken the install. The download is still
+   SHA-512-verified against the notarised manifest, and the new
+   bundle is still Developer ID signed by the same identity as the
+   old one. The flag only suppresses the re-prompt; the actual
+   privilege check happens at the file-system layer the way it
+   always has.
+
+If you want to suppress the prompt before Kingfisher has a chance to
+set the flag (for example, on a machine where you cannot run the app
+yet), run the `defaults write` command above once and you're done.
 
 **If you have the 1.0.0 preview installed:** it predates the updater and
 is signed with a different identity, so it cannot update itself. Quit it,

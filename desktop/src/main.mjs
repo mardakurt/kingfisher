@@ -29,6 +29,14 @@ import { fileURLToPath } from 'node:url';
 
 import { readBuildIdentity } from './build-identity.mjs';
 import { log, logFile, openLog, redactInLog } from './log.mjs';
+import { ensureSquirrelMacDirectWrite } from './squirrel-direct-write.mjs';
+
+/*
+  The macOS bundle identifier, fixed by `electron-builder.yml`'s `appId`
+  above. `app.getName()` returns the *product* name, not the bundle ID,
+  so we keep the constant here rather than try to fish it out at runtime.
+*/
+const BUNDLE_IDENTIFIER = 'app.kingfisher.chess';
 import { buildTemplate } from './menu.mjs';
 import {
   attachBoundsPersistence,
@@ -1029,6 +1037,15 @@ if (!app.requestSingleInstanceLock()) {
       `Kingfisher ${buildIdentity.label} · Electron ${process.versions.electron} · ` +
         `${process.platform}-${process.arch} ${os.release()} · packaged=${app.isPackaged}`,
     );
+    /*
+      Suppress the Squirrel.Mac SMJobBless "Kingfisher is trying to add a
+      new helper tool" prompt that otherwise fires on every update. The
+      flag lives in the user's defaults for our bundle identifier; the
+      helper writes it as a string ("TRUE") because ShipIt compares with
+      `isEqualToString:` and an integer 1 would not match. See the module
+      docstring in `squirrel-direct-write.mjs` for the full reasoning.
+    */
+    ensureSquirrelMacDirectWrite(BUNDLE_IDENTIFIER);
     configureChannel({
       name: buildIdentity.channel,
       build: buildIdentity.build,
