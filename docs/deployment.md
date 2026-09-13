@@ -142,11 +142,13 @@ not set; it never blocks the release flow.
 ### Production deploy automation
 
 Both the Landing and the Studio Vercel projects deploy from
-the same `master` push. The Landing project uses the
-standard Vercel Git integration; the Studio project is
-backed by the GitHub Actions workflow at
-`.github/workflows/deploy-studio.yml`, which calls the
-Vercel CLI on every push to `master` and is the durable
+the same `master` push. The Landing project is backed by
+the GitHub Actions workflow at
+`.github/workflows/deploy-landing.yml` (added in Phase 50
+when the Vercel Git integration was confirmed not wired);
+the Studio project is backed by
+`.github/workflows/deploy-studio.yml`. Both call the Vercel
+CLI on every push to `master` and are the durable
 replacement for the Phase 41-era manual `vercel deploy
 --prod --yes`.
 
@@ -165,6 +167,17 @@ To enable or re-enable the Studio auto-deploy:
    an `:notice:` in the workflow output rather than as a
    red cross, so a missing secret does not block other
    CI.
+
+To enable or re-enable the Landing auto-deploy (Phase 50
+workflow at `.github/workflows/deploy-landing.yml`):
+
+1. In the Vercel dashboard for the Landing project, copy
+   the project id from _Settings → General_. Note that
+   this is a different id than `VERCEL_PROJECT_STUDIO`.
+2. Add (or reuse) the `VERCEL_TOKEN` and `VERCEL_TEAM_ID`
+   secrets, then add `VERCEL_PROJECT_LANDING`.
+3. The next push to `master` deploys both projects
+   independently. `npm run deploy:status` confirms.
 
 Verify the result with `npm run deploy:status`. The
 script reads `git rev-parse origin/master` and the latest

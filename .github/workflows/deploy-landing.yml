@@ -1,0 +1,129 @@
+# Auto-deploy the Kingfisher Landing to Vercel on every push to master.
+#
+# Why this exists:
+#
+#   The Landing lives at https://kingfisher-chess.vercel.app/ and the
+#   `scripts/vercel-status.mjs` gate (run as `npm run deploy:status`) is
+#   what tells the maintainer whether production actually matches
+#   origin/master. Phase 50 reported that the Landing project has no
+#   Git integration in Vercel, which is why every push required a hand-
+#   run `vercel deploy --prod --yes` from the terminal. This workflow
+#   retires that hand step.
+#
+# What this workflow does:
+#
+#   - Builds the application the same way `npm run build` does locally
+#     so a build failure stops the deploy (no red build to production);
+#   - Calls the Vercel CLI to create a production deployment against
+#     the configured Landing project;
+#   - Emits the production URL as a workflow notice so the maintainer
+#     can copy it from the Actions run.
+#
+# What this workflow deliberately does NOT do:
+#
+#   - It does NOT touch production secrets other than the deployment
+#     token, which lives in repository secrets. The token has the
+#     minimum scope Vercel allows for production deployments.
+#   - It does NOT publish a GitHub Release or sign a Mac bundle —
+#     those jobs live in `release-mac.yml` and run by hand.
+#
+# Required secrets (configure per environment in the GitHub UI):
+#
+#   VERCEL_TOKEN              — Personal Access Token from
+#                               https://vercel.com/account/tokens.
+#   VERCEL_TEAM_ID            — The Vercel team that owns the project
+#                               (`team_…`), optional but recommended.
+#   VERCEL_PROJECT_LANDING    — The Vercel project id for the Landing
+#                               project. Find it in the project's
+#                               Settings → General.
+#
+# Without those secrets, the workflow exits clean (does not block CI).
+# The deploy status script (`npm run deploy:status`) is the way to know
+# if the configuration is missing.
+#
+# Concurrency: only one Landing deploy runs at a time per ref. A second
+# push cancels the in-flight run rather than queueing a stale one
+# behind it.
+
+name: Deploy Landing (Vercel)
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Git ref to deploy (branch or SHA)'
+        required: false
+        default: 'master'
+
+concurrency:
+  group: landing-deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy Landing to Vercel production
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
+      VERCEL_PROJECT_LANDING: ${{ secrets.VERCEL_PROJECT_LANDING }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      # Build first so a build failure stops the deploy — there is no
+      # point deploying a red build to production.
+      - name: Production build
+        run: npm run build
+
+      - name: Deploy to Vercel
+        if: env.VERCEL_TOKEN != '' && env.VERCEL_PROJECT_LANDING != ''
+        run: |
+          set -euo pipefail
+          if [ -n "${VERCEL_TEAM_ID:-}" ]; then
+            TEAM_FLAG="--scope ${VERCEL_TEAM_ID}"
+          else
+            TEAM_FLAG=""
+          fi
+          # `--project` is critical: without it `vercel deploy` targets
+          # the project linked by `.vercel/project.json`, which on this
+          # repo is the Landing project — so the Studio would never be
+          # updated by this workflow. We pass the Landing project id
+          # explicitly to keep the two deploy workflows independent.
+          npx vercel deploy \
+            --prod \
+            --yes \
+            --token "${VERCEL_TOKEN}" \
+            ${TEAM_FLAG} \
+            --project "${VERCEL_PROJECT_LANDING}" \
+            --confirm \
+            --archive \
+            > deploy.log 2>&1
+          URL=$(grep -oE 'Production: https://[^ ]+' deploy.log | head -1 | sed 's/Production: //')
+          if [ -n "${URL:-}" ]; then
+            echo "::notice title=Landing deployed::${URL}"
+            echo "DEPLOY_URL=${URL}" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error title=Landing deploy failed::could not parse the production URL"
+            cat deploy.log
+            exit 1
+          fi
+        env:
+          VERCEL_PROJECT_LANDING: ${{ secrets.VERCEL_PROJECT_LANDING }}
+
+      - name: Skip notice when secrets are missing
+        if: env.VERCEL_TOKEN == '' || env.VERCEL_PROJECT_LANDING == ''
+        run: |
+          echo "::notice title=Landing deploy skipped::VERCEL_TOKEN or VERCEL_PROJECT_LANDING is not set; configure repository secrets to enable auto-deploy."
