@@ -75,13 +75,31 @@ does show one of those messages, that is a bug — please report it.
 
 ## 6. Updates
 
-Kingfisher checks for updates only when you ask: **Kingfisher → Check for
-Updates…** in the macOS menu. There is no background poller and no
-surprise restart. When a newer release exists the window offers
-**Install Update**; Kingfisher downloads it, verifies it, finishes saving
-your work, and the Squirrel.Mac helper replaces the application bundle
-and reopens it. The first launch after an update shows a one-time notice
+Kingfisher checks for updates in two ways.
+
+- **On launch, quietly.** Five seconds after the app finishes starting
+  up, it asks the release host for the current latest-mac.yml. If a
+  newer release exists, the *Kingfisher* menu's *Check for Updates…*
+  item re-labels itself to *An Update Is Available…* (or *Update Ready
+  to Install…* once the download has finished) — the same pattern as
+  ChatGPT and Claude on macOS. There is no badge, no banner, no
+  notification; the user notices when they next open the menu.
+- **When you ask.** *Kingfisher → Check for Updates…* in the macOS
+  menu. The dialog opens in its current state: idle, up-to-date,
+  available, ready, or whatever the background check last observed.
+
+When a newer release exists the window offers **Install Update**;
+Kingfisher downloads it, verifies it, finishes saving your work, and
+the Squirrel.Mac helper replaces the application bundle and reopens
+it. The first launch after an update shows a one-time notice
 ("Kingfisher was updated to …").
+
+The dialog renders the GitHub release notes inline between the
+headline and the footnote, so you can read what changed before you
+click *Install Update*. The notes are GitHub-flavoured markdown;
+Kingfisher's renderer handles the headings, lists, paragraphs,
+**bold**, *italic*, and `` `inline code` `` that actually appear in
+release bodies, with no HTML pass-through.
 
 ### Why the very first update asks for your password or Touch ID, and later ones do not
 

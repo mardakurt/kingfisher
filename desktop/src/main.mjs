@@ -1113,6 +1113,27 @@ if (!app.requestSingleInstanceLock()) {
     void openPaths(openableFromArgv(process.argv));
 
     /*
+      Phase 50: silent background update check on launch.
+      ChatGPT, Claude, and other Electron-based macOS apps check for
+      updates as soon as the app is ready and quietly re-label the
+      *Check for Updates…* menu item to *An Update Is Available…* when
+      one is found. We do the same here — a single `check()` call,
+      errors swallowed, no UI unless something actually changes.
+      The user can still trigger an explicit check from the menu
+      (that path is unaffected); this is the always-on quiet layer.
+    */
+    setTimeout(() => {
+      check()
+        .then(() => log('update', 'background check on launch completed'))
+        .catch((err) =>
+          log(
+            'update',
+            `background check on launch failed: ${String(err?.message ?? err)}`,
+          ),
+        );
+    }, 5_000);
+
+    /*
       Phase 36: the small "Kingfisher was updated to X.Y.Z" notice.
       We only know the previous version because the last launch
       recorded it; if the user has never acknowledged this version,

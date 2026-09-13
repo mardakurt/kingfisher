@@ -18,10 +18,17 @@
  *   4. Progress is shown in the dialog until the OS takes over
  *      for the actual install.
  *
+ * Phase 50 surfaces the GitHub release notes inline so the user can
+ * read what changed before clicking *Install Update*. The actual
+ * markdown renderer lives in `release-notes-markdown.mjs` so it can
+ * be exercised without booting Electron.
+ *
  * Every state name in the switch below is also a value of
  * `STATUS` in `update-protocol.mjs`. Adding a state on the main
  * side without a matching case here is a bug.
  */
+
+import { renderReleaseNotes, appendInline } from '../release-notes-markdown.mjs';
 
 (function () {
   const els = {
@@ -33,6 +40,7 @@
     progress: document.getElementById('progress'),
     progressFill: document.getElementById('progress-fill'),
     footnote: document.getElementById('footnote'),
+    releaseNotes: document.getElementById('release-notes'),
   };
 
   const bridge = window.kingfisherUpdate;
@@ -105,6 +113,8 @@
           footnote: 'Kingfisher will close and reopen automatically.',
           primary: { label: 'Install Update', enabled: true, action: 'install' },
           secondary: { label: 'Later', enabled: true, action: 'close' },
+          releaseName: verdict.releaseName,
+          releaseNotes: verdict.releaseNotes,
         });
         break;
       case 'downloading':
@@ -139,6 +149,8 @@
           footnote: 'Kingfisher will close and reopen automatically.',
           primary: { label: 'Install Update', enabled: true, action: 'install' },
           secondary: { label: 'Later', enabled: true, action: 'close' },
+          releaseName: verdict.releaseName,
+          releaseNotes: verdict.releaseNotes,
         });
         break;
       case 'waiting-for-save':
@@ -227,11 +239,12 @@
     }
   }
 
-  function paint({ headline, detail, progress, footnote, primary, secondary }) {
+  function paint({ headline, detail, progress, footnote, primary, secondary, releaseNotes, releaseName }) {
     const focused = document.activeElement;
     els.headline.textContent = headline;
     els.detail.textContent = detail || '';
     els.footnote.textContent = footnote || '';
+    paintReleaseNotes({ notes: releaseNotes, name: releaseName });
     if (progress == null) {
       els.progress.removeAttribute('aria-valuenow');
       els.progress.classList.add('hidden');
@@ -315,6 +328,45 @@
       return `The macOS arm64 build is ${formatBytes(bytes)}.`;
     }
     return 'The download starts when you choose Install Update.';
+  }
+
+  /**
+   * Render the GitHub release-notes body inline under the headline so the
+   * user can read what's changed before they click *Install Update*.
+   *
+   * The body is GitHub-flavoured markdown but this renderer only handles
+   * the subset that actually shows up in Kingfisher releases:
+   *
+   *   - `**bold**` and `*italic*` (asterisk emphasis)
+   *   - `# heading`, `## heading`, `### heading`
+   *   - `- bullet` and `1. numbered` lists
+   *   - paragraphs separated by blank lines
+   *   - `inline code` with backticks
+   *
+   * The renderer never accepts raw HTML: every line is escaped first, then
+   * the small set of markdown patterns is re-introduced on the escaped
+   * text. This is what keeps a hostile release-notes payload from
+   * running JavaScript in the dialog.
+   */
+  function paintReleaseNotes({ notes, name } = {}) {
+    const target = els.releaseNotes;
+    if (!target) return;
+    target.replaceChildren();
+    const markdown = composeReleaseNotes(notes, name);
+    if (!markdown) {
+      target.classList.remove('visible');
+      target.removeAttribute('aria-label');
+      return;
+    }
+    target.appendChild(renderReleaseNotes(document, markdown));
+    target.classList.add('visible');
+  }
+
+  function composeReleaseNotes(notes, name) {
+    const parts = [];
+    if (typeof name === 'string' && name.trim()) parts.push(`# ${name.trim()}`);
+    if (typeof notes === 'string' && notes.trim()) parts.push(notes.trim());
+    return parts.join('\n\n');
   }
 
   function formatBytes(n) {

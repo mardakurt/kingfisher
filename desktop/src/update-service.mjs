@@ -229,6 +229,12 @@ function wireEngineForCheck(checkId) {
         latestVersion: latest,
         releaseDate: info?.releaseDate ?? null,
         sizeBytes: pickUpdateSize(info),
+        // GitHub Releases put the body of the release here; electron-builder
+        // copies it into the manifest too. We pass it through so the dialog
+        // can render the changelog inline — the same way ChatGPT, Claude,
+        // and other Electron-based macOS apps do.
+        releaseName: pickReleaseName(info),
+        releaseNotes: pickReleaseNotes(info),
       });
     }),
   );
@@ -297,6 +303,50 @@ function pickUpdateSize(info) {
   if (Array.isArray(info.files) && info.files.length) {
     const f = info.files[0];
     if (typeof f.size === 'number') return f.size;
+  }
+  return null;
+}
+
+/**
+ * electron-updater surfaces the GitHub release title on
+ * `info.releaseName`. We fall back to the version when the field is
+ * missing so the dialog always has *something* to put in the heading.
+ */
+function pickReleaseName(info) {
+  if (!info) return null;
+  if (typeof info.releaseName === 'string' && info.releaseName.trim()) {
+    return info.releaseName.trim();
+  }
+  return null;
+}
+
+/**
+ * The release-notes blob comes from GitHub Releases (markdown body)
+ * or from `latest-mac.yml`'s `releaseNotes` key when the feed is a
+ * generic staging mirror. It can be either a string (one locale) or
+ * an array of `{note: string}` objects (per-locale entries that
+ * electron-updater merges). We normalise both shapes to a single
+ * markdown string and trim leading/trailing whitespace so the dialog
+ * does not have to deal with multiple bodies.
+ */
+function pickReleaseNotes(info) {
+  if (!info) return null;
+  const raw = info.releaseNotes;
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    return trimmed.length ? trimmed : null;
+  }
+  if (Array.isArray(raw)) {
+    const parts = [];
+    for (const entry of raw) {
+      if (entry && typeof entry === 'object' && typeof entry.note === 'string') {
+        parts.push(entry.note);
+      } else if (typeof entry === 'string') {
+        parts.push(entry);
+      }
+    }
+    const joined = parts.join('\n\n').trim();
+    return joined.length ? joined : null;
   }
   return null;
 }
