@@ -268,13 +268,44 @@ Written by the agent that cut the release, after the sections above.
 
 Not run: the four-browser Playwright matrix (`browser-cert.yml` is
 `workflow_dispatch`; the maintainer asked that CI not be used, and the
-`CI` runs the two pushes triggered were cancelled), `desktop:certify`'s
-walks and soak, and the real public 1.1.1 → 1.1.2 menu update
-(`desktop:update:real --public-feed` needs a signed 1.1.1 bundle at hand
-and a window; the installed copies were 1.1.1 build 494 and are the
-maintainer's to replace). The interactive quarantined `open` was not
-performed — the Gatekeeper sheet needs the owner's click — the `spctl`
-assessment above is the check that does not.
+`CI` runs the pushes triggered were cancelled) and `desktop:certify`'s
+walks and soak. The interactive quarantined `open` was not performed —
+the Gatekeeper sheet needs the owner's click — the `spctl` assessment
+above is the check that does not.
+
+### The update a user performs, performed
+
+After the landing was deployed, with the public `v1.1.1` DMG downloaded
+from GitHub (SHA-256 `af3873f4…`, as its descriptor said) as the
+"installed" build:
+
+```
+npm run desktop:update:real -- --current <1.1.1 Kingfisher.app> \
+  --next-dir <the 1.1.2 output> --public-feed
+```
+
+| Check                                                | Result                                |
+| ---------------------------------------------------- | ------------------------------------- |
+| the public feed answers with the next version        | `…/releases/latest/download/` → 1.1.2 |
+| a study was authored in the current build            | ✓                                     |
+| Check for Updates… exists in the application menu    | ✓                                     |
+| the dialog offers 1.1.2                              | "Kingfisher 1.1.2 is available"       |
+| the application quit to install                      | Downloading → Restarting Kingfisher…  |
+| the installed bundle is now 1.1.2                    | 1.1.2 (build 516)                     |
+| the replaced bundle carries a Developer ID signature | ✓                                     |
+| the update engine relaunched Kingfisher              | ✓                                     |
+| the reopened 1.1.2 reports its version               | ✓                                     |
+| the post-update notice is shown                      | ✓                                     |
+| the study authored before the update is still there  | ✓                                     |
+| nothing survives the quit                            | 5 descendants, gone                   |
+
+**Real update: PASS.** Then the released 1.1.2 itself, opened on a fresh
+profile, _Check for Updates…_ against the same public feed: "You're up
+to date — You have the latest version available on this release
+channel", the version line "Kingfisher 1.1.2", Escape closes it. Both
+`UP_TO_DATE` paths in `update-service.mjs` require the engine to have
+received the feed's answer, so that verdict is a round trip, not a
+default.
 
 ### Feedback path, verified
 
