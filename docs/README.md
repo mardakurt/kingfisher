@@ -37,10 +37,11 @@ with [`AGENTS.md`](../AGENTS.md).
 - [`product/public-claims.md`](product/public-claims.md) — every public
   claim, where it appears, what backs it, and what must not be claimed.
   **Read before changing a landing-page or README sentence.**
-- [`release/1.0.0.md`](release/1.0.0.md) — release notes for the current
-  public release.
+- [`release/1.1.0.md`](release/1.1.0.md) — release notes for the current
+  public release. [`release/1.0.0.md`](release/1.0.0.md) is the previous
+  one.
 - [`../CHANGELOG.md`](../CHANGELOG.md) — what changed, by version;
-  _Unreleased_ is what master has that 1.0.0 does not.
+  _Unreleased_ is what master has that the current release does not.
 
 ### Using Kingfisher
 
@@ -56,8 +57,15 @@ with [`AGENTS.md`](../AGENTS.md).
   was checked.
 - [`product/work-continuity.md`](product/work-continuity.md) — what survives
   a quit, a crash, a reinstall, a restore.
-- [`product/web-desktop-parity.md`](product/web-desktop-parity.md) — the web
-  application and the desktop application, feature by feature.
+- [`product/platform-parity.md`](product/platform-parity.md) — the web
+  application and the desktop application, feature by feature, with the
+  deliberate differences named.
+- [`product/final-certification.md`](product/final-certification.md) — the
+  Phase 49 certification matrix: every major system, on web and on macOS,
+  with the command or the live check behind each row.
+- [`product/phase-traceability.md`](product/phase-traceability.md) — every
+  capability a phase handover reported as shipped, mapped to the code and
+  the test that hold it today.
 
 ### Architecture and the maintainer's rules
 
@@ -107,15 +115,17 @@ with [`AGENTS.md`](../AGENTS.md).
 - [`release/release-checklist.md`](release/release-checklist.md) — the checks
   before tagging a release.
 - [`release/macos-trusted-release.md`](release/macos-trusted-release.md) — the
-  runbook for a signed, notarised macOS release. **A runbook for a future
-  release; it does not describe the current download.**
+  runbook for a signed, notarised macOS release; the pipeline that made
+  the current download.
 - [`release/apple-developer-id-setup.md`](release/apple-developer-id-setup.md)
   — installing the `Developer ID Application` certificate that runbook needs.
 - [`release/release-manifest.md`](release/release-manifest.md) — the schema
   of the release manifest a stable release publishes. Its examples use an
   illustrative future version.
 - [`release/launch-kit.md`](release/launch-kit.md) — the announcement copy
-  for 1.0.0.
+  for the current release.
+- [`product/marketing-facts.md`](product/marketing-facts.md) — the verified
+  facts marketing may state, and nothing else.
 - [`product/macos-desktop-certification.md`](product/macos-desktop-certification.md)
   — the certification matrix for the packaged macOS application, with the
   command behind every row.
@@ -163,6 +173,9 @@ with [`AGENTS.md`](../AGENTS.md).
   reports.
 - [`product/phase-verification.md`](product/phase-verification.md) — Phases
   1–21, capability by capability, as verified at the time.
+- [`product/web-desktop-parity.md`](product/web-desktop-parity.md) — the
+  Phase 45 parity table; superseded by
+  [`product/platform-parity.md`](product/platform-parity.md).
 
 ## Historical
 
@@ -181,12 +194,13 @@ with [`AGENTS.md`](../AGENTS.md).
   [`product/phase-31-workflow-audit.md`](product/phase-31-workflow-audit.md),
   [`product/phase-37-gap-register.md`](product/phase-37-gap-register.md) —
   per-phase product audits and acceptance records.
+- [`release/1.0.0.md`](release/1.0.0.md) — the 1.0.0 release notes.
 - [`release/1.0.0-rc.1.md`](release/1.0.0-rc.1.md),
   [`release/1.0.0-rc.2.md`](release/1.0.0-rc.2.md),
   [`release/1.0.0-rc.3.md`](release/1.0.0-rc.3.md),
   [`release/1.0.0-rc.4.md`](release/1.0.0-rc.4.md),
   [`release/1.0.0-rc.5.md`](release/1.0.0-rc.5.md) — release-candidate notes.
-  The current notes are [`release/1.0.0.md`](release/1.0.0.md).
+  The current notes are [`release/1.1.0.md`](release/1.1.0.md).
 - [`../.github/ISSUE_TEMPLATE/`](../.github/ISSUE_TEMPLATE) — issue templates;
   current, and listed here so nothing is unaccounted for.
 - [`../marketing/README.md`](../marketing/README.md) and

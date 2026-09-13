@@ -96,15 +96,15 @@ Opening research, engine analysis, large personal databases, repertoire
 and review. A local-first workstation: nothing leaves your machine that
 you did not put in the address bar.
 
-|                         |                                                                                                                                                                                                                                                |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Opening research**    | Compare Elite OTB, Recent Theory, and High-Rated Online _side by side_. The Explorer never produces a single "truth" score that quietly blends them.                                                                                           |
-| **Engines**             | Stockfish 18 in the browser (sandboxed). Native Stockfish, Halogen, PlentyChess, Stormphrax, Viridithas and Lc0 on Apple Silicon. Other catalogue entries depend on published platform builds; availability and licences are shown in the app. |
-| **Databases**           | Attach large personal collections (SQLite), search by position, structure, player, or claim. Copy, move, merge, dedupe, federate. Open positions and games back into the board.                                                                |
-| **Theory Book**         | 3,810 named positions with ECO codes, browsable. Explains a variation by name only; never invents an evaluation.                                                                                                                               |
-| **Players**             | 12,522 identities plus 106 historical figures. Diacritics, aliases, rapid typing, backspacing. Profile, what they play as White, what they play as Black, what changed recently.                                                               |
-| **Repertoire & review** | Add positions to repertoire, drill them, mark progress. Repertoire survives quit. Backup and restore work.                                                                                                                                     |
-| **Local-first**         | No account required. No hidden telemetry. Studies, repertoire, training and notes are stored locally. The diagnostic report is local; the log file is local.                                                                                   |
+|                         |                                                                                                                                                                                                                                                                                         |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Opening research**    | Compare Elite OTB, Recent Theory, and High-Rated Online _side by side_. The Explorer never produces a single "truth" score that quietly blends them.                                                                                                                                    |
+| **Engines**             | Stockfish 18 in the browser (sandboxed). Native Stockfish, Halogen, PlentyChess, Stormphrax, Viridithas and Lc0 on Apple Silicon. Other catalogue entries depend on published platform builds; availability and licences are shown in the app.                                          |
+| **Databases**           | Attach large personal collections (SQLite), search by position, structure, player, or claim. Copy, move, merge, dedupe, federate. Open positions and games back into the board.                                                                                                         |
+| **Theory Book**         | 3,810 named positions with ECO codes, browsable. Explains a variation by name only; never invents an evaluation.                                                                                                                                                                        |
+| **Players**             | 12,522 players with games in the bundled pack, 106 curated historical figures, and a roster of 8,339 titled players (GM, WGM, IM, WIM) from Wikidata. Diacritics, aliases, rapid typing, backspacing. Profile, what they play as White, what they play as Black, what changed recently. |
+| **Repertoire & review** | Add positions to repertoire, drill them, mark progress. Repertoire survives quit. Backup and restore work.                                                                                                                                                                              |
+| **Local-first**         | No account required. No hidden telemetry. Studies, repertoire, training and notes are stored locally. The diagnostic report is local; the log file is local.                                                                                                                            |
 
 ## Privacy
 
@@ -128,7 +128,9 @@ mirror. There is no client-side analytics on the landing page.
   _Kingfisher → Check for Updates…_ installs the next release. Nothing is
   checked in the background.
 - **Windows, Linux and Intel Macs are not built and not supported** —
-  the packaging configuration is macOS arm64 only.
+  the packaging configuration is macOS arm64 only. The macOS build needs
+  **macOS 13 (Ventura) or later**, the floor of the Electron runtime it
+  is built on; the web application runs in any modern browser.
 - **No games before 2020** in any first-party reference.
 - **Chess960 is not supported**, deliberately.
 - **Local Syzygy** needs table files the user supplies; the bundled

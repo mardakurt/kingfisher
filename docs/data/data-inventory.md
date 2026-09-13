@@ -164,31 +164,40 @@ not versioned by Kingfisher, and are not merged with first-party packs.
 
 ### Lichess Masters
 
-- **Source URL:** <https://lichess.org/api/broadcast>
+- **Source URL:** `https://explorer.lichess.org/masters` (the
+  [opening explorer API](https://lichess.org/api#tag/Opening-Explorer))
 - **Redistribution:** none — the provider's own terms; Kingfisher
   queries live
-- **Used for:** top-engine / historical-master games
-- **Status:** available when online; shows Offline if not
+- **Used for:** the over-the-board masters database as an explorer
+  source, and the PGN of a single masters game
+- **Status:** the explorer query endpoints answer 401 without a token
+  (checked 2026-09-06 and 2026-09-12), so this source needs the user's
+  own Lichess API token from _Settings → Database_; without one Kingfisher
+  says so rather than showing a count. Single-game PGN export needs no
+  token.
 
 ### Lichess rated (player)
 
-- **Source URL:** <https://lichess.org/api/games/user/{user}>
+- **Source URL:** `https://lichess.org/api/games/user/{username}` (the
+  [games export API](https://lichess.org/api#tag/Games))
 - **Redistribution:** none — the provider's own terms; Kingfisher
   queries live
 - **Used for:** a logged-in Lichess user's recent games
 - **Status:** requires a Lichess OAuth token; otherwise hidden
 
-### Lichess Explorer
+### Lichess Explorer (rated online games)
 
-- **Source URL:** <https://explorer.lichess.ovh/master> /
-  <https://explorer.lichess.ovh/lichess>
+- **Source URL:** `https://explorer.lichess.org/lichess` (the same
+  [opening explorer API](https://lichess.org/api#tag/Opening-Explorer))
 - **Redistribution:** none — live API
 - **Used for:** opening tree beyond Kingfisher's installed packs
-- **Status:** available when online
+- **Status:** as for Lichess Masters — needs the user's own token; the
+  installed High-Rated Online pack answers the same question offline
 
 ### Lichess tablebase
 
-- **Source URL:** <https://tablebase.lichess.ovh/api>
+- **Source URL:** `https://tablebase.lichess.ovh/standard` (the
+  [tablebase API](https://lichess.org/api#tag/Tablebase))
 - **Redistribution:** none — live API
 - **Used for:** 7-piece exact endgame evaluation
 - **Status:** available when online

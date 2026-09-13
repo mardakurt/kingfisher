@@ -257,8 +257,9 @@ say enough to be acknowledged and no more.
 
 The report should include:
 
-- the affected version (e.g. `Kingfisher 1.0` for the web build
-  or `Kingfisher 1.0.0` for the macOS Preview);
+- the affected version, from _Settings → Diagnostics_ (the
+  marketing version, and for the macOS build its build number and
+  commit);
 - a minimal reproduction;
 - what you observed and what you expected;
 - any workarounds you tried.
@@ -285,9 +286,9 @@ The maintainer aims to:
   GitHub issue, a discussion, a tweet, a Reddit post, or a
   Lichess forum thread.
 - **Do not** run a fuzzer against the public web or the public
-  data mirror without coordination. The maintainer is happy
-  to provide a test account and a local-only endpoint for
-  research that benefits the project.
+  data mirror without coordination. Kingfisher has no accounts
+  to hand out; for research that benefits the project the
+  maintainer can arrange a local-only endpoint.
 - **Do not** publish a working exploit before a fix is in
   users' hands.
 
@@ -297,8 +298,9 @@ The maintainer aims to:
   SHA-256 of every engine it downloads against the manifest
   shipped in the repository, but the engines themselves are
   third-party and are covered by their own security policies
-  (Stockfish, Lc0, Berserk, Halogen, Koivisto, Obsidian,
-  PlentyChess, Stormphrax, Viridithas).
+  (Stockfish, Lc0, Halogen, PlentyChess, Stormphrax, Viridithas
+  on macOS; Berserk, Koivisto and Obsidian are catalogued for
+  Windows and Linux builds only).
 - **Reference data vulnerabilities.** Kingfisher verifies the
   SHA-256 of every chunk it downloads against the manifest
   shipped in the data repository. The data sources are

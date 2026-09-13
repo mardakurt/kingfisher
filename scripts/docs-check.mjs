@@ -28,14 +28,24 @@
  *   - The search-console document exists
  *   - The `.well-known/security.txt` file exists and contains
  *     a Contact and a Policy line
+ *   - Phase 49: one marketing version everywhere (package.json, the
+ *     desktop package, the stable descriptor, README, SECURITY, the
+ *     install guide, the launch kit, the changelog, docs/README);
+ *     the macOS floor the documents state is the descriptor's and is
+ *     never below Electron's own; the canonical landing and studio
+ *     hosts in public-urls.ts, layout.tsx and the sitemap agree; and
+ *     no canonical document names an older release as the current one
  *
  * Pass `--json` for a machine-readable summary.
  */
 
 import { argv, exit, stdout } from 'node:process';
+import { spawnSync } from 'node:child_process';
 import { readFileSync, existsSync, statSync, readdirSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { MINIMUM_MACOS, compareMacOSVersions } from '../desktop/src/platform-floor.mjs';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const REPO_ROOT = join(__dirname, '..');
@@ -420,16 +430,148 @@ if (descriptor) {
   }
 }
 
-// 5. Launch kit matches the current public release.
+// 5. One marketing version, everywhere it is stated as current.
+//
+// `package.json#version` is the version of the source; the stable descriptor
+// names the version the public downloads; the documents that say "the current
+// release is X" must say the same X. Phase 49 found docs/README.md still
+// pointing at the 1.0.0 notes as "the current public release" and the launch
+// kit still announcing 1.0.0 after 1.1.0 had shipped, because nothing here
+// compared them.
 {
-  const content = mustExist('docs/release/launch-kit.md');
-  if (content !== null) {
-    mustMatch('docs/release/launch-kit.md', /1\.0\.0/, 'launch kit names Kingfisher 1.0.0');
-    mustNotMatch(
-      'docs/release/launch-kit.md',
-      /1\.0\.0-rc\./,
-      'launch kit still references a release candidate',
+  const pkg = JSON.parse(readFileSync(join(REPO_ROOT, 'package.json'), 'utf8'));
+  const desktopPkg = JSON.parse(readFileSync(join(REPO_ROOT, 'desktop/package.json'), 'utf8'));
+  const semver = /^\d+\.\d+\.\d+$/;
+  record('version:semver', semver.test(pkg.version), pkg.version);
+  record(
+    'version:desktop-package-agrees',
+    desktopPkg.version === pkg.version,
+    `desktop/package.json ${desktopPkg.version}`,
+  );
+  // The documents describe the *public* release, which the stable descriptor
+  // names. The source may be ahead of it by exactly the release in progress —
+  // the tag commit carries the bumped version before the artefact exists and
+  // the descriptor is rewritten from the published bytes — but never behind
+  // it, and never by more than one release.
+  const compareSemver = (a, b) => {
+    const pa = a.split('.').map(Number);
+    const pb = b.split('.').map(Number);
+    for (let i = 0; i < 3; i += 1) if (pa[i] !== pb[i]) return pa[i] - pb[i];
+    return 0;
+  };
+  const version = descriptor && descriptor.channel === 'stable' ? descriptor.version : pkg.version;
+  const escaped = version.replace(/\./g, '\\.');
+  if (descriptor && descriptor.channel === 'stable') {
+    record(
+      'version:source-not-behind-public',
+      compareSemver(pkg.version, descriptor.version) >= 0,
+      `source ${pkg.version}, public ${descriptor.version}`,
     );
+  }
+  mustMatch(
+    'README.md',
+    new RegExp(`Public release · ${escaped}`),
+    `README banner names ${version} as the public release`,
+  );
+  mustMatch(
+    'SECURITY.md',
+    new RegExp(`Kingfisher ${escaped} for Apple Silicon`),
+    `SECURITY.md names ${version} as the current macOS product`,
+  );
+  mustMatch(
+    'docs/release/install-macos.md',
+    new RegExp(`Kingfisher ${escaped} for macOS`),
+    `install guide opens with ${version}`,
+  );
+  mustMatch(
+    'CHANGELOG.md',
+    new RegExp(`^## ${escaped} — \\d{4}-\\d{2}-\\d{2}`, 'm'),
+    `CHANGELOG has a dated ${version} entry`,
+  );
+  mustMatch(
+    'docs/release/launch-kit.md',
+    new RegExp(`Kingfisher ${escaped}`),
+    `launch kit announces Kingfisher ${version}`,
+  );
+  mustNotMatch(
+    'docs/release/launch-kit.md',
+    /1\.0\.0-rc\./,
+    'launch kit still references a release candidate',
+  );
+  mustMatch(
+    'docs/README.md',
+    new RegExp(`release/${escaped}\\.md`),
+    `docs/README.md links the ${version} release notes`,
+  );
+  mustExist(`docs/release/${version}.md`);
+  mustMatch(
+    'docs/product/public-claims.md',
+    new RegExp(`Kingfisher ${escaped} \\(web and macOS\\)`),
+    `public-claims names ${version} as the current public release`,
+  );
+}
+
+// 5b. The macOS floor: the documents state the descriptor's, and the
+// descriptor never promises an older macOS than the Electron in the build
+// can run on (desktop/src/platform-floor.mjs reads Electron's own plist).
+if (descriptor) {
+  const major = Number(String(descriptor.minimumMacOS).split('.')[0]);
+  record(
+    'macos-floor:not-below-electron',
+    compareMacOSVersions(descriptor.minimumMacOS, MINIMUM_MACOS) >= 0,
+    `descriptor ${descriptor.minimumMacOS}, Electron floor ${MINIMUM_MACOS}`,
+  );
+  const stated = new RegExp(`macOS ${major}\\b`);
+  const olderStated = /macOS (?:10\.\d+|1[0-2])\b|Big Sur|Monterey/;
+  mustMatch('docs/release/install-macos.md', stated, `install guide requires macOS ${major}`);
+  mustNotMatch(
+    'docs/release/install-macos.md',
+    olderStated,
+    'install guide does not name a macOS older than the floor',
+  );
+  // The pages render the floor from the descriptor rather than stating it.
+  mustMatch(
+    'src/app/install/InstallPage.tsx',
+    /describeMinimumMacOS\(/,
+    'install page renders the floor from the descriptor',
+  );
+  mustMatch(
+    'src/app/landing/LandingPage.tsx',
+    /describeMinimumMacOS\(/,
+    'landing renders the floor from the descriptor',
+  );
+  for (const rel of ['src/app/install/InstallPage.tsx', 'src/app/landing/LandingPage.tsx']) {
+    mustNotMatch(rel, olderStated, `${rel} hard-codes no macOS version`);
+  }
+}
+
+// 5c. The canonical hosts are stated once and agree.
+{
+  const urls = readFileSync(join(REPO_ROOT, 'src/release/public-urls.ts'), 'utf8');
+  const landing = urls.match(/'KINGFISHER_PUBLIC_LANDING_URL',\s*'([^']+)'/)?.[1];
+  const studio = urls.match(/'KINGFISHER_PUBLIC_WEB_URL',\s*'([^']+)'/)?.[1];
+  record(
+    'hosts:canonical-landing',
+    landing === 'https://kingfisher-chess.vercel.app',
+    landing ?? 'unreadable',
+  );
+  record(
+    'hosts:canonical-studio',
+    studio === 'https://kingfisher-roan.vercel.app',
+    studio ?? 'unreadable',
+  );
+  mustMatch(
+    'src/app/layout.tsx',
+    /metadataBase: new URL\(LANDING\)/,
+    'layout metadataBase is the canonical landing',
+  );
+  mustMatch(
+    'src/app/sitemap.ts',
+    /publicUrl\.landing/,
+    'sitemap is rooted at the canonical landing',
+  );
+  for (const rel of ['README.md', 'docs/release/install-macos.md']) {
+    mustMatch(rel, /kingfisher-chess\.vercel\.app/, `${rel} names the canonical landing host`);
   }
 }
 
@@ -593,6 +735,39 @@ mustExist('vercel.json');
 // 17. The CHANGELOG and ARCHITECTURE are still in the repo and non-empty.
 mustExist('CHANGELOG.md');
 mustExist('ARCHITECTURE.md');
+
+// 18. Every relative link in every tracked Markdown file resolves. Historical
+// reports are included on purpose: a report may describe an old state, but a
+// link that goes nowhere is a defect in any document. External links are not
+// fetched here (`npm run public:check` covers the public ones).
+{
+  const tracked = (() => {
+    const result = spawnSync('git', ['ls-files', '*.md'], { cwd: REPO_ROOT, encoding: 'utf8' });
+    return result.status === 0 ? result.stdout.trim().split('\n').filter(Boolean) : [];
+  })();
+  const linkRe = /\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)|^\[[^\]]+\]:\s*(\S+)/gm;
+  let links = 0;
+  const broken = [];
+  for (const rel of tracked) {
+    const text = readFileSync(join(REPO_ROOT, rel), 'utf8');
+    for (const match of text.matchAll(linkRe)) {
+      const target = match[1] ?? match[2];
+      if (!target || /^(https?:|mailto:|#)/.test(target)) continue;
+      links += 1;
+      const [file] = target.split('#');
+      if (!existsSync(join(REPO_ROOT, dirname(rel), decodeURIComponent(file)))) {
+        broken.push(`${rel} → ${target}`);
+      }
+    }
+  }
+  record(
+    'markdown:internal-links-resolve',
+    broken.length === 0,
+    broken.length === 0
+      ? `${links} relative links across ${tracked.length} files`
+      : broken.slice(0, 5).join('; '),
+  );
+}
 
 // Reporting ----------------------------------------------------------------
 
