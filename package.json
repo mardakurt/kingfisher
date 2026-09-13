@@ -34,6 +34,7 @@
     "desktop:suspend": "node scripts/desktop-suspend.mjs",
     "desktop:upgrade": "node scripts/desktop-upgrade.mjs",
     "desktop:chrome": "node scripts/desktop-chrome.mjs",
+    "desktop:oauth": "node scripts/desktop-oauth.mjs",
     "desktop:engines": "node scripts/desktop-engines.mjs",
     "desktop:sign:verify": "node scripts/desktop-sign-verify.mjs",
     "desktop:notary:verify": "node scripts/desktop-notary-verify.mjs",

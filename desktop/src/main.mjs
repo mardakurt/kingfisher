@@ -38,6 +38,7 @@ import { ensureSquirrelMacDirectWrite } from './squirrel-direct-write.mjs';
 */
 const BUNDLE_IDENTIFIER = 'app.kingfisher.chess';
 import { buildTemplate } from './menu.mjs';
+import { isLichessAuthorizeUrl, openLichessSignIn } from './oauth-window.mjs';
 import {
   attachBoundsPersistence,
   resolveStartupBounds,
@@ -467,10 +468,26 @@ function createWindow() {
   };
   window.webContents.setWindowOpenHandler(({ url }) => external(url));
   window.webContents.on('will-navigate', (event, url) => {
-    if (!url.startsWith(state.appUrl)) {
-      event.preventDefault();
-      external(url);
+    if (url.startsWith(state.appUrl)) return;
+    event.preventDefault();
+    /*
+      The one navigation that must come *back*. A Lichess sign-in redirects
+      to this application's own callback with a code that only this window
+      can exchange; handing it to the user's browser lost it. See
+      oauth-window.mjs.
+    */
+    if (isLichessAuthorizeUrl(url)) {
+      openLichessSignIn({
+        BrowserWindow,
+        parent: window,
+        url,
+        appUrl: state.appUrl,
+        log,
+        openExternal: (target) => void shell.openExternal(target),
+      });
+      return;
     }
+    external(url);
   });
   /*
     The page could not be fetched from the shell's own server. That is the
