@@ -4,7 +4,10 @@ The user-facing changelog. Internal phase history is in
 `docs/reports/` and `docs/product/phase-*.md`; the list below is what
 real users notice.
 
-## Unreleased (web)
+## 1.1.3 — 2026-09-13
+
+Every item below is in both the web application and the Mac application;
+the Mac 1.1.3 is built from the same source revision as the web deployment.
 
 - **Every board page is the Analysis page.** Studies, Repertoire,
   Openings, Preparation, Review, Training, Endgame and Opening Files now
