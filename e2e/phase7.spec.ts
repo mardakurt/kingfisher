@@ -428,10 +428,22 @@ function largeTreePgn(plies: number): string {
 
 test('a study chapter with a thousand-node tree stays navigable and survives a reload', async ({
   page,
+  browserName,
 }) => {
   test.setTimeout(180_000);
   const consoleFailures: string[] = [];
-  page.on('pageerror', (error) => consoleFailures.push(error.message));
+  let reloading = false;
+  const reloadFetches: string[] = [];
+  page.on('pageerror', (error) => {
+    // WebKit reports in-flight same-origin pack requests as access-control
+    // errors when the old document unloads. Only classify them during the
+    // explicit reload, and prove each resource is fetchable in the new page.
+    const chunk = error.message.match(
+      /(\/reference\/kingfisher-starter\/[\w.-]+\.kfp\.gz) due to access control checks\.$/,
+    );
+    if (reloading && browserName === 'webkit' && chunk && chunk[1]) reloadFetches.push(chunk[1]);
+    else consoleFailures.push(error.message);
+  });
 
   await page.goto('/analysis');
   await ready(page);
@@ -476,9 +488,17 @@ test('a study chapter with a thousand-node tree stays navigable and survives a r
     the requirement is about is whether a tree this size survives *storage* —
     the chapter is the record the user believes in.
   */
+  reloading = true;
   await page.reload();
   await ready(page);
-  await page.goto('/studies');
+  reloading = false;
+  for (const resource of reloadFetches) {
+    expect(await page.evaluate(async (url) => (await fetch(url)).ok, resource)).toBe(true);
+  }
+  await page
+    .getByRole('navigation', { name: 'Sections' })
+    .getByRole('link', { name: 'Studies', exact: true })
+    .click();
   await ready(page);
   await page
     .getByRole('button', { name: /Thousand plies/ })

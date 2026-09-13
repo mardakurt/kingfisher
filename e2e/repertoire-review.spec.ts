@@ -33,12 +33,14 @@ async function play(page: Page, from: string, to: string) {
  * 1.e4 e5 2.Nf3 as White, so the repertoire holds positions where White is to
  * move and the `my-move` drill has something to ask about.
  */
-async function buildRepertoire(page: Page, title: string) {
+async function buildRepertoire(page: Page, title: string, plies = 3) {
   await page.goto('/analysis');
   await ready(page);
   await play(page, 'e2', 'e4');
-  await play(page, 'e7', 'e5');
-  await play(page, 'g1', 'f3');
+  if (plies > 1) {
+    await play(page, 'e7', 'e5');
+    await play(page, 'g1', 'f3');
+  }
 
   await page.getByRole('button', { name: 'Document actions' }).click();
   await page.getByRole('menuitem', { name: 'Add to repertoire…' }).click();
@@ -48,6 +50,23 @@ async function buildRepertoire(page: Page, title: string) {
 }
 
 const dialog = (page: Page) => page.getByRole('dialog', { name: 'Review repertoire' });
+
+for (const [plies, label] of [
+  [1, '1 prepared position'],
+  [3, '2 prepared positions'],
+] as const) {
+  test(`repertoire header says ${label}`, async ({ page }) => {
+    await buildRepertoire(page, `Header ${plies}`, plies);
+    await page.goto('/repertoire');
+    await ready(page);
+    await expect(
+      page
+        .locator('header')
+        .filter({ has: page.getByRole('heading', { name: 'Repertoire', exact: true }) }),
+    ).toContainText(`White · ${label}`);
+    await expect(page.getByText('1 prepared positions', { exact: false })).toHaveCount(0);
+  });
+}
 
 test('a repertoire becomes a review session, and the session says what it will ask', async ({
   page,

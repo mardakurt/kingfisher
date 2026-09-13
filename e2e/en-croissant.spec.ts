@@ -12,7 +12,7 @@ test('an En Croissant user imports the authentic database and opens its games', 
     every project makes the second import "0 imported · 60 duplicates" — the
     companion is right, the test was not. One collection per project.
   */
-  const collection = `En Croissant field test (${testInfo.project.name})`;
+  const collection = `En Croissant field test ${testInfo.project.name}`;
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto('/databases');

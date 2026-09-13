@@ -85,7 +85,10 @@ test('a tournament preparation session carries an opponent through to a game-day
 
   await importGames(page, OPPONENT_GAMES);
 
-  await page.goto('/preparation');
+  await page
+    .getByRole('navigation', { name: 'Sections' })
+    .getByRole('link', { name: 'Preparation', exact: true })
+    .click();
   await ready(page);
 
   // Create the session first: it states the colour, which decides what the

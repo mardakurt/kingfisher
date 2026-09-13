@@ -452,6 +452,8 @@ test('an afternoon of tool, engine and route switching leaks no observable resou
     same; only the allowance for a slower engine differs.
   */
   test.setTimeout(Math.max(600_000, (CYCLES + 2) * 20_000) * (browserName === 'webkit' ? 3 : 1));
+  // A missing control should name itself promptly, not consume the whole soak budget.
+  page.setDefaultTimeout(30_000);
   const consoleFailures: string[] = [];
   page.on('console', (message) => {
     if (message.type() === 'error') consoleFailures.push(message.text());
