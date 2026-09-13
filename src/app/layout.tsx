@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono } from 'next/font/google';
 
 import { publicUrl } from '@/release/public-urls';
 import { AppProviders } from './providers';
+import { WebAnalytics } from './_analytics/WebAnalytics';
 import './globals.css';
 
 const inter = Inter({
@@ -27,7 +28,7 @@ export const metadata: Metadata = {
     template: '%s · Kingfisher',
   },
   description:
-    'Engine analysis, opening databases and repertoire work in one workspace, for players who study. Local-first. No account. No telemetry.',
+    'Engine analysis, opening databases and repertoire work in one workspace, for players who study. Local-first. No account. No cookies.',
   applicationName: 'Kingfisher',
   keywords: ['chess', 'opening research', 'Stockfish', 'repertoire', 'local-first', 'open source'],
   authors: [{ name: 'mardakurt' }],
@@ -42,7 +43,7 @@ export const metadata: Metadata = {
     siteName: 'Kingfisher',
     title: 'Kingfisher — chess research workspace',
     description:
-      'Opening research, engines, databases, repertoire and review. Local-first. No account. No telemetry.',
+      'Opening research, engines, databases, repertoire and review. Local-first. No account. No cookies.',
     url: LANDING,
     locale: 'en',
     images: [
@@ -60,7 +61,7 @@ export const metadata: Metadata = {
     creator: '@kingfisher',
     title: 'Kingfisher — chess research workspace',
     description:
-      'Opening research, engines, databases, repertoire and review. Local-first. No account. No telemetry.',
+      'Opening research, engines, databases, repertoire and review. Local-first. No account. No cookies.',
     images: [OG_IMAGE],
   },
   appleWebApp: { capable: true, title: 'Kingfisher', statusBarStyle: 'black-translucent' },
@@ -142,6 +143,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className={`${inter.variable} ${mono.variable} antialiased`}>
         <AppProviders>{children}</AppProviders>
+        {/* The website counts page views; the Mac application, built off Vercel, never loads this. */}
+        {process.env.VERCEL ? <WebAnalytics /> : null}
       </body>
     </html>
   );

@@ -15,9 +15,19 @@ because there is no Kingfisher server.
 
 - **No account.** You do not sign in. There is no sign-in to
   sign in with. The application does not know who you are.
-- **No telemetry.** No analytics, no error reporting service, no
-  session replay, no "is the user still here?" pings. The web
-  build does not load any third-party script.
+- **Page views are counted, and that is all.** The website uses
+  Vercel Web Analytics: for each page view it records the page
+  path, the referrer, and what the request already carries (the
+  country the connection comes from, the browser and
+  operating-system family, the device class). It sets no cookie
+  and stores no identifier on your device; Vercel derives a
+  per-day visitor hash on its side and discards the address.
+  Query strings and fragments are stripped before anything is
+  sent, so a position in a URL never leaves your browser.
+  Nothing about your chess is ever part of it. No telemetry
+  beyond that: no error-reporting service, no session replay,
+  no "is the user still here?" pings. The Mac application loads
+  none of this.
 - **No cookies.** The web build does not set any cookie.
   Application state lives in `localStorage` and IndexedDB,
   scoped to the origin.
@@ -123,11 +133,13 @@ IndexedDB instead. The browser may still hold its own state
 (service worker cache, IndexedDB) which is required for the
 product to work across reloads.
 
-No third-party tracker, analytics or advertising tag is loaded.
-A network panel open during a normal session will show Lichess
-(if you have signed in or queried Lichess), the data mirror
-(if you have used a reference source) and the application's
-own origin. Nothing else.
+No advertising tag and no cross-site tracker is loaded. The only
+measurement is Vercel Web Analytics, described above, served from
+this origin. A network panel open during a normal session will
+show this origin (including `/_vercel/insights/view`, the
+page-view beacon), Lichess (if you have signed in or queried
+Lichess) and the data mirror (if you have used a reference
+source). Nothing else.
 
 ### Hosting
 

@@ -21,7 +21,7 @@ Kingfisher is a local-first chess workstation for serious
 players. Opening research across separate evidence sources,
 Stockfish in the browser, native engines on macOS, large
 personal databases, repertoire, game review and training. No
-account, no telemetry, no subscription. Web and macOS. Open
+account, no cookies, no subscription. Web and macOS. Open
 source under the MIT licence.
 
 ## 150-word description
@@ -40,7 +40,7 @@ runs Stockfish 18 as WebAssembly in the browser. The macOS build
 is a native shell serving the same application, signed with a
 Developer ID certificate and notarised by Apple. Nothing leaves
 your machine that you did not put in the address bar — no
-account, no telemetry, no upload. The reference data is
+account, no cookies, no upload. The reference data is
 published in the open <https://github.com/mardakurt/kingfisher-data>
 mirror under the original Lichess licences. The source is open
 under the MIT licence.
@@ -75,7 +75,7 @@ under the MIT licence.
 > - **Diagnostics that are answerable** — Settings → Diagnostics
 >   has a _Copy support information_ line and a _Copy full
 >   diagnostic report_ button, both with credentials redacted.
-> - **No account, no telemetry, no subscription.**
+> - **No account, no cookies, no subscription.**
 >
 > **Known limitations**
 >
@@ -106,7 +106,7 @@ under the MIT licence.
 > and structure search, and a daily-study workflow (Studies,
 > Repertoire, Game Review, Training).
 >
-> It is local-first: no account, no telemetry, no subscription. No
+> It is local-first: no account, no cookies, no subscription. No
 > data leaves your machine that you didn't put in the address bar.
 >
 > - Web app: <https://kingfisherchess.app/analysis>
@@ -158,7 +158,7 @@ under the MIT licence.
 
 > Kingfisher 1.1.2 — a local-first chess research workstation for
 > serious players, on the web and as a notarised Mac app. No
-> account. No telemetry. No subscription. Source on GitHub:
+> account. No cookies. No subscription. Source on GitHub:
 > <https://github.com/mardakurt/kingfisher>
 
 ## Technical / open-source post

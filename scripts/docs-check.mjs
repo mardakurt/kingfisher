@@ -21,7 +21,7 @@
  *   - The security policy does not claim Sync, notarisation,
  *     or Windows / Linux desktop support it does not have
  *   - The privacy page exists and describes the no-cookie,
- *     no-telemetry, no-account product
+ *     no-account, no-cookie product that discloses its page-view count
  *   - The data-licences page exists and names the four packs
  *   - The public claims register exists and forbids invented
  *     testimonials, ratings, or team
@@ -632,7 +632,11 @@ if (descriptor) {
   const content = mustExist('docs/legal/privacy.md');
   if (content !== null) {
     mustMatch('docs/legal/privacy.md', /No account/, 'privacy page says "no account"');
-    mustMatch('docs/legal/privacy.md', /No telemetry/, 'privacy page says "no telemetry"');
+    mustMatch(
+      'docs/legal/privacy.md',
+      /Page views are counted, and that is all/,
+      'privacy page discloses the page-view count and nothing more',
+    );
     mustMatch('docs/legal/privacy.md', /No cookies/, 'privacy page says "no cookies"');
     mustMatch('docs/legal/privacy.md', /local-first/i, 'privacy page is local-first');
   }

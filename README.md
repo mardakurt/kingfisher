@@ -3,7 +3,7 @@
 A local-first chess research workstation for serious players.
 
 > **Public release · 1.1.2** (web · macOS, Developer ID signed and notarised)
-> No account. No telemetry. No subscription.
+> No account. No cookies. No subscription.
 
 |                                                                           |                                                                                            |
 | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
@@ -102,7 +102,7 @@ you did not put in the address bar.
 | **Theory Book**         | 3,810 named positions with ECO codes, browsable. Explains a variation by name only; never invents an evaluation.                                                                                                                                                                        |
 | **Players**             | 12,522 players with games in the bundled pack, 106 curated historical figures, and a roster of 8,339 titled players (GM, WGM, IM, WIM) from Wikidata. Diacritics, aliases, rapid typing, backspacing. Profile, what they play as White, what they play as Black, what changed recently. |
 | **Repertoire & review** | Add positions to repertoire, drill them, mark progress. Repertoire survives quit. Backup and restore work.                                                                                                                                                                              |
-| **Local-first**         | No account required. No hidden telemetry. Studies, repertoire, training and notes are stored locally. The diagnostic report is local; the log file is local.                                                                                                                            |
+| **Local-first**         | No account required. No hidden data collection — the website counts page views (see the privacy page), the Mac app sends nothing. Studies, repertoire, training and notes are stored locally. The diagnostic report is local; the log file is local.                                    |
 
 ## Privacy
 
@@ -115,7 +115,8 @@ paths — credentials are redacted at write time.
 The web build is hosted on Vercel (when deployed) and the optional
 reference data lives in the public
 [mardakurt/kingfisher-data](https://github.com/mardakurt/kingfisher-data)
-mirror. There is no client-side analytics on the landing page.
+mirror. The site counts page views with cookieless Vercel Web Analytics; see
+[`docs/legal/privacy.md`](docs/legal/privacy.md) for exactly what that records.
 
 ## Known limitations
 

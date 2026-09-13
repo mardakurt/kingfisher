@@ -6,6 +6,14 @@ real users notice.
 
 ## Unreleased (web)
 
+- **The website counts page views.** Vercel Web Analytics, served from
+  this origin: page path, referrer, and what the request already carries
+  (country, browser and OS family, device class). No cookie, no
+  identifier stored on the device, query strings and fragments stripped
+  so a position in a URL never leaves the browser, nothing about your
+  chess. The privacy, security and terms pages, README and the launch
+  kit now say exactly this instead of "no telemetry"; the Mac
+  application, built off Vercel, loads none of it.
 - **Your work is asked to be kept, without you asking.** The first time
   a session saves something — a move in an untitled analysis counts —
   Kingfisher asks the browser to mark its storage durable, so months of

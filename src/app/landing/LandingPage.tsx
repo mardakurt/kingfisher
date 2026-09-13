@@ -19,8 +19,9 @@ import './landing.css';
  * directly without coming back through this page. The marketing
  * origin must never serve the studio.
  *
- * The landing component renders server-side; no event handlers,
- * analytics or third-party scripts. The static assets live under
+ * The landing component renders server-side; no event handlers and
+ * no third-party scripts (page views are counted by the root layout's
+ * `WebAnalytics`, served from this origin). The static assets live under
  * `/landing/img/` and are served from the same origin as the
  * page so the application CSP, which is `default-src 'self'`,
  * accepts them.
@@ -68,7 +69,7 @@ export function LandingPage(): JSX.Element {
       'Local-first persistence (IndexedDB)',
       'Reference data with verified provenance',
       'Repertoire, training, review',
-      'No account, no telemetry, no subscription',
+      'No account, no cookies, no subscription',
     ],
   };
 
@@ -184,7 +185,7 @@ export function LandingPage(): JSX.Element {
             </div>
             <div className="hero-strip-item">
               <span className="hero-strip-num">0</span>
-              <span className="hero-strip-label">Accounts · cookies · telemetry</span>
+              <span className="hero-strip-label">Accounts · cookies · subscriptions</span>
             </div>
           </div>
         </section>
@@ -308,7 +309,7 @@ export function LandingPage(): JSX.Element {
             <h2 className="section-title">Your chess. Your machine.</h2>
             <p className="section-lede">
               Your studies, repertoire and notes stay on your machine. Reference data installs once
-              and works offline. No account. No telemetry. Chess on your terms.
+              and works offline. No account. No cookies. Chess on your terms.
             </p>
           </div>
         </section>

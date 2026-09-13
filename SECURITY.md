@@ -162,9 +162,13 @@ in the running deployment.
   documented way to move work between machines is
   _Settings → Database → Export backup_ and Import on the other
   side.
-- **No telemetry, no analytics, no third-party scripts.** The web
-  build does not load Google Analytics, Plausible, Hotjar, Segment,
-  or any equivalent. CSP would refuse them anyway.
+- **Page views only, from this origin.** The website counts page
+  views with Vercel Web Analytics, served from `/_vercel/insights/`
+  on this origin — no cookie, no identifier on the device, query
+  strings stripped (`src/app/_analytics/WebAnalytics.tsx`). No other
+  analytics, no error-reporting service, no third-party script: the
+  CSP is `'self'` and would refuse one. The Mac application, built
+  off Vercel, never loads it.
 - **No advertising cookies, no advertising scripts.** The web
   build does not set any cookie; what state the application
   needs is held in `localStorage` and IndexedDB, scoped to the
