@@ -112,7 +112,7 @@ describe('loading the roster', () => {
 
   it('describes a person from stated facts only', () => {
     const player = expandTitledRow({ q: 'Q1', n: 'A', t: 'IM', b: 1950, d: 2001, c: 'HU' });
-    expect(describeTitledPlayer(player)).toBe('IM · 1950–2001 · HU');
+    expect(describeTitledPlayer(player)).toBe('IM · 1950–2001 · Hungary');
     expect(describeTitledPlayer(expandTitledRow({ q: 'Q2', n: 'B', t: 'WGM' }))).toBe('WGM');
   });
 });

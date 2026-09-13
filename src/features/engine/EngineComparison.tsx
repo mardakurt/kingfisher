@@ -19,11 +19,12 @@ import { EmptyState } from '@/components/ui/Panel';
 import { useAnalysisPosition } from '@/features/analysis/useAnalysisPosition';
 import { compareEngines, describeComparison, type EngineReading } from '@/engine/comparison';
 import { engineDefinition } from '@/engine/registry';
-import { useVisibleEngineDefinitions } from '@/engine/use-engines';
 import { variationTokens } from '@/engine/pv';
 import { cn } from '@/lib/cn';
 import { useEngine, type EngineSlot } from '@/stores/engine-store';
 import { usePreferences } from '@/stores/preferences-store';
+
+import { EngineSelect } from './EngineSelect';
 
 export function EngineComparison() {
   const { node } = useAnalysisPosition();
@@ -33,7 +34,6 @@ export function EngineComparison() {
   const compare = useEngine((state) => state.compare);
   const stop = useEngine((state) => state.stop);
   const setComparing = useEngine((state) => state.setComparing);
-  const selectEngine = useEngine((state) => state.selectEngine);
   const prefs = usePreferences();
 
   const readings = useMemo<EngineReading[]>(
@@ -57,8 +57,6 @@ export function EngineComparison() {
     prefs.engineMultiPv,
     prefs.engineThreads,
   ]);
-
-  const definitions = useVisibleEngineDefinitions();
 
   /*
     The two engines agree on the first `pvAgreementPlies` moves, so either
@@ -102,24 +100,11 @@ export function EngineComparison() {
           const state = slot === 'primary' ? primary : secondary;
           return (
             <div key={slot} className="bg-surface-1 p-2">
-              <select
-                aria-label={slot === 'primary' ? 'First engine' : 'Second engine'}
-                value={state.engineId}
-                onChange={(event) => {
-                  void selectEngine(slot, event.target.value);
-                  prefs.set(
-                    slot === 'primary' ? 'primaryEngineId' : 'secondaryEngineId',
-                    event.target.value,
-                  );
-                }}
-                className="h-6 w-full rounded-[3px] border border-line bg-surface-inset px-1.5 text-[10.5px] text-secondary outline-none focus:border-accent/60"
-              >
-                {definitions.map((definition) => (
-                  <option key={definition.id} value={definition.id}>
-                    {definition.name}
-                  </option>
-                ))}
-              </select>
+              <EngineSelect
+                slot={slot}
+                label={slot === 'primary' ? 'First engine' : 'Second engine'}
+                className="w-full"
+              />
               <SlotSummary state={state} />
               {/*
                 The evaluation bar and the tree's stored evaluations follow the

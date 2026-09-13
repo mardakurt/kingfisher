@@ -84,6 +84,34 @@ export async function collect(
   }
 
   /*
+    Then across packs by spelling. Each pack merges its own rows by the
+    identity the archive recorded, but two packs built from different
+    archives file the same person as "Carlsen, Magnus" and "Magnus Carlsen",
+    and the library showed both, one with the games the other lacked. The
+    name orders are the same test the roster uses below; it is the only
+    evidence two pack rows leave.
+  */
+  const byOrder = new Map<string, string>();
+  for (const entry of [...merged.values()]) {
+    const forms = new Set(
+      [entry.key, entry.name, ...nameOrders(entry.name)].map(matchKey).filter(Boolean),
+    );
+    const existingKey = [...forms]
+      .map((form) => byOrder.get(form))
+      .find((key): key is string => key !== undefined && key !== entry.key);
+    if (existingKey) {
+      const target = merged.get(existingKey);
+      if (target) {
+        merged.set(existingKey, combineCatalog(target, entry));
+        merged.delete(entry.key);
+        for (const form of forms) byOrder.set(form, existingKey);
+        continue;
+      }
+    }
+    for (const form of forms) if (!byOrder.has(form)) byOrder.set(form, entry.key);
+  }
+
+  /*
     The roster is folded in by name, and only by an exact canonical name match
     or a declared alias. Nothing here decides that two similar names are one
     person: that is the user's judgement, and Phase 12's identity rules are not
@@ -134,7 +162,13 @@ export async function collect(
   for (const titled of await titledRoster()) {
     // Packs write "Surname, Given"; Wikidata writes "Given Surname" — or,
     // for a Chinese name, "Surname Given", so both split points are tried.
-    const spellings = [titled.name, ...nameOrders(titled.name), ...titled.aliases];
+    // Aliases are tried in both orders too: the roster's alias "Yagiz Kaan
+    // Erdogmus" is the pack's "Erdogmus, Yagiz Kaan".
+    const spellings = [
+      titled.name,
+      ...nameOrders(titled.name),
+      ...titled.aliases.flatMap((alias) => [alias, ...nameOrders(alias)]),
+    ];
     const hit = spellings
       .map((spelling) => byFolded.get(matchKey(spelling)))
       .find((entry) => entry !== undefined);
@@ -143,7 +177,13 @@ export async function collect(
       merged.set(hit.key, {
         ...hit,
         titled,
-        title: hit.title || titled.title,
+        /*
+          The roster's title is the current one; a pack's is whatever the
+          games recorded when they were played, which for a rising player is
+          the title they had *then*. "IM" beside a games count and "GM" beside
+          a roster row were the same person at two dates.
+        */
+        title: titled.title || hit.title,
         fideId: hit.fideId || titled.fideId,
       });
       continue;
@@ -178,6 +218,25 @@ const first = (player: PackPlayer, source: string): CatalogPlayer => ({
   peakRating: player.peakRating,
   lastRating: player.lastRating,
   sources: [source],
+});
+
+/** Two catalog rows that turned out to be one person, under two spellings. */
+const combineCatalog = (current: CatalogPlayer, other: CatalogPlayer): CatalogPlayer => ({
+  ...current,
+  name: other.games > current.games ? other.name : current.name,
+  title: current.title || other.title,
+  fideId: current.fideId || other.fideId,
+  games: Math.max(current.games, other.games),
+  firstYear:
+    current.firstYear === 0
+      ? other.firstYear
+      : Math.min(current.firstYear, other.firstYear || 9999),
+  lastYear: Math.max(current.lastYear, other.lastYear),
+  peakRating: Math.max(current.peakRating, other.peakRating),
+  lastRating: other.lastYear > current.lastYear ? other.lastRating : current.lastRating,
+  sources: [...new Set([...current.sources, ...other.sources])],
+  ...((current.legend ?? other.legend) ? { legend: (current.legend ?? other.legend)! } : {}),
+  ...((current.titled ?? other.titled) ? { titled: (current.titled ?? other.titled)! } : {}),
 });
 
 /**
@@ -303,8 +362,31 @@ export const foldName = (value: string): string =>
   value
     .normalize('NFD')
     .replace(/\p{M}+/gu, '')
+    .replace(/[ıłøđðþßæœ]/gi, (letter) => PLAIN_LETTERS[letter.toLowerCase()] ?? letter)
     .trim()
     .toLowerCase();
+
+/**
+ * Letters that Unicode decomposition leaves alone.
+ *
+ * NFD strips an accent because an accent is a combining mark; the Turkish
+ * dotless ı, the Polish ł, the Nordic ø and ð are letters in their own right
+ * and survive it untouched. That is how "Yağız Kaan Erdoğmuş" from Wikidata
+ * folded to "yagız kaan erdogmus", never matched the pack's "Erdogmus, Yagiz
+ * Kaan", and the same person appeared twice — once as an IM with games and
+ * once as a GM without.
+ */
+const PLAIN_LETTERS: Readonly<Record<string, string>> = {
+  ı: 'i',
+  ł: 'l',
+  ø: 'o',
+  đ: 'd',
+  ð: 'd',
+  þ: 'th',
+  ß: 'ss',
+  æ: 'ae',
+  œ: 'oe',
+};
 
 /**
  * A name reduced further, to what a person typing it might not reproduce.

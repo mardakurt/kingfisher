@@ -16,7 +16,12 @@ import { usePreferences } from '@/stores/preferences-store';
 import { sqliteProvidersFrom } from '@/database/providers/companion-sqlite';
 import { setLichessToken } from '@/database/providers/lichess-auth';
 import { setDynamicDatabaseProviders } from '@/database/registry';
-import { setEnginePlatform, syncCustomEngineDefinitions } from '@/engine/registry';
+import {
+  engineDefinition,
+  setEnginePlatform,
+  syncCustomEngineDefinitions,
+} from '@/engine/registry';
+import { useEngine } from '@/stores/engine-store';
 
 import { setCompanion } from './session';
 import { CompanionClient } from './client';
@@ -61,6 +66,25 @@ export function useCompanionSync(): void {
   useEffect(() => {
     setEnginePlatform(platform ?? null);
   }, [platform]);
+
+  /*
+    The engine the user chose, applied. The selector wrote `primaryEngineId`
+    to preferences and the engine store started every session on the default
+    regardless: the choice persisted and did nothing after a reload. Applied
+    once, on the client, and only for an engine this build knows — a stored
+    id from a custom engine that is no longer registered is left alone.
+  */
+  const primaryId = usePreferences((state) => state.primaryEngineId);
+  const secondaryId = usePreferences((state) => state.secondaryEngineId);
+  useEffect(() => {
+    const engine = useEngine.getState();
+    if (engineDefinition(primaryId) && engine.primary.engineId !== primaryId) {
+      void engine.selectEngine('primary', primaryId);
+    }
+    if (engineDefinition(secondaryId) && engine.secondary.engineId !== secondaryId) {
+      void engine.selectEngine('secondary', secondaryId);
+    }
+  }, [primaryId, secondaryId]);
 }
 
 /** Live status of the companion, or null when none is configured. */

@@ -51,10 +51,29 @@ describe('fetchLichessGamesPgn', () => {
   });
 
   it('names the account when there is no such user', async () => {
+    // Both the export and the public profile answer 404: the name is wrong.
     const { fetchImpl } = recorder(new Response('', { status: 404 }));
     await expect(fetchLichessGamesPgn('nobody', { fetchImpl })).rejects.toMatchObject({
       state: 'misconfigured',
       message: expect.stringContaining('nobody'),
+    });
+  });
+
+  it('asks for a sign-in when the export is refused for an account that exists', async () => {
+    /*
+      Checked live on 2026-09-13: `GET /api/games/user/thibault` answers 404
+      anonymously and 401 with a bad bearer token, while `/api/user/thibault`
+      answers 200. A 404 for an existing account is a refusal, and the
+      remedy is to sign in — not, as the message used to say, to check the
+      spelling of a name that was right.
+    */
+    const fetchImpl: typeof fetch = async (input) =>
+      String(input).includes('/api/user/')
+        ? new Response('{"id":"thibault"}', { status: 200 })
+        : new Response('', { status: 404 });
+    await expect(fetchLichessGamesPgn('thibault', { fetchImpl })).rejects.toMatchObject({
+      state: 'authentication-required',
+      remedy: expect.stringContaining('Sign in with Lichess'),
     });
   });
 

@@ -13,6 +13,8 @@ interface DialogProps {
   readonly children: ReactNode;
   readonly footer?: ReactNode;
   readonly width?: string;
+  /** Replaces the body's padding and height limit, for a dialog that lays itself out. */
+  readonly bodyClassName?: string;
 }
 
 export function Dialog({
@@ -23,6 +25,7 @@ export function Dialog({
   children,
   footer,
   width = 'w-[520px]',
+  bodyClassName,
 }: DialogProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -112,7 +115,11 @@ export function Dialog({
           </button>
         </header>
 
-        <div className="max-h-[calc(100dvh-11rem)] overflow-y-auto px-4 py-3 sm:max-h-[56vh]">
+        <div
+          className={
+            bodyClassName ?? 'max-h-[calc(100dvh-11rem)] overflow-y-auto px-4 py-3 sm:max-h-[56vh]'
+          }
+        >
           {children}
         </div>
 

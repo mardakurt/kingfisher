@@ -176,6 +176,7 @@ function OpeningDetail({ entry }: { readonly entry: OpeningEntry }) {
   const providers = useDatabaseProviders();
   const notify = useUi((state) => state.notify);
   const loadPgn = useAnalysis((state) => state.loadPgn);
+  const toEnd = useAnalysis((state) => state.toEnd);
   const setDocument = useAnalysis((state) => state.setDocument);
 
   const fen = useMemo(() => fenAfter(entry.moves) ?? asFen(''), [entry.moves]);
@@ -208,6 +209,14 @@ function OpeningDetail({ entry }: { readonly entry: OpeningEntry }) {
       notify({ tone: 'error', message: `${entry.label} could not be replayed.` });
       return;
     }
+    /*
+      To the *end* of the line. `loadPgn` opens a game at its root, which is
+      right for a game and wrong for an opening: the user asked for the
+      Sicilian, and for a long time got the starting position with the
+      Sicilian in the move list beneath it, and concluded the button did
+      nothing.
+    */
+    toEnd();
     setDocument({ kind: 'untitled', title: entry.label });
     router.push('/analysis');
   };

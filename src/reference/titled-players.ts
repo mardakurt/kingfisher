@@ -92,10 +92,26 @@ export function __resetTitledRoster(): void {
 }
 
 /** A one-line description for a row: "GM · Norway-born 1990" without the invention. */
+/**
+ * A country, from the ISO 3166-1 code Wikidata records.
+ *
+ * "TR" is what the roster stores; "Türkiye" is what a person reads. The
+ * browser's own region names are used, so the list is never hand-maintained
+ * here, and the code is returned as it is when the runtime has no names.
+ */
+export function regionName(code: string): string {
+  if (!code) return '';
+  try {
+    return new Intl.DisplayNames(['en'], { type: 'region' }).of(code.toUpperCase()) ?? code;
+  } catch {
+    return code;
+  }
+}
+
 export function describeTitledPlayer(player: TitledPlayer): string {
   const parts: string[] = [player.title];
   if (player.born) parts.push(player.died ? `${player.born}–${player.died}` : `b. ${player.born}`);
-  if (player.citizenship) parts.push(player.citizenship);
+  if (player.citizenship) parts.push(regionName(player.citizenship));
   if (player.peakElo) parts.push(`Elo ${player.peakElo} recorded`);
   if (player.fideId) parts.push(`FIDE ${player.fideId}`);
   return parts.join(' · ');

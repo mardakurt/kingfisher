@@ -234,8 +234,9 @@ export class LichessExplorerProvider implements ChessDatabaseProvider {
       return {
         state: 'authentication-required' as const,
         checkedAt: Date.now(),
-        message: 'Connect a personal access token to use the explorer.',
-        remedy: 'Settings → Database → Lichess',
+        message:
+          'Lichess answers explorer queries only with a token. Sign in with Lichess to use this source.',
+        remedy: 'Settings → Accounts → Lichess',
       };
     }
     try {

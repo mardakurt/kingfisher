@@ -12,6 +12,7 @@ import { useQuery } from '@tanstack/react-query';
 
 import { readyPackReaders } from './manager';
 import type { PackGame } from './pack';
+import { nameOrders } from './players';
 import { useReferenceSources } from './use-references';
 
 export interface ReferenceGame extends PackGame {
@@ -23,8 +24,16 @@ export interface ReferenceGame extends PackGame {
 async function gamesFor(key: string): Promise<readonly ReferenceGame[]> {
   const found: ReferenceGame[] = [];
   const seen = new Set<string>();
+  // A pack files the player under its own spelling; the catalog row carries
+  // one of them. Both orders are asked so a "Magnus Carlsen" row still reads
+  // the pack that wrote "Carlsen, Magnus".
+  const spellings = [key, ...nameOrders(key).map((form) => form.toLowerCase())];
   for (const reader of readyPackReaders()) {
-    const ids = await reader.playerGames(key);
+    let ids: readonly string[] = [];
+    for (const spelling of spellings) {
+      ids = await reader.playerGames(spelling);
+      if (ids.length > 0) break;
+    }
     if (ids.length === 0) continue;
     for (const game of await reader.games(ids)) {
       // A game held by two packs is one game; the first source listed wins,

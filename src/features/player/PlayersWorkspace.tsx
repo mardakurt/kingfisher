@@ -24,7 +24,7 @@ import { EmptyState } from '@/components/ui/Panel';
 import { NavButton } from '@/features/shell/NavButton';
 import { cn } from '@/lib/cn';
 import { legendYears } from '@/reference/legends';
-import { describeTitledPlayer } from '@/reference/titled-players';
+import { describeTitledPlayer, regionName } from '@/reference/titled-players';
 import {
   searchPlayers,
   usePlayerCatalog,
@@ -265,6 +265,12 @@ function PlayerRow({
           ) : null}
           {legend?.reign ? (
             <span className="shrink-0 text-[10px] text-accent">{legend.reign}</span>
+          ) : null}
+          {/* Where the person is from, when the roster records it. */}
+          {player.titled?.citizenship ? (
+            <span className="shrink-0 text-[10px] text-tertiary" data-player-country>
+              {regionName(player.titled.citizenship)}
+            </span>
           ) : null}
         </div>
         <p className="mt-0.5 truncate text-[11px] text-tertiary">

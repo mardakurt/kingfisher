@@ -478,6 +478,7 @@ function ProviderHealthList() {
 }
 
 function ProviderHealthRow({ provider }: { readonly provider: ChessDatabaseProvider }) {
+  const openSettingsAt = useUi((state) => state.openSettingsAt);
   const health = useQuery<ProviderHealth>({
     queryKey: ['provider-health', provider.id],
     queryFn: async ({ signal }) =>
@@ -502,15 +503,30 @@ function ProviderHealthRow({ provider }: { readonly provider: ChessDatabaseProvi
       <p className="mt-1 pl-4 text-xs leading-relaxed text-tertiary">
         {health.data?.message ?? 'Checking connection…'}
       </p>
-      {state !== 'ready' && state !== 'loading' ? (
-        <Button
-          size="sm"
-          className="mt-1.5 ml-4"
-          onClick={() => void health.refetch()}
-          disabled={health.isFetching}
-        >
-          {health.isFetching ? 'Testing…' : 'Test connection'}
-        </Button>
+      {/*
+        A source that needs a credential gets the button that supplies one.
+        "Test connection" on a source with no token re-ran the test and
+        reported the same thing, which read as the button doing nothing: the
+        test was working, and there was nothing it could change.
+      */}
+      {state === 'authentication-required' ? (
+        <div className="mt-1.5 ml-4 flex flex-wrap items-center gap-1.5">
+          <Button size="sm" variant="accent" onClick={() => openSettingsAt('accounts')}>
+            Connect Lichess
+          </Button>
+          {health.data?.remedy ? (
+            <span className="text-[10.5px] text-tertiary">{health.data.remedy}</span>
+          ) : null}
+        </div>
+      ) : state !== 'ready' && state !== 'loading' ? (
+        <div className="mt-1.5 ml-4 flex flex-wrap items-center gap-1.5">
+          <Button size="sm" onClick={() => void health.refetch()} disabled={health.isFetching}>
+            {health.isFetching ? 'Testing…' : 'Test connection'}
+          </Button>
+          {health.data?.remedy ? (
+            <span className="text-[10.5px] text-tertiary">{health.data.remedy}</span>
+          ) : null}
+        </div>
       ) : null}
     </div>
   );

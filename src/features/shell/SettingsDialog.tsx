@@ -22,7 +22,7 @@ import { BookManager } from '@/features/book/BookManager';
 import { EngineManager } from '@/features/engine/EngineManager';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Dialog } from '@/components/ui/Dialog';
-import { Segmented, Tabs } from '@/components/ui/Tabs';
+import { Segmented } from '@/components/ui/Tabs';
 import { BOARD_THEMES, boardTheme, boardThemeVariables } from '@/features/board/themes';
 import { PIECE_SETS, PieceIcon } from '@/features/board/pieces';
 import { MiniBoard } from '@/features/board/MiniBoard';
@@ -150,24 +150,56 @@ export function SettingsDialog() {
       onClose={close}
       title="Settings"
       description="Stored on this machine. Nothing here needs an account."
-      width="w-[640px]"
+      width="w-[960px]"
+      /*
+        Wide, with the sections down the left. Twelve tabs in a 640px row
+        scrolled sideways and the panels under them wrapped every control on
+        its own line; a settings window is read, not squeezed through.
+      */
+      bodyClassName="flex max-h-[calc(100dvh-11rem)] min-h-[420px] sm:max-h-[74vh]"
     >
-      <SettingsSearch onJump={choose} />
-      <div className="-mx-4 mb-3 overflow-x-auto border-b border-line-subtle px-2">
-        <Tabs items={SECTIONS} value={section} onChange={choose} />
+      <nav
+        role="tablist"
+        aria-orientation="vertical"
+        aria-label="Settings sections"
+        className="flex w-[176px] shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-line-subtle bg-surface-2/40 px-2 py-3"
+      >
+        {SECTIONS.map((entry) => {
+          const selected = entry.id === section;
+          return (
+            <button
+              key={entry.id}
+              role="tab"
+              type="button"
+              aria-selected={selected}
+              onClick={() => choose(entry.id)}
+              className={cn(
+                'rounded-[4px] px-3 py-1.5 text-left text-xs transition-colors',
+                selected
+                  ? 'bg-accent-muted font-medium text-primary'
+                  : 'text-secondary hover:bg-surface-2 hover:text-primary',
+              )}
+            >
+              {entry.label}
+            </button>
+          );
+        })}
+      </nav>
+      <div className="min-w-0 flex-1 overflow-y-auto px-6 py-4">
+        <SettingsSearch onJump={choose} />
+        {section === 'appearance' && <AppearanceSection />}
+        {section === 'board' && <BoardSection />}
+        {section === 'pieces' && <PiecesSection />}
+        {section === 'workspace' && <WorkspaceSection />}
+        {section === 'engine' && <EngineSection />}
+        {section === 'companion' && <CompanionSection />}
+        {section === 'keyboard' && <KeyboardSection />}
+        {section === 'assistant' && <AssistantSection />}
+        {section === 'database' && <DatabaseSection />}
+        {section === 'accounts' && <AccountsSection />}
+        {section === 'profile' && <ProfileSection />}
+        {section === 'diagnostics' && <DiagnosticsSection />}
       </div>
-      {section === 'appearance' && <AppearanceSection />}
-      {section === 'board' && <BoardSection />}
-      {section === 'pieces' && <PiecesSection />}
-      {section === 'workspace' && <WorkspaceSection />}
-      {section === 'engine' && <EngineSection />}
-      {section === 'companion' && <CompanionSection />}
-      {section === 'keyboard' && <KeyboardSection />}
-      {section === 'assistant' && <AssistantSection />}
-      {section === 'database' && <DatabaseSection />}
-      {section === 'accounts' && <AccountsSection />}
-      {section === 'profile' && <ProfileSection />}
-      {section === 'diagnostics' && <DiagnosticsSection />}
     </Dialog>
   );
 }
@@ -820,6 +852,12 @@ function AccountsSection() {
             <input
               value={username}
               onChange={(event) => setUsername(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && username.trim() && !busy) {
+                  event.preventDefault();
+                  void link();
+                }
+              }}
               placeholder="username"
               aria-label="Account username"
               className="h-8 min-w-0 flex-1 rounded-[4px] border border-line bg-surface-inset px-2.5 font-mono text-[11px] text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60"

@@ -90,7 +90,8 @@ export class CompanionEngineProvider implements EngineProvider {
       return {
         available: false,
         reason: 'This engine runs as a native process, which needs the local companion.',
-        remedy: 'Start it with `npm run companion` and pair it in Settings → Companion.',
+        remedy:
+          'The Kingfisher desktop application includes it. In a browser, pair a companion in Settings → Companion — or choose Stockfish 18, which runs here without one.',
       };
     }
     try {
@@ -99,14 +100,15 @@ export class CompanionEngineProvider implements EngineProvider {
       if (known) return { available: true };
       return {
         available: false,
-        reason: `The companion does not have ${this.descriptor.name} installed.`,
-        remedy: 'Run `npm run engines:install`, then restart the companion.',
+        reason: `${this.descriptor.name} is not installed.`,
+        remedy:
+          'Install it from Settings → Engines; it downloads and is verified against its recorded digest.',
       };
     } catch (error) {
       return {
         available: false,
         reason: error instanceof Error ? error.message : 'The companion is not reachable.',
-        remedy: 'Start it with `npm run companion`.',
+        remedy: 'Check Settings → Companion, or choose Stockfish 18, which runs without one.',
       };
     }
   }
@@ -116,7 +118,7 @@ export class CompanionEngineProvider implements EngineProvider {
     if (!client) {
       throw new EngineError(
         'The local companion is not configured.',
-        'Start it with `npm run companion` and pair it in Settings → Companion.',
+        'Pair a companion in Settings → Companion, or choose Stockfish 18, which runs without one.',
       );
     }
 

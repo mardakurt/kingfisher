@@ -31,6 +31,9 @@ import { useEngine, type PinnedLine } from '@/stores/engine-store';
 import { usePreferences } from '@/stores/preferences-store';
 import { useUi } from '@/stores/ui-store';
 import { MiniBoard } from '@/features/board/MiniBoard';
+import { useCompanionStatus } from '@/companion/useCompanion';
+
+import { EngineSelect } from './EngineSelect';
 
 export function EnginePanel() {
   const { node, currentId } = useAnalysisPosition();
@@ -55,6 +58,8 @@ export function EnginePanel() {
   const insertUciLine = useAnalysis((state) => state.insertUciLine);
   const attachEvaluation = useAnalysis((state) => state.attachEvaluation);
   const notify = useUi((state) => state.notify);
+  const openSettingsAt = useUi((state) => state.openSettingsAt);
+  const companionPaired = useCompanionStatus().data !== undefined;
   const [preview, setPreview] = useState<{ readonly rank: number; readonly ply: number } | null>(
     null,
   );
@@ -150,9 +155,12 @@ export function EnginePanel() {
           </>
         }
       >
-        <span className="truncate normal-case tracking-normal text-secondary">
-          {identity?.name ?? 'Stockfish'}
-        </span>
+        {/*
+          The engine is chosen here, on the panel that runs it. The name used
+          to be a label, and changing the engine meant a detour through Two
+          engines: the selector there was the only one.
+        */}
+        <EngineSelect slot="primary" label="Engine" className="max-w-[160px]" />
         {analysis && !stale && analysis.depth > 0 && (
           <span className={cn('tabular', stale ? 'text-tertiary/60' : 'text-tertiary')}>
             depth {analysis.depth}
@@ -198,6 +206,23 @@ export function EnginePanel() {
           <EmptyState
             title={problem?.message ?? 'The engine is unavailable.'}
             description={problem?.remedy}
+            action={
+              /*
+                The remedy as a button, not a sentence. An engine that is not
+                installed is installed in Settings → Engines; one that needs
+                the companion is paired in Settings → Companion. Either is one
+                click from here, and the second engine offered can always be
+                the browser build, which needs nothing.
+              */
+              status === 'unavailable' ? (
+                <Button
+                  variant="subtle"
+                  onClick={() => openSettingsAt(companionPaired ? 'engine' : 'companion')}
+                >
+                  {companionPaired ? 'Open Settings → Engines' : 'Open Settings → Companion'}
+                </Button>
+              ) : undefined
+            }
           />
         ) : status === 'loading' ? (
           <EmptyState title="Loading Stockfish…" description="The build is about 7 MB." />

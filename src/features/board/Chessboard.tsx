@@ -31,7 +31,8 @@ import type { ChessboardProps } from './types';
  * makes a single click play its move twice.
  */
 type Interaction =
-  | { readonly kind: 'select'; readonly from: Square }
+  /** `again` is set when the piece was already selected before this press. */
+  | { readonly kind: 'select'; readonly from: Square; readonly again?: boolean }
   | { readonly kind: 'shape'; readonly from: Square; readonly brush: Brush }
   | { readonly kind: 'done' };
 
@@ -201,7 +202,9 @@ export function Chessboard({
       const piece = board?.[squareIndexOf(square)] ?? null;
       if (piece && (destinations?.get(square)?.length ?? 0) > 0) {
         const box = boardRef.current?.getBoundingClientRect();
-        interactionRef.current = { kind: 'select', from: square };
+        // A second press on the selected piece is remembered so that releasing
+        // there deselects it; a drag from it to another square still moves.
+        interactionRef.current = { kind: 'select', from: square, again: origin === square };
         select(square);
         setDrag({
           from: square,
@@ -276,12 +279,21 @@ export function Chessboard({
       if (interaction.kind !== 'select') return;
 
       setDrag(null);
-      // Releasing on the origin square keeps the piece selected, which is what
-      // makes click-to-move and drag-to-move the same gesture.
-      if (!square || square === interaction.from) return;
+      /*
+        Releasing on the origin square keeps the piece selected, which is what
+        makes click-to-move and drag-to-move the same gesture — unless the
+        piece was already selected when it was pressed, in which case the
+        click means "never mind" and the legal-move dots go away. Before this,
+        a selected piece could not be deselected except by clicking an empty
+        square, and the dots stayed on until something else was clicked.
+      */
+      if (!square || square === interaction.from) {
+        if (interaction.again && square === interaction.from) select(null);
+        return;
+      }
       commitMove(interaction.from, square);
     },
-    [commitMove, onShapeToggle, pointToSquare],
+    [commitMove, onShapeToggle, pointToSquare, select],
   );
 
   const handlePointerCancel = useCallback(() => {

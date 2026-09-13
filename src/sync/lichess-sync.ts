@@ -34,6 +34,24 @@ export interface LichessFetchOptions {
   readonly fetchImpl?: typeof fetch;
 }
 
+/** Whether a Lichess account of that name exists, from the public profile. */
+async function lichessAccountExists(
+  name: string,
+  request: typeof fetch,
+  signal?: AbortSignal,
+): Promise<boolean> {
+  try {
+    const response = await request(
+      new URL(`/api/user/${encodeURIComponent(name)}`, LICHESS_API).toString(),
+      { headers: { accept: 'application/json' }, ...(signal ? { signal } : {}) },
+    );
+    return response.ok;
+  } catch {
+    // Unknown is not "does not exist": the export's own 404 stands.
+    return false;
+  }
+}
+
 export async function fetchLichessGamesPgn(
   username: string,
   options: LichessFetchOptions = {},
@@ -75,6 +93,27 @@ export async function fetchLichessGamesPgn(
   }
 
   if (response.status === 404) {
+    /*
+      Two things answer 404 here, and only one of them is about the name.
+      Since 2026 Lichess serves the games export only to signed-in clients
+      and answers an anonymous request with 404 rather than 401 — for every
+      account, including ones that exist. The public profile endpoint still
+      answers anonymously, so it settles which 404 this was: a profile that
+      exists means the export was refused, and the remedy is to sign in, not
+      to check the spelling.
+    */
+    const exists = await lichessAccountExists(name, request, options.signal);
+    if (exists) {
+      throw new SyncFetchError(
+        options.token
+          ? `Lichess refused the games export for "${name}" with the stored token.`
+          : 'Lichess serves game exports only to signed-in clients.',
+        'authentication-required',
+        options.token
+          ? 'Sign in with Lichess again in Settings → Accounts.'
+          : 'Sign in with Lichess in Settings → Accounts, then sync again.',
+      );
+    }
     throw new SyncFetchError(
       `Lichess has no account called "${name}".`,
       'misconfigured',

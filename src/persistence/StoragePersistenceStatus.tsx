@@ -36,12 +36,21 @@
  *
  * The previous "green dot, no text" UX did not say a write was
  * in flight. Now it does.
+ *
+ * A declined request opens the popover rather than a toast. Chromium
+ * grants `persist()` from its own heuristics — the site is installed,
+ * bookmarked, or has notification permission — and declines silently
+ * otherwise, so "the runtime declined" was true and useless: the
+ * person could not do anything with it. The popover says which of
+ * those the browser accepts and offers the one Kingfisher can do for
+ * them, installing as an app, when the browser has offered it.
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/Button';
+import { promptInstall, subscribeInstall, type InstallPromptState } from '@/pwa/install-prompt';
 import { useUi } from '@/stores/ui-store';
 
 import { composeSavedState, type SavedStatePersistence } from './saved-state';
@@ -57,7 +66,13 @@ export function StoragePersistenceStatus({ compact = false }: { readonly compact
   const router = useRouter();
   const notify = useUi((state) => state.notify);
   const [popoverOpen, setPopoverOpen] = useState(false);
+  const [declined, setDeclined] = useState(false);
+  const [install, setInstall] = useState<InstallPromptState | null>(null);
   const view = composeSavedState(persistence as SavedStatePersistence, writeStatus, failureLabel);
+
+  useEffect(() => subscribeInstall(setInstall), []);
+
+  const explainable = view.openable || writeStatus === 'failed' || declined;
 
   return (
     <div
@@ -81,9 +96,9 @@ export function StoragePersistenceStatus({ compact = false }: { readonly compact
           autocomplete="off" is the documented opt-out of that restoration.
         */
         {...({ autoComplete: 'off' } as Record<string, string>)}
-        disabled={!view.requestable && !view.openable && writeStatus !== 'failed'}
+        disabled={!view.requestable && !explainable}
         onClick={async () => {
-          if (view.requestable) {
+          if (view.requestable && !declined) {
             const granted = await request();
             if (granted === 'persistent') {
               notify({
@@ -98,34 +113,30 @@ export function StoragePersistenceStatus({ compact = false }: { readonly compact
                 message: 'This runtime does not expose durable storage.',
               });
             } else {
-              notify({
-                tone: 'info',
-                message:
-                  'The runtime declined the request. Your work is still saved; storage is not protected from pressure events.',
-              });
+              // Declined: say why, and what would change the answer.
+              setDeclined(true);
+              setPopoverOpen(true);
             }
             return;
           }
-          if (view.openable || writeStatus === 'failed') {
-            setPopoverOpen((value) => !value);
-          }
+          if (explainable) setPopoverOpen((value) => !value);
         }}
         title={view.detail}
-        aria-haspopup={view.openable || writeStatus === 'failed' ? 'true' : undefined}
-        aria-expanded={view.openable || writeStatus === 'failed' ? popoverOpen : undefined}
+        aria-haspopup={explainable ? 'true' : undefined}
+        aria-expanded={explainable ? popoverOpen : undefined}
         className={`min-w-0 truncate text-left text-[10.5px] ${view.tone} ${
-          view.requestable || view.openable || writeStatus === 'failed'
+          view.requestable || explainable
             ? 'cursor-pointer underline-offset-2 hover:underline'
             : 'cursor-default'
         } ${compact ? 'sr-only' : ''}`}
       >
         {view.label}
       </button>
-      {popoverOpen && (view.openable || writeStatus === 'failed') ? (
+      {popoverOpen && explainable ? (
         <div
           role="dialog"
           aria-label="Saved status"
-          className="absolute bottom-full left-0 z-50 mb-2 w-72 rounded-[5px] border border-line bg-surface-1 p-3 text-[12px] text-secondary shadow-lg"
+          className="absolute bottom-full left-0 z-50 mb-2 w-80 rounded-[5px] border border-line bg-surface-1 p-3 text-[12px] text-secondary shadow-lg"
         >
           <p className="font-medium text-primary">{view.label}</p>
           <p className="mt-1 text-[11px] text-tertiary">{view.detail}</p>
@@ -134,15 +145,75 @@ export function StoragePersistenceStatus({ compact = false }: { readonly compact
               The most recent change did not reach local storage. A retry or a backup download is
               the safest next step.
             </p>
+          ) : declined && view.requestable ? (
+            <div className="mt-2 text-[11px] leading-relaxed text-tertiary" data-storage-declined>
+              <p>
+                Your work is saved. The browser declined to <em>promise</em> to keep it if it runs
+                short of space, and it decides that from its own rules, not from a request:
+              </p>
+              <ul className="mt-1 list-disc pl-4">
+                <li>
+                  Chrome and Edge protect a site once it is installed as an app or bookmarked.
+                </li>
+                <li>Firefox asks you directly; if you dismissed it, the answer stands.</li>
+                <li>Safari protects sites you use regularly and never asks.</li>
+              </ul>
+              <p className="mt-1">
+                {install?.available
+                  ? 'Installing Kingfisher as an app is the surest way, and the browser has offered it.'
+                  : 'Bookmark this page, or install Kingfisher from the browser menu, then click the indicator again.'}{' '}
+                A downloaded backup is protected whatever the browser decides.
+              </p>
+            </div>
           ) : (
             <p className="mt-2 text-[11px] text-tertiary">
               Backups are portable JSON. Streaming cache is excluded — it is reproducible, not work.
             </p>
           )}
           <div className="mt-3 flex flex-wrap items-center gap-2">
+            {declined && view.requestable && install?.available ? (
+              <Button
+                size="sm"
+                variant="accent"
+                onClick={async () => {
+                  const outcome = await promptInstall();
+                  if (outcome === 'accepted') {
+                    setPopoverOpen(false);
+                    setDeclined(false);
+                    notify({
+                      tone: 'success',
+                      message:
+                        'Kingfisher is installing. Click the indicator once it opens as an app.',
+                    });
+                  }
+                }}
+              >
+                Install as an app
+              </Button>
+            ) : null}
+            {declined && view.requestable ? (
+              <Button
+                size="sm"
+                onClick={async () => {
+                  const granted = await request();
+                  if (granted === 'persistent') {
+                    setPopoverOpen(false);
+                    setDeclined(false);
+                    notify({ tone: 'success', message: 'Storage protection granted.' });
+                  } else {
+                    notify({
+                      tone: 'info',
+                      message: 'The browser still declines. Your work is saved.',
+                    });
+                  }
+                }}
+              >
+                Ask again
+              </Button>
+            ) : null}
             <Button
               size="sm"
-              variant="accent"
+              variant={declined && view.requestable ? 'subtle' : 'accent'}
               onClick={async () => {
                 setPopoverOpen(false);
                 const { downloadWorkspaceBackup } = await import('./backup');

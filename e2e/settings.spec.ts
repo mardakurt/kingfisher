@@ -42,7 +42,7 @@ async function withPreference(page: Page, key: string, value: unknown, route = '
   await page.evaluate(
     ({ key, value, storeKey }) => {
       const raw = window.localStorage.getItem(storeKey);
-      const parsed = raw ? JSON.parse(raw) : { state: {}, version: 4 };
+      const parsed = raw ? JSON.parse(raw) : { state: {}, version: 5 };
       parsed.state = { ...parsed.state, [key]: value };
       window.localStorage.setItem(storeKey, JSON.stringify(parsed));
     },
@@ -231,9 +231,12 @@ const RUNTIME: Record<string, (page: Page) => Promise<void>> = {
   },
 
   primaryEngineId: async (page) => {
+    // The selector on the one-engine panel is the control, and it must show
+    // the stored value — a dropdown that does not contain its own value is
+    // one that silently changes what you are using.
     await withPreference(page, 'primaryEngineId', 'stockfish-wasm');
     await page.getByRole('tab', { name: 'Engine' }).click();
-    await expect(page.locator('body')).toContainText(/Stockfish/i);
+    await expect(page.locator('[data-engine-select="primary"]')).toHaveValue('stockfish-wasm');
   },
 
   engineMultiPv: async (page) => {
@@ -375,7 +378,7 @@ test.describe('every setting', () => {
       await page.evaluate(
         ({ storeKey, key, value }) => {
           const raw = window.localStorage.getItem(storeKey);
-          const parsed = raw ? JSON.parse(raw) : { state: {}, version: 4 };
+          const parsed = raw ? JSON.parse(raw) : { state: {}, version: 5 };
           parsed.state = { ...parsed.state, [key]: value };
           window.localStorage.setItem(storeKey, JSON.stringify(parsed));
         },
@@ -401,7 +404,7 @@ test.describe('every setting', () => {
     await page.evaluate(
       ({ storeKey, values }) => {
         const raw = window.localStorage.getItem(storeKey);
-        const parsed = raw ? JSON.parse(raw) : { state: {}, version: 4 };
+        const parsed = raw ? JSON.parse(raw) : { state: {}, version: 5 };
         parsed.state = { ...parsed.state, ...values };
         window.localStorage.setItem(storeKey, JSON.stringify(parsed));
       },

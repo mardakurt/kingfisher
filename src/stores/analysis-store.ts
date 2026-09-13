@@ -153,6 +153,14 @@ interface AnalysisState {
   deleteNode(nodeId: NodeId): void;
   deleteVariation(nodeId: NodeId): void;
   truncate(nodeId: NodeId): void;
+  /**
+   * Remove every move, keeping the starting position and the document.
+   *
+   * Distinct from `newGame`, which also resets the position to the initial
+   * one: a player who has set up an endgame and tried three lines wants the
+   * lines gone and the endgame kept. Undoable, like every other edit.
+   */
+  clearMoves(): void;
   clearVariations(nodeId: NodeId): void;
   promote(nodeId: NodeId): void;
   demote(nodeId: NodeId): void;
@@ -325,6 +333,13 @@ export const useAnalysis = create<AnalysisState>((set, get) => ({
     const tree = truncateAfter(state.tree, nodeId);
     if (tree === state.tree) return;
     set(commit(state, tree, tree.nodes[state.currentId] ? state.currentId : nodeId));
+  },
+
+  clearMoves: () => {
+    const state = get();
+    const tree = truncateAfter(state.tree, state.tree.rootId);
+    if (tree === state.tree) return;
+    set(commit(state, tree, tree.rootId));
   },
 
   clearVariations: (nodeId) => {

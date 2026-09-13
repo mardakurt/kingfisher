@@ -231,6 +231,13 @@ export function useCommands(): readonly Command[] {
         run: () => analysis().truncate(analysis().currentId),
       },
       {
+        id: 'clear-moves',
+        title: 'Clear the move tree (keep this starting position)',
+        group: 'Editing',
+        keywords: 'reset clear moves tree start over empty',
+        run: () => analysis().clearMoves(),
+      },
+      {
         id: 'insert-best-line',
         title: 'Insert the best engine line',
         group: 'Engine',
