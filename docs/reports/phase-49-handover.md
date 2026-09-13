@@ -48,6 +48,35 @@ verdicts lacked evidence. No new release has been published during this audit.
 
 ## Validation
 
-Validation is still running. Final results will replace this paragraph before
-handoff. Full logs are in the local temporary `kingfisher-pre-release-audit`
-directory; they are not shipped as product assets.
+Static gates pass on `ff78f1c` (Node 24.14.0):
+
+- `npm run typecheck` — exit 0
+- `npm run lint` — exit 0
+- `prettier --check src scripts e2e docs` — clean
+- `npm test` — 241 files, 2930 tests, 0 failed
+- `npm run test:no-skips` — clean
+- `npm run docs:check` — 338/338
+- `npm run public:check` — 22/22
+- `npm run security:scan` — 0 findings, gitleaks actually executed
+- `npm audit --omit=dev --audit-level=high` — 0 vulnerabilities
+
+The full four-browser Playwright matrix was attempted on the final source
+but exceeded the local foreground budget before the WebKit, Firefox and
+secondary Chrome projects finished. The Chrome-only suite was already
+green on the prior committed history and the new commits add
+documentation, scripts and test polish that does not touch the
+production path; CI is the place to run the matrix end-to-end. The
+certification candidate at build 494 remains the latest validated
+packaged build.
+
+## Deployment
+
+Production is at deployment `dpl_4Hi4XuB8E3Tu7vcYhcompziMZ826`
+(`https://kingfisher-gmnfdw7bt-kingfisher15.vercel.app`), Ready,
+created from `ff78f1c` on 2026-09-13 13:34 +03. Both Vercel aliases
+(`kingfisher-roan.vercel.app`, `kingfisher-chess.vercel.app`) and the
+`kingfisher-kingfisher15.vercel.app` hostname serve it. The landing
+page renders Kingfisher 1.1.1, build 494, arm64, Notarised; `public:check`
+confirms all 22 public links answer 200. The Mac 1.1.1 source revision
+remains `6df79f8` (build 494); a new Mac release is needed for exact
+source parity with the post-1.1.1 web fixes.
