@@ -32,9 +32,14 @@ export function buildEnvelopeFromDraft(
   const envelope: FeedbackEnvelope = {
     category: draft.category,
     message: draft.message.trim(),
+    ...(draft.currentFen ? { currentFen: draft.currentFen } : {}),
     includeTechnical: draft.includeTechnical,
+    ...(draft.includeTechnical && draft.technicalInfo
+      ? { technicalInfo: draft.technicalInfo }
+      : {}),
     clientVersion: meta.clientVersion,
     surface: meta.surface,
+    openedAtMs: meta.openedAtMs,
   };
   return envelope;
 }

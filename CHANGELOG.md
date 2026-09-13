@@ -14,6 +14,15 @@ Check for Updates…_ and from the landing page.
 
 ### Corrections
 
+- **Send feedback sends.** The dialog's request failed in every browser
+  with "Illegal invocation" before it left the page — the built-in
+  `fetch` was being called as a method of the sink object, which Node
+  tolerates and Chromium and WebKit refuse — so no feedback sent from
+  the application has ever reached the inbox; only a direct request to
+  the route did. The request also carried no fill-time stamp, so the
+  route would have refused it as too fast, and "Include current
+  position" attached nothing. All three are fixed, and a browser test
+  now drives the real dialog.
 - **A PGN worker no longer loads another worker's module.** The service
   worker could answer a cached navigation with the wrong worker's
   bootstrap; it now serves each request its own URL.

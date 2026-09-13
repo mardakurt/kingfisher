@@ -75,6 +75,9 @@ export interface FeedbackEnvelope {
   readonly technicalInfo?: Record<string, string>;
   readonly clientVersion: string;
   readonly surface: FeedbackSurface;
+  /** When the dialog opened; the route refuses a submission filled in
+   * under 1.5 s or left open over 30 min. Absent means refused. */
+  readonly openedAtMs: number;
 }
 
 export type FeedbackSurface = 'web' | 'pwa' | 'desktop';

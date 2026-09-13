@@ -12,6 +12,7 @@ import { useCompanionSync } from '@/companion/useCompanion';
 import { useDesktopIntegration } from '@/desktop/useDesktop';
 import { PostUpdateNotice } from '@/desktop/post-update-notice';
 import { useReferenceSources } from '@/reference/use-references';
+import { selectFen, useAnalysis } from '@/stores/analysis-store';
 import { useUi } from '@/stores/ui-store';
 import { useWorkspaceLayout } from '@/stores/workspace-layout-store';
 import { APP_VERSION } from '@/lib/version';
@@ -87,6 +88,10 @@ const CommentDialog = dynamic(
   () => import('@/features/movetree/CommentDialog').then((module) => module.CommentDialog),
   { ssr: false },
 );
+
+/* Read at the moment of Send, not at render: the dialog can stay open
+   while the person steps through moves to reach the position they mean. */
+const readCurrentFen = (): string | null => selectFen(useAnalysis.getState()) ?? null;
 
 export function AppShell({ children }: { children: ReactNode }) {
   useGlobalHotkeys();
@@ -223,6 +228,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             surface="web"
             githubRepositoryUrl="https://github.com/mardakurt/kingfisher"
             initialCategory={feedbackInitialCategory ?? 'broken'}
+            currentFenProvider={readCurrentFen}
           />
         ) : null}
         <MoveContextMenu />

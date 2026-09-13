@@ -41,7 +41,12 @@ export class HttpFeedbackSink implements FeedbackSink {
     options: Partial<{ endpoint: string; fetchImpl: typeof fetch; timeoutMs: number }> = {},
   ) {
     this.endpoint = options.endpoint ?? FEEDBACK_ENDPOINT;
-    this.fetchImpl = options.fetchImpl ?? fetch;
+    /* Native `fetch` must be invoked on the global, never as a method
+       of this object: Chromium and WebKit throw "Illegal invocation"
+       for `this.fetchImpl(...)` when `fetchImpl` is the bare built-in.
+       Node's fetch does not care, which is why a unit test with the
+       real global passes while every browser user's Send fails. */
+    this.fetchImpl = options.fetchImpl ?? ((input, init) => globalThis.fetch(input, init));
     this.timeoutMs = options.timeoutMs ?? 12_000;
   }
 

@@ -9,9 +9,34 @@ const envelope: FeedbackEnvelope = {
   includeTechnical: false,
   clientVersion: '1.0.0',
   surface: 'web',
+  openedAtMs: 1_700_000_000_000,
 };
 
 describe('HttpFeedbackSink', () => {
+  it('calls the global fetch on the global, as a browser requires', async () => {
+    /* Chromium and WebKit throw "Illegal invocation" when the built-in
+       fetch is called with any other receiver; Node's does not, so a
+       stub that enforces the browser's rule stands in for it here.
+       Kingfisher 1.1.1 shipped `this.fetchImpl = fetch` and every
+       in-app Send failed with exactly that message. */
+    const original = globalThis.fetch;
+    let receiverWasGlobal: boolean | 'unset' = 'unset';
+    globalThis.fetch = async function (this: unknown) {
+      receiverWasGlobal = this === globalThis || this === undefined;
+      if (!receiverWasGlobal) {
+        throw new TypeError("Failed to execute 'fetch' on 'Window': Illegal invocation");
+      }
+      return new Response(JSON.stringify({ reference: 'ref-global' }), { status: 200 });
+    } as unknown as typeof fetch;
+    try {
+      const result = await new HttpFeedbackSink().submit(envelope);
+      expect(result).toEqual({ ok: true, reference: 'ref-global' });
+      expect(receiverWasGlobal).toBe(true);
+    } finally {
+      globalThis.fetch = original;
+    }
+  });
+
   it('submits to /api/feedback by default with JSON content-type', async () => {
     let capturedUrl: string | null = null;
     let capturedInit: RequestInit | undefined;
