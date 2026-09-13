@@ -37,13 +37,13 @@ describe('the public host serves both surfaces on one origin', () => {
     expect(noindexFor('kingfisherchess.app', '/analysis')).toBe(true);
     expect(noindexFor('kingfisherchess.app', '/player/carlsen')).toBe(true);
     // The studio host is the application everywhere; a landing host never is.
-    expect(noindexFor('kingfisher-roan.vercel.app', '/')).toBe(true);
+    expect(noindexFor('studio.localhost', '/')).toBe(true);
     expect(noindexFor('kingfisher-chess.vercel.app', '/')).toBe(false);
   });
 
   it('is an application host, as the studio host is and the old landing host is not', () => {
     expect(isApplicationHost('kingfisherchess.app')).toBe(true);
-    expect(isApplicationHost('kingfisher-roan.vercel.app')).toBe(true);
+    expect(isApplicationHost('studio.localhost')).toBe(true);
     expect(isApplicationHost('kingfisher-chess.vercel.app')).toBe(false);
     expect(isApplicationHost(null)).toBe(false);
   });

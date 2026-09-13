@@ -21,8 +21,6 @@ const STUDIO_HOSTS = new Set<string>([
   // landing at `/` never mounts either.
   'kingfisherchess.app',
   'www.kingfisherchess.app',
-  // The origin the application lived on until 2026-09-13.
-  'kingfisher-roan.vercel.app',
   'studio.kingfisher-chess.vercel.app',
   'studio.localhost',
 ]);

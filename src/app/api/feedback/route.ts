@@ -90,7 +90,6 @@ const MIN_FILL_MS = 1_500;
 const ALLOWED_ORIGINS = new Set<string>([
   'https://kingfisherchess.app',
   'https://www.kingfisherchess.app',
-  'https://kingfisher-roan.vercel.app',
   'https://kingfisher-chess.vercel.app',
   'http://localhost:3210',
   'http://127.0.0.1:3210',

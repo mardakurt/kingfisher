@@ -19,8 +19,7 @@
  *
  * Output:
  *
- *   kingfisherchess.app       : up to date (f1336bd)
- *   kingfisher-roan.vercel.app: up to date (f1336bd)
+ *   kingfisherchess.app: up to date (f1336bd)
  */
 
 import { spawnSync } from 'node:child_process';
@@ -40,10 +39,7 @@ const LINK = (() => {
 })();
 const TEAM = process.env.VERCEL_TEAM_ID ?? LINK.orgId ?? '';
 const PROJECT_ID = process.env.VERCEL_PROJECT_ID ?? LINK.projectId ?? '';
-const PROJECTS = [
-  { label: 'kingfisherchess.app       ', id: PROJECT_ID, url: 'kingfisherchess.app' },
-  { label: 'kingfisher-roan.vercel.app', id: PROJECT_ID, url: 'kingfisher-roan.vercel.app' },
-];
+const PROJECTS = [{ label: 'kingfisherchess.app', id: PROJECT_ID, url: 'kingfisherchess.app' }];
 
 const HEAD_REV = (() => {
   const result = spawnSync('git', ['rev-parse', 'origin/master'], {

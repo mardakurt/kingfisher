@@ -53,9 +53,8 @@ export const publicUrl = {
    * both surfaces: the landing at `/`, the application at its own
    * routes. It is the only origin the application prints, the
    * documentation links to, and the social metadata names. The
-   * earlier hosts redirect here (`kingfisher-chess.vercel.app`) or
-   * keep serving the application for the data that lives there
-   * (`kingfisher-roan.vercel.app`); the legacy
+   * earlier landing host (`kingfisher-chess.vercel.app`) redirects
+   * here; the earlier application host was retired; the legacy
    * `mardakurt.github.io/kingfisher-data/` origin still serves a
    * tiny redirect-only backup and is not a canonical surface.
    */
@@ -66,10 +65,9 @@ export const publicUrl = {
    * The application, as a returning player bookmarks it: the
    * analysis board on the public origin. **Do not change the origin
    * lightly** — IndexedDB is origin-scoped, and a new hostname
-   * strands the local data of everyone on the old one. The move from
-   * `kingfisher-roan.vercel.app` was made on 2026-09-13, before the
-   * first public announcement, with the old origin left serving so
-   * Backup → Export / Import can carry work across.
+   * strands the local data of everyone on the old one. The move to
+   * this origin was made on 2026-09-13, before the first public
+   * announcement, and the previous host was retired the same day.
    */
   studio: trimTrailingSlash(
     fromEnv(

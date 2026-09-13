@@ -9,7 +9,7 @@ describe('studioHostFor', () => {
   });
 
   it('returns the bare host for production studio hostnames', () => {
-    expect(studioHostFor('kingfisher-roan.vercel.app')).toBe('kingfisher-roan.vercel.app');
+    expect(studioHostFor('kingfisherchess.app')).toBe('kingfisherchess.app');
     expect(studioHostFor('studio.kingfisher-chess.vercel.app')).toBe(
       'studio.kingfisher-chess.vercel.app',
     );
@@ -17,12 +17,12 @@ describe('studioHostFor', () => {
   });
 
   it('strips the port from the host', () => {
-    expect(studioHostFor('kingfisher-roan.vercel.app:443')).toBe('kingfisher-roan.vercel.app');
+    expect(studioHostFor('kingfisherchess.app:443')).toBe('kingfisherchess.app');
     expect(studioHostFor('studio.localhost:3210')).toBe('studio.localhost');
   });
 
   it('is case-insensitive', () => {
-    expect(studioHostFor('Kingfisher-Roan.Vercel.App')).toBe('kingfisher-roan.vercel.app');
+    expect(studioHostFor('KingfisherChess.App')).toBe('kingfisherchess.app');
   });
 
   it('returns null for the marketing host', () => {

@@ -1,18 +1,20 @@
 /**
  * Host-aware web app manifest.
  *
- * Kingfisher's public surface is two products on separate origins:
+ * Kingfisher's public surface is one origin, `kingfisherchess.app`,
+ * serving the landing at `/` and the application at its own routes
+ * (`isApplicationHost`). The earlier layout — a landing-only host and a
+ * dedicated studio host — is still recognised:
  *
- *   - the *landing page* on `kingfisher-chess.vercel.app` (or any
- *     domain the owner maps to the marketing origin);
- *   - the *studio* on `kingfisher-roan.vercel.app` (or any additional
- *     host the owner maps to the studio origin).
+ *   - a *landing-only* host is any host that is neither public nor a
+ *     studio host;
+ *   - a *studio* host is one in `STUDIO_DEFAULT_HOSTS` (or the one
+ *     `KINGFISHER_STUDIO_HOST` names).
  *
- * The PWA install experience belongs to the studio. The landing page
- * is a marketing surface that should not advertise itself as a
- * standalone application — installing `kingfisher-chess.vercel.app`
- * would trap the visitor in a window that has no chess engine and no
- * data.
+ * The PWA install experience belongs to the application. A landing-only
+ * host must not advertise itself as a standalone application —
+ * installing it would trap the visitor in a window that has no chess
+ * engine and no data.
  *
  * The same Next.js project serves both origins. The host header
  * determines what the manifest returns. Studio requests get the full

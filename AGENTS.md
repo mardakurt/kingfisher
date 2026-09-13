@@ -378,12 +378,11 @@ source of truth for the URLs the application prints is
   not canonical and must not be linked as the primary surface.
 - **Studio (the application):** `https://kingfisherchess.app/analysis`.
   IndexedDB is origin-scoped. Changing the origin strands the
-  existing local data of every existing user; the move from
-  `kingfisher-roan.vercel.app` was made on 2026-09-13, before the
-  first announcement, and that origin stays a studio host in
-  `src/middleware-host-rules.ts` so the data there is reachable and
-  exportable. Do not remove it, and do not touch the `publicUrl.studio`
-  default again without a persistence / migration plan.
+  existing local data of every existing user; the move to this origin
+  was made on 2026-09-13, before the first announcement, and the
+  previous host was retired the same day. Do not touch the
+  `publicUrl.studio` default again without a persistence / migration
+  plan.
 - **macOS stable DMG:** `Kingfisher-1.1.2-arm64.dmg`, build 516,
   signed with Developer ID Application and notarised. The public descriptor
   `src/release/macos-download.json` selects the release; the landing and

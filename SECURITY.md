@@ -204,8 +204,7 @@ false`, `allowPrerelease: false` (so the preview channel is
 
 ### Service worker / PWA boundaries (added in Phase 34)
 
-The application origin (`kingfisherchess.app`, and the earlier
-`kingfisher-roan.vercel.app`) registers a
+The application origin (`kingfisherchess.app`) registers a
 service worker (`public/sw.js`) so a player who installs
 Kingfisher from their browser can reopen it like an installed
 application. The worker is a small vanilla script bundled with

@@ -5,7 +5,7 @@
  *
  *   - the *landing page* on `kingfisher-chess.vercel.app/` (or any
  *     domain the owner maps to the marketing origin);
- *   - the *studio* on `kingfisher-roan.vercel.app/` (or any
+ *   - the *studio* on a dedicated studio host (or any
  *     additional host the owner maps to the studio origin).
  *
  * A player who has the studio bookmarked opens the studio directly;

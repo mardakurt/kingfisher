@@ -11,17 +11,11 @@
 export const STUDIO_HOST_ENV = 'KINGFISHER_STUDIO_HOST';
 /**
  * Hosts that are the application and nothing else: `/` is the analysis
- * board and every response is noindex. `kingfisher-roan.vercel.app` is
- * the origin the application lived on until 2026-09-13; it stays here
- * so the local data of anyone who used it there is still reachable —
- * IndexedDB is per origin, and Backup → Export / Import is the way
- * across to the public host.
+ * board and every response is noindex. The application lived on
+ * `kingfisher-roan.vercel.app` until 2026-09-13; the owner retired that
+ * domain the same day, before the first announcement.
  */
-export const STUDIO_DEFAULT_HOSTS = [
-  'kingfisher-roan.vercel.app',
-  'studio.kingfisher-chess.vercel.app',
-  'studio.localhost',
-];
+export const STUDIO_DEFAULT_HOSTS = ['studio.kingfisher-chess.vercel.app', 'studio.localhost'];
 
 export const PUBLIC_HOST_ENV = 'KINGFISHER_PUBLIC_HOST';
 /**

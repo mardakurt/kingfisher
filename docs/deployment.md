@@ -11,7 +11,6 @@ Where each surface is hosted, and how to publish a new release.
 | Public docs              | the same landing host, at `/install`, `/privacy`, `/security`, `/data-licences`, `/terms`                          |
 | Optional reference data  | the `kingfisher-data` Pages site, at `/reference-{pack}-{version}/`                                                |
 | macOS preview build      | the DMG named by `src/release/macos-download.json`, a GitHub pre-release under its own `macos-preview-<build>` tag |
-| Web app (fallback)       | <https://kingfisher-roan.vercel.app/> (the origin before 2026-09-13, kept for the data there)                      |
 | Source / issues          | <https://github.com/mardakurt/kingfisher>                                                                          |
 
 The legacy `mardakurt.github.io/kingfisher-data/` origin still
@@ -143,9 +142,7 @@ not set; it never blocks the release flow.
 
 One Vercel project, `kingfisher`, serves both public hostnames
 (`kingfisherchess.app` serves the landing at `/` and the application at
-its routes; `www.` and `kingfisher-chess.vercel.app` redirect to it;
-`kingfisher-roan.vercel.app`, the application's origin before
-2026-09-13, keeps serving it so the local data there stays reachable). Since 2026-09-13 the project is
+its routes; `www.` and `kingfisher-chess.vercel.app` redirect to it). Since 2026-09-13 the project is
 **linked to `mardakurt/kingfisher` through Vercel's Git integration**, with
 `master` as the production branch: every push to `master` is built and,
 when the build is green, promoted to production. A red build is not
@@ -163,8 +160,7 @@ reads `git rev-parse origin/master` and the latest production deployment,
 and prints:
 
 ```
-kingfisherchess.app       : up to date (b73a3b0)
-kingfisher-roan.vercel.app: up to date (b73a3b0)
+kingfisherchess.app: up to date (b73a3b0)
 ```
 
 or, when the Studio build is missing or behind:

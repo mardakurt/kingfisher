@@ -72,11 +72,8 @@ re-import. No cloud sync is required and none is implied.
 - **One public address**, <https://kingfisherchess.app/>: the landing
   page at `/`, the application at <https://kingfisherchess.app/analysis>
   — bookmark that to skip the marketing page. The earlier
-  `kingfisher-chess.vercel.app` redirects here; the earlier application
-  origin `kingfisher-roan.vercel.app` keeps serving so work stored there
-  stays reachable (local data is per origin — _Settings → Database →
-  Export / Import backup_ moves it). The host header decides which
-  surface a visitor sees.
+  `kingfisher-chess.vercel.app` redirects here. The host header decides
+  which surface a visitor sees.
   See [`docs/adr/00xx-optional-account-sync.md`](docs/adr/00xx-optional-account-sync.md)
   for the architecture rationale.
 - **macOS app** as a `.dmg` from the

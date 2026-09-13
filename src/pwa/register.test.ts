@@ -114,7 +114,7 @@ afterEach(() => {
 
 describe('registerStudioWorker', () => {
   it('returns `unsupported` when the browser has no service-worker API', async () => {
-    installFakeBrowser('kingfisher-roan.vercel.app');
+    installFakeBrowser('kingfisherchess.app');
     Object.defineProperty(globalThis, 'navigator', {
       configurable: true,
       value: {},
@@ -134,7 +134,7 @@ describe('registerStudioWorker', () => {
   });
 
   it('registers on the studio host and returns `registered`', async () => {
-    installFakeBrowser('kingfisher-roan.vercel.app');
+    installFakeBrowser('kingfisherchess.app');
     const { reg } = makeRegistration('activated');
     const register = installFakeServiceWorker({
       register: vi.fn().mockResolvedValue(reg),
@@ -151,7 +151,7 @@ describe('registerStudioWorker', () => {
   });
 
   it('returns `failed` when registration throws', async () => {
-    installFakeBrowser('kingfisher-roan.vercel.app');
+    installFakeBrowser('kingfisherchess.app');
     installFakeServiceWorker({
       register: vi.fn().mockRejectedValue(new Error('bad-cert')),
     });
@@ -162,7 +162,7 @@ describe('registerStudioWorker', () => {
   });
 
   it('flips the update flag when an installing worker reaches `installed` with a controller', async () => {
-    installFakeBrowser('kingfisher-roan.vercel.app');
+    installFakeBrowser('kingfisherchess.app');
     const { reg, installing } = makeRegistration('installing');
     installFakeServiceWorker({
       register: vi.fn().mockResolvedValue(reg),
@@ -182,7 +182,7 @@ describe('registerStudioWorker', () => {
   });
 
   it('does not flip the update flag on the first install', async () => {
-    installFakeBrowser('kingfisher-roan.vercel.app');
+    installFakeBrowser('kingfisherchess.app');
     const { reg, installing } = makeRegistration('installing');
     installFakeServiceWorker({ register: vi.fn().mockResolvedValue(reg) });
     const { registerStudioWorker, getUpdateState } = await loadModule();
@@ -194,7 +194,7 @@ describe('registerStudioWorker', () => {
   });
 
   it('applyUpdate posts SKIP_WAITING to the waiting worker', async () => {
-    installFakeBrowser('kingfisher-roan.vercel.app');
+    installFakeBrowser('kingfisherchess.app');
     const waiting = makeServiceWorker('installed');
     const reg: MockRegistration = {
       installing: null,

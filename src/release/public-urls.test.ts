@@ -12,9 +12,8 @@ describe('publicUrl', () => {
 
   it('points the application at the analysis board on the same origin', () => {
     // The origin is where every player's local data lives; a change
-    // strands the existing data of every existing user. The move
-    // from kingfisher-roan.vercel.app was made on 2026-09-13, before
-    // the first announcement, with the old origin left serving.
+    // strands the existing data of every existing user. The move to
+    // this origin was made on 2026-09-13, before the first announcement.
     expect(publicUrl.studio).toBe('https://kingfisherchess.app/analysis');
     expect(publicUrl.web).toBe('https://kingfisherchess.app');
   });

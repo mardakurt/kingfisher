@@ -115,7 +115,7 @@ describe('install-prompt', () => {
   });
 
   it('registers listeners on the studio origin', async () => {
-    const { window } = installFakeBrowser('kingfisher-roan.vercel.app');
+    const { window } = installFakeBrowser('kingfisherchess.app');
     const addSpy = vi.spyOn(window, 'addEventListener');
     const { beginListening } = await loadModule();
     const stop = beginListening();
@@ -126,7 +126,7 @@ describe('install-prompt', () => {
   });
 
   it('captures a `beforeinstallprompt` and exposes it via getState', async () => {
-    const { window } = installFakeBrowser('kingfisher-roan.vercel.app');
+    const { window } = installFakeBrowser('kingfisherchess.app');
     const { beginListening, getState } = await loadModule();
     const stop = beginListening();
     window.dispatchEvent(createDeferredEvent());
@@ -135,7 +135,7 @@ describe('install-prompt', () => {
   });
 
   it('replaces a previously captured prompt when a new one fires', async () => {
-    const { window } = installFakeBrowser('kingfisher-roan.vercel.app');
+    const { window } = installFakeBrowser('kingfisherchess.app');
     const { beginListening, getState } = await loadModule();
     const stop = beginListening();
     window.dispatchEvent(createDeferredEvent('accepted'));
@@ -145,7 +145,7 @@ describe('install-prompt', () => {
   });
 
   it('returns "unavailable" when no prompt has been captured', async () => {
-    installFakeBrowser('kingfisher-roan.vercel.app');
+    installFakeBrowser('kingfisherchess.app');
     const { beginListening, getState, promptInstall } = await loadModule();
     const stop = beginListening();
     expect(getState().available).toBe(false);
@@ -154,7 +154,7 @@ describe('install-prompt', () => {
   });
 
   it('returns the browser-reported outcome when prompting succeeds', async () => {
-    const { window } = installFakeBrowser('kingfisher-roan.vercel.app');
+    const { window } = installFakeBrowser('kingfisherchess.app');
     const { beginListening, getState, promptInstall } = await loadModule();
     const stop = beginListening();
     const event = createDeferredEvent('accepted');
@@ -168,7 +168,7 @@ describe('install-prompt', () => {
   });
 
   it('clears the captured prompt on `appinstalled`', async () => {
-    const { window } = installFakeBrowser('kingfisher-roan.vercel.app');
+    const { window } = installFakeBrowser('kingfisherchess.app');
     const { beginListening, getState } = await loadModule();
     const stop = beginListening();
     window.dispatchEvent(createDeferredEvent());
@@ -180,7 +180,7 @@ describe('install-prompt', () => {
   });
 
   it('notifies subscribers when state changes', async () => {
-    const { window } = installFakeBrowser('kingfisher-roan.vercel.app');
+    const { window } = installFakeBrowser('kingfisherchess.app');
     const { beginListening, subscribe } = await loadModule();
     const stop = beginListening();
     const observed: Array<{ available: boolean; installed: boolean }> = [];

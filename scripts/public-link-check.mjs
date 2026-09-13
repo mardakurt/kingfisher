@@ -39,7 +39,6 @@ const ALLOWED_HOSTS = new Set([
   'kingfisherchess.app',
   'www.kingfisherchess.app',
   'kingfisher-chess.vercel.app',
-  'kingfisher-roan.vercel.app',
 ]);
 
 const config = {
