@@ -484,7 +484,12 @@ the Najdorf's (a ranking choice, not a defect).
 
 - `npm test`: **241 files, 2,930 tests, 0 skipped, 0 failed**
   (`test:no-skips` OK).
-- Browser matrix: § 29.
+- Browser matrix on the final source (`db960a7`): see § 29 — the local
+  foreground matrix is the only gate that has not been observed green
+  on the final commit in this session; its prior run on `ca329f7`
+  was green (with the same commit shape — only doc/script/test polish
+  has been added since). CI is the place to run it end to end on
+  `db960a7`.
 - Desktop: § 30.
 
 ## 34. Known limitations
