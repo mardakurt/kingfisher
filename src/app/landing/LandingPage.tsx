@@ -448,7 +448,7 @@ export function LandingPage(): JSX.Element {
                 </span>
               </summary>
               <p>
-                Yes. The application is open source under the{}
+                Yes. The application is open source under the{' '}
                 <a
                   href="https://github.com/mardakurt/kingfisher/blob/master/LICENSE"
                   rel="noopener"
@@ -611,11 +611,11 @@ export function LandingPage(): JSX.Element {
         </div>
         <div className="footer-fineprint">
           <p>
-            Kingfisher source under the{}
+            Kingfisher source under the{' '}
             <a href="https://github.com/mardakurt/kingfisher/blob/master/LICENSE" rel="noopener">
               MIT licence
             </a>
-            . Third-party reference data retains its respective licensing and attribution.{}
+            . Third-party reference data retains its respective licensing and attribution.{' '}
             <a href="/data-licences">See each data pack for source, licence, and provenance.</a>
           </p>
         </div>

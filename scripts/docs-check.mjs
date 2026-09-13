@@ -232,6 +232,10 @@ for (const rel of CANONICAL) {
   );
 }
 
+// 3b. The licence names a year the project existed in. The first commit is
+// 2026-09-01; a 2024 in the copyright line made a reader ask.
+mustMatch('LICENSE', /^Copyright \(c\) 2026(-\d{4})? /m, 'LICENSE copyright year starts at 2026');
+
 // 4. The public macOS download: one descriptor, and everything agrees with it.
 //
 // `src/release/macos-download.json` is the only file that names the DMG the
