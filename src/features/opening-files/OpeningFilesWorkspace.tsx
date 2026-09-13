@@ -21,12 +21,9 @@ import { positionKey } from '@/chess/fen';
 import { createTree } from '@/chess/tree/tree';
 import { Button } from '@/components/ui/Button';
 import { Dialog } from '@/components/ui/Dialog';
-import { EmptyState, Panel, PanelBody, PanelHeader } from '@/components/ui/Panel';
+import { EmptyState, PanelBody, PanelHeader } from '@/components/ui/Panel';
 import { Opening } from '@/components/icons';
-import { NavButton } from '@/features/shell/NavButton';
-import { CanonicalBoardSurface } from '@/features/workspace/CanonicalBoardSurface';
-import { WorkspaceLowerPanel } from '@/features/workspace/WorkspaceLowerPanel';
-import { WorkspaceToolDock } from '@/features/workspace/WorkspaceToolDock';
+import { WorkspaceFrame } from '@/features/workspace/WorkspaceFrame';
 import {
   invalidateOpeningFiles,
   useOpeningFile,
@@ -37,7 +34,6 @@ import { getRepositories } from '@/persistence/repositories';
 import type { OpeningFileRecord } from '@/persistence/domain';
 import { useAnalysis } from '@/stores/analysis-store';
 import { useUi } from '@/stores/ui-store';
-import { useMediaQuery } from '@/hooks/use-media-query';
 import { cn } from '@/lib/cn';
 import { writeLine } from '@/features/preparation/sheet-export';
 
@@ -46,7 +42,6 @@ export function OpeningFilesWorkspace() {
   const notify = useUi((state) => state.notify);
   const openDocument = useAnalysis((state) => state.openDocument);
   const node = useAnalysis((state) => state.tree.nodes[state.currentId]);
-  const wide = useMediaQuery('(min-width: 1100px)');
 
   const files = useOpeningFiles();
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -96,181 +91,143 @@ export function OpeningFilesWorkspace() {
     }
   };
 
+  const railContent = files.isPending ? (
+    <p className="px-3 py-3 text-2xs text-tertiary">Reading files…</p>
+  ) : (files.data?.length ?? 0) === 0 ? (
+    <EmptyState
+      title="No opening files yet."
+      description="A file is a subject — “Black vs 1.e4, Najdorf” — and everything already stored about it. It holds references, never copies."
+      action={<Button onClick={() => setCreating(true)}>New file</Button>}
+    />
+  ) : (
+    <ul className="divide-y divide-line-subtle">
+      {files.data?.map((entry) => (
+        <li key={entry.id}>
+          <button
+            type="button"
+            onClick={() => setSelectedId(entry.id)}
+            className={cn(
+              'w-full px-3 py-2 text-left transition-colors hover:bg-surface-2',
+              entry.id === selectedId && 'bg-surface-2',
+            )}
+          >
+            <p className="truncate text-[11.5px] text-primary">{entry.name}</p>
+            <p className="mt-0.5 text-[10px] text-tertiary tabular">
+              {entry.color === 'w' ? 'White' : 'Black'}
+              {entry.eco ? ` · ${entry.eco}` : ''} · {entry.positions.length} positions
+            </p>
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <header className="density-row flex h-10 shrink-0 items-center gap-2 border-b border-line-subtle bg-surface-1 px-2 sm:px-3">
-        <NavButton />
-        <Opening className="h-4 w-4 text-accent" />
-        <h1 className="text-xs font-semibold text-primary">Opening files</h1>
-        <Button className="ml-auto" onClick={() => setCreating(true)}>
-          New file
-        </Button>
-      </header>
-
-      <div
-        className={cn(
-          'flex min-h-0 flex-1 flex-col overflow-y-auto',
-          /*
-            Proportional side columns, not fixed ones. Two 300px-plus
-            columns take 680px whatever the display is, which on a 1280-wide
-            laptop left the board 372px and on a 2560-wide display left it
-            needlessly small a different way. Sizing them against the viewport
-            keeps the board the thing that grows. §64.
-          */
-          wide &&
-            'grid grid-cols-[minmax(210px,16vw)_minmax(0,1fr)_minmax(300px,24vw)] overflow-hidden',
-        )}
-      >
-        <aside
-          className={cn(
-            'min-h-0 min-w-0 bg-surface-1',
-            wide ? 'border-r border-line-subtle' : 'order-3 border-t border-line-subtle',
-          )}
-        >
-          <Panel className="h-full">
-            <PanelHeader>Files</PanelHeader>
-            <PanelBody>
-              {files.isPending ? (
-                <p className="px-3 py-3 text-2xs text-tertiary">Reading files…</p>
-              ) : (files.data?.length ?? 0) === 0 ? (
-                <EmptyState
-                  title="No opening files yet."
-                  description="A file is a subject — “Black vs 1.e4, Najdorf” — and everything already stored about it. It holds references, never copies."
-                />
-              ) : (
-                <ul className="divide-y divide-line-subtle">
-                  {files.data?.map((entry) => (
-                    <li key={entry.id}>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedId(entry.id)}
-                        className={cn(
-                          'w-full px-3 py-2 text-left transition-colors hover:bg-surface-2',
-                          entry.id === selectedId && 'bg-surface-2',
-                        )}
-                      >
-                        <p className="truncate text-[11.5px] text-primary">{entry.name}</p>
-                        <p className="mt-0.5 text-[10px] text-tertiary tabular">
-                          {entry.color === 'w' ? 'White' : 'Black'}
-                          {entry.eco ? ` · ${entry.eco}` : ''} · {entry.positions.length} positions
-                        </p>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </PanelBody>
-          </Panel>
-        </aside>
-
-        <section className="flex min-h-[560px] min-w-0 flex-col wide:min-h-0">
-          <CanonicalBoardSurface
-            mode="interactive"
-            className="min-h-[420px] flex-1 px-2 py-2 sm:px-3 wide:min-h-0"
-          />
-          {file ? (
-            <div className="shrink-0 border-t border-line-subtle px-3 py-2">
-              <div className="flex flex-wrap items-center gap-1.5">
-                <p className="text-[11.5px] text-primary">{file.name}</p>
-                <Button
-                  className="ml-auto"
-                  disabled={!node}
-                  onClick={() =>
-                    void mutate((repositories, current) =>
-                      repositories.openingFiles.addPosition(current.id, current.revision, {
-                        positionKey: positionKey(node!.fen),
-                        fen: node!.fen,
-                        line: [],
-                      }),
-                    )
-                  }
-                >
-                  Add this position
-                </Button>
-              </div>
-              {file.positions.length > 0 ? (
-                <ul className="mt-1.5 flex flex-col gap-0.5">
-                  {file.positions.map((entry) => (
-                    <li key={entry.positionKey} className="flex items-baseline gap-2">
-                      <button
-                        type="button"
-                        className="min-w-0 flex-1 truncate text-left font-mono text-[10.5px] text-secondary hover:text-accent"
-                        onClick={() =>
-                          openDocument({
-                            tree: createTree(entry.fen, { Event: file.name, Result: '*' }),
-                            document: { kind: 'untitled', title: file.name },
-                            orientation: file.color,
-                          })
-                        }
-                      >
-                        {entry.line.length ? writeLine(entry.line) : entry.positionKey}
-                      </button>
-                      <Button
-                        variant="ghost"
-                        onClick={() =>
-                          void mutate((repositories, current) =>
-                            repositories.openingFiles.removePosition(
-                              current.id,
-                              current.revision,
-                              entry.positionKey,
-                            ),
-                          )
-                        }
-                      >
-                        Remove
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
+    <WorkspaceFrame
+      workspace="opening-files"
+      title="Opening files"
+      subtitle={file ? file.name : 'One subject, and everything already stored about it.'}
+      icon={<Opening />}
+      actions={<Button onClick={() => setCreating(true)}>New file</Button>}
+      rail={{ label: 'Files', width: 250, content: railContent }}
+      board={{ mode: 'interactive', showEvaluationArtifacts: true }}
+      belowBoard={
+        file ? (
+          <div className="shrink-0 border-t border-line-subtle px-3 py-2">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <p className="text-[11.5px] text-primary">{file.name}</p>
+              <Button
+                className="ml-auto"
+                disabled={!node}
+                onClick={() =>
+                  void mutate((repositories, current) =>
+                    repositories.openingFiles.addPosition(current.id, current.revision, {
+                      positionKey: positionKey(node!.fen),
+                      fen: node!.fen,
+                      line: [],
+                    }),
+                  )
+                }
+              >
+                Add this position
+              </Button>
             </div>
-          ) : null}
-          <WorkspaceLowerPanel workspace="opening-files" contextLabel="File" />
-        </section>
-
-        <WorkspaceToolDock
-          workspace="opening-files"
-          fill={wide}
-          contextLabel="File"
-          contextPanel={
-            file ? (
-              <FileReferences
-                file={file}
-                repertoires={repertoires}
-                studies={studies}
-                onToggleRepertoire={(id, linked) =>
-                  void mutate((repositories, current) =>
-                    linked
-                      ? repositories.openingFiles.removeReference(
-                          current.id,
-                          current.revision,
-                          'repertoireIds',
-                          id,
+            {file.positions.length > 0 ? (
+              <ul className="mt-1.5 flex max-h-[140px] flex-col gap-0.5 overflow-y-auto">
+                {file.positions.map((entry) => (
+                  <li key={entry.positionKey} className="flex items-baseline gap-2">
+                    <button
+                      type="button"
+                      className="min-w-0 flex-1 truncate text-left font-mono text-[10.5px] text-secondary hover:text-accent"
+                      onClick={() =>
+                        openDocument({
+                          tree: createTree(entry.fen, { Event: file.name, Result: '*' }),
+                          document: { kind: 'untitled', title: file.name },
+                          orientation: file.color,
+                        })
+                      }
+                    >
+                      {entry.line.length ? writeLine(entry.line) : entry.positionKey}
+                    </button>
+                    <Button
+                      variant="ghost"
+                      onClick={() =>
+                        void mutate((repositories, current) =>
+                          repositories.openingFiles.removePosition(
+                            current.id,
+                            current.revision,
+                            entry.positionKey,
+                          ),
                         )
-                      : repositories.openingFiles.addReference(
-                          current.id,
-                          current.revision,
-                          'repertoireIds',
-                          id,
-                        ),
-                  )
-                }
-                onNotes={(notes) =>
-                  void mutate((repositories, current) =>
-                    repositories.openingFiles.update(current.id, current.revision, { notes }),
-                  )
-                }
-              />
-            ) : (
-              <EmptyState
-                title="No file selected."
-                description="Choose one on the left, or create a file for the opening you are working on."
-              />
-            )
-          }
-        />
-      </div>
-
+                      }
+                    >
+                      Remove
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        ) : undefined
+      }
+      contextLabel="File"
+      contextPanel={
+        file ? (
+          <FileReferences
+            file={file}
+            repertoires={repertoires}
+            studies={studies}
+            onToggleRepertoire={(id, linked) =>
+              void mutate((repositories, current) =>
+                linked
+                  ? repositories.openingFiles.removeReference(
+                      current.id,
+                      current.revision,
+                      'repertoireIds',
+                      id,
+                    )
+                  : repositories.openingFiles.addReference(
+                      current.id,
+                      current.revision,
+                      'repertoireIds',
+                      id,
+                    ),
+              )
+            }
+            onNotes={(notes) =>
+              void mutate((repositories, current) =>
+                repositories.openingFiles.update(current.id, current.revision, { notes }),
+              )
+            }
+          />
+        ) : (
+          <EmptyState
+            title="No file selected."
+            description="Choose one on the left, or create a file for the opening you are working on."
+          />
+        )
+      }
+    >
       {creating ? (
         <NewFileDialog
           onClose={() => setCreating(false)}
@@ -280,7 +237,7 @@ export function OpeningFilesWorkspace() {
           }}
         />
       ) : null}
-    </div>
+    </WorkspaceFrame>
   );
 }
 

@@ -30,7 +30,12 @@ export function DocumentHeader() {
 
   return (
     <div className="flex min-w-0 items-center gap-2">
-      <div className="min-w-0">
+      {/*
+        The title gets the room. It is the one flexible thing in a header of
+        fixed buttons, and at 1280px it had been squeezed to thirty pixels —
+        a document called "Queue White – Queue Black" read as "Fro…".
+      */}
+      <div className="min-w-[10ch] flex-1">
         <div className="flex min-w-0 items-baseline gap-1.5">
           <span className="truncate text-xs text-primary">{documentTitle(document)}</span>
           {document.kind === 'database-game' || document.kind === 'reference-game' ? (
@@ -51,7 +56,7 @@ export function DocumentHeader() {
           className="shrink-0"
           aria-label="Save this analysis to a study"
         >
-          <span className="hidden lg:inline">Save to study</span>
+          <span className="hidden min-[1500px]:inline">Save to study</span>
         </Button>
       )}
     </div>

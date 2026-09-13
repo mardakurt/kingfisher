@@ -36,11 +36,9 @@ import { useUi } from '@/stores/ui-store';
 import { createTree } from '@/chess/tree/tree';
 import { useAnalysis } from '@/stores/analysis-store';
 import { useEngine } from '@/stores/engine-store';
-import { WorkspaceLowerPanel } from '@/features/workspace/WorkspaceLowerPanel';
-import { WorkspaceToolDock } from '@/features/workspace/WorkspaceToolDock';
+import { WorkspaceFrame } from '@/features/workspace/WorkspaceFrame';
 
 import { TrainingAnswer, type AttemptState } from './TrainingAnswer';
-import { NavButton } from '@/features/shell/NavButton';
 import { useTrainingSetItems, useTrainingSets } from '@/features/review/queries';
 import { TrainingSetsDialog } from './TrainingSetsDialog';
 
@@ -187,188 +185,162 @@ export function TrainingWorkspace() {
     }
   };
 
-  return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <header className="density-row flex h-10 shrink-0 items-center gap-2 border-b border-line-subtle bg-surface-1 px-2 sm:px-3">
-        <NavButton />
-        <Target className="h-4 w-4 text-accent" />
-        <h1 className="text-xs font-semibold text-primary">Training</h1>
-        <QueueSummary counts={counts} />
-        <Button onClick={() => setSetsOpen(true)}>
-          {selectedSet ? selectedSet.name : 'Training sets'}
-        </Button>
-        <Button
-          className="ml-auto"
-          variant="accent"
-          icon={<Plus />}
-          onClick={() => setCaptureOpen(true)}
-        >
-          Create position
-        </Button>
-      </header>
-
-      <div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto md:max-panes:grid-cols-[260px_minmax(360px,1fr)] md:overflow-hidden panes:grid-cols-[280px_minmax(430px,1fr)_350px]">
-        <Panel className="min-h-[200px] border-b border-line-subtle md:min-h-0 md:border-r md:border-b-0">
-          <PanelHeader
-            actions={
-              scopedItems.length ? (
-                <Segmented
-                  items={[
-                    { id: 'due' as const, label: `Due ${queue.length}` },
-                    { id: 'all' as const, label: `All ${scopedItems.length}` },
-                  ]}
-                  value={scope}
-                  onChange={setScope}
-                />
-              ) : null
+  const railContent = (
+    <div className="flex h-full min-h-0 flex-col">
+      {scopedItems.length ? (
+        <div className="flex shrink-0 items-center justify-end border-b border-line-subtle px-2 py-1">
+          <Segmented
+            items={[
+              { id: 'due' as const, label: `Due ${queue.length}` },
+              { id: 'all' as const, label: `All ${scopedItems.length}` },
+            ]}
+            value={scope}
+            onChange={setScope}
+          />
+        </div>
+      ) : null}
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        {scopedItems.length === 0 ? (
+          <EmptyState
+            title={selectedSet ? 'This training set is empty.' : 'No training positions.'}
+            description={
+              selectedSet
+                ? selectedSet.kind === 'dynamic'
+                  ? 'No position currently matches its saved filters.'
+                  : 'Open Training sets to choose positions for it.'
+                : 'Create one from a game, study, repertoire, or the current analysis position.'
             }
-          >
-            Queue
-          </PanelHeader>
-          <PanelBody>
-            {scopedItems.length === 0 ? (
-              <EmptyState
-                title={selectedSet ? 'This training set is empty.' : 'No training positions.'}
-                description={
-                  selectedSet
-                    ? selectedSet.kind === 'dynamic'
-                      ? 'No position currently matches its saved filters.'
-                      : 'Open Training sets to choose positions for it.'
-                    : 'Create one from a game, study, repertoire, or the current analysis position.'
-                }
-                action={<Button onClick={() => setCaptureOpen(true)}>Create position</Button>}
-              />
-            ) : listed.length === 0 ? (
-              <EmptyState
-                title="Nothing is due."
-                description="Every item here is scheduled for a later day. Switch to All to review one early."
-              />
-            ) : (
-              <ol className="divide-y divide-line-subtle">
-                {listed.map((item) => (
-                  <li key={item.id}>
-                    <button
-                      type="button"
-                      onClick={() => show(item.id)}
-                      className={cn(
-                        'w-full px-3 py-2 text-left transition-colors hover:bg-surface-2',
-                        current?.id === item.id && 'bg-accent-muted',
-                      )}
-                    >
-                      <span className="block truncate text-[11.5px] text-secondary">
-                        {item.prompt}
-                      </span>
-                      <span className="mt-0.5 flex items-center gap-2 text-[10px] text-tertiary">
-                        <span>{MODE_LABEL[item.mode]}</span>
-                        <span className="ml-auto capitalize">{stageOf(item.schedule)}</span>
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ol>
-            )}
-          </PanelBody>
-        </Panel>
-
-        <section className="flex min-h-[560px] min-w-0 flex-col px-3 py-3 sm:px-5 sm:py-4 md:min-h-0">
-          {current ? (
-            <>
-              <div className="mb-2 flex items-center gap-2">
-                <span className="text-2xs font-medium text-primary">{current.prompt}</span>
-                <span className="ml-auto text-[10px] text-tertiary">
-                  {MODE_LABEL[current.mode]} · {current.sideToMove === 'w' ? 'White' : 'Black'} to
-                  move
-                </span>
-              </div>
-              <TrainingAnswer
-                key={current.id}
-                item={current}
-                result={result}
-                revealed={revealed}
-                onSubmit={(state) => setAttempt({ itemId: current.id, state })}
-                onReveal={() => setRevealedItemId(current.id)}
-              />
-              {revealed ? (
-                <div className="mx-auto mt-2 w-full max-w-[620px]">
-                  <GradeBar item={current} busy={busy} now={now} onGrade={grade} />
-                </div>
-              ) : null}
-            </>
-          ) : (
-            <EmptyState title="The review queue is empty." />
-          )}
-          <WorkspaceLowerPanel workspace="training" contextLabel="Answer" />
-        </section>
-
-        {revealed ? (
-          <WorkspaceToolDock
-            workspace="training"
-            fill
-            contextLabel="Answer"
-            contextPanel={
-              <Panel className="h-full">
-                <PanelHeader
-                  actions={
-                    current ? (
-                      <IconButton
-                        label="Delete training item"
-                        tone="danger"
-                        onClick={() => setDeleteItem(current)}
-                      >
-                        <Trash />
-                      </IconButton>
-                    ) : null
-                  }
-                >
-                  Review details
-                </PanelHeader>
-                <PanelBody>
-                  {current ? (
-                    <>
-                      <TrainingAuthoringEditor
-                        item={current}
-                        onChanged={() => invalidateTraining(queryClient)}
-                      />
-                      <ReviewDetails item={current} revealed />
-                    </>
-                  ) : null}
-                </PanelBody>
-              </Panel>
-            }
+            action={<Button onClick={() => setCaptureOpen(true)}>Create position</Button>}
+          />
+        ) : listed.length === 0 ? (
+          <EmptyState
+            title="Nothing is due."
+            description="Every item here is scheduled for a later day. Switch to All to review one early."
           />
         ) : (
-          <aside className="min-h-[320px] border-t border-line-subtle bg-surface-1 panes:min-h-0 panes:border-t-0 panes:border-l">
-            <Panel className="h-full">
-              <PanelHeader
-                actions={
-                  current ? (
-                    <IconButton
-                      label="Delete training item"
-                      tone="danger"
-                      onClick={() => setDeleteItem(current)}
-                    >
-                      <Trash />
-                    </IconButton>
-                  ) : null
-                }
-              >
-                Review details
-              </PanelHeader>
-              <PanelBody>
-                {current ? (
-                  <>
-                    <TrainingAuthoringEditor
-                      item={current}
-                      onChanged={() => invalidateTraining(queryClient)}
-                    />
-                    <ReviewDetails item={current} revealed={false} />
-                  </>
-                ) : null}
-              </PanelBody>
-            </Panel>
-          </aside>
+          <ol className="divide-y divide-line-subtle">
+            {listed.map((item) => (
+              <li key={item.id}>
+                <button
+                  type="button"
+                  onClick={() => show(item.id)}
+                  className={cn(
+                    'w-full px-3 py-2 text-left transition-colors hover:bg-surface-2',
+                    current?.id === item.id && 'bg-accent-muted',
+                  )}
+                >
+                  <span className="block truncate text-[11.5px] text-secondary">{item.prompt}</span>
+                  <span className="mt-0.5 flex items-center gap-2 text-[10px] text-tertiary">
+                    <span>{MODE_LABEL[item.mode]}</span>
+                    <span className="ml-auto capitalize">{stageOf(item.schedule)}</span>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ol>
         )}
       </div>
+    </div>
+  );
+
+  const details = (
+    <Panel className="h-full">
+      <PanelHeader
+        actions={
+          current ? (
+            <IconButton
+              label="Delete training item"
+              tone="danger"
+              onClick={() => setDeleteItem(current)}
+            >
+              <Trash />
+            </IconButton>
+          ) : null
+        }
+      >
+        Review details
+      </PanelHeader>
+      <PanelBody>
+        {current ? (
+          <>
+            <TrainingAuthoringEditor
+              item={current}
+              onChanged={() => invalidateTraining(queryClient)}
+            />
+            <ReviewDetails item={current} revealed={revealed} />
+          </>
+        ) : null}
+      </PanelBody>
+    </Panel>
+  );
+
+  return (
+    <WorkspaceFrame
+      workspace="training"
+      title="Training"
+      icon={<Target />}
+      actions={
+        <>
+          <QueueSummary counts={counts} />
+          <Button onClick={() => setSetsOpen(true)}>
+            {selectedSet ? selectedSet.name : 'Training sets'}
+          </Button>
+          <Button variant="accent" icon={<Plus />} onClick={() => setCaptureOpen(true)}>
+            Create position
+          </Button>
+        </>
+      }
+      rail={{ label: 'Queue', width: 260, content: railContent }}
+      /*
+        The answer board is the route's own: it records an attempt rather than
+        editing a tree, and the move list would give the answer away. The
+        notation panel is therefore not part of this workspace.
+      */
+      withMoveTree={false}
+      boardSlot={
+        current ? (
+          <div className="flex min-h-[460px] flex-1 flex-col px-3 py-3 sm:px-5 wide:min-h-0">
+            <div className="mb-2 flex items-center gap-2">
+              <span className="text-2xs font-medium text-primary">{current.prompt}</span>
+              <span className="ml-auto text-[10px] text-tertiary">
+                {MODE_LABEL[current.mode]} · {current.sideToMove === 'w' ? 'White' : 'Black'} to
+                move
+              </span>
+            </div>
+            <TrainingAnswer
+              key={current.id}
+              item={current}
+              result={result}
+              revealed={revealed}
+              onSubmit={(state) => setAttempt({ itemId: current.id, state })}
+              onReveal={() => setRevealedItemId(current.id)}
+            />
+            {revealed ? (
+              <div className="mx-auto mt-2 w-full max-w-[620px]">
+                <GradeBar item={current} busy={busy} now={now} onGrade={grade} />
+              </div>
+            ) : null}
+          </div>
+        ) : undefined
+      }
+      empty={current ? undefined : <EmptyState title="The review queue is empty." />}
+      contextLabel="Answer"
+      contextPanel={details}
+      /*
+        Evidence stays withheld until the answer is in. The dock keeps its
+        shape and its tabs, so the tools are visibly *there* and visibly
+        waiting — the route used to unmount the dock entirely, which read as
+        the tools having been removed from this page.
+      */
+      locked={
+        revealed
+          ? undefined
+          : {
+              message:
+                'The engine, the explorer and the tablebase wait until you have answered. Submit your answer, or reveal it, to see the evidence.',
+            }
+      }
+    >
       <ConfirmDialog
         open={deleteItem !== null}
         title="Delete this training item?"
@@ -391,7 +363,7 @@ export function TrainingWorkspace() {
           setScope('all');
         }}
       />
-    </div>
+    </WorkspaceFrame>
   );
 }
 

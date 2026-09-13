@@ -13,79 +13,65 @@
  * you were in the middle of.
  */
 
-import { Opening, Plus, Search, Settings } from '@/components/icons';
+import { useCallback } from 'react';
+
+import { Opening, Plus } from '@/components/icons';
 import { Segmented } from '@/components/ui/Tabs';
-import { Button, IconButton } from '@/components/ui/Button';
-import { CanonicalBoardSurface } from '@/features/workspace/CanonicalBoardSurface';
-import { WorkspaceLowerPanel } from '@/features/workspace/WorkspaceLowerPanel';
-import { WorkspaceToolDock } from '@/features/workspace/WorkspaceToolDock';
-import { NavButton } from '@/features/shell/NavButton';
+import { Button } from '@/components/ui/Button';
+import { WorkspaceFrame } from '@/features/workspace/WorkspaceFrame';
 import { OpeningLibrary } from './OpeningLibrary';
 import { useAnalysis } from '@/stores/analysis-store';
 import { usePreferences } from '@/stores/preferences-store';
-import { useUi } from '@/stores/ui-store';
 
 export function OpeningsWorkspace() {
   const mode = usePreferences((state) => state.openingsMode);
   const setMode = usePreferences((state) => state.set);
   const newGame = useAnalysis((state) => state.newGame);
-  const toggleCommandPalette = useUi((state) => state.toggleCommandPalette);
-  const setSettingsOpen = useUi((state) => state.setSettingsOpen);
+
+  /*
+    A position handed over in the address is a request to *see* it, and the
+    library is not where a position can be seen. "Open this position in
+    Explorer" navigated here for nine phases and, whenever the route was left
+    in Library mode, showed the index instead of the board.
+  */
+  const showExplorer = useCallback(() => setMode('openingsMode', 'explorer'), [setMode]);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <header className="flex min-h-14 shrink-0 items-center gap-2 border-b border-line-subtle bg-surface-1 px-3 md:px-5">
-        <NavButton />
-        <Opening className="h-5 w-5 shrink-0 text-accent" />
-        <div className="min-w-0">
-          <h1 className="text-sm font-semibold text-primary">Openings</h1>
-          <p className="hidden truncate text-xs text-tertiary sm:block">
-            {mode === 'library'
-              ? 'Every named opening, searchable by code, name, moves or position.'
-              : 'Research one source at a time; compare database, engine and repertoire evidence.'}
-          </p>
-        </div>
-        <Segmented
-          className="ml-auto"
-          items={[
-            { id: 'library', label: 'Library' },
-            { id: 'explorer', label: 'Explorer' },
-          ]}
-          value={mode}
-          onChange={(value) => setMode('openingsMode', value)}
-        />
-        {mode === 'explorer' ? (
-          <Button icon={<Plus />} onClick={() => newGame()}>
-            New line
-          </Button>
-        ) : null}
-        <button
-          type="button"
-          onClick={toggleCommandPalette}
-          className="hidden h-9 items-center gap-2 rounded-[4px] border border-line bg-surface-2 px-3 text-xs text-tertiary hover:text-primary lg:flex"
-        >
-          <Search className="h-4 w-4" />
-          Search commands
-          <kbd className="font-mono text-[10px]">⌘K</kbd>
-        </button>
-        <IconButton label="Settings" onClick={() => setSettingsOpen(true)}>
-          <Settings />
-        </IconButton>
-      </header>
-      {mode === 'library' ? (
-        <OpeningLibrary />
-      ) : (
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto wide:flex-row wide:overflow-hidden">
-          <section className="flex min-h-0 min-w-0 flex-1 flex-col">
-            <CanonicalBoardSurface
-              mode="interactive"
-              className="min-h-[520px] min-w-0 flex-1 px-2 py-2 sm:px-3 wide:min-h-0"
-            />
-            <WorkspaceLowerPanel workspace="openings" />
-          </section>
-          <WorkspaceToolDock workspace="openings" />
-        </div>
-      )}
-    </div>
+    <WorkspaceFrame
+      workspace="openings"
+      title="Openings"
+      subtitle={
+        mode === 'library'
+          ? 'Every named opening, searchable by code, name, moves or position.'
+          : 'Research one source at a time; compare database, engine and repertoire evidence.'
+      }
+      icon={<Opening />}
+      actions={
+        <>
+          <Segmented
+            items={[
+              { id: 'library', label: 'Library' },
+              { id: 'explorer', label: 'Explorer' },
+            ]}
+            value={mode}
+            onChange={(value) => setMode('openingsMode', value)}
+          />
+          {mode === 'explorer' ? (
+            <Button icon={<Plus />} onClick={() => newGame()}>
+              New line
+            </Button>
+          ) : null}
+        </>
+      }
+      onPositionFromUrl={showExplorer}
+      /*
+        The library replaces the whole workspace rather than the board alone:
+        it is an index, and an index beside a dock of position tools would be
+        answering a question nobody asked of it. Switching back keeps the line
+        that was on the board, because the board's state is the store's.
+      */
+      takeover={mode === 'library' ? <OpeningLibrary /> : undefined}
+      board={{ mode: 'interactive', showEvaluationArtifacts: true }}
+    />
   );
 }

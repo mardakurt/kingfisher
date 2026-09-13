@@ -6,7 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 
 import { createTree } from '@/chess/tree/tree';
 import type { Fen, San } from '@/chess/types';
-import { Database, Search } from '@/components/icons';
+import { Database } from '@/components/icons';
 import { Button } from '@/components/ui/Button';
 import { EmptyState, Panel, PanelBody, PanelHeader } from '@/components/ui/Panel';
 import {
@@ -17,7 +17,7 @@ import {
 } from '@/features/persistence/queries';
 import type { GameResult } from '@/database/types';
 import { getRepositories } from '@/persistence/repositories';
-import type { GameRecord, GameSearchQuery } from '@/persistence/types';
+import type { CatalogPlayer } from '@/reference/players';
 import {
   buildOpeningTree,
   buildPlayerProfile,
@@ -29,16 +29,16 @@ import {
   type PreparationPriority,
 } from '@/preparation';
 import { useAnalysis } from '@/stores/analysis-store';
-import { NavButton } from '@/features/shell/NavButton';
-import { CanonicalBoardSurface } from '@/features/workspace/CanonicalBoardSurface';
-import { WorkspaceLowerPanel } from '@/features/workspace/WorkspaceLowerPanel';
-import { WorkspaceToolDock } from '@/features/workspace/WorkspaceToolDock';
+import { useReferenceSources } from '@/reference/use-references';
+import { WorkspaceFrame } from '@/features/workspace/WorkspaceFrame';
 import { positionKey } from '@/chess/fen';
 import { playerKey } from '@/persistence/schema/migrations';
 import { Dialog } from '@/components/ui/Dialog';
 import { useUi } from '@/stores/ui-store';
 import { DossierPanel } from './DossierPanel';
 import { GameDaySheet } from './GameDaySheet';
+import { OpponentSearch } from './OpponentSearch';
+import { collectOpponentGames, type OpponentGames, type OpponentQuery } from './opponent-games';
 import { SessionBar } from './SessionBar';
 import { sheetToMarkdown, sheetToPgn, sheetToPrintableHtml } from './sheet-export';
 import { invalidatePreparation, usePreparationSession, usePreparationSessions } from './queries';
@@ -51,12 +51,9 @@ const RESULTS: readonly { id: GameResult | 'any'; label: string }[] = [
   { id: '0-1', label: '0-1' },
 ];
 
-interface PreparationData {
-  readonly games: readonly GameRecord[];
+interface PreparationData extends OpponentGames {
   readonly profile: PlayerProfile;
   readonly tree: OpeningTree;
-  /** Matching games in the database, where that was cheap to know. */
-  readonly total: number | null;
 }
 
 export function PreparationWorkspace({ initialPlayer = '' }: { readonly initialPlayer?: string }) {
@@ -66,6 +63,8 @@ export function PreparationWorkspace({ initialPlayer = '' }: { readonly initialP
   const repertoires = useRepertoires().data ?? [];
   const [player, setPlayer] = useState(initialPlayer);
   const [submitted, setSubmitted] = useState(initialPlayer);
+  /** The catalog row behind the name, when it was chosen from the library. */
+  const [chosen, setChosen] = useState<CatalogPlayer | null>(null);
   const [side, setSide] = useState<'any' | 'w' | 'b'>('any');
   const [fromYear, setFromYear] = useState('');
   const [toYear, setToYear] = useState('');
@@ -85,39 +84,38 @@ export function PreparationWorkspace({ initialPlayer = '' }: { readonly initialP
   const sessions = usePreparationSessions().data ?? [];
   const session = usePreparationSession(sessionId).data ?? null;
 
-  const query = useMemo<GameSearchQuery>(
+  const query = useMemo<OpponentQuery>(
     () => ({
-      player: submitted,
-      ...(side !== 'any' ? { playerColor: side } : {}),
+      name: submitted,
+      player: chosen,
+      ...(side !== 'any' ? { side } : {}),
       ...(Number(fromYear) ? { fromYear: Number(fromYear) } : {}),
       ...(Number(toYear) ? { toYear: Number(toYear) } : {}),
       ...(Number(minRating) ? { minRating: Number(minRating) } : {}),
       ...(eco.trim() ? { eco: eco.trim() } : {}),
       ...(result !== 'any' ? { result } : {}),
-      sortBy: 'date',
-      sortDirection: 'desc',
       limit: Math.min(1000, Math.max(1, Number(recentN) || 200)),
-      // The report says "N of M games"; that M is worth one count.
-      exactTotal: true,
     }),
-    [submitted, side, fromYear, toYear, minRating, eco, result, recentN],
+    [submitted, chosen, side, fromYear, toYear, minRating, eco, result, recentN],
   );
+  const references = useReferenceSources();
+  const installedSources = references.sources
+    .filter((source) => source.installed)
+    .map((source) => source.id)
+    .join(',');
 
   const preparation = useQuery<PreparationData>({
-    queryKey: ['preparation', query],
+    queryKey: ['preparation', query, installedSources],
     enabled: Boolean(submitted),
     retry: false,
     queryFn: async () => {
-      const repositories = await getRepositories();
-      const summaries = await repositories.games.search(query);
-      const games = await repositories.games.getMany(summaries.games.map((game) => game.id));
+      const found = await collectOpponentGames(query);
       return {
-        games,
-        profile: buildPlayerProfile(games, [submitted]),
-        tree: buildOpeningTree(games, [submitted], {
+        ...found,
+        profile: buildPlayerProfile(found.games, found.aliases),
+        tree: buildOpeningTree(found.games, found.aliases, {
           ...(side !== 'any' ? { playerColor: side } : {}),
         }),
-        total: summaries.total,
       };
     },
   });
@@ -234,13 +232,7 @@ export function PreparationWorkspace({ initialPlayer = '' }: { readonly initialP
     invalidatePreparation(client);
     setSessionId(created.id);
     // The session names the opponent; searching for them is what comes next.
-    if (created.opponent) {
-      setPlayer(created.opponent);
-      setSubmitted(created.opponent);
-      setCurrentKey('');
-      setHistory([]);
-      setLine([]);
-    }
+    if (created.opponent) search(created.opponent, null);
   };
 
   /** Sheet edits, each retrying once against the stored revision. */
@@ -344,35 +336,138 @@ export function PreparationWorkspace({ initialPlayer = '' }: { readonly initialP
     router.push('/analysis');
   };
 
+  const search = (name: string, chosenPlayer: CatalogPlayer | null) => {
+    setPlayer(name);
+    setSubmitted(name.trim());
+    setChosen(chosenPlayer);
+    setCurrentKey('');
+    setHistory([]);
+    setLine([]);
+  };
+
+  const profilePanel = !submitted ? (
+    <EmptyState
+      title="Search an opponent."
+      description="Start typing a name: the player library offers everyone the installed reference sources hold games for, and your own imported games are searched as well."
+    />
+  ) : preparation.isPending ? (
+    <p className="px-3 py-5 text-2xs text-tertiary">Reading games from every source…</p>
+  ) : preparation.isError ? (
+    <EmptyState title="Preparation failed." description={preparation.error.message} />
+  ) : preparation.data?.profile.games === 0 ? (
+    <EmptyState
+      title="No games found."
+      description={`Neither your own games nor the installed reference sources hold a game under “${submitted}”. Check the spelling, pick a suggestion, or import games.`}
+    />
+  ) : (
+    <ProfilePanel
+      profile={preparation.data!.profile}
+      total={preparation.data!.localTotal}
+      sources={preparation.data!.sources}
+    />
+  );
+
+  const openingTree = (
+    <Panel className="h-full">
+      <PanelHeader
+        actions={
+          matchingRepertoires.length ? (
+            <select
+              aria-label="Compare repertoire"
+              value={effectiveRepertoireId ?? ''}
+              onChange={(event) => setRepertoireId(event.target.value)}
+              className="h-6 max-w-40 rounded-[3px] border border-line bg-surface-inset px-1.5 text-[10px] normal-case tracking-normal text-secondary"
+            >
+              {matchingRepertoires.map((entry) => (
+                <option key={entry.id} value={entry.id}>
+                  {entry.title}
+                </option>
+              ))}
+            </select>
+          ) : null
+        }
+      >
+        Opening tree
+      </PanelHeader>
+      <PanelBody>
+        {node ? (
+          <MoveTable
+            node={node}
+            preparedKeys={new Set(comparison.prepared.map((edge) => edge.resultingKey))}
+            onSelect={(key, san) => {
+              setHistory((items) => [...items, effectiveKey]);
+              setCurrentKey(key);
+              if (san) setLine((moves) => [...moves, san]);
+            }}
+            onPrepare={(edge) =>
+              prepareReply(edge.resultingFen, `After ${submitted} plays ${edge.san}`)
+            }
+          />
+        ) : (
+          <EmptyState
+            title="No opening tree yet."
+            description="Search an opponent to build one from their games."
+          />
+        )}
+        {node && effectiveRepertoireId ? (
+          <section className="border-t border-line-subtle px-3 py-3">
+            <h2 className="text-[10px] uppercase tracking-wide text-tertiary">
+              Repertoire comparison
+            </h2>
+            <p className="mt-1 text-[11.5px] text-secondary">
+              {comparison.prepared.length} observed continuation
+              {comparison.prepared.length === 1 ? '' : 's'} prepared · {comparison.gaps.length} gap
+              {comparison.gaps.length === 1 ? '' : 's'}
+            </p>
+            {comparison.gaps.slice(0, 5).map((edge) => (
+              <button
+                key={edge.uci}
+                type="button"
+                onClick={() =>
+                  prepareReply(edge.resultingFen, `After ${submitted} plays ${edge.san}`)
+                }
+                className="mt-1 block w-full text-left text-2xs text-tertiary hover:text-accent"
+              >
+                {edge.san} · {edge.games} games · no prepared reply — prepare one
+              </button>
+            ))}
+          </section>
+        ) : null}
+        {submitted && preparation.data ? (
+          <DossierPanel name={submitted} games={preparation.data.games} color={opponentColor} />
+        ) : null}
+        {node ? (
+          <PriorityQueue
+            priorities={priorities}
+            onPrepare={(edge) =>
+              prepareReply(edge.resultingFen, `After ${submitted} plays ${edge.san}`)
+            }
+          />
+        ) : null}
+      </PanelBody>
+    </Panel>
+  );
+
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <header className="density-row flex h-10 shrink-0 items-center gap-2 border-b border-line-subtle bg-surface-1 px-2 sm:px-3">
-        <NavButton />
-        <Database className="h-4 w-4 text-accent" />
-        <h1 className="text-xs font-semibold text-primary">Opponent preparation</h1>
-        <form
-          className="ml-1 flex min-w-0 flex-1 items-center gap-1"
-          onSubmit={(event) => {
-            event.preventDefault();
-            setSubmitted(player.trim());
-            setCurrentKey('');
-            setHistory([]);
-            setLine([]);
-          }}
-        >
-          <div className="relative min-w-0 flex-1">
-            <Search className="pointer-events-none absolute top-1.5 left-2 h-3.5 w-3.5 text-tertiary" />
-            <input
-              value={player}
-              onChange={(event) => setPlayer(event.target.value)}
-              aria-label="Player name"
-              placeholder="Exact player name…"
-              className="h-7 w-full rounded-[4px] border border-line bg-surface-inset pr-2 pl-7 text-2xs text-primary outline-none placeholder:text-tertiary/70 focus:border-accent/60"
-            />
-          </div>
-          <Button variant="accent" type="submit" disabled={!player.trim()}>
-            Prepare
-          </Button>
+    <WorkspaceFrame
+      workspace="preparation"
+      title="Preparation"
+      icon={<Database />}
+      toolbar={
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <Database className="hidden h-5 w-5 shrink-0 text-accent sm:block" />
+          <h1 className="hidden shrink-0 text-sm font-semibold text-primary md:block">
+            Preparation
+          </h1>
+          <OpponentSearch
+            value={player}
+            onChange={setPlayer}
+            onSubmit={(choice) => search(choice.name, choice.player)}
+          />
+        </div>
+      }
+      actions={
+        <>
           {/*
             Favourites, where they get used. A coach preparing five students,
             or a player facing the same three opponents all season, should not
@@ -383,15 +478,10 @@ export function PreparationWorkspace({ initialPlayer = '' }: { readonly initialP
               aria-label="Favourite players"
               value=""
               onChange={(event) => {
-                const chosen = event.target.value;
-                if (!chosen) return;
-                setPlayer(chosen);
-                setSubmitted(chosen);
-                setCurrentKey('');
-                setHistory([]);
-                setLine([]);
+                const value = event.target.value;
+                if (value) search(value, null);
               }}
-              className="h-7 max-w-[18ch] rounded-[4px] border border-line bg-surface-inset px-1.5 text-2xs text-primary"
+              className="h-8 max-w-[18ch] rounded-[4px] border border-line bg-surface-inset px-1.5 text-2xs text-primary"
             >
               <option value="">Favourites…</option>
               {profile.data?.favoritePlayers?.map((entry) => (
@@ -414,239 +504,123 @@ export function PreparationWorkspace({ initialPlayer = '' }: { readonly initialP
           {profile.data?.aliases.length ? (
             <Button
               title="Report on your own games, using the aliases in Settings → Profile"
-              onClick={() => {
-                const alias = profile.data?.aliases[0] ?? '';
-                setPlayer(alias);
-                setSubmitted(alias);
-                setCurrentKey('');
-                setHistory([]);
-                setLine([]);
-              }}
+              onClick={() => search(profile.data?.aliases[0] ?? '', null)}
             >
               My games
             </Button>
           ) : null}
-        </form>
-      </header>
-
-      <SessionBar
-        sessions={sessions}
-        active={session}
-        onSelect={setSessionId}
-        onCreate={(input) => void createSession(input)}
-        onOpenSheet={() => setSheetOpen(true)}
-        sheetCount={session?.sheet.length ?? 0}
-      />
-
-      <FilterBar
-        side={side}
-        setSide={setSide}
-        fromYear={fromYear}
-        setFromYear={setFromYear}
-        toYear={toYear}
-        setToYear={setToYear}
-        minRating={minRating}
-        setMinRating={setMinRating}
-        eco={eco}
-        setEco={setEco}
-        result={result}
-        setResult={setResult}
-        recentN={recentN}
-        setRecentN={setRecentN}
-      />
-
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto wide:flex-row wide:overflow-hidden">
-        <div className="grid min-h-0 min-w-0 flex-1 grid-cols-1 md:max-panes:grid-cols-[280px_minmax(360px,1fr)] wide:grid-cols-[280px_minmax(360px,1fr)]">
-          <Panel className="min-h-[200px] border-b border-line-subtle md:min-h-0 md:border-r md:border-b-0">
-            <PanelHeader>Player profile</PanelHeader>
-            <PanelBody>
-              {!submitted ? (
-                <EmptyState
-                  title="Search an opponent."
-                  description="Names match by normalized case and whitespace only. Add aliases explicitly when needed."
-                />
-              ) : preparation.isPending ? (
-                <p className="px-3 py-5 text-2xs text-tertiary">Building the local report…</p>
-              ) : preparation.isError ? (
-                <EmptyState title="Preparation failed." description={preparation.error.message} />
-              ) : preparation.data?.profile.games === 0 ? (
-                <EmptyState
-                  title="No matching local games."
-                  description="Check the exact spelling or import more games."
-                />
-              ) : (
-                <ProfilePanel profile={preparation.data!.profile} total={preparation.data!.total} />
-              )}
-            </PanelBody>
-          </Panel>
-
-          <section className="flex min-h-[500px] min-w-0 flex-col px-3 py-3 sm:px-5 sm:py-4 md:min-h-0">
-            {node ? (
-              <>
-                <CanonicalBoardSurface
-                  mode="interactive"
-                  className="min-h-0 flex-1"
-                  showContext={false}
-                />
-                <div className="mx-auto mt-3 flex w-full max-w-[660px] items-center border-t border-line-subtle pt-2">
-                  <Button
-                    disabled={history.length === 0}
-                    onClick={() => {
-                      const previous = history.at(-1);
-                      if (!previous) return;
-                      setHistory((items) => items.slice(0, -1));
-                      setCurrentKey(previous);
-                      setLine((moves) => moves.slice(0, -1));
-                    }}
-                  >
-                    Back
-                  </Button>
-                  <span className="ml-2 text-2xs text-tertiary tabular">
-                    {node.games} observed games at this position
-                  </span>
-                  {session ? (
-                    <Button
-                      className="ml-auto"
-                      onClick={() =>
-                        void addToSheet(
-                          node.fen,
-                          line,
-                          `${node.games} games here in the selected set`,
-                        )
-                      }
-                    >
-                      Add to sheet
-                    </Button>
-                  ) : null}
-                </div>
-              </>
-            ) : (
-              <EmptyState
-                title="No opening tree yet."
-                description="Run a player search to build one from local games."
-              />
-            )}
-            <WorkspaceLowerPanel workspace="preparation" contextLabel="Opening tree" />
-          </section>
-        </div>
-        {sheetOpen && session ? (
-          <Dialog
-            open
-            title="Game-day sheet"
-            description={`${session.title}${session.opponent ? ` · vs ${session.opponent}` : ''}`}
-            width="w-[640px]"
-            onClose={() => setSheetOpen(false)}
-          >
-            <div className="max-h-[70vh] overflow-y-auto">
-              <GameDaySheet
-                session={session}
-                onOpen={(card) => {
-                  openDocument({
-                    tree: createTree(card.fen, { Event: session.title, Result: '*' }),
-                    document: { kind: 'untitled', title: session.title },
-                    orientation: session.myColor,
-                  });
-                  router.push('/analysis');
-                }}
-                onEdit={(cardId, change) => void editCard(cardId, change)}
-                onRemove={(cardId) => void removeCard(cardId)}
-                onMove={(cardId, toIndex) => void moveCard(cardId, toIndex)}
-                onPrint={() => printSheet(session)}
-              />
-              <div className="flex flex-wrap items-center gap-1.5 border-t border-line-subtle px-2.5 py-2">
-                <span className="text-[10px] text-tertiary">Also copy as</span>
-                <Button onClick={() => void copySheet(session, 'markdown')}>Markdown</Button>
-                <Button onClick={() => void copySheet(session, 'pgn')}>PGN</Button>
-              </div>
-            </div>
-          </Dialog>
-        ) : null}
-
-        <WorkspaceToolDock
-          workspace="preparation"
-          contextLabel="Opening tree"
-          contextPanel={
-            <Panel className="h-full">
-              <PanelHeader
-                actions={
-                  matchingRepertoires.length ? (
-                    <select
-                      aria-label="Compare repertoire"
-                      value={effectiveRepertoireId ?? ''}
-                      onChange={(event) => setRepertoireId(event.target.value)}
-                      className="h-6 max-w-40 rounded-[3px] border border-line bg-surface-inset px-1.5 text-[10px] normal-case tracking-normal text-secondary"
-                    >
-                      {matchingRepertoires.map((entry) => (
-                        <option key={entry.id} value={entry.id}>
-                          {entry.title}
-                        </option>
-                      ))}
-                    </select>
-                  ) : null
+        </>
+      }
+      banner={
+        <>
+          <SessionBar
+            sessions={sessions}
+            active={session}
+            onSelect={setSessionId}
+            onCreate={(input) => void createSession(input)}
+            onOpenSheet={() => setSheetOpen(true)}
+            sheetCount={session?.sheet.length ?? 0}
+          />
+          <FilterBar
+            side={side}
+            setSide={setSide}
+            fromYear={fromYear}
+            setFromYear={setFromYear}
+            toYear={toYear}
+            setToYear={setToYear}
+            minRating={minRating}
+            setMinRating={setMinRating}
+            eco={eco}
+            setEco={setEco}
+            result={result}
+            setResult={setResult}
+            recentN={recentN}
+            setRecentN={setRecentN}
+          />
+        </>
+      }
+      rail={{ label: 'Player profile', width: 260, content: profilePanel }}
+      board={{ mode: 'interactive', showEvaluationArtifacts: true }}
+      empty={
+        node ? undefined : (
+          <EmptyState
+            title="No opening tree yet."
+            description="Search an opponent to see what they play, from your games and the installed reference sources."
+          />
+        )
+      }
+      belowBoard={
+        node ? (
+          <div className="mx-auto flex w-full max-w-[860px] shrink-0 items-center gap-2 border-t border-line-subtle px-3 py-1.5">
+            <Button
+              disabled={history.length === 0}
+              onClick={() => {
+                const previous = history.at(-1);
+                if (!previous) return;
+                setHistory((items) => items.slice(0, -1));
+                setCurrentKey(previous);
+                setLine((moves) => moves.slice(0, -1));
+              }}
+            >
+              Back
+            </Button>
+            <span className="ml-2 text-2xs text-tertiary tabular">
+              {node.games} observed games at this position
+            </span>
+            {session ? (
+              <Button
+                className="ml-auto"
+                onClick={() =>
+                  void addToSheet(node.fen, line, `${node.games} games here in the selected set`)
                 }
               >
-                Opening tree
-              </PanelHeader>
-              <PanelBody>
-                {node ? (
-                  <MoveTable
-                    node={node}
-                    preparedKeys={new Set(comparison.prepared.map((edge) => edge.resultingKey))}
-                    onSelect={(key, san) => {
-                      setHistory((items) => [...items, effectiveKey]);
-                      setCurrentKey(key);
-                      if (san) setLine((moves) => [...moves, san]);
-                    }}
-                    onPrepare={(edge) =>
-                      prepareReply(edge.resultingFen, `After ${submitted} plays ${edge.san}`)
-                    }
-                  />
-                ) : null}
-                {node && effectiveRepertoireId ? (
-                  <section className="border-t border-line-subtle px-3 py-3">
-                    <h2 className="text-[10px] uppercase tracking-wide text-tertiary">
-                      Repertoire comparison
-                    </h2>
-                    <p className="mt-1 text-[11.5px] text-secondary">
-                      {comparison.prepared.length} observed continuation
-                      {comparison.prepared.length === 1 ? '' : 's'} prepared ·{' '}
-                      {comparison.gaps.length} gap{comparison.gaps.length === 1 ? '' : 's'}
-                    </p>
-                    {comparison.gaps.slice(0, 5).map((edge) => (
-                      <button
-                        key={edge.uci}
-                        type="button"
-                        onClick={() =>
-                          prepareReply(edge.resultingFen, `After ${submitted} plays ${edge.san}`)
-                        }
-                        className="mt-1 block w-full text-left text-2xs text-tertiary hover:text-accent"
-                      >
-                        {edge.san} · {edge.games} games · no prepared reply — prepare one
-                      </button>
-                    ))}
-                  </section>
-                ) : null}
-                {submitted && preparation.data ? (
-                  <DossierPanel
-                    name={submitted}
-                    games={preparation.data.games}
-                    color={opponentColor}
-                  />
-                ) : null}
-                {node ? (
-                  <PriorityQueue
-                    priorities={priorities}
-                    onPrepare={(edge) =>
-                      prepareReply(edge.resultingFen, `After ${submitted} plays ${edge.san}`)
-                    }
-                  />
-                ) : null}
-              </PanelBody>
-            </Panel>
-          }
-        />
-      </div>
-    </div>
+                Add to sheet
+              </Button>
+            ) : null}
+          </div>
+        ) : undefined
+      }
+      contextLabel="Opening tree"
+      contextPanel={openingTree}
+      position={{
+        label: submitted ? `Preparation · ${submitted}` : 'Preparation',
+        hasSession: session !== null,
+        ...(session && node ? { onAddToPreparation: () => void addToSheet(node.fen, line) } : {}),
+      }}
+    >
+      {sheetOpen && session ? (
+        <Dialog
+          open
+          title="Game-day sheet"
+          description={`${session.title}${session.opponent ? ` · vs ${session.opponent}` : ''}`}
+          width="w-[640px]"
+          onClose={() => setSheetOpen(false)}
+        >
+          <div className="max-h-[70vh] overflow-y-auto">
+            <GameDaySheet
+              session={session}
+              onOpen={(card) => {
+                openDocument({
+                  tree: createTree(card.fen, { Event: session.title, Result: '*' }),
+                  document: { kind: 'untitled', title: session.title },
+                  orientation: session.myColor,
+                });
+                router.push('/analysis');
+              }}
+              onEdit={(cardId, change) => void editCard(cardId, change)}
+              onRemove={(cardId) => void removeCard(cardId)}
+              onMove={(cardId, toIndex) => void moveCard(cardId, toIndex)}
+              onPrint={() => printSheet(session)}
+            />
+            <div className="flex flex-wrap items-center gap-1.5 border-t border-line-subtle px-2.5 py-2">
+              <span className="text-[10px] text-tertiary">Also copy as</span>
+              <Button onClick={() => void copySheet(session, 'markdown')}>Markdown</Button>
+              <Button onClick={() => void copySheet(session, 'pgn')}>PGN</Button>
+            </div>
+          </div>
+        </Dialog>
+      ) : null}
+    </WorkspaceFrame>
   );
 }
 
@@ -785,19 +759,33 @@ function FilterBar(props: {
 function ProfilePanel({
   profile,
   total,
+  sources,
 }: {
   readonly profile: PlayerProfile;
   readonly total: number | null;
+  readonly sources: readonly { id: string; name: string; games: number }[];
 }) {
   return (
     <div className="divide-y divide-line-subtle">
       <section className="px-3 py-3">
         <h2 className="text-sm font-medium text-primary">{profile.name}</h2>
+        {/*
+          Each source with its own count, never a merged figure presented as
+          one population: a game from the starter reference and a game the
+          user imported are different evidence about the same person.
+        */}
+        <ul className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-tertiary tabular">
+          {sources.map((source) => (
+            <li key={source.id}>
+              {source.games} from {source.name}
+            </li>
+          ))}
+        </ul>
         <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-2xs">
           <dt className="text-tertiary">Games analysed</dt>
           <dd className="text-right text-secondary tabular">
             {profile.games}
-            {total !== null && total > profile.games ? ` of ${total}` : ''}
+            {total !== null && total > profile.games ? ` (${total} in My games)` : ''}
           </dd>
           <dt className="text-tertiary">Average rating</dt>
           <dd className="text-right text-secondary tabular">{profile.averageRating ?? '—'}</dd>

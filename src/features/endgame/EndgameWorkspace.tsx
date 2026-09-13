@@ -24,12 +24,9 @@ import { createTree } from '@/chess/tree/tree';
 
 import { Button } from '@/components/ui/Button';
 import { Dialog } from '@/components/ui/Dialog';
-import { EmptyState, Panel, PanelBody, PanelHeader } from '@/components/ui/Panel';
+import { EmptyState } from '@/components/ui/Panel';
 import { Target } from '@/components/icons';
-import { NavButton } from '@/features/shell/NavButton';
-import { CanonicalBoardSurface } from '@/features/workspace/CanonicalBoardSurface';
-import { WorkspaceLowerPanel } from '@/features/workspace/WorkspaceLowerPanel';
-import { WorkspaceToolDock } from '@/features/workspace/WorkspaceToolDock';
+import { WorkspaceFrame } from '@/features/workspace/WorkspaceFrame';
 import { useEndgamePositions } from '@/features/preparation/queries';
 import { getRepositories } from '@/persistence/repositories';
 import {
@@ -43,7 +40,6 @@ import {
 import { countPieces } from '@/persistence/repositories/endgame-repository';
 import { useAnalysis } from '@/stores/analysis-store';
 import { useUi } from '@/stores/ui-store';
-import { useMediaQuery } from '@/hooks/use-media-query';
 import { cn } from '@/lib/cn';
 
 const GOALS: readonly EndgameGoal[] = ['convert-win', 'hold-draw', 'find-best-move', 'study'];
@@ -53,7 +49,6 @@ export function EndgameWorkspace() {
   const notify = useUi((state) => state.notify);
   const openDocument = useAnalysis((state) => state.openDocument);
   const node = useAnalysis((state) => state.tree.nodes[state.currentId]);
-  const wide = useMediaQuery('(min-width: 1100px)');
 
   const [category, setCategory] = useState<EndgameCategory | 'all'>('all');
   const [saving, setSaving] = useState(false);
@@ -107,120 +102,90 @@ export function EndgameWorkspace() {
 
   const selected = (positions.data ?? []).find((record) => record.id === selectedId) ?? null;
 
-  return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <header className="density-row flex h-10 shrink-0 items-center gap-2 border-b border-line-subtle bg-surface-1 px-2 sm:px-3">
-        <NavButton />
-        <Target className="h-4 w-4 text-accent" />
-        <h1 className="text-xs font-semibold text-primary">Endgame lab</h1>
-        <span className="text-[10px] text-tertiary tabular">
-          {node ? `${countPieces(node.fen)} pieces on the board` : ''}
-        </span>
-        <SaveButton className="ml-auto" disabled={saving || !node} onSave={save} />
-      </header>
-
-      <div
-        className={cn(
-          'flex min-h-0 flex-1 flex-col overflow-y-auto',
-          /*
-            Proportional side columns, not fixed ones. Two 300px-plus
-            columns take 680px whatever the display is, which on a 1280-wide
-            laptop left the board 372px and on a 2560-wide display left it
-            needlessly small a different way. Sizing them against the viewport
-            keeps the board the thing that grows. §64.
-          */
-          wide &&
-            'grid grid-cols-[minmax(220px,17vw)_minmax(0,1fr)_minmax(300px,24vw)] overflow-hidden',
-        )}
-      >
-        <aside
-          className={cn(
-            'min-h-0 min-w-0 bg-surface-1',
-            wide ? 'border-r border-line-subtle' : 'order-3 border-t border-line-subtle',
-          )}
-        >
-          <Panel className="h-full">
-            <PanelHeader>Library</PanelHeader>
-            <div className="shrink-0 border-b border-line-subtle px-2 py-1.5">
-              <label className="text-[10px] text-tertiary">
-                <span className="sr-only">Category</span>
-                <select
-                  aria-label="Endgame category"
-                  value={category}
-                  onChange={(event) => setCategory(event.target.value as EndgameCategory | 'all')}
-                  className="h-6 w-full rounded-[3px] border border-line bg-surface-inset px-1.5 text-[11px] text-primary"
-                >
-                  <option value="all">Every category</option>
-                  {ENDGAME_CATEGORIES.map((entry) => (
-                    <option key={entry} value={entry}>
-                      {ENDGAME_CATEGORY_LABEL[entry]}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-            <PanelBody>
-              {positions.isPending ? (
-                <p className="px-3 py-3 text-2xs text-tertiary">Reading the library…</p>
-              ) : (positions.data?.length ?? 0) === 0 ? (
-                <EmptyState
-                  title="Nothing saved yet."
-                  description="Set up an endgame on the board — or open one from a game — and save it with the category you think of it as."
-                />
-              ) : (
-                <ul className="divide-y divide-line-subtle">
-                  {positions.data?.map((record) => (
-                    <li key={record.id}>
-                      <button
-                        type="button"
-                        onClick={() => open(record)}
-                        className={cn(
-                          'w-full px-3 py-2 text-left transition-colors hover:bg-surface-2',
-                          record.id === selectedId && 'bg-surface-2',
-                        )}
-                      >
-                        <p className="truncate text-[11.5px] text-primary">{record.title}</p>
-                        <p className="mt-0.5 text-[10px] text-tertiary tabular">
-                          {ENDGAME_CATEGORY_LABEL[record.category]} ·{' '}
-                          {ENDGAME_GOAL_LABEL[record.goal]} · {record.pieceCount} pieces
-                          {record.pieceCount <= 7 ? ' · tablebase' : ''}
-                        </p>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </PanelBody>
-          </Panel>
-        </aside>
-
-        <section className="flex min-h-[560px] min-w-0 flex-col wide:min-h-0">
-          <CanonicalBoardSurface
-            mode="interactive"
-            className="min-h-[440px] flex-1 px-2 py-2 sm:px-3 wide:min-h-0"
+  const railContent = (
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="shrink-0 border-b border-line-subtle px-2 py-1.5">
+        <label className="text-[10px] text-tertiary">
+          <span className="sr-only">Category</span>
+          <select
+            aria-label="Endgame category"
+            value={category}
+            onChange={(event) => setCategory(event.target.value as EndgameCategory | 'all')}
+            className="h-6 w-full rounded-[3px] border border-line bg-surface-inset px-1.5 text-[11px] text-primary"
+          >
+            <option value="all">Every category</option>
+            {ENDGAME_CATEGORIES.map((entry) => (
+              <option key={entry} value={entry}>
+                {ENDGAME_CATEGORY_LABEL[entry]}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        {positions.isPending ? (
+          <p className="px-3 py-3 text-2xs text-tertiary">Reading the library…</p>
+        ) : (positions.data?.length ?? 0) === 0 ? (
+          <EmptyState
+            title="Nothing saved yet."
+            description="Set up an endgame on the board with Set up — or open one from a game — and save it with the category you think of it as."
           />
-          {selected ? (
-            <div className="shrink-0 border-t border-line-subtle px-3 py-2">
-              <p className="text-[11px] text-primary">{selected.title}</p>
-              <p className="mt-0.5 text-[10px] leading-relaxed text-tertiary">
-                {ENDGAME_GOAL_LABEL[selected.goal]}
-                {selected.note ? ` · ${selected.note}` : ''}
-              </p>
-              {/* The honest framing for practice: the engine is an opponent
-                  here, not an oracle, and the tablebase is the referee. */}
-              <p className="mt-1 text-[10px] leading-relaxed text-tertiary">
-                Open <span className="text-secondary">Play it out</span> to convert this against the
-                engine. After every move the tablebase says what the position is now worth — it
-                reports the result, not a verdict on your move.
-              </p>
-            </div>
-          ) : null}
-          <WorkspaceLowerPanel workspace="endgame" contextLabel="Position" />
-        </section>
-
-        <WorkspaceToolDock workspace="endgame" fill={wide} contextLabel="Position" />
+        ) : (
+          <ul className="divide-y divide-line-subtle">
+            {positions.data?.map((record) => (
+              <li key={record.id}>
+                <button
+                  type="button"
+                  onClick={() => open(record)}
+                  className={cn(
+                    'w-full px-3 py-2 text-left transition-colors hover:bg-surface-2',
+                    record.id === selectedId && 'bg-surface-2',
+                  )}
+                >
+                  <p className="truncate text-[11.5px] text-primary">{record.title}</p>
+                  <p className="mt-0.5 text-[10px] text-tertiary tabular">
+                    {ENDGAME_CATEGORY_LABEL[record.category]} · {ENDGAME_GOAL_LABEL[record.goal]} ·{' '}
+                    {record.pieceCount} pieces
+                    {record.pieceCount <= 7 ? ' · tablebase' : ''}
+                  </p>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </div>
+  );
+
+  return (
+    <WorkspaceFrame
+      workspace="endgame"
+      title="Endgame lab"
+      subtitle={node ? `${countPieces(node.fen)} pieces on the board` : undefined}
+      icon={<Target />}
+      actions={<SaveButton disabled={saving || !node} onSave={save} />}
+      rail={{ label: 'Library', width: 250, content: railContent }}
+      board={{ mode: 'interactive', showEvaluationArtifacts: true }}
+      belowBoard={
+        selected ? (
+          <div className="shrink-0 border-t border-line-subtle px-3 py-2">
+            <p className="text-[11px] text-primary">{selected.title}</p>
+            <p className="mt-0.5 text-[10px] leading-relaxed text-tertiary">
+              {ENDGAME_GOAL_LABEL[selected.goal]}
+              {selected.note ? ` · ${selected.note}` : ''}
+            </p>
+            {/* The honest framing for practice: the engine is an opponent
+                here, not an oracle, and the tablebase is the referee. */}
+            <p className="mt-1 text-[10px] leading-relaxed text-tertiary">
+              Open <span className="text-secondary">Play it out</span> to convert this against the
+              engine. After every move the tablebase says what the position is now worth — it
+              reports the result, not a verdict on your move.
+            </p>
+          </div>
+        ) : undefined
+      }
+      contextLabel="Position"
+    />
   );
 }
 

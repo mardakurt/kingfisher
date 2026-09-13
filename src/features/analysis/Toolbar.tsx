@@ -7,31 +7,23 @@
  * want here, and a row of twelve buttons is not a toolbar. Only the actions
  * taken constantly stay visible; everything that copies, exports or converts
  * lives behind one menu, where it is also discoverable by name.
+ *
+ * This is the *left* half of the header only — New, Import, the document menu
+ * and the document's title. The position menu, position setup, command
+ * search, theme and settings are the workspace frame's, and appear on every
+ * route the same way; see `WorkspaceFrame`.
  */
 
-import {
-  Copy,
-  Export,
-  Import,
-  Moon,
-  Plus,
-  Search,
-  Settings,
-  Sun,
-  Target,
-} from '@/components/icons';
-import { Button, IconButton } from '@/components/ui/Button';
+import { Copy, Export, Import, Plus } from '@/components/icons';
+import { Button } from '@/components/ui/Button';
 import { Menu, type MenuSection } from '@/components/ui/Menu';
 import { START_FEN } from '@/chess/fen';
 import type { CriticalCategory } from '@/chess/tree/types';
 import { useAnalysis } from '@/stores/analysis-store';
-import { usePreferences } from '@/stores/preferences-store';
 import { useUi } from '@/stores/ui-store';
 
 import { DocumentHeader } from './DocumentHeader';
 import { useCopyActions } from './useCopyActions';
-import { usePositionActions } from '@/features/workspace/usePositionActions';
-import { NavButton } from '@/features/shell/NavButton';
 
 const CRITICAL_CATEGORIES: readonly { id: CriticalCategory; label: string }[] = [
   { id: 'opening', label: 'Opening' },
@@ -46,19 +38,16 @@ export function Toolbar() {
   const currentId = useAnalysis((state) => state.currentId);
   const critical = useAnalysis((state) => state.tree.nodes[state.currentId]?.meta.critical);
   const setCritical = useAnalysis((state) => state.setCritical);
+  const clearMoves = useAnalysis((state) => state.clearMoves);
+  const hasMoves = useAnalysis(
+    (state) => (state.tree.nodes[state.tree.rootId]?.children.length ?? 0) > 0,
+  );
   const setImportOpen = useUi((state) => state.setImportOpen);
-  const setSettingsOpen = useUi((state) => state.setSettingsOpen);
   const setSaveToStudyOpen = useUi((state) => state.setSaveToStudyOpen);
   const setAddToRepertoireOpen = useUi((state) => state.setAddToRepertoireOpen);
   const setTrainingCaptureOpen = useUi((state) => state.setTrainingCaptureOpen);
   const setModelGameOpen = useUi((state) => state.setModelGameOpen);
-  const toggleCommandPalette = useUi((state) => state.toggleCommandPalette);
-  const theme = usePreferences((state) => state.theme);
-  const toggleTheme = usePreferences((state) => state.toggleTheme);
   const copy = useCopyActions();
-  const fen = useAnalysis((state) => state.tree.nodes[state.currentId]?.fen ?? START_FEN);
-  const documentTitle = useAnalysis((state) => state.document.title);
-  const positionActions = usePositionActions({ fen, label: documentTitle || 'this analysis' });
 
   const sections: readonly MenuSection[] = [
     {
@@ -98,6 +87,18 @@ export function Toolbar() {
       ],
     },
     {
+      id: 'tree',
+      items: [
+        {
+          id: 'clear-moves',
+          label: 'Clear the move tree (keep this position)',
+          disabled: !hasMoves,
+          danger: true,
+          run: clearMoves,
+        },
+      ],
+    },
+    {
       /*
         Critical positions carry a category because "come back to this" and
         "I miscalculated here" lead to different work later. The categories are
@@ -126,45 +127,13 @@ export function Toolbar() {
   ];
 
   return (
-    /*
-      No `overflow-hidden` here. The document menu is positioned against this
-      header, so clipping the header clipped the menu to its own 40px height —
-      every item below the first was invisible and unclickable. Overflow is
-      contained by the children that can actually grow (the document title
-      truncates, the rest are fixed-width controls) rather than by cutting the
-      row that anchors a popover.
-    */
-    <header className="flex min-h-14 min-w-0 shrink-0 items-center gap-1.5 border-b border-line-subtle bg-surface-1 px-2 sm:px-4">
-      <NavButton />
+    <div className="flex min-w-0 flex-1 items-center gap-1.5" data-analysis-toolbar>
       <Button aria-label="New analysis" icon={<Plus />} onClick={() => newGame(START_FEN)}>
         <span className="hidden xs:inline">New</span>
       </Button>
       <Button aria-label="Import PGN or FEN" icon={<Import />} onClick={() => setImportOpen(true)}>
         <span className="hidden xs:inline">Import</span>
       </Button>
-
-      {/*
-        Everything you can do with the position on the board, from the one
-        definition shared with the command palette and the keyboard. Kept as a
-        menu rather than as buttons: twelve controls around a board is how a
-        workspace stops looking like a chess application.
-      */}
-      <Menu
-        sections={positionActions.sections}
-        trigger={({ open, toggle, id }) => (
-          <Button
-            id={id}
-            aria-label="Position actions"
-            aria-haspopup="menu"
-            aria-expanded={open}
-            active={open}
-            icon={<Target />}
-            onClick={toggle}
-          >
-            <span className="hidden sm:inline">Position</span>
-          </Button>
-        )}
-      />
 
       <Menu
         sections={sections}
@@ -190,29 +159,6 @@ export function Toolbar() {
       <div className="hidden min-w-0 flex-1 md:block">
         <DocumentHeader />
       </div>
-
-      <button
-        type="button"
-        onClick={toggleCommandPalette}
-        aria-label="Search commands"
-        className="ml-auto flex h-9 shrink-0 items-center gap-2 rounded-[4px] border border-line bg-surface-2 px-3 text-xs text-tertiary transition-colors hover:border-line-strong hover:text-secondary"
-      >
-        <Search className="h-3.5 w-3.5" />
-        <span className="hidden lg:inline">Search commands</span>
-        <kbd className="hidden rounded-[3px] border border-line bg-surface-1 px-1 font-mono text-[10px] lg:inline">
-          ⌘K
-        </kbd>
-      </button>
-
-      <IconButton
-        label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
-        onClick={toggleTheme}
-      >
-        {theme === 'dark' ? <Sun /> : <Moon />}
-      </IconButton>
-      <IconButton label="Settings (⌘,)" onClick={() => setSettingsOpen(true)}>
-        <Settings />
-      </IconButton>
-    </header>
+    </div>
   );
 }

@@ -846,6 +846,35 @@ cursor, the FEN, the orientation and the document by reading the analysis
 store. It holds no chess state of its own — a second source of position truth
 is the bug class this seam exists to prevent.
 
+`WorkspaceFrame` (`features/workspace/WorkspaceFrame.tsx`) is the page every
+board route is. Until it existed each route laid itself out by hand — its own
+header, its own three-column grid with its own column widths, its own idea of
+whether the dock could be resized — and eleven copies drifted: Review pinned
+its dock to a fixed grid track, Studies hid the board behind a chapter list
+that could not be folded, only Analysis let a user set up a position. The frame
+is the Analysis layout made into the structure every route renders. A route
+contributes only what makes it that route:
+
+| Slot           | What a route puts there                                     |
+| -------------- | ----------------------------------------------------------- |
+| `title`        | or, for Analysis, its document `toolbar`                    |
+| `actions`      | New study, Prepare, Save this position                      |
+| `banner`       | a session bar, a filter row, a "no positions yet" notice    |
+| `rail`         | its own list — chapters, repertoires, the review queue      |
+| `board`        | how the canonical surface behaves here (conceal, artefacts) |
+| `empty`        | what stands in for the board when nothing is open           |
+| `belowBoard`   | what the route knows about the position                     |
+| `contextPanel` | Journal, References, Opening tree — in the dock             |
+| `takeover`     | a whole-workspace replacement: the openings library         |
+
+Everything else is the same on every page by construction: the board column
+with the move tree, the lower panel, the resizable dock and its tab strip, the
+position menu, position setup, command search, theme and settings. The rail
+folds to a strip, and whether it is folded is part of the stored arrangement
+(`railCollapsed`) beside the dock's width. The frame also consumes a `?fen=`
+query on every route — "Open in Analysis" and "Open in Explorer" had navigated
+with one since Phase 9 and no route had ever read it.
+
 `WorkspaceToolDock` renders a route's tools from one table:
 
 `features/workspace/modules.ts` is the single catalogue: each module's label,
@@ -857,9 +886,12 @@ whose dock never rendered it.
 Games has no dock of its own: opening a row loads the game as the workspace
 document and lands on Analysis, which has the full set.
 
-Training is the one route that gates the dock — it is not rendered at all
-until the answer is revealed, because an engine evaluation beside a position
-you are being asked to solve is the answer.
+Training gates the dock the way Review does — the tools are mounted only
+after the answer is revealed, because an engine evaluation beside a position
+you are being asked to solve is the answer. The dock keeps its shape and its
+tabs while locked, so the tools are visibly there and visibly waiting; it used
+to be unmounted entirely, which read as the tools having been removed from
+the page.
 
 ### Regions and placement
 
@@ -955,6 +987,15 @@ behind a scrollbar most people never noticed. The strip now shows the route's
 own context panel, the pinned tools, and the active one; everything else is
 behind a single **More**. Tabs are 32px with real words on them: miniature
 navigation is cheap to add and expensive to use.
+
+The strip never scrolls. It measures its row and moves whatever does not fit
+into More, keeping the active tab on screen. It used to scroll, with the More
+button as the row's last child — and the More menu, a 370px list positioned
+absolutely, was clipped by the row's `overflow-x: auto` (which the browser
+promotes to `overflow-y: auto`). Opening More showed one item and scrolled
+the row sideways so the pinned tabs vanished off its left edge; a user pressed
+More and found themselves in what looked like a different layout with no way
+back. The More button now sits outside the row, in a box that never clips.
 
 The route's context panel (Journal on Review, Opening tree on Preparation,
 References on Studies) is always in the strip. It is the reason that route

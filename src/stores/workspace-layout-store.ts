@@ -89,6 +89,7 @@ interface WorkspaceLayoutState {
   setDockWidth(workspace: string, device: DeviceClass, value: number): void;
   setLowerHeight(workspace: string, device: DeviceClass, value: number): void;
   setDockCollapsed(workspace: string, device: DeviceClass, value: boolean): void;
+  setRailCollapsed(workspace: string, device: DeviceClass, value: boolean): void;
   resetWorkspace(workspace: string, device: DeviceClass): void;
   resetAllLayouts(): void;
   saveLayout(name: string, workspace: string, device: DeviceClass): void;
@@ -255,6 +256,12 @@ export const useWorkspaceLayout = create<WorkspaceLayoutState>()(
         get().updateArrangement(workspace, device, (current) => ({
           ...current,
           dockCollapsed: value,
+        })),
+
+      setRailCollapsed: (workspace, device, value) =>
+        get().updateArrangement(workspace, device, (current) => ({
+          ...current,
+          railCollapsed: value,
         })),
 
       /*

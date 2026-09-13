@@ -13,7 +13,7 @@ import { useCalculation } from '@/features/calculation/calculation-store';
 import { useUi } from '@/stores/ui-store';
 import { useWorkspaceLayout } from '@/stores/workspace-layout-store';
 
-import type { WorkspaceModuleId, WorkspaceRegion } from './layout-model';
+import { DOCK_WIDTH_MIN, type WorkspaceModuleId, type WorkspaceRegion } from './layout-model';
 import { MOVE_TREE_MODULE, WORKSPACE_MODULES, type WorkspaceToolId } from './modules';
 import { ModuleTabStrip } from './ModuleTabStrip';
 import { ToolContent } from './ToolContent';
@@ -60,6 +60,7 @@ export function WorkspaceToolDock({
   locked,
   withMoveTree = false,
   moveTreePanel,
+  narrow = false,
 }: {
   readonly workspace: string;
   readonly className?: string;
@@ -80,10 +81,25 @@ export function WorkspaceToolDock({
   /** Whether this workspace's move tree can be docked here. */
   readonly withMoveTree?: boolean;
   readonly moveTreePanel?: ReactNode;
+  /**
+   * Take the minimum policy width rather than the policy's own.
+   *
+   * The frame asks for this when a rail is open on a display too narrow for
+   * a rail, a dock and a board all at their full widths. A width the user
+   * dragged is theirs and is kept.
+   */
+  readonly narrow?: boolean;
 }) {
   const wide = useMediaQuery('(min-width: 1100px)');
   const view = useWorkspaceArrangement(workspace, { withMoveTree });
-  const { device, arrangement, dockModules, activeDock, foldedFromLower } = view;
+  const { device, dockModules, activeDock, foldedFromLower } = view;
+  const chosenWidth = useWorkspaceLayout(
+    (state) => state.arrangements[`${device}:${workspace}`]?.dockWidth,
+  );
+  const arrangement =
+    narrow && chosenWidth === undefined
+      ? { ...view.arrangement, dockWidth: DOCK_WIDTH_MIN }
+      : view.arrangement;
   const setActiveModule = useWorkspaceLayout((state) => state.setActiveModule);
   const setDockWidth = useWorkspaceLayout((state) => state.setDockWidth);
   const setDockCollapsed = useWorkspaceLayout((state) => state.setDockCollapsed);

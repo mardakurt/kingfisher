@@ -3,15 +3,11 @@
 /**
  * The study library.
  *
- * Laid out as a research notebook shelf rather than a dashboard of cards:
- * studies on the left, that study's chapters in the middle, and the selected
- * chapter previewed on the right. Three narrow columns fit far more of a real
- * repertoire on screen than a grid of tiles, and the reading order matches how
- * a player thinks about the material — collection, then chapter, then position.
- *
- * On narrow screens the same three panes become one, with an explicit step
- * back, because a three-column layout at 320px is unusable however it is
- * squeezed.
+ * The workspace frame with the chapter list as its rail: the study and its
+ * chapters on the left, the chapter on the board, the chapter's references in
+ * the dock. A study with no chapter yet shows the board's place with the one
+ * action that gets a chapter, rather than a blank column beside an empty
+ * board.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -32,10 +28,7 @@ import { Button, IconButton } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/Panel';
 import { PromptDialog } from '@/components/ui/PromptDialog';
-import { CanonicalBoardSurface } from '@/features/workspace/CanonicalBoardSurface';
-import { MoveTreePanel } from '@/features/movetree/MoveTreePanel';
-import { WorkspaceLowerPanel } from '@/features/workspace/WorkspaceLowerPanel';
-import { WorkspaceToolDock } from '@/features/workspace/WorkspaceToolDock';
+import { WorkspaceFrame } from '@/features/workspace/WorkspaceFrame';
 import { StudySaveStatus } from '@/persistence/StudySaveStatus';
 import {
   invalidateStudies,
@@ -43,14 +36,12 @@ import {
   useStudies,
   useStudy,
 } from '@/features/persistence/queries';
-import { useMediaQuery } from '@/hooks/use-media-query';
 import { cn } from '@/lib/cn';
 import type { ChapterRecord, StudyId, StudyRecord } from '@/persistence/types';
 import { useAnalysis } from '@/stores/analysis-store';
 import { useUi } from '@/stores/ui-store';
 
 import { exportStudyPgn } from './export';
-import { NavButton } from '@/features/shell/NavButton';
 import { ChapterReferences } from './ChapterReferences';
 
 type Prompt =
@@ -66,7 +57,6 @@ type Confirmation =
 export function StudiesWorkspace() {
   const notify = useUi((state) => state.notify);
   const openDocument = useAnalysis((state) => state.openDocument);
-  const wide = useMediaQuery('(min-width: 1100px)');
 
   /*
     Selection is derived, not synchronised. Storing "the user picked this" and
@@ -209,208 +199,210 @@ export function StudiesWorkspace() {
 
   const failed = studies.isError ? studies.error : study.isError ? study.error : null;
 
-  return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <header className="flex min-h-14 shrink-0 items-center gap-3 border-b border-line-subtle bg-surface-1 px-3 md:px-5">
-        <NavButton />
-        <Notebook className="h-5 w-5 shrink-0 text-accent" />
-        <div className="min-w-0">
-          <h1 className="truncate text-sm font-semibold text-primary">
-            {study.data?.study.title ?? 'Studies'}
-          </h1>
-          <p className="hidden truncate text-xs text-tertiary sm:block">
-            {chapter ? chapter.title : 'Notebooks of chapters, saved on this device.'}
-          </p>
-        </div>
-        {/*
-          Phase 39 (PART D-E): a small save-state indicator next to
-          the study title. It reuses the same write-tracker truth
-          the sidebar exposes; no duplicate save model. Quiet by
-          design — the dot and label are 10px and tertiary; nothing
-          pulses unless a write is actually in flight.
-        */}
-        <StudySaveStatus />
-        <Button
-          variant="accent"
-          icon={<Plus />}
-          className="ml-auto"
-          onClick={() => setPrompt({ kind: 'create-study' })}
+  const railContent = (
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="flex items-center gap-1 border-b border-line-subtle px-2 py-2">
+        <select
+          aria-label="Study"
+          value={studyId ?? ''}
+          onChange={(event) => {
+            setChosenStudyId(event.target.value as StudyId);
+            setChosenChapterId(null);
+          }}
+          className="h-8 min-w-0 flex-1 rounded-[4px] border border-line bg-surface-inset px-2 text-xs text-primary"
         >
-          New study
-        </Button>
-      </header>
-
-      {failed ? (
-        <EmptyState
-          title="Local storage is unavailable"
-          description={
-            failed instanceof Error
-              ? failed.message
-              : 'This browser refused access to its database, so studies cannot be read.'
-          }
-        />
-      ) : (
-        <div
-          className={cn(
-            'flex min-h-0 flex-1 flex-col overflow-y-auto',
-            wide && 'flex-row overflow-hidden',
-          )}
-        >
-          <aside
-            className={cn(
-              'shrink-0 border-b border-line-subtle bg-surface-1',
-              wide ? 'w-[260px] border-r border-b-0' : 'max-h-[300px]',
-            )}
+          {list.length === 0 ? <option value="">No studies yet</option> : null}
+          {list.map((entry) => (
+            <option key={entry.id} value={entry.id}>
+              {entry.title}
+            </option>
+          ))}
+        </select>
+        {study.data ? (
+          <IconButton
+            label="Rename study"
+            onClick={() => setPrompt({ kind: 'rename-study', study: study.data!.study })}
           >
-            <div className="flex items-center gap-1 border-b border-line-subtle px-3 py-2">
-              <select
-                aria-label="Study"
-                value={studyId ?? ''}
-                onChange={(event) => {
-                  setChosenStudyId(event.target.value as StudyId);
-                  setChosenChapterId(null);
-                }}
-                className="h-8 min-w-0 flex-1 rounded-[4px] border border-line bg-surface-inset px-2 text-xs text-primary"
+            <Pencil />
+          </IconButton>
+        ) : null}
+        <IconButton label="Copy study as PGN" onClick={() => void exportStudy()}>
+          <Export />
+        </IconButton>
+      </div>
+      <div className="flex items-center border-b border-line-subtle px-3 py-1.5">
+        <h2 className="text-2xs font-medium tracking-[0.08em] text-tertiary uppercase">Chapters</h2>
+        <IconButton
+          label="New chapter"
+          className="ml-auto"
+          disabled={!studyId}
+          onClick={() => studyId && setPrompt({ kind: 'create-chapter', studyId })}
+        >
+          <Plus />
+        </IconButton>
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto p-2">
+        {list.length === 0 ? (
+          <EmptyState
+            title="No studies yet."
+            description="A study is a notebook of chapters: opening lines, endgame technique, preparation."
+            action={
+              <Button variant="accent" onClick={() => setPrompt({ kind: 'create-study' })}>
+                Start a study
+              </Button>
+            }
+          />
+        ) : chapters.length === 0 ? (
+          <EmptyState
+            title="No chapters yet."
+            description="Create a chapter to open the board and research tools."
+            action={
+              <Button onClick={() => studyId && setPrompt({ kind: 'create-chapter', studyId })}>
+                Add a chapter
+              </Button>
+            }
+          />
+        ) : (
+          <ol className="space-y-1">
+            {chapters.map((entry, index) => (
+              <li
+                key={entry.id}
+                className={cn(
+                  'rounded-[4px] border',
+                  entry.id === chapterId
+                    ? 'border-accent/70 bg-accent-muted'
+                    : 'border-transparent hover:bg-surface-2',
+                )}
               >
-                {list.map((entry) => (
-                  <option key={entry.id} value={entry.id}>
-                    {entry.title}
-                  </option>
-                ))}
-              </select>
-              {study.data ? (
-                <IconButton
-                  label="Rename study"
-                  onClick={() => setPrompt({ kind: 'rename-study', study: study.data!.study })}
+                <button
+                  type="button"
+                  onClick={() => setChosenChapterId(entry.id)}
+                  className="w-full px-3 py-2 text-left"
                 >
-                  <Pencil />
-                </IconButton>
-              ) : null}
-              <IconButton label="Copy study as PGN" onClick={() => void exportStudy()}>
-                <Export />
-              </IconButton>
-            </div>
-            <div className="flex items-center border-b border-line-subtle px-3 py-2">
-              <h2 className="text-xs font-semibold uppercase tracking-wide text-tertiary">
-                Chapters
-              </h2>
-              <IconButton
-                label="New chapter"
-                className="ml-auto"
-                onClick={() => studyId && setPrompt({ kind: 'create-chapter', studyId })}
-              >
-                <Plus />
-              </IconButton>
-            </div>
-            <div className="max-h-[230px] overflow-y-auto p-2 wide:max-h-none">
-              {chapters.length === 0 ? (
-                <EmptyState
-                  title="No chapters yet."
-                  description="Create a chapter to open the board and research tools."
-                />
-              ) : (
-                <ol className="space-y-1">
-                  {chapters.map((entry, index) => (
-                    <li
-                      key={entry.id}
-                      className={cn(
-                        'rounded-[4px] border',
-                        entry.id === chapterId
-                          ? 'border-accent/70 bg-accent-muted'
-                          : 'border-transparent hover:bg-surface-2',
-                      )}
+                  <span className="block truncate text-sm text-primary">
+                    {index + 1}. {entry.title}
+                  </span>
+                  <span className="mt-0.5 block text-[10px] text-tertiary">
+                    {nodeCount(entry.tree)} moves
+                  </span>
+                </button>
+                {entry.id === chapterId ? (
+                  <div className="flex border-t border-line-subtle px-1 py-1">
+                    <IconButton
+                      label="Move chapter up"
+                      disabled={index === 0}
+                      onClick={() => move(entry, -1)}
                     >
-                      <button
-                        type="button"
-                        onClick={() => setChosenChapterId(entry.id)}
-                        className="w-full px-3 py-2 text-left"
-                      >
-                        <span className="block truncate text-sm text-primary">
-                          {index + 1}. {entry.title}
-                        </span>
-                        <span className="mt-0.5 block text-[10px] text-tertiary">
-                          {nodeCount(entry.tree)} moves
-                        </span>
-                      </button>
-                      {entry.id === chapterId ? (
-                        <div className="flex border-t border-line-subtle px-1 py-1">
-                          <IconButton
-                            label="Move chapter up"
-                            disabled={index === 0}
-                            onClick={() => move(entry, -1)}
-                          >
-                            <ArrowUp />
-                          </IconButton>
-                          <IconButton
-                            label="Move chapter down"
-                            disabled={index === chapters.length - 1}
-                            onClick={() => move(entry, 1)}
-                          >
-                            <ArrowDown />
-                          </IconButton>
-                          <IconButton
-                            label="Duplicate chapter"
-                            onClick={() =>
-                              duplicateChapter.mutate({ id: entry.id, studyId: entry.studyId })
-                            }
-                          >
-                            <Copy />
-                          </IconButton>
-                          <IconButton
-                            label="Rename chapter"
-                            onClick={() => setPrompt({ kind: 'rename-chapter', chapter: entry })}
-                          >
-                            <Pencil />
-                          </IconButton>
-                          <IconButton
-                            label="Delete chapter"
-                            tone="danger"
-                            onClick={() =>
-                              setConfirmation({ kind: 'delete-chapter', chapter: entry })
-                            }
-                          >
-                            <Trash />
-                          </IconButton>
-                        </div>
-                      ) : null}
-                    </li>
-                  ))}
-                </ol>
-              )}
-            </div>
-          </aside>
+                      <ArrowUp />
+                    </IconButton>
+                    <IconButton
+                      label="Move chapter down"
+                      disabled={index === chapters.length - 1}
+                      onClick={() => move(entry, 1)}
+                    >
+                      <ArrowDown />
+                    </IconButton>
+                    <IconButton
+                      label="Duplicate chapter"
+                      onClick={() =>
+                        duplicateChapter.mutate({ id: entry.id, studyId: entry.studyId })
+                      }
+                    >
+                      <Copy />
+                    </IconButton>
+                    <IconButton
+                      label="Rename chapter"
+                      onClick={() => setPrompt({ kind: 'rename-chapter', chapter: entry })}
+                    >
+                      <Pencil />
+                    </IconButton>
+                    <IconButton
+                      label="Delete chapter"
+                      tone="danger"
+                      onClick={() => setConfirmation({ kind: 'delete-chapter', chapter: entry })}
+                    >
+                      <Trash />
+                    </IconButton>
+                  </div>
+                ) : null}
+              </li>
+            ))}
+          </ol>
+        )}
+      </div>
+    </div>
+  );
 
-          {chapter ? (
-            <div className="flex min-h-[720px] min-w-0 flex-1 flex-col wide:min-h-0 wide:flex-row">
-              <section className="flex min-h-[650px] min-w-0 flex-1 flex-col wide:min-h-0">
-                <CanonicalBoardSurface
-                  mode="interactive"
-                  className="min-h-[500px] flex-1 px-2 py-2 wide:min-h-0"
-                />
-                <WorkspaceLowerPanel
-                  workspace="studies"
-                  contextLabel="References"
-                  withMoveTree
-                  moveTreePanel={<MoveTreePanel withHeader={false} />}
-                />
-              </section>
-              <WorkspaceToolDock
-                workspace="studies"
-                contextLabel="References"
-                contextPanel={<ChapterReferences chapter={chapter} />}
-                withMoveTree
-                moveTreePanel={<MoveTreePanel withHeader={false} />}
-              />
-            </div>
-          ) : (
-            <EmptyState
-              title="Create or select a chapter."
-              description="A chapter opens the canonical board, move tree, comments and every research tool in one place."
-            />
-          )}
-        </div>
-      )}
-
+  return (
+    <WorkspaceFrame
+      workspace="studies"
+      title={study.data?.study.title ?? 'Studies'}
+      subtitle={chapter ? chapter.title : 'Notebooks of chapters, saved on this device.'}
+      icon={<Notebook />}
+      actions={
+        <>
+          {/*
+            Phase 39 (PART D-E): a small save-state indicator next to the
+            study title. It reuses the same write-tracker truth the sidebar
+            exposes; no duplicate save model. Quiet by design — the dot and
+            label are 10px and tertiary; nothing pulses unless a write is
+            actually in flight.
+          */}
+          <StudySaveStatus />
+          {study.data ? (
+            <IconButton
+              label="Delete study"
+              tone="danger"
+              onClick={() => setConfirmation({ kind: 'delete-study', study: study.data!.study })}
+            >
+              <Trash />
+            </IconButton>
+          ) : null}
+          <Button
+            variant="accent"
+            icon={<Plus />}
+            onClick={() => setPrompt({ kind: 'create-study' })}
+          >
+            New study
+          </Button>
+        </>
+      }
+      rail={{ label: 'Study', width: 260, content: railContent }}
+      empty={
+        failed ? (
+          <EmptyState
+            title="Local storage is unavailable"
+            description={
+              failed instanceof Error
+                ? failed.message
+                : 'This browser refused access to its database, so studies cannot be read.'
+            }
+          />
+        ) : !chapter ? (
+          <EmptyState
+            title={list.length === 0 ? 'Create a study to begin.' : 'Create or select a chapter.'}
+            description="A chapter opens the canonical board, move tree, comments and every research tool in one place."
+            action={
+              list.length === 0 ? (
+                <Button variant="accent" onClick={() => setPrompt({ kind: 'create-study' })}>
+                  Start a study
+                </Button>
+              ) : (
+                <Button
+                  variant="accent"
+                  onClick={() => studyId && setPrompt({ kind: 'create-chapter', studyId })}
+                >
+                  Add a chapter
+                </Button>
+              )
+            }
+          />
+        ) : undefined
+      }
+      board={{ mode: 'interactive', showEvaluationArtifacts: true }}
+      contextLabel="References"
+      contextPanel={chapter ? <ChapterReferences chapter={chapter} /> : undefined}
+    >
       {prompt?.kind === 'create-study' && (
         <PromptDialog
           open
@@ -513,6 +505,6 @@ export function StudiesWorkspace() {
           }}
         />
       )}
-    </div>
+    </WorkspaceFrame>
   );
 }

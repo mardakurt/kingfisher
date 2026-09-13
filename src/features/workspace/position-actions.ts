@@ -45,6 +45,7 @@ export interface PositionActionHandlers {
   readonly addToPreparation?: () => void;
   readonly saveEndgame: () => void;
   readonly copyFen: () => void;
+  readonly clearMoves: () => void;
 }
 
 /**
@@ -112,6 +113,17 @@ export function positionActionSections(
       items: [
         { id: 'training', label: 'Create training item…', run: handlers.createTraining },
         { id: 'fen', label: 'Copy FEN', run: handlers.copyFen },
+      ],
+    },
+    {
+      id: 'reset',
+      items: [
+        {
+          id: 'clear-moves',
+          label: 'Clear the move tree (keep this position)',
+          danger: true,
+          run: handlers.clearMoves,
+        },
       ],
     },
   ];

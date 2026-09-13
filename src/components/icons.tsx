@@ -295,6 +295,20 @@ export const Close = (p: IconProps) => (
     <path d="M6 6l12 12M18 6 6 18" />
   </Icon>
 );
+/** A window with its left column shown: the route's rail is open. */
+export const PanelLeft = (p: IconProps) => (
+  <Icon {...p}>
+    <rect x="3" y="5" width="18" height="14" rx="2" />
+    <path d="M9 5v14" />
+  </Icon>
+);
+/** The same window with the column folded away. */
+export const PanelRight = (p: IconProps) => (
+  <Icon {...p}>
+    <rect x="3" y="5" width="18" height="14" rx="2" />
+    <path d="M9 5v14" strokeDasharray="2 2" />
+  </Icon>
+);
 export const Menu = (p: IconProps) => (
   <Icon {...p}>
     <path d="M4 7h16M4 12h16M4 17h16" />

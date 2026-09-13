@@ -3,11 +3,10 @@
 /**
  * The improvement workstation.
  *
- * Three columns, and the middle one is still the board. Left: what is waiting
- * to be reviewed, and what the history adds up to. Middle: the position and
- * the moves. Right: the journal, and — only once the player has chosen to look
- * — the same tool dock every other route has, with the engine, the explorer,
- * the tablebase and the rest in it.
+ * The workspace frame with a rail: what is waiting to be reviewed, and what
+ * the history adds up to, beside the board. In the dock, the journal — and,
+ * only once the player has chosen to look, the same tools every other route
+ * has, with the engine, the explorer, the tablebase and the rest in them.
  *
  * The reveal gate is the whole design. Evidence is *withheld*, not missing:
  * the dock keeps its tabs, says whose decision the silence was, and offers one
@@ -28,21 +27,16 @@ import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/Panel';
 import { Segmented, Tabs } from '@/components/ui/Tabs';
 import { positionKey } from '@/chess/fen';
-import { NavButton } from '@/features/shell/NavButton';
-import { CanonicalBoardSurface } from '@/features/workspace/CanonicalBoardSurface';
-import { MoveTreePanel } from '@/features/movetree/MoveTreePanel';
-import { WorkspaceLowerPanel } from '@/features/workspace/WorkspaceLowerPanel';
-import { WorkspaceToolDock } from '@/features/workspace/WorkspaceToolDock';
+import { Review as ReviewIcon } from '@/components/icons';
+import { WorkspaceFrame } from '@/features/workspace/WorkspaceFrame';
 import { useAnalysisPosition } from '@/features/analysis/useAnalysisPosition';
 import { invalidateReview } from '@/features/persistence/queries';
-import { useMediaQuery } from '@/hooks/use-media-query';
 import { getRepositories } from '@/persistence/repositories';
 import type { DecisionRecord, ReviewItemRecord } from '@/persistence/domain';
 import { createTree } from '@/chess/tree/tree';
 import { JournalAnalytics } from './JournalAnalytics';
 import { useAnalysis } from '@/stores/analysis-store';
 import { useUi } from '@/stores/ui-store';
-import { cn } from '@/lib/cn';
 
 import { CriticalInbox } from './CriticalInbox';
 import { DecisionJournal } from './DecisionJournal';
@@ -56,7 +50,6 @@ type LeftTab = 'queue' | 'improvement' | 'journal';
 
 export function ReviewWorkspace() {
   const client = useQueryClient();
-  const wide = useMediaQuery('(min-width: 1280px)');
   const { node, tree, currentId } = useAnalysisPosition();
   const document = useAnalysis((state) => state.document);
   const openDocument = useAnalysis((state) => state.openDocument);
@@ -249,155 +242,116 @@ export function ReviewWorkspace() {
     </div>
   );
 
+  const actions = (
+    <>
+      <span className="hidden text-[10px] text-tertiary sm:inline">Evidence</span>
+      <Segmented
+        items={[
+          { id: 'hidden' as const, label: 'Hidden' },
+          { id: 'visible' as const, label: 'Visible' },
+        ]}
+        value={selfAnalysis ? 'hidden' : 'visible'}
+        onChange={(value) => setSelfAnalysis(value === 'hidden')}
+      />
+      {markedItem ? (
+        <>
+          {/*
+            Compact at narrow widths: an icon-only chip with the full text
+            as the accessible label. The chip stays single-row on a
+            390px phone instead of wrapping mid-label and shoving
+            adjacent controls off the end of the header.
+          */}
+          <span
+            className="inline-flex items-center gap-1 rounded-full border border-accent/40 bg-accent/10 px-2 py-0.5 text-[10.5px] text-primary"
+            title={
+              markedItem.markedFromGames.length > 1
+                ? `Marked from ${markedItem.markedFromGames.length} of your games`
+                : 'Marked for review'
+            }
+            aria-label="This position is marked for review"
+          >
+            <PinMarkIcon className="h-3 w-3" aria-hidden />
+            <span className="hidden sm:inline">Marked for review</span>
+          </span>
+          <Button
+            variant="ghost"
+            onClick={() => void openItem(markedItem)}
+            aria-label="Open the marked position"
+          >
+            Open
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={() => void removeMark()}
+            aria-label="Remove the mark"
+            className="hidden sm:inline-flex"
+          >
+            Remove mark
+          </Button>
+        </>
+      ) : (
+        <Button onClick={() => void markCritical()}>Mark for review</Button>
+      )}
+      <SuggestCandidatesButton />
+      {selfAnalysis && !revealed ? (
+        <Button variant="accent" onClick={() => reveal(key)}>
+          Reveal
+        </Button>
+      ) : null}
+    </>
+  );
+
+  const nothingOpen =
+    document.kind === 'untitled' && tree.nodes[tree.rootId]?.children.length === 0;
+
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <header className="density-row flex h-11 shrink-0 flex-wrap items-center gap-1.5 border-b border-line-subtle bg-surface-1 px-2 sm:px-3">
-        <NavButton />
-        <div className="min-w-0">
-          <h1 className="truncate text-xs font-medium text-primary">Review</h1>
-          <p className="truncate text-[10px] text-tertiary">
-            {document.kind === 'untitled' ? 'Open one of your games to review it' : document.title}
-          </p>
-        </div>
-        <div className="ml-auto flex items-center gap-1.5">
-          <span className="hidden text-[10px] text-tertiary sm:inline">Evidence</span>
-          <Segmented
-            items={[
-              { id: 'hidden' as const, label: 'Hidden' },
-              { id: 'visible' as const, label: 'Visible' },
-            ]}
-            value={selfAnalysis ? 'hidden' : 'visible'}
-            onChange={(value) => setSelfAnalysis(value === 'hidden')}
+    <WorkspaceFrame
+      workspace="review"
+      title="Review"
+      subtitle={
+        document.kind === 'untitled' ? 'Open one of your games to review it' : document.title
+      }
+      icon={<ReviewIcon />}
+      actions={actions}
+      rail={{ label: 'Review queue', width: 260, content: context, headerless: true }}
+      /*
+        One flag, resolved by the capability contract, rather than this route
+        remembering which artefacts leak. The bar is a number and a number in
+        the corner of the board is the leak this workflow exists to prevent —
+        but so is a stored `!` on the next move, which `showEvaluationArtifacts`
+        never covered.
+      */
+      board={{ mode: 'interactive', showEvaluationArtifacts: true, conceal: !revealed }}
+      empty={
+        nothingOpen ? (
+          <EmptyState
+            title="Nothing open to review."
+            description="Open one of your own games from Games, or pick a position from the queue. Review keeps the engine hidden until you have written down what you think."
           />
-          {markedItem ? (
-            <>
-              {/*
-                Compact at narrow widths: an icon-only chip with the full text
-                as the accessible label. The chip stays single-row on a
-                390px phone instead of wrapping mid-label and shoving
-                adjacent controls off the end of the header.
-              */}
-              <span
-                className="inline-flex items-center gap-1 rounded-full border border-accent/40 bg-accent/10 px-2 py-0.5 text-[10.5px] text-primary"
-                title={
-                  markedItem.markedFromGames.length > 1
-                    ? `Marked from ${markedItem.markedFromGames.length} of your games`
-                    : 'Marked for review'
-                }
-                aria-label="This position is marked for review"
-              >
-                <PinMarkIcon className="h-3 w-3" aria-hidden />
-                <span className="hidden sm:inline">Marked for review</span>
-              </span>
-              <Button
-                variant="ghost"
-                onClick={() => void openItem(markedItem)}
-                aria-label="Open the marked position"
-              >
-                Open
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => void removeMark()}
-                aria-label="Remove the mark"
-                className="hidden sm:inline-flex"
-              >
-                Remove mark
-              </Button>
-            </>
-          ) : (
-            <Button onClick={() => void markCritical()}>Mark for review</Button>
-          )}
-          <SuggestCandidatesButton />
-          {selfAnalysis && !revealed ? (
-            <Button variant="accent" onClick={() => reveal(key)}>
-              Reveal
-            </Button>
-          ) : null}
-        </div>
-      </header>
-
-      <div
-        className={cn(
-          'flex min-h-0 flex-1 flex-col overflow-y-auto',
-          wide && 'grid grid-cols-[300px_minmax(0,1fr)_360px] overflow-hidden',
-        )}
-      >
-        <aside
-          className={cn(
-            'min-h-0 min-w-0 bg-surface-1',
-            wide
-              ? 'border-r border-line-subtle'
-              : 'order-3 min-h-[420px] border-t border-line-subtle',
-          )}
-        >
-          {context}
-        </aside>
-
-        <section className="flex min-h-[620px] min-w-0 flex-col wide:min-h-0">
-          {document.kind === 'untitled' && tree.nodes[tree.rootId]?.children.length === 0 ? (
-            <div className="flex min-h-[420px] flex-1 items-center justify-center px-4">
-              <EmptyState
-                title="Nothing open to review."
-                description="Open one of your own games from Games, or pick a position from the queue. Review keeps the engine hidden until you have written down what you think."
-              />
-            </div>
-          ) : (
-            <>
-              <CanonicalBoardSurface
-                mode="interactive"
-                showEvaluationArtifacts
-                /*
-                  One flag, resolved by the capability contract, rather than
-                  this route remembering which artefacts leak. The bar is a
-                  number and a number in the corner of the board is the leak
-                  this workflow exists to prevent — but so is a stored `!` on
-                  the next move, which `showEvaluationArtifacts` never covered.
-                */
-                conceal={!revealed}
-                className="min-h-[460px] flex-1 px-3 py-3 sm:px-4"
-              />
-            </>
-          )}
-          <WorkspaceLowerPanel
-            workspace="review"
-            contextLabel="Journal"
-            withMoveTree
-            moveTreePanel={<MoveTreePanel withHeader={false} />}
-          />
-        </section>
-
-        <WorkspaceToolDock
-          withMoveTree
-          moveTreePanel={<MoveTreePanel withHeader={false} />}
-          workspace="review"
-          fill={wide}
-          contextLabel="Journal"
-          contextPanel={
-            <DecisionJournal
-              decision={decision.data ?? null}
-              reviewItem={
-                (reviewItems.data ?? []).find((item) => item.id === selectedItemId) ?? null
-              }
-              onSaved={() => void decision.refetch()}
-            />
-          }
-          locked={
-            revealed
-              ? undefined
-              : {
-                  message:
-                    'Computer evidence is hidden while you record your own reading of this position. Nothing here is running.',
-                  action: (
-                    <Button variant="accent" onClick={() => reveal(key)}>
-                      Reveal analysis
-                    </Button>
-                  ),
-                }
-          }
+        ) : undefined
+      }
+      contextLabel="Journal"
+      contextPanel={
+        <DecisionJournal
+          decision={decision.data ?? null}
+          reviewItem={(reviewItems.data ?? []).find((item) => item.id === selectedItemId) ?? null}
+          onSaved={() => void decision.refetch()}
         />
-      </div>
-    </div>
+      }
+      locked={
+        revealed
+          ? undefined
+          : {
+              message:
+                'Computer evidence is hidden while you record your own reading of this position. Nothing here is running.',
+              action: (
+                <Button variant="accent" onClick={() => reveal(key)}>
+                  Reveal analysis
+                </Button>
+              ),
+            }
+      }
+    />
   );
 }
 

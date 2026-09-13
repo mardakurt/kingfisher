@@ -46,6 +46,18 @@ export interface WorkspaceArrangement {
   /** A height the user chose by dragging the notation panel. Same rule. */
   readonly lowerHeight?: number;
   readonly dockCollapsed: boolean;
+  /**
+   * Whether the route's own list — chapters, repertoires, the review queue —
+   * is folded to a strip.
+   *
+   * Absent means "whatever the width policy says": open on a wide display,
+   * folded on a laptop, where a 240px list beside a 380px dock would leave
+   * the board the smallest thing on the page. A stored value is a decision
+   * the user made and wins either way. It is part of the arrangement because
+   * it is the same kind of decision as collapsing the dock: how much of the
+   * screen the board gets.
+   */
+  readonly railCollapsed?: boolean;
 }
 
 /**
@@ -310,6 +322,7 @@ export function sanitizeArrangement(
       ? { lowerHeight: clampLowerHeight(raw.lowerHeight as number) }
       : {}),
     dockCollapsed: raw.dockCollapsed === true,
+    ...(typeof raw.railCollapsed === 'boolean' ? { railCollapsed: raw.railCollapsed } : {}),
   };
 }
 

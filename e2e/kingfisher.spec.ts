@@ -188,7 +188,7 @@ test('a study chapter supports moves, variations, analysis tools and durable ann
   const consoleFailures = watchConsole(page, browserName);
   await page.goto('/studies');
   await waitForApp(page);
-  await page.getByRole('button', { name: 'New study' }).click();
+  await page.locator('header').getByRole('button', { name: 'New study' }).click();
   await page.getByRole('dialog', { name: 'New study' }).getByLabel('Title').fill('E2E Study');
   await page.getByRole('button', { name: 'Create study' }).click();
   await page.getByRole('button', { name: 'New chapter' }).click();
@@ -310,11 +310,28 @@ test('training conceals analysis evidence until the answer is revealed', async (
     .getByRole('navigation', { name: 'Sections' })
     .getByRole('link', { name: 'Training' })
     .click();
-  await expect(page.getByText('Play the prepared move.').first()).toBeVisible();
-  await expect(page.getByRole('complementary', { name: 'Workspace tools' })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Show answer' }).click();
-  const dock = page.getByRole('complementary', { name: 'Workspace tools' });
+  /*
+    The Training page, not the Analysis page it replaces. A client navigation
+    keeps the old route on screen until the new one has loaded, and "Play the
+    prepared move." is also the text of the notice the creation raised — so a
+    wait on the text alone once passed while the Analysis dock was still the
+    one on screen, and the click below landed on it.
+  */
+  const training = page.locator('[data-workspace-frame="training"]');
+  await expect(training).toBeVisible();
+  await expect(training.getByText('Play the prepared move.').first()).toBeVisible();
+  /*
+    The dock is there and locked, not absent: the tools are visibly waiting,
+    and nothing in them is mounted. Selecting the engine tab before the reveal
+    shows the lock, not an evaluation.
+  */
+  const dock = training.getByRole('complementary', { name: 'Workspace tools' });
   await expect(dock).toBeVisible();
+  await dock.getByRole('tab', { name: 'Engine' }).click();
+  await expect(dock.getByRole('status')).toContainText(/until you have answered/);
+  await expect(dock.getByRole('button', { name: 'Analyse this position' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Show answer' }).click();
+  await expect(dock.getByRole('status')).toHaveCount(0);
   await expect(dock.getByRole('tab', { name: 'Engine' })).toBeVisible();
   await expect(dock.getByRole('tab', { name: 'Explorer' })).toBeVisible();
   /*
@@ -425,7 +442,7 @@ test('authenticated Lichess explorer contract and appearance preferences work wi
   expect(authHeaders).not.toHaveLength(0);
   expect(authHeaders.every((header) => header === 'Bearer e2e-token')).toBe(true);
 
-  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByRole('button', { name: 'Settings ⌘,' }).click();
   settings = page.getByRole('dialog', { name: 'Settings' });
   await settings.getByRole('tab', { name: 'Board', exact: true }).click();
   await settings.getByRole('button', { name: 'Tournament Blue' }).click();

@@ -89,6 +89,7 @@ export function usePositionActions(options: UsePositionActionsOptions) {
       });
       router.push('/endgame');
     },
+    clearMoves: () => useAnalysis.getState().clearMoves(),
     copyFen: () => {
       void navigator.clipboard
         .writeText(options.fen)

@@ -111,7 +111,7 @@ const TAB_SELECTED_LAYOUT = {
     savedLayouts: [],
     pinnedTools: {},
   },
-  version: 4,
+  version: 5,
 };
 
 const withPriority = async (page: Page, priority: string, layout: unknown) => {
@@ -119,7 +119,7 @@ const withPriority = async (page: Page, priority: string, layout: unknown) => {
     ({ value, layout }) => {
       const key = 'kingfisher.preferences';
       const raw = localStorage.getItem(key);
-      const parsed = raw ? JSON.parse(raw) : { state: {}, version: 4 };
+      const parsed = raw ? JSON.parse(raw) : { state: {}, version: 5 };
       parsed.state = { ...parsed.state, boardPriority: value };
       localStorage.setItem(key, JSON.stringify(parsed));
       if (layout === null) localStorage.removeItem('kingfisher.workspace-layout');
