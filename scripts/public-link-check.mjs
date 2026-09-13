@@ -44,7 +44,7 @@ const ALLOWED_HOSTS = new Set([
 
 const config = {
   landing: env.KINGFISHER_PUBLIC_LANDING_URL || 'https://kingfisherchess.app',
-  web: publicUrl.studio,
+  web: publicUrl.web,
   repository: env.KINGFISHER_PUBLIC_REPOSITORY_URL || 'https://github.com/mardakurt/kingfisher',
   release:
     env.KINGFISHER_PUBLIC_RELEASE_URL || 'https://github.com/mardakurt/kingfisher/releases/latest',
