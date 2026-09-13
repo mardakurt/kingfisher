@@ -4,12 +4,22 @@ The user-facing changelog. Internal phase history is in
 `docs/reports/` and `docs/product/phase-*.md`; the list below is what
 real users notice.
 
+## Unreleased
+
+- Fix service-worker responses that could cause a PGN worker to load another
+  worker's module after cached navigation.
+- Restore shortcut rebinding in Safari by focusing the capture control.
+- Use singular repertoire labels for one prepared position and one gap.
+
+These fixes are on the public web deployment at `ca329f7`, but are not in
+Mac 1.1.1 (build 494, `6df79f8`). They require the next Mac release.
+
 ## 1.1.1 — 2026-09-13
 
 A maintenance release: the polish made after 1.1.0 and the corrections
-found while certifying the product for users, so that the public Mac
-application and the web application are the same build of the same
-code. Nothing in the 1.1.0 release was replaced; 1.1.1 is offered
+found while certifying the product for users, bringing the public Mac
+application and web application to the release source at `6df79f8`.
+Later web fixes are listed under Unreleased. Nothing in the 1.1.0 release was replaced; 1.1.1 is offered
 through _Kingfisher → Check for Updates…_ and from the landing page.
 
 ### Corrections

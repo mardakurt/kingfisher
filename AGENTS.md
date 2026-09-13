@@ -379,11 +379,10 @@ source of truth for the URLs the application prints is
   existing local data of every existing user. A change requires
   a typed persistence / migration plan before the
   `publicUrl.studio` default is touched.
-- **macOS Preview DMG:** `Kingfisher-1.0.0-arm64.dmg` on the
-  `/releases/latest` page. The filename and the
-  `publicUrl.macosDmg` getter agree. A version bump changes
-  the file name in three places: the build, the landing, the
-  install guide.
+- **macOS stable DMG:** `Kingfisher-1.1.1-arm64.dmg`, build 494,
+  signed with Developer ID Application and notarised. The public descriptor
+  `src/release/macos-download.json` selects the release; the landing and
+  install guide consume it. Verify its bytes before changing its claims.
 - **Public routes under `src/app/`:** `/install`, `/privacy`,
   `/security`, `/data-licences`, `/terms`. Each has its own
   metadata with a unique title, description, canonical URL and
@@ -405,8 +404,8 @@ source of truth for the URLs the application prints is
   under a second, does not hit the network, and asserts the
   invariants the public surface depends on: the canonical
   landing is the Vercel host, the install guide names the
-  current DMG, the security policy does not claim Sync or
-  notarisation, the privacy and data-licences pages exist
+  current DMG, the security policy matches the implemented Sync and
+  descriptor-backed notarisation state, the privacy and data-licences pages exist
   with the right content, the landing has structured data
   and a FAQ, and the footer is concise.
 
@@ -458,7 +457,7 @@ number (`git rev-list --count HEAD`), commit, dirty flag and channel, in
 them. `KINGFISHER_DESKTOP_CHANNEL` is `dev` (default), `preview` or
 `stable`; a publishable channel refuses a dirty tree.
 
-- **The marketing version is 1.0.0 until a real release earns a bump.**
+- **The current marketing version is 1.1.1. Bump it only for a real release.**
   Never create a version to freshen a filename.
 - **A trusted build is made by the pipeline, not by hand.** With the
   Developer ID identity in the login keychain and `APPLE_API_KEY`,
