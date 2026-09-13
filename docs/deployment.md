@@ -141,51 +141,28 @@ not set; it never blocks the release flow.
 
 ### Production deploy automation
 
-Both the Landing and the Studio Vercel projects deploy from
-the same `master` push. The Landing project is backed by
-the GitHub Actions workflow at
-`.github/workflows/deploy-landing.yml` (added in Phase 50
-when the Vercel Git integration was confirmed not wired);
-the Studio project is backed by
-`.github/workflows/deploy-studio.yml`. Both call the Vercel
-CLI on every push to `master` and are the durable
-replacement for the Phase 41-era manual `vercel deploy
---prod --yes`.
+One Vercel project, `kingfisher`, serves both public hostnames
+(`kingfisher-chess.vercel.app` is the landing, `kingfisher-roan.vercel.app`
+the application — one build, two aliases). Since 2026-09-13 the project is
+**linked to `mardakurt/kingfisher` through Vercel's Git integration**, with
+`master` as the production branch: every push to `master` is built and,
+when the build is green, promoted to production. A red build is not
+promoted. There is nothing to run by hand and no GitHub Actions workflow
+involved; the Phase 50 `deploy-*.yml` workflows, which had no secrets and
+never deployed anything, were removed the same day.
 
-To enable or re-enable the Studio auto-deploy:
+`vercel deploy --prod --yes` from a linked checkout still works and is the
+fallback if the integration is ever disconnected; it produces the same kind
+of deployment.
 
-1. In the Vercel dashboard for the Studio project, copy
-   the project id from _Settings → General_.
-2. Create a Personal Access Token at
-   <https://vercel.com/account/tokens> with the minimum
-   scope Vercel allows for production deployment.
-3. In the GitHub repository, add three repository secrets:
-   `VERCEL_TOKEN`, `VERCEL_TEAM_ID` (optional but
-   recommended), and `VERCEL_PROJECT_STUDIO`.
-4. The next push to `master` will be deployed by the
-   workflow. A failed secret configuration is reported as
-   an `:notice:` in the workflow output rather than as a
-   red cross, so a missing secret does not block other
-   CI.
-
-To enable or re-enable the Landing auto-deploy (Phase 50
-workflow at `.github/workflows/deploy-landing.yml`):
-
-1. In the Vercel dashboard for the Landing project, copy
-   the project id from _Settings → General_. Note that
-   this is a different id than `VERCEL_PROJECT_STUDIO`.
-2. Add (or reuse) the `VERCEL_TOKEN` and `VERCEL_TEAM_ID`
-   secrets, then add `VERCEL_PROJECT_LANDING`.
-3. The next push to `master` deploys both projects
-   independently. `npm run deploy:status` confirms.
-
-Verify the result with `npm run deploy:status`. The
-script reads `git rev-parse origin/master` and the latest
-Vercel production deployment for each project, and prints:
+Verify the result with `npm run deploy:status`. With `VERCEL_TOKEN` set
+(the project and team ids come from `.vercel/project.json`), the script
+reads `git rev-parse origin/master` and the latest production deployment,
+and prints:
 
 ```
-Landing: up to date (f1336bd)
-Studio:  up to date (f1336bd)
+kingfisher-chess.vercel.app: up to date (b73a3b0)
+kingfisher-roan.vercel.app : up to date (b73a3b0)
 ```
 
 or, when the Studio build is missing or behind:

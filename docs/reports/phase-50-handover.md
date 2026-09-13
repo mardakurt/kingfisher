@@ -222,10 +222,13 @@ Written by the agent that cut the release, after the sections above.
 ### What was found
 
 - **Vercel prod was `58e89f3`, deployed from a dirty tree; `67bf24e` was
-  unpushed.** The two `deploy-*.yml` workflows added in `67bf24e` run
-  but exit clean: no `VERCEL_*` repository secrets are configured, so
-  every production deploy is still `vercel deploy --prod --yes` from the
-  terminal.
+  unpushed.** The two `deploy-*.yml` workflows added in `67bf24e` ran
+  but exited clean: no `VERCEL_*` repository secrets were configured, so
+  every production deploy during the release was `vercel deploy --prod
+--yes` from the terminal. **After the release the owner linked the
+  Vercel project to the repository** (production branch `master`); the
+  workflows were removed, `docs/deployment.md` says how production
+  deploys now, and `npm run deploy:status` reads the one real project.
 - **`npm run lint` was red at `67bf24e`** (two unused symbols in the
   Phase 50 desktop code) and **`format:check` failed on eight files**.
   Fixed in `fb42fe2`.

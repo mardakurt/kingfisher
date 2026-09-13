@@ -1,47 +1,48 @@
 #!/usr/bin/env node
 /**
  * `npm run deploy:status` — answer "is production actually running master?"
- * for both Vercel projects.
+ *
+ * One Vercel project (`kingfisher`) serves both public hostnames, and since
+ * 2026-09-13 it is linked to `mardakurt/kingfisher` with `master` as the
+ * production branch, so every push deploys. This script is the check that
+ * the deployment Vercel promoted is the commit origin/master holds.
  *
  * Reads:
  *   - `git rev-parse origin/master` for the local source of truth;
- *   - the Vercel REST API for each project's most recent successful
- *     production deployment.
+ *   - the Vercel REST API for the project's most recent production
+ *     deployment (the CLI's `vercel ls` output is brittle across versions).
  *
- * The Vercel CLI also exposes `vercel ls` / `vercel inspect`, but parsing
- * those is brittle across CLI versions. The API is stable, and the response
- * shape is documented; the script uses it directly.
+ * Authentication: `VERCEL_TOKEN`. The project and team ids come from
+ * `.vercel/project.json` (written by `vercel link`), or from
+ * `VERCEL_PROJECT_ID` / `VERCEL_TEAM_ID` when set. With no token, the
+ * script says what to configure and exits 0 — it never blocks.
  *
- * Authentication: a Personal Access Token (`VERCEL_TOKEN`), with the
- * `VERCEL_TEAM_ID` and `VERCEL_PROJECT_ID_LANDING` / `VERCEL_PROJECT_ID_STUDIO`
- * identifying the two projects. With nothing set, the script prints a
- * helpful "what to configure" message and exits 0 — never blocks.
+ * Output:
  *
- * Output (one row per project):
- *
- *   Landing: up to date (f1336bd)
- *   Studio:  BEHIND master by 4 commits
+ *   kingfisher-chess.vercel.app: up to date (f1336bd)
+ *   kingfisher-roan.vercel.app : up to date (f1336bd)
  */
 
 import { spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { exit } from 'node:process';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 
 const TOKEN = process.env.VERCEL_TOKEN;
-const TEAM = process.env.VERCEL_TEAM_ID ?? '';
+const LINK = (() => {
+  try {
+    return JSON.parse(readFileSync(new URL('../.vercel/project.json', import.meta.url), 'utf8'));
+  } catch {
+    return {};
+  }
+})();
+const TEAM = process.env.VERCEL_TEAM_ID ?? LINK.orgId ?? '';
+const PROJECT_ID = process.env.VERCEL_PROJECT_ID ?? LINK.projectId ?? '';
 const PROJECTS = [
-  {
-    label: 'Landing',
-    id: process.env.VERCEL_PROJECT_ID_LANDING ?? '',
-    url: 'kingfisher-chess.vercel.app',
-  },
-  {
-    label: 'Studio',
-    id: process.env.VERCEL_PROJECT_ID_STUDIO ?? '',
-    url: 'kingfisher-roan.vercel.app',
-  },
+  { label: 'kingfisher-chess.vercel.app', id: PROJECT_ID, url: 'kingfisher-chess.vercel.app' },
+  { label: 'kingfisher-roan.vercel.app ', id: PROJECT_ID, url: 'kingfisher-roan.vercel.app' },
 ];
 
 const HEAD_REV = (() => {
@@ -59,8 +60,8 @@ if (!HEAD_REV) {
 
 if (!TOKEN) {
   console.log('VERCEL_TOKEN is not set — skipping deployment status check.');
-  console.log('Set VERCEL_TOKEN, VERCEL_TEAM_ID, VERCEL_PROJECT_ID_LANDING,');
-  console.log('and VERCEL_PROJECT_ID_STUDIO to enable this gate.');
+  console.log('Set VERCEL_TOKEN (a Vercel personal access token) to enable this gate;');
+  console.log('the project and team ids are read from .vercel/project.json.');
   exit(0);
 }
 
@@ -107,12 +108,11 @@ const fetchBehind = async (projectSha) => {
 
 const formatRow = (label, project, deployment, behind) => {
   if (!deployment)
-    return `${label.padEnd(7)}: not configured (set VERCEL_PROJECT_ID_${label.toUpperCase()})`;
+    return `${label}: not configured (no .vercel/project.json and no VERCEL_PROJECT_ID)`;
   if (!deployment.sha)
-    return `${label.padEnd(7)}: deployment has no github commit (state=${deployment.state})`;
-  if (deployment.sha === HEAD_REV)
-    return `${label.padEnd(7)}: up to date (${deployment.sha.slice(0, 7)})`;
-  return `${label.padEnd(7)}: BEHIND master by ${behind} commits (running ${deployment.sha.slice(0, 7)})`;
+    return `${label}: deployment has no github commit (state=${deployment.state})`;
+  if (deployment.sha === HEAD_REV) return `${label}: up to date (${deployment.sha.slice(0, 7)})`;
+  return `${label}: BEHIND master by ${behind} commits (running ${deployment.sha.slice(0, 7)})`;
 };
 
 (async () => {

@@ -145,12 +145,12 @@ Phase 47 made it structurally impossible (`required-resources.mjs`, the
 
 ## Phase 42 — engine arrows, Copy FEN, deployment
 
-| Capability                                   | Code                                                | Automated                                          | Live (Phase 49)                                  | Status          |
-| -------------------------------------------- | --------------------------------------------------- | -------------------------------------------------- | ------------------------------------------------ | --------------- |
-| Best-move arrows, two engines, hover tooltip | `src/features/board/BoardShapes.tsx` (engine layer) | `engines.spec.ts` "played while an arrow is drawn" | web and desktop walks                            | Held            |
-| Copy FEN / Copy PGN / Copy position          | `src/features/analysis/useCopyActions.ts`           | `accessibility.spec.ts` (palette), unit tests      | walk                                             | Held            |
-| Studio auto-deploy workflow                  | `.github/workflows/deploy-studio.yml`               | exits clean without secrets                        | **secrets unset — deploy skipped on every push** | Never active    |
-| Browser matrix projects                      | `playwright.config.ts`                              | —                                                  | Firefox/WebKit could not launch until Phase 49   | Held (repaired) |
+| Capability                                   | Code                                                           | Automated                                          | Live (Phase 49)                                               | Status          |
+| -------------------------------------------- | -------------------------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------- | --------------- |
+| Best-move arrows, two engines, hover tooltip | `src/features/board/BoardShapes.tsx` (engine layer)            | `engines.spec.ts` "played while an arrow is drawn" | web and desktop walks                                         | Held            |
+| Copy FEN / Copy PGN / Copy position          | `src/features/analysis/useCopyActions.ts`                      | `accessibility.spec.ts` (palette), unit tests      | walk                                                          | Held            |
+| Production deploy on push                    | Vercel Git integration (`master`), `scripts/vercel-status.mjs` | `npm run deploy:status`                            | linked 2026-09-13; the no-op `deploy-*.yml` workflows removed | Held            |
+| Browser matrix projects                      | `playwright.config.ts`                                         | —                                                  | Firefox/WebKit could not launch until Phase 49                | Held (repaired) |
 
 ## Phase 43–44 — certification, Safari, first-100 field
 

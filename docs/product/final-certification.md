@@ -207,6 +207,12 @@ perform. Until then the fallback is the working path, and it is honest.
 
 ## Deploy (Parts BH–BI)
 
+> **Superseded 2026-09-13, after 1.1.2.** The owner linked the Vercel
+> project to `mardakurt/kingfisher` (production branch `master`), so
+> every push now deploys; the two `deploy-*.yml` workflows were removed
+> and `npm run deploy:status` reads the one project. The paragraph below
+> is the 1.1.1 record.
+
 The Vercel project `kingfisher15/kingfisher` has no Git link (the Vercel
 account has no GitHub Login Connection; `vercel git connect` says so), and
 `deploy-studio.yml` skips because `VERCEL_TOKEN`, `VERCEL_TEAM_ID` and
