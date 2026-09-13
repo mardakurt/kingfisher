@@ -634,7 +634,7 @@ if (descriptor) {
     mustMatch('docs/legal/privacy.md', /No account/, 'privacy page says "no account"');
     mustMatch(
       'docs/legal/privacy.md',
-      /Page views are counted, and that is all/,
+      /Page views and load times are counted, and that is all/,
       'privacy page discloses the page-view count and nothing more',
     );
     mustMatch('docs/legal/privacy.md', /No cookies/, 'privacy page says "no cookies"');

@@ -146,11 +146,12 @@ export function SecurityPage({ issuesUrl }: { issuesUrl: string }): JSX.Element 
           machines is <em>Settings → Database → Export backup</em> and Import on the other side.
         </li>
         <li>
-          <strong>Page views only, from this origin.</strong> The website counts page views with
-          Vercel Web Analytics, served from <code>/_vercel/insights/</code> on this origin — no
-          cookie, no identifier on the device, query strings stripped. No other analytics, no
-          error-reporting service, no third-party script: the CSP is <code>&apos;self&apos;</code>{' '}
-          and would refuse one. The Mac application loads none of it.
+          <strong>Page views and load times only, from this origin.</strong> The website counts page
+          views with Vercel Web Analytics and page load timings with Vercel Speed Insights, served
+          from <code>/_vercel/</code> on this origin — no cookie, no identifier on the device, query
+          strings stripped. No other analytics, no error-reporting service, no third-party script:
+          the CSP is <code>&apos;self&apos;</code> and would refuse one. The Mac application loads
+          none of it.
         </li>
         <li>
           <strong>No advertising cookies, no advertising scripts.</strong> The web build does not

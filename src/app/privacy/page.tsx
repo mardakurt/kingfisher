@@ -4,7 +4,7 @@ import { PrivacyPage } from './PrivacyPage';
 export const metadata: Metadata = {
   title: 'Privacy',
   description:
-    'What Kingfisher does with the data it touches, and what it does not. Local-first. No account. No cookies. No advertising. Page views are counted, nothing else.',
+    'What Kingfisher does with the data it touches, and what it does not. Local-first. No account. No cookies. No advertising. Page views and load times are counted, nothing else.',
   alternates: { canonical: '/privacy' },
   robots: { index: true, follow: true },
 };

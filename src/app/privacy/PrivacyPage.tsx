@@ -15,15 +15,17 @@ export function PrivacyPage(): JSX.Element {
           application does not know who you are.
         </li>
         <li>
-          <strong>Page views are counted, and that is all.</strong> The website uses Vercel Web
-          Analytics: for each page view it records the page path, the referrer, and what the request
-          already carries — the country the connection comes from, the browser and operating-system
-          family, the device class. It sets no cookie and stores no identifier on your device;
-          Vercel derives a per-day visitor hash on its side and discards the address. Query strings
-          and fragments are stripped before anything is sent, so a position in a URL never leaves
-          your browser. Nothing about your chess — positions, studies, games, engine lines — is ever
-          part of it. There is no error-reporting service, no session replay, no “is the user still
-          here?” ping. The Mac application loads none of this.
+          <strong>Page views and load times are counted, and that is all.</strong> The website uses
+          Vercel Web Analytics and Vercel Speed Insights. For each page view it records the page
+          path, the referrer, and what the request already carries — the country the connection
+          comes from, the browser and operating-system family, the device class; for each page load
+          it records the timings your browser already computes (the Core Web Vitals) with the
+          connection type and device class. Neither sets a cookie or stores an identifier on your
+          device; Vercel derives a per-day visitor hash on its side and discards the address. Query
+          strings and fragments are stripped before anything is sent, so a position in a URL never
+          leaves your browser. Nothing about your chess — positions, studies, games, engine lines —
+          is ever part of either. There is no error-reporting service, no session replay, no “is the
+          user still here?” ping. The Mac application loads none of this.
         </li>
         <li>
           <strong>Feedback is user-initiated.</strong> The in-app Feedback button is a deliberate
@@ -119,9 +121,10 @@ export function PrivacyPage(): JSX.Element {
         required for the product to work across reloads.
       </p>
       <p>
-        No advertising tag and no cross-site tracker is loaded. The only measurement is Vercel Web
-        Analytics, described above, served from this origin. A network panel open during a normal
-        session will show this origin (including <code>/_vercel/insights/view</code>, the page-view
+        No advertising tag and no cross-site tracker is loaded. The only measurements are Vercel Web
+        Analytics and Speed Insights, described above, served from this origin. A network panel open
+        during a normal session will show this origin (including <code>/_vercel/insights/view</code>
+        , the page-view beacon, and <code>/_vercel/speed-insights/vitals</code>, the load-timing
         beacon), Lichess (if you have signed in or queried Lichess) and the data mirror (if you have
         used a reference source). Nothing else.
       </p>

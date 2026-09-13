@@ -63,8 +63,8 @@ export function TermsPage(): JSX.Element {
       <h2 id="account">Account, sync, telemetry</h2>
       <p>
         There is no Kingfisher account and no Sync. The web build does not set cookies; the website
-        counts page views and nothing more. See the <a href="/privacy">Privacy</a> page for the full
-        statement.
+        counts page views and load times and nothing more. See the <a href="/privacy">Privacy</a>{' '}
+        page for the full statement.
       </p>
 
       <h2 id="engines">Engine binaries</h2>

@@ -70,7 +70,7 @@ pack, read the licence, not this page.
 ## Account, sync, telemetry
 
 There is no Kingfisher account and no Sync. The website counts
-page views and nothing more.
+page views and load times and nothing more.
 The web build does not set cookies. See
 [`docs/legal/privacy.md`](privacy.md) for the full statement.
 

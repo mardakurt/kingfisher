@@ -6,9 +6,11 @@ real users notice.
 
 ## Unreleased (web)
 
-- **The website counts page views.** Vercel Web Analytics, served from
-  this origin: page path, referrer, and what the request already carries
-  (country, browser and OS family, device class). No cookie, no
+- **The website counts page views and load times.** Vercel Web
+  Analytics and Speed Insights, served from this origin: page path,
+  referrer, and what the request already carries (country, browser and
+  OS family, device class), and the load timings the browser computes
+  (Core Web Vitals) with connection type and device class. No cookie, no
   identifier stored on the device, query strings and fragments stripped
   so a position in a URL never leaves the browser, nothing about your
   chess. The privacy, security and terms pages, README and the launch
