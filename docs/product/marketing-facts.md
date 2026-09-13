@@ -39,7 +39,7 @@ permissions), "the strongest engine", or any Elo figure.
 | 172,376 recent elite over-the-board games ship inside the application and work offline.                      | `public/reference/kingfisher-starter/manifest.json` (Lichess broadcast archive, CC BY-SA 4.0). |
 | Elite OTB: 407,538 title- and rating-filtered broadcast games since 2020, installable on demand.             | `reference-elite-v2/manifest.json` on the data mirror.                                         |
 | High-Rated Online: 305,169 Lichess games, both players 2400+, classical/rapid/blitz, a rolling three months. | `reference-online-v1/manifest.json`.                                                           |
-| Recent Theory: the last six broadcast months at a 2400+ threshold, 11,277 games.                             | `reference-recent-v2/manifest.json`.                                                           |
+| Recent Theory: the last 24 broadcast months at a 2400+ threshold, 44,200 games / 918,069 positions.          | `reference-recent-v1/manifest.json` (the catalog ships v1).                                    |
 | Sources are compared side by side with their own game counts and licences; they are never merged.            | `source-comparison.spec.ts`; `AGENTS.md`.                                                      |
 | 3,810 named opening positions with ECO codes, from the CC0 lichess-org/chess-openings dataset.               | `data/openings/SOURCE.md`; `theory-book.test.ts`.                                              |
 | A roster of 8,339 titled players (GM, WGM, IM, WIM) from Wikidata, plus 106 curated historical figures.      | `public/data/players/titled-players.manifest.json`; `src/reference/legends.ts`.                |
