@@ -6,6 +6,14 @@ real users notice.
 
 ## Unreleased (web)
 
+- **Your work is asked to be kept, without you asking.** The first time
+  a session saves something — a move in an untitled analysis counts —
+  Kingfisher asks the browser to mark its storage durable, so months of
+  studies are not left in storage the browser may evict under pressure.
+  Until now that request was made only when you noticed and clicked
+  "Storage is not protected". Chromium answers from its own rules with
+  no prompt; Firefox asks once; a refusal is not repeated. The indicator
+  in the sidebar reflects the answer either way.
 - **One public address.** Kingfisher now lives at
   <https://kingfisherchess.app/>: the landing page at `/`, the
   application at `/analysis` and the other routes, exactly as on

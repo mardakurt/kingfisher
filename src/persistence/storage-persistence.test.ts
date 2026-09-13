@@ -1,6 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { persistenceState, persistenceStateSync, requestPersistence } from './storage-persistence';
+import {
+  ensurePersistenceForAuthoredWork,
+  persistenceState,
+  persistenceStateSync,
+  requestPersistence,
+  resetPersistenceRequestForTests,
+  subscribePersistence,
+} from './storage-persistence';
 
 /**
  * The persistence helper is tested against the navigator.storage
@@ -105,5 +112,46 @@ describe('storage persistence helper', () => {
     });
     expect(await requestPersistence()).toBe('persistent');
     expect(await persistenceState()).toBe('persistent');
+  });
+
+  describe('the automatic request after authored work', () => {
+    // A real browser's `persisted()` reports the grant it just made.
+    const install = (persisted: boolean, grant: boolean) => {
+      let durable = persisted;
+      const persist = vi.fn(async () => {
+        durable = durable || grant;
+        return durable;
+      });
+      Object.defineProperty(globalThis, 'navigator', {
+        value: { storage: { persisted: async () => durable, persist } },
+        configurable: true,
+      });
+      return persist;
+    };
+
+    beforeEach(() => resetPersistenceRequestForTests());
+
+    it('asks once when storage is not yet durable, and tells the indicator', async () => {
+      const persist = install(false, true);
+      const seen: string[] = [];
+      const unsubscribe = subscribePersistence((state) => seen.push(state));
+      expect(await ensurePersistenceForAuthoredWork()).toBe('persistent');
+      expect(await ensurePersistenceForAuthoredWork()).toBe('persistent');
+      unsubscribe();
+      expect(persist).toHaveBeenCalledTimes(1);
+      expect(seen).toEqual(['persistent']);
+    });
+
+    it('does not nag after a refusal, and does not ask when already durable', async () => {
+      const refused = install(false, false);
+      expect(await ensurePersistenceForAuthoredWork()).toBe('not-persistent');
+      expect(await ensurePersistenceForAuthoredWork()).toBe('not-persistent');
+      expect(refused).toHaveBeenCalledTimes(1);
+
+      resetPersistenceRequestForTests();
+      const already = install(true, true);
+      expect(await ensurePersistenceForAuthoredWork()).toBe('persistent');
+      expect(already).not.toHaveBeenCalled();
+    });
   });
 });

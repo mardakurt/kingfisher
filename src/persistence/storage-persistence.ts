@@ -51,13 +51,59 @@ export async function requestPersistence(): Promise<StoragePersistence> {
   if (typeof navigator === 'undefined' || !navigator.storage?.persist) {
     return 'unavailable';
   }
+  let result: StoragePersistence;
   try {
     const granted = await navigator.storage.persist();
-    if (granted) return 'persistent';
-    return (await persistenceState()) === 'persistent' ? 'persistent' : 'not-persistent';
+    result = granted
+      ? 'persistent'
+      : (await persistenceState()) === 'persistent'
+        ? 'persistent'
+        : 'not-persistent';
   } catch {
-    return 'unavailable';
+    result = 'unavailable';
   }
+  for (const listener of listeners) listener(result);
+  return result;
+}
+
+const listeners = new Set<(state: StoragePersistence) => void>();
+
+/**
+ * Be told whenever a request settles, from whichever caller made it, so
+ * the indicator in the chrome agrees with what the browser just decided.
+ */
+export function subscribePersistence(listener: (state: StoragePersistence) => void): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+let askedForAuthoredWork = false;
+
+/**
+ * Ask for durable storage the first time the person saves something,
+ * without waiting for them to notice the indicator.
+ *
+ * Until this existed the only request was the click on "Storage is not
+ * protected", and a player who never noticed it kept months of studies
+ * in storage the browser was free to evict under pressure. Chromium
+ * answers `persist()` from its own heuristics with no prompt; Firefox
+ * asks the person once, and the moment they have just saved their first
+ * chapter is the honest moment to ask. Asked once per page load: a
+ * refusal is not nagged.
+ */
+export async function ensurePersistenceForAuthoredWork(): Promise<StoragePersistence> {
+  if (askedForAuthoredWork) return persistenceState();
+  askedForAuthoredWork = true;
+  const current = await persistenceState();
+  if (current !== 'not-persistent') return current;
+  return requestPersistence();
+}
+
+/** Test seam: the once-per-load latch. */
+export function resetPersistenceRequestForTests(): void {
+  askedForAuthoredWork = false;
 }
 
 /**

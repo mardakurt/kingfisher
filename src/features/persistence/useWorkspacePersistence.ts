@@ -17,6 +17,7 @@ import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { autosaveDelay } from '@/persistence/autosave';
+import { ensurePersistenceForAuthoredWork } from '@/persistence/storage-persistence';
 import { getRepositories } from '@/persistence/repositories';
 import { announceChapterSaved, subscribeCrossTab } from '@/persistence/cross-tab';
 import type { AppRepositories, ChapterRecord, DraftRecord } from '@/persistence/types';
@@ -121,6 +122,10 @@ export function useWorkspacePersistence(): void {
           invalidateStudies(client, written.studyId);
         }
         useAnalysis.getState().markSaved(revision);
+        // The person has now authored something worth keeping — a draft
+        // counts, an untitled analysis is work — so ask the browser, once,
+        // to keep this origin's storage out of eviction.
+        void ensurePersistenceForAuthoredWork();
         firstUnsavedAt.current = null;
       } catch (error) {
         if (disposed) return;

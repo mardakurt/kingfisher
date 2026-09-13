@@ -33,6 +33,7 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   persistenceState,
   requestPersistence,
+  subscribePersistence,
   type StoragePersistence,
 } from './storage-persistence';
 
@@ -51,8 +52,14 @@ export function useStoragePersistence(): UseStoragePersistenceResult {
     void persistenceState().then((resolved) => {
       if (!cancelled) setStatus(resolved);
     });
+    // A request made elsewhere — the automatic one after a first save —
+    // must move this indicator too.
+    const unsubscribe = subscribePersistence((resolved) => {
+      if (!cancelled) setStatus(resolved);
+    });
     return () => {
       cancelled = true;
+      unsubscribe();
     };
   }, []);
 
