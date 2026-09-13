@@ -124,7 +124,7 @@ async function main() {
   console.log(`profile ${profile}\n`);
 
   const STUDY = 'Upgrade walk study';
-  const THEME = 'midnight';
+  const THEME = 'sage';
   let running = null;
 
   try {

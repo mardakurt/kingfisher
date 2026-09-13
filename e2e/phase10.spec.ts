@@ -430,7 +430,7 @@ test.describe('settings', () => {
     // Store a credential, so the export has something to leak.
     await page.evaluate(() => {
       const raw = window.localStorage.getItem('kingfisher.preferences');
-      const parsed = raw ? JSON.parse(raw) : { state: {}, version: 4 };
+      const parsed = raw ? JSON.parse(raw) : { state: {}, version: 5 };
       // gitleaks:allow — deterministic e2e fixtures used to
       // exercise the redaction layer in the renderer. They are
       // not real credentials. The Phase 24 security review at

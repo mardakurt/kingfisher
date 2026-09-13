@@ -151,7 +151,7 @@ interface PreferencesActions {
 
 export const DEFAULT_PREFERENCES: Preferences = {
   theme: 'dark',
-  boardTheme: 'walnut',
+  boardTheme: 'midnight',
   pieceSet: DEFAULT_PIECE_SET_ID,
   coordinateStyle: 'inside',
   animationSpeed: 'normal',
@@ -214,7 +214,7 @@ export const usePreferences = create<Preferences & PreferencesActions>()(
     }),
     {
       name: 'kingfisher.preferences',
-      version: 4,
+      version: 5,
       storage: createJSONStorage(() => localStorage),
       /**
        * Phase 3 replaced two booleans with named scales. Migrating rather than
@@ -245,6 +245,16 @@ export const usePreferences = create<Preferences & PreferencesActions>()(
         */
         if (version < 3 && LEGACY_PIECE_SET_IDS.includes(state.pieceSet as PieceSetId)) {
           state = { ...state, pieceSet: DEFAULT_PIECE_SET_ID };
+        }
+
+        /*
+          The default board became Midnight. The persisted store writes every
+          field, so a profile that never touched the theme holds `walnut` and
+          cannot be told from one that chose it; the move is made once, and
+          anyone who preferred Walnut picks it again in Settings → Board.
+        */
+        if (version < 5 && state.boardTheme === 'walnut') {
+          state = { ...state, boardTheme: 'midnight' };
         }
 
         return state as unknown as Preferences;

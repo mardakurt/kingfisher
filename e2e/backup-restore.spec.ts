@@ -103,7 +103,7 @@ test('a backup survives a profile that no longer exists', async ({ page }) => {
     And a preference, because preferences travel in the same file and are the
     part a user notices immediately if they do not come back.
 
-    `midnight` rather than the default `walnut`: a test that asserts a default
+    `walnut` rather than the default `midnight`: a test that asserts a default
     value came back is a test that passes on a backup containing no preferences
     at all. Written into the persisted store and then reloaded, so the running
     application really holds it before the export reads it — writing it after
@@ -113,8 +113,8 @@ test('a backup survives a profile that no longer exists', async ({ page }) => {
     const raw = localStorage.getItem('kingfisher.preferences');
     const parsed = raw
       ? (JSON.parse(raw) as { state?: Record<string, unknown>; version?: number })
-      : { state: {}, version: 4 };
-    parsed.state = { ...(parsed.state ?? {}), boardTheme: 'midnight' };
+      : { state: {}, version: 5 };
+    parsed.state = { ...(parsed.state ?? {}), boardTheme: 'walnut' };
     localStorage.setItem('kingfisher.preferences', JSON.stringify(parsed));
   });
   await page.reload();
@@ -127,7 +127,7 @@ test('a backup survives a profile that no longer exists', async ({ page }) => {
         : null;
     }),
     'the preference is really set before the export reads it',
-  ).toBe('midnight');
+  ).toBe('walnut');
 
   // --- 2. Export. ---------------------------------------------------------
   await page.goto('/analysis');
@@ -211,5 +211,5 @@ test('a backup survives a profile that no longer exists', async ({ page }) => {
     const parsed = raw ? (JSON.parse(raw) as { state?: { boardTheme?: string } }) : null;
     return parsed?.state?.boardTheme ?? null;
   });
-  expect(theme, 'the board theme came back with the rest of it').toBe('midnight');
+  expect(theme, 'the board theme came back with the rest of it').toBe('walnut');
 });

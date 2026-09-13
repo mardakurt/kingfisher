@@ -30,7 +30,7 @@ async function setAppearance(page: Page, theme: string, pieceSet: string) {
     ([boardTheme, set]) => {
       const key = 'kingfisher.preferences';
       const raw = localStorage.getItem(key);
-      const parsed = raw ? JSON.parse(raw) : { state: {}, version: 4 };
+      const parsed = raw ? JSON.parse(raw) : { state: {}, version: 5 };
       parsed.state = { ...parsed.state, boardTheme, pieceSet: set };
       localStorage.setItem(key, JSON.stringify(parsed));
     },
@@ -232,8 +232,10 @@ test('choosing a theme and a set in Settings changes the preview', async ({ page
   const colourOf = () =>
     preview.evaluate((board) => getComputedStyle(board).getPropertyValue('--square-dark').trim());
 
+  // Walnut, because Midnight is the default and choosing the default is not
+  // a change the preview could show.
   const before = await colourOf();
-  await page.getByRole('button', { name: /Midnight/ }).click();
+  await page.getByRole('button', { name: /Walnut/ }).click();
   await expect.poll(colourOf).not.toBe(before);
 
   await page.getByRole('tab', { name: 'Pieces', exact: true }).click();
