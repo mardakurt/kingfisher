@@ -1,5 +1,18 @@
 # Final certification matrix
 
+> **Update, 2026-09-13 (1.1.2).** The public DMG is now
+> `Kingfisher-1.1.2-arm64.dmg` (build 516 from `fc95f4d`); the gates run
+> on that bundle — preflight, `npm run build`, `desktop:dist` (signed,
+> notarised, booted), `release:mac:notarize`, `desktop:trust:verify`,
+> `verify-dmg`, a quarantined Gatekeeper assessment, `desktop:smoke
+--packaged` 17/17, and `desktop:public:verify --landing --full` against
+> the published bytes — are recorded with their output in
+> [`docs/reports/phase-50-handover.md`](../reports/phase-50-handover.md).
+> The four-browser matrix was not run for 1.1.2 (the maintainer asked
+> that CI not be used); the Chrome e2e for the one renderer change,
+> `e2e/feedback.spec.ts`, was run locally. The paragraph and tables
+> below are the 1.1.1 record and are kept as written.
+
 > **Audit status, 2026-09-13 13:50 +03: KINGFISHER USER-READY.** The
 > tables below are the final state. Static gates pass on `db960a7`; the
 > public DMG `Kingfisher-1.1.1-arm64.dmg` (build 494 from `6df79f8`)
@@ -36,7 +49,7 @@ public deployment or the public artefact).
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Source                  | `master` at the commit named in `docs/reports/phase-49-final-certification.md` § 3                                                                                                         |
 | Web (production)        | `https://kingfisher-roan.vercel.app/` and `https://kingfisher-chess.vercel.app/`, deployed from that commit (§ 4 there)                                                                    |
-| macOS                   | `Kingfisher-1.1.1-arm64.dmg`, build and commit in `src/release/macos-download.json`                                                                                                        |
+| macOS                   | `Kingfisher-1.1.2-arm64.dmg`, build and commit in `src/release/macos-download.json`                                                                                                        |
 | Certification candidate | build 490 (`1.1.0-dev-490`, the source at `d36ef00` plus uncommitted docs) — `desktop:certify` ran on it first; the release build 494 then passed every artefact gate and the update flows |
 
 ## Matrix

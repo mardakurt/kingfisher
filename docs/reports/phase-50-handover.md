@@ -214,3 +214,74 @@ for each.
 | 5   | 1.1.2 Mac release                                | **NO**            | Needs Developer ID certificate; documented in `docs/release/1.1.2.md`                                       |
 | 6   | Full Playwright matrix on Phase 50 commits       | **NO**            | CI to run                                                                                                   |
 | 7   | Direct feedback delivery                         | **NO**            | Feedback-sink credentials owner-only                                                                        |
+
+## Close-out — 2026-09-13, Kingfisher 1.1.2 released
+
+Written by the agent that cut the release, after the sections above.
+
+### What was found
+
+- **Vercel prod was `58e89f3`, deployed from a dirty tree; `67bf24e` was
+  unpushed.** The two `deploy-*.yml` workflows added in `67bf24e` run
+  but exit clean: no `VERCEL_*` repository secrets are configured, so
+  every production deploy is still `vercel deploy --prod --yes` from the
+  terminal.
+- **`npm run lint` was red at `67bf24e`** (two unused symbols in the
+  Phase 50 desktop code) and **`format:check` failed on eight files**.
+  Fixed in `fb42fe2`.
+- **The feedback dialog had never worked from the application.** From a
+  clean load of production, _Send feedback_ failed with
+  `Failed to execute 'fetch' on 'Window': Illegal invocation` before the
+  request left the page: `HttpFeedbackSink` held the built-in `fetch`
+  unbound and called it as a method. Node's fetch tolerates that, so the
+  unit suite and the curl smoke tests above were green while every real
+  user's Send failed. Behind it, the envelope carried no `openedAtMs`
+  (the route's fill-time gate would have refused it) and no
+  `currentFen`/`technicalInfo`, and `AppShell` passed no
+  `currentFenProvider`. Fixed in `fc95f4d`, with a sink test whose stub
+  enforces the browser's receiver rule, an envelope test, and
+  `e2e/feedback.spec.ts`, which drives the real dialog with the route
+  stubbed at the network boundary — all three fail on the previous code.
+- The release-notes draft above claimed "parity at `3bf609e`"; the Mac
+  was at `6df79f8`. Rewritten as the 1.1.2 note.
+
+### What was run, on the exact bytes released
+
+| Gate                                                          | Result                                                                    |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `npm run typecheck`                                           | exit 0                                                                    |
+| `npm run lint`                                                | 0 problems                                                                |
+| `npm run format:check`                                        | all files                                                                 |
+| `npm test`                                                    | 244 files, 2956 tests, 0 skipped                                          |
+| `npm run docs:check`                                          | 338/338                                                                   |
+| `npx playwright test e2e/feedback.spec.ts` (Chrome)           | 1 passed                                                                  |
+| `npm run desktop:release:preflight:mac`                       | GREEN                                                                     |
+| `npm run build`                                               | exit 0                                                                    |
+| `KINGFISHER_DESKTOP_CHANNEL=stable npm run desktop:dist`      | `1.1.2 · build 516 · fc95f4d · stable`; notarised; fresh packaged boot ok |
+| `npm run release:mac:notarize`                                | DMG accepted (`83ea5a77-…`), stapled, validated                           |
+| `npm run desktop:trust:verify`                                | GREEN                                                                     |
+| `node desktop/scripts/verify-dmg.mjs … --version 1.1.2`       | verified                                                                  |
+| `spctl --assess` on a quarantined copy (app and DMG)          | accepted, source=Notarized Developer ID                                   |
+| `npm run desktop:smoke -- --packaged`                         | 17/17                                                                     |
+| `npm run release:mac:publish v1.1.2`                          | `/releases/latest` → `v1.1.2`; DMG, ZIP, `latest-mac.yml`, `SHA256SUMS`   |
+| `npm run desktop:public:verify -- --full` (bytes from GitHub) | 49/49                                                                     |
+
+Not run: the four-browser Playwright matrix (`browser-cert.yml` is
+`workflow_dispatch`; the maintainer asked that CI not be used, and the
+`CI` runs the two pushes triggered were cancelled), `desktop:certify`'s
+walks and soak, and the real public 1.1.1 → 1.1.2 menu update
+(`desktop:update:real --public-feed` needs a signed 1.1.1 bundle at hand
+and a window; the installed copies were 1.1.1 build 494 and are the
+maintainer's to replace). The interactive quarantined `open` was not
+performed — the Gatekeeper sheet needs the owner's click — the `spctl`
+assessment above is the check that does not.
+
+### Feedback path, verified
+
+- `POST https://kingfisher-roan.vercel.app/api/feedback` with a real
+  envelope → HTTP 200, `kf-mtzrq0bx-d1232b0eac0eed29`; the same reference
+  arrived on `https://ntfy.sh/d68f1d4f9c150139` within seconds.
+- The dialog itself, on production before the fix: _Illegal invocation_
+  (see above). After the fix, in Chrome via `e2e/feedback.spec.ts`: the
+  POST leaves the page with category, message, `openedAtMs` and the FEN,
+  and the dialog shows the reference.

@@ -11,7 +11,7 @@ The user-facing surfaces link here from their footers and from
 ## What the current public product is
 
 - **Web:** Kingfisher 1.1 at the Studio host, deployed from `master`.
-- **macOS:** Kingfisher 1.1.1 for Apple Silicon — Developer ID signed,
+- **macOS:** Kingfisher 1.1.2 for Apple Silicon — Developer ID signed,
   notarised by Apple, stapled. The exact build (number, commit, SHA-256)
   the landing offers is in `src/release/macos-download.json`; the
   install guide is [`docs/release/install-macos.md`](docs/release/install-macos.md).
@@ -134,7 +134,7 @@ in the running deployment.
   (`git rev-list --count`), the commit, whether the tree was dirty,
   and its channel (`stable`, `preview`, `dev`) in `CFBundleVersion`
   and the packaged `package.json`; _Settings → Diagnostics_ reports
-  them, so a support report about "1.1.1" can be matched to bytes.
+  them, so a support report about "1.1.2" can be matched to bytes.
   A publishable channel refuses to build from a dirty tree, and refuses
   to build without notarisation credentials.
 - **The bundle is complete by construction.** One list

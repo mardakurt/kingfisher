@@ -1,13 +1,15 @@
 # Kingfisher — first-100 known issues
 
-## Release-audit status — 2026-09-13
+## Release-audit status — 2026-09-13 (1.1.2)
 
-The public web deployment is newer than the Mac 1.1.1 source revision.
-The differences and their platform-specific impact are recorded in
-[platform parity](platform-parity.md). A fresh build-494 certification run
-also had intermittent restart and engine-install failures; diagnostic reruns
-are recorded in the [Phase 49 handover](../reports/phase-49-handover.md).
-Do not treat the earlier closed bug register as a completed release gate.
+The public Mac 1.1.2 (build 516, `fc95f4d`) and the public web deployment
+are built from the same source revision; the 1.1.1 gap recorded in
+[platform parity](platform-parity.md) is closed. 1.1.2 also fixes the
+feedback dialog, whose Send had failed in every browser since it shipped
+(`e2e/feedback.spec.ts` now drives it). The build-494 restart and
+engine-install reruns are recorded in the
+[Phase 49 handover](../reports/phase-49-handover.md); the 1.1.2 gates run
+are in the [Phase 50 handover](../reports/phase-50-handover.md).
 
 > **Subject:** what the first 100 users should be told up-front,
 > with the reasoning and the path to closing each item.

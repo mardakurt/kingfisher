@@ -379,7 +379,7 @@ source of truth for the URLs the application prints is
   existing local data of every existing user. A change requires
   a typed persistence / migration plan before the
   `publicUrl.studio` default is touched.
-- **macOS stable DMG:** `Kingfisher-1.1.1-arm64.dmg`, build 494,
+- **macOS stable DMG:** `Kingfisher-1.1.2-arm64.dmg`, build 516,
   signed with Developer ID Application and notarised. The public descriptor
   `src/release/macos-download.json` selects the release; the landing and
   install guide consume it. Verify its bytes before changing its claims.
@@ -457,7 +457,7 @@ number (`git rev-list --count HEAD`), commit, dirty flag and channel, in
 them. `KINGFISHER_DESKTOP_CHANNEL` is `dev` (default), `preview` or
 `stable`; a publishable channel refuses a dirty tree.
 
-- **The current marketing version is 1.1.1. Bump it only for a real release.**
+- **The current marketing version is 1.1.2. Bump it only for a real release.**
   Never create a version to freshen a filename.
 - **A trusted build is made by the pipeline, not by hand.** With the
   Developer ID identity in the login keychain and `APPLE_API_KEY`,
