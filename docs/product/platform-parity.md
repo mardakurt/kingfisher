@@ -9,7 +9,7 @@ with the deliberate differences named and the reason for each.
 
 **Published revision check (2026-09-13, 1.1.3).** The public Mac 1.1.3
 DMG is build 539 from `0600ce1`, the same revision the web deployment
-serves (`npm run deploy:status` → `up to date (0600ce1)`). Every Phase 51
+serves (`npm run deploy:status` → `up to date (8f3e1d5)`). Every Phase 51
 change — the workspace frame on every board route, position setup
 everywhere, the engine selector, the default board, the player identity
 merge, the Preparation search over the reference packs — is in both

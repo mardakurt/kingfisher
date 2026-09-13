@@ -141,3 +141,28 @@ Section B, the Mac release:
 | 13    | `npm run desktop:update:real -- --current /Applications/Kingfisher.app --next-dir <out> --public-feed`                        | PASS 12/12 — the installed 1.1.2 (build 516) was offered 1.1.3 by the public feed, installed it, relaunched as 1.1.3 (build 539) with the study authored before the update still there                                                 |
 | 20    | commit `82ece7f`, pushed; `npm run deploy:status`                                                                             | `kingfisherchess.app: up to date (82ece7f)`                                                                                                                                                                                            |
 | 21    | `npm run desktop:public:verify -- --landing --full`                                                                           | 55/55 — `PUBLIC DMG VERIFIED: Kingfisher-1.1.3-arm64.dmg (every byte)`; the landing links and names the descriptor's DMG                                                                                                               |
+
+## 1.1.4 — the second look, same day
+
+Two more owner reports after 1.1.3 was in use: the three Windows-only
+catalogue engines read as broken on a Mac, and the landing's download
+card repeated the install guide. Fixed in `6dea638` (with a `/favicon.ico`
+— the unattributable 404 that had failed the browser soak twice was the
+browser's own conventional favicon request), released as 1.1.4 from
+`8f3e1d5`, build 544.
+
+| Gate                                                                                                | Result                                                                                                             |
+| --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| typecheck, lint, format:check                                                                       | clean                                                                                                              |
+| `npm test`                                                                                          | 2980/2980, 0 skipped; `test:no-skips` OK                                                                           |
+| `npm run docs:check`                                                                                | 344/344                                                                                                            |
+| `npm run test:e2e`                                                                                  | **272 passed, 0 failed, 0 flaky (15.0 m)**                                                                         |
+| `npm run public:check`                                                                              | 22/22                                                                                                              |
+| preflight                                                                                           | GREEN                                                                                                              |
+| `desktop:dist` (stable)                                                                             | `1.1.4 · build 544 · 8f3e1d5`, notarised, fresh boot verified                                                      |
+| notarize (staple)                                                                                   | Accepted, `77b786b6-9252-469f-bdd4-59acbe3f7685`                                                                   |
+| `desktop:trust:verify`                                                                              | GREEN                                                                                                              |
+| `verify-dmg.mjs --version 1.1.4 --commit 8f3e1d5…`                                                  | DMG verified                                                                                                       |
+| `desktop:smoke -- --packaged`                                                                       | 17/17                                                                                                              |
+| publish                                                                                             | https://github.com/mardakurt/kingfisher/releases/tag/v1.1.4, latest; DMG sha256 `bd80bf6e…35a1`, 159,176,584 bytes |
+| `desktop:update:real … --public-feed`, `deploy:status`, `desktop:public:verify -- --landing --full` | recorded below                                                                                                     |

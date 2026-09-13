@@ -1,8 +1,8 @@
 # Kingfisher — first-100 known issues
 
-## Release-audit status — 2026-09-13 (1.1.3)
+## Release-audit status — 2026-09-13 (1.1.4)
 
-The public Mac 1.1.3 (build 539, `0600ce1`) and the public web deployment
+The public Mac 1.1.4 (build 544, `8f3e1d5`; 1.1.3 was build 539, `0600ce1`) and the public web deployment
 are built from the same source revision. 1.1.3 closes the nineteen items
 the owner reported after the first day of public use (listed under
 "Closed during Phase 51" below); the gates run for it are in the
