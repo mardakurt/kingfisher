@@ -122,7 +122,11 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   if (url.pathname.startsWith('/_next/static/')) {
-    event.respondWith(staleWhileRevalidate(request, buildCacheName(), 60 * 60 * 24 * 30));
+    event.respondWith(
+      staleWhileRevalidate(request, buildCacheName(), 60 * 60 * 24 * 30).then((response) =>
+        url.hash ? withRequestUrl(response) : response,
+      ),
+    );
     return;
   }
   if (isShellAsset(url.pathname)) {
@@ -175,6 +179,31 @@ async function handleNavigation(request) {
     if (any) return any;
     throw err;
   }
+}
+
+/*
+ * A response for a URL that carries a fragment, served so that the
+ * fragment the *request* had is the one the browser keeps.
+ *
+ * Every Web Worker the build makes (PGN import, the local explorer, the
+ * En Croissant reader, database maintenance) is one bootstrap script,
+ * `turbopack-worker-*.js`, told which chunks to load by a `#params=`
+ * fragment. The Cache API ignores fragments when it matches, but a cached
+ * Response remembers the URL of the request that stored it — so the second
+ * kind of worker to start was handed the first kind's response, the
+ * browser set its location from that response's URL, its bootstrap read the
+ * *other* worker's params, and a PGN import answered as the explorer
+ * ("Cannot read properties of undefined (reading '0')" in production, once
+ * any other worker had run first). Re-wrapping the body in a fresh Response
+ * leaves the response URL empty, and the browser then uses the request's
+ * own URL — fragment and all. Phase 49.
+ */
+function withRequestUrl(response) {
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: response.headers,
+  });
 }
 
 async function staleWhileRevalidate(request, cacheName, maxAgeSeconds) {
@@ -240,10 +269,14 @@ function isShellAsset(pathname) {
  * which is exactly when a new deployment needs the old cache
  * replaced.
  *
- * The build identity is injected at deploy time by the build
- * pipeline (see `scripts/inject-build.mjs`). When unset, the worker
- * still works — it just uses a stable name that changes when the
- * script bytes change.
+ * Nothing injects a build identity today, so the cache name is the
+ * constant `kingfisher-shell-dev` in every build. That is safe because
+ * the browser byte-compares this script on every update check (a new
+ * build is a new worker) and the assets it caches are content-addressed
+ * under `_next/static/immutable/`; entries only leave the cache by age.
+ * A per-build name would let `activate` evict the previous build's
+ * entries at once, and is the improvement to make if the cache ever
+ * needs bounding by build rather than by age.
  */
 function buildIdentity() {
   try {
