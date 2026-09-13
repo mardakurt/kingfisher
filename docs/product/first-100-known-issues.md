@@ -75,20 +75,27 @@ These are real product facts, not defects. The first 100 users
 are told about each of them in product; the relevant docs are
 linked.
 
-- **macOS native is a preview.** The desktop build is the current
-  source, code-signed with a development identity and not notarised,
-  named by `src/release/macos-download.json` with its build number.
-  Diagnostics reports the build, commit and channel. A preview does not
-  update itself; the newest one is on the landing page. The first 100
-  web/PWA users are not affected.
+- **macOS is Apple Silicon, macOS 13 or later.** The public build
+  (named by `src/release/macos-download.json` with its build number) is
+  signed with Developer ID and notarised, opens with a double-click,
+  and offers newer releases through _Kingfisher → Check for Updates…_;
+  the first such update may show macOS's helper-tool prompt once.
+  Diagnostics reports the build, commit and channel. There is no Intel
+  build and no Windows or Linux build; those users have the web.
 - **Playing a move stops the engine.** By design (the position guard):
   evidence never survives a position change, and a person starts the
   engine again. Recorded because a first-time user may expect the
   engine to follow the board.
-- **Web local data depends on browser storage.** A user can
-  revoke storage protection from the browser settings. The
-  status indicator shows this honestly
-  (`Storage is not protected`) and offers a one-click request.
+- **Web local data depends on browser storage.** Work lives in
+  the browser's IndexedDB for `kingfisherchess.app`; clearing site
+  data, a private window, or another browser or profile means a
+  different (or empty) database. Kingfisher asks the browser for
+  durable storage after the first save; the status indicator shows
+  the browser's answer honestly (`Storage is not protected`) and
+  offers the request again on a click. Safari removes a site's
+  storage after seven days of Safari use without a visit unless the
+  app is added to the Dock. The Mac application and _Settings →
+  Database → Export backup_ are the answers for long-term work.
 - **Some references need internet unless installed.** The
   Starter reference is local. Elite, Recent, Online and
   Lichess-style references stream; the studio is usable offline
@@ -130,11 +137,12 @@ with the change.
 
 ## Bug register
 
-The current bug register is empty. Every product behaviour the
-first 100 users will encounter is either the documented
-behaviour or an improvement, not a defect. New reports from
-the first 100 users will be triaged under
-`docs/operations/first-100-feedback.md`.
+Empty at the time of writing — with the caveat that the register was
+also "empty" while every Send in the feedback dialog failed in every
+browser (fixed in 1.1.2, `fc95f4d`, found by driving the real dialog
+on production). An empty register means nothing is known, not that
+nothing is wrong. New reports from the first 100 users will be
+triaged under `docs/operations/first-100-feedback.md`.
 
 ## Improvement backlog count
 
