@@ -4,7 +4,10 @@ The user-facing changelog. Internal phase history is in
 `docs/reports/` and `docs/product/phase-*.md`; the list below is what
 real users notice.
 
-## Unreleased (web)
+## 1.1.4 — 2026-09-13
+
+A small release on 1.1.3, in both the web application and the Mac
+application, made from the owner's second look.
 
 - **A `/favicon.ico` exists.** Browsers request it by convention whatever
   the page links, and every such request answered 404 — harmless to the
