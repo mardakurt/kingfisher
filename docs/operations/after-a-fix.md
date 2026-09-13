@@ -17,6 +17,12 @@ Do every step. Report the command and its output, not a claim.
 11. Open the changed page on `https://kingfisherchess.app` in a real browser and look at it
 12. If the fix is user-visible: add a line under `## Unreleased (web)` in `CHANGELOG.md`
 13. If a claim changed: update `docs/product/public-claims.md` and the page that makes the claim in the same commit
+14. Close by answering these five, each with the command or page that proves it:
+    - Are the web and the Mac application the same source? If the fix changed application code, the public Mac build is now behind `master`: say so, add the difference to the "Published revision check" in `docs/product/platform-parity.md`, and say whether it is Mac-facing (if it is, do section B)
+    - Are all documents accurate and current? (`docs:check` passed, and any document that describes the changed behaviour was updated)
+    - Is the Vercel production deployment the latest commit? (`deploy:status` shows HEAD)
+    - Are the version, build number, filename and hash on the landing and install pages the ones in `src/release/macos-download.json`? (`docs:check` asserts it; look at the live page)
+    - Is the DMG on GitHub the latest Mac build and the one the descriptor names? (`gh release view --json tagName` is the descriptor's tag; after a Mac release, `desktop:public:verify -- --landing --full` passed)
 
 ## B. A fix that changes what the Mac application does
 
