@@ -9,7 +9,8 @@ import {
 } from '@/release/macos-download';
 
 /**
- * The user-facing install guide for the macOS Preview.
+ * The user-facing install guide for the macOS build. Which first-launch
+ * section renders is decided by the descriptor's trust state, never by hand.
  *
  * The canonical Markdown lives in `docs/release/install-macos.md`
  * and is the source of truth for the public product. This page
@@ -93,49 +94,79 @@ export function InstallPage({
         the desktop icon, <strong>Eject</strong>, or use the eject button next to it in Finder).
       </p>
 
-      <h2 id="gatekeeper">5. First launch — Gatekeeper</h2>
-      <p>
-        Open Kingfisher from Applications or Spotlight. The first launch is the one Gatekeeper cares
-        about.
-      </p>
-      <p>
-        <strong>{name} is code-signed but not notarised.</strong> On a Mac that has not seen this
-        build, macOS will refuse to open it and say the application is <em>damaged</em> or
-        {}
-        <em>cannot be checked for malicious software</em>. That is not a diagnosis of the file.
-        Notarisation is an Apple service that requires a <strong>Developer ID Application</strong>
-        {}
-        certificate, and this build does not have one — the identity it was signed with is a
-        development certificate, which is a different kind. Nothing about the application changes
-        when the right certificate exists; only the ability to hand you the installer does.
-      </p>
-      <p>
-        <strong>The safe, supported way through Gatekeeper:</strong>
-      </p>
-      <ol>
-        <li>
-          <strong>Right-click</strong> (or <strong>Control-click</strong>) Kingfisher in
-          Applications and choose <strong>Open</strong>. A dialog asks you to confirm.
-        </li>
-        <li>
-          Click <strong>Open</strong> in the dialog. macOS records the exception for this copy of
-          the application, so the second launch is silent.
-        </li>
-        <li>From then on, double-clicking Kingfisher in Applications is enough.</li>
-      </ol>
-      <p>
-        If macOS refuses even that, the file is carrying a quarantine attribute from the browser.
-        Open <strong>System Settings → Privacy &amp; Security</strong>, scroll to the{}
-        <strong>Security</strong> section, and click <strong>Open Anyway</strong> beside the message
-        about Kingfisher. You may need to scroll past the recent entries to find it. The same
-        exception is then recorded.
-      </p>
-      <p>
-        <strong>Do not turn Gatekeeper off.</strong> <code>spctl --master-disable</code> and its
-        relatives disable a system-wide protection for every application on the machine, for as long
-        as you leave it off, to solve a problem with one file. Nothing in this Preview is worth
-        that, and Kingfisher will not ask you to do it.
-      </p>
+      {notarised ? (
+        <>
+          <h2 id="gatekeeper">5. First launch</h2>
+          <p>
+            Open Kingfisher from Applications or Spotlight. Because the file was downloaded, macOS
+            shows its standard confirmation once —{' '}
+            <em>
+              “Kingfisher” is an app downloaded from the Internet. Are you sure you want to open it?
+            </em>{' '}
+            — and names Apple&apos;s check. Click <strong>Open</strong>. That is the whole first
+            launch.
+          </p>
+          <p>
+            What you should <strong>not</strong> see:{' '}
+            <em>“cannot be opened because the developer cannot be verified”</em>,{' '}
+            <em>“cannot be checked for malicious software”</em>, or <em>“damaged”</em>. Those
+            messages mean the file you have is not the build Apple notarised — check the SHA-256
+            above and download it again from the release page. There is no right-click workaround to
+            apply, and no system-wide setting to change; if a genuine
+            {name} download does show one of those messages, that is a bug — please report it.
+          </p>
+          <p>
+            <strong>Do not turn Gatekeeper off.</strong> <code>spctl --master-disable</code> and its
+            relatives disable a system-wide protection for every application on the machine.
+            Kingfisher will never ask you to do it.
+          </p>
+        </>
+      ) : (
+        <>
+          <h2 id="gatekeeper">5. First launch — Gatekeeper</h2>
+          <p>
+            Open Kingfisher from Applications or Spotlight. The first launch is the one Gatekeeper
+            cares about.
+          </p>
+          <p>
+            <strong>{name} is code-signed but not notarised.</strong> On a Mac that has not seen
+            this build, macOS will refuse to open it and say the application is <em>damaged</em> or{' '}
+            <em>cannot be checked for malicious software</em>. That is not a diagnosis of the file.
+            Notarisation is an Apple service that requires a{' '}
+            <strong>Developer ID Application</strong> certificate, and this build does not have one
+            — the identity it was signed with is a development certificate, which is a different
+            kind. Nothing about the application changes when the right certificate exists; only the
+            ability to hand you the installer does.
+          </p>
+          <p>
+            <strong>The safe, supported way through Gatekeeper:</strong>
+          </p>
+          <ol>
+            <li>
+              <strong>Right-click</strong> (or <strong>Control-click</strong>) Kingfisher in
+              Applications and choose <strong>Open</strong>. A dialog asks you to confirm.
+            </li>
+            <li>
+              Click <strong>Open</strong> in the dialog. macOS records the exception for this copy
+              of the application, so the second launch is silent.
+            </li>
+            <li>From then on, double-clicking Kingfisher in Applications is enough.</li>
+          </ol>
+          <p>
+            If macOS refuses even that, the file is carrying a quarantine attribute from the
+            browser. Open <strong>System Settings → Privacy &amp; Security</strong>, scroll to the{' '}
+            <strong>Security</strong> section, and click <strong>Open Anyway</strong> beside the
+            message about Kingfisher. You may need to scroll past the recent entries to find it. The
+            same exception is then recorded.
+          </p>
+          <p>
+            <strong>Do not turn Gatekeeper off.</strong> <code>spctl --master-disable</code> and its
+            relatives disable a system-wide protection for every application on the machine, for as
+            long as you leave it off, to solve a problem with one file. Nothing in this preview is
+            worth that, and Kingfisher will not ask you to do it.
+          </p>
+        </>
+      )}
 
       <h2 id="first-launch">6. First five minutes</h2>
       <p>Kingfisher opens on the analysis board with a game position and the tools beside it.</p>

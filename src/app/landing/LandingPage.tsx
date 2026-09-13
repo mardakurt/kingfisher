@@ -468,9 +468,9 @@ export function LandingPage(): JSX.Element {
                 </span>
               </summary>
               <p>
-                No. Kingfisher is local-first. Open the web app or download the macOS Preview and
-                your work lives in the browser or on the machine you installed it on. There is no
-                sign-up and no profile. You can optionally connect a Lichess or Chess.com account
+                No. Kingfisher is local-first. Open the web app or download the macOS application
+                and your work lives in the browser or on the machine you installed it on. There is
+                no sign-up and no profile. You can optionally connect a Lichess or Chess.com account
                 from Settings to study your own games.
               </p>
             </details>
@@ -482,11 +482,12 @@ export function LandingPage(): JSX.Element {
                 </span>
               </summary>
               <p>
-                In your browsers IndexedDB on the web, or in{' '}
-                <code>~/Library/Application Support/kingfisher-desktop/</code> on the macOS Preview.
-                The full data lives on your machine, never on a Kingfisher server. To move work
-                between machines, use <em>Settings → Database → Export backup / Import backup</em>.
-                The backup is a portable JSON file you control.
+                In your browser&apos;s IndexedDB on the web, or in{' '}
+                <code>~/Library/Application Support/kingfisher-desktop/</code> on the macOS
+                application. The full data lives on your machine, never on a Kingfisher server. To
+                move work between machines, use{' '}
+                <em>Settings → Database → Export backup / Import backup</em>. The backup is a
+                portable JSON file you control.
               </p>
             </details>
             <details className="faq-item">
@@ -497,10 +498,10 @@ export function LandingPage(): JSX.Element {
                 </span>
               </summary>
               <p>
-                Yes. The bundled Kingfisher Starter answers from your local data once it has been
-                installed on first run. The macOS application runs entirely on your machine. The web
-                build needs a network only for first load and for an optional, on-demand reference
-                query; a downloaded pack keeps working without the network.
+                Yes. The bundled Kingfisher Starter ships inside the application and answers from
+                your machine. The macOS application runs entirely on your machine. The web build
+                needs a network only for first load and for an optional, on-demand reference query;
+                a downloaded pack keeps working without the network.
               </p>
             </details>
             <details className="faq-item">

@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * Tests for the post-update notice.
  *
@@ -55,13 +56,15 @@ function captureListeners(acknowledge: (v: string) => Promise<void> = async () =
  * Run an async function with `window.kingfisher` set to the given
  * bridge. Restores the original value on completion.
  */
-async function withBridge<T>(bridge: DesktopBridge, body: () => T): Promise<T> {
+async function withBridge<T>(bridge: DesktopBridge, body: () => T | Promise<T>): Promise<T> {
   const w = globalThis as unknown as { window?: { kingfisher?: DesktopBridge } };
   const previous = w.window?.kingfisher;
   w.window = w.window ?? ({} as { kingfisher?: DesktopBridge });
   w.window.kingfisher = bridge;
   try {
-    return body();
+    // Awaited, so an async body runs with the bridge in place; returning the
+    // promise un-awaited let `finally` remove the bridge before the render.
+    return await body();
   } finally {
     if (previous) {
       w.window!.kingfisher = previous;
@@ -91,31 +94,37 @@ describe('buildPostUpdateMessage', () => {
 
 describe('PostUpdateNotice — listener wiring', () => {
   it('subscribes exactly once on mount', async () => {
-    const { listeners } = captureListeners();
-    const React = await import('react');
-    const { createRoot } = await import('react-dom/client');
-    const container = {
-      appendChild: () => undefined,
-      removeChild: () => undefined,
-    } as unknown as Element;
-    const root = createRoot(container);
-    root.render(React.createElement(PostUpdateNotice));
-    await new Promise((r) => setTimeout(r, 0));
-    expect(listeners.size).toBe(1);
-    root.unmount();
+    const { bridge, listeners } = captureListeners();
+    await withBridge(bridge, async () => {
+      const React = await import('react');
+      const { act } = React;
+      const { createRoot } = await import('react-dom/client');
+      const container = document.createElement('div');
+      document.body.appendChild(container);
+      const root = createRoot(container);
+      await act(async () => {
+        root.render(React.createElement(PostUpdateNotice));
+      });
+      expect(listeners.size).toBe(1);
+      root.unmount();
+      document.body.removeChild(container);
+    });
   });
 
   it('does not throw when the bridge is absent (browser build)', async () => {
     const w = globalThis as unknown as { window?: { kingfisher?: DesktopBridge } };
     delete w.window?.kingfisher;
     const React = await import('react');
+    const { act } = React;
     const { createRoot } = await import('react-dom/client');
-    const container = {
-      appendChild: () => undefined,
-      removeChild: () => undefined,
-    } as unknown as Element;
+    const container = document.createElement('div');
+    document.body.appendChild(container);
     const root = createRoot(container);
-    expect(() => root.render(React.createElement(PostUpdateNotice))).not.toThrow();
+    await expect(
+      act(async () => {
+        root.render(React.createElement(PostUpdateNotice));
+      }),
+    ).resolves.toBeUndefined();
     root.unmount();
   });
 });
@@ -130,7 +139,9 @@ describe('PostUpdateNotice — handler behaviour via the captured listener', () 
       const container = document.createElement('div');
       document.body.appendChild(container);
       const root = createRoot(container);
-      root.render(React.createElement(PostUpdateNotice));
+      await act(async () => {
+        root.render(React.createElement(PostUpdateNotice));
+      });
       // The listener is the one bound to the renderer's effect.
       // We capture the singleton by reaching into the set.
       const listener = Array.from(listeners)[0];

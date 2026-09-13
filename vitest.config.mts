@@ -10,6 +10,9 @@ export default defineConfig({
     environment: 'node',
     include: [
       'src/**/*.test.ts',
+      // Phase 49: .test.tsx was never included, so post-update-notice.test.tsx
+      // had not run once since it was written.
+      'src/**/*.test.tsx',
       'companion/**/*.test.mjs',
       'scripts/**/*.test.mjs',
       'scripts/**/*.test.ts',
