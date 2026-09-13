@@ -14,6 +14,8 @@
 
 import { expect, test, type Page } from '@playwright/test';
 
+import { isNavigationAbortNoise } from './tools';
+
 const VIEWPORTS = [
   [320, 568],
   [390, 844],
@@ -48,16 +50,19 @@ async function waitForApp(page: Page) {
   await page.locator('html[data-kingfisher-ready="true"]').waitFor();
 }
 
-test('no route scrolls sideways at any supported width', async ({ page }) => {
+test('no route scrolls sideways at any supported width', async ({ page, browserName }) => {
   test.setTimeout(300_000);
   const problems: string[] = [];
   const consoleProblems: string[] = [];
+  const note = (text: string) => {
+    if (!isNavigationAbortNoise(text, browserName)) consoleProblems.push(text);
+  };
   page.on('console', (message) => {
     if (message.type() === 'error' || message.type() === 'warning') {
-      consoleProblems.push(message.text());
+      note(message.text());
     }
   });
-  page.on('pageerror', (error) => consoleProblems.push(`pageerror: ${error.message}`));
+  page.on('pageerror', (error) => note(`pageerror: ${error.message}`));
 
   for (const [width, height] of VIEWPORTS) {
     await page.setViewportSize({ width, height });

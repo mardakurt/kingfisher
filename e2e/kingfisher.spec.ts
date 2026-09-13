@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-import { selectTool } from './tools';
+import { isNavigationAbortNoise, selectTool } from './tools';
 
 const SAMPLE_PGN = `[Event "Kingfisher E2E"]
 [Site "Local"]
@@ -16,14 +16,17 @@ const SAMPLE_PGN = `[Event "Kingfisher E2E"]
 
 1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 1-0`;
 
-function watchConsole(page: Page): string[] {
+function watchConsole(page: Page, browserName = 'chromium'): string[] {
   const failures: string[] = [];
+  const note = (text: string) => {
+    if (!isNavigationAbortNoise(text, browserName)) failures.push(text);
+  };
   page.on('console', (message) => {
     if (message.type() === 'error' || message.type() === 'warning') {
-      failures.push(`${message.type()}: ${message.text()}`);
+      note(`${message.type()}: ${message.text()}`);
     }
   });
-  page.on('pageerror', (error) => failures.push(`pageerror: ${error.message}`));
+  page.on('pageerror', (error) => note(`pageerror: ${error.message}`));
   return failures;
 }
 
@@ -82,8 +85,11 @@ async function importFen(page: Page, fen: string) {
   await expect(dialog).toBeHidden();
 }
 
-test('all major routes are reachable and mobile navigation stays usable', async ({ page }) => {
-  const consoleFailures = watchConsole(page);
+test('all major routes are reachable and mobile navigation stays usable', async ({
+  page,
+  browserName,
+}) => {
+  const consoleFailures = watchConsole(page, browserName);
   await page.goto('/analysis');
   await waitForApp(page);
 
@@ -127,8 +133,11 @@ test('all major routes are reachable and mobile navigation stays usable', async 
   expect(consoleFailures).toEqual([]);
 });
 
-test('analysis, games, repertoire and explorer share a working position', async ({ page }) => {
-  const consoleFailures = watchConsole(page);
+test('analysis, games, repertoire and explorer share a working position', async ({
+  page,
+  browserName,
+}) => {
+  const consoleFailures = watchConsole(page, browserName);
   await page.goto('/analysis');
   await waitForApp(page);
   await expectSquareBoard(page);
@@ -174,8 +183,9 @@ test('analysis, games, repertoire and explorer share a working position', async 
 
 test('a study chapter supports moves, variations, analysis tools and durable annotations', async ({
   page,
+  browserName,
 }) => {
-  const consoleFailures = watchConsole(page);
+  const consoleFailures = watchConsole(page, browserName);
   await page.goto('/studies');
   await waitForApp(page);
   await page.getByRole('button', { name: 'New study' }).click();
@@ -230,8 +240,9 @@ test('a study chapter supports moves, variations, analysis tools and durable ann
 
 test('canonical board handles special positions, orientation and every external piece set', async ({
   page,
+  browserName,
 }) => {
-  const consoleFailures = watchConsole(page);
+  const consoleFailures = watchConsole(page, browserName);
   await page.goto('/analysis');
   await waitForApp(page);
 
@@ -279,8 +290,11 @@ test('canonical board handles special positions, orientation and every external 
   expect(consoleFailures).toEqual([]);
 });
 
-test('training conceals analysis evidence until the answer is revealed', async ({ page }) => {
-  const consoleFailures = watchConsole(page);
+test('training conceals analysis evidence until the answer is revealed', async ({
+  page,
+  browserName,
+}) => {
+  const consoleFailures = watchConsole(page, browserName);
   await page.goto('/analysis');
   await waitForApp(page);
   await page.getByRole('button', { name: 'Document actions' }).click();
@@ -317,9 +331,10 @@ test('training conceals analysis evidence until the answer is revealed', async (
 
 test('analysis remains square and overflow-free across the required viewport matrix', async ({
   page,
+  browserName,
 }) => {
   test.setTimeout(180_000);
-  const consoleFailures = watchConsole(page);
+  const consoleFailures = watchConsole(page, browserName);
   const viewports = [
     [320, 568],
     [390, 844],
@@ -352,8 +367,9 @@ test('analysis remains square and overflow-free across the required viewport mat
 
 test('authenticated Lichess explorer contract and appearance preferences work without real secrets', async ({
   page,
+  browserName,
 }) => {
-  const consoleFailures = watchConsole(page);
+  const consoleFailures = watchConsole(page, browserName);
   const authHeaders: string[] = [];
   await page.route('https://lichess.org/api/account', async (route) => {
     authHeaders.push(route.request().headers().authorization ?? '');
@@ -429,8 +445,9 @@ test('authenticated Lichess explorer contract and appearance preferences work wi
 test('a failing explorer source offers the local one instead of loading forever', async ({
   page,
   context,
+  browserName,
 }) => {
-  const consoleFailures = watchConsole(page);
+  const consoleFailures = watchConsole(page, browserName);
   await page.goto('/openings');
   await waitForApp(page);
   // Openings opens on the library; the explorer is the other mode.

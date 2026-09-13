@@ -31,3 +31,30 @@ export async function selectTool(page: Page, dock: Locator, name: string): Promi
   await page.getByRole('menuitem', { name, exact: true }).click();
   await expect(tab).toBeVisible();
 }
+
+/**
+ * Whether a console line or page error is the noise a browser makes when a
+ * full navigation cancels loads that were still in flight.
+ *
+ * `page.goto` unloads the document while pack chunks and worker scripts are
+ * still arriving. Chromium settles those rejections silently on unload;
+ * Firefox reports the worker script as `NS_BINDING_ABORTED`, and WebKit
+ * reports every cancelled same-origin fetch as "due to access control
+ * checks", "Load failed" or "WebKit encountered an internal error" — and
+ * raises them as page errors. None of them happens on a route change inside
+ * the application, which never unloads the document, and none is a CORS
+ * failure: a real one would fail the same fetch in Chromium first, and the
+ * Chrome project keeps every message. Only those two engines, only those
+ * messages.
+ */
+export function isNavigationAbortNoise(text: string, browserName: string): boolean {
+  if (browserName === 'firefox') return /NS_BINDING_ABORTED/.test(text);
+  if (browserName === 'webkit') {
+    return (
+      /due to access control checks/.test(text) ||
+      /^(pageerror: )?Load failed$/.test(text.trim()) ||
+      /WebKit encountered an internal error/.test(text)
+    );
+  }
+  return false;
+}

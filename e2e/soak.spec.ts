@@ -434,6 +434,7 @@ async function cycle(page: Page, index: number) {
 
 test('an afternoon of tool, engine and route switching leaks no observable resource', async ({
   page,
+  browserName,
 }) => {
   /*
     Scaled, because the cycle count is now a knob.
@@ -443,7 +444,14 @@ test('an afternoon of tool, engine and route switching leaks no observable resou
     read as a failure of the application. Twenty seconds a cycle with the same
     ten-minute floor, so the gate's own budget is unchanged.
   */
-  test.setTimeout(Math.max(600_000, (CYCLES + 2) * 20_000));
+  /*
+    WebKit gets three times the budget. Its page is not cross-origin
+    isolated, so Stockfish runs single-threaded there and every engine cycle
+    is a multiple slower; eight cycles ran past the ten-minute floor in the
+    Phase 49 matrix with nothing wrong but the clock. The assertions are the
+    same; only the allowance for a slower engine differs.
+  */
+  test.setTimeout(Math.max(600_000, (CYCLES + 2) * 20_000) * (browserName === 'webkit' ? 3 : 1));
   const consoleFailures: string[] = [];
   page.on('console', (message) => {
     if (message.type() === 'error') consoleFailures.push(message.text());

@@ -29,6 +29,7 @@
  *   node scripts/desktop-update-e2e-real.mjs \
  *     --current /path/to/old/Kingfisher.app \
  *     --next-dir /path/to/dir/with/Kingfisher-<v>-arm64.zip and latest-mac.yml
+ *     [--public-feed]   ask the GitHub feed the bundle names instead of a staging server
  */
 
 import { spawn, spawnSync } from 'node:child_process';
@@ -91,28 +92,59 @@ console.log(
 );
 console.log(`next     ${nextVersion} from ${nextZip}\nprofile  ${profile}\n`);
 
+/*
+  `--public-feed`: no staging server and no feed override. The running
+  application asks the feed its own app-update.yml names — the GitHub
+  release host — so this is the update a user performs, against the
+  release the public is offered. `--next-dir` then only says which version
+  to expect (its latest-mac.yml), and must hold the bytes GitHub serves.
+*/
+const publicFeed = args.includes('--public-feed');
 const port = 8765 + Math.floor(Math.random() * 1000);
-const server = spawn(
-  process.execPath,
-  [path.join(ROOT, 'scripts/desktop-update-staging-server.mjs'), nextDir, '--port', String(port)],
-  { stdio: ['ignore', 'pipe', 'pipe'] },
-);
-const feedUrl = `http://127.0.0.1:${port}/`;
-for (let i = 0; i < 50; i += 1) {
-  try {
-    if ((await fetch(`${feedUrl}health`)).ok) break;
-  } catch {
-    /* not yet */
+const server = publicFeed
+  ? null
+  : spawn(
+      process.execPath,
+      [
+        path.join(ROOT, 'scripts/desktop-update-staging-server.mjs'),
+        nextDir,
+        '--port',
+        String(port),
+      ],
+      { stdio: ['ignore', 'pipe', 'pipe'] },
+    );
+const feedUrl = publicFeed
+  ? 'https://github.com/mardakurt/kingfisher/releases/latest/download/'
+  : `http://127.0.0.1:${port}/`;
+if (!publicFeed) {
+  for (let i = 0; i < 50; i += 1) {
+    try {
+      if ((await fetch(`${feedUrl}health`)).ok) break;
+    } catch {
+      /* not yet */
+    }
+    await wait(200);
   }
-  await wait(200);
 }
-check('staging feed answers', (await fetch(`${feedUrl}latest-mac.yml`)).ok, feedUrl);
+{
+  const feed = await fetch(`${feedUrl}latest-mac.yml`);
+  const text = feed.ok ? await feed.text() : '';
+  check(
+    publicFeed ? 'the public feed answers with the next version' : 'staging feed answers',
+    feed.ok && (!publicFeed || text.includes(`version: ${nextVersion}`)),
+    feedUrl,
+  );
+}
 
 const launch = (extraEnv = {}) =>
   electron.launch({
     executablePath: path.join(app, 'Contents/MacOS/Kingfisher'),
     args: [`--user-data-dir=${profile}`],
-    env: { ...process.env, KINGFISHER_UPDATER_FEED_URL: feedUrl, ...extraEnv },
+    env: {
+      ...process.env,
+      ...(publicFeed ? {} : { KINGFISHER_UPDATER_FEED_URL: feedUrl }),
+      ...extraEnv,
+    },
     timeout: 120_000,
   });
 
@@ -277,7 +309,7 @@ try {
   check('the run completed', false, String(error?.message ?? error));
 } finally {
   if (instance) await instance.close().catch(() => {});
-  server.kill();
+  server?.kill();
   if (failed) {
     // The shell's own account of the update, which is the thing to read.
     const log = path.join(profile, 'logs', 'kingfisher.log');

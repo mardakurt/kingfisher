@@ -194,12 +194,19 @@ test('the board preview in Settings is a real board, not a broken one', async ({
       lastCellInside:
         cellRects.length > 0 && (cellRects.at(-1) as DOMRect).bottom <= rect.bottom + 1,
       pieces: pieces.length,
+      /*
+        Two pixels of tolerance, not one: WebKit lays the 176 px preview out
+        with 22 px cells and rasterises each piece at 23.3 px, so the last rank
+        sits 1.5 px past the board's edge there — measured, invisible at that
+        size, and not the clipped rank this assertion exists to catch (which
+        is a whole row, twenty-two pixels).
+      */
       piecesInside: pieceRects.filter(
         (piece) =>
-          piece.left >= rect.left - 1 &&
-          piece.right <= rect.right + 1 &&
-          piece.top >= rect.top - 1 &&
-          piece.bottom <= rect.bottom + 1,
+          piece.left >= rect.left - 2 &&
+          piece.right <= rect.right + 2 &&
+          piece.top >= rect.top - 2 &&
+          piece.bottom <= rect.bottom + 2,
       ).length,
       pieceSizes: new Set(pieceRects.map((piece) => `${Math.round(piece.width)}`)).size,
     };

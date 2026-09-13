@@ -229,7 +229,16 @@ test.describe('dialogs return focus where it came from', () => {
     await waitForApp(page);
 
     const opener = page.getByRole('button', { name: 'Settings ⌘,' });
-    await opener.click();
+    /*
+      Opened from the keyboard: a keyboard user reaches the button with Tab and
+      presses Enter, and that is the user whose place matters here. Safari does
+      not focus a button on a mouse click at all — a platform convention, not
+      a Kingfisher choice — so a click would leave the dialog nothing to
+      return focus to on WebKit and the test would be asserting Safari's
+      mouse behaviour instead of the dialog's contract.
+    */
+    await opener.focus();
+    await page.keyboard.press('Enter');
     const dialog = page.getByRole('dialog', { name: 'Settings' });
     await expect(dialog).toBeVisible();
 

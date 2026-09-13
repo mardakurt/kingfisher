@@ -13,7 +13,7 @@
 
 import { expect, test, type Page } from '@playwright/test';
 
-import { selectTool } from './tools';
+import { isNavigationAbortNoise, selectTool } from './tools';
 
 const SAMPLE_PGN = (count: number) =>
   Array.from(
@@ -24,14 +24,17 @@ const SAMPLE_PGN = (count: number) =>
       `[Result "1-0"]\n\n1. d4 Nf6 2. c4 e6 1-0`,
   ).join('\n\n');
 
-function watchConsole(page: Page): string[] {
+function watchConsole(page: Page, browserName = 'chromium'): string[] {
   const failures: string[] = [];
+  const note = (text: string) => {
+    if (!isNavigationAbortNoise(text, browserName)) failures.push(text);
+  };
   page.on('console', (message) => {
     if (message.type() === 'error' || message.type() === 'warning') {
-      failures.push(`${message.type()}: ${message.text()}`);
+      note(`${message.type()}: ${message.text()}`);
     }
   });
-  page.on('pageerror', (error) => failures.push(`pageerror: ${error.message}`));
+  page.on('pageerror', (error) => note(`pageerror: ${error.message}`));
   return failures;
 }
 
@@ -89,8 +92,8 @@ async function newStudyChapter(page: Page, study: string, chapter: string) {
   await newChapterReady(page);
 }
 
-test('work survives a reload the moment after it is made', async ({ page }) => {
-  const consoleFailures = watchConsole(page);
+test('work survives a reload the moment after it is made', async ({ page, browserName }) => {
+  const consoleFailures = watchConsole(page, browserName);
   await newStudyChapter(page, 'Autosave study', 'Main line');
 
   await play(page, 'd2', 'd4');
@@ -109,8 +112,9 @@ test('work survives a reload the moment after it is made', async ({ page }) => {
 test('a stale write from a second tab is refused rather than applied', async ({
   page,
   context,
+  browserName,
 }) => {
-  const consoleFailures = watchConsole(page);
+  const consoleFailures = watchConsole(page, browserName);
   await newStudyChapter(page, 'Conflict study', 'Shared chapter');
   await play(page, 'd2', 'd4');
   await expectSaved(page);
@@ -166,8 +170,9 @@ test('a stale write from a second tab is refused rather than applied', async ({
 
 test('a cancelled import keeps whole games and does not duplicate them on retry', async ({
   page,
+  browserName,
 }) => {
-  const consoleFailures = watchConsole(page);
+  const consoleFailures = watchConsole(page, browserName);
   await page.goto('/games');
   await waitForApp(page);
 
@@ -189,8 +194,8 @@ test('a cancelled import keeps whole games and does not duplicate them on retry'
   expect(consoleFailures).toEqual([]);
 });
 
-test('the diagnostic report carries no secrets', async ({ page }) => {
-  const consoleFailures = watchConsole(page);
+test('the diagnostic report carries no secrets', async ({ page, browserName }) => {
+  const consoleFailures = watchConsole(page, browserName);
   /*
     The clipboard is the boundary, so it is stubbed rather than granted:
     Playwright can grant clipboard permissions to Chromium only, and Firefox
@@ -240,8 +245,9 @@ test('the diagnostic report carries no secrets', async ({ page }) => {
 
 test('the integrity scan reports a healthy database and finds a planted orphan', async ({
   page,
+  browserName,
 }) => {
-  const consoleFailures = watchConsole(page);
+  const consoleFailures = watchConsole(page, browserName);
   await page.goto('/analysis');
   await waitForApp(page);
 
@@ -285,8 +291,11 @@ test('the integrity scan reports a healthy database and finds a planted orphan',
   expect(consoleFailures).toEqual([]);
 });
 
-test('recent work continues the open document and pins survive a reload', async ({ page }) => {
-  const consoleFailures = watchConsole(page);
+test('recent work continues the open document and pins survive a reload', async ({
+  page,
+  browserName,
+}) => {
+  const consoleFailures = watchConsole(page, browserName);
   await newStudyChapter(page, 'Recent study', 'Chapter one');
   await play(page, 'e2', 'e4');
   await expectSaved(page);
@@ -307,8 +316,11 @@ test('recent work continues the open document and pins survive a reload', async 
   expect(consoleFailures).toEqual([]);
 });
 
-test('transpositions list only stored move orders and open their chapter', async ({ page }) => {
-  const consoleFailures = watchConsole(page);
+test('transpositions list only stored move orders and open their chapter', async ({
+  page,
+  browserName,
+}) => {
+  const consoleFailures = watchConsole(page, browserName);
   // Two chapters reaching the same position by different orders.
   await newStudyChapter(page, 'Transposition study', 'Queen’s Gambit');
   await play(page, 'd2', 'd4');
@@ -351,8 +363,11 @@ test('transpositions list only stored move orders and open their chapter', async
   expect(consoleFailures).toEqual([]);
 });
 
-test('an engine that is stopped and restarted leaves no stale evaluation', async ({ page }) => {
-  const consoleFailures = watchConsole(page);
+test('an engine that is stopped and restarted leaves no stale evaluation', async ({
+  page,
+  browserName,
+}) => {
+  const consoleFailures = watchConsole(page, browserName);
   await page.goto('/analysis');
   await waitForApp(page);
   await play(page, 'e2', 'e4');
@@ -393,8 +408,12 @@ test('an engine that is stopped and restarted leaves no stale evaluation', async
   expect(consoleFailures).toEqual([]);
 });
 
-test('an explorer request that fails states why and never spins', async ({ page, context }) => {
-  const consoleFailures = watchConsole(page);
+test('an explorer request that fails states why and never spins', async ({
+  page,
+  context,
+  browserName,
+}) => {
+  const consoleFailures = watchConsole(page, browserName);
   await page.goto('/openings');
   await waitForApp(page);
   // Openings opens on the library; the explorer is the other mode.

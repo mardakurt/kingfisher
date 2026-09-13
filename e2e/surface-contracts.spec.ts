@@ -3,8 +3,13 @@ import { expect, test } from '@playwright/test';
 test('the landing page scrolls and serves actual manifest images', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Chess research, in one place.' })).toBeVisible();
-  await page.mouse.move(500, 400);
-  await page.mouse.wheel(0, 700);
+  /*
+    Scrolled programmatically rather than with a synthetic wheel: WebKit's
+    driver does not turn `mouse.wheel` into a scroll, and the contract here is
+    that the document *can* scroll (Phase 28's frozen landing was
+    `overflow: hidden` on the body), which `scrollTo` proves in every engine.
+  */
+  await page.evaluate(() => window.scrollTo(0, 700));
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
   const manifest = await (await page.request.get('/manifest.webmanifest')).json();
   for (const icon of manifest.icons) {
