@@ -174,15 +174,13 @@ function mustMatch(rel, regex, reason) {
 {
   const content = mustExist('src/release/public-urls.ts');
   if (content !== null) {
-    const ok = /KINGFISHER_PUBLIC_LANDING_URL',\s*'https:\/\/kingfisher-chess\.vercel\.app'\)/.test(
-      content,
-    );
+    const ok = /KINGFISHER_PUBLIC_LANDING_URL',\s*'https:\/\/kingfisherchess\.app'\)/.test(content);
     record(
       'public-urls.landing',
       ok,
       ok
-        ? 'canonical landing is https://kingfisher-chess.vercel.app'
-        : 'canonical landing is not the Vercel production host',
+        ? 'canonical landing is https://kingfisherchess.app'
+        : 'canonical landing is not kingfisherchess.app',
     );
   }
 }
@@ -556,12 +554,12 @@ if (descriptor) {
   const studio = urls.match(/'KINGFISHER_PUBLIC_WEB_URL',\s*'([^']+)'/)?.[1];
   record(
     'hosts:canonical-landing',
-    landing === 'https://kingfisher-chess.vercel.app',
+    landing === 'https://kingfisherchess.app',
     landing ?? 'unreadable',
   );
   record(
     'hosts:canonical-studio',
-    studio === 'https://kingfisher-roan.vercel.app',
+    studio === 'https://kingfisherchess.app',
     studio ?? 'unreadable',
   );
   mustMatch(
@@ -575,7 +573,14 @@ if (descriptor) {
     'sitemap is rooted at the canonical landing',
   );
   for (const rel of ['README.md', 'docs/release/install-macos.md']) {
-    mustMatch(rel, /kingfisher-chess\.vercel\.app/, `${rel} names the canonical landing host`);
+    mustMatch(rel, /https:\/\/kingfisherchess\.app\//, `${rel} names the canonical landing host`);
+    // The pre-2026-09-13 landing host only redirects now; a link to it in
+    // a document users read is a link to a redirect.
+    mustNotMatch(
+      rel,
+      /https:\/\/kingfisher-chess\.vercel\.app/,
+      `${rel} links the old landing host`,
+    );
   }
 }
 

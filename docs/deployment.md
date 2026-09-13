@@ -6,12 +6,12 @@ Where each surface is hosted, and how to publish a new release.
 
 | Surface                  | Where                                                                                                              |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------ |
-| Landing page             | <https://kingfisher-chess.vercel.app/>                                                                             |
-| Studio (the application) | <https://kingfisher-roan.vercel.app/>                                                                              |
+| Landing page             | <https://kingfisherchess.app/>                                                                                     |
+| Studio (the application) | <https://kingfisherchess.app/analysis>                                                                             |
 | Public docs              | the same landing host, at `/install`, `/privacy`, `/security`, `/data-licences`, `/terms`                          |
 | Optional reference data  | the `kingfisher-data` Pages site, at `/reference-{pack}-{version}/`                                                |
 | macOS preview build      | the DMG named by `src/release/macos-download.json`, a GitHub pre-release under its own `macos-preview-<build>` tag |
-| Web app (fallback)       | <https://kingfisher-chess.vercel.app/>                                                                             |
+| Web app (fallback)       | <https://kingfisher-roan.vercel.app/> (the origin before 2026-09-13, kept for the data there)                      |
 | Source / issues          | <https://github.com/mardakurt/kingfisher>                                                                          |
 
 The legacy `mardakurt.github.io/kingfisher-data/` origin still
@@ -142,8 +142,10 @@ not set; it never blocks the release flow.
 ### Production deploy automation
 
 One Vercel project, `kingfisher`, serves both public hostnames
-(`kingfisher-chess.vercel.app` is the landing, `kingfisher-roan.vercel.app`
-the application — one build, two aliases). Since 2026-09-13 the project is
+(`kingfisherchess.app` serves the landing at `/` and the application at
+its routes; `www.` and `kingfisher-chess.vercel.app` redirect to it;
+`kingfisher-roan.vercel.app`, the application's origin before
+2026-09-13, keeps serving it so the local data there stays reachable). Since 2026-09-13 the project is
 **linked to `mardakurt/kingfisher` through Vercel's Git integration**, with
 `master` as the production branch: every push to `master` is built and,
 when the build is green, promoted to production. A red build is not
@@ -161,8 +163,8 @@ reads `git rev-parse origin/master` and the latest production deployment,
 and prints:
 
 ```
-kingfisher-chess.vercel.app: up to date (b73a3b0)
-kingfisher-roan.vercel.app : up to date (b73a3b0)
+kingfisherchess.app       : up to date (b73a3b0)
+kingfisher-roan.vercel.app: up to date (b73a3b0)
 ```
 
 or, when the Studio build is missing or behind:
@@ -197,7 +199,7 @@ reads from the GitHub Pages data mirror.
 ## Hosting the landing page
 
 The **canonical** landing page is the Vercel production build at
-<https://kingfisher-chess.vercel.app/>. The Next.js build
+<https://kingfisherchess.app/>. The Next.js build
 compiles `src/app/landing/LandingPage.tsx` to a static page; Vercel
 serves it from the `kingfisher` project. The marketing surface
 is therefore deployed together with the application — there is

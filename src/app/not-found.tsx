@@ -47,7 +47,7 @@ export default function NotFound() {
           Search Kingfisher
         </Button>
         <Link
-          href="https://kingfisher-chess.vercel.app/"
+          href="https://kingfisherchess.app/"
           rel="noopener"
           prefetch={false}
           className="rounded-[4px] border border-line bg-surface-2 px-3 py-1.5 text-xs text-primary transition-colors hover:bg-surface-3"

@@ -55,12 +55,13 @@ export function PrivacyPage(): JSX.Element {
       </p>
       <p>
         The bulk of your work is in <strong>IndexedDB</strong>. IndexedDB is origin-scoped, so a
-        profile on <code>kingfisher-roan.vercel.app</code> is not the same database as one on{}
-        <code>kingfisher-chess.vercel.app</code> or one on <code>localhost</code>. If you move
-        between them, the work does not move with you — the supported way to move work between
-        machines and profiles is the <em>Settings → Database → Export backup / Import backup</em>
-        {}
-        flow, which produces and consumes a versioned JSON file under your control.
+        profile on <code>kingfisherchess.app</code> is not the same database as one on{' '}
+        <code>kingfisher-roan.vercel.app</code> (the address the application had before 2026-09-13,
+        which keeps serving so that work stays reachable) or one on <code>localhost</code>. If you
+        move between them, the work does not move with you — the supported way to move work between
+        machines, profiles and addresses is the{' '}
+        <em>Settings → Database → Export backup / Import backup</em> flow, which produces and
+        consumes a versioned JSON file under your control.
       </p>
 
       <h2 id="reference-cache">Reference cache</h2>

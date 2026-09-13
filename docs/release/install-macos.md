@@ -9,7 +9,7 @@ not a review or an endorsement of the product.
 
 The exact build the landing page offers — build number, commit, size and
 SHA-256 — is stated in `src/release/macos-download.json` and on the
-[install page](https://kingfisher-chess.vercel.app/install), which is
+[install page](https://kingfisherchess.app/install), which is
 rendered from that file.
 
 ## What you need
@@ -25,7 +25,7 @@ rendered from that file.
 
 Get the DMG from the landing page or the latest release on GitHub:
 
-> <https://kingfisher-chess.vercel.app/#macos>
+> <https://kingfisherchess.app/#macos>
 > <https://github.com/mardakurt/kingfisher/releases/latest>
 
 The file is **`Kingfisher-1.1.2-arm64.dmg`**. If the file you downloaded

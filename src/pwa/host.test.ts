@@ -3,6 +3,11 @@ import { describe, expect, it } from 'vitest';
 import { studioHostFor } from './host';
 
 describe('studioHostFor', () => {
+  it('treats the public host as an application host, as the middleware does', () => {
+    expect(studioHostFor('kingfisherchess.app')).toBe('kingfisherchess.app');
+    expect(studioHostFor('www.kingfisherchess.app:443')).toBe('www.kingfisherchess.app');
+  });
+
   it('returns the bare host for production studio hostnames', () => {
     expect(studioHostFor('kingfisher-roan.vercel.app')).toBe('kingfisher-roan.vercel.app');
     expect(studioHostFor('studio.kingfisher-chess.vercel.app')).toBe(

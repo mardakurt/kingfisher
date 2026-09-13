@@ -56,7 +56,7 @@ under the MIT licence.
 >
 > **What's in it**
 >
-> - **Web app** at <https://kingfisher-roan.vercel.app/> —
+> - **Web app** at <https://kingfisherchess.app/analysis> —
 >   Stockfish 18 in the page, no install.
 > - **macOS** (`Kingfisher-1.1.2-arm64.dmg`) — Apple Silicon,
 >   macOS 13 (Ventura) or later, Developer ID signed, notarised.
@@ -109,9 +109,9 @@ under the MIT licence.
 > It is local-first: no account, no telemetry, no subscription. No
 > data leaves your machine that you didn't put in the address bar.
 >
-> - Web app: <https://kingfisher-chess.vercel.app/>
+> - Web app: <https://kingfisherchess.app/analysis>
 > - macOS (Apple Silicon, macOS 13+, Developer ID signed and
->   notarised): <https://kingfisher-chess.vercel.app/#macos>
+>   notarised): <https://kingfisherchess.app/#macos>
 > - Source (MIT): <https://github.com/mardakurt/kingfisher>
 >
 > I am looking for real bug reports, real workflows, and real
@@ -127,7 +127,7 @@ under the MIT licence.
 >
 > Kingfisher is a local-first chess research workstation for
 > serious players. The web app is at
-> <https://kingfisher-chess.vercel.app/>; the macOS build
+> <https://kingfisherchess.app/>; the macOS build
 > (`Kingfisher-1.1.2-arm64.dmg`, Apple Silicon, macOS 13 or later,
 > Developer ID signed and notarised by Apple) is linked from the same
 > page.

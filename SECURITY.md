@@ -204,7 +204,8 @@ false`, `allowPrerelease: false` (so the preview channel is
 
 ### Service worker / PWA boundaries (added in Phase 34)
 
-The studio origin (`kingfisher-roan.vercel.app`) registers a
+The application origin (`kingfisherchess.app`, and the earlier
+`kingfisher-roan.vercel.app`) registers a
 service worker (`public/sw.js`) so a player who installs
 Kingfisher from their browser can reopen it like an installed
 application. The worker is a small vanilla script bundled with
@@ -212,7 +213,7 @@ the application — no Workbox, no remote scripts, no
 `importScripts` from third-party origins. Its boundaries are:
 
 - **Same-origin only.** The worker is hosted at
-  `https://kingfisher-roan.vercel.app/sw.js` and the CSP allows
+  `https://kingfisherchess.app/sw.js` and the CSP allows
   only `'self'` script sources. A hostile site cannot register
   a different worker for the studio origin.
 - **Application shell only.** The worker caches Next.js hashed

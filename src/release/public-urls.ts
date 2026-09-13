@@ -49,44 +49,39 @@ const trimTrailingSlash = (s: string): string => s.replace(/\/+$/, '');
 
 export const publicUrl = {
   /*
-   * The canonical public landing. The Vercel production host is
-   * the only origin the application prints, the documentation
-   * links to, and the social metadata names. The legacy
-   * `mardakurt.github.io/kingfisher-data/` origin still serves
-   * a tiny redirect-only backup and is not a canonical surface.
+   * The canonical public origin. Since 2026-09-13 one host serves
+   * both surfaces: the landing at `/`, the application at its own
+   * routes. It is the only origin the application prints, the
+   * documentation links to, and the social metadata names. The
+   * earlier hosts redirect here (`kingfisher-chess.vercel.app`) or
+   * keep serving the application for the data that lives there
+   * (`kingfisher-roan.vercel.app`); the legacy
+   * `mardakurt.github.io/kingfisher-data/` origin still serves a
+   * tiny redirect-only backup and is not a canonical surface.
    */
   landing: trimTrailingSlash(
-    fromEnv('KINGFISHER_PUBLIC_LANDING_URL', 'https://kingfisher-chess.vercel.app'),
+    fromEnv('KINGFISHER_PUBLIC_LANDING_URL', 'https://kingfisherchess.app'),
   ),
   /*
-   * The studio is the *application*, served on its own host so a
-   * returning player can bookmark and open it directly without
-   * passing through the marketing page.
-   *
-   * Default: a separate Vercel host. The host header is what
-   * decides which surface the visitor sees, so a deployment that
-   * serves both can still point at a single canonical studio
-   * URL here. **Do not change this lightly** — IndexedDB is
-   * origin-scoped, and changing the studio hostname would strand
-   * the existing local data of every existing user. See
-   * `docs/reports/phase-33-handover.md` for the persistence /
-   * migration analysis.
+   * The application, as a returning player bookmarks it: the
+   * analysis board on the public origin. **Do not change the origin
+   * lightly** — IndexedDB is origin-scoped, and a new hostname
+   * strands the local data of everyone on the old one. The move from
+   * `kingfisher-roan.vercel.app` was made on 2026-09-13, before the
+   * first public announcement, with the old origin left serving so
+   * Backup → Export / Import can carry work across.
    */
   studio: trimTrailingSlash(
     fromEnv(
       'KINGFISHER_PUBLIC_STUDIO_URL',
-      fromEnv('KINGFISHER_PUBLIC_WEB_URL', 'https://kingfisher-roan.vercel.app'),
+      `${fromEnv('KINGFISHER_PUBLIC_WEB_URL', 'https://kingfisherchess.app')}/analysis`,
     ),
   ),
   /*
-   * The full app at the marketing origin. Useful for the launch
-   * button when the middleware is not configured (single-host
-   * deployment) or when the visitor wants the canonical
-   * `https://kingfisher-chess.vercel.app/analysis` URL.
+   * The origin the application is served from — the same as the
+   * landing since the two surfaces share a host.
    */
-  web: trimTrailingSlash(
-    fromEnv('KINGFISHER_PUBLIC_WEB_URL', 'https://kingfisher-chess.vercel.app'),
-  ),
+  web: trimTrailingSlash(fromEnv('KINGFISHER_PUBLIC_WEB_URL', 'https://kingfisherchess.app')),
   repository: trimTrailingSlash(
     fromEnv('KINGFISHER_PUBLIC_REPOSITORY_URL', 'https://github.com/mardakurt/kingfisher'),
   ),

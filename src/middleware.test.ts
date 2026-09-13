@@ -1,11 +1,53 @@
 import { describe, expect, it, beforeEach, afterEach } from 'vitest';
 
 import {
+  isApplicationHost,
   isLandingAsset,
+  noindexFor,
+  publicHostFor,
   routingFor,
   studioHostFor,
+  PUBLIC_DEFAULT_HOSTS,
   STUDIO_DEFAULT_HOSTS,
 } from './middleware-host-rules';
+
+describe('the public host serves both surfaces on one origin', () => {
+  it('recognises the apex and www, with or without a port, and nothing else', () => {
+    for (const host of PUBLIC_DEFAULT_HOSTS) {
+      expect(publicHostFor(host)).toBe(host);
+      expect(publicHostFor(`${host.toUpperCase()}:443`)).toBe(host);
+    }
+    expect(publicHostFor('kingfisherchess.app.evil.example')).toBeNull();
+    expect(publicHostFor('kingfisher-chess.vercel.app')).toBeNull();
+    expect(publicHostFor(null)).toBeNull();
+  });
+
+  it('serves the landing at / and the application at its own paths, nothing rewritten', () => {
+    expect(routingFor('kingfisherchess.app', '/')).toEqual({ kind: 'next' });
+    expect(routingFor('kingfisherchess.app', '/analysis')).toEqual({ kind: 'next' });
+    expect(routingFor('kingfisherchess.app', '/openings')).toEqual({ kind: 'next' });
+    expect(routingFor('www.kingfisherchess.app', '/install')).toEqual({ kind: 'next' });
+  });
+
+  it('marks the application noindex and leaves the landing and public documents indexable', () => {
+    expect(noindexFor('kingfisherchess.app', '/')).toBe(false);
+    expect(noindexFor('kingfisherchess.app', '/install')).toBe(false);
+    expect(noindexFor('kingfisherchess.app', '/privacy')).toBe(false);
+    expect(noindexFor('kingfisherchess.app', '/sitemap.xml')).toBe(false);
+    expect(noindexFor('kingfisherchess.app', '/analysis')).toBe(true);
+    expect(noindexFor('kingfisherchess.app', '/player/carlsen')).toBe(true);
+    // The studio host is the application everywhere; a landing host never is.
+    expect(noindexFor('kingfisher-roan.vercel.app', '/')).toBe(true);
+    expect(noindexFor('kingfisher-chess.vercel.app', '/')).toBe(false);
+  });
+
+  it('is an application host, as the studio host is and the old landing host is not', () => {
+    expect(isApplicationHost('kingfisherchess.app')).toBe(true);
+    expect(isApplicationHost('kingfisher-roan.vercel.app')).toBe(true);
+    expect(isApplicationHost('kingfisher-chess.vercel.app')).toBe(false);
+    expect(isApplicationHost(null)).toBe(false);
+  });
+});
 
 describe('host routing rules', () => {
   it('treats "/" as a landing path', () => {

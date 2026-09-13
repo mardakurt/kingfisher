@@ -319,3 +319,35 @@ default.
   (see above). After the fix, in Chrome via `e2e/feedback.spec.ts`: the
   POST leaves the page with category, message, `openedAtMs` and the FEN,
   and the dialog shows the reference.
+
+## Later on 2026-09-13 — one public address
+
+The owner bought `kingfisherchess.app` and, in the Vercel dashboard,
+pointed `kingfisher-chess.vercel.app` at it and dropped
+`kingfisher-roan.vercel.app` from the project. That took the application
+off the air: the middleware decides landing-vs-application by host, and
+with no studio host left every `/analysis` redirected to `/` while the
+landing's launch button led to a 404. `kingfisher-roan.vercel.app` was
+re-added through the API at once (the application was back within a
+minute), and the layout the owner actually wanted — no `vercel` in the
+address, no subdomain — was then built properly:
+
+- `src/middleware-host-rules.ts` knows a **public host**
+  (`kingfisherchess.app`, `www.`), served the way `localhost` is: the
+  landing at `/` and the public documents indexable, the application
+  routes served as they are with `X-Robots-Tag: noindex`. The studio
+  hosts keep their behaviour; `kingfisher-roan.vercel.app` stays one so
+  the local data there is reachable and exportable.
+- `publicUrl.landing` is `https://kingfisherchess.app`,
+  `publicUrl.studio` is `…/analysis`; `metadataBase`, the sitemap, the
+  robots file, the JSON-LD, `security.txt`, the 404 page, the PWA host
+  mirror, the manifest route, the feedback origin allowlist, both check
+  scripts and every canonical document follow. `docs:check` now asserts
+  the new host and refuses a link to the old landing host.
+- At the edge: apex is canonical, `www.` and `kingfisher-chess.vercel.app`
+  redirect to it; `kingfisher-roan.vercel.app` serves the application.
+
+The 1.1.2 Mac bundle is unaffected: it serves the application over
+loopback, and the links it prints follow the redirect. Its source
+revision is now behind `master` by web-hosting commits only; the next
+Mac release is due when there is a Mac-facing change.

@@ -7,8 +7,8 @@ A local-first chess research workstation for serious players.
 
 |                                                                           |                                                                                            |
 | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| 🌐 **[Launch the web app](https://kingfisher-roan.vercel.app/)**          | Open in any modern browser. The Stockfish engine is in the page; no install.               |
-| 🍎 **[Download for macOS](https://kingfisher-chess.vercel.app/#macos)**   | Apple Silicon. Signed with Developer ID and notarised by Apple; opens with a double-click. |
+| 🌐 **[Launch the web app](https://kingfisherchess.app/analysis)**         | Open in any modern browser. The Stockfish engine is in the page; no install.               |
+| 🍎 **[Download for macOS](https://kingfisherchess.app/#macos)**           | Apple Silicon. Signed with Developer ID and notarised by Apple; opens with a double-click. |
 | 📦 **[Source on GitHub](https://github.com/mardakurt/kingfisher)**        | Releases, source, issue tracker, changelog.                                                |
 | 📖 **[Changelog](CHANGELOG.md)**                                          | What changed in each release.                                                              |
 | 🐛 **[Report a problem](https://github.com/mardakurt/kingfisher/issues)** | Issue templates for bugs and feature requests.                                             |
@@ -69,17 +69,18 @@ re-import. No cloud sync is required and none is implied.
 
 ## At a glance
 
-- **Landing page** at <https://kingfisher-chess.vercel.app/>. One
-  marketing surface, one canonical URL. The legacy
-  `mardakurt.github.io/kingfisher-data/` redirects here.
-- **Studio** at <https://kingfisher-roan.vercel.app/>. The
-  application, on its own origin, reachable directly without going
-  through the landing page. Both URLs are served by the same Vercel
-  project; the host header decides which surface the visitor sees.
+- **One public address**, <https://kingfisherchess.app/>: the landing
+  page at `/`, the application at <https://kingfisherchess.app/analysis>
+  — bookmark that to skip the marketing page. The earlier
+  `kingfisher-chess.vercel.app` redirects here; the earlier application
+  origin `kingfisher-roan.vercel.app` keeps serving so work stored there
+  stays reachable (local data is per origin — _Settings → Database →
+  Export / Import backup_ moves it). The host header decides which
+  surface a visitor sees.
   See [`docs/adr/00xx-optional-account-sync.md`](docs/adr/00xx-optional-account-sync.md)
   for the architecture rationale.
 - **macOS app** as a `.dmg` from the
-  [landing page](https://kingfisher-chess.vercel.app/#macos), which links
+  [landing page](https://kingfisherchess.app/#macos), which links
   the current release; `src/release/macos-download.json` is the file that
   names it. Apple Silicon only. Developer ID signed and notarised: open the
   DMG, drag to Applications, double-click — see

@@ -368,17 +368,22 @@ The repository exposes a small set of public surfaces. The single
 source of truth for the URLs the application prints is
 `src/release/public-urls.ts`; do not hard-code a second copy.
 
-- **Canonical landing:** `https://kingfisher-chess.vercel.app/`.
-  The default in `publicUrl.landing` and the
+- **Canonical origin:** `https://kingfisherchess.app/` — the landing
+  at `/`, the application at `/analysis` and the other routes, on one
+  host, as on `localhost`. `www.` and `kingfisher-chess.vercel.app`
+  redirect to it at the edge. The default in `publicUrl.landing` and the
   `metadataBase` in `src/app/layout.tsx` agree. The legacy
   `mardakurt.github.io/kingfisher-data/` origin still serves a
   tiny redirect-only backup in `marketing/index.html`; it is
   not canonical and must not be linked as the primary surface.
-- **Studio (the application):** `https://kingfisher-roan.vercel.app/`.
-  IndexedDB is origin-scoped. Changing this hostname strands the
-  existing local data of every existing user. A change requires
-  a typed persistence / migration plan before the
-  `publicUrl.studio` default is touched.
+- **Studio (the application):** `https://kingfisherchess.app/analysis`.
+  IndexedDB is origin-scoped. Changing the origin strands the
+  existing local data of every existing user; the move from
+  `kingfisher-roan.vercel.app` was made on 2026-09-13, before the
+  first announcement, and that origin stays a studio host in
+  `src/middleware-host-rules.ts` so the data there is reachable and
+  exportable. Do not remove it, and do not touch the `publicUrl.studio`
+  default again without a persistence / migration plan.
 - **macOS stable DMG:** `Kingfisher-1.1.2-arm64.dmg`, build 516,
   signed with Developer ID Application and notarised. The public descriptor
   `src/release/macos-download.json` selects the release; the landing and

@@ -9,11 +9,30 @@
  */
 
 export const STUDIO_HOST_ENV = 'KINGFISHER_STUDIO_HOST';
+/**
+ * Hosts that are the application and nothing else: `/` is the analysis
+ * board and every response is noindex. `kingfisher-roan.vercel.app` is
+ * the origin the application lived on until 2026-09-13; it stays here
+ * so the local data of anyone who used it there is still reachable —
+ * IndexedDB is per origin, and Backup → Export / Import is the way
+ * across to the public host.
+ */
 export const STUDIO_DEFAULT_HOSTS = [
   'kingfisher-roan.vercel.app',
   'studio.kingfisher-chess.vercel.app',
   'studio.localhost',
 ];
+
+export const PUBLIC_HOST_ENV = 'KINGFISHER_PUBLIC_HOST';
+/**
+ * The public host serves both surfaces on one origin, the way
+ * `localhost` does in development: the landing at `/` and the public
+ * documents are indexable; the application routes are served as they
+ * are and carry noindex. `www.` redirects to the apex at the edge, but
+ * the rule accepts both so a request that reaches Next directly still
+ * behaves.
+ */
+export const PUBLIC_DEFAULT_HOSTS = ['kingfisherchess.app', 'www.kingfisherchess.app'];
 
 /** A path the marketing surface is allowed to answer. */
 export const LANDING_PATHS = new Set<string>([
@@ -53,6 +72,29 @@ export function studioHostFor(hostHeader: string | null): string | null {
   return bare && candidates.has(bare) ? bare : null;
 }
 
+/**
+ * The bare hostname when the request is for the public host that serves
+ * both surfaces, or `null`.
+ */
+export function publicHostFor(hostHeader: string | null): string | null {
+  const configured = process.env[PUBLIC_HOST_ENV];
+  const candidates = new Set<string>(
+    configured ? [configured, ...PUBLIC_DEFAULT_HOSTS] : PUBLIC_DEFAULT_HOSTS,
+  );
+  if (!hostHeader) return null;
+  const bare = hostHeader.split(':')[0]?.toLowerCase();
+  return bare && candidates.has(bare) ? bare : null;
+}
+
+/**
+ * Does this host serve the application? True for a studio host and for
+ * the public host; the manifest route and the PWA use it to decide
+ * whether an install makes sense here.
+ */
+export function isApplicationHost(hostHeader: string | null): boolean {
+  return studioHostFor(hostHeader) !== null || publicHostFor(hostHeader) !== null;
+}
+
 /** A path the marketing surface is allowed to answer. */
 export function isLandingAsset(pathname: string): boolean {
   if (LANDING_PATHS.has(pathname)) return true;
@@ -79,6 +121,10 @@ export function routingFor(host: string | null, pathname: string): RoutingAction
   if (host && /^(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/i.test(host)) {
     return { kind: 'next' };
   }
+  // The public host is both surfaces on one origin; nothing is rewritten.
+  if (publicHostFor(host)) {
+    return { kind: 'next' };
+  }
   const studio = studioHostFor(host);
   if (!studio) {
     if (pathname !== '/' && !isLandingAsset(pathname)) {
@@ -90,4 +136,16 @@ export function routingFor(host: string | null, pathname: string): RoutingAction
     return { kind: 'rewrite', to: '/analysis' };
   }
   return { kind: 'next' };
+}
+
+/**
+ * Should the response carry `X-Robots-Tag: noindex`? Everything on a
+ * studio host; on the public host, the application routes and nothing
+ * the landing answers — the marketing page and the public documents
+ * are meant to be indexed.
+ */
+export function noindexFor(host: string | null, pathname: string): boolean {
+  if (studioHostFor(host)) return true;
+  if (publicHostFor(host)) return pathname !== '/' && !isLandingAsset(pathname);
+  return false;
 }

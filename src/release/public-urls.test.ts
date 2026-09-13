@@ -4,20 +4,19 @@ import { macosDownload } from './macos-download';
 import { publicUrl } from './public-urls';
 
 describe('publicUrl', () => {
-  it('names the Vercel production host as the canonical landing', () => {
-    // The Phase 33 audit (docs/operations/search-console.md)
-    // commits to one canonical landing identity. Changing this
-    // is a deliberate decision that needs a migration plan for
-    // every existing IndexedDB-backed user.
-    expect(publicUrl.landing).toBe('https://kingfisher-chess.vercel.app');
+  it('names kingfisherchess.app as the canonical landing', () => {
+    // One canonical identity for the metadata, the sitemap and every
+    // printed link. Changing it is a deliberate public-surface change.
+    expect(publicUrl.landing).toBe('https://kingfisherchess.app');
   });
 
-  it('keeps the studio origin stable for IndexedDB continuity', () => {
-    // The studio is where every player's local data lives. A
-    // change here strands the existing data of every existing
-    // user. The phase 33 handover documents the persistence /
-    // migration analysis that has to happen *before* a change.
-    expect(publicUrl.studio).toBe('https://kingfisher-roan.vercel.app');
+  it('points the application at the analysis board on the same origin', () => {
+    // The origin is where every player's local data lives; a change
+    // strands the existing data of every existing user. The move
+    // from kingfisher-roan.vercel.app was made on 2026-09-13, before
+    // the first announcement, with the old origin left serving.
+    expect(publicUrl.studio).toBe('https://kingfisherchess.app/analysis');
+    expect(publicUrl.web).toBe('https://kingfisherchess.app');
   });
 
   it('exposes a downloadable DMG URL that resolves to the current release', () => {

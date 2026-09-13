@@ -16,6 +16,12 @@
  */
 
 const STUDIO_HOSTS = new Set<string>([
+  // The public host serves the application at its own routes, so the
+  // service worker and the install prompt belong there too; the
+  // landing at `/` never mounts either.
+  'kingfisherchess.app',
+  'www.kingfisherchess.app',
+  // The origin the application lived on until 2026-09-13.
   'kingfisher-roan.vercel.app',
   'studio.kingfisher-chess.vercel.app',
   'studio.localhost',

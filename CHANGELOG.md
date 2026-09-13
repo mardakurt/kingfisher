@@ -4,6 +4,18 @@ The user-facing changelog. Internal phase history is in
 `docs/reports/` and `docs/product/phase-*.md`; the list below is what
 real users notice.
 
+## Unreleased (web)
+
+- **One public address.** Kingfisher now lives at
+  <https://kingfisherchess.app/>: the landing page at `/`, the
+  application at `/analysis` and the other routes, exactly as on
+  `localhost`. `kingfisher-chess.vercel.app` redirects there. The
+  application's previous address, `kingfisher-roan.vercel.app`, keeps
+  serving so that work stored there stays reachable — local data is per
+  origin, and _Settings → Database → Export / Import backup_ carries it
+  to the new address. The Mac application is unaffected; its printed
+  links follow the redirect.
+
 ## 1.1.2 — 2026-09-13
 
 A maintenance release that brings the public Mac application back to

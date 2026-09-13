@@ -36,12 +36,14 @@ const ALLOWED_HOSTS = new Set([
   'github.com',
   'objects.githubusercontent.com',
   'raw.githubusercontent.com',
+  'kingfisherchess.app',
+  'www.kingfisherchess.app',
   'kingfisher-chess.vercel.app',
   'kingfisher-roan.vercel.app',
 ]);
 
 const config = {
-  landing: env.KINGFISHER_PUBLIC_LANDING_URL || 'https://kingfisher-chess.vercel.app',
+  landing: env.KINGFISHER_PUBLIC_LANDING_URL || 'https://kingfisherchess.app',
   web: publicUrl.studio,
   repository: env.KINGFISHER_PUBLIC_REPOSITORY_URL || 'https://github.com/mardakurt/kingfisher',
   release:

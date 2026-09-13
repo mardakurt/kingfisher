@@ -41,18 +41,18 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-import { routingFor, studioHostFor } from './middleware-host-rules';
+import { noindexFor, routingFor } from './middleware-host-rules';
 
 export function middleware(request: NextRequest) {
   const url = request.nextUrl;
   const host = request.headers.get('host');
   const action = routingFor(host, url.pathname);
-  const isStudio = studioHostFor(host) !== null;
   switch (action.kind) {
     case 'next': {
-      // Studio responses carry a noindex header. We do not apply it to
-      // the marketing origin — that surface *is* meant to be indexed.
-      if (isStudio) {
+      // Application responses carry a noindex header. The marketing
+      // page and the public documents do not — they *are* meant to be
+      // indexed, on the public host as on the old landing host.
+      if (noindexFor(host, url.pathname)) {
         const res = NextResponse.next();
         res.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
         return res;

@@ -36,7 +36,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-import { studioHostFor } from '@/middleware-host-rules';
+import { isApplicationHost } from '@/middleware-host-rules';
 
 const ICON_192 = '/icon-192.png';
 const ICON_512 = '/icon-512.png';
@@ -84,7 +84,7 @@ const MARKETING_MANIFEST = {
 
 export function GET(request: NextRequest): NextResponse {
   const host = request.headers.get('host');
-  const isStudio = studioHostFor(host) !== null;
+  const isStudio = isApplicationHost(host);
   const manifest = isStudio ? STUDIO_MANIFEST : MARKETING_MANIFEST;
   const body = JSON.stringify(manifest, null, 2);
   return new NextResponse(body, {
