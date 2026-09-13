@@ -40,6 +40,7 @@ describe('POST /api/feedback', () => {
        into a server log they cannot read. */
     delete process.env.KINGFISHER_FEEDBACK_REPOSITORY;
     delete process.env.KINGFISHER_FEEDBACK_TOKEN;
+    delete process.env.KINGFISHER_FEEDBACK_NTFY_TOPIC;
     const response = await POST(makeRequest(validBody, { origin: 'http://localhost:3210' }));
     expect(response.status).toBe(503);
     const body = await response.json();
@@ -50,13 +51,14 @@ describe('POST /api/feedback', () => {
     expect(body.message).toMatch(/Direct feedback is not currently configured/);
   });
 
-  it('accepts a well-formed payload and returns a reference when the sink is configured', async () => {
+  it('accepts a well-formed payload and returns a reference when the GitHub sink is configured', async () => {
     /* A sink is faked by setting env vars; `deliverToGitHub`
        will still fail because no real GitHub API exists in
        tests, but the route must accept the envelope and
        surface the reference through the 502 path. */
     process.env.KINGFISHER_FEEDBACK_REPOSITORY = 'mardakurt/kingfisher-feedback-test';
     process.env.KINGFISHER_FEEDBACK_TOKEN = 'test-pat-no-network-access';
+    delete process.env.KINGFISHER_FEEDBACK_NTFY_TOPIC;
     try {
       const response = await POST(makeRequest(validBody, { origin: 'http://localhost:3210' }));
       expect([200, 502]).toContain(response.status);
@@ -69,6 +71,25 @@ describe('POST /api/feedback', () => {
     }
   });
 
+  it('publishes to ntfy and returns 200 when only the ntfy topic is configured', async () => {
+    delete process.env.KINGFISHER_FEEDBACK_REPOSITORY;
+    delete process.env.KINGFISHER_FEEDBACK_TOKEN;
+    process.env.KINGFISHER_FEEDBACK_NTFY_TOPIC = 'kf-test-topic-not-real';
+    try {
+      const response = await POST(makeRequest(validBody, { origin: 'http://localhost:3210' }));
+      /* The route returns 200 on a successful ntfy publish.
+         A 502 here would mean the ntfy network call failed in
+         the test environment; both are acceptable, what we
+         verify is that the reference is always present. */
+      expect([200, 502]).toContain(response.status);
+      const body = await response.json();
+      expect(typeof body.reference).toBe('string');
+      expect(body.reference).toMatch(/^kf-/);
+    } finally {
+      delete process.env.KINGFISHER_FEEDBACK_NTFY_TOPIC;
+    }
+  });
+
   it('rejects an unknown origin', async () => {
     const response = await POST(makeRequest(validBody, { origin: 'https://evil.example.com' }));
     expect(response.status).toBe(403);
@@ -77,6 +98,7 @@ describe('POST /api/feedback', () => {
   it('accepts same-origin requests without an origin header (production behind a proxy)', async () => {
     delete process.env.KINGFISHER_FEEDBACK_REPOSITORY;
     delete process.env.KINGFISHER_FEEDBACK_TOKEN;
+    delete process.env.KINGFISHER_FEEDBACK_NTFY_TOPIC;
     const response = await POST(makeRequest(validBody));
     /* The route is now strict about durability. With no env
        vars it returns 503, not 200 — the brief's

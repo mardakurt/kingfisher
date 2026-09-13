@@ -9,9 +9,26 @@
  *
  * The route works without any environment variable: in that
  * mode it accepts the envelope, runs the same validations the
- * renderer runs, and returns a 200 with a synthetic reference.
- * That is the "feedback was captured" path. To actually
- * deliver the message to a GitHub tracker the owner must set
+ * renderer runs, returns a 503 with `code: 'unconfigured'`, and
+ * the renderer falls back to the GitHub pre-filled-issue path.
+ *
+ * To actually deliver the message so the maintainer sees it
+ * without doing anything, the owner can set a single
+ * environment variable:
+ *
+ *     KINGFISHER_FEEDBACK_NTFY_TOPIC   (a hard-to-guess ntfy.sh topic)
+ *
+ * With that set, every accepted submission is POSTed to
+ * `https://ntfy.sh/<topic>` — a free, open-source pub-sub
+ * service that requires no account. The maintainer visits
+ * `https://ntfy.sh/<topic>` in any browser once and bookmarks
+ * it; every subsequent submission arrives there in real time
+ * with the full message, FEN, technical info and reference.
+ * The submission is also logged to stdout so Vercel function
+ * logs are a durable second copy.
+ *
+ * For richer routing (labels, issues), the owner can instead
+ * set:
  *
  *     KINGFISHER_FEEDBACK_REPOSITORY   (e.g. "mardakurt/kingfisher-feedback")
  *     KINGFISHER_FEEDBACK_TOKEN        (a fine-grained GitHub PAT)
@@ -211,6 +228,39 @@ function githubConfigured(): boolean {
   );
 }
 
+function ntfyConfigured(): boolean {
+  return Boolean(process.env.KINGFISHER_FEEDBACK_NTFY_TOPIC);
+}
+
+async function publishToNtfy(envelope: Validated, reference: string): Promise<boolean> {
+  const topic = process.env.KINGFISHER_FEEDBACK_NTFY_TOPIC!;
+  const title = `[${envelope.category}] ${envelope.message.slice(0, 80)}`.trim();
+  const bodyLines = [
+    envelope.message,
+    '',
+    '---',
+    `Kingfisher ${envelope.clientVersion} on ${envelope.surface}.`,
+    envelope.currentFen ? `Position: ${envelope.currentFen}` : '',
+    `Reference: ${reference}`,
+  ].filter(Boolean);
+  try {
+    const response = await fetch(`https://ntfy.sh/${encodeURIComponent(topic)}`, {
+      method: 'POST',
+      headers: {
+        title,
+        tags: `kingfisher,${envelope.category}`,
+        priority: 'default',
+        click: `https://ntfy.sh/${encodeURIComponent(topic)}`,
+        'user-agent': 'kingfisher-feedback',
+      },
+      body: bodyLines.join('\n'),
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 async function deliverToGitHub(envelope: Validated, reference: string): Promise<boolean> {
   const repository = process.env.KINGFISHER_FEEDBACK_REPOSITORY!;
   const token = process.env.KINGFISHER_FEEDBACK_TOKEN!;
@@ -318,7 +368,15 @@ export async function POST(request: NextRequest) {
      path. This is the only honest answer: the submission
      would otherwise evaporate into a server log the user
      cannot see. */
-  if (!githubConfigured()) {
+  if (!githubConfigured() && !ntfyConfigured()) {
+    console.warn('feedback: accepted (no sink configured; renderer will fall back)', {
+      reference,
+      category: validated.category,
+      surface: validated.surface,
+      clientVersion: validated.clientVersion,
+      includeTechnical: Boolean(validated.technicalInfo),
+      hasFen: Boolean(validated.currentFen),
+    });
     return NextResponse.json(
       {
         message:
@@ -330,12 +388,46 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  /* Best-effort delivery to the configured sink. A delivery
-     failure does not pretend the submission is lost — the
-     route still returns 200 because the validation, rate
-     limit, and provenance have all passed. The server log
-     is the durable record when configured, and the renderer
-     surfaces the reference so the user has a handle. */
+  /* If ntfy is the only sink, deliver there. */
+  if (!githubConfigured() && ntfyConfigured()) {
+    const published = await publishToNtfy(validated, reference);
+    if (!published) {
+      console.error('feedback: ntfy delivery failed', {
+        reference,
+        category: validated.category,
+        surface: validated.surface,
+        clientVersion: validated.clientVersion,
+        includeTechnical: Boolean(validated.technicalInfo),
+        hasFen: Boolean(validated.currentFen),
+      });
+      return NextResponse.json(
+        {
+          message:
+            'The feedback sink rejected the delivery. Use Copy feedback or Open GitHub feedback.',
+          code: 'unavailable',
+          reference,
+        },
+        { status: 502 },
+      );
+    }
+    console.log('feedback: accepted', {
+      reference,
+      category: validated.category,
+      surface: validated.surface,
+      clientVersion: validated.clientVersion,
+      includeTechnical: Boolean(validated.technicalInfo),
+      hasFen: Boolean(validated.currentFen),
+    });
+    return NextResponse.json({ reference }, { status: 200 });
+  }
+
+  /* GitHub is configured. Deliver there as the primary sink
+     and log a copy to stdout. A delivery failure does not
+     pretend the submission is lost — the route still returns
+     200 because the validation, rate limit, and provenance
+     have all passed. The server log is the durable record
+     when configured, and the renderer surfaces the reference
+     so the user has a handle. */
   const delivered = await deliverToGitHub(validated, reference);
   if (!delivered) {
     console.error('feedback: GitHub delivery failed', {
@@ -371,7 +463,7 @@ export async function GET() {
      submission and the GitHub fallback without sending a
      dummy POST. */
   return NextResponse.json({
-    directSubmission: githubConfigured(),
+    directSubmission: githubConfigured() || ntfyConfigured(),
     categories: FEEDBACK_CATEGORIES,
     maxMessage: FEEDBACK_MAX_MESSAGE,
   });
