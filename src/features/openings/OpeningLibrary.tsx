@@ -278,8 +278,11 @@ function OpeningDetail({ entry }: { readonly entry: OpeningEntry }) {
         ) : explorer.isError ? (
           <p className="text-xs text-tertiary">
             {provider?.name ?? 'That source'} could not answer:{' '}
-            {explorer.error instanceof Error ? explorer.error.message : 'unknown error'}. Choose
-            another source in the explorer.
+            {(explorer.error instanceof Error ? explorer.error.message : 'unknown error').replace(
+              /\.\s*$/,
+              '',
+            )}
+            . Choose another source in the explorer.
           </p>
         ) : total === 0 ? (
           <p className="text-xs text-tertiary">

@@ -122,6 +122,16 @@ describe('theory book', () => {
     // the position where it becomes one, not as the KIA at ply 3.
     expect(transposed?.node.label).toContain('Catalan');
     expect(transposed?.ply).toBeGreaterThanOrEqual(9);
+    // The crumbs are the reader's own path. The Grünfeld Exchange's deepest
+    // node (Kramnik's Line) is recorded by the dataset through 2.Nf3, whose
+    // prefix chain reads "Indian Defense › East Indian Defense"; a line that
+    // played 2.c4 must read Grünfeld.
+    const gruenfeld = book.deepest(
+      'd4 Nf6 c4 g6 Nc3 d5 cxd5 Nxd5 e4 Nxc3 bxc3 Bg7 Nf3 c5 h3 O-O Be2'.split(' '),
+    );
+    expect(gruenfeld?.node.label).toContain("Kramnik's Line");
+    expect(gruenfeld?.crumbs.map((c) => c.label).join(' › ')).toContain('Grünfeld');
+    expect(gruenfeld?.crumbs.map((c) => c.label).join(' › ')).not.toMatch(/East Indian/);
     // The Najdorf by the 2...Nf6 order is still the Najdorf, at the same ply.
     const najdorf = book.deepest([
       'e4',

@@ -211,7 +211,7 @@ export function OpeningReportPanel() {
       buildOpeningReport({
         fen,
         placement,
-        ...(placement ? { crumbs: book?.crumbs(placement.node.key) ?? [] } : {}),
+        ...(placement ? { crumbs: placement.crumbs } : {}),
         ...(placement ? { children: book?.variations(placement.node.key) ?? [] } : {}),
         ...(placement ? { brief: book?.brief(placement.node.key) ?? null } : {}),
         populations,

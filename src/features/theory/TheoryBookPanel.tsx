@@ -197,8 +197,7 @@ export function TheoryBookPanel() {
     );
   }
 
-  const { node, beyond } = match;
-  const crumbs = book.crumbs(node.key);
+  const { node, beyond, crumbs } = match;
   const branches = book.children(node.key);
   const variations = book.variations(node.key);
   const brief = book.brief(node.key);

@@ -87,7 +87,7 @@ const RUY = ['e2e4', 'e7e5', 'g1f3', 'b8c6', 'f1b5'];
 
 const full: OpeningReportInput = {
   fen: FEN,
-  placement: { node: node('Sicilian Defense: Najdorf', 'B90'), ply: 10, beyond: 6 },
+  placement: { node: node('Sicilian Defense: Najdorf', 'B90'), ply: 10, beyond: 6, crumbs: [] },
   crumbs: [node('Sicilian Defense', 'B20'), node('Sicilian Defense: Najdorf', 'B90')],
   children: [node('Sicilian Defense: Najdorf, English Attack', 'B90')],
   brief: BRIEF,
@@ -171,7 +171,7 @@ describe('naming the opening without overstating it', () => {
   it('says so plainly when the position itself is the named one', () => {
     const exact = {
       ...full,
-      placement: { node: node('Sicilian Defense: Najdorf', 'B90'), ply: 10, beyond: 0 },
+      placement: { node: node('Sicilian Defense: Najdorf', 'B90'), ply: 10, beyond: 0, crumbs: [] },
     };
     expect(section(exact, 'identity')!.entries[0]?.criterion).toBe('this exact position is named');
   });

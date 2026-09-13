@@ -102,6 +102,14 @@ export interface TheoryBookMatch {
   readonly ply: number;
   /** Plies played past the last named position. Zero means an exact match. */
   readonly beyond: number;
+  /**
+   * The named positions the line itself passed through, shallowest of each
+   * name, in the order they were reached. This is the reader's own path —
+   * a Grünfeld reached by 1.d4 Nf6 2.c4 g6 reads "Grünfeld › Exchange", even
+   * when the dataset's own line for the deepest node goes through 2.Nf3 and
+   * `crumbs(node.key)` would have read "Indian Defense › East Indian".
+   */
+  readonly crumbs: readonly TheoryBookNode[];
 }
 
 export interface TheoryBook {
@@ -364,7 +372,9 @@ function build(entries: readonly OpeningEntry[]): TheoryBook {
         fallback for a move that does not replay, so a malformed SAN degrades
         to the old answer rather than to nothing.
       */
-      let best: TheoryBookMatch | null = null;
+      let best: { node: TheoryBookNode; ply: number } | null = null;
+      const passed: TheoryBookNode[] = [];
+      const seen = new Set<string>();
       let position: Position | null = Position.initial();
       for (let ply = 1; ply <= moves.length; ply += 1) {
         let node: TheoryBookNode | undefined;
@@ -381,9 +391,15 @@ function build(entries: readonly OpeningEntry[]): TheoryBook {
           const entry = byLine.get(moves.slice(0, ply).join(' '));
           node = entry ? nodes.get(entry.key) : undefined;
         }
-        if (node) best = { node, ply, beyond: moves.length - ply };
+        if (node) {
+          best = { node, ply };
+          if (!seen.has(node.label)) {
+            seen.add(node.label);
+            passed.push(node);
+          }
+        }
       }
-      return best;
+      return best ? { ...best, beyond: moves.length - best.ply, crumbs: passed } : null;
     },
     variations: (key) => {
       const node = nodes.get(key);
