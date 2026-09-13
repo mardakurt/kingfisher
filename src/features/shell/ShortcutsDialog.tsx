@@ -122,7 +122,17 @@ export function ShortcutsDialog() {
                         <button
                           type="button"
                           aria-label={`Change the shortcut for ${shortcut.label}`}
-                          onClick={() => setCapturing(shortcut.id)}
+                          onClick={(event) => {
+                            /*
+                              Safari does not give a button keyboard focus on
+                              click, so the key the user presses next went to
+                              the page, not to this handler, and the capture
+                              never ended. Focus it explicitly: the capture
+                              is a keyboard interaction and needs the focus.
+                            */
+                            event.currentTarget.focus();
+                            setCapturing(shortcut.id);
+                          }}
                           onKeyDown={(event) => {
                             if (capturing !== shortcut.id) return;
                             if (event.key === 'Escape' || event.key === 'Tab') return;
