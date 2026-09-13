@@ -4,6 +4,13 @@ The user-facing changelog. Internal phase history is in
 `docs/reports/` and `docs/product/phase-*.md`; the list below is what
 real users notice.
 
+## Unreleased (web)
+
+- **The landing's download card is shorter.** The paragraph under the
+  macOS download that repeated the install guide — where your work lives,
+  how to replace the app, how Check for Updates behaves — is gone; the
+  install guide, linked beside the download, says all of it.
+
 ## 1.1.3 — 2026-09-13
 
 Every item below is in both the web application and the Mac application;

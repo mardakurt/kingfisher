@@ -605,11 +605,6 @@
   text-decoration: underline;
 }
 
-.kf-landing .download-upgrade-note {
-  background: #e8e6df;
-  opacity: 1;
-}
-
 /* FAQ — native disclosure, no JS framework. */
 .kf-landing .section-faq {
   padding-top: 80px;

@@ -383,16 +383,6 @@ export function LandingPage(): JSX.Element {
                 </a>{' '}
                 · SHA-256 <code>{macosDownload.sha256.slice(0, 12)}…</code>
               </p>
-              <p className="download-upgrade-note">
-                <strong>Already using Kingfisher?</strong> Download the latest DMG and replace the
-                app in Applications. Your local Kingfisher work — Studies, Repertoire, Training,
-                preferences — lives in{' '}
-                <code>~/Library/Application Support/kingfisher-desktop/</code> and is preserved by
-                the replacement.{' '}
-                {macosDownload.channel === 'preview'
-                  ? 'A preview build does not update itself: Kingfisher → Check for Updates… says which build you have and opens this page.'
-                  : 'Kingfisher → Check for Updates… offers a newer release when one is published; nothing is checked in the background.'}
-              </p>
             </article>
 
             <article className="download-card">
