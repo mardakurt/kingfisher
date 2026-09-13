@@ -295,6 +295,9 @@ the HTTP client — and run the real class.
 
 ## Release commands
 
+After any fix, `docs/operations/after-a-fix.md` is the checklist; do every
+step and report the output.
+
 ```bash
 npm test
 npm run typecheck
