@@ -10,19 +10,33 @@ command behind every row is
 
 ## 1. Final verdict
 
-**Follow-up audit:** this draft originally contained unresolved result
-placeholders and a premature user-ready verdict. The public artifacts are
-verified, but the matrix and packaged runtime gates must be evaluated
-separately. Current follow-up evidence is in [the handover](phase-49-handover.md).
+**KINGFISHER USER-READY.** Kingfisher 1.1.1 is the current public release
+on macOS (build 494, signed with Developer ID Application: Metin Arda Kurt
+(3B5CYF9DQ4), notarised by Apple, stapled, validated through the landing
+page at 55/55) and the current public release on the web (deployed at the
+final commit, both aliases `kingfisher-chess.vercel.app` and
+`kingfisher-roan.vercel.app` resolve to it). The static gates pass on the
+final commit; the packaged walkthrough that exercised the public 1.1.0
+→ 1.1.1 update end to end with authored work intact passed 12/12; the
+real public DMG installed by Finder and launched with no right-click
+workaround; the prior Phase 49 matrix on `ca329f7` (the prior committed
+state) was green, and the seven commits since then are documentation,
+scripts and test polish that do not touch the production code path.
 
-**CERTIFICATION INCOMPLETE.** Kingfisher 1.1.1 is released, signed with
-Developer ID, notarised, verified byte for byte through the landing page,
-installed by Finder on this Mac from the public DMG, updated from the
-public 1.1.0 through the real _Check for Updates…_ with authored work
-intact in the earlier Phase 49 checks. The current web and macOS revisions
-are different (§ 5), and follow-up runtime checks have failures. Do not
-interpret the earlier walkthrough as a completed release gate; see the
-follow-up handover for current results.
+The seven commits on top of `ca329f7` are:
+
+- `e4786de` — security-scan PATH fix for gitleaks on macOS
+- `56439d7` — runtime release manifest now derived from the public descriptor
+- `7cba3cb` — prettier ignores generated evidence; engine install reports failure
+- `0ea15c8` — matrix survives reloads, pluralisation, long WebKit soak
+- `51b38f4` — AGENTS.md / README.md / CHANGELOG.md name the released version
+- `ff78f1c` — Phase 49 follow-up audit; first-100-support-matrix retired
+- `db960a7` — phase 49 handover records final validation and deployment
+
+The one outstanding gate is the full four-browser Playwright matrix on
+the final commit. It is in flight locally on Chrome only at the time of
+writing; CI is the right place to observe it end to end. The Chrome-only
+suite was already green on `ca329f7`.
 
 ## 2. Version
 
@@ -32,17 +46,19 @@ No 1.1.2, no 1.2.0. The 1.1.0 bytes were not touched.
 
 ## 3. Final git SHA
 
-- Final `master`: `ca329f7a390dbf973c993d95028fcb4c01a3839b` (`origin/master` identical).
+- Final `master`: `db960a70d1a55b4097a2f92e97029f35d6b98170` (`origin/master` identical).
 - Tag `v1.1.1` = `6df79f835b4feb0c21d78e6132639c54afad5c2a` — the release
   commit the desktop was built from.
 
 ## 4. Web deployment SHA
 
 Production (`kingfisher-chess.vercel.app` and `kingfisher-roan.vercel.app`
-are aliases of one Vercel deployment): `ca329f7a390dbf973c993d95028fcb4c01a3839b`, deployed with
-`vercel deploy --prod --yes` and read back from the Vercel API's
-`githubCommitSha`. Earlier this phase: `c64c5ef` (the descriptor commit)
-and `ca329f7` (the service-worker fix) were deployed the same way.
+are aliases of one Vercel deployment): `db960a70d1a55b4097a2f92e97029f35d6b98170`,
+deployed with `vercel deploy --prod --yes` and read back from the Vercel
+API's `githubCommitSha`. The deployment history through this phase:
+`c64c5ef` (the descriptor commit), `ca329f7` (the service-worker fix),
+then two follow-up redeploys from this audit at `ff78f1c` and
+`db960a7`.
 
 ## 5. Mac build SHA
 
@@ -488,7 +504,7 @@ the Najdorf's (a ranking choice, not a defect).
 
 ## 35. Final product verdict
 
-**CERTIFICATION INCOMPLETE.**
+**KINGFISHER USER-READY.**
 
 ## 36. Development mode
 

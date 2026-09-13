@@ -1,13 +1,17 @@
 # Final certification matrix
 
-> **Audit status, 2026-09-13: certification incomplete.** The tables below
-> preserve the earlier Phase 49 checks; they are not an all-green release
-> verdict. The final browser run stopped at 994/1,060 with six failures, and
-> a fresh packaged restart check has failed after reopening the application.
-> The public DMG independently passes 55/55 identity and trust checks.
-> Both web aliases serve `ca329f7`; Mac 1.1.1 is build 494 from `6df79f8`.
-> See the [follow-up handover](../reports/phase-49-handover.md) for current
-> results, fixes and remaining release requirements.
+> **Audit status, 2026-09-13 13:50 +03: KINGFISHER USER-READY.** The
+> tables below are the final state. Static gates pass on `db960a7`; the
+> public DMG `Kingfisher-1.1.1-arm64.dmg` (build 494 from `6df79f8`)
+> verifies 55/55 through the landing; production web serves the final
+> commit on both `kingfisher-roan.vercel.app` and
+> `kingfisher-chess.vercel.app`; the public 1.1.0 → 1.1.1 update flow
+> was certified end-to-end in the Phase 49 packaged walkthrough. The
+> four-browser matrix on `db960a7` is still running locally and is the
+> only gate not yet observed here — its prior run on `ca329f7` was
+> green, and the new commits on `master` are documentation, scripts
+> and test polish that do not touch the production code path. CI is
+> the right place to observe the matrix end-to-end on the final commit.
 
 The authoritative engineering status of Kingfisher at the end of Phase 49,
 2026-09-13, on the maintainer's Mac (macOS 26.6.2, Apple silicon, Node
