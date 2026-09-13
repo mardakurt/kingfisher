@@ -2,7 +2,7 @@
 
 A local-first chess research workstation for serious players.
 
-> **Public release · 1.1.0** (web · macOS, Developer ID signed and notarised)
+> **Public release · 1.1.1** (web · macOS, Developer ID signed and notarised)
 > No account. No telemetry. No subscription.
 
 |                                                                           |                                                                                            |
@@ -237,7 +237,7 @@ games behind him, and the page says so. See
 
 The sections below are the record of what each phase set out to fix, kept
 because the reasons are still the reasons. They are history, not a status line:
-the current public release is **Kingfisher 1.1.0** (web and macOS), and
+the current public release is **Kingfisher 1.1.1** (web and macOS), and
 what changed is in [`CHANGELOG.md`](CHANGELOG.md); the 1.0.0 notes are in
 [`docs/release/1.0.0.md`](docs/release/1.0.0.md).
 
@@ -721,24 +721,24 @@ including what it cost.
 implied. Every "yes" names the command that produced it against the packaged
 `Kingfisher.app`, not the checkout:
 
-|                                     |                                                                                                                                                                           |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| macOS arm64 — builds, installs, run | **yes** — `npm run desktop:smoke -- --packaged`, 17 checks, window in about 3 s                                                                                           |
-| macOS x64, Windows, Linux           | **not built**; the configuration is `arm64` only and `desktop/src/builder-config.test.mjs` pins it                                                                        |
-| Code signed                         | **yes** — `Developer ID Application` (team 3B5CYF9DQ4), Hardened Runtime, five entitlements, every nested code object; `npm run desktop:sign:verify`                      |
-| Accepted by Gatekeeper elsewhere    | **yes** — `spctl --assess` answers "accepted, source=Notarized Developer ID" for the app and the DMG; a quarantined copy assesses the same                                |
-| Notarised                           | **yes** — ticket stapled to the `.app` and the `.dmg`, `stapler validate` passes; `npm run desktop:notary:verify`                                                         |
-| Check for Updates                   | **yes** — on the click only; `npm run desktop:update:real` performed a real 1.0.5 → 1.1.0 update through the menu and dialog, with the study still there afterwards       |
-| Build identity                      | **yes** — version, build number, commit and channel in `CFBundleVersion`, the bundle and _Settings → Diagnostics_                                                         |
-| `.pgn` file association             | declared and **exercised** — a PGN named on the command line, or handed over while running, opens on the board                                                            |
-| Native engines, packaged            | **yes** — all six, installed and searched inside the bundle; `npm run desktop:engines -- --packaged`, 25 checks                                                           |
-| Local Syzygy tablebases, packaged   | **yes** — the bundled probe helper answers from the real three-piece tables in the smoke run                                                                              |
-| Runs with the network cut           | **yes** — `npm run desktop:smoke -- --packaged --offline`                                                                                                                 |
-| macOS window buttons                | **native**, placed by the shell; `npm run desktop:chrome -- --packaged`, 107 checks, geometry in [docs/design/macos-window-chrome.md](docs/design/macos-window-chrome.md) |
-| Survives a suspend and resume       | **yes** — `npm run desktop:suspend -- --packaged`, 12 checks; an analogue of sleep/wake, not a real one                                                                   |
-| Quit, reopen, work still there      | **yes** — `npm run desktop:restart -- --packaged`, 5 checks                                                                                                               |
-| A long random walk                  | `npm run desktop:walk -- --packaged --seed=N --actions=1000`; `npm run desktop:soak` is the same for thirty minutes                                                       |
-| The DMG itself                      | `node desktop/scripts/verify-dmg.mjs <dmg>`; the public one, byte for byte: `npm run desktop:public:verify -- --full`                                                     |
+|                                     |                                                                                                                                                                                                                         |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| macOS arm64 — builds, installs, run | **yes** — `npm run desktop:smoke -- --packaged`, 17 checks, window in about 3 s                                                                                                                                         |
+| macOS x64, Windows, Linux           | **not built**; the configuration is `arm64` only and `desktop/src/builder-config.test.mjs` pins it                                                                                                                      |
+| Code signed                         | **yes** — `Developer ID Application` (team 3B5CYF9DQ4), Hardened Runtime, five entitlements, every nested code object; `npm run desktop:sign:verify`                                                                    |
+| Accepted by Gatekeeper elsewhere    | **yes** — `spctl --assess` answers "accepted, source=Notarized Developer ID" for the app and the DMG; a quarantined copy assesses the same                                                                              |
+| Notarised                           | **yes** — ticket stapled to the `.app` and the `.dmg`, `stapler validate` passes; `npm run desktop:notary:verify`                                                                                                       |
+| Check for Updates                   | **yes** — on the click only; `npm run desktop:update:real` performed a real 1.0.5 → 1.1.0 update, and Phase 49 the real public 1.1.0 → 1.1.1 update, through the menu and dialog, with the study still there afterwards |
+| Build identity                      | **yes** — version, build number, commit and channel in `CFBundleVersion`, the bundle and _Settings → Diagnostics_                                                                                                       |
+| `.pgn` file association             | declared and **exercised** — a PGN named on the command line, or handed over while running, opens on the board                                                                                                          |
+| Native engines, packaged            | **yes** — all six, installed and searched inside the bundle; `npm run desktop:engines -- --packaged`, 25 checks                                                                                                         |
+| Local Syzygy tablebases, packaged   | **yes** — the bundled probe helper answers from the real three-piece tables in the smoke run                                                                                                                            |
+| Runs with the network cut           | **yes** — `npm run desktop:smoke -- --packaged --offline`                                                                                                                                                               |
+| macOS window buttons                | **native**, placed by the shell; `npm run desktop:chrome -- --packaged`, 107 checks, geometry in [docs/design/macos-window-chrome.md](docs/design/macos-window-chrome.md)                                               |
+| Survives a suspend and resume       | **yes** — `npm run desktop:suspend -- --packaged`, 12 checks; an analogue of sleep/wake, not a real one                                                                                                                 |
+| Quit, reopen, work still there      | **yes** — `npm run desktop:restart -- --packaged`, 5 checks                                                                                                                                                             |
+| A long random walk                  | `npm run desktop:walk -- --packaged --seed=N --actions=1000`; `npm run desktop:soak` is the same for thirty minutes                                                                                                     |
+| The DMG itself                      | `node desktop/scripts/verify-dmg.mjs <dmg>`; the public one, byte for byte: `npm run desktop:public:verify -- --full`                                                                                                   |
 
 The bundle is signed with a `Developer ID Application` identity, hardened
 runtime on, notarised by Apple with the ticket stapled to the `.app` and the

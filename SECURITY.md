@@ -11,7 +11,7 @@ The user-facing surfaces link here from their footers and from
 ## What the current public product is
 
 - **Web:** Kingfisher 1.1 at the Studio host, deployed from `master`.
-- **macOS:** Kingfisher 1.1.0 for Apple Silicon — Developer ID signed,
+- **macOS:** Kingfisher 1.1.1 for Apple Silicon — Developer ID signed,
   notarised by Apple, stapled. The exact build (number, commit, SHA-256)
   the landing offers is in `src/release/macos-download.json`; the
   install guide is [`docs/release/install-macos.md`](docs/release/install-macos.md).
@@ -134,7 +134,7 @@ in the running deployment.
   (`git rev-list --count`), the commit, whether the tree was dirty,
   and its channel (`stable`, `preview`, `dev`) in `CFBundleVersion`
   and the packaged `package.json`; _Settings → Diagnostics_ reports
-  them, so a support report about "1.1.0" can be matched to bytes.
+  them, so a support report about "1.1.1" can be matched to bytes.
   A publishable channel refuses to build from a dirty tree, and refuses
   to build without notarisation credentials.
 - **The bundle is complete by construction.** One list
@@ -187,8 +187,8 @@ false`, `allowPrerelease: false` (so the preview channel is
   and says so), and hands the verified archive to macOS's own
   update engine, which refuses an update whose code signature does
   not match the running application. The renderer never sees
-  `fetch` or the filesystem. The 1.1.0 release carries
-  `latest-mac.yml`, so an installed 1.1.0 is offered the next stable
+  `fetch` or the filesystem. Every release since 1.1.0 carries
+  `latest-mac.yml`, so an installed 1.1.0 or later is offered the next stable
   release; the public 1.0.0 predates the updater and is replaced by
   hand. The implementation is in
   [`desktop/src/update-service.mjs`](desktop/src/update-service.mjs)
@@ -196,7 +196,7 @@ false`, `allowPrerelease: false` (so the preview channel is
   `npm run desktop:update:mutations` is its mutation suite and
   `npm run desktop:update:real` performs a real update between two
   packaged builds through the real menu and dialog.
-- **First-launch trust.** A fresh download of 1.1.0 carries the
+- **First-launch trust.** A fresh download of the current release carries the
   browser's quarantine attribute; Gatekeeper finds the stapled ticket,
   macOS shows its standard "downloaded from the Internet" confirmation
   once, and the application starts on **Open**. No right-click

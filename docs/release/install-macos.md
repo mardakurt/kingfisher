@@ -1,6 +1,6 @@
 # Installing Kingfisher on macOS
 
-Kingfisher 1.1.0 for macOS is signed with a **Developer ID** certificate
+Kingfisher 1.1.1 for macOS is signed with a **Developer ID** certificate
 and **notarised by Apple**, with the notarisation ticket stapled to the
 disk image and to the application. It opens like any other downloaded
 application: a normal double-click, one confirmation from macOS, done.
@@ -28,7 +28,7 @@ Get the DMG from the landing page or the latest release on GitHub:
 > <https://kingfisher-chess.vercel.app/#macos>
 > <https://github.com/mardakurt/kingfisher/releases/latest>
 
-The file is **`Kingfisher-1.1.0-arm64.dmg`**. If the file you downloaded
+The file is **`Kingfisher-1.1.1-arm64.dmg`**. If the file you downloaded
 has a different name, the release page is the source of truth — stop and
 check the SHA-256 listed there.
 
@@ -36,12 +36,12 @@ check the SHA-256 listed there.
 
 The release page and the install page list the SHA-256 of the DMG:
 
-`c4b21c2ebeb0a3fd7963d63eb38002e8f955fddf8fb015c3edcec20241ce6b27`
+`af3873f4e8d96386b57277209e3951a53a3481d346083ed6ed9c854dbf3dc8df`
 
 To check yours:
 
 ```bash
-shasum -a 256 ~/Downloads/Kingfisher-1.1.0-arm64.dmg
+shasum -a 256 ~/Downloads/Kingfisher-1.1.1-arm64.dmg
 ```
 
 The output should match. If it does not, the download was corrupted or
@@ -49,7 +49,7 @@ tampered with — delete it and download it again.
 
 ## 3. Open the DMG
 
-Double-click `Kingfisher-1.1.0-arm64.dmg` in your Downloads folder. A
+Double-click `Kingfisher-1.1.1-arm64.dmg` in your Downloads folder. A
 window opens with the Kingfisher icon and a shortcut to Applications.
 
 ## 4. Move to Applications
@@ -70,7 +70,7 @@ cannot be verified”_, _“cannot be checked for malicious software”_, or
 _“damaged”_. Those messages mean the file you have is not the build Apple
 notarised — check the SHA-256 above and download it again from the
 release page. There is no right-click workaround to apply, and no
-system-wide setting to change; if a genuine Kingfisher 1.1.0 download
+system-wide setting to change; if a genuine Kingfisher 1.1.1 download
 does show one of those messages, that is a bug — please report it.
 
 ## 6. Updates
@@ -85,10 +85,10 @@ reopens it. The first launch after an update shows a one-time notice
 
 **If you have the 1.0.0 preview installed:** it predates the updater and
 is signed with a different identity, so it cannot update itself. Quit it,
-replace it in Applications with 1.1.0 by hand, and open the new one. Your
+replace it in Applications with the current release by hand, and open the new one. Your
 Studies, Repertoire, Training, Recent work and Settings are kept — they
 live in `~/Library/Application Support/kingfisher-desktop/`, outside the
-application bundle, and 1.1.0 reads them as they are.
+application bundle, and the new release reads them as they are.
 
 ## 7. Uninstalling
 

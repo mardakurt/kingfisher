@@ -1,7 +1,7 @@
-# Launch kit — Kingfisher 1.1.0
+# Launch kit — Kingfisher 1.1.1
 
 The copy prepared for first channels, for the current public release:
-**Kingfisher 1.1.0** on the web and **Kingfisher 1.1.0** for macOS
+**Kingfisher 1.1.1** on the web and **Kingfisher 1.1.1** for macOS
 (Apple Silicon, macOS 13 or later, signed with a Developer ID
 certificate and notarised by Apple). Every statement below is one that
 [`../product/marketing-facts.md`](../product/marketing-facts.md) lists
@@ -47,17 +47,18 @@ under the MIT licence.
 
 ## GitHub release announcement
 
-> ## Kingfisher 1.1.0
+> ## Kingfisher 1.1.1
 >
-> The first Kingfisher signed with a Developer ID certificate and
-> notarised by Apple: the DMG opens and the application starts with
-> a normal double-click.
+> A maintenance release on 1.1.0, signed with a Developer ID certificate
+> and notarised by Apple: the DMG opens and the application starts with a
+> normal double-click, and an installed 1.1.0 is offered it through
+> _Kingfisher → Check for Updates…_.
 >
 > **What's in it**
 >
 > - **Web app** at <https://kingfisher-roan.vercel.app/> —
 >   Stockfish 18 in the page, no install.
-> - **macOS** (`Kingfisher-1.1.0-arm64.dmg`) — Apple Silicon,
+> - **macOS** (`Kingfisher-1.1.1-arm64.dmg`) — Apple Silicon,
 >   macOS 13 (Ventura) or later, Developer ID signed, notarised.
 >   _Kingfisher → Check for Updates…_ installs the next release when
 >   you ask; nothing is checked in the background.
@@ -94,7 +95,7 @@ under the MIT licence.
 
 ## Reddit (r/chess, r/ComputerChess) post draft
 
-> **Title:** Kingfisher 1.1.0 — a local-first chess research
+> **Title:** Kingfisher 1.1.1 — a local-first chess research
 > workstation, on the web and as a notarised Mac app
 >
 > I've been building Kingfisher for the last couple of years: a
@@ -121,13 +122,13 @@ under the MIT licence.
 
 ## Lichess forum post draft
 
-> **Title:** Kingfisher 1.1.0 — a local-first chess research
+> **Title:** Kingfisher 1.1.1 — a local-first chess research
 > workstation (web + macOS)
 >
 > Kingfisher is a local-first chess research workstation for
 > serious players. The web app is at
 > <https://kingfisher-chess.vercel.app/>; the macOS build
-> (`Kingfisher-1.1.0-arm64.dmg`, Apple Silicon, macOS 13 or later,
+> (`Kingfisher-1.1.1-arm64.dmg`, Apple Silicon, macOS 13 or later,
 > Developer ID signed and notarised by Apple) is linked from the same
 > page.
 >
@@ -155,14 +156,14 @@ under the MIT licence.
 
 ## Short social post
 
-> Kingfisher 1.1.0 — a local-first chess research workstation for
+> Kingfisher 1.1.1 — a local-first chess research workstation for
 > serious players, on the web and as a notarised Mac app. No
 > account. No telemetry. No subscription. Source on GitHub:
 > <https://github.com/mardakurt/kingfisher>
 
 ## Technical / open-source post
 
-> **Title:** Kingfisher 1.1.0 — release notes
+> **Title:** Kingfisher 1.1.1 — release notes
 >
 > Kingfisher is a local-first chess research workstation
 > (Next.js + Electron). The web app and the Mac app are one
