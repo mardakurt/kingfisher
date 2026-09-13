@@ -34,6 +34,12 @@ evaluates the current position to depth 22 in a couple of
 seconds. The principal variation is shown in the engine panel and
 on the board as ghost squares.
 
+On a Mac, six native engines can be installed from Settings → Engines
+(Stockfish 19, Stormphrax, Viridithas, Halogen, PlentyChess, Lc0). Three
+catalogue engines — Berserk, Obsidian, Koivisto — publish Windows builds
+only and are not offered here; the Settings page says so. That is a fact
+about those projects, not a broken install.
+
 ## 3. Open the Explorer
 
 Click **Explorer** in the workspace tools. With the bundled

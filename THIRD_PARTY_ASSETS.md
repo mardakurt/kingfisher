@@ -175,7 +175,7 @@ and self-hosts them at build time. Both are SIL Open Font License 1.1.
 ## The Kingfisher mark
 
 `brand/kingfisher-mark.svg` and everything generated from it
-(`src/app/icon.svg`, `src/app/apple-icon.png`, `public/icon-*.png`,
+(`src/app/icon.svg`, `src/app/apple-icon.png`, `src/app/favicon.ico`, `public/icon-*.png`,
 `src/features/shell/BrandMark.tsx`) are original work for this project, drawn
 as plain geometry rather than traced from any photograph or existing logo.
 Regenerate the rasters with `python3 scripts/render-brand-icons.py`.

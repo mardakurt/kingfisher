@@ -165,6 +165,11 @@ def main():
         out.parent.mkdir(parents=True, exist_ok=True)
         render(size, kind).save(out, "PNG", optimize=True)
         print(f"{relative:32} {size}x{size}  {out.stat().st_size:>7} B")
+    # Browsers ask for /favicon.ico by convention whatever the page links;
+    # Next serves this file there. Three sizes from the full-bleed render.
+    ico = ROOT / "src/app/favicon.ico"
+    render(48, "fullbleed").save(ico, "ICO", sizes=[(16, 16), (32, 32), (48, 48)])
+    print(f"{'src/app/favicon.ico':32} 16/32/48  {ico.stat().st_size:>7} B")
 
 
 if __name__ == "__main__":

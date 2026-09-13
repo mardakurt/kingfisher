@@ -16,6 +16,7 @@
  */
 
 import { useCompanionStatus } from '@/companion/useCompanion';
+import { enginesNotPublishedFor, publishedPlatformWords } from '@/engine/registry';
 import { useVisibleEngineDefinitions } from '@/engine/use-engines';
 import { cn } from '@/lib/cn';
 import { useEngine, type SlotId } from '@/stores/engine-store';
@@ -37,6 +38,14 @@ export function EngineSelect({
   const companion = useCompanionStatus();
   const installed = new Set((companion.data?.engines ?? []).map((engine) => engine.id));
   const paired = companion.data !== undefined;
+  /*
+    With no companion the platform is not yet known from the machine, so the
+    browser's own family stands in for the one question a Mac user has: is
+    this engine even published for a Mac? "Needs the companion" for an engine
+    that will never exist on macOS would send them to pair one for nothing.
+  */
+  const family = browserPlatformFamily();
+  const notPublished = family ? enginesNotPublishedFor(family) : [];
 
   return (
     <select
@@ -54,13 +63,17 @@ export function EngineSelect({
     >
       {definitions.map((definition) => {
         const native = definition.transport === 'native';
+        const publishedHere =
+          family === null || !notPublished.some((entry) => entry.id === definition.id);
         const note = !native
           ? ''
-          : !paired
-            ? ' — needs the companion'
-            : installed.has(definition.id)
-              ? ''
-              : ' — not installed';
+          : !publishedHere
+            ? ` — ${publishedPlatformWords(definition.platforms)} only`
+            : !paired
+              ? ' — needs the companion'
+              : installed.has(definition.id)
+                ? ''
+                : ' — not installed';
         return (
           <option key={definition.id} value={definition.id}>
             {definition.name}
@@ -70,4 +83,14 @@ export function EngineSelect({
       })}
     </select>
   );
+}
+
+/** The operating-system family the browser runs on, in the registry's terms. */
+function browserPlatformFamily(): 'darwin' | 'win32' | 'linux' | null {
+  if (typeof navigator === 'undefined') return null;
+  const agent = navigator.userAgent;
+  if (/Mac OS X|Macintosh/.test(agent)) return 'darwin';
+  if (/Windows/.test(agent)) return 'win32';
+  if (/Linux/.test(agent)) return 'linux';
+  return null;
 }

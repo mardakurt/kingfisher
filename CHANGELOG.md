@@ -6,6 +6,17 @@ real users notice.
 
 ## Unreleased (web)
 
+- **A `/favicon.ico` exists.** Browsers request it by convention whatever
+  the page links, and every such request answered 404 — harmless to the
+  user, but the intermittent failure of the browser soak test on an
+  unattributable 404 turned out to be exactly this. The app icon, in ICO.
+- **Engines that do not exist for your machine say so.** The engine
+  selector marks Berserk, Obsidian and Koivisto "Windows only" (Koivisto
+  "Linux and Windows only") instead of "needs the companion", and
+  Settings → Engines carries a "Not offered on macOS" note naming them
+  and the reason: those projects publish builds for those platforms
+  only. A Mac user who found six of nine native engines used to conclude
+  three were broken.
 - **The landing's download card is shorter.** The paragraph under the
   macOS download that repeated the install guide — where your work lives,
   how to replace the app, how Check for Updates behaves — is gone; the

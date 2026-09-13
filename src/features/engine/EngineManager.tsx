@@ -23,7 +23,11 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Toggle } from '@/components/ui/Toggle';
 import { companionClient } from '@/companion/session';
 import type { CatalogueEngine } from '@/companion/client';
-import { engineDefinitions } from '@/engine/registry';
+import {
+  engineDefinitions,
+  enginesNotPublishedFor,
+  publishedPlatformWords,
+} from '@/engine/registry';
 import { TRUST_LEVELS, type EngineTrust } from '@/engine/trust';
 import { cn } from '@/lib/cn';
 import { usePreferences } from '@/stores/preferences-store';
@@ -146,6 +150,7 @@ export function EngineManager() {
                 busy={install.isPending && install.variables === engine.id}
               />
             ))}
+          <NotOfferedHere platform={catalogue.data.platform} />
         </>
       )}
 
@@ -162,6 +167,51 @@ export function EngineManager() {
           if (target) await uninstall.mutateAsync(target.id);
         }}
       />
+    </div>
+  );
+}
+
+/**
+ * The catalogue engines this machine will never be offered, and why.
+ *
+ * A Mac user who has read that Kingfisher knows nine native engines and
+ * finds six in Settings concludes three are broken. They are not: Berserk,
+ * Obsidian and Koivisto publish Windows builds only (Koivisto also Linux),
+ * which is a fact about those projects' releases. Saying so here is the
+ * difference between "the product is defective" and "that engine does not
+ * exist for this machine".
+ */
+function NotOfferedHere({ platform }: { readonly platform: string }) {
+  const missing = enginesNotPublishedFor(platform);
+  if (missing.length === 0) return null;
+  const os = platform.startsWith('darwin')
+    ? 'macOS'
+    : platform.startsWith('win32')
+      ? 'Windows'
+      : platform.startsWith('linux')
+        ? 'Linux'
+        : platform;
+  return (
+    <div
+      className="rounded-[4px] border border-line bg-surface-2 p-3 text-[11px] leading-relaxed text-tertiary"
+      data-engines-not-offered
+    >
+      <p className="text-secondary">
+        Not offered on {os}:{' '}
+        {missing.map((engine, index) => (
+          <span key={engine.id}>
+            {index > 0 ? (index === missing.length - 1 ? ' and ' : ', ') : ''}
+            <span className="text-primary">{engine.name}</span> (
+            {publishedPlatformWords(engine.platforms)})
+          </span>
+        ))}
+        .
+      </p>
+      <p className="mt-1">
+        These projects publish builds for those platforms only. Kingfisher lists an engine only
+        where its authors ship a binary for the machine, so this is a fact about their releases, not
+        a fault in the application; every engine above installs and runs here.
+      </p>
     </div>
   );
 }

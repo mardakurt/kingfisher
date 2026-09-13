@@ -15,6 +15,8 @@ import {
   engineDefinitions,
   runnableEngineDefinitions,
   setEnginePlatform,
+  enginesNotPublishedFor,
+  publishedPlatformWords,
 } from './registry';
 
 afterEach(() => setEnginePlatform(null));
@@ -60,5 +62,42 @@ describe('the engines offered on a machine', () => {
     // A profile that moved between machines can be configured for an engine
     // this one cannot run. It must still have a name.
     expect(engineDefinition('berserk')?.name).toBe('Berserk 14');
+  });
+});
+
+describe('the engines a machine will never be offered', () => {
+  /*
+    A Mac user who has read that Kingfisher knows nine native engines and
+    finds six in Settings concludes three are broken. This is the list the
+    Settings page and the selector name instead, with the reason.
+  */
+  it('names the Windows-only catalogue engines for a Mac', () => {
+    const names = enginesNotPublishedFor('darwin-arm64').map((engine) => engine.name);
+    expect(names).toEqual(['Berserk 14', 'Koivisto 9.0', 'Obsidian 16.0']);
+    expect(enginesNotPublishedFor('darwin').map((engine) => engine.name)).toEqual(names);
+  });
+
+  it('offers everything on Windows, and Koivisto on Linux', () => {
+    expect(enginesNotPublishedFor('win32-x64')).toEqual([]);
+    expect(enginesNotPublishedFor('linux-x64').map((engine) => engine.name)).toEqual([
+      'Berserk 14',
+      'Obsidian 16.0',
+    ]);
+  });
+
+  it('never lists the browser engine or an engine published anywhere', () => {
+    for (const engine of enginesNotPublishedFor('darwin-arm64')) {
+      expect(engine.transport).toBe('native');
+      expect(engine.platforms).toBeDefined();
+    }
+  });
+
+  it('says where an engine is published in words a user reads', () => {
+    expect(publishedPlatformWords(['win32-x64'])).toBe('Windows');
+    expect(publishedPlatformWords(['linux-x64', 'win32-x64'])).toBe('Linux and Windows');
+    expect(publishedPlatformWords(['darwin-arm64', 'linux-x64', 'win32-x64'])).toBe(
+      'Linux, Windows and macOS',
+    );
+    expect(publishedPlatformWords(undefined)).toBe('no platform');
   });
 });

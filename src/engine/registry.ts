@@ -254,3 +254,41 @@ export const DEFAULT_ENGINE_ID = STOCKFISH_WASM.id;
 
 export const engineProviderById = (id: string): EngineProvider | undefined =>
   definitions.get(id)?.provider;
+
+/**
+ * The catalogue engines that are not published for a platform, and why a
+ * user should be told.
+ *
+ * A Mac user who has read that Kingfisher knows nine native engines and finds
+ * six in Settings concludes three are broken. They are not: Berserk, Obsidian
+ * and Koivisto publish Windows builds only (Koivisto also Linux), which is a
+ * fact about those projects' releases. `platform` is the companion's id
+ * (`darwin-arm64`) or a family (`darwin`); an engine with no `platforms` runs
+ * anywhere and is never listed here.
+ */
+export function enginesNotPublishedFor(platform: string): readonly EngineDefinition[] {
+  return [...definitions.values()].filter(
+    (engine) =>
+      engine.transport === 'native' &&
+      engine.platforms !== undefined &&
+      !engine.platforms.some((id) => id === platform || id.startsWith(`${platform}-`)),
+  );
+}
+
+/** "Windows" / "Linux and Windows": where a catalogue engine is published, for a sentence. */
+export function publishedPlatformWords(platforms: readonly string[] | undefined): string {
+  const names = [...new Set((platforms ?? []).map((id) => id.split('-')[0] as string))]
+    .map((family) =>
+      family === 'win32'
+        ? 'Windows'
+        : family === 'linux'
+          ? 'Linux'
+          : family === 'darwin'
+            ? 'macOS'
+            : family,
+    )
+    .sort();
+  if (names.length === 0) return 'no platform';
+  if (names.length === 1) return names[0] as string;
+  return `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
+}

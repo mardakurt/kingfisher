@@ -116,6 +116,15 @@ These are real product facts, not defects. The first 100 users
 are told about each of them in product; the relevant docs are
 linked.
 
+- **Three catalogue engines are not offered on a Mac.** Berserk 14,
+  Obsidian 16.0 and Koivisto 9.0 publish Windows builds only (Koivisto
+  also Linux). They are in the catalogue because on Windows they are
+  three more installable engines; on a Mac the companion reports its
+  platform and they are dropped from the selector, and Settings →
+  Engines names them under "Not offered on macOS" with the reason. A
+  Mac user who knew the catalogue had nine native engines and found six
+  used to conclude three were broken. Six install and run on Apple
+  Silicon (`npm run desktop:engines -- --packaged`, 25/25 on 1.1.3).
 - **macOS is Apple Silicon, macOS 13 or later.** The public build
   (named by `src/release/macos-download.json` with its build number) is
   signed with Developer ID and notarised, opens with a double-click,

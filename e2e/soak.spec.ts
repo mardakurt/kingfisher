@@ -456,7 +456,17 @@ test('an afternoon of tool, engine and route switching leaks no observable resou
   page.setDefaultTimeout(30_000);
   const consoleFailures: string[] = [];
   page.on('console', (message) => {
-    if (message.type() === 'error') consoleFailures.push(message.text());
+    /*
+      With the location, because the message alone is not actionable.
+      Chromium's "Failed to load resource: … 404" names no URL in its text;
+      the one that failed this soak twice was `/favicon.ico`, a request the
+      browser makes on its own and `page.on('response')` never sees. The
+      location names it.
+    */
+    if (message.type() === 'error') {
+      const { url } = message.location();
+      consoleFailures.push(url ? `${message.text()} (${url})` : message.text());
+    }
   });
   page.on('pageerror', (error) => consoleFailures.push(`pageerror: ${error.message}`));
 
