@@ -28,7 +28,7 @@
  * side without a matching case here is a bug.
  */
 
-import { renderReleaseNotes, appendInline } from '../release-notes-markdown.mjs';
+import { renderReleaseNotes } from '../release-notes-markdown.mjs';
 
 (function () {
   const els = {
@@ -239,7 +239,16 @@ import { renderReleaseNotes, appendInline } from '../release-notes-markdown.mjs'
     }
   }
 
-  function paint({ headline, detail, progress, footnote, primary, secondary, releaseNotes, releaseName }) {
+  function paint({
+    headline,
+    detail,
+    progress,
+    footnote,
+    primary,
+    secondary,
+    releaseNotes,
+    releaseName,
+  }) {
     const focused = document.activeElement;
     els.headline.textContent = headline;
     els.detail.textContent = detail || '';

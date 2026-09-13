@@ -79,12 +79,12 @@ Kingfisher checks for updates in two ways.
 
 - **On launch, quietly.** Five seconds after the app finishes starting
   up, it asks the release host for the current latest-mac.yml. If a
-  newer release exists, the *Kingfisher* menu's *Check for Updates…*
-  item re-labels itself to *An Update Is Available…* (or *Update Ready
-  to Install…* once the download has finished) — the same pattern as
+  newer release exists, the _Kingfisher_ menu's _Check for Updates…_
+  item re-labels itself to _An Update Is Available…_ (or _Update Ready
+  to Install…_ once the download has finished) — the same pattern as
   ChatGPT and Claude on macOS. There is no badge, no banner, no
   notification; the user notices when they next open the menu.
-- **When you ask.** *Kingfisher → Check for Updates…* in the macOS
+- **When you ask.** _Kingfisher → Check for Updates…_ in the macOS
   menu. The dialog opens in its current state: idle, up-to-date,
   available, ready, or whatever the background check last observed.
 
@@ -96,9 +96,9 @@ it. The first launch after an update shows a one-time notice
 
 The dialog renders the GitHub release notes inline between the
 headline and the footnote, so you can read what changed before you
-click *Install Update*. The notes are GitHub-flavoured markdown;
+click _Install Update_. The notes are GitHub-flavoured markdown;
 Kingfisher's renderer handles the headings, lists, paragraphs,
-**bold**, *italic*, and `` `inline code` `` that actually appear in
+**bold**, _italic_, and `` `inline code` `` that actually appear in
 release bodies, with no HTML pass-through.
 
 ### Why the very first update asks for your password or Touch ID, and later ones do not

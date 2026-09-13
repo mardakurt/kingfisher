@@ -14,9 +14,9 @@ Claude shape the maintainer compared it against.
   marketing-facts Recent Theory row with the catalog (v1).
 - **Two phase-50 commits:**
   - `24db3b8 fix: suppress Squirrel.Mac SMJobBless prompt on every
-    macOS update`
+macOS update`
   - `3bf609e feat: show release notes inline + ChatGPT-style background
-    check`
+check`
 - **Phase 50 close HEAD:** `3bf609e`. No release has been published;
   the 1.1.1 Mac bundle shipped from `6df79f8` is still the live
   `kingfisher-chess.vercel.app` / `kingfisher-roan.vercel.app`
@@ -61,7 +61,7 @@ Verified end to end against the installed `/Applications/Kingfisher.app`
   `coreauthd`. The user sees the prompt.
 - **With the flag set to the string "TRUE":** ShipIt's stderr shows
   `Beginning installation` → `Moving bundles directly as
-  SquirrelMacEnableDirectContentsWrite is disabled for app` →
+SquirrelMacEnableDirectContentsWrite is disabled for app` →
   `Moved bundle contents` → `Installation completed successfully`.
   Zero auth events from non-browser PIDs in the system log.
 
@@ -94,8 +94,8 @@ Two changes to the dialog:
    schedules `check()` five seconds after the app finishes starting
    up, errors swallowed, no UI. If a newer release is found, the
    `menuLabelForUpdate` function in `desktop/src/menu.mjs` already
-   re-labels *Check for Updates…* to *An Update Is Available…* (or
-   *Update Ready to Install…*) — that wiring has been in place since
+   re-labels _Check for Updates…_ to _An Update Is Available…_ (or
+   _Update Ready to Install…_) — that wiring has been in place since
    Phase 35; this commit only adds the launch-time trigger. The
    explicit-click path is unchanged.
 
@@ -109,12 +109,12 @@ Three staged-upgrade scripts were written to
 `/Applications/Kingfisher.app` 1.1.1 (build 494):
 
 - `public-feed-check.mjs` — drives the real menu against the public
-  GitHub feed. Dialog opens, *Check for Updates* fires an HTTPS
+  GitHub feed. Dialog opens, _Check for Updates_ fires an HTTPS
   round-trip to `github.com`, verdict renders "You're up to date"
   with the correct detail line and version line. **PASS**.
 - `staged-upgrade-check.mjs` — copies the installed app to a writable
   folder, points it at a staging feed carrying a 1.1.2 manifest,
-  exercises the full *Install Update* chain (download, SHA-512
+  exercises the full _Install Update_ chain (download, SHA-512
   verify, save barrier, quit, install, relaunch). Confirms the
   bundle on disk is replaced. **PASS**.
 - `user-applications-check.mjs` — same chain but pointing at
@@ -141,12 +141,12 @@ action** — this is the cut-the-build step, not a code change.
 
 ## What is NOT done (forwarded from the maintainer's own assessment)
 
-| # | Item | Why it matters | Owner |
-| --- | --- | --- | --- |
-| 1 | Full four-browser Playwright matrix on `ac1fc03` (and the two Phase 50 commits) | The matrix at `ca329f7` was green earlier in Phase 49; the seven-or-so commits since (including `24db3b8`) have not been through a full matrix. CI is the right place | You / CI |
-| 2 | New Mac release with `24db3b8` and `3bf609e` | Until the bundle is rebuilt and notarised, the installed Kingfisher shows the OLD dialog without release notes, and updates still go through the SMJobBless path before the Squirrel.Mac flag reaches the bundle's defaults | You + Phase 50 release |
-| 3 | Vercel ↔ GitHub auto-deploy | This phase adds the Landing auto-deploy workflow file; it still needs `VERCEL_TOKEN` and `VERCEL_PROJECT_LANDING` configured as repository secrets | You |
-| 4 | Direct feedback delivery | The feedback path falls back to clipboard + GitHub Issues; the secure sink is not configured | You |
+| #   | Item                                                                            | Why it matters                                                                                                                                                                                                              | Owner                  |
+| --- | ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| 1   | Full four-browser Playwright matrix on `ac1fc03` (and the two Phase 50 commits) | The matrix at `ca329f7` was green earlier in Phase 49; the seven-or-so commits since (including `24db3b8`) have not been through a full matrix. CI is the right place                                                       | You / CI               |
+| 2   | New Mac release with `24db3b8` and `3bf609e`                                    | Until the bundle is rebuilt and notarised, the installed Kingfisher shows the OLD dialog without release notes, and updates still go through the SMJobBless path before the Squirrel.Mac flag reaches the bundle's defaults | You + Phase 50 release |
+| 3   | Vercel ↔ GitHub auto-deploy                                                     | This phase adds the Landing auto-deploy workflow file; it still needs `VERCEL_TOKEN` and `VERCEL_PROJECT_LANDING` configured as repository secrets                                                                          | You                    |
+| 4   | Direct feedback delivery                                                        | The feedback path falls back to clipboard + GitHub Issues; the secure sink is not configured                                                                                                                                | You                    |
 
 ## What was done in this phase for items #2 and #3
 
@@ -205,12 +205,12 @@ for each.
 
 ## Summary
 
-| # | Item | Done in Phase 50? | Evidence |
-| --- | --- | --- | --- |
-| 1 | Touch ID / password prompt on every macOS update | **YES** | `24db3b8`, `output/update-flow-check/user-applications-check.mjs`, 0 auth events from non-browser PIDs |
-| 2 | ChatGPT-style release-notes dialog | **YES** | `3bf609e`, `desktop/src/release-notes-markdown.mjs` + 13 tests |
-| 3 | Background launch check + dynamic menu label | **YES** | `3bf609e`, `main.mjs` `setTimeout(check, 5_000)`, `menuLabelForUpdate` |
-| 4 | Landing auto-deploy workflow | **YES (file)** | `.github/workflows/deploy-landing.yml` — needs `VERCEL_TOKEN` + `VERCEL_PROJECT_LANDING` to start deploying |
-| 5 | 1.1.2 Mac release | **NO** | Needs Developer ID certificate; documented in `docs/release/1.1.2.md` |
-| 6 | Full Playwright matrix on Phase 50 commits | **NO** | CI to run |
-| 7 | Direct feedback delivery | **NO** | Feedback-sink credentials owner-only |
+| #   | Item                                             | Done in Phase 50? | Evidence                                                                                                    |
+| --- | ------------------------------------------------ | ----------------- | ----------------------------------------------------------------------------------------------------------- |
+| 1   | Touch ID / password prompt on every macOS update | **YES**           | `24db3b8`, `output/update-flow-check/user-applications-check.mjs`, 0 auth events from non-browser PIDs      |
+| 2   | ChatGPT-style release-notes dialog               | **YES**           | `3bf609e`, `desktop/src/release-notes-markdown.mjs` + 13 tests                                              |
+| 3   | Background launch check + dynamic menu label     | **YES**           | `3bf609e`, `main.mjs` `setTimeout(check, 5_000)`, `menuLabelForUpdate`                                      |
+| 4   | Landing auto-deploy workflow                     | **YES (file)**    | `.github/workflows/deploy-landing.yml` — needs `VERCEL_TOKEN` + `VERCEL_PROJECT_LANDING` to start deploying |
+| 5   | 1.1.2 Mac release                                | **NO**            | Needs Developer ID certificate; documented in `docs/release/1.1.2.md`                                       |
+| 6   | Full Playwright matrix on Phase 50 commits       | **NO**            | CI to run                                                                                                   |
+| 7   | Direct feedback delivery                         | **NO**            | Feedback-sink credentials owner-only                                                                        |

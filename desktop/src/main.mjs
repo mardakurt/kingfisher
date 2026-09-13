@@ -1126,10 +1126,7 @@ if (!app.requestSingleInstanceLock()) {
       check()
         .then(() => log('update', 'background check on launch completed'))
         .catch((err) =>
-          log(
-            'update',
-            `background check on launch failed: ${String(err?.message ?? err)}`,
-          ),
+          log('update', `background check on launch failed: ${String(err?.message ?? err)}`),
         );
     }, 5_000);
 

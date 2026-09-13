@@ -35,7 +35,6 @@ const INLINE_BOLD_ITALIC = /\*\*\*([^*]+)\*\*\*/;
 const HEADING = /^(#{1,3})\s+(.*)$/;
 const UNORDERED_ITEM = /^[-*+]\s+/;
 const ORDERED_ITEM = /^\d+\.\s+/;
-const INLINE_DELIMITER = /`|\*\*/;
 
 /**
  * Render a markdown source string into a DOM `DocumentFragment`. The

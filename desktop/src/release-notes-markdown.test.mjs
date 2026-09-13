@@ -98,8 +98,7 @@ function collect(root) {
       out.push({ kind: 'text', value: node._text, depth });
       return;
     }
-    const allText =
-      node.childNodes.length > 0 && node.childNodes.every((c) => c.isText);
+    const allText = node.childNodes.length > 0 && node.childNodes.every((c) => c.isText);
     if (allText) {
       out.push({
         kind: 'element',
@@ -166,7 +165,12 @@ describe('renderReleaseNotes', () => {
       { kind: 'element', tag: 'p', depth: 0, text: 'A maintenance release on 1.1.0.' },
       { kind: 'element', tag: 'p', depth: 0, text: 'What changed:' },
       { kind: 'element', tag: 'ul', depth: 0, text: null },
-      { kind: 'element', tag: 'li', depth: 1, text: 'the evaluation bar keeps its verdict when the board is flipped' },
+      {
+        kind: 'element',
+        tag: 'li',
+        depth: 1,
+        text: 'the evaluation bar keeps its verdict when the board is flipped',
+      },
       { kind: 'element', tag: 'li', depth: 1, text: 'a surname finds the player you mean' },
     ]);
   });
@@ -195,12 +199,7 @@ describe('renderReleaseNotes', () => {
   });
 
   it('renders ordered lists', () => {
-    const source = [
-      'Steps:',
-      '1. First',
-      '2. Second',
-      '3. Third',
-    ].join('\n');
+    const source = ['Steps:', '1. First', '2. Second', '3. Third'].join('\n');
     const out = collect(render(source));
     expect(out).toEqual([
       { kind: 'element', tag: 'p', depth: 0, text: 'Steps:' },
@@ -212,11 +211,7 @@ describe('renderReleaseNotes', () => {
   });
 
   it('joins hard-wrapped paragraph lines with a space', () => {
-    const source = [
-      'first line',
-      'second line',
-      'third line',
-    ].join('\n');
+    const source = ['first line', 'second line', 'third line'].join('\n');
     const out = collect(render(source));
     expect(out).toEqual([
       { kind: 'element', tag: 'p', depth: 0, text: 'first line second line third line' },
@@ -228,9 +223,7 @@ describe('renderReleaseNotes', () => {
     // event handler. The renderer treats both as plain text.
     const source = '<script>alert(1)</script> and <img onerror=alert(1) src=x>';
     const frag = render(source);
-    const html = frag.childNodes
-      .map((c) => c.textContent)
-      .join('');
+    const html = frag.childNodes.map((c) => c.textContent).join('');
     expect(html).toBe('<script>alert(1)</script> and <img onerror=alert(1) src=x>');
     // No element of name 'script' or 'img' was ever created.
     const tags = new Set();

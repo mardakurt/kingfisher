@@ -410,6 +410,9 @@ export async function POST(request: NextRequest) {
         { status: 502 },
       );
     }
+    // The structured stdout line is the durable record of every accepted
+    // submission in the Vercel function log; ntfy.sh is the live view.
+    // eslint-disable-next-line no-console
     console.log('feedback: accepted', {
       reference,
       category: validated.category,

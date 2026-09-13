@@ -51,7 +51,7 @@ function clearFlag() {
 
 const onDarwin = platform === 'darwin';
 const suite = onDarwin ? describe : describe.skip;
-const teardown = onDarwin ? afterAll : (onDarwin ? afterAll : () => {});
+const teardown = onDarwin ? afterAll : onDarwin ? afterAll : () => {};
 
 suite('squirrel-direct-write', () => {
   teardown(() => {
@@ -115,11 +115,7 @@ suite('squirrel-direct-write', () => {
     expect(readFlag()).toBe('TRUE');
   });
 
-  it.each([
-    [null],
-    [undefined],
-    [''],
-  ])('is a safe no-op when the bundle identifier is %p', (id) => {
+  it.each([[null], [undefined], ['']])('is a safe no-op when the bundle identifier is %p', (id) => {
     // The helper must not throw if it cannot determine which defaults
     // domain to write to. These IDs would otherwise be valid inputs.
     expect(() => ensureSquirrelMacDirectWrite(id)).not.toThrow();

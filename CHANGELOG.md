@@ -4,22 +4,47 @@ The user-facing changelog. Internal phase history is in
 `docs/reports/` and `docs/product/phase-*.md`; the list below is what
 real users notice.
 
-## Unreleased
+## 1.1.2 — 2026-09-13
 
-- Fix service-worker responses that could cause a PGN worker to load another
-  worker's module after cached navigation.
-- Restore shortcut rebinding in Safari by focusing the capture control.
-- Use singular repertoire labels for one prepared position and one gap.
+A maintenance release that brings the public Mac application back to
+the same source revision as the web application. 1.1.1 (build 494,
+`6df79f8`) predated every fix below; the web deployment had carried the
+first three since `ca329f7`. 1.1.2 is offered through _Kingfisher →
+Check for Updates…_ and from the landing page.
 
-These fixes are on the public web deployment at `ca329f7`, but are not in
-Mac 1.1.1 (build 494, `6df79f8`). They require the next Mac release.
+### Corrections
+
+- **A PGN worker no longer loads another worker's module.** The service
+  worker could answer a cached navigation with the wrong worker's
+  bootstrap; it now serves each request its own URL.
+- **A shortcut can be rebound in Safari.** The capture control is focused
+  before it listens, which Safari requires.
+- **"1 prepared position", not "1 prepared positions"**, and the same for
+  one gap in the repertoire.
+
+### macOS
+
+- **No more Touch ID or password prompt on every update.** Squirrel.Mac's
+  helper-tool prompt fired on every _Install Update_ (Squirrel.Mac #192,
+  #247). Kingfisher now sets `SquirrelMacEnableDirectContentsWrite` in
+  its own defaults domain on first launch, so the update engine writes
+  the bundle directly. The first launch after a fresh install may still
+  prompt once; every update after that is silent. SHA-512 verification,
+  Developer ID signing and notarisation are unchanged.
+- **Release notes appear inline in the update dialog**, rendered from the
+  GitHub release body with a renderer that never passes HTML through.
+- **A quiet background check on launch.** Five seconds after start-up the
+  application asks the release feed once; if a newer release exists, the
+  _Kingfisher_ menu's _Check for Updates…_ item re-labels itself to _An
+  Update Is Available…_. No badge, no banner, no notification, and no
+  further polling. The explicit click is unchanged.
 
 ## 1.1.1 — 2026-09-13
 
 A maintenance release: the polish made after 1.1.0 and the corrections
 found while certifying the product for users, bringing the public Mac
 application and web application to the release source at `6df79f8`.
-Later web fixes are listed under Unreleased. Nothing in the 1.1.0 release was replaced; 1.1.1 is offered
+The fixes made after it are listed under 1.1.2. Nothing in the 1.1.0 release was replaced; 1.1.1 is offered
 through _Kingfisher → Check for Updates…_ and from the landing page.
 
 ### Corrections

@@ -106,9 +106,15 @@ export function ensureSquirrelMacDirectWrite(bundleIdentifier) {
   }
 
   if (current === null) {
-    log('update', `squirrel direct-write flag set: ${bundleIdentifier} ${FLAG}="<unset>" -> "${ON}"`);
+    log(
+      'update',
+      `squirrel direct-write flag set: ${bundleIdentifier} ${FLAG}="<unset>" -> "${ON}"`,
+    );
   } else {
-    log('update', `squirrel direct-write flag changed: ${bundleIdentifier} ${FLAG}="${current}" -> "${ON}"`);
+    log(
+      'update',
+      `squirrel direct-write flag changed: ${bundleIdentifier} ${FLAG}="${current}" -> "${ON}"`,
+    );
   }
   return true;
 }
