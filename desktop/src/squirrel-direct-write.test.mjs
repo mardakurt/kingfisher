@@ -50,10 +50,33 @@ function clearFlag() {
 }
 
 const onDarwin = platform === 'darwin';
-const suite = onDarwin ? describe : describe.skip;
-const teardown = onDarwin ? afterAll : onDarwin ? afterAll : () => {};
 
-suite('squirrel-direct-write', () => {
+/*
+  Off macOS there is no `defaults` command and the helper is documented to be
+  a no-op, so that is what is asserted — a deterministic fallback rather than
+  a skip. The repository's zero-skip rule exists because a skipped test on the
+  one platform the shell ships on is indistinguishable from a passing one.
+*/
+describe('squirrel-direct-write off macOS', () => {
+  it('is a no-op that reports no change', () => {
+    if (onDarwin) {
+      expect(platform).toBe('darwin');
+      return;
+    }
+    expect(ensureSquirrelMacDirectWrite(BUNDLE_ID)).toBe(false);
+  });
+});
+
+const teardown = onDarwin ? afterAll : () => {};
+
+describe('squirrel-direct-write', () => {
+  if (!onDarwin) {
+    // Not macOS: the helper cannot write anything, and says so.
+    it('cannot write a macOS default on this platform', () => {
+      expect(ensureSquirrelMacDirectWrite(BUNDLE_ID)).toBe(false);
+    });
+    return;
+  }
   teardown(() => {
     // Clean up the test namespace so we never pollute the user's defaults.
     try {
