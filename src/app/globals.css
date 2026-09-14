@@ -448,6 +448,19 @@ body {
    */
   --sidebar-brand-left-padding: 0px;
 }
+/*
+ * Restated, because the cascade would otherwise undo it. The rule above and
+ * the Mac-shell rule further down (`:root[data-titlebar='mac-hidden-titlebar']`)
+ * have the same specificity — one attribute selector each — and the later one
+ * wins, so on the Mac shell in full screen the inset came back as
+ * `max(0.875rem, 0px)` = 14 px. The packaged chrome harness caught it ("x 14,
+ * expected 0"); the first pass of Phase 53 had shipped the rule above without
+ * running that harness. Two attributes outrank one, whatever the order.
+ */
+:root[data-titlebar='mac-hidden-titlebar'][data-fullscreen='true'] {
+  --sidebar-brand-left-padding: 0px;
+}
+
 :root[data-titlebar] nav[data-sidebar] > [data-titlebar-drag] {
   transition: padding-left var(--motion-standard) ease-out;
 }

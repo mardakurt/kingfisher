@@ -123,7 +123,21 @@ async function main() {
 
   const installed = [];
   for (const build of BUILDS) {
-    if (build.network === 'full' && !wantFull) continue;
+    // Without `--full` the full-network builds are not fetched — but ones a
+    // previous `--full` run already put here stay listed. `npm run test:e2e`
+    // runs this script without the flag, and the first version of this loop
+    // silently dropped the full-network engine from a developer's manifest
+    // every time the browser suite ran.
+    if (
+      build.network === 'full' &&
+      !wantFull &&
+      !(
+        (await exists(join(TARGET_DIR, build.script))) &&
+        (await exists(join(TARGET_DIR, build.wasm)))
+      )
+    ) {
+      continue;
+    }
     try {
       await download(build.script);
       await download(build.wasm);

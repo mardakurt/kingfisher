@@ -178,6 +178,27 @@ test('the desktop reservation is restated after hydration, not only before paint
   // The mark's left edge is the reservation — one design gap clear of the last
   // button — once the header's padding transition has settled.
   await expect.poll(async () => (await state()).markX).toBe(84);
+
+  /*
+    Full screen takes the buttons into the menu bar, and the mark moves into
+    the corner they left: not to the 14 px design inset a browser shows, to
+    the edge. The first pass of Phase 53 wrote the rule and the cascade undid
+    it — the full-screen rule and the Mac-shell rule had one attribute
+    selector each, the Mac-shell rule came later, and in full screen the inset
+    was max(14px, 0px) = 14. The packaged harness caught it; this is the same
+    assertion where the web suite runs it on every push.
+  */
+  await page.evaluate(() => {
+    document.documentElement.dataset.fullscreen = 'true';
+  });
+  await expect.poll(async () => (await state()).safeWidth).toBe('0px');
+  await expect
+    .poll(async () => (await state()).markX, 'full screen: the mark is in the corner')
+    .toBe(0);
+  await page.evaluate(() => {
+    delete document.documentElement.dataset.fullscreen;
+  });
+  await expect.poll(async () => (await state()).markX, 'leaving full screen restores it').toBe(84);
 });
 
 /**
