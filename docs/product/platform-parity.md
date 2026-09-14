@@ -7,72 +7,30 @@ file plus `src/desktop/bridge.ts`, which returns `null` in a browser.
 This document is the Phase 49 check on that claim, feature by feature,
 with the deliberate differences named and the reason for each.
 
-**Published revision check (2026-09-14, 1.1.5).** The public Mac 1.1.5
-DMG is built from the `v1.1.5` tag's revision — its build number and
-commit are in `src/release/macos-download.json` (1.1.4 was build 544 from
-`8f3e1d5`) — which is the revision the web deployment served when it was
-built (`npm run deploy:status`); the descriptor and docs commits that
-follow a Mac release change no application code.
-Every Phase 52 change — the legible evaluation bar and the engine that
-follows the board, the graph, the Reset moves button, Review's candidates
-on the one board, the colour-blind verdict tokens, the three piece sets,
-the version-3 bundled reference, the sparring partner — is in both
-identities. Two changes are Mac-only because they concern the shell: the
-window-button reservation restated from the application (a browser
-reserves nothing) and the update dialog's three-highlight layout; both are
-in the native-capability rows below. Later web-only commits, if any, are
-recorded here when they land; the Mac release is due when there is a
-Mac-facing change.
+**Published revision check (2026-09-14, 1.1.6).** The public Mac 1.1.6
+DMG is built from the `v1.1.6` tag's revision — its build number and
+commit are in `src/release/macos-download.json` — which is the revision
+the web deployment served when it was built (`npm run deploy:status`);
+the descriptor and docs commits that follow a Mac release change no
+application code. Every Phase 53 change is in both identities: the
+redrawn Opening, Endgame and Training icons; Position and Set up
+labelled from 430 px and the header measured to fit an iPad; the
+command palette's word matching and sections; the Databases rail with
+its three Lichess sources readable and the storage line; the review
+queue by staleness; the Recent page's games meta; the preparation
+dossier's Recent form tab and the 2,000-game cap; the version-4
+bundled reference (206,451 games). Three changes are Mac-only because
+they concern the shell — the brand flush to the corner in full screen,
+the route headers as the window's drag region, and the native
+Stockfish's name — and are in the native-capability rows below. One
+change is **web-only by design** and is the first such row: the
+full-network browser Stockfish (113 MB), which the web deployment
+installs and the Mac build leaves out because a Mac has native
+Stockfish 19; the registry offers the row only where the manifest
+lists the build, so neither identity shows an engine it cannot start.
 
-**Master is ahead of the public Mac (Phase 53, in progress).** The
-Phase 53 work in this branch covers seven commits from `1e0a0ee` to
-`9d2e0e9`. The first three (`1e0a0ee`, `6f831ba`, `1e0a0ee`'s window
-chrome and iPad label changes, plus the platform-parity note) were
-recorded in the prior commit; the next four add the rest.
-
-`56c2622` changed two files: `engine/registry.ts` (the native
-Stockfish display name from "Stockfish 18 (native)" to "Stockfish 19
-(native)", matching what the install catalogue has been downloading
-since Phase 51; the registry note also records that the browser
-engine stays at Stockfish 18 because no public WebAssembly build of
-sf_19 has been cut) and `features/recent/RecentWorkspace.tsx` (a
-`gameMeta` helper that puts the imported-time on the Games row, in
-the same shape the other rows already carried).
-
-`a3d9b61` rewrote `features/review/CriticalInbox.tsx`: the unreviewed
-queue now orders by `createdAt` ascending (staleness, not creation
-date), and every row older than seven days carries a small "Waiting
-Nd" tag so a busy player can see at a glance which positions are
-slipping. The `Date.now` call that powers the timer is now read from
-state seeded by an effect on mount and ticked once a minute — same
-pattern the Recent page uses — so a re-render within the same minute
-sees the same age.
-
-`abbb6e0` redid the command palette: the 74 px in-row uppercase group
-label is gone, replaced by a section divider that appears once at the
-top of every run of consecutive same-group items. The list is still
-ranked globally; only the rendering changed.
-
-`82667ca` and `c840fa5` added the "Recent form" tab to the
-preparation dossier (last twenty games of the opponent on the chosen
-colour, newest on the left, with the W/D/L tally underneath) and
-raised the Recent N cap from 1,000 to 2,000 opponent games.
-
-`de729c1` added the upgrade-path sentence to the Starter Reference
-catalog entry, so a user reading the catalog row and deciding 18 MB
-is too small sees the bigger packs in the same list.
-
-`9d2e0e9` moved the staleness `Date.now` call into a `useEffect`
-because the lint rule flagged it as an impure render-time call, and
-reformatted `CHANGELOG.md` after Prettier's trailing-newline rule
-caught it. `8f21637` is the CHANGELOG update that ties the branch
-together.
-
-The Mac-facing files in this branch: `engine/registry.ts` (display
-name and note) and the chrome files already in the prior paragraph.
-The public Mac 1.1.5 (build 1.1.5, commit named in
-`src/release/macos-download.json`) is now behind `master` by nine
-commits. A Mac release is due.
+The previous check (1.1.5, build 558) found the branch ahead of the Mac
+by the Phase 53 commits; 1.1.6 is that release.
 
 The previous check (1.1.4, build 544 from `8f3e1d5`) found no web-only
 commits after it.
@@ -104,6 +62,7 @@ application.
 | Board, pieces, orientation         | ✅  |  ✅   | none                                                                                      | `visual.spec.ts`, `piece-proportions.spec.ts`; smoke: board drawn; walk |
 | Legal moves, check, mate           | ✅  |  ✅   | none                                                                                      | `src/chess/**`; same code path                                          |
 | Engine (browser Stockfish 18)      | ✅  |  ✅   | none — and the desktop is cross-origin isolated, so it is threaded there too              | `engines.spec.ts`; smoke: `SharedArrayBuffer`; walk                     |
+| Engine (browser, full network)     | ✅  |   —   | web only: a Mac has native Stockfish 19, and 226 MB of WebAssembly would double the DMG   | `registry.test.ts`; `build-desktop-web.mjs` leaves it out of the bundle |
 | Engine arrows                      | ✅  |  ✅   | none                                                                                      | `engines.spec.ts` "played while an arrow is drawn"; walk                |
 | Evaluation bar                     | ✅  |  ✅   | none                                                                                      | `evaluation-bar-layout.test.ts`; `engines.spec.ts` flip test; walk      |
 | Explorer, one source at a time     | ✅  |  ✅   | none                                                                                      | `reference-sources.spec.ts`; walk                                       |

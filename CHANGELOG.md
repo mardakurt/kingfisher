@@ -4,12 +4,53 @@ The user-facing changelog. Internal phase history is in
 `docs/reports/` and `docs/product/phase-*.md`; the list below is what
 real users notice.
 
-## Unreleased
+## 1.1.6 — 2026-09-14
 
-From the owner's next round of fixes. Eleven of fourteen items landed
-in this branch; the remaining three (Stockfish 19 native binary build,
-Starter Reference enrichment, a Mac release) are the user's part or
-need the data pipeline. Section B is entirely yours.
+From the owner's Phase 53 round of fourteen items, in two passes: the
+first landed eleven, the second — a control pass over the first —
+finished the rest, corrected three of the first pass's answers, and
+found two defects on the way.
+
+- **The web has the full-strength Stockfish.** A browser cannot run a
+  native engine, so a person at kingfisherchess.app had one engine and
+  it was the 7 MB lite build with the small evaluation network — weaker
+  than the Stockfish a Mac user runs natively. A second browser row,
+  **Stockfish 18 (full network)**, carries the full-size network the
+  native binary uses: 113 MB, fetched the first time it is chosen and
+  kept by the browser afterwards, no companion. Web only — the Mac
+  application has native Stockfish 19 and leaves it out. Measured
+  with a real search: depth 21 in 4.4 s at 767 k nodes/s.
+- **The Starter Reference is a third larger.** Version 4 of the
+  bundled pack covers four years of broadcasts (2022-09 → 2026-08)
+  instead of three and keeps up to 300 scores a player instead of 200:
+  206,451 games (from 177,511), 300,413 positions (from 253,687),
+  38,749 openable scores (from 27,521), 13,738 players (from 12,685),
+  at 24.3 MB (from 18.5). Carlsen's page holds 300 scores from 706
+  games. Twelve more archives cost 73 MB in the download cache.
+- **The command palette answers what you typed.** "opencarlsen" used to
+  match _Run two engines on this position_ because any scattered
+  subsequence counted; now a word has to appear whole, or nearly so
+  (one dropped letter in two, so "anlysis" still finds _New analysis_),
+  in the title or its keywords. Results are gathered by section —
+  Players, then Games, then Openings, each in rank order — so the
+  divider appears once per section instead of on every other row.
+- **Data sources are never cut off.** In the Databases rail the three
+  Lichess sources read "Lichess M…", "Lichess R…", "Lichess b…" because
+  the state label sat beside the name. The state now sits under it and
+  the name gets the whole line; the companion's storage line says
+  "1.2 GB" rather than a raw byte count.
+- **The header fits an iPad.** The first pass gave Position and Set up
+  their labels from 430 px and left the toolbar's three labels where
+  they were; on an iPad the row was 835 px in a 796 px header and a
+  long document title was painted under "Position". New, Import and
+  Export keep their labels from 1080 px, the title is clipped in its own
+  box rather than over the controls, and a test now measures the whole
+  row at three sizes.
+- **Dragging the window costs the board nothing.** The first pass
+  granted the drag with a 40 px empty strip above every workspace. The
+  route headers — the toolbar row every page already has — are the
+  drag region instead, with every control in them opting out, so the
+  whole top edge of the window moves it the way a native toolbar does.
 
 - **The brand sits in the corner in full screen.** The 14 px design
   inset that survived Phase 48 collapsed the brand 14 px from an edge
@@ -17,10 +58,6 @@ need the data pipeline. Section B is entirely yours.
   variable now reads `--titlebar-safe-w` normally and falls to 0 for
   the duration of full screen, so the brand flushes left when the
   traffic lights are gone and moves back when they return.
-- **The workspace has a drag strip.** The sidebar header still owns the
-  left side; a 40 px drag region across the top of the main pane gives
-  the right side the same affordance. Hidden in a browser and on
-  Windows; visible on the Mac shell only.
 - **iPad screens see Position and Set up.** The labels were gated above
   1500 px, which left every iPad and most laptops with icon-only
   buttons. Both now appear at 430 px (`xs`) and Search commands at 900 px
@@ -41,14 +78,13 @@ need the data pipeline. Section B is entirely yours.
   (native)" and updated the registry note to mention the sf_19
   download. The browser engine stays at Stockfish 18: no public
   WebAssembly build of sf_19 exists yet (`nmrugg/stockfish.js` tops
-  out at v18, `lichess-org/stockfish.js` tops out at ddugovic-250718),
-  so the web build cannot move with the native one. The gap is
-  recorded in the registry note rather than fudged.
+  out at v18, and the one Stockfish 19 WebAssembly that exists carries
+  no network and a different interface — `docs/ENGINES.md`), so the web
+  build cannot move with the native one. The gap is recorded in the
+  registry note rather than fudged.
 - **The command palette has section dividers.** The 74 px in-row
-  uppercase group label is gone. Section dividers appear once at the
-  top of every run of consecutive same-group items, and the rest of the
-  row is the title and shortcut alone. The reader sees the group the
-  first row came from, and the rows in it, in one glance.
+  uppercase group label is gone; a section header stands above each
+  section instead, and the row is the title and shortcut alone.
 - **The review queue orders by staleness.** The unreviewed queue
   ordered newest-first, which is the order the inbox grew in. It now
   orders oldest-first — the position the player has been putting off
@@ -70,7 +106,7 @@ need the data pipeline. Section B is entirely yours.
   last twenty games, newest on the left, with the tally underneath.
   It is an observation, not a verdict, and the section says so.
 - **Starter Reference catalog notes the upgrade path.** A user who
-  reads the catalog and decides 18 MB / 177,511 games is too small
+  reads the catalog and decides 24 MB / 206,451 games is too small
   now sees the bigger packs in the same list — Elite OTB Reference
   (407,538 games, 339 MB), the two Recent Theory Reference variants,
   High-Rated Online Reference. The trade-off is one row away rather
