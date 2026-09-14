@@ -61,6 +61,7 @@ import path from 'node:path';
 import { app, shell } from 'electron';
 
 import { log } from './log.mjs';
+import { isDowngrade, writeRelaunchProfile } from './relaunch-profile.mjs';
 import {
   STATUS,
   compareSemver,
@@ -586,6 +587,16 @@ export async function installAndRestart({ onSaveBarrier, isQuitting = () => fals
         }
       }
       emit({ ...state.verdict, status: STATUS.INSTALLING });
+      // The update engine relaunches the bundle with no arguments, so a
+      // Kingfisher on a non-default profile would come back on the default
+      // one — the owner's own work. Name the profile for the relaunch to
+      // adopt; see relaunch-profile.mjs for what that cost before.
+      if (!writeRelaunchProfile(updaterCacheDir(), app.getPath('userData'))) {
+        log(
+          'update',
+          'relaunch profile handoff not written; the relaunch opens the default profile',
+        );
+      }
       // We hand the engine the pre-quit hook here too so the
       // engine is free to do additional work after we have
       // cleared the save barrier; in practice the pre-quit
@@ -709,11 +720,18 @@ export async function setStagingFeed({ url, channel = 'latest' } = {}) {
     noticeFrom            the version an update replaced, until dismissed
     acknowledgedVersion   the version whose notice was dismissed
 
-  A launch whose version differs from the last one recorded is an update
-  (or a downgrade) and sets `noticeFrom`; a fresh profile has no last
-  version and gets no notice — "Kingfisher was updated to 1.1.0" on a first
-  install was the first version's behaviour. The notice stays pending
-  across launches until the person dismisses it.
+  A launch whose version is newer than the last one recorded is an update
+  and sets `noticeFrom`; a fresh profile has no last version and gets no
+  notice — "Kingfisher was updated to 1.1.0" on a first install was the
+  first version's behaviour. The notice stays pending across launches until
+  the person dismisses it.
+
+  A launch whose version is *older* than the last one recorded is a
+  downgrade, and is recorded without a notice. "Kingfisher was updated to
+  1.1.4. Previously 1.1.6." is what the owner read on 2026-09-14 after a
+  harness had opened their profile with a newer build for eight seconds
+  (relaunch-profile.mjs); a sentence that calls going backwards an update
+  is wrong whatever caused it.
 */
 
 const ACKNOWLEDGED_VERSION_KEY = 'kingfisher.acknowledgedUpdateVersion';
@@ -751,8 +769,13 @@ export function recordLaunch(currentVersion = app.getVersion()) {
   const previous = state.lastLaunchedVersion ?? null;
   const next = { ...state, lastLaunchedVersion: currentVersion };
   if (previous && previous !== currentVersion) {
-    next.noticeFrom = previous;
-    delete next[ACKNOWLEDGED_VERSION_KEY];
+    if (isDowngrade(previous, currentVersion)) {
+      log('update', `launched ${currentVersion} on a profile last run by ${previous}: no notice`);
+      delete next.noticeFrom;
+    } else {
+      next.noticeFrom = previous;
+      delete next[ACKNOWLEDGED_VERSION_KEY];
+    }
   }
   if (JSON.stringify(next) !== JSON.stringify(state)) writeState(next);
   if (next.noticeFrom && next[ACKNOWLEDGED_VERSION_KEY] !== currentVersion) {

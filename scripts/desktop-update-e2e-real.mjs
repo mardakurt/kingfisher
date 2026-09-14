@@ -19,11 +19,16 @@
  * must carry the same Developer ID signature — macOS refuses an update
  * signed by someone else, and that refusal is a feature.
  *
- * One consequence to know: the relaunch after the install is performed by
- * the update engine, without the harness's `--user-data-dir`, so the
- * relaunched instance opens the *default* profile for a few seconds before
- * this script quits it. The work-preserved check is made by reopening the
- * replaced bundle on the test profile.
+ * The relaunch after the install is performed by the update engine, without
+ * the harness's `--user-data-dir`. Until Phase 53 that meant the relaunched
+ * instance opened the *default* profile — the owner's own work — for eight
+ * seconds, ran the web server and the companion against it, and recorded
+ * itself there; the owner's installed build then announced the newer
+ * version's visit as "updated to 1.1.4, previously 1.1.6". The shell now
+ * hands its profile to the relaunch (`desktop/src/relaunch-profile.mjs`),
+ * and this harness asserts that the relaunched instance logged its launch
+ * in the *test* profile and that the owner's default profile was not
+ * opened — the check that was missing for three phases.
  *
  * Usage:
  *   node scripts/desktop-update-e2e-real.mjs \
@@ -33,14 +38,15 @@
  */
 
 import { spawn, spawnSync } from 'node:child_process';
-import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
+import os, { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { _electron as electron } from '@playwright/test';
 
 import { descendants, waitForReady } from './desktop-lib/launch.mjs';
+import { writeRelaunchProfile } from '../desktop/src/relaunch-profile.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const args = process.argv.slice(2);
@@ -212,6 +218,20 @@ try {
   );
 
   // --- 3. Install Update: download, verify, save barrier, install, quit. ------
+  /*
+    The profile handoff, written here as well as by the shell. A shell from
+    1.1.7 on writes it itself before `quitAndInstall`; the one being updated
+    here may be older and would leave the relaunch to open the owner's
+    default profile. The file is the same one the shell writes, in the
+    updater's own cache directory, and the *next* shell is the one that
+    reads it — so this is also the harness's proof of the reading side.
+  */
+  const cacheName =
+    /^updaterCacheDirName:\s*(.+)$/m
+      .exec(readFileSync(path.join(app, 'Contents', 'Resources', 'app-update.yml'), 'utf8'))?.[1]
+      ?.trim() ?? 'kingfisher-desktop-updater';
+  const updaterCache = path.join(os.homedir(), 'Library', 'Caches', cacheName);
+  writeRelaunchProfile(updaterCache, profile);
   const exited = new Promise((resolve) => instance.process().once('exit', resolve));
   await updates.getByRole('button', { name: 'Install Update' }).click();
   const seen = new Set();
@@ -267,8 +287,30 @@ try {
     relaunched !== null,
     relaunched ? `pid ${relaunched}` : '',
   );
+  // The default profile's log, as it stood before the relaunch: the relaunch
+  // must not add to it.
+  const defaultProfileLog = path.join(
+    os.homedir(),
+    'Library',
+    'Application Support',
+    'kingfisher-desktop',
+    'logs',
+    'kingfisher.log',
+  );
+  const readLog = (file) => (existsSync(file) ? readFileSync(file, 'utf8') : '');
+  const defaultLogBefore = readLog(defaultProfileLog);
   if (relaunched) {
     await wait(8000);
+    const testLog = readLog(path.join(profile, 'logs', 'kingfisher.log'));
+    check(
+      `the relaunched ${nextVersion} opened the test profile, not the default one`,
+      testLog.includes(`[launch] Kingfisher ${nextVersion}`) &&
+        testLog.includes('profile adopted from the update') &&
+        readLog(defaultProfileLog) === defaultLogBefore,
+      readLog(defaultProfileLog) === defaultLogBefore
+        ? 'default profile log unchanged'
+        : "the default profile log grew — the relaunch opened the owner's profile",
+    );
     spawnSync('osascript', ['-e', 'tell application "Kingfisher" to quit']);
     for (let i = 0; i < 30; i += 1) {
       if (spawnSync('kill', ['-0', relaunched]).status !== 0) break;

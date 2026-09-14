@@ -4,6 +4,26 @@ The user-facing changelog. Internal phase history is in
 `docs/reports/` and `docs/product/phase-*.md`; the list below is what
 real users notice.
 
+## 1.1.7 — 2026-09-14
+
+One defect, found by the owner within minutes of 1.1.6, and one release.
+
+- **Mac: an update's relaunch reopens the profile that installed it.** The
+  update engine relaunches Kingfisher with no arguments, so a Kingfisher
+  running on a non-default profile came back on the default one — the
+  owner's own work. The update harness had done exactly that in three
+  phases: a freshly built 1.1.5, then a 1.1.6, each opened the owner's real
+  profile for eight seconds and recorded itself there, and the owner's
+  installed 1.1.4 greeted them with "Kingfisher was updated to 1.1.4.
+  Previously 1.1.6." before they had updated anything. The shell now hands
+  its profile to the relaunch through the updater's own cache directory
+  (never through a profile), the relaunch adopts it, and the harness
+  asserts that the owner's default profile was not opened — the check that
+  was missing.
+- **Going backwards is never called an update.** A launch of an older
+  version on a profile is recorded without a notice; the next real update
+  is still announced from the version that actually ran last.
+
 ## 1.1.6 — 2026-09-14
 
 From the owner's Phase 53 round of fourteen items, in two passes: the

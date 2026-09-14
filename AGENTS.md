@@ -454,6 +454,13 @@ telemetry. One service, in the main process:
 - The user's work lives in
   `~/Library/Application Support/kingfisher-desktop/` — the package
   name, not the product name — and the updater never touches it.
+- **The relaunch adopts the profile that installed the update.** The
+  engine relaunches with no arguments; a shell on another profile would
+  come back on the default one — the owner's — and the update harness
+  did that for three phases. `desktop/src/relaunch-profile.mjs`: the
+  shell names its profile in the updater's cache before
+  `quitAndInstall`, the next launch takes the file and adopts it, and
+  `desktop:update:real` asserts the default profile was not opened.
 
 ## Build identity, channels, and the public DMG
 

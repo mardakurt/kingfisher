@@ -79,9 +79,28 @@ import {
   subscribe as subscribeToUpdates,
 } from './update-service.mjs';
 import * as updateWindow from './update-window.mjs';
+import { updaterCacheDir } from './kingfisher-updater.mjs';
+import { takeRelaunchProfile } from './relaunch-profile.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const HOST = '127.0.0.1';
+
+/*
+  The profile handoff, before anything reads `userData`.
+
+  An update's relaunch arrives with no arguments, so a Kingfisher that was
+  running on a non-default profile would come back on the default one — the
+  owner's own work — and did, for three phases of the update harness (see
+  relaunch-profile.mjs). The shell that installed the update named its
+  profile in the updater's cache; this launch takes the name, adopts it, and
+  the file is gone whether or not it was fresh. `sessionData` follows
+  `userData` the way `--user-data-dir` would have moved both.
+*/
+const relaunchProfile = takeRelaunchProfile(updaterCacheDir());
+if (relaunchProfile && relaunchProfile.userData !== app.getPath('userData')) {
+  app.setPath('userData', relaunchProfile.userData);
+  app.setPath('sessionData', relaunchProfile.userData);
+}
 
 /** What the application is called where a person reads it. */
 const PRODUCT_NAME = 'Kingfisher';
@@ -1054,6 +1073,12 @@ if (!app.requestSingleInstanceLock()) {
       `Kingfisher ${buildIdentity.label} · Electron ${process.versions.electron} · ` +
         `${process.platform}-${process.arch} ${os.release()} · packaged=${app.isPackaged}`,
     );
+    if (relaunchProfile) {
+      log(
+        'launch',
+        `profile adopted from the update's relaunch handoff: ${relaunchProfile.userData}`,
+      );
+    }
     /*
       Suppress the Squirrel.Mac SMJobBless "Kingfisher is trying to add a
       new helper tool" prompt that otherwise fires on every update. The

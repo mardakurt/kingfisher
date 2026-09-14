@@ -81,3 +81,23 @@ describe('the post-update notice', () => {
     expect(next.recordLaunch('1.2.0')).toEqual({ version: '1.2.0', previousVersion: '1.1.0' });
   });
 });
+
+describe('a downgrade', () => {
+  /*
+    2026-09-14: the update harness's relaunched 1.1.6 opened the owner's
+    real profile for eight seconds and recorded itself there; the owner's
+    installed 1.1.4 then said "Kingfisher was updated to 1.1.4. Previously
+    1.1.6." Going backwards is recorded, and it is not called an update.
+  */
+  it('is recorded without a notice', async () => {
+    const { profile, service } = await load('1.1.6');
+    expect(service.recordLaunch('1.1.6')).toBeNull();
+    const older = await reload(profile, '1.1.4');
+    expect(older.recordLaunch('1.1.4')).toBeNull();
+    expect(older.hasAcknowledgedUpdate('1.1.4')).toBe(true);
+    // The next real update from there is still announced, from the version
+    // that actually ran last.
+    const newer = await reload(profile, '1.1.7');
+    expect(newer.recordLaunch('1.1.7')).toEqual({ version: '1.1.7', previousVersion: '1.1.4' });
+  });
+});
