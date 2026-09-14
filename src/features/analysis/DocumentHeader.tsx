@@ -39,7 +39,7 @@ export function DocumentHeader() {
         <div className="flex min-w-0 items-baseline gap-1.5">
           <span className="truncate text-xs text-primary">{documentTitle(document)}</span>
           {document.kind === 'database-game' || document.kind === 'reference-game' ? (
-            <span className="shrink-0 rounded-[3px] bg-surface-3 px-1 text-[10px] text-tertiary">
+            <span className="hidden shrink-0 rounded-[3px] bg-surface-3 px-1 text-[10px] text-tertiary wide:inline">
               read-only source
             </span>
           ) : null}
@@ -96,7 +96,9 @@ function SaveIndicator({ state, error, kind }: SaveIndicatorProps) {
   return (
     <span
       className={cn(
-        'hidden shrink-0 text-[10.5px] sm:inline',
+        // Below `wide` the header's budget goes to the title; the state is
+        // still in the status bar, and "Unsaved changes" keeps its colour there.
+        'hidden shrink-0 text-[10.5px] wide:inline',
         state === 'unsaved' ? 'text-caution' : 'text-tertiary',
       )}
     >

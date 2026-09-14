@@ -126,13 +126,24 @@ export function Toolbar() {
     },
   ];
 
+  /*
+    The header is one row and it does not wrap, so its width is a budget. On
+    an iPad — 796 px of header beside the sidebar in landscape, 592 in
+    portrait — the three toolbar labels, the document title and the header's
+    own controls came to 835 px and the title was painted under "Position".
+    The labels a person needs most are on the right (Position, Set up: the
+    owner's Phase 53 report), so those keep theirs from `xs`, and these three
+    — whose icons are the universal plus, download and share — give theirs
+    up below `wide` (1080 px), where the row fits again with room to spare.
+    Measured with `e2e/workspace-header-labels.spec.ts`.
+  */
   return (
     <div className="flex min-w-0 flex-1 items-center gap-1.5" data-analysis-toolbar>
       <Button aria-label="New analysis" icon={<Plus />} onClick={() => newGame(START_FEN)}>
-        <span className="hidden xs:inline">New</span>
+        <span className="hidden wide:inline">New</span>
       </Button>
       <Button aria-label="Import PGN or FEN" icon={<Import />} onClick={() => setImportOpen(true)}>
-        <span className="hidden xs:inline">Import</span>
+        <span className="hidden wide:inline">Import</span>
       </Button>
 
       <Menu
@@ -149,14 +160,17 @@ export function Toolbar() {
             icon={<Export />}
             onClick={toggle}
           >
-            <span className="hidden sm:inline">Export</span>
+            <span className="hidden wide:inline">Export</span>
           </Button>
         )}
       />
 
       <span className="mx-1 hidden h-4 w-px bg-line-subtle sm:block" />
 
-      <div className="hidden min-w-0 flex-1 md:block">
+      {/* `overflow-hidden`: when the budget is still short, the title is
+          clipped inside its own box rather than painted over the controls
+          to its right. */}
+      <div className="hidden min-w-0 flex-1 overflow-hidden md:block">
         <DocumentHeader />
       </div>
     </div>
