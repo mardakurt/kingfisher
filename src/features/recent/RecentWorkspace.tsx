@@ -313,7 +313,7 @@ export function RecentWorkspace() {
             <Row
               key={game.id}
               label={gameTitle(game)}
-              meta={game.event ?? game.date ?? ''}
+              meta={gameMeta(game)}
               onOpen={() => void openGame(game.id)}
               pinned={pins.some((pin) => pin.kind === 'game' && pin.id === game.id)}
               onPin={() => togglePin('game', game.id)}
@@ -448,6 +448,33 @@ function ago(at: number): string {
   const days = Math.round(hours / 24);
   if (days < 30) return `${days}d ago`;
   return new Date(at).toLocaleDateString();
+}
+
+/*
+ * Game row meta — what was played and when the player brought it in.
+ *
+ * Every other row on this page tells the reader both *what* and *when*:
+ * chapters show study · ago, studies show ago, repertoires show
+ * color · ago. Games used to show only `event ?? date`, so the column
+ * was about the game itself and not about the player — the row's
+ * neighbour sections were a study session ago and a repertoire ago,
+ * the same row's meta was a tournament three months back, and the
+ * reader had to know the row was about themselves.
+ *
+ * Both halves are kept on the meta line: the event (or date) tells the
+ * reader what the game *is*, the imported-time tells the reader what the
+ * game means on this page (something the player has been looking at
+ * recently). When the player has no event and no date, the imported-time
+ * alone is enough — it still answers the row's question.
+ */
+function gameMeta(game: {
+  event?: string | null;
+  date?: string | null;
+  importedAt: number;
+}): string {
+  const when = game.event ?? game.date ?? '';
+  const elapsed = ago(game.importedAt);
+  return when ? `${when} · ${elapsed}` : elapsed;
 }
 
 export type { PinKind };

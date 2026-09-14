@@ -81,12 +81,28 @@ const NATIVE: readonly Omit<EngineDefinition, 'provider'>[] = [
   {
     id: 'stockfish-native',
     platforms: ['darwin-arm64', 'darwin-x64', 'linux-x64', 'win32-x64'],
-    name: 'Stockfish 18 (native)',
+    /*
+     * Phase 53: the native Stockfish has been on sf_19 since the install
+     * catalogue was pointed at it (see `scripts/engine-catalogue.mjs`), but
+     * the display name here still said "Stockfish 18 (native)". The
+     * installed binary was Stockfish 19 for two phases and the selector
+     * told the user it was 18, which is exactly the drift the registry
+     * exists to prevent. Renamed to match what the catalogue ships.
+     *
+     * The browser engine stays at Stockfish 18 (`stockfish-wasm` above).
+     * Stockfish 19 has no public WebAssembly build as of this writing —
+     * `nmrugg/stockfish.js` has not cut a v19 release yet, and Lichess's
+     * fork tops out at the same point — so the web build cannot move with
+     * the native one. When a WASM build of sf_19 lands the line above can
+     * be updated in lockstep; until then the two are deliberately out of
+     * step and the catalogue notes the gap.
+     */
+    name: 'Stockfish 19 (native)',
     family: 'alphabeta',
     transport: 'native',
     license: 'GPL-3.0-or-later',
     source: 'https://github.com/official-stockfish/Stockfish',
-    notes: 'Native Stockfish 18. Performance depends on the machine and analysis settings.',
+    notes: 'Native Stockfish 19. Performance depends on the machine and analysis settings.',
   },
   {
     id: 'viridithas',
