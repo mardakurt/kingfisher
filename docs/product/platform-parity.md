@@ -24,6 +24,24 @@ in the native-capability rows below. Later web-only commits, if any, are
 recorded here when they land; the Mac release is due when there is a
 Mac-facing change.
 
+**Master is ahead of the public Mac (Phase 53, in progress).** The
+Phase 53 commit `1e0a0ee` changed five Mac-facing files — `Sidebar.tsx`
+(brand flush left in full screen), `TitleBarSafeArea.tsx` (40 px drag
+strip across the top of the main pane), `AppShell.tsx` (mounts the
+strip), `globals.css` (the `--sidebar-brand-left-padding` and
+`--titlebar-drag-strip-h` variables and the
+`mac-hidden-titlebar`/`data-fullscreen` rules), and
+`scripts/desktop-chrome.mjs` (`FULLSCREEN_BRAND_X` from 14 to 0). Three
+web-facing changes ride along because the same source feeds both: the
+iPad labels for Position / Set up / Search commands in
+`WorkspaceFrame.tsx`, the redrawn Opening / Endgame / Training icons in
+`icons.tsx`, and the Lichess source renamed to "Lichess Rated Games"
+plus the slimmed storage summary in `DatabasesWorkspace.tsx`. The
+public Mac 1.1.5 (build 1.1.5, commit named in
+`src/release/macos-download.json`) is now behind `master`. A new
+Mac release is due: bump version, run Section B end to end, then
+update `macos-download.json` and re-verify.
+
 The previous check (1.1.4, build 544 from `8f3e1d5`) found no web-only
 commits after it.
 
