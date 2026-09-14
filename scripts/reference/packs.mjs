@@ -51,12 +51,23 @@ export const PACK_DEFINITIONS = {
       'Recent elite broadcast games, including online events, bundled with Kingfisher so the ' +
       'opening explorer, player search and model games work before anything ' +
       'is installed or imported.',
-    version: '3',
+    version: '4',
     output: 'public/reference/kingfisher-starter',
     source: LICHESS_BROADCAST,
     transformation: TRANSFORMATION,
-    /** Recent enough to be current theory, small enough to commit. */
-    files: (digests) => broadcastMonths(digests).slice(0, 36),
+    /*
+      Recent enough to be current theory, small enough to commit.
+
+      Version 4 widens the window from 36 monthly archives to 48 — four
+      years rather than three. The owner's Phase 53 complaint was that the
+      explorer's deep rows and the players' game lists were thin; the two
+      levers that do not change the population's *quality* are the number of
+      months and the per-player cap (below), so those are the two that
+      moved. Twelve more archives are about 100 MB in the download cache,
+      which is the "without crowding the disk" constraint the request
+      carried. Measured in docs/data/reference-packs.md.
+    */
+    files: (digests) => broadcastMonths(digests).slice(0, 48),
     limits: {
       minRating: 2200,
       /*
@@ -84,7 +95,10 @@ export const PACK_DEFINITIONS = {
       deepMinGames: 2,
       maxMoves: 256,
       topGames: 8,
-      gamesPerPlayer: 200,
+      // Version 4: 300 a player, from 200. A per-player cap is the cheapest
+      // way to give a player's page more to study from, because it only
+      // costs the score bytes of the games above the old cap.
+      gamesPerPlayer: 300,
       recentYears: 2,
     },
     shards: { explorer: 64, game: 32, players: 4, playergames: 4 },

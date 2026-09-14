@@ -105,7 +105,7 @@ export const CATALOG_PACKS: readonly CatalogPack[] = [
     ],
     /*
      * Phase 53: a note for the user who reads the catalog row and decides
-     * 18 MB is too small for what they want. The starter pack's size is the
+     * 24 MB is too small for what they want. The starter pack's size is the
      * trade-off that made it a *bundled* pack instead of an optional
      * download — bigger means a fatter download for every fresh profile,
      * which the user already had to weigh once. The answer for someone who
@@ -116,13 +116,13 @@ export const CATALOG_PACKS: readonly CatalogPack[] = [
      * this same list, so the trade-off is one row away rather than one
      * document away.
      */
-    approximateBytes: 18_523_211,
+    approximateBytes: 24_290_847,
     maxPositionPly: 40,
     license: LICHESS_BROADCAST_LICENSE,
     origin:
-      'Built from the most recent three years of the Lichess broadcast ' +
-      'archive: 177,511 games, 253,687 positions, ' +
-      '12,685 players. For more games on the same machine install the ' +
+      'Built from the most recent four years of the Lichess broadcast ' +
+      'archive: 206,451 games, 300,413 positions, ' +
+      '13,738 players. For more games on the same machine install the ' +
       'Elite OTB Reference (407,538 games, 339 MB) or one of the Recent ' +
       'Theory Reference variants from this same catalog.',
   },

@@ -51,7 +51,7 @@ Najdorf at move 5: 6.Bg5 is 17.1% over the board and 26.6% online. No other
 tool here will put that difference in front of you; most will show you one
 population and let you assume it is the population.
 
-**The data is there and it is free.** A new user gets 177,511 games, 3,810
+**The data is there and it is free.** A new user gets 206,451 games, 3,810
 named opening positions, 157 variation briefs, a 12,589-player library and a
 working engine, without installing anything or paying for anything. En
 Croissant ships no games; ChessBase ships more than anyone, for a fee.

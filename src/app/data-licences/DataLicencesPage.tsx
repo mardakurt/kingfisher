@@ -22,7 +22,7 @@ export function DataLicencesPage(): JSX.Element {
             <td>
               <code>kingfisher-starter</code> pack
             </td>
-            <td>177,511 over-the-board games, 253,687 position aggregates</td>
+            <td>206,451 over-the-board games, 300,413 position aggregates</td>
             <td>
               <a href="https://creativecommons.org/licenses/by-sa/4.0/" rel="noopener">
                 CC BY-SA 4.0
