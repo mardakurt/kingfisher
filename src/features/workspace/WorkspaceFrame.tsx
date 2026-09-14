@@ -379,7 +379,18 @@ function FrameHeader({
               icon={<Target />}
               onClick={toggle}
             >
-              <span className="hidden min-[1500px]:inline">Position</span>
+              {/*
+                Position and Set up are the buttons a person reaches for first
+                on a workspace. Hiding their labels at any width below a 1500
+                px monitor made them icon-only on most laptops and every iPad,
+                which left the icon to do all the work — and the icon, on its
+                own, did not. `xs` is the breakpoint above which the sidebar
+                has not collapsed out of the way and there is room for a short
+                label next to the icon. Both labels together still leave space
+                for the toolbar at 1080 px, the smallest size the workspaces
+                ship at.
+              */}
+              <span className="hidden xs:inline">Position</span>
             </Button>
           )}
         />
@@ -390,8 +401,15 @@ function FrameHeader({
           onClick={() => setPositionSetupOpen(true)}
           data-position-setup
         >
-          <span className="hidden min-[1500px]:inline">Set up</span>
+          <span className="hidden xs:inline">Set up</span>
         </Button>
+        {/*
+          Search commands keeps a longer label than Position or Set up, so the
+          threshold for it is wider: at `mid` (900 px) the rest of the toolbar
+          has the room it needs without the search button pushing the theme
+          toggle off the right edge. Below that the icon and the kbd stay, so
+          the shortcut is still discoverable.
+        */}
         <button
           type="button"
           onClick={toggleCommandPalette}
@@ -399,8 +417,8 @@ function FrameHeader({
           className="flex h-9 shrink-0 items-center gap-2 rounded-[4px] border border-line bg-surface-2 px-3 text-xs text-tertiary transition-colors hover:border-line-strong hover:text-secondary"
         >
           <Search className="h-3.5 w-3.5" />
-          <span className="hidden min-[1600px]:inline">Search commands</span>
-          <kbd className="hidden rounded-[3px] border border-line bg-surface-1 px-1 font-mono text-[10px] min-[1600px]:inline">
+          <span className="hidden mid:inline">Search commands</span>
+          <kbd className="hidden rounded-[3px] border border-line bg-surface-1 px-1 font-mono text-[10px] mid:inline">
             ⌘K
           </kbd>
         </button>

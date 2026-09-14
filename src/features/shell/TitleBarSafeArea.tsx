@@ -123,3 +123,30 @@ export function TitleBarSafeBand({ focusMode }: { readonly focusMode: boolean })
     />
   );
 }
+
+/**
+ * A drag region across the top of the workspace pane.
+ *
+ * The sidebar header already gives the user a place to grab the window on the
+ * left, but a hidden title bar steals it from everywhere else — and a person
+ * who reaches for the top of the board to move the window gets nothing. This
+ * is the missing strip: the same height as the header, draggable, no
+ * interactive children of its own.
+ *
+ * The drag itself is applied by the `data-titlebar-drag` rule in `globals.css`
+ * rather than by an inline style, so a browser that happens to honour
+ * `-webkit-app-region` (an installed PWA) does not get a drag region it never
+ * asked for. `data-titlebar` is set by the shell's bridge before paint; in a
+ * browser it is unset and the rule never fires, and the strip is just a
+ * zero-height element at the top of the workspace.
+ */
+export function TitleBarSafeDragStrip() {
+  return (
+    <div
+      aria-hidden
+      data-titlebar-drag=""
+      className="w-full shrink-0"
+      style={{ height: 'var(--titlebar-drag-strip-h)' }}
+    />
+  );
+}

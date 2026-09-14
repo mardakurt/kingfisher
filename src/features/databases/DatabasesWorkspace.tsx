@@ -388,7 +388,7 @@ function StorageSummary({
   return (
     <section className="border-t border-line-subtle px-4 py-3">
       <h3 className="text-[10px] font-semibold uppercase tracking-wide text-tertiary">Storage</h3>
-      <p className="mt-2 text-xs text-primary">Estimated browser storage: {estimate}</p>
+      <p className="mt-2 text-xs text-primary">Browser estimate: {estimate}</p>
       {ratio !== null ? (
         <div
           className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-inset"
@@ -400,6 +400,15 @@ function StorageSummary({
           />
         </div>
       ) : null}
+      {/*
+        The previous version listed each companion-managed SQLite collection
+        on its own line, which on a machine with several study databases
+        pushed this rail past a screen of text. Two summaries carry the same
+        information: one for browser storage (the headline number the user
+        cares about) and one for companion-managed databases (collapsed into
+        a single line) — the per-database counts are still visible on each
+        collection's own row in the centre.
+      */}
       <p className="mt-2 text-2xs text-tertiary tabular">
         {storage.data
           ? `${storage.data.games.toLocaleString()} games · ${storage.data.studies} studies · ${storage.data.training} training items`
@@ -407,21 +416,15 @@ function StorageSummary({
             ? 'Stored counts could not be read from this browser.'
             : 'Reading browser storage…'}
       </p>
-      {sqlite.map((database) => (
-        <p
-          key={database.name}
-          className="mt-1 truncate text-2xs text-tertiary"
-          title={database.name}
-        >
-          {database.name}:{' '}
-          {database.bytes == null ? 'size unavailable' : formatBytes(database.bytes)} ·{' '}
-          {database.games?.toLocaleString() ?? 'unknown'} games
+      {sqlite.length > 0 ? (
+        <p className="mt-1 text-2xs text-tertiary tabular">
+          Companion: {sqlite.length} collection{sqlite.length === 1 ? '' : 's'} ·{' '}
+          {sqlite
+            .reduce<number>((sum, database) => sum + (database.bytes ?? 0), 0)
+            .toLocaleString()}{' '}
+          B on disk
         </p>
-      ))}
-      <p className="mt-2 text-[10px] leading-relaxed text-tertiary">
-        Browser figures are estimates. Kingfisher never deletes data automatically when quota is
-        low.
-      </p>
+      ) : null}
     </section>
   );
 }

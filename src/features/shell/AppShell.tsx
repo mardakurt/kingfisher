@@ -23,7 +23,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 import { Notices } from './Notices';
 import { Sidebar } from './Sidebar';
-import { TitleBarSafeBand } from './TitleBarSafeArea';
+import { TitleBarSafeBand, TitleBarSafeDragStrip } from './TitleBarSafeArea';
 import { StatusBar } from './StatusBar';
 import { FocusModeBar } from './FocusModeBar';
 import { ResearchTrail } from './ResearchTrail';
@@ -177,6 +177,11 @@ export function AppShell({ children }: { children: ReactNode }) {
               palette still works. */}
           {focusMode ? null : <Sidebar />}
           <main className="flex min-w-0 flex-1 flex-col">
+            {/* Mac shell only — see TitleBarSafeArea.tsx. A drag strip across
+                the top of the workspace so a person reaching for the top of
+                the window to move it has something to grab. Zero-height in
+                a browser and on Windows; 40 px on the Mac shell. */}
+            <TitleBarSafeDragStrip />
             {/* Above the workspace, not inside it: the notice has to be visible
                 on whichever route the conflicting chapter is open in. */}
             <PostUpdateNotice />

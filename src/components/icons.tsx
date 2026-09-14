@@ -179,10 +179,22 @@ export const Database = (p: IconProps) => (
     <path d="M4.5 6v12c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3V6M4.5 12c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3" />
   </Icon>
 );
+/**
+ * Openings: a pawn, the piece the opening phase is built around.
+ *
+ * Phase 53 replaced a branching-lines shape with the pawn itself — the older
+ * icon read as a tree of moves and had nothing in common with the rest of the
+ * sidebar, while every other workspace header is a chess piece or a metaphor
+ * for one. A pawn is the unambiguous opening-phase piece, and three lines
+ * (the head, the body, the foot) keep it readable at the 21 px the sidebar
+ * reserves for it.
+ */
 export const Opening = (p: IconProps) => (
   <Icon {...p}>
-    <path d="M12 3v5M12 8 6 13v8M12 8l6 5v8" />
-    <circle cx="12" cy="3.5" r="1.5" />
+    <circle cx="12" cy="5" r="2.2" />
+    <path d="M9.2 9 8 14h8l-1.2-5z" />
+    <path d="M7 14h10v1.5H7z" />
+    <path d="M5 15.5h14V18H5z" />
   </Icon>
 );
 export const Repertoire = (p: IconProps) => (
@@ -226,17 +238,20 @@ export const Dossier = (p: IconProps) => (
   </Icon>
 );
 /**
- * Endgame: a king, alone.
+ * Endgame: a king with the cross on top.
  *
- * Preparation owns the bullseye, and Endgame used to borrow it — so the two
- * were the same shape in the same list. A king with nothing around it is what
- * an endgame *is*, and no other icon in the set is a crowned dome.
+ * Phase 53 redrew this from a single crowned dome (which read as a chess piece
+ * but not specifically as a king) into a piece with the king's signature
+ * cross, the body, and a wider foot. Preparation owns the bullseye, so
+ * endgame cannot borrow any circle-and-concentric-circle shape; the cross
+ * makes the king unmistakable next to the pawn in Openings.
  */
 export const Endgame = (p: IconProps) => (
   <Icon {...p}>
-    <path d="M12 2.5v4M10 4.5h4" />
-    <path d="M12 6.5c-3 0-5 2.2-5 4.8 0 2.1 1.4 3.6 2 5.2h6c.6-1.6 2-3.1 2-5.2 0-2.6-2-4.8-5-4.8z" />
-    <path d="M8 19h8M8.5 21.5h7" />
+    <path d="M12 2v4M9.5 4h5" />
+    <path d="M8 7l2 3 2-3 2 3 2-3-1 5H9z" />
+    <path d="M9 12h6v4H9z" />
+    <path d="M7 16h10v3H7z" />
   </Icon>
 );
 export const Target = (p: IconProps) => (
@@ -246,17 +261,21 @@ export const Target = (p: IconProps) => (
   </Icon>
 );
 /**
- * Training: a card coming back around.
+ * Training: a stack of flashcards with a refresh loop.
  *
- * Training used to borrow `Target`, which left Preparation and Training with
- * the same bullseye in the same sidebar. Recall on a schedule is a loop, and a
- * loop is nothing like a target at any size.
+ * Phase 53 replaced the earlier clock-with-arrow shape (which read as "time"
+ * more than "review") with two stacked cards and a circular arrow on the top
+ * one. Training is a spaced-repetition loop over positions you have already
+ * seen: a stack of cards the user keeps coming back to. The two cards keep it
+ * legible at the 21 px the sidebar reserves; the loop keeps it distinct from
+ * the books and notebooks next to it in the navigation.
  */
 export const Recall = (p: IconProps) => (
   <Icon {...p}>
-    <path d="M20 12a8 8 0 1 1-2.6-5.9" />
-    <path d="M20 4v4.5h-4.5" />
-    <path d="M12 8.5V12l2.5 1.6" />
+    <rect x="4" y="6" width="11" height="14" rx="1.5" />
+    <rect x="8.5" y="3" width="11" height="14" rx="1.5" />
+    <path d="M19 8.5a4 4 0 1 0-1.3 3" />
+    <path d="M19 6v2.5h-2.5" />
   </Icon>
 );
 /**

@@ -96,12 +96,27 @@ export class LichessExplorerProvider implements ChessDatabaseProvider {
     const masters = database === 'masters';
     const player = database === 'player';
     this.id = masters ? 'lichess-masters' : player ? 'lichess-player' : 'lichess-games';
-    this.name = masters ? 'Lichess Masters' : player ? 'Player' : 'Lichess';
+    /*
+     * Three Lichess sources share one client, and the catalog lists all three.
+     * "Lichess Masters" and "Lichess Rated Games" are easy to confuse because
+     * both come from Lichess and both look like "the Lichess explorer". Phase
+     * 53 named the generic one after what it actually queries: every rated
+     * game on Lichess.org, filterable by rating and speed. The Masters source
+     * keeps its name (curated OTB games, the surface the player uses when
+     * studying theory), and Player keeps "Player" because that is what it
+     * answers about.
+     *
+     * Descriptions name what the source does, not what database it is — a
+     * master games database and a rated-games database both answer "what is
+     * played here?", but the right one depends on which population the user
+     * is asking about, and the name has to telegraph that.
+     */
+    this.name = masters ? 'Lichess Masters' : player ? 'Lichess by player' : 'Lichess Rated Games';
     this.description = masters
-      ? 'Over-the-board master games from the Lichess opening explorer.'
+      ? 'Curated over-the-board games from strong players, indexed by the Lichess explorer. Use for opening theory.'
       : player
-        ? 'One Lichess player, indexed on demand and streamed as results become available.'
-        : 'Aggregated rated Lichess games, filterable by rating and speed.';
+        ? 'Every rated game played by one Lichess username, indexed on demand.'
+        : 'Every rated game on Lichess.org, filterable by rating and speed. Use for popularity statistics.';
     this.capabilities = {
       ratingFilter: database === 'lichess',
       dateFilter: true,

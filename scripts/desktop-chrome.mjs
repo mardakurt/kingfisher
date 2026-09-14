@@ -83,12 +83,16 @@ const SIZES = [
 /**
  * Where the mark sits when there are no buttons to make room for.
  *
- * The sidebar header's own inset, `0.875rem` in `Sidebar.tsx` — the same 14 px
- * a browser shows, because with the buttons gone the desktop has no reason to
- * differ from the web. Stated here in pixels so the full-screen check is an
- * equality, not a "less than before".
+ * macOS takes the traffic lights into the menu bar in full screen, so the
+ * corner the brand sits in is a corner nothing else is claiming — and a
+ * 14 px design inset that survived would push the mark away from the corner
+ * the user is looking at. The brand flushes to the window's left edge for the
+ * duration of full screen and moves back to `MAC_BRAND_REGION.x` when the
+ * buttons do. Phase 53 brought this from 14 to 0; the previous value matched
+ * what a browser shows, which is what Phase 48 picked before the owner said
+ * the corner was off.
  */
-const FULLSCREEN_BRAND_X = 14;
+const FULLSCREEN_BRAND_X = 0;
 
 /** Routes whose top-left is owned by a different workspace header. */
 const ROUTES = ['/analysis', '/openings', '/players', '/databases', '/repertoire'];
@@ -468,8 +472,9 @@ async function main() {
     and a reservation that stayed would hold the brand 84 px from an edge with
     nothing in the way. The shell reports the state (the renderer must not
     guess it from the viewport), the root carries `data-fullscreen`, the
-    reservation is zero, and the mark sits at the header's own plain inset —
-    the 14 px it has in a browser — rather than where the buttons were.
+    reservation is zero, and the mark flushes to the window's left edge —
+    rather than the design inset a browser still shows — because that is the
+    corner the user is looking at in full screen.
   */
   const full = await survey(window);
   check(

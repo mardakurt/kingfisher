@@ -79,6 +79,24 @@
   --mac-titlebar-safe-h: 0px;
   --titlebar-safe-w: var(--mac-titlebar-safe-w);
   --titlebar-safe-h: var(--mac-titlebar-safe-h);
+  /*
+   * The drag strip above the workspace, on the Mac shell. Zero in a browser
+   * and on Windows — the same reason `--titlebar-safe-*` is: a strip the
+   * sidebar already covered would duplicate work, and a strip the shell did
+   * not ask for would either be invisible (no `-webkit-app-region`) or
+   * harmful (a PWA that installed itself inside Chrome would honour it). On
+   * the Mac shell the sidebar header's 56 px leaves the rest of the window's
+   * top unclaimed, and the user reaches for that top to drag.
+   */
+  --titlebar-drag-strip-h: 0px;
+  /*
+   * The sidebar header's left inset, expressed as a variable so the full-screen
+   * case can override it without touching the component (see the
+   * `data-fullscreen` rule below). Default is the design inset; the Mac shell
+   * raises it through `--titlebar-safe-w` via `useDesktop.ts`'s chrome
+   * effect, and full screen clears it.
+   */
+  --sidebar-brand-left-padding: 0.875rem;
   --panel-header: 36px;
   --focus-ring: 2px;
   --motion-quick: 90ms;
@@ -429,6 +447,16 @@ body {
 :root[data-fullscreen='true'] {
   --titlebar-safe-w: 0px;
   --titlebar-safe-h: 0px;
+  /*
+   * Full screen also takes the design inset away. The traffic-light reservation
+   * collapses to 0 here, but `max(0.875rem, var(--titlebar-safe-w))` in the
+   * sidebar header would still keep the brand 14 px in from the window edge —
+   * in full screen there is nothing in that 14 px to clear, so the design
+   * inset is a phantom one and the brand lands further from the corner than
+   * the user expects. The brand flushes left for as long as the window is
+   * full screen and moves back when it leaves.
+   */
+  --sidebar-brand-left-padding: 0px;
 }
 :root[data-titlebar] nav[data-sidebar] > [data-titlebar-drag] {
   transition: padding-left var(--motion-standard) ease-out;
@@ -451,6 +479,26 @@ body {
   nav[data-sidebar='collapsed']
   .kf-titlebar-yield {
   display: none;
+}
+/*
+ * The expanded sidebar's brand inset, on the Mac shell.
+ *
+ * The design inset (0.875rem / 14 px) is the default set on `:root` above; on
+ * the Mac shell the buttons sit in that strip and the brand has to clear them,
+ * so the inset rises to whatever the shell reserved. In full screen the
+ * `data-fullscreen` rule at the top of this section collapses it to zero —
+ * there is nothing to clear, and a 14 px phantom inset pushes the brand away
+ * from the corner the user is looking at.
+ */
+:root[data-titlebar='mac-hidden-titlebar'] {
+  --sidebar-brand-left-padding: max(0.875rem, var(--titlebar-safe-w));
+  /*
+   * The drag strip's height, on the Mac shell. 40 px is what fits under the
+   * standard Mac title-bar grab zone and leaves enough room for a status line
+   * in the workspace without crowding the board. The component renders at
+   * zero height in any other environment because the variable is zero there.
+   */
+  --titlebar-drag-strip-h: 40px;
 }
 
 /*

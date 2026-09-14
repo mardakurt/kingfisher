@@ -86,7 +86,7 @@ export function Sidebar({ variant = 'desktop', onClose }: SidebarProps) {
                 paddingRight: compact ? '0.5rem' : '0.875rem',
               }
             : {
-                paddingLeft: 'max(0.875rem, var(--titlebar-safe-w))',
+                paddingLeft: 'var(--sidebar-brand-left-padding)',
                 paddingRight: '0.875rem',
               }
         }

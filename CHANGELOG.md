@@ -4,6 +4,39 @@ The user-facing changelog. Internal phase history is in
 `docs/reports/` and `docs/product/phase-*.md`; the list below is what
 real users notice.
 
+## Unreleased
+
+From the owner's next round of fixes. Eight of fourteen items landed in
+this branch; six need data or release work that belongs in another
+session (Stockfish 19, reference-pack enrichment, player-game
+enrichment, recent-page reconciliation, command-palette polish,
+review-page polish). The Mac build has not been cut.
+
+- **The brand sits in the corner in full screen.** The 14 px design
+  inset that survived Phase 48 collapsed the brand 14 px from an edge
+  with nothing on it. The Mac shell's `--sidebar-brand-left-padding`
+  variable now reads `--titlebar-safe-w` normally and falls to 0 for
+  the duration of full screen, so the brand flushes left when the
+  traffic lights are gone and moves back when they return.
+- **The workspace has a drag strip.** The sidebar header still owns the
+  left side; a 40 px drag region across the top of the main pane gives
+  the right side the same affordance. Hidden in a browser and on
+  Windows; visible on the Mac shell only.
+- **iPad screens see Position and Set up.** The labels were gated above
+  1500 px, which left every iPad and most laptops with icon-only
+  buttons. Both now appear at 430 px (`xs`) and Search commands at 900 px
+  (`mid`) so the toolbar fits at every size the workspaces ship at.
+- **Three workspace icons redrawn.** Opening is a pawn, Endgame is a
+  king with the cross, Training is two stacked cards with a refresh
+  loop — every one a chess piece or a metaphor for one, and every one
+  distinct from its neighbours in the sidebar.
+- **The Databases page is less crowded.** The right rail's storage
+  summary collapsed per-collection listings into a single line, and the
+  Lichess catalogue source was renamed from the bare "Lichess" to
+  "Lichess Rated Games" so the two Lichess sources read as
+  complementary ("Lichess Masters" for curated theory, "Lichess Rated
+  Games" for popularity statistics), not as duplicates.
+
 ## 1.1.5 — 2026-09-14
 
 From the owner's twelve reports on 1.1.4. Everything below is in both the
