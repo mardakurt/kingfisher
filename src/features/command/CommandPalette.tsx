@@ -398,41 +398,49 @@ function PaletteDialog() {
               reason={query.length > 0 ? assessQuery(query).reason : undefined}
             />
           ) : (
-            matches.map((command, position) => (
-              <button
-                key={command.id}
-                type="button"
-                data-active={position === selected}
-                onPointerEnter={() => setIndex(position)}
-                onClick={() => run(command)}
-                /*
-                  The row's inset is the field's, so the group column starts
-                  where the search icon does and the two read as one column.
-                  Selection is a rounded fill rather than a full-bleed band:
-                  the field above is rounded, and a square band under it looked
-                  like a different component.
-                */
-                className={cn(
-                  'flex w-full items-center gap-3 rounded-[4px] px-2.5 py-1.5 text-left text-xs',
-                  position === selected ? 'bg-surface-3 text-primary' : 'text-secondary',
-                )}
-              >
-                <span
-                  className={cn(
-                    'w-[74px] shrink-0 truncate text-2xs uppercase tracking-wide',
-                    position === selected ? 'text-secondary' : 'text-tertiary',
-                  )}
-                >
-                  {command.group}
-                </span>
-                <span className="min-w-0 flex-1 truncate">{command.title}</span>
-                {command.shortcut && (
-                  <kbd className="shrink-0 rounded-[3px] border border-line bg-surface-1 px-1.5 py-0.5 font-mono text-[10px] text-tertiary">
-                    {command.shortcut}
-                  </kbd>
-                )}
-              </button>
-            ))
+            matches.map((command, position) => {
+              /*
+                Section dividers. The list is still ranked globally (score, then
+                recency, then alphabetic tiebreak), so two items with the same
+                group may sit apart from each other; the divider appears every
+                time the previous row's group is different. The old in-row
+                group label is gone — when two items from the same group sit
+                together, the divider above the first is the only header they
+                need, and when they sit apart, the divider alone is enough for
+                the reader to know where each row came from.
+              */
+              const previous = position > 0 ? matches[position - 1] : null;
+              const showDivider = !previous || previous.group !== command.group;
+              return (
+                <div key={command.id}>
+                  {showDivider ? (
+                    <div
+                      className="px-2.5 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[0.08em] text-tertiary first:pt-0"
+                      data-group-header={command.group}
+                    >
+                      {command.group}
+                    </div>
+                  ) : null}
+                  <button
+                    type="button"
+                    data-active={position === selected}
+                    onPointerEnter={() => setIndex(position)}
+                    onClick={() => run(command)}
+                    className={cn(
+                      'flex w-full items-center gap-3 rounded-[4px] px-2.5 py-1.5 text-left text-xs',
+                      position === selected ? 'bg-surface-3 text-primary' : 'text-secondary',
+                    )}
+                  >
+                    <span className="min-w-0 flex-1 truncate">{command.title}</span>
+                    {command.shortcut ? (
+                      <kbd className="shrink-0 rounded-[3px] border border-line bg-surface-1 px-1.5 py-0.5 font-mono text-[10px] text-tertiary">
+                        {command.shortcut}
+                      </kbd>
+                    ) : null}
+                  </button>
+                </div>
+              );
+            })
           )}
         </div>
       </div>
