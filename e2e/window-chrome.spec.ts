@@ -181,78 +181,84 @@ test('the desktop reservation is restated after hydration, not only before paint
 });
 
 /**
- * The drag strip above the workspace.
+ * The route header is the drag region on the right of the window.
  *
- * The sidebar header gives the left side a drag region; this is the
- * equivalent on the right side, so a person reaching for the top of the
- * window has somewhere to grab. Zero-height in a browser (no shell asked for
- * a hidden title bar, so the CSS variable is zero) and 40 px on the Mac
- * shell, matching the sidebar header closely enough that the workspace does
- * not feel off-centre. The strip itself carries `-webkit-app-region: drag`.
+ * The sidebar header gives the left 228 px a drag region; the rest of the
+ * window's top edge is each route's own header, and a person reaching for the
+ * top of the board to move the window lands there. Phase 53 first put a 40 px
+ * empty strip above the workspace for this and charged the board for it on
+ * every route; the header already exists, so it carries the drag instead.
+ *
+ * Three things are asserted, on two routes with different header components:
+ * a browser declares nothing (the attribute is inert without the shell — an
+ * installed PWA honouring it would swallow clicks); the Mac shell makes the
+ * header a drag region; and every control inside it opts back out, because a
+ * toolbar nobody can click is worse than a window nobody can drag.
  */
-test('the workspace drag strip is a drag region only on the Mac shell', async ({ page }) => {
-  // Browser first — the strip must exist (so the markup is identical across
-  // environments) but take up no space and not be a drag region.
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto('/analysis');
-  await ready(page);
-  const browserState = await page.evaluate(() => {
-    const strip = document.querySelector('main > [data-titlebar-drag]');
-    if (!strip) return null;
-    const rect = strip.getBoundingClientRect();
-    const style = getComputedStyle(strip);
-    return {
-      height: Math.round(rect.height),
-      drag: style.getPropertyValue('-webkit-app-region').trim(),
-      stripHeightVar: getComputedStyle(document.documentElement)
-        .getPropertyValue('--titlebar-drag-strip-h')
-        .trim(),
-    };
-  });
-  expect(browserState, 'the strip must be in the tree in a browser').not.toBeNull();
-  expect(browserState?.height, 'browser: strip is zero-height').toBe(0);
-  expect(browserState?.drag, 'browser: strip is not a drag region').toBe('none');
+const HEADER_ROUTES = [
+  { route: '/analysis', header: '[data-workspace-header]' },
+  { route: '/databases', header: 'main header[data-titlebar-drag]' },
+] as const;
 
-  // Now the desktop stub. Same markup, but the variable is 40 px and the
-  // strip is a real drag region.
-  await page.addInitScript(() => {
-    const stub = new Proxy(
-      {
-        platform: 'desktop',
-        windowChrome: {
-          kind: 'mac-hidden-titlebar',
-          trafficLight: { x: 14, y: 20, width: 54, height: 16 },
-          safe: { width: 84, height: 52 },
+for (const { route, header } of HEADER_ROUTES) {
+  test(`the ${route} header is a drag region only on the Mac shell`, async ({ page }) => {
+    const survey = () =>
+      page.evaluate((selector) => {
+        const el = document.querySelector(selector);
+        if (!el) return null;
+        const rect = el.getBoundingClientRect();
+        const controls = [
+          ...el.querySelectorAll('a, button, input, select, textarea, [role="button"]'),
+        ];
+        return {
+          top: Math.round(rect.top),
+          height: Math.round(rect.height),
+          drag: getComputedStyle(el).getPropertyValue('-webkit-app-region').trim(),
+          controls: controls.length,
+          controlsThatDrag: controls.filter(
+            (control) =>
+              getComputedStyle(control).getPropertyValue('-webkit-app-region').trim() === 'drag',
+          ).length,
+        };
+      }, header);
+
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(route);
+    await ready(page);
+    const browser = await survey();
+    expect(browser, `${route}: the header must be in the tree in a browser`).not.toBeNull();
+    expect(browser?.drag, 'browser: the header is not a drag region').toBe('none');
+
+    await page.addInitScript(() => {
+      const stub = new Proxy(
+        {
+          platform: 'desktop',
+          windowChrome: {
+            kind: 'mac-hidden-titlebar',
+            trafficLight: { x: 14, y: 20, width: 54, height: 16 },
+            safe: { width: 84, height: 52 },
+          },
+        } as Record<string, unknown>,
+        {
+          get: (target, key) => (key in target ? target[key as string] : () => () => {}),
         },
-      } as Record<string, unknown>,
-      {
-        get: (target, key) => (key in target ? target[key as string] : () => () => {}),
-      },
-    );
-    Object.defineProperty(window, 'kingfisher', {
-      configurable: true,
-      get: () => (document.readyState === 'loading' ? undefined : stub),
+      );
+      Object.defineProperty(window, 'kingfisher', {
+        configurable: true,
+        get: () => (document.readyState === 'loading' ? undefined : stub),
+      });
     });
+    await page.goto(route);
+    await ready(page);
+    expect(await page.evaluate(() => document.documentElement.dataset.titlebar)).toBe(
+      'mac-hidden-titlebar',
+    );
+    const desktop = await survey();
+    expect(desktop, `${route}: the header must be in the tree on the Mac shell`).not.toBeNull();
+    expect(desktop?.top, 'the header sits at the top of the main pane').toBe(0);
+    expect(desktop?.height, 'no empty strip above the header').toBeGreaterThanOrEqual(40);
+    expect(desktop?.drag, 'desktop: the header is a drag region').toBe('drag');
+    expect(desktop?.controls, 'the header has controls to protect').toBeGreaterThan(0);
+    expect(desktop?.controlsThatDrag, 'every control in the header opted out of the drag').toBe(0);
   });
-  await page.goto('/analysis');
-  await ready(page);
-  const desktopState = await page.evaluate(() => {
-    const strip = document.querySelector('main > [data-titlebar-drag]');
-    if (!strip) return null;
-    const rect = strip.getBoundingClientRect();
-    const style = getComputedStyle(strip);
-    return {
-      titlebar: document.documentElement.dataset.titlebar ?? null,
-      height: Math.round(rect.height),
-      drag: style.getPropertyValue('-webkit-app-region').trim(),
-      stripHeightVar: getComputedStyle(document.documentElement)
-        .getPropertyValue('--titlebar-drag-strip-h')
-        .trim(),
-    };
-  });
-  expect(desktopState, 'the strip must be in the tree on the Mac shell').not.toBeNull();
-  expect(desktopState?.titlebar).toBe('mac-hidden-titlebar');
-  expect(desktopState?.stripHeightVar).toBe('40px');
-  expect(desktopState?.height, 'desktop: strip is 40 px tall').toBe(40);
-  expect(desktopState?.drag, 'desktop: strip is a drag region').toBe('drag');
-});
+}

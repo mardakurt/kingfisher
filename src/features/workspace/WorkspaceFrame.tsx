@@ -346,6 +346,7 @@ function FrameHeader({
     <header
       className="flex min-h-14 min-w-0 shrink-0 items-center gap-1.5 border-b border-line-subtle bg-surface-1 px-2 sm:px-4"
       data-workspace-header
+      data-titlebar-drag=""
     >
       <NavButton />
       {/* Folds the route's own list, so the board can have its width. */}

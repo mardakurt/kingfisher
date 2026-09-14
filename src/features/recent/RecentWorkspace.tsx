@@ -222,7 +222,7 @@ export function RecentWorkspace() {
         </div>
       ) : null}
 
-      <header className="shrink-0 border-b border-line-subtle px-5 py-5">
+      <header data-titlebar-drag="" className="shrink-0 border-b border-line-subtle px-5 py-5">
         <h1 className="text-xl font-semibold tracking-tight text-primary">Recent work</h1>
         <p className="mt-0.5 text-sm text-secondary">Pick up where you left off.</p>
 

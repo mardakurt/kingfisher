@@ -166,7 +166,10 @@ export function PlayerWorkspace({ playerId }: { readonly playerId: string }) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header className="flex min-h-14 shrink-0 flex-wrap items-center gap-3 border-b border-line-subtle bg-surface-1 px-3 md:px-5">
+      <header
+        data-titlebar-drag=""
+        className="flex min-h-14 shrink-0 flex-wrap items-center gap-3 border-b border-line-subtle bg-surface-1 px-3 md:px-5"
+      >
         <NavButton />
         <div className="min-w-0">
           <h1 className="truncate text-sm font-semibold text-primary">{name}</h1>

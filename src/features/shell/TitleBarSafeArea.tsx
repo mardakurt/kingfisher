@@ -52,6 +52,16 @@
  * for every child. Dragging a Mac window by its top chrome is the behaviour a
  * person expects, and reserving the corner without granting it was half a
  * title bar.
+ *
+ * The sidebar header is the left 228 px of that chrome. The rest of the
+ * window's top edge is each route's own header — the toolbar row every
+ * workspace draws at the top of the main pane — and every one of them carries
+ * `data-titlebar-drag` too, so the whole top of the window moves it, the way
+ * a native toolbar does. Phase 53 first answered this with a 40 px empty strip
+ * above the workspace; that granted the drag and charged the board forty
+ * pixels for it on every route. The header already exists and already
+ * contains nothing that is not a control, so the drag rides on it for free,
+ * and the `no-drag` rule keeps its buttons clickable.
  */
 
 import { cn } from '@/lib/cn';
@@ -120,33 +130,6 @@ export function TitleBarSafeBand({ focusMode }: { readonly focusMode: boolean })
       data-titlebar-safe="band"
       className={cn('w-full shrink-0', focusMode ? undefined : 'md:hidden')}
       style={{ height: 'var(--titlebar-safe-h)', ...DRAGGABLE }}
-    />
-  );
-}
-
-/**
- * A drag region across the top of the workspace pane.
- *
- * The sidebar header already gives the user a place to grab the window on the
- * left, but a hidden title bar steals it from everywhere else — and a person
- * who reaches for the top of the board to move the window gets nothing. This
- * is the missing strip: the same height as the header, draggable, no
- * interactive children of its own.
- *
- * The drag itself is applied by the `data-titlebar-drag` rule in `globals.css`
- * rather than by an inline style, so a browser that happens to honour
- * `-webkit-app-region` (an installed PWA) does not get a drag region it never
- * asked for. `data-titlebar` is set by the shell's bridge before paint; in a
- * browser it is unset and the rule never fires, and the strip is just a
- * zero-height element at the top of the workspace.
- */
-export function TitleBarSafeDragStrip() {
-  return (
-    <div
-      aria-hidden
-      data-titlebar-drag=""
-      className="w-full shrink-0"
-      style={{ height: 'var(--titlebar-drag-strip-h)' }}
     />
   );
 }

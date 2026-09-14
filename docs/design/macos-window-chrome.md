@@ -91,11 +91,22 @@ layout spacer — it is what the harness measures, and it carries
 ### Dragging
 
 A window whose title bar is hidden still has to be movable. The sidebar header
-is the drag region (`data-titlebar-drag`), with `no-drag` restored for any
-interactive descendant, because `app-region: drag` otherwise swallows clicks
-for every child. The rule is scoped to `:root[data-titlebar='mac-hidden-titlebar']`,
-so a browser — where the property is inert but not harmless, since an installed
-PWA honours it — declares nothing at all.
+is the drag region on the left (`data-titlebar-drag`), and since Phase 53 each
+route's own header — the toolbar row at the top of the main pane — carries the
+same attribute, so the whole top edge of the window moves it the way a native
+toolbar does. `no-drag` is restored for every interactive descendant (buttons,
+inputs, selects, labels, the ARIA roles a control can carry), because
+`app-region: drag` otherwise swallows clicks for every child; the headers are
+full of controls, which is why that rule is a selector and not a promise about
+the header's contents. The rule is scoped to
+`:root[data-titlebar='mac-hidden-titlebar']`, so a browser — where the property
+is inert but not harmless, since an installed PWA honours it — declares nothing
+at all. `e2e/window-chrome.spec.ts` asserts all three: nothing in a browser,
+the header on the Mac shell, and zero controls inside it that still drag.
+
+Phase 53's first pass answered the same report with a 40 px empty strip above
+every workspace. It granted the drag and charged the board forty pixels for it
+on every route; the header already exists, so the drag rides on it for free.
 
 ### Two shapes, not one
 

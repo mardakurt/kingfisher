@@ -80,16 +80,6 @@
   --titlebar-safe-w: var(--mac-titlebar-safe-w);
   --titlebar-safe-h: var(--mac-titlebar-safe-h);
   /*
-   * The drag strip above the workspace, on the Mac shell. Zero in a browser
-   * and on Windows — the same reason `--titlebar-safe-*` is: a strip the
-   * sidebar already covered would duplicate work, and a strip the shell did
-   * not ask for would either be invisible (no `-webkit-app-region`) or
-   * harmful (a PWA that installed itself inside Chrome would honour it). On
-   * the Mac shell the sidebar header's 56 px leaves the rest of the window's
-   * top unclaimed, and the user reaches for that top to drag.
-   */
-  --titlebar-drag-strip-h: 0px;
-  /*
    * The sidebar header's left inset, expressed as a variable so the full-screen
    * case can override it without touching the component (see the
    * `data-fullscreen` rule below). Default is the design inset; the Mac shell
@@ -492,21 +482,18 @@ body {
  */
 :root[data-titlebar='mac-hidden-titlebar'] {
   --sidebar-brand-left-padding: max(0.875rem, var(--titlebar-safe-w));
-  /*
-   * The drag strip's height, on the Mac shell. 40 px is what fits under the
-   * standard Mac title-bar grab zone and leaves enough room for a status line
-   * in the workspace without crowding the board. The component renders at
-   * zero height in any other environment because the variable is zero there.
-   */
-  --titlebar-drag-strip-h: 40px;
 }
 
 /*
  * Dragging the window by its top chrome.
  *
  * A hidden title bar removes the strip a person grabs to move a Mac window, so
- * the application has to grant one back. The sidebar header is it: 56 px across
- * the top of the window, containing nothing interactive in the desktop variant.
+ * the application has to grant one back. The sidebar header is the left part
+ * of it: 56 px across the top of the window, containing nothing interactive in
+ * the desktop variant. Each route's own header is the rest — the toolbar row
+ * at the top of the main pane carries `data-titlebar-drag` as well, so the
+ * whole top edge of the window moves it, the way a native toolbar does. The
+ * headers are full of controls, which is what the second rule is for.
  *
  * Scoped to `data-titlebar` for the same reason the reservation is. In a
  * browser `-webkit-app-region` is inert but not harmless — Chrome honours it
@@ -533,7 +520,19 @@ body {
     select,
     textarea,
     summary,
+    label,
+    [contenteditable],
     [role='button'],
+    [role='tab'],
+    [role='menuitem'],
+    [role='combobox'],
+    [role='listbox'],
+    [role='option'],
+    [role='switch'],
+    [role='checkbox'],
+    [role='radio'],
+    [role='slider'],
+    [role='textbox'],
     [tabindex]:not([tabindex='-1'])
   ) {
   -webkit-app-region: no-drag;
