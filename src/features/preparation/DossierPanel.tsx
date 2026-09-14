@@ -3,10 +3,11 @@
 /**
  * The opponent, as evidence rather than as a dashboard.
  *
- * Three questions in one column: what do they play, what has changed, and
- * which move orders do they use. Every number is followed by the sample it
- * came from, because the alternative — a clean percentage with no denominator
- * — is exactly how preparation gets built on four games.
+ * Four questions in one column: what do they play, what has changed, what
+ * move orders they use, and how their last twenty games read. Every number
+ * is followed by the sample it came from, because the alternative — a clean
+ * percentage with no denominator — is exactly how preparation gets built on
+ * four games.
  */
 
 import { useMemo, useState } from 'react';
@@ -17,15 +18,18 @@ import {
   buildDossier,
   comparePeriods,
   moveOrderFingerprints,
+  recentForm,
   type DossierChoice,
+  type RecentForm,
 } from '@/preparation/dossier';
 
-type Section = 'plays' | 'changed' | 'move-orders';
+type Section = 'plays' | 'changed' | 'move-orders' | 'recent-form';
 
 const SECTIONS: readonly { id: Section; label: string }[] = [
   { id: 'plays', label: 'Plays' },
   { id: 'changed', label: 'Changed' },
   { id: 'move-orders', label: 'Move orders' },
+  { id: 'recent-form', label: 'Recent form' },
 ];
 
 export function DossierPanel({
@@ -55,6 +59,7 @@ export function DossierPanel({
     () => moveOrderFingerprints(games, name, color, recentFromYear),
     [games, name, color, recentFromYear],
   );
+  const form = useMemo(() => recentForm(games, name, color, 20), [games, name, color]);
 
   if (dossier.games === 0) {
     return (
@@ -184,6 +189,8 @@ export function DossierPanel({
           ))}
         </div>
       ) : null}
+
+      {section === 'recent-form' ? <RecentFormSection form={form} /> : null}
     </section>
   );
 }
@@ -228,4 +235,55 @@ function ChoiceList({
       </ul>
     </div>
   );
+}
+
+/*
+ * Recent form: the last 20 games, newest on the left, as a strip of W / D / L
+ * with a one-line tally under it. A line of Ws followed by Ls is an
+ * observation, never a verdict — the section is the dossier's view of the
+ * opponent's recent past, not a prediction of the next game.
+ */
+function RecentFormSection({ form }: { readonly form: RecentForm }) {
+  if (form.games.length === 0) {
+    return (
+      <p className="mt-2 text-[10px] text-tertiary">
+        No games by this player on the selected colour. Widen the filters or change the colour.
+      </p>
+    );
+  }
+  return (
+    <div className="mt-2">
+      <p className="text-[10px] leading-relaxed text-tertiary">
+        Last {form.games.length} game{form.games.length === 1 ? '' : 's'} as{' '}
+        {form.games[0]?.outcome === form.games.at(-1)?.outcome ? 'one run' : 'mixed form'} ·{' '}
+        <span className="text-positive tabular">{form.wins}W</span>{' '}
+        <span className="text-tertiary tabular">{form.draws}D</span>{' '}
+        <span className="text-negative tabular">{form.losses}L</span>
+      </p>
+      {/* The strip — each game is one tile, the colour carries the outcome. */}
+      <div className="mt-2 flex flex-wrap gap-px overflow-hidden rounded-[3px]">
+        {form.games.map((game) => (
+          <span
+            key={game.id}
+            title={`${game.outcome}${game.year !== undefined ? ` · ${game.year}` : ''}`}
+            aria-label={`${game.outcome}${game.year !== undefined ? ` ${game.year}` : ''}`}
+            className={tileClass(game.outcome)}
+          >
+            {game.outcome}
+          </span>
+        ))}
+      </div>
+      <p className="mt-1.5 text-[9.5px] leading-relaxed text-tertiary">
+        Newest on the left. A run of Ws is an observation, not a verdict — the row above shows it as
+        one sentence and the strip below it as one tile each.
+      </p>
+    </div>
+  );
+}
+
+function tileClass(outcome: 'W' | 'D' | 'L'): string {
+  const base = 'inline-flex h-5 w-5 items-center justify-center font-mono text-[9.5px]';
+  if (outcome === 'W') return `${base} bg-positive/15 text-positive`;
+  if (outcome === 'D') return `${base} bg-surface-3 text-tertiary`;
+  return `${base} bg-negative/15 text-negative`;
 }

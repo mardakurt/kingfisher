@@ -462,5 +462,81 @@ function scoreOf(games: readonly GameRecord[], color: 'w' | 'b'): number {
   return round1((points / games.length) * 100);
 }
 
+// --- Recent form ------------------------------------------------------------
+
+/**
+ * The opponent's last games, newest first, as a sequence of W / D / L.
+ *
+ * No verdict on the streak — a string of Ws followed by a string of Ls is
+ * an observation, not a verdict on form — and no claim about the cause.
+ * The reader looks at the string, looks at the colour they will be on
+ * tomorrow, and decides.
+ */
+export interface RecentFormGame {
+  readonly id: string;
+  readonly year?: number;
+  /** W, D or L for the prepared-for opponent. */
+  readonly outcome: 'W' | 'D' | 'L';
+}
+
+export interface RecentForm {
+  readonly games: readonly RecentFormGame[];
+  readonly wins: number;
+  readonly draws: number;
+  readonly losses: number;
+  /** "Latest first" or "oldest first" — both useful, the UI flips the array. */
+  readonly ordered: 'newest-first' | 'oldest-first';
+}
+
+/**
+ * The opponent's most recent games, capped at `limit`.
+ *
+ * "Most recent" is by game year then id — a fresh ordering that does not
+ * depend on the games array being pre-sorted. The year is the only timestamp
+ * the dossier carries; the user has already filtered by date if they cared.
+ */
+export function recentForm(
+  games: readonly GameRecord[],
+  name: string,
+  color: 'w' | 'b',
+  limit = 20,
+): RecentForm {
+  const key = playerKey(name);
+  const mine = games
+    .filter((game) => (color === 'w' ? game.whiteKey : game.blackKey) === key)
+    .sort((a, b) => {
+      const yearDiff = (b.year ?? 0) - (a.year ?? 0);
+      // A stable tiebreak so the order does not flicker between renders
+      // when two games share a year.
+      return yearDiff !== 0 ? yearDiff : a.id.localeCompare(b.id);
+    })
+    .slice(0, limit);
+
+  let wins = 0;
+  let draws = 0;
+  let losses = 0;
+  const recentGames: RecentFormGame[] = [];
+  for (const game of mine) {
+    let outcome: 'W' | 'D' | 'L';
+    if (game.result === '1/2-1/2') {
+      outcome = 'D';
+      draws += 1;
+    } else if (game.result === (color === 'w' ? '1-0' : '0-1')) {
+      outcome = 'W';
+      wins += 1;
+    } else {
+      outcome = 'L';
+      losses += 1;
+    }
+    recentGames.push({
+      id: game.id,
+      ...(game.year !== undefined ? { year: game.year } : {}),
+      outcome,
+    });
+  }
+
+  return { games: recentGames, wins, draws, losses, ordered: 'newest-first' };
+}
+
 const percent = (part: number, whole: number): number => (whole ? round1((part / whole) * 100) : 0);
 const round1 = (value: number): number => Math.round(value * 10) / 10;

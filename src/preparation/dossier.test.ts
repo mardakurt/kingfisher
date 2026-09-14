@@ -9,6 +9,7 @@ import {
   firstMoveOf,
   moveOrderFingerprints,
   openingFamilyOf,
+  recentForm,
   THIN_SAMPLE,
 } from './dossier';
 
@@ -170,5 +171,57 @@ describe('move-order fingerprints', () => {
     expect(prints.map((print) => print.id)).toContain('early-h6');
     // `early-h3` is a White pattern and cannot appear in a Black list at all.
     expect(prints.map((print) => print.id)).not.toContain('early-h3');
+  });
+});
+
+describe('recent form', () => {
+  it('returns the last twenty games newest first, with W / D / L for the prepared colour', () => {
+    // 24 games over two years — the form list caps at 20.
+    const games = Array.from({ length: 24 }, (_, index) => {
+      const year = 2025 + Math.floor(index / 12);
+      const outcomes = ['1-0', '1/2-1/2', '0-1'] as const;
+      return asWhite('1. e4 e5 2. Nf3 Nc6', year, { result: outcomes[index % 3]! });
+    });
+
+    const form = recentForm(games, 'Player, X', 'w', 20);
+
+    // Cap honoured.
+    expect(form.games).toHaveLength(20);
+    // Newest year first.
+    expect(form.games[0]?.year).toBe(2026);
+    expect(form.games.at(-1)?.year).toBe(2025);
+    // The 24-game mix is 8W / 8D / 8L; the 20-game window keeps 7W / 7D / 6L
+    // because the oldest four games dropped — the latest 20 start at index 4
+    // (4×W, 4×D, 4×L) and end at index 23, and the W pattern resets at 3.
+    const wins = form.games.filter((g) => g.outcome === 'W').length;
+    const draws = form.games.filter((g) => g.outcome === 'D').length;
+    const losses = form.games.filter((g) => g.outcome === 'L').length;
+    expect(wins + draws + losses).toBe(20);
+    expect(form.wins).toBe(wins);
+    expect(form.draws).toBe(draws);
+    expect(form.losses).toBe(losses);
+  });
+
+  it('scores W / D / L for the opponent on the chosen colour, never for the other side', () => {
+    const games = [
+      asWhite('1. e4 e5', 2026, { result: '1-0' }), // White won
+      asWhite('1. d4 d5', 2026, { result: '0-1' }), // White lost
+      asWhite('1. c4 e5', 2026, { result: '1/2-1/2' }),
+    ];
+
+    // The opponent is White, so W is the outcome White had.
+    const white = recentForm(games, 'Player, X', 'w');
+    expect(white.games.map((g) => g.outcome)).toEqual(['W', 'L', 'D']);
+    expect(white.wins).toBe(1);
+    expect(white.draws).toBe(1);
+    expect(white.losses).toBe(1);
+  });
+
+  it('is empty rather than wrong when no games match the colour', () => {
+    const form = recentForm([], 'Player, X', 'w');
+    expect(form.games).toHaveLength(0);
+    expect(form.wins).toBe(0);
+    expect(form.draws).toBe(0);
+    expect(form.losses).toBe(0);
   });
 });
