@@ -94,7 +94,7 @@ describe('board themes', () => {
 describe('piece sets', () => {
   it('offers enough sets to be a real choice, without padding the list', () => {
     expect(PIECE_SETS.length).toBeGreaterThanOrEqual(8);
-    expect(PIECE_SETS.length).toBeLessThanOrEqual(12);
+    expect(PIECE_SETS.length).toBeLessThanOrEqual(14);
   });
 
   it('records an author, a licence and a source for every vendored set', () => {
@@ -136,7 +136,12 @@ describe('piece sets', () => {
         'bP',
       ]) {
         const file = path.join(PIECE_ROOT, path.basename(set.directory), `${piece}.svg`);
-        expect(readFileSync(file, 'utf8').startsWith('<svg'), `${set.id}/${piece}`).toBe(true);
+        // Byte-identical to upstream, so an XML prolog and the author's own
+        // licence comment may precede the root element; the file must still
+        // be an SVG document and nothing else.
+        expect(readFileSync(file, 'utf8'), `${set.id}/${piece}`).toMatch(
+          /^(<\?xml[^>]*\?>\s*)?(<!--[\s\S]*?-->\s*)*<svg[\s>]/,
+        );
       }
     }
   });

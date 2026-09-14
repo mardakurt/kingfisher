@@ -12,9 +12,9 @@ Two things compounded.
 the artwork's own transparent margin was taken into account.
 
 **Every set has a different margin of its own.** An SVG's `viewBox` is not the
-drawing; it is the drawing plus whatever padding the author chose, and the ten
+drawing; it is the drawing plus whatever padding the author chose, and the thirteen
 vendored sets disagree completely. Measured at full size, the tallest piece in
-each set covered anywhere from **0.802** (Cburnett) to **0.935** (Celtic) of its
+each set covered anywhere from **0.79** (Chessnut) to **0.95** (Pirouetti) of its
 square. A single global scale cannot fix both — it would make one set right and
 push the other over the edge of its square.
 

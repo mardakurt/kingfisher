@@ -106,7 +106,11 @@ export const PIECE_INK_TARGET = 0.86;
  */
 export const PIECE_INK_MAX_WIDTH = 0.94;
 
-/** The sets a user can choose. Ordered by how conventional they look. */
+/**
+ * The sets a user can choose. Ordered by how conventional they look: the
+ * tournament and diagram sets a titled player would recognise first, the
+ * decorative ones after.
+ */
 export const PIECE_SETS: readonly PieceSetDefinition[] = [
   {
     kind: 'vector',
@@ -138,6 +142,36 @@ export const PIECE_SETS: readonly PieceSetDefinition[] = [
   },
   {
     kind: 'vector',
+    id: 'pirouetti',
+    name: 'Pirouetti',
+    description:
+      'A modern tournament Staunton with flat fills and a firm silhouette. The set many strong online players use.',
+    directory: '/piece/pirouetti',
+    visualScale: 0.905,
+    attribution: {
+      author: 'pirouetti',
+      license: 'AGPL-3.0-or-later',
+      licenseUrl: 'https://www.gnu.org/licenses/agpl-3.0.html',
+      source: 'https://github.com/lichess-org/lila/tree/master/public/piece/pirouetti',
+    },
+  },
+  {
+    kind: 'vector',
+    id: 'kryukov',
+    name: 'Kryukov',
+    description:
+      'The classic diagram set of chess books and magazines, drawn by Alexey Kryukov for GNOME Chess.',
+    directory: '/piece/kryukov',
+    visualScale: 0.956,
+    attribution: {
+      author: 'Alexey Kryukov',
+      license: 'GPL-2.0-or-later',
+      licenseUrl: 'https://www.gnu.org/licenses/gpl-2.0.txt',
+      source: 'https://gitlab.gnome.org/GNOME/gnome-chess/-/tree/main/data/pieces/fancy',
+    },
+  },
+  {
+    kind: 'vector',
     id: 'chessnut',
     name: 'Chessnut',
     description: 'Modern Staunton with clean edges and generous interior space.',
@@ -148,6 +182,21 @@ export const PIECE_SETS: readonly PieceSetDefinition[] = [
       license: 'Apache-2.0',
       licenseUrl: 'https://github.com/LexLuengas/chessnut-pieces/blob/master/LICENSE.txt',
       source: 'https://github.com/LexLuengas/chessnut-pieces',
+    },
+  },
+  {
+    kind: 'vector',
+    id: 'sophia',
+    name: 'Sophia',
+    description:
+      'Bold, flat and heavily outlined. Max Froumentin’s ChessGML set, as shipped by GNOME Chess.',
+    directory: '/piece/sophia',
+    visualScale: 0.966,
+    attribution: {
+      author: 'Max Froumentin (W3C); GNOME Chess',
+      license: 'W3C',
+      licenseUrl: 'https://www.w3.org/Consortium/Legal/2002/copyright-software-20021231',
+      source: 'https://gitlab.gnome.org/GNOME/gnome-chess/-/tree/main/data/pieces/simple',
     },
   },
   {

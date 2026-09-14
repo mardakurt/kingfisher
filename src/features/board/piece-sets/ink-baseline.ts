@@ -13,7 +13,8 @@
  * other. Re-measure and update it deliberately, in the same commit as the
  * artwork.
  *
- * Recorded 2026-09-05 against the ten sets in `PIECE_SETS`.
+ * Recorded 2026-09-05 against the ten sets then in `PIECE_SETS`; the three
+ * added on 2026-09-14 are marked below.
  */
 export interface PieceInkBaseline {
   /** Tallest piece's ink height, as a fraction of the square. */
@@ -33,4 +34,8 @@ export const PIECE_INK_BASELINE: Readonly<Record<string, PieceInkBaseline>> = {
   'kiwen-suwi': { tallest: 0.85, widest: 0.838 },
   firi: { tallest: 0.815, widest: 0.83 },
   mpchess: { tallest: 0.807, widest: 0.83 },
+  // Recorded 2026-09-14, the same way, when these three were added.
+  pirouetti: { tallest: 0.95, widest: 0.635 },
+  kryukov: { tallest: 0.9, widest: 0.895 },
+  sophia: { tallest: 0.89, widest: 0.895 },
 };

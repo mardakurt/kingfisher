@@ -35,6 +35,9 @@ export type PieceSetId =
   | 'kiwen-suwi'
   | 'firi'
   | 'mpchess'
+  | 'pirouetti'
+  | 'kryukov'
+  | 'sophia'
   /*
     Phase 1–3 drew its pieces from hand-written geometry. They were never good
     enough to sit beside real Staunton artwork, so they no longer appear in the
