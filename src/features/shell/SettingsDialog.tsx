@@ -233,7 +233,7 @@ function AppearanceSection() {
 
       <Row
         label="Annotation colours"
-        hint="Arrow and highlight brushes. Names still round-trip through PGN."
+        hint="The four arrow and highlight brushes, and the green/red pair behind move marks and verdicts. Colour-blind uses the Okabe–Ito set, which stays distinct under deuteranopia and protanopia. Brush names still round-trip through PGN."
       >
         <Segmented
           items={[
@@ -245,15 +245,23 @@ function AppearanceSection() {
         />
       </Row>
 
-      <div className="flex gap-1.5" aria-hidden>
-        {(['green', 'red', 'blue', 'yellow'] as const).map((brush) => (
-          <span
-            key={brush}
-            title={brush}
-            className="h-5 flex-1 rounded-[3px]"
-            style={{ background: `var(--shape-${brush})` }}
-          />
-        ))}
+      {/* What the choice changes, painted from the live tokens so it changes with them. */}
+      <div className="flex items-center gap-3" data-annotation-palette-preview>
+        <div className="flex flex-1 gap-1.5" aria-hidden>
+          {(['green', 'red', 'blue', 'yellow'] as const).map((brush) => (
+            <span
+              key={brush}
+              title={`${brush} brush`}
+              className="h-5 flex-1 rounded-[3px]"
+              style={{ background: `var(--shape-${brush})` }}
+            />
+          ))}
+        </div>
+        <div className="flex shrink-0 items-baseline gap-2 font-mono text-xs" aria-hidden>
+          <span className="text-positive">Nf3!!</span>
+          <span className="text-caution">h4?!</span>
+          <span className="text-negative">Qxf7??</span>
+        </div>
       </div>
     </div>
   );
@@ -1344,7 +1352,7 @@ function ProfileSection() {
       <textarea
         value={aliases}
         onChange={(event) => setDraftAliases(event.target.value)}
-        placeholder={'Metin Arda Kurt\nM. A. Kurt'}
+        placeholder={'Carlsen, Magnus\nMagnus Carlsen'}
         className="mt-3 min-h-32 w-full resize-y rounded-[4px] border border-line bg-surface-inset px-2.5 py-2 font-mono text-xs leading-relaxed text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60"
       />
       <div className="mt-2 flex justify-end">

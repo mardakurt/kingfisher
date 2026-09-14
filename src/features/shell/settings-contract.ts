@@ -123,11 +123,12 @@ export const SETTING_CONTRACTS: readonly SettingContract[] = [
   },
   {
     key: 'arrowPalette',
-    label: 'Arrow colours',
+    label: 'Annotation colours',
     surface: 'settings',
     control: 'features/shell/SettingsDialog.tsx',
     consumer: 'app/providers.tsx',
-    effect: 'The four annotation brush colours change on the document root.',
+    effect:
+      'The four brush colours and the positive/negative/caution tokens change on the document root: arrows, highlights, move-quality marks and verdicts repaint.',
     indexedAs: 'arrow-palette',
     previewable: true,
   },

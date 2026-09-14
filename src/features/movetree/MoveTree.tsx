@@ -411,8 +411,15 @@ function MoveToken({
           'mr-1 rounded-[3px] px-1 py-px transition-colors',
           depth === 0 ? 'font-medium' : 'text-secondary',
           current ? 'bg-accent text-accent-contrast' : 'hover:bg-surface-3 hover:text-primary',
-          quality === 3 && !current && 'text-info',
+          /*
+            Move quality in the two colours every chess reader knows: good in
+            the positive token, bad in the negative one, dubious in caution.
+            Tokens rather than literals, so the colour-blind palette repaints
+            them along with the brushes.
+          */
+          (quality === 1 || quality === 3) && !current && 'text-positive',
           (quality === 4 || quality === 2) && !current && 'text-negative',
+          (quality === 5 || quality === 6) && !current && 'text-caution',
         )}
       >
         {move.san}

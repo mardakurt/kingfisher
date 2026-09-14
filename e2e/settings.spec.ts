@@ -255,16 +255,26 @@ const RUNTIME: Record<string, (page: Page) => Promise<void>> = {
       redefines the brush colours from it. Both halves are asserted: the
       attribute, and that the colours it selects are genuinely different.
     */
-    const brush = () =>
-      page.evaluate(() =>
-        getComputedStyle(document.documentElement).getPropertyValue('--shape-green').trim(),
-      );
+    const tokens = () =>
+      page.evaluate(() => {
+        const style = getComputedStyle(document.documentElement);
+        return {
+          brush: style.getPropertyValue('--shape-green').trim(),
+          negative: style.getPropertyValue('--negative').trim(),
+          positive: style.getPropertyValue('--positive').trim(),
+        };
+      });
     await withPreference(page, 'arrowPalette', 'standard');
     await expect(page.locator('html')).toHaveAttribute('data-arrow-palette', 'standard');
-    const standard = await brush();
+    const standard = await tokens();
     await withPreference(page, 'arrowPalette', 'colorblind');
     await expect(page.locator('html')).toHaveAttribute('data-arrow-palette', 'colorblind');
-    expect(await brush(), 'both palettes paint the same colour').not.toBe(standard);
+    const colorblind = await tokens();
+    expect(colorblind.brush, 'both palettes paint the same brush').not.toBe(standard.brush);
+    // The verdict pair repaints too, so a person who never draws an arrow
+    // still sees the setting do something: a ?? in the move list changes colour.
+    expect(colorblind.negative, 'the negative token did not change').not.toBe(standard.negative);
+    expect(colorblind.positive, 'the positive token did not change').not.toBe(standard.positive);
   },
 
   openingsMode: async (page) => {

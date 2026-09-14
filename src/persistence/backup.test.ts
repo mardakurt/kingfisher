@@ -70,7 +70,7 @@ async function buildWorkspace(repositories: AppRepositories) {
     NOW,
   );
   const reviewed = await repositories.training.review(item.id, 'good', true, NOW + 1_000);
-  await repositories.profile.setAliases(['Metin Arda Kurt', 'M. A. Kurt']);
+  await repositories.profile.setAliases(['Carlsen, Magnus', 'Magnus Carlsen']);
 
   return { study, repertoire, game, link, item, reviewed };
 }
@@ -109,7 +109,7 @@ describe('workspace backup', () => {
       NOW,
     );
     await source.training.review(item.id, 'good', true, NOW + 1_000);
-    await source.profile.setAliases(['Metin Arda Kurt', 'M. A. Kurt']);
+    await source.profile.setAliases(['Carlsen, Magnus', 'Magnus Carlsen']);
 
     const backup = await createWorkspaceBackup(
       source.raw,
@@ -151,7 +151,7 @@ describe('workspace backup', () => {
       await source.training.get(built.item.id),
     );
     expect(await target.training.history(built.item.id)).toHaveLength(1);
-    expect((await target.profile.get()).aliases).toEqual(['Metin Arda Kurt', 'M. A. Kurt']);
+    expect((await target.profile.get()).aliases).toEqual(['Carlsen, Magnus', 'Magnus Carlsen']);
 
     // The link is a reference; it has to point at the same game and position.
     const links = await target.modelGames.forRepertoire(built.repertoire.id);

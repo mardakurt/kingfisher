@@ -348,12 +348,20 @@ body {
  * under deuteranopia and protanopia — the cases where the default green/red
  * pair collapses into one colour. The brush names do not change, because they
  * are what PGN round-trips; only the paint does.
+ *
+ * The same pair is behind every verdict Kingfisher paints — a `!!` and a `??`
+ * in the move list, a repertoire gap, a training answer — so the palette
+ * covers those tokens too. Until Phase 52 it repainted the four brushes only,
+ * and a person who never drew an arrow switched it on and saw nothing change.
  */
 :root[data-arrow-palette='colorblind'] {
   --shape-green: #0072b2;
   --shape-red: #d55e00;
   --shape-blue: #56b4e9;
   --shape-yellow: #f0e442;
+  --positive: #009e73;
+  --negative: #d55e00;
+  --caution: #e69f00;
 }
 
 /*
