@@ -25,22 +25,54 @@ recorded here when they land; the Mac release is due when there is a
 Mac-facing change.
 
 **Master is ahead of the public Mac (Phase 53, in progress).** The
-Phase 53 commit `1e0a0ee` changed five Mac-facing files — `Sidebar.tsx`
-(brand flush left in full screen), `TitleBarSafeArea.tsx` (40 px drag
-strip across the top of the main pane), `AppShell.tsx` (mounts the
-strip), `globals.css` (the `--sidebar-brand-left-padding` and
-`--titlebar-drag-strip-h` variables and the
-`mac-hidden-titlebar`/`data-fullscreen` rules), and
-`scripts/desktop-chrome.mjs` (`FULLSCREEN_BRAND_X` from 14 to 0). Three
-web-facing changes ride along because the same source feeds both: the
-iPad labels for Position / Set up / Search commands in
-`WorkspaceFrame.tsx`, the redrawn Opening / Endgame / Training icons in
-`icons.tsx`, and the Lichess source renamed to "Lichess Rated Games"
-plus the slimmed storage summary in `DatabasesWorkspace.tsx`. The
-public Mac 1.1.5 (build 1.1.5, commit named in
-`src/release/macos-download.json`) is now behind `master`. A new
-Mac release is due: bump version, run Section B end to end, then
-update `macos-download.json` and re-verify.
+Phase 53 work in this branch covers seven commits from `1e0a0ee` to
+`9d2e0e9`. The first three (`1e0a0ee`, `6f831ba`, `1e0a0ee`'s window
+chrome and iPad label changes, plus the platform-parity note) were
+recorded in the prior commit; the next four add the rest.
+
+`56c2622` changed two files: `engine/registry.ts` (the native
+Stockfish display name from "Stockfish 18 (native)" to "Stockfish 19
+(native)", matching what the install catalogue has been downloading
+since Phase 51; the registry note also records that the browser
+engine stays at Stockfish 18 because no public WebAssembly build of
+sf_19 has been cut) and `features/recent/RecentWorkspace.tsx` (a
+`gameMeta` helper that puts the imported-time on the Games row, in
+the same shape the other rows already carried).
+
+`a3d9b61` rewrote `features/review/CriticalInbox.tsx`: the unreviewed
+queue now orders by `createdAt` ascending (staleness, not creation
+date), and every row older than seven days carries a small "Waiting
+Nd" tag so a busy player can see at a glance which positions are
+slipping. The `Date.now` call that powers the timer is now read from
+state seeded by an effect on mount and ticked once a minute — same
+pattern the Recent page uses — so a re-render within the same minute
+sees the same age.
+
+`abbb6e0` redid the command palette: the 74 px in-row uppercase group
+label is gone, replaced by a section divider that appears once at the
+top of every run of consecutive same-group items. The list is still
+ranked globally; only the rendering changed.
+
+`82667ca` and `c840fa5` added the "Recent form" tab to the
+preparation dossier (last twenty games of the opponent on the chosen
+colour, newest on the left, with the W/D/L tally underneath) and
+raised the Recent N cap from 1,000 to 2,000 opponent games.
+
+`de729c1` added the upgrade-path sentence to the Starter Reference
+catalog entry, so a user reading the catalog row and deciding 18 MB
+is too small sees the bigger packs in the same list.
+
+`9d2e0e9` moved the staleness `Date.now` call into a `useEffect`
+because the lint rule flagged it as an impure render-time call, and
+reformatted `CHANGELOG.md` after Prettier's trailing-newline rule
+caught it. `8f21637` is the CHANGELOG update that ties the branch
+together.
+
+The Mac-facing files in this branch: `engine/registry.ts` (display
+name and note) and the chrome files already in the prior paragraph.
+The public Mac 1.1.5 (build 1.1.5, commit named in
+`src/release/macos-download.json`) is now behind `master` by nine
+commits. A Mac release is due.
 
 The previous check (1.1.4, build 544 from `8f3e1d5`) found no web-only
 commits after it.
