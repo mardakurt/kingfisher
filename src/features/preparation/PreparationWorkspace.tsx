@@ -31,6 +31,8 @@ import {
 import { useAnalysis } from '@/stores/analysis-store';
 import { useReferenceSources } from '@/reference/use-references';
 import { WorkspaceFrame } from '@/features/workspace/WorkspaceFrame';
+
+import { useSparringOpponent } from './sparring-store';
 import { positionKey } from '@/chess/fen';
 import { playerKey } from '@/persistence/schema/migrations';
 import { Dialog } from '@/components/ui/Dialog';
@@ -159,6 +161,23 @@ export function PreparationWorkspace({ initialPlayer = '' }: { readonly initialP
       : 'w';
 
   const syncedPosition = useRef<string | null>(null);
+
+  /* The sparring partner plays from exactly the tree on screen. */
+  const setSparringOpponent = useSparringOpponent((state) => state.setOpponent);
+  useEffect(() => {
+    const data = preparation.data;
+    if (!submitted || !data) {
+      setSparringOpponent(null);
+      return;
+    }
+    setSparringOpponent({
+      name: submitted,
+      tree: data.tree,
+      games: data.games.length,
+      sources: data.sources.map((source) => ({ name: source.name, games: source.games })),
+    });
+    return () => setSparringOpponent(null);
+  }, [preparation.data, setSparringOpponent, submitted]);
 
   useEffect(() => {
     if (!node) return;

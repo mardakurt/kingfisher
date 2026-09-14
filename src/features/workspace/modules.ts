@@ -37,6 +37,7 @@ export type WorkspaceToolId =
   | 'document'
   | 'conversion'
   | 'play'
+  | 'sparring'
   | 'report'
   | 'notes';
 
@@ -121,6 +122,11 @@ export const WORKSPACE_MODULES: Readonly<Record<WorkspaceToolId, WorkspaceModule
   document: { id: 'document', label: 'Context', home: 'dock', regions: ['dock'] },
   conversion: { id: 'conversion', label: 'Play it out', home: 'dock', regions: ['dock'] },
   play: { id: 'play', label: 'Play From Here', home: 'dock', regions: ['dock'] },
+  /*
+    Preparation only: the opponent's own moves from their games, then the
+    engine. Distinct from Play From Here, which is the engine from move one.
+  */
+  sparring: { id: 'sparring', label: 'Sparring', home: 'dock', regions: ['dock'] },
   report: { id: 'report', label: 'Report', home: 'dock', regions: ['dock'] },
   notes: { id: 'notes', label: 'Notes', home: 'dock', regions: ['dock', 'lower'] },
 };
@@ -286,6 +292,7 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'features',
     'report',
     'notes',
+    'sparring',
     'play',
   ],
   training: [

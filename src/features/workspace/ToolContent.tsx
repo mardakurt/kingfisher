@@ -103,6 +103,11 @@ const PlayFromHerePanel = lazyPanel(() =>
     default: module.PlayFromHerePanel,
   })),
 );
+const SparringPanel = lazyPanel(() =>
+  import('@/features/preparation/SparringPanel').then((module) => ({
+    default: module.SparringPanel,
+  })),
+);
 const PositionHealthPanel = lazyPanel(() =>
   import('@/features/repertoire/PositionHealthPanel').then((module) => ({
     default: module.PositionHealthPanel,
@@ -146,6 +151,7 @@ export function ToolContent({
   if (tool === 'tablebase') return <TablebasePanel />;
   if (tool === 'conversion') return <ConversionPanel />;
   if (tool === 'play') return <PlayFromHerePanel />;
+  if (tool === 'sparring') return <SparringPanel />;
   if (tool === 'report') return <PositionReportPanel />;
   if (tool === 'companion') return <CompanionPanel />;
   if (tool === 'document') {

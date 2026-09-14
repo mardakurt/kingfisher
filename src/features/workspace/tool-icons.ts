@@ -48,6 +48,7 @@ export const WORKSPACE_TOOL_ICONS: Readonly<Record<WorkspaceModuleId, WorkspaceT
   document: Notebook,
   conversion: Endgame,
   play: PlayPosition,
+  sparring: Players,
   report: Dossier,
   notes: Pencil,
   'move-tree': Opening,
