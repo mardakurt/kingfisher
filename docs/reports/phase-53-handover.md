@@ -108,6 +108,54 @@ Section B, the Mac release:
 | 20    | commit `2c50448`, pushed; `npm run deploy:status`                                                         | `kingfisherchess.app: up to date (2c50448)` after three "BUILDING" polls                                                                                                                                                                                                                                                                                                              |
 | 21    | `npm run desktop:public:verify -- --landing --full`                                                       | 51/55 while Vercel was still building the landing, then **55/55** — `PUBLIC DMG VERIFIED: Kingfisher-1.1.6-arm64.dmg (every byte)`                                                                                                                                                                                                                                                    |
 
+## The owner's first look at 1.1.6, and 1.1.7
+
+Within minutes of 1.1.6 the owner sent a screenshot of their installed
+1.1.4 saying "Kingfisher was updated to 1.1.4. Previously 1.1.6." — before
+they had updated anything. Their profile's log had the cause: at 19:21:29Z
+a 1.1.6 (build 580) had launched on their real profile for eight seconds.
+Squirrel.Mac relaunches the bundle with no arguments, so the update
+harness's `--user-data-dir` did not survive the relaunch and the relaunched
+instance opened the owner's own work; Phase 52's harness had done the same
+with 1.1.5 at 15:23Z, and the harness's own header called the few seconds a
+known consequence. Two fixes in the shell, one release:
+
+- `desktop/src/relaunch-profile.mjs`: the shell names its profile in the
+  updater's cache before `quitAndInstall`; the next launch takes the file
+  (once, five-minute budget) and adopts it before anything reads
+  `userData`. The harness now asserts the relaunched instance opened the
+  test profile and the owner's default profile log did not change — and
+  writes the handoff itself for a current shell older than the fix.
+- A launch of an older version is recorded without a notice: going
+  backwards is not an update, whatever caused it.
+
+| Step    | Command                                                                                                    | Result                                                                                                                                                                                                                                                                                                                                                                                          |
+| ------- | ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A 1–6   | typecheck, lint, format, `npm test`, docs:check, `git diff --check`                                        | clean; **3019 passed** (13 new), 0 skipped; 344/344; clean. No browser-rendered file changed, so `test:e2e` was not required; `npm run desktop:smoke` (unpackaged) 17/17 proved the pre-ready cache read                                                                                                                                                                                        |
+| B 1–6   | 1.1.7 in both package files and lockfiles, changelog, `docs/release/1.1.7.md`, commit `12ac8dc`, preflight | GREEN (12/12)                                                                                                                                                                                                                                                                                                                                                                                   |
+| B 7–10  | build; `desktop:dist`; notarize; trust                                                                     | `1.1.7 · build 583 · 12ac8dc · stable`; notarization successful; ticket stapled; trust GREEN                                                                                                                                                                                                                                                                                                    |
+| B 11    | `verify-dmg.mjs … --version 1.1.7 --commit 12ac8dc…`                                                       | DMG verified                                                                                                                                                                                                                                                                                                                                                                                    |
+| —       | `npm run desktop:certify`                                                                                  | nine packaged gates green (smoke 17/17, chrome 109/109, restart, engines 25/25, suspend 12/12, both walks, DMG, no skips); the unit-suite step failed on a working tree another session had dirtied (below), so the suite was re-run on `12ac8dc` in a clean worktree: **3019 passed**. The bundle's asar was checked: electron-updater intact, `writeRelaunchProfile` present, no foreign code |
+| B 14–15 | publish; `gh release edit v1.1.7 --latest`                                                                 | https://github.com/mardakurt/kingfisher/releases/tag/v1.1.7, 5 assets, 2026-09-14T20:07:44Z                                                                                                                                                                                                                                                                                                     |
+| B 13    | `desktop:update:real -- --current <the 1.1.6 app> --next-dir <out> --public-feed`                          | **PASS 13/13** — "the relaunched 1.1.7 opened the test profile, not the default one — default profile log unchanged"; the owner's profile log was 248 lines before and after, its update state still 1.1.6                                                                                                                                                                                      |
+| B 16–20 | descriptor (build 583, sha256 `eafeb581…5564`, 171,349,366 bytes), docs, commit `a3897f1`, push, deploy    | `docs:check` 344/344 on the committed tree; `deploy:status` → `up to date (a3897f1)`                                                                                                                                                                                                                                                                                                            |
+| B 21    | `desktop:public:verify -- --landing --full`                                                                | **55/55** with the committed verifier — `PUBLIC DMG VERIFIED: Kingfisher-1.1.7-arm64.dmg (every byte)`                                                                                                                                                                                                                                                                                          |
+
+**A second session is working in this checkout.** While the 1.1.7 build
+ran, another Claude Code session began replacing electron-updater with
+Sparkle in the same working tree: staged deletions of
+`kingfisher-updater.mjs`, `update-window.mjs` and the dialog files, new
+`sparkle-updater.mjs`, `desktop/native/`, `desktop/sparkle.json`, and
+edits to `main.mjs`, `update-service.mjs`, `electron-builder.yml`,
+`build.mjs`, `verify-dmg.mjs`, `public-urls.ts` and `.gitignore`. None of
+it is committed and none of it is in build 583 (checked in the asar). From
+that point every gate here was run on the committed revision in a
+separate worktree, and every commit was made by explicit path. Two agents
+in one working tree is a hazard: the other session's `verify-dmg.mjs`
+fails every shipped DMG for lacking Sparkle, and its deletions break
+`update-service.test.mjs` and a SECURITY.md link on the working tree.
+Its work is left exactly as found.
+
 ## What was not done, and why
 
 - **Lichess sign-in end to end** needs the owner's password; not attempted.
@@ -128,11 +176,11 @@ Section B, the Mac release:
 1. **Same source?** Yes — `desktop/` packages the Next.js build from this
    repository. Every Phase 53 change is in both identities except the one
    that is web-only by design (the full-network browser Stockfish; the Mac
-   has native Stockfish 19) and three that are Mac-only because they
-   concern the shell. The public Mac build (1.1.6, build 580, `8e099cf`) is
-   the revision before the descriptor and handover commits, which change no
-   application code — `docs/product/platform-parity.md`, "Published
-   revision check (2026-09-14, 1.1.6)".
+   has native Stockfish 19) and the shell-only ones. The public Mac build
+   (1.1.7, build 583, `12ac8dc`) is the revision before the descriptor and
+   handover commits, which change no application code —
+   `docs/product/platform-parity.md`, "Published revision check
+   (2026-09-14, 1.1.7)".
 2. **Documents accurate?** `npm run docs:check` → 344/344; the changed
    behaviour is described in `CHANGELOG.md` (1.1.6), `docs/ENGINES.md`
    (two browser rows), `docs/data/reference-packs.md` (version 4),
