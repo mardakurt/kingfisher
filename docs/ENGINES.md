@@ -79,6 +79,42 @@ which embeds its network and speaks plain UCI — is at **18.0.8**, published
 
 So the browser says Stockfish 18 because that is what runs in the browser.
 
+### Two browser Stockfish rows, and why the web has one the Mac does not
+
+Phase 53 answered the other half of the browser question — not the version,
+the **network**. `nmrugg/stockfish.js` publishes each version twice: a _lite_
+build with the small evaluation network (7 MB) and a _full_ build with the
+full-size network the native binary runs (113 MB). Kingfisher had only ever
+shipped lite, so a person analysing at kingfisherchess.app was held to a
+weaker Stockfish than a person with the Mac application and native Stockfish
+— and, with no way to run a native engine in a browser at all, that was the
+whole of what the web could offer.
+
+Now there are two browser rows:
+
+| Row                             | Build                        | Where it exists                                        |
+| ------------------------------- | ---------------------------- | ------------------------------------------------------ |
+| **Stockfish 18**                | `stockfish-18-lite[-single]` | Everywhere: the web, the Mac application, a dev server |
+| **Stockfish 18 (full network)** | `stockfish-18[-single]`      | The web deployment only (`engine:install -- --full`)   |
+
+The full build is fetched the first time it is chosen — the engine's handshake
+waits five minutes for it instead of twenty seconds, because "did not respond"
+about an engine still downloading is a false report — and kept by the browser's
+HTTP cache afterwards (`next.config.ts` sends a week of `Cache-Control` for
+`/engine/stockfish/`). The Mac application deliberately does not carry it:
+`scripts/build-desktop-web.mjs` leaves the four full-network files out of the
+bundle and rewrites the staged manifest without them, because a Mac user has
+native Stockfish 19 and a second copy of the network would double the download
+for nothing. The registry offers the row only where the manifest lists the
+build (`registerBrowserEngineBuilds`), so neither identity ever shows an
+engine it cannot start.
+
+Measured on 14 September 2026 in Chrome on Apple silicon, from a fresh cache:
+the full multi-threaded build handshook, searched the start position to depth
+21 in 4.4 s at 767 k nodes/s and reported `+0.35` — a real round trip, not a
+manifest read. The native engines remain out of a browser's reach; that is a
+fact about browsers, and the Settings → Engines page says so.
+
 ### What the fleet actually reported
 
 `npm run engines:verify` on macOS arm64 (Apple silicon, CPU features `neon`),

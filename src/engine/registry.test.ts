@@ -13,13 +13,20 @@ import {
   DEFAULT_ENGINE_ID,
   engineDefinition,
   engineDefinitions,
+  engineDefinitionsVersion,
+  registerBrowserEngineBuilds,
   runnableEngineDefinitions,
   setEnginePlatform,
+  subscribeEngineDefinitions,
   enginesNotPublishedFor,
   publishedPlatformWords,
 } from './registry';
+import { buildsForNetwork } from './stockfish/provider';
 
-afterEach(() => setEnginePlatform(null));
+afterEach(() => {
+  setEnginePlatform(null);
+  registerBrowserEngineBuilds([]);
+});
 
 const ids = () => runnableEngineDefinitions().map((engine) => engine.id);
 
@@ -99,5 +106,68 @@ describe('the engines a machine will never be offered', () => {
       'Linux, Windows and macOS',
     );
     expect(publishedPlatformWords(undefined)).toBe('no platform');
+  });
+});
+
+describe('the full-network browser engine', () => {
+  /*
+    Registered from the manifest, never declared: the 113 MB build exists on
+    the web deployment and not in the Mac application, and a selector that
+    named it where it was not installed would fail on first use.
+  */
+  it('is absent until a manifest lists a full-network build', () => {
+    registerBrowserEngineBuilds([]);
+    expect(ids()).not.toContain('stockfish-wasm-full');
+    expect(engineDefinition('stockfish-wasm-full')).toBeUndefined();
+  });
+
+  it('appears when the manifest lists one, and tells subscribers', () => {
+    const seen: number[] = [];
+    const stop = subscribeEngineDefinitions(() => seen.push(engineDefinitionsVersion()));
+    const before = engineDefinitionsVersion();
+    registerBrowserEngineBuilds([
+      { id: 'lite-single', label: 'lite', script: '/a.js', threads: false },
+      { id: 'full-mt', label: 'full', script: '/b.js', threads: true, network: 'full' },
+    ]);
+    expect(ids()).toContain('stockfish-wasm-full');
+    expect(engineDefinition('stockfish-wasm-full')?.transport).toBe('worker');
+    expect(engineDefinition('stockfish-wasm-full')?.name).toBe('Stockfish 18 (full network)');
+    expect(seen).toEqual([before + 1]);
+
+    // Reading the same manifest again changes nothing and tells nobody.
+    registerBrowserEngineBuilds([
+      { id: 'full-mt', label: 'full', script: '/b.js', threads: true, network: 'full' },
+    ]);
+    expect(seen).toEqual([before + 1]);
+    stop();
+  });
+
+  it('is offered on every platform the companion can report, like the lite build', () => {
+    registerBrowserEngineBuilds([
+      { id: 'full-mt', label: 'full', script: '/b.js', threads: true, network: 'full' },
+    ]);
+    for (const platform of ['darwin-arm64', 'linux-x64', 'win32-x64']) {
+      setEnginePlatform(platform);
+      expect(ids(), platform).toContain('stockfish-wasm-full');
+    }
+    expect(enginesNotPublishedFor('darwin-arm64').map((engine) => engine.id)).not.toContain(
+      'stockfish-wasm-full',
+    );
+  });
+
+  it('is withdrawn again when the manifest stops listing it', () => {
+    registerBrowserEngineBuilds([
+      { id: 'full-mt', label: 'full', script: '/b.js', threads: true, network: 'full' },
+    ]);
+    registerBrowserEngineBuilds([
+      { id: 'lite-single', label: 'lite', script: '/a.js', threads: false },
+    ]);
+    expect(ids()).not.toContain('stockfish-wasm-full');
+  });
+
+  it('reads a manifest written before networks existed as lite-only', () => {
+    const legacy = [{ id: 'lite-single', label: 'lite', script: '/a.js', threads: false }];
+    expect(buildsForNetwork(legacy, 'lite')).toHaveLength(1);
+    expect(buildsForNetwork(legacy, 'full')).toHaveLength(0);
   });
 });

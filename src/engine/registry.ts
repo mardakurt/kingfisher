@@ -13,7 +13,12 @@
  */
 
 import { CompanionEngineProvider } from './companion/provider';
-import { StockfishWasmProvider } from './stockfish/provider';
+import {
+  buildsForNetwork,
+  loadStockfishManifest,
+  StockfishWasmProvider,
+  type EngineBuild,
+} from './stockfish/provider';
 import type { EngineProvider } from './types';
 
 /**
@@ -52,8 +57,42 @@ const STOCKFISH_WASM: EngineDefinition = {
   transport: 'worker',
   license: 'GPL-3.0-or-later',
   source: 'https://github.com/official-stockfish/Stockfish',
-  notes: 'WebAssembly. Runs in the browser with no companion.',
-  provider: new StockfishWasmProvider(),
+  notes:
+    'WebAssembly, 7 MB, with the small evaluation network. Runs in the browser with no companion.',
+  provider: new StockfishWasmProvider('lite'),
+};
+
+/**
+ * The same engine with the full-size evaluation network — the network the
+ * native binary runs — so a person analysing in a browser is not held to a
+ * weaker Stockfish than a person with the Mac application. 113 MB, fetched
+ * the first time it is chosen and kept by the browser's cache after that.
+ *
+ * Registered by `discoverBrowserEngines()` only where the deployment installed
+ * it (`npm run engine:install -- --full`; the web deployment does, the Mac
+ * application does not because it has native Stockfish 19). Declaring it
+ * unconditionally would put an engine in the desktop's selector that fails on
+ * first use, which is exactly the dead control this file exists to prevent.
+ *
+ * Stockfish 19 is not the browser engine, and `docs/ENGINES.md` records why
+ * in detail: `nmrugg/stockfish.js` — the UCI-over-postMessage build this
+ * application ships — is at 18.0.8 with no 19 release, and the one
+ * Stockfish 19 WebAssembly that exists (`@lichess-org/stockfish-web`) carries
+ * no network, speaks a different interface, has not been seen to run here
+ * and is AGPL. So 18 is what a browser can run, and the names say so.
+ */
+const STOCKFISH_WASM_FULL: EngineDefinition = {
+  id: 'stockfish-wasm-full',
+  name: 'Stockfish 18 (full network)',
+  family: 'alphabeta',
+  transport: 'worker',
+  license: 'GPL-3.0-or-later',
+  source: 'https://github.com/official-stockfish/Stockfish',
+  notes:
+    'WebAssembly with the full-size evaluation network the native engine uses. ' +
+    'A 113 MB download the first time it is chosen; the browser keeps it afterwards. ' +
+    'No companion needed.',
+  provider: new StockfishWasmProvider('full'),
 };
 
 /** Definitions for the native engines the installer knows how to install. */
@@ -80,7 +119,7 @@ const NATIVE: readonly Omit<EngineDefinition, 'provider'>[] = [
   },
   {
     id: 'stockfish-native',
-    platforms: ['darwin-arm64', 'darwin-x64', 'linux-x64', 'win32-x64'],
+    platforms: ['darwin-arm64', 'darwin-x64', 'linux-x64', 'linux-arm64', 'win32-x64'],
     /*
      * Phase 53: the native Stockfish has been on sf_19 since the install
      * catalogue was pointed at it (see `scripts/engine-catalogue.mjs`), but
@@ -89,13 +128,11 @@ const NATIVE: readonly Omit<EngineDefinition, 'provider'>[] = [
      * told the user it was 18, which is exactly the drift the registry
      * exists to prevent. Renamed to match what the catalogue ships.
      *
-     * The browser engine stays at Stockfish 18 (`stockfish-wasm` above).
-     * Stockfish 19 has no public WebAssembly build as of this writing —
-     * `nmrugg/stockfish.js` has not cut a v19 release yet, and Lichess's
-     * fork tops out at the same point — so the web build cannot move with
-     * the native one. When a WASM build of sf_19 lands the line above can
-     * be updated in lockstep; until then the two are deliberately out of
-     * step and the catalogue notes the gap.
+     * The browser engine stays at Stockfish 18 (`stockfish-wasm` above,
+     * and its full-network twin): see the note on `STOCKFISH_WASM_FULL`
+     * and `docs/ENGINES.md` for why no Stockfish 19 WebAssembly is
+     * shippable yet. When one is, the two lines move in lockstep; until
+     * then they are deliberately out of step and the names say so.
      */
     name: 'Stockfish 19 (native)',
     family: 'alphabeta',
@@ -172,6 +209,66 @@ for (const entry of NATIVE) {
 }
 
 /**
+ * Who is told when the set of definitions changes.
+ *
+ * The map above is mutated at runtime — by the companion's status (custom
+ * engines, the platform) and by the browser-engine manifest — and a selector
+ * rendered from it before that happened would otherwise not know. One
+ * counter, bumped on every change, is what `useSyncExternalStore` needs.
+ */
+const listeners = new Set<() => void>();
+let version = 0;
+const changed = () => {
+  version += 1;
+  for (const listener of listeners) listener();
+};
+
+export function subscribeEngineDefinitions(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+export const engineDefinitionsVersion = (): number => version;
+
+/**
+ * Register the browser engines a manifest actually lists.
+ *
+ * The lite Stockfish is always there. The full-network one joins the
+ * definitions only when the manifest names a build carrying it, so the list
+ * a selector shows is the list of engines that can be started here — a
+ * deployment without the 113 MB build never offers it. Idempotent: a manifest
+ * read twice registers nothing twice, and a manifest that lost the build
+ * removes the definition again (unless a session is running under it, when
+ * the id must keep resolving to a name).
+ */
+export function registerBrowserEngineBuilds(builds: readonly EngineBuild[]): void {
+  const hasFull = buildsForNetwork(builds, 'full').length > 0;
+  const registered = definitions.has(STOCKFISH_WASM_FULL.id);
+  if (hasFull && !registered) {
+    definitions.set(STOCKFISH_WASM_FULL.id, STOCKFISH_WASM_FULL);
+    changed();
+  } else if (!hasFull && registered) {
+    definitions.delete(STOCKFISH_WASM_FULL.id);
+    changed();
+  }
+}
+
+/**
+ * Read the browser-engine manifest once and register what it lists.
+ *
+ * Nothing is thrown: a deployment without the manifest at all is the lite
+ * provider's `checkAvailability` problem to report, with the install hint.
+ */
+export async function discoverBrowserEngines(): Promise<void> {
+  try {
+    const manifest = await loadStockfishManifest();
+    registerBrowserEngineBuilds(manifest.builds);
+  } catch {
+    registerBrowserEngineBuilds([]);
+  }
+}
+
+/**
  * Which of the catalogue's engines this machine could actually run.
  *
  * Three of the engines in `NATIVE` publish Windows-only builds. Listing them
@@ -189,10 +286,11 @@ export function setEnginePlatform(platform: string | null): void {
     platform === null
       ? null
       : new Set(
-          [STOCKFISH_WASM, ...NATIVE]
+          [STOCKFISH_WASM, STOCKFISH_WASM_FULL, ...NATIVE]
             .filter((entry) => !entry.platforms || entry.platforms.includes(platform))
             .map((entry) => entry.id),
         );
+  changed();
 }
 
 /** Ids added by `syncCustomEngineDefinitions`, so a routine refresh knows what it owns. */
@@ -218,14 +316,17 @@ export interface DiscoveredCustomEngine {
  */
 export function syncCustomEngineDefinitions(entries: readonly DiscoveredCustomEngine[]): void {
   const seen = new Set(entries.map((entry) => entry.id));
+  let touched = false;
   for (const id of [...customIds]) {
     if (seen.has(id)) continue;
     definitions.delete(id);
     customIds.delete(id);
+    touched = true;
   }
   for (const entry of entries) {
     customIds.add(entry.id);
     if (definitions.has(entry.id)) continue;
+    touched = true;
     definitions.set(entry.id, {
       id: entry.id,
       name: entry.name,
@@ -243,6 +344,7 @@ export function syncCustomEngineDefinitions(entries: readonly DiscoveredCustomEn
       }),
     });
   }
+  if (touched) changed();
 }
 
 export const engineDefinitions = (): readonly EngineDefinition[] => [...definitions.values()];

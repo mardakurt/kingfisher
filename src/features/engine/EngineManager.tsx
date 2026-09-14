@@ -29,6 +29,7 @@ import {
   publishedPlatformWords,
 } from '@/engine/registry';
 import { TRUST_LEVELS, type EngineTrust } from '@/engine/trust';
+import { useEngineDefinitionsVersion } from '@/engine/use-engines';
 import { cn } from '@/lib/cn';
 import { usePreferences } from '@/stores/preferences-store';
 import { useUi } from '@/stores/ui-store';
@@ -96,17 +97,26 @@ export function EngineManager() {
     setPreference('hiddenEngineIds', [...next]);
   };
 
-  const browserEngine = engineDefinitions().find((entry) => entry.transport === 'worker');
+  // The registry is edited at runtime (the full-network Stockfish is
+  // registered once the manifest has been read); this subscription is what
+  // makes the row appear without a reload.
+  useEngineDefinitionsVersion();
+  const browserEngines = engineDefinitions().filter((entry) => entry.transport === 'worker');
 
   return (
     <div className="flex flex-col gap-3">
-      {browserEngine ? (
+      {browserEngines.map((browserEngine) => (
         <EngineRow
+          key={browserEngine.id}
           id={browserEngine.id}
           name={browserEngine.name}
           state="Ready"
           trust="browser"
-          detail="Runs in this browser. No companion, no install, nothing to download."
+          detail={
+            browserEngine.id === 'stockfish-wasm-full'
+              ? 'Runs in this browser with the full-size evaluation network — the one the native engine uses. 113 MB, fetched the first time it is chosen and kept by the browser afterwards. No companion.'
+              : 'Runs in this browser. No companion, no install, nothing to download.'
+          }
           license={browserEngine.license}
           source={browserEngine.source}
           visible={!hidden.includes(browserEngine.id)}
@@ -114,7 +124,7 @@ export function EngineManager() {
           expanded={expanded === browserEngine.id}
           onExpand={() => setExpanded(expanded === browserEngine.id ? null : browserEngine.id)}
         />
-      ) : null}
+      ))}
 
       {client === null ? (
         <p className="rounded-[4px] border border-line bg-surface-2 p-3 text-xs text-tertiary">

@@ -5,6 +5,14 @@
  * `npm run engine:install` downloads it into `public/engine/stockfish` and
  * writes a manifest. When the manifest is absent the provider reports itself
  * unavailable with the command to fix it — analysis is never faked.
+ *
+ * Two networks. The `lite` builds carry the small evaluation network and are
+ * what every deployment has; the `full` builds carry Stockfish's full-size
+ * network — the one the native binary runs — at 113 MB each, and exist only
+ * where `engine:install -- --full` put them (the web deployment; not the Mac
+ * application, which has native Stockfish). One provider instance serves one
+ * network, so the registry can offer them as two engines and the engine store
+ * can treat them as any other pair.
  */
 
 import { parseOption, parseUciLine } from '../uci';
@@ -22,22 +30,74 @@ import {
 import { UciSession } from '../uci-session';
 import { UciWorkerClient } from './worker-client';
 
-const MANIFEST_URL = '/engine/stockfish/manifest.json';
+/** Which evaluation network a WebAssembly build carries. */
+export type StockfishNetwork = 'lite' | 'full';
 
-interface EngineBuild {
+export interface EngineBuild {
   readonly id: string;
   readonly label: string;
   readonly script: string;
   readonly threads: boolean;
+  /** Absent in manifests written before the full network existed: those are lite. */
+  readonly network?: StockfishNetwork;
+  /** The `.wasm` size, so the selector can say what choosing it downloads. */
+  readonly bytes?: number;
 }
 
-interface EngineManifest {
+export interface EngineManifest {
   readonly engine: string;
   readonly license: string;
   readonly builds: readonly EngineBuild[];
 }
 
+const MANIFEST_URL = '/engine/stockfish/manifest.json';
+
 const INSTALL_HINT = 'Run `npm run engine:install` to download the Stockfish build.';
+const FULL_INSTALL_HINT =
+  'Run `npm run engine:install -- --full` to download the full-network build.';
+
+const networkOf = (build: EngineBuild): StockfishNetwork => build.network ?? 'lite';
+
+/**
+ * How long the worker may take to answer `uci`.
+ *
+ * The lite build is 7 MB and answers in well under twenty seconds anywhere.
+ * The full build is 113 MB: the first time it is chosen the browser has to
+ * fetch and compile all of it, which is a couple of minutes on a slow line,
+ * and a twenty-second handshake would report "did not respond" about an
+ * engine that was still downloading. Later starts hit the HTTP cache.
+ */
+const HANDSHAKE_TIMEOUT_MS: Record<StockfishNetwork, number> = { lite: 20_000, full: 300_000 };
+
+/**
+ * One fetch of the manifest for every provider instance, because two
+ * instances (lite and full) asking the same static file twice on every
+ * availability check is waste, and a manifest that changed between the two
+ * reads would let them disagree about which builds exist.
+ */
+let manifestPromise: Promise<EngineManifest> | null = null;
+
+export function loadStockfishManifest(): Promise<EngineManifest> {
+  if (!manifestPromise) {
+    manifestPromise = (async () => {
+      const response = await fetch(MANIFEST_URL, { cache: 'no-cache' });
+      if (!response.ok)
+        throw new EngineError('The Stockfish build is not installed.', INSTALL_HINT);
+      return (await response.json()) as EngineManifest;
+    })().catch((error: unknown) => {
+      // A failed read is not cached: the next check asks again.
+      manifestPromise = null;
+      throw error;
+    });
+  }
+  return manifestPromise;
+}
+
+/** The builds in a manifest that carry `network`. */
+export const buildsForNetwork = (
+  builds: readonly EngineBuild[],
+  network: StockfishNetwork,
+): readonly EngineBuild[] => builds.filter((build) => networkOf(build) === network);
 
 /** Multi-threaded WASM needs SharedArrayBuffer, which needs cross-origin isolation. */
 const supportsThreads = (): boolean =>
@@ -46,11 +106,21 @@ const supportsThreads = (): boolean =>
   globalThis.crossOriginIsolated;
 
 export class StockfishWasmProvider implements EngineProvider {
-  readonly id = 'stockfish-wasm';
-  readonly name = 'Stockfish (WebAssembly)';
+  readonly id: string;
+  readonly name: string;
   readonly kind = 'wasm' as const;
+  readonly network: StockfishNetwork;
 
-  private manifest: EngineManifest | null = null;
+  constructor(network: StockfishNetwork = 'lite') {
+    this.network = network;
+    this.id = network === 'full' ? 'stockfish-wasm-full' : 'stockfish-wasm';
+    this.name =
+      network === 'full' ? 'Stockfish (WebAssembly, full network)' : 'Stockfish (WebAssembly)';
+  }
+
+  private get installHint(): string {
+    return this.network === 'full' ? FULL_INSTALL_HINT : INSTALL_HINT;
+  }
 
   async checkAvailability(): Promise<EngineAvailability> {
     if (typeof Worker === 'undefined' || typeof WebAssembly === 'undefined') {
@@ -61,12 +131,15 @@ export class StockfishWasmProvider implements EngineProvider {
       };
     }
     try {
-      const manifest = await this.loadManifest();
-      if (manifest.builds.length === 0) {
+      const manifest = await loadStockfishManifest();
+      if (buildsForNetwork(manifest.builds, this.network).length === 0) {
         return {
           available: false,
-          reason: 'No engine builds are installed.',
-          remedy: INSTALL_HINT,
+          reason:
+            this.network === 'full'
+              ? 'This deployment did not install the full-network build.'
+              : 'No engine builds are installed.',
+          remedy: this.installHint,
         };
       }
       return { available: true };
@@ -74,17 +147,17 @@ export class StockfishWasmProvider implements EngineProvider {
       return {
         available: false,
         reason: error instanceof Error ? error.message : 'The engine manifest could not be read.',
-        remedy: INSTALL_HINT,
+        remedy: this.installHint,
       };
     }
   }
 
   async create(configuration: Partial<EngineConfiguration> = {}): Promise<EngineSession> {
-    const manifest = await this.loadManifest();
-    const build = selectBuild(manifest.builds);
-    if (!build) throw new EngineError('No usable engine build is installed.', INSTALL_HINT);
+    const manifest = await loadStockfishManifest();
+    const build = selectBuild(buildsForNetwork(manifest.builds, this.network));
+    if (!build) throw new EngineError('No usable engine build is installed.', this.installHint);
 
-    const client = await UciWorkerClient.start(build.script);
+    const client = await UciWorkerClient.start(build.script, HANDSHAKE_TIMEOUT_MS[this.network]);
     const { identity, options } = await readIdentity(client);
     const capabilities = deriveCapabilities(options, build);
 
@@ -95,15 +168,6 @@ export class StockfishWasmProvider implements EngineProvider {
       ...configuration,
     });
     return session;
-  }
-
-  private async loadManifest(): Promise<EngineManifest> {
-    if (this.manifest) return this.manifest;
-    const response = await fetch(MANIFEST_URL, { cache: 'no-cache' });
-    if (!response.ok) throw new EngineError('The Stockfish build is not installed.', INSTALL_HINT);
-    const manifest = (await response.json()) as EngineManifest;
-    this.manifest = manifest;
-    return manifest;
   }
 }
 

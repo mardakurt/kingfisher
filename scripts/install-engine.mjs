@@ -7,11 +7,11 @@
  * The application degrades honestly when it is missing — the engine panel says
  * so and points here — rather than pretending to analyse.
  *
- *   node scripts/install-engine.mjs [--if-missing]
+ *   node scripts/install-engine.mjs [--if-missing] [--full]
  */
 
 import { createWriteStream } from 'node:fs';
-import { mkdir, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { pipeline } from 'node:stream/promises';
 import { Readable } from 'node:stream';
@@ -24,6 +24,15 @@ const CDN = 'https://unpkg.com/stockfish@18.0.8/bin';
 /**
  * `lite-single` runs anywhere. `lite-mt` needs SharedArrayBuffer, which needs
  * cross-origin isolation (see next.config.ts); the provider picks at runtime.
+ *
+ * The two `full` builds carry Stockfish's full-size evaluation network — the
+ * same network the native binary runs — and weigh 113 MB each against the
+ * lite builds' 7 MB. They are what makes a browser-only user's analysis
+ * comparable with a native one, and they are opt-in (`--full`, or
+ * `KINGFISHER_ENGINE_FULL=1`) because two of them would add 226 MB to the
+ * Mac application, whose users have native Stockfish 19 and no reason to
+ * carry a second copy of the network. The web deployment asks for them
+ * (`vercel.json`); the desktop build does not.
  */
 const BUILDS = [
   {
@@ -32,6 +41,7 @@ const BUILDS = [
     script: 'stockfish-18-lite-single.js',
     wasm: 'stockfish-18-lite-single.wasm',
     threads: false,
+    network: 'lite',
   },
   {
     id: 'lite-mt',
@@ -39,10 +49,28 @@ const BUILDS = [
     script: 'stockfish-18-lite.js',
     wasm: 'stockfish-18-lite.wasm',
     threads: true,
+    network: 'lite',
+  },
+  {
+    id: 'full-single',
+    label: 'Stockfish 18 (single-threaded, full network)',
+    script: 'stockfish-18-single.js',
+    wasm: 'stockfish-18-single.wasm',
+    threads: false,
+    network: 'full',
+  },
+  {
+    id: 'full-mt',
+    label: 'Stockfish 18 (multi-threaded, full network)',
+    script: 'stockfish-18.js',
+    wasm: 'stockfish-18.wasm',
+    threads: true,
+    network: 'full',
   },
 ];
 
 const ifMissing = process.argv.includes('--if-missing');
+const wantFull = process.argv.includes('--full') || process.env.KINGFISHER_ENGINE_FULL === '1';
 
 async function exists(path) {
   try {
@@ -78,21 +106,35 @@ async function download(name) {
 
 async function main() {
   const manifestPath = join(TARGET_DIR, 'manifest.json');
-  if (ifMissing && (await exists(manifestPath))) return;
+  if (ifMissing && (await exists(manifestPath))) {
+    // `--if-missing` is satisfied by a lite-only manifest unless the full
+    // network was asked for and is not there yet.
+    if (!wantFull) return;
+    try {
+      const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+      if (manifest.builds?.some((build) => build.network === 'full')) return;
+    } catch {
+      // An unreadable manifest is rewritten below.
+    }
+  }
 
   await mkdir(TARGET_DIR, { recursive: true });
   process.stdout.write('Installing Stockfish 18 (GPL-3.0-or-later) into public/engine…\n');
 
   const installed = [];
   for (const build of BUILDS) {
+    if (build.network === 'full' && !wantFull) continue;
     try {
       await download(build.script);
       await download(build.wasm);
+      const info = await stat(join(TARGET_DIR, build.wasm));
       installed.push({
         id: build.id,
         label: build.label,
         script: `/engine/stockfish/${build.script}`,
         threads: build.threads,
+        network: build.network,
+        bytes: info.size,
       });
     } catch (error) {
       process.stdout.write(`  ! ${build.id} unavailable: ${error.message}\n`);

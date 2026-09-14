@@ -162,6 +162,20 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        /*
+          The browser Stockfish builds. The full-network `.wasm` is 113 MB,
+          and the default `max-age=0, must-revalidate` would make every
+          engine start re-ask the server about it. The files are named by
+          engine version and are replaced only with the version in the name,
+          so a week without asking is safe, and the conditional request after
+          that is a 304.
+        */
+        source: '/engine/stockfish/:file*',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=604800, stale-while-revalidate=86400' },
+        ],
+      },
     ];
   },
 };
