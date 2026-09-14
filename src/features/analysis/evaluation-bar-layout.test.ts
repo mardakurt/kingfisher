@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest';
 
 import { cp, mate } from '@/chess/evaluation';
 
-import { evaluationBarLayout, leadingSide, whiteShare } from './evaluation-bar-layout';
+import {
+  compactScore,
+  evaluationBarLayout,
+  leadingSide,
+  whiteShare,
+} from './evaluation-bar-layout';
 
 describe('the evaluation bar says who is better', () => {
   it('draws White at the bottom with White to view, and Black at the bottom when flipped', () => {
@@ -75,5 +80,28 @@ describe('the evaluation bar says who is better', () => {
     expect(whiteShare(cp(5000))).toBe(0.98);
     expect(whiteShare(cp(-5000))).toBe(0.02);
     expect(leadingSide(mate(0))).toBeNull();
+  });
+});
+
+describe('the bar label fits the bar', () => {
+  it('keeps two decimals below ten pawns and one from ten, so five characters always suffice', () => {
+    expect(compactScore(cp(38))).toBe('+0.38');
+    expect(compactScore(cp(-120))).toBe('-1.20');
+    expect(compactScore(cp(999))).toBe('+9.99');
+    expect(compactScore(cp(1250))).toBe('+12.5');
+    expect(compactScore(cp(-1000))).toBe('-10.0');
+    expect(compactScore(cp(-99999))).toBe('-1000');
+    expect(compactScore(mate(12))).toBe('M12');
+    expect(compactScore(mate(-3))).toBe('-M3');
+    expect(compactScore(null)).toBe('—');
+    for (const score of [cp(38), cp(-120), cp(1250), cp(-99999), mate(12), mate(-3)]) {
+      expect(compactScore(score).length).toBeLessThanOrEqual(5);
+    }
+  });
+
+  it('the layout carries both the full figure and the bar figure', () => {
+    const layout = evaluationBarLayout(cp(1250), 'w');
+    expect(layout.label).toBe('+12.50');
+    expect(layout.barLabel).toBe('+12.5');
   });
 });

@@ -72,6 +72,7 @@ export function Chessboard({
   lastMove = null,
   checkSquare = null,
   destinations,
+  legalHints = true,
   onMove,
   isPromotion,
   promotionColor,
@@ -314,7 +315,8 @@ export function Chessboard({
   );
 
   const themeTokens = boardThemeVariables(boardTheme(theme));
-  const legalTargets = activeSelection ? (destinations?.get(activeSelection) ?? []) : [];
+  const legalTargets =
+    activeSelection && legalHints ? (destinations?.get(activeSelection) ?? []) : [];
   const emphasised = new Set(emphasis);
 
   if (!board) {

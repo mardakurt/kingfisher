@@ -15,6 +15,8 @@
  * the user pick it and read an error in the panel a moment later.
  */
 
+import { useSyncExternalStore } from 'react';
+
 import { useCompanionStatus } from '@/companion/useCompanion';
 import { enginesNotPublishedFor, publishedPlatformWords } from '@/engine/registry';
 import { useVisibleEngineDefinitions } from '@/engine/use-engines';
@@ -44,7 +46,7 @@ export function EngineSelect({
     this engine even published for a Mac? "Needs the companion" for an engine
     that will never exist on macOS would send them to pair one for nothing.
   */
-  const family = browserPlatformFamily();
+  const family = useBrowserPlatformFamily();
   const notPublished = family ? enginesNotPublishedFor(family) : [];
 
   return (
@@ -85,8 +87,29 @@ export function EngineSelect({
   );
 }
 
-/** The operating-system family the browser runs on, in the registry's terms. */
-function browserPlatformFamily(): 'darwin' | 'win32' | 'linux' | null {
+type PlatformFamily = 'darwin' | 'win32' | 'linux';
+
+/**
+ * The operating-system family the browser runs on, in the registry's terms.
+ *
+ * Resolved after hydration, never during it. The server has no `navigator`
+ * and rendered every option without a platform note; a client that read the
+ * user agent while hydrating rendered "— Windows only" into the same option,
+ * and React answered the mismatch by discarding the server's whole tree and
+ * regenerating it — a console error on every visit to Analysis, and the
+ * inline bootstrap scripts in the document head re-rendered as inert
+ * elements. The first client render therefore matches the server exactly,
+ * and the notes arrive one effect later.
+ */
+function useBrowserPlatformFamily(): PlatformFamily | null {
+  // The user agent never changes, so the store never notifies; what matters
+  // is the server snapshot, which is the null the server also rendered.
+  return useSyncExternalStore(subscribeNever, browserPlatformFamily, () => null);
+}
+
+const subscribeNever = () => () => {};
+
+function browserPlatformFamily(): PlatformFamily | null {
   if (typeof navigator === 'undefined') return null;
   const agent = navigator.userAgent;
   if (/Mac OS X|Macintosh/.test(agent)) return 'darwin';

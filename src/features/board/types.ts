@@ -21,6 +21,12 @@ export interface ChessboardProps {
   readonly checkSquare?: Square | null;
   /** Legal destinations per origin square. An empty map disables move input. */
   readonly destinations?: ReadonlyMap<Square, readonly Square[]>;
+  /**
+   * Draw the destination dots for the selected piece. Off, the board still
+   * accepts every move in `destinations` — a concealing workspace hides the
+   * hints, not the person's ability to play.
+   */
+  readonly legalHints?: boolean;
   readonly onMove?: (intent: MoveIntent) => void;
   /** Asked before completing a move, to decide whether to show the picker. */
   readonly isPromotion?: (from: Square, to: Square) => boolean;

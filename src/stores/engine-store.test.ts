@@ -189,11 +189,132 @@ describe('position changes invalidate evidence and pending searches', () => {
       .getState()
       .analyse('primary', START_FEN, { kind: 'infinite' }, { multiPv: 1, threads: 1, hashMb: 16 });
     await Promise.resolve();
+    const other = START_FEN.replace(' w ', ' b ') as typeof START_FEN;
+    useEngine.getState().invalidatePosition(other);
+    resolve(session);
+    await started;
+    // The pending search was switched on by the user, so it follows the board:
+    // the one search that runs is on the position the board moved to, and the
+    // old position is never searched.
+    const searched = (session.analyse as ReturnType<typeof vi.fn>).mock.calls.map(
+      (call) => (call[0] as { fen: string }).fen,
+    );
+    expect(searched).not.toContain(START_FEN);
+    expect(searched).toEqual([other]);
+  });
+
+  it('with following off, a delayed engine start does not revive the old position', async () => {
+    const { session } = failingSession(new Error('unused'));
+    let resolve!: (value: EngineSession) => void;
+    create.mockImplementation(
+      () =>
+        new Promise<EngineSession>((r) => {
+          resolve = r;
+        }),
+    );
+    useEngine.getState().setFollowBoard(false);
+    const started = useEngine
+      .getState()
+      .analyse('primary', START_FEN, { kind: 'infinite' }, { multiPv: 1, threads: 1, hashMb: 16 });
+    await Promise.resolve();
     useEngine.getState().invalidatePosition(START_FEN.replace(' w ', ' b ') as typeof START_FEN);
     resolve(session);
     await started;
     expect(session.analyse).not.toHaveBeenCalled();
     expect(useEngine.getState().primary.running).toBe(false);
+    useEngine.getState().setFollowBoard(true);
+  });
+});
+
+/**
+ * A running engine follows the board.
+ *
+ * Every published interface does this and Kingfisher did not: a move on the
+ * board stopped the search and blanked the bar, and the owner read the bar as
+ * unreliable. The rules: the same limit and settings carry over; a search
+ * restricted to root moves does not follow; the second engine follows only
+ * while a comparison is on; and a concealing workspace can switch following
+ * off, which also has to hold for a search that was still starting.
+ */
+describe('a running engine follows the board', () => {
+  const other = START_FEN.replace(' w ', ' b ') as typeof START_FEN;
+  const config = { multiPv: 2, threads: 1, hashMb: 16 };
+
+  beforeEach(() => {
+    useEngine.getState().shutdown();
+    useEngine.getState().setFollowBoard(true);
+    useEngine.getState().setComparing(false);
+    create.mockReset();
+  });
+
+  it('restarts the search on the new position with the same limit and settings', async () => {
+    const { session } = failingSession(new Error('unused'));
+    create.mockResolvedValue(session);
+    await useEngine.getState().analyse('primary', START_FEN, { kind: 'depth', depth: 20 }, config);
+    useEngine.getState().invalidatePosition(other);
+    await vi.waitFor(() => expect(session.analyse).toHaveBeenCalledTimes(2));
+    const second = (session.analyse as ReturnType<typeof vi.fn>).mock.calls[1]![0] as {
+      fen: string;
+      limit: unknown;
+    };
+    expect(second.fen).toBe(other);
+    expect(second.limit).toEqual({ kind: 'depth', depth: 20 });
+    expect(useEngine.getState().primary.analysedFen).toBe(other);
+    expect(useEngine.getState().primary.running).toBe(true);
+  });
+
+  it('does not follow when the engine was not running', async () => {
+    const { session } = failingSession(new Error('unused'));
+    create.mockResolvedValue(session);
+    await useEngine.getState().analyse('primary', START_FEN, { kind: 'infinite' }, config);
+    useEngine.getState().stop('primary');
+    useEngine.getState().invalidatePosition(other);
+    await Promise.resolve();
+    expect(session.analyse).toHaveBeenCalledTimes(1);
+    expect(useEngine.getState().primary.running).toBe(false);
+  });
+
+  it('does not carry a root-move-restricted search to the next position', async () => {
+    const { session } = failingSession(new Error('unused'));
+    create.mockResolvedValue(session);
+    await useEngine
+      .getState()
+      .analyse('primary', START_FEN, { kind: 'infinite' }, config, ['e2e4' as never]);
+    useEngine.getState().invalidatePosition(other);
+    await Promise.resolve();
+    expect(session.analyse).toHaveBeenCalledTimes(1);
+    expect(useEngine.getState().primary.running).toBe(false);
+  });
+
+  it('stays stopped while a concealing workspace has switched following off', async () => {
+    const { session } = failingSession(new Error('unused'));
+    create.mockResolvedValue(session);
+    await useEngine.getState().analyse('primary', START_FEN, { kind: 'infinite' }, config);
+    useEngine.getState().setFollowBoard(false);
+    useEngine.getState().invalidatePosition(other);
+    await Promise.resolve();
+    expect(session.analyse).toHaveBeenCalledTimes(1);
+    expect(useEngine.getState().primary.running).toBe(false);
+    expect(useEngine.getState().primary.analysedFen).toBeNull();
+  });
+
+  it('the second engine follows only while a comparison is on', async () => {
+    const { session } = failingSession(new Error('unused'));
+    create.mockResolvedValue(session);
+    await useEngine.getState().analyse('secondary', START_FEN, { kind: 'infinite' }, config);
+    useEngine.getState().invalidatePosition(other);
+    await Promise.resolve();
+    expect(session.analyse).toHaveBeenCalledTimes(1);
+    expect(useEngine.getState().secondary.running).toBe(false);
+
+    useEngine.getState().shutdown('secondary');
+    useEngine.getState().setComparing(true);
+    const { session: paired } = failingSession(new Error('unused'));
+    create.mockResolvedValue(paired);
+    await useEngine.getState().analyse('secondary', other, { kind: 'infinite' }, config);
+    useEngine.getState().invalidatePosition(START_FEN);
+    await vi.waitFor(() => expect(paired.analyse).toHaveBeenCalledTimes(2));
+    expect(useEngine.getState().secondary.analysedFen).toBe(START_FEN);
   });
 });
 

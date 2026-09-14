@@ -125,6 +125,13 @@ interface Runtime {
    * a different FEN should.
    */
   pendingFen: Fen | null;
+  /**
+   * The limit and configuration of the last unrestricted search, so a running
+   * engine can follow the board to the next position with the same settings.
+   * A search restricted to root moves is a question about one position and is
+   * not carried forward.
+   */
+  lastRequest: { readonly limit: AnalysisLimit; readonly config: EngineConfigInput } | null;
 }
 
 const runtimes: Record<SlotId, Runtime> = {
@@ -135,6 +142,7 @@ const runtimes: Record<SlotId, Runtime> = {
     engineId: null,
     request: 0,
     pendingFen: null,
+    lastRequest: null,
   },
   secondary: {
     session: null,
@@ -143,6 +151,7 @@ const runtimes: Record<SlotId, Runtime> = {
     engineId: null,
     request: 0,
     pendingFen: null,
+    lastRequest: null,
   },
 };
 
@@ -151,6 +160,20 @@ interface EngineState {
   secondary: EngineSlot;
   /** Whether the second engine follows the board. */
   comparing: boolean;
+  /**
+   * Whether a running engine follows the board to the next position.
+   *
+   * On by default, because that is what an engine that has been switched on
+   * does in every published chess interface: the search restarts on the
+   * position the board moves to and stops when the user stops it. Before
+   * Phase 52 a move on the board stopped the engine, the bar fell back to
+   * "no evaluation" and the user had to start it again for every position —
+   * which is what made the bar read as unreliable. Concealing workspaces
+   * (Review before reveal, Training) turn this off while they are on screen,
+   * because a search that follows the board there would be evidence gathered
+   * behind the curtain.
+   */
+  followBoard: boolean;
   pinned: readonly PinnedLine[];
 
   selectEngine(slot: SlotId, engineId: string): Promise<void>;
@@ -166,6 +189,7 @@ interface EngineState {
   /** Run both engines on one position. */
   compare(fen: Fen, limit: AnalysisLimit, config: EngineConfigInput): Promise<void>;
   setComparing(on: boolean): void;
+  setFollowBoard(on: boolean): void;
   stop(slot?: SlotId): void;
   /** Invalidate searches and evidence that belong to a position the board left. */
   invalidatePosition(fen: Fen): void;
@@ -305,6 +329,7 @@ export const useEngine = create<EngineState>((set, get) => {
     // Claimed before the first await, so a later request always outranks this
     // one no matter which of them finishes starting first.
     const request = (runtime.request += 1);
+    runtime.lastRequest = searchMoves ? null : { limit, config };
     // A still-starting request is identified by its FEN, not by `analysedFen`,
     // because `analysedFen` is only written once the search actually starts.
     // `invalidatePosition` needs that handle to decide whether a board "change"
@@ -406,6 +431,7 @@ export const useEngine = create<EngineState>((set, get) => {
     primary: EMPTY_SLOT(DEFAULT_ENGINE_ID),
     secondary: EMPTY_SLOT('lc0'),
     comparing: false,
+    followBoard: true,
     pinned: [],
 
     selectEngine: async (slot, engineId) => {
@@ -456,11 +482,24 @@ export const useEngine = create<EngineState>((set, get) => {
         // navigated away and back rather than to a new position.
         if (get()[slot].analysedFen === fen) continue;
         if (runtimes[slot].pendingFen === fen) continue;
+        // Whether the engine was switched on, read before stop() clears it.
+        const wasRunning = get()[slot].running || runtimes[slot].pendingFen !== null;
+        const last = runtimes[slot].lastRequest;
         // stop also invalidates a request waiting for engine startup/configuration.
         get().stop(slot);
         patch(slot, { analysedFen: null, analysis: null, history: [] });
         runtimes[slot].pendingFen = null;
+        // The secondary engine follows only while a comparison is on; a
+        // stopped comparison must not quietly keep a second engine running.
+        const follows = slot === 'primary' || get().comparing;
+        if (wasRunning && last && follows && get().followBoard) {
+          void run(slot, fen, last.limit, last.config);
+        }
       }
+    },
+
+    setFollowBoard: (on) => {
+      if (get().followBoard !== on) set({ followBoard: on });
     },
 
     shutdown: (slot) => {

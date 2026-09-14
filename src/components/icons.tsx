@@ -128,6 +128,13 @@ export const Trash = (p: IconProps) => (
     <path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13M10 11v6M14 11v6" />
   </Icon>
 );
+/** A counter-clockwise arrow: start again from the position. */
+export const Reset = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M4 12a8 8 0 1 0 2.4-5.7" />
+    <path d="M4 4v5h5" />
+  </Icon>
+);
 export const ArrowUp = (p: IconProps) => (
   <Icon {...p}>
     <path d="M12 20V5m0 0-6 6m6-6 6 6" />

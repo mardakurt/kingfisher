@@ -8,7 +8,7 @@ import type { MoveIntent } from '@/chess/types';
 import { Chessboard } from '@/features/board/Chessboard';
 import { useEngineArrows } from '@/features/board/engine-arrows';
 import { BoardControls } from '@/features/analysis/BoardControls';
-import { EvaluationBar } from '@/features/analysis/EvaluationBar';
+import { EVALUATION_BAR_WIDTH, EvaluationBar } from '@/features/analysis/EvaluationBar';
 import { EvaluationGraph } from '@/features/analysis/EvaluationGraph';
 import { PositionSummary } from '@/features/analysis/PositionSummary';
 import { useAnalysisPosition } from '@/features/analysis/useAnalysisPosition';
@@ -26,6 +26,7 @@ import {
   type BoardSurfaceMode,
 } from './board-capabilities';
 import { BoardErrorBoundary } from './BoardErrorBoundary';
+import { useBoardMoveCapture } from './board-move-capture';
 import { useChessWorkspace } from './ChessWorkspaceContext';
 
 interface CanonicalBoardSurfaceProps {
@@ -71,7 +72,7 @@ export function CanonicalBoardSurface({
   const goTo = useAnalysis((state) => state.goTo);
   const analysis = useEngine((state) => state.primary.analysis);
   const analysedFen = useEngine((state) => state.primary.analysedFen);
-  const engineRunning = useEngine((state) => state.primary.running);
+  const engineName = useEngine((state) => state.primary.identity?.name ?? null);
   const engineArrows = useEngineArrows(node.fen);
   const boardContainer = useRef<HTMLDivElement>(null);
   const [frameSize, setFrameSize] = useState(320);
@@ -88,23 +89,80 @@ export function CanonicalBoardSurface({
     [conceal, concealPieces, mode, overrides],
   );
 
+  /*
+    A running engine follows the board — except behind the curtain. Review
+    before reveal and Training conceal the evidence, and a search that kept
+    following the board there would be evidence gathered where the workspace
+    promises nothing is running. Concealment therefore switches following off
+    and stops whatever is on; showing the evidence again switches it back on.
+    Keyed on the position as well, because Review conceals per position: a
+    move from a revealed square to an unrevealed one must stop the search that
+    following would otherwise have restarted.
+  */
+  const setFollowBoard = useEngine((state) => state.setFollowBoard);
+  const stopEngine = useEngine((state) => state.stop);
+  useEffect(() => {
+    if (caps.showEvaluation) {
+      setFollowBoard(true);
+      return;
+    }
+    setFollowBoard(false);
+    stopEngine();
+    return () => setFollowBoard(true);
+  }, [caps.showEvaluation, node.fen, setFollowBoard, stopEngine]);
+
   const evaluationBarVisible =
     showEvaluationArtifacts && caps.showEvaluation && prefs.showEvaluationBar;
   /** The bar's column plus the gap, in the same units the grid below uses. */
   const barSpace = evaluationBarVisible ? EVALUATION_BAR_WIDTH + EVALUATION_BAR_GAP : 0;
-  const evaluation =
-    analysedFen === node.fen
-      ? (analysis?.lines[0]?.score ?? null)
-      : (node.evaluation?.score ?? null);
+  /*
+    What the bar reads, decided in one place: the live search when it is on
+    this position, otherwise the evaluation stored on the node, otherwise
+    nothing. A bar must never show a number that belongs to a different
+    position, and the title says which of the three it is showing.
+  */
+  const live = analysedFen === node.fen && analysis?.lines[0] ? analysis : null;
+  const evaluation = live ? live.lines[0]!.score : (node.evaluation?.score ?? null);
+  const evaluationDepth = live ? live.depth : node.evaluation?.depth;
+  const evaluationEngine = live ? engineName : node.evaluation?.engine;
+  const evaluationStale = !live && evaluation !== null;
 
+  /*
+    A tool may borrow the board's moves — Review's journal records candidates
+    this way. The move is validated against the position exactly as a played
+    move would be, then handed over instead of played, and the tool's own
+    shapes are drawn on top of the node's.
+  */
+  const capture = useBoardMoveCapture((state) => state.capture);
   const onMove = useCallback(
     (intent: MoveIntent) => {
       if (!caps.allowMoves) return;
+      if (capture) {
+        const played = position.play(intent);
+        if (!played.ok) {
+          notify({ tone: 'error', message: played.error.message });
+          return;
+        }
+        capture.onMove({
+          uci: played.value.uci,
+          san: played.value.san,
+          from: intent.from,
+          to: intent.to,
+        });
+        return;
+      }
       const result = play(intent);
       if (!result.ok) notify({ tone: 'error', message: result.error.message });
     },
-    [caps.allowMoves, notify, play],
+    [caps.allowMoves, capture, notify, play, position],
   );
+  // A capturing tool's shapes are its own drawing, not stored evidence, so
+  // they are painted even where the node's annotations are concealed.
+  const shapes = useMemo<readonly Shape[]>(() => {
+    const own = caps.showAnnotations ? node.shapes : EMPTY_SHAPES;
+    if (!capture || capture.shapes.length === 0) return own;
+    return own.length === 0 ? capture.shapes : [...own, ...capture.shapes];
+  }, [caps.showAnnotations, capture, node.shapes]);
   const onShapeToggle = useCallback(
     (shape: Shape) => {
       if (!caps.allowAnnotations) return;
@@ -152,17 +210,24 @@ export function CanonicalBoardSurface({
         data-board-container
       >
         <div
-          className={cn(
-            'grid items-stretch',
-            evaluationBarVisible ? 'grid-cols-[22px_minmax(0,1fr)] gap-3' : 'grid-cols-1',
-          )}
-          style={{ width: frameSize + barSpace }}
+          className={cn('grid items-stretch', !evaluationBarVisible && 'grid-cols-1')}
+          style={{
+            width: frameSize + barSpace,
+            ...(evaluationBarVisible
+              ? {
+                  gridTemplateColumns: `${EVALUATION_BAR_WIDTH}px minmax(0, 1fr)`,
+                  columnGap: EVALUATION_BAR_GAP,
+                }
+              : {}),
+          }}
         >
           {evaluationBarVisible ? (
             <EvaluationBar
               score={evaluation}
               orientation={orientation}
-              stale={!engineRunning && analysedFen !== node.fen}
+              stale={evaluationStale}
+              {...(evaluationDepth ? { depth: evaluationDepth } : {})}
+              {...(evaluationEngine ? { engine: evaluationEngine } : {})}
             />
           ) : null}
           <div className="relative aspect-square w-full min-w-0" data-board-frame>
@@ -173,11 +238,12 @@ export function CanonicalBoardSurface({
                   orientation={orientation}
                   lastMove={node.move}
                   checkSquare={checkSquare}
-                  destinations={caps.allowMoves && caps.showLegalHints ? destinations : EMPTY}
+                  destinations={caps.allowMoves ? destinations : EMPTY}
+                  legalHints={caps.showLegalHints}
                   onMove={caps.allowMoves ? onMove : undefined}
                   isPromotion={(from, to) => position.requiresPromotion(from, to)}
                   promotionColor={position.turn}
-                  shapes={caps.showAnnotations ? node.shapes : EMPTY_SHAPES}
+                  shapes={shapes}
                   engineArrows={caps.showEvaluation ? engineArrows : EMPTY_ARROWS}
                   onShapeToggle={caps.allowAnnotations ? onShapeToggle : undefined}
                   onShapesClear={caps.allowAnnotations ? () => clearShapes(currentId) : undefined}
@@ -207,6 +273,15 @@ export function CanonicalBoardSurface({
           </div>
         </div>
       </div>
+      {capture ? (
+        <p
+          className="mx-auto mt-1.5 w-full max-w-[860px] shrink-0 rounded-[4px] border border-accent/40 bg-accent/10 px-2.5 py-1 text-center text-[10.5px] text-primary"
+          data-board-capture
+          role="status"
+        >
+          {capture.label}
+        </p>
+      ) : null}
       {showContext && caps.allowContextActions ? (
         <div className="mx-auto mt-2 flex w-full max-w-[860px] shrink-0 items-center gap-3 border-t border-line-subtle pt-1.5">
           <BoardControls />
@@ -226,14 +301,14 @@ export function CanonicalBoardSurface({
 }
 
 /**
- * The evaluation bar's geometry, in one place.
+ * The gap between the evaluation bar and the board.
  *
  * Duplicated between a Tailwind class and a measurement is exactly how a board
- * ends up 34px narrower than the space measured for it, so the two are derived
- * from these constants and the class below names them.
+ * ends up 34px narrower than the space measured for it, so the grid's columns
+ * and the width budget are both derived from this and the bar's own
+ * `EVALUATION_BAR_WIDTH`, and no class names a number.
  */
-const EVALUATION_BAR_WIDTH = 22;
-const EVALUATION_BAR_GAP = 12;
+const EVALUATION_BAR_GAP = 10;
 
 /* Stable empties, so withholding does not remount the board on every render. */
 const EMPTY = new Map<never, never>() as never;

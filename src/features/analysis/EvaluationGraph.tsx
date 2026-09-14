@@ -3,10 +3,24 @@
 /**
  * The shape of the game, from evaluations that actually exist.
  *
- * Every bar stands for one stored engine snapshot. Plies with no snapshot are
- * left blank rather than interpolated: a smooth curve drawn through two known
- * points implies the engine said something about the moves between them, and it
- * did not. Sparse analysis should look sparse.
+ * Every column stands for one stored engine snapshot. Plies with no snapshot
+ * are left blank rather than interpolated: a smooth curve drawn through two
+ * known points implies the engine said something about the moves between
+ * them, and it did not. Sparse analysis should look sparse — but it should
+ * look *sparse*, not broken. Before Phase 52 the graph stretched however many
+ * columns it had across the whole width, so a game with one evaluated move
+ * was one block of colour half the height of the strip and a game with three
+ * was three, with no caption, no axis and no name. The owner, seeing it under
+ * the board of the Mac application and not on the web (the difference was
+ * only that one game had stored evaluations and the other had none), asked
+ * what it was for. So:
+ *
+ * - a column is never wider than a move deserves — the scale is at least
+ *   forty plies, so a short game is drawn on the left of a strip whose right
+ *   half is visibly waiting for moves;
+ * - the strip is titled, and says how many of the moves have an evaluation;
+ * - the middle line is labelled as equality, and the two halves as White's
+ *   and Black's.
  *
  * Height is winning chances, not centipawns. The difference between +0.2 and
  * +0.5 matters far more than the difference between +6.0 and +6.3, and a raw
@@ -36,7 +50,9 @@ interface Column {
   readonly label: string | null;
 }
 
-const HEIGHT = 40;
+const HEIGHT = 48;
+/** The fewest plies the strip is scaled to, so a short game stays narrow. */
+const MIN_PLIES = 40;
 
 export function EvaluationGraph({ tree, currentId, onSelect, className }: EvaluationGraphProps) {
   const columns = useMemo<Column[]>(() => {
@@ -56,83 +72,125 @@ export function EvaluationGraph({ tree, currentId, onSelect, className }: Evalua
   const evaluated = columns.filter((column) => column.advantage !== null).length;
   if (columns.length === 0 || evaluated === 0) return null;
 
-  const width = Math.max(columns.length, 1);
+  const width = Math.max(columns.length, MIN_PLIES);
   const currentIndex = columns.findIndex((column) => column.nodeId === currentId);
+  const moves = Math.ceil(columns.length / 2);
+  const evaluatedMoves = evaluated;
 
   return (
     <figure data-evaluation-graph className={cn('min-w-0', className)}>
-      <svg
-        viewBox={`0 0 ${width} ${HEIGHT}`}
-        preserveAspectRatio="none"
-        role="img"
-        aria-label={`Evaluation over ${columns.length} moves, ${evaluated} of them analysed`}
-        className="block h-9 w-full rounded-[3px] bg-surface-inset"
-      >
-        {columns.map((column, index) => {
-          if (column.advantage === null) return null;
-          // Positive advantage is White's, drawn upward from the mid-line.
-          const magnitude = (Math.abs(column.advantage) * HEIGHT) / 2;
-          const y = column.advantage >= 0 ? HEIGHT / 2 - magnitude : HEIGHT / 2;
-          return (
-            <rect
-              key={column.nodeId}
-              x={index}
-              y={y}
-              width={1}
-              height={Math.max(magnitude, 0.6)}
-              className={column.advantage >= 0 ? 'fill-eval-white' : 'fill-eval-black'}
-              opacity={0.85}
-            />
-          );
-        })}
+      <figcaption className="mb-0.5 flex items-baseline justify-between px-0.5">
+        <span className="text-[10px] font-medium tracking-[0.06em] text-tertiary uppercase">
+          Evaluation
+        </span>
+        <span className="text-[10px] text-tertiary tabular">
+          {evaluatedMoves} of {columns.length} {columns.length === 1 ? 'ply' : 'plies'} analysed
+          {moves ? ` · ${moves} ${moves === 1 ? 'move' : 'moves'}` : ''}
+        </span>
+      </figcaption>
+      <div className="relative">
+        <svg
+          viewBox={`0 0 ${width} ${HEIGHT}`}
+          preserveAspectRatio="none"
+          role="img"
+          aria-label={`Evaluation over ${columns.length} plies, ${evaluated} of them analysed`}
+          className="block h-12 w-full rounded-[3px] border border-line-subtle bg-surface-inset"
+        >
+          {columns.map((column, index) => {
+            if (column.advantage === null) return null;
+            // Positive advantage is White's, drawn upward from the mid-line.
+            const magnitude = (Math.abs(column.advantage) * HEIGHT) / 2;
+            const y = column.advantage >= 0 ? HEIGHT / 2 - magnitude : HEIGHT / 2;
+            return (
+              <rect
+                key={column.nodeId}
+                x={index + 0.08}
+                y={y}
+                width={0.84}
+                height={Math.max(magnitude, 0.6)}
+                className={column.advantage >= 0 ? 'fill-eval-white' : 'fill-eval-black'}
+                opacity={0.9}
+              />
+            );
+          })}
 
-        <line
-          x1={0}
-          y1={HEIGHT / 2}
-          x2={width}
-          y2={HEIGHT / 2}
-          stroke="var(--line-strong)"
-          strokeWidth={0.5}
-          vectorEffect="non-scaling-stroke"
-        />
-
-        {/*
-          A non-scaling line rather than a filled column: with four moves on
-          screen a column is a third of the graph, which reads as a block of
-          colour instead of a cursor.
-        */}
-        {currentIndex >= 0 && (
           <line
-            x1={currentIndex + 0.5}
-            y1={0}
-            x2={currentIndex + 0.5}
-            y2={HEIGHT}
-            stroke="var(--accent)"
-            strokeWidth={1.5}
+            x1={0}
+            y1={HEIGHT / 2}
+            x2={width}
+            y2={HEIGHT / 2}
+            stroke="var(--line-strong)"
+            strokeWidth={1}
             vectorEffect="non-scaling-stroke"
           />
-        )}
-      </svg>
+
+          {/* A tick every ten moves, so the strip reads as a timeline. */}
+          {Array.from({ length: Math.floor(width / 20) }, (_, tick) => (
+            <line
+              key={tick}
+              x1={(tick + 1) * 20}
+              y1={0}
+              x2={(tick + 1) * 20}
+              y2={HEIGHT}
+              stroke="var(--line-subtle)"
+              strokeWidth={1}
+              vectorEffect="non-scaling-stroke"
+            />
+          ))}
+
+          {/*
+            A non-scaling line rather than a filled column: with four moves on
+            screen a column is a tenth of the graph, which reads as a block of
+            colour instead of a cursor.
+          */}
+          {currentIndex >= 0 && (
+            <line
+              x1={currentIndex + 0.5}
+              y1={0}
+              x2={currentIndex + 0.5}
+              y2={HEIGHT}
+              stroke="var(--accent)"
+              strokeWidth={1.5}
+              vectorEffect="non-scaling-stroke"
+            />
+          )}
+        </svg>
+        <span
+          className="pointer-events-none absolute top-0.5 left-1 text-[9px] leading-none text-tertiary"
+          aria-hidden
+        >
+          White
+        </span>
+        <span
+          className="pointer-events-none absolute bottom-0.5 left-1 text-[9px] leading-none text-tertiary"
+          aria-hidden
+        >
+          Black
+        </span>
+      </div>
 
       {/*
         The clickable layer is separate from the drawing: an SVG scaled with
         `preserveAspectRatio="none"` has unusable hit targets, and a row of real
-        buttons is keyboard-navigable and screen-reader-legible for free.
+        buttons is keyboard-navigable and screen-reader-legible for free. The
+        row is scaled to the same width as the strip so a button sits under its
+        column.
       */}
-      <div className="mt-px flex h-3 w-full" role="group" aria-label="Jump to a move">
+      <div className="mt-px flex h-2.5 w-full" role="group" aria-label="Jump to a move">
         {columns.map((column) => (
           <button
             key={column.nodeId}
             type="button"
             onClick={() => onSelect(column.nodeId)}
+            style={{ width: `${(100 / width).toFixed(4)}%` }}
             title={
               column.label
                 ? `${moveNumberOfPly(column.ply)}${column.ply % 2 === 1 ? '.' : '…'} ${column.label}`
-                : `Move ${moveNumberOfPly(column.ply)}`
+                : `Move ${moveNumberOfPly(column.ply)} — not analysed`
             }
             aria-label={`Go to move ${moveNumberOfPly(column.ply)}`}
             className={cn(
-              'h-full min-w-0 flex-1 rounded-[1px] transition-colors',
+              'h-full min-w-0 shrink-0 rounded-[1px] transition-colors',
               column.nodeId === currentId ? 'bg-accent/60' : 'hover:bg-surface-3',
             )}
           />

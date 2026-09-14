@@ -25,6 +25,12 @@ export interface EvaluationBarLayout {
   readonly bottomSide: Color;
   /** The score as text, `—` without one. */
   readonly label: string;
+  /**
+   * The label as the bar draws it: the same figure to two decimals below ten
+   * pawns, one decimal from ten, so that it fits the bar's width at the size
+   * a person can read. The full figure stays in `label`.
+   */
+  readonly barLabel: string;
   /** The side that is better, or null at 0.00 / without a score. */
   readonly leading: Color | null;
   /** Where the label is drawn: in the leading side's band, else at White's. */
@@ -47,6 +53,18 @@ export function leadingSide(score: Score | null): Color | null {
   return null;
 }
 
+/** `+12.50` is six characters; the bar has room for five. */
+export function compactScore(score: Score | null): string {
+  if (!score) return '—';
+  if (score.kind === 'mate') return formatScore(score);
+  if (Math.abs(score.cp) < 1000) return formatScore(score);
+  const pawns = score.cp / 100;
+  // Past a hundred pawns the figure is an engine's way of saying "decided";
+  // no decimal it could show would change that reading.
+  if (Math.abs(pawns) >= 100) return `${pawns > 0 ? '+' : '-'}${Math.round(Math.abs(pawns))}`;
+  return `${pawns > 0 ? '+' : '-'}${Math.abs(pawns).toFixed(1)}`;
+}
+
 export function evaluationBarLayout(score: Score | null, orientation: Color): EvaluationBarLayout {
   const white = whiteShare(score);
   const bottomSide = orientation;
@@ -60,6 +78,7 @@ export function evaluationBarLayout(score: Score | null, orientation: Color): Ev
     bottomShare,
     bottomSide,
     label: score ? formatScore(score) : '—',
+    barLabel: compactScore(score),
     leading,
     labelAt,
     labelOn,

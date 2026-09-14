@@ -8,13 +8,15 @@
  * what makes the second half readable — a comparison shown somewhere else
  * would let the player forget what they had actually claimed.
  *
- * Keyboard first throughout. Candidates go in by playing them on a board (or
- * by typing a line, for a move pasted from elsewhere); the estimate is a
- * five-way radio group; plan and notes are plain fields; and the primary
- * action is always reachable with Tab from wherever you are.
+ * Keyboard first throughout. Candidates go in by playing them on the board —
+ * the one board, at full size; the journal borrows its moves rather than
+ * drawing a second board in the dock — or by typing them, for a move pasted
+ * from elsewhere; the estimate is a five-way radio group; plan and notes are
+ * plain fields; and the primary action is always reachable with Tab from
+ * wherever you are.
  */
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { positionKey } from '@/chess/fen';
@@ -24,8 +26,10 @@ import type { San, Uci } from '@/chess/types';
 import { Button } from '@/components/ui/Button';
 import { EmptyState, Panel, PanelBody, PanelHeader } from '@/components/ui/Panel';
 import { Segmented } from '@/components/ui/Tabs';
-import { AnswerBoard, type AcceptedMove } from '@/features/training/AnswerBoard';
+import type { Shape } from '@/chess/annotations';
+import type { Square } from '@/chess/types';
 import { useAnalysisPosition } from '@/features/analysis/useAnalysisPosition';
+import { useBoardMoveCapture } from '@/features/workspace/board-move-capture';
 import { invalidateReview, invalidateTraining } from '@/features/persistence/queries';
 import { getRepositories } from '@/persistence/repositories';
 import type { DecisionRecord, ReviewItemRecord } from '@/persistence/domain';
@@ -42,12 +46,7 @@ import {
 import { ThemePicker } from './ThemePicker';
 import { TrainingHandoff } from './TrainingHandoff';
 import { ScheduleReview } from './ScheduleReview';
-import {
-  draftEstimate,
-  hasAnswers,
-  useReviewSession,
-  type DraftAnswers,
-} from './review-session-store';
+import { draftEstimate, hasAnswers, useReviewSession } from './review-session-store';
 
 const FIELD =
   'mt-1 w-full rounded-[4px] border border-line bg-surface-inset px-2.5 py-1.5 text-xs text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60';
@@ -67,7 +66,6 @@ export function DecisionJournal({
   const { node, position } = useAnalysisPosition();
   const document = useAnalysis((state) => state.document);
   const currentId = useAnalysis((state) => state.currentId);
-  const orientation = useAnalysis((state) => state.orientation);
 
   const selfAnalysis = useReviewSession((state) => state.selfAnalysis);
   const revealedKeys = useReviewSession((state) => state.revealed);
@@ -83,10 +81,78 @@ export function DecisionJournal({
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** Whether moves on the board are recorded as candidates or played. */
+  const [recordOnBoard, setRecordOnBoard] = useState(true);
+  const [typed, setTyped] = useState('');
+  const [typedError, setTypedError] = useState<string | null>(null);
 
   const key = positionKey(node.fen);
   const revealed = !selfAnalysis || revealedKeys.includes(key);
   const stored = decision;
+
+  /*
+    Borrow the board. While the journal is open on an unrevealed position and
+    recording is on, a move played on the canonical board becomes a candidate
+    — the first one the person's choice — and the board stays put. The
+    candidates are drawn back on that board: the chosen move in blue, the
+    others in green, so what has been recorded is visible where it was played.
+  */
+  const captureBoard = useBoardMoveCapture((state) => state.set);
+  const candidateShapes = useMemo<readonly Shape[]>(
+    () =>
+      answers.candidates.map((candidate) => ({
+        kind: 'arrow' as const,
+        from: candidate.uci.slice(0, 2) as Square,
+        to: candidate.uci.slice(2, 4) as Square,
+        brush: candidate.uci === answers.chosenUci ? ('blue' as const) : ('green' as const),
+      })),
+    [answers.candidates, answers.chosenUci],
+  );
+  useEffect(() => {
+    if (revealed || !recordOnBoard) return;
+    return captureBoard({
+      label:
+        answers.candidates.length === 0
+          ? 'Recording candidates — play each move you considered; the board stays here'
+          : `Recording candidates — ${answers.candidates.length} noted; play another, or switch to playing moves in the journal`,
+      shapes: candidateShapes,
+      onMove: (move) => {
+        const first = useReviewSession.getState().answers.candidates.length === 0;
+        addCandidate({ uci: move.uci, san: move.san });
+        if (first) setChosen(move.uci, move.san);
+      },
+    });
+  }, [
+    addCandidate,
+    answers.candidates.length,
+    candidateShapes,
+    captureBoard,
+    recordOnBoard,
+    revealed,
+    setChosen,
+  ]);
+
+  const addTyped = () => {
+    const accepted: { uci: Uci; san: San }[] = [];
+    for (const token of typed.split(/[\s,]+/).filter(Boolean)) {
+      const played = /^[a-h][1-8][a-h][1-8][qrbn]?$/i.test(token)
+        ? position.playUci(token)
+        : position.playSan(token);
+      if (!played.ok) {
+        setTypedError(`${token}: ${played.error.message}`);
+        return;
+      }
+      accepted.push({ uci: played.value.uci, san: played.value.san });
+    }
+    if (accepted.length === 0) return;
+    for (const move of accepted) {
+      const first = useReviewSession.getState().answers.candidates.length === 0;
+      addCandidate(move);
+      if (first) setChosen(move.uci, move.san);
+    }
+    setTyped('');
+    setTypedError(null);
+  };
 
   const submit = async (thenReveal: boolean) => {
     setBusy(true);
@@ -153,7 +219,7 @@ export function DecisionJournal({
       >
         Your decision
       </PanelHeader>
-      <PanelBody className="space-y-4 overflow-y-auto">
+      <PanelBody className="space-y-4 overflow-y-auto p-3">
         <p className="text-[11px] leading-relaxed text-tertiary">
           Computer evidence is hidden. Record what you are actually thinking, then reveal — what you
           write now is kept exactly as it is.
@@ -163,18 +229,40 @@ export function DecisionJournal({
           <h3 className="text-[10px] font-semibold uppercase tracking-wide text-tertiary">
             Candidate moves
           </h3>
-          <p className="mt-1 text-[10.5px] text-tertiary">
-            Play each move you considered. The first one you mark is your choice.
+          <p className="mt-1 text-[10.5px] leading-relaxed text-tertiary">
+            Play each move you considered on the board. The first one is your choice; the board
+            stays on this position while it records.
           </p>
-          <div className="mt-2">
-            <AnswerBoard
-              fen={node.fen}
-              moves={answers.candidates.map(({ uci, san }) => ({ uci, san }))}
-              multiple
-              orientation={orientation}
-              onChange={(moves) => syncCandidates(moves, answers, addCandidate, removeCandidate)}
+          <div className="mt-2 flex items-center gap-2">
+            <span className="text-[10px] text-tertiary">Moves on the board</span>
+            <Segmented
+              items={[
+                { id: 'record' as const, label: 'Record' },
+                { id: 'play' as const, label: 'Play' },
+              ]}
+              value={recordOnBoard ? 'record' : 'play'}
+              onChange={(value) => setRecordOnBoard(value === 'record')}
             />
           </div>
+          <form
+            className="mt-2 flex items-center gap-1.5"
+            onSubmit={(event) => {
+              event.preventDefault();
+              addTyped();
+            }}
+          >
+            <input
+              value={typed}
+              onChange={(event) => setTyped(event.target.value)}
+              placeholder="Or type moves: Nf3 e4"
+              aria-label="Add candidate moves by notation"
+              className={cn(FIELD, 'mt-0 flex-1')}
+            />
+            <Button type="submit" disabled={!typed.trim()}>
+              Add
+            </Button>
+          </form>
+          {typedError ? <p className="mt-1 text-2xs text-negative">{typedError}</p> : null}
           {answers.candidates.length > 0 ? (
             <ul className="mt-2 space-y-1.5">
               {answers.candidates.map((candidate) => (
@@ -418,7 +506,7 @@ function RevealedJournal({
       >
         Your decision
       </PanelHeader>
-      <PanelBody className="space-y-4 overflow-y-auto">
+      <PanelBody className="space-y-4 overflow-y-auto p-3">
         <section>
           <h3 className="text-[10px] font-semibold uppercase tracking-wide text-tertiary">
             What you wrote
@@ -544,28 +632,6 @@ function RevealedJournal({
       </PanelBody>
     </Panel>
   );
-}
-
-/**
- * Reconcile the board's accepted-move list with the store's richer candidates.
- *
- * The board knows moves; the store knows moves plus notes and lines. Diffing
- * rather than replacing is what keeps a note attached to its move when another
- * candidate is added beside it.
- */
-function syncCandidates(
-  moves: readonly AcceptedMove[],
-  answers: DraftAnswers,
-  add: (candidate: { uci: Uci; san: San }) => void,
-  remove: (uci: Uci) => void,
-): void {
-  const incoming = new Set(moves.map((move) => move.uci));
-  for (const move of moves) {
-    if (!answers.candidates.some((candidate) => candidate.uci === move.uci)) add(move);
-  }
-  for (const candidate of answers.candidates) {
-    if (!incoming.has(candidate.uci)) remove(candidate.uci);
-  }
 }
 
 /**
