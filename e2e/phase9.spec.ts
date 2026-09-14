@@ -357,10 +357,11 @@ test('a pasted position finds everywhere it is stored', async ({ page }) => {
     .getByPlaceholder(/Search commands/)
     .fill('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 40 90');
 
-  // The record's kind is the palette's group column, and its name the title.
-  await expect(
-    page.getByRole('button', { name: /Opening file.*Start position file/ }),
-  ).toBeVisible();
+  // The record's kind is the palette's section header (Phase 53 moved it out
+  // of the row), and its name the row.
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByRole('button', { name: 'Start position file' })).toBeVisible();
+  await expect(dialog.locator('[data-group-header="Opening file"]')).toBeVisible();
 });
 
 test('focus mode hides the navigation and Escape brings it back', async ({ page }) => {

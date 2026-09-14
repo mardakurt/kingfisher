@@ -23,6 +23,8 @@ import { searchOpenings, type OpeningSearchHit } from '@/features/search/opening
 import { parseMoveSequence } from '@/features/search/move-sequence';
 import { assessQuery } from '@/features/search/query-limits';
 
+import { rank } from './rank';
+
 import { useCommands, type Command } from './useCommands';
 
 /**
@@ -541,35 +543,6 @@ function commandForPlayer(hit: PlayerSearchHit, router: ReturnType<typeof useRou
       router.push(`/player/${encodeURIComponent(hit.key)}`);
     },
   };
-}
-
-function rank(commands: readonly Command[], query: string): Command[] {
-  const needle = query.trim().toLowerCase();
-  if (needle === '') return [...commands];
-
-  const scored: { command: Command; score: number }[] = [];
-
-  for (const command of commands) {
-    const haystack = `${command.title} ${command.group} ${command.keywords ?? ''}`.toLowerCase();
-    const score = subsequenceScore(haystack, needle);
-    if (score > 0) scored.push({ command, score });
-  }
-
-  return scored.sort((a, b) => b.score - a.score).map((entry) => entry.command);
-}
-
-function subsequenceScore(haystack: string, needle: string): number {
-  let score = 0;
-  let cursor = 0;
-
-  for (const char of needle) {
-    const found = haystack.indexOf(char, cursor);
-    if (found === -1) return 0;
-    // Matching at a word boundary is a much stronger signal than mid-word.
-    score += found === cursor ? 3 : haystack[found - 1] === ' ' ? 2 : 1;
-    cursor = found + 1;
-  }
-  return score;
 }
 
 /** What kind of record a position hit is, shown in the palette's group column. */
