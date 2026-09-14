@@ -276,7 +276,7 @@ test('study references, saved filters and storage facts are usable', async ({ pa
   ).toBeAttached();
 
   await page.goto('/databases');
-  await expect(page.getByText(/Estimated browser storage:/)).toBeVisible();
+  await expect(page.getByText(/Browser estimate:/)).toBeVisible();
   await expect(page.getByText(/games · .* studies · .* training items/)).toBeVisible();
 });
 

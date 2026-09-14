@@ -144,7 +144,10 @@ export function DatabasesWorkspace() {
       {enCroissantOpen ? (
         <EnCroissantImportDialog open onClose={() => setEnCroissantOpen(false)} />
       ) : null}
-      <header className="flex min-h-14 shrink-0 flex-wrap items-center gap-3 border-b border-line-subtle bg-surface-1 px-3 md:px-5">
+      <header
+        data-titlebar-drag=""
+        className="flex min-h-14 shrink-0 flex-wrap items-center gap-3 border-b border-line-subtle bg-surface-1 px-3 md:px-5"
+      >
         <NavButton />
         <div className="min-w-0">
           <h1 className="text-sm font-semibold text-primary">Databases</h1>
@@ -419,10 +422,8 @@ function StorageSummary({
       {sqlite.length > 0 ? (
         <p className="mt-1 text-2xs text-tertiary tabular">
           Companion: {sqlite.length} collection{sqlite.length === 1 ? '' : 's'} ·{' '}
-          {sqlite
-            .reduce<number>((sum, database) => sum + (database.bytes ?? 0), 0)
-            .toLocaleString()}{' '}
-          B on disk
+          {formatBytes(sqlite.reduce<number>((sum, database) => sum + (database.bytes ?? 0), 0))} on
+          disk
         </p>
       ) : null}
     </section>
@@ -498,10 +499,22 @@ function ProviderHealthRow({ provider }: { readonly provider: ChessDatabaseProvi
   const state = health.isPending ? 'loading' : (health.data?.state ?? 'error');
   return (
     <div className="px-4 py-3">
-      <div className="flex items-center gap-2">
-        <StatusDot state={state} />
-        <span className="min-w-0 flex-1 truncate text-sm text-primary">{provider.name}</span>
-        <span className="text-[10px] uppercase tracking-wide text-tertiary">{LABELS[state]}</span>
+      {/*
+        The name gets the whole line and the state sits under it. Side by side,
+        "AUTHENTICATION REQUIRED" took most of a 220 px rail and left the
+        name as "Lichess M…" — three Lichess sources, every one of them cut
+        off at the letter that told them apart. That was the owner's Phase 53
+        report, word for word. A name is never truncated here; the state is
+        short and can take the second line.
+      */}
+      <div className="flex items-start gap-2">
+        <StatusDot state={state} className="mt-1.5" />
+        <div className="min-w-0 flex-1">
+          <span className="block text-sm text-primary">{provider.name}</span>
+          <span className="block text-[10px] uppercase tracking-wide text-tertiary">
+            {LABELS[state]}
+          </span>
+        </div>
       </div>
       <p className="mt-1 pl-4 text-xs leading-relaxed text-tertiary">
         {health.data?.message ?? 'Checking connection…'}
