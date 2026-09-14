@@ -7,16 +7,25 @@ file plus `src/desktop/bridge.ts`, which returns `null` in a browser.
 This document is the Phase 49 check on that claim, feature by feature,
 with the deliberate differences named and the reason for each.
 
-**Published revision check (2026-09-13, 1.1.4).** The public Mac 1.1.4
-DMG is build 544 from `8f3e1d5` (1.1.3 was build 539 from `0600ce1`), the same revision the web deployment
-serves (`npm run deploy:status` → `up to date (8f3e1d5)`). Every Phase 51
-change — the workspace frame on every board route, position setup
-everywhere, the engine selector, the default board, the player identity
-merge, the Preparation search over the reference packs — is in both
-identities; the one Mac-only change is the Lichess sign-in window in
-`desktop/src/oauth-window.mjs`, listed below under native capabilities.
-Later web-only commits, if any, are recorded here when they land; the Mac
-release is due when there is a Mac-facing change.
+**Published revision check (2026-09-14, 1.1.5).** The public Mac 1.1.5
+DMG is built from the `v1.1.5` tag's revision — its build number and
+commit are in `src/release/macos-download.json` (1.1.4 was build 544 from
+`8f3e1d5`) — which is the revision the web deployment served when it was
+built (`npm run deploy:status`); the descriptor and docs commits that
+follow a Mac release change no application code.
+Every Phase 52 change — the legible evaluation bar and the engine that
+follows the board, the graph, the Reset moves button, Review's candidates
+on the one board, the colour-blind verdict tokens, the three piece sets,
+the version-3 bundled reference, the sparring partner — is in both
+identities. Two changes are Mac-only because they concern the shell: the
+window-button reservation restated from the application (a browser
+reserves nothing) and the update dialog's three-highlight layout; both are
+in the native-capability rows below. Later web-only commits, if any, are
+recorded here when they land; the Mac release is due when there is a
+Mac-facing change.
+
+The previous check (1.1.4, build 544 from `8f3e1d5`) found no web-only
+commits after it.
 
 The previous check (1.1.2, build 516 from `fc95f4d`) recorded the web-only
 commits made after it: the public address, Web Analytics, the retirement of
@@ -72,18 +81,18 @@ application.
 Every row is something a browser is not permitted to do. None changes
 what a feature _does_; each adds a way of reaching it.
 
-| Capability                                    |               Web               |    macOS    | Why the difference exists                                                                                                                   | Evidence                                                             |
-| --------------------------------------------- | :-----------------------------: | :---------: | ------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| Native engines (Stockfish, Lc0, …)            | ◐ via a companion the user runs | ✅ built in | A page cannot start a process; the shell starts and pairs its companion                                                                     | `desktop:engines -- --packaged`; smoke                               |
-| Local SQLite collections                      |         ◐ via companion         | ✅ built in | as above                                                                                                                                    | smoke: companion paired; `database-chaos`                            |
-| Local Syzygy tables                           |         ◐ via companion         | ✅ built in | Reading table files needs a filesystem                                                                                                      | `tbprobe-real.test.mjs`                                              |
-| Open a collection or PGN by path, Open Recent |                ✗                |     ✅      | A page cannot turn a chosen file into a _path_                                                                                              | `files.test.mjs`, `menu.test.mjs`; smoke                             |
-| Browse… beside a path field                   |          ◐ typed path           |     ✅      | A native picker returns a path                                                                                                              | `bridge-contract.test.ts`                                            |
-| Double-click a `.pgn`, drop a file            |                ✗                |     ✅      | Document association belongs to an installed application                                                                                    | smoke: PGN opens                                                     |
-| macOS menu bar, ⌘Q, full screen               |                ✗                |     ✅      | The window is the operating system's                                                                                                        | `desktop:menus`; `desktop:chrome`                                    |
-| Check for Updates…                            |  ✗ (the web is always current)  |     ✅      | macOS's own update engine replaces the bundle                                                                                               | `desktop:update:real`; public 1.1.0 → 1.1.1                          |
-| Window buttons and the title-bar reservation  |                ✗                |     ✅      | macOS draws the buttons over the contents; the reservation is zero in a browser                                                             | `desktop:chrome`; `window-chrome.spec.ts`                            |
-| Sign in with Lichess in a window of its own   |    n/a — the page navigates     |     ✅      | The shell refuses to navigate its window; the sign-in gets a child window that returns the callback to the main window (`oauth-window.mjs`) | `oauth-window.test.mjs`; the manual sign-in in the Phase 51 handover |
+| Capability                                    |               Web               |    macOS    | Why the difference exists                                                                                                                                                 | Evidence                                                             |
+| --------------------------------------------- | :-----------------------------: | :---------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| Native engines (Stockfish, Lc0, …)            | ◐ via a companion the user runs | ✅ built in | A page cannot start a process; the shell starts and pairs its companion                                                                                                   | `desktop:engines -- --packaged`; smoke                               |
+| Local SQLite collections                      |         ◐ via companion         | ✅ built in | as above                                                                                                                                                                  | smoke: companion paired; `database-chaos`                            |
+| Local Syzygy tables                           |         ◐ via companion         | ✅ built in | Reading table files needs a filesystem                                                                                                                                    | `tbprobe-real.test.mjs`                                              |
+| Open a collection or PGN by path, Open Recent |                ✗                |     ✅      | A page cannot turn a chosen file into a _path_                                                                                                                            | `files.test.mjs`, `menu.test.mjs`; smoke                             |
+| Browse… beside a path field                   |          ◐ typed path           |     ✅      | A native picker returns a path                                                                                                                                            | `bridge-contract.test.ts`                                            |
+| Double-click a `.pgn`, drop a file            |                ✗                |     ✅      | Document association belongs to an installed application                                                                                                                  | smoke: PGN opens                                                     |
+| macOS menu bar, ⌘Q, full screen               |                ✗                |     ✅      | The window is the operating system's                                                                                                                                      | `desktop:menus`; `desktop:chrome`                                    |
+| Check for Updates…                            |  ✗ (the web is always current)  |     ✅      | macOS's own update engine replaces the bundle; the dialog shows three highlights and links to the full notes                                                              | `desktop:update:real`; `desktop:update:dialog`; public 1.1.4 → 1.1.5 |
+| Window buttons and the title-bar reservation  |                ✗                |     ✅      | macOS draws the buttons over the contents; the reservation is zero in a browser, and since 1.1.5 it is restated from the application so a client re-render cannot drop it | `desktop:chrome`; `window-chrome.spec.ts` (stubbed bridge)           |
+| Sign in with Lichess in a window of its own   |    n/a — the page navigates     |     ✅      | The shell refuses to navigate its window; the sign-in gets a child window that returns the callback to the main window (`oauth-window.mjs`)                               | `oauth-window.test.mjs`; the manual sign-in in the Phase 51 handover |
 
 ## Where the web adds a browser capability
 
