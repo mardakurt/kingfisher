@@ -96,7 +96,7 @@ export function PreparationWorkspace({ initialPlayer = '' }: { readonly initialP
       ...(Number(minRating) ? { minRating: Number(minRating) } : {}),
       ...(eco.trim() ? { eco: eco.trim() } : {}),
       ...(result !== 'any' ? { result } : {}),
-      limit: Math.min(1000, Math.max(1, Number(recentN) || 200)),
+      limit: Math.min(2000, Math.max(1, Number(recentN) || 200)),
     }),
     [submitted, chosen, side, fromYear, toYear, minRating, eco, result, recentN],
   );
