@@ -57,7 +57,7 @@ need the data pipeline. Section B is entirely yours.
   than seven days carry a small "Waiting Nd" tag, so a busy player can
   see which positions are slipping.
 - **The Recent page's Games row carries an "ago".** Every other row on
-  the page already said *when* the player was last there; games said
+  the page already said _when_ the player was last there; games said
   only what the game was, not when the player brought it in. Both
   halves sit on the meta line now ("Wch 2024 · 1d ago"). When a game
   has no event and no date the imported-time alone is the meta.

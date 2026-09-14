@@ -24,7 +24,7 @@
  * archive, not a to-do list.
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 
@@ -46,6 +46,7 @@ import { useReviewItems } from './queries';
 
 const DAY_MS = 86_400_000;
 const STALE_AFTER_DAYS = 7;
+const MINUTE_MS = 60_000;
 
 function daysWaiting(item: ReviewItemRecord, now: number): number {
   // `reviewedAt` is set when the user moves the item out of the waiting
@@ -136,11 +137,16 @@ export function CriticalInbox({
     thing the to-do list is for. Reviewed rows still order newest-first:
     the archive is a history, and a history reads forward.
 
-    `now` is computed at the render boundary once, so two items created
-    in the same second carry the same age, and the queue does not jitter
-    on re-render.
+    `now` is read from state set by an effect on mount and ticked once a
+    minute, so a re-render in the same minute sees the same age and the
+    queue does not jitter; a row the player leaves on screen for ten
+    minutes does not silently tick up to the next "waiting" tier.
   */
-  const now = Date.now();
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), MINUTE_MS);
+    return () => clearInterval(id);
+  }, []);
   const ordered = [...listed].sort((a, b) => {
     if (status === 'unreviewed') return a.createdAt - b.createdAt;
     const aWhen = a.reviewedAt ?? a.createdAt;
