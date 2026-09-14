@@ -103,13 +103,28 @@ export const CATALOG_PACKS: readonly CatalogPack[] = [
       'model-games',
       'preparation',
     ],
+    /*
+     * Phase 53: a note for the user who reads the catalog row and decides
+     * 18 MB is too small for what they want. The starter pack's size is the
+     * trade-off that made it a *bundled* pack instead of an optional
+     * download — bigger means a fatter download for every fresh profile,
+     * which the user already had to weigh once. The answer for someone who
+     * wants more games on the same machine is below the row: the Elite OTB
+     * pack is 18× the size and 2× the games, the Recent Theory packs are
+     * narrower windows, and the High-Rated Online pack covers online play
+     * the starter deliberately leaves out. The catalog UI surfaces them in
+     * this same list, so the trade-off is one row away rather than one
+     * document away.
+     */
     approximateBytes: 18_523_211,
     maxPositionPly: 40,
     license: LICHESS_BROADCAST_LICENSE,
     origin:
       'Built from the most recent three years of the Lichess broadcast ' +
       'archive: 177,511 games, 253,687 positions, ' +
-      '12,685 players.',
+      '12,685 players. For more games on the same machine install the ' +
+      'Elite OTB Reference (407,538 games, 339 MB) or one of the Recent ' +
+      'Theory Reference variants from this same catalog.',
   },
   {
     id: 'kingfisher-elite-otb',
