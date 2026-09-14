@@ -4,6 +4,63 @@ The user-facing changelog. Internal phase history is in
 `docs/reports/` and `docs/product/phase-*.md`; the list below is what
 real users notice.
 
+## Unreleased (web)
+
+From the owner's twelve reports on 1.1.4. Everything below is in the web
+application now and in the next Mac build.
+
+- **The evaluation bar can be read.** It is wider, the figure in it is
+  the one the engine panel shows (two decimals, or one past ten pawns),
+  and hovering it says the depth, the engine, and whether the reading is
+  live or stored. A running engine now **follows the board**: play a
+  move and the search restarts on the new position with the same
+  settings, and stops when you stop it — instead of stopping on every
+  move and leaving the bar blank. Review before reveal and Training
+  switch following off and stop the engine, so nothing runs behind the
+  curtain.
+- **The evaluation graph is a graph.** Titled, scaled to at least forty
+  plies so a short game does not fill the strip with three blocks, with
+  White above and Black below the equality line and a caption saying how
+  many plies are analysed. It appears on both identities whenever a game
+  has stored evaluations; it never appeared on the web only because the
+  game there had none.
+- **A Reset moves button** beside the move controls clears the move tree
+  and keeps the position. One undo (⌘Z) brings the moves back.
+- **Review's journal uses the one board.** Candidate moves are recorded
+  by playing them on the board itself — the board stays on the position
+  and draws each candidate back as an arrow, the first in blue as your
+  choice — with a Record/Play switch and a notation field; the second
+  210px board in the dock is gone, and the panel's text no longer touches
+  its edges. A concealed board also accepts moves again: it hid the legal
+  hints and, by the same switch, the ability to move.
+- **Annotation colours change something you can see.** Colour-blind now
+  repaints the green/red pair behind every verdict — `!!`/`!` in green,
+  `?`/`??` in red, `!?`/`?!` in amber in the move list — as well as the
+  four brushes, and Settings shows the result beside the switch.
+- **Three tournament-grade piece sets**: Pirouetti, Kryukov (the classic
+  book-diagram set) and Sophia, all with recorded licences. The picker
+  lists tournament and diagram sets before decorative ones.
+- **Settings → Profile no longer suggests the owner's own name.**
+- **More games behind every player.** The bundled reference (version 3,
+  through August 2026) keeps full scores for games rated 2500+ and up to
+  200 a player instead of 2600+ and 120: 27,521 openable games, from
+  10,707, for 6 MB more on disk.
+- **A sparring partner in Preparation.** With an opponent loaded, the
+  Sparring tool in the dock plays their own moves for as long as the
+  position is one their selected games reached — chosen as often as they
+  chose them, with the count beside each move — and hands over to the
+  engine, saying so, when the game leaves their practice. It plays on the
+  main board, so the game is in the move tree. No style is inferred.
+- **Analysis no longer fails hydration.** The engine selector rendered a
+  platform note on the client that the server had not, and React rebuilt
+  the whole page on every visit; on the Mac that rebuild also wiped the
+  reservation for the window buttons, which is why the traffic lights sat
+  over the Kingfisher mark again on some launches. Both are fixed: the note
+  arrives after hydration, and the reservation is restated from the
+  application as well as before first paint.
+- **Mac: the update dialog shows what's new in three lines** and links to
+  the full release notes, instead of the whole changelog in a scroll box.
+
 ## 1.1.4 — 2026-09-13
 
 A small release on 1.1.3, in both the web application and the Mac
