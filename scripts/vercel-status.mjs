@@ -102,13 +102,34 @@ const fetchBehind = async (projectSha) => {
   return (result.stdout ?? '').trim();
 };
 
+/**
+ * "up to date" means the commit is *serving*, not merely submitted.
+ *
+ * The newest production deployment is the one Vercel is building, and for
+ * the minutes a build takes its commit is HEAD while the public origin still
+ * serves the previous one. Phase 53 caught this row saying "up to date
+ * (d52c3bd)" while `/engine/stockfish/manifest.json` on the live host was
+ * still the deployment before — the gate in `after-a-fix.md` step 10 was
+ * satisfiable by a build that had not finished, or had failed. So the state
+ * is part of the answer: only `READY` is up to date; `BUILDING`, `QUEUED`
+ * and `INITIALIZING` say so and ask for a re-run; `ERROR` and `CANCELED`
+ * are a failure, printed as one and exiting non-zero.
+ */
 const formatRow = (label, project, deployment, behind) => {
   if (!deployment)
     return `${label}: not configured (no .vercel/project.json and no VERCEL_PROJECT_ID)`;
   if (!deployment.sha)
     return `${label}: deployment has no github commit (state=${deployment.state})`;
-  if (deployment.sha === HEAD_REV) return `${label}: up to date (${deployment.sha.slice(0, 7)})`;
-  return `${label}: BEHIND master by ${behind} commits (running ${deployment.sha.slice(0, 7)})`;
+  const short = deployment.sha.slice(0, 7);
+  if (deployment.state === 'ERROR' || deployment.state === 'CANCELED') {
+    process.exitCode = 1;
+    return `${label}: deployment of ${short} ${deployment.state} — the live site still serves the previous deployment`;
+  }
+  if (deployment.state !== 'READY') {
+    return `${label}: ${short} is ${deployment.state} — not yet serving; re-run in a minute`;
+  }
+  if (deployment.sha === HEAD_REV) return `${label}: up to date (${short})`;
+  return `${label}: BEHIND master by ${behind} commits (running ${short})`;
 };
 
 (async () => {
