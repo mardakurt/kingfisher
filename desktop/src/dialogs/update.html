@@ -137,65 +137,56 @@
         }
       }
       /*
-        Release-notes panel. Rendered as a scrollable, monospace-friendly
-        region between the headline/detail and the footnote so the user
-        can read what changed while they decide to install. Hidden by
-        default; the renderer adds the `.visible` class only when a
-        verdict carries release notes.
+        What's new, in three lines.
+
+        The dialog once rendered the whole GitHub release body here, in a
+        168 px scroll box inside a 206 px window — a changelog read through a
+        letterbox, which the owner called what it was. A release's headline
+        changes are now shown as at most three single-line bullets, and the
+        full notes are one click away in the browser, where a changelog
+        belongs.
       */
-      .release-notes {
+      .highlights {
         display: none;
-        margin-top: 10px;
-        max-height: 168px;
-        overflow-y: auto;
-        padding: 10px 12px;
-        border: 1px solid var(--line);
-        border-radius: 6px;
-        background: color-mix(in srgb, var(--bg) 92%, var(--fg) 8%);
-        font-size: 12px;
-        line-height: 1.5;
-        color: var(--fg);
-        user-select: text;
-        -webkit-user-select: text;
+        margin: 8px 0 0;
+        padding: 0;
+        list-style: none;
       }
-      .release-notes.visible {
+      .highlights.visible {
         display: block;
       }
-      .release-notes h1,
-      .release-notes h2,
-      .release-notes h3 {
-        margin: 8px 0 4px;
-        font-size: 12px;
-        font-weight: 600;
+      .highlights li {
+        position: relative;
+        padding-left: 12px;
+        font-size: 11.5px;
+        line-height: 1.45;
+        color: var(--fg);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
-      .release-notes h1:first-child,
-      .release-notes h2:first-child,
-      .release-notes h3:first-child {
-        margin-top: 0;
+      .highlights li::before {
+        content: '•';
+        position: absolute;
+        left: 0;
+        color: var(--dim);
       }
-      .release-notes p {
-        margin: 0 0 8px;
+      .notes-link {
+        display: none;
+        margin-top: 6px;
+        padding: 0;
+        min-width: 0;
+        border: 0;
+        background: none;
+        color: var(--accent);
+        font-size: 11.5px;
+        cursor: pointer;
       }
-      .release-notes p:last-child {
-        margin-bottom: 0;
+      .notes-link.visible {
+        display: inline-block;
       }
-      .release-notes ul,
-      .release-notes ol {
-        margin: 0 0 8px;
-        padding-left: 22px;
-      }
-      .release-notes li {
-        margin: 2px 0;
-      }
-      .release-notes code {
-        font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
-        font-size: 11px;
-        background: color-mix(in srgb, var(--line) 45%, transparent);
-        padding: 1px 4px;
-        border-radius: 3px;
-      }
-      .release-notes strong {
-        font-weight: 600;
+      .notes-link:hover {
+        text-decoration: underline;
       }
       footer {
         display: flex;
@@ -256,13 +247,10 @@
           >
             <div id="progress-fill"></div>
           </div>
-          <div
-            class="release-notes"
-            id="release-notes"
-            role="region"
-            aria-label="What's new in this update"
-            tabindex="0"
-          ></div>
+          <ul class="highlights" id="highlights" aria-label="What's new in this update"></ul>
+          <button type="button" class="notes-link" id="notes-link" data-action="notes">
+            Full release notes…
+          </button>
           <p class="footnote" id="footnote"></p>
         </div>
       </main>

@@ -40,7 +40,8 @@ import { renderReleaseNotes } from '../release-notes-markdown.mjs';
     progress: document.getElementById('progress'),
     progressFill: document.getElementById('progress-fill'),
     footnote: document.getElementById('footnote'),
-    releaseNotes: document.getElementById('release-notes'),
+    highlights: document.getElementById('highlights'),
+    notesLink: document.getElementById('notes-link'),
   };
 
   const bridge = window.kingfisherUpdate;
@@ -63,6 +64,7 @@ import { renderReleaseNotes } from '../release-notes-markdown.mjs';
     .catch(() => showFatal());
 
   els.primary.addEventListener('click', onPrimary);
+  els.notesLink.addEventListener('click', () => dispatch('notes'));
   els.secondary.addEventListener('click', onSecondary);
   document.addEventListener('keydown', onKey);
 
@@ -113,7 +115,6 @@ import { renderReleaseNotes } from '../release-notes-markdown.mjs';
           footnote: 'Kingfisher will close and reopen automatically.',
           primary: { label: 'Install Update', enabled: true, action: 'install' },
           secondary: { label: 'Later', enabled: true, action: 'close' },
-          releaseName: verdict.releaseName,
           releaseNotes: verdict.releaseNotes,
         });
         break;
@@ -149,7 +150,6 @@ import { renderReleaseNotes } from '../release-notes-markdown.mjs';
           footnote: 'Kingfisher will close and reopen automatically.',
           primary: { label: 'Install Update', enabled: true, action: 'install' },
           secondary: { label: 'Later', enabled: true, action: 'close' },
-          releaseName: verdict.releaseName,
           releaseNotes: verdict.releaseNotes,
         });
         break;
@@ -239,21 +239,12 @@ import { renderReleaseNotes } from '../release-notes-markdown.mjs';
     }
   }
 
-  function paint({
-    headline,
-    detail,
-    progress,
-    footnote,
-    primary,
-    secondary,
-    releaseNotes,
-    releaseName,
-  }) {
+  function paint({ headline, detail, progress, footnote, primary, secondary, releaseNotes }) {
     const focused = document.activeElement;
     els.headline.textContent = headline;
     els.detail.textContent = detail || '';
     els.footnote.textContent = footnote || '';
-    paintReleaseNotes({ notes: releaseNotes, name: releaseName });
+    paintReleaseNotes({ notes: releaseNotes });
     if (progress == null) {
       els.progress.removeAttribute('aria-valuenow');
       els.progress.classList.add('hidden');
@@ -340,42 +331,41 @@ import { renderReleaseNotes } from '../release-notes-markdown.mjs';
   }
 
   /**
-   * Render the GitHub release-notes body inline under the headline so the
-   * user can read what's changed before they click *Install Update*.
+   * What's new, as at most three single-line bullets and a link.
    *
-   * The body is GitHub-flavoured markdown but this renderer only handles
-   * the subset that actually shows up in Kingfisher releases:
-   *
-   *   - `**bold**` and `*italic*` (asterisk emphasis)
-   *   - `# heading`, `## heading`, `### heading`
-   *   - `- bullet` and `1. numbered` lists
-   *   - paragraphs separated by blank lines
-   *   - `inline code` with backticks
-   *
-   * The renderer never accepts raw HTML: every line is escaped first, then
-   * the small set of markdown patterns is re-introduced on the escaped
-   * text. This is what keeps a hostile release-notes payload from
-   * running JavaScript in the dialog.
+   * The body is GitHub-flavoured markdown. It goes through the same safe
+   * renderer as before (`release-notes-markdown.mjs`: no HTML pass-through,
+   * text nodes only), but only the first three list items are shown, each
+   * as its own text node clipped to one line. A hostile body still cannot
+   * run anything here; a long one no longer turns the dialog into a
+   * scroll box. The full notes open in the browser.
    */
-  function paintReleaseNotes({ notes, name } = {}) {
-    const target = els.releaseNotes;
-    if (!target) return;
-    target.replaceChildren();
-    const markdown = composeReleaseNotes(notes, name);
-    if (!markdown) {
-      target.classList.remove('visible');
-      target.removeAttribute('aria-label');
-      return;
+  function paintReleaseNotes({ notes } = {}) {
+    const list = els.highlights;
+    const link = els.notesLink;
+    if (!list || !link) return;
+    list.replaceChildren();
+    const items = highlightsOf(notes);
+    for (const text of items) {
+      const li = document.createElement('li');
+      li.textContent = text;
+      li.title = text;
+      list.appendChild(li);
     }
-    target.appendChild(renderReleaseNotes(document, markdown));
-    target.classList.add('visible');
+    list.classList.toggle('visible', items.length > 0);
+    link.classList.toggle('visible', typeof notes === 'string' && notes.trim().length > 0);
   }
 
-  function composeReleaseNotes(notes, name) {
-    const parts = [];
-    if (typeof name === 'string' && name.trim()) parts.push(`# ${name.trim()}`);
-    if (typeof notes === 'string' && notes.trim()) parts.push(notes.trim());
-    return parts.join('\n\n');
+  function highlightsOf(notes) {
+    if (typeof notes !== 'string' || !notes.trim()) return [];
+    const rendered = renderReleaseNotes(document, notes.trim());
+    const items = [...rendered.querySelectorAll('li')]
+      .map((li) => li.textContent.replace(/\s+/g, ' ').trim())
+      .filter(Boolean);
+    if (items.length > 0) return items.slice(0, 3);
+    // Notes with no list: the first paragraph, as one line.
+    const paragraph = rendered.querySelector('p')?.textContent.replace(/\s+/g, ' ').trim();
+    return paragraph ? [paragraph] : [];
   }
 
   function formatBytes(n) {

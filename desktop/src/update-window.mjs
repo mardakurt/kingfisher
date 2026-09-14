@@ -23,7 +23,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 
 /** Width and height chosen to feel like a Kingfisher dialog, not a window. */
 const DIALOG_WIDTH = 400;
-const DIALOG_HEIGHT = 206;
+const DIALOG_HEIGHT = 264;
 
 /**
  * The channels the dialog's preload speaks. Named here as well as in

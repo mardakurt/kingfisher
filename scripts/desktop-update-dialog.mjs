@@ -86,6 +86,25 @@ try {
             totalBytes: 100,
             reason:
               'Error /Users/<name>/secret latest-mac.yml Authorization: secret\n at updater (file.js:12)',
+            // A real release body, long: the dialog must stay one short page.
+            releaseName: 'Kingfisher 1.1.0',
+            releaseNotes: [
+              '## Kingfisher 1.1.0',
+              '',
+              'A release with a great deal to say, as releases have.',
+              '',
+              ...Array.from(
+                { length: 14 },
+                (_, i) =>
+                  `- Change ${i + 1}: a sentence long enough that it would wrap twice in a ` +
+                  'narrow dialog if it were allowed to, with `code` and **emphasis** in it.',
+              ),
+              '',
+              '### Verification',
+              '',
+              '1. typecheck, lint, format',
+              '2. 2,980 unit tests, 272 browser tests',
+            ].join('\n'),
           }),
         status,
       );
@@ -119,11 +138,37 @@ try {
           document.querySelector('.copy').scrollHeight >
           document.querySelector('.copy').clientHeight,
         primaryCount: document.querySelectorAll('button.primary:not([hidden])').length,
-        buttons: [...document.querySelectorAll('button:not([hidden])')].map((b) => b.textContent),
+        buttons: [...document.querySelectorAll('footer button:not([hidden])')].map(
+          (b) => b.textContent,
+        ),
         icon: document.querySelector('.icon').naturalWidth,
+        highlights: document.querySelectorAll('#highlights.visible li').length,
+        highlightLines: Math.max(
+          0,
+          ...[...document.querySelectorAll('#highlights.visible li')].map((li) =>
+            Math.round(
+              li.getBoundingClientRect().height / parseFloat(getComputedStyle(li).lineHeight),
+            ),
+          ),
+        ),
+        notesLink: document.querySelector('#notes-link').classList.contains('visible'),
         text: document.body.textContent,
       }));
       assert.equal(layout.overflow, false, `${scheme}/${status}: window overflow`);
+      // The release body above has fourteen bullets; the dialog shows three
+      // lines of it and a link, never the changelog itself.
+      assert.ok(layout.highlights <= 3, `${status}: ${layout.highlights} highlight lines`);
+      assert.equal(
+        layout.highlights > 0,
+        status === 'available' || status === 'ready',
+        `${status}: highlights shown = ${layout.highlights > 0}`,
+      );
+      assert.equal(
+        layout.notesLink,
+        status === 'available' || status === 'ready',
+        `${status}: release-notes link shown = ${layout.notesLink}`,
+      );
+      assert.ok(layout.highlightLines <= 1, `${status}: a highlight wrapped`);
       assert.equal(layout.copyOverflow, false, `${scheme}/${status}: content clipped`);
       // At most one default button; Cancel while downloading is deliberately plain.
       assert.ok(layout.primaryCount <= 1, `${status}: ${layout.primaryCount} primary buttons`);

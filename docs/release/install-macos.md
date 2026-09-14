@@ -94,12 +94,14 @@ the Squirrel.Mac helper replaces the application bundle and reopens
 it. The first launch after an update shows a one-time notice
 ("Kingfisher was updated to …").
 
-The dialog renders the GitHub release notes inline between the
-headline and the footnote, so you can read what changed before you
-click _Install Update_. The notes are GitHub-flavoured markdown;
-Kingfisher's renderer handles the headings, lists, paragraphs,
-**bold**, _italic_, and `` `inline code` `` that actually appear in
-release bodies, with no HTML pass-through.
+The dialog shows the first three points of the GitHub release notes,
+one line each, and a _Full release notes…_ link that opens the release
+page in your browser — the dialog stays one short page rather than a
+changelog read through a scroll box. The notes are GitHub-flavoured
+markdown; Kingfisher's renderer handles the headings, lists,
+paragraphs, **bold**, _italic_, and `` `inline code` `` that actually
+appear in release bodies, with no HTML pass-through, and only text
+nodes reach the dialog.
 
 ### Why the very first update asks for your password or Touch ID, and later ones do not
 

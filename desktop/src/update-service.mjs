@@ -231,8 +231,7 @@ function wireEngineForCheck(checkId) {
         sizeBytes: pickUpdateSize(info),
         // GitHub Releases put the body of the release here; electron-builder
         // copies it into the manifest too. We pass it through so the dialog
-        // can render the changelog inline — the same way ChatGPT, Claude,
-        // and other Electron-based macOS apps do.
+        // can show the release's first three points and link to the rest.
         releaseName: pickReleaseName(info),
         releaseNotes: pickReleaseNotes(info),
       });
