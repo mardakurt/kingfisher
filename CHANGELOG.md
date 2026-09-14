@@ -6,11 +6,10 @@ real users notice.
 
 ## Unreleased
 
-From the owner's next round of fixes. Eight of fourteen items landed in
-this branch; six need data or release work that belongs in another
-session (Stockfish 19, reference-pack enrichment, player-game
-enrichment, recent-page reconciliation, command-palette polish,
-review-page polish). The Mac build has not been cut.
+From the owner's next round of fixes. Eleven of fourteen items landed
+in this branch; the remaining three (Stockfish 19 native binary build,
+Starter Reference enrichment, a Mac release) are the user's part or
+need the data pipeline. Section B is entirely yours.
 
 - **The brand sits in the corner in full screen.** The 14 px design
   inset that survived Phase 48 collapsed the brand 14 px from an edge
@@ -36,6 +35,46 @@ review-page polish). The Mac build has not been cut.
   "Lichess Rated Games" so the two Lichess sources read as
   complementary ("Lichess Masters" for curated theory, "Lichess Rated
   Games" for popularity statistics), not as duplicates.
+- **The native Stockfish is named correctly.** The download catalogue
+  has been pointing at `sf_19` for two phases; the registry's display
+  name still said "Stockfish 18 (native)". Renamed to "Stockfish 19
+  (native)" and updated the registry note to mention the sf_19
+  download. The browser engine stays at Stockfish 18: no public
+  WebAssembly build of sf_19 exists yet (`nmrugg/stockfish.js` tops
+  out at v18, `lichess-org/stockfish.js` tops out at ddugovic-250718),
+  so the web build cannot move with the native one. The gap is
+  recorded in the registry note rather than fudged.
+- **The command palette has section dividers.** The 74 px in-row
+  uppercase group label is gone. Section dividers appear once at the
+  top of every run of consecutive same-group items, and the rest of the
+  row is the title and shortcut alone. The reader sees the group the
+  first row came from, and the rows in it, in one glance.
+- **The review queue orders by staleness.** The unreviewed queue
+  ordered newest-first, which is the order the inbox grew in. It now
+  orders oldest-first — the position the player has been putting off
+  the longest sits at the top. Reviewed rows still order newest-first,
+  because the column is then a history, not a to-do list. Rows older
+  than seven days carry a small "Waiting Nd" tag, so a busy player can
+  see which positions are slipping.
+- **The Recent page's Games row carries an "ago".** Every other row on
+  the page already said *when* the player was last there; games said
+  only what the game was, not when the player brought it in. Both
+  halves sit on the meta line now ("Wch 2024 · 1d ago"). When a game
+  has no event and no date the imported-time alone is the meta.
+- **Preparation can ask for twice as many opponent games.** The Recent
+  N cap was 1,000; it is now 2,000, which is the Lichess-side query
+  ceiling. The default stays at 200, so a casual session is unchanged.
+- **Preparation dossier gains a "Recent form" tab.** The dossier asked
+  Plays, Changed, Move orders. The one it never asked was how the
+  opponent has been doing recently — a strip of W / D / L for the
+  last twenty games, newest on the left, with the tally underneath.
+  It is an observation, not a verdict, and the section says so.
+- **Starter Reference catalog notes the upgrade path.** A user who
+  reads the catalog and decides 18 MB / 177,511 games is too small
+  now sees the bigger packs in the same list — Elite OTB Reference
+  (407,538 games, 339 MB), the two Recent Theory Reference variants,
+  High-Rated Online Reference. The trade-off is one row away rather
+  than one document away.
 
 ## 1.1.5 — 2026-09-14
 
