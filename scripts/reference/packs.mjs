@@ -51,7 +51,7 @@ export const PACK_DEFINITIONS = {
       'Recent elite broadcast games, including online events, bundled with Kingfisher so the ' +
       'opening explorer, player search and model games work before anything ' +
       'is installed or imported.',
-    version: '2',
+    version: '3',
     output: 'public/reference/kingfisher-starter',
     source: LICHESS_BROADCAST,
     transformation: TRANSFORMATION,
@@ -59,11 +59,19 @@ export const PACK_DEFINITIONS = {
     files: (digests) => broadcastMonths(digests).slice(0, 36),
     limits: {
       minRating: 2200,
-      openRating: 2600,
+      /*
+        Version 3 opens the stored scores from 2600+ to 2500+ (and IM-IM
+        games without ratings), and keeps up to 200 games a player instead
+        of 120. The owner's complaint about version 2 was that a player's
+        page held too few games to study them from; the statistics were
+        already drawn from every game, so this costs only the score bytes.
+        Measured in docs/data/reference-packs.md.
+      */
+      openRating: 2500,
       maxRating: 2900,
       excludeOnline: true,
       titles: ['GM', 'IM', 'WGM'],
-      openTitles: ['GM'],
+      openTitles: ['GM', 'IM'],
       minPlies: 12,
       // Query positions through twenty full moves. The scanner writes the
       // position *before* each indexed move, so ply 40 requires move index 40.
@@ -75,11 +83,11 @@ export const PACK_DEFINITIONS = {
       deepFromPly: 18,
       deepMinGames: 2,
       maxMoves: 256,
-      topGames: 6,
-      gamesPerPlayer: 120,
+      topGames: 8,
+      gamesPerPlayer: 200,
       recentYears: 2,
     },
-    shards: { explorer: 64, game: 16, players: 4, playergames: 4 },
+    shards: { explorer: 64, game: 32, players: 4, playergames: 4 },
   },
 
   /**

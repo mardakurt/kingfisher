@@ -103,13 +103,13 @@ export const CATALOG_PACKS: readonly CatalogPack[] = [
       'model-games',
       'preparation',
     ],
-    approximateBytes: 12_348_080,
+    approximateBytes: 18_523_211,
     maxPositionPly: 40,
     license: LICHESS_BROADCAST_LICENSE,
     origin:
       'Built from the most recent three years of the Lichess broadcast ' +
-      'archive: 172,376 games, 246,870 positions, ' +
-      '12,522 players.',
+      'archive: 177,511 games, 253,687 positions, ' +
+      '12,685 players.',
   },
   {
     id: 'kingfisher-elite-otb',

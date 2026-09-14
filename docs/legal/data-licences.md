@@ -13,7 +13,7 @@ is not present here, the data is Kingfisher's own.
 
 | Source                    | Contents                                                  | Licence      |
 | ------------------------- | --------------------------------------------------------- | ------------ |
-| `kingfisher-starter` pack | 172,376 over-the-board games, 246,870 position aggregates | CC BY-SA 4.0 |
+| `kingfisher-starter` pack | 177,511 over-the-board games, 253,687 position aggregates | CC BY-SA 4.0 |
 | Lichess opening class.    | 3,810 named positions, ECO codes                          | CC0 1.0      |
 
 The bundled pack ships as static assets in the application; the

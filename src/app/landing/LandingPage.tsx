@@ -172,7 +172,7 @@ export function LandingPage(): JSX.Element {
 
           <div className="hero-strip" aria-label="At a glance">
             <div className="hero-strip-item">
-              <span className="hero-strip-num">172,376</span>
+              <span className="hero-strip-num">177,511</span>
               <span className="hero-strip-label">Games in the bundled pack</span>
             </div>
             <div className="hero-strip-item">
@@ -238,7 +238,7 @@ export function LandingPage(): JSX.Element {
                 <li>
                   <strong>Kingfisher Starter</strong>
                   <span>
-                    Bundled · 172,376 games · 246,870 position aggregates · CC BY-SA 4.0 · works
+                    Bundled · 177,511 games · 253,687 position aggregates · CC BY-SA 4.0 · works
                     offline
                   </span>
                 </li>

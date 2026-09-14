@@ -29,15 +29,16 @@ normalisation is allowed; chess move reconstruction is not.
 
 - **Pack id:** `kingfisher-starter`
 - **Logical name:** Kingfisher Starter Reference
-- **Pack version:** 2
-- **Built at:** 2026-09-05
+- **Pack version:** 3
+- **Built at:** 2026-09-14
 - **Source:** Lichess broadcast archive
 - **Licence:** CC BY-SA 4.0 (Lichess broadcast archive)
 - **Upstream files (most recent first):** last 36 months of
-  `lichess_db_broadcast_YYYY-MM.pgn.zst`
-- **Population:** rating ≥ 2200 (open: 2600), ceiling 2900, GM/IM/WGM
-  titles, exclude online events, minimum 12 plies, recent years window
-  2
+  `lichess_db_broadcast_YYYY-MM.pgn.zst` (2023-09 … 2026-08)
+- **Population:** rating ≥ 2200 (open: 2500, or GM/IM against GM/IM
+  without ratings), ceiling 2900, GM/IM/WGM titles, exclude online
+  events, minimum 12 plies, recent years window 2, up to 200 stored
+  scores a player (version 2 opened at 2600 and kept 120)
 - **Build location:** `public/reference/kingfisher-starter/`
 - **Distribution:** ships inside the application bundle — no install
   step, no network access required
@@ -250,7 +251,7 @@ are kept for context.
 
 | Pack              | Version | Built      | Window    | Games   | Positions | Players | Compressed |
 | ----------------- | ------- | ---------- | --------- | ------- | --------- | ------- | ---------- |
-| Starter (bundled) | 2       | 2026-09-05 | 2024→2026 | 172,376 | 246,870   | 12,522  | 12.3 MB    |
+| Starter (bundled) | 3       | 2026-09-14 | 2023→2026 | 177,511 | 253,687   | 12,685  | 18.5 MB    |
 | Elite OTB         | 2       | 2026-09-05 | 2020→2026 | 407,538 | 5,438,808 | 33,607  | 323.6 MB   |
 | Recent Theory     | 1       | 2026-09-05 | last 24m  | 44,200  | 918,069   | 2,567   | 32.3 MB    |
 | High-Rated Online | 1       | 2026-09-05 | last 3m   | 305,169 | 315,668   | 12,315  | 81.7 MB    |

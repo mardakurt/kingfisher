@@ -71,20 +71,28 @@ exactly that reason.
 | Distribution        | Committed to this repository, ships with the app | Installed on demand             | Installed on demand                       | Installed on demand       | Installed on demand            |
 | Population          | Broadcast, over the board                        | Broadcast, over the board       | Broadcast, over the board                 | Broadcast, over the board | Lichess rated, online, 2400+   |
 | Upstream            | The 36 most recent monthly broadcast archives    | The 24 most recent              | The 6 most recent                         | All 79, from 2020         | One monthly standard archive   |
-| Window              | 2023-08 → most recent                            | 2024-09 → most recent           | 2026-03 → 2026-08                         | 2020-01 → most recent     | one month                      |
+| Window              | 2023-09 → most recent                            | 2024-09 → most recent           | 2026-03 → 2026-08                         | 2020-01 → most recent     | one month                      |
 | Licence             | CC-BY-SA-4.0                                     | CC-BY-SA-4.0                    | CC-BY-SA-4.0                              | CC-BY-SA-4.0              | CC0-1.0                        |
-| Games counted       | 172,376                                          | 44,200                          | 11,280                                    | 407,538                   | 305,169                        |
-| Full game scores    | 10,707 (rated 2600+)                             | 18,151 (rated 2500+)            | 4,600 (rated 2500+)                       | 407,538 — every game      | 305,169 — every game           |
-| Position aggregates | 246,870                                          | 918,069                         | 250,498                                   | 5,438,808                 | 315,668                        |
+| Games counted       | 177,511                                          | 44,200                          | 11,280                                    | 407,538                   | 305,169                        |
+| Full game scores    | 27,521 (rated 2500+, or GM/IM v GM/IM unrated)   | 18,151 (rated 2500+)            | 4,600 (rated 2500+)                       | 407,538 — every game      | 305,169 — every game           |
+| Position aggregates | 253,687                                          | 918,069                         | 250,498                                   | 5,438,808                 | 315,668                        |
 | Deepest query ply   | 40 (20 full moves)                               | 40 (20 full moves)              | 40 (20 full moves)                        | 40 (20 full moves)        | 40 (20 full moves)             |
-| Player identities   | 12,522                                           | 2,567                           | 1,577                                     | 33,607                    | 12,315                         |
-| Size                | 12.4 MB in 88 chunks                             | 33.9 MB in 80 chunks            | 8.7 MB in 48 chunks                       | 339.4 MB in 160 chunks    | 85.8 MB in 160 chunks          |
+| Player identities   | 12,685                                           | 2,567                           | 1,577                                     | 33,607                    | 12,315                         |
+| Size                | 18.5 MB in 104 chunks                            | 33.9 MB in 80 chunks            | 8.7 MB in 48 chunks                       | 339.4 MB in 160 chunks    | 85.8 MB in 160 chunks          |
 
 Separate thresholds for statistics and for stored games, because the two cost
 very different amounts: a game's contribution to the statistics is a handful of
 counters, while its full score is a few hundred bytes. Opening the statistics
 wide and the stored games narrow is what lets a pack small enough to commit
 still answer from a large population.
+
+Starter version 3 (2026-09-14) moved the stored-score threshold from 2600 to
+2500 (and admits GM/IM against GM/IM games that carry no ratings) and raised
+the per-player cap from 120 to 200 scores. The owner's complaint about
+version 2 was that a player's page held too few games to study them from —
+Carlsen had 120 and most grandmasters far fewer — while the statistics were
+already drawn from every game. The cost was 6.2 MB of gzip on disk (12.3 →
+18.5 MB) for 2.6× the openable games (10,707 → 27,521).
 
 Explorer depth is measured in **plies**, never ambiguously as “moves”. All
 four packs index the outgoing move at ply 40, which is 20 full moves.
@@ -106,8 +114,9 @@ any archive fills it — so the same number is what makes an explorer go blank
 exactly where preparation begins. `deepFromPly` and `deepMinGames` state a
 second, lower threshold for the deep half.
 
-Measured on the starter pack's own scan, which is the same 172,376 games in
-every row:
+Measured on the version-2 starter pack's own scan (172,376 games; the
+version-3 pack is the same rule over 177,511 games and 253,687 positions,
+18.5 MB with the wider set of stored scores):
 
 | Rule                                      | Positions |    Size | Corpus answered at 20 plies |
 | ----------------------------------------- | --------: | ------: | --------------------------: |
@@ -340,14 +349,14 @@ Measured 8 September 2026 on darwin-arm64, Node 24.14.0, from the packs built on
 | Version                                                    | 2                                               | 2                         | 1                          | 1                              |
 | Licence                                                    | CC-BY-SA-4.0                                    | CC-BY-SA-4.0              | CC-BY-SA-4.0               | **CC0-1.0**                    |
 | Source                                                     | Lichess broadcast archive                       | Lichess broadcast archive | Lichess broadcast archive  | Lichess standard rated games   |
-| Upstream months                                            | 2023-08 … 2026-07                               | 2020-01 … 2026-07         | 2024-08 … 2026-07          | 2026-07                        |
-| Games represented                                          | 172,376                                         | 407,538                   | 44,200                     | 305,169                        |
-| Full games openable                                        | 10,707                                          | 407,538                   | 18,151                     | 305,169                        |
-| Positions                                                  | 246,870                                         | 5,438,808                 | 918,069                    | 315,668                        |
-| Players                                                    | 12,522                                          | 33,607                    | 2,567                      | 12,315                         |
+| Upstream months                                            | 2023-09 … 2026-08                               | 2020-01 … 2026-07         | 2024-08 … 2026-07          | 2026-07                        |
+| Games represented                                          | 177,511                                         | 407,538                   | 44,200                     | 305,169                        |
+| Full games openable                                        | 27,521                                          | 407,538                   | 18,151                     | 305,169                        |
+| Positions                                                  | 253,687                                         | 5,438,808                 | 918,069                    | 315,668                        |
+| Players                                                    | 12,685                                          | 33,607                    | 2,567                      | 12,315                         |
 | Deepest query position                                     | ply 40 (20 moves)                               | ply 40                    | ply 40                     | ply 40                         |
 | Chunks                                                     | 88                                              | 160                       | 80                         | 160                            |
-| Size on disk                                               | 12.4 MB                                         | 339.4 MB                  | 33.9 MB                    | 85.8 MB                        |
+| Size on disk                                               | 18.5 MB                                         | 339.4 MB                  | 33.9 MB                    | 85.8 MB                        |
 | **Integrity** — every chunk re-hashed against the manifest | **88/88**                                       | **160/160**               | **80/80**                  | **160/160**                    |
 | Installed state                                            | bundled, installs itself on first run           | built, **not published**  | built, **not published**   | built, **not published**       |
 | Startup behaviour                                          | installs on first run, then read from IndexedDB | absent                    | absent                     | absent                         |

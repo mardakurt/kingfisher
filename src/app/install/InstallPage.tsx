@@ -186,7 +186,7 @@ export function InstallPage({
             Open the <em>Explorer</em> tool.
           </strong>
           {}
-          It answers from Kingfisher Starter — 172,376 over-the-board games — and keeps answering
+          It answers from Kingfisher Starter — 177,511 over-the-board games — and keeps answering
           twenty full moves in.
         </li>
         <li>
