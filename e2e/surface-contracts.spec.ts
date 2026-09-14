@@ -39,14 +39,27 @@ test('fresh studio hydration is clean and stale engine lines cannot be inserted'
   ).toBeVisible({ timeout: 30_000 });
   await page.getByRole('gridcell', { name: 'e2, White pawn', exact: true }).click();
   await page.getByRole('gridcell', { name: 'e4, empty', exact: true }).click();
-  await expect(
-    page.getByRole('button', { name: 'Insert this variation into the game' }),
-  ).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Stop analysis (E)', exact: true })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Analyse this position', exact: true }).click();
+  /*
+    The lines of the abandoned search are gone the moment the board leaves
+    its position, and — since Phase 52 — the running engine follows the board,
+    so the lines that appear next belong to the new position: the panel's
+    analysed FEN is the board's before any of them is insertable.
+  */
+  const boardFen = await page.locator('[data-fen-tooltip]').textContent();
+  expect(boardFen).toContain('4P3');
+  await expect(page.locator('[data-engine-panel-fen]')).toHaveAttribute(
+    'data-engine-panel-fen',
+    boardFen ?? '',
+    { timeout: 30_000 },
+  );
   await expect(
     page.getByRole('button', { name: 'Insert this variation into the game' }).first(),
   ).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('[data-engine-panel-fen]')).toHaveAttribute(
+    'data-engine-panel-fen',
+    boardFen ?? '',
+  );
   await page.getByRole('button', { name: 'Stop analysis (E)', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Start analysis (E)', exact: true })).toBeVisible();
   expect(errors).toEqual([]);
 });

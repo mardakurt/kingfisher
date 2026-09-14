@@ -177,16 +177,18 @@ test('the board can be played while an engine arrow is drawn', async ({ page }) 
   await page.getByRole('gridcell', { name: /^e4,/ }).click();
   await expect(page.locator('[data-fen-tooltip]')).not.toHaveText(before ?? '');
   await expect(page.locator('[data-fen-tooltip]')).toContainText('4P3');
-  await expect(page.locator('[data-engine-arrow-hit]')).toHaveCount(0);
 
-  // Leaving the analysed position stops the engine, by the position guard's
-  // contract (Phase 30): evidence never survives a FEN change, and a person
-  // starts it again. So: start again, and the arrow must still be hoverable —
-  // the tooltip appears with the pointer on the shaft, even though nothing in
+  // Leaving the analysed position invalidates its evidence, by the position
+  // guard's contract (Phase 30): the old arrow cannot survive a FEN change.
+  // Since Phase 52 a running engine then follows the board, so the search
+  // restarts on the new position without anyone pressing anything — the
+  // button still reads Stop — and the new arrow must be hoverable: the
+  // tooltip appears with the pointer on the shaft, even though nothing in
   // the arrow layer takes pointer events any more.
-  await expect(page.getByRole('button', { name: 'Start analysis (E)' })).toBeVisible();
-  await page.getByRole('button', { name: 'Start analysis (E)' }).click();
+  await expect(page.getByRole('button', { name: 'Stop analysis (E)' })).toBeVisible();
   const hit = page.locator('[data-engine-arrow-hit]').first();
+  // Arrows are drawn for the board's position only (useEngineArrows drops a
+  // stale search), so an attached hit here is the new search's arrow.
   await expect(hit).toBeAttached({ timeout: 30_000 });
   const grid = page.getByRole('grid', { name: 'Chessboard' });
   const gridBox = await grid.boundingBox();
@@ -232,7 +234,10 @@ test('the board can be played while an engine arrow is drawn', async ({ page }) 
   );
   await page.mouse.up();
   await expect(page.locator('[data-fen-tooltip]')).toContainText('4p3/4P3');
-  await expect(page.locator('[data-engine-arrow-hit]')).toHaveCount(0);
+  // The engine follows again; whatever arrow is drawn now is the new search's.
+  await expect(page.getByRole('button', { name: 'Stop analysis (E)' })).toBeVisible();
+  await page.getByRole('button', { name: 'Stop analysis (E)' }).click();
+  await expect(page.getByRole('button', { name: 'Start analysis (E)' })).toBeVisible();
 });
 
 /*

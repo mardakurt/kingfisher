@@ -119,7 +119,11 @@ export function EnginePanel() {
   }, [analysis, attachEvaluation, currentId, identity, notify, stale]);
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div
+      className="flex h-full min-h-0 flex-col"
+      /* The position the panel's evidence belongs to, so a test can hold it to the board's. */
+      data-engine-panel-fen={analysedFen ?? ''}
+    >
       <PanelHeader
         actions={
           <>

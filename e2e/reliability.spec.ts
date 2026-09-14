@@ -381,11 +381,11 @@ test('an engine that is stopped and restarted leaves no stale evaluation', async
   /*
     Walk quickly through several positions while it is running. A snapshot
     from an abandoned search must never land on the position now on the
-    board — and since the Phase 30 position guard, leaving the analysed
-    position *stops* the engine rather than letting it follow: evidence never
-    survives a position change, and a person starts it again. The test had
-    kept the pre-guard expectation (a Stop button after four moves) and
-    failed on it since.
+    board. Since Phase 52 a running engine follows the board (the Phase 30
+    guard still invalidates the old search first), so after four moves the
+    engine is searching the *new* position: the button reads Stop, and any
+    arrow drawn is for the board's own position — `useEngineArrows` drops a
+    search whose FEN is not the board's.
   */
   for (const [from, to] of [
     ['e7', 'e5'],
@@ -395,11 +395,18 @@ test('an engine that is stopped and restarted leaves no stale evaluation', async
   ] as const) {
     await play(page, from, to);
   }
-  await expect(page.getByRole('button', { name: 'Start analysis (E)' })).toBeVisible();
-  // Nothing from the abandoned search is shown against the new position.
-  await expect(page.locator('[data-engine-arrow-hit]')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Stop analysis (E)' })).toBeVisible({
+    timeout: 30_000,
+  });
+  const boardFen = await page.locator('[data-fen-tooltip]').textContent();
+  // The engine panel's analysed position is the board's, never the abandoned one.
+  await expect
+    .poll(async () => page.locator('[data-engine-panel-fen]').getAttribute('data-engine-panel-fen'))
+    .toBe(boardFen);
 
-  // Restarting must produce a fresh evaluation of the position on the board.
+  // Stopping and restarting must produce a fresh evaluation of the position on the board.
+  await page.getByRole('button', { name: 'Stop analysis (E)' }).click();
+  await expect(page.getByRole('button', { name: 'Start analysis (E)' })).toBeVisible();
   await page.getByRole('button', { name: 'Start analysis (E)' }).click();
   await expect(page.getByRole('button', { name: 'Stop analysis (E)' })).toBeVisible({
     timeout: 30_000,

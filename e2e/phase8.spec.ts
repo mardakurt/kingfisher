@@ -104,9 +104,17 @@ test('self-analysis records a decision before the evidence, and keeps it after',
   await expect(page.getByText(/Computer evidence is hidden/)).toBeVisible();
   await expect(page.getByLabel('Evidence source')).toHaveCount(0);
 
-  // Record three candidates on the journal's own board, an estimate and a plan.
+  /*
+    Record three candidates by playing them on the board — the one board.
+    Since Phase 52 the journal borrows the canonical board's moves while it
+    records: the position stays put, each move becomes a candidate, and the
+    strip under the board says so. There is no second board in the dock.
+  */
   await selectTool(page, page.getByRole('complementary', { name: 'Workspace tools' }), 'Journal');
-  const board = page.getByRole('grid', { name: 'Chessboard' }).nth(1);
+  await expect(page.getByRole('grid', { name: 'Chessboard' })).toHaveCount(1);
+  await expect(page.locator('[data-board-capture]')).toContainText('Recording candidates');
+  const board = page.getByRole('grid', { name: 'Chessboard' });
+  const fenBefore = await page.locator('[data-fen-tooltip]').textContent();
   const play = async (from: string, to: string) => {
     await board.getByRole('gridcell', { name: new RegExp(`^${from},`) }).click();
     await board.getByRole('gridcell', { name: new RegExp(`^${to},`) }).click();
@@ -115,6 +123,8 @@ test('self-analysis records a decision before the evidence, and keeps it after',
   await play('b8', 'd7');
   await play('d5', 'c4');
   await expect(page.getByText('3 candidates')).toBeVisible();
+  // The board did not move: the candidates were recorded, not played.
+  await expect(page.locator('[data-fen-tooltip]')).toHaveText(fenBefore ?? '');
 
   await page.getByRole('radio', { name: 'Equal' }).click();
   await page.getByLabel('Evaluation estimate in pawns').fill('0.1');
