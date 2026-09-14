@@ -15,6 +15,13 @@
  *
  * When a row is selected the panel expands to show the same Compare Sources
  * surface the Explorer uses — the same component, not a duplicate.
+ *
+ * Phase 53: the unreviewed queue now orders by *staleness* — the position
+ * the player has been putting off the longest sits at the top — and every
+ * row older than a week carries a small "waiting N days" tag, so a busy
+ * player can see at a glance which positions are slipping. Reviewed rows
+ * still order by the most recent first, because the queue is then an
+ * archive, not a to-do list.
  */
 
 import { useState } from 'react';
@@ -36,6 +43,17 @@ import { cn } from '@/lib/cn';
 import { ReviewSourceComparison } from './ReviewSourceComparison';
 import { StrategicContextCard } from './StrategicContextCard';
 import { useReviewItems } from './queries';
+
+const DAY_MS = 86_400_000;
+const STALE_AFTER_DAYS = 7;
+
+function daysWaiting(item: ReviewItemRecord, now: number): number {
+  // `reviewedAt` is set when the user moves the item out of the waiting
+  // column, which is exactly the moment "how long has this been waiting"
+  // stops ticking. Before that, the timer counts from `createdAt`.
+  const since = item.reviewedAt ?? item.createdAt;
+  return Math.max(0, Math.floor((now - since) / DAY_MS));
+}
 
 const CATEGORIES: readonly { readonly id: ReviewCategory | 'all'; readonly label: string }[] = [
   { id: 'all', label: 'All' },
@@ -111,6 +129,25 @@ export function CriticalInbox({
 
   const selectedItem = selectedId ? (listed.find((item) => item.id === selectedId) ?? null) : null;
 
+  /*
+    Phase 53: order the unreviewed queue by *staleness*, not by creation
+    date. A position the player marked a month ago and has not yet touched
+    is more useful to surface than one they marked yesterday — the very
+    thing the to-do list is for. Reviewed rows still order newest-first:
+    the archive is a history, and a history reads forward.
+
+    `now` is computed at the render boundary once, so two items created
+    in the same second carry the same age, and the queue does not jitter
+    on re-render.
+  */
+  const now = Date.now();
+  const ordered = [...listed].sort((a, b) => {
+    if (status === 'unreviewed') return a.createdAt - b.createdAt;
+    const aWhen = a.reviewedAt ?? a.createdAt;
+    const bWhen = b.reviewedAt ?? b.createdAt;
+    return bWhen - aWhen;
+  });
+
   return (
     <Panel className="h-full border-0">
       <PanelHeader
@@ -166,72 +203,85 @@ export function CriticalInbox({
               </div>
             ) : null}
             <ol className="divide-y divide-line-subtle">
-              {listed.map((item) => (
-                <li
-                  key={item.id}
-                  className={cn('px-3 py-2', selectedId === item.id && 'bg-accent-muted')}
-                >
-                  <button
-                    type="button"
-                    onClick={() => onOpen(item)}
-                    className="block w-full text-left"
+              {ordered.map((item) => {
+                const waiting = daysWaiting(item, now);
+                const stale = status === 'unreviewed' && waiting >= STALE_AFTER_DAYS;
+                return (
+                  <li
+                    key={item.id}
+                    className={cn('px-3 py-2', selectedId === item.id && 'bg-accent-muted')}
                   >
-                    <span className="block truncate text-[11.5px] text-primary">
-                      {item.gameLabel ?? 'Position'}
-                      {item.ply ? (
-                        <span className="text-tertiary"> · move {Math.ceil(item.ply / 2)}</span>
-                      ) : null}
-                    </span>
-                    {item.reason ? (
-                      <span className="mt-0.5 block text-[10.5px] leading-relaxed text-secondary">
-                        {item.reason}
-                      </span>
-                    ) : null}
-                    {item.signals.length > 0 ? (
-                      <span className="mt-0.5 block text-[10px] text-tertiary">
-                        {item.signals.map((signal) => signal.detail).join(' · ')}
-                      </span>
-                    ) : null}
-                    {item.themes.length > 0 ? (
-                      <span className="mt-1 flex flex-wrap gap-1">
-                        {item.themes.map((theme) => (
+                    <button
+                      type="button"
+                      onClick={() => onOpen(item)}
+                      className="block w-full text-left"
+                    >
+                      <span className="block truncate text-[11.5px] text-primary">
+                        {item.gameLabel ?? 'Position'}
+                        {item.ply ? (
+                          <span className="text-tertiary"> · move {Math.ceil(item.ply / 2)}</span>
+                        ) : null}
+                        {stale ? (
                           <span
-                            key={theme}
-                            className="rounded-full border border-line-subtle px-1.5 text-[10px] text-tertiary"
+                            className="ml-1.5 inline-flex items-center rounded-[3px] border border-caution/40 bg-caution/10 px-1 py-px text-[9.5px] uppercase tracking-wide text-caution"
+                            data-stale-tag={waiting}
+                            aria-label={`Waiting ${waiting} days`}
                           >
-                            {themeLabel(theme)}
+                            Waiting {waiting}d
                           </span>
-                        ))}
+                        ) : null}
                       </span>
-                    ) : null}
-                  </button>
-                  <div className="mt-1.5 flex flex-wrap gap-1.5">
-                    {item.gameId ? (
-                      <Button variant="ghost" onClick={() => void openInAnalysis(item)}>
-                        Open game
-                      </Button>
-                    ) : null}
-                    {item.status === 'unreviewed' ? (
-                      <>
-                        <Button
-                          variant="ghost"
-                          onClick={() => void act(item, { status: 'ignored' })}
-                        >
-                          Ignore
+                      {item.reason ? (
+                        <span className="mt-0.5 block text-[10.5px] leading-relaxed text-secondary">
+                          {item.reason}
+                        </span>
+                      ) : null}
+                      {item.signals.length > 0 ? (
+                        <span className="mt-0.5 block text-[10px] text-tertiary">
+                          {item.signals.map((signal) => signal.detail).join(' · ')}
+                        </span>
+                      ) : null}
+                      {item.themes.length > 0 ? (
+                        <span className="mt-1 flex flex-wrap gap-1">
+                          {item.themes.map((theme) => (
+                            <span
+                              key={theme}
+                              className="rounded-full border border-line-subtle px-1.5 text-[10px] text-tertiary"
+                            >
+                              {themeLabel(theme)}
+                            </span>
+                          ))}
+                        </span>
+                      ) : null}
+                    </button>
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {item.gameId ? (
+                        <Button variant="ghost" onClick={() => void openInAnalysis(item)}>
+                          Open game
                         </Button>
-                        {item.category ? null : (
+                      ) : null}
+                      {item.status === 'unreviewed' ? (
+                        <>
                           <Button
                             variant="ghost"
-                            onClick={() => void act(item, { category: 'calculation' })}
+                            onClick={() => void act(item, { status: 'ignored' })}
                           >
-                            Mark critical
+                            Ignore
                           </Button>
-                        )}
-                      </>
-                    ) : null}
-                  </div>
-                </li>
-              ))}
+                          {item.category ? null : (
+                            <Button
+                              variant="ghost"
+                              onClick={() => void act(item, { category: 'calculation' })}
+                            >
+                              Mark critical
+                            </Button>
+                          )}
+                        </>
+                      ) : null}
+                    </div>
+                  </li>
+                );
+              })}
             </ol>
           </>
         )}
