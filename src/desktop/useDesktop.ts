@@ -184,6 +184,31 @@ export function useDesktopIntegration(): void {
   }, []);
 
   /**
+   * The window-button reservation, restated from React.
+   *
+   * `layout.tsx` writes `--mac-titlebar-safe-*` and `data-titlebar` on the
+   * root before first paint, and that was the only writer. It turned out not
+   * to be enough: when React abandons hydration — one Client Component
+   * rendering different text on the server and the client is all it takes,
+   * and Phase 51 shipped one — it regenerates the tree on the client and
+   * resets the singleton `<html>` element to its JSX, which has neither the
+   * inline properties nor the attribute. The theme survived that because its
+   * provider re-applies `data-theme` in an effect; the reservation had no such
+   * effect, so the Kingfisher mark slid back under the close button on
+   * exactly the launches where hydration failed, and stayed there until the
+   * next launch. The owner reported it twice. This effect is the theme's
+   * remedy applied to the chrome: idempotent, and run after any regeneration.
+   */
+  useEffect(() => {
+    const chrome = desktop()?.windowChrome;
+    if (!chrome?.safe) return;
+    const root = document.documentElement;
+    root.style.setProperty('--mac-titlebar-safe-w', `${chrome.safe.width}px`);
+    root.style.setProperty('--mac-titlebar-safe-h', `${chrome.safe.height}px`);
+    root.dataset.titlebar = chrome.kind;
+  }, []);
+
+  /**
    * Full screen, as one attribute on the root.
    *
    * The shell reports the window's own `enter-full-screen` and

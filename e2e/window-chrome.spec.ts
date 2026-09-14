@@ -123,3 +123,59 @@ test('nothing in the web build is a window-drag region', async ({ page }) => {
   const withArea = dragging.filter((element) => element.area > 0);
   expect(withArea, 'a drag region with real area in a browser').toEqual([]);
 });
+
+/**
+ * The reservation survives the head bootstrap not running.
+ *
+ * `layout.tsx` writes the chrome on the root before first paint; when React
+ * abandons hydration it regenerates the singleton `<html>` from JSX and the
+ * inline properties and the attribute are gone — which is how the Kingfisher
+ * mark ended up under the close button on the launches where hydration
+ * failed, in a build whose chrome harness passed. `useDesktop` now restates
+ * the chrome in an effect. This stubs the bridge so the bootstrap cannot see
+ * it (it appears only once the document has loaded) and asserts the effect
+ * alone reserves the corner.
+ */
+test('the desktop reservation is restated after hydration, not only before paint', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    const stub = new Proxy(
+      {
+        platform: 'desktop',
+        windowChrome: {
+          kind: 'mac-hidden-titlebar',
+          trafficLight: { x: 14, y: 20, width: 54, height: 16 },
+          safe: { width: 84, height: 52 },
+        },
+      } as Record<string, unknown>,
+      {
+        // Every other bridge method is a subscription that is never fired.
+        get: (target, key) => (key in target ? target[key as string] : () => () => {}),
+      },
+    );
+    Object.defineProperty(window, 'kingfisher', {
+      configurable: true,
+      get: () => (document.readyState === 'loading' ? undefined : stub),
+    });
+  });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/analysis');
+  await ready(page);
+
+  const state = async () =>
+    page.evaluate(() => {
+      const root = document.documentElement;
+      const mark = document.querySelector('nav[data-sidebar] .kf-titlebar-yield');
+      return {
+        titlebar: root.dataset.titlebar ?? null,
+        safeWidth: getComputedStyle(root).getPropertyValue('--titlebar-safe-w').trim(),
+        markX: mark ? Math.round(mark.getBoundingClientRect().x) : null,
+      };
+    });
+  await expect.poll(async () => (await state()).titlebar).toBe('mac-hidden-titlebar');
+  expect((await state()).safeWidth).toBe('84px');
+  // The mark's left edge is the reservation — one design gap clear of the last
+  // button — once the header's padding transition has settled.
+  await expect.poll(async () => (await state()).markX).toBe(84);
+});
