@@ -20,8 +20,7 @@
  */
 
 import { spawnSync } from 'node:child_process';
-import { createHash } from 'node:crypto';
-import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -124,24 +123,10 @@ if (validate.status !== 0) {
 console.log('✓ ticket stapled to the disk image and validated');
 
 /*
-  Stapling changes the disk image's bytes, and electron-builder wrote
-  latest-mac.yml before that happened. The updater installs from the ZIP, so
-  the DMG row is informational — but a feed that states a wrong digest for a
-  file it names is a feed nobody can cross-check. Rewrite that one row.
+  Stapling changes the disk image's bytes. Nothing has described them yet —
+  the feeds are written afterwards by `release:mac:appcast`, from the files
+  as they now are — so there is nothing to rewrite here.
 */
-const feed = join(OUT, 'latest-mac.yml');
-if (existsSync(feed)) {
-  const bytes = readFileSync(dmg);
-  const sha512 = createHash('sha512').update(bytes).digest('base64');
-  const lines = readFileSync(feed, 'utf8').split('\n');
-  const at = lines.findIndex((line) => line.trim() === `- url: ${basename(dmg)}`);
-  if (at !== -1) {
-    lines[at + 1] = `    sha512: ${sha512}`;
-    lines[at + 2] = `    size: ${bytes.length}`;
-    writeFileSync(feed, lines.join('\n'));
-    console.log('✓ latest-mac.yml now names the stapled disk image');
-  }
-}
 
 /* Record the submission beside the artifact for the release manifest. */
 const record = join(OUT, `${basename(dmg)}.notarization.json`);

@@ -6,8 +6,13 @@
  * The artifacts are the same ones the auto-update flow expects:
  *
  *   - Kingfisher-<version>-arm64.dmg        first-install + manual fallback
- *   - Kingfisher-<version>-arm64.zip        auto-update payload
- *   - latest-mac.yml                        electron-builder's update feed
+ *   - Kingfisher-<version>-arm64.zip        the update Sparkle downloads
+ *   - appcast.xml                           the Sparkle feed, signed, from
+ *                                           `release:mac:appcast`; every
+ *                                           installed Kingfisher asks
+ *                                           `…/releases/latest/download/appcast.xml`
+ *   - latest-mac.yml                        the previous engine's feed, for
+ *                                           the installed 1.1.0–1.1.6
  *   - kingfisher-release-manifest.json      human-readable release manifest
  *   - SHA256SUMS                            digests for cross-checking
  *
@@ -26,6 +31,8 @@ import { exit } from 'node:process';
 
 import { fileURLToPath } from 'node:url';
 import { basename, dirname, join, resolve } from 'node:path';
+
+import { appcastMismatch, summarizeAppcast } from './desktop-mac-appcast.mjs';
 const HERE = join(dirname(fileURLToPath(import.meta.url)), '..');
 const tag = process.argv[2];
 if (!tag) {
@@ -47,12 +54,38 @@ const version = versionMatch[1];
 const expected = [
   `Kingfisher-${version}-arm64.dmg`,
   `Kingfisher-${version}-arm64.zip`,
+  'appcast.xml',
   'latest-mac.yml',
 ];
 const missing = expected.filter((name) => !existsSync(join(distDir, name)));
 if (missing.length) {
-  console.error(`Missing artifacts in ${distDir}: ${missing.join(', ')}`);
+  console.error(
+    `Missing artifacts in ${distDir}: ${missing.join(', ')}` +
+      (missing.includes('appcast.xml')
+        ? '\nRun npm run release:mac:appcast after notarising.'
+        : ''),
+  );
   exit(1);
+}
+
+/*
+  The feed must describe the ZIP beside it — same name, same length — and be
+  signed. A feed that names a different archive would send every installed
+  Kingfisher after bytes that are not there.
+*/
+{
+  const appcast = readFileSync(join(distDir, 'appcast.xml'), 'utf8');
+  const summary = summarizeAppcast(appcast);
+  const zipPath = join(distDir, `Kingfisher-${version}-arm64.zip`);
+  const zipSize = readFileSync(zipPath).byteLength;
+  const mismatch = appcastMismatch(summary, { tag, version, zipSize });
+  if (mismatch) {
+    console.error(`appcast.xml does not describe this release: ${mismatch}`);
+    exit(1);
+  }
+  console.log(
+    `appcast.xml: ${summary.title} · build ${summary.version} · ${summary.length} bytes · signed`,
+  );
 }
 
 /* Build SHA256SUMS for the artifacts. */
@@ -68,8 +101,8 @@ writeFileSync(sumPath, sums.join('\n') + '\n');
 console.log(`Wrote ${sumPath}`);
 
 /* Build a release manifest in the kingfisher format if one is not
-   present. The release manifest is what `update-service.mjs`'s
-   preflight parser consumes for the staging path. */
+   present. The manifest is for people and for the verify scripts;
+   Sparkle reads only appcast.xml. */
 const manifestPath = join(distDir, 'kingfisher-release-manifest.json');
 if (!existsSync(manifestPath)) {
   const pkg = JSON.parse(readFileSync(join(HERE, 'package.json'), 'utf8'));

@@ -111,8 +111,10 @@ contextBridge.exposeInMainWorld('kingfisher', {
   /**
    * Phase 35: the renderer-facing surface of the desktop update service.
    * See `src/desktop/bridge.ts` for the full contract and the rationale
-   * for what is and is not exposed here. The check itself is manual;
-   * the macOS menu's *Check for Updates…* item is the primary entry point.
+   * for what is and is not exposed here. The engine is Sparkle, and
+   * `showUpdateDialog` asks it for a check — Sparkle's own window is what
+   * opens; the macOS menu's *Check for Updates…* item is the primary
+   * entry point.
    *
    * Phase 36 added `onSaveBarrierRequest`: the main process asks the
    * renderer to flush any in-flight writes before the install path

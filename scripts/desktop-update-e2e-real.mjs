@@ -1,40 +1,39 @@
 #!/usr/bin/env node
 /**
- * `npm run desktop:update:real` — the update a user performs, performed.
+ * `npm run desktop:update:real` — a real update between two packaged builds.
  *
- * Two real packaged Kingfishers and a local feed: the *current* one is
- * installed in a writable folder and opened with a fresh profile, a study
- * is authored in it, *Check for Updates…* is chosen from the real
- * application menu, the real dialog reports the *next* version, **Install
- * Update** is clicked, and the real chain runs — download, SHA-512, save
- * barrier, macOS's own update engine replacing the bundle on disk, and the
- * relaunch. Then the replaced bundle is opened again on the same profile
- * and the study had better be there, with the one-time "Kingfisher was
- * updated" notice.
+ * The one gate that exercises the update as a person performs it: a signed
+ * `Kingfisher.app` is copied to a temporary location and opened on a fresh
+ * profile; a study is authored in it; *Check for Updates…* is chosen from
+ * the real application menu; Sparkle's own window offers the next version
+ * and *Install Update* is clicked in it, then *Install and Relaunch*; the
+ * application quits, the bundle on disk is replaced and relaunched by
+ * Sparkle; the relaunched instance is checked and quit; the replaced bundle
+ * is reopened on the same profile, and the study is still there.
  *
- * Nothing is mocked. The feed is `desktop-update-staging-server.mjs`
- * serving the next build's ZIP and `latest-mac.yml`; the running
- * application is pointed at it with `KINGFISHER_UPDATER_FEED_URL`, the
- * one override the shell honours for exactly this purpose. Both bundles
- * must carry the same Developer ID signature — macOS refuses an update
- * signed by someone else, and that refusal is a feature.
+ * Sparkle's windows are native, so they are driven the way a person drives
+ * them — through the Accessibility API (`desktop-lib/sparkle-ui.mjs`),
+ * which needs Accessibility permission for the terminal running this. A
+ * `--current` bundle that predates Sparkle (1.1.0–1.1.6, electron-updater)
+ * is driven through its own dialog instead, so the transition every
+ * installed Kingfisher makes is covered by the same harness.
  *
- * The relaunch after the install is performed by the update engine, without
- * the harness's `--user-data-dir`. Until Phase 53 that meant the relaunched
- * instance opened the *default* profile — the owner's own work — for eight
- * seconds, ran the web server and the companion against it, and recorded
- * itself there; the owner's installed build then announced the newer
- * version's visit as "updated to 1.1.4, previously 1.1.6". The shell now
- * hands its profile to the relaunch (`desktop/src/relaunch-profile.mjs`),
- * and this harness asserts that the relaunched instance logged its launch
- * in the *test* profile and that the owner's default profile was not
- * opened — the check that was missing for three phases.
+ * The next build is served from a local staging feed
+ * (`desktop-update-staging-server.mjs`) that redirects the way GitHub does,
+ * or — with `--public-feed` — from the feed the bundle itself names. Both
+ * bundles must carry the same Developer ID signature: Sparkle refuses an
+ * update signed by someone else, and that refusal is a feature.
+ *
+ * The relaunch after the install arrives with no arguments. Until Phase 53
+ * the relaunched instance opened the *default* profile — the owner's own
+ * work — for eight seconds; the shell now hands its profile to the relaunch
+ * (`desktop/src/relaunch-profile.mjs`) and this harness asserts that the
+ * relaunched instance logged its launch in the *test* profile and that the
+ * owner's default profile was not opened.
  *
  * Usage:
  *   node scripts/desktop-update-e2e-real.mjs \
- *     --current /path/to/old/Kingfisher.app \
- *     --next-dir /path/to/dir/with/Kingfisher-<v>-arm64.zip and latest-mac.yml
- *     [--public-feed]   ask the GitHub feed the bundle names instead of a staging server
+ *     --current <Kingfisher.app> --next-dir <dir with the ZIP and appcast.xml> [--public-feed]
  */
 
 import { spawn, spawnSync } from 'node:child_process';
@@ -46,6 +45,14 @@ import { fileURLToPath } from 'node:url';
 import { _electron as electron } from '@playwright/test';
 
 import { descendants, waitForReady } from './desktop-lib/launch.mjs';
+import {
+  activate,
+  assertAccessibility,
+  waitAndClick,
+  waitForWindow,
+  windowsOf,
+} from './desktop-lib/sparkle-ui.mjs';
+import { summarizeAppcast } from './desktop-mac-appcast.mjs';
 import { writeRelaunchProfile } from '../desktop/src/relaunch-profile.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
@@ -57,9 +64,7 @@ const option = (name) => {
 const currentApp = option('--current');
 const nextDir = option('--next-dir');
 if (!currentApp || !nextDir) {
-  console.error(
-    'Usage: --current <Kingfisher.app> --next-dir <dir with the ZIP and latest-mac.yml>',
-  );
+  console.error('Usage: --current <Kingfisher.app> --next-dir <dir with the ZIP and appcast.xml>');
   process.exit(2);
 }
 
@@ -89,21 +94,37 @@ if (copied.status !== 0) {
   process.exit(2);
 }
 
+/* Which engine the current build has: Sparkle, or the one before it. */
+const currentHasSparkle = existsSync(path.join(app, 'Contents', 'Frameworks', 'Sparkle.framework'));
 const nextZip = readdirSync(nextDir).find((name) => /^Kingfisher-.*-arm64\.zip$/.test(name));
-const feed = path.join(nextDir, 'latest-mac.yml');
-const nextVersion = /^version:\s*(\S+)/m.exec(readFileSync(feed, 'utf8'))?.[1] ?? '?';
+const appcastPath = path.join(nextDir, 'appcast.xml');
+const legacyFeedPath = path.join(nextDir, 'latest-mac.yml');
+if (!nextZip || !existsSync(appcastPath)) {
+  console.error(
+    `--next-dir must hold the update ZIP and appcast.xml (release:mac:appcast writes both).`,
+  );
+  process.exit(2);
+}
+if (!currentHasSparkle && !existsSync(legacyFeedPath)) {
+  console.error(`${currentApp} predates Sparkle and needs latest-mac.yml in --next-dir as well.`);
+  process.exit(2);
+}
+const appcast = summarizeAppcast(readFileSync(appcastPath, 'utf8'));
+const nextVersion = appcast.shortVersion ?? '?';
 console.log('Kingfisher real update');
 console.log(
-  `current  ${plist(app, 'CFBundleShortVersionString')} (build ${plist(app, 'CFBundleVersion')}) at ${app}`,
+  `current  ${plist(app, 'CFBundleShortVersionString')} (build ${plist(app, 'CFBundleVersion')}, ${currentHasSparkle ? 'Sparkle' : 'electron-updater'}) at ${app}`,
 );
-console.log(`next     ${nextVersion} from ${nextZip}\nprofile  ${profile}\n`);
+console.log(
+  `next     ${nextVersion} (build ${appcast.version}) from ${nextZip}\nprofile  ${profile}\n`,
+);
 
 /*
   `--public-feed`: no staging server and no feed override. The running
-  application asks the feed its own app-update.yml names — the GitHub
-  release host — so this is the update a user performs, against the
-  release the public is offered. `--next-dir` then only says which version
-  to expect (its latest-mac.yml), and must hold the bytes GitHub serves.
+  application asks the feed its own Info.plist names — the GitHub release
+  host — so this is the update a user performs, against the release the
+  public is offered. `--next-dir` then only says which version to expect,
+  and must hold the bytes GitHub serves.
 */
 const publicFeed = args.includes('--public-feed');
 const port = 8765 + Math.floor(Math.random() * 1000);
@@ -119,26 +140,39 @@ const server = publicFeed
       ],
       { stdio: ['ignore', 'pipe', 'pipe'] },
     );
+const origin = `http://127.0.0.1:${port}`;
+// Sparkle asks for the appcast by URL; the previous engine asks for
+// `latest-mac.yml` under a base URL.
 const feedUrl = publicFeed
-  ? 'https://github.com/mardakurt/kingfisher/releases/latest/download/'
-  : `http://127.0.0.1:${port}/`;
+  ? null
+  : currentHasSparkle
+    ? `${origin}/releases/latest/download/appcast.xml`
+    : `${origin}/`;
 if (!publicFeed) {
   for (let i = 0; i < 50; i += 1) {
     try {
-      if ((await fetch(`${feedUrl}health`)).ok) break;
+      if ((await fetch(`${origin}/health`)).ok) break;
     } catch {
       /* not yet */
     }
     await wait(200);
   }
-}
-{
-  const feed = await fetch(`${feedUrl}latest-mac.yml`);
+  const feed = await fetch(`${origin}/releases/latest/download/appcast.xml`);
+  check(
+    'staging feed answers, through the redirect',
+    feed.ok && (await feed.text()).includes('<enclosure'),
+    feedUrl,
+  );
+} else {
+  const feed = await fetch(
+    'https://github.com/mardakurt/kingfisher/releases/latest/download/appcast.xml',
+  );
   const text = feed.ok ? await feed.text() : '';
   check(
-    publicFeed ? 'the public feed answers with the next version' : 'staging feed answers',
-    feed.ok && (!publicFeed || text.includes(`version: ${nextVersion}`)),
-    feedUrl,
+    'the public feed answers with the next version',
+    feed.ok &&
+      text.includes(`<sparkle:shortVersionString>${nextVersion}</sparkle:shortVersionString>`),
+    'https://github.com/mardakurt/kingfisher/releases/latest/download/appcast.xml',
   );
 }
 
@@ -148,14 +182,33 @@ const launch = (extraEnv = {}) =>
     args: [`--user-data-dir=${profile}`],
     env: {
       ...process.env,
-      ...(publicFeed ? {} : { KINGFISHER_UPDATER_FEED_URL: feedUrl }),
+      ...(feedUrl ? { KINGFISHER_UPDATER_FEED_URL: feedUrl } : {}),
       ...extraEnv,
     },
     timeout: 120_000,
   });
 
+const chooseCheckForUpdates = (instance) =>
+  instance.evaluate(({ Menu, BrowserWindow }) => {
+    const find = (items) => {
+      for (const item of items) {
+        if (/Check for Updates|Update Is Available/.test(item.label ?? '')) return item;
+        const inner = item.submenu ? find(item.submenu.items) : null;
+        if (inner) return inner;
+      }
+      return null;
+    };
+    const item = find(Menu.getApplicationMenu().items);
+    if (!item) return false;
+    const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0];
+    item.click(undefined, win, win?.webContents);
+    return true;
+  });
+
 let instance = null;
 try {
+  if (currentHasSparkle) assertAccessibility();
+
   // --- 1. The current build, with work in it. -------------------------------
   instance = await launch();
   const window = await instance.firstWindow({ timeout: 120_000 });
@@ -179,78 +232,101 @@ try {
     await window.evaluate((title) => document.body.innerText.includes(title), STUDY),
   );
 
-  // --- 2. Check for Updates…, from the real menu. -----------------------------
-  const updateWindow = instance.waitForEvent('window', {
-    predicate: (page) => /update\.html/.test(page.url()),
-    timeout: 30_000,
-  });
-  const clicked = await instance.evaluate(({ Menu, BrowserWindow }) => {
-    const find = (items) => {
-      for (const item of items) {
-        if (/Check for Updates/.test(item.label ?? '')) return item;
-        const inner = item.submenu ? find(item.submenu.items) : null;
-        if (inner) return inner;
-      }
-      return null;
-    };
-    const item = find(Menu.getApplicationMenu().items);
-    if (!item) return false;
-    const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0];
-    item.click(undefined, win, win?.webContents);
-    return true;
-  });
-  check('Check for Updates… exists in the application menu', clicked);
-  const updates = await updateWindow;
-  const headline = updates.locator('#headline');
-  // The window opens idle: checking is the person's click, never automatic.
-  await updates.getByRole('button', { name: 'Check for Updates' }).click();
-  await updates.waitForFunction(
-    () =>
-      !/Check for updates|Checking/.test(document.querySelector('#headline')?.textContent ?? ''),
-    null,
-    { timeout: 60_000 },
-  );
-  const offered = (await headline.textContent()) ?? '';
-  check(
-    `the dialog offers ${nextVersion}`,
-    new RegExp(`Kingfisher ${nextVersion.replace(/\./g, '\\.')} is available`).test(offered),
-    offered,
-  );
-
-  // --- 3. Install Update: download, verify, save barrier, install, quit. ------
-  /*
-    The profile handoff, written here as well as by the shell. A shell from
-    1.1.7 on writes it itself before `quitAndInstall`; the one being updated
-    here may be older and would leave the relaunch to open the owner's
-    default profile. The file is the same one the shell writes, in the
-    updater's own cache directory, and the *next* shell is the one that
-    reads it — so this is also the harness's proof of the reading side.
-  */
-  const cacheName =
-    /^updaterCacheDirName:\s*(.+)$/m
-      .exec(readFileSync(path.join(app, 'Contents', 'Resources', 'app-update.yml'), 'utf8'))?.[1]
-      ?.trim() ?? 'kingfisher-desktop-updater';
-  const updaterCache = path.join(os.homedir(), 'Library', 'Caches', cacheName);
-  writeRelaunchProfile(updaterCache, profile);
   const exited = new Promise((resolve) => instance.process().once('exit', resolve));
-  await updates.getByRole('button', { name: 'Install Update' }).click();
-  const seen = new Set();
-  const started = Date.now();
-  while (Date.now() - started < 180_000) {
-    let text = '';
-    try {
-      text = (await headline.textContent()) ?? '';
-    } catch {
-      break; // the dialog went with the application
+  const seen = [];
+
+  if (currentHasSparkle) {
+    // --- 2. Check for Updates…, from the real menu; Sparkle's window. ---------
+    const clicked = await chooseCheckForUpdates(instance);
+    check('Check for Updates… exists in the application menu', clicked);
+    activate('Kingfisher');
+    const found = await waitForWindow(
+      'Kingfisher',
+      { button: /^Install Update$/ },
+      { timeoutMs: 90_000 },
+    );
+    const offered = found
+      ? found.texts.join(' | ')
+      : windowsOf('Kingfisher')
+          .map((w) => `${w.title}: ${w.buttons.join(',')}`)
+          .join(' / ');
+    check(
+      `Sparkle offers ${nextVersion}`,
+      Boolean(found) && found.texts.some((t) => t.includes(nextVersion)),
+      offered,
+    );
+    check(
+      'the offer names the running version and carries release notes',
+      Boolean(found) &&
+        found.texts.some((t) => t.includes(plist(app, 'CFBundleShortVersionString'))) &&
+        found.buttons.includes('Remind Me Later') &&
+        found.buttons.includes('Skip This Version'),
+      found ? found.buttons.join(', ') : '',
+    );
+
+    // --- 3. Install Update: download, extract, then Install and Relaunch. ----
+    const installed = await waitAndClick('Kingfisher', /^Install Update$/, { timeoutMs: 10_000 });
+    check('Install Update was clicked', Boolean(installed));
+    seen.push('Install Update');
+    const ready = await waitAndClick('Kingfisher', /^Install and Relaunch$/, {
+      timeoutMs: 180_000,
+    });
+    check(
+      'Sparkle downloaded and verified the update, and offered Install and Relaunch',
+      Boolean(ready),
+    );
+    seen.push('Install and Relaunch');
+  } else {
+    // --- 2/3. The previous engine's dialog, driven through Playwright. --------
+    const updateWindow = instance.waitForEvent('window', {
+      predicate: (page) => /update\.html/.test(page.url()),
+      timeout: 30_000,
+    });
+    const clicked = await chooseCheckForUpdates(instance);
+    check('Check for Updates… exists in the application menu', clicked);
+    const updates = await updateWindow;
+    const headline = updates.locator('#headline');
+    await updates.getByRole('button', { name: 'Check for Updates' }).click();
+    await updates.waitForFunction(
+      () =>
+        !/Check for updates|Checking/.test(document.querySelector('#headline')?.textContent ?? ''),
+      null,
+      { timeout: 60_000 },
+    );
+    const offered = (await headline.textContent()) ?? '';
+    check(
+      `the dialog offers ${nextVersion}`,
+      new RegExp(`Kingfisher ${nextVersion.replace(/\./g, '\\.')} is available`).test(offered),
+      offered,
+    );
+    /*
+      The profile handoff, written here because the shell being updated
+      predates it: the same file the Sparkle shell writes, in the updater's
+      own cache directory, and the *next* shell is the one that reads it.
+    */
+    writeRelaunchProfile(
+      path.join(os.homedir(), 'Library', 'Caches', 'kingfisher-desktop-updater'),
+      profile,
+    );
+    await updates.getByRole('button', { name: 'Install Update' }).click();
+    const started = Date.now();
+    while (Date.now() - started < 180_000) {
+      let text = '';
+      try {
+        text = (await headline.textContent()) ?? '';
+      } catch {
+        break; // the dialog went with the application
+      }
+      if (text) seen.push(text.replace(/\d[\d.]*/g, 'N'));
+      await wait(250);
     }
-    if (text) seen.add(text.replace(/\d[\d.]*/g, 'N'));
-    await wait(250);
   }
+
   const outcome = await Promise.race([
     exited.then(() => 'exited'),
     wait(120_000).then(() => 'still running'),
   ]);
-  check('the application quit to install', outcome === 'exited', [...seen].join(' → '));
+  check('the application quit to install', outcome === 'exited', [...new Set(seen)].join(' → '));
   instance = null;
 
   // --- 4. The bundle on disk is the next version. -----------------------------
@@ -268,6 +344,20 @@ try {
   check(
     'the replaced bundle carries a Developer ID signature',
     /Authority=Developer ID Application/.test(signature.stderr + signature.stdout),
+  );
+  const verified = spawnSync('codesign', ['--verify', '--deep', '--strict', app], {
+    encoding: 'utf8',
+  });
+  check(
+    'the replaced bundle verifies (--deep --strict)',
+    verified.status === 0,
+    verified.stderr.trim(),
+  );
+  check(
+    'the replaced bundle carries Sparkle',
+    existsSync(
+      path.join(app, 'Contents', 'Frameworks', 'Sparkle.framework', 'Versions', 'B', 'Sparkle'),
+    ),
   );
 
   // --- 5. The update engine relaunched it; let it settle, then quit it. -------
@@ -310,6 +400,12 @@ try {
       readLog(defaultProfileLog) === defaultLogBefore
         ? 'default profile log unchanged'
         : "the default profile log grew — the relaunch opened the owner's profile",
+    );
+    check(
+      'the relaunched build started Sparkle',
+      /Sparkle \d+\.\d+\.\d+ started/.test(
+        testLog.split(`[launch] Kingfisher ${nextVersion}`).pop() ?? '',
+      ),
     );
     spawnSync('osascript', ['-e', 'tell application "Kingfisher" to quit']);
     for (let i = 0; i < 30; i += 1) {
@@ -358,7 +454,7 @@ try {
     try {
       const lines = readFileSync(log, 'utf8').split('\n');
       console.log('\n--- shell log, update lines ---');
-      for (const line of lines.filter((l) => /\[update\]|\[launch\]/.test(l)).slice(-25))
+      for (const line of lines.filter((l) => /\[update\]|\[launch\]/.test(l)).slice(-30))
         console.log(line);
     } catch {
       console.log(`\n(no shell log at ${log})`);

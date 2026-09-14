@@ -590,18 +590,27 @@ bytes are ever overwritten) and what _Check for Updates…_ does.
 ### Updates
 
 One service, in the main process (`desktop/src/update-service.mjs`,
-`kingfisher-updater.mjs`). The user's click is the only network event. A
-`stable` build asks `electron-updater`, configured with the GitHub
-provider baked into `app-update.yml` and with auto-download,
-install-on-quit, pre-releases and downgrades all off; it is offered only a
-strictly newer release that carries `latest-mac.yml`. Installing runs
-download → SHA-512 → the renderer's save barrier → macOS's own update
-engine, which refuses an update whose signature does not match the running
-application. A `preview` build asks nothing: it answers with its build
-number and a button to the download page. The dialog is its own
-`BrowserWindow` with a three-channel preload that `update-window.mjs`
-answers; `update-window.test.mjs` reads the preload and checks every
-channel has a handler, because for ten phases none did.
+`desktop/src/sparkle-updater.mjs`). The engine is **Sparkle**; the
+shell loads it through a Node-API bridge
+(`desktop/native/sparkle/bridge.mm`) that talks to `Sparkle.framework`
+(vendored from `desktop/sparkle.json`). The user's click is the only
+network event: `desktop:update:e2e` proves that. A `stable` build
+asks Sparkle for the appcast named by `SUFeedURL` in Info.plist, with
+auto-checks and auto-downloads disabled; it is offered only a strictly
+newer release whose EdDSA signature verifies against the public key in
+`SUPublicEDKey`. Installing runs Sparkle's download → EdDSA check →
+the renderer's save barrier (`postpone-relaunch` until the renderer
+approves) → Sparkle's own installer, which refuses an update whose
+signature does not match the running application. A `preview` build
+asks nothing: it answers with its build number and a button to the
+download page. Sparkle draws its own window for _Check for Updates…_,
+not the application — `desktop-update-e2e-real.mjs` drives it through
+the Accessibility API.
+
+For installs that predate Sparkle (1.1.0–1.1.7) `release:mac:appcast`
+still writes a `latest-mac.yml` next to `appcast.xml`, so an installed
+electron-updater build keeps updating through the old engine; a new
+install starts on Sparkle.
 
 The public DMG is named in one place, `src/release/macos-download.json`,
 which the landing, the install guide, `docs:check` and

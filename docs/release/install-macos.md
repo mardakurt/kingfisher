@@ -78,21 +78,23 @@ does show one of those messages, that is a bug — please report it.
 Kingfisher checks for updates in two ways.
 
 - **On launch, quietly.** Five seconds after the app finishes starting
-  up, it asks the release host for the current latest-mac.yml. If a
+  up, it asks the release host for the current Sparkle appcast. If a
   newer release exists, the _Kingfisher_ menu's _Check for Updates…_
   item re-labels itself to _An Update Is Available…_ (or _Update Ready
   to Install…_ once the download has finished) — the same pattern as
   ChatGPT and Claude on macOS. There is no badge, no banner, no
   notification; the user notices when they next open the menu.
 - **When you ask.** _Kingfisher → Check for Updates…_ in the macOS
-  menu. The dialog opens in its current state: idle, up-to-date,
-  available, ready, or whatever the background check last observed.
+  menu. Sparkle's own window opens in its current state: idle,
+  up-to-date, available, ready, or whatever the background check
+  last observed.
 
 When a newer release exists the window offers **Install Update**;
-Kingfisher downloads it, verifies it, finishes saving your work, and
-the Squirrel.Mac helper replaces the application bundle and reopens
-it. The first launch after an update shows a one-time notice
-("Kingfisher was updated to …").
+Kingfisher downloads it, verifies it against the appcast's EdDSA
+signature and the running bundle's own code signature, finishes
+saving your work, and Sparkle replaces the application bundle and
+reopens it. The first launch after an update shows a one-time
+notice ("Kingfisher was updated to …").
 
 The dialog shows the first three points of the GitHub release notes,
 one line each, and a _Full release notes…_ link that opens the release

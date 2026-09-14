@@ -81,10 +81,10 @@ export function isAllowedReleaseHost(hostname) {
  * Phase 35 introduced the original eight. Phase 36 splits the
  * download into two events (`downloading` and `downloaded`) and
  * adds three install-side states: `waiting-for-save`, `installing`,
- * and `restarting`. The renderer's switch in `update.js` is keyed
- * off these strings; adding a state is a renderer change in
- * lockstep with a service change. The list below is the source of
- * truth.
+ * and `restarting`. Today the menu and the Settings panel are the
+ * two renderers that read these strings; adding a state is a renderer
+ * change in lockstep with a service change. The list below is the
+ * source of truth.
  */
 export const STATUS = Object.freeze({
   IDLE: 'idle',

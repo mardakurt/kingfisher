@@ -40,6 +40,8 @@ import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
 import { artifactName, CHANNELS } from '../src/build-identity.mjs';
+import { buildBridge } from '../native/sparkle/build.mjs';
+import { fetchSparkle, RECORD as SPARKLE } from './fetch-sparkle.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const DESKTOP = path.resolve(HERE, '..');
@@ -107,7 +109,7 @@ export function buildIdentity({ env = process.env, gitImpl = git } = {}) {
 }
 
 const require_ = createRequire(import.meta.url);
-const { version } = require_('../package.json');
+const packageVersion = require_('../package.json').version;
 
 /*
   The landing URL, from the one place it is defined. `src/release/public-urls.ts`
@@ -117,6 +119,70 @@ const { version } = require_('../package.json');
 const { publicUrl } = await import('../../src/release/public-urls.ts');
 
 const identity = buildIdentity();
+
+/*
+  The update harnesses need a "next" build — a higher build number and a
+  newer version — from the same checkout, without a commit and without
+  touching package.json. Two overrides, honoured on the `dev` channel only
+  and refused on any other: a publishable build's identity is the tree's.
+*/
+const versionOverride = process.env.KINGFISHER_DESKTOP_VERSION_OVERRIDE || null;
+const buildOverride = process.env.KINGFISHER_DESKTOP_BUILD_OVERRIDE
+  ? Number(process.env.KINGFISHER_DESKTOP_BUILD_OVERRIDE)
+  : null;
+if ((versionOverride || buildOverride) && identity.channel !== 'dev') {
+  console.error(
+    `KINGFISHER_DESKTOP_VERSION_OVERRIDE / KINGFISHER_DESKTOP_BUILD_OVERRIDE are for dev builds; a ${identity.channel} build records the tree's own identity.`,
+  );
+  process.exit(1);
+}
+if (versionOverride && !/^\d+\.\d+\.\d+$/.test(versionOverride)) {
+  console.error(
+    `KINGFISHER_DESKTOP_VERSION_OVERRIDE must be a semver triple, not ${versionOverride}.`,
+  );
+  process.exit(1);
+}
+if (buildOverride !== null && !(Number.isInteger(buildOverride) && buildOverride > 0)) {
+  console.error('KINGFISHER_DESKTOP_BUILD_OVERRIDE must be a positive integer.');
+  process.exit(1);
+}
+const version = versionOverride ?? packageVersion;
+if (buildOverride !== null) identity.build = buildOverride;
+if (versionOverride || buildOverride !== null) {
+  console.log(
+    `Identity overridden for a dev build: version ${version}, build ${identity.build} (the tree is ${packageVersion}).`,
+  );
+}
+
+/*
+  Sparkle: the framework the bundle ships and the bridge that loads it, both
+  ready before electron-builder copies anything. The fetch verifies the
+  archive against `desktop/sparkle.json` and is a no-op once vendored; the
+  bridge is compiled only when its source is newer than the last build.
+*/
+await fetchSparkle();
+buildBridge();
+
+/*
+  The key every update must be signed with, into Info.plist. The recorded
+  key is the release key; `KINGFISHER_SPARKLE_PUBLIC_KEY` lets a machine
+  without the maintainer's keychain build a bundle that accepts updates
+  signed by its own throwaway key — for the staging harnesses, never for a
+  publishable channel.
+*/
+const sparklePublicKey = process.env.KINGFISHER_SPARKLE_PUBLIC_KEY || SPARKLE.publicKey;
+if (identity.channel !== 'dev' && sparklePublicKey !== SPARKLE.publicKey) {
+  console.error(
+    `A ${identity.channel} build must carry the recorded Sparkle key (desktop/sparkle.json), not KINGFISHER_SPARKLE_PUBLIC_KEY.`,
+  );
+  process.exit(1);
+}
+if (!/^[A-Za-z0-9+/]{43}=$/.test(sparklePublicKey)) {
+  console.error(
+    `The Sparkle public key is not a base64 Ed25519 key: ${JSON.stringify(sparklePublicKey)}`,
+  );
+  process.exit(1);
+}
 
 /*
   A publishable build is notarised in the directory step (electron-builder.yml
@@ -161,20 +227,19 @@ const config = [
   // CFBundleVersion: the build number, monotonic, distinct from the marketing
   // version. Falls back to the marketing version outside a checkout.
   `-c.buildVersion=${identity.build ?? version}`,
+  ...(versionOverride ? [`-c.extraMetadata.version=${versionOverride}`] : []),
   `-c.extraMetadata.kingfisher.channel=${identity.channel}`,
   `-c.extraMetadata.kingfisher.dirty=${identity.dirty}`,
   ...(identity.commit ? [`-c.extraMetadata.kingfisher.commit=${identity.commit}`] : []),
   ...(identity.build ? [`-c.extraMetadata.kingfisher.build=${identity.build}`] : []),
   `-c.extraMetadata.kingfisher.landing=${publicUrl.landing}`,
   // The DMG name is the channel's, so a preview can never overwrite a stable
-  // release's bytes. The ZIP keeps electron-builder's own name; it is only
-  // ever uploaded by the stable release process.
+  // release's bytes. The ZIP keeps electron-builder's own name; it is the
+  // update Sparkle downloads, and only the stable release process uploads it.
   `-c.dmg.artifactName=${name}`,
-  // The feed is configured (so `app-update.yml` is written into the bundle)
-  // and never published from here: uploads are the release process's job,
-  // after verification.
-  '--publish',
-  'never',
+  // Sparkle's feed and key, into Info.plist (see electron-builder.yml).
+  `-c.mac.extendInfo.SUFeedURL=${publicUrl.appcast}`,
+  `-c.mac.extendInfo.SUPublicEDKey=${sparklePublicKey}`,
 ];
 
 /*
@@ -201,10 +266,9 @@ if (existsSync(chosen)) {
   (`afterSign: scripts/verify-package-boot.mjs`, which runs after the
   signature and the notarisation ticket and before any archive exists) and
   the DMG and ZIP all happen inside it. A split run — `--dir`, boot, then
-  a prepackaged archive step — was tried in Phase 47 and dropped `app-update.yml`
-  from the bundle: electron-builder writes the feed only in a run whose
-  targets include the DMG or the ZIP, and a bundle without it cannot check
-  for updates. The boot gate and the DMG verifier assert the file now.
+  a prepackaged archive step — was tried in Phase 47 and produced a bundle
+  that differed from the one archived; one run is what makes the boot gate
+  a statement about the bytes in the DMG.
 */
 const result = spawnSync(process.execPath, [builder, ...process.argv.slice(2), ...config], {
   cwd: DESKTOP,

@@ -11,6 +11,9 @@
  *   - the bundle inside is **launchable**: it carries the web server and the
  *     companion under `Resources/kingfisher/`, which every build from Phase 35
  *     to Phase 45 did not — those verified as DMGs and exited on launch;
+ *   - it can **update itself**: Sparkle.framework with its helpers, the
+ *     bridge unpacked from the asar, and the feed and key in `Info.plist`
+ *     (`desktop/src/sparkle-bundle.mjs`);
  *   - `Info.plist` names the expected bundle id, version, build number and
  *     minimum macOS, and declares the `.pgn` document type;
  *   - the executable is `arm64` and nothing else;
@@ -33,7 +36,8 @@
 import { execFile as execFileCb } from 'node:child_process';
 import { MINIMUM_MACOS } from '../src/platform-floor.mjs';
 import { inspectDesktopResources } from '../src/required-resources.mjs';
-import { existsSync, readFileSync, readdirSync, rmSync, statSync } from 'node:fs';
+import { inspectSparkleBundle } from '../src/sparkle-bundle.mjs';
+import { existsSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -151,12 +155,10 @@ export async function verifyDmg(dmg, options = {}) {
     for (const resource of inspectDesktopResources(resources)) {
       check(`runtime: ${resource.path}`, resource.ok, `Resources/kingfisher/${resource.path}`);
     }
-    const feed = path.join(app, 'Contents', 'Resources', 'app-update.yml');
-    check(
-      'update feed in the bundle',
-      existsSync(feed) && /provider:\s*github/.test(readFileSync(feed, 'utf8')),
-      'Resources/app-update.yml names the GitHub feed',
-    );
+    // Sparkle: the framework, its helpers, the bridge, and the plist keys.
+    for (const item of inspectSparkleBundle(path.join(app, 'Contents'))) {
+      check(item.name, item.ok, item.detail);
+    }
 
     // 4. Info.plist.
     const infoPlist = path.join(app, 'Contents', 'Info.plist');

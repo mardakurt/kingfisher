@@ -1,272 +1,243 @@
 #!/usr/bin/env node
 /**
- * `npm run desktop:update:e2e` — staged auto-update certification.
+ * `npm run desktop:update:e2e` — the update feed, end to end on the wire.
  *
- * The test runs against a real local HTTP feed (see
- * `desktop-update-staging-server.mjs`). It has two modes:
+ * Takes the update archive `desktop:dist` produced, writes a Sparkle feed
+ * for it the way `release:mac:appcast` does, serves both from the staging
+ * server the way GitHub Releases serves the real ones (redirect included),
+ * and checks what an installed Kingfisher would find:
  *
- *   - **Wire mode** (default): runs in any environment. The
- *     script packages a fake "old" build, places a fake "next"
- *     ZIP + `latest-mac.yml` in the staging directory, starts
- *     the server, and exercises the staging protocol through
- *     `parseLatestMac` and a real `fetch` against the server.
- *     This catches YAML shape regressions, host enforcement
- *     bugs, and feed-server misconfiguration without a GUI.
+ *   - the feed resolves through `/releases/latest/download/appcast.xml`
+ *     and describes exactly the archive beside it;
+ *   - the archive downloads intact, whole and by byte range (Sparkle
+ *     resumes interrupted downloads with a Range request);
+ *   - the feed's EdDSA signature verifies for the served bytes with
+ *     Sparkle's own `sign_update`, and fails for a tampered copy;
+ *   - the archive's bundle names the production feed and the recorded key.
  *
- *   - **Packaged mode** (`--packaged`): also runs the actual
- *     auto-update path against two real `Kingfisher.app`
- *     bundles. Requires both bundles to be present, the local
- *     server to be reachable from the launched app, and a
- *     graphical session. Use this on the maintainer's Mac
- *     before tagging a release.
- *
- * The test is the last gate the release pipeline runs.
- * A red verdict here is a release blocker.
+ * No GUI is involved; the update as a person performs it is
+ * `desktop:update:real`. This is the gate the release pipeline runs on a
+ * macOS runner after `desktop:dist`, where the Sparkle tools are vendored
+ * and the signing key is in the keychain (or passed with `--ed-key-file`).
  *
  * Usage:
- *   node scripts/desktop-update-e2e.mjs               # wire mode
- *   node scripts/desktop-update-e2e.mjs --packaged \
- *     --current <app> --next <app>
+ *   node scripts/desktop-update-e2e.mjs [--zip <file>] [--ed-key-file <file>] [--account <name>]
  */
 
 import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import {
-  createReadStream,
-  createWriteStream,
   existsSync,
-  mkdirSync,
+  mkdtempSync,
   readFileSync,
+  readdirSync,
   rmSync,
   statSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { pipeline } from 'node:stream/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { exit } from 'node:process';
 
-import { parseLatestMac } from '../desktop/src/latest-mac.mjs';
+import { TOOLS, isVendored } from '../desktop/scripts/fetch-sparkle.mjs';
+import { readSparkleRecord } from '../desktop/src/sparkle-bundle.mjs';
+import {
+  SPARKLE_KEYCHAIN_ACCOUNT,
+  appcastMismatch,
+  describeArchive,
+  summarizeAppcast,
+  versionOfArchive,
+  writeAppcast,
+} from './desktop-mac-appcast.mjs';
 
-import { fileURLToPath } from 'node:url';
-import { basename, dirname, join, resolve } from 'node:path';
-const HERE = join(dirname(fileURLToPath(import.meta.url)), '..');
+const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const args = process.argv.slice(2);
-let packagedMode = false;
-let currentBundle = null;
-let nextBundle = null;
-let verbose = false;
-for (let i = 0; i < args.length; i++) {
-  if (args[i] === '--packaged') packagedMode = true;
-  else if (args[i] === '--current' && i + 1 < args.length) currentBundle = resolve(args[++i]);
-  else if (args[i] === '--next' && i + 1 < args.length) nextBundle = resolve(args[++i]);
-  else if (args[i] === '--verbose') verbose = true;
-}
-
-const tmpRoot = join(tmpdir(), `kingfisher-update-e2e-${Date.now()}`);
-mkdirSync(tmpRoot, { recursive: true });
-const stagingDir = join(tmpRoot, 'feed');
-mkdirSync(stagingDir, { recursive: true });
-const fixturesDir = join(tmpRoot, 'fixtures');
-mkdirSync(fixturesDir, { recursive: true });
+const option = (name) => {
+  const at = args.indexOf(`--${name}`);
+  return at === -1 ? null : args[at + 1];
+};
 
 let failed = false;
 function step(label, ok, detail) {
-  const mark = ok ? '✓' : '✗';
-  console.log(`${mark} ${label}${detail ? `  — ${detail}` : ''}`);
+  console.log(`${ok ? '✓' : '✗'} ${label}${detail ? `  — ${detail}` : ''}`);
   if (!ok) failed = true;
 }
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex');
 
-const NEXT_VERSION = '1.1.0';
-const CURRENT_VERSION = '1.0.0';
-
-/* Build a fake ZIP the staging server can serve. The wire mode
-   only checks that the staging protocol can carry a ZIP-shaped
-   payload, not that the ZIP is a real Kingfisher bundle. */
-async function buildFakeZip(targetPath) {
-  const fake = join(fixturesDir, 'fake-app.txt');
-  writeFileSync(fake, `Fake Kingfisher ${NEXT_VERSION} payload for wire-mode E2E.\n`);
-  const zipProc = spawn('zip', ['-q', '-X', targetPath, basename(fake)], {
-    cwd: fixturesDir,
-    stdio: 'inherit',
-  });
-  await new Promise((resolveDone, resolveFail) => {
-    zipProc.on('close', (code) =>
-      code === 0 ? resolveDone() : resolveFail(new Error(`zip exit ${code}`)),
+if (!isVendored()) {
+  console.error('Sparkle is not vendored; run npm run desktop:sparkle:fetch first.');
+  exit(1);
+}
+const out = path.resolve(process.env.KINGFISHER_DESKTOP_OUT ?? path.join(ROOT, 'desktop', 'dist'));
+let zip = option('zip');
+if (!zip) {
+  const zips = existsSync(out) ? readdirSync(out).filter((name) => versionOfArchive(name)) : [];
+  if (zips.length !== 1) {
+    console.error(
+      zips.length === 0
+        ? `No Kingfisher-<version>-arm64.zip in ${out}; run npm run desktop:dist first, or pass --zip.`
+        : `More than one update archive in ${out}; pass --zip:\n  ${zips.join('\n  ')}`,
     );
-  });
-}
-
-const nextZip = join(stagingDir, `Kingfisher-${NEXT_VERSION}-arm64-mac.zip`);
-await buildFakeZip(nextZip);
-const nextZipStat = statSync(nextZip);
-const nextZipSha512 = createHash('sha512').update(readFileSync(nextZip)).digest('base64');
-/* The port is set later, after the server starts. The placeholder
-   is replaced in place once we know the port. */
-const baseUrl = `http://127.0.0.1:__PORT__`;
-const latestMac = {
-  version: NEXT_VERSION,
-  path: `Kingfisher-${NEXT_VERSION}-arm64-mac.zip`,
-  sha512: nextZipSha512,
-  size: nextZipStat.size,
-  releaseDate: new Date().toISOString(),
-  files: [
-    {
-      url: `${baseUrl}/Kingfisher-${NEXT_VERSION}-arm64-mac.zip`,
-      sha512: nextZipSha512,
-      size: nextZipStat.size,
-    },
-  ],
-};
-writeFileSync(join(stagingDir, 'latest-mac.yml'), JSON.stringify(latestMac, null, 2));
-
-/* Start the staging server. */
-const port = 18765;
-const server = spawn(
-  'node',
-  ['scripts/desktop-update-staging-server.mjs', stagingDir, '--port', String(port)],
-  { cwd: HERE, stdio: verbose ? 'inherit' : 'ignore' },
-);
-process.on('exit', () => {
-  try {
-    server.kill();
-  } catch {
-    /* ignore */
+    exit(1);
   }
-});
-
-const serverReady = await waitForHealth(port, 10000);
-step('staging server is up', serverReady, `http://127.0.0.1:${port}`);
-if (!serverReady) {
-  exit(1);
+  zip = path.join(out, zips[0]);
 }
+zip = path.resolve(zip);
+const zipName = path.basename(zip);
+const version = versionOfArchive(zipName);
+const edKeyFile = option('ed-key-file');
+const account = option('account') ?? SPARKLE_KEYCHAIN_ACCOUNT;
+const keyArgs = edKeyFile ? ['--ed-key-file', edKeyFile] : ['--account', account];
 
-/* Replace the port placeholder in the manifest now that the
-   server is up. The parser enforces HTTPS for the production
-   host allow-list, but the staging server speaks HTTP; we
-   patch the host allow-list by accepting 127.0.0.1:port for
-   this run. */
-let liveManifest = JSON.parse(readFileSync(join(stagingDir, 'latest-mac.yml'), 'utf8'));
-liveManifest.files = liveManifest.files.map((f) => ({
-  ...f,
-  url: f.url.replace('__PORT__', String(port)),
-}));
-writeFileSync(join(stagingDir, 'latest-mac.yml'), JSON.stringify(liveManifest, null, 2));
-
-/* Wire mode: fetch the YAML, parse it, and verify the ZIP
-   download returns the bytes we built. */
-const manifestRes = await fetch(`http://127.0.0.1:${port}/latest-mac.yml`);
-const manifestText = await manifestRes.text();
-step(
-  'staging server returns the manifest',
-  manifestRes.ok,
-  `${manifestRes.status} ${manifestText.length}B`,
-);
-
-const manifestJson = JSON.parse(manifestText);
-const parsed = parseLatestMac(manifestJson);
-step(
-  'manifest parses as a valid latest-mac',
-  parsed.ok,
-  parsed.ok ? `version=${parsed.info.version}` : parsed.reason,
-);
-if (!parsed.ok) exit(1);
-
-const zipRes = await fetch(`http://127.0.0.1:${port}/Kingfisher-${NEXT_VERSION}-arm64-mac.zip`);
-step('staging server serves the ZIP', zipRes.ok, `${zipRes.status}`);
-const zipBytes = await zipRes.arrayBuffer();
-const zipHash = createHash('sha512').update(Buffer.from(zipBytes)).digest('base64');
-step('served ZIP matches the manifest sha512', zipHash === nextZipSha512);
-
-/* Tamper test: the server is asked for a path that does not
-   exist. The staging protocol must reject it. */
-const missingRes = await fetch(`http://127.0.0.1:${port}/missing.zip`);
-step('staging server rejects unknown files', missingRes.status === 404);
-
-/* Foreign-host test: a host that is not in the production
-   allow-list is rejected by the parser. */
-const foreignYaml = JSON.parse(JSON.stringify(liveManifest));
-foreignYaml.files = [
-  {
-    url: 'https://malicious.example.com/x.zip',
-    sha512: nextZipSha512,
-    size: nextZipStat.size,
-  },
-];
-const foreignParse = parseLatestMac(foreignYaml);
-step('foreign URL is rejected by the parser', !foreignParse.ok);
-
-/* HTTP-not-https test (production host, http scheme). */
-const httpYaml = JSON.parse(JSON.stringify(liveManifest));
-httpYaml.files = [
-  {
-    ...httpYaml.files[0],
-    url: 'http://github.com/mardakurt/kingfisher/releases/download/v1.1.0/x.zip',
-  },
-];
-const httpParse = parseLatestMac(httpYaml);
-step('http URL is rejected by the parser for a non-loopback host', !httpParse.ok);
-
-/* Downgrade test. The parser does not check the version itself;
-   electron-updater's `allowDowngrade: false` does. We assert the
-   flag is set in the source. */
-const updateServiceSource = readFileSync(join(HERE, 'desktop/src/kingfisher-updater.mjs'), 'utf8');
-step('updater refuses downgrades', updateServiceSource.includes('allowDowngrade = false'));
-step('updater does not auto-download', updateServiceSource.includes('autoDownload = false'));
-step(
-  'updater does not auto-install on quit',
-  updateServiceSource.includes('autoInstallOnAppQuit = false'),
-);
-step('updater does not allow prerelease', updateServiceSource.includes('allowPrerelease = false'));
-
-/* Packaged mode: real .app bundles. */
-if (packagedMode) {
-  if (!currentBundle || !nextBundle) {
-    step('packaged mode requires --current and --next', false, 'one or both were not provided');
-  } else {
-    for (const bundle of [
-      { name: 'current', path: currentBundle },
-      { name: 'next', path: nextBundle },
-    ]) {
-      step(`packaged ${bundle.name} bundle exists`, existsSync(bundle.path), bundle.path);
-    }
-    /* A real packaged launch requires a graphical session and the
-       `KINGFISHER_E2E=1` build flag the renderer must understand.
-       If the user has set up the e2e build, the test is the
-       responsibility of `desktop-update-e2e-real.mjs` (a separate
-       script that uses the same staging server but with the
-       renderer's automated-check hook). We record the mode and
-       let the maintainer run that script as a final manual
-       step on the release day. */
-    console.log('\n— Packaged mode prerequisites are in place.');
-    console.log('  Run `node scripts/desktop-update-e2e-real.mjs` on the');
-    console.log('  release day to certify the full GUI relaunch.');
-  }
-}
-
-server.kill();
+const staging = mkdtempSync(path.join(tmpdir(), 'kingfisher-update-e2e-'));
+const port = 8765 + Math.floor(Math.random() * 1000);
+const origin = `http://127.0.0.1:${port}`;
+let server = null;
 try {
-  rmSync(tmpRoot, { recursive: true, force: true });
-} catch {
-  /* ignore */
-}
+  console.log(`Kingfisher update feed, on the wire\narchive  ${zip}\nstaging  ${staging}\n`);
 
-console.log('');
-if (failed) {
-  console.error('E2E update gate: FAILED');
-  exit(1);
-}
-console.log('E2E update gate: GREEN');
+  // --- 1. The feed, as the release process writes it. -----------------------
+  writeFileSync(path.join(staging, zipName), readFileSync(zip));
+  const written = writeAppcast({
+    zip: path.join(staging, zipName),
+    out: staging,
+    downloadUrlPrefix: `${origin}/releases/download/staging/`,
+    edKeyFile,
+    account,
+    latestMac: true,
+    log: () => {},
+  });
+  step(
+    'appcast written for the archive',
+    existsSync(written.appcast),
+    `${written.summary.title} · build ${written.summary.version}`,
+  );
+  step(
+    'the feed carries the build number, the version, the macOS floor and release notes',
+    /^\d+$/.test(written.summary.version ?? '') &&
+      written.summary.shortVersion === version &&
+      Boolean(written.summary.minimumSystemVersion) &&
+      written.summary.hasNotes,
+    `macOS ${written.summary.minimumSystemVersion}+ · notes ${written.summary.hasNotes}`,
+  );
+  step(
+    'latest-mac.yml written for the installs that predate Sparkle',
+    existsSync(path.join(staging, 'latest-mac.yml')),
+  );
 
-async function waitForHealth(port, timeoutMs) {
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
+  // --- 2. The server, and the redirect an installed Kingfisher follows. ------
+  server = spawn(
+    process.execPath,
+    [path.join(ROOT, 'scripts/desktop-update-staging-server.mjs'), staging, '--port', String(port)],
+    { stdio: ['ignore', 'pipe', 'pipe'] },
+  );
+  for (let i = 0; i < 50; i += 1) {
     try {
-      const res = await fetch(`http://127.0.0.1:${port}/health`);
-      if (res.ok) return true;
+      if ((await fetch(`${origin}/health`)).ok) break;
     } catch {
-      /* keep trying */
+      /* not yet */
     }
-    await new Promise((r) => setTimeout(r, 200));
+    await wait(200);
   }
-  return false;
+  const hop = await fetch(`${origin}/releases/latest/download/appcast.xml`, { redirect: 'manual' });
+  step(
+    '/releases/latest/download/appcast.xml redirects, as GitHub does',
+    hop.status === 302 && hop.headers.get('location') === '/releases/download/staging/appcast.xml',
+    `${hop.status} → ${hop.headers.get('location')}`,
+  );
+  const feed = await fetch(`${origin}/releases/latest/download/appcast.xml`);
+  const xml = feed.ok ? await feed.text() : '';
+  const summary = summarizeAppcast(xml);
+  const mismatch = appcastMismatch(summary, {
+    tag: 'staging',
+    version,
+    zipSize: statSync(zip).size,
+    host: origin,
+    allowHttp: true,
+  });
+  step(
+    'the served feed describes exactly the archive beside it',
+    feed.ok && mismatch === null,
+    mismatch ?? summary.url,
+  );
+
+  // --- 3. The archive, whole and by range. ------------------------------------
+  const whole = await fetch(summary.url);
+  const bytes = Buffer.from(await whole.arrayBuffer());
+  const local = readFileSync(zip);
+  step(
+    'the archive downloads intact',
+    whole.ok && sha256(bytes) === sha256(local) && bytes.length === summary.length,
+    `${bytes.length} bytes`,
+  );
+  const ranged = await fetch(summary.url, { headers: { range: 'bytes=1000-1999' } });
+  const slice = Buffer.from(await ranged.arrayBuffer());
+  step(
+    'a byte-range request is honoured (Sparkle resumes downloads with one)',
+    ranged.status === 206 &&
+      slice.equals(local.subarray(1000, 2000)) &&
+      ranged.headers.get('content-range') === `bytes 1000-1999/${local.length}`,
+    `${ranged.status} ${ranged.headers.get('content-range')}`,
+  );
+
+  // --- 4. The signature, with Sparkle's own tool. -----------------------------
+  const served = path.join(staging, 'served.zip');
+  writeFileSync(served, bytes);
+  const verify = spawnSync(
+    path.join(TOOLS, 'sign_update'),
+    ['--verify', ...keyArgs, served, summary.edSignature],
+    { encoding: 'utf8' },
+  );
+  step(
+    'the feed signature verifies for the served bytes',
+    verify.status === 0,
+    verify.stderr.trim() || 'sign_update --verify: ok',
+  );
+  bytes[Math.floor(bytes.length / 2)] ^= 0x01;
+  writeFileSync(served, bytes);
+  const tampered = spawnSync(
+    path.join(TOOLS, 'sign_update'),
+    ['--verify', ...keyArgs, served, summary.edSignature],
+    { encoding: 'utf8' },
+  );
+  step(
+    'one flipped byte fails the same verification',
+    tampered.status !== 0,
+    `exit ${tampered.status}`,
+  );
+
+  // --- 5. The bundle inside names the production feed and the recorded key. --
+  const record = readSparkleRecord();
+  const built = describeArchive(zip);
+  step(
+    'the archived bundle names the production feed and the recorded key',
+    Boolean(built) &&
+      /^https:\/\//.test(built.feedURL ?? '') &&
+      built.publicKey === record.publicKey,
+    built ? `${built.feedURL} · key ${built.publicKey?.slice(0, 8)}…` : 'no bundle in the archive',
+  );
+  step(
+    'the feed offers exactly that bundle',
+    Boolean(built) && built.build === summary.version && built.version === summary.shortVersion,
+    built ? `bundle ${built.version} build ${built.build}` : '',
+  );
+
+  // --- 6. What the server saw: the two hops and the downloads, nothing else. --
+  const requests = await (await fetch(`${origin}/requests`)).json();
+  const paths = requests.map((r) => r.path).filter((p) => p !== '/health' && p !== '/requests');
+  step(
+    'the server saw the feed hops and the archive requests only',
+    paths.every((p) => p.startsWith('/releases/')),
+    paths.join(' '),
+  );
+} catch (error) {
+  step('the run completed', false, String(error?.stack ?? error));
+} finally {
+  server?.kill();
+  rmSync(staging, { recursive: true, force: true });
 }
+
+console.log(failed ? '\nUpdate feed on the wire: FAILED' : '\nUpdate feed on the wire: PASS');
+exit(failed ? 1 : 0);

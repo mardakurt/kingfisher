@@ -73,12 +73,13 @@ cannot be made, and nothing below should be run to imitate one.
 4. Tag the release commit: `git tag -a v<version> -m "Kingfisher <version>"`,
    then `git push --tags`.
 5. Publish the GitHub Release **as a release, not a pre-release** — the
-   updater feed and `/releases/latest` both depend on that — with the DMG,
-   the update ZIP, `latest-mac.yml`, `SHA256SUMS.txt` and
-   `release-manifest.json` (`npm run release:manifest`). The stable updater
-   in every installed build reads `latest-mac.yml` from the latest release;
-   a release without it makes _Check for Updates…_ report that the release
-   carries no feed.
+   update feed and `/releases/latest` both depend on that — with the DMG,
+   the update ZIP, `appcast.xml`, `SHA256SUMS.txt` and
+   `release-manifest.json` (`npm run release:manifest`). The stable
+   updater in every installed build reads `appcast.xml` from the latest
+   release; `latest-mac.yml` is published alongside it for the installs
+   that predate Sparkle (1.1.0–1.1.7). A release without either feed
+   makes _Check for Updates…_ report that the release carries no feed.
 6. Write `src/release/macos-download.json` for the stable build
    (`channel: stable`, `notarized: true`), run `npm run docs:check`, commit,
    push, and verify with `npm run desktop:public:verify -- --landing --full`.

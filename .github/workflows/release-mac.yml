@@ -165,6 +165,7 @@ jobs:
           path: |
             desktop/dist/Kingfisher-*.dmg
             desktop/dist/Kingfisher-*-mac.zip
+            desktop/dist/appcast.xml
             desktop/dist/latest-mac.yml
             desktop/dist/SHA256SUMS
             desktop/dist/kingfisher-release-manifest.json

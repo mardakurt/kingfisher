@@ -1,85 +1,67 @@
 /**
  * The desktop update service.
  *
- * One canonical public surface, three callers, and a single install
- * engine. The renderer (the `Check for Updates` window, the
- * application menu, and the Settings → Application panel) talks to
- * `check`, `installAndRestart`, `cancelDownload`, `subscribe`, and
- * `getState` through the typed IPC bridge in `update-window.mjs`.
- * Nothing else in the shell is allowed to do an update.
+ * One canonical public surface, three callers, and a single engine. The
+ * application menu, the Settings → Application panel and the command
+ * palette all end up in `check()`; the launch-time quiet check ends up in
+ * `checkQuietly()`; `subscribe`/`getState` are how the menu label and the
+ * Settings panel follow along. Nothing else in the shell is allowed to do
+ * an update.
  *
  * ## One engine
  *
- * The previous shape of this file was a custom downloader that
- * streamed the DMG, hashed it, mounted it, and asked the user to drag
- * the new build into `Applications` by hand. That was the right
- * answer for the Phase 35 release surface and the manual fallback
- * path is preserved — but the *normal* path the owner wants is
- * "Check for Updates → Install Update → Kingfisher closes and
- * relaunches." That is the job of `electron-updater` and we use it.
- * The custom protocol parser lives on, but only for the staging
- * server that exercises the same code path against a deterministic
- * candidate before the public release.
+ * The engine is Sparkle (`sparkle-updater.mjs`, `native/sparkle/bridge.mm`).
+ * Sparkle owns every window a person sees — "a new version is available"
+ * with the release notes, the download progress, "ready to install", the
+ * errors — and the installation: it verifies the archive's EdDSA signature
+ * and the new bundle's Apple code signature, replaces the application in
+ * place, and relaunches it. This service does not draw and does not
+ * install. What it adds is what Sparkle cannot know:
+ *
+ *   - the **verdict**, one small object the menu and the Settings panel
+ *     render, kept in step with Sparkle's delegate callbacks;
+ *   - the **save barrier**: when Sparkle is about to terminate the
+ *     application for the install, the renderer is asked to confirm every
+ *     write is on disk, and the relaunch is released only on `ok: true`
+ *     (`postpone-relaunch` → `resumeRelaunch()`);
+ *   - the **profile handoff**: the relaunch arrives with no arguments, so
+ *     the profile is named for it (`relaunch-profile.mjs`);
+ *   - the **channel**: a preview build makes no request and says so;
+ *   - the **post-update notice** on the next launch.
  *
  * ## State machine
- *
- * The states are real, and they pin the transitions the menu and
- * dialog can show. The list of legal transitions is in
- * `update-state.mjs`; the renderer never invents a state.
  *
  *   idle ─check─► checking
  *   checking ─same─► up-to-date
  *   checking ─newer─► available
- *   available ─installAndRestart─► downloading
- *   downloading ─complete─► verifying
- *   verifying ─ok─► ready-to-install
- *   verifying ─bad─► failed
- *   ready-to-install ─installAndRestart─► waiting-for-save
- *   waiting-for-save ─ok─► installing
+ *   available ─Install Update (Sparkle)─► downloading ─► verifying ─► ready
+ *   ready ─Install and Relaunch (Sparkle)─► installing ─► waiting-for-save
+ *   waiting-for-save ─ok─► installing ─► restarting
  *   waiting-for-save ─fail─► failed
- *   installing ─quitAndInstall─► restarting
- *   restarting ─new process boot─► idle
- *   downloading ─cancel─► canceled
- *   any ─network error─► unable-to-check
+ *   any ─error─► unable-to-check | failed
  *
- * ## Manual only
+ * The strings are `STATUS` in `update-protocol.mjs`; the menu's labels are
+ * keyed on them (`menu.mjs`), and `update-service.test.mjs` drives the
+ * transitions with the bridge's own event names.
  *
- * The service never runs on a timer, never runs on launch, and never
- * fires as a side effect of opening a Study. The user clicks the menu
- * item; one HTTPS request goes out; the user reads the verdict.
+ * ## Manual, plus one quiet look
  *
- * ## No telemetry
- *
- * The service does not log the body of responses, does not log the
- * headers, and does not phone home. What it logs is bounded to the
- * stage names a user can reproduce.
+ * The service never runs on a timer. It checks when the person clicks the
+ * menu, and once at launch through Sparkle's information-only check, which
+ * makes one request, shows nothing, downloads nothing and, if a newer
+ * release exists, relabels the menu item. No telemetry: nothing is logged
+ * beyond stage names a person can reproduce.
  */
 
-import { existsSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
-import path from 'node:path';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 
-import { app, shell } from 'electron';
+import { app, dialog, shell } from 'electron';
 
 import { log } from './log.mjs';
 import { isDowngrade, writeRelaunchProfile } from './relaunch-profile.mjs';
-import {
-  STATUS,
-  compareSemver,
-  parseReleaseManifest,
-  assetForArch,
-  isAllowedReleaseHost,
-} from './update-protocol.mjs';
-import {
-  cancelDownload as engineCancel,
-  checkForUpdate as engineCheck,
-  downloadUpdateCancellable as engineDownload,
-  getRunningAppSignature,
-  isUpdaterSupported,
-  on as engineOn,
-  quitAndInstall as engineQuitAndInstall,
-  setFeedURL as engineSetFeedURL,
-  updaterCacheDir,
-} from './kingfisher-updater.mjs';
+import { DEFAULT_TIMEOUT_MS as SAVE_BARRIER_TIMEOUT_MS } from './save-barrier.mjs';
+import { STATUS } from './update-protocol.mjs';
+import * as sparkle from './sparkle-updater.mjs';
 
 const REDACTED_PATH_TOKEN = '<cache>';
 
@@ -93,52 +75,20 @@ const initialVerdict = () => ({
 });
 
 const state = {
-  /**
-   * The most recent verdict the renderer should know about. Held
-   * here so the dialog and the menu both see the same value when
-   * either is opened.
-   */
+  /** The most recent verdict; the dialog and the menu both read this. */
   verdict: initialVerdict(),
-  /**
-   * Single-flight in-flight check promise. A second `check()` call
-   * while a check is running gets the same promise.
-   */
-  checkPromise: null,
-  /**
-   * Single-flight in-flight install promise. The Install Update
-   * button is the only thing that creates one.
-   */
-  installPromise: null,
-  /**
-   * The candidate the engine reported. The service keeps a
-   * reference to the `UpdateInfo` so the rendering layer can show
-   * the version and release date without re-fetching.
-   */
+  /** The update Sparkle last reported, as the bridge described it. */
   candidate: null,
-  /**
-   * The listener that receives every verdict.
-   */
+  /** The listener that receives every verdict. */
   listener: null,
-  /**
-   * The id of the currently-live check operation. Every event the
-   * engine emits is bound to the operation that produced it; a
-   * late event from a previous check (the user clicked Check
-   * twice, the second click superseded the first) must not
-   * overwrite the verdict the second check is computing.
-   * Incremented on every `check()` call; the engine event
-   * handlers compare the id they were bound to against the
-   * current `state.activeCheckId` and drop the event if they
-   * disagree.
-   */
-  activeCheckId: 0,
-  /**
-   * The unsubscribers for the engine event handlers bound to the
-   * current check. Stashed so a new check can detach the old
-   * handlers before the new ones fire — which is what enforces
-   * the generation id at the engine layer, not just at the
-   * state-machine layer.
-   */
-  engineUnsubscribers: [],
+  /** The save barrier the shell registered with `startUpdater`. */
+  onSaveBarrier: null,
+  /** Whether the shell is already on its way out. */
+  isQuitting: () => false,
+  /** Unsubscribers for the bridge events, so tests can start over. */
+  unsubscribers: [],
+  /** Whether the check in flight was the quiet launch-time one. */
+  quietCheck: false,
 };
 
 function emit(next) {
@@ -156,8 +106,8 @@ function emit(next) {
 
 export function subscribe(listener) {
   state.listener = listener;
-  // Replay the current verdict so a freshly subscribed dialog
-  // doesn't start in the dark.
+  // Replay the current verdict so a freshly subscribed panel does not
+  // start in the dark.
   listener(state.verdict);
   return () => {
     if (state.listener === listener) state.listener = null;
@@ -169,197 +119,14 @@ export function getState() {
 }
 
 /* --------------------------------------------------------------------- *
- * Wire the engine to our state machine                                   *
- * --------------------------------------------------------------------- */
-
-/**
- * Bind the engine's events to the state machine, *for one check*.
- *
- * Every `check()` call gets a fresh generation id; the handlers
- * this function returns close over that id. When a subsequent
- * check starts, the previous handlers' unsubscribe functions run
- * first, and any late event from the previous check is dropped
- * (the listener is no longer in the engine's set). This is the
- * generation id requirement (PART T) — a slow `error` from
- * check A must not overwrite a successful check B's verdict.
- *
- * Phase 37 hardening: previously, every check reused the same
- * singleton handlers bound at module load. That worked in
- * practice because the engine fires events in order, but a slow
- * failure after a fast success could land *after* the success's
- * render and would overwrite it. The generation id is the
- * definitive answer; the unsubscribe list is the implementation.
- */
-function wireEngineForCheck(checkId) {
-  // Detach any handlers bound to the previous check.
-  for (const off of state.engineUnsubscribers) {
-    try {
-      off();
-    } catch (err) {
-      log('update', `engine unsubscribe threw: ${String(err?.message ?? err)}`);
-    }
-  }
-  state.engineUnsubscribers = [];
-
-  const isCurrent = () => state.activeCheckId === checkId;
-  const bound = [];
-
-  bound.push(
-    engineOn('checking-for-update', () => {
-      if (!isCurrent()) return;
-      emit({ ...state.verdict, status: STATUS.CHECKING });
-    }),
-  );
-
-  bound.push(
-    engineOn('update-available', (info) => {
-      if (!isCurrent()) return;
-      const latest = info?.version ?? state.candidate?.version ?? null;
-      const cmp = latest ? compareSemver(latest, app.getVersion()) : 1;
-      if (cmp <= 0) {
-        // A newer-on-paper version that does not pass our semver
-        // comparison is a downgrade or an out-of-channel tag.
-        log('update', `update-available ignored: ${latest} <= ${app.getVersion()}`);
-        emit({ ...state.verdict, status: STATUS.UP_TO_DATE });
-        return;
-      }
-      state.candidate = info;
-      emit({
-        status: STATUS.AVAILABLE,
-        currentVersion: app.getVersion(),
-        latestVersion: latest,
-        releaseDate: info?.releaseDate ?? null,
-        sizeBytes: pickUpdateSize(info),
-        // GitHub Releases put the body of the release here; electron-builder
-        // copies it into the manifest too. We pass it through so the dialog
-        // can show the release's first three points and link to the rest.
-        releaseName: pickReleaseName(info),
-        releaseNotes: pickReleaseNotes(info),
-      });
-    }),
-  );
-
-  bound.push(
-    engineOn('update-not-available', () => {
-      if (!isCurrent()) return;
-      emit({ ...state.verdict, status: STATUS.UP_TO_DATE });
-    }),
-  );
-
-  bound.push(
-    engineOn('download-progress', (info) => {
-      if (!isCurrent()) return;
-      if (state.verdict.status !== STATUS.DOWNLOADING) {
-        emit({ ...state.verdict, status: STATUS.DOWNLOADING });
-      }
-      emit({
-        ...state.verdict,
-        status: STATUS.DOWNLOADING,
-        latestVersion: state.candidate?.version ?? state.verdict.latestVersion,
-        receivedBytes: info?.transferred ?? info?.delta ?? 0,
-        totalBytes: info?.total ?? state.candidate?.sizeBytes ?? null,
-        bytesPerSecond: info?.bytesPerSecond ?? null,
-      });
-    }),
-  );
-
-  bound.push(
-    engineOn('update-downloaded', (info) => {
-      if (!isCurrent()) return;
-      state.candidate = info;
-      emit({
-        status: STATUS.READY,
-        currentVersion: app.getVersion(),
-        latestVersion: info?.version ?? state.candidate?.version,
-        path: info?.path ?? null,
-      });
-    }),
-  );
-
-  bound.push(
-    engineOn('update-cancelled', () => {
-      if (!isCurrent()) return;
-      emit({ ...state.verdict, status: STATUS.CANCELED });
-    }),
-  );
-
-  bound.push(
-    engineOn('error', (err) => {
-      if (!isCurrent()) return;
-      log('update', `engine error: ${String(err?.message ?? err)}`);
-      emit({
-        status: STATUS.FAILED,
-        reason: redactHome(String(err?.message ?? err)),
-      });
-    }),
-  );
-
-  state.engineUnsubscribers = bound;
-}
-
-function pickUpdateSize(info) {
-  if (!info) return null;
-  if (typeof info.size === 'number') return info.size;
-  if (Array.isArray(info.files) && info.files.length) {
-    const f = info.files[0];
-    if (typeof f.size === 'number') return f.size;
-  }
-  return null;
-}
-
-/**
- * electron-updater surfaces the GitHub release title on
- * `info.releaseName`. We fall back to the version when the field is
- * missing so the dialog always has *something* to put in the heading.
- */
-function pickReleaseName(info) {
-  if (!info) return null;
-  if (typeof info.releaseName === 'string' && info.releaseName.trim()) {
-    return info.releaseName.trim();
-  }
-  return null;
-}
-
-/**
- * The release-notes blob comes from GitHub Releases (markdown body)
- * or from `latest-mac.yml`'s `releaseNotes` key when the feed is a
- * generic staging mirror. It can be either a string (one locale) or
- * an array of `{note: string}` objects (per-locale entries that
- * electron-updater merges). We normalise both shapes to a single
- * markdown string and trim leading/trailing whitespace so the dialog
- * does not have to deal with multiple bodies.
- */
-function pickReleaseNotes(info) {
-  if (!info) return null;
-  const raw = info.releaseNotes;
-  if (typeof raw === 'string') {
-    const trimmed = raw.trim();
-    return trimmed.length ? trimmed : null;
-  }
-  if (Array.isArray(raw)) {
-    const parts = [];
-    for (const entry of raw) {
-      if (entry && typeof entry === 'object' && typeof entry.note === 'string') {
-        parts.push(entry.note);
-      } else if (typeof entry === 'string') {
-        parts.push(entry);
-      }
-    }
-    const joined = parts.join('\n\n').trim();
-    return joined.length ? joined : null;
-  }
-  return null;
-}
-
-/* --------------------------------------------------------------------- *
- * check                                                                  *
+ * The channel                                                            *
  * --------------------------------------------------------------------- */
 
 /**
  * Which channel this build is on, as `desktop/scripts/build.mjs` recorded
  * it. `main.mjs` calls this once at launch. Unconfigured means stable, which
  * is the conservative reading: a stable build consults the feed and is
- * offered only a strictly newer semantic version.
+ * offered only a strictly newer build.
  */
 const channel = { name: 'stable', build: null, downloadUrl: null };
 
@@ -374,21 +141,243 @@ export function manualDownloadUrl() {
   return channel.downloadUrl;
 }
 
+/* --------------------------------------------------------------------- *
+ * Start                                                                  *
+ * --------------------------------------------------------------------- */
+
 /**
- * One sentence a person can act on, from whatever the engine threw.
+ * Start the engine and bind its events to the verdict. Called once from
+ * `main.mjs` when the application is ready; returns what Sparkle said.
  *
- * The engine's errors are for developers: an HTTP failure arrives with the
- * response headers, the request id and a stack naming files inside the
- * bundle. The dialog showed all of it. The three cases a user can meet are
- * named; anything else is its first line, with the home directory redacted
- * and the length bounded.
+ * `onSaveBarrier` is the shell's barrier (`save-barrier.mjs` through
+ * `main.mjs`); `feedURL` is the staging override, from the environment,
+ * and null in production.
  */
-export function describeCheckFailure(err) {
-  const message = String(err?.message ?? err ?? '');
-  if (/latest-mac\.yml/.test(message) && /404/.test(message)) {
-    return 'The current release on the release host carries no update feed, so there is nothing to compare against. The download page always has the newest build.';
+export function startUpdater({
+  onSaveBarrier = null,
+  isQuitting = () => false,
+  feedURL = null,
+} = {}) {
+  state.onSaveBarrier = onSaveBarrier;
+  state.isQuitting = isQuitting;
+  const started = sparkle.start({ feedURL });
+  if (started.started) bindEngine();
+  return started;
+}
+
+export function describeEngine() {
+  return sparkle.describe();
+}
+
+function describeCandidate(item) {
+  if (!item) return {};
+  return {
+    latestVersion: item.displayVersion || item.version || null,
+    latestBuild: item.version ?? null,
+    releaseDate: item.date ?? null,
+    sizeBytes:
+      typeof item.contentLength === 'number' && item.contentLength > 0 ? item.contentLength : null,
+    releaseName: item.title ?? null,
+    releaseNotesUrl: item.releaseNotesURL ?? null,
+  };
+}
+
+function bindEngine() {
+  for (const off of state.unsubscribers) off();
+  state.unsubscribers = [];
+  const bind = (event, handler) => state.unsubscribers.push(sparkle.on(event, handler));
+
+  bind('checking', ({ check }) => {
+    state.quietCheck = check === 'information';
+    emit({ status: STATUS.CHECKING, currentVersion: app.getVersion(), quiet: state.quietCheck });
+  });
+
+  bind('found', (item) => {
+    state.candidate = item;
+    log(
+      'update',
+      `update found: ${item.displayVersion ?? '?'} (build ${item.version ?? '?'})${state.quietCheck ? ' — quiet check, menu relabelled' : ''}`,
+    );
+    emit({
+      status: STATUS.AVAILABLE,
+      currentVersion: app.getVersion(),
+      ...describeCandidate(item),
+    });
+  });
+
+  bind('not-found', (payload) => {
+    // Sparkle says why; the two a person can act on are named in the log.
+    const reason = payload?.noUpdateReason;
+    const why =
+      reason === 2
+        ? 'this build is newer than the feed'
+        : reason === 3
+          ? 'the update needs a newer macOS'
+          : reason === 1
+            ? 'on the latest version'
+            : 'no newer update';
+    log('update', `no update: ${why}`);
+    state.candidate = null;
+    emit({ status: STATUS.UP_TO_DATE, currentVersion: app.getVersion(), reason: why });
+  });
+
+  bind('choice', ({ choice, stage }) => {
+    log('update', `person chose ${choice} (${stage})`);
+    if (choice === 'skip') {
+      // "Skip This Version": Sparkle will not offer it again; the menu goes
+      // back to its plain label rather than announcing an update the
+      // person declined.
+      state.candidate = null;
+      emit({ status: STATUS.IDLE, currentVersion: app.getVersion() });
+    } else if (choice === 'dismiss' && stage !== 'installing') {
+      // "Remind Me Later": still available, and the menu says so.
+      emit({
+        status: STATUS.AVAILABLE,
+        currentVersion: app.getVersion(),
+        ...describeCandidate(state.candidate),
+      });
+    }
+  });
+
+  bind('will-download', ({ item }) => {
+    state.candidate = item ?? state.candidate;
+    emit({
+      status: STATUS.DOWNLOADING,
+      currentVersion: app.getVersion(),
+      ...describeCandidate(state.candidate),
+    });
+  });
+
+  bind('did-download', () => {
+    emit({ ...state.verdict, status: STATUS.DOWNLOADED });
+  });
+
+  bind('download-failed', ({ error }) => {
+    log('update', `download failed: ${error?.description ?? 'unknown'}`);
+    emit({
+      status: STATUS.FAILED,
+      currentVersion: app.getVersion(),
+      reason: describeEngineError(error),
+    });
+  });
+
+  bind('download-cancelled', () => {
+    log('update', 'download cancelled');
+    emit({
+      status: STATUS.AVAILABLE,
+      currentVersion: app.getVersion(),
+      ...describeCandidate(state.candidate),
+    });
+  });
+
+  bind('will-extract', () => {
+    emit({ ...state.verdict, status: STATUS.VERIFYING });
+  });
+
+  bind('did-extract', () => {
+    emit({ ...state.verdict, status: STATUS.READY });
+  });
+
+  bind('will-install', () => {
+    emit({ ...state.verdict, status: STATUS.INSTALLING });
+  });
+
+  bind('postpone-relaunch', () => {
+    void releaseRelaunch();
+  });
+
+  bind('will-relaunch', () => {
+    // Belt and braces: the handoff was written before the relaunch was
+    // released; write it again now, in case the release and the relaunch
+    // were far enough apart for the first to age out.
+    writeRelaunchProfile(sparkle.updaterCacheDir(), app.getPath('userData'));
+    emit({ ...state.verdict, status: STATUS.RESTARTING });
+  });
+
+  bind('will-install-on-quit', ({ item }) => {
+    log('update', `update ${item?.displayVersion ?? ''} installs when Kingfisher quits`);
+    // The relaunch after an install-on-quit opens the default profile
+    // unless told otherwise; tell it.
+    writeRelaunchProfile(sparkle.updaterCacheDir(), app.getPath('userData'));
+  });
+
+  bind('aborted', (error) => {
+    const code = error?.code;
+    if (code === SPARKLE_ERROR.noUpdate) {
+      // Already reported through not-found.
+      return;
+    }
+    if (code === SPARKLE_ERROR.installationCanceled) {
+      log('update', 'installation cancelled by the person');
+      emit({
+        status: STATUS.AVAILABLE,
+        currentVersion: app.getVersion(),
+        ...describeCandidate(state.candidate),
+      });
+      return;
+    }
+    log(
+      'update',
+      `sparkle aborted: [${error?.domain ?? '?'} ${code ?? '?'}] ${error?.description ?? ''}`,
+    );
+    const checkPhase = state.verdict.status === STATUS.CHECKING;
+    emit({
+      status: checkPhase ? STATUS.UNABLE : STATUS.FAILED,
+      currentVersion: app.getVersion(),
+      reason: checkPhase ? describeCheckFailure(error) : describeEngineError(error),
+    });
+  });
+
+  bind('finished', ({ check, error }) => {
+    log('update', `update cycle finished (${check})${error ? `: ${error.description ?? ''}` : ''}`);
+    if (state.verdict.status === STATUS.CHECKING) {
+      // A cycle that ended without a verdict — Sparkle found nothing to
+      // say, or the person closed its window. The menu must not stay on
+      // "Checking…" forever.
+      emit({ status: STATUS.IDLE, currentVersion: app.getVersion() });
+    }
+  });
+}
+
+/**
+ * Sparkle's error codes that this service treats specially (SUErrors.h).
+ * The names are Sparkle's; the numbers are its ABI.
+ */
+export const SPARKLE_ERROR = Object.freeze({
+  noPublicKey: 1,
+  appcastParse: 1000,
+  noUpdate: 1001,
+  appcast: 1002,
+  runningFromDiskImage: 1003,
+  download: 2001,
+  signature: 3001,
+  validation: 3002,
+  installationCanceled: 4007,
+});
+
+/* --------------------------------------------------------------------- *
+ * check                                                                  *
+ * --------------------------------------------------------------------- */
+
+/**
+ * One sentence a person can act on, from whatever Sparkle reported about a
+ * check that did not complete. Sparkle already showed its own alert for a
+ * user-initiated check; this is what the Settings panel and the log say.
+ */
+export function describeCheckFailure(error) {
+  const code = error?.code;
+  const message = String(error?.description ?? error?.message ?? error ?? '');
+  if (code === SPARKLE_ERROR.appcast || code === SPARKLE_ERROR.appcastParse) {
+    return 'The release feed could not be read. The download page always has the newest build.';
   }
-  if (/ENOTFOUND|ECONNREFUSED|ECONNRESET|ETIMEDOUT|net::ERR_|network|offline/i.test(message)) {
+  if (code === SPARKLE_ERROR.runningFromDiskImage) {
+    return 'Kingfisher is running from the disk image. Drag it to Applications and open it from there to update.';
+  }
+  if (
+    /ENOTFOUND|ECONNREFUSED|ECONNRESET|ETIMEDOUT|offline|not connected|could not connect|network connection was lost/i.test(
+      message,
+    )
+  ) {
     return 'The release host could not be reached. Check the connection and try again.';
   }
   if (/403|429|rate limit/i.test(message)) {
@@ -398,315 +387,144 @@ export function describeCheckFailure(err) {
   return first.length > 200 ? `${first.slice(0, 197)}…` : first || 'The check did not complete.';
 }
 
+/** The same, for a download or install Sparkle gave up on. */
+export function describeEngineError(error) {
+  const code = error?.code;
+  if (code === SPARKLE_ERROR.signature || code === SPARKLE_ERROR.validation) {
+    return 'The downloaded update is not signed by Kingfisher and was not installed.';
+  }
+  if (code === SPARKLE_ERROR.download) {
+    return 'The update could not be downloaded. Check the connection and try again.';
+  }
+  return describeCheckFailure(error);
+}
+
+/**
+ * The person asked. Sparkle shows its windows; the verdict follows.
+ *
+ * A preview build makes no request and answers from what it is. A build
+ * without Sparkle — a developer checkout — says so in a message box, the
+ * way the old dialog said "the updater is disabled in this build".
+ */
 export async function check() {
-  if (state.checkPromise) return state.checkPromise;
   if (channel.name === 'preview') {
-    // No request is made. A preview is replaced by downloading the next
-    // one; the stable feed would either 404 (no latest-mac.yml on the
-    // release) or, once a stable release exists, correctly offer it — and
-    // that offer is what `stable` builds are for.
     emit({
       status: STATUS.PREVIEW,
       currentVersion: app.getVersion(),
       build: channel.build,
       downloadUrl: channel.downloadUrl,
     });
+    const { response } = await dialog.showMessageBox({
+      type: 'info',
+      title: 'Kingfisher Update',
+      message: `This is Kingfisher ${app.getVersion()}, preview build ${channel.build ?? '?'}.`,
+      detail:
+        'Preview builds are replaced by downloading the next one from the download page; they do not check a release feed.',
+      buttons: channel.downloadUrl ? ['Open Download Page', 'Close'] : ['Close'],
+      defaultId: 0,
+      cancelId: channel.downloadUrl ? 1 : 0,
+    });
+    if (channel.downloadUrl && response === 0) void shell.openExternal(channel.downloadUrl);
     return state.verdict;
   }
-  if (!isUpdaterSupported()) {
-    emit({
-      status: STATUS.UNABLE,
-      currentVersion: app.getVersion(),
-      reason: 'The updater is disabled in this build. Use the development build to test changes.',
+  if (!sparkle.isUpdaterSupported()) {
+    const reason = sparkle.describe().reason ?? 'The updater is not running.';
+    emit({ status: STATUS.UNABLE, currentVersion: app.getVersion(), reason });
+    await dialog.showMessageBox({
+      type: 'info',
+      title: 'Kingfisher Update',
+      message: 'Updates are not available in this build.',
+      detail: `${reason}\n\nA packaged Kingfisher checks the release feed through Sparkle.`,
+      buttons: ['Close'],
     });
     return state.verdict;
   }
-  // Phase 37: generation id (PART T). Every check bumps the
-  // id; the previous check's engine event handlers are detached
-  // before the new ones are bound, so a slow event from a
-  // previous check cannot overwrite a current verdict.
-  state.activeCheckId += 1;
-  const checkId = state.activeCheckId;
-  wireEngineForCheck(checkId);
-  emit({ status: STATUS.CHECKING, currentVersion: app.getVersion() });
-  state.checkPromise = (async () => {
-    try {
-      await engineCheck();
-    } catch (err) {
-      // The error is the engine's; the engine event handler
-      // will have already emitted the FAILED verdict, gated on
-      // the current id. If the handler has been superseded, this
-      // log line is the only record.
-      log('update', `check failed: ${String(err?.message ?? err).split('\n')[0]}`);
-      if (state.activeCheckId === checkId) {
-        emit({
-          status: STATUS.UNABLE,
-          currentVersion: app.getVersion(),
-          reason: describeCheckFailure(err),
-        });
-      }
-    } finally {
-      // Only clear the in-flight slot if the operation that set
-      // it is still the current one. A check that was superseded
-      // by a newer check must not null out the newer check's
-      // slot.
-      if (state.activeCheckId === checkId) {
-        state.checkPromise = null;
-      }
-    }
+  if (!sparkle.canCheckForUpdates()) {
+    // Sparkle is downloading the feed or an update; a check now would do
+    // nothing, and the menu item is disabled for exactly this state.
+    log('update', 'check requested while Sparkle is busy; nothing to do');
     return state.verdict;
-  })();
-  return state.checkPromise;
+  }
+  // With a window already open — the update found, the progress, the
+  // ready-to-install prompt — Sparkle brings it forward rather than
+  // starting a second session.
+  sparkle.checkForUpdates();
+  return state.verdict;
+}
+
+/**
+ * The quiet look at launch: one request, no window, no download. A found
+ * update relabels the menu; anything else is a line in the log.
+ */
+export function checkQuietly() {
+  if (channel.name === 'preview' || !sparkle.isUpdaterSupported()) {
+    log(
+      'update',
+      'quiet check skipped: ' +
+        (channel.name === 'preview' ? 'preview build' : 'updater not running'),
+    );
+    return false;
+  }
+  if (!sparkle.canCheckForUpdates()) {
+    log('update', 'quiet check skipped: a session is in progress');
+    return false;
+  }
+  sparkle.checkForUpdateInformation();
+  return true;
 }
 
 /* --------------------------------------------------------------------- *
- * cancelDownload                                                         *
+ * The save barrier, at the moment Sparkle wants to relaunch               *
  * --------------------------------------------------------------------- */
 
 /**
- * Cancel an in-flight download.
- *
- * Phase 37 (PART U): the cancel race at 99%.
- *
- * The previous implementation called `engineCancel()` and let the
- * event-driven state machine handle the rest. A late
- * `update-downloaded` event after the cancel could land in the
- * same tick and flip the verdict from CANCELED to READY, leaving
- * the user with a "ready" state they did not ask for and a
- * download they tried to abort. The fix is to invalidate the
- * current check's generation id *before* the engine's events
- * arrive — the existing `isCurrent()` gate in the event handlers
- * then drops the late events.
+ * Sparkle has the update installed-in-waiting and asks to terminate and
+ * relaunch. Before it may, the renderer confirms every write is committed;
+ * the barrier fails closed on every unexpected path (timeout, no window,
+ * transport failure, an explicit `ok: false`). DATA SAFETY > UPDATE
+ * CONVENIENCE: a failed barrier leaves Sparkle's install block unrun, tells
+ * the person, and the update installs on the next quit instead — Sparkle
+ * always installs a staged update when the application terminates.
  */
-export async function cancelDownload() {
-  // Invalidate the current check so a late `update-downloaded` or
-  // `error` event from the cancelled download cannot mutate the
-  // verdict. The engine will still emit `update-cancelled`; the
-  // handler will see the new id and drop the event too — the
-  // verdict is set explicitly to CANCELED below instead.
-  const cancelledId = state.activeCheckId;
-  state.activeCheckId += 1;
-  // Detach the engine handlers for the cancelled check; the
-  // unsubscribe list is now stale.
-  for (const off of state.engineUnsubscribers) {
+async function releaseRelaunch() {
+  if (state.isQuitting()) {
+    // The shell is already stopping its services; the relaunch may go.
+    log('update', 'relaunch released: application already quitting');
+    writeRelaunchProfile(sparkle.updaterCacheDir(), app.getPath('userData'));
+    sparkle.resumeRelaunch();
+    return;
+  }
+  emit({ ...state.verdict, status: STATUS.WAITING_FOR_SAVE });
+  let barrier = { ok: true, reason: 'no-barrier' };
+  if (typeof state.onSaveBarrier === 'function') {
     try {
-      off();
+      barrier = await state.onSaveBarrier({ timeoutMs: SAVE_BARRIER_TIMEOUT_MS });
     } catch (err) {
-      log('update', `cancel unsubscribe threw: ${String(err?.message ?? err)}`);
+      barrier = { ok: false, reason: 'threw', detail: String(err?.message ?? err) };
     }
   }
-  state.engineUnsubscribers = [];
-  try {
-    await engineCancel();
-  } catch (err) {
-    log('update', `cancel failed: ${String(err?.message ?? err)}`);
-  }
-  // Emit CANCELED directly; the engine's `update-cancelled` event
-  // has been orphaned by the unsubscribe above.
-  emit({ status: STATUS.CANCELED });
-  // Clear the in-flight check promise so the user can start a
-  // fresh check after the cancel.
-  state.checkPromise = null;
-  void cancelledId;
-}
-
-/* --------------------------------------------------------------------- *
- * installAndRestart                                                      *
- * --------------------------------------------------------------------- */
-
-/**
- * The single Install Update entry point. It is intentionally not
- * "download" + "open" + "wait for the user." The chain is automatic
- * once the user has given consent: download, verify, save barrier,
- * engine shutdown, quit, install, relaunch. If the user picks
- * "Later," nothing here runs.
- */
-export async function installAndRestart({ onSaveBarrier, isQuitting = () => false } = {}) {
-  if (state.installPromise) return state.installPromise;
-  // Phase 37 (PART W): do not start a new install if the
-  // application is already on its way out. The user clicking
-  // Quit while the dialog was open, or the macOS app menu's
-  // Quit command racing an Install Update click, must not
-  // produce a half-completed install on top of a shutdown.
-  if (typeof isQuitting === 'function' && isQuitting()) {
-    log('update', 'install refused: app is quitting');
-    emit({
-      status: STATUS.FAILED,
-      reason:
-        'Kingfisher is shutting down. The update was not installed. ' +
-        'Open Kingfisher again and try Check for Updates.',
+  if (!barrier?.ok) {
+    const reason = humanizeSaveBarrierFailure(barrier);
+    log('update', `relaunch refused: save barrier failed (${barrier?.reason ?? 'unknown'})`);
+    emit({ status: STATUS.FAILED, currentVersion: app.getVersion(), reason });
+    await dialog.showMessageBox({
+      type: 'warning',
+      title: 'Kingfisher Update',
+      message: 'The update was not installed.',
+      detail: `${reason}\n\nThe update is downloaded and verified. Quit Kingfisher to install it, or run Check for Updates again.`,
+      buttons: ['OK'],
     });
-    return state.verdict;
+    return;
   }
-  state.installPromise = (async () => {
-    try {
-      if (state.verdict.status === STATUS.AVAILABLE) {
-        // First time: we have to download. After this, the
-        // engine's `update-downloaded` event flips us into
-        // READY and the second branch below runs.
-        await runDownload();
-      }
-      if (state.verdict.status !== STATUS.READY && state.verdict.status !== STATUS.DOWNLOADING) {
-        // Defensive: if we are not in a state where the next
-        // move is "install," the user must have cancelled or
-        // we already gave up.
-        return state.verdict;
-      }
-      // Confirm the running binary is the one we expect. A
-      // process that has been replaced under our feet by
-      // another updater should not run the install path on
-      // its own binary.
-      const sig = await getRunningAppSignature();
-      if (sig.signed && sig.isDeveloperId === false) {
-        log('update', 'install refused: running app is not Developer ID signed');
-        emit({
-          status: STATUS.FAILED,
-          reason:
-            'The running Kingfisher is not Developer ID signed. Refusing to install a trusted update on top of an untrusted binary.',
-        });
-        return state.verdict;
-      }
-      emit({ ...state.verdict, status: STATUS.WAITING_FOR_SAVE });
-      // Save barrier. The renderer confirms all writes are
-      // committed; if the user has unsaved work, we wait up
-      // to `SAVE_BARRIER_TIMEOUT_MS` for the renderer to finish.
-      // The barrier fails closed on every unexpected path: a
-      // timeout, a missing window, a transport failure, or an
-      // explicit `ok: false` from the renderer all refuse the
-      // install. DATA SAFETY > UPDATE CONVENIENCE.
-      if (typeof onSaveBarrier === 'function') {
-        const barrier = await onSaveBarrier({ timeoutMs: SAVE_BARRIER_TIMEOUT_MS });
-        if (!barrier?.ok) {
-          const failureReason = barrier?.reason ?? 'unknown';
-          log('update', `install refused: save barrier failed (${failureReason})`);
-          emit({
-            status: STATUS.FAILED,
-            reason: humanizeSaveBarrierFailure(barrier),
-          });
-          return state.verdict;
-        }
-      }
-      emit({ ...state.verdict, status: STATUS.INSTALLING });
-      // The update engine relaunches the bundle with no arguments, so a
-      // Kingfisher on a non-default profile would come back on the default
-      // one — the owner's own work. Name the profile for the relaunch to
-      // adopt; see relaunch-profile.mjs for what that cost before.
-      if (!writeRelaunchProfile(updaterCacheDir(), app.getPath('userData'))) {
-        log(
-          'update',
-          'relaunch profile handoff not written; the relaunch opens the default profile',
-        );
-      }
-      // We hand the engine the pre-quit hook here too so the
-      // engine is free to do additional work after we have
-      // cleared the save barrier; in practice the pre-quit
-      // hook is the barrier callback itself.
-      await engineQuitAndInstall();
-      // We only reach this line if quitAndInstall did not
-      // actually quit (e.g. a refused-silent mode). The
-      // `restarting` verdict tells the dialog to wait for the
-      // process to die.
-      emit({ status: STATUS.RESTARTING });
-    } catch (err) {
-      log('update', `install failed: ${String(err?.message ?? err)}`);
-      emit({
-        status: STATUS.FAILED,
-        reason: redactHome(String(err?.message ?? err)),
-      });
-    } finally {
-      state.installPromise = null;
-    }
-    return state.verdict;
-  })();
-  return state.installPromise;
-}
-
-/**
- * Maximum time we are willing to wait for the renderer to confirm
- * its writes are committed. 5 seconds is generous: the renderer is
- * local IndexedDB, not a network round-trip, and the worst realistic
- * case is a slow final `requestAnimationFrame` of an active Study.
- * The actual constant lives in `save-barrier.mjs` so the main
- * process and the test suite agree on one value.
- */
-import { DEFAULT_TIMEOUT_MS as SAVE_BARRIER_TIMEOUT_MS } from './save-barrier.mjs';
-
-async function runDownload() {
-  emit({
-    ...state.verdict,
-    status: STATUS.DOWNLOADING,
-    receivedBytes: 0,
-    totalBytes: state.candidate?.sizeBytes ?? null,
-  });
-  await engineDownload();
-}
-
-/* --------------------------------------------------------------------- *
- * Manual fallback                                                        *
- * --------------------------------------------------------------------- */
-
-/**
- * For environments where the in-process updater cannot run, the
- * verified manual installer (the polished DMG) is the fallback. The
- * menu never offers this on a successful auto-update path; it is
- * here so a single dialog state can offer it as a last resort.
- */
-export async function openManualInstaller({ manifest, arch } = {}) {
-  if (process.platform !== 'darwin') {
-    return { ok: false, reason: 'Updates are macOS-only in this build.' };
+  // The relaunch arrives with no arguments; name the profile for it.
+  if (!writeRelaunchProfile(sparkle.updaterCacheDir(), app.getPath('userData'))) {
+    log('update', 'relaunch profile handoff not written; the relaunch opens the default profile');
   }
-  // The manual fallback re-uses the existing protocol parser so
-  // the same allow-list and host checks protect the user. This is
-  // the one place the custom protocol still runs in production.
-  const manifestUrl = `${app.getPath('exe')}`;
-  void manifestUrl;
-  const parsed = manifest ? parseReleaseManifest(manifest) : null;
-  if (parsed && !parsed.ok) {
-    return { ok: false, reason: parsed.reason };
+  emit({ ...state.verdict, status: STATUS.INSTALLING });
+  log('update', 'save barrier passed; relaunch released');
+  if (!sparkle.resumeRelaunch()) {
+    log('update', 'no postponed relaunch to release');
   }
-  let asset = null;
-  if (parsed && parsed.ok) {
-    asset = assetForArch(parsed.manifest, arch || process.arch);
-    if (!asset) {
-      return {
-        ok: false,
-        reason: `No build is published for the ${arch || process.arch} architecture.`,
-      };
-    }
-    if (!isAllowedReleaseHost(new URL(asset.url).hostname)) {
-      return { ok: false, reason: 'The manual installer host is not in the allow-list.' };
-    }
-  }
-  const url =
-    asset?.url ??
-    `${process.env.KINGFISHER_PUBLIC_REPOSITORY_URL || 'https://github.com/mardakurt/kingfisher'}/releases/latest`;
-  try {
-    await shell.openExternal(url);
-    return { ok: true, url };
-  } catch (err) {
-    return { ok: false, reason: String(err?.message ?? err) };
-  }
-}
-
-/* --------------------------------------------------------------------- *
- * Staging feed                                                           *
- * --------------------------------------------------------------------- */
-
-/**
- * Override the production feed URL. Used by the local staging
- * server so the same packaged binary can be tested end-to-end
- * against a deterministic candidate.
- *
- * In production this is never called: the feed URL is baked into
- * `app-update.yml` at packaging time.
- */
-export async function setStagingFeed({ url, channel = 'latest' } = {}) {
-  if (!url) throw new Error('setStagingFeed requires a non-empty url.');
-  await engineSetFeedURL({
-    provider: 'generic',
-    url,
-    channel,
-  });
 }
 
 /* --------------------------------------------------------------------- *
@@ -803,52 +621,8 @@ export function acknowledgeUpdate(currentVersion = app.getVersion()) {
 }
 
 /* --------------------------------------------------------------------- *
- * Cache pruning                                                          *
+ * Helpers                                                                *
  * --------------------------------------------------------------------- */
-
-export function pruneUpdateCache({ keep = 1 } = {}) {
-  /*
-    electron-updater keeps the archive it downloaded under `pending/` and
-    remembers it in `update-info.json`, and clears `pending/` itself before a
-    new download — so its cache is bounded by design. What can be left
-    behind is a `.partial` from an interrupted download, and, across
-    versions, more than one archive. Those are removed; the newest archive
-    and the info file are not, because they are what lets a downloaded
-    update be installed on the next launch without downloading it again.
-  */
-  const dir = updaterCacheDir();
-  const pending = path.join(dir, 'pending');
-  let entries = [];
-  try {
-    entries = readdirSync(pending)
-      .map((name) => {
-        const full = path.join(pending, name);
-        try {
-          return { name, full, mtimeMs: statSync(full).mtimeMs };
-        } catch {
-          return null;
-        }
-      })
-      .filter(Boolean);
-  } catch {
-    return 0;
-  }
-  const archives = entries
-    .filter((e) => !/\.(partial|tmp)$/.test(e.name))
-    .sort((a, b) => b.mtimeMs - a.mtimeMs);
-  const toKeep = new Set(archives.slice(0, keep).map((e) => e.full));
-  let removed = 0;
-  for (const entry of entries) {
-    if (toKeep.has(entry.full)) continue;
-    try {
-      rmSync(entry.full, { recursive: true, force: true });
-      removed += 1;
-    } catch {
-      /* a file we cannot remove is not worth failing a quit over */
-    }
-  }
-  return removed;
-}
 
 function redactHome(value) {
   if (typeof value !== 'string') return value;
@@ -861,44 +635,37 @@ function redactHome(value) {
 }
 
 /**
- * Translate a `BarrierResult` failure into a sentence the dialog can
- * show. The user gets the actionable reason; the raw reason is
- * preserved for diagnostics.
+ * Translate a `BarrierResult` failure into a sentence the person can act
+ * on. The raw reason is preserved in the log for diagnostics.
  */
-function humanizeSaveBarrierFailure(barrier) {
+export function humanizeSaveBarrierFailure(barrier) {
   const reason = barrier?.reason ?? 'unknown';
   const detail = barrier?.detail ? ` (${barrier.detail})` : '';
   switch (reason) {
     case 'pending-writes':
       return (
-        'Kingfisher could not safely finish saving your work. The update was not installed. ' +
-        'Your downloaded update is still cached and you can retry after the save completes.' +
+        'Kingfisher could not safely finish saving your work. The update was not installed.' +
         detail
       );
     case 'write-failed':
       return (
-        'Kingfisher could not commit a recent change to local storage. ' +
-        'The update was not installed. Try again after closing the file that may be locked, ' +
-        'or after freeing disk space.' +
+        'Kingfisher could not commit a recent change to local storage. The update was not installed. ' +
+        'Try again after closing the file that may be locked, or after freeing disk space.' +
         detail
       );
     case 'timeout':
       return (
-        'Kingfisher could not confirm that your work finished saving. ' +
-        'The update was not installed. Your downloaded update is still cached ' +
-        'and you can try again.' +
+        'Kingfisher could not confirm that your work finished saving. The update was not installed.' +
         detail
       );
     case 'renderer-unavailable':
       return (
-        'Kingfisher could not reach the application window to confirm your work. ' +
-        'The update was not installed.' +
+        'Kingfisher could not reach the application window to confirm your work. The update was not installed.' +
         detail
       );
     default:
       return (
-        'Kingfisher could not safely finish saving your work. The update was not installed. ' +
-        'Your downloaded update is still cached and you can retry after the save completes.' +
+        'Kingfisher could not safely finish saving your work. The update was not installed.' +
         detail
       );
   }
@@ -912,46 +679,25 @@ export const __testing = {
   state,
   STATUS,
   redactHome,
-  parseReleaseManifest,
-  compareSemver,
-  isUpdaterSupported,
+  bindEngine,
+  releaseRelaunch,
 };
 
-/**
- * Read-only accessors for the unit-test suite. These are the only
- * ways tests should inspect the state machine — direct `state`
- * access would tie the tests to the internal field layout.
- */
 export function __getVerdictForTests() {
   return { ...state.verdict };
 }
 
-/**
- * Reset the state machine. The unit tests rely on this; production
- * code never calls it. Detaches any leftover engine handlers and
- * clears the in-flight slots.
- */
 export function __resetForTests() {
-  for (const off of state.engineUnsubscribers) {
-    try {
-      off();
-    } catch {
-      /* nothing to do */
-    }
-  }
-  state.engineUnsubscribers = [];
-  state.checkPromise = null;
-  state.installPromise = null;
-  state.activeCheckId = 0;
+  for (const off of state.unsubscribers) off();
+  state.unsubscribers = [];
   state.candidate = null;
-  state.verdict = {
-    status: 'idle',
-    currentVersion: app.getVersion(),
-  };
+  state.onSaveBarrier = null;
+  state.isQuitting = () => false;
+  state.quietCheck = false;
+  state.verdict = { status: 'idle', currentVersion: app.getVersion() };
+  channel.name = 'stable';
+  channel.build = null;
+  channel.downloadUrl = null;
 }
-
-/* --------------------------------------------------------------------- *
- * Re-export for legacy callers that still import the old names          *
- * --------------------------------------------------------------------- */
 
 export { STATUS };

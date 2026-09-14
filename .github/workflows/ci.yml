@@ -97,11 +97,12 @@ jobs:
       - run: npm ci
 
       # `npm test` runs the desktop shell's own suite (desktop/src/*.test.mjs)
-      # from the root, and two of those tests import `electron-updater`, which
-      # is a dependency of desktop/package.json, not the root. Every CI run
-      # from Phase 47's release to Phase 48 was red on exactly that missing
-      # module while the same suite was green on the maintainer's machine,
-      # where desktop/node_modules had been installed by hand.
+      # from the root, and several of those tests import the Electron runtime
+      # (`electron`, `electron-builder`, the `kingfisher-sparkle.node`
+      # native binding) — all dependencies of `desktop/package.json`, not
+      # the root. Without the desktop install the suite goes red on a
+      # missing module while running green on the maintainer's machine, where
+      # `desktop/node_modules` is always installed by hand.
       - run: npm --prefix desktop ci
 
       - name: Typecheck

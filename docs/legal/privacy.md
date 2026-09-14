@@ -108,18 +108,23 @@ product needs:
 - **GitHub Releases** for the macOS desktop build's update
   feed. The macOS application's **Check for Updates…** menu
   item is the only thing that issues this request, and it
-  only issues the request when the user clicks the menu item.
-  The request fetches `latest-mac.yml` from
+  only issues the request when the user clicks the menu item
+  (a one-time, information-only request also runs at launch,
+  to relabel the menu when a newer release is available).
+  Sparkle, the update engine, fetches `appcast.xml` from
   `https://github.com/mardakurt/kingfisher/releases/latest/download/`,
-  validates it against the production host allow-list, and
-  reads the version, size, and signed SHA-512 of the update
-  ZIP. The user must click **Install Update** before the
-  bytes leave GitHub; the updater does not run on a timer
-  and does not run on launch. If the user picks **Later**,
-  nothing is downloaded and no further request is made. The
-  updater never reads or writes the renderer side: the
-  renderer has no `fetch` and no filesystem access; the main
-  process is the only place network and disk happen.
+  validates its EdDSA signature against the public key baked
+  into the application's `Info.plist`, and reads the version
+  and signed SHA-512 of the update ZIP. The user must click
+  **Install Update** before the bytes leave GitHub; the
+  updater does not run on a timer. If the user picks
+  **Later**, nothing is downloaded and no further request is
+  made. The updater never reads or writes the renderer
+  side: the renderer has no `fetch` and no filesystem
+  access; the main process is the only place network and
+  disk happen. (For installs that predate Sparkle — 1.1.0
+  through 1.1.7 — the engine is `electron-updater` and the
+  request is `latest-mac.yml`; the behaviour is the same.)
 
 The Content-Security-Policy in `vercel.json` is the enforced
 allow-list. Any other host is refused at the browser layer,

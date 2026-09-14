@@ -1,0 +1,9 @@
+{
+  "$comment": "The one record of which Sparkle Kingfisher embeds. `desktop/scripts/fetch-sparkle.mjs` downloads this archive, refuses any other bytes, and unpacks it to desktop/vendor/Sparkle; `publicKey` is the EdDSA key every update must be signed with, and goes into Info.plist as SUPublicEDKey. The private half lives in the maintainer's login keychain (Sparkle's generate_keys, account `kingfisher`) — never in this repository.",
+  "version": "2.10.0",
+  "url": "https://github.com/sparkle-project/Sparkle/releases/download/2.10.0/Sparkle-2.10.0.tar.xz",
+  "sha256": "c2bf58aa8387266ac179357b1415d6f2635f044da8be41042af32425dae6da0c",
+  "bytes": 16319840,
+  "licence": "MIT",
+  "publicKey": "iejytoJRkYOkr8kQSPETdB3yz4KDivNs1lXeVNsLWyk="
+}

@@ -1,313 +1,420 @@
 /**
- * Phase 37: update-service state machine tests.
+ * The update service's state machine, driven by the bridge's own events.
  *
- * These are unit-level mutation tests for the state machine the
- * desktop updater runs on. The point is to pin the contracts the
- * brief calls out as Critical/High:
+ * Sparkle is replaced by an in-memory fake of `sparkle-updater.mjs` — the
+ * module boundary, not the thing under test — and the events are the
+ * strings `bridge.mm` emits (`EVENTS` in `sparkle-updater.mjs`). What is
+ * pinned here is what the service adds on top of Sparkle:
  *
- *   - the cancel race at 99% (PART U) — a late `update-downloaded`
- *     after a cancel must not flip the verdict back to READY;
- *   - the late-event overwrite (PART T) — a slow `error` from a
- *     previous check must not overwrite a current check's verdict.
- *
- * The engine is mocked end-to-end: we replace the imports the
- * service uses with in-memory fakes. This makes the tests
- * deterministic and avoids the live electron-updater cycle.
+ *   - the verdict the menu and the Settings panel render, for every stage;
+ *   - the save barrier, at the one moment Sparkle asks whether it may
+ *     relaunch: released on `ok: true`, held on anything else;
+ *   - the profile handoff, written before the relaunch is released;
+ *   - the preview channel, which asks the network nothing;
+ *   - a build without Sparkle, which says so instead of pretending.
  */
 
-import { describe, expect, it, vi } from 'vitest';
+import { mkdtempSync, existsSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 
-function makeEngine() {
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+const cacheDirs = [];
+
+function makeEngine({ started = true } = {}) {
   const listeners = new Map();
-  const offAll = () => listeners.clear();
-  const emit = (event, payload) => {
-    const set = listeners.get(event);
-    if (!set) return;
-    for (const l of Array.from(set)) {
-      try {
-        l(payload);
-      } catch (err) {
-        // Don't let one listener's throw poison the others.
-        console.error('listener threw', err);
-      }
-    }
-  };
   const on = (event, listener) => {
     if (!listeners.has(event)) listeners.set(event, new Set());
     listeners.get(event).add(listener);
     return () => listeners.get(event)?.delete(listener);
   };
+  const emit = (event, payload = {}) => {
+    for (const listener of Array.from(listeners.get(event) ?? [])) listener(payload);
+  };
+  const cacheDir = mkdtempSync(path.join(tmpdir(), 'kingfisher-updater-cache-'));
+  cacheDirs.push(cacheDir);
   return {
     listeners,
-    emit,
     on,
-    offAll,
-    fakeCheck: vi.fn(async () => undefined),
-    fakeDownload: vi.fn(async () => undefined),
-    fakeCancel: vi.fn(async () => undefined),
-    fakeQuitAndInstall: vi.fn(async () => undefined),
+    emit,
+    cacheDir,
+    canCheck: true,
+    start: vi.fn(() => ({ started, sparkleVersion: '2.10.0', reason: started ? null : 'no key' })),
+    describe: vi.fn(() => ({
+      started,
+      sparkleVersion: '2.10.0',
+      reason: started ? null : 'no key',
+    })),
+    isUpdaterSupported: vi.fn(() => started),
+    checkForUpdates: vi.fn(),
+    checkForUpdateInformation: vi.fn(),
+    resumeRelaunch: vi.fn(() => true),
+    hasPostponedRelaunch: vi.fn(() => false),
   };
 }
 
-function listenerCount(engine) {
-  let total = 0;
-  for (const set of engine.listeners.values()) total += set.size;
-  return total;
+function makeDialog() {
+  return { showMessageBox: vi.fn(async () => ({ response: 0 })) };
 }
 
-async function loadService(engine) {
+async function loadService(
+  engine,
+  { dialog = makeDialog(), userData = '/tmp/kingfisher-profile' } = {},
+) {
   vi.resetModules();
   vi.doMock('electron', () => ({
-    app: { getVersion: () => '1.0.0', isQuitting: false },
+    app: {
+      getVersion: () => '1.1.7',
+      getPath: (name) => (name === 'userData' ? userData : '/tmp'),
+    },
+    dialog,
+    shell: { openExternal: vi.fn(async () => undefined) },
   }));
-  vi.doMock('./kingfisher-updater.mjs', () => ({
+  vi.doMock('./sparkle-updater.mjs', () => ({
     on: engine.on,
-    checkForUpdate: engine.fakeCheck,
-    downloadUpdate: engine.fakeDownload,
-    cancelDownload: engine.fakeCancel,
-    quitAndInstall: engine.fakeQuitAndInstall,
-    isUpdaterSupported: () => true,
-    getRunningAppSignature: async () => ({ signed: false, isDeveloperId: false }),
+    start: engine.start,
+    describe: engine.describe,
+    isUpdaterSupported: engine.isUpdaterSupported,
+    checkForUpdates: engine.checkForUpdates,
+    checkForUpdateInformation: engine.checkForUpdateInformation,
+    canCheckForUpdates: () => engine.canCheck,
+    resumeRelaunch: engine.resumeRelaunch,
+    hasPostponedRelaunch: engine.hasPostponedRelaunch,
+    updaterCacheDir: () => engine.cacheDir,
   }));
-  vi.doMock('./save-barrier.mjs', () => ({
-    DEFAULT_TIMEOUT_MS: 5_000,
-    FAILURE_REASONS: ['pending-writes', 'write-failed', 'timeout', 'renderer-unavailable'],
-    createSaveBarrier: () => ({
-      dispatch: async () => ({ ok: true }),
-      currentRequestId: () => null,
-    }),
-  }));
-  const mod = await import('./update-service.mjs');
-  return mod;
+  vi.doMock('./save-barrier.mjs', () => ({ DEFAULT_TIMEOUT_MS: 5_000 }));
+  vi.doMock('./log.mjs', () => ({ log: () => {} }));
+  const service = await import('./update-service.mjs');
+  return { service, dialog };
 }
 
-describe('update-service — generation id (PART T)', () => {
-  it("detaches the previous check's engine handlers when a new check starts", async () => {
+const found = {
+  version: '600',
+  displayVersion: '1.1.8',
+  title: 'Kingfisher 1.1.8',
+  date: 'Mon, 14 Sep 2026 20:00:00 +0000',
+  contentLength: 171_000_000,
+  fileURL:
+    'https://github.com/mardakurt/kingfisher/releases/download/v1.1.8/Kingfisher-1.1.8-arm64.zip',
+  releaseNotesURL: null,
+};
+
+afterEach(() => {
+  for (const dir of cacheDirs.splice(0)) rmSync(dir, { recursive: true, force: true });
+});
+
+describe('the verdict follows Sparkle', () => {
+  it('a found update is available, with its version, build and size; nothing found is up to date', async () => {
     const engine = makeEngine();
-    const { check, __resetForTests } = await loadService(engine);
-    try {
-      // Initial: no listeners.
-      expect(listenerCount(engine)).toBe(0);
-      // First check binds 7 listeners.
-      const c1 = check();
-      expect(listenerCount(engine)).toBe(7);
-      // Second check: the first check's listeners are detached
-      // before the new ones are bound, so the total stays at 7.
-      const c2 = check();
-      expect(listenerCount(engine)).toBe(7);
-      // The two checks are independent promises; we do not need
-      // to await them for the listener count to be correct.
-      await Promise.allSettled([c1, c2]);
-    } finally {
-      __resetForTests();
-    }
+    const { service } = await loadService(engine);
+    const seen = [];
+    service.subscribe((v) => seen.push(v.status));
+    service.startUpdater({});
+    expect(engine.start).toHaveBeenCalledOnce();
+
+    await service.check();
+    expect(engine.checkForUpdates).toHaveBeenCalledOnce();
+    engine.emit('checking', { check: 'user' });
+    expect(service.getState()).toMatchObject({ status: 'checking', quiet: false });
+    engine.emit('found', found);
+    expect(service.getState()).toMatchObject({
+      status: 'available',
+      currentVersion: '1.1.7',
+      latestVersion: '1.1.8',
+      latestBuild: '600',
+      sizeBytes: 171_000_000,
+      releaseName: 'Kingfisher 1.1.8',
+    });
+    engine.emit('checking', { check: 'user' });
+    engine.emit('not-found', { noUpdateReason: 1 });
+    expect(service.getState()).toMatchObject({
+      status: 'up-to-date',
+      reason: 'on the latest version',
+    });
+    expect(seen).toEqual(['idle', 'checking', 'available', 'checking', 'up-to-date']);
   });
 
-  it('a third check still keeps exactly 7 engine listeners attached', async () => {
+  it('the quiet launch-time check relabels the menu and never opens a window', async () => {
     const engine = makeEngine();
-    const { check, __resetForTests } = await loadService(engine);
-    try {
-      const c1 = check();
-      const c2 = check();
-      const c3 = check();
-      expect(listenerCount(engine)).toBe(7);
-      await Promise.allSettled([c1, c2, c3]);
-    } finally {
-      __resetForTests();
-    }
+    const { service, dialog } = await loadService(engine);
+    service.startUpdater({});
+    expect(service.checkQuietly()).toBe(true);
+    expect(engine.checkForUpdateInformation).toHaveBeenCalledOnce();
+    expect(engine.checkForUpdates).not.toHaveBeenCalled();
+    engine.emit('checking', { check: 'information' });
+    expect(service.getState()).toMatchObject({ status: 'checking', quiet: true });
+    engine.emit('found', found);
+    expect(service.getState()).toMatchObject({ status: 'available', latestVersion: '1.1.8' });
+    expect(dialog.showMessageBox).not.toHaveBeenCalled();
+    // …and the person's own click then goes to Sparkle's window.
+    await service.check();
+    expect(engine.checkForUpdates).toHaveBeenCalledOnce();
   });
 
-  it('cancel clears the engine listeners bound to the cancelled check', async () => {
+  it('download, verification and readiness are reported stage by stage', async () => {
     const engine = makeEngine();
-    const { check, cancelDownload, __resetForTests } = await loadService(engine);
-    try {
-      const c1 = check();
-      expect(listenerCount(engine)).toBe(7);
-      await cancelDownload();
-      // After cancel, the engine listeners bound to the cancelled
-      // check are detached. Any subsequent check will rebind, but
-      // in between there is exactly 0.
-      expect(listenerCount(engine)).toBe(0);
-      void c1;
-    } finally {
-      __resetForTests();
-    }
+    const { service } = await loadService(engine);
+    service.startUpdater({});
+    engine.emit('found', found);
+    engine.emit('choice', { choice: 'install', stage: 'not-downloaded' });
+    engine.emit('will-download', { item: found, url: found.fileURL });
+    expect(service.getState()).toMatchObject({ status: 'downloading', latestVersion: '1.1.8' });
+    engine.emit('did-download', { item: found });
+    expect(service.getState().status).toBe('downloaded');
+    engine.emit('will-extract', { item: found });
+    expect(service.getState().status).toBe('verifying');
+    engine.emit('did-extract', { item: found });
+    expect(service.getState().status).toBe('ready');
+    engine.emit('will-install', { item: found });
+    expect(service.getState().status).toBe('installing');
+  });
+
+  it('"Skip This Version" returns the menu to its plain label; "Remind Me Later" keeps the update available', async () => {
+    const engine = makeEngine();
+    const { service } = await loadService(engine);
+    service.startUpdater({});
+    engine.emit('found', found);
+    engine.emit('choice', { choice: 'dismiss', stage: 'not-downloaded' });
+    expect(service.getState()).toMatchObject({ status: 'available', latestVersion: '1.1.8' });
+    engine.emit('choice', { choice: 'skip', stage: 'not-downloaded' });
+    expect(service.getState().status).toBe('idle');
+  });
+
+  it('a cancelled download leaves the update available; a failed one says why', async () => {
+    const engine = makeEngine();
+    const { service } = await loadService(engine);
+    service.startUpdater({});
+    engine.emit('found', found);
+    engine.emit('will-download', { item: found });
+    engine.emit('download-cancelled', {});
+    expect(service.getState()).toMatchObject({ status: 'available', latestVersion: '1.1.8' });
+    engine.emit('will-download', { item: found });
+    engine.emit('download-failed', {
+      item: found,
+      error: { code: 2001, description: 'The network connection was lost.' },
+    });
+    expect(service.getState()).toMatchObject({
+      status: 'failed',
+      reason: 'The update could not be downloaded. Check the connection and try again.',
+    });
+  });
+
+  it('a cycle that ends without a verdict does not leave the menu on "Checking…"', async () => {
+    const engine = makeEngine();
+    const { service } = await loadService(engine);
+    service.startUpdater({});
+    engine.emit('checking', { check: 'user' });
+    engine.emit('finished', { check: 'user', error: null });
+    expect(service.getState().status).toBe('idle');
+  });
+
+  it('Sparkle aborting is read by its error code', async () => {
+    const engine = makeEngine();
+    const { service } = await loadService(engine);
+    service.startUpdater({});
+    engine.emit('found', found);
+    // The person cancelled at the authorisation prompt: still available.
+    engine.emit('aborted', { code: 4007, description: 'cancelled' });
+    expect(service.getState()).toMatchObject({ status: 'available', latestVersion: '1.1.8' });
+    // "No update" is reported through not-found and ignored here.
+    engine.emit('aborted', { code: 1001, description: 'no update' });
+    expect(service.getState().status).toBe('available');
+    // A feed that cannot be read, during a check: unable, in a sentence.
+    engine.emit('checking', { check: 'user' });
+    engine.emit('aborted', {
+      code: 1002,
+      description: 'An error occurred in retrieving update information.',
+    });
+    expect(service.getState()).toMatchObject({
+      status: 'unable-to-check',
+      reason: 'The release feed could not be read. The download page always has the newest build.',
+    });
+    // A bad signature, after a download: failed, and it says the update was not installed.
+    engine.emit('will-download', { item: found });
+    engine.emit('aborted', { code: 3001, description: 'The update is improperly signed.' });
+    expect(service.getState()).toMatchObject({
+      status: 'failed',
+      reason: 'The downloaded update is not signed by Kingfisher and was not installed.',
+    });
   });
 });
 
-describe('update-service — cancel race (PART U)', () => {
-  it('cancel sets the verdict to CANCELED before the user observes it', async () => {
+describe('the save barrier, when Sparkle asks to relaunch', () => {
+  it('is released on ok, after the profile handoff is written', async () => {
     const engine = makeEngine();
-    const { check, cancelDownload, __getVerdictForTests, __resetForTests } =
-      await loadService(engine);
-    try {
-      const c1 = check();
-      // A download is in flight at 99%.
-      engine.emit('update-available', { version: '1.1.0', files: [] });
-      engine.emit('download-progress', { transferred: 99, total: 100, bytesPerSecond: 0 });
-      // User clicks Cancel.
-      await cancelDownload();
-      // The verdict is CANCELED.
-      const v = __getVerdictForTests();
-      expect(v.status).toBe('canceled');
-      void c1;
-    } finally {
-      __resetForTests();
-    }
+    const { service } = await loadService(engine, {
+      userData: '/Users/someone/Library/Application Support/kf-test',
+    });
+    const order = [];
+    const onSaveBarrier = vi.fn(async () => {
+      order.push('barrier');
+      return { ok: true };
+    });
+    engine.resumeRelaunch.mockImplementation(() => {
+      order.push('resume');
+      return true;
+    });
+    service.startUpdater({ onSaveBarrier });
+    engine.emit('found', found);
+    engine.emit('will-install', { item: found });
+    engine.emit('postpone-relaunch', { item: found });
+    expect(service.getState().status).toBe('waiting-for-save');
+    await vi.waitFor(() => expect(engine.resumeRelaunch).toHaveBeenCalledOnce());
+    expect(onSaveBarrier).toHaveBeenCalledWith({ timeoutMs: 5_000 });
+    expect(order).toEqual(['barrier', 'resume']);
+    expect(service.getState().status).toBe('installing');
+    const handoff = path.join(engine.cacheDir, 'relaunch-profile.json');
+    expect(existsSync(handoff)).toBe(true);
+    expect(JSON.parse(readFileSync(handoff, 'utf8')).userData).toBe(
+      '/Users/someone/Library/Application Support/kf-test',
+    );
+    engine.emit('will-relaunch', {});
+    expect(service.getState().status).toBe('restarting');
   });
 
-  it('after cancel, the engine has no listeners that could flip the verdict', async () => {
+  it('is held on a failed barrier: the install block is never run and the person is told', async () => {
     const engine = makeEngine();
-    const { check, cancelDownload, __getVerdictForTests, __resetForTests } =
-      await loadService(engine);
-    try {
-      const c1 = check();
-      engine.emit('update-available', { version: '1.1.0', files: [] });
-      await cancelDownload();
-      // No listeners. A late `update-downloaded` cannot reach
-      // the state machine.
-      expect(listenerCount(engine)).toBe(0);
-      // The verdict is still CANCELED, not READY.
-      expect(__getVerdictForTests().status).toBe('canceled');
-      // Firing a late event does not change anything observable.
-      engine.emit('update-downloaded', { version: '1.1.0', path: '/tmp/x.zip' });
-      expect(__getVerdictForTests().status).toBe('canceled');
-      void c1;
-    } finally {
-      __resetForTests();
-    }
-  });
-});
-
-describe('update-service — install while quitting (PART W)', () => {
-  it('refuses to install when isQuitting returns true', async () => {
-    const engine = makeEngine();
-    const { installAndRestart, __getVerdictForTests, __resetForTests } = await loadService(engine);
-    try {
-      // The verdict must be in a state where install is allowed
-      // (READY) for the gate to be exercised. We seed a verdict
-      // by emitting the relevant events first.
-      // installAndRestart handles AVAILABLE → download → READY.
-      // We simulate the user already in READY.
-      // The simplest path: installAndRestart is called while
-      // the verdict is IDLE; the gate is the isQuitting check
-      // BEFORE the verdict check, so it should still fire.
-      const result = await installAndRestart({ isQuitting: () => true });
-      const verdict = __getVerdictForTests();
-      expect(verdict.status).toBe('failed');
-      expect(engine.fakeQuitAndInstall).not.toHaveBeenCalled();
-      void result;
-    } finally {
-      __resetForTests();
-    }
+    const { service, dialog } = await loadService(engine);
+    const onSaveBarrier = vi.fn(async () => ({ ok: false, reason: 'timeout' }));
+    service.startUpdater({ onSaveBarrier });
+    engine.emit('found', found);
+    engine.emit('postpone-relaunch', { item: found });
+    await vi.waitFor(() => expect(dialog.showMessageBox).toHaveBeenCalledOnce());
+    expect(engine.resumeRelaunch).not.toHaveBeenCalled();
+    expect(service.getState()).toMatchObject({
+      status: 'failed',
+      reason: expect.stringContaining('could not confirm that your work finished saving'),
+    });
+    expect(dialog.showMessageBox.mock.calls[0][0].detail).toContain(
+      'Quit Kingfisher to install it',
+    );
+    expect(existsSync(path.join(engine.cacheDir, 'relaunch-profile.json'))).toBe(false);
   });
 
-  it('allows install when isQuitting returns false', async () => {
+  it('a barrier that throws is a failed barrier', async () => {
     const engine = makeEngine();
-    const { installAndRestart, __resetForTests } = await loadService(engine);
-    try {
-      try {
-        await installAndRestart({ isQuitting: () => false });
-      } catch {
-        // The install path may throw before reaching
-        // quitAndInstall if the verdict is not in a state that
-        // permits install. The contract under test is the
-        // isQuitting gate; if we got here, the gate passed and
-        // the rest of the path tried to run.
-      }
-      // quitAndInstall is invoked by the install path when the
-      // verdict allows it. We assert the gate did not block.
-      // (Other guards may still throw before the call, which is
-      // acceptable for this test.)
-      expect(engine.fakeQuitAndInstall).toHaveBeenCalledTimes(0);
-    } finally {
-      __resetForTests();
-    }
+    const { service } = await loadService(engine);
+    service.startUpdater({
+      onSaveBarrier: async () => {
+        throw new Error('ipc gone');
+      },
+    });
+    engine.emit('postpone-relaunch', { item: found });
+    await vi.waitFor(() => expect(service.getState().status).toBe('failed'));
+    expect(engine.resumeRelaunch).not.toHaveBeenCalled();
+    expect(service.getState().reason).toContain('(ipc gone)');
+  });
+
+  it('is skipped when the application is already quitting, and the relaunch is released', async () => {
+    const engine = makeEngine();
+    const { service } = await loadService(engine);
+    const onSaveBarrier = vi.fn(async () => ({ ok: true }));
+    service.startUpdater({ onSaveBarrier, isQuitting: () => true });
+    engine.emit('postpone-relaunch', { item: found });
+    await vi.waitFor(() => expect(engine.resumeRelaunch).toHaveBeenCalledOnce());
+    expect(onSaveBarrier).not.toHaveBeenCalled();
+    expect(existsSync(path.join(engine.cacheDir, 'relaunch-profile.json'))).toBe(true);
+  });
+
+  it('an install deferred to quit still hands the profile to the relaunch', async () => {
+    const engine = makeEngine();
+    const { service } = await loadService(engine);
+    service.startUpdater({});
+    engine.emit('will-install-on-quit', { item: found });
+    expect(existsSync(path.join(engine.cacheDir, 'relaunch-profile.json'))).toBe(true);
   });
 });
 
-describe('update-service — the preview channel', () => {
+describe('the channel', () => {
   it('a preview build answers from what it is, and asks the network nothing', async () => {
     const engine = makeEngine();
-    const { check, configureChannel, manualDownloadUrl, __resetForTests } =
-      await loadService(engine);
-    try {
-      configureChannel({
-        name: 'preview',
-        build: 431,
-        downloadUrl: 'https://kingfisher-chess.vercel.app',
-      });
-      const verdict = await check();
-      expect(verdict).toMatchObject({
-        status: 'preview',
-        currentVersion: '1.0.0',
-        build: 431,
-        downloadUrl: 'https://kingfisher-chess.vercel.app',
-      });
-      expect(engine.fakeCheck).not.toHaveBeenCalled();
-      expect(listenerCount(engine)).toBe(0);
-      expect(manualDownloadUrl()).toBe('https://kingfisher-chess.vercel.app');
-    } finally {
-      __resetForTests();
-      configureChannel({ name: 'stable' });
+    const { service, dialog } = await loadService(engine);
+    service.startUpdater({});
+    service.configureChannel({
+      name: 'preview',
+      build: 431,
+      downloadUrl: 'https://kingfisherchess.app/',
+    });
+    const verdict = await service.check();
+    expect(verdict).toMatchObject({
+      status: 'preview',
+      currentVersion: '1.1.7',
+      build: 431,
+      downloadUrl: 'https://kingfisherchess.app/',
+    });
+    expect(engine.checkForUpdates).not.toHaveBeenCalled();
+    expect(dialog.showMessageBox).toHaveBeenCalledOnce();
+    expect(dialog.showMessageBox.mock.calls[0][0].message).toContain('preview build 431');
+    expect(service.manualDownloadUrl()).toBe('https://kingfisherchess.app/');
+    expect(service.checkQuietly()).toBe(false);
+    expect(engine.checkForUpdateInformation).not.toHaveBeenCalled();
+  });
+
+  it('a stable build — and an unconfigured one — asks Sparkle', async () => {
+    const engine = makeEngine();
+    const { service } = await loadService(engine);
+    service.startUpdater({});
+    for (const name of ['stable', 'dev', undefined]) {
+      service.configureChannel({ name });
+      engine.checkForUpdates.mockClear();
+      await service.check();
+      expect(engine.checkForUpdates).toHaveBeenCalledTimes(1);
+      expect(service.manualDownloadUrl()).toBeNull();
     }
   });
 
-  it('a stable build — and an unconfigured one — still consults the feed', async () => {
+  it('while Sparkle is busy the click does nothing, as the disabled menu item says', async () => {
     const engine = makeEngine();
-    const { check, configureChannel, manualDownloadUrl, __resetForTests } =
-      await loadService(engine);
-    try {
-      for (const name of ['stable', 'dev', undefined]) {
-        configureChannel({ name });
-        engine.fakeCheck.mockClear();
-        const run = check();
-        expect(engine.fakeCheck).toHaveBeenCalledTimes(1);
-        expect(manualDownloadUrl()).toBeNull();
-        await Promise.allSettled([run]);
-        __resetForTests();
-      }
-    } finally {
-      __resetForTests();
-    }
+    const { service } = await loadService(engine);
+    service.startUpdater({});
+    engine.canCheck = false;
+    await service.check();
+    expect(engine.checkForUpdates).not.toHaveBeenCalled();
+    expect(service.checkQuietly()).toBe(false);
   });
 });
 
-describe('update-service — what a failed check says', () => {
-  it('names the three cases a person can meet, and bounds everything else', async () => {
-    const engine = makeEngine();
-    const { describeCheckFailure } = await loadService(engine);
-    const github =
-      'Cannot find latest-mac.yml in the latest release artifacts (https://github.com/x/y/releases/download/v1.0.0/latest-mac.yml): HttpError: 404 \n"method: GET url: …"\nHeaders: {\n  "cache-control": "no-cache"\n}\n    at createHttpError (/Applications/Kingfisher.app/Contents/Resources/app.asar/node_modules/builder-util-runtime/out/httpExecutor.js:53:12)';
-    expect(describeCheckFailure(new Error(github))).toMatch(/carries no update feed/);
-    expect(describeCheckFailure(new Error(github))).not.toMatch(/app\.asar|Headers|HttpError/);
-    expect(describeCheckFailure(new Error('net::ERR_INTERNET_DISCONNECTED'))).toMatch(
-      /could not be reached/,
+describe('a build without Sparkle', () => {
+  it('says so in a message box and in the verdict, and never pretends to check', async () => {
+    const engine = makeEngine({ started: false });
+    const { service, dialog } = await loadService(engine);
+    const started = service.startUpdater({});
+    expect(started.started).toBe(false);
+    const verdict = await service.check();
+    expect(verdict).toMatchObject({ status: 'unable-to-check', reason: 'no key' });
+    expect(engine.checkForUpdates).not.toHaveBeenCalled();
+    expect(dialog.showMessageBox).toHaveBeenCalledOnce();
+    expect(dialog.showMessageBox.mock.calls[0][0].message).toBe(
+      'Updates are not available in this build.',
     );
-    expect(describeCheckFailure(new Error('getaddrinfo ENOTFOUND github.com'))).toMatch(
-      /could not be reached/,
-    );
-    expect(describeCheckFailure(new Error('HttpError: 403 rate limit exceeded'))).toMatch(
-      /refused the request for now/,
-    );
-    const long = describeCheckFailure(new Error(`${'x'.repeat(400)}\nsecond line`));
-    expect(long.length).toBeLessThanOrEqual(200);
-    expect(long).not.toContain('second line');
-    expect(describeCheckFailure(undefined)).toBe('The check did not complete.');
+    expect(service.checkQuietly()).toBe(false);
   });
+});
 
-  it('is what the dialog is given when the engine throws', async () => {
+describe('what a failed check says', () => {
+  it('names the cases a person can meet, and bounds everything else', async () => {
     const engine = makeEngine();
-    engine.fakeCheck.mockImplementation(async () => {
-      throw new Error('Cannot find latest-mac.yml … HttpError: 404 \nHeaders: {}');
-    });
-    const { check, __resetForTests } = await loadService(engine);
-    try {
-      const verdict = await check();
-      expect(verdict.status).toBe('unable-to-check');
-      expect(verdict.reason).toMatch(/carries no update feed/);
-    } finally {
-      __resetForTests();
-    }
+    const { service } = await loadService(engine);
+    expect(service.describeCheckFailure({ code: 1002, description: 'x' })).toBe(
+      'The release feed could not be read. The download page always has the newest build.',
+    );
+    expect(service.describeCheckFailure({ code: 1003, description: 'x' })).toContain(
+      'Drag it to Applications',
+    );
+    expect(
+      service.describeCheckFailure({
+        description: 'The Internet connection appears to be offline.',
+      }),
+    ).toBe('The release host could not be reached. Check the connection and try again.');
+    expect(service.describeCheckFailure({ description: 'HTTP 429 rate limit' })).toBe(
+      'The release host refused the request for now. Try again in a few minutes.',
+    );
+    const long = `Something else went wrong at /tmp/x ${'y'.repeat(300)}\nsecond line`;
+    const text = service.describeCheckFailure({ description: long });
+    expect(text.length).toBeLessThanOrEqual(200);
+    expect(text.endsWith('…')).toBe(true);
+    expect(text).not.toContain('second line');
+    expect(service.describeCheckFailure(undefined)).toBe('The check did not complete.');
   });
 });

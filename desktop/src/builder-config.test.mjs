@@ -126,19 +126,51 @@ describe('electron-builder.yml', () => {
     expect(pgn.role).toBe('Viewer');
   });
 
-  it('declares the stable feed so app-update.yml is written, and only ever uploads by hand', () => {
-    // A feed has to be declared for electron-builder to write app-update.yml
-    // into the bundle; with `publish: null` a packaged build had nothing to
-    // ask. Uploading is the release scripts' job: build.mjs passes
-    // `--publish never` on every run.
-    expect(config.publish).toMatchObject({
-      provider: 'github',
-      owner: 'mardakurt',
-      repo: 'kingfisher',
+  it("ships Sparkle: the framework beside Electron's, the bridge unpacked, the policy in the plist", () => {
+    // The framework under Contents/Frameworks is what gets it signed and
+    // notarised with the bundle; the bridge is a shared library and cannot
+    // be loaded from inside the asar. `sparkle-bundle.mjs` checks the built
+    // result; this checks the instruction that produces it.
+    expect(config.extraFiles).toContainEqual({
+      from: 'vendor/Sparkle/Sparkle.framework',
+      to: 'Frameworks/Sparkle.framework',
     });
-    expect(config.publish.releaseType).toBe('release');
+    expect(config.files).toContain('native/sparkle/build/kingfisher-sparkle.node');
+    expect(config.asarUnpack).toEqual(['native/sparkle/build/kingfisher-sparkle.node']);
+    // No scheduled check, no automatic download: the two keys Sparkle
+    // reads before anything the bridge sets.
+    expect(config.mac.extendInfo.SUEnableAutomaticChecks).toBe(false);
+    expect(config.mac.extendInfo.SUAllowsAutomaticUpdates).toBe(false);
+    // The feed and the key come from their single sources, through build.mjs.
+    expect(config.mac.extendInfo.SUFeedURL).toBeUndefined();
+    expect(config.mac.extendInfo.SUPublicEDKey).toBeUndefined();
     const build = readFileSync(path.join(DESKTOP, 'scripts', 'build.mjs'), 'utf8');
-    expect(build).toMatch(/'--publish',\s*'never'/);
+    expect(build).toMatch(/-c\.mac\.extendInfo\.SUFeedURL=\$\{publicUrl\.appcast\}/);
+    expect(build).toMatch(/-c\.mac\.extendInfo\.SUPublicEDKey=\$\{sparklePublicKey\}/);
+    expect(build).toMatch(/await fetchSparkle\(\);\s*buildBridge\(\);/);
+    // A publishable build carries the recorded key and nothing else.
+    expect(build).toMatch(
+      /identity\.channel !== 'dev' && sparklePublicKey !== SPARKLE\.publicKey[\s\S]*process\.exit\(1\)/,
+    );
+  });
+
+  it('never uploads from the build: no publish block, and no electron-updater feed', () => {
+    expect(config.publish).toBeUndefined();
+    const yml = readFileSync(path.join(DESKTOP, 'electron-builder.yml'), 'utf8');
+    expect(yml).not.toMatch(/app-update\.yml/);
+    const pkg = JSON.parse(readFileSync(path.join(DESKTOP, 'package.json'), 'utf8'));
+    expect(pkg.dependencies?.['electron-updater']).toBeUndefined();
+  });
+
+  it('records the Sparkle it embeds, with a digest and the public key', () => {
+    const record = JSON.parse(readFileSync(path.join(DESKTOP, 'sparkle.json'), 'utf8'));
+    expect(record.version).toMatch(/^\d+\.\d+\.\d+$/);
+    expect(record.url).toBe(
+      `https://github.com/sparkle-project/Sparkle/releases/download/${record.version}/Sparkle-${record.version}.tar.xz`,
+    );
+    expect(record.sha256).toMatch(/^[0-9a-f]{64}$/);
+    expect(record.publicKey).toMatch(/^[A-Za-z0-9+/]{43}=$/);
+    expect(record.licence).toBe('MIT');
   });
 
   it('the DMG contract the verifier asserts', () => {

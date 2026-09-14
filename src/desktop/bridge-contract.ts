@@ -150,15 +150,15 @@ export const BRIDGE_CONTRACTS: readonly BridgeContract[] = [
   {
     method: 'subscribeUpdates',
     purpose:
-      'Phase 35: receive every verdict the main process emits, including the progress events while ' +
-      'a download is running.',
+      'Phase 35: receive every verdict the main process emits as Sparkle moves through a check, a ' +
+      'download and an install.',
     caller: 'release/UpdateCheckSection.tsx',
   },
   {
     method: 'showUpdateDialog',
     purpose:
-      'Phase 35: open the small Check for Updates dialog from the Settings panel or the command palette. ' +
-      'The macOS application menu does not go through this bridge — it calls the dialog directly.',
+      'Phase 35: ask for an update check from the Settings panel or the command palette; Sparkle shows ' +
+      'its own window. The macOS application menu does not go through this bridge — it calls the service directly.',
     caller: 'release/UpdateCheckSection.tsx',
   },
   {

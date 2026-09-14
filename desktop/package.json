@@ -12,14 +12,13 @@
     "dmg:background": "python3 scripts/build-dmg-background.py",
     "dmg:icon": "bash scripts/build-dmg-icon.sh",
     "dmg:assets": "npm run dmg:background && npm run dmg:icon",
-    "dmg:verify": "node scripts/verify-dmg.mjs"
+    "dmg:verify": "node scripts/verify-dmg.mjs",
+    "sparkle:fetch": "node scripts/fetch-sparkle.mjs",
+    "sparkle:bridge": "node native/sparkle/build.mjs"
   },
   "devDependencies": {
     "electron": "44.2.0",
     "electron-builder": "^26.0.12"
   },
-  "author": "Kingfisher",
-  "dependencies": {
-    "electron-updater": "^6.8.9"
-  }
+  "author": "Kingfisher"
 }

@@ -529,9 +529,10 @@ file to the list when you add one to `extraResources`.
 `npm run desktop:certify` runs every packaged gate against one
 `Kingfisher.app`: smoke, window chrome, restart, the engine fleet,
 suspend, two seeded walks (one with faults), the DMG verifier, the
-zero-skip scan and the unit suite. `npm run desktop:update:dialog`
-drives the Check for Updates window through all fifteen states in light
-and dark with fixture verdicts and saves a screenshot of each. `npm run desktop:walk -- --packaged
+zero-skip scan and the unit suite. The update window is Sparkle's
+own now; the harness that drives it (`scripts/desktop-update-e2e-real.mjs`)
+runs the menu's _Check for Updates…_ through Sparkle's native window
+with `scripts/desktop-lib/sparkle-ui.mjs`. `npm run desktop:walk -- --packaged
 --seed=N --actions=N` is the seeded hostile user with invariants;
 `npm run desktop:soak` is the same for thirty minutes with memory and
 process sampling (`--duration=2h`, `--duration=8h` for longer). A

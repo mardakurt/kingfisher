@@ -19,10 +19,12 @@ async function load(version) {
     app: { getVersion: () => version, getPath: () => profile, isQuitting: false },
     dialog: {},
   }));
-  vi.doMock('./kingfisher-updater.mjs', () => ({
+  vi.doMock('./sparkle-updater.mjs', () => ({
     on: () => () => {},
-    isUpdaterSupported: () => true,
-    getRunningAppSignature: async () => ({ signed: true, isDeveloperId: true }),
+    start: () => ({ started: false, reason: 'not in tests' }),
+    describe: () => ({ started: false, reason: 'not in tests' }),
+    isUpdaterSupported: () => false,
+    updaterCacheDir: () => profile,
   }));
   const service = await import('./update-service.mjs');
   return { profile, service };
@@ -33,10 +35,12 @@ async function reload(profile, version) {
     app: { getVersion: () => version, getPath: () => profile, isQuitting: false },
     dialog: {},
   }));
-  vi.doMock('./kingfisher-updater.mjs', () => ({
+  vi.doMock('./sparkle-updater.mjs', () => ({
     on: () => () => {},
-    isUpdaterSupported: () => true,
-    getRunningAppSignature: async () => ({ signed: true, isDeveloperId: true }),
+    start: () => ({ started: false, reason: 'not in tests' }),
+    describe: () => ({ started: false, reason: 'not in tests' }),
+    isUpdaterSupported: () => false,
+    updaterCacheDir: () => profile,
   }));
   return import('./update-service.mjs');
 }

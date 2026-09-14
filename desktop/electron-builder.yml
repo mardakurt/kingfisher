@@ -34,17 +34,33 @@ directories:
 
 # The shell itself, and nothing else. The application it serves and the
 # companion it runs are resources, below — they are spawned, so they cannot
-# live inside the archive.
+# live inside the archive. The Sparkle bridge is the one native module: it
+# is listed here so it is packed, and unpacked below because a shared
+# library cannot be loaded from inside an archive.
 files:
   - src/**/*
   - package.json
+  - native/sparkle/build/kingfisher-sparkle.node
   - '!**/*.test.mjs'
+  - '!src/test-helpers/**'
   - '!web/**/*'
   - '!**/*.map'
   - '!**/*.tsbuildinfo'
   - '!**/.DS_Store'
 
 asar: true
+asarUnpack:
+  - native/sparkle/build/kingfisher-sparkle.node
+
+# Sparkle.framework, into Contents/Frameworks beside Electron's own, from the
+# copy `scripts/fetch-sparkle.mjs` verified against `sparkle.json`. Being
+# under Contents/Frameworks is what gets it signed (each of Autoupdate,
+# Updater.app and the framework, with the hardened runtime) and notarised
+# with the rest of the bundle; `desktop/src/sparkle-bundle.mjs` is the list
+# of what must be there, and every gate reads it.
+extraFiles:
+  - from: vendor/Sparkle/Sparkle.framework
+    to: Frameworks/Sparkle.framework
 
 # Missing runtime resources fail packaging before signing (afterPack), and
 # the signed, notarised application is launched — bridge, web server,
@@ -141,6 +157,16 @@ mac:
     # network.
     NSAppTransportSecurity:
       NSAllowsLocalNetworking: true
+    # Sparkle. The feed and the key are supplied by `scripts/build.mjs` —
+    # SUFeedURL from `src/release/public-urls.ts`, SUPublicEDKey from
+    # `sparkle.json` — so this file never holds a second copy of either.
+    # The two booleans are the policy: no scheduled check (and therefore no
+    # "check automatically?" prompt on second launch), and no download
+    # before the person clicks Install Update. `native/sparkle/bridge.mm`
+    # sets the same two on the updater object, so a stray user default can
+    # never override them.
+    SUEnableAutomaticChecks: false
+    SUAllowsAutomaticUpdates: false
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
   # electron-builder notarises the signed .app through @electron/notarize when
@@ -251,16 +277,6 @@ dmg:
 # `release:preflight:mac` gate refuses to run a *trusted* release build
 # without a `Developer ID Application` certificate present.
 #
-# The stable feed. Declaring it is what makes electron-builder write
-# `app-update.yml` into the bundle and `latest-mac.yml` beside the ZIP —
-# with `publish: null` neither existed, and a packaged build's *Check for
-# Updates…* had no feed to ask. `desktop/scripts/build.mjs` always passes
-# `--publish never`, so nothing is uploaded at build time; the release
-# process uploads with `gh release upload` after verification. Prereleases
-# (the macOS preview channel) are invisible to this feed:
-# `allowPrerelease` is false in `kingfisher-updater.mjs`.
-publish:
-  provider: github
-  owner: mardakurt
-  repo: kingfisher
-  releaseType: release
+# No `publish:` block. The update feed is Sparkle's appcast, written by
+# `scripts/desktop-mac-appcast.mjs` after the build and uploaded by
+# `release:mac:publish`; electron-builder never uploads anything.

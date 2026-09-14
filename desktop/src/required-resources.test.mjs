@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 const DESKTOP = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 import { REQUIRED_DESKTOP_RESOURCES, assertDesktopResources } from './required-resources.mjs';
+import { writeSparkleFixture } from './test-helpers/sparkle-fixture.mjs';
 import verifyPackage from '../scripts/verify-package.mjs';
 
 const temporary = [];
@@ -18,6 +19,7 @@ function fixture() {
     mkdirSync(resource.kind === 'directory' ? file : path.dirname(file), { recursive: true });
     writeFileSync(resource.kind === 'directory' ? path.join(file, 'asset') : file, 'fixture');
   }
+  writeSparkleFixture(path.join(output, 'Kingfisher.app/Contents'));
   return {
     root,
     context: {
@@ -58,13 +60,17 @@ describe('the build hooks', () => {
     const yml = readFileSync(path.join(DESKTOP, 'electron-builder.yml'), 'utf8');
     expect(yml).toMatch(/^afterPack: scripts\/verify-package\.mjs$/m);
     expect(yml).toMatch(/^afterSign: scripts\/verify-package-boot\.mjs$/m);
-    // One electron-builder run: a split run drops app-update.yml.
+    // One electron-builder run: the boot gate must run against the bytes
+    // that are archived.
     const build = readFileSync(path.join(DESKTOP, 'scripts/build.mjs'), 'utf8');
     expect(build).not.toMatch(/prepackaged=|packagePipeline|spawnSync\([^)]*--dir/);
   });
-  it('the boot gate refuses a bundle without an update feed', () => {
+  it('the pack and boot gates refuse a bundle Sparkle cannot run in', () => {
+    const pack = readFileSync(path.join(DESKTOP, 'scripts/verify-package.mjs'), 'utf8');
+    expect(pack).toMatch(/assertSparkleBundle\(contents\)/);
     const boot = readFileSync(path.join(DESKTOP, 'scripts/verify-package-boot.mjs'), 'utf8');
-    expect(boot).toMatch(/app-update\.yml/);
-    expect(boot).toMatch(/provider:\\s\*github/);
+    expect(boot).toMatch(/assertSparkleBundle\(/);
+    // …and, inside the launched application, that Sparkle actually started.
+    expect(boot).toMatch(/checks\.updater\?\.started,\s*true/);
   });
 });

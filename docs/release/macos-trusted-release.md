@@ -67,13 +67,16 @@ KINGFISHER_DESKTOP_CHANNEL=stable npm run desktop:dist
 
 This produces, in `desktop/dist/` (or `KINGFISHER_DESKTOP_OUT`):
 
-- `Kingfisher-<version>-arm64.dmg` — the first-install
-  artifact
-- `Kingfisher-<version>-arm64.zip` — the auto-update
-  payload
-- `latest-mac.yml` — electron-builder's update feed, which
-  must be uploaded to the release for _Check for Updates…_ in
-  installed builds to find it
+- `Kingfisher-<version>-arm64.dmg` — the first-install artifact
+- `Kingfisher-<version>-arm64.zip` — the auto-update payload
+- `appcast.xml` — the Sparkle update feed `release:mac:appcast`
+  writes; **what the next stable build will ask the release host for
+  in `Check for Updates…`**, verified against the public key baked
+  into Info.plist (`desktop/sparkle.json`)
+- `latest-mac.yml` — the electron-updater feed for the installs that
+  predate Sparkle (1.1.0–1.1.7); `release:mac:appcast` writes it
+  alongside `appcast.xml` so a 1.1.7 build continues to update
+  through the old engine
 
 The bundle records its build number, commit and `stable`
 channel; `node desktop/scripts/verify-dmg.mjs <dmg> --version
@@ -108,7 +111,7 @@ unsigned.
 Then give the disk image its own ticket:
 
 ```bash
-npm run release:mac:notarize            # notarytool submit --wait, staple, validate; rewrites the DMG row of latest-mac.yml
+npm run release:mac:notarize            # notarytool submit --wait, staple, validate; rewrites the DMG row of appcast.xml/latest-mac.yml
 ```
 
 `notarytool` accepts a zip, a dmg or a pkg, never a bare `.app`, which is
@@ -166,19 +169,22 @@ running the local staging harness.
 
 ```bash
 # In one terminal: the staging feed, served from a directory
-# holding the candidate ZIP + latest-mac.yml.
+# holding the candidate ZIP + appcast.xml.
 mkdir -p desktop/dist/staging
 cp desktop/dist/Kingfisher-1.1.0-arm64.zip desktop/dist/staging/
-# Generate a matching latest-mac.yml here (the e2e script
-# does this automatically when run).
+# Generate a matching appcast.xml here (the e2e script
+# does this automatically when run; the next release carries
+# one, signed with the keychain key `kingfisher` and pointed
+# at this staging download URL by --download-url-prefix).
 
 # In another terminal: the staged e2e test.
 npm run desktop:update:e2e
 ```
 
 The e2e test starts the staging server, runs the wire-level
-certification of the staging protocol, and (with `--packaged`)
-launches the actual `.app` to exercise the install path.
+certification of the staging protocol (appcast, signature, key),
+and the real e2e — `desktop:update:real` — drives Sparkle's own
+window end-to-end with the staging feed and a current Kingfisher.app.
 
 The mutation suite is the cheap second check:
 

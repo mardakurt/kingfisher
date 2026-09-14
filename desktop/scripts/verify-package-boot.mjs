@@ -1,8 +1,8 @@
 /** electron-builder afterSign: boot the signed, notarised app before any DMG/ZIP is made. */
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { launchKingfisher, waitForReady } from '../../scripts/desktop-lib/launch.mjs';
+import { assertSparkleBundle } from '../src/sparkle-bundle.mjs';
 
 export default async function verifyPackageBoot(context) {
   if (context.electronPlatformName !== 'darwin') {
@@ -16,31 +16,15 @@ export default async function verifyPackageBoot(context) {
     context.packager.appInfo.productFilename,
   );
   /*
-    The update feed. electron-builder writes it in afterPack when the run's
-    targets include the DMG or ZIP; a bundle without it opens Check for
-    Updates onto "no such file: app-update.yml". Found by the real update
-    test in Phase 47 after a split build dropped it.
+    Sparkle, in the signed bundle: the framework and its helpers, the bridge,
+    and the Info.plist keys. Asserted again after signing because signing
+    is what could have dropped a symlinked framework or refused a nested
+    helper — and once more below, inside the running application, where the
+    only proof that counts is Sparkle reporting that it started.
   */
-  const feed = path.join(
-    context.appOutDir,
-    `${context.packager.appInfo.productFilename}.app`,
-    'Contents',
-    'Resources',
-    'app-update.yml',
+  assertSparkleBundle(
+    path.join(context.appOutDir, `${context.packager.appInfo.productFilename}.app`, 'Contents'),
   );
-  const archives = (context.targets ?? []).some((t) => t.name === 'dmg' || t.name === 'zip');
-  if (archives) {
-    assert.ok(existsSync(feed), `Update feed missing from the bundle: ${feed}`);
-    assert.match(
-      readFileSync(feed, 'utf8'),
-      /provider:\s*github/,
-      'app-update.yml names the GitHub feed',
-    );
-  } else {
-    // `desktop:pack` (--dir) makes no archive and electron-builder writes no
-    // feed for it; that bundle is for local runs, never for publishing.
-    console.log('Directory-only build: no update feed expected.');
-  }
 
   const launched = await launchKingfisher({ packaged: true, executablePath });
   try {
@@ -58,18 +42,30 @@ export default async function verifyPackageBoot(context) {
       const status = await call('/status');
       const catalogue = await call('/engine/catalogue');
       const web = await fetch(location.origin);
+      const diagnostics = await window.kingfisher.diagnostics();
       return {
         bridge: true,
         web: web.ok,
         status: Boolean(status.platform),
         engineIds: catalogue.engines?.map((engine) => engine.id) ?? [],
+        updater: diagnostics?.updater ?? null,
       };
     });
     assert.equal(checks.bridge, true, 'Desktop bridge ready');
     assert.equal(checks.web, true, 'Packaged web server answers');
     assert.equal(checks.status, true, 'Packaged companion answers');
     assert.ok(checks.engineIds.includes('lc0'), 'Managed engine catalogue available');
-    console.log('Fresh packaged boot verified: renderer, web, companion, engine catalogue.');
+    // Sparkle started inside the signed bundle: it loaded, accepted the host
+    // bundle's key and feed, and is the engine Check for Updates will use.
+    assert.equal(
+      checks.updater?.started,
+      true,
+      `Sparkle started in the packaged application (${checks.updater?.reason ?? 'no updater block'})`,
+    );
+    assert.match(String(checks.updater?.feedURL), /^https:\/\//, 'Sparkle knows its feed');
+    console.log(
+      `Fresh packaged boot verified: renderer, web, companion, engine catalogue, Sparkle ${checks.updater.sparkleVersion} (${checks.updater.feedURL}).`,
+    );
   } finally {
     const closed = await launched.close();
     assert.equal(closed.survivors.length, 0, 'Package boot left child processes running');

@@ -3,10 +3,10 @@
  *
  * ## The defect this closes
  *
- * On macOS the update engine (Squirrel.Mac, behind electron-updater) replaces
- * the bundle and relaunches it itself — with no arguments. A Kingfisher that
- * was started with `--user-data-dir=<somewhere else>` therefore comes back
- * on the *default* profile, `~/Library/Application Support/kingfisher-desktop`,
+ * On macOS the update engine (Sparkle since 1.1.8) replaces the bundle and
+ * relaunches it itself — with no arguments. A Kingfisher that was started
+ * with `--user-data-dir=<somewhere else>` therefore comes back on the
+ * *default* profile, `~/Library/Application Support/kingfisher-desktop`,
  * which is the owner's own work. `scripts/desktop-update-e2e-real.mjs` ran
  * exactly that way in Phases 51, 52 and 53: a freshly built 1.1.5, then a
  * 1.1.6, each opened the owner's real profile for eight seconds, ran the web

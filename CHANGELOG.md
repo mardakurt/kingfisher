@@ -4,6 +4,36 @@ The user-facing changelog. Internal phase history is in
 `docs/reports/` and `docs/product/phase-*.md`; the list below is what
 real users notice.
 
+## Unreleased — update engine: Sparkle
+
+The macOS desktop app's update engine is now Sparkle
+([sparkle-project.org](https://sparkle-project.org/)), replacing the
+`electron-updater` / Squirrel.Mac pipeline that shipped 1.1.0–1.1.7.
+The behaviour a person notices is unchanged: _Kingfisher → Check for
+Updates…_ still asks the user before any network traffic, the
+download still installs only after **Install Update** is clicked, and
+the running bundle still has to be Developer ID signed for the update
+to be accepted. What changed is underneath:
+
+- The release feed is a Sparkle appcast, signed with EdDSA, served
+  from `…/releases/latest/download/appcast.xml` on GitHub.
+  Releases 1.1.0–1.1.7 carry `latest-mac.yml` for the previous
+  engine (`electron-updater`) and continue to be offered the next
+  stable release through it.
+- Updates are verified against the public key baked into
+  `Info.plist`, against the running bundle's own code signature, and
+  against Sparkle's save barrier before the relaunch.
+- The install window is Sparkle's own: progress, the release notes,
+  and **Install Update / Later** are drawn by Sparkle, not by the
+  application. Accessibility automation can drive it
+  (`scripts/desktop-lib/sparkle-ui.mjs`); the harnesses
+  (`desktop:update:real`, `desktop:update:mutations`) now drive
+  Sparkle's window end-to-end.
+- `desktop/src/sparkle-updater.mjs` is the engine interface the shell
+  uses; `desktop/src/sparkle-bundle.mjs` is the contract every build
+  is gated against (`verify-package`, `verify-package-boot`,
+  `verify-dmg`).
+
 ## 1.1.7 — 2026-09-14
 
 One defect, found by the owner within minutes of 1.1.6, and one release.

@@ -28,6 +28,15 @@ describe('publicUrl', () => {
     expect(publicUrl.macosDmg).toBe(macosDownload.url);
   });
 
+  it('names the Sparkle appcast on the newest stable GitHub release', () => {
+    // `releases/latest/download/appcast.xml` follows GitHub's redirect to
+    // the newest non-prerelease release, so a stable Kingfisher always asks
+    // the newest feed and a preview (a pre-release) is never offered.
+    expect(publicUrl.appcast).toBe(
+      'https://github.com/mardakurt/kingfisher/releases/latest/download/appcast.xml',
+    );
+  });
+
   it('exposes GitHub URLs for the repository, issues and discussions', () => {
     expect(publicUrl.repository).toMatch(/^https:\/\/github\.com\/mardakurt\/kingfisher$/);
     expect(publicUrl.issues).toMatch(/\/issues$/);

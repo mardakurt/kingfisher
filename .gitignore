@@ -85,3 +85,8 @@ output/
 # Locally generated manifests; immutable historical evidence lives in docs/release-evidence.
 /release-manifest.json
 /kingfisher-release-manifest.json
+
+# Sparkle, fetched against the digest in desktop/sparkle.json by
+# `npm run desktop:sparkle:fetch`, and the bridge compiled from desktop/native.
+desktop/vendor/
+desktop/native/sparkle/build/

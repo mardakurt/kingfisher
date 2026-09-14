@@ -16,6 +16,7 @@
  *   KINGFISHER_PUBLIC_REPOSITORY_URL
  *   KINGFISHER_PUBLIC_RELEASE_URL
  *   KINGFISHER_PUBLIC_DMG_URL
+ *   KINGFISHER_PUBLIC_APPCAST_URL
  *   KINGFISHER_PUBLIC_ISSUES_URL
  *   KINGFISHER_PUBLIC_DISCUSSIONS_URL
  *   KINGFISHER_PUBLIC_DOCS_URL
@@ -125,6 +126,21 @@ export const publicUrl = {
       online: `${this.data}/reference-online-v1/manifest.json`,
     };
   },
+  /*
+   * The Sparkle appcast a packaged Kingfisher asks for updates — baked
+   * into Info.plist as `SUFeedURL` by `desktop/scripts/build.mjs`. GitHub's
+   * `releases/latest/download/<asset>` redirects to that asset on the
+   * newest non-prerelease release, so every stable release carries its
+   * own `appcast.xml` and the feed is always the newest one; previews are
+   * pre-releases and invisible to it. `scripts/desktop-mac-appcast.mjs`
+   * writes the file, `release:mac:publish` uploads it.
+   */
+  appcast: trimTrailingSlash(
+    fromEnv(
+      'KINGFISHER_PUBLIC_APPCAST_URL',
+      'https://github.com/mardakurt/kingfisher/releases/latest/download/appcast.xml',
+    ),
+  ),
   /*
    * The macOS DMG the public is offered, from `macos-download.json` — the
    * one file that names it (see `macos-download.ts`). Never `/releases/latest`:

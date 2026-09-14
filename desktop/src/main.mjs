@@ -29,14 +29,6 @@ import { fileURLToPath } from 'node:url';
 
 import { readBuildIdentity } from './build-identity.mjs';
 import { log, logFile, openLog, redactInLog } from './log.mjs';
-import { ensureSquirrelMacDirectWrite } from './squirrel-direct-write.mjs';
-
-/*
-  The macOS bundle identifier, fixed by `electron-builder.yml`'s `appId`
-  above. `app.getName()` returns the *product* name, not the bundle ID,
-  so we keep the constant here rather than try to fish it out at runtime.
-*/
-const BUNDLE_IDENTIFIER = 'app.kingfisher.chess';
 import { buildTemplate } from './menu.mjs';
 import { isLichessAuthorizeUrl, openLichessSignIn } from './oauth-window.mjs';
 import {
@@ -66,20 +58,16 @@ import {
   windowChromeFor,
 } from './window-chrome.mjs';
 import {
-  STATUS,
   acknowledgeUpdate,
-  cancelDownload,
   check,
+  checkQuietly,
   configureChannel,
-  manualDownloadUrl,
+  describeEngine,
   recordLaunch,
-  installAndRestart,
-  pruneUpdateCache,
-  setStagingFeed,
+  startUpdater,
   subscribe as subscribeToUpdates,
 } from './update-service.mjs';
-import * as updateWindow from './update-window.mjs';
-import { updaterCacheDir } from './kingfisher-updater.mjs';
+import { updaterCacheDir } from './sparkle-updater.mjs';
 import { takeRelaunchProfile } from './relaunch-profile.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -157,9 +145,8 @@ const state = {
   documentsWanted: false,
   /**
    * The current update verdict, mirrored into the application menu and
-   * the Check for Updates dialog. Mutated only through `updateStatus.set`,
-   * which also rebuilds the menu and forwards the verdict to the dialog
-   * if it is open.
+   * the Settings panel. Mutated only through `updateStatus.set`, which
+   * also rebuilds the menu and forwards the verdict to the renderer.
    */
   updateStatus: { value: { status: 'idle' } },
 };
@@ -169,9 +156,9 @@ const state = {
  *
  * The application menu's *Check for Updates…* label depends on whether
  * a check is in flight, whether an update is ready, etc., so changing
- * the verdict has to rebuild the menu. The dialog subscribes through
- * `subscribeToUpdates` from `update-service.mjs`, which is how the
- * progress bar moves while a download runs.
+ * the verdict has to rebuild the menu. The Settings panel subscribes
+ * through the preload's `subscribeUpdates`, which is the same verdict.
+ * Every window a person sees during an update is Sparkle's own.
  */
 const updateStatus = {
   get value() {
@@ -180,7 +167,6 @@ const updateStatus = {
   set(next) {
     state.updateStatus.value = next ?? { status: 'idle' };
     rebuildMenu();
-    updateWindow.sendVerdict(state.updateStatus.value);
     state.window?.webContents.send('kingfisher:update-verdict', state.updateStatus.value);
     log('update', `verdict: ${state.updateStatus.value.status}`);
   },
@@ -658,7 +644,7 @@ function rebuildMenu() {
           state.recent.clear();
           rebuildMenu();
         },
-        onCheckForUpdates: () => openUpdateDialog(),
+        onCheckForUpdates: () => void check(),
         onOpenSettings: () => state.window?.webContents.send('kingfisher:show-settings'),
         onOpenDocumentation: () => {
           const url = `${process.env.KINGFISHER_PUBLIC_REPOSITORY_URL || 'https://github.com/mardakurt/kingfisher'}`;
@@ -680,96 +666,13 @@ function rebuildMenu() {
   );
 }
 
-/**
- * Open the Check for Updates… dialog. The single entry point used by
- * the application menu, the File menu (non-mac), the Settings panel and
- * the command palette. The dialog is single-instance; a second call
- * focuses the existing window.
- */
-async function openUpdateDialog() {
-  await updateWindow.open({
-    parent: state.window ?? undefined,
-    onAction: handleUpdateAction,
-    onClose: () => {
-      // Re-enable the menu when the dialog closes; the menu's own label
-      // reverts because the verdict listener drives `updateStatus.value`.
-    },
-  });
-  // Send the verdict the dialog is currently on so it does not blank to
-  // 'idle' if the user opens the dialog a second time after a previous
-  // verdict is still cached.
-  updateWindow.sendVerdict(updateStatus.value);
-}
-
-/**
- * Dispatch an action from the dialog to the update service.
- *
- * `action` is one of: 'check', 'install', 'cancel', 'close', 'notes',
- * 'fallback'. Anything unknown is a no-op; the dialog should not
- * produce them, but the service does not trust its own callers.
- *
- * The action names map to user-visible intent. `install` is the
- * canonical "Install Update" button — it owns the entire chain from
- * download through auto-relaunch. `cancel` is meaningful only
- * mid-download; once the engine is in `ready` the button is
- * replaced by the in-progress messaging rather than a fake cancel.
- */
-async function handleUpdateAction(action) {
-  try {
-    switch (action) {
-      case 'check': {
-        await check();
-        return;
-      }
-      case 'install': {
-        // The Install Update flow owns the full chain: download
-        // (if needed), save barrier, engine shutdown, quit, install,
-        // relaunch. The verdict listener updates the dialog in
-        // lockstep as the state machine moves.
-        await installAndRestart({
-          onSaveBarrier: requestSaveBarrier,
-          isQuitting: () => Boolean(state.quitting),
-        });
-        return;
-      }
-      case 'cancel': {
-        await cancelDownload();
-        return;
-      }
-      case 'notes': {
-        const url = `${process.env.KINGFISHER_PUBLIC_RELEASE_URL || 'https://github.com/mardakurt/kingfisher/releases/latest'}`;
-        void shell.openExternal(url);
-        return;
-      }
-      case 'fallback': {
-        // Manual fallback: the page this channel's newest build is on. For a
-        // preview that is the landing page, never `/releases/latest`, which
-        // is the *stable* release and may be older than the preview.
-        const url =
-          manualDownloadUrl() ??
-          `${process.env.KINGFISHER_PUBLIC_REPOSITORY_URL || 'https://github.com/mardakurt/kingfisher'}/releases/latest`;
-        void shell.openExternal(url);
-        return;
-      }
-      case 'acknowledge': {
-        acknowledgeUpdate();
-        state.window?.webContents.send('kingfisher:update-acknowledged');
-        return;
-      }
-      case 'close':
-        updateWindow.close();
-        return;
-      default:
-        return;
-    }
-  } catch (err) {
-    log('update', `dialog action failed: ${String(err?.message ?? err)}`);
-    updateStatus.set({
-      status: STATUS.FAILED,
-      reason: 'The updater could not complete the request.',
-    });
-  }
-}
+/*
+  *Check for Updates…* is `check()` in `update-service.mjs`: Sparkle makes the
+  request and shows its own windows — the update found with its release
+  notes, the download, the ready-to-install prompt. The menu, the Settings
+  panel and the command palette all arrive there, and the verdict listener
+  below is how the menu label follows what Sparkle is doing.
+*/
 
 /**
  * Save barrier: ask the main window to flush any in-flight writes
@@ -978,6 +881,8 @@ function registerIpc() {
       dirty: buildIdentity.dirty,
       label: buildIdentity.label,
     },
+    /** The update engine: Sparkle's version, whether it started, and the feed it asks. */
+    updater: describeEngine(),
     web: { running: Boolean(state.web?.running), pid: state.web?.pid ?? null, url: state.appUrl },
     companion: {
       running: Boolean(state.companion?.running),
@@ -1011,7 +916,7 @@ function registerIpc() {
   ipcMain.handle('kingfisher:update-status', () => updateStatus.value);
 
   ipcMain.on('kingfisher:show-update-dialog', () => {
-    void openUpdateDialog();
+    void check();
   });
 
   /*
@@ -1079,15 +984,6 @@ if (!app.requestSingleInstanceLock()) {
         `profile adopted from the update's relaunch handoff: ${relaunchProfile.userData}`,
       );
     }
-    /*
-      Suppress the Squirrel.Mac SMJobBless "Kingfisher is trying to add a
-      new helper tool" prompt that otherwise fires on every update. The
-      flag lives in the user's defaults for our bundle identifier; the
-      helper writes it as a string ("TRUE") because ShipIt compares with
-      `isEqualToString:` and an integer 1 would not match. See the module
-      docstring in `squirrel-direct-write.mjs` for the full reasoning.
-    */
-    ensureSquirrelMacDirectWrite(BUNDLE_IDENTIFIER);
     configureChannel({
       name: buildIdentity.channel,
       build: buildIdentity.build,
@@ -1114,28 +1010,34 @@ if (!app.requestSingleInstanceLock()) {
       copyright: 'Copyright © 2026 Kingfisher.',
     });
     registerIpc();
+    /*
+      The update engine. Sparkle is loaded from the bundle and started with
+      the save barrier it must clear before a relaunch; in a developer
+      checkout (`electron .` inside Electron.app) Sparkle refuses the host
+      bundle and *Check for Updates…* says so. `KINGFISHER_UPDATER_FEED_URL`
+      is the staging harnesses' feed override, set only by
+      `scripts/desktop-lib/launch.mjs`.
+    */
+    const engine = startUpdater({
+      onSaveBarrier: requestSaveBarrier,
+      isQuitting: () => Boolean(state.quitting),
+      feedURL: process.env.KINGFISHER_UPDATER_FEED_URL || null,
+    });
+    if (!engine.started) log('update', `updater unavailable: ${engine.reason}`);
     rebuildMenu();
     // Mirror every update-service verdict through `updateStatus` so the
-    // menu and the dialog stay in lockstep with the service's own state.
+    // menu and the Settings panel stay in lockstep with the service.
     subscribeToUpdates((verdict) => {
-      // The service emits progress events; update the menu on the
-      // status changes that matter to its label.
       const next = verdict ?? { status: 'idle' };
       if (
         state.updateStatus.value.status !== next.status ||
         state.updateStatus.value.latestVersion !== next.latestVersion ||
-        state.updateStatus.value.path !== next.path ||
         state.updateStatus.value.reason !== next.reason
       ) {
         state.updateStatus.value = next;
         rebuildMenu();
-        updateWindow.sendVerdict(next);
-        state.window?.webContents.send('kingfisher:update-verdict', next);
-      } else {
-        // Same shape, but the progress numbers have moved.
-        updateWindow.sendVerdict(next);
-        state.window?.webContents.send('kingfisher:update-verdict', next);
       }
+      state.window?.webContents.send('kingfisher:update-verdict', next);
     });
     try {
       await startServices();
@@ -1155,21 +1057,18 @@ if (!app.requestSingleInstanceLock()) {
     void openPaths(openableFromArgv(process.argv));
 
     /*
-      Phase 50: silent background update check on launch.
-      ChatGPT, Claude, and other Electron-based macOS apps check for
-      updates as soon as the app is ready and quietly re-label the
-      *Check for Updates…* menu item to *An Update Is Available…* when
-      one is found. We do the same here — a single `check()` call,
-      errors swallowed, no UI unless something actually changes.
-      The user can still trigger an explicit check from the menu
-      (that path is unaffected); this is the always-on quiet layer.
+      Phase 50: the quiet look at launch. One information-only request to
+      the feed through Sparkle, five seconds after the window — no window,
+      no download; a newer release relabels *Check for Updates…* to *An
+      Update Is Available…*. The explicit menu click is unaffected, and a
+      preview build or a checkout makes no request at all.
     */
     setTimeout(() => {
-      check()
-        .then(() => log('update', 'background check on launch completed'))
-        .catch((err) =>
-          log('update', `background check on launch failed: ${String(err?.message ?? err)}`),
-        );
+      try {
+        if (checkQuietly()) log('update', 'quiet check at launch requested');
+      } catch (err) {
+        log('update', `quiet check at launch failed: ${String(err?.message ?? err)}`);
+      }
     }, 5_000);
 
     /*
@@ -1187,22 +1086,6 @@ if (!app.requestSingleInstanceLock()) {
       state.window?.webContents.once('did-finish-load', () => {
         state.window?.webContents.send('kingfisher:update-installed', notice);
       });
-    }
-
-    /*
-      Phase 36: staging feed override. The local E2E test sets
-      `KINGFISHER_UPDATER_FEED_URL` to point at a staging HTTP
-      server so the same packaged binary can be exercised against a
-      deterministic candidate. Production builds never set this.
-    */
-    const stagingFeed = process.env.KINGFISHER_UPDATER_FEED_URL;
-    if (stagingFeed) {
-      try {
-        await setStagingFeed({ url: stagingFeed, channel: 'latest' });
-        log('update', `staging feed configured: ${stagingFeed}`);
-      } catch (err) {
-        log('update', `staging feed set failed: ${String(err?.message ?? err)}`);
-      }
     }
 
     app.on('activate', () => {
@@ -1223,24 +1106,12 @@ if (!app.requestSingleInstanceLock()) {
     if (stopping) return;
     stopping = true;
     event.preventDefault();
-    // Phase 37 (PART W): once the quit has been requested, refuse
-    // any new install. The renderer may have already sent
-    // `kingfisher-update:install` and is racing the shutdown.
+    // Once the quit has been requested, a relaunch Sparkle is holding for
+    // the save barrier is released without one (`releaseRelaunch` in
+    // update-service.mjs reads this); a download Sparkle has in flight is
+    // its own, and it resumes it on the next check.
     state.quitting = true;
     log('quit', 'stopping services');
-    // Cancel any in-flight update before the children are stopped, so
-    // the user does not return to a half-finished download and a
-    // `READY` verdict that the next launch inherits as stale state.
-    cancelDownload();
-    // Bounded cleanup of the update cache. Keeps the most recent
-    // verified download (the user may quit and reopen expecting it)
-    // and unlinks everything else.
-    try {
-      const removed = pruneUpdateCache();
-      if (removed > 0) log('quit', `pruned ${removed} cached update files`);
-    } catch (err) {
-      log('quit', `prune failed: ${String(err?.message ?? err)}`);
-    }
     void stopServices().finally(() => {
       log('quit', 'services stopped');
       app.exit(0);

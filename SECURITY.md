@@ -144,15 +144,22 @@ in the running deployment.
   web server, companion, engine catalogue, update feed — before a DMG is
   made from those bytes.
 - **Updates.** _Kingfisher → Check for Updates…_ is the only entry
-  point; there is no poller. The update engine is `electron-updater`
-  reading `latest-mac.yml` from the latest GitHub release; the download
-  is verified against the feed's SHA-512, the renderer confirms every
-  write is committed (a failed save barrier aborts the install), the
-  running binary is confirmed Developer ID signed, and macOS's own
-  update engine — which refuses an update whose signature does not
-  match the running application — replaces the bundle and relaunches.
-  The public 1.0.0 predates the updater and is signed with a different
-  identity; it cannot update itself and must be replaced by hand once.
+  point; there is no poller. The update engine is **Sparkle**
+  (`desktop/scripts/fetch-sparkle.mjs` vendors it against the digest
+  recorded in `desktop/sparkle.json`); the running application reads
+  the appcast named by `SUFeedURL` in `Info.plist`
+  (`scripts/desktop-mac-appcast.mjs` writes it), the download is
+  verified against the appcast's EdDSA signature and the bundle's own
+  Developer ID, the renderer confirms every write is committed (a
+  failed save barrier aborts the install and leaves the postponed
+  install unreleased), and Sparkle's own installer — which refuses an
+  update whose code signature does not match the running application —
+  replaces the bundle and relaunches. The public 1.0.0 predates the
+  updater and is signed with a different identity; it cannot update
+  itself and must be replaced by hand once. Every release from 1.1.8
+  on carries an appcast; 1.1.0–1.1.7 still ship `latest-mac.yml` for
+  the previous engine (`electron-updater`) and continue to be offered
+  the next stable release through it.
 
 ### What the product deliberately does **not** do
 
@@ -180,27 +187,30 @@ in the running deployment.
   **preview** build answers from what it is — its build number and
   a button to the download page — and makes no request at all,
   because previews are replaced by downloading the next one. A
-  **stable** build asks the GitHub release feed baked into the
-  bundle (`app-update.yml`) once, through `electron-updater`
-  configured with `autoDownload: false`, `autoInstallOnAppQuit:
-false`, `allowPrerelease: false` (so the preview channel is
-  invisible to it) and `allowDowngrade: false`. If a newer release
-  is published, the dialog offers **Install Update**; on that click
-  the main process downloads the update ZIP, verifies its SHA-512
-  against the feed, asks the renderer to flush every in-flight
-  write (the **save barrier** — a failed save aborts the install
-  and says so), and hands the verified archive to macOS's own
-  update engine, which refuses an update whose code signature does
-  not match the running application. The renderer never sees
-  `fetch` or the filesystem. Every release since 1.1.0 carries
-  `latest-mac.yml`, so an installed 1.1.0 or later is offered the next stable
-  release; the public 1.0.0 predates the updater and is replaced by
-  hand. The implementation is in
+  **stable** build reads the Sparkle appcast baked into the bundle
+  (`SUFeedURL`) once, with `SUEnableAutomaticChecks=false` and
+  `SUAllowsAutomaticUpdates=false` (so neither scheduled check nor
+  silent download is possible); the bridge
+  ([`desktop/native/sparkle/bridge.mm`](desktop/native/sparkle/bridge.mm))
+  asserts the same on the `SPUUpdater`. If the appcast offers a
+  newer release Sparkle shows its own window with **Install
+  Update**; on that click the main process downloads the update
+  archive, verifies its EdDSA signature against the public key
+  baked into `Info.plist`, asks the renderer to flush every
+  in-flight write (the **save barrier** — a failed save aborts the
+  install and leaves the postponed install unreleased), and Sparkle
+  replaces the bundle (it refuses an update whose code signature
+  does not match the running application). The renderer never sees
+  `fetch` or the filesystem. Every release from 1.1.8 on carries an
+  appcast; releases 1.1.0–1.1.7 still ship `latest-mac.yml` for the
+  previous engine (`electron-updater`) and continue to be offered
+  the next stable release through it; the public 1.0.0 predates the
+  updater and is replaced by hand. The implementation is in
   [`desktop/src/update-service.mjs`](desktop/src/update-service.mjs)
-  and [`desktop/src/kingfisher-updater.mjs`](desktop/src/kingfisher-updater.mjs);
+  and [`desktop/src/sparkle-updater.mjs`](desktop/src/sparkle-updater.mjs);
   `npm run desktop:update:mutations` is its mutation suite and
   `npm run desktop:update:real` performs a real update between two
-  packaged builds through the real menu and dialog.
+  packaged builds through Sparkle's own window.
 - **First-launch trust.** A fresh download of the current release carries the
   browser's quarantine attribute; Gatekeeper finds the stapled ticket,
   macOS shows its standard "downloaded from the Internet" confirmation
