@@ -4,10 +4,11 @@ The user-facing changelog. Internal phase history is in
 `docs/reports/` and `docs/product/phase-*.md`; the list below is what
 real users notice.
 
-## Unreleased (web)
+## 1.1.5 — 2026-09-14
 
-From the owner's twelve reports on 1.1.4. Everything below is in the web
-application now and in the next Mac build.
+From the owner's twelve reports on 1.1.4. Everything below is in both the
+web application and the Mac application; the Mac 1.1.5 is built from the
+same source revision as the web deployment.
 
 - **The evaluation bar can be read.** It is wider, the figure in it is
   the one the engine panel shows (two decimals, or one past ten pawns),
