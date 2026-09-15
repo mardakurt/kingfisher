@@ -7,6 +7,16 @@ file plus `src/desktop/bridge.ts`, which returns `null` in a browser.
 This document is the Phase 49 check on that claim, feature by feature,
 with the deliberate differences named and the reason for each.
 
+**Published revision check (2026-09-15, 1.1.8).** The public Mac 1.1.8
+DMG is built from the `v1.1.8` tag's revision — its build number and
+commit are in `src/release/macos-download.json` — which is the revision
+the web deployment served when it was built. 1.1.8 changes the shell
+only: the update engine is Sparkle (`desktop/src/sparkle-updater.mjs`,
+`desktop/native/sparkle/`), the Settings → Application panel describes
+it, and the public security page says the launch-time check exists.
+The renderer change is two sentences of copy; nothing else reaches the
+web application, and the paragraphs below still hold.
+
 **Published revision check (2026-09-14, 1.1.7).** The public Mac 1.1.7
 DMG is built from the `v1.1.7` tag's revision — its build number and
 commit are in `src/release/macos-download.json` — which is the revision

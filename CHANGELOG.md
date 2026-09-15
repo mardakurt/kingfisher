@@ -4,35 +4,34 @@ The user-facing changelog. Internal phase history is in
 `docs/reports/` and `docs/product/phase-*.md`; the list below is what
 real users notice.
 
-## Unreleased — update engine: Sparkle
+## 1.1.8 — 2026-09-15
 
-The macOS desktop app's update engine is now Sparkle
-([sparkle-project.org](https://sparkle-project.org/)), replacing the
-`electron-updater` / Squirrel.Mac pipeline that shipped 1.1.0–1.1.7.
-The behaviour a person notices is unchanged: _Kingfisher → Check for
-Updates…_ still asks the user before any network traffic, the
-download still installs only after **Install Update** is clicked, and
-the running bundle still has to be Developer ID signed for the update
-to be accepted. What changed is underneath:
+One change, underneath: the Mac application's update engine is now
+**Sparkle** ([sparkle-project.org](https://sparkle-project.org/)), the
+update framework Mac applications use, replacing the `electron-updater` /
+Squirrel.Mac pipeline that shipped in 1.1.0–1.1.7.
 
-- The release feed is a Sparkle appcast, signed with EdDSA, served
-  from `…/releases/latest/download/appcast.xml` on GitHub.
-  Releases 1.1.0–1.1.7 carry `latest-mac.yml` for the previous
-  engine (`electron-updater`) and continue to be offered the next
-  stable release through it.
-- Updates are verified against the public key baked into
-  `Info.plist`, against the running bundle's own code signature, and
-  against Sparkle's save barrier before the relaunch.
-- The install window is Sparkle's own: progress, the release notes,
-  and **Install Update / Later** are drawn by Sparkle, not by the
-  application. Accessibility automation can drive it
-  (`scripts/desktop-lib/sparkle-ui.mjs`); the harnesses
-  (`desktop:update:real`, `desktop:update:mutations`) now drive
-  Sparkle's window end-to-end.
-- `desktop/src/sparkle-updater.mjs` is the engine interface the shell
-  uses; `desktop/src/sparkle-bundle.mjs` is the contract every build
-  is gated against (`verify-package`, `verify-package-boot`,
-  `verify-dmg`).
+- **What you see is Sparkle's own update window.** _Kingfisher → Check
+  for Updates…_ asks the release feed and, when a newer version exists,
+  Sparkle shows it with its release notes: **Install Update** downloads
+  and verifies it, **Install and Relaunch** replaces the application and
+  reopens it with your work where you left it. **Skip This Version** is
+  honoured. Nothing is downloaded until you click.
+- **No password or Touch ID prompt.** Sparkle replaces the bundle with
+  your own permissions; the "Kingfisher is trying to add a new helper
+  tool" prompt belonged to the previous engine.
+- **Every update is signed.** The archive carries an EdDSA signature that
+  the application checks against the key baked into it before anything
+  is installed, and Sparkle also refuses a bundle whose code signature
+  does not match the running one. Your work is confirmed saved before
+  the application is replaced, as before.
+- **The one quiet look at launch** (since 1.1.2) stays: five seconds after
+  Kingfisher opens it asks the feed once, shows nothing and downloads
+  nothing, and relabels the menu item when a newer version exists.
+- **Updating from 1.1.7 or earlier works as before.** Those versions ask
+  the previous engine's feed, which every release still carries; their
+  last update through it may show the helper-tool prompt once, and the
+  version it installs never will again.
 
 ## 1.1.7 — 2026-09-14
 
