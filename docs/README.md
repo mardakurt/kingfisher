@@ -37,8 +37,8 @@ with [`AGENTS.md`](../AGENTS.md).
 - [`product/public-claims.md`](product/public-claims.md) — every public
   claim, where it appears, what backs it, and what must not be claimed.
   **Read before changing a landing-page or README sentence.**
-- [`release/1.1.8.md`](release/1.1.8.md) — release notes for the current
-  public release. [`release/1.1.7.md`](release/1.1.7.md), [`release/1.1.6.md`](release/1.1.6.md), [`release/1.1.5.md`](release/1.1.5.md), [`release/1.1.4.md`](release/1.1.4.md), [`release/1.1.3.md`](release/1.1.3.md),
+- [`release/1.1.9.md`](release/1.1.9.md) — release notes for the current
+  public release. [`release/1.1.8.md`](release/1.1.8.md), [`release/1.1.7.md`](release/1.1.7.md), [`release/1.1.6.md`](release/1.1.6.md), [`release/1.1.5.md`](release/1.1.5.md), [`release/1.1.4.md`](release/1.1.4.md), [`release/1.1.3.md`](release/1.1.3.md),
   [`release/1.1.2.md`](release/1.1.2.md), [`release/1.1.1.md`](release/1.1.1.md),
   [`release/1.1.0.md`](release/1.1.0.md) and [`release/1.0.0.md`](release/1.0.0.md)
   are the previous ones.
@@ -223,7 +223,7 @@ with [`AGENTS.md`](../AGENTS.md).
   [`release/1.0.0-rc.3.md`](release/1.0.0-rc.3.md),
   [`release/1.0.0-rc.4.md`](release/1.0.0-rc.4.md),
   [`release/1.0.0-rc.5.md`](release/1.0.0-rc.5.md) — release-candidate notes.
-  The current notes are [`release/1.1.8.md`](release/1.1.8.md).
+  The current notes are [`release/1.1.9.md`](release/1.1.9.md).
 - [`../.github/ISSUE_TEMPLATE/`](../.github/ISSUE_TEMPLATE) — issue templates;
   current, and listed here so nothing is unaccounted for.
 - [`../marketing/README.md`](../marketing/README.md) and

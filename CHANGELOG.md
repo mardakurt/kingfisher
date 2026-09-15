@@ -4,6 +4,27 @@ The user-facing changelog. Internal phase history is in
 `docs/reports/` and `docs/product/phase-*.md`; the list below is what
 real users notice.
 
+## 1.1.9 — 2026-09-15
+
+One defect in the Mac application, found by the release gates for 1.1.8
+within the hour, and one release.
+
+- **A launch that names its own profile leaves the update's relaunch
+  alone.** After an update is installed, Kingfisher hands the profile it
+  was running on to the instance that relaunches, through one small file.
+  A Kingfisher started with an explicit `--user-data-dir` in the five
+  minutes after an install took that file, opened the updated instance's
+  profile instead of its own, and the real relaunch — which arrives with
+  no arguments — found nothing and opened the default profile. Only a
+  launch that names a profile could do this; a double-click never does.
+  It now leaves the file for the relaunch.
+- **`release:mac:publish` refuses a stale transition feed.** The feed the
+  installed 1.1.0–1.1.7 read is regenerated for every release and checked
+  against the release's own archive before anything is uploaded.
+
+Everything in 1.1.8 — Sparkle, its window, the signed feed — is
+unchanged.
+
 ## 1.1.8 — 2026-09-15
 
 One change, underneath: the Mac application's update engine is now

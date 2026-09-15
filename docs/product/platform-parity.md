@@ -7,6 +7,14 @@ file plus `src/desktop/bridge.ts`, which returns `null` in a browser.
 This document is the Phase 49 check on that claim, feature by feature,
 with the deliberate differences named and the reason for each.
 
+**Published revision check (2026-09-15, 1.1.9).** The public Mac 1.1.9
+DMG is built from the `v1.1.9` tag's revision — its build number and
+commit are in `src/release/macos-download.json` — which is the revision
+the web deployment served when it was built. 1.1.9 changes the shell
+only: a launch with an explicit `--user-data-dir` leaves the update's
+relaunch handoff alone (`desktop/src/relaunch-profile.mjs`). Nothing in
+it reaches the web application; the paragraphs below still hold.
+
 **Published revision check (2026-09-15, 1.1.8).** The public Mac 1.1.8
 DMG is built from the `v1.1.8` tag's revision — its build number and
 commit are in `src/release/macos-download.json` — which is the revision
