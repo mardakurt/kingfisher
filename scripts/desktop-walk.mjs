@@ -13,8 +13,9 @@
  *   - the position on the board is a legal chess position;
  *   - every engine arrow is a legal move in *that* position;
  *   - the application never claims "Save failed" unless a fault was injected;
- *   - there is one application window (plus the update dialog, if open) and
- *     one application instance;
+ *   - there is one application window and one application instance
+ *     (Sparkle's update window is native and is read, and dismissed,
+ *     through the Accessibility API);
  *   - no native engine is running that the companion does not own;
  *   - no renderer crashed, no helper process died, nothing in the main
  *     process threw or rejected without a handler;
@@ -50,6 +51,7 @@ import {
   waitForReady,
 } from './desktop-lib/launch.mjs';
 import { writeCorpus } from './desktop-lib/pgn-corpus.mjs';
+import { clickButton, closeWindow, waitForWindow, windowsOf } from './desktop-lib/sparkle-ui.mjs';
 
 // --- arguments ---------------------------------------------------------------
 
@@ -777,43 +779,45 @@ class Walk {
         weight: 1,
         async run() {
           const p = await page();
-          w.expectedWindows = 2;
+          /*
+            Check for Updates… — Sparkle's own window, not a BrowserWindow, so
+            the window invariant does not count it and Playwright cannot see
+            it; System Events can. The person this walk plays reads what
+            Sparkle says and declines: OK on "up to date" or an error, the
+            close button on an offered update — never Install Update, which
+            would replace the bundle under test, and never Skip This Version,
+            which Sparkle remembers in the bundle's user defaults, shared with
+            any other Kingfisher on this machine.
+          */
+          const target = { pid: w.app.process().pid };
           await p.evaluate(() => window.kingfisher.showUpdateDialog());
-          await p.waitForTimeout(700);
-          // Press the dialog's own primary button, as a person would, and
-          // record what the updater says about this build.
-          const dialog = w.app
-            .windows()
-            .find((win) => /update\.html/.test(win.url()) && !win.isClosed());
-          let headline = null;
-          if (dialog) {
-            const primary = dialog.locator('#primary');
-            if (await primary.isEnabled().catch(() => false)) await primary.click();
-            await p.waitForTimeout(2_500);
-            headline = await dialog
-              .locator('#headline')
-              .textContent()
-              .catch(() => null);
+          const shown = await waitForWindow(
+            target,
+            { button: /^(OK|Install Update|Cancel Update|Close|Remind Me Later)$/ },
+            { timeoutMs: 45_000 },
+          );
+          let said = null;
+          if (shown) {
+            said = shown.texts.join(' | ');
+            const dismiss = ['OK', 'Cancel Update', 'Close', 'Remind Me Later'].find((name) =>
+              shown.buttons.includes(name),
+            );
+            if (dismiss) clickButton(target, shown.index, dismiss, shown.sheet);
+            else closeWindow(target, shown.index);
+            await p.waitForTimeout(700);
           }
           const verdict = await p.evaluate(() => window.kingfisher.updateStatus());
-          if (headline && /could not start|did not receive/.test(headline)) {
+          w.updateVerdicts = w.updateVerdicts ?? [];
+          w.updateVerdicts.push(verdict);
+          if (windowsOf(target).some((win) => win.buttons.includes('Install Update'))) {
             w.findings.push({
               step: w.stepIndex,
               action: 'update-dialog',
-              name: 'update-dialog-broken',
-              detail: headline,
+              name: 'update-window-not-dismissed',
+              detail: said ?? 'an update window stayed open',
             });
           }
-          w.updateVerdicts = w.updateVerdicts ?? [];
-          w.updateVerdicts.push(verdict);
-          await w.app.evaluate(({ BrowserWindow }) => {
-            for (const win of BrowserWindow.getAllWindows()) {
-              if (/update/.test(win.webContents.getURL())) win.close();
-            }
-          });
-          await p.waitForTimeout(200);
-          w.expectedWindows = 1;
-          return `verdict ${verdict?.status}${verdict?.reason ? ` — ${verdict.reason}` : ''}${headline ? ` · "${headline}"` : ''}`;
+          return `verdict ${verdict?.status}${verdict?.reason ? ` — ${verdict.reason}` : ''}${said ? ` · "${said}"` : ' · no window within 45 s'}`;
         },
       },
       {

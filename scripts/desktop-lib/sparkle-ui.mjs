@@ -187,6 +187,19 @@ export async function waitAndClick(target, button, { timeoutMs = 60_000, text = 
   return { window, button: name };
 }
 
+/**
+ * Close a window through its own close button — what a person does to
+ * decline an offered update without installing it and without "Skip This
+ * Version", which Sparkle would remember in the bundle's user defaults
+ * (shared with any other copy of Kingfisher on the machine).
+ */
+export function closeWindow(target, windowIndex) {
+  const script = `tell application "System Events" to tell (${processRef(target)}) to click (first button of window ${windowIndex} whose subrole is "AXCloseButton")`;
+  const result = osascript(script);
+  if (!result.ok) throw new Error(`could not close window ${windowIndex}: ${result.err}`);
+  return true;
+}
+
 /** Bring the process to the front, so its windows accept clicks. */
 export function activate(processName) {
   osascript(

@@ -188,6 +188,10 @@ with [`AGENTS.md`](../AGENTS.md).
 
 ## Historical
 
+- [`reports/phase-54-handover.md`](reports/phase-54-handover.md) — the
+  update engine's move to Sparkle: the control pass over the other
+  session's migration, ten findings, four real updates through Sparkle's
+  own window, and the 1.1.8 and 1.1.9 releases with every gate run.
 - [`reports/phase-53-handover.md`](reports/phase-53-handover.md) — the
   owner's fourteen Phase 53 items, the control pass over the first
   attempt at them, the 1.1.6 and 1.1.7 releases and every gate run for them.
