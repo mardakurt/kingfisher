@@ -36,14 +36,42 @@ export function assertAccessibility() {
 }
 
 /**
- * Every window of the process, with its static texts and button names.
- * A process that is not running, or has no windows, yields [].
+ * The System Events reference for a process: by pid when the caller has one
+ * (a harness always does, and an installed Kingfisher may be running beside
+ * the one under test), by name otherwise.
  */
-export function windowsOf(processName) {
+function processRef(target) {
+  if (typeof target === 'number') return `first process whose unix id is ${target}`;
+  if (target && typeof target === 'object' && Number.isInteger(target.pid)) {
+    return `first process whose unix id is ${target.pid}`;
+  }
+  return `process "${String(target).replace(/"/g, '\\"')}"`;
+}
+
+function processExists(target) {
+  if (typeof target === 'number' || (target && typeof target === 'object')) {
+    const pid = typeof target === 'number' ? target : target.pid;
+    return `(exists (${processRef(pid)}))`;
+  }
+  return `(exists ${processRef(target)})`;
+}
+
+/**
+ * Every window of the process, with its static texts and button names.
+ * A process that is not running, or has no windows, yields []. `target`
+ * is a process name, a pid, or `{ pid }`.
+ */
+export function windowsOf(target) {
+  // Separators are ASCII control characters, spelled as `character id N`:
+  // AppleScript strings have no \u escapes, and a script that tries one
+  // does not compile — which this function once reported as "no windows".
   const script = `
     tell application "System Events"
-      if not (exists process "${processName}") then return ""
-      tell process "${processName}"
+      if not ${processExists(target)} then return ""
+      set fieldSep to character id 30
+      set itemSep to character id 31
+      set rowSep to character id 29
+      tell (${processRef(target)})
         set out to ""
         set n to count of windows
         repeat with i from 1 to n
@@ -51,43 +79,67 @@ export function windowsOf(processName) {
           set texts to ""
           try
             repeat with t in (every static text of w)
-              set texts to texts & (value of t as text) & "\\u001f"
+              set texts to texts & (value of t as text) & itemSep
             end repeat
           end try
           set names to ""
           try
             repeat with b in (every button of w)
-              set names to names & (name of b as text) & "\\u001f"
+              set names to names & (name of b as text) & itemSep
             end repeat
           end try
-          set title to ""
+          set windowTitle to ""
           try
-            set title to name of w as text
+            set windowTitle to name of w as text
           end try
-          set out to out & i & "\\u001e" & title & "\\u001e" & texts & "\\u001e" & names & "\\u001d"
+          set out to out & i & fieldSep & windowTitle & fieldSep & texts & fieldSep & names & fieldSep & "" & rowSep
+          -- A message box the shell attaches to its window is a sheet, not a
+          -- window of its own; list each with the window it hangs from.
+          try
+            set sheetCount to count of sheets of w
+            repeat with j from 1 to sheetCount
+              set sh to sheet j of w
+              set sheetTexts to ""
+              repeat with t in (every static text of sh)
+                set sheetTexts to sheetTexts & (value of t as text) & itemSep
+              end repeat
+              set sheetNames to ""
+              repeat with b in (every button of sh)
+                set sheetNames to sheetNames & (name of b as text) & itemSep
+              end repeat
+              set out to out & i & fieldSep & windowTitle & fieldSep & sheetTexts & fieldSep & sheetNames & fieldSep & j & rowSep
+            end repeat
+          end try
         end repeat
         return out
       end tell
     end tell`;
   const result = osascript(script);
-  if (!result.ok || !result.out) return [];
+  if (!result.ok) {
+    throw new Error(
+      `System Events could not list the windows of ${JSON.stringify(target)}: ${result.err}`,
+    );
+  }
+  if (!result.out) return [];
   return result.out
-    .split('')
+    .split('\u001d')
     .filter(Boolean)
     .map((row) => {
-      const [index, title, texts, names] = row.split('');
+      const [index, title, texts, names, sheet] = row.split('\u001e');
       return {
         index: Number(index),
+        /** The sheet's index within the window, when the row is a sheet. */
+        sheet: sheet ? Number(sheet) : null,
         title,
-        texts: texts.split('').filter(Boolean),
-        buttons: names.split('').filter(Boolean),
+        texts: texts.split('\u001f').filter(Boolean),
+        buttons: names.split('\u001f').filter((name) => name && name !== 'missing value'),
       };
     });
 }
 
 /** The first window whose button names or texts match, or null. */
-export function findWindow(processName, { button = null, text = null } = {}) {
-  for (const window of windowsOf(processName)) {
+export function findWindow(target, { button = null, text = null } = {}) {
+  for (const window of windowsOf(target)) {
     const buttonOk = !button || window.buttons.some((name) => button.test(name));
     const textOk =
       !text ||
@@ -99,10 +151,10 @@ export function findWindow(processName, { button = null, text = null } = {}) {
 }
 
 /** Wait for a window matching, up to `timeoutMs`; returns it or null. */
-export async function waitForWindow(processName, match, { timeoutMs = 60_000, every = 500 } = {}) {
+export async function waitForWindow(target, match, { timeoutMs = 60_000, every = 500 } = {}) {
   const started = Date.now();
   while (Date.now() - started < timeoutMs) {
-    const found = findWindow(processName, match);
+    const found = findWindow(target, match);
     if (found) return found;
     await wait(every);
   }
@@ -110,21 +162,24 @@ export async function waitForWindow(processName, match, { timeoutMs = 60_000, ev
 }
 
 /** Click the named button in the given window (by index). */
-export function clickButton(processName, windowIndex, buttonName) {
-  const script = `tell application "System Events" to tell process "${processName}" to click button "${buttonName.replace(/"/g, '\\"')}" of window ${windowIndex}`;
+export function clickButton(target, windowIndex, buttonName, sheetIndex = null) {
+  const where = sheetIndex
+    ? `sheet ${sheetIndex} of window ${windowIndex}`
+    : `window ${windowIndex}`;
+  const script = `tell application "System Events" to tell (${processRef(target)}) to click button "${buttonName.replace(/"/g, '\\"')}" of ${where}`;
   const result = osascript(script);
   if (!result.ok) throw new Error(`could not click "${buttonName}": ${result.err}`);
   return true;
 }
 
 /** Wait for a button to appear in any window of the process, then click it. */
-export async function waitAndClick(processName, button, { timeoutMs = 60_000, text = null } = {}) {
-  const window = await waitForWindow(processName, { button, text }, { timeoutMs });
+export async function waitAndClick(target, button, { timeoutMs = 60_000, text = null } = {}) {
+  const window = await waitForWindow(target, { button, text }, { timeoutMs });
   if (!window) return null;
   const name = window.buttons.find((candidate) => button.test(candidate));
   // Re-resolve the window index at click time: Sparkle's windows come and go.
-  const current = findWindow(processName, { button });
-  clickButton(processName, (current ?? window).index, name);
+  const current = findWindow(target, { button }) ?? window;
+  clickButton(target, current.index, name, current.sheet);
   return { window, button: name };
 }
 

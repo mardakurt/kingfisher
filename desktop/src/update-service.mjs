@@ -85,6 +85,8 @@ const state = {
   onSaveBarrier: null,
   /** Whether the shell is already on its way out. */
   isQuitting: () => false,
+  /** The main window, for the three message boxes this service shows as sheets. */
+  parentWindow: () => null,
   /** Unsubscribers for the bridge events, so tests can start over. */
   unsubscribers: [],
   /** Whether the check in flight was the quiet launch-time one. */
@@ -156,10 +158,12 @@ export function manualDownloadUrl() {
 export function startUpdater({
   onSaveBarrier = null,
   isQuitting = () => false,
+  parentWindow = () => null,
   feedURL = null,
 } = {}) {
   state.onSaveBarrier = onSaveBarrier;
   state.isQuitting = isQuitting;
+  state.parentWindow = parentWindow;
   const started = sparkle.start({ feedURL });
   if (started.started) bindEngine();
   return started;
@@ -414,7 +418,7 @@ export async function check() {
       build: channel.build,
       downloadUrl: channel.downloadUrl,
     });
-    const { response } = await dialog.showMessageBox({
+    const { response } = await showMessage({
       type: 'info',
       title: 'Kingfisher Update',
       message: `This is Kingfisher ${app.getVersion()}, preview build ${channel.build ?? '?'}.`,
@@ -430,7 +434,7 @@ export async function check() {
   if (!sparkle.isUpdaterSupported()) {
     const reason = sparkle.describe().reason ?? 'The updater is not running.';
     emit({ status: STATUS.UNABLE, currentVersion: app.getVersion(), reason });
-    await dialog.showMessageBox({
+    await showMessage({
       type: 'info',
       title: 'Kingfisher Update',
       message: 'Updates are not available in this build.',
@@ -507,7 +511,7 @@ async function releaseRelaunch() {
     const reason = humanizeSaveBarrierFailure(barrier);
     log('update', `relaunch refused: save barrier failed (${barrier?.reason ?? 'unknown'})`);
     emit({ status: STATUS.FAILED, currentVersion: app.getVersion(), reason });
-    await dialog.showMessageBox({
+    await showMessage({
       type: 'warning',
       title: 'Kingfisher Update',
       message: 'The update was not installed.',
@@ -623,6 +627,23 @@ export function acknowledgeUpdate(currentVersion = app.getVersion()) {
 /* --------------------------------------------------------------------- *
  * Helpers                                                                *
  * --------------------------------------------------------------------- */
+
+/**
+ * A message box as a sheet on the main window when there is one. Without a
+ * parent, macOS runs the box app-modal on the main thread, and the shell
+ * answers nothing — not the renderer's IPC, not a harness — until it is
+ * dismissed; a sheet blocks only the window it hangs from.
+ */
+function showMessage(options) {
+  let parent = null;
+  try {
+    parent = state.parentWindow();
+  } catch {
+    parent = null;
+  }
+  if (parent && !parent.isDestroyed?.()) return dialog.showMessageBox(parent, options);
+  return dialog.showMessageBox(options);
+}
 
 function redactHome(value) {
   if (typeof value !== 'string') return value;

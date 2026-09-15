@@ -423,44 +423,75 @@ page, the matching `public-claims.md` row, and run
 
 ## The desktop update service
 
-_Kingfisher → Check for Updates…_ is the only entry point and the user's
-click is the only network event: no poller, no background check, no
-telemetry. One service, in the main process:
+The engine is **Sparkle** (sparkle-project.org), the update framework Mac
+applications use, since 1.1.8; 1.1.0–1.1.7 shipped `electron-updater`.
+_Kingfisher → Check for Updates…_ is the entry point, plus one quiet,
+information-only look at launch that shows nothing and downloads nothing
+(Phase 50). No timer, no telemetry. One service, in the main process:
 
-- The renderer never sees `fetch` or `fs`. The preload exposes
-  `showUpdateDialog`, `updateStatus`, `subscribeUpdates` and the
-  save-barrier request; the dialog's own preload speaks three IPC
-  channels that `desktop/src/update-window.mjs` answers and
-  `update-window.test.mjs` cross-checks against the preload. For ten
-  phases nothing answered them and the dialog was inert.
-- The engine is `electron-updater`, loaded from the **default export**
-  of a CommonJS package whose `autoUpdater` is a getter
-  (`electron-updater-import.test.mjs`); `autoDownload`,
-  `autoInstallOnAppQuit`, `allowPrerelease` and `allowDowngrade` are all
-  false. The feed is the GitHub provider baked into `app-update.yml` by
-  the `publish:` block in `desktop/electron-builder.yml`; `build.mjs`
-  passes `--publish never` so nothing is uploaded at build time.
-- **Channels.** A `stable` build asks the feed once and is offered only
-  a strictly newer release that has `latest-mac.yml` attached. A
-  `preview` build asks nothing: it answers with its build number and a
-  button to the download page, because previews are replaced by
-  downloading the next one and the feed cannot see pre-releases anyway.
-  `configureChannel` in `update-service.mjs`, from the build identity.
-- Install runs download → SHA-512 → save barrier → macOS's own update
-  engine, which refuses an update whose signature does not match the
-  running application. A failed save barrier aborts the install and
-  says so; the verified archive stays cached under
-  `~/Library/Caches/kingfisher-desktop-updater/` for a retry.
+- **One native module.** `desktop/native/sparkle/bridge.mm` is a Node-API
+  addon that `dlopen`s `Sparkle.framework` from
+  `Contents/Frameworks` and creates one `SPUUpdater` with Sparkle's
+  standard user interface; it links nothing at build time
+  (`desktop/native/sparkle/build.mjs` is one `clang++` line). It decides
+  nothing: every delegate call is an event to `desktop/src/sparkle-updater.mjs`,
+  and `update-service.mjs` turns those into the verdict the menu and the
+  Settings panel render. Sparkle draws every window a person sees.
+- **The framework is a recorded download.** `desktop/sparkle.json` names
+  the release, its SHA-256 and the EdDSA public key;
+  `npm run desktop:sparkle:fetch` refuses other bytes and strips the XPC
+  services (the application is not sandboxed). `SUFeedURL` and
+  `SUPublicEDKey` reach Info.plist through `build.mjs` — from
+  `src/release/public-urls.ts` and `sparkle.json` — and
+  `SUEnableAutomaticChecks` and `SUAllowsAutomaticUpdates` are false in
+  `electron-builder.yml`; the bridge sets the same on the updater.
+  `desktop/src/sparkle-bundle.mjs` is the list of what a bundle must
+  contain, read by the afterPack hook, the boot gate (which also asserts
+  Sparkle _started_ in the launched application) and `verify-dmg.mjs`.
+- **The private key is the maintainer's**, in the login keychain under
+  Sparkle's `kingfisher` account — never in the repository. Every update
+  is signed with it (`npm run release:mac:appcast`, Sparkle's
+  `generate_appcast`), and a bundle refuses an archive signed with any
+  other key before it is installed. A publishable build refuses
+  `KINGFISHER_SPARKLE_PUBLIC_KEY`; a dev build may carry a throwaway key.
+- **The feed** is `…/releases/latest/download/appcast.xml`: GitHub
+  redirects it to the newest non-prerelease release, so each stable
+  release carries the feed that offers it and a preview (a pre-release)
+  is never offered. `release:mac:appcast` also writes `latest-mac.yml`
+  for the installed 1.1.0–1.1.7, which still ask the previous engine's
+  question and are offered the next release through it.
+- **Channels.** A `stable` build asks the feed; a `preview` build asks
+  nothing and answers with its build number and a button to the download
+  page (`configureChannel` in `update-service.mjs`). A checkout
+  (`electron .`) never starts Sparkle — Electron.app is not a host — and
+  says so in a sheet.
+- **Install** runs Sparkle's download → EdDSA check → extraction → the
+  save barrier → Sparkle's installer, which also refuses a bundle whose
+  code signature does not match the running one. The barrier is the one
+  delegate answer that matters: the bridge always postpones the relaunch
+  (`shouldPostponeRelaunchForUpdate`), the renderer confirms every write
+  is committed, and only `resumeRelaunch()` lets Sparkle terminate the
+  application. A failed barrier leaves the block unrun, tells the person
+  in a sheet, and the staged update installs on the next quit.
 - The user's work lives in
   `~/Library/Application Support/kingfisher-desktop/` — the package
   name, not the product name — and the updater never touches it.
-- **The relaunch adopts the profile that installed the update.** The
-  engine relaunches with no arguments; a shell on another profile would
-  come back on the default one — the owner's — and the update harness
-  did that for three phases. `desktop/src/relaunch-profile.mjs`: the
-  shell names its profile in the updater's cache before
-  `quitAndInstall`, the next launch takes the file and adopts it, and
-  `desktop:update:real` asserts the default profile was not opened.
+  Sparkle's own cache is under `~/Library/Caches/app.kingfisher.chess/`.
+- **The relaunch adopts the profile that installed the update.** Sparkle
+  relaunches with no arguments; a shell on another profile would come
+  back on the default one — the owner's — and the update harness did
+  that for three phases. `desktop/src/relaunch-profile.mjs`: the shell
+  names its profile in `~/Library/Caches/kingfisher-desktop-updater/`
+  before releasing the relaunch, the next launch takes the file and
+  adopts it, and `desktop:update:real` asserts the default profile was
+  not opened.
+- **The harnesses drive Sparkle's real windows.** They are native, so
+  `scripts/desktop-lib/sparkle-ui.mjs` reads and clicks them through the
+  Accessibility API (System Events; the terminal needs Accessibility
+  permission), by the pid of the process under test.
+  `desktop:update:real` performs the update from a Sparkle build and
+  from a 1.1.7 `electron-updater` build; `desktop:update:e2e` checks the
+  feed on the wire; `desktop:update:mutations` makes each guard fail once.
 
 ## Build identity, channels, and the public DMG
 

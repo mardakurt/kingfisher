@@ -143,8 +143,9 @@ in the running deployment.
   any of it, and launches the signed, notarised application — bridge,
   web server, companion, engine catalogue, update feed — before a DMG is
   made from those bytes.
-- **Updates.** _Kingfisher → Check for Updates…_ is the only entry
-  point; there is no poller. The update engine is **Sparkle**
+- **Updates.** _Kingfisher → Check for Updates…_ is the entry point,
+  plus one quiet, information-only look at launch that shows nothing
+  and downloads nothing; there is no poller. The update engine is **Sparkle**
   (`desktop/scripts/fetch-sparkle.mjs` vendors it against the digest
   recorded in `desktop/sparkle.json`); the running application reads
   the appcast named by `SUFeedURL` in `Info.plist`
@@ -182,8 +183,10 @@ in the running deployment.
   needs is held in `localStorage` and IndexedDB, scoped to the
   origin. See [`docs/legal/privacy.md`](docs/legal/privacy.md).
 - **Updates are asked for, never pushed.** _Kingfisher → Check for
-  Updates…_ is the only entry point and the user's click is the only
-  network event: no poller, no background check, no telemetry. A
+  Updates…_ is the entry point; the only other request is one quiet,
+  information-only look at the feed five seconds after launch, which
+  shows nothing and downloads nothing and only relabels the menu item
+  when a newer release exists. No timer, no telemetry. A
   **preview** build answers from what it is — its build number and
   a button to the download page — and makes no request at all,
   because previews are replaced by downloading the next one. A
@@ -194,13 +197,15 @@ in the running deployment.
   ([`desktop/native/sparkle/bridge.mm`](desktop/native/sparkle/bridge.mm))
   asserts the same on the `SPUUpdater`. If the appcast offers a
   newer release Sparkle shows its own window with **Install
-  Update**; on that click the main process downloads the update
-  archive, verifies its EdDSA signature against the public key
-  baked into `Info.plist`, asks the renderer to flush every
-  in-flight write (the **save barrier** — a failed save aborts the
-  install and leaves the postponed install unreleased), and Sparkle
-  replaces the bundle (it refuses an update whose code signature
-  does not match the running application). The renderer never sees
+  Update**; on that click Sparkle downloads the update archive,
+  verifies its EdDSA signature against the public key baked into
+  `Info.plist`, extracts it, and — before it may terminate the
+  application — asks the renderer to flush every in-flight write (the
+  **save barrier**: the bridge postpones the relaunch and only a
+  passing barrier releases it; a failed one is reported in a sheet and
+  the staged update installs on the next quit). Sparkle's installer
+  then replaces the bundle, refusing one whose code signature does not
+  match the running application. The renderer never sees
   `fetch` or the filesystem. Every release from 1.1.8 on carries an
   appcast; releases 1.1.0–1.1.7 still ship `latest-mac.yml` for the
   previous engine (`electron-updater`) and continue to be offered

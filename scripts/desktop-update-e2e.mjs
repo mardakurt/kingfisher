@@ -46,6 +46,7 @@ import {
   SPARKLE_KEYCHAIN_ACCOUNT,
   appcastMismatch,
   describeArchive,
+  releaseNotesHtml,
   summarizeAppcast,
   versionOfArchive,
   writeAppcast,
@@ -114,13 +115,18 @@ try {
     existsSync(written.appcast),
     `${written.summary.title} · build ${written.summary.version}`,
   );
+  // Release notes come from CHANGELOG.md's entry for the version; a build
+  // of a version the changelog does not yet name has none, and says so.
+  const notesExpected = Boolean(
+    releaseNotesHtml(readFileSync(path.join(ROOT, 'CHANGELOG.md'), 'utf8'), version),
+  );
   step(
-    'the feed carries the build number, the version, the macOS floor and release notes',
+    'the feed carries the build number, the version, the macOS floor and the release notes',
     /^\d+$/.test(written.summary.version ?? '') &&
       written.summary.shortVersion === version &&
       Boolean(written.summary.minimumSystemVersion) &&
-      written.summary.hasNotes,
-    `macOS ${written.summary.minimumSystemVersion}+ · notes ${written.summary.hasNotes}`,
+      written.summary.hasNotes === notesExpected,
+    `macOS ${written.summary.minimumSystemVersion}+ · notes ${written.summary.hasNotes ? 'embedded' : notesExpected ? 'MISSING' : `none (CHANGELOG.md has no ${version} entry yet)`}`,
   );
   step(
     'latest-mac.yml written for the installs that predate Sparkle',

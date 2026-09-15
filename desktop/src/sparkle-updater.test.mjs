@@ -106,11 +106,20 @@ describe('where Sparkle is', () => {
 });
 
 describe('starting', () => {
+  it('a checkout never starts Sparkle, whatever is vendored: Electron.app is not a host', async () => {
+    const { start, isUpdaterSupported } = await load({ packaged: false });
+    const result = start();
+    expect(result.started).toBe(false);
+    expect(result.reason).toMatch(/development checkout/);
+    expect(isUpdaterSupported()).toBe(false);
+  });
+
   it('a missing bridge is a reason, not a throw, and no event listener is ever called', async () => {
     const { start, describe: describeEngine, isUpdaterSupported, on } = await load();
     const heard = [];
     on('found', (payload) => heard.push(payload));
     const result = start({
+      packaged: true,
       resolve: () => ({
         framework: '/nowhere/Sparkle.framework',
         bridge: '/nowhere/kingfisher-sparkle.node',
@@ -169,14 +178,22 @@ describe('starting', () => {
         'setFeedURL',
         'start',
       ]);
-      const result = start();
+      // Started as a packaged application would, but resolved to the
+      // checkout's copies: Sparkle refuses the test runner as a host.
+      const result = start({
+        packaged: true,
+        resolve: () => ({ framework: FRAMEWORK, bridge: BRIDGE_BINARY }),
+      });
       expect(result.sparkleVersion).toBe(RECORD.version);
       expect(result.started).toBe(false);
       expect(result.reason).toMatch(/bundle identifier|SUPublicEDKey|public|Sparkle/i);
       expect(bridge.canCheckForUpdates()).toBe(false);
       expect(bridge.resumeRelaunch()).toBe(false);
     } else {
-      const result = start();
+      const result = start({
+        packaged: true,
+        resolve: () => ({ framework: FRAMEWORK, bridge: BRIDGE_BINARY }),
+      });
       expect(result.started).toBe(false);
       expect(result.reason).toMatch(/Sparkle is not in this build|macOS only/);
     }

@@ -111,7 +111,8 @@ unsigned.
 Then give the disk image its own ticket:
 
 ```bash
-npm run release:mac:notarize            # notarytool submit --wait, staple, validate; rewrites the DMG row of appcast.xml/latest-mac.yml
+npm run release:mac:notarize            # notarytool submit --wait, staple, validate
+npm run release:mac:appcast             # sign the ZIP, write appcast.xml (+ latest-mac.yml for 1.1.0–1.1.7), from the final bytes
 ```
 
 `notarytool` accepts a zip, a dmg or a pkg, never a bare `.app`, which is
@@ -296,10 +297,10 @@ A red gate is not a fire — it is a known case.
   ticket was stapled but the binary is still unsigned.
   Re-run `release:mac:notarize` and confirm `stapler
 validate` passes.
-- **E2E red**: the staging server or the staging ZIP has a
-  problem. The wire-level checks usually point to the URL,
-  the SHA-512, or the host allow-list. The mutation suite
-  guards against the maintainable side of these regressions.
+- **E2E red**: the staging server, the archive or the feed has a
+  problem. The wire-level checks point to the URL, the length, the
+  EdDSA signature or the bundle's own feed and key. The mutation
+  suite guards against the maintainable side of these regressions.
 - **Mutation red**: a guard in the source has been weakened.
   Read the failing mutation; the fix is almost always
   re-tightening the source.

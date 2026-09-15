@@ -55,7 +55,14 @@ function makeEngine({ started = true } = {}) {
 }
 
 function makeDialog() {
-  return { showMessageBox: vi.fn(async () => ({ response: 0 })) };
+  // `showMessageBox(parent, options)` when the shell has a window, else
+  // `showMessageBox(options)`; the tests read the options either way.
+  const showMessageBox = vi.fn(async () => ({ response: 0 }));
+  showMessageBox.options = () => {
+    const args = showMessageBox.mock.calls[0];
+    return args.length === 2 ? args[1] : args[0];
+  };
+  return { showMessageBox };
 }
 
 async function loadService(
@@ -286,9 +293,7 @@ describe('the save barrier, when Sparkle asks to relaunch', () => {
       status: 'failed',
       reason: expect.stringContaining('could not confirm that your work finished saving'),
     });
-    expect(dialog.showMessageBox.mock.calls[0][0].detail).toContain(
-      'Quit Kingfisher to install it',
-    );
+    expect(dialog.showMessageBox.options().detail).toContain('Quit Kingfisher to install it');
     expect(existsSync(path.join(engine.cacheDir, 'relaunch-profile.json'))).toBe(false);
   });
 
@@ -345,7 +350,7 @@ describe('the channel', () => {
     });
     expect(engine.checkForUpdates).not.toHaveBeenCalled();
     expect(dialog.showMessageBox).toHaveBeenCalledOnce();
-    expect(dialog.showMessageBox.mock.calls[0][0].message).toContain('preview build 431');
+    expect(dialog.showMessageBox.options().message).toContain('preview build 431');
     expect(service.manualDownloadUrl()).toBe('https://kingfisherchess.app/');
     expect(service.checkQuietly()).toBe(false);
     expect(engine.checkForUpdateInformation).not.toHaveBeenCalled();
@@ -375,6 +380,21 @@ describe('the channel', () => {
   });
 });
 
+describe('the message boxes', () => {
+  it('hang from the main window as sheets when there is one, and stand alone otherwise', async () => {
+    const engine = makeEngine({ started: false });
+    const { service, dialog } = await loadService(engine);
+    const window = { isDestroyed: () => false };
+    service.startUpdater({ parentWindow: () => window });
+    await service.check();
+    expect(dialog.showMessageBox.mock.calls[0][0]).toBe(window);
+    dialog.showMessageBox.mockClear();
+    service.startUpdater({ parentWindow: () => ({ isDestroyed: () => true }) });
+    await service.check();
+    expect(dialog.showMessageBox.mock.calls[0]).toHaveLength(1);
+  });
+});
+
 describe('a build without Sparkle', () => {
   it('says so in a message box and in the verdict, and never pretends to check', async () => {
     const engine = makeEngine({ started: false });
@@ -385,7 +405,7 @@ describe('a build without Sparkle', () => {
     expect(verdict).toMatchObject({ status: 'unable-to-check', reason: 'no key' });
     expect(engine.checkForUpdates).not.toHaveBeenCalled();
     expect(dialog.showMessageBox).toHaveBeenCalledOnce();
-    expect(dialog.showMessageBox.mock.calls[0][0].message).toBe(
+    expect(dialog.showMessageBox.options().message).toBe(
       'Updates are not available in this build.',
     );
     expect(service.checkQuietly()).toBe(false);

@@ -1021,6 +1021,7 @@ if (!app.requestSingleInstanceLock()) {
     const engine = startUpdater({
       onSaveBarrier: requestSaveBarrier,
       isQuitting: () => Boolean(state.quitting),
+      parentWindow: () => (state.window && !state.window.isDestroyed() ? state.window : null),
       feedURL: process.env.KINGFISHER_UPDATER_FEED_URL || null,
     });
     if (!engine.started) log('update', `updater unavailable: ${engine.reason}`);

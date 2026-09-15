@@ -113,9 +113,10 @@ product needs:
   to relabel the menu when a newer release is available).
   Sparkle, the update engine, fetches `appcast.xml` from
   `https://github.com/mardakurt/kingfisher/releases/latest/download/`,
-  validates its EdDSA signature against the public key baked
-  into the application's `Info.plist`, and reads the version
-  and signed SHA-512 of the update ZIP. The user must click
+  and reads the version, the length and the EdDSA signature of
+  the update ZIP; the signature is checked against the public key
+  baked into the application's `Info.plist` once the ZIP is
+  downloaded, before it is installed. The user must click
   **Install Update** before the bytes leave GitHub; the
   updater does not run on a timer. If the user picks
   **Later**, nothing is downloaded and no further request is

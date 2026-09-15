@@ -19,7 +19,7 @@
  *   <version>.html     the release notes Sparkle shows beside the update,
  *                      rendered from CHANGELOG.md's entry for this version.
  *   latest-mac.yml     the *previous* engine's feed, for the installed
- *                      1.1.0–1.1.6, which still ask electron-updater's
+ *                      1.1.0–1.1.7, which still ask electron-updater's
  *                      question. Written for as long as those exist; the
  *                      ZIP is the same bytes, named with its SHA-512.
  *
@@ -197,12 +197,14 @@ export function summarizeAppcast(xml) {
  */
 export function appcastMismatch(
   summary,
-  { tag, version, zipSize, host = 'https://github.com/mardakurt/kingfisher' },
+  { tag, version, zipSize, host = 'https://github.com/mardakurt/kingfisher', allowHttp = false },
 ) {
   const expectedUrl = `${host}/releases/download/${tag}/Kingfisher-${version}-arm64.zip`;
   if (summary.items !== 1) return `expected one item, found ${summary.items}`;
   if (summary.url !== expectedUrl) return `names ${summary.url}, not ${expectedUrl}`;
-  if (!/^https:\/\//.test(summary.url ?? '')) return `the enclosure is not https: ${summary.url}`;
+  if (!allowHttp && !/^https:\/\//.test(summary.url ?? '')) {
+    return `the enclosure is not https: ${summary.url}`;
+  }
   if (summary.length !== zipSize) return `length ${summary.length} is not the archive's ${zipSize}`;
   if (!summary.edSignature) return 'no sparkle:edSignature on the enclosure';
   if (!/^[A-Za-z0-9+/]{86}==$/.test(summary.edSignature))

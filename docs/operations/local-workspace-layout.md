@@ -62,11 +62,13 @@ packaged application's, and are not under `Kingfisher/`:
   building; `preview` and stable DMGs are never removed automatically
   because they may have been published. Older `rc` images from earlier
   phases can be deleted by hand; everything there is reproducible.
-- **`~/Library/Caches/kingfisher-desktop-updater/`** — Sparkle's
-  per-user cache for the packaged application: the downloaded update
-  archive, the installer's working directory, and the small file
-  `desktop/src/relaunch-profile.mjs` writes to hand the profile back to
-  the relaunched instance. Authored work is never here: it lives in
+- **`~/Library/Caches/kingfisher-desktop-updater/`** — the small file
+  `desktop/src/relaunch-profile.mjs` writes to hand the profile to the
+  relaunched instance (and, on a machine that updated through
+  1.1.0–1.1.7, the previous engine's `pending/` download). Sparkle keeps
+  its own downloads and installer state under
+  `~/Library/Caches/app.kingfisher.chess/org.sparkle-project.Sparkle/`.
+  Authored work is never in either: it lives in
   `~/Library/Application Support/kingfisher-desktop/`.
 
 The cache lives outside iCloud-synced locations on purpose. A multi-GB

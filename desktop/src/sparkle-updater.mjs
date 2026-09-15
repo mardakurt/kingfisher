@@ -165,14 +165,31 @@ function dispatch(name, json) {
 /**
  * Load the bridge and start the updater. Idempotent; returns what happened.
  *
- * Not starting is a normal outcome, reported rather than thrown: `electron .`
- * runs inside Electron.app, whose Info.plist has no `SUPublicEDKey`, and
- * Sparkle rightly refuses it. Off macOS there is no framework at all.
+ * Not starting is a normal outcome, reported rather than thrown: a checkout
+ * (`electron .`, inside Electron.app) is refused here before Sparkle is
+ * asked, and off macOS there is no framework at all.
  */
-export function start({ feedURL = null, resolve = resolveSparkle } = {}) {
+export function start({
+  feedURL = null,
+  resolve = resolveSparkle,
+  packaged = app.isPackaged,
+} = {}) {
   if (state.bridge) return describe();
   if (process.platform !== 'darwin') {
     state.unavailableReason = 'Updates are delivered through Sparkle, which is macOS only.';
+    return describe();
+  }
+  if (!packaged) {
+    /*
+      Never in a checkout. `electron .` runs inside Electron.app, and Sparkle
+      accepts that bundle as its host — it is code signed and names no feed —
+      so the updater would start, and a click would end in Sparkle's own
+      "Update Error" alert; with a feed it would try to replace Electron.app.
+      The packaged application is the only host Sparkle is ever given.
+    */
+    state.unavailableReason =
+      'This is a development checkout running inside Electron.app; a packaged Kingfisher carries Sparkle, its feed and its key.';
+    log('update', state.unavailableReason);
     return describe();
   }
   const where = resolve();

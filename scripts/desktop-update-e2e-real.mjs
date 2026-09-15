@@ -14,7 +14,7 @@
  * Sparkle's windows are native, so they are driven the way a person drives
  * them — through the Accessibility API (`desktop-lib/sparkle-ui.mjs`),
  * which needs Accessibility permission for the terminal running this. A
- * `--current` bundle that predates Sparkle (1.1.0–1.1.6, electron-updater)
+ * `--current` bundle that predates Sparkle (1.1.0–1.1.7, electron-updater)
  * is driven through its own dialog instead, so the transition every
  * installed Kingfisher makes is covered by the same harness.
  *
@@ -33,11 +33,13 @@
  *
  * Usage:
  *   node scripts/desktop-update-e2e-real.mjs \
- *     --current <Kingfisher.app> --next-dir <dir with the ZIP and appcast.xml> [--public-feed]
+ *     --current <Kingfisher.app> --next-dir <dir with the ZIP> [--ed-key-file <file>]
+ *   node scripts/desktop-update-e2e-real.mjs \
+ *     --current <Kingfisher.app> --next-dir <dir with the ZIP and the published appcast.xml> --public-feed
  */
 
 import { spawn, spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import os, { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -52,7 +54,11 @@ import {
   waitForWindow,
   windowsOf,
 } from './desktop-lib/sparkle-ui.mjs';
-import { summarizeAppcast } from './desktop-mac-appcast.mjs';
+import {
+  SPARKLE_KEYCHAIN_ACCOUNT,
+  summarizeAppcast,
+  writeAppcast,
+} from './desktop-mac-appcast.mjs';
 import { writeRelaunchProfile } from '../desktop/src/relaunch-profile.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
@@ -64,7 +70,9 @@ const option = (name) => {
 const currentApp = option('--current');
 const nextDir = option('--next-dir');
 if (!currentApp || !nextDir) {
-  console.error('Usage: --current <Kingfisher.app> --next-dir <dir with the ZIP and appcast.xml>');
+  console.error(
+    'Usage: --current <Kingfisher.app> --next-dir <dir with the update ZIP> [--public-feed]',
+  );
   process.exit(2);
 }
 
@@ -97,19 +105,47 @@ if (copied.status !== 0) {
 /* Which engine the current build has: Sparkle, or the one before it. */
 const currentHasSparkle = existsSync(path.join(app, 'Contents', 'Frameworks', 'Sparkle.framework'));
 const nextZip = readdirSync(nextDir).find((name) => /^Kingfisher-.*-arm64\.zip$/.test(name));
-const appcastPath = path.join(nextDir, 'appcast.xml');
-const legacyFeedPath = path.join(nextDir, 'latest-mac.yml');
-if (!nextZip || !existsSync(appcastPath)) {
-  console.error(
-    `--next-dir must hold the update ZIP and appcast.xml (release:mac:appcast writes both).`,
-  );
+if (!nextZip) {
+  console.error('--next-dir must hold the update ZIP (Kingfisher-<version>-arm64.zip).');
   process.exit(2);
 }
-if (!currentHasSparkle && !existsSync(legacyFeedPath)) {
-  console.error(`${currentApp} predates Sparkle and needs latest-mac.yml in --next-dir as well.`);
-  process.exit(2);
+const publicFeed = args.includes('--public-feed');
+const port = 8765 + Math.floor(Math.random() * 1000);
+const origin = `http://127.0.0.1:${port}`;
+
+/*
+  The staging feed is written here, for this run's port: an appcast names
+  the archive by absolute URL, so one generated in advance would name the
+  wrong port. The signing key is the same one the release uses (the
+  keychain account, or `--ed-key-file`), which is what makes the running
+  build accept the feed — its Info.plist carries the matching public key.
+  With `--public-feed` the feed is GitHub's, and --next-dir only says which
+  version to expect: its appcast.xml must be the published one.
+*/
+const staging = publicFeed ? null : mkdtempSync(path.join(tmpdir(), 'kingfisher-update-feed-'));
+let appcastXml;
+if (publicFeed) {
+  const appcastPath = path.join(nextDir, 'appcast.xml');
+  if (!existsSync(appcastPath)) {
+    console.error('--public-feed needs the published appcast.xml in --next-dir.');
+    process.exit(2);
+  }
+  appcastXml = readFileSync(appcastPath, 'utf8');
+} else {
+  copyFileSync(path.join(nextDir, nextZip), path.join(staging, nextZip));
+  const edKeyFile = option('--ed-key-file');
+  writeAppcast({
+    zip: path.join(staging, nextZip),
+    out: staging,
+    downloadUrlPrefix: `${origin}/releases/download/staging/`,
+    edKeyFile,
+    account: option('--account') ?? SPARKLE_KEYCHAIN_ACCOUNT,
+    latestMac: true,
+    log: () => {},
+  });
+  appcastXml = readFileSync(path.join(staging, 'appcast.xml'), 'utf8');
 }
-const appcast = summarizeAppcast(readFileSync(appcastPath, 'utf8'));
+const appcast = summarizeAppcast(appcastXml);
 const nextVersion = appcast.shortVersion ?? '?';
 console.log('Kingfisher real update');
 console.log(
@@ -123,24 +159,20 @@ console.log(
   `--public-feed`: no staging server and no feed override. The running
   application asks the feed its own Info.plist names — the GitHub release
   host — so this is the update a user performs, against the release the
-  public is offered. `--next-dir` then only says which version to expect,
-  and must hold the bytes GitHub serves.
+  public is offered.
 */
-const publicFeed = args.includes('--public-feed');
-const port = 8765 + Math.floor(Math.random() * 1000);
 const server = publicFeed
   ? null
   : spawn(
       process.execPath,
       [
         path.join(ROOT, 'scripts/desktop-update-staging-server.mjs'),
-        nextDir,
+        staging,
         '--port',
         String(port),
       ],
       { stdio: ['ignore', 'pipe', 'pipe'] },
     );
-const origin = `http://127.0.0.1:${port}`;
 // Sparkle asks for the appcast by URL; the previous engine asks for
 // `latest-mac.yml` under a base URL.
 const feedUrl = publicFeed
@@ -239,15 +271,18 @@ try {
     // --- 2. Check for Updates…, from the real menu; Sparkle's window. ---------
     const clicked = await chooseCheckForUpdates(instance);
     check('Check for Updates… exists in the application menu', clicked);
-    activate('Kingfisher');
+    // The process under test, by pid: an installed Kingfisher may be running
+    // beside it, and "process Kingfisher" would be whichever came first.
+    const target = { pid: instance.process().pid };
+    activate(target);
     const found = await waitForWindow(
-      'Kingfisher',
+      target,
       { button: /^Install Update$/ },
       { timeoutMs: 90_000 },
     );
     const offered = found
       ? found.texts.join(' | ')
-      : windowsOf('Kingfisher')
+      : windowsOf(target)
           .map((w) => `${w.title}: ${w.buttons.join(',')}`)
           .join(' / ');
     check(
@@ -255,20 +290,25 @@ try {
       Boolean(found) && found.texts.some((t) => t.includes(nextVersion)),
       offered,
     );
+    // Sparkle's own words: "Kingfisher 1.1.8 is now available—you have
+    // 1.1.7", with Install Update and Skip This Version (a user-initiated
+    // check has no Remind Me Later); the release notes are in a web view the
+    // Accessibility tree does not list as static text.
     check(
-      'the offer names the running version and carries release notes',
+      'the offer names both versions, and can be declined',
       Boolean(found) &&
-        found.texts.some((t) => t.includes(plist(app, 'CFBundleShortVersionString'))) &&
-        found.buttons.includes('Remind Me Later') &&
+        found.texts.some((t) =>
+          t.includes(`you have ${plist(app, 'CFBundleShortVersionString')}`),
+        ) &&
         found.buttons.includes('Skip This Version'),
       found ? found.buttons.join(', ') : '',
     );
 
     // --- 3. Install Update: download, extract, then Install and Relaunch. ----
-    const installed = await waitAndClick('Kingfisher', /^Install Update$/, { timeoutMs: 10_000 });
+    const installed = await waitAndClick(target, /^Install Update$/, { timeoutMs: 10_000 });
     check('Install Update was clicked', Boolean(installed));
     seen.push('Install Update');
-    const ready = await waitAndClick('Kingfisher', /^Install and Relaunch$/, {
+    const ready = await waitAndClick(target, /^Install and Relaunch$/, {
       timeoutMs: 180_000,
     });
     check(
@@ -462,6 +502,7 @@ try {
   }
   rmSync(profile, { recursive: true, force: true });
   rmSync(install, { recursive: true, force: true });
+  if (staging) rmSync(staging, { recursive: true, force: true });
 }
 
 console.log(failed ? '\nReal update: FAILED' : '\nReal update: PASS');

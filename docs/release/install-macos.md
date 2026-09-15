@@ -105,11 +105,14 @@ paragraphs, **bold**, _italic_, and `` `inline code` `` that actually
 appear in release bodies, with no HTML pass-through, and only text
 nodes reach the dialog.
 
-### Why the very first update asks for your password or Touch ID, and later ones do not
+### Why the update from 1.1.7 or earlier may ask for your password or Touch ID
 
-On a Developer ID-signed, notarised bundle, the stock Electron
-updater (`Squirrel.Mac`) tries to install itself as a privileged helper
-tool the first time it runs, which surfaces the macOS dialog
+Kingfisher 1.1.8 and later update through Sparkle, which asks for
+nothing. An installed 1.1.0–1.1.7 still makes its last update through
+the engine it shipped with: on a Developer ID-signed, notarised bundle,
+the stock Electron updater (`Squirrel.Mac`) tries to install itself as
+a privileged helper tool the first time it runs, which surfaces the
+macOS dialog
 
 > An update is ready to install. **Kingfisher is trying to add a new
 > helper tool.** Touch ID or enter your password to allow this.
@@ -132,19 +135,18 @@ return [override isEqualToString:@"true"]
 ```
 
 and `defaults write -bool TRUE` is stored as the integer `1`, which the
-comparison fails on. Kingfisher's first launch (`main.mjs`,
-`ensureSquirrelMacDirectWrite`) writes the value as a string so the
-flag actually takes effect; the helper is idempotent and logs only on
-change.
+comparison fails on. Kingfisher 1.1.2–1.1.7 wrote the value as a string
+on first launch so the flag actually took effect; 1.1.8 and later do
+not need it and do not write it.
 
 Two things to know:
 
 1. The prompt only appears on the **first** update after a fresh
-   install. After you authenticate once and the helper is in place, the
-   flag is set on the next launch and every later update runs without
-   asking again.
+   install of 1.1.0–1.1.7, and never once Kingfisher 1.1.8 or later is
+   running: Sparkle replaces the bundle in place with your own
+   permissions.
 2. The flag does not weaken the install. The download is still
-   SHA-512-verified against the notarised manifest, and the new
+   SHA-512-verified against that engine's feed, and the new
    bundle is still Developer ID signed by the same identity as the
    old one. The flag only suppresses the re-prompt; the actual
    privilege check happens at the file-system layer the way it

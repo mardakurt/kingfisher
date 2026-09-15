@@ -159,9 +159,10 @@ export function SecurityPage({ issuesUrl }: { issuesUrl: string }): JSX.Element 
           IndexedDB, scoped to the origin.
         </li>
         <li>
-          <strong>No background update.</strong> The macOS application checks for a newer release
-          only when you choose <em>Kingfisher → Check for Updates…</em>, and installs one only when
-          you click <em>Install Update</em>; the download is verified against the release feed and
+          <strong>No background update.</strong> The macOS application asks the release feed when
+          you choose <em>Kingfisher → Check for Updates…</em>, and once, quietly, after launch — a
+          look that shows nothing and downloads nothing. It installs an update only when you click{' '}
+          <em>Install Update</em>; the download is verified against Kingfisher’s signing key and
           your work is saved before the application is replaced. The web build is whatever is
           currently deployed; if a fix is urgent, a manual refresh picks it up.
         </li>

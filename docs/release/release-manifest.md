@@ -1,16 +1,15 @@
 # Release manifest
 
 > **Status.** The desktop application's _Check for Updates…_ does
-> **not** read this manifest. Since the `electron-updater` integration
-> the feed a stable build asks is `latest-mac.yml` on the latest GitHub
-> release, through the provider baked into `app-update.yml`
-> (`desktop/electron-builder.yml`); a preview build asks nothing. The
-> runtime manifest described below is still produced by
-> `npm run publish:release-manifest` and still validated by
+> **not** read this manifest. Since 1.1.8 the feed a stable build asks
+> is Sparkle's `appcast.xml` on the latest GitHub release, named by
+> `SUFeedURL` in its Info.plist and signed with the key in
+> `desktop/sparkle.json`; 1.1.0–1.1.7 ask `latest-mac.yml`; a preview
+> build asks nothing. The runtime manifest described below is still
+> produced by `npm run publish:release-manifest` and still validated by
 > `desktop/src/update-protocol.mjs` (`parseReleaseManifest`), and the
-> rules on this page are the rules that validation enforces — but the
-> parser is reached only by the manual-installer path, which nothing
-> in the shell invokes today. Treat this as the specification of a
+> rules on this page are the rules that validation enforces — but
+> nothing in the shell reads it. Treat this as the specification of a
 > record the release process publishes for humans and tooling, not as
 > the update trust boundary. The examples use an illustrative future
 > version; the current public build is named by
