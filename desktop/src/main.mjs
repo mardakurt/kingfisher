@@ -68,7 +68,7 @@ import {
   subscribe as subscribeToUpdates,
 } from './update-service.mjs';
 import { updaterCacheDir } from './sparkle-updater.mjs';
-import { takeRelaunchProfile } from './relaunch-profile.mjs';
+import { mayTakeRelaunchProfile, takeRelaunchProfile } from './relaunch-profile.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const HOST = '127.0.0.1';
@@ -83,8 +83,12 @@ const HOST = '127.0.0.1';
   profile in the updater's cache; this launch takes the name, adopts it, and
   the file is gone whether or not it was fresh. `sessionData` follows
   `userData` the way `--user-data-dir` would have moved both.
+
+  A launch that names its own profile leaves the file alone: it is not the
+  relaunch, and taking the handoff would send the real relaunch to the
+  default profile (`mayTakeRelaunchProfile`).
 */
-const relaunchProfile = takeRelaunchProfile(updaterCacheDir());
+const relaunchProfile = mayTakeRelaunchProfile() ? takeRelaunchProfile(updaterCacheDir()) : null;
 if (relaunchProfile && relaunchProfile.userData !== app.getPath('userData')) {
   app.setPath('userData', relaunchProfile.userData);
   app.setPath('sessionData', relaunchProfile.userData);

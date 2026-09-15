@@ -147,12 +147,14 @@ if (publicFeed) {
 }
 const appcast = summarizeAppcast(appcastXml);
 const nextVersion = appcast.shortVersion ?? '?';
+// What the feed actually offers, not whichever archive sits first in --next-dir.
+const nextArchive = publicFeed ? path.basename(new URL(appcast.url).pathname) : nextZip;
 console.log('Kingfisher real update');
 console.log(
   `current  ${plist(app, 'CFBundleShortVersionString')} (build ${plist(app, 'CFBundleVersion')}, ${currentHasSparkle ? 'Sparkle' : 'electron-updater'}) at ${app}`,
 );
 console.log(
-  `next     ${nextVersion} (build ${appcast.version}) from ${nextZip}\nprofile  ${profile}\n`,
+  `next     ${nextVersion} (build ${appcast.version}) from ${nextArchive}\nprofile  ${profile}\n`,
 );
 
 /*

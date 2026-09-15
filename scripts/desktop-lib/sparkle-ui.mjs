@@ -75,40 +75,44 @@ export function windowsOf(target) {
         set out to ""
         set n to count of windows
         repeat with i from 1 to n
-          set w to window i
-          set texts to ""
+          -- Sparkle's windows come and go while this runs: a window that is
+          -- gone by the time it is read is skipped, and the caller polls again.
           try
-            repeat with t in (every static text of w)
-              set texts to texts & (value of t as text) & itemSep
-            end repeat
-          end try
-          set names to ""
-          try
-            repeat with b in (every button of w)
-              set names to names & (name of b as text) & itemSep
-            end repeat
-          end try
-          set windowTitle to ""
-          try
-            set windowTitle to name of w as text
-          end try
-          set out to out & i & fieldSep & windowTitle & fieldSep & texts & fieldSep & names & fieldSep & "" & rowSep
-          -- A message box the shell attaches to its window is a sheet, not a
-          -- window of its own; list each with the window it hangs from.
-          try
-            set sheetCount to count of sheets of w
-            repeat with j from 1 to sheetCount
-              set sh to sheet j of w
-              set sheetTexts to ""
-              repeat with t in (every static text of sh)
-                set sheetTexts to sheetTexts & (value of t as text) & itemSep
+            set w to window i
+            set texts to ""
+            try
+              repeat with t in (every static text of w)
+                set texts to texts & (value of t as text) & itemSep
               end repeat
-              set sheetNames to ""
-              repeat with b in (every button of sh)
-                set sheetNames to sheetNames & (name of b as text) & itemSep
+            end try
+            set names to ""
+            try
+              repeat with b in (every button of w)
+                set names to names & (name of b as text) & itemSep
               end repeat
-              set out to out & i & fieldSep & windowTitle & fieldSep & sheetTexts & fieldSep & sheetNames & fieldSep & j & rowSep
-            end repeat
+            end try
+            set windowTitle to ""
+            try
+              set windowTitle to name of w as text
+            end try
+            set out to out & i & fieldSep & windowTitle & fieldSep & texts & fieldSep & names & fieldSep & "" & rowSep
+            -- A message box the shell attaches to its window is a sheet, not a
+            -- window of its own; list each with the window it hangs from.
+            try
+              set sheetCount to count of sheets of w
+              repeat with j from 1 to sheetCount
+                set sh to sheet j of w
+                set sheetTexts to ""
+                repeat with t in (every static text of sh)
+                  set sheetTexts to sheetTexts & (value of t as text) & itemSep
+                end repeat
+                set sheetNames to ""
+                repeat with b in (every button of sh)
+                  set sheetNames to sheetNames & (name of b as text) & itemSep
+                end repeat
+                set out to out & i & fieldSep & windowTitle & fieldSep & sheetTexts & fieldSep & sheetNames & fieldSep & j & rowSep
+              end repeat
+            end try
           end try
         end repeat
         return out

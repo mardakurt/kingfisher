@@ -8,6 +8,7 @@ import {
   RELAUNCH_PROFILE_FILE,
   RELAUNCH_PROFILE_TTL_MS,
   isDowngrade,
+  mayTakeRelaunchProfile,
   takeRelaunchProfile,
   writeRelaunchProfile,
 } from './relaunch-profile.mjs';
@@ -93,5 +94,21 @@ describe('what counts as a downgrade', () => {
     expect(isDowngrade('1.1.6', '1.1.6')).toBe(false);
     expect(isDowngrade('1.1.6-rc.1', '1.1.6')).toBe(false);
     expect(isDowngrade('1.1', '1.1.0')).toBe(false);
+  });
+});
+
+describe('who may take the handoff', () => {
+  /*
+    2026-09-15: a harness launched Kingfisher with its own --user-data-dir a
+    moment after an update was installed, took the handoff, and the real
+    relaunch — with no arguments — opened the owner's default profile.
+  */
+  it('a launch that names its profile leaves the file for the relaunch', () => {
+    expect(mayTakeRelaunchProfile(['/Applications/Kingfisher.app/Contents/MacOS/Kingfisher'])).toBe(
+      true,
+    );
+    expect(mayTakeRelaunchProfile(['Kingfisher', '--user-data-dir=/tmp/profile'])).toBe(false);
+    expect(mayTakeRelaunchProfile(['Kingfisher', '--user-data-dir', '/tmp/profile'])).toBe(false);
+    expect(mayTakeRelaunchProfile(['Kingfisher', '/games/a.pgn'])).toBe(true);
   });
 });

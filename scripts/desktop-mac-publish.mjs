@@ -86,6 +86,25 @@ if (missing.length) {
   console.log(
     `appcast.xml: ${summary.title} · build ${summary.version} · ${summary.length} bytes · signed`,
   );
+  /*
+    The previous engine's feed, for the installed 1.1.0–1.1.7. The output
+    directory keeps older builds' files, and a `latest-mac.yml` left there
+    by an earlier release names that release: uploading it would offer
+    every 1.1.x the wrong archive with the wrong digest.
+  */
+  const legacy = readFileSync(join(distDir, 'latest-mac.yml'), 'utf8');
+  const legacyVersion = /^version:\s*(\S+)/m.exec(legacy)?.[1];
+  const legacySha = /^sha512:\s*(\S+)/m.exec(legacy)?.[1];
+  const zipSha512 = createHash('sha512').update(readFileSync(zipPath)).digest('base64');
+  if (legacyVersion !== version || legacySha !== zipSha512) {
+    console.error(
+      `latest-mac.yml names ${legacyVersion ?? '?'} (sha512 ${legacySha?.slice(0, 12) ?? '?'}…), not this release's ${version} ZIP (${zipSha512.slice(0, 12)}…). Run npm run release:mac:appcast -- --zip <this ZIP>.`,
+    );
+    exit(1);
+  }
+  console.log(
+    `latest-mac.yml: ${legacyVersion} · sha512 ${legacySha.slice(0, 12)}… (for 1.1.0–1.1.7)`,
+  );
 }
 
 /* Build SHA256SUMS for the artifacts. */

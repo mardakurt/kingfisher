@@ -54,6 +54,21 @@ export function writeRelaunchProfile(cacheDir, userData, now = Date.now()) {
 }
 
 /**
+ * Whether this launch may take the handoff at all.
+ *
+ * A launch that names its profile (`--user-data-dir=…`) already knows where
+ * it belongs, and must leave the file for the launch that does not: the
+ * relaunch. On 2026-09-15 a harness launched a Kingfisher with its own
+ * profile a moment after an update was installed; it took the handoff,
+ * adopted the updated instance's profile instead of its own, and the real
+ * relaunch — arriving with no arguments — found nothing and opened the
+ * owner's default profile, the very thing the handoff exists to prevent.
+ */
+export function mayTakeRelaunchProfile(argv = process.argv) {
+  return !argv.some((arg) => arg === '--user-data-dir' || arg.startsWith('--user-data-dir='));
+}
+
+/**
  * Take the handoff: the profile to adopt, or null. The file is removed in
  * every case, so a handoff is consumed by exactly one launch.
  */
