@@ -108,8 +108,15 @@ export async function runAutoBackup(
 
 /**
  * Persist a backup record and prune older entries to the retention
- * count. Reads the store first so pruning is one scan, not one delete
- * per surplus row.
+ * count. The write and the prunes run sequentially rather than in a
+ * single read-write transaction: the PersistenceTransaction interface
+ * exposed to user code does not include objectStore, only the
+ * higher-level get / put / delete helpers, which are themselves
+ * single-call transactions on the underlying IDB. A failure between
+ * the write and the prune leaves the store one entry over its
+ * retention ceiling; the next run prunes it. That is the right
+ * trade-off — a partial prune that aborts is harmless, a partial
+ * transaction that aborts a successful write would lose data.
  */
 export async function persistBackup(
   database: PersistenceDatabase,

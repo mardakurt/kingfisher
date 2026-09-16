@@ -128,14 +128,14 @@ export function PrivacyPage(): JSX.Element {
           verification is reported and the bytes are discarded.
         </li>
         <li>
-          <strong>The application&apos;s own origin</strong> for the static assets (Stockfish WASM, piece
-          art, the marketing/landing assets, the app code itself).
+          <strong>The application&apos;s own origin</strong> for the static assets (Stockfish WASM,
+          piece art, the marketing/landing assets, the app code itself).
         </li>
       </ul>
       <p>
         The Content-Security-Policy in <code>vercel.json</code> is the enforced allow-list. Any
-        other host is refused at the browser layer, and the desktop companion&apos;s loopback server is a
-        separate trust boundary with its own authentication.
+        other host is refused at the browser layer, and the desktop companion&apos;s loopback server
+        is a separate trust boundary with its own authentication.
       </p>
 
       <h2 id="cookies">Cookies and trackers</h2>
@@ -159,9 +159,9 @@ export function PrivacyPage(): JSX.Element {
       <p>
         The web build is hosted on Vercel. Vercel sees every request the way any hosting provider
         does, and the request log will contain the IP address you connected from, the URL you
-        requested and the user agent your browser sent. Vercel&apos;s own data-handling is described in
-        their privacy policy; the Kingfisher project does not put anything additional in those logs.
-        There is no Kingfisher-side server processing them.
+        requested and the user agent your browser sent. Vercel&apos;s own data-handling is described
+        in their privacy policy; the Kingfisher project does not put anything additional in those
+        logs. There is no Kingfisher-side server processing them.
       </p>
 
       <h2 id="account">Account status</h2>

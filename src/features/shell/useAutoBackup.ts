@@ -50,14 +50,22 @@ export function useAutoBackup(): void {
       setState({ lastBackupAt });
 
       const preferences = repositories.raw as unknown as Readonly<Record<string, unknown>>;
+      /*
+       * The three 'autoBackup*' keys below are the cycle's controls.
+       * The persisted value lives under `state.*` inside the JSON the
+       * preferences store writes — `{state: {...}, version: N}` —
+       * and the defaults match the keys in DEFAULT_PREFERENCES, so the
+       * fallback after a missing or pre-hydration read is correct.
+       */
       const prefs = JSON.parse(
         typeof window === 'undefined'
           ? '{}'
           : (window.localStorage.getItem('kingfisher.preferences') ?? '{}'),
-      ) as Record<string, unknown>;
-      const enabled = (prefs['autoBackupEnabled'] as boolean | undefined) ?? true;
-      const scheduleDays = (prefs['autoBackupReminderDays'] as number | undefined) ?? 7;
-      const retention = (prefs['autoBackupRetention'] as number | undefined) ?? 3;
+      ) as { readonly state?: Record<string, unknown> };
+      const prefsState = prefs.state ?? {};
+      const enabled = (prefsState['autoBackupEnabled'] as boolean | undefined) ?? true;
+      const scheduleDays = (prefsState['autoBackupReminderDays'] as number | undefined) ?? 7;
+      const retention = (prefsState['autoBackupRetention'] as number | undefined) ?? 3;
 
       if (!enabled) {
         setState({ status: 'idle' });

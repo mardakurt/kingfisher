@@ -44,7 +44,16 @@ interface BoardEngineAffordanceProps {
 
 export function BoardEngineAffordance({ showEvaluation }: BoardEngineAffordanceProps) {
   const { node } = useAnalysisPosition();
-  const prefs = usePreferences();
+  /*
+   * Only the engine-shape values the start button reads; reading the
+   * whole preferences store would re-render this on every theme change.
+   * `usePreferences` is a thin selector wrapper, so the cost is one
+   * subscription per field, each firing only when its value changes.
+   */
+  const engineLimit = usePreferences((state) => state.engineLimit);
+  const engineMultiPv = usePreferences((state) => state.engineMultiPv);
+  const engineThreads = usePreferences((state) => state.engineThreads);
+  const engineHashMb = usePreferences((state) => state.engineHashMb);
   const status = useEngine((state) => state.primary.status);
   const running = useEngine((state) => state.primary.running);
   const depth = useEngine((state) => state.primary.analysis?.depth ?? null);
@@ -52,19 +61,12 @@ export function BoardEngineAffordance({ showEvaluation }: BoardEngineAffordanceP
   const stopEngine = useEngine((state) => state.stop);
 
   const start = useCallback(() => {
-    void analyse('primary', node.fen, prefs.engineLimit, {
-      multiPv: prefs.engineMultiPv,
-      threads: prefs.engineThreads,
-      hashMb: prefs.engineHashMb,
+    void analyse('primary', node.fen, engineLimit, {
+      multiPv: engineMultiPv,
+      threads: engineThreads,
+      hashMb: engineHashMb,
     });
-  }, [
-    analyse,
-    node.fen,
-    prefs.engineHashMb,
-    prefs.engineLimit,
-    prefs.engineMultiPv,
-    prefs.engineThreads,
-  ]);
+  }, [analyse, node.fen, engineHashMb, engineLimit, engineMultiPv, engineThreads]);
 
   if (!showEvaluation) return null;
 

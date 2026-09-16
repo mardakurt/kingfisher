@@ -135,8 +135,18 @@ export function FirstRunTour() {
 
   return (
     <Dialog
+      /*
+       * The Dialog's onClose fires when the user clicks the close
+       * button or the backdrop. Either way, they have chosen to leave
+       * the tour — and on the last step, that decision is final. The
+       * previous behaviour inverted this: clicking outside the LAST
+       * step kept the tour on the next launch, while clicking outside
+       * any earlier step turned it off. That made the last step the
+       * one place where a dismiss did not commit, which is the worst
+       * place to be lenient about the user's intent.
+       */
       open={open}
-      onClose={() => close(!isLast)}
+      onClose={() => close(true)}
       title={`Tour · step ${stepIndex + 1} of ${STEPS.length}`}
     >
       <div className="flex flex-col gap-4 px-1 py-1">
@@ -169,16 +179,7 @@ export function FirstRunTour() {
                 Done
               </Button>
             ) : (
-              <Button
-                variant="accent"
-                size="sm"
-                onClick={() => {
-                  if (stepIndex === STEPS.length - 2) {
-                    prefs.set('tourShowOnLaunch', false);
-                  }
-                  setStepIndex(stepIndex + 1);
-                }}
-              >
+              <Button variant="accent" size="sm" onClick={() => setStepIndex(stepIndex + 1)}>
                 Next
               </Button>
             )}
