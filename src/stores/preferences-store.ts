@@ -141,6 +141,14 @@ export interface Preferences {
   assistantBaseUrl: string;
   assistantModel: string;
   assistantApiKey: string;
+  /** Whether the workspace auto-backs itself up on the schedule below. */
+  autoBackupEnabled: boolean;
+  /** Days between auto-backup runs; also the threshold for the status-bar reminder. */
+  autoBackupReminderDays: number;
+  /** How many auto-backups to keep (per platform). */
+  autoBackupRetention: number;
+  /** Whether the first-run tour opens automatically on launch. */
+  tourShowOnLaunch: boolean;
 }
 
 interface PreferencesActions {
@@ -184,6 +192,30 @@ export const DEFAULT_PREFERENCES: Preferences = {
   assistantBaseUrl: '',
   assistantModel: '',
   assistantApiKey: '',
+  /*
+   * Auto-backup: the user-facing preferences for it. The actual timestamp
+   * lives in a separate store entry rather than here so a backup cycle
+   * does not push a new entry into every key in localStorage.
+   */
+  autoBackupEnabled: true,
+  /*
+   * Days between auto-backups. The reminder in the status bar also
+   * uses this — if the last backup is older than `autoBackupReminderDays`,
+   * a soft reminder is shown.
+   */
+  autoBackupReminderDays: 7,
+  /*
+   * Days to keep auto-backups. The desktop writes one file per backup
+   * and prunes older ones; the web stores the last N in IndexedDB.
+   */
+  autoBackupRetention: 3,
+  /*
+   * First-run tour: show on the next launch, or only when the user
+   * opens it from Help. Defaults to true so a fresh install gets one
+   * walk-through; flipping it false is what the tour's "Don't show on
+   * launch" checkbox writes.
+   */
+  tourShowOnLaunch: true,
 };
 
 /**

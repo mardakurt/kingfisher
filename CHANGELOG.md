@@ -6,6 +6,36 @@ real users notice.
 
 ## Unreleased (web)
 
+Phase 56 — eleven enhancements and a fixed Training icon. Same source,
+web and Mac pick everything up at the same time.
+
+- **A clearer Training icon.** The Phase 55 knight blurred into a blob
+  at sidebar size; the Phase 56 replacement is a flat geometric
+  profile — an ear, a mane line, a snout, an eye, a body, a base.
+- **Privacy page is now accurate.** Describes, feature by feature,
+  exactly what goes to Lichess and Chess.com, and names the local
+  profile for what it is — one row in IndexedDB, no cloud.
+- **Engine start is on the board.** A small "Analyse" button in the
+  bottom-right of the board becomes "Engine · depth N" with a stop
+  control when running.
+- **Auto-backup runs on a schedule.** A new `backups` IndexedDB store
+  holds the last few snapshots; the status bar shows when the last one
+  ran; Settings → Data still exports any backup by hand.
+- **Move list rows are finger-tap-sized on touch devices.** 44 px hit
+  zone on phones and tablets; 34 px on desktop.
+- **"Pin best" button** in the Engine panel header pins the top line
+  in one click.
+- **Endgame empty state** explains what the tablebase panel does and
+  how to install Syzygy.
+- **Content search indexes chapter comments**, not only chapter
+  titles.
+- **"Find this position in my work"** in the move context menu — opens
+  the command palette with the FEN prefilled.
+- **Pinch-to-zoom** on the board between 1.0× and 2.5×.
+- **First-run tour** is opt-out, not opt-in. "Don't show on launch"
+  hides it; "Replay the first-run tour" in Settings → Help and
+  feedback brings it back.
+
 Phase 55 — eleven items from the owner's report land together. None of
 these require a new Mac release; the web and the Mac share the same
 source and pick the changes up at the same time.

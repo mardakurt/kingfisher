@@ -26,6 +26,7 @@ import {
   type BoardSurfaceMode,
 } from './board-capabilities';
 import { BoardErrorBoundary } from './BoardErrorBoundary';
+import { BoardEngineAffordance } from './BoardEngineAffordance';
 import { useBoardMoveCapture } from './board-move-capture';
 import { useChessWorkspace } from './ChessWorkspaceContext';
 
@@ -270,6 +271,7 @@ export function CanonicalBoardSurface({
                 </span>
               </div>
             ) : null}
+            <BoardEngineAffordance showEvaluation={caps.showEvaluation} />
           </div>
         </div>
       </div>

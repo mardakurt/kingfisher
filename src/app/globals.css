@@ -350,6 +350,29 @@ body {
 }
 
 /*
+ * Touch devices get a taller move-row hit zone.
+ *
+ * (hover: none) is the standard media query for a primary pointing device
+ * that has no hover — tablets, phones. On those, the 34 px row height
+ * Phase 53 picked is a finger-tap that easily misfires onto the row
+ * above or below; 44 px is the Apple HIG minimum and what every mobile
+ * list view on the platform uses. The desktop keeps 34 px because a
+ * mouse click does not need that margin and the denser packing reads
+ * better in the right rail.
+ *
+ * The override is scoped to `data-virtualized-move-tree` so a future
+ * 44 px-tall control somewhere else does not accidentally inherit this.
+ */
+@media (hover: none) and (pointer: coarse) {
+  [data-virtualized-move-tree='true'] [role='listitem'] {
+    min-height: 44px;
+    padding-top: 0.375rem;
+    padding-bottom: 0.375rem;
+    font-size: 0.8125rem;
+  }
+}
+
+/*
  * Colour-blind annotation palette.
  *
  * Chosen from the Okabe–Ito set, which is designed to stay distinguishable

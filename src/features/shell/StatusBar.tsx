@@ -9,7 +9,9 @@ import { selectFen, selectSaveState, useAnalysis } from '@/stores/analysis-store
 import { useEngine } from '@/stores/engine-store';
 import { useUi } from '@/stores/ui-store';
 
+import { daysSinceLastBackup } from './auto-backup';
 import { BackgroundActivityCentre } from './BackgroundActivityCentre';
+import { useAutoBackupState } from './useAutoBackup';
 
 const ENGINE_LABEL: Record<string, string> = {
   idle: 'Engine off',
@@ -27,7 +29,12 @@ export function StatusBar() {
   const saveState = useAnalysis(selectSaveState);
   const status = useEngine((state) => state.primary.status);
   const notify = useUi((state) => state.notify);
+  const openSettingsAt = useUi((state) => state.openSettingsAt);
   const analysis = useEngine((state) => state.primary.analysis);
+  const backupAt = useAutoBackupState((state) => state.lastBackupAt);
+  const backupStatus = useAutoBackupState((state) => state.status);
+  const backupDays = daysSinceLastBackup(backupAt);
+  const backupDue = backupDays === null || backupDays > 7;
   const [copied, setCopied] = useState(false);
   const [showFen, setShowFen] = useState(false);
 
@@ -109,6 +116,59 @@ export function StatusBar() {
         reading, and this exists to be noticed. §31.
       */}
       <BackgroundActivityCentre />
+
+      {/*
+        Backup indicator. A small, quiet line that says when the last
+        auto-backup ran. Three states: never (red), recent (neutral),
+        overdue (yellow). The user clicks it to open Settings → Database
+        and either export a backup or trigger one manually.
+      */}
+      <button
+        type="button"
+        onClick={() => openSettingsAt('data')}
+        aria-label={
+          backupDays === null
+            ? 'No backup yet — open the data settings'
+            : `Last backup ${backupDays === 0 ? 'today' : `${backupDays} day${backupDays === 1 ? '' : 's'} ago`} — open the data settings`
+        }
+        title={
+          backupDays === null
+            ? 'No backup yet. Click to back up now from Settings → Database.'
+            : backupDue
+              ? `Backup is ${backupDays} days old. Click to back up now from Settings → Database.`
+              : `Backed up ${backupDays} day${backupDays === 1 ? '' : 's'} ago. Click to manage backups.`
+        }
+        className={cn(
+          'ml-1 hidden shrink-0 items-center gap-1 whitespace-nowrap rounded-[3px] px-1.5 py-0.5 transition-colors sm:inline-flex',
+          'hover:bg-surface-2',
+          backupDays === null && 'text-negative',
+          backupDue && backupDays !== null && 'text-caution',
+          !backupDue && 'text-tertiary',
+          backupStatus === 'running' && 'text-accent',
+        )}
+      >
+        {backupStatus === 'running' ? (
+          <>
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent" />
+            <span>Backing up…</span>
+          </>
+        ) : backupDays === null ? (
+          <>
+            <span className="h-1.5 w-1.5 rounded-full bg-negative" />
+            <span>No backup yet</span>
+          </>
+        ) : (
+          <>
+            <span
+              className={cn(
+                'h-1.5 w-1.5 rounded-full',
+                backupDue ? 'bg-caution' : 'bg-positive/70',
+              )}
+            />
+            <span>Backup {backupDays === 0 ? 'today' : `${backupDays}d ago`}</span>
+          </>
+        )}
+      </button>
 
       {/*
         The status bar used to render the full FEN string as a permanent piece

@@ -14,7 +14,7 @@ import { useMemo } from 'react';
 
 import { nagInfo, qualityNags } from '@/chess/annotations';
 import { isOnMainline, siblings, variationHeadId } from '@/chess/tree/tree';
-import { ArrowDown, ArrowUp, Copy, Pencil, Scissors, Trash } from '@/components/icons';
+import { ArrowDown, ArrowUp, Copy, Pencil, Scissors, Search, Trash } from '@/components/icons';
 import { ContextMenu, type MenuSection } from '@/components/ui/Menu';
 import { serializeMovetext } from '@/chess/pgn';
 import { nodePath } from '@/chess/tree/tree';
@@ -62,6 +62,27 @@ export function MoveContextMenu() {
             run: () => {
               goTo(nodeId);
               setCommentingNodeId(nodeId);
+            },
+          },
+          /*
+           * Phase 56: "Find this position elsewhere in my work" is the
+           * one cross-collection lookup that is most useful from a
+           * single move. The user has the position on the board, the
+           * command palette would ask them to paste it, and pasting a
+           * FEN is not what an analysis session is for. The command
+           * palette still does it on FEN input; this is the one-click
+           * surface for the same question.
+           */
+          {
+            id: 'find-position',
+            label: 'Find this position in my work…',
+            icon: <Search />,
+            run: () => {
+              const fen = node.fen;
+              goTo(nodeId);
+              window.dispatchEvent(
+                new CustomEvent('kingfisher:open-search', { detail: { query: fen } }),
+              );
             },
           },
           ...qualityNags.map((nag) => ({

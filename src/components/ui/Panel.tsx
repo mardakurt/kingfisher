@@ -44,14 +44,21 @@ interface EmptyStateProps {
   readonly title: string;
   readonly description?: string;
   readonly action?: ReactNode;
+  /*
+   * Anything the caller wants to put below the description. Used for the
+   * longer "here is what this page will do once you set it up"
+   * explainers on Endgame and similar pages.
+   */
+  readonly children?: ReactNode;
 }
 
-export const EmptyState = ({ title, description, action }: EmptyStateProps) => (
+export const EmptyState = ({ title, description, action, children }: EmptyStateProps) => (
   <div className="flex h-full flex-col items-center justify-center gap-2 px-6 py-10 text-center">
     <p className="text-xs font-medium text-secondary">{title}</p>
     {description && (
       <p className="max-w-[36ch] text-2xs leading-relaxed text-tertiary">{description}</p>
     )}
     {action && <div className="mt-1">{action}</div>}
+    {children}
   </div>
 );

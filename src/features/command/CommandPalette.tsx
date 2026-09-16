@@ -44,7 +44,19 @@ export function CommandPalette() {
   // stays in the same realm the palette already lives in; it is the
   // cheapest bridge that does not require lifting a context.
   useEffect(() => {
-    const onOpen = () => setOpen(true);
+    /*
+     * Phase 56: a position-search entry point. The 404 page and the move
+     * context menu both fire `kingfisher:open-search`; this listener
+     * accepts the optional `detail.query` so the menu can prefill a FEN
+     * and get straight to the cross-collection lookup it asked for.
+     */
+    const onOpen = (event: Event) => {
+      const detail = (event as CustomEvent<{ query?: string }>).detail;
+      if (detail?.query) {
+        useUi.setState({ commandPalettePrefill: detail.query });
+      }
+      setOpen(true);
+    };
     window.addEventListener('kingfisher:open-search', onOpen);
     return () => window.removeEventListener('kingfisher:open-search', onOpen);
   }, [setOpen]);
@@ -56,9 +68,19 @@ export function CommandPalette() {
 function PaletteDialog() {
   const router = useRouter();
   const setOpen = useUi((state) => state.setCommandPaletteOpen);
+  const prefill = useUi((state) => state.commandPalettePrefill);
+  const clearPrefill = useUi((state) => state.setCommandPalettePrefill);
   const commands = useCommands();
 
-  const [query, setQuery] = useState('');
+  /*
+   * The prefill is consumed once on mount: if a caller asked the palette
+   * to open with a specific FEN in the input, that text is here, and the
+   * store is cleared so a subsequent ordinary open does not reapply it.
+   */
+  const [query, setQuery] = useState(prefill);
+  useEffect(() => {
+    if (prefill) clearPrefill('');
+  }, [prefill, clearPrefill]);
   const [index, setIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);

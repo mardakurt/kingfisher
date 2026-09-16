@@ -108,6 +108,15 @@ export function Chessboard({
   const boardRef = useRef<HTMLDivElement>(null);
   const interactionRef = useRef<Interaction | null>(null);
   const selectedRef = useRef<Square | null>(null);
+  /*
+   * Phase 56: a pinch-zoom ref the touch handlers read and write. The
+   * scale is held outside React because every animation frame would
+   * re-render the whole board, which is exactly what the original
+   * translate-based piece animation was careful to avoid. The ref is
+   * a single number; the touch handlers below apply it as an inline
+   * transform on the board element.
+   */
+  const pinchScaleRef = useRef(1);
 
   const [selected, setSelectedState] = useState<Square | null>(null);
   const [drag, setDrag] = useState<DragState | null>(null);
@@ -347,6 +356,41 @@ export function Chessboard({
     setShapeDraft(null);
   }, []);
 
+  /*
+   * Pinch-zoom. Two-finger pinch on a touch device scales the board
+   * between 1.0× and 2.5×. Single-finger gestures are left to the
+   * pointer pipeline; pinch is the only place we look at the second
+   * finger. The pinch state lives on a ref so the animation can run
+   * without forcing a render on every move-event.
+   */
+  const pinchState = useRef<{ readonly startDistance: number; readonly startScale: number } | null>(
+    null,
+  );
+  const handleTouchStart = useCallback((event: React.TouchEvent) => {
+    if (event.touches.length !== 2) return;
+    const a = event.touches[0]!;
+    const b = event.touches[1]!;
+    pinchState.current = {
+      startDistance: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY),
+      startScale: pinchScaleRef.current,
+    };
+  }, []);
+  const handleTouchMove = useCallback((event: React.TouchEvent) => {
+    if (event.touches.length !== 2 || !pinchState.current) return;
+    event.preventDefault();
+    const a = event.touches[0]!;
+    const b = event.touches[1]!;
+    const distance = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+    const ratio = distance / pinchState.current.startDistance;
+    const next = Math.min(2.5, Math.max(1, pinchState.current.startScale * ratio));
+    pinchScaleRef.current = next;
+    const element = boardRef.current;
+    if (element) element.style.transform = `scale(${next})`;
+  }, []);
+  const handleTouchEnd = useCallback((event: React.TouchEvent) => {
+    if (event.touches.length < 2) pinchState.current = null;
+  }, []);
+
   const finishPromotion = useCallback(
     (piece: PromotionPiece | null) => {
       const pending = pendingPromotion;
@@ -439,6 +483,17 @@ export function Chessboard({
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerCancel}
+          /*
+           * Pinch-zoom handlers. Single-finger gestures still go
+           * through the pointer pipeline; these only fire on a
+           * two-finger pinch. `passive: false` lets the move handler
+           * call `preventDefault` so the page does not scroll when the
+           * user pinches inside the board area.
+           */
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onTouchCancel={handleTouchEnd}
           onContextMenu={(event) => event.preventDefault()}
           role="grid"
           aria-label="Chessboard"

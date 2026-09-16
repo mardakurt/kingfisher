@@ -432,6 +432,53 @@ export const SETTING_CONTRACTS: readonly SettingContract[] = [
     previewable: true,
     notBrowserCheckable: 'Needs an assistant endpoint to accept or reject the key.',
   },
+  /*
+   * Phase 56: auto-backup preferences. The settings dialog does not
+   * expose them as toggles yet — the auto-backup cycle runs on its
+   * own schedule, the user discovers the indicator on the status bar
+   * and the dialog later — but the contract must list every
+   * preference exactly once or the settings-contract test fails.
+   */
+  {
+    key: 'autoBackupEnabled',
+    label: 'Auto-backup',
+    surface: 'in-place',
+    control: 'features/shell/useAutoBackup.ts',
+    consumer: 'features/shell/useAutoBackup.ts',
+    effect: 'Whether the workspace auto-backs itself up on the schedule.',
+    indexedAs: null,
+    previewable: false,
+  },
+  {
+    key: 'autoBackupReminderDays',
+    label: 'Auto-backup schedule',
+    surface: 'in-place',
+    control: 'features/shell/useAutoBackup.ts',
+    consumer: 'features/shell/useAutoBackup.ts',
+    effect: 'Days between auto-backups; the status-bar reminder threshold.',
+    indexedAs: null,
+    previewable: false,
+  },
+  {
+    key: 'autoBackupRetention',
+    label: 'Auto-backup retention',
+    surface: 'in-place',
+    control: 'features/shell/useAutoBackup.ts',
+    consumer: 'features/shell/useAutoBackup.ts',
+    effect: 'How many auto-backups to keep.',
+    indexedAs: null,
+    previewable: false,
+  },
+  {
+    key: 'tourShowOnLaunch',
+    label: 'First-run tour on launch',
+    surface: 'in-place',
+    control: 'features/shell/FirstRunTour.tsx',
+    consumer: 'features/shell/useFirstRunTour.ts',
+    effect: 'Whether the first-run tour opens automatically on app launch.',
+    indexedAs: null,
+    previewable: false,
+  },
 ];
 
 /**
