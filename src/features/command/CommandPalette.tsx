@@ -420,6 +420,13 @@ function PaletteDialog() {
             <EmptyState
               fetching={entities.isFetching}
               reason={query.length > 0 ? assessQuery(query).reason : undefined}
+              /*
+               * Phase 57: when the user pasted a FEN and the cross-store
+               * lookup returned zero hits, the previous "No matching
+               * command or item" was true but useless. The empty state
+               * now names what was searched and offers one next action.
+               */
+              positionMiss={Boolean(pastedPosition) && (positions.data?.hits.length ?? 0) === 0}
             />
           ) : (
             matches.map((command, position) => {
@@ -485,9 +492,11 @@ function PaletteDialog() {
 function EmptyState({
   fetching,
   reason,
+  positionMiss,
 }: {
   readonly fetching: boolean;
   readonly reason?: string;
+  readonly positionMiss?: boolean;
 }) {
   if (reason) {
     return (
@@ -499,6 +508,24 @@ function EmptyState({
   }
   if (fetching) {
     return <p className="px-4 py-6 text-center text-xs text-tertiary">Searching the workspace…</p>;
+  }
+  if (positionMiss) {
+    /*
+     * The user pasted a FEN and we searched games, studies,
+     * repertoire, training, endgames, opening files, preparation and
+     * decisions. None of them had the position. Naming the searched
+     * stores turns "no results" into "you do not have this position
+     * anywhere yet" — and the action gives them the obvious next
+     * step: study it now in Analysis.
+     */
+    return (
+      <div className="px-4 py-6 text-center text-xs text-tertiary">
+        <p>This position is not in your games, studies, repertoire, training or endgames yet.</p>
+        <p className="mt-1 text-[11px]">
+          Open it in Analysis to study the move with the engine.
+        </p>
+      </div>
+    );
   }
   return (
     <div className="px-4 py-6 text-center text-xs text-tertiary">
