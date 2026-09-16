@@ -6,6 +6,61 @@ real users notice.
 
 ## Unreleased (web)
 
+Phase 57 — eleven enhancements, a defensive bug-hunt pass, and a
+hooks-rules fix that the lint caught on the very last re-run. Same
+source, web and Mac pick everything up at the same time.
+
+- **A Training icon that survives the 16 px collapsed rail.** The
+  Phase 56 knight's mane, snout and eye all collapsed into the same
+  generic piece silhouette as the king and the pawn at sidebar size.
+  The new silhouette is an L-shape — head, snout, neck — that no other
+  piece on the sidebar uses, so the asymmetry carries the meaning.
+- **Auto-backup is now user-controllable from Settings → Data.** Three
+  rows: turn the cycle on or off, set the schedule (1, 3, 7, 14, or 30
+  days), and choose how many snapshots to keep (1, 3, 5, or 10).
+- **Engine affordance stop button is 44 px on touch devices.** Desktop
+  keeps the 28 px button; phones and tablets get the Apple-HIG-sized
+  tap target without changing the desktop layout.
+- **Engine pill carries the engine name.** A user with Stockfish and
+  LC0 side by side now sees "Stockfish · depth 18" and "LC0 · depth 12"
+  rather than two indistinguishable "Engine · depth N" pills.
+- **Status bar's backup indicator has a positive accent for "today".**
+  Green when the backup is fresh, grey for recent non-today, yellow
+  for overdue, red when there has never been one.
+- **Move-list active row gets an inset ring on touch.** The current
+  node stays visible under the finger on phones and tablets, even when
+  the surface colour matches.
+- **Position-search empty state names what was searched.** Pasting a
+  FEN and getting no hits now reads "This position is not in your
+  games, studies, repertoire, training or endgames yet." instead of
+  the generic "No matching command or item."
+- **Settings dialog filters the section rail by query.** A search input
+  above the left rail narrows the list by section label, keywords and
+  description; clearing the input restores the full list.
+- **Pinch-zoom persists across sessions.** The board's last zoom is
+  keyed by FEN in localStorage and read back on mount, so the same
+  study remembers its scale. One write per gesture, not per frame.
+- **Privacy page reads as a current rule.** "There is no cloud sync
+  today" replaces the previous "Cross-device Sync is not currently
+  available", which read as a sentence about a future feature rather
+  than about the application as it ships.
+- **First-run tour has keyboard navigation.** Left/Right arrows step
+  through the screens, Esc closes and marks the tour as seen, the
+  shortcut hint sits in the dialog's title row.
+
+Bug-hunt pass — four real defects caught while re-running the gates:
+
+- `useAutoBackup` and the chessboard's pinch-zoom persistence now
+  wrap their localStorage reads and writes in try/catch so private
+  mode or quota-exceeded do not break the cycle, the gesture, or
+  the tour.
+- Settings dialog's section filter now jumps the right panel to the
+  first visible section when the current section is filtered out,
+  so the rail and the panel never disagree.
+- The first-run tour's keyboard handler now lives above the early
+  return, so the React rules-of-hooks lint is happy across the
+  open → closed → open transition.
+
 Phase 56 — eleven enhancements and a fixed Training icon. Same source,
 web and Mac pick everything up at the same time.
 
