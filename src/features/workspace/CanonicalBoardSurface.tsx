@@ -254,7 +254,22 @@ export function CanonicalBoardSurface({
             that sits above the frame — the same row the coordinates
             would render in — so it never overlaps a piece.
           */}
-          <div className="flex min-h-7 items-center justify-end pr-1" data-board-toolbar>
+          {/*
+            Phase 65: the toolbar used to rely on `grid-auto-flow: row` to
+            find its cell, and the eval bar — also auto-placed, also a grid
+            child — got there first. The flow then sat the toolbar in row 1,
+            col 2 (the `1fr` column) and pushed the board into row 2, col 1
+            (the eval bar's `24px` column), where `aspect-square` drew a
+            24×24 board. `col-span-full` makes the toolbar occupy both
+            columns of the first row so the eval bar lands in col 1 of row 2
+            and the board — the cell that is actually `1fr` — lands beside
+            it. `col-span-full` is `grid-column: 1 / -1`, so it is a no-op
+            when there is no eval bar (the grid has only one column to span).
+          */}
+          <div
+            className="col-span-full flex min-h-7 items-center justify-end pr-1"
+            data-board-toolbar
+          >
             <BoardEngineAffordance showEvaluation={caps.showEvaluation} />
           </div>
           <div className="relative aspect-square w-full min-w-0" data-board-frame>

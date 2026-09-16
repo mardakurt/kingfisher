@@ -6,18 +6,29 @@ real users notice.
 
 ## Unreleased (web)
 
+Phase 65 — two layout regressions from Phase 62 / Phase 63.
+
+- **Board sits in the 24-px eval-bar column when the eval bar is on.**
+  Phase 62 added a toolbar row above the board and Phase 63's hotfix
+  switched the grid to `grid-rows-[auto_1fr]`. With the eval bar
+  visible, the auto-placed flow sat the eval bar in row 1 col 1, the
+  toolbar in row 1 col 2, and the board in row 2 col 1 — the 24-px
+  eval-bar column. `aspect-square` then drew a 24×24 board. The toolbar
+  now spans both columns (`grid-column: 1 / -1`), the eval bar lands
+  in col 1 of row 2, and the board — the `1fr` cell — sits beside it
+  at the size the route had been giving it all along. The fix is a
+  no-op when there is no eval bar (one column to span).
+- **Inline rename input overflowed the header.** Phase 63's rename
+  control put `flex-1` directly on the `<input>`, which made the input
+  grow past the wrapper in a flex row, pushing the save indicator and
+  the Save-to-study button off the right edge and clipping the left
+  border. The input now sits inside a `block min-w-0 max-w-full`
+  wrapper, which is the same width the title span had — the rename
+  box is the same size as the title it replaced.
+
 Phase 64 — one Mac-desktop fix.
 
-- **Sidebar logo has the design inset in full screen.** The Mac shell
-  reserved 8 px (0.5rem) for the Kingfisher mark on the full-screen
-  title bar — the same strip the web layout reserves 14 px (0.875rem)
-  for. The owner reported it back as glued to the window corner with
-  nothing between the mark and the edge the traffic lights used to
-  sit at. The full-screen padding now reads from the same design
-  inset as the rest of the application, so the mark sits where it does
-  on the web. Outside full screen the reservation is still the
-  traffic-light strip (84 px), so the mark still clears the window
-  buttons in a windowed session.
+- **Sidebar logo has the design inset in full screen.**
 
 Phase 63 — eight fixes. Shared source; available on the web, pending a Mac release.
 

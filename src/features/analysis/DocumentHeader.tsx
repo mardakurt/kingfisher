@@ -153,23 +153,36 @@ function DocumentTitle({ document }: { readonly document: AnalysisDocument }) {
   };
 
   return (
-    <input
-      ref={inputRef}
-      data-rename-analysis
-      value={draft}
-      onChange={(event) => setDraft(event.target.value)}
-      onBlur={commit}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter') {
-          event.preventDefault();
-          commit();
-        } else if (event.key === 'Escape') {
-          event.preventDefault();
-          cancel();
-        }
-      }}
-      className="min-w-0 flex-1 rounded-[3px] border border-accent/60 bg-surface-2 px-1 text-xs text-primary outline-none focus:border-accent"
-    />
+    /*
+      The wrapper is the flex item, sized to whatever room the title had
+      when it was a span. The previous build put `flex-1` on the input
+      itself, which made the input grow past the wrapper: in a flex row
+      with no max-width on the wrapper, `flex-1` grew until something
+      further out set a width, and the rest of the header (the save
+      indicator and the Save-to-study button) ended up off-screen.
+      Constraining the wrapper to `min-w-0 max-w-full` and the input to
+      `block w-full` keeps the rename box exactly where the title sat.
+    */
+    <span className="block min-w-0 max-w-full">
+      <input
+        ref={inputRef}
+        data-rename-analysis
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+        onBlur={commit}
+        size={Math.max(draft.length, 8)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            commit();
+          } else if (event.key === 'Escape') {
+            event.preventDefault();
+            cancel();
+          }
+        }}
+        className="block w-full min-w-0 max-w-full rounded-[3px] border border-accent/60 bg-surface-2 px-1 text-xs text-primary outline-none focus:border-accent"
+      />
+    </span>
   );
 }
 
