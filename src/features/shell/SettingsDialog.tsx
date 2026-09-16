@@ -16,7 +16,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check } from '@/components/icons';
 import { Button } from '@/components/ui/Button';
 import { PathField } from '@/components/ui/PathField';
-import { desktop } from '@/desktop/bridge';
+import { desktop, isDesktop } from '@/desktop/bridge';
 import { Toggle } from '@/components/ui/Toggle';
 import { BookManager } from '@/features/book/BookManager';
 import { EngineManager } from '@/features/engine/EngineManager';
@@ -647,6 +647,43 @@ function CompanionSection() {
           Optional. It runs native engines, SQLite collections and local Syzygy tables — the things
           a browser cannot. Everything else in Kingfisher works without it.
         </p>
+        {/*
+          Phase 55: a web user has to start the companion themselves. The
+          previous one-liner — bare `npm run companion` — looked like the
+          kind of command a non-technical user is expected to memorise, and
+          the project's own install page carries a longer explanation. The
+          command stays a copyable box, but the prose around it now says
+          what the user is about to do in plain language, and the install
+          page is one click away for anyone who would rather read it.
+        */}
+        {typeof window !== 'undefined' && !isDesktop() ? (
+          <details className="mt-3 rounded-[4px] border border-line bg-surface-inset px-2.5 py-2 text-2xs text-secondary">
+            <summary className="cursor-pointer select-none font-medium text-primary">
+              How to start the companion on the web
+            </summary>
+            <ol className="mt-2 list-decimal pl-4 leading-relaxed">
+              <li>
+                Open a terminal in the Kingfisher folder — the one whose name is on the title bar.
+              </li>
+              <li>
+                Paste <code className="font-mono text-[11px]">npm run companion</code> and press
+                Enter.
+              </li>
+              <li>
+                The terminal prints a line that starts with{' '}
+                <code className="font-mono text-[11px]">Pair this device:</code> — copy the whole
+                line, including the <code className="font-mono text-[11px]">#token=…</code> at the
+                end.
+              </li>
+              <li>Paste it into the box below.</li>
+            </ol>
+            <p className="mt-2 text-2xs text-tertiary">
+              Each engine you want, you can then add with one click in <em>Settings → Engine</em>.
+              The download comes from each project&apos;s own GitHub release and is checked against
+              a recorded SHA-256 before it runs.
+            </p>
+          </details>
+        ) : null}
         <p className="mt-2 rounded-[4px] border border-line bg-surface-inset px-2.5 py-2 font-mono text-[10.5px] text-secondary">
           npm run companion
         </p>
@@ -1308,8 +1345,10 @@ function ProfileSection() {
   const notify = useUi((state) => state.notify);
   const profile = useProfile();
   const [draftAliases, setDraftAliases] = useState<string | null>(null);
+  const [draftName, setDraftName] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const aliases = draftAliases ?? profile.data?.aliases.join('\n') ?? '';
+  const displayName = draftName ?? profile.data?.displayName ?? '';
 
   const save = async () => {
     setBusy(true);
@@ -1318,8 +1357,11 @@ function ProfileSection() {
         .split('\n')
         .map((alias) => alias.trim())
         .filter(Boolean);
-      await (await getRepositories()).profile.setAliases(values);
+      const profileRepository = (await getRepositories()).profile;
+      await profileRepository.setAliases(values);
+      await profileRepository.setDisplayName(displayName);
       setDraftAliases(values.join('\n'));
+      setDraftName(displayName.trim());
       void queryClient.invalidateQueries({ queryKey: phase3Keys.profile });
       /*
         The aliases are what "My games" means. Without this the explorer keeps
@@ -1330,12 +1372,14 @@ function ProfileSection() {
       invalidatePositionContext(queryClient);
       notify({
         tone: 'success',
-        message: `${values.length} personal name ${values.length === 1 ? 'alias' : 'aliases'} saved.`,
+        message: displayName.trim()
+          ? `Saved as ${displayName.trim()}.`
+          : `${values.length} personal name ${values.length === 1 ? 'alias' : 'aliases'} saved.`,
       });
     } catch (error) {
       notify({
         tone: 'error',
-        message: error instanceof Error ? error.message : 'Aliases could not be saved.',
+        message: error instanceof Error ? error.message : 'Profile could not be saved.',
       });
     } finally {
       setBusy(false);
@@ -1344,7 +1388,25 @@ function ProfileSection() {
 
   return (
     <div>
-      <h3 className="text-xs text-primary">My player names</h3>
+      {/*
+        Phase 55: the display name is what the welcome banner reads and what
+        gives the workspace its "this is *mine*" feel. A blank field is a
+        legitimate choice — the greeting falls back to a generic one — and
+        Save still goes through, which is what the first-launch prompt
+        relies on.
+      */}
+      <h3 className="text-xs text-primary">Your name</h3>
+      <p className="mt-1 text-2xs leading-relaxed text-tertiary">
+        A name for the workspace. The welcome banner uses it, nothing else.
+      </p>
+      <input
+        value={displayName}
+        onChange={(event) => setDraftName(event.target.value)}
+        placeholder={'e.g. Magnus'}
+        className={FIELD_INPUT}
+      />
+
+      <h3 className="mt-6 text-xs text-primary">My player names</h3>
       <p className="mt-1 text-2xs leading-relaxed text-tertiary">
         One exact name per line. Matching folds case and repeated whitespace only; names are never
         inferred or silently merged.
@@ -1357,7 +1419,7 @@ function ProfileSection() {
       />
       <div className="mt-2 flex justify-end">
         <Button variant="accent" onClick={() => void save()} disabled={busy}>
-          {busy ? 'Saving…' : 'Save aliases'}
+          {busy ? 'Saving…' : 'Save profile'}
         </Button>
       </div>
     </div>

@@ -438,15 +438,16 @@ body {
   --titlebar-safe-w: 0px;
   --titlebar-safe-h: 0px;
   /*
-   * Full screen also takes the design inset away. The traffic-light reservation
-   * collapses to 0 here, but `max(0.875rem, var(--titlebar-safe-w))` in the
-   * sidebar header would still keep the brand 14 px in from the window edge —
-   * in full screen there is nothing in that 14 px to clear, so the design
-   * inset is a phantom one and the brand lands further from the corner than
-   * the user expects. The brand flushes left for as long as the window is
-   * full screen and moves back when it leaves.
+   * Full screen collapses the traffic-light reservation to zero — no buttons
+   * to clear — but the brand still wants a few pixels of breathing room
+   * from the window edge. Eight px is what the owner's report asked for:
+   * not the phantom 14 px that would push the brand away from the corner
+   * the user is looking at, just enough that the mark does not look glued
+   * to it. The header's transition reads this variable, so the brand
+   * slides the small distance when the window enters or leaves full
+   * screen.
    */
-  --sidebar-brand-left-padding: 0px;
+  --sidebar-brand-left-padding: 0.5rem;
 }
 /*
  * Restated, because the cascade would otherwise undo it. The rule above and
@@ -458,7 +459,13 @@ body {
  * running that harness. Two attributes outrank one, whatever the order.
  */
 :root[data-titlebar='mac-hidden-titlebar'][data-fullscreen='true'] {
-  --sidebar-brand-left-padding: 0px;
+  /*
+   * The cascade ordering here matters and is stated in the comment for the
+   * rule above. The packaged chrome harness catches a regression where this
+   * value drifted to 14 px because the no-fullscreen rule was winning on
+   * specificity. Two attributes outrank one, whatever the order.
+   */
+  --sidebar-brand-left-padding: 0.5rem;
 }
 
 :root[data-titlebar] nav[data-sidebar] > [data-titlebar-drag] {

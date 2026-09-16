@@ -161,6 +161,17 @@ export const MOVE_TREE_MODULE = {
 export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
   analysis: [
     'engine',
+    /*
+     * Phase 55: the grounded assistant used to be the second-to-last tab on
+     * the Analysis workspace — past engine, past explorer, past tablebase.
+     * That order reflected an earlier phase where the assistant was a
+     * technical preview and the engine was the only thing most users came
+     * for. The owner's report called the assistant out as something that
+     * was never seen on a main page; one tab position earlier is a small
+     * thing, but it puts the assistant inside the same five tabs a user
+     * actually reads rather than at the bottom of a sixteen-tab list.
+     */
+    'companion',
     'explorer',
     'theory-book',
     'opening-report',
@@ -177,7 +188,6 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'conversion',
     'play',
     'report',
-    'companion',
     'notes',
   ],
   studies: [

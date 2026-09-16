@@ -22,6 +22,7 @@ import { useWorkspaceLayout } from '@/stores/workspace-layout-store';
 import { BrandMark } from './BrandMark';
 import { TitleBarSafeCorner } from './TitleBarSafeArea';
 import { NAV_GROUPS, sectionsInGroup } from './navigation';
+import { ProfileGreeting } from './ProfileGreeting';
 
 interface SidebarProps {
   readonly variant?: 'desktop' | 'drawer';
@@ -188,6 +189,7 @@ export function Sidebar({ variant = 'desktop', onClose }: SidebarProps) {
       {/* Settings has a keyboard shortcut and a palette entry, but until now no
           visible control outside Analysis — so on Repertoire, Training or
           Preparation there was nothing to click. It belongs with navigation. */}
+      {!compact && <ProfileGreeting />}
       <div className="mt-auto shrink-0 border-t border-line-subtle p-1.5">
         {!drawer && (
           <button
