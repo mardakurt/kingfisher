@@ -8,21 +8,59 @@ import { publicUrl } from '@/release/public-urls';
  * Studio is intentionally absent: a search result that points
  * at /analysis is a worse experience than no result.
  *
- * `lastModified` uses a fixed, source-controlled date so the
- * sitemap is not a moving target; the actual freshness comes
- * from the page's structured data and the last build's commit
- * hash surfaced through the Vercel deploy header.
+ * `lastModified` is set per-page so the sitemap reflects real
+ * document freshness — the landing and install guide change
+ * with every release, the legal pages change rarely. The
+ * Studio does not appear here and never will.
  */
-const PUBLISHED = '2026-09-10';
+const LANDING_UPDATED = '2026-09-16';
+const INSTALL_UPDATED = '2026-09-16';
+const LEGAL_UPDATED = '2026-09-16';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const base = publicUrl.landing;
-  const paths = ['', '/install', '/privacy', '/security', '/data-licences', '/terms'];
-  return paths.map((p) => ({
-    url: `${base}${p}`,
-    lastModified: new Date(PUBLISHED),
-    changeFrequency: 'monthly' as const,
-    priority: p === '' ? 1 : 0.6,
-    alternates: undefined,
-  }));
+  return [
+    {
+      url: `${base}/`,
+      lastModified: new Date(LANDING_UPDATED),
+      changeFrequency: 'weekly',
+      priority: 1,
+      alternates: undefined,
+    },
+    {
+      url: `${base}/install`,
+      lastModified: new Date(INSTALL_UPDATED),
+      changeFrequency: 'weekly',
+      priority: 0.9,
+      alternates: undefined,
+    },
+    {
+      url: `${base}/privacy`,
+      lastModified: new Date(LEGAL_UPDATED),
+      changeFrequency: 'monthly',
+      priority: 0.5,
+      alternates: undefined,
+    },
+    {
+      url: `${base}/security`,
+      lastModified: new Date(LEGAL_UPDATED),
+      changeFrequency: 'monthly',
+      priority: 0.5,
+      alternates: undefined,
+    },
+    {
+      url: `${base}/data-licences`,
+      lastModified: new Date(LEGAL_UPDATED),
+      changeFrequency: 'monthly',
+      priority: 0.5,
+      alternates: undefined,
+    },
+    {
+      url: `${base}/terms`,
+      lastModified: new Date(LEGAL_UPDATED),
+      changeFrequency: 'monthly',
+      priority: 0.5,
+      alternates: undefined,
+    },
+  ];
 }

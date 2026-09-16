@@ -32,14 +32,23 @@ export function LandingPage(): JSX.Element {
   const releaseUrl = publicUrl.release;
   const downloadUrl = publicUrl.macosDmg;
 
+  /*
+   * The signing/notation question has a notarised answer and a preview
+   * answer, picked at build time from the descriptor. Both are
+   * deterministic, so the FAQPage schema and the visible markup can
+   * share the same string constants without diverging.
+   */
+  const notarisedAnswer = `Kingfisher ${macosDownload.version} is signed with a Developer ID certificate and notarised by Apple, with the ticket stapled to the disk image and the application, so it opens with a normal double-click after macOS's standard "downloaded from the Internet" confirmation. Notarisation is Apple's automated malware screening, not an endorsement. The install guide lists the SHA-256 so you can check the file you have.`;
+  const notarisedQuestion = 'Is the macOS build safe to open?';
+
   // JSON-LD for the public landing. Only fields that are
   // true and visible are included. `offers` reflects the free,
   // no-subscription, no-account product.
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'WebApplication',
-    name: 'Kingfisher',
-    alternateName: 'Kingfisher Chess',
+    name: 'Kingfisher Chess',
+    alternateName: ['Kingfisher', 'Kingfisher Chess app'],
     description:
       'A local-first chess research workstation for serious players. Opening research across separate evidence sources, Stockfish 18 in the browser, native engines on macOS, large personal databases, repertoire and review.',
     url: publicUrl.landing,
@@ -52,6 +61,8 @@ export function LandingPage(): JSX.Element {
     datePublished: '2026-09-10',
     inLanguage: 'en',
     isAccessibleForFree: true,
+    keywords:
+      'kingfisher chess, chess, chess analysis, chess engine, Stockfish, chess opening explorer, chess database, chess repertoire, chess training, lichess, chess.com, local-first chess, open source chess, free chess, macos chess',
     offers: {
       '@type': 'Offer',
       price: '0',
@@ -59,9 +70,9 @@ export function LandingPage(): JSX.Element {
       availability: 'https://schema.org/InStock',
     },
     author: { '@type': 'Person', name: 'mardakurt', url: repoUrl },
-    publisher: { '@type': 'Organization', name: 'Kingfisher', url: publicUrl.landing },
+    publisher: { '@type': 'Organization', name: 'Kingfisher Chess', url: publicUrl.landing },
     license: 'https://github.com/mardakurt/kingfisher/blob/master/LICENSE',
-    sourceOrganization: { '@type': 'Organization', name: 'Kingfisher' },
+    sourceOrganization: { '@type': 'Organization', name: 'Kingfisher Chess' },
     featureList: [
       'Opening research across separate evidence sources',
       'Stockfish 18 in the browser',
@@ -70,6 +81,69 @@ export function LandingPage(): JSX.Element {
       'Reference data with verified provenance',
       'Repertoire, training, review',
       'No account, no cookies, no subscription',
+    ],
+  };
+
+  /*
+   * FAQPage schema mirrors the FAQ section below. Google can render the
+   * matching questions as a FAQ rich result, which earns a search-result
+   * that occupies more vertical space and ranks "kingfisher chess" style
+   * questions above the fold. The strings are the same as the visible
+   * markup — `Is the macOS build safe to open?` is the notarised
+   * question and answer because the published 1.1.9 build is notarised.
+   */
+  const faqJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: [
+      {
+        '@type': 'Question',
+        name: 'Is Kingfisher free?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'Yes. Kingfisher Chess is open source under the MIT licence. There is no paid tier, no subscription and no in-app purchase. Optional reference data is free to download; the manifests that come with the application tell you exactly how much each pack will use.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'Do I need an account to use Kingfisher Chess?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'No. Kingfisher Chess is local-first. Open the web app or download the macOS application and your work lives in the browser or on the machine you installed it on. There is no sign-up and no profile. You can optionally connect a Lichess or Chess.com account from Settings to study your own games.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'Where is my chess work saved?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: "In your browser's IndexedDB on the web, or in ~/Library/Application Support/kingfisher-desktop/ on the macOS application. The full data lives on your machine, never on a Kingfisher server. To move work between machines, use Settings → Database → Export backup / Import backup. The backup is a portable JSON file you control.",
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'Can I use Kingfisher Chess offline?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'Yes. The bundled Kingfisher Starter ships inside the application and answers from your machine. The macOS application runs entirely on your machine. The web build needs a network only for first load and for an optional, on-demand reference query; a downloaded pack keeps working without the network.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: notarisedQuestion,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: `${notarisedAnswer} Install guide: ${publicUrl.landing}/install.`,
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'Does Kingfisher Chess work on Windows or Linux?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'The web build works in any modern browser on any operating system. The desktop shell is supported on Apple Silicon macOS only. The web application is the same product, served from the same codebase; what differs is whether you run it in a browser tab or in the macOS shell.',
+        },
+      },
     ],
   };
 
@@ -114,10 +188,17 @@ export function LandingPage(): JSX.Element {
         <section id="top" className="hero">
           <div className="hero-inner">
             <div className="hero-copy">
+              {/*
+                The brand is in the H1, not just the title bar. A search
+                for "kingfisher chess" needs the H1 of the landing to
+                read as "Kingfisher Chess", not just "Chess research" —
+                the brand is what disambiguates this product from the
+                bird, the film and the kayak that share the bare name.
+              */}
               <h1 className="hero-title">
-                Chess research,
+                Kingfisher Chess.
                 <br />
-                <span className="hero-title-accent">in one place.</span>
+                <span className="hero-title-accent">Research, in one place.</span>
               </h1>
               <p className="hero-lede">
                 Opening evidence, engines, databases, studies and repertoire.
@@ -618,6 +699,14 @@ export function LandingPage(): JSX.Element {
         // constants; the string is the only user-controlled
         // surface and there is none. JSON.stringify is safe.
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        // The FAQPage schema mirrors the FAQ section above. The Q&A
+        // strings are the same as the visible ones — see the
+        // `faqJsonLd` constant — so the structured data and the
+        // page body cannot drift.
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
     </div>
   );

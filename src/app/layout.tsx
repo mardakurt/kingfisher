@@ -23,27 +23,63 @@ const OG_IMAGE = `${LANDING}/landing/img/og.png`;
 
 export const metadata: Metadata = {
   metadataBase: new URL(LANDING),
+  /*
+    The title leads with the brand and its category. "Kingfisher Chess"
+    disambiguates the brand — "Kingfisher" alone returns a bird, a Martin
+    Scorsese film, a kayak, and several other products. Putting the
+    category next to the brand is what makes a search for "kingfisher
+    chess" find this product. The template (`%s · Kingfisher`) keeps the
+    brand on inner pages.
+  */
   title: {
-    default: 'Kingfisher — chess research workspace',
-    template: '%s · Kingfisher',
+    default: 'Kingfisher Chess — chess research workspace',
+    template: '%s · Kingfisher Chess',
   },
   description:
-    'Engine analysis, opening databases and repertoire work in one workspace, for players who study. Local-first. No account. No cookies.',
-  applicationName: 'Kingfisher',
-  keywords: ['chess', 'opening research', 'Stockfish', 'repertoire', 'local-first', 'open source'],
+    'Kingfisher Chess is a local-first chess analysis and repertoire workstation for serious players. Stockfish 18 in the browser, native chess engines on macOS, opening explorer, large personal chess database, repertoire and review. No account. No cookies.',
+  applicationName: 'Kingfisher Chess',
+  keywords: [
+    'kingfisher chess',
+    'kingfisher',
+    'chess',
+    'chess analysis',
+    'chess app',
+    'chess software',
+    'chess engine',
+    'chess database',
+    'chess opening explorer',
+    'opening explorer',
+    'opening research',
+    'chess openings',
+    'chess repertoire',
+    'repertoire training',
+    'chess review',
+    'stockfish',
+    'stockfish 18',
+    'lichess',
+    'chess.com',
+    'local-first',
+    'open source chess',
+    'free chess',
+    'chess mac',
+    'chess macos',
+    'pgn',
+    'tablebase',
+    'syzygy',
+  ],
   authors: [{ name: 'mardakurt' }],
   creator: 'mardakurt',
-  publisher: 'Kingfisher',
+  publisher: 'Kingfisher Chess',
   category: 'productivity',
   alternates: {
     canonical: '/',
   },
   openGraph: {
     type: 'website',
-    siteName: 'Kingfisher',
-    title: 'Kingfisher — chess research workspace',
+    siteName: 'Kingfisher Chess',
+    title: 'Kingfisher Chess — chess research workspace',
     description:
-      'Opening research, engines, databases, repertoire and review. Local-first. No account. No cookies.',
+      'Chess analysis, opening explorer, personal chess database, repertoire and review. Stockfish 18 in the browser, native engines on macOS. Local-first. No account. No cookies.',
     url: LANDING,
     locale: 'en',
     images: [
@@ -51,7 +87,7 @@ export const metadata: Metadata = {
         url: OG_IMAGE,
         width: 1200,
         height: 630,
-        alt: 'Kingfisher — a chess research workstation showing engine analysis, an explorer and a board.',
+        alt: 'Kingfisher Chess — a chess research workstation showing engine analysis, an explorer and a board.',
       },
     ],
   },
@@ -59,9 +95,9 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     site: '@kingfisher',
     creator: '@kingfisher',
-    title: 'Kingfisher — chess research workspace',
+    title: 'Kingfisher Chess — chess research workspace',
     description:
-      'Opening research, engines, databases, repertoire and review. Local-first. No account. No cookies.',
+      'Chess analysis, opening explorer, personal chess database, repertoire and review. Stockfish 18 in the browser, native engines on macOS. Local-first. No account. No cookies.',
     images: [OG_IMAGE],
   },
   appleWebApp: { capable: true, title: 'Kingfisher', statusBarStyle: 'black-translucent' },
