@@ -7,6 +7,14 @@ file plus `src/desktop/bridge.ts`, which returns `null` in a browser.
 This document is the Phase 49 check on that claim, feature by feature,
 with the deliberate differences named and the reason for each.
 
+**Published revision check (Phase 55, web only).** Phase 55 changed
+twelve files in `src/` and one in `src/app/globals.css`. None of them
+touches `desktop/src/` or the Electron shell — every change is web
+surface area that the packaged Mac picks up at build time. The public
+Mac 1.1.9 is now behind `master`. The next Mac release will catch up;
+until then, the Mac user is the user who waits. Section B of After-a-fix
+will run when that release is cut.
+
 **Published revision check (2026-09-15, 1.1.9).** The public Mac 1.1.9
 DMG is built from the `v1.1.9` tag's revision — its build number and
 commit are in `src/release/macos-download.json` — which is the revision
