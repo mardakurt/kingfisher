@@ -36,6 +36,14 @@ export interface Notice {
 
 interface UiState {
   commandPaletteOpen: boolean;
+  /*
+   * One-shot prefilled query for the command palette. Set by anything
+   * that wants the palette to open with a specific text already in the
+   * input — a FEN from the move context menu's "Find this position",
+   * a study title from a deep link. The palette consumes the value on
+   * open and clears it so a subsequent open does not reapply it.
+   */
+  commandPalettePrefill: string;
   shortcutsOpen: boolean;
   settingsOpen: boolean;
   /**
@@ -76,6 +84,7 @@ interface UiState {
 
   setCommandPaletteOpen(open: boolean): void;
   toggleCommandPalette(): void;
+  setCommandPalettePrefill(value: string): void;
   setShortcutsOpen(open: boolean): void;
   setSettingsOpen(open: boolean): void;
   openSettingsAt(section: string): void;
@@ -106,6 +115,7 @@ let noticeId = 0;
 
 export const useUi = create<UiState>((set) => ({
   commandPaletteOpen: false,
+  commandPalettePrefill: '',
   shortcutsOpen: false,
   settingsOpen: false,
   settingsSection: null,
@@ -129,6 +139,7 @@ export const useUi = create<UiState>((set) => ({
 
   setCommandPaletteOpen: (commandPaletteOpen) => set({ commandPaletteOpen }),
   toggleCommandPalette: () => set((state) => ({ commandPaletteOpen: !state.commandPaletteOpen })),
+  setCommandPalettePrefill: (commandPalettePrefill) => set({ commandPalettePrefill }),
   setShortcutsOpen: (shortcutsOpen) => set({ shortcutsOpen }),
   setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
   openSettingsAt: (settingsSection) => set({ settingsSection, settingsOpen: true }),
