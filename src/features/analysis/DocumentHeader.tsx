@@ -12,6 +12,8 @@
  * failed write says so rather than quietly showing a tick.
  */
 
+import { useEffect, useRef, useState } from 'react';
+
 import { Save, Warning } from '@/components/icons';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/cn';
@@ -37,7 +39,20 @@ export function DocumentHeader() {
       */}
       <div className="min-w-[10ch] flex-1">
         <div className="flex min-w-0 items-baseline gap-1.5">
-          <span className="truncate text-xs text-primary">{documentTitle(document)}</span>
+          <DocumentTitle document={document} />
+          {/*
+            Phase 63: a synced or online game where the viewer was one of
+            the players carries the side. "Playing as White" / "Playing as
+            Black" tells the reader which one they sat down at, which is
+            what they actually want to know on the second click — the
+            "read-only source" pill alone says nothing about whose game
+            it was.
+          */}
+          {document.kind === 'reference-game' && document.viewerSide ? (
+            <span className="hidden shrink-0 rounded-[3px] bg-accent/15 px-1 text-[10px] font-medium text-accent wide:inline">
+              Playing as {document.viewerSide === 'w' ? 'White' : 'Black'}
+            </span>
+          ) : null}
           {document.kind === 'database-game' || document.kind === 'reference-game' ? (
             <span className="hidden shrink-0 rounded-[3px] bg-surface-3 px-1 text-[10px] text-tertiary wide:inline">
               read-only source
@@ -60,6 +75,101 @@ export function DocumentHeader() {
         </Button>
       )}
     </div>
+  );
+}
+
+/**
+ * The title in the workspace header.
+ *
+ * For an `untitled` analysis the user owns the title — clicking it makes it
+ * editable. The other kinds draw their title from somewhere the user does
+ * not control (a PGN header for a database or reference game, a stored
+ * chapter title for a study chapter), and renaming those happens through
+ * the source's own rename dialog, which is the path that propagates the
+ * change to the right places.
+ */
+function DocumentTitle({ document }: { readonly document: AnalysisDocument }) {
+  const setDocument = useAnalysis((state) => state.setDocument);
+  const editable = document.kind === 'untitled';
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(document.title);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!editing) return;
+    inputRef.current?.focus();
+    inputRef.current?.select();
+  }, [editing]);
+
+  /*
+    Entering edit mode re-seeds the draft from the current title so opening
+    a different document mid-session does not leave a stale value in the
+    input. The reset happens in the event handler rather than an effect on
+    `document.title` so it runs once per click rather than every render.
+  */
+  const startEditing = () => {
+    setDraft(document.title);
+    setEditing(true);
+  };
+
+  if (!editable || !editing) {
+    return (
+      <span
+        className={cn(
+          'min-w-0 truncate text-xs text-primary',
+          editable && 'cursor-text rounded-[3px] hover:bg-surface-2',
+        )}
+        role={editable ? 'button' : undefined}
+        tabIndex={editable ? 0 : undefined}
+        title={editable ? 'Click to rename' : documentTitle(document)}
+        aria-label={editable ? 'Rename this analysis' : documentTitle(document)}
+        onClick={editable ? startEditing : undefined}
+        onKeyDown={
+          editable
+            ? (event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  startEditing();
+                }
+              }
+            : undefined
+        }
+      >
+        {documentTitle(document)}
+      </span>
+    );
+  }
+
+  const commit = () => {
+    const trimmed = draft.trim();
+    if (trimmed.length > 0 && trimmed !== document.title) {
+      setDocument({ kind: 'untitled', title: trimmed });
+    }
+    setEditing(false);
+  };
+
+  const cancel = () => {
+    setEditing(false);
+  };
+
+  return (
+    <input
+      ref={inputRef}
+      data-rename-analysis
+      value={draft}
+      onChange={(event) => setDraft(event.target.value)}
+      onBlur={commit}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          commit();
+        } else if (event.key === 'Escape') {
+          event.preventDefault();
+          cancel();
+        }
+      }}
+      className="min-w-0 flex-1 rounded-[3px] border border-accent/60 bg-surface-2 px-1 text-xs text-primary outline-none focus:border-accent"
+    />
   );
 }
 

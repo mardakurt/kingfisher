@@ -127,10 +127,32 @@ export function EngineManager() {
       ))}
 
       {client === null ? (
-        <p className="rounded-[4px] border border-line bg-surface-2 p-3 text-xs text-tertiary">
-          Native engines need the companion, which runs on this machine and starts processes the
-          browser cannot. Pair it under Settings → Companion, and this list becomes installable.
-        </p>
+        /*
+          Phase 63: the empty state used to be one sentence that told
+          the user to go elsewhere. It now lists the engines they are
+          missing by name, so the cost of not pairing is concrete and
+          the next step is obvious. Browsers run Stockfish; everything
+          else is the companion's job.
+        */
+        <div className="rounded-[4px] border border-line bg-surface-2 p-3 text-xs text-tertiary">
+          <p className="text-secondary">
+            <strong className="font-medium text-primary">Stockfish 18</strong> is the only engine
+            the browser runs. Everything else is a one-command install once you pair the companion.
+          </p>
+          <p className="mt-2 text-2xs">
+            Pair under <em className="not-italic">Settings → Companion</em>. When the companion is
+            up, this list grows to include{' '}
+            <strong className="font-medium text-secondary">Lc0</strong> (neural network, plays
+            positions Stockfish does not),{' '}
+            <strong className="font-medium text-secondary">Stormphrax 8</strong>,{' '}
+            <strong className="font-medium text-secondary">Viridithas 20</strong> (independent Rust
+            engine), <strong className="font-medium text-secondary">Halogen 16</strong>,{' '}
+            <strong className="font-medium text-secondary">PlentyChess 8</strong>, and{' '}
+            <strong className="font-medium text-secondary">Stockfish 19 (native)</strong>. Each
+            installs with a single click from its own GitHub release, with a SHA-256 check before
+            the binary runs.
+          </p>
+        </div>
       ) : catalogue.isPending ? (
         <p className="text-xs text-tertiary">Asking the companion what it can install…</p>
       ) : catalogue.isError ? (

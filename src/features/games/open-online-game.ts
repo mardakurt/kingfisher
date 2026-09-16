@@ -25,7 +25,10 @@
 
 import { parsePgn } from '@/chess/pgn';
 import { DatabaseError, type ChessDatabaseProvider } from '@/database/types';
+import { getRepositories } from '@/persistence/repositories';
 import { useAnalysis } from '@/stores/analysis-store';
+
+import { viewerSide } from './viewer-side';
 
 export class OnlineGameUnavailableError extends Error {
   constructor(message: string) {
@@ -73,14 +76,32 @@ export async function openOnlineGame(
     );
   }
 
+  /*
+    Phase 63: if the viewer is one of the players, flip the board to their
+    side and carry the fact into the document, so the title strip can say
+    "Playing as …" rather than only "From Lichess". Master and replay games
+    do not match any linked account and keep the default orientation.
+  */
+  let viewer: 'w' | 'b' | undefined;
+  try {
+    const repositories = await getRepositories();
+    const accounts = await repositories.linkedAccounts.list();
+    const side = viewerSide(parsed.tree, accounts);
+    viewer = side ?? undefined;
+  } catch {
+    viewer = undefined;
+  }
+
   useAnalysis.getState().openDocument({
     tree: parsed.tree,
+    ...(viewer ? { orientation: viewer } : {}),
     document: {
       kind: 'reference-game',
       title,
       sourceId: provider.id,
       sourceName: provider.name,
       gameId,
+      ...(viewer ? { viewerSide: viewer } : {}),
     },
   });
 }

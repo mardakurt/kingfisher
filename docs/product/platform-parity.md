@@ -24,6 +24,23 @@ validation, scheduled backup preference serialization, and an incorrect
 native-companion prerequisite on the AI assistant panel. The engine toolbar
 also wraps controls to keep the engine selector readable in a narrow panel.
 
+**Published revision check (Phase 63, web only).** Phase 63 changed
+six src/ files plus `CHANGELOG.md` and `docs/product/platform-parity.md`.
+The web-only changes are: backup export downloads reliably (anchor
+attached to DOM, microtask-deferred URL revoke, KB in success toast);
+the database diagnostics row in Settings shows a status badge so the
+Test button's work is visible; the companion setup prose and the
+empty-state on Engines list every companion engine by name and link
+to the install guide; the palette preview is larger and explains what
+the colourblind variant actually changes; opening a Lichess or
+Chess.com game flips the board to the viewer's side and the
+workspace title strip says "Playing as White" / "Playing as Black";
+clicking the title in an untitled analysis turns it into an inline
+rename input. None of the changes touch `desktop/src/` or the
+Electron shell, so the public Mac 1.1.9 stays on the previous Phase 55
+surface until the next Mac release. Section B of After-a-fix is
+therefore not required for this fix.
+
 **Published revision check (Phase 62, web only).** Phase 62 changed
 seven src/ files plus the documentation tree: the tour is openable
 from Settings (not on launch) and its first step shows the correct

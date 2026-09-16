@@ -305,23 +305,63 @@ function AppearanceSection() {
         />
       </Row>
 
-      {/* What the choice changes, painted from the live tokens so it changes with them. */}
-      <div className="flex items-center gap-3" data-annotation-palette-preview>
-        <div className="flex flex-1 gap-1.5" aria-hidden>
+      {/*
+        Phase 63: the previous preview was four small colour bars
+        plus three tiny sample moves in text-xs. A person toggling
+        between Standard and Colour-blind could easily miss that the
+        swatches had shifted, because the difference between a
+        saturated green (#5fa96b) and an Okabe-Ito blue (#0072b2) is
+        one of degree, not hue. The new preview draws each brush as a
+        large chip with its own hex underneath, so the change is
+        unmistakable; the sample moves use a font-size that reads at
+        a glance, and the chips are stacked so the diff fits in a
+        narrow column too. All paints are `var(...)`, so they
+        switch the moment the palette switches — no local preview
+        state.
+      */}
+      <div className="flex flex-col gap-2" data-annotation-palette-preview>
+        <div className="grid grid-cols-4 gap-2" aria-hidden>
           {(['green', 'red', 'blue', 'yellow'] as const).map((brush) => (
-            <span
+            <div
               key={brush}
+              className="flex flex-col items-stretch gap-1 rounded-[4px] border border-line-subtle p-1.5"
               title={`${brush} brush`}
-              className="h-5 flex-1 rounded-[3px]"
-              style={{ background: `var(--shape-${brush})` }}
-            />
+            >
+              <span
+                className="h-7 w-full rounded-[3px]"
+                style={{ background: `var(--shape-${brush})` }}
+              />
+              <span className="text-center font-mono text-[9.5px] text-tertiary">{brush}</span>
+            </div>
           ))}
         </div>
-        <div className="flex shrink-0 items-baseline gap-2 font-mono text-xs" aria-hidden>
+        <div
+          className="flex items-baseline justify-between rounded-[4px] border border-line-subtle bg-surface-inset px-2.5 py-1.5 font-mono"
+          aria-hidden
+        >
           <span className="text-positive">Nf3!!</span>
+          <span className="text-secondary">Nf3</span>
           <span className="text-caution">h4?!</span>
           <span className="text-negative">Qxf7??</span>
         </div>
+        {/*
+          Phase 63: the eval bar is intentionally absent from the swatch
+          row — its white and black halves are structural (the white side
+          reads "white is ahead" whatever the paint), so it does not need
+          a colourblind variant. The pieces that DO change are the four
+          arrow brushes above and these four move-quality tokens, which
+          drive the move list and every verdict in the engine panel,
+          repertoire and training views. The chip hex underneath the
+          swatch and the colour of each move glyph are the things to
+          actually compare when switching.
+        */}
+        <p className="text-[10px] leading-relaxed text-tertiary">
+          Recolours the four arrow brushes and the{' '}
+          <span className="font-mono text-[10px]">text-positive / -caution / -negative</span> move
+          tokens everywhere they appear — move list, engine panel, training verdicts, repertoire
+          gaps. The eval bar is white for one side and black for the other by structure, not by
+          palette, so it stays the same.
+        </p>
       </div>
     </div>
   );
@@ -699,49 +739,75 @@ function CompanionSection() {
         <h3 className="text-xs text-primary">Local companion</h3>
         <p className="mt-1 text-2xs leading-relaxed text-tertiary">
           {/*
-            It does serve tablebases as of Phase 12: the companion manages a
-            Fathom-based probe helper, so local Syzygy files are read without
-            the user starting anything else. Endgame evidence still falls back
-            to the Lichess provider, and the board says which one answered.
+            Phase 63: the previous prose made two errors a user kept
+            making — they ran the project, looked at Settings →
+            Engines, saw only "Stockfish 18" and "Stockfish 18 (full
+            network)", and concluded either that the project does not
+            ship other engines or that they needed to be a developer
+            to install them. The fix is to say out loud, in the same
+            panel, what runs without the companion, what the companion
+            adds, and what it costs to set the companion up. The
+            full prose is below — the helper inside `<details>` now
+            shows a short version on the panel and the longer how-to
+            on click, with a link to the install page for anyone
+            who would rather read it.
           */}
-          Optional. It runs native engines, SQLite collections and local Syzygy tables — the things
-          a browser cannot. Everything else in Kingfisher works without it.
+          Optional. The browser already runs{' '}
+          <strong className="font-medium text-secondary">Stockfish 18</strong> with no setup — the
+          Engines page picks it without you doing anything. The companion adds{' '}
+          <strong className="font-medium text-secondary">Stockfish 19</strong>, Leela Chess Zero,
+          Stormphrax, Viridithas, Halogen, PlentyChess and{' '}
+          <strong className="font-medium text-secondary">local Syzygy tables</strong>, which a
+          browser cannot do. Setting it up takes a single command in a terminal and one paste here.
         </p>
         {/*
-          Phase 55: a web user has to start the companion themselves. The
-          previous one-liner — bare `npm run companion` — looked like the
-          kind of command a non-technical user is expected to memorise, and
-          the project's own install page carries a longer explanation. The
-          command stays a copyable box, but the prose around it now says
-          what the user is about to do in plain language, and the install
-          page is one click away for anyone who would rather read it.
+          Phase 55: a web user has to start the companion themselves.
+          Phase 63: the helper is now in two layers — the open-by-default
+          short version tells a non-technical user *what* the companion
+          is and *why* it is worth setting up; the still-collapsed details
+          are the step-by-step. The install link at the bottom is one
+          click away for anyone who would rather read a longer guide.
         */}
         {typeof window !== 'undefined' && !isDesktop() ? (
-          <details className="mt-3 rounded-[4px] border border-line bg-surface-inset px-2.5 py-2 text-2xs text-secondary">
+          <details
+            className="mt-3 rounded-[4px] border border-line bg-surface-inset px-2.5 py-2 text-2xs text-secondary"
+            open
+          >
             <summary className="cursor-pointer select-none font-medium text-primary">
-              How to start the companion on the web
+              How to start the companion (4 steps, ~1 minute)
             </summary>
-            <ol className="mt-2 list-decimal pl-4 leading-relaxed">
+            <ol className="mt-2 list-decimal pl-4 leading-relaxed marker:text-tertiary">
               <li>
-                Open a terminal in the Kingfisher folder — the one whose name is on the title bar.
+                Open a terminal in the same folder you ran{' '}
+                <code className="font-mono text-[11px]">npm run dev</code> from. Its name is on the
+                title bar of the window that opened.
               </li>
               <li>
                 Paste <code className="font-mono text-[11px]">npm run companion</code> and press
-                Enter.
-              </li>
-              <li>
-                The terminal prints a line that starts with{' '}
+                Enter. The terminal prints a line that begins with{' '}
                 <code className="font-mono text-[11px]">Pair this device:</code> — copy the whole
                 line, including the <code className="font-mono text-[11px]">#token=…</code> at the
                 end.
               </li>
               <li>Paste it into the box below.</li>
+              <li>
+                Done. Engines → Companion engines becomes a list you can install with one click
+                (LC0, Stormphrax, Viridithas, etc.). The download comes from each project&apos;s own
+                GitHub release and is checked against a recorded SHA-256 before it runs.
+              </li>
             </ol>
             <p className="mt-2 text-2xs text-tertiary">
-              Each engine you want, you can then add with one click in <em>Settings → Engine</em>.
-              The download comes from each project&apos;s own GitHub release and is checked against
-              a recorded SHA-256 before it runs.
+              The companion runs in this terminal window until you close it. Closing the terminal
+              does not unpair — Kingfisher remembers the address until you press Unpair.
             </p>
+            <a
+              href="https://github.com/mardakurt/kingfisher/blob/master/docs/install/companion.md"
+              target="_blank"
+              rel="noreferrer"
+              className="mt-2 inline-block text-accent hover:underline"
+            >
+              Read the full setup guide →
+            </a>
           </details>
         ) : null}
         <p className="mt-2 rounded-[4px] border border-line bg-surface-inset px-2.5 py-2 font-mono text-[10.5px] text-secondary">
@@ -1730,16 +1796,36 @@ function BackupControls() {
         // ones the workspace was reading from.
         referenceSources: installedReferenceSources(),
       });
-      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+      const json = JSON.stringify(backup, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
+      const stamp = new Date(backup.createdAt).toISOString().slice(0, 19).replace(/[:T]/g, '-');
+      /*
+       * Phase 63: the previous export built the anchor, clicked it, and
+       * revoked the object URL on the next line. Two browser behaviours
+       * made that fragile — Firefox refuses to follow a click on an anchor
+       * that is not attached to the document, and Safari will release the
+       * blob before the click has been dispatched if the URL is revoked
+       * synchronously. The fix is to attach the anchor first, click it
+       * after, and revoke the URL inside a microtask, which always runs
+       * after the click is dispatched.
+       */
       const anchor = document.createElement('a');
       anchor.href = url;
-      anchor.download = `kingfisher-${new Date(backup.createdAt).toISOString().slice(0, 10)}.chess-study-backup.json`;
+      anchor.download = `kingfisher-${stamp}.chess-study-backup.json`;
+      anchor.rel = 'noopener';
+      document.body.appendChild(anchor);
       anchor.click();
-      URL.revokeObjectURL(url);
+      queueMicrotask(() => {
+        URL.revokeObjectURL(url);
+        anchor.remove();
+      });
+      const sizeKb = Math.max(1, Math.round(blob.size / 1024));
       notify({
         tone: 'success',
-        message: includeGames ? 'Complete backup exported.' : 'Portable workspace backup exported.',
+        message: includeGames
+          ? `Complete backup exported (${sizeKb.toLocaleString()} KB).`
+          : `Portable workspace backup exported (${sizeKb.toLocaleString()} KB).`,
       });
     } catch (error) {
       notify({
@@ -2708,11 +2794,50 @@ function ProviderDiagnostic({ provider }: { provider: ChessDatabaseProvider }) {
     retry: false,
   });
   const result = health.data;
+  /*
+   * Phase 63: the diagnostic row used to be just "name / message /
+   * latency / Test". Clicking Test ran the query, but the message
+   * "Not tested yet" did not change, so the button looked like it
+   * did nothing. The status badge that used to sit beside the name
+   * was lost in a previous refactor. The row now has a small badge
+   * whose label tracks the actual state, so the user can see the
+   * test ran even when the response is "Not tested yet".
+   */
+  const status = health.isFetching
+    ? { tone: 'pending', label: 'Testing…' }
+    : health.isError
+      ? { tone: 'negative', label: 'Error' }
+      : !result
+        ? { tone: 'neutral', label: 'Idle' }
+        : result.state === 'ready'
+          ? { tone: 'positive', label: 'Healthy' }
+          : result.state === 'authentication-required'
+            ? { tone: 'caution', label: 'Sign in' }
+            : result.state === 'unsupported'
+              ? { tone: 'neutral', label: 'No probe' }
+              : result.state === 'loading'
+                ? { tone: 'pending', label: 'Loading…' }
+                : { tone: 'caution', label: 'Unreachable' };
   return (
     <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 border-b border-line-subtle py-2 last:border-0">
       <div className="min-w-0">
-        <p className="truncate text-xs text-primary">{provider.name}</p>
-        <p className="text-[10px] leading-relaxed text-tertiary">
+        <div className="flex items-center gap-2">
+          <p className="truncate text-xs text-primary">{provider.name}</p>
+          <span
+            data-test-status={status.tone}
+            className={cn(
+              'shrink-0 rounded-[3px] px-1.5 py-px text-[9.5px] font-medium uppercase tracking-wide',
+              status.tone === 'positive' && 'bg-positive/15 text-positive',
+              status.tone === 'negative' && 'bg-negative/15 text-negative',
+              status.tone === 'caution' && 'bg-caution/15 text-caution',
+              status.tone === 'pending' && 'bg-accent/15 text-accent',
+              status.tone === 'neutral' && 'bg-surface-2 text-tertiary',
+            )}
+          >
+            {status.label}
+          </span>
+        </div>
+        <p className="mt-0.5 text-[10px] leading-relaxed text-tertiary">
           {result?.message ?? 'Not tested yet.'}
         </p>
       </div>

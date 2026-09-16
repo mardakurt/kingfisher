@@ -6,6 +6,49 @@ real users notice.
 
 ## Unreleased (web)
 
+Phase 63 — eight fixes. Shared source; available on the web, pending a Mac release.
+
+- **Backup export downloads reliably.** The previous anchor was
+  built in memory, clicked, and had its URL revoked on the next line —
+  Firefox refused to follow a click on a detached anchor and Safari
+  released the blob before the click dispatched. The anchor is now
+  attached to the document before `.click()`, the URL revoke is queued
+  in a microtask that always runs after the click, and the success
+  toast now reports the file size in KB.
+- **Diagnostics "Test result:" header.** Each database row in the
+  Settings diagnostics now carries a status badge (Idle / Testing… /
+  Healthy / Sign in / Error / Unreachable / etc.) so a click on Test
+  is visible even when the message below stays "Not tested yet".
+- **Companion setup overhaul.** The prose in Settings → Companion
+  now spells out that Stockfish 18 already runs without setup, names
+  the engines the companion adds (Lc0, Stormphrax, Viridithas,
+  Halogen, PlentyChess, Stockfish 19 + local Syzygy), and links to
+  the install guide. The empty state in the Engines panel mirrors the
+  same list. The 4-step "How to start" panel is open by default.
+- **Palette preview shows the difference.** Settings → Appearance
+  now draws the four brushes as large chips with their hex underneath
+  and a one-decimal explainer; the eval bar is intentionally absent
+  (its white/black halves are structural, not chromatic, so it does
+  not need a colourblind variant).
+- **Linked game knows whose side you're on.** Opening a Lichess or
+  Chess.com game now compares the PGN `White` / `Black` headers
+  against the user's linked accounts. If one matches, the board
+  opens on that side and the workspace title strip shows
+  "Playing as White" / "Playing as Black". Master and replay games
+  (no match) keep the default orientation.
+- **Inline rename for untitled analyses.** Clicking the title in the
+  workspace header turns it into an input (Enter to commit, Escape
+  to cancel, click-out to commit). Database and reference games
+  pull their title from PGN headers and study chapters from stored
+  metadata; renaming those still happens through the source's own
+  rename dialog, which is the path that propagates the change.
+
+Phase 63 hotfix — board collapsed to a 0×0 strip because the new
+toolbar row gave the board's `aspect-square` a 0×0 parent. The board
+grid now uses `grid-rows-[auto_1fr]` so the toolbar row sizes to its
+content and the board fills the remainder; no layout regression on
+the previous chrome.
+
 Phase 62 — twelve fixes across the workspace. Same source, web and
 Mac pick everything up at the same time.
 

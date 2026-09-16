@@ -23,6 +23,8 @@ import { getRepositories } from '@/persistence/repositories';
 import type { GameId } from '@/persistence/types';
 import { useAnalysis } from '@/stores/analysis-store';
 
+import { viewerSide } from './viewer-side';
+
 export interface OpenStoredGameOptions {
   /**
    * Put the cursor on the position after this ply.
@@ -73,9 +75,26 @@ export async function openStoredGame(
     full.tree,
   );
 
+  /*
+    Phase 63: if the game was synced from one of the viewer's linked
+    accounts and the viewer played it, flip the board to their side. The
+    document kind stays `database-game` (the game *is* stored), but the
+    workspace now opens with the right orientation, so a Lichess blitz
+    does not have to be flipped by hand after every click.
+  */
+  let orientation: 'w' | 'b' | undefined;
+  try {
+    const accounts = await repositories.linkedAccounts.list();
+    const side = viewerSide(full.tree, accounts);
+    orientation = side ?? undefined;
+  } catch {
+    orientation = undefined;
+  }
+
   const store = useAnalysis.getState();
   store.openDocument({
     tree,
+    ...(orientation ? { orientation } : {}),
     /*
       A database game opens as source material, not as the user's own document.
       Editing it will not write back over the imported record: autosave treats

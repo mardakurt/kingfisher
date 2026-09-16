@@ -332,6 +332,11 @@ export type AnalysisDocument =
    * nothing that writes back to a stored game applies. Carrying the source in
    * the document is what lets the header say where the game came from, which
    * for licensed data is not decoration.
+   *
+   * `viewerSide` is set when the viewer is one of the players, so the board
+   * can be opened on their side and the title strip can say *Playing as …*
+   * rather than just *From Lichess*. Absent means "we do not know" — for
+   * master games, replay packs and any other view that is not one of yours.
    */
   | {
       readonly kind: 'reference-game';
@@ -339,6 +344,7 @@ export type AnalysisDocument =
       readonly sourceId: string;
       readonly sourceName: string;
       readonly gameId: string;
+      readonly viewerSide?: 'w' | 'b';
     };
 
 export interface DraftRecord {
