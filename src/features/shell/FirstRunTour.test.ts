@@ -32,9 +32,9 @@ describe('first-run tour contract', () => {
   });
 
   it('the final step is a real section, not a summary', () => {
-    const last = NAV_SECTIONS[NAV_SECTIONS.length - 1];
-    expect(last.id).toBeTruthy();
-    expect(last.label).toBeTruthy();
+    const last = NAV_SECTIONS.at(-1);
+    expect(last?.id).toBeTruthy();
+    expect(last?.label).toBeTruthy();
   });
 
   it('treats a single second of clock skew as not due', () => {
