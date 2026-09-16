@@ -7,6 +7,13 @@ file plus `src/desktop/bridge.ts`, which returns `null` in a browser.
 This document is the Phase 49 check on that claim, feature by feature,
 with the deliberate differences named and the reason for each.
 
+**Published revision check (Phase 56, web only).** Phase 56 changed
+thirty-one files in `src/` — every enhancement from the owner's
+follow-up report. None of them touches `desktop/src/` or the Electron
+shell, so the public Mac 1.1.9 stays on the previous Phase 55 surface
+until the next Mac release. Section B of After-a-fix is therefore not
+required for this fix.
+
 **Published revision check (Phase 55, web only).** Phase 55 changed
 twelve files in `src/` and one in `src/app/globals.css`. None of them
 touches `desktop/src/` or the Electron shell — every change is web
