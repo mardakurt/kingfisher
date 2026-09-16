@@ -152,7 +152,10 @@ export async function ensureBackup(
     readonly scheduleDays: number;
     readonly retention: number;
   },
-): Promise<{ readonly status: 'skipped' | 'succeeded' | 'failed'; readonly createdAt: number | null }> {
+): Promise<{
+  readonly status: 'skipped' | 'succeeded' | 'failed';
+  readonly createdAt: number | null;
+}> {
   if (!options.enabled) return { status: 'skipped', createdAt: null };
   if (!isBackupDue(options.lastBackupAt, options.scheduleDays)) {
     return { status: 'skipped', createdAt: options.lastBackupAt };

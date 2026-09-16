@@ -51,7 +51,9 @@ export function useAutoBackup(): void {
 
       const preferences = repositories.raw as unknown as Readonly<Record<string, unknown>>;
       const prefs = JSON.parse(
-        typeof window === 'undefined' ? '{}' : window.localStorage.getItem('kingfisher.preferences') ?? '{}',
+        typeof window === 'undefined'
+          ? '{}'
+          : (window.localStorage.getItem('kingfisher.preferences') ?? '{}'),
       ) as Record<string, unknown>;
       const enabled = (prefs.autoBackupEnabled as boolean | undefined) ?? true;
       const scheduleDays = (prefs.autoBackupReminderDays as number | undefined) ?? 7;

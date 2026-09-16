@@ -22,7 +22,18 @@
 
 import { useState } from 'react';
 
-import { Board, Dossier, Library, Notebook, Pin, PlayPosition, Repertoire, Search, Target, Players } from '@/components/icons';
+import {
+  Board,
+  Dossier,
+  Library,
+  Notebook,
+  Pin,
+  PlayPosition,
+  Repertoire,
+  Search,
+  Target,
+  Players,
+} from '@/components/icons';
 import { Button } from '@/components/ui/Button';
 import { Dialog } from '@/components/ui/Dialog';
 import { usePreferences } from '@/stores/preferences-store';
@@ -147,7 +158,7 @@ export function FirstRunTour() {
               onChange={(event) => prefs.set('tourShowOnLaunch', !event.target.checked)}
               className="h-3.5 w-3.5 accent-accent"
             />
-            <span>Don't show on launch</span>
+            <span>Don&apos;t show on launch</span>
           </label>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" onClick={() => close(true)}>

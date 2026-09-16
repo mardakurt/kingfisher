@@ -92,7 +92,9 @@ export function BoardEngineAffordance({ showEvaluation }: BoardEngineAffordanceP
             status === 'loading' ? 'bg-warning animate-pulse' : 'bg-positive animate-pulse',
           )}
         />
-        <span>{status === 'loading' ? 'Engine · starting…' : `Engine · depth ${depth ?? '?'}`}</span>
+        <span>
+          {status === 'loading' ? 'Engine · starting…' : `Engine · depth ${depth ?? '?'}`}
+        </span>
         <button
           type="button"
           onClick={() => stopEngine()}

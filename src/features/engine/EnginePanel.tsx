@@ -172,11 +172,11 @@ export function EnginePanel() {
           </span>
         )}
         {/*
-           * Phase 56: a one-click "pin best line" affordance in the
-           * header. The per-line pin still exists, but a user who is
-           * staring at the engine output and wants the best line pinned
-           * without scrolling should not have to.
-           */}
+         * Phase 56: a one-click "pin best line" affordance in the
+         * header. The per-line pin still exists, but a user who is
+         * staring at the engine output and wants the best line pinned
+         * without scrolling should not have to.
+         */}
         {analysis && !stale && analysis.lines[0] ? (
           <Button
             size="sm"

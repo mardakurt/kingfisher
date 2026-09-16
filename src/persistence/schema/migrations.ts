@@ -451,12 +451,12 @@ export const MIGRATIONS: readonly Migration[] = [
     description: 'Add the auto-backup store; one row per snapshot, indexed by createdAt.',
     apply(target) {
       /*
-        * Each backup carries the entire portable workspace JSON. The
-        * `createdAt` index makes "most recent backup" a single IDB
-        * cursor call, which is what the status-bar indicator reads on
-        * every render. The retention window lives in the auto-backup
-        * module, not in the schema.
-        */
+       * Each backup carries the entire portable workspace JSON. The
+       * `createdAt` index makes "most recent backup" a single IDB
+       * cursor call, which is what the status-bar indicator reads on
+       * every render. The retention window lives in the auto-backup
+       * module, not in the schema.
+       */
       target.createStore(STORE_NAMES.backups, { keyPath: 'id' }, [
         { name: 'createdAt', keyPath: 'createdAt' },
       ]);

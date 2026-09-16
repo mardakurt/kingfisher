@@ -59,8 +59,8 @@ export function PrivacyPage(): JSX.Element {
       <p>
         <strong>User-authored data</strong> — your studies, chapters, repertoire moves, training
         items, model games, recent positions, notes, the display name you picked, and preferences —
-        is stored in the browser or in the desktop profile. It is held under the application's own
-        storage key and never read by another origin. The structure is documented in{' '}
+        is stored in the browser or in the desktop profile. It is held under the application&apos;s
+        own storage key and never read by another origin. The structure is documented in{' '}
         <code>AGENTS.md</code> and the schema is versioned.
       </p>
       <p>
@@ -104,38 +104,37 @@ export function PrivacyPage(): JSX.Element {
             </li>
             <li>
               you ask for games from a Lichess username via{' '}
-              <em>Settings → Accounts → Add an account → Lichess</em>. The username and the games
-              it returned are recorded in your local collection; nothing else is sent.
+              <em>Settings → Accounts → Add an account → Lichess</em>. The username and the games it
+              returned are recorded in your local collection; nothing else is sent.
             </li>
             <li>
               you query the Lichess-hosted Explorer or tablebase. Each call is the literal question
-              you asked — a position, or the board state for a tablebase probe — and Lichess's
+              you asked — a position, or the board state for a tablebase probe — and Lichess&apos;s
               answer. Nothing about your studies, your repertoire, or your account on Kingfisher
               goes with it.
             </li>
           </ul>
         </li>
         <li>
-          <strong>Chess.com</strong> (<code>api.chess.com</code>), used only when you ask for
-          games from a Chess.com username via{' '}
-          <em>Settings → Accounts → Add an account → Chess.com</em>. The username and the games it
-          returned are recorded in your local collection. Chess.com never sees a Kingfisher
-          identifier or any other identifier of yours.
+          <strong>Chess.com</strong> (<code>api.chess.com</code>), used only when you ask for games
+          from a Chess.com username via <em>Settings → Accounts → Add an account → Chess.com</em>.
+          The username and the games it returned are recorded in your local collection. Chess.com
+          never sees a Kingfisher identifier or any other identifier of yours.
         </li>
         <li>
           <strong>The public data mirror</strong> at{' '}
           <code>mardakurt.github.io/kingfisher-data</code> for reference-pack manifests and chunks.
-          Every chunk is verified against the manifest's SHA-256 before it is used. A failed
+          Every chunk is verified against the manifest&apos;s SHA-256 before it is used. A failed
           verification is reported and the bytes are discarded.
         </li>
         <li>
-          <strong>The application's own origin</strong> for the static assets (Stockfish WASM,
-          piece art, the marketing/landing assets, the app code itself).
+          <strong>The application&apos;s own origin</strong> for the static assets (Stockfish WASM, piece
+          art, the marketing/landing assets, the app code itself).
         </li>
       </ul>
       <p>
         The Content-Security-Policy in <code>vercel.json</code> is the enforced allow-list. Any
-        other host is refused at the browser layer, and the desktop companion's loopback server is a
+        other host is refused at the browser layer, and the desktop companion&apos;s loopback server is a
         separate trust boundary with its own authentication.
       </p>
 
@@ -150,31 +149,29 @@ export function PrivacyPage(): JSX.Element {
       <p>
         No advertising tag and no cross-site tracker is loaded. The only measurements are Vercel Web
         Analytics and Speed Insights, described above, served from this origin. A network panel open
-        during a normal session will show this origin (including{' '}
-        <code>/_vercel/insights/view</code>, the page-view beacon, and{' '}
-        <code>/_vercel/speed-insights/vitals</code>, the load-timing beacon), Lichess (if you have
-        signed in or queried Lichess), Chess.com (if you have queried Chess.com) and the data
-        mirror (if you have used a reference source). Nothing else.
+        during a normal session will show this origin (including <code>/_vercel/insights/view</code>
+        , the page-view beacon, and <code>/_vercel/speed-insights/vitals</code>, the load-timing
+        beacon), Lichess (if you have signed in or queried Lichess), Chess.com (if you have queried
+        Chess.com) and the data mirror (if you have used a reference source). Nothing else.
       </p>
 
       <h2 id="hosting">Hosting</h2>
       <p>
         The web build is hosted on Vercel. Vercel sees every request the way any hosting provider
         does, and the request log will contain the IP address you connected from, the URL you
-        requested and the user agent your browser sent. Vercel's own data-handling is described in
-        their privacy policy; the Kingfisher project does not put anything additional in those
-        logs. There is no Kingfisher-side server processing them.
+        requested and the user agent your browser sent. Vercel&apos;s own data-handling is described in
+        their privacy policy; the Kingfisher project does not put anything additional in those logs.
+        There is no Kingfisher-side server processing them.
       </p>
 
       <h2 id="account">Account status</h2>
       <p>
         There is no Kingfisher account, no Kingfisher sign-in, and no Kingfisher-controlled profile
-        on a server. The local profile that holds a display name (Phase 55) is one row in your
-        own IndexedDB or desktop profile directory; it does not sync to anywhere. The{' '}
-        <em>Accounts</em> section of Settings records Lichess and Chess.com usernames so their
-        games can be pulled into your local collection; that linkage lives in your IndexedDB and
-        desktop profile, and is the only thing that connects a Lichess username to a Kingfisher
-        install.
+        on a server. The local profile that holds a display name (Phase 55) is one row in your own
+        IndexedDB or desktop profile directory; it does not sync to anywhere. The <em>Accounts</em>{' '}
+        section of Settings records Lichess and Chess.com usernames so their games can be pulled
+        into your local collection; that linkage lives in your IndexedDB and desktop profile, and is
+        the only thing that connects a Lichess username to a Kingfisher install.
       </p>
       <p>
         If a Kingfisher-controlled account is ever added, this page will be updated before any data
@@ -201,8 +198,8 @@ export function PrivacyPage(): JSX.Element {
         <li>The category you picked (one of five).</li>
         <li>The message you typed, up to 4000 characters.</li>
         <li>
-          The current board position (FEN) — only when you tick{' '}
-          <em>Include current position</em>. The default is off.
+          The current board position (FEN) — only when you tick <em>Include current position</em>.
+          The default is off.
         </li>
         <li>
           A short technical-information block (app version, surface, browser, viewport, storage
@@ -224,7 +221,7 @@ export function PrivacyPage(): JSX.Element {
       <p>
         The endpoint enforces same-origin requests, a 64 KB body ceiling, a per-IP rate limit, a
         minimum form-fill time, and a honeypot field the dialog never fills. The renderer never sees
-        the GitHub token. The fallback link is the user's explicit choice, not an automatic
+        the GitHub token. The fallback link is the user&apos;s explicit choice, not an automatic
         redirect.
       </p>
 

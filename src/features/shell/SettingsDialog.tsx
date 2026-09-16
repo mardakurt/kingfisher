@@ -2423,7 +2423,7 @@ function HelpSection() {
           </button>
           <span className="ml-2 text-[11px] text-tertiary">
             Walks through every section of the sidebar in one screenful each. The tour will also
-            show on the next launch until you tick "Don't show on launch".
+            show on the next launch until you tick &ldquo;Don&apos;t show on launch&rdquo;.
           </span>
         </li>
         <li>

@@ -99,7 +99,10 @@ export async function searchWorkspace(
      * the chapter's plain title.
      */
     const commentHits = collectChapterComments(chapter);
-    if (includes(chapter.title, needle) || commentHits.some((comment) => includes(comment, needle))) {
+    if (
+      includes(chapter.title, needle) ||
+      commentHits.some((comment) => includes(comment, needle))
+    ) {
       add({
         id: `chapter:${chapter.id}`,
         kind: 'chapter',

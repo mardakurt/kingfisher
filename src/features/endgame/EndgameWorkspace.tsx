@@ -140,12 +140,12 @@ export function EndgameWorkspace() {
               them. Two sentences; the Settings link is one click away.
             */}
             <p className="mt-3 text-2xs leading-relaxed text-tertiary">
-              <strong className="font-medium text-secondary">Want tablebase lookups?</strong>{' '}
-              The companion reads Syzygy files locally and tells you whether a side is still
-              winning, drawn, or lost at the current position. Install them from{' '}
-              <em>Settings → Companion → Tablebases</em> — pick a folder of <code>.rtbw</code>{' '}
-              and <code>.rtbz</code> files and the companion takes care of the rest. The Explorer
-              in Analysis also benefits: positions are evaluated through the tablebase when one is
+              <strong className="font-medium text-secondary">Want tablebase lookups?</strong> The
+              companion reads Syzygy files locally and tells you whether a side is still winning,
+              drawn, or lost at the current position. Install them from{' '}
+              <em>Settings → Companion → Tablebases</em> — pick a folder of <code>.rtbw</code> and{' '}
+              <code>.rtbz</code> files and the companion takes care of the rest. The Explorer in
+              Analysis also benefits: positions are evaluated through the tablebase when one is
               available, and the chess engine otherwise.
             </p>
           </EmptyState>

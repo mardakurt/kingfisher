@@ -165,9 +165,7 @@ export function StatusBar() {
                 backupDue ? 'bg-caution' : 'bg-positive/70',
               )}
             />
-            <span>
-              Backup {backupDays === 0 ? 'today' : `${backupDays}d ago`}
-            </span>
+            <span>Backup {backupDays === 0 ? 'today' : `${backupDays}d ago`}</span>
           </>
         )}
       </button>
