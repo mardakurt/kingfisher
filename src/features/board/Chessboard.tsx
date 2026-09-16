@@ -431,8 +431,8 @@ export function Chessboard({
               : `transform ${FLIP_DURATION_MS}ms cubic-bezier(0.2, 0.8, 0.3, 1)`,
             transformStyle: 'preserve-3d',
             // Backface hidden keeps the back of the rotation from appearing
-     // at the apex of the flip. The squares' background colours are
-     // already accounted for; only the back of the pieces needs this.
+            // at the apex of the flip. The squares' background colours are
+            // already accounted for; only the back of the pieces needs this.
             backfaceVisibility: 'hidden',
           }}
           onPointerDown={handlePointerDown}

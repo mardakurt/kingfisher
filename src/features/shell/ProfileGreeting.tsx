@@ -62,8 +62,8 @@ export function ProfileGreeting() {
         className="m-1.5 rounded-[5px] border border-line-subtle bg-surface-2 p-2"
       >
         <p className="text-2xs leading-relaxed text-tertiary">
-          What should we call you? A name is what makes this your workspace — your
-          studies, repertoire and training plan stay here, browser after browser.
+          What should we call you? A name is what makes this your workspace — your studies,
+          repertoire and training plan stay here, browser after browser.
         </p>
         <input
           autoFocus

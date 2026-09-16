@@ -663,27 +663,24 @@ function CompanionSection() {
             </summary>
             <ol className="mt-2 list-decimal pl-4 leading-relaxed">
               <li>
-                Open a terminal in the Kingfisher folder — the one whose name
-                is on the title bar.
+                Open a terminal in the Kingfisher folder — the one whose name is on the title bar.
               </li>
               <li>
-                Paste{' '}
-                <code className="font-mono text-[11px]">npm run companion</code>{' '}
-                and press Enter.
+                Paste <code className="font-mono text-[11px]">npm run companion</code> and press
+                Enter.
               </li>
               <li>
                 The terminal prints a line that starts with{' '}
-                <code className="font-mono text-[11px]">Pair this device:</code>{' '}
-                — copy the whole line, including the{' '}
-                <code className="font-mono text-[11px]">#token=…</code> at the end.
+                <code className="font-mono text-[11px]">Pair this device:</code> — copy the whole
+                line, including the <code className="font-mono text-[11px]">#token=…</code> at the
+                end.
               </li>
               <li>Paste it into the box below.</li>
             </ol>
             <p className="mt-2 text-2xs text-tertiary">
-              Each engine you want, you can then add with one click in{' '}
-              <em>Settings → Engine</em>. The download comes from each project&apos;s
-              own GitHub release and is checked against a recorded SHA-256
-              before it runs.
+              Each engine you want, you can then add with one click in <em>Settings → Engine</em>.
+              The download comes from each project&apos;s own GitHub release and is checked against
+              a recorded SHA-256 before it runs.
             </p>
           </details>
         ) : null}
