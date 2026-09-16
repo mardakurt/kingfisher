@@ -10,6 +10,7 @@ import type { ChapterRecord, GameSummary } from './types';
 import { gameTitle } from './describe';
 import type { AppRepositories } from './types';
 import { STORE_NAMES } from './schema/migrations';
+import type { NodeId } from '@/chess/tree/types';
 
 export type WorkspaceHitKind =
   | 'study'
@@ -88,7 +89,17 @@ export async function searchWorkspace(
 
   const studiesById = new Map(studies.map((study) => [study.id, study]));
   for (const chapter of chapters) {
-    if (includes(chapter.title, needle)) {
+    /*
+     * Phase 56: chapter comments are searchable too. The previous match
+     * was title-only, which meant a study chapter whose only
+     * identifying text was the user's own commentary never appeared in
+     * the command palette. The walk collects the chapter's comments in
+     * one pass and uses them as the secondary title — a hit on a
+     * pre-comment ("Why this line matters") is more useful than a hit on
+     * the chapter's plain title.
+     */
+    const commentHits = collectChapterComments(chapter);
+    if (includes(chapter.title, needle) || commentHits.some((comment) => includes(comment, needle))) {
       add({
         id: `chapter:${chapter.id}`,
         kind: 'chapter',
@@ -271,6 +282,34 @@ export async function searchWorkspace(
   }
 
   return hits;
+}
+
+/**
+ * Collect every comment in a chapter tree.
+ *
+ * Used by the workspace search so a query that matches a comment hits
+ * the chapter that contains it. The walk is iterative rather than
+ * recursive because game trees can be deep — a chapter with thousands
+ * of nodes is routine for a serious study session.
+ */
+function collectChapterComments(chapter: ChapterRecord): readonly string[] {
+  const out: string[] = [];
+  const seen = new Set<NodeId>([chapter.tree.rootId]);
+  const stack: NodeId[] = [chapter.tree.rootId];
+  while (stack.length > 0) {
+    const id = stack.pop() as NodeId;
+    const node = chapter.tree.nodes[id];
+    if (!node) continue;
+    if (node.comment) out.push(node.comment);
+    if (node.preComment) out.push(node.preComment);
+    for (const child of node.children) {
+      if (!seen.has(child)) {
+        seen.add(child);
+        stack.push(child);
+      }
+    }
+  }
+  return out;
 }
 
 function gameHit(game: GameSummary): WorkspaceSearchHit {
