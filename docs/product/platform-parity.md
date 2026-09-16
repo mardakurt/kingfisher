@@ -24,6 +24,23 @@ validation, scheduled backup preference serialization, and an incorrect
 native-companion prerequisite on the AI assistant panel. The engine toolbar
 also wraps controls to keep the engine selector readable in a narrow panel.
 
+**Published revision check (Phase 64, mac only).** Phase 64 changed one
+declaration in `src/app/globals.css` plus the e2e test that asserts the
+fullscreen inset. The fullscreen padding for the sidebar brand was 8 px
+(0.5rem), which the owner reported back as glued to the window corner;
+macOS moves the traffic lights into the menu bar in full screen so
+nothing needs clearing at the window edge, but the brand still wants the
+design inset (14 px / 0.875rem) so the mark sits where it does on the
+web. Outside full screen the reservation is still `max(0.875rem,
+var(--titlebar-safe-w))` = 84 px on a Mac shell, so the mark still
+clears the window buttons in a windowed session. The packaged chrome
+harness catches regressions where the cascade reintroduces the
+windowed-session inset; the test now asserts `markX = 14` in full
+screen and `markX = 84` on returning. This is a Mac-desktop-only
+behaviour change; the web version always read from the 14 px design
+inset and is unaffected. Recorded so the next Mac release notes can
+point to it.
+
 **Published revision check (Phase 63, web only).** Phase 63 changed
 six src/ files plus `CHANGELOG.md` and `docs/product/platform-parity.md`.
 The web-only changes are: backup export downloads reliably (anchor

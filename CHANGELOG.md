@@ -6,6 +6,19 @@ real users notice.
 
 ## Unreleased (web)
 
+Phase 64 — one Mac-desktop fix.
+
+- **Sidebar logo has the design inset in full screen.** The Mac shell
+  reserved 8 px (0.5rem) for the Kingfisher mark on the full-screen
+  title bar — the same strip the web layout reserves 14 px (0.875rem)
+  for. The owner reported it back as glued to the window corner with
+  nothing between the mark and the edge the traffic lights used to
+  sit at. The full-screen padding now reads from the same design
+  inset as the rest of the application, so the mark sits where it does
+  on the web. Outside full screen the reservation is still the
+  traffic-light strip (84 px), so the mark still clears the window
+  buttons in a windowed session.
+
 Phase 63 — eight fixes. Shared source; available on the web, pending a Mac release.
 
 - **Backup export downloads reliably.** The previous anchor was

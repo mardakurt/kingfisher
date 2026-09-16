@@ -478,39 +478,43 @@ body {
  * the window into full screen and a brand that snapped while the frame was
  * still moving would look like a glitch, while one that drifted for longer
  * than the frame would look like a second animation.
+ *
+ * Phase 64: the brand now keeps the same inset it has on the web in full
+ * screen too. macOS puts the traffic lights in the menu bar when the window
+ * enters full screen, so the mark is no longer clearing anything at the
+ * window's left edge, but the brand still reads better with the same design
+ * inset as everywhere else. Eight px looked glued to the corner — the mark
+ * sat 6 px from where the close button used to live, which the eye reads as
+ * a missed padding rather than a deliberate inset.
  */
 :root[data-fullscreen='true'] {
   --titlebar-safe-w: 0px;
   --titlebar-safe-h: 0px;
   /*
-   * Full screen collapses the traffic-light reservation to zero — no buttons
-   * to clear — but the brand still wants a few pixels of breathing room
-   * from the window edge. Eight px is what the owner's report asked for:
-   * not the phantom 14 px that would push the brand away from the corner
-   * the user is looking at, just enough that the mark does not look glued
-   * to it. The header's transition reads this variable, so the brand
-   * slides the small distance when the window enters or leaves full
-   * screen.
+   * Full screen: no traffic-light reservation to clear, but the brand still
+   * wants the design inset (14 px) so the mark sits where it does on the web.
+   * Without it, full screen looks like the inset was forgotten — the mark is
+   * drawn against the window edge with nothing between it and the corner.
    */
-  --sidebar-brand-left-padding: 0.5rem;
+  --sidebar-brand-left-padding: 0.875rem;
 }
 /*
  * Restated, because the cascade would otherwise undo it. The rule above and
  * the Mac-shell rule further down (`:root[data-titlebar='mac-hidden-titlebar']`)
  * have the same specificity — one attribute selector each — and the later one
  * wins, so on the Mac shell in full screen the inset came back as
- * `max(0.875rem, 0px)` = 14 px. The packaged chrome harness caught it ("x 14,
- * expected 0"); the first pass of Phase 53 had shipped the rule above without
- * running that harness. Two attributes outrank one, whatever the order.
+ * `max(0.875rem, 0px)` = 14 px. Two attributes outrank one, whatever the
+ * order, so the same value is restated here to keep it.
  */
 :root[data-titlebar='mac-hidden-titlebar'][data-fullscreen='true'] {
   /*
    * The cascade ordering here matters and is stated in the comment for the
-   * rule above. The packaged chrome harness catches a regression where this
-   * value drifted to 14 px because the no-fullscreen rule was winning on
-   * specificity. Two attributes outrank one, whatever the order.
+   * rule above. Without this restated rule, the Mac-shell rule below wins
+   * on cascade order and re-introduces the `max(0.875rem, 0px)` we just
+   * collapsed, which is the regression the packaged chrome harness caught
+   * for Phase 53.
    */
-  --sidebar-brand-left-padding: 0.5rem;
+  --sidebar-brand-left-padding: 0.875rem;
 }
 
 :root[data-titlebar] nav[data-sidebar] > [data-titlebar-drag] {
