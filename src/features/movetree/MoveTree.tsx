@@ -438,9 +438,21 @@ function MoveToken({
         )}
       >
         {move.san}
-        {quality !== undefined && <span className="ml-px font-semibold">{nagSymbol(quality)}</span>}
+        {quality !== undefined && (
+          <span
+            className="ml-px font-semibold"
+            title={nagInfo(quality)?.label ?? `Annotation $${quality}`}
+          >
+            {nagSymbol(quality)}
+          </span>
+        )}
         {judgement !== undefined && (
-          <span className="ml-0.5 opacity-80">{nagSymbol(judgement)}</span>
+          <span
+            className="ml-0.5 opacity-80"
+            title={nagInfo(judgement)?.label ?? `Annotation $${judgement}`}
+          >
+            {nagSymbol(judgement)}
+          </span>
         )}
       </button>
       {node.shapes.length > 0 && (

@@ -114,7 +114,15 @@ export function ModuleTabStrip({
         );
       })}
       {overflow.length > 0 ? (
-        <div className="ml-auto flex shrink-0 items-stretch border-l border-line-subtle">
+        /*
+          Phase 62: `ml-auto` used to push the More button to the far
+          right of the row, which left a wide blank band between the
+          last shown tab and More. The user reads that band as "empty
+          space where something is missing" rather than "spare room".
+          A small left margin keeps a visible separator while pulling
+          More next to the tabs.
+        */
+        <div className="ml-2 flex shrink-0 items-stretch border-l border-line-subtle">
           <Menu
             align="end"
             sections={sections}

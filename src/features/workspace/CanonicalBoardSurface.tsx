@@ -231,6 +231,18 @@ export function CanonicalBoardSurface({
               {...(evaluationEngine ? { engine: evaluationEngine } : {})}
             />
           ) : null}
+          {/*
+            Phase 62: the engine affordance used to sit `absolute
+            bottom-3 right-3` inside the board frame and covered the
+            rook on h1. The board frame is the chessboard itself, so
+            any in-frame position lands on a square that a piece may
+            also occupy. The button now lives in a thin toolbar row
+            that sits above the frame — the same row the coordinates
+            would render in — so it never overlaps a piece.
+          */}
+          <div className="flex min-h-7 items-center justify-end pr-1" data-board-toolbar>
+            <BoardEngineAffordance showEvaluation={caps.showEvaluation} />
+          </div>
           <div className="relative aspect-square w-full min-w-0" data-board-frame>
             <BoardErrorBoundary>
               {(fallback) => (
@@ -271,7 +283,6 @@ export function CanonicalBoardSurface({
                 </span>
               </div>
             ) : null}
-            <BoardEngineAffordance showEvaluation={caps.showEvaluation} />
           </div>
         </div>
       </div>

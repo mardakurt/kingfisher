@@ -24,6 +24,19 @@ validation, scheduled backup preference serialization, and an incorrect
 native-companion prerequisite on the AI assistant panel. The engine toolbar
 also wraps controls to keep the engine selector readable in a narrow panel.
 
+**Published revision check (Phase 62, web only).** Phase 62 changed
+seven src/ files plus the documentation tree: the tour is openable
+from Settings (not on launch) and its first step shows the correct
+icon; the Analyse button is in a toolbar above the board; the pawn
+and knight icons are redrawn; the Kingfisher mark / wordmark link
+to /analysis; the dock's "More" sits next to the tabs; the
+evaluation graph toggle has an empty-state strip; the move-list NAG
+glyphs have tooltips; and a planner idea is captured in
+`docs/product/planner.md`. None of the changes touch `desktop/src/`
+or the Electron shell, so the public Mac 1.1.9 stays on the previous
+Phase 55 surface until the next Mac release. Section B of After-a-fix
+is therefore not required for this fix.
+
 **Published revision check (Phase 61, web only).** Phase 61
 removed the first-run tour and the sidebar "What should we call you?"
 / "Welcome back, X" greeting. Three src/ files changed: the tour is

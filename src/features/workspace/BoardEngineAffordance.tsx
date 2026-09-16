@@ -138,6 +138,13 @@ export function BoardEngineAffordance({ showEvaluation }: BoardEngineAffordanceP
     carry the engine's name or settings — that information belongs in
     the right rail, where the user can change the engine. The button
     only signals that analysis is one click away, and starts it.
+
+    Phase 62: the button used to sit `absolute bottom-3 right-3`
+    inside the board frame, which covered the rook on h1 during the
+    starting position. The button now lives in a toolbar row above
+    the board frame (see CanonicalBoardSurface's data-board-toolbar)
+    so it never overlaps a piece. Position classes are removed here
+    so the toolbar layout is the one place that decides where it sits.
   */
   return (
     <button
@@ -145,7 +152,7 @@ export function BoardEngineAffordance({ showEvaluation }: BoardEngineAffordanceP
       data-board-engine-affordance="off"
       onClick={() => void start()}
       className={cn(
-        'pointer-events-auto absolute bottom-3 right-3 z-20',
+        'pointer-events-auto',
         'flex items-center gap-1.5 rounded-full bg-accent px-3 py-1.5',
         'text-[11px] font-medium text-accent-fg shadow-[0_2px_6px_rgba(0,0,0,0.25)]',
         'transition-transform hover:scale-[1.02] active:scale-[0.98]',

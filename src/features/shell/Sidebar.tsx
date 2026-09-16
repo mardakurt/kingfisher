@@ -94,15 +94,29 @@ export function Sidebar({ variant = 'desktop', onClose }: SidebarProps) {
         data-titlebar-drag={drawer ? undefined : ''}
       >
         {drawer ? null : <TitleBarSafeCorner />}
-        <BrandMark className="kf-titlebar-yield h-9 w-9 shrink-0 text-accent" />
-        <span
-          className={cn(
-            'text-[17px] font-semibold tracking-tight text-primary',
-            compact && 'hidden',
-          )}
+        {/*
+          Phase 62: the Kingfisher mark + wordmark are a navigation
+          affordance, not chrome. Clicking them returns to Analysis.
+          The parent header is the macOS window-drag area; pointer
+          events on this button still fire because the drag listener
+          ignores non-target elements.
+        */}
+        <Link
+          href="/analysis"
+          aria-label="Back to Analysis"
+          data-sidebar-home=""
+          className="flex items-center gap-2.5 rounded-[3px] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
         >
-          Kingfisher
-        </span>
+          <BrandMark className="kf-titlebar-yield h-9 w-9 shrink-0 text-accent" />
+          <span
+            className={cn(
+              'text-[17px] font-semibold tracking-tight text-primary',
+              compact && 'hidden',
+            )}
+          >
+            Kingfisher
+          </span>
+        </Link>
         {drawer && (
           <IconButton label="Close navigation" className="ml-auto" onClick={onClose} autoFocus>
             <Close />

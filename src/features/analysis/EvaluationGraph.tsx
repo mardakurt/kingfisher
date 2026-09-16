@@ -70,7 +70,31 @@ export function EvaluationGraph({ tree, currentId, onSelect, className }: Evalua
   }, [tree]);
 
   const evaluated = columns.filter((column) => column.advantage !== null).length;
-  if (columns.length === 0 || evaluated === 0) return null;
+  /*
+   * Phase 62: when there is nothing to draw, return a labelled empty
+   * strip rather than `null`. The previous behaviour looked like a
+   * broken toggle — the user turned "Evaluation graph" on and nothing
+   * appeared, with no signal that the toggle was actually working.
+   * The empty strip now says so, and what the user can do to make
+   * something appear (run the engine, save a snapshot, or move the
+   * search one more ply).
+   */
+  if (columns.length === 0 || evaluated === 0) {
+    return (
+      <figure
+        data-evaluation-graph="empty"
+        className={cn(
+          'flex min-w-0 items-center justify-center rounded-[3px] border border-dashed border-line-subtle bg-surface-inset px-3 py-2',
+          className,
+        )}
+      >
+        <p className="text-[10.5px] text-tertiary">
+          Evaluation graph is on. It will draw a column for every move the engine has scored — start
+          the engine and let it run a few plies.
+        </p>
+      </figure>
+    );
+  }
 
   const width = Math.max(columns.length, MIN_PLIES);
   const currentIndex = columns.findIndex((column) => column.nodeId === currentId);

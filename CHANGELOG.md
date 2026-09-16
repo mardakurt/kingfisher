@@ -6,6 +6,43 @@ real users notice.
 
 ## Unreleased (web)
 
+Phase 62 — twelve fixes across the workspace. Same source, web and
+Mac pick everything up at the same time.
+
+- **Tour still openable from Settings.** The first-run tour is no
+  longer shown on launch; a new "Open the tour guide of the website"
+  link in Settings → Help opens it on demand.
+- **Tour first-step icon matches its label.** The tour used to open
+  with the Analysis (Board) icon next to the "Recent" step. The
+  Recent step now shows the Clock icon (the same one the sidebar
+  uses for Recent), and the detail text describes what Recent does.
+- **"Analyse" button no longer covers pieces.** The yellow Analyse
+  button used to sit `absolute bottom-3 right-3` over the rook on
+  h1. It now lives in a thin toolbar row above the board frame, so
+  it never overlaps a square.
+- **Openings and Training icons redrawn.** The pawn lost its
+  disconnected two-tier foot and now reads as a single silhouette;
+  the knight lost its abstract L-shape and now reads as a horse
+  head (muzzle, ear, eye, base) at the 21 px sidebar size while
+  keeping the asymmetric head-on-column cue at 16 px.
+- **Kingfisher mark + wordmark are navigation.** Clicking the mark
+  or the wordmark in the sidebar header returns to the Analysis
+  page; the parent header is still the macOS window-drag area, but
+  the link itself fires on click.
+- **Right-side dock spacing.** The tab strip used `ml-auto` to
+  push the "More" button to the far right of the row, leaving a
+  wide blank band between the last shown tab and More. The margin
+  is now small; More sits next to the tabs with the divider.
+- **Evaluation graph toggle is visible.** The toggle now shows an
+  empty strip ("evaluation graph is on, draw a column for every
+  move the engine has scored") when the toggle is on but no
+  moves have been evaluated yet, instead of rendering nothing.
+- **NAG symbol tooltips in the move list.** Hovering `!!`, `?`,
+  `±`, `∞` or any other NAG glyph in the move list now shows the
+  chess.com-style label.
+- **Planning idea documented.** A new `docs/product/planner.md`
+  records the concept of a tournament-and-study schedule workspace.
+
 Phase 61 — the "What should we call you?" prompt and the first-run
 tour are gone. The sidebar no longer asks for a display name and no
 longer says "Welcome back, …"; the app opens straight into the

@@ -6,14 +6,15 @@
  * Phase 56 change: new users used to be dropped into a 13-section
  * sidebar with no orientation. The tour walks through each section in
  * one screenful, with what it is for and one concrete thing the user
- * will do there. It is opt-out, not opt-in:
+ * will do there.
  *
- *   - On the first app launch it opens once.
- *   - A "Don't show on launch" toggle on the final screen writes a
- *     preference, and the tour never opens automatically again.
- *   - It is always reachable from the Help menu (in the Settings
- *     dialog under Help and feedback) for users who dismissed it and
- *     later want it back.
+ * Phase 61: the tour is no longer opened automatically. Phase 56 had
+ * it auto-open on first launch and remember the dismiss via
+ * `tourShowOnLaunch`. The user wanted neither — neither the prompt
+ * nor the opening tour. The tour is still reachable, on demand, from
+ * Settings → Help (the link "Open the tour guide of the website").
+ * The `tourShowOnLaunch` preference is preserved for storage
+ * compatibility but has no effect.
  *
  * Phase 57: keyboard navigation. Left/Right arrows advance and retreat
  * through the steps, Esc closes and marks the tour as seen (the same
@@ -25,6 +26,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import {
   Board,
+  Clock,
   Dossier,
   Library,
   Notebook,
@@ -58,6 +60,13 @@ const STEPS: readonly TourStep[] = NAV_SECTIONS.map((section) => ({
 
 function iconForSection(id: string): React.ReactNode {
   switch (id) {
+    case 'recent':
+      // Phase 62: 'recent' is the first NAV_SECTION but had no case
+      // here, so the tour opened with the Analysis (Board) icon next
+      // to the Recent label. Users saw a step called "Recent" with
+      // an Analysis icon — a misleading first impression. The icon
+      // is the same one the sidebar uses for Recent (Clock).
+      return <Clock />;
     case 'analysis':
       return <Board />;
     case 'preparation':
@@ -87,6 +96,8 @@ function iconForSection(id: string): React.ReactNode {
 
 function sectionTourDetail(id: string): string {
   switch (id) {
+    case 'recent':
+      return 'Continue where you left off. Recent keeps your last studies, repertoires and opened games in one place; pinned work stays at the top.';
     case 'analysis':
       return 'Open any position with the engine running beside it. The companion handles local Syzygy and Stockfish when paired.';
     case 'preparation':

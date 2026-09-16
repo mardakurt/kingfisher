@@ -2521,6 +2521,7 @@ function CompanionRecovery() {
 function HelpSection() {
   const openFeedback = useUi((state) => state.openFeedback);
   const setSettingsOpen = useUi((state) => state.setSettingsOpen);
+  const setTourOpen = useUi((state) => state.setTourOpen);
   const onClose = () => setSettingsOpen(false);
   return (
     <DiagnosticGroup title="Help and feedback">
@@ -2564,10 +2565,30 @@ function HelpSection() {
           </span>
         </li>
         {/*
-          Phase 61: the first-run tour was removed entirely; the "Replay"
-          link that used to live here is gone with it. The tour / greeting
-          removal is the reason.
+          Phase 62: the tour is no longer opened on launch, but it is
+          still useful for users who want a guided walk-through. The link
+          below opens the same dialog the old "Replay" button opened,
+          now without resetting the (no-op) tourShowOnLaunch preference.
+          Phrased as "Open the tour guide" so the user does not think
+          they are starting a saved session.
         */}
+        <li>
+          <button
+            type="button"
+            onClick={() => {
+              setTourOpen(true);
+              onClose();
+            }}
+            className="text-accent hover:underline"
+            data-open-tour=""
+          >
+            Open the tour guide of the website →
+          </button>
+          <span className="ml-2 text-[11px] text-tertiary">
+            Walks through every section of the sidebar in one screenful each. Open it any time you
+            want the orientation again.
+          </span>
+        </li>
         <li>
           <a
             href="https://github.com/mardakurt/kingfisher/blob/master/CHANGELOG.md"
