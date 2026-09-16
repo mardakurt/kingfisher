@@ -8,8 +8,6 @@ import { useGlobalHotkeys } from '@/features/command/useGlobalHotkeys';
 import { MoveContextMenu } from '@/features/movetree/MoveContextMenu';
 import { useWorkspacePersistence } from '@/features/persistence/useWorkspacePersistence';
 import { ShortcutsDialog } from '@/features/shell/ShortcutsDialog';
-import { FirstRunTour } from '@/features/shell/FirstRunTour';
-import { useFirstRunTour } from '@/features/shell/useFirstRunTour';
 import { useCompanionSync } from '@/companion/useCompanion';
 import { useBrowserEngineDiscovery } from '@/engine/use-engines';
 import { useDesktopIntegration } from '@/desktop/useDesktop';
@@ -111,7 +109,6 @@ export function AppShell({ children }: { children: ReactNode }) {
    * fire-and-forget and never blocks the first paint.
    */
   useAutoBackup();
-  useFirstRunTour();
   // Brings the bundled reference up on a fresh profile, so the explorer has
   // evidence before anybody imports or connects anything.
   useReferenceSources();
@@ -223,7 +220,6 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         <CommandPalette />
         <ShortcutsDialog />
-        <FirstRunTour />
         {settingsOpen ? <SettingsDialog /> : null}
         {importOpen ? <ImportDialog /> : null}
         {positionSetupOpen ? <PositionSetupDialog /> : null}

@@ -24,6 +24,19 @@ validation, scheduled backup preference serialization, and an incorrect
 native-companion prerequisite on the AI assistant panel. The engine toolbar
 also wraps controls to keep the engine selector readable in a narrow panel.
 
+**Published revision check (Phase 61, web only).** Phase 61
+removed the first-run tour and the sidebar "What should we call you?"
+/ "Welcome back, X" greeting. Three src/ files changed: the tour is
+no longer mounted in AppShell, ProfileGreeting is no longer mounted
+in Sidebar, and the "Replay the first-run tour" link in Settings has
+been removed. The `tourShowOnLaunch` and `displayName` preferences
+stay in storage so existing users keep their values; the tour /
+prompt machinery is left on disk as dead code that does not run.
+None of the changes touch `desktop/src/` or the Electron shell, so
+the public Mac 1.1.9 stays on the previous Phase 55 surface until
+the next Mac release. Section B of After-a-fix is therefore not
+required for this fix.
+
 **Published revision check (Phase 55, web only).** Phase 55 changed
 twelve files in `src/` and one in `src/app/globals.css`. None of them
 touches `desktop/src/` or the Electron shell — every change is web

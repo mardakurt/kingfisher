@@ -6,6 +6,16 @@ real users notice.
 
 ## Unreleased (web)
 
+Phase 61 — the "What should we call you?" prompt and the first-run
+tour are gone. The sidebar no longer asks for a display name and no
+longer says "Welcome back, …"; the app opens straight into the
+workspace. The "Replay the first-run tour" link in Settings has
+been removed with them. Existing `displayName` values are kept in
+storage (Settings → Profile still edits them) but the prompt that
+created them is not shown. The `tourShowOnLaunch` preference is
+kept for storage compatibility and has no effect. Same source, web
+and Mac pick everything up at the same time.
+
 Browser verification follow-up:
 
 - Tour dismissal now survives reload; launch reads hydrated preferences.

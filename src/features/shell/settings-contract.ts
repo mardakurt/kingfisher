@@ -463,13 +463,24 @@ export const SETTING_CONTRACTS: readonly SettingContract[] = [
     indexedAs: null,
     previewable: false,
   },
+  /*
+   * Phase 61: the first-run tour was removed. The preference below is
+   * retained so existing user storage does not silently lose a key, but
+   * the tour machinery no longer reads it — nothing mounts the tour, and
+   * nothing sets the preference on launch. The contract entry stays
+   * because the test asserts every preference in DEFAULT_PREFERENCES has
+   * one; the effect below describes what it *would* mean, not what
+   * currently happens, and the dead-code consumer/control files are
+   * still on disk.
+   */
   {
     key: 'tourShowOnLaunch',
-    label: 'First-run tour on launch',
+    label: 'First-run tour on launch (deprecated)',
     surface: 'in-place',
     control: 'features/shell/FirstRunTour.tsx',
     consumer: 'features/shell/useFirstRunTour.ts',
-    effect: 'Whether the first-run tour opens automatically on app launch.',
+    effect:
+      'Whether the first-run tour opens automatically on app launch. The tour is disabled in this build; this preference is preserved for storage compatibility and has no effect.',
     indexedAs: null,
     previewable: false,
   },
