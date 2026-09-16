@@ -182,10 +182,17 @@ export function CanonicalBoardSurface({
         height by the bar and its gap — 34px, which at 1280x720 was the
         difference between a 419px board and a 453px one. Subtract the bar from
         the width budget and give it back when the grid is laid out.
+
+        The toolbar row above the board takes a fixed 28 px of the available
+        height, so the *board* row only has clientHeight minus the toolbar.
+        Subtracting the toolbar here keeps the grid from overflowing its
+        parent — the grid's explicit height is frameSize + TOOLBAR_HEIGHT.
       */
       const next = Math.max(
         0,
-        Math.floor(Math.min(boardCap, element.clientWidth - barSpace, element.clientHeight)),
+        Math.floor(
+          Math.min(boardCap, element.clientWidth - barSpace, element.clientHeight - TOOLBAR_HEIGHT),
+        ),
       );
       setFrameSize((current) => (current === next ? current : next));
     };
@@ -223,11 +230,22 @@ export function CanonicalBoardSurface({
              * aspect-square produces a 0×0 board. Toolbar row is
              * `auto` (it sizes itself); board row is `1fr` (it fills
              * whatever the parent has left after the toolbar).
+             *
+             * Phase 66: that fix only worked when the grid itself
+             * had a definite height. In a flex parent with `items-start`,
+             * the grid sized to its content (the toolbar row), the
+             * `1fr` row collapsed to 0, and the board became a
+             * 24×24 sliver. The grid now gets an explicit height of
+             * `frameSize + TOOLBAR_HEIGHT`, matching the column count
+             * exactly, so `1fr` resolves to `frameSize` and the
+             * board fills it. Toolbar height is fixed at 28 px
+             * (`min-h-7`) so the column can be exact.
              */
-            'grid-rows-[auto_1fr]',
+            'grid-rows-[28px_1fr]',
           )}
           style={{
             width: frameSize + barSpace,
+            height: frameSize + TOOLBAR_HEIGHT,
             ...(evaluationBarVisible
               ? {
                   gridTemplateColumns: `${EVALUATION_BAR_WIDTH}px minmax(0, 1fr)`,
@@ -265,14 +283,24 @@ export function CanonicalBoardSurface({
             and the board — the cell that is actually `1fr` — lands beside
             it. `col-span-full` is `grid-column: 1 / -1`, so it is a no-op
             when there is no eval bar (the grid has only one column to span).
+
+            Phase 66: with explicit grid placement the toolbar always lands
+            in row 1 (and, with the eval bar, spans both columns), so the
+            flow no longer matters. `grid-row: 1` makes the placement
+            declarative and survives any future reorder of the children.
           */}
           <div
             className="col-span-full flex min-h-7 items-center justify-end pr-1"
             data-board-toolbar
+            style={{ gridRow: 1 }}
           >
             <BoardEngineAffordance showEvaluation={caps.showEvaluation} />
           </div>
-          <div className="relative aspect-square w-full min-w-0" data-board-frame>
+          <div
+            className="relative aspect-square w-full min-w-0"
+            data-board-frame
+            style={{ gridRow: 2, gridColumn: evaluationBarVisible ? 2 : 1 }}
+          >
             <BoardErrorBoundary>
               {(fallback) => (
                 <Chessboard
@@ -351,6 +379,19 @@ export function CanonicalBoardSurface({
  * `EVALUATION_BAR_WIDTH`, and no class names a number.
  */
 const EVALUATION_BAR_GAP = 10;
+
+/*
+ * The toolbar row that sits above the board frame.
+ *
+ * Kept as a single number so the grid's explicit `grid-rows: 28px 1fr` and
+ * the `height: frameSize + TOOLBAR_HEIGHT` style stay in lockstep with the
+ * toolbar's `min-h-7`. The grid is given that explicit height because its
+ * parent (`flex items-start`) sized the grid to its content — the toolbar
+ * row — and the `1fr` row collapsed to 0; without a definite grid height
+ * `1fr` has no leftover space to distribute and `aspect-square` drew a
+ * 24×24 board. 28 px matches the `min-h-7` on the toolbar div.
+ */
+const TOOLBAR_HEIGHT = 28;
 
 /* Stable empties, so withholding does not remount the board on every render. */
 const EMPTY = new Map<never, never>() as never;

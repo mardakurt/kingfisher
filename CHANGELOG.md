@@ -6,6 +6,31 @@ real users notice.
 
 ## Unreleased (web)
 
+Phase 66 — board still tiny after Phase 65.
+
+- **Board now has a definite grid height.** Phase 65 moved the board
+  into the `1fr` column, which fixed the column assignment but not the
+  row: the grid lived inside a flex parent with `items-start`, so the
+  grid sized to its content (the toolbar row) and the `1fr` row had 0
+  leftover space. `aspect-square` on the board frame then drew a
+  24×24 board. The grid now gets an explicit `height: frameSize + 28`,
+  the toolbar row is fixed at 28 px (`min-h-7`), and `grid-rows: 28px
+  1fr` resolves to a 28-px toolbar over a `frameSize`-tall board row.
+  The toolbar's height is now a constant (`TOOLBAR_HEIGHT = 28`) so
+  the grid template, the explicit height and the toolbar's `min-h-7`
+  cannot drift apart.
+- **Explicit grid placement.** The toolbar and the board frame now
+  declare `grid-row` and `grid-column` inline. The toolbar is row 1
+  and spans both columns when the eval bar is on; the board is row 2
+  and col 2 (col 1 when there is no eval bar). `grid-auto-flow` no
+  longer decides where the children sit, so future reorders of the
+  JSX cannot regress the layout.
+- **Resize observer subtracts the toolbar.** `clientHeight` measures
+  the whole container, but only `clientHeight − 28` belongs to the
+  board row. The ceiling on `frameSize` is now
+  `min(boardCap, clientWidth − barSpace, clientHeight − 28)` so the
+  grid never overflows the column.
+
 Phase 65 — two layout regressions from Phase 62 / Phase 63.
 
 - **Board sits in the 24-px eval-bar column when the eval bar is on.**
