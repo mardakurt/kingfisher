@@ -126,20 +126,15 @@ export function FirstRunTour() {
   const step = STEPS[stepIndex];
   const isLast = stepIndex === STEPS.length - 1;
 
-  if (!open || !step) return null;
-
-  const close = (markSeen: boolean) => {
-    if (markSeen) prefs.set('tourShowOnLaunch', false);
-    setOpen(false);
-    setStepIndex(0);
-  };
-
   /*
    * Phase 57: keyboard navigation. The keyboard handler is registered
    * only while the dialog is open and ignores keystrokes typed into a
    * real input — the "Don't show on launch" checkbox is the only one
    * in the dialog, and toggling it with the spacebar should not also
-   * advance the tour.
+   * advance the tour. The hook is declared before the early return
+   * below so the hook order is stable across the open → closed →
+   * open transition — otherwise the React rules-of-hooks lint trips
+   * the moment the user closes the tour.
    */
   useEffect(() => {
     if (!open) return;
@@ -164,6 +159,14 @@ export function FirstRunTour() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [open]);
+
+  if (!open || !step) return null;
+
+  const close = (markSeen: boolean) => {
+    if (markSeen) prefs.set('tourShowOnLaunch', false);
+    setOpen(false);
+    setStepIndex(0);
+  };
 
   return (
     <Dialog

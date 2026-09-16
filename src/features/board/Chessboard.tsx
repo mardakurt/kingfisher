@@ -131,7 +131,13 @@ export function Chessboard({
   const pinchScaleKey = `kingfisher.board.zoom.${fen}`;
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const raw = window.localStorage.getItem(pinchScaleKey);
+    let raw: string | null = null;
+    try {
+      raw = window.localStorage.getItem(pinchScaleKey);
+    } catch {
+      /* localStorage disabled in private mode or sandboxed iframe. */
+      return;
+    }
     if (!raw) return;
     const parsed = Number(raw);
     if (!Number.isFinite(parsed)) return;
@@ -410,21 +416,31 @@ export function Chessboard({
     const element = boardRef.current;
     if (element) element.style.transform = `scale(${next})`;
   }, []);
-  const handleTouchEnd = useCallback((event: React.TouchEvent) => {
-    if (event.touches.length < 2) {
-      pinchState.current = null;
-      /*
-       * Phase 57: persist the final scale once the gesture ends, not on
-       * every touchmove frame. localStorage writes during the gesture
-       * would block the next frame and stutter the animation; one write
-       * at the end is enough because the next gesture reads the value
-       * back through the effect above.
-       */
-      if (typeof window !== 'undefined' && event.changedTouches.length > 0) {
-        window.localStorage.setItem(pinchScaleKey, String(pinchScaleRef.current));
+  const handleTouchEnd = useCallback(
+    (event: React.TouchEvent) => {
+      if (event.touches.length < 2) {
+        pinchState.current = null;
+        /*
+         * Phase 57: persist the final scale once the gesture ends, not on
+         * every touchmove frame. localStorage writes during the gesture
+         * would block the next frame and stutter the animation; one write
+         * at the end is enough because the next gesture reads the value
+         * back through the effect above. The try/catch covers the
+         * privacy-mode and quota-exceeded cases — the gesture still
+         * finishes the way it would have, just without persistence.
+         */
+        if (typeof window !== 'undefined' && event.changedTouches.length > 0) {
+          try {
+            window.localStorage.setItem(pinchScaleKey, String(pinchScaleRef.current));
+          } catch {
+            /* localStorage disabled or full; the in-memory ref still
+             * holds the scale and the next gesture works. */
+          }
+        }
       }
-    }
-  }, [pinchScaleKey]);
+    },
+    [pinchScaleKey],
+  );
 
   const finishPromotion = useCallback(
     (piece: PromotionPiece | null) => {

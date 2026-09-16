@@ -126,11 +126,11 @@ export function SettingsDialog() {
   const requested = useUi((state) => state.settingsSection);
   const [chosen, setChosen] = useState<Section>('appearance');
   /*
-     * Phase 57: a section-filter query lives at the dialog level so the
-     * left rail can be filtered alongside the existing preference search.
-     * An empty query means "no filter"; the existing search-input below
-     * stays as the entry point for jumping to a specific setting.
-     */
+   * Phase 57: a section-filter query lives at the dialog level so the
+   * left rail can be filtered alongside the existing preference search.
+   * An empty query means "no filter"; the existing search-input below
+   * stays as the entry point for jumping to a specific setting.
+   */
   const [filter, setFilter] = useState('');
   const normalizedFilter = filter.trim().toLowerCase();
 
@@ -163,14 +163,25 @@ export function SettingsDialog() {
     normalizedFilter === ''
       ? true
       : entry.label.toLowerCase().includes(normalizedFilter) ||
-          SETTINGS_INDEX.some(
-            (item) =>
-              item.section === entry.id &&
-              (item.label.toLowerCase().includes(normalizedFilter) ||
-                item.keywords.some((keyword) => keyword.includes(normalizedFilter)) ||
-                item.description.toLowerCase().includes(normalizedFilter)),
-          ),
+        SETTINGS_INDEX.some(
+          (item) =>
+            item.section === entry.id &&
+            (item.label.toLowerCase().includes(normalizedFilter) ||
+              item.keywords.some((keyword) => keyword.includes(normalizedFilter)) ||
+              item.description.toLowerCase().includes(normalizedFilter)),
+        ),
   );
+  /*
+   * Phase 57: when the current section is filtered out, jump to the
+   * first visible one. Without this the right panel would still show
+   * the previous section while the left rail hides it — the user
+   * would have a filter with no entry selected.
+   */
+  const visibleSectionIds = new Set(visibleSections.map((entry) => entry.id));
+  const visibleSection: Section =
+    !normalizedFilter || visibleSectionIds.has(section)
+      ? section
+      : (visibleSections[0]?.id ?? section);
 
   return (
     <Dialog
@@ -228,25 +239,23 @@ export function SettingsDialog() {
           );
         })}
         {visibleSections.length === 0 ? (
-          <p className="px-2 py-2 text-2xs text-tertiary">
-            No section matches “{filter}”.
-          </p>
+          <p className="px-2 py-2 text-2xs text-tertiary">No section matches “{filter}”.</p>
         ) : null}
       </nav>
       <div className="min-w-0 flex-1 overflow-y-auto px-6 py-4">
         <SettingsSearch onJump={choose} />
-        {section === 'appearance' && <AppearanceSection />}
-        {section === 'board' && <BoardSection />}
-        {section === 'pieces' && <PiecesSection />}
-        {section === 'workspace' && <WorkspaceSection />}
-        {section === 'engine' && <EngineSection />}
-        {section === 'companion' && <CompanionSection />}
-        {section === 'keyboard' && <KeyboardSection />}
-        {section === 'assistant' && <AssistantSection />}
-        {section === 'database' && <DatabaseSection />}
-        {section === 'accounts' && <AccountsSection />}
-        {section === 'profile' && <ProfileSection />}
-        {section === 'diagnostics' && <DiagnosticsSection />}
+        {visibleSection === 'appearance' && <AppearanceSection />}
+        {visibleSection === 'board' && <BoardSection />}
+        {visibleSection === 'pieces' && <PiecesSection />}
+        {visibleSection === 'workspace' && <WorkspaceSection />}
+        {visibleSection === 'engine' && <EngineSection />}
+        {visibleSection === 'companion' && <CompanionSection />}
+        {visibleSection === 'keyboard' && <KeyboardSection />}
+        {visibleSection === 'assistant' && <AssistantSection />}
+        {visibleSection === 'database' && <DatabaseSection />}
+        {visibleSection === 'accounts' && <AccountsSection />}
+        {visibleSection === 'profile' && <ProfileSection />}
+        {visibleSection === 'diagnostics' && <DiagnosticsSection />}
       </div>
     </Dialog>
   );
@@ -1806,9 +1815,7 @@ function BackupControls() {
           <select
             aria-label="Auto-backup schedule in days"
             value={String(prefs.autoBackupReminderDays)}
-            onChange={(event) =>
-              prefs.set('autoBackupReminderDays', Number(event.target.value))
-            }
+            onChange={(event) => prefs.set('autoBackupReminderDays', Number(event.target.value))}
             className="h-7 rounded-[4px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
             data-auto-backup-schedule=""
           >
