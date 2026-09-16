@@ -56,12 +56,19 @@ export function useAutoBackup(): void {
        * preferences store writes — `{state: {...}, version: N}` —
        * and the defaults match the keys in DEFAULT_PREFERENCES, so the
        * fallback after a missing or pre-hydration read is correct.
+       * The try/catch covers the privacy-mode case where the read
+       * throws — the defaults then apply.
        */
-      const prefs = JSON.parse(
-        typeof window === 'undefined'
-          ? '{}'
-          : (window.localStorage.getItem('kingfisher.preferences') ?? '{}'),
-      ) as { readonly state?: Record<string, unknown> };
+      let prefs: { readonly state?: Record<string, unknown> } = {};
+      try {
+        prefs = JSON.parse(
+          typeof window === 'undefined'
+            ? '{}'
+            : (window.localStorage.getItem('kingfisher.preferences') ?? '{}'),
+        ) as { readonly state?: Record<string, unknown> };
+      } catch {
+        /* localStorage disabled; the defaults below apply. */
+      }
       const prefsState = prefs.state ?? {};
       const enabled = (prefsState['autoBackupEnabled'] as boolean | undefined) ?? true;
       const scheduleDays = (prefsState['autoBackupReminderDays'] as number | undefined) ?? 7;

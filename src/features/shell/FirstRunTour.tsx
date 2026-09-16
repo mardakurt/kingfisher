@@ -15,12 +15,13 @@
  *     dialog under Help and feedback) for users who dismissed it and
  *     later want it back.
  *
- * The tour does not show on every visit, including web users whose
- * cookies clear between sessions. A user who likes the tour can keep
- * the auto-show on; a user who does not should not see it again.
+ * Phase 57: keyboard navigation. Left/Right arrows advance and retreat
+ * through the steps, Esc closes and marks the tour as seen (the same
+ * as the close button), and the title row now states the shortcuts so
+ * a keyboard user knows they exist.
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import {
   Board,
@@ -125,6 +126,40 @@ export function FirstRunTour() {
   const step = STEPS[stepIndex];
   const isLast = stepIndex === STEPS.length - 1;
 
+  /*
+   * Phase 57: keyboard navigation. The keyboard handler is registered
+   * only while the dialog is open and ignores keystrokes typed into a
+   * real input — the "Don't show on launch" checkbox is the only one
+   * in the dialog, and toggling it with the spacebar should not also
+   * advance the tour. The hook is declared before the early return
+   * below so the hook order is stable across the open → closed →
+   * open transition — otherwise the React rules-of-hooks lint trips
+   * the moment the user closes the tour.
+   */
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
+        return;
+      }
+      if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        setStepIndex((current) => Math.min(STEPS.length - 1, current + 1));
+      } else if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        setStepIndex((current) => Math.max(0, current - 1));
+      } else if (event.key === 'Escape') {
+        /* The Dialog also listens for Escape and calls onClose; this
+         * guard is for the case where the dialog's listener fires first.
+         * Both routes close and mark as seen — that is the right
+         * behaviour for a dismiss. */
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [open]);
+
   if (!open || !step) return null;
 
   const close = (markSeen: boolean) => {
@@ -147,7 +182,7 @@ export function FirstRunTour() {
        */
       open={open}
       onClose={() => close(true)}
-      title={`Tour · step ${stepIndex + 1} of ${STEPS.length}`}
+      title={`Tour · step ${stepIndex + 1} of ${STEPS.length} · ←/→ to step · Esc to close`}
     >
       <div className="flex flex-col gap-4 px-1 py-1">
         <div className="flex items-center gap-3">

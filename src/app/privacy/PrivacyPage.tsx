@@ -180,11 +180,17 @@ export function PrivacyPage(): JSX.Element {
 
       <h2 id="sync">Sync status</h2>
       <p>
-        <strong>Cross-device Sync is not currently available.</strong> Your work lives on the
-        machine you created it on. To move work between machines:{' '}
-        <em>Settings → Database → Export backup</em> on the source machine;{' '}
-        <em>Settings → Database → Import backup</em> on the destination machine. The backup file is
-        portable JSON and is under your control at all times.
+        <strong>There is no cloud sync today.</strong> Your work lives on the machine you created it
+        on, and Kingfisher does not push it anywhere. To move work between machines, two browsers,
+        or a browser and a desktop install: <em>Settings → Database → Export backup</em> on the
+        source machine; <em>Settings → Database → Import backup</em> on the destination machine. The
+        backup file is portable JSON, is held on disk under your control, and is never sent to a
+        server.
+      </p>
+      <p>
+        A future Kingfisher version may add an opt-in cloud sync. If it does, this page will be
+        updated first, the change will be listed in <code>CHANGELOG.md</code>, and the sync will be
+        off by default.
       </p>
 
       <h2 id="feedback">Feedback</h2>

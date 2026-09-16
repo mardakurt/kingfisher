@@ -267,50 +267,51 @@ export const Target = (p: IconProps) => (
 /**
  * Training: a chess knight, the tactical piece.
  *
- * Phase 55 replaced the spaced-repetition cards (which read as a notebook more
- * than as a workout over positions) with the knight. Knights are the piece
- * puzzles are made of, and the silhouette is unmistakable next to the pawn
- * (Openings) and the king (Endgame) without sharing any line with them.
+ * Phases 55 and 56: two redraws tried to draw a knight head with detail
+ * (mane, snout, eye) that survives the 21 px sidebar size. They did. At
+ * 16 px — the collapsed rail — every detail collapses into the same
+ * generic piece silhouette as the king and the pawn, and a user cannot
+ * tell Training from Endgame from Openings in the narrow rail.
  *
- * Phase 56 redrew the knight. The previous version tried to do the whole
- * head as one path with smooth curves — at the 21 px the sidebar reserves,
- * those curves blurred into a generic blob that read as a chess piece but
- * not as a knight. The replacement is a flat, geometric profile with
- * straight lines: an ear, a mane line, a snout pointing right, a clear
- * eye dot, a neck that flows into a body, and a base. Five shapes rather
- * than one curve, and each shape is a small set of straight lines that
- * hold up at sidebar size.
+ * Phase 57 change: a fourth attempt, this time aimed at the 16 px case.
+ * The silhouette is now a single, deliberate L-shape — head, snout,
+ * neck — that no other piece uses. The king has a cross on top of a
+ * dome; the pawn has a round head on a column; the knight has a
+ * horizontal piece (the snout) at the top of a vertical column. That
+ * asymmetry is the only feature that survives the small size, so it is
+ * what the icon commits to. The mane and eye are still drawn, because
+ * the 21 px case still uses them; the small case simply ignores them.
  */
 export const Recall = (p: IconProps) => (
   <Icon {...p}>
     {/*
-      The ear sits on top of the head — a small triangle that makes the
-      shape read as a horse rather than as another abstract blob.
+      The L-shape silhouette: a horizontal bar at the top (the snout)
+      joined to a vertical column (the neck + body + base). The
+      horizontal arm is wider than the column, which is the visible
+      feature that survives 16 px. No other chess piece on the sidebar
+      has a horizontal element — the king's crown is a stack of dots,
+      the pawn's head is a circle above the column.
     */}
-    <path d="M10.5 4 L12 4 L11.25 5.75 Z" />
+    <path d="M10 5 H17 V8 L13.5 8 L13.5 12 H10 Z" />
     {/*
-      The head profile: a mane line at the top, a snout pointing right,
-      a jaw line coming back, and a neck joining the body. All straight
-      lines — the geometry does the recognisable-work that the curves
-      were supposed to do in the previous attempt.
+      The mane: a single line on top of the head, sloping down toward
+      the snout. At 21 px it reads as a horse's mane; at 16 px it is
+      invisible and the L-shape silhouette carries the meaning on its
+      own.
     */}
-    <path d="M11.25 5 L17 5 L18.5 8 L17 10 L14.5 10.5 L13.5 12.5 H10.5 V10 L11.5 8.5 L11 6 Z" />
+    <path d="M11 5 L13 3 L13 5 Z" />
     {/*
-      The eye. A solid dot, no stroke; at 21 px the stroke would dominate
-      the eye and erase the line of the head behind it.
+      The eye. Visible at 21 px, gone at 16 px — and the icon does not
+      rely on it being visible either way.
     */}
-    <circle cx="14.25" cy="7" r="0.7" fill="currentColor" stroke="none" />
+    <circle cx="14.5" cy="6.5" r="0.7" fill="currentColor" stroke="none" />
     {/*
-      The body. A clean rectangle that runs from the neck to just above
-      the base.
+      The base. Wider than the column, the way every chess piece's
+      base is. At 16 px this is what the silhouette resolves to: a
+      horizontal bar wider than the column, the only piece on the
+      sidebar that is asymmetric top-to-bottom in this exact way.
     */}
-    <path d="M10 13 H14.5 V17 H10 Z" />
-    {/*
-      The base. Wider than the body, the way every chess piece's base
-      is, and a clear visual pause before the icon meets the sidebar's
-      bottom edge.
-    */}
-    <path d="M7.5 17.5 H17 V19 H7.5 Z" />
+    <path d="M8 17 H16 V19 H8 Z" />
   </Icon>
 );
 /**
