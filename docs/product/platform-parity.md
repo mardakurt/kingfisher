@@ -7,6 +7,15 @@ file plus `src/desktop/bridge.ts`, which returns `null` in a browser.
 This document is the Phase 49 check on that claim, feature by feature,
 with the deliberate differences named and the reason for each.
 
+**Published revision check (Phase 60, web only).** Phase 60 changed
+two files in `src/` — the "Back up now" button in Settings → Database
+no longer refuses when auto-backup is off, and the Companion
+assistant's "Ask" input cannot double-fire on rapid Enter / click
+because of a ref-based latch. None of them touches `desktop/src/` or
+the Electron shell, so the public Mac 1.1.9 stays on the previous
+Phase 55 surface until the next Mac release. Section B of After-a-fix
+is therefore not required for this fix.
+
 **Published revision check (Phase 59, web only).** Phase 59 changed
 six files in `src/` and `src/app/` — the engine panel footer's
 two-decimal score-swing and MultiPV gap, the engine comparison

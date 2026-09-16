@@ -10,7 +10,7 @@
  * panel is worth having at all.
  */
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 
 import { formatScore } from '@/chess/evaluation';
@@ -128,6 +128,23 @@ export function CompanionPanel() {
       });
     },
   });
+  /*
+   * A fast double-Enter (or Enter + click) can fire `mutate()` twice in the
+   * same render cycle — `ask.isPending` only flips after the event handler
+   * returns, so the disabled-button guard is one frame late. A ref-based
+   * latch closes the gap and is reset on success and on error so a
+   * follow-up question still works.
+   */
+  const askInFlight = useRef(false);
+  const fireAsk = () => {
+    if (askInFlight.current || ask.isPending) return;
+    askInFlight.current = true;
+    ask.mutate(undefined, {
+      onSettled: () => {
+        askInFlight.current = false;
+      },
+    });
+  };
 
   if (!provider) {
     return (
@@ -162,12 +179,12 @@ export function CompanionPanel() {
             value={question}
             onChange={(event) => setQuestion(event.target.value)}
             onKeyDown={(event) => {
-              if (event.key === 'Enter' && !ask.isPending) ask.mutate();
+              if (event.key === 'Enter') fireAsk();
             }}
             placeholder="Ask about this position…"
             className="h-7 min-w-0 flex-1 rounded-[3px] border border-line bg-surface-inset px-2 text-[11px] text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60"
           />
-          <Button variant="accent" onClick={() => ask.mutate()} disabled={ask.isPending}>
+          <Button variant="accent" onClick={fireAsk} disabled={ask.isPending}>
             {ask.isPending ? 'Asking…' : 'Ask'}
           </Button>
         </div>

@@ -6,6 +6,19 @@ real users notice.
 
 ## Unreleased (web)
 
+Phase 60 — two follow-ups from the bug-hunt pass. Same source, web
+and Mac pick everything up at the same time.
+
+- **"Back up now" is decoupled from the auto-backup toggle.** A
+  one-off backup writes regardless of whether the schedule is on.
+  When the schedule is off, the success toast reminds the user that
+  the next one is not automatic.
+- **Companion "Ask" cannot double-fire.** A fast Enter + click (or
+  two Enters in the same frame) used to start two assistant calls
+  before `isPending` could flip. A ref-based latch closes the gap;
+  the latch releases on success or error so a follow-up question
+  still works.
+
 Phase 59 — six fixes, the eval bar's one-decimal format lands
 everywhere it should have. Same source, web and Mac pick everything
 up at the same time.

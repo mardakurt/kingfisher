@@ -1774,15 +1774,17 @@ function BackupControls() {
    * written to the same `backups` store the schedule writes to, and the
    * auto-backup state store is updated so the status-bar pill flips from
    * "no backup yet" to "today" without waiting for the next mount.
+   *
+   * Phase 60: a one-off backup is now decoupled from the auto-backup
+   * toggle. The previous behaviour refused the click when
+   * `autoBackupEnabled` was false, which coupled two unrelated things —
+   * a user who wants a single snapshot right now shouldn't have to turn
+   * on a recurring schedule they did not ask for. Retention still comes
+   * from `autoBackupRetention` so the same ceiling governs the manual
+   * write; the toggle below only governs whether the cycle runs on its
+   * own.
    */
   const runBackupNow = async () => {
-    if (!prefs.autoBackupEnabled) {
-      notify({
-        tone: 'error',
-        message: 'Auto-backup is off. Turn it on above to take a manual backup.',
-      });
-      return;
-    }
     setBusy(true);
     try {
       const repositories = await getRepositories();
@@ -1798,7 +1800,12 @@ function BackupControls() {
         return;
       }
       useAutoBackupState.setState({ lastBackupAt: record.createdAt, status: 'idle' });
-      notify({ tone: 'success', message: 'Backup taken.' });
+      notify({
+        tone: 'success',
+        message: prefs.autoBackupEnabled
+          ? 'Backup taken.'
+          : 'Backup taken. Auto-backup is off — turn it on above for the next one.',
+      });
     } catch (error) {
       useAutoBackupState.setState({ status: 'failed' });
       notify({
