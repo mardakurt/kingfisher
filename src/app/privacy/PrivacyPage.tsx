@@ -6,13 +6,15 @@ export function PrivacyPage(): JSX.Element {
     <DocsLayout
       eyebrow="Privacy"
       title="What Kingfisher collects — and what it does not."
-      lede="Kingfisher is local-first. Studies, repertoire, training, notes, recent work and preferences are stored in the browser profile or in the desktop application's local profile directory. Nothing about you or your work is sent to a Kingfisher server, because there is no Kingfisher server."
+      lede="Kingfisher is local-first. Your studies, repertoire, training, notes, recent work and preferences are stored in the browser profile or in the desktop application's local profile directory. Kingfisher does not run a server of its own. When you use a feature that talks to a third party — Lichess, Chess.com, the reference-data mirror — this page tells you what is sent and why."
     >
       <h2 id="short">Short version</h2>
       <ul>
         <li>
-          <strong>No account.</strong> You do not sign in. There is no sign-in to sign in with. The
-          application does not know who you are.
+          <strong>No Kingfisher account.</strong> You do not sign in to Kingfisher. There is no
+          Kingfisher-controlled email capture, mailing list, profile or backend. The local profile
+          that holds a display name you picked (Phase 55) lives in IndexedDB on the web and in the
+          desktop profile directory on macOS; nothing about it leaves your machine.
         </li>
         <li>
           <strong>Page views and load times are counted, and that is all.</strong> The website uses
@@ -28,8 +30,14 @@ export function PrivacyPage(): JSX.Element {
           user still here?” ping. The Mac application loads none of this.
         </li>
         <li>
+          <strong>Third-party services are asked for, never assumed.</strong> Lichess and Chess.com
+          only see requests that come from a feature you opened, signed in or queried; the reference
+          mirror only fetches chunks when a pack needs them. Each call is described in{' '}
+          <a href="#network">Network requests</a>.
+        </li>
+        <li>
           <strong>Feedback is user-initiated.</strong> The in-app Feedback button is a deliberate
-          channel you open yourself. Nothing leaves the browser until you click Send. See
+          channel you open yourself. Nothing leaves the browser until you click Send. See{' '}
           <a href="#feedback">Feedback</a> for what the submission carries and where it goes.
         </li>
         <li>
@@ -50,16 +58,16 @@ export function PrivacyPage(): JSX.Element {
       <h2 id="local-storage">Local storage</h2>
       <p>
         <strong>User-authored data</strong> — your studies, chapters, repertoire moves, training
-        items, model games, recent positions, notes and preferences — is stored in the browser or in
-        the desktop profile. It is held under the application&apos;s own storage key and never read
-        by another origin. The structure is documented in <code>AGENTS.md</code> and the schema is
-        versioned.
+        items, model games, recent positions, notes, the display name you picked, and preferences —
+        is stored in the browser or in the desktop profile. It is held under the application's own
+        storage key and never read by another origin. The structure is documented in{' '}
+        <code>AGENTS.md</code> and the schema is versioned.
       </p>
       <p>
         A <code>localStorage</code> entry holds the small key/value preferences (theme, piece set,
         board theme, sound level, last-active route). The contents are visible in the browsers
         developer tools and are an inert JSON object with no PII beyond what you yourself typed (a
-        study name, a repertoire name).
+        study name, a repertoire name, your display name).
       </p>
       <p>
         The bulk of your work is in <strong>IndexedDB</strong>. IndexedDB is origin-scoped, so a
@@ -88,34 +96,53 @@ export function PrivacyPage(): JSX.Element {
       </p>
       <ul>
         <li>
-          <strong>Lichess</strong> (when you sign in or query Lichess-hosted resources):{}
-          <code>lichess.org</code>, <code>api.chess.com</code>, <code>tablebase.lichess.ovh</code>,
-          {}
-          <code>explorer.lichess.ovh</code>. Each call is made because the user asked for the
-          answer. Sign-in uses OAuth with PKCE and no scopes beyond “read your games”; the token is
-          stored in IndexedDB and never leaves the device.
+          <strong>Lichess</strong> (<code>lichess.org</code>), used when:
+          <ul>
+            <li>
+              you sign in to Lichess from Kingfisher (OAuth with PKCE, no scopes beyond “read your
+              games”; the token is stored in IndexedDB and never leaves the device);
+            </li>
+            <li>
+              you ask for games from a Lichess username via{' '}
+              <em>Settings → Accounts → Add an account → Lichess</em>. The username and the games
+              it returned are recorded in your local collection; nothing else is sent.
+            </li>
+            <li>
+              you query the Lichess-hosted Explorer or tablebase. Each call is the literal question
+              you asked — a position, or the board state for a tablebase probe — and Lichess's
+              answer. Nothing about your studies, your repertoire, or your account on Kingfisher
+              goes with it.
+            </li>
+          </ul>
         </li>
         <li>
-          <strong>The public data mirror</strong> at{}
+          <strong>Chess.com</strong> (<code>api.chess.com</code>), used only when you ask for
+          games from a Chess.com username via{' '}
+          <em>Settings → Accounts → Add an account → Chess.com</em>. The username and the games it
+          returned are recorded in your local collection. Chess.com never sees a Kingfisher
+          identifier or any other identifier of yours.
+        </li>
+        <li>
+          <strong>The public data mirror</strong> at{' '}
           <code>mardakurt.github.io/kingfisher-data</code> for reference-pack manifests and chunks.
-          Every chunk is verified against the manifests SHA-256 before it is used. A failed
+          Every chunk is verified against the manifest's SHA-256 before it is used. A failed
           verification is reported and the bytes are discarded.
         </li>
         <li>
-          <strong>The application&apos;s own origin</strong> for the static assets (Stockfish WASM,
+          <strong>The application's own origin</strong> for the static assets (Stockfish WASM,
           piece art, the marketing/landing assets, the app code itself).
         </li>
       </ul>
       <p>
         The Content-Security-Policy in <code>vercel.json</code> is the enforced allow-list. Any
-        other host is refused at the browser layer, and the desktop companions loopback server is a
+        other host is refused at the browser layer, and the desktop companion's loopback server is a
         separate trust boundary with its own authentication.
       </p>
 
       <h2 id="cookies">Cookies and trackers</h2>
       <p>
-        The web build sets <strong>no cookies</strong> in the strict sense: no{}
-        <code>Set-Cookie</code> response header, no <code>document.cookie</code> writes, no{}
+        The web build sets <strong>no cookies</strong> in the strict sense: no{' '}
+        <code>Set-Cookie</code> response header, no <code>document.cookie</code> writes, no{' '}
         <code>httpOnly</code> session. The application uses <code>localStorage</code> and IndexedDB
         instead. The browser may still hold its own state (service worker cache, IndexedDB) which is
         required for the product to work across reloads.
@@ -123,24 +150,33 @@ export function PrivacyPage(): JSX.Element {
       <p>
         No advertising tag and no cross-site tracker is loaded. The only measurements are Vercel Web
         Analytics and Speed Insights, described above, served from this origin. A network panel open
-        during a normal session will show this origin (including <code>/_vercel/insights/view</code>
-        , the page-view beacon, and <code>/_vercel/speed-insights/vitals</code>, the load-timing
-        beacon), Lichess (if you have signed in or queried Lichess) and the data mirror (if you have
-        used a reference source). Nothing else.
+        during a normal session will show this origin (including{' '}
+        <code>/_vercel/insights/view</code>, the page-view beacon, and{' '}
+        <code>/_vercel/speed-insights/vitals</code>, the load-timing beacon), Lichess (if you have
+        signed in or queried Lichess), Chess.com (if you have queried Chess.com) and the data
+        mirror (if you have used a reference source). Nothing else.
       </p>
 
       <h2 id="hosting">Hosting</h2>
       <p>
         The web build is hosted on Vercel. Vercel sees every request the way any hosting provider
         does, and the request log will contain the IP address you connected from, the URL you
-        requested and the user agent your browser sent. Vercel&apos;s own data-handling is described
-        in their privacy policy; the Kingfisher project does not put anything additional in those
+        requested and the user agent your browser sent. Vercel's own data-handling is described in
+        their privacy policy; the Kingfisher project does not put anything additional in those
         logs. There is no Kingfisher-side server processing them.
       </p>
 
       <h2 id="account">Account status</h2>
       <p>
-        There is no Kingfisher account, no sign-in, no profile, no email capture, no mailing list.
+        There is no Kingfisher account, no Kingfisher sign-in, and no Kingfisher-controlled profile
+        on a server. The local profile that holds a display name (Phase 55) is one row in your
+        own IndexedDB or desktop profile directory; it does not sync to anywhere. The{' '}
+        <em>Accounts</em> section of Settings records Lichess and Chess.com usernames so their
+        games can be pulled into your local collection; that linkage lives in your IndexedDB and
+        desktop profile, and is the only thing that connects a Lichess username to a Kingfisher
+        install.
+      </p>
+      <p>
         If a Kingfisher-controlled account is ever added, this page will be updated before any data
         is collected.
       </p>
@@ -148,15 +184,15 @@ export function PrivacyPage(): JSX.Element {
       <h2 id="sync">Sync status</h2>
       <p>
         <strong>Cross-device Sync is not currently available.</strong> Your work lives on the
-        machine you created it on. To move work between machines:{}
-        <em>Settings → Database → Export backup</em> on the source machine;{}
+        machine you created it on. To move work between machines:{' '}
+        <em>Settings → Database → Export backup</em> on the source machine;{' '}
         <em>Settings → Database → Import backup</em> on the destination machine. The backup file is
         portable JSON and is under your control at all times.
       </p>
 
       <h2 id="feedback">Feedback</h2>
       <p>
-        The in-app Feedback dialog sends a single submission only when you press the
+        The in-app Feedback dialog sends a single submission only when you press the{' '}
         <em>Send feedback</em> button. Nothing is uploaded automatically, and the form does not open
         a connection on its own.
       </p>
@@ -165,7 +201,7 @@ export function PrivacyPage(): JSX.Element {
         <li>The category you picked (one of five).</li>
         <li>The message you typed, up to 4000 characters.</li>
         <li>
-          The current board position (FEN) — only when you tick
+          The current board position (FEN) — only when you tick{' '}
           <em>Include current position</em>. The default is off.
         </li>
         <li>
@@ -188,7 +224,7 @@ export function PrivacyPage(): JSX.Element {
       <p>
         The endpoint enforces same-origin requests, a 64 KB body ceiling, a per-IP rate limit, a
         minimum form-fill time, and a honeypot field the dialog never fills. The renderer never sees
-        the GitHub token. The fallback link is the user&apos;s explicit choice, not an automatic
+        the GitHub token. The fallback link is the user's explicit choice, not an automatic
         redirect.
       </p>
 
@@ -200,14 +236,14 @@ export function PrivacyPage(): JSX.Element {
 
       <h2 id="changes">Changes</h2>
       <p>
-        If a future Kingfisher change affects this policy, the change will be listed in{}
+        If a future Kingfisher change affects this policy, the change will be listed in{' '}
         <code>CHANGELOG.md</code> and this page will be updated before the change ships.
       </p>
 
       <h2 id="contact">Contact</h2>
       <p>
-        There is no Kingfisher-controlled inbox for privacy requests. For a security issue, see{}
-        <a href="/security">Security</a>. For a non-security question, open an issue on{}
+        There is no Kingfisher-controlled inbox for privacy requests. For a security issue, see{' '}
+        <a href="/security">Security</a>. For a non-security question, open an issue on{' '}
         <a href="https://github.com/mardakurt/kingfisher/issues" rel="noopener">
           GitHub
         </a>

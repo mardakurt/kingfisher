@@ -270,17 +270,47 @@ export const Target = (p: IconProps) => (
  * Phase 55 replaced the spaced-repetition cards (which read as a notebook more
  * than as a workout over positions) with the knight. Knights are the piece
  * puzzles are made of, and the silhouette is unmistakable next to the pawn
- * (Openings) and the king (Endgame) without sharing any line with them. The
- * mane is the curved back, the snout points right, and the eye is a filled
- * dot so the piece reads as *facing* something rather than as a generic
- * horse. The body and base are kept simple so the icon survives the 21 px
- * the sidebar reserves for it.
+ * (Openings) and the king (Endgame) without sharing any line with them.
+ *
+ * Phase 56 redrew the knight. The previous version tried to do the whole
+ * head as one path with smooth curves — at the 21 px the sidebar reserves,
+ * those curves blurred into a generic blob that read as a chess piece but
+ * not as a knight. The replacement is a flat, geometric profile with
+ * straight lines: an ear, a mane line, a snout pointing right, a clear
+ * eye dot, a neck that flows into a body, and a base. Five shapes rather
+ * than one curve, and each shape is a small set of straight lines that
+ * hold up at sidebar size.
  */
 export const Recall = (p: IconProps) => (
   <Icon {...p}>
-    <path d="M9 4.5c1.5-1 3.5-1 5 0 1 .8 1.5 2 1.5 3.2l2.4 1.6-1 2.2-2.4.6-1 2.4v3H7.5v-3l1.5-2.2L7.5 9.5l-.8-1.5L9 6.2z" />
-    <circle cx="13.5" cy="7" r="0.75" fill="currentColor" stroke="none" />
-    <path d="M7 17h10v2.5H7z" />
+    {/*
+      The ear sits on top of the head — a small triangle that makes the
+      shape read as a horse rather than as another abstract blob.
+    */}
+    <path d="M10.5 4 L12 4 L11.25 5.75 Z" />
+    {/*
+      The head profile: a mane line at the top, a snout pointing right,
+      a jaw line coming back, and a neck joining the body. All straight
+      lines — the geometry does the recognisable-work that the curves
+      were supposed to do in the previous attempt.
+    */}
+    <path d="M11.25 5 L17 5 L18.5 8 L17 10 L14.5 10.5 L13.5 12.5 H10.5 V10 L11.5 8.5 L11 6 Z" />
+    {/*
+      The eye. A solid dot, no stroke; at 21 px the stroke would dominate
+      the eye and erase the line of the head behind it.
+    */}
+    <circle cx="14.25" cy="7" r="0.7" fill="currentColor" stroke="none" />
+    {/*
+      The body. A clean rectangle that runs from the neck to just above
+      the base.
+    */}
+    <path d="M10 13 H14.5 V17 H10 Z" />
+    {/*
+      The base. Wider than the body, the way every chess piece's base
+      is, and a clear visual pause before the icon meets the sidebar's
+      bottom edge.
+    */}
+    <path d="M7.5 17.5 H17 V19 H7.5 Z" />
   </Icon>
 );
 /**
