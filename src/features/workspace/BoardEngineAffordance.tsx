@@ -102,7 +102,16 @@ export function BoardEngineAffordance({ showEvaluation }: BoardEngineAffordanceP
           onClick={() => stopEngine()}
           aria-label="Stop engine analysis"
           className={cn(
-            'ml-1 flex h-4 w-4 items-center justify-center rounded-full',
+            /*
+             * Phase 57: a 44×44 hit area on touch devices. The visible
+             * glyph is still a small square inside a coloured pill,
+             * but the tap target is the Apple HIG minimum so a finger
+             * does not have to aim. The CSS override is in
+             * globals.css because the rule depends on (hover: none)
+             * and (pointer: coarse), which Tailwind does not have
+             * built-in.
+             */
+            'ml-1 flex h-7 w-7 items-center justify-center rounded-full touch-manipulation',
             'text-tertiary transition-colors hover:bg-surface-3 hover:text-primary',
           )}
         >

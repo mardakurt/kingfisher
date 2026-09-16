@@ -370,6 +370,17 @@ body {
     padding-bottom: 0.375rem;
     font-size: 0.8125rem;
   }
+  /*
+   * Phase 57: the engine affordance's stop button is a 28 px square on
+   * desktop. On a touch device that is well below the 44 px tap-target
+   * floor, and the user has to aim. The override raises it to 44 px
+   * so a finger does not have to, while keeping the visible glyph the
+   * same size so the desktop layout does not change.
+   */
+  [data-board-engine-affordance='running'] button[aria-label='Stop engine analysis'] {
+    height: 44px;
+    width: 44px;
+  }
 }
 
 /*
