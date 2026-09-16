@@ -11,6 +11,14 @@ import { flattenMoveTree, type MoveTreeRow } from './flatten';
 
 const VIRTUALIZE_AT = 2_000;
 const ESTIMATED_ROW_HEIGHT = 34;
+/*
+ * The virtualizer measures actual rows at runtime, so this 34 px is only
+ * the *initial* estimate for rows that have not been measured yet. The
+ * real touch-device value (44 px) lives in globals.css as a CSS override
+ * on the [data-virtualized-move-tree] attribute — the JavaScript-side
+ * row positions follow once the user scrolls and the ResizeObserver
+ * records each row's actual height.
+ */
 const OVERSCAN_PX = 500;
 
 interface MoveTreeProps {
@@ -236,6 +244,13 @@ function VirtualRow({
       aria-setsize={total}
       className={cn(
         'absolute right-0 left-0 min-h-[34px] border-b border-line-subtle/60 py-1 pr-1',
+        /*
+         * The 44 px tap zone on touch devices is in globals.css, scoped
+         * to this data attribute. The variant lives there because Tailwind
+         * does not have a built-in for (hover: none), and adding one here
+         * would duplicate the media query that already exists for similar
+         * tap-target work elsewhere.
+         */
         row.depth > 0 && 'border-l border-l-line-strong',
       )}
       style={{ transform: `translateY(${top}px)`, paddingLeft: 4 + Math.min(row.depth, 12) * 10 }}
