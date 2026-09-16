@@ -4,6 +4,47 @@ The user-facing changelog. Internal phase history is in
 `docs/reports/` and `docs/product/phase-*.md`; the list below is what
 real users notice.
 
+## Unreleased (web)
+
+Phase 55 — eleven items from the owner's report land together. None of
+these require a new Mac release; the web and the Mac share the same
+source and pick the changes up at the same time.
+
+- **A local profile with a name the user picks.** A new "Your name"
+  field on the existing profile record. The first time the workspace
+  opens, the sidebar shows a one-line "What should we call you?" prompt;
+  once a name is set, a small "Welcome back, {name}" greeting sits at
+  the bottom of the navigation. The profile lives in IndexedDB on the
+  web and in the desktop user-data directory on macOS; nothing is sent
+  to a server because there is no server. Cloud sync is deliberately
+  out of scope.
+- **Evaluation bar slimmed.** Width 32 px → 24 px (lichess-like),
+  softer border, lighter label. The number it shows is Stockfish 18 at
+  the default depth of 20; the depth is in the title so the user can
+  see what produced it.
+- **Rigid board flip.** A flip used to slide every piece across the
+  board on its way to its mirror. It is now one rigid `rotateY(180deg)`
+  on the board layer, with pieces snapping to their mirror squares; the
+  rotation drives the whole motion.
+- **Training's icon is a knight** (the piece puzzles are made of),
+  where it used to be a spaced-repetition card stack that read as a
+  notebook. The Openings pawn's foot is also slimmer — it had been a
+  14-wide mushroom under a 10-wide body.
+- **Companion setup, in plain English for web users.** A four-step
+  collapsible guide now sits next to the `npm run companion` command on
+  the Companion settings page. The desktop shell already starts the
+  companion for its users, so the guide is web-only.
+- **The assistant tab is no longer buried.** It moved from the
+  second-to-last slot on the Analysis tool list to the second, beside
+  Engine and Explorer. Settings → Assistant still carries the model,
+  endpoint and key.
+- **Lichess and Chess.com account linking** already worked with a
+  username and no sign-in; this phase re-verified the path against the
+  live public Lichess service and the in-house sync tests.
+- **macOS full-screen brand has breathing room.** The sidebar brand
+  used to flush to the corner in full screen; it now has 8 px of
+  padding there. Windowed behaviour is unchanged.
+
 ## 1.1.9 — 2026-09-15
 
 One defect in the Mac application, found by the release gates for 1.1.8
