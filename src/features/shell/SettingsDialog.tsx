@@ -16,7 +16,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check } from '@/components/icons';
 import { Button } from '@/components/ui/Button';
 import { PathField } from '@/components/ui/PathField';
-import { desktop } from '@/desktop/bridge';
+import { desktop, isDesktop } from '@/desktop/bridge';
 import { Toggle } from '@/components/ui/Toggle';
 import { BookManager } from '@/features/book/BookManager';
 import { EngineManager } from '@/features/engine/EngineManager';
@@ -647,6 +647,46 @@ function CompanionSection() {
           Optional. It runs native engines, SQLite collections and local Syzygy tables — the things
           a browser cannot. Everything else in Kingfisher works without it.
         </p>
+        {/*
+          Phase 55: a web user has to start the companion themselves. The
+          previous one-liner — bare `npm run companion` — looked like the
+          kind of command a non-technical user is expected to memorise, and
+          the project's own install page carries a longer explanation. The
+          command stays a copyable box, but the prose around it now says
+          what the user is about to do in plain language, and the install
+          page is one click away for anyone who would rather read it.
+        */}
+        {typeof window !== 'undefined' && !isDesktop() ? (
+          <details className="mt-3 rounded-[4px] border border-line bg-surface-inset px-2.5 py-2 text-2xs text-secondary">
+            <summary className="cursor-pointer select-none font-medium text-primary">
+              How to start the companion on the web
+            </summary>
+            <ol className="mt-2 list-decimal pl-4 leading-relaxed">
+              <li>
+                Open a terminal in the Kingfisher folder — the one whose name
+                is on the title bar.
+              </li>
+              <li>
+                Paste{' '}
+                <code className="font-mono text-[11px]">npm run companion</code>{' '}
+                and press Enter.
+              </li>
+              <li>
+                The terminal prints a line that starts with{' '}
+                <code className="font-mono text-[11px]">Pair this device:</code>{' '}
+                — copy the whole line, including the{' '}
+                <code className="font-mono text-[11px]">#token=…</code> at the end.
+              </li>
+              <li>Paste it into the box below.</li>
+            </ol>
+            <p className="mt-2 text-2xs text-tertiary">
+              Each engine you want, you can then add with one click in{' '}
+              <em>Settings → Engine</em>. The download comes from each project's
+              own GitHub release and is checked against a recorded SHA-256
+              before it runs.
+            </p>
+          </details>
+        ) : null}
         <p className="mt-2 rounded-[4px] border border-line bg-surface-inset px-2.5 py-2 font-mono text-[10.5px] text-secondary">
           npm run companion
         </p>
