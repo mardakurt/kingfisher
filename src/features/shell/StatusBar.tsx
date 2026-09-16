@@ -141,9 +141,16 @@ export function StatusBar() {
         className={cn(
           'ml-1 hidden shrink-0 items-center gap-1 whitespace-nowrap rounded-[3px] px-1.5 py-0.5 transition-colors sm:inline-flex',
           'hover:bg-surface-2',
+          /*
+           * Phase 57: a positive accent on "today" — the previous
+           * treatment was neutral, which made a fresh backup
+           * indistinguishable from a 5-day-old one. "Today" is the
+           * one state a user actively wants to see.
+           */
+          backupDays === 0 && 'text-positive',
           backupDays === null && 'text-negative',
-          backupDue && backupDays !== null && 'text-caution',
-          !backupDue && 'text-tertiary',
+          backupDays !== null && backupDue && 'text-caution',
+          backupDays !== null && !backupDue && backupDays > 0 && 'text-secondary',
           backupStatus === 'running' && 'text-accent',
         )}
       >
@@ -162,7 +169,11 @@ export function StatusBar() {
             <span
               className={cn(
                 'h-1.5 w-1.5 rounded-full',
-                backupDue ? 'bg-caution' : 'bg-positive/70',
+                backupDays === 0
+                  ? 'bg-positive'
+                  : backupDue
+                    ? 'bg-caution'
+                    : 'bg-positive/70',
               )}
             />
             <span>Backup {backupDays === 0 ? 'today' : `${backupDays}d ago`}</span>
