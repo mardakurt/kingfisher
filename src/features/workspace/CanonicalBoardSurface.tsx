@@ -211,7 +211,21 @@ export function CanonicalBoardSurface({
         data-board-container
       >
         <div
-          className={cn('grid items-stretch', !evaluationBarVisible && 'grid-cols-1')}
+          className={cn(
+            'grid items-stretch',
+            !evaluationBarVisible && 'grid-cols-1',
+            /*
+             * Phase 63: the toolbar row above the board needs `1fr`
+             * on the board row, otherwise `aspect-square` collapses
+             * because both rows default to `auto` height and the
+             * board frame is an empty container at this level — its
+             * intrinsic height is 0, so the row collapses to 0 and
+             * aspect-square produces a 0×0 board. Toolbar row is
+             * `auto` (it sizes itself); board row is `1fr` (it fills
+             * whatever the parent has left after the toolbar).
+             */
+            'grid-rows-[auto_1fr]',
+          )}
           style={{
             width: frameSize + barSpace,
             ...(evaluationBarVisible
