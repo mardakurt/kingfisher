@@ -521,9 +521,7 @@ function EmptyState({
     return (
       <div className="px-4 py-6 text-center text-xs text-tertiary">
         <p>This position is not in your games, studies, repertoire, training or endgames yet.</p>
-        <p className="mt-1 text-[11px]">
-          Open it in Analysis to study the move with the engine.
-        </p>
+        <p className="mt-1 text-[11px]">Open it in Analysis to study the move with the engine.</p>
       </div>
     );
   }

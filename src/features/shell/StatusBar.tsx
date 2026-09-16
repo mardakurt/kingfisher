@@ -169,11 +169,7 @@ export function StatusBar() {
             <span
               className={cn(
                 'h-1.5 w-1.5 rounded-full',
-                backupDays === 0
-                  ? 'bg-positive'
-                  : backupDue
-                    ? 'bg-caution'
-                    : 'bg-positive/70',
+                backupDays === 0 ? 'bg-positive' : backupDue ? 'bg-caution' : 'bg-positive/70',
               )}
             />
             <span>Backup {backupDays === 0 ? 'today' : `${backupDays}d ago`}</span>

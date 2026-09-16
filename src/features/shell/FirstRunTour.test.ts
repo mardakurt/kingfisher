@@ -13,10 +13,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import {
-  isBackupDue,
-  daysSinceLastBackup,
-} from './auto-backup';
+import { isBackupDue, daysSinceLastBackup } from './auto-backup';
 import { NAV_SECTIONS } from './navigation';
 
 /*

@@ -96,16 +96,18 @@ export function BoardEngineAffordance({ showEvaluation }: BoardEngineAffordanceP
           )}
         />
         <span>
-          {/*
-           * Phase 57: the engine name rides along. A user with two
-           * engines (Stockfish and LC0) sees "Stockfish · depth 18"
-           * and "LC0 · depth 12" rather than two indistinguishable
-           * "Engine · depth N" pills. The engine name is already in
-           * the store's identity field; the affordance reads it.
-           */
-          status === 'loading'
-            ? `${engineName ?? 'Engine'} · starting…`
-            : `${engineName ?? 'Engine'} · depth ${depth ?? '?'}`}
+          {
+            /*
+             * Phase 57: the engine name rides along. A user with two
+             * engines (Stockfish and LC0) sees "Stockfish · depth 18"
+             * and "LC0 · depth 12" rather than two indistinguishable
+             * "Engine · depth N" pills. The engine name is already in
+             * the store's identity field; the affordance reads it.
+             */
+            status === 'loading'
+              ? `${engineName ?? 'Engine'} · starting…`
+              : `${engineName ?? 'Engine'} · depth ${depth ?? '?'}`
+          }
         </span>
         <button
           type="button"
