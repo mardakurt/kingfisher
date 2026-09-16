@@ -171,6 +171,24 @@ export function EnginePanel() {
             {analysis.seldepth ? `/${analysis.seldepth}` : ''}
           </span>
         )}
+        {/*
+           * Phase 56: a one-click "pin best line" affordance in the
+           * header. The per-line pin still exists, but a user who is
+           * staring at the engine output and wants the best line pinned
+           * without scrolling should not have to.
+           */}
+        {analysis && !stale && analysis.lines[0] ? (
+          <Button
+            size="sm"
+            variant="ghost"
+            icon={<Pin className="h-3 w-3" />}
+            onClick={() => pin(1)}
+            aria-label="Pin the engine's top line"
+            className="ml-auto"
+          >
+            Pin best
+          </Button>
+        ) : null}
       </PanelHeader>
 
       {showEngineArrows && identity ? (
