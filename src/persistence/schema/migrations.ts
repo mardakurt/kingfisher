@@ -1,5 +1,5 @@
 export const DATABASE_NAME = 'kingfisher';
-export const DATABASE_VERSION = 16;
+export const DATABASE_VERSION = 17;
 
 export const STORE_NAMES = {
   studies: 'studies',
@@ -30,6 +30,14 @@ export const STORE_NAMES = {
   referencePacks: 'referencePacks',
   referenceChunks: 'referenceChunks',
   openingBooks: 'openingBooks',
+  /*
+   * Phase 56: an auto-backup store. Each row is one snapshot — the full
+   * portable workspace JSON, indexed by `createdAt` so the most recent
+   * row is one IDB call away. Retention is enforced by the auto-backup
+   * module, not by the schema; the store holds whatever the module
+   * writes.
+   */
+  backups: 'backups',
 } as const;
 
 export type StoreName = (typeof STORE_NAMES)[keyof typeof STORE_NAMES];
@@ -435,6 +443,22 @@ export const MIGRATIONS: readonly Migration[] = [
       */
       target.createStore(STORE_NAMES.openingBooks, { keyPath: 'id' }, [
         { name: 'priority', keyPath: 'priority' },
+      ]);
+    },
+  },
+  {
+    version: 17,
+    description: 'Add the auto-backup store; one row per snapshot, indexed by createdAt.',
+    apply(target) {
+      /*
+        * Each backup carries the entire portable workspace JSON. The
+        * `createdAt` index makes "most recent backup" a single IDB
+        * cursor call, which is what the status-bar indicator reads on
+        * every render. The retention window lives in the auto-backup
+        * module, not in the schema.
+        */
+      target.createStore(STORE_NAMES.backups, { keyPath: 'id' }, [
+        { name: 'createdAt', keyPath: 'createdAt' },
       ]);
     },
   },
