@@ -681,7 +681,7 @@ function CompanionSection() {
             </ol>
             <p className="mt-2 text-2xs text-tertiary">
               Each engine you want, you can then add with one click in{' '}
-              <em>Settings → Engine</em>. The download comes from each project's
+              <em>Settings → Engine</em>. The download comes from each project&apos;s
               own GitHub release and is checked against a recorded SHA-256
               before it runs.
             </p>
