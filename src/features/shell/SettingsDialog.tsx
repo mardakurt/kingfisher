@@ -1308,8 +1308,10 @@ function ProfileSection() {
   const notify = useUi((state) => state.notify);
   const profile = useProfile();
   const [draftAliases, setDraftAliases] = useState<string | null>(null);
+  const [draftName, setDraftName] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const aliases = draftAliases ?? profile.data?.aliases.join('\n') ?? '';
+  const displayName = draftName ?? profile.data?.displayName ?? '';
 
   const save = async () => {
     setBusy(true);
@@ -1318,8 +1320,11 @@ function ProfileSection() {
         .split('\n')
         .map((alias) => alias.trim())
         .filter(Boolean);
-      await (await getRepositories()).profile.setAliases(values);
+      const profileRepository = (await getRepositories()).profile;
+      await profileRepository.setAliases(values);
+      await profileRepository.setDisplayName(displayName);
       setDraftAliases(values.join('\n'));
+      setDraftName(displayName.trim());
       void queryClient.invalidateQueries({ queryKey: phase3Keys.profile });
       /*
         The aliases are what "My games" means. Without this the explorer keeps
@@ -1330,12 +1335,14 @@ function ProfileSection() {
       invalidatePositionContext(queryClient);
       notify({
         tone: 'success',
-        message: `${values.length} personal name ${values.length === 1 ? 'alias' : 'aliases'} saved.`,
+        message: displayName.trim()
+          ? `Saved as ${displayName.trim()}.`
+          : `${values.length} personal name ${values.length === 1 ? 'alias' : 'aliases'} saved.`,
       });
     } catch (error) {
       notify({
         tone: 'error',
-        message: error instanceof Error ? error.message : 'Aliases could not be saved.',
+        message: error instanceof Error ? error.message : 'Profile could not be saved.',
       });
     } finally {
       setBusy(false);
@@ -1344,7 +1351,25 @@ function ProfileSection() {
 
   return (
     <div>
-      <h3 className="text-xs text-primary">My player names</h3>
+      {/*
+        Phase 55: the display name is what the welcome banner reads and what
+        gives the workspace its "this is *mine*" feel. A blank field is a
+        legitimate choice — the greeting falls back to a generic one — and
+        Save still goes through, which is what the first-launch prompt
+        relies on.
+      */}
+      <h3 className="text-xs text-primary">Your name</h3>
+      <p className="mt-1 text-2xs leading-relaxed text-tertiary">
+        A name for the workspace. The welcome banner uses it, nothing else.
+      </p>
+      <input
+        value={displayName}
+        onChange={(event) => setDraftName(event.target.value)}
+        placeholder={'e.g. Magnus'}
+        className={FIELD_INPUT}
+      />
+
+      <h3 className="mt-6 text-xs text-primary">My player names</h3>
       <p className="mt-1 text-2xs leading-relaxed text-tertiary">
         One exact name per line. Matching folds case and repeated whitespace only; names are never
         inferred or silently merged.
@@ -1357,7 +1382,7 @@ function ProfileSection() {
       />
       <div className="mt-2 flex justify-end">
         <Button variant="accent" onClick={() => void save()} disabled={busy}>
-          {busy ? 'Saving…' : 'Save aliases'}
+          {busy ? 'Saving…' : 'Save profile'}
         </Button>
       </div>
     </div>

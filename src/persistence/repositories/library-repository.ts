@@ -87,6 +87,15 @@ export class LocalModelGameRepository implements ModelGameRepository {
 export interface ProfileRepository {
   get(): Promise<UserProfileRecord>;
   setAliases(aliases: readonly string[]): Promise<UserProfileRecord>;
+  /**
+   * Phase 55: a display name the user chose for themselves.
+   *
+   * An empty string clears the field — used by the Settings panel's "no
+   * greeting" option and by tests that need to exercise the unset path.
+   * Whitespace-only input is treated as empty so the user's first name with
+   * a stray space does not become a record that greets with nothing.
+   */
+  setDisplayName(name: string): Promise<UserProfileRecord>;
   /** Improvement themes the player invented; returns the full list. */
   addCustomTheme(theme: string): Promise<readonly string[]>;
   removeCustomTheme(theme: string): Promise<readonly string[]>;
@@ -118,7 +127,29 @@ export class LocalProfileRepository implements ProfileRepository {
     const profile: UserProfileRecord = {
       id: 'me',
       aliases: cleaned,
+      displayName: current.displayName,
       customThemes: current.customThemes ?? [],
+      updatedAt: Date.now(),
+    };
+    await this.database.put(STORE_NAMES.profile, profile);
+    return profile;
+  }
+
+  /**
+   * Phase 55: a display name the user picked, used by the welcome banner.
+   *
+   * Persisted on the same record as the existing aliases rather than in a new
+   * store: the profile is the umbrella that everything else hangs off, and
+   * splitting the display name off would create a "two records describing
+   * the same user" surface area that this layer does not need.
+   */
+  async setDisplayName(name: string): Promise<UserProfileRecord> {
+    const trimmed = name.trim();
+    const current = await this.get();
+    const profile: UserProfileRecord = {
+      ...current,
+      id: 'me' as const,
+      displayName: trimmed || undefined,
       updatedAt: Date.now(),
     };
     await this.database.put(STORE_NAMES.profile, profile);

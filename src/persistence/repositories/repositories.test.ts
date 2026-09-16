@@ -511,4 +511,33 @@ describe('Phase 3 library repositories', () => {
     expect(profile.aliases).toEqual(['Carlsen, Magnus', 'M. Carlsen']);
     expect((await repositories.profile.get()).aliases).toEqual(profile.aliases);
   });
+
+  /*
+    Phase 55: a display name is what the welcome banner reads. The setter
+    is the contract — the Settings panel and the first-launch prompt both
+    rely on it. The four cases here are what each caller actually does:
+    set a real name, set a name with surrounding whitespace, set an empty
+    string (clears the greeting), and a missing initial state (so the
+    welcome prompt has something to ask for).
+  */
+  it('stores a chosen display name and round-trips it through get', async () => {
+    const empty = await repositories.profile.get();
+    expect(empty.displayName).toBeUndefined();
+
+    const profile = await repositories.profile.setDisplayName('Hikaru');
+    expect(profile.displayName).toBe('Hikaru');
+    expect((await repositories.profile.get()).displayName).toBe('Hikaru');
+  });
+
+  it('trims a display name with surrounding whitespace', async () => {
+    const profile = await repositories.profile.setDisplayName('  Anish  ');
+    expect(profile.displayName).toBe('Anish');
+  });
+
+  it('clears the display name when the user removes it', async () => {
+    await repositories.profile.setDisplayName('Magnus');
+    const cleared = await repositories.profile.setDisplayName('');
+    expect(cleared.displayName).toBeUndefined();
+    expect((await repositories.profile.get()).displayName).toBeUndefined();
+  });
 });

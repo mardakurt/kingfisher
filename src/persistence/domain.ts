@@ -756,6 +756,19 @@ export interface UserProfileRecord {
   readonly id: 'me';
   readonly aliases: readonly string[];
   /**
+   * The display name the player chose for themselves.
+   *
+   * Phase 55 change: a local-first profile is what keeps the user coming
+   * back. A person who opens Kingfisher twice with the same browser and
+   * the same installed desktop app expects to be greeted by name and
+   * shown *their* studies, *their* repertoire, *their* training plan. A
+   * display name turns the workspace from "a chess app with some data in
+   * it" into "the user's place to study chess". The field is optional so
+   * a profile that pre-dates Phase 55 is still valid; an unset display
+   * name falls back to a generic greeting.
+   */
+  readonly displayName?: string;
+  /**
    * Improvement themes the player added themselves.
    *
    * Stored on the profile rather than in a store of their own: a tag has no
