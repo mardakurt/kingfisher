@@ -21,17 +21,15 @@ import { usePreferences } from '@/stores/preferences-store';
 import { useUi } from '@/stores/ui-store';
 
 export function useFirstRunTour(): void {
-  const showOnLaunch = usePreferences((state) => state.tourShowOnLaunch);
-
   useEffect(() => {
-    /*
-     * The hook runs on every launch. The first time, the preference is
-     * `true` by default; the user can flip it to false from the tour's
-     * "Don't show on launch" checkbox or from the Help menu. A user who
-     * has flipped it back to true (Help → Replay tour, when wired) gets
-     * the tour back at the next launch.
-     */
-    if (!showOnLaunch) return;
-    useUi.setState({ tourOpen: true });
-  }, [showOnLaunch]);
+    // React's hydration snapshot can still contain defaults on the first
+    // render. Read the hydrated store before deciding to open the tour.
+    const launch = () => {
+      if (usePreferences.getState().tourShowOnLaunch) {
+        useUi.setState({ tourOpen: true });
+      }
+    };
+    if (usePreferences.persist.hasHydrated()) launch();
+    return usePreferences.persist.onFinishHydration(launch);
+  }, []);
 }

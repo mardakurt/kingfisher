@@ -243,9 +243,9 @@ export function InstallPage({
 
       <h3 id="damaged">“Kingfisher is damaged”</h3>
       <p>
-        That is Gatekeeper saying the same thing as{}
-        <em>cannot be checked for malicious software</em>. Go back to step 5; right-click → Open is
-        the supported fix.
+        Check the download&apos;s SHA-256 against step 2 and download it again from the release page
+        if it differs. Follow the first-launch instructions in step 5 for this build. If the
+        verified download still will not open, report the exact macOS message.
       </p>
 
       <h3 id="port">“Another program is using its port”</h3>

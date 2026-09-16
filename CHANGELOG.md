@@ -6,8 +6,21 @@ real users notice.
 
 ## Unreleased (web)
 
-Phase 60 — two follow-ups from the bug-hunt pass. Same source, web
-and Mac pick everything up at the same time.
+Browser verification follow-up:
+
+- Tour dismissal now survives reload; launch reads hydrated preferences.
+- Linked accounts accept mixed-case Lichess and Chess.com usernames.
+- Scheduled backups store portable preferences, excluding credentials, instead
+  of attempting to clone the database connection.
+- The AI assistant opens without requiring the separate native companion
+  service; the configured assistant endpoint is sufficient.
+- The engine toolbar wraps its controls instead of collapsing the engine
+  selector while analysis is running in a narrow panel.
+- Install troubleshooting now agrees with the notarised first-launch guide.
+- The shared-source changes below reach the Mac application only in a new
+  packaged release; the published 1.1.9 does not update with the website.
+
+Phase 60 — two follow-ups from the bug-hunt pass. Shared source; available on the web, pending a Mac release.
 
 - **"Back up now" is decoupled from the auto-backup toggle.** A
   one-off backup writes regardless of whether the schedule is on.
@@ -20,8 +33,7 @@ and Mac pick everything up at the same time.
   still works.
 
 Phase 59 — six fixes, the eval bar's one-decimal format lands
-everywhere it should have. Same source, web and Mac pick everything
-up at the same time.
+everywhere it should have. Shared source; available on the web, pending a Mac release.
 
 - **Engine panel footer reads `+0.3`, not `+0.34`.** The
   score-swing figure and the MultiPV gap in the engine panel footer
@@ -40,15 +52,14 @@ up at the same time.
   pane without searching for it.
 
 Phase 58 — bug-hunt pass, twelve fixes, the eval bar now reads the
-way lichess reads it. Same source, web and Mac pick everything up at
-the same time.
+way lichess reads it. Shared source; available on the web, pending a Mac release.
 
 - **Status bar backup indicator opens Database, not Appearance.**
   Clicking the pill now lands on the section it has been promising to
   land on since Phase 57.
-- **"Back up now" lives in Settings → Data.** The status-bar tooltip
+- **"Back up now" lives in Settings → Database.** The status-bar tooltip
   has been promising the action since Phase 57; the button is here.
-  Auto-backup must be on for it to write.
+  Phase 60 subsequently removed the requirement to enable auto-backup.
 - **First-run tour shows the same Training icon as the sidebar.**
   New users see the Phase 57 L-shape silhouette in the tour and the
   same L-shape in the navigation.
@@ -65,15 +76,15 @@ the same time.
   the engine start/stop binding); `N` opens notes. Both bindings
   are listed in the Shortcuts dialog.
 - **Lichess and Chess.com usernames are validated as you type.**
-  Lowercase letters, digits, hyphens and underscores; the Link
+  Letters, digits, hyphens and underscores; the Link
   button stays disabled and a one-line hint appears until the
   input matches.
 - **Chessboard comment cleaned up.** A reference to a "double-tap
   reset" that was never implemented is gone.
 
 Phase 57 — eleven enhancements, a defensive bug-hunt pass, and a
-hooks-rules fix that the lint caught on the very last re-run. Same
-source, web and Mac pick everything up at the same time.
+hooks-rules fix that the lint caught on the very last re-run. Shared
+source; available on the web, pending a Mac release.
 
 - **A Training icon that survives the 16 px collapsed rail.** The
   Phase 56 knight's mane, snout and eye all collapsed into the same

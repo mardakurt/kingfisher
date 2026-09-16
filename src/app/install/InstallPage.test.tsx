@@ -37,6 +37,7 @@ describe('the install page follows the descriptor', () => {
     expect(html).toContain('downloaded from the Internet');
     expect(html).not.toMatch(/Right-click/);
     expect(html).not.toMatch(/Open Anyway/);
+    expect(html).not.toContain('right-click → Open is');
     expect(html).not.toMatch(/not notarised/);
   });
 

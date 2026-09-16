@@ -16,6 +16,9 @@
 import { useEffect } from 'react';
 import { create } from 'zustand';
 
+import { usePreferences } from '@/stores/preferences-store';
+import { portablePreferences } from '@/stores/portable-preferences';
+
 import { getRepositories } from '@/persistence/repositories';
 import { ensureBackup, mostRecentBackup } from '@/features/shell/auto-backup';
 
@@ -49,30 +52,11 @@ export function useAutoBackup(): void {
       const lastBackupAt = recent?.createdAt ?? null;
       setState({ lastBackupAt });
 
-      const preferences = repositories.raw as unknown as Readonly<Record<string, unknown>>;
-      /*
-       * The three 'autoBackup*' keys below are the cycle's controls.
-       * The persisted value lives under `state.*` inside the JSON the
-       * preferences store writes — `{state: {...}, version: N}` —
-       * and the defaults match the keys in DEFAULT_PREFERENCES, so the
-       * fallback after a missing or pre-hydration read is correct.
-       * The try/catch covers the privacy-mode case where the read
-       * throws — the defaults then apply.
-       */
-      let prefs: { readonly state?: Record<string, unknown> } = {};
-      try {
-        prefs = JSON.parse(
-          typeof window === 'undefined'
-            ? '{}'
-            : (window.localStorage.getItem('kingfisher.preferences') ?? '{}'),
-        ) as { readonly state?: Record<string, unknown> };
-      } catch {
-        /* localStorage disabled; the defaults below apply. */
-      }
-      const prefsState = prefs.state ?? {};
-      const enabled = (prefsState['autoBackupEnabled'] as boolean | undefined) ?? true;
-      const scheduleDays = (prefsState['autoBackupReminderDays'] as number | undefined) ?? 7;
-      const retention = (prefsState['autoBackupRetention'] as number | undefined) ?? 3;
+      const prefs = usePreferences.getState();
+      const preferences = portablePreferences(prefs);
+      const enabled = prefs.autoBackupEnabled;
+      const scheduleDays = prefs.autoBackupReminderDays;
+      const retention = prefs.autoBackupRetention;
 
       if (!enabled) {
         setState({ status: 'idle' });

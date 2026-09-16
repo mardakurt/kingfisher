@@ -7,54 +7,22 @@ file plus `src/desktop/bridge.ts`, which returns `null` in a browser.
 This document is the Phase 49 check on that claim, feature by feature,
 with the deliberate differences named and the reason for each.
 
-**Published revision check (Phase 60, web only).** Phase 60 changed
-two files in `src/` — the "Back up now" button in Settings → Database
-no longer refuses when auto-backup is off, and the Companion
-assistant's "Ask" input cannot double-fire on rapid Enter / click
-because of a ref-based latch. None of them touches `desktop/src/` or
-the Electron shell, so the public Mac 1.1.9 stays on the previous
-Phase 55 surface until the next Mac release. Section B of After-a-fix
-is therefore not required for this fix.
+**Browser verification follow-up (2026-09-16).** Phase 58–60 application
+changes are shared with macOS, even though they do not edit `desktop/src/`.
+The public Mac 1.1.9 (build 590, `d46fe98`) embeds an older Next.js build;
+it does not receive website deployments. The prior statements that these
+changes were not Mac-facing because the Electron shell was untouched were
+incorrect. Desktop release and certification remain pending; this browser
+validation pass does not certify or publish a new Mac package.
 
-**Published revision check (Phase 59, web only).** Phase 59 changed
-six files in `src/` and `src/app/` — the engine panel footer's
-two-decimal score-swing and MultiPV gap, the engine comparison
-prose, the calibration figure in the decision journal, the storage
-section's TanStack v5 API (`isLoading` → `isPending`), and the
-endgame library's empty-state link to Settings → Companion. None of
-them touches `desktop/src/` or the Electron shell, so the public
-Mac 1.1.9 stays on the previous Phase 55 surface until the next
-Mac release. Section B of After-a-fix is therefore not required for
-this fix.
-
-**Published revision check (Phase 58, web only).** Phase 58 changed
-nine files in `src/` and `src/app/` — the StatusBar's broken
-`openSettingsAt('data')` → `'database'`, the missing "Back up now"
-button in Settings → Database, the FirstRunTour's icon drift (Pin →
-Recall), a duplicate subtitle, a dead Escape handler, the eval bar's
-two-decimal → one-decimal format, two new keyboard bindings
-(Shift+E for the engine panel, N for notes), a stale Chessboard
-comment, and Lichess/Chess.com username validation. None of them
-touches `desktop/src/` or the Electron shell, so the public Mac 1.1.9
-stays on the previous Phase 55 surface until the next Mac release.
-Section B of After-a-fix is therefore not required for this fix.
-
-**Published revision check (Phase 57, web only).** Phase 57 changed
-nineteen files in `src/` — eleven user-visible enhancements and the
-bug-hunt pass that wrapped the localStorage reads and writes in
-try/catch, derived a `visibleSection` in the Settings dialog, and
-moved the first-run tour's keyboard handler above the early return.
-None of them touches `desktop/src/` or the Electron shell, so the
-public Mac 1.1.9 stays on the previous Phase 55 surface until the
-next Mac release. Section B of After-a-fix is therefore not required
-for this fix.
-
-**Published revision check (Phase 56, web only).** Phase 56 changed
-thirty-one files in `src/` — every enhancement from the owner's
-follow-up report. None of them touches `desktop/src/` or the Electron
-shell, so the public Mac 1.1.9 stays on the previous Phase 55 surface
-until the next Mac release. Section B of After-a-fix is therefore not
-required for this fix.
+The pending shared-source changes include Phase 56–57 UI enhancements,
+Phase 58 tour, backup navigation, username validation and panel shortcuts,
+Phase 59 evaluation formatting and endgame settings navigation, and Phase 60
+manual backup independence and the assistant duplicate-submit guard.
+This follow-up also fixes tour preference hydration, mixed-case account
+validation, scheduled backup preference serialization, and an incorrect
+native-companion prerequisite on the AI assistant panel. The engine toolbar
+also wraps controls to keep the engine selector readable in a narrow panel.
 
 **Published revision check (Phase 55, web only).** Phase 55 changed
 twelve files in `src/` and one in `src/app/globals.css`. None of them

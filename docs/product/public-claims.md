@@ -117,3 +117,8 @@ it elsewhere in the public tree.
 The `npm run docs:check` script verifies the constraints in
 this file and the related ones in
 [`docs/operations/search-console.md`](../operations/search-console.md).
+
+The install page's damaged-download troubleshooting follows the descriptor-backed
+first-launch instructions: verify the hash, re-download mismatched bytes, and
+report a failure with verified bytes. It does not recommend a right-click
+workaround for the notarised release (`src/app/install/InstallPage.test.tsx`).

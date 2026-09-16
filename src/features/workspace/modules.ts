@@ -357,9 +357,8 @@ export function unavailableReason(
   if (tool === 'tablebase' && input.pieceCount > 7) {
     return `Available for positions with 7 pieces or fewer. This one has ${input.pieceCount}.`;
   }
-  if (tool === 'companion' && !input.hasCompanion) {
-    return 'The local companion is not connected. Connect it in Settings → Companion to use local engines and databases.';
-  }
+  // The AI assistant uses its configured HTTP endpoint independently of
+  // the native engine/database companion; its panel owns setup guidance.
   if (tool === 'model-games' && !input.hasModelGames) {
     return 'No model games are linked to this position yet.';
   }

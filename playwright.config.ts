@@ -71,6 +71,22 @@ export default defineConfig({
     // server advertises localhost; using the canonical host keeps hydration
     // and browser event handlers deterministic.
     baseURL: 'http://localhost:3210',
+    // Ordinary workflow tests start after onboarding. Fresh-install and tour
+    // regressions override this with empty storage and exercise dismissal.
+    storageState: {
+      cookies: [],
+      origins: [
+        {
+          origin: 'http://localhost:3210',
+          localStorage: [
+            {
+              name: 'kingfisher.preferences',
+              value: JSON.stringify({ state: { tourShowOnLaunch: false }, version: 5 }),
+            },
+          ],
+        },
+      ],
+    },
     /*
       No browser here. Each project names its own device and channel; a
       top-level `channel: 'chrome'` (here since Phase 8, before the projects

@@ -215,3 +215,9 @@ network only when you explicitly ask it to: a check for updates, an
 Explorer query that reaches a remote source, a reference pack install
 from the Data Center. None of these send anything about you; the
 privacy policy is [`docs/legal/privacy.md`](../legal/privacy.md).
+
+**What if macOS says Kingfisher is damaged?** Check the download's SHA-256
+against the value above and download it again from the release page if it
+differs. Follow the first-launch instructions for this build. If the verified
+download still will not open, report the exact macOS message; a right-click
+workaround is not the remedy for this notarised release.

@@ -134,7 +134,7 @@ test('a backup survives a profile that no longer exists', async ({ page }) => {
   await ready(page);
   const settings = await openSettings(page, 'Database');
   const download = page.waitForEvent('download', { timeout: 60_000 });
-  await settings.getByRole('button', { name: 'Export backup', exact: true }).click();
+  await settings.getByRole('button', { name: 'Export backup…', exact: true }).click();
   const file = await download;
   const saved = await file.path();
   expect(saved, 'the export produced a file').toBeTruthy();
@@ -176,6 +176,9 @@ test('a backup survives a profile that no longer exists', async ({ page }) => {
   });
   await page.reload();
   await ready(page);
+  await page.getByRole('dialog', { name: /^Tour/ }).waitFor();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog', { name: /^Tour/ })).toBeHidden();
 
   // It really is gone. Without this the restore could be asserting on data
   // that was never removed.

@@ -432,18 +432,12 @@ export const SETTING_CONTRACTS: readonly SettingContract[] = [
     previewable: true,
     notBrowserCheckable: 'Needs an assistant endpoint to accept or reject the key.',
   },
-  /*
-   * Phase 56: auto-backup preferences. The settings dialog does not
-   * expose them as toggles yet — the auto-backup cycle runs on its
-   * own schedule, the user discovers the indicator on the status bar
-   * and the dialog later — but the contract must list every
-   * preference exactly once or the settings-contract test fails.
-   */
+  // Auto-backup controls live in Settings → Database; the launch hook consumes them.
   {
     key: 'autoBackupEnabled',
     label: 'Auto-backup',
     surface: 'in-place',
-    control: 'features/shell/useAutoBackup.ts',
+    control: 'features/shell/SettingsDialog.tsx',
     consumer: 'features/shell/useAutoBackup.ts',
     effect: 'Whether the workspace auto-backs itself up on the schedule.',
     indexedAs: null,
@@ -453,7 +447,7 @@ export const SETTING_CONTRACTS: readonly SettingContract[] = [
     key: 'autoBackupReminderDays',
     label: 'Auto-backup schedule',
     surface: 'in-place',
-    control: 'features/shell/useAutoBackup.ts',
+    control: 'features/shell/SettingsDialog.tsx',
     consumer: 'features/shell/useAutoBackup.ts',
     effect: 'Days between auto-backups; the status-bar reminder threshold.',
     indexedAs: null,
@@ -463,7 +457,7 @@ export const SETTING_CONTRACTS: readonly SettingContract[] = [
     key: 'autoBackupRetention',
     label: 'Auto-backup retention',
     surface: 'in-place',
-    control: 'features/shell/useAutoBackup.ts',
+    control: 'features/shell/SettingsDialog.tsx',
     consumer: 'features/shell/useAutoBackup.ts',
     effect: 'How many auto-backups to keep.',
     indexedAs: null,

@@ -87,6 +87,7 @@ import { installedReferenceSources, startInstall } from '@/reference/manager';
 import { formatBytes } from '@/features/databases/CollectionList';
 import { runAutoBackup } from '@/features/shell/auto-backup';
 import { useAutoBackupState } from '@/features/shell/useAutoBackup';
+import { portablePreferences, SECRET_PREFERENCE_KEYS } from '@/stores/portable-preferences';
 import { useUi } from '@/stores/ui-store';
 
 import { TablebaseSettings } from './TablebaseSettings';
@@ -835,17 +836,8 @@ function AccountsSection() {
   const [username, setUsername] = useState('');
   const [busy, setBusy] = useState(false);
 
-  /*
-   * Lichess and Chess.com usernames share the same character set:
-   * lowercase letters, digits, hyphens and underscores. The check runs on
-   * the trimmed value (whitespace cannot be part of a real handle) and
-   * rejects characters that would cause the API call to fail with a
-   * network error instead of a meaningful 404. The Link button stays
-   * disabled until the regex passes, so a user with a typo gets feedback
-   * at the input rather than after the request times out.
-   */
   const trimmedUsername = username.trim();
-  const isUsernameValid = /^[a-z0-9_-]+$/.test(trimmedUsername);
+  const isUsernameValid = /^[a-z0-9_-]+$/i.test(trimmedUsername);
 
   const accounts = useQuery({
     queryKey: ['linked-accounts'],
@@ -989,17 +981,9 @@ function AccountsSection() {
               {busy ? 'Linking…' : 'Link'}
             </Button>
           </div>
-          {/*
-            The same character set applies to both providers; one line of
-            guidance next to the field saves the user a round-trip when
-            they paste a username with whitespace or uppercase letters.
-            Rendered only while the input has content and fails the check,
-            so the form does not nag an empty field.
-          */}
           {username.length > 0 && !isUsernameValid ? (
             <p className="mt-1 text-[10.5px] text-caution">
-              {PROVIDER_LABEL[provider]} usernames are lowercase letters, digits, hyphens and
-              underscores.
+              {PROVIDER_LABEL[provider]} usernames use letters, digits, hyphens and underscores.
             </p>
           ) : null}
         </label>
@@ -2018,20 +2002,6 @@ function BackupControls() {
         onConfirm={() => restore('replace')}
       />
     </div>
-  );
-}
-
-const SECRET_PREFERENCE_KEYS = new Set<keyof Preferences>([
-  'companionToken',
-  'lichessToken',
-  'assistantApiKey',
-]);
-
-function portablePreferences(state: Preferences): Record<string, unknown> {
-  return Object.fromEntries(
-    (Object.keys(DEFAULT_PREFERENCES) as (keyof Preferences)[])
-      .filter((key) => !SECRET_PREFERENCE_KEYS.has(key))
-      .map((key) => [key, state[key]]),
   );
 }
 

@@ -2,6 +2,8 @@ import { expect, test, type Page } from '@playwright/test';
 
 import { selectTool } from './tools';
 
+test.use({ storageState: { cookies: [], origins: [] } });
+
 /**
  * A completely new user, and nothing else.
  *
@@ -19,6 +21,17 @@ import { selectTool } from './tools';
 
 async function ready(page: Page) {
   await page.locator('html[data-kingfisher-ready="true"]').waitFor();
+  if (
+    await page.evaluate(
+      () =>
+        JSON.parse(localStorage.getItem('kingfisher.preferences') ?? '{}').state
+          ?.tourShowOnLaunch !== false,
+    )
+  ) {
+    await page.getByRole('dialog', { name: /^Tour/ }).waitFor();
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog', { name: /^Tour/ })).toBeHidden();
+  }
 }
 
 /** The bundled reference installs itself on first run; wait for it to finish. */

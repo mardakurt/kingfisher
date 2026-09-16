@@ -125,6 +125,7 @@ export function EnginePanel() {
       data-engine-panel-fen={analysedFen ?? ''}
     >
       <PanelHeader
+        className="h-auto min-h-8 flex-wrap py-1 [&>div:first-child]:flex-wrap"
         actions={
           <>
             <Segmented
@@ -164,7 +165,7 @@ export function EnginePanel() {
           to be a label, and changing the engine meant a detour through Two
           engines: the selector there was the only one.
         */}
-        <EngineSelect slot="primary" label="Engine" className="max-w-[160px]" />
+        <EngineSelect slot="primary" label="Engine" className="w-40 shrink-0" />
         {analysis && !stale && analysis.depth > 0 && (
           <span className={cn('tabular', stale ? 'text-tertiary/60' : 'text-tertiary')}>
             depth {analysis.depth}
