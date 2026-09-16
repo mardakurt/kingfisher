@@ -47,6 +47,7 @@ const GOALS: readonly EndgameGoal[] = ['convert-win', 'hold-draw', 'find-best-mo
 export function EndgameWorkspace() {
   const client = useQueryClient();
   const notify = useUi((state) => state.notify);
+  const openSettingsAt = useUi((state) => state.openSettingsAt);
   const openDocument = useAnalysis((state) => state.openDocument);
   const node = useAnalysis((state) => state.tree.nodes[state.currentId]);
 
@@ -137,16 +138,26 @@ export function EndgameWorkspace() {
               pitch because the page is about *your* saved endgames, not
               Syzygy. But a new user who has not heard of either does not
               know what the tablebase panel above does or how to install
-              them. Two sentences; the Settings link is one click away.
+              them. Phase 59: the "Settings → Companion" mention used to
+              be plain text; it is now a button that opens Settings at
+              the Companion section so the user does not have to find
+              Tablebases themselves.
             */}
             <p className="mt-3 text-2xs leading-relaxed text-tertiary">
               <strong className="font-medium text-secondary">Want tablebase lookups?</strong> The
               companion reads Syzygy files locally and tells you whether a side is still winning,
               drawn, or lost at the current position. Install them from{' '}
-              <em>Settings → Companion → Tablebases</em> — pick a folder of <code>.rtbw</code> and{' '}
-              <code>.rtbz</code> files and the companion takes care of the rest. The Explorer in
-              Analysis also benefits: positions are evaluated through the tablebase when one is
-              available, and the chess engine otherwise.
+              <button
+                type="button"
+                onClick={() => openSettingsAt('companion')}
+                className="cursor-pointer underline decoration-dotted underline-offset-2 hover:text-secondary"
+              >
+                Settings → Companion
+              </button>{' '}
+              — pick a folder of <code>.rtbw</code> and <code>.rtbz</code> files under{' '}
+              <em>Tablebases</em> and the companion takes care of the rest. The Explorer in Analysis
+              also benefits: positions are evaluated through the tablebase when one is available,
+              and the chess engine otherwise.
             </p>
           </EmptyState>
         ) : (

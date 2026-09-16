@@ -354,7 +354,7 @@ export function EnginePanel() {
           <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-tertiary/80">
             <span>top unchanged {metrics.topMoveStableDepths} depths</span>
             <span>{metrics.topMoveChanges} top-move changes</span>
-            <span>score swing {(metrics.scoreSwingCp / 100).toFixed(2)}</span>
+            <span>score swing {(metrics.scoreSwingCp / 100).toFixed(1)}</span>
             {metrics.multiPvGap ? <span>MultiPV gap {describeGap(metrics.multiPvGap)}</span> : null}
             {metrics.nearEqualCandidates > 0 ? (
               <span>{metrics.nearEqualCandidates} within 0.20</span>

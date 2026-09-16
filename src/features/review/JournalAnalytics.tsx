@@ -175,7 +175,7 @@ export function JournalAnalytics({
                 <p className="mt-2 text-[10px] leading-relaxed text-tertiary">
                   On average your estimates sat{' '}
                   <span className="text-secondary tabular">
-                    {Math.abs(calibration.meanSignedPawns).toFixed(2)}
+                    {Math.abs(calibration.meanSignedPawns).toFixed(1)}
                   </span>{' '}
                   pawns {calibration.meanSignedPawns > 0 ? 'above' : 'below'} the evidence, from
                   White&apos;s point of view. A lean, not a verdict.

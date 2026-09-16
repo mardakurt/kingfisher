@@ -174,7 +174,7 @@ export function StorageSection({
             />
           </div>
           <p className="mt-2 text-xs text-tertiary">
-            {schema.isLoading
+            {schema.isPending
               ? 'Reading the collection…'
               : schema.isError
                 ? 'The companion could not describe this collection.'

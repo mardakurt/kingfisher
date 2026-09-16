@@ -6,6 +6,26 @@ real users notice.
 
 ## Unreleased (web)
 
+Phase 59 — six fixes, the eval bar's one-decimal format lands
+everywhere it should have. Same source, web and Mac pick everything
+up at the same time.
+
+- **Engine panel footer reads `+0.3`, not `+0.34`.** The
+  score-swing figure and the MultiPV gap in the engine panel footer
+  used to keep the old two-decimal format. They are one decimal now,
+  in line with the eval bar and the pinned-line labels.
+- **Engine compare prose is one decimal.** "Both prefer the same
+  move, 0.34 apart" is now "0.3 apart".
+- **Calibration in the decision journal is one decimal.** The
+  "your estimates sat X pawns above/below the evidence" line.
+- **Storage section honours TanStack Query v5.** The collection
+  description's loading branch now reads `schema.isPending` instead
+  of the deprecated `schema.isLoading`.
+- **Endgame library's empty state opens Settings.** "Install from
+  Settings → Companion" used to be plain text; it is now a button
+  that opens Settings → Companion so the user lands on the Tablebases
+  pane without searching for it.
+
 Phase 58 — bug-hunt pass, twelve fixes, the eval bar now reads the
 way lichess reads it. Same source, web and Mac pick everything up at
 the same time.

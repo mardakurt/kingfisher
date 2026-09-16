@@ -7,6 +7,17 @@ file plus `src/desktop/bridge.ts`, which returns `null` in a browser.
 This document is the Phase 49 check on that claim, feature by feature,
 with the deliberate differences named and the reason for each.
 
+**Published revision check (Phase 59, web only).** Phase 59 changed
+six files in `src/` and `src/app/` — the engine panel footer's
+two-decimal score-swing and MultiPV gap, the engine comparison
+prose, the calibration figure in the decision journal, the storage
+section's TanStack v5 API (`isLoading` → `isPending`), and the
+endgame library's empty-state link to Settings → Companion. None of
+them touches `desktop/src/` or the Electron shell, so the public
+Mac 1.1.9 stays on the previous Phase 55 surface until the next
+Mac release. Section B of After-a-fix is therefore not required for
+this fix.
+
 **Published revision check (Phase 58, web only).** Phase 58 changed
 nine files in `src/` and `src/app/` — the StatusBar's broken
 `openSettingsAt('data')` → `'database'`, the missing "Back up now"

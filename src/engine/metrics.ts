@@ -83,7 +83,7 @@ function gapBetween(top: Score, second: Score): MultiPvGap {
 
 /** How the gap reads in a status line. */
 export function describeGap(gap: MultiPvGap): string {
-  if (gap.kind === 'cp') return (gap.centipawns / 100).toFixed(2);
+  if (gap.kind === 'cp') return (gap.centipawns / 100).toFixed(1);
   if (gap.kind === 'mate-vs-mate') {
     return gap.moves === 0 ? 'both mating' : `${gap.moves} moves faster`;
   }

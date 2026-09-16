@@ -145,9 +145,9 @@ export function describeComparison(comparison: EngineComparison): string {
     const shared = comparison.pvAgreementPlies;
     return gap === undefined
       ? `Both prefer the same move; ${shared} ply of the line shared.`
-      : `Both prefer the same move, ${(gap / 100).toFixed(2)} apart, sharing ${shared} ply.`;
+      : `Both prefer the same move, ${(gap / 100).toFixed(1)} apart, sharing ${shared} ply.`;
   }
   return comparison.evaluationGapCp === undefined
     ? 'The engines prefer different moves.'
-    : `Different moves, ${(comparison.evaluationGapCp / 100).toFixed(2)} apart.`;
+    : `Different moves, ${(comparison.evaluationGapCp / 100).toFixed(1)} apart.`;
 }
