@@ -1634,6 +1634,7 @@ function LichessAccess() {
 function BackupControls() {
   const queryClient = useQueryClient();
   const notify = useUi((state) => state.notify);
+  const prefs = usePreferences();
   const inputRef = useRef<HTMLInputElement>(null);
   const [includeGames, setIncludeGames] = useState(false);
   const [pending, setPending] = useState<WorkspaceBackup | null>(null);
@@ -1734,6 +1735,60 @@ function BackupControls() {
         Versioned JSON includes studies, repertoires, training history, model links, aliases, drafts
         and preferences. Imported games are optional and excluded by default.
       </p>
+      {/*
+        Phase 57: the auto-backup controls. The cycle runs on its own
+        (see useAutoBackup.ts and the status-bar pill) but until now the
+        schedule was read-only — the user could not change it from the
+        UI. Three rows here let the user turn the cycle off, set the
+        schedule, and choose how many snapshots to keep. Defaults match
+        DEFAULT_PREFERENCES.
+      */}
+      <div className="mt-3 grid gap-2 sm:grid-cols-3">
+        <label className="flex items-center gap-2 text-2xs text-secondary">
+          <input
+            type="checkbox"
+            checked={prefs.autoBackupEnabled}
+            onChange={(event) => prefs.set('autoBackupEnabled', event.target.checked)}
+            data-auto-backup-enabled=""
+          />
+          Auto-backup
+        </label>
+        <label className="flex items-center gap-2 text-2xs text-secondary">
+          <span>Every</span>
+          <select
+            aria-label="Auto-backup schedule in days"
+            value={String(prefs.autoBackupReminderDays)}
+            onChange={(event) =>
+              prefs.set('autoBackupReminderDays', Number(event.target.value))
+            }
+            className="h-7 rounded-[4px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
+            data-auto-backup-schedule=""
+          >
+            {[1, 3, 7, 14, 30].map((days) => (
+              <option key={days} value={String(days)}>
+                {days} {days === 1 ? 'day' : 'days'}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex items-center gap-2 text-2xs text-secondary">
+          <span>Keep</span>
+          <select
+            aria-label="Auto-backup retention"
+            value={String(prefs.autoBackupRetention)}
+            onChange={(event) => prefs.set('autoBackupRetention', Number(event.target.value))}
+            className="h-7 rounded-[4px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
+            data-auto-backup-retention=""
+          >
+            {[1, 3, 5, 10].map((count) => (
+              <option key={count} value={String(count)}>
+                {count}
+              </option>
+            ))}
+          </select>
+          <span>snapshots</span>
+        </label>
+      </div>
       <label className="mt-3 flex items-center gap-2 text-2xs text-secondary">
         <input
           type="checkbox"
