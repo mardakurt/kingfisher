@@ -34,7 +34,7 @@ describe('comparing an estimate with engine evidence', () => {
     expect(comparison?.engineBand).toBe('slightly-white');
     expect(comparison?.bandDistance).toBe(1);
     expect(comparison?.pawnDifference).toBe(1.2);
-    expect(comparison?.engineScore).toBe('+1.20');
+    expect(comparison?.engineScore).toBe('+1.2');
   });
 
   it('agrees loudly when the two readings land in one band', () => {
@@ -93,7 +93,7 @@ describe('comparing candidates with engine lines', () => {
       note: 'my choice',
     });
     expect(report.rows[1]).toMatchObject({ san: 'd5', engineRank: 1, behindBestCp: 0 });
-    expect(report.bestScore).toBe('+0.80');
+    expect(report.bestScore).toBe('+0.8');
     expect(report.multiPv).toBe(3);
   });
 

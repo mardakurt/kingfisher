@@ -118,8 +118,7 @@ export function Chessboard({
    *
    * Phase 57: the scale persists in localStorage keyed by the board
    * surface, so a user who zoomed in to look at a tactic does not lose
-   * the zoom on reload. The double-tap reset below also writes back to
-   * the same key.
+   * the zoom on reload.
    */
   const pinchScaleRef = useRef(1);
   /*

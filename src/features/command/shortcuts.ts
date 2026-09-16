@@ -51,6 +51,18 @@ export const SHORTCUTS: readonly Shortcut[] = [
 
   { id: 'engine', defaultBinding: 'e', label: 'Start or stop the engine', group: 'Analysis' },
   { id: 'explorer', defaultBinding: 'd', label: 'Show the database explorer', group: 'Analysis' },
+  {
+    id: 'engine-panel',
+    defaultBinding: 'shift+e',
+    label: 'Show the engine panel',
+    group: 'Analysis',
+  },
+  {
+    id: 'notes-panel',
+    defaultBinding: 'n',
+    label: 'Show notes and annotations',
+    group: 'Analysis',
+  },
   { id: 'analysis', defaultBinding: 'a', label: 'Analyse this position', group: 'Analysis' },
   { id: 'model-games', defaultBinding: 'm', label: 'Show model games', group: 'Analysis' },
   {

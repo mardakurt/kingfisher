@@ -445,12 +445,14 @@ export function useCommands(): readonly Command[] {
         id: 'show-engine-panel',
         title: 'Show the engine panel',
         group: 'Panels',
+        shortcut: '⇧E',
         run: () => showTool(pathname, 'engine'),
       },
       {
         id: 'show-notes',
         title: 'Show notes and annotations',
         group: 'Panels',
+        shortcut: 'N',
         run: () => showTool(pathname, 'notes'),
       },
       {

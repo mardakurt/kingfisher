@@ -6,6 +6,38 @@ real users notice.
 
 ## Unreleased (web)
 
+Phase 58 — bug-hunt pass, twelve fixes, the eval bar now reads the
+way lichess reads it. Same source, web and Mac pick everything up at
+the same time.
+
+- **Status bar backup indicator opens Database, not Appearance.**
+  Clicking the pill now lands on the section it has been promising to
+  land on since Phase 57.
+- **"Back up now" lives in Settings → Data.** The status-bar tooltip
+  has been promising the action since Phase 57; the button is here.
+  Auto-backup must be on for it to write.
+- **First-run tour shows the same Training icon as the sidebar.**
+  New users see the Phase 57 L-shape silhouette in the tour and the
+  same L-shape in the navigation.
+- **First-run tour removes a redundant subtitle.** The tour's
+  step header used to render the section label twice; the second
+  copy is gone.
+- **First-run tour's Esc handler actually closes.** Esc dismisses
+  and marks the tour as seen, whether the dialog or the keyboard
+  listener fires first.
+- **Evaluation bar reads `+0.3`, not `+0.34`.** Lichess's standard;
+  the eval graph and pinned-line labels move with it.
+- **Engine panel and Notes panel have keyboard shortcuts.**
+  `Shift+E` opens the engine panel (without conflicting with `E`,
+  the engine start/stop binding); `N` opens notes. Both bindings
+  are listed in the Shortcuts dialog.
+- **Lichess and Chess.com usernames are validated as you type.**
+  Lowercase letters, digits, hyphens and underscores; the Link
+  button stays disabled and a one-line hint appears until the
+  input matches.
+- **Chessboard comment cleaned up.** A reference to a "double-tap
+  reset" that was never implemented is gone.
+
 Phase 57 — eleven enhancements, a defensive bug-hunt pass, and a
 hooks-rules fix that the lint caught on the very last re-run. Same
 source, web and Mac pick everything up at the same time.

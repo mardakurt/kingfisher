@@ -47,10 +47,10 @@ describe('suggesting review candidates', () => {
     expect(candidates).toHaveLength(1);
     const candidate = candidates[0]!;
     expect(candidate.reason).toBe(
-      'Suggested because engine evaluation changed from +0.40 to -1.10 after 2.Nf3.',
+      'Suggested because engine evaluation changed from +0.4 to -1.1 after 2.Nf3.',
     );
     expect(candidate.signals.map((signal) => signal.kind)).toEqual(['evaluation-swing']);
-    expect(candidate.signals[0]?.detail).toBe('+0.40 → -1.10');
+    expect(candidate.signals[0]?.detail).toBe('+0.4 → -1.1');
     expect(candidate.playedSan).toBe('Nf3');
     expect(candidate.sideToMove).toBe('w');
     // Not a label. Nothing in the output says what kind of move it was.

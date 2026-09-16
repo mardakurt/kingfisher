@@ -177,6 +177,15 @@ export function useGlobalHotkeys(): void {
           // `D` shortcut quietly did nothing at all.
           showTool(window.location.pathname, 'explorer');
           return;
+        case 'engine-panel':
+          // Same dock routing as `explorer`. `E` is already the engine
+          // start/stop binding, so the panel uses Shift+E to keep both
+          // reachable from the keyboard without conflict.
+          showTool(window.location.pathname, 'engine');
+          return;
+        case 'notes-panel':
+          showTool(window.location.pathname, 'notes');
+          return;
         case 'promote-main':
           analysis.promoteToMain(analysis.currentId);
           return;

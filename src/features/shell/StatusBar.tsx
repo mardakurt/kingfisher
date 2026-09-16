@@ -125,11 +125,11 @@ export function StatusBar() {
       */}
       <button
         type="button"
-        onClick={() => openSettingsAt('data')}
+        onClick={() => openSettingsAt('database')}
         aria-label={
           backupDays === null
-            ? 'No backup yet — open the data settings'
-            : `Last backup ${backupDays === 0 ? 'today' : `${backupDays} day${backupDays === 1 ? '' : 's'} ago`} — open the data settings`
+            ? 'No backup yet — open the database settings'
+            : `Last backup ${backupDays === 0 ? 'today' : `${backupDays} day${backupDays === 1 ? '' : 's'} ago`} — open the database settings`
         }
         title={
           backupDays === null

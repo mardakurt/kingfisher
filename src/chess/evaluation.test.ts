@@ -10,9 +10,9 @@ describe('score conventions', () => {
   });
 
   it('formats the way a chess player reads evaluations', () => {
-    expect(formatScore(cp(34))).toBe('+0.34');
-    expect(formatScore(cp(-120))).toBe('-1.20');
-    expect(formatScore(cp(0))).toBe('0.00');
+    expect(formatScore(cp(34))).toBe('+0.3');
+    expect(formatScore(cp(-120))).toBe('-1.2');
+    expect(formatScore(cp(0))).toBe('0.0');
     expect(formatScore(mate(4))).toBe('M4');
     expect(formatScore(mate(-2))).toBe('-M2');
   });

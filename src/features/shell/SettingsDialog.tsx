@@ -85,6 +85,8 @@ import { catalogPack } from '@/reference/catalog';
 import { useReferenceSources } from '@/reference/use-references';
 import { installedReferenceSources, startInstall } from '@/reference/manager';
 import { formatBytes } from '@/features/databases/CollectionList';
+import { runAutoBackup } from '@/features/shell/auto-backup';
+import { useAutoBackupState } from '@/features/shell/useAutoBackup';
 import { useUi } from '@/stores/ui-store';
 
 import { TablebaseSettings } from './TablebaseSettings';
@@ -833,18 +835,32 @@ function AccountsSection() {
   const [username, setUsername] = useState('');
   const [busy, setBusy] = useState(false);
 
+  /*
+   * Lichess and Chess.com usernames share the same character set:
+   * lowercase letters, digits, hyphens and underscores. The check runs on
+   * the trimmed value (whitespace cannot be part of a real handle) and
+   * rejects characters that would cause the API call to fail with a
+   * network error instead of a meaningful 404. The Link button stays
+   * disabled until the regex passes, so a user with a typo gets feedback
+   * at the input rather than after the request times out.
+   */
+  const trimmedUsername = username.trim();
+  const isUsernameValid = /^[a-z0-9_-]+$/.test(trimmedUsername);
+
   const accounts = useQuery({
     queryKey: ['linked-accounts'],
     queryFn: async () => (await getRepositories()).linkedAccounts.list(),
   });
 
   const link = async () => {
-    const trimmed = username.trim();
-    if (!trimmed) return;
+    if (!isUsernameValid) return;
     setBusy(true);
     try {
       const repositories = await getRepositories();
-      const account = await repositories.linkedAccounts.link({ provider, username: trimmed });
+      const account = await repositories.linkedAccounts.link({
+        provider,
+        username: trimmedUsername,
+      });
       setUsername('');
       await accounts.refetch();
       // Linking is only useful once it has fetched something, so the first
@@ -955,23 +971,37 @@ function AccountsSection() {
               value={username}
               onChange={(event) => setUsername(event.target.value)}
               onKeyDown={(event) => {
-                if (event.key === 'Enter' && username.trim() && !busy) {
+                if (event.key === 'Enter' && isUsernameValid && !busy) {
                   event.preventDefault();
                   void link();
                 }
               }}
               placeholder="username"
               aria-label="Account username"
+              aria-invalid={username.length > 0 && !isUsernameValid}
               className="h-8 min-w-0 flex-1 rounded-[4px] border border-line bg-surface-inset px-2.5 font-mono text-[11px] text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60"
             />
             <Button
               variant="accent"
-              disabled={!username.trim() || busy}
+              disabled={!isUsernameValid || busy}
               onClick={() => void link()}
             >
               {busy ? 'Linking…' : 'Link'}
             </Button>
           </div>
+          {/*
+            The same character set applies to both providers; one line of
+            guidance next to the field saves the user a round-trip when
+            they paste a username with whitespace or uppercase letters.
+            Rendered only while the input has content and fails the check,
+            so the form does not nag an empty field.
+          */}
+          {username.length > 0 && !isUsernameValid ? (
+            <p className="mt-1 text-[10.5px] text-caution">
+              {PROVIDER_LABEL[provider]} usernames are lowercase letters, digits, hyphens and
+              underscores.
+            </p>
+          ) : null}
         </label>
       </div>
     </div>
@@ -1737,6 +1767,49 @@ function BackupControls() {
     }
   };
 
+  /*
+   * Run the auto-backup cycle on demand, ignoring the schedule check. The
+   * status bar's tooltip promises "Click to back up now from Settings →
+   * Database" — without this button the promise is unkept. The record is
+   * written to the same `backups` store the schedule writes to, and the
+   * auto-backup state store is updated so the status-bar pill flips from
+   * "no backup yet" to "today" without waiting for the next mount.
+   */
+  const runBackupNow = async () => {
+    if (!prefs.autoBackupEnabled) {
+      notify({
+        tone: 'error',
+        message: 'Auto-backup is off. Turn it on above to take a manual backup.',
+      });
+      return;
+    }
+    setBusy(true);
+    try {
+      const repositories = await getRepositories();
+      const preferences = portablePreferences(usePreferences.getState());
+      useAutoBackupState.setState({ status: 'running' });
+      const record = await runAutoBackup(repositories.raw, preferences, {
+        retention: prefs.autoBackupRetention,
+        reason: 'manual',
+      });
+      if (!record) {
+        useAutoBackupState.setState({ status: 'failed' });
+        notify({ tone: 'error', message: 'The backup could not be written.' });
+        return;
+      }
+      useAutoBackupState.setState({ lastBackupAt: record.createdAt, status: 'idle' });
+      notify({ tone: 'success', message: 'Backup taken.' });
+    } catch (error) {
+      useAutoBackupState.setState({ status: 'failed' });
+      notify({
+        tone: 'error',
+        message: error instanceof Error ? error.message : 'The backup could not be written.',
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const choose = async (file: File | undefined) => {
     if (!file) return;
     try {
@@ -1853,8 +1926,11 @@ function BackupControls() {
         Include imported games and position indexes
       </label>
       <div className="mt-3 flex flex-wrap gap-2">
-        <Button variant="accent" onClick={() => void exportBackup()} disabled={busy}>
-          Export backup
+        <Button variant="accent" onClick={() => void runBackupNow()} disabled={busy}>
+          Back up now
+        </Button>
+        <Button variant="subtle" onClick={() => void exportBackup()} disabled={busy}>
+          Export backup…
         </Button>
         <Button variant="subtle" onClick={() => inputRef.current?.click()} disabled={busy}>
           Choose backup to restore…

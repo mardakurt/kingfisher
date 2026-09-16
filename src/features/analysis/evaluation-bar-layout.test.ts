@@ -34,13 +34,13 @@ describe('the evaluation bar says who is better', () => {
     }
   });
 
-  it('+1.00 for White and +1.00 for Black are mirror images', () => {
+  it('+1.0 for White and +1.0 for Black are mirror images', () => {
     const w = evaluationBarLayout(cp(100), 'w');
     const b = evaluationBarLayout(cp(-100), 'w');
     expect(w.leading).toBe('w');
     expect(b.leading).toBe('b');
-    expect(w.label).toBe('+1.00');
-    expect(b.label).toBe('-1.00');
+    expect(w.label).toBe('+1.0');
+    expect(b.label).toBe('-1.0');
     expect(w.bottomShare).toBeCloseTo(1 - b.bottomShare, 10);
     expect(w.labelAt).toBe('bottom');
     expect(b.labelAt).toBe('top');
@@ -63,13 +63,13 @@ describe('the evaluation bar says who is better', () => {
     expect(flipped.labelOn).toBe('b');
   });
 
-  it('is neutral without a score, and at exactly 0.00', () => {
+  it('is neutral without a score, and at exactly 0.0', () => {
     const none = evaluationBarLayout(null, 'w');
     expect(none.label).toBe('—');
     expect(none.leading).toBeNull();
     expect(none.bottomShare).toBe(0.5);
     const level = evaluationBarLayout(cp(0), 'b');
-    expect(level.label).toBe('0.00');
+    expect(level.label).toBe('0.0');
     expect(level.leading).toBeNull();
     expect(level.bottomShare).toBe(0.5);
   });
@@ -84,10 +84,10 @@ describe('the evaluation bar says who is better', () => {
 });
 
 describe('the bar label fits the bar', () => {
-  it('keeps two decimals below ten pawns and one from ten, so five characters always suffice', () => {
-    expect(compactScore(cp(38))).toBe('+0.38');
-    expect(compactScore(cp(-120))).toBe('-1.20');
-    expect(compactScore(cp(999))).toBe('+9.99');
+  it('keeps one decimal across the range, so five characters always suffice', () => {
+    expect(compactScore(cp(38))).toBe('+0.4');
+    expect(compactScore(cp(-120))).toBe('-1.2');
+    expect(compactScore(cp(999))).toBe('+10.0');
     expect(compactScore(cp(1250))).toBe('+12.5');
     expect(compactScore(cp(-1000))).toBe('-10.0');
     expect(compactScore(cp(-99999))).toBe('-1000');
@@ -101,7 +101,7 @@ describe('the bar label fits the bar', () => {
 
   it('the layout carries both the full figure and the bar figure', () => {
     const layout = evaluationBarLayout(cp(1250), 'w');
-    expect(layout.label).toBe('+12.50');
+    expect(layout.label).toBe('+12.5');
     expect(layout.barLabel).toBe('+12.5');
   });
 });

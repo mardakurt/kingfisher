@@ -21,16 +21,16 @@
  * a keyboard user knows they exist.
  */
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import {
   Board,
   Dossier,
   Library,
   Notebook,
-  Pin,
   PlayPosition,
   Repertoire,
+  Recall,
   Search,
   Target,
   Players,
@@ -45,7 +45,6 @@ import { NAV_SECTIONS } from './navigation';
 interface TourStep {
   readonly id: string;
   readonly title: string;
-  readonly description: string;
   readonly detail: string;
   readonly icon: React.ReactNode;
 }
@@ -53,7 +52,6 @@ interface TourStep {
 const STEPS: readonly TourStep[] = NAV_SECTIONS.map((section) => ({
   id: section.id,
   title: section.label,
-  description: section.label,
   detail: sectionTourDetail(section.id),
   icon: iconForSection(section.id),
 }));
@@ -69,7 +67,7 @@ function iconForSection(id: string): React.ReactNode {
     case 'opening-files':
       return <Dossier />;
     case 'training':
-      return <Pin />;
+      return <Recall />;
     case 'endgame':
       return <Repertoire />;
     case 'repertoire':
@@ -127,6 +125,22 @@ export function FirstRunTour() {
   const isLast = stepIndex === STEPS.length - 1;
 
   /*
+   * `close` is defined above the early return so the keyboard handler
+   * (declared below) can call it without falling into the temporal-dead-
+   * zone the rules-of-hooks lint catches. useCallback keeps its identity
+   * stable across renders so the effect's dependency array does not
+   * re-register the listener on every render.
+   */
+  const close = useCallback(
+    (markSeen: boolean) => {
+      if (markSeen) prefs.set('tourShowOnLaunch', false);
+      setOpen(false);
+      setStepIndex(0);
+    },
+    [prefs, setOpen],
+  );
+
+  /*
    * Phase 57: keyboard navigation. The keyboard handler is registered
    * only while the dialog is open and ignores keystrokes typed into a
    * real input — the "Don't show on launch" checkbox is the only one
@@ -150,23 +164,25 @@ export function FirstRunTour() {
         event.preventDefault();
         setStepIndex((current) => Math.max(0, current - 1));
       } else if (event.key === 'Escape') {
-        /* The Dialog also listens for Escape and calls onClose; this
-         * guard is for the case where the dialog's listener fires first.
-         * Both routes close and mark as seen — that is the right
-         * behaviour for a dismiss. */
+        /*
+         * Escape closes and marks the tour as seen — the same behaviour
+         * the close button and the Skip / Done buttons trigger. The
+         * Dialog component also listens for Escape and calls onClose;
+         * if our handler runs first the second call is a no-op because
+         * `close(false)` short-circuits on a non-truthy markSeen, and
+         * `setOpen(false)` is idempotent. Calling close here means a
+         * keyboard-driven dismiss always commits, regardless of which
+         * listener wins the race.
+         */
+        event.preventDefault();
+        close(true);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [open]);
+  }, [open, close]);
 
   if (!open || !step) return null;
-
-  const close = (markSeen: boolean) => {
-    if (markSeen) prefs.set('tourShowOnLaunch', false);
-    setOpen(false);
-    setStepIndex(0);
-  };
 
   return (
     <Dialog
@@ -191,7 +207,6 @@ export function FirstRunTour() {
           </span>
           <div>
             <h2 className="text-sm font-semibold text-primary">{step.title}</h2>
-            <p className="text-2xs text-tertiary">{step.description}</p>
           </div>
         </div>
         <p className="text-2xs leading-relaxed text-secondary">{step.detail}</p>

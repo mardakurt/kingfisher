@@ -60,7 +60,7 @@ export function wdlToProbability(wdl: '4-2-0' | '3-2-1' | '2-2-2' | '1-2-3' | '0
   return Math.max(0, Math.min(1, (w - l) / 6 + 0.5));
 }
 
-/** Human-facing text: `+0.34`, `-1.20`, `M4`, `-M2`. */
+/** Human-facing text: `+0.3`, `-1.2`, `M4`, `-M2`. */
 export function formatScore(score: Score, options: { alwaysSign?: boolean } = {}): string {
   const alwaysSign = options.alwaysSign ?? true;
   if (score.kind === 'mate') {
@@ -68,10 +68,10 @@ export function formatScore(score: Score, options: { alwaysSign?: boolean } = {}
     return `${score.moves > 0 ? '' : '-'}M${Math.abs(score.moves)}`;
   }
   const pawns = score.cp / 100;
-  const text = Math.abs(pawns).toFixed(2);
+  const text = Math.abs(pawns).toFixed(1);
   if (pawns > 0) return alwaysSign ? `+${text}` : text;
   if (pawns < 0) return `-${text}`;
-  return alwaysSign ? '0.00' : text;
+  return alwaysSign ? '0.0' : text;
 }
 
 /** Ordering from White's perspective: greater is better for White. */
