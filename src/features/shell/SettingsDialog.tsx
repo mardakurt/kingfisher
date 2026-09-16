@@ -2358,6 +2358,8 @@ function CompanionRecovery() {
 function HelpSection() {
   const openFeedback = useUi((state) => state.openFeedback);
   const setSettingsOpen = useUi((state) => state.setSettingsOpen);
+  const setTourOpen = useUi((state) => state.setTourOpen);
+  const prefs = usePreferences();
   const onClose = () => setSettingsOpen(false);
   return (
     <DiagnosticGroup title="Help and feedback">
@@ -2398,6 +2400,30 @@ function HelpSection() {
           </a>
           <span className="ml-2 text-[11px] text-tertiary">
             For workflows and how-to questions that are not bugs.
+          </span>
+        </li>
+        {/*
+          Phase 56: the first-run tour is opt-out, not opt-in. A user
+          who dismissed it earlier can come back to it here. The tour
+          also sets tourShowOnLaunch back to true so a "Replay tour"
+          click is the same as the first time.
+        */}
+        <li>
+          <button
+            type="button"
+            onClick={() => {
+              prefs.set('tourShowOnLaunch', true);
+              setTourOpen(true);
+              onClose();
+            }}
+            className="text-accent hover:underline"
+            data-replay-tour=""
+          >
+            Replay the first-run tour →
+          </button>
+          <span className="ml-2 text-[11px] text-tertiary">
+            Walks through every section of the sidebar in one screenful each. The tour will also
+            show on the next launch until you tick "Don't show on launch".
           </span>
         </li>
         <li>

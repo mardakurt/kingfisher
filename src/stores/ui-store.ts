@@ -45,6 +45,7 @@ interface UiState {
    */
   commandPalettePrefill: string;
   shortcutsOpen: boolean;
+  tourOpen: boolean;
   settingsOpen: boolean;
   /**
    * Which settings section to show when the dialog next opens.
@@ -86,6 +87,7 @@ interface UiState {
   toggleCommandPalette(): void;
   setCommandPalettePrefill(value: string): void;
   setShortcutsOpen(open: boolean): void;
+  setTourOpen(open: boolean): void;
   setSettingsOpen(open: boolean): void;
   openSettingsAt(section: string): void;
   setImportOpen(open: boolean): void;
@@ -117,6 +119,7 @@ export const useUi = create<UiState>((set) => ({
   commandPaletteOpen: false,
   commandPalettePrefill: '',
   shortcutsOpen: false,
+  tourOpen: false,
   settingsOpen: false,
   settingsSection: null,
   importOpen: false,
@@ -141,6 +144,7 @@ export const useUi = create<UiState>((set) => ({
   toggleCommandPalette: () => set((state) => ({ commandPaletteOpen: !state.commandPaletteOpen })),
   setCommandPalettePrefill: (commandPalettePrefill) => set({ commandPalettePrefill }),
   setShortcutsOpen: (shortcutsOpen) => set({ shortcutsOpen }),
+  setTourOpen: (tourOpen) => set({ tourOpen }),
   setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
   openSettingsAt: (settingsSection) => set({ settingsSection, settingsOpen: true }),
   setImportOpen: (importOpen) => set({ importOpen }),

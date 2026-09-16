@@ -147,6 +147,8 @@ export interface Preferences {
   autoBackupReminderDays: number;
   /** How many auto-backups to keep (per platform). */
   autoBackupRetention: number;
+  /** Whether the first-run tour opens automatically on launch. */
+  tourShowOnLaunch: boolean;
 }
 
 interface PreferencesActions {
@@ -207,6 +209,13 @@ export const DEFAULT_PREFERENCES: Preferences = {
    * and prunes older ones; the web stores the last N in IndexedDB.
    */
   autoBackupRetention: 3,
+  /*
+   * First-run tour: show on the next launch, or only when the user
+   * opens it from Help. Defaults to true so a fresh install gets one
+   * walk-through; flipping it false is what the tour's "Don't show on
+   * launch" checkbox writes.
+   */
+  tourShowOnLaunch: true,
 };
 
 /**
