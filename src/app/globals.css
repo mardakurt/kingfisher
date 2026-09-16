@@ -371,6 +371,17 @@ body {
     font-size: 0.8125rem;
   }
   /*
+   * Phase 57: the active move in the move list. The current node is
+   * coloured via `bg-accent` on both desktop and touch, but a
+   * finger-scrolls-with-row-on-top scenario is what touch really
+   * needs to support. An inset ring keeps the marker visible without
+   * depending on the colour being distinct from the surface under the
+   * finger.
+   */
+  [data-virtualized-move-tree='true'] button[data-current='true'] {
+    box-shadow: inset 0 0 0 1.5px currentColor;
+  }
+  /*
    * Phase 57: the engine affordance's stop button is a 28 px square on
    * desktop. On a touch device that is well below the 44 px tap-target
    * floor, and the user has to aim. The override raises it to 44 px
