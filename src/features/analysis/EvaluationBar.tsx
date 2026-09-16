@@ -20,8 +20,13 @@ interface EvaluationBarProps {
  * The bar's width in pixels. `CanonicalBoardSurface` takes the same number out
  * of the board's width budget, so the constant lives here and is imported
  * there rather than repeated.
+ *
+ * Twenty-four, not thirty-two: a thick bar dominates the iPad rail and pushes
+ * the board into a width the user cannot read easily. Lichess uses a similar
+ * width — the bar is a *label* on the side, not a control that needs to be
+ * fat enough to click. The five-character compact label still fits.
  */
-export const EVALUATION_BAR_WIDTH = 32;
+export const EVALUATION_BAR_WIDTH = 24;
 
 /**
  * The evaluation bar.
@@ -56,7 +61,7 @@ export function EvaluationBar({ score, orientation, stale, depth, engine }: Eval
       data-bottom-side={layout.bottomSide}
       data-stale={stale ? 'true' : undefined}
       className={cn(
-        'relative flex h-full shrink-0 flex-col overflow-hidden rounded-[3px] border border-line-strong transition-opacity',
+        'relative flex h-full shrink-0 flex-col overflow-hidden rounded-[2px] border border-line-strong/70 transition-opacity',
         stale && 'opacity-60',
       )}
       style={{ width: EVALUATION_BAR_WIDTH }}
@@ -79,8 +84,8 @@ export function EvaluationBar({ score, orientation, stale, depth, engine }: Eval
       <span
         data-evaluation-bar-label
         className={cn(
-          'absolute inset-x-0 text-center text-[10px] font-semibold leading-none tracking-[-0.02em] tabular',
-          layout.labelAt === 'bottom' ? 'bottom-1.5' : 'top-1.5',
+          'absolute inset-x-0 text-center text-[10px] font-medium leading-none tabular',
+          layout.labelAt === 'bottom' ? 'bottom-1' : 'top-1',
           layout.labelOn === 'w' ? 'text-eval-black' : 'text-eval-white',
         )}
       >

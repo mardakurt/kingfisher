@@ -188,13 +188,17 @@ export const Database = (p: IconProps) => (
  * for one. A pawn is the unambiguous opening-phase piece, and three lines
  * (the head, the body, the foot) keep it readable at the 21 px the sidebar
  * reserves for it.
+ *
+ * Phase 55 trimmed the foot: a 14-wide base under a roughly 10-wide body
+ * reads as a mushroom, not a pawn. The base now matches the body's footprint
+ * and the foot sits as a quieter plinth.
  */
 export const Opening = (p: IconProps) => (
   <Icon {...p}>
     <circle cx="12" cy="5" r="2.2" />
     <path d="M9.2 9 8 14h8l-1.2-5z" />
     <path d="M7 14h10v1.5H7z" />
-    <path d="M5 15.5h14V18H5z" />
+    <path d="M7.5 16h9v1.5h-9z" />
   </Icon>
 );
 export const Repertoire = (p: IconProps) => (
@@ -261,21 +265,22 @@ export const Target = (p: IconProps) => (
   </Icon>
 );
 /**
- * Training: a stack of flashcards with a refresh loop.
+ * Training: a chess knight, the tactical piece.
  *
- * Phase 53 replaced the earlier clock-with-arrow shape (which read as "time"
- * more than "review") with two stacked cards and a circular arrow on the top
- * one. Training is a spaced-repetition loop over positions you have already
- * seen: a stack of cards the user keeps coming back to. The two cards keep it
- * legible at the 21 px the sidebar reserves; the loop keeps it distinct from
- * the books and notebooks next to it in the navigation.
+ * Phase 55 replaced the spaced-repetition cards (which read as a notebook more
+ * than as a workout over positions) with the knight. Knights are the piece
+ * puzzles are made of, and the silhouette is unmistakable next to the pawn
+ * (Openings) and the king (Endgame) without sharing any line with them. The
+ * mane is the curved back, the snout points right, and the eye is a filled
+ * dot so the piece reads as *facing* something rather than as a generic
+ * horse. The body and base are kept simple so the icon survives the 21 px
+ * the sidebar reserves for it.
  */
 export const Recall = (p: IconProps) => (
   <Icon {...p}>
-    <rect x="4" y="6" width="11" height="14" rx="1.5" />
-    <rect x="8.5" y="3" width="11" height="14" rx="1.5" />
-    <path d="M19 8.5a4 4 0 1 0-1.3 3" />
-    <path d="M19 6v2.5h-2.5" />
+    <path d="M9 4.5c1.5-1 3.5-1 5 0 1 .8 1.5 2 1.5 3.2l2.4 1.6-1 2.2-2.4.6-1 2.4v3H7.5v-3l1.5-2.2L7.5 9.5l-.8-1.5L9 6.2z" />
+    <circle cx="13.5" cy="7" r="0.75" fill="currentColor" stroke="none" />
+    <path d="M7 17h10v2.5H7z" />
   </Icon>
 );
 /**
