@@ -115,8 +115,31 @@ export function Chessboard({
    * translate-based piece animation was careful to avoid. The ref is
    * a single number; the touch handlers below apply it as an inline
    * transform on the board element.
+   *
+   * Phase 57: the scale persists in localStorage keyed by the board
+   * surface, so a user who zoomed in to look at a tactic does not lose
+   * the zoom on reload. The double-tap reset below also writes back to
+   * the same key.
    */
   const pinchScaleRef = useRef(1);
+  /*
+   * The key is derived from the FEN rather than from the node id, so a
+   * chapter that has the same starting position as another one lands
+   * on the same zoom preference. FENs differ in length but the key is
+   * the same shape, and the lookup is keyed by string.
+   */
+  const pinchScaleKey = `kingfisher.board.zoom.${fen}`;
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const raw = window.localStorage.getItem(pinchScaleKey);
+    if (!raw) return;
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed)) return;
+    const clamped = Math.min(2.5, Math.max(1, parsed));
+    pinchScaleRef.current = clamped;
+    const element = boardRef.current;
+    if (element) element.style.transform = `scale(${clamped})`;
+  }, [pinchScaleKey]);
 
   const [selected, setSelectedState] = useState<Square | null>(null);
   const [drag, setDrag] = useState<DragState | null>(null);
@@ -388,8 +411,20 @@ export function Chessboard({
     if (element) element.style.transform = `scale(${next})`;
   }, []);
   const handleTouchEnd = useCallback((event: React.TouchEvent) => {
-    if (event.touches.length < 2) pinchState.current = null;
-  }, []);
+    if (event.touches.length < 2) {
+      pinchState.current = null;
+      /*
+       * Phase 57: persist the final scale once the gesture ends, not on
+       * every touchmove frame. localStorage writes during the gesture
+       * would block the next frame and stutter the animation; one write
+       * at the end is enough because the next gesture reads the value
+       * back through the effect above.
+       */
+      if (typeof window !== 'undefined' && event.changedTouches.length > 0) {
+        window.localStorage.setItem(pinchScaleKey, String(pinchScaleRef.current));
+      }
+    }
+  }, [pinchScaleKey]);
 
   const finishPromotion = useCallback(
     (piece: PromotionPiece | null) => {
