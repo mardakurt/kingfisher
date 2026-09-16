@@ -55,9 +55,9 @@ export function useAutoBackup(): void {
           ? '{}'
           : (window.localStorage.getItem('kingfisher.preferences') ?? '{}'),
       ) as Record<string, unknown>;
-      const enabled = (prefs.autoBackupEnabled as boolean | undefined) ?? true;
-      const scheduleDays = (prefs.autoBackupReminderDays as number | undefined) ?? 7;
-      const retention = (prefs.autoBackupRetention as number | undefined) ?? 3;
+      const enabled = (prefs['autoBackupEnabled'] as boolean | undefined) ?? true;
+      const scheduleDays = (prefs['autoBackupReminderDays'] as number | undefined) ?? 7;
+      const retention = (prefs['autoBackupRetention'] as number | undefined) ?? 3;
 
       if (!enabled) {
         setState({ status: 'idle' });
