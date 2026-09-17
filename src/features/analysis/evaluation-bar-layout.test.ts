@@ -63,29 +63,44 @@ describe('the evaluation bar says who is better', () => {
     expect(flipped.labelOn).toBe('b');
   });
 
-  it('mate-in-1 is not equalised (the owner-reported bug)', () => {
+  it('mate-in-x is not equalised for any mate distance or board orientation', () => {
     /*
       The owner reported that the bar stops working when mate is found: it
-      shows equal even though the position is decided. The test below pins
-      every (mate, orientation) combination to a non-50% share, because the
-      only way the bar can show 50% is for the score to be missing, not for
-      the score to exist. A future regression that drops `winningChances`
-      for mate scores will fail these.
+      shows equal even though the position is decided. The behaviour they
+      described was not a mate-in-1 artefact — it was "the bar stops working
+      when mate is found", which is mate-in-N for every N. The test below
+      pins every (mate distance from 1 to 19, orientation) combination to a
+      non-50% share, because the only way the bar can show 50% is for the
+      score to be missing, not for the score to exist. A future regression
+      that drops `winningChances` for mate scores will fail every one of
+      these, and the suite walks far enough past the visual horizon
+      (mate-in-15+) that any band-share bug in the clamp function surfaces.
     */
-    for (const score of [mate(1), mate(-1), mate(2), mate(-2), mate(7), mate(-7)]) {
-      const w = evaluationBarLayout(score, 'w');
-      const b = evaluationBarLayout(score, 'b');
-      expect(w.leading).not.toBeNull();
-      expect(b.leading).not.toBeNull();
-      expect(w.bottomShare).not.toBe(0.5);
-      expect(b.bottomShare).not.toBe(0.5);
-      // The leading side's share is always the dominant one, whichever
-      // orientation the board is in. TypeScript narrows the union inside the
-      // loop so we re-disambiguate once via a kind-tagged check.
-      if (score.kind !== 'mate') throw new Error('test data must be a mate score');
-      const winningForWhite = score.moves > 0;
-      expect(winningForWhite ? w.bottomShare : 1 - w.bottomShare).toBeGreaterThan(0.5);
-      expect(winningForWhite ? 1 - b.bottomShare : b.bottomShare).toBeGreaterThan(0.5);
+    for (const moves of [1, 2, 3, 5, 8, 11, 15, 19]) {
+      for (const score of [mate(moves), mate(-moves)]) {
+        const w = evaluationBarLayout(score, 'w');
+        const b = evaluationBarLayout(score, 'b');
+        expect(w.leading).not.toBeNull();
+        expect(b.leading).not.toBeNull();
+        expect(w.bottomShare).not.toBe(0.5);
+        expect(b.bottomShare).not.toBe(0.5);
+        // The leading side's share is always the dominant one, whichever
+        // orientation the board is in. TypeScript narrows the union inside
+        // the loop so we re-disambiguate once via a kind-tagged check.
+        if (score.kind !== 'mate') throw new Error('test data must be a mate score');
+        const winningForWhite = score.moves > 0;
+        expect(winningForWhite ? w.bottomShare : 1 - w.bottomShare).toBeGreaterThan(0.5);
+        expect(winningForWhite ? 1 - b.bottomShare : b.bottomShare).toBeGreaterThan(0.5);
+        // The label tracks the score across orientations: a mate stays a
+        // mate when the board flips, only the side it is on changes.
+        // `formatScore` writes positive mate as `M4` and negative as `-M2`,
+        // so the expected text is signed by which side is mating.
+        const expectedLabel = score.moves > 0 ? `M${moves}` : `-M${moves}`;
+        expect(w.label).toBe(expectedLabel);
+        expect(b.label).toBe(expectedLabel);
+        expect(w.leading).toBe(winningForWhite ? 'w' : 'b');
+        expect(b.leading).toBe(winningForWhite ? 'w' : 'b');
+      }
     }
   });
 
