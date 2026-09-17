@@ -6,6 +6,10 @@ real users notice.
 
 ## Unreleased (web)
 
+Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
+
+## 1.2.0 — 2026-09-17
+
 Phase 67 — the toolbar is gone and the Training icon is recognisable.
 
 - **Toolbar is gone.** The Analyse button used to sit in a thin
