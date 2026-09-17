@@ -801,7 +801,7 @@ function CompanionSection() {
               does not unpair — Kingfisher remembers the address until you press Unpair.
             </p>
             <a
-              href="https://github.com/mardakurt/kingfisher/blob/master/docs/install/companion.md"
+              href="https://github.com/mardakurt/kingfisher/blob/master/companion/README.md"
               target="_blank"
               rel="noreferrer"
               className="mt-2 inline-block text-accent hover:underline"

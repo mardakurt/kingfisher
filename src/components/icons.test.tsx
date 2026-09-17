@@ -37,23 +37,28 @@ describe('icons', () => {
     expect(html).toContain('<path');
   });
 
-  it('Recall (the chess knight for Training) draws the muzzle and ear', () => {
+  it('Recall (the chess knight for Training) draws the muzzle, ear and eye', () => {
     /*
-      Phase 62's knight drew a closed 17-point polygon that did not
-      read as a horse at any size. Phase 67 redraws it with quadratic
-      curves through the muzzle (right side) and explicit L commands
-      for the ear (top of the head). The path must contain those
-      commands or the icon is back to garbage.
+      Phase 67 redrew the knight three times: an L-shape (looked like
+      a tent peg), a horse-head-on-column (looked like a rectangle
+      with a bump), and a curved silhouette (looked like a snail).
+      Phase 69 redraws it as a wide plinth, a vertical body column,
+      and a clear horse head: a mane curve on the back, an ear notch
+      at the top, a muzzle pointing right, a jaw curving back to the
+      chest. The path must contain the quadratic curves that trace
+      the muzzle and mane, and the eye must be at (14, 7.5) — a
+      future refactor that drops any of these is back to garbage.
     */
     const html = renderToStaticMarkup(<Recall />);
-    // Quadratic curves: at least one Q command traces the muzzle or neck.
+    // Quadratic curves: at least one Q command traces the muzzle or mane.
     expect(html).toMatch(/<path[^>]*\bd="[^"]*\bQ\b/);
-    // The base is a separate path that closes back to its starting point.
+    // Both the plinth and the head/body are closed paths (Z commands).
     expect(html).toMatch(/<path[^>]*\bZ\b/);
-    // The eye is a small filled circle at (13.5, 8) — visible at 21 px and
-    // above; gone at 16 px. Either way the element is in the markup so a
-    // future refactor cannot drop it without test failure.
-    expect(html).toMatch(/<circle[^>]*\bcx="13\.5"/);
+    // The eye is a small filled circle at (14, 7.5) — visible at 21 px
+    // and above; gone at 16 px. Either way the element is in the
+    // markup so a future refactor cannot drop it without test failure.
+    expect(html).toMatch(/<circle[^>]*\bcx="14"/);
+    expect(html).toMatch(/<circle[^>]*\bcy="7\.5"/);
   });
 
   it('Board, Target, Review, Repertoire each render their own path', () => {

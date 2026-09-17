@@ -165,7 +165,16 @@ export const DEFAULT_PREFERENCES: Preferences = {
   animationSpeed: 'normal',
   arrowPalette: 'standard',
   showEvaluationBar: true,
-  showEvaluationGraph: true,
+  /*
+   * The chart of stored evaluations under the board is *off* by default:
+   * a new analysis starts empty, and an empty graph (the "Evaluation
+   * graph is on. It will draw a column for every move…" strip) is
+   * visual noise in a session the user has not started yet. The bar
+   * is the constant read-out; the chart is something the user
+   * reaches for once they have a study with stored scores, and
+   * turning it on then is the right moment.
+   */
+  showEvaluationGraph: false,
   showEngineArrows: true,
   autoAnalyse: false,
   engineMultiPv: 3,

@@ -63,6 +63,30 @@ describe('the evaluation bar says who is better', () => {
     expect(flipped.labelOn).toBe('b');
   });
 
+  it('mate-in-1 is not equalised (the owner-reported bug)', () => {
+    /*
+      The owner reported that the bar stops working when mate is found: it
+      shows equal even though the position is decided. The test below pins
+      every (mate, orientation) combination to a non-50% share, because the
+      only way the bar can show 50% is for the score to be missing, not for
+      the score to exist. A future regression that drops `winningChances`
+      for mate scores will fail these.
+    */
+    for (const score of [mate(1), mate(-1), mate(2), mate(-2), mate(7), mate(-7)]) {
+      const w = evaluationBarLayout(score, 'w');
+      const b = evaluationBarLayout(score, 'b');
+      expect(w.leading).not.toBeNull();
+      expect(b.leading).not.toBeNull();
+      expect(w.bottomShare).not.toBe(0.5);
+      expect(b.bottomShare).not.toBe(0.5);
+      // The leading side's share is always the dominant one, whichever
+      // orientation the board is in.
+      const winningForWhite = score.moves > 0;
+      expect(winningForWhite ? w.bottomShare : 1 - w.bottomShare).toBeGreaterThan(0.5);
+      expect(winningForWhite ? 1 - b.bottomShare : b.bottomShare).toBeGreaterThan(0.5);
+    }
+  });
+
   it('is neutral without a score, and at exactly 0.0', () => {
     const none = evaluationBarLayout(null, 'w');
     expect(none.label).toBe('—');

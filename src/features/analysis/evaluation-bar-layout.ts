@@ -71,7 +71,10 @@ export function evaluationBarLayout(score: Score | null, orientation: Color): Ev
   const bottomShare = bottomSide === 'w' ? white : 1 - white;
   const leading = leadingSide(score);
   // The label lives in the leading band; at equality it stays with White so
-  // it does not jump between bands as a score crosses zero.
+  // it does not jump between bands as a score crosses zero. Mate-in-0
+  // (a position that is already checkmate) is a position, not an advantage;
+  // the label sits at the top so the "#" the bar draws does not overlap the
+  // small line the equality marker makes.
   const labelOn: Color = leading ?? 'w';
   const labelAt: 'top' | 'bottom' = labelOn === bottomSide ? 'bottom' : 'top';
   return {

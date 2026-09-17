@@ -73,7 +73,20 @@ export function EvaluationBar({ score, orientation, stale, depth, engine }: Eval
       <div
         data-evaluation-bar-fill
         className={cn(
-          'absolute inset-x-0 transition-[height] duration-300 ease-out',
+          /*
+           * The fill animates with `cubic-bezier(0.22, 0.61, 0.36, 1)` over
+           * 900ms — long enough that the eye can read the *trajectory* of an
+           * evaluation collapsing from +3 to −5 as a single story rather than a
+           * snap between two stills. Lichess uses a comparable curve; a 300ms
+           * transition (the value Phase 55 landed on) reads as flicker at the
+           * rate an engine emits best lines, and a player watching a live
+           * search ends up flinching at every depth-1 refresh.
+           *
+           * `prefers-reduced-motion` is honoured by the global stylesheet, so
+           * a player who has asked their OS for less motion gets the snap
+           * back, regardless of this duration.
+           */
+          'absolute inset-x-0 transition-[height] duration-900 ease-[cubic-bezier(0.22,0.61,0.36,1)]',
           bottomIsWhite ? 'bg-eval-white' : 'bg-eval-black',
         )}
         style={{ height: `${layout.bottomShare * 100}%`, bottom: 0 }}

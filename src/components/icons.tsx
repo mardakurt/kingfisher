@@ -268,61 +268,61 @@ export const Target = (p: IconProps) => (
 /**
  * Training: a chess knight, the tactical piece.
  *
- * Phase 55 walked the silhouette down to an L-shape so the 16 px
- * sidebar size still reads as a knight. Phase 62 added a "horse
- * head" path on top of the L — the result read as a rectangle on a
- * column, with no curve and no ear, at every size the sidebar uses.
- * The owner reported the Phase 62 draw back as "garbage, doesn't
- * even look like anything". Phase 67 redraws it as the knight every
- * chess set draws: a base, a chest that goes up into a curved neck,
- * a forehead that slopes up to an ear, and a muzzle that points right
- * and ends under a clear eye. The icon survives every size from 16
- * px to 24 px because the silhouette — a head-on-column — is still
- * the small-size cue.
+ * Phase 67 walked the silhouette down through three redesigns (the
+ * L-shape, the horse-head-on-column, the muzzle-out curve). The owner
+ * said the L-shape looked like a tent peg and the muzzle-out curve
+ * looked like a snail. Phase 69 redraws the knight the way every
+ * wooden chess set draws it: a wide plinth, a vertical body column,
+ * and on top of that a horse head whose silhouette is a clear
+ * "head-on-column" — a recognisable mane curve on the back, an ear
+ * notch at the top, a muzzle pointing right, and a chest that flows
+ * back down to the base. At 16 px the silhouette alone (column with
+ * a head-bump to the right) survives; at 21 px the eye becomes
+ * visible; at 24 px every detail reads.
  */
 export const Recall = (p: IconProps) => (
   <Icon {...p}>
+    {/* Plinth — the wider rectangle the piece sits on. */}
+    <path d="M 4 19 H 20 V 21 H 4 Z" />
     {/*
-      One continuous path traces base → chest → neck → forehead → ear
-      → muzzle → jaw → throat → chest. Going clockwise:
-
-        base right (19)        forehead top (14)
-        chest right (17)       ear tip (15.5)
-        chest curve to neck    muzzle top (18)
-        back of head (8)       muzzle tip (19.5)
-        neck top (10)          jaw (17)
-        forehead slope (13)    throat (14)
-
-      The path uses `Q` (quadratic) where the original used `L`, so
-      every joint is a curve rather than a sharp corner. At 16 px
-      only the silhouette remains; at 21 px the eye becomes visible.
+      Horse head + body, one continuous outline, traced clockwise:
+      up the body, up the mane, across the top, down behind the ear,
+      over to the muzzle, around the muzzle tip, back along the jaw,
+      across the throat, and down to the base. The Q curves are
+      what give the head its shape — straight segments read as a
+      rectangle at every size the sidebar uses.
     */}
     <path
       d="
-        M 5 19 H 19 V 21 H 5 Z
-        M 6 19
-          Q 6 16 8 14
-          Q 6.5 11.5 8 9
-          Q 10 7.5 12 6
-          Q 13 4.5 13.5 3
-          L 15.5 3
-          L 15.5 5
-          L 17 5.5
-          Q 18 7 17.5 8.5
-          Q 16 10 13.5 11
-          Q 12 12 11.5 13
-          Q 11 14 11.5 15
-          Q 12 16.5 14 17.5
-          Q 16.5 18.5 19 19
-          Z
+        M 8 19
+        V 12
+        Q 8 10 9 9
+        Q 9.5 7 10 6
+        L 11 5
+        L 12.5 4
+        L 13.5 4
+        L 13.5 5.5
+        L 15.5 5.5
+        Q 17 6 18 7.5
+        L 18.5 9.5
+        L 18 10.5
+        L 16 11
+        L 14 11
+        Q 12.5 10.5 12 9
+        L 11.5 8
+        L 11 8
+        L 10 9
+        Q 10 11 11 12
+        L 11 19
+        Z
       "
     />
     {/*
-      Eye. Visible at 21 px and above; gone at 16 px. Drawn as a
-      filled dot because at this size a stroked circle would render
-      as a fuzzy ring.
+      Eye. A filled dot at (14, 7.5), visible at 21 px and above;
+      gone at 16 px. A stroked circle at this radius would render as
+      a fuzzy ring, so it is solid.
     */}
-    <circle cx="13.5" cy="8" r="0.6" fill="currentColor" stroke="none" />
+    <circle cx="14" cy="7.5" r="0.6" fill="currentColor" stroke="none" />
   </Icon>
 );
 /**

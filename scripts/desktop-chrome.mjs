@@ -85,14 +85,16 @@ const SIZES = [
  *
  * macOS takes the traffic lights into the menu bar in full screen, so the
  * corner the brand sits in is a corner nothing else is claiming — and a
- * 14 px design inset that survived would push the mark away from the corner
- * the user is looking at. The brand flushes to the window's left edge for the
- * duration of full screen and moves back to `MAC_BRAND_REGION.x` when the
- * buttons do. Phase 53 brought this from 14 to 0; the previous value matched
- * what a browser shows, which is what Phase 48 picked before the owner said
- * the corner was off.
+ * Phase 53 said the brand should flush to the window's left edge in full
+ * screen because macOS moves the traffic lights into the menu bar and
+ * nothing else needs clearing. The owner reported that back in Phase 64
+ * as glued to the corner — six px from where the close button used to
+ * live, which the eye reads as a missed padding rather than a
+ * deliberate inset. The mark now keeps the 14 px design inset in full
+ * screen too, so the sidebar header reads the same as the web layout
+ * (`kingfisherchess.app` on a browser).
  */
-const FULLSCREEN_BRAND_X = 0;
+const FULLSCREEN_BRAND_X = 14;
 
 /** Routes whose top-left is owned by a different workspace header. */
 const ROUTES = ['/analysis', '/openings', '/players', '/databases', '/repertoire'];
