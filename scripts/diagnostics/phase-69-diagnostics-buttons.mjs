@@ -66,7 +66,9 @@ const main = async () => {
 
   console.log('button state after click:');
   for (const s of samples) {
-    console.log(`  +${String(s.ms).padStart(4)} ms  text=${s.text?.padEnd(10)} disabled=${s.disabled}`);
+    console.log(
+      `  +${String(s.ms).padStart(4)} ms  text=${s.text?.padEnd(10)} disabled=${s.disabled}`,
+    );
   }
 
   const sawBusy = samples.some((s) => s.text === 'Testing…');

@@ -83,7 +83,7 @@ const main = async () => {
     JSON.stringify({ standard, colorblind, diff }, null, 2) + '\n',
   );
 
-  console.log(`palette attribute changes: ${a => a} -> ${b => b}`.replace);
+  console.log(`palette attribute changes: ${(a) => a} -> ${(b) => b}`.replace);
   console.log(`tokens expected to change : ${expected}`);
   console.log(`tokens actually changed   : ${changed}`);
   for (const [name, values] of Object.entries(diff)) {
