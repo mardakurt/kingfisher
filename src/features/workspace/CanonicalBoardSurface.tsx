@@ -121,12 +121,27 @@ export function CanonicalBoardSurface({
     this position, otherwise the evaluation stored on the node, otherwise
     nothing. A bar must never show a number that belongs to a different
     position, and the title says which of the three it is showing.
+
+    A live line is *only* trusted once it has crossed `MIN_LIVE_DEPTH`
+    plies of search. At depth 1 the engine has only seen its own move and
+    reports the side-to-move advantage, which is exactly the reading that
+    swings hardest right after the player moves and then climbs back as
+    the search settles. Without a floor, the bar animates down to depth-1
+    and then back up to depth-N every time the player makes a move; with
+    a floor, the bar keeps showing the position's stored evaluation
+    (or nothing) until the new search is deep enough to be worth
+    replacing it. The same floor applies in reverse: a stored evaluation
+    is preferred over a depth-1 line, so opening a finished game never
+    flashes a misleading number while the engine catches up.
   */
-  const live = analysedFen === node.fen && analysis?.lines[0] ? analysis : null;
+  const MIN_LIVE_DEPTH = 8;
+  const liveRaw = analysedFen === node.fen && analysis?.lines[0] ? analysis : null;
+  const live = liveRaw && liveRaw.depth >= MIN_LIVE_DEPTH ? liveRaw : null;
   const evaluation = live ? live.lines[0]!.score : (node.evaluation?.score ?? null);
   const evaluationDepth = live ? live.depth : node.evaluation?.depth;
   const evaluationEngine = live ? engineName : node.evaluation?.engine;
   const evaluationStale = !live && evaluation !== null;
+  const evaluationLiveLowDepth = liveRaw && !live;
 
   /*
     A tool may borrow the board's moves — Review's journal records candidates
@@ -236,7 +251,7 @@ export function CanonicalBoardSurface({
               score={evaluation}
               orientation={orientation}
               stale={evaluationStale}
-              {...(evaluationDepth ? { depth: evaluationDepth } : {})}
+              {...(evaluationLiveLowDepth ? { depth: 1 } : evaluationDepth ? { depth: evaluationDepth } : {})}
               {...(evaluationEngine ? { engine: evaluationEngine } : {})}
             />
           ) : null}

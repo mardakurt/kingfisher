@@ -359,8 +359,18 @@ export const useEngine = create<EngineState>((set, get) => {
       running: true,
       status: 'analysing',
       analysedFen: fen,
-      analysis: null,
-      history: [],
+      /*
+       * Phase 69: keep the previous analysis visible until the first `info`
+       * line of the new search arrives. The previous code cleared `analysis`
+       * here, which meant the engine panel's depth/eval readout disappeared
+       * for the ~150 ms between the player making a move and the engine
+       * emitting its depth-1 line. A player watching a live search saw the
+       * indicator flash on every move; clearing `history` had the same
+       * effect on the running-eval graph. Leaving both populated until the
+       * listener writes a new frame is harmless: the listener stamps every
+       * snapshot with the `analysedFen` it belongs to, and the panel reads
+       * `analysedFen === fen` before trusting the score.
+       */
     });
     runtime.pendingFen = null;
 

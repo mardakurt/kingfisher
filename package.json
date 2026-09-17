@@ -36,6 +36,7 @@
     "desktop:suspend": "node scripts/desktop-suspend.mjs",
     "desktop:upgrade": "node scripts/desktop-upgrade.mjs",
     "desktop:chrome": "node scripts/desktop-chrome.mjs",
+    "diagnostics:phase-69": "node scripts/diagnostics/phase-69-mate-bar.mjs && node scripts/diagnostics/phase-69-colorblind-palette.mjs && node scripts/diagnostics/phase-69-companion-setup-url.mjs && node scripts/diagnostics/phase-69-diagnostics-buttons.mjs",
     "desktop:oauth": "node scripts/desktop-oauth.mjs",
     "desktop:engines": "node scripts/desktop-engines.mjs",
     "desktop:sign:verify": "node scripts/desktop-sign-verify.mjs",
