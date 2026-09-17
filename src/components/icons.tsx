@@ -268,39 +268,61 @@ export const Target = (p: IconProps) => (
 /**
  * Training: a chess knight, the tactical piece.
  *
- * Phases 55–57 walked the silhouette from a detailed horse head down
- * to a single L-shape so the small (16 px) sidebar size still reads
- * as a knight. The L-shape worked but stopped reading as a horse:
- * at 21 px it was a rectangle on a column, with no curve and no ear.
- * Phase 62 redraws it as a real horse head — angled muzzle, ear at
- * the top, eye, curved neck, body, base — that survives every size
- * the sidebar uses, while keeping the asymmetric head-on-column
- * silhouette as the small-size cue. The training route is about
- * tactics and recall; the knight is the right piece for it.
+ * Phase 55 walked the silhouette down to an L-shape so the 16 px
+ * sidebar size still reads as a knight. Phase 62 added a "horse
+ * head" path on top of the L — the result read as a rectangle on a
+ * column, with no curve and no ear, at every size the sidebar uses.
+ * The owner reported the Phase 62 draw back as "garbage, doesn't
+ * even look like anything". Phase 67 redraws it as the knight every
+ * chess set draws: a base, a chest that goes up into a curved neck,
+ * a forehead that slopes up to an ear, and a muzzle that points right
+ * and ends under a clear eye. The icon survives every size from 16
+ * px to 24 px because the silhouette — a head-on-column — is still
+ * the small-size cue.
  */
 export const Recall = (p: IconProps) => (
   <Icon {...p}>
     {/*
-      Head + muzzle + neck + body, drawn as one path. The muzzle goes
-      right (the snout points right like a standard chess knight), the
-      forehead slopes up-left, the ear stands at the top, and the
-      bottom curves back into the body that joins the base.
+      One continuous path traces base → chest → neck → forehead → ear
+      → muzzle → jaw → throat → chest. Going clockwise:
+
+        base right (19)        forehead top (14)
+        chest right (17)       ear tip (15.5)
+        chest curve to neck    muzzle top (18)
+        back of head (8)       muzzle tip (19.5)
+        neck top (10)          jaw (17)
+        forehead slope (13)    throat (14)
+
+      The path uses `Q` (quadratic) where the original used `L`, so
+      every joint is a curve rather than a sharp corner. At 16 px
+      only the silhouette remains; at 21 px the eye becomes visible.
     */}
     <path
-      d="M13 2.5 L11 5 L8 6 L6.5 8 L6.5 11 L9 12 L9 17 H15 V19 H7 V17
-         L8.5 16 L7 13 L8.5 9 L10 8.5 L11.5 6.5 L13.5 6 L15 4.5 Z"
+      d="
+        M 5 19 H 19 V 21 H 5 Z
+        M 6 19
+          Q 6 16 8 14
+          Q 6.5 11.5 8 9
+          Q 10 7.5 12 6
+          Q 13 4.5 13.5 3
+          L 15.5 3
+          L 15.5 5
+          L 17 5.5
+          Q 18 7 17.5 8.5
+          Q 16 10 13.5 11
+          Q 12 12 11.5 13
+          Q 11 14 11.5 15
+          Q 12 16.5 14 17.5
+          Q 16.5 18.5 19 19
+          Z
+      "
     />
     {/*
-      Eye. Visible at 21 px; gone at 16 px. The icon does not rely
-      on it.
+      Eye. Visible at 21 px and above; gone at 16 px. Drawn as a
+      filled dot because at this size a stroked circle would render
+      as a fuzzy ring.
     */}
-    <circle cx="10.5" cy="9.5" r="0.6" fill="currentColor" stroke="none" />
-    {/*
-      A single base — wider than the column, like every chess piece's
-      base. The L-shape silhouette (head on a column) is still there
-      for the 16 px rail; the new details only show at 21 px.
-    */}
-    <path d="M7 19 H17 V21 H7 Z" />
+    <circle cx="13.5" cy="8" r="0.6" fill="currentColor" stroke="none" />
   </Icon>
 );
 /**

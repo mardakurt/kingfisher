@@ -6,6 +6,31 @@ real users notice.
 
 ## Unreleased (web)
 
+Phase 67 — the toolbar is gone and the Training icon is recognisable.
+
+- **Toolbar is gone.** The Analyse button used to sit in a thin
+  toolbar row above the board, eating 28 px of vertical space and
+  creating a chain of layout regressions across Phase 62 / 63 /
+  65 / 66 (see `docs/product/postmortem-board-tiny.md` for the
+  full story). The toolbar is removed; the engine panel's own
+  Analyse button is the single source of truth for starting an
+  analysis. The board now fills its grid.
+- **Board grid has no third row.** The grid is `eval-bar | board`,
+  full stop. The grid's height equals the board's width; the eval
+  bar's column is the same height. The layout math lives in
+  `board-grid.ts` and is pinned by 13 unit tests in
+  `board-grid.test.ts`, plus four icon tests in
+  `icons.test.tsx`. A future change that re-adds a row above the
+  board fails those tests before it ships.
+- **Training icon redrawn.** The Phase 62 Recall icon was a
+  17-point polygon that did not read as a chess knight at any
+  size the sidebar uses. Phase 67 redraws it as the knight every
+  chess set draws: a base, a chest that curves into a neck, a
+  forehead that slopes up to an ear, and a muzzle that points
+  right and ends under a clear eye. The icon test asserts the
+  path contains the muzzle-and-ear curves, so a future "let me
+  simplify this back to a rectangle" loses the test first.
+
 Phase 66 — board still tiny after Phase 65.
 
 - **Board now has a definite grid height.** Phase 65 moved the board
@@ -15,7 +40,7 @@ Phase 66 — board still tiny after Phase 65.
   leftover space. `aspect-square` on the board frame then drew a
   24×24 board. The grid now gets an explicit `height: frameSize + 28`,
   the toolbar row is fixed at 28 px (`min-h-7`), and `grid-rows: 28px
-  1fr` resolves to a 28-px toolbar over a `frameSize`-tall board row.
+1fr` resolves to a 28-px toolbar over a `frameSize`-tall board row.
   The toolbar's height is now a constant (`TOOLBAR_HEIGHT = 28`) so
   the grid template, the explicit height and the toolbar's `min-h-7`
   cannot drift apart.

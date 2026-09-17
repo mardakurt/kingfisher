@@ -8,7 +8,7 @@ import type { MoveIntent } from '@/chess/types';
 import { Chessboard } from '@/features/board/Chessboard';
 import { useEngineArrows } from '@/features/board/engine-arrows';
 import { BoardControls } from '@/features/analysis/BoardControls';
-import { EVALUATION_BAR_WIDTH, EvaluationBar } from '@/features/analysis/EvaluationBar';
+import { EvaluationBar } from '@/features/analysis/EvaluationBar';
 import { EvaluationGraph } from '@/features/analysis/EvaluationGraph';
 import { PositionSummary } from '@/features/analysis/PositionSummary';
 import { useAnalysisPosition } from '@/features/analysis/useAnalysisPosition';
@@ -26,9 +26,9 @@ import {
   type BoardSurfaceMode,
 } from './board-capabilities';
 import { BoardErrorBoundary } from './BoardErrorBoundary';
-import { BoardEngineAffordance } from './BoardEngineAffordance';
 import { useBoardMoveCapture } from './board-move-capture';
 import { useChessWorkspace } from './ChessWorkspaceContext';
+import { BOARD_GRID_CLASSNAMES, barSpaceFor, boardGridStyle } from './board-grid';
 
 interface CanonicalBoardSurfaceProps {
   readonly mode?: BoardSurfaceMode;
@@ -115,7 +115,7 @@ export function CanonicalBoardSurface({
   const evaluationBarVisible =
     showEvaluationArtifacts && caps.showEvaluation && prefs.showEvaluationBar;
   /** The bar's column plus the gap, in the same units the grid below uses. */
-  const barSpace = evaluationBarVisible ? EVALUATION_BAR_WIDTH + EVALUATION_BAR_GAP : 0;
+  const barSpace = barSpaceFor(evaluationBarVisible);
   /*
     What the bar reads, decided in one place: the live search when it is on
     this position, otherwise the evaluation stored on the node, otherwise
@@ -182,17 +182,10 @@ export function CanonicalBoardSurface({
         height by the bar and its gap — 34px, which at 1280x720 was the
         difference between a 419px board and a 453px one. Subtract the bar from
         the width budget and give it back when the grid is laid out.
-
-        The toolbar row above the board takes a fixed 28 px of the available
-        height, so the *board* row only has clientHeight minus the toolbar.
-        Subtracting the toolbar here keeps the grid from overflowing its
-        parent — the grid's explicit height is frameSize + TOOLBAR_HEIGHT.
       */
       const next = Math.max(
         0,
-        Math.floor(
-          Math.min(boardCap, element.clientWidth - barSpace, element.clientHeight - TOOLBAR_HEIGHT),
-        ),
+        Math.floor(Math.min(boardCap, element.clientWidth - barSpace, element.clientHeight)),
       );
       setFrameSize((current) => (current === next ? current : next));
     };
@@ -217,42 +210,26 @@ export function CanonicalBoardSurface({
         className="flex min-h-0 flex-1 items-start justify-center pt-8 mid:items-center mid:pt-0"
         data-board-container
       >
+        {/*
+          The board grid is exactly two cells wide and exactly one cell
+          tall — the eval bar and the board frame. There is no toolbar
+          row. There is no overlay above the board. There is no third
+          cell. See `docs/product/postmortem-board-tiny.md` for the chain
+          of regressions that produced that decision and the unit test
+          (`CanonicalBoardSurface.test.tsx`) that holds the grid to it.
+
+          The grid has an explicit `height: frameSize + barSpace` so
+          `1fr` always resolves. The eval bar takes its column's full
+          height; the board frame's `aspect-square` matches its column's
+          width. Without the explicit height the grid would size to its
+          content (the eval bar's natural height, which is the same as
+          the column's), and a future addition that brought a third row
+          would have nothing to fill the 1fr row against — the chain
+          this comment warns about.
+        */}
         <div
-          className={cn(
-            'grid items-stretch',
-            !evaluationBarVisible && 'grid-cols-1',
-            /*
-             * Phase 63: the toolbar row above the board needs `1fr`
-             * on the board row, otherwise `aspect-square` collapses
-             * because both rows default to `auto` height and the
-             * board frame is an empty container at this level — its
-             * intrinsic height is 0, so the row collapses to 0 and
-             * aspect-square produces a 0×0 board. Toolbar row is
-             * `auto` (it sizes itself); board row is `1fr` (it fills
-             * whatever the parent has left after the toolbar).
-             *
-             * Phase 66: that fix only worked when the grid itself
-             * had a definite height. In a flex parent with `items-start`,
-             * the grid sized to its content (the toolbar row), the
-             * `1fr` row collapsed to 0, and the board became a
-             * 24×24 sliver. The grid now gets an explicit height of
-             * `frameSize + TOOLBAR_HEIGHT`, matching the column count
-             * exactly, so `1fr` resolves to `frameSize` and the
-             * board fills it. Toolbar height is fixed at 28 px
-             * (`min-h-7`) so the column can be exact.
-             */
-            'grid-rows-[28px_1fr]',
-          )}
-          style={{
-            width: frameSize + barSpace,
-            height: frameSize + TOOLBAR_HEIGHT,
-            ...(evaluationBarVisible
-              ? {
-                  gridTemplateColumns: `${EVALUATION_BAR_WIDTH}px minmax(0, 1fr)`,
-                  columnGap: EVALUATION_BAR_GAP,
-                }
-              : {}),
-          }}
+          className={cn(...BOARD_GRID_CLASSNAMES, !evaluationBarVisible && 'grid-cols-1')}
+          style={boardGridStyle(frameSize, evaluationBarVisible)}
         >
           {evaluationBarVisible ? (
             <EvaluationBar
@@ -263,44 +240,7 @@ export function CanonicalBoardSurface({
               {...(evaluationEngine ? { engine: evaluationEngine } : {})}
             />
           ) : null}
-          {/*
-            Phase 62: the engine affordance used to sit `absolute
-            bottom-3 right-3` inside the board frame and covered the
-            rook on h1. The board frame is the chessboard itself, so
-            any in-frame position lands on a square that a piece may
-            also occupy. The button now lives in a thin toolbar row
-            that sits above the frame — the same row the coordinates
-            would render in — so it never overlaps a piece.
-          */}
-          {/*
-            Phase 65: the toolbar used to rely on `grid-auto-flow: row` to
-            find its cell, and the eval bar — also auto-placed, also a grid
-            child — got there first. The flow then sat the toolbar in row 1,
-            col 2 (the `1fr` column) and pushed the board into row 2, col 1
-            (the eval bar's `24px` column), where `aspect-square` drew a
-            24×24 board. `col-span-full` makes the toolbar occupy both
-            columns of the first row so the eval bar lands in col 1 of row 2
-            and the board — the cell that is actually `1fr` — lands beside
-            it. `col-span-full` is `grid-column: 1 / -1`, so it is a no-op
-            when there is no eval bar (the grid has only one column to span).
-
-            Phase 66: with explicit grid placement the toolbar always lands
-            in row 1 (and, with the eval bar, spans both columns), so the
-            flow no longer matters. `grid-row: 1` makes the placement
-            declarative and survives any future reorder of the children.
-          */}
-          <div
-            className="col-span-full flex min-h-7 items-center justify-end pr-1"
-            data-board-toolbar
-            style={{ gridRow: 1 }}
-          >
-            <BoardEngineAffordance showEvaluation={caps.showEvaluation} />
-          </div>
-          <div
-            className="relative aspect-square w-full min-w-0"
-            data-board-frame
-            style={{ gridRow: 2, gridColumn: evaluationBarVisible ? 2 : 1 }}
-          >
+          <div className="relative aspect-square w-full min-w-0" data-board-frame>
             <BoardErrorBoundary>
               {(fallback) => (
                 <Chessboard
@@ -369,29 +309,6 @@ export function CanonicalBoardSurface({
     </div>
   );
 }
-
-/**
- * The gap between the evaluation bar and the board.
- *
- * Duplicated between a Tailwind class and a measurement is exactly how a board
- * ends up 34px narrower than the space measured for it, so the grid's columns
- * and the width budget are both derived from this and the bar's own
- * `EVALUATION_BAR_WIDTH`, and no class names a number.
- */
-const EVALUATION_BAR_GAP = 10;
-
-/*
- * The toolbar row that sits above the board frame.
- *
- * Kept as a single number so the grid's explicit `grid-rows: 28px 1fr` and
- * the `height: frameSize + TOOLBAR_HEIGHT` style stay in lockstep with the
- * toolbar's `min-h-7`. The grid is given that explicit height because its
- * parent (`flex items-start`) sized the grid to its content — the toolbar
- * row — and the `1fr` row collapsed to 0; without a definite grid height
- * `1fr` has no leftover space to distribute and `aspect-square` drew a
- * 24×24 board. 28 px matches the `min-h-7` on the toolbar div.
- */
-const TOOLBAR_HEIGHT = 28;
 
 /* Stable empties, so withholding does not remount the board on every render. */
 const EMPTY = new Map<never, never>() as never;
