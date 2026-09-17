@@ -51,20 +51,23 @@ const runCase = async (page, moves) => {
   // store isn't reachable we fall back to navigating with a known mate
   // position — but no engine run is needed for this test, so the live bar
   // reflects the injected score immediately.
-  await page.evaluate((score) => {
-    const w = window;
-    const analysis = w.__kingfisher?.useAnalysis?.getState?.();
-    if (!analysis) return;
-    const root = analysis.tree.nodes[analysis.currentId];
-    if (!root) return;
-    analysis.tree = {
-      ...analysis.tree,
-      nodes: {
-        ...analysis.tree.nodes,
-        [root.id]: { ...root, evaluation: { score, depth: 30, engine: 'test' } },
-      },
-    };
-  }, { kind: 'mate', moves });
+  await page.evaluate(
+    (score) => {
+      const w = window;
+      const analysis = w.__kingfisher?.useAnalysis?.getState?.();
+      if (!analysis) return;
+      const root = analysis.tree.nodes[analysis.currentId];
+      if (!root) return;
+      analysis.tree = {
+        ...analysis.tree,
+        nodes: {
+          ...analysis.tree.nodes,
+          [root.id]: { ...root, evaluation: { score, depth: 30, engine: 'test' } },
+        },
+      };
+    },
+    { kind: 'mate', moves },
+  );
 
   await page.waitForTimeout(120);
   const bar = await readBar(page);
@@ -104,7 +107,9 @@ const main = async () => {
     }
     process.exit(1);
   }
-  console.log(`PASS: every (mate distance, side) drove the bar off-centre (${MATE_DISTANCES.length * 2} cases)`);
+  console.log(
+    `PASS: every (mate distance, side) drove the bar off-centre (${MATE_DISTANCES.length * 2} cases)`,
+  );
 };
 
 main().catch((error) => {

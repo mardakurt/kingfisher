@@ -251,7 +251,11 @@ export function CanonicalBoardSurface({
               score={evaluation}
               orientation={orientation}
               stale={evaluationStale}
-              {...(evaluationLiveLowDepth ? { depth: 1 } : evaluationDepth ? { depth: evaluationDepth } : {})}
+              {...(evaluationLiveLowDepth
+                ? { depth: 1 }
+                : evaluationDepth
+                  ? { depth: evaluationDepth }
+                  : {})}
               {...(evaluationEngine ? { engine: evaluationEngine } : {})}
             />
           ) : null}
