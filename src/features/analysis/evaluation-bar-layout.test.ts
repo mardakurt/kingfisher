@@ -80,7 +80,9 @@ describe('the evaluation bar says who is better', () => {
       expect(w.bottomShare).not.toBe(0.5);
       expect(b.bottomShare).not.toBe(0.5);
       // The leading side's share is always the dominant one, whichever
-      // orientation the board is in.
+      // orientation the board is in. TypeScript narrows the union inside the
+      // loop so we re-disambiguate once via a kind-tagged check.
+      if (score.kind !== 'mate') throw new Error('test data must be a mate score');
       const winningForWhite = score.moves > 0;
       expect(winningForWhite ? w.bottomShare : 1 - w.bottomShare).toBeGreaterThan(0.5);
       expect(winningForWhite ? 1 - b.bottomShare : b.bottomShare).toBeGreaterThan(0.5);

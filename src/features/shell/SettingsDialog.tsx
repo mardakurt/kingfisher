@@ -2793,6 +2793,35 @@ function ProviderDiagnostic({ provider }: { provider: ChessDatabaseProvider }) {
     staleTime: 30_000,
     retry: false,
   });
+  /*
+   * Phase 69: a provider that is genuinely healthy answers inside a few
+   * milliseconds. The button clicked, the query refetched, the response
+   * landed, the badge stayed the same colour — the user saw nothing and
+   * the button looked like it did not fire. We hold the busy flag for
+   * at least 600ms from the moment `isFetching` flipped on, so the
+   * "Testing…" state and the badge pulse are unmistakable. A genuinely
+   * slow check (Lichess over a poor network) already takes longer than
+   * 600ms, so the floor is a no-op for it.
+   *
+   * `setBusyUntil` fires inside an effect because the value is derived
+   * from an external system (TanStack Query's `isFetching`), not from
+   * React state. The lint rule flags setState-in-effect, which is the
+   * right rule in general but the wrong one for the "sync an external
+   * state machine" case the React docs explicitly carve out — so the
+   * rule is suppressed here with a targeted comment.
+   */
+  const [busyUntil, setBusyUntil] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!health.isFetching) return;
+    const until = Date.now() + 600;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing external state
+    setBusyUntil(until);
+    if (until <= now) return;
+    const id = setInterval(() => setNow(Date.now()), 100);
+    return () => clearInterval(id);
+  }, [health.isFetching, now]);
+  const isBusy = health.isFetching || now < busyUntil;
   const result = health.data;
   /*
    * Phase 63: the diagnostic row used to be just "name / message /
@@ -2803,7 +2832,7 @@ function ProviderDiagnostic({ provider }: { provider: ChessDatabaseProvider }) {
    * whose label tracks the actual state, so the user can see the
    * test ran even when the response is "Not tested yet".
    */
-  const status = health.isFetching
+  const status = isBusy
     ? { tone: 'pending', label: 'Testing…' }
     : health.isError
       ? { tone: 'negative', label: 'Error' }
@@ -2845,8 +2874,20 @@ function ProviderDiagnostic({ provider }: { provider: ChessDatabaseProvider }) {
         {result?.latencyMs != null ? (
           <span className="text-[10px] text-tertiary tabular">{result.latencyMs} ms</span>
         ) : null}
-        <Button size="sm" onClick={() => void health.refetch()} disabled={health.isFetching}>
-          {health.isFetching ? 'Testing…' : 'Test'}
+        <Button
+          size="sm"
+          onClick={() => {
+            // Fire the refetch even when the previous response is still
+            // cached. Without the explicit `void`, an early-return in the
+            // chained promise could be mistaken for a bug by callers who
+            // await the button. The state already animates above; this
+            // line is the only place the click turns into network.
+            void health.refetch();
+          }}
+          disabled={isBusy}
+          data-test-provider-test={provider.id}
+        >
+          {isBusy ? 'Testing…' : 'Test'}
         </Button>
       </div>
     </div>
