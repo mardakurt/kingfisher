@@ -1,19 +1,19 @@
 {
   "schema": "kingfisher-macos-download/1",
   "channel": "stable",
-  "version": "1.1.9",
-  "build": 590,
-  "commit": "d46fe98f293b4f660aafc64741bbf7fa6ec686e0",
-  "filename": "Kingfisher-1.1.9-arm64.dmg",
-  "url": "https://github.com/mardakurt/kingfisher/releases/download/v1.1.9/Kingfisher-1.1.9-arm64.dmg",
-  "sha256": "6e101dae2350056dce4047a000c28bb9b33937e021cb84d9c99035e55f865ec0",
-  "bytes": 171978530,
+  "version": "1.2.0",
+  "build": 651,
+  "commit": "8af5de1b1d2ec20689be38482e24edf2881577d1",
+  "filename": "Kingfisher-1.2.0-arm64.dmg",
+  "url": "https://github.com/mardakurt/kingfisher/releases/download/v1.2.0/Kingfisher-1.2.0-arm64.dmg",
+  "sha256": "114f14a69f484c7f4400b069fa0c1abcd1b5777da1aea260dc8fd1897f13d9e1",
+  "bytes": 172355634,
   "architecture": "arm64",
   "minimumMacOS": "13.0",
   "signature": {
     "identity": "Developer ID Application",
     "notarized": true
   },
-  "publishedAt": "2026-09-15T15:38:32Z",
-  "releasePage": "https://github.com/mardakurt/kingfisher/releases/tag/v1.1.9"
+  "publishedAt": "2026-09-17T15:39:05Z",
+  "releasePage": "https://github.com/mardakurt/kingfisher/releases/tag/v1.2.0"
 }
