@@ -24,6 +24,18 @@ validation, scheduled backup preference serialization, and an incorrect
 native-companion prerequisite on the AI assistant panel. The engine toolbar
 also wraps controls to keep the engine selector readable in a narrow panel.
 
+**Published revision check (Phase 70, web only).** Phase 70 changed four
+src/ files plus the diagnostic script and `.gitignore`: `runAutoBackup`
+and `ensureBackup` now accept and forward `referenceSources`, and the
+two callers — the on-launch `useAutoBackup` hook and the manual
+"Back up now" handler in `SettingsDialog` — pass
+`installedReferenceSources()`. The manual export download already
+captured this; the three other backup paths (scheduled cycle, on-launch
+check, manual "Back up now") now capture it too. None of the changes
+touch `desktop/src/` or the Electron shell, so the public Mac 1.2.0
+stays on the previous surface until the next Mac release. Section B
+of After-a-fix is therefore not required for this fix.
+
 **Published revision check (Phase 64, mac only).** Phase 64 changed one
 declaration in `src/app/globals.css` plus the e2e test that asserts the
 fullscreen inset. The fullscreen padding for the sidebar brand was 8 px
