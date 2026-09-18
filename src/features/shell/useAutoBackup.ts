@@ -21,6 +21,7 @@ import { portablePreferences } from '@/stores/portable-preferences';
 
 import { getRepositories } from '@/persistence/repositories';
 import { ensureBackup, mostRecentBackup } from '@/features/shell/auto-backup';
+import { installedReferenceSources } from '@/reference/manager';
 
 interface AutoBackupState {
   lastBackupAt: number | null;
@@ -69,6 +70,7 @@ export function useAutoBackup(): void {
         enabled,
         scheduleDays,
         retention,
+        referenceSources: installedReferenceSources(),
       });
       if (cancelled) return;
       if (result.status === 'succeeded') {

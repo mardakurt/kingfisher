@@ -31,7 +31,12 @@
 
 import { z } from 'zod';
 
-import { BACKUP_FORMAT, BACKUP_VERSION, createWorkspaceBackup } from '@/persistence/backup';
+import {
+  BACKUP_FORMAT,
+  BACKUP_VERSION,
+  createWorkspaceBackup,
+  type BackedUpReferenceSource,
+} from '@/persistence/backup';
 import type { PersistenceDatabase } from '@/persistence/indexeddb/database';
 import { STORE_NAMES } from '@/persistence/schema/migrations';
 
@@ -82,11 +87,24 @@ export async function runAutoBackup(
     readonly retention: number;
     readonly reason?: string;
     readonly now?: number;
+    /**
+     * The reference packs the workspace was reading from at backup time.
+     *
+     * A backup without this is still a usable recovery point, but the user
+     * cannot tell from it which sources every statistic in the workspace
+     * was derived from — and that is the difference between a restore that
+     * is faithful to the saved state and one that loses the answer to every
+     * database question that was ever opened.
+     */
+    readonly referenceSources?: readonly BackedUpReferenceSource[];
   },
 ): Promise<BackupRecord | null> {
   const createdAt = options.now ?? Date.now();
   try {
-    const backup = await createWorkspaceBackup(database, preferences, { now: createdAt });
+    const backup = await createWorkspaceBackup(database, preferences, {
+      now: createdAt,
+      ...(options.referenceSources ? { referenceSources: options.referenceSources } : {}),
+    });
     const payload = JSON.stringify({
       format: BACKUP_FORMAT,
       version: BACKUP_VERSION,
@@ -158,6 +176,7 @@ export async function ensureBackup(
     readonly enabled: boolean;
     readonly scheduleDays: number;
     readonly retention: number;
+    readonly referenceSources?: readonly BackedUpReferenceSource[];
   },
 ): Promise<{
   readonly status: 'skipped' | 'succeeded' | 'failed';
@@ -170,6 +189,7 @@ export async function ensureBackup(
   const record = await runAutoBackup(database, preferences, {
     retention: options.retention,
     reason: 'scheduled',
+    ...(options.referenceSources ? { referenceSources: options.referenceSources } : {}),
   });
   if (!record) return { status: 'failed', createdAt: options.lastBackupAt };
   return { status: 'succeeded', createdAt: record.createdAt };

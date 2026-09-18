@@ -1863,6 +1863,10 @@ function BackupControls() {
       const record = await runAutoBackup(repositories.raw, preferences, {
         retention: prefs.autoBackupRetention,
         reason: 'manual',
+        // Names and sizes only. The packs themselves are hundreds of megabytes
+        // and can be fetched again; what cannot be recovered is knowing which
+        // ones the workspace was reading from.
+        referenceSources: installedReferenceSources(),
       });
       if (!record) {
         useAutoBackupState.setState({ status: 'failed' });
