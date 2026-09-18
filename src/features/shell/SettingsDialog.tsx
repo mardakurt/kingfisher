@@ -2780,8 +2780,23 @@ function navigatorPlatform(): string {
 }
 
 function ProviderDiagnostic({ provider }: { provider: ChessDatabaseProvider }) {
+  /*
+   * The click handler below bumps `probeNonce`, which is part of the
+   * query key, so every Test press is a fresh fetch — TanStack Query
+   * would otherwise suppress `refetch()` while the previous response is
+   * still within `staleTime`. The nonce is the only piece of state the
+   * busy flag needs to track: the click sets it true and a 600 ms timer
+   * clears it, which is enough time for a genuinely healthy provider
+   * (sub-millisecond on IndexedDB) to flush a response that the user
+   * can actually see the badge colour for. A slow provider (Lichess over
+   * a poor network) takes longer than 600 ms anyway, so the floor is a
+   * no-op for it.
+   */
+  const [probeNonce, setProbeNonce] = useState(0);
+  const [busy, setBusy] = useState(false);
+  const busyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const health = useQuery({
-    queryKey: ['provider-health', provider.id],
+    queryKey: ['provider-health', provider.id, probeNonce],
     queryFn: ({ signal }) =>
       provider.health
         ? provider.health(signal)
@@ -2793,35 +2808,21 @@ function ProviderDiagnostic({ provider }: { provider: ChessDatabaseProvider }) {
     staleTime: 30_000,
     retry: false,
   });
-  /*
-   * Phase 69: a provider that is genuinely healthy answers inside a few
-   * milliseconds. The button clicked, the query refetched, the response
-   * landed, the badge stayed the same colour — the user saw nothing and
-   * the button looked like it did not fire. We hold the busy flag for
-   * at least 600ms from the moment `isFetching` flipped on, so the
-   * "Testing…" state and the badge pulse are unmistakable. A genuinely
-   * slow check (Lichess over a poor network) already takes longer than
-   * 600ms, so the floor is a no-op for it.
-   *
-   * `setBusyUntil` fires inside an effect because the value is derived
-   * from an external system (TanStack Query's `isFetching`), not from
-   * React state. The lint rule flags setState-in-effect, which is the
-   * right rule in general but the wrong one for the "sync an external
-   * state machine" case the React docs explicitly carve out — so the
-   * rule is suppressed here with a targeted comment.
-   */
-  const [busyUntil, setBusyUntil] = useState(0);
-  const [now, setNow] = useState(() => Date.now());
+  const handleClick = () => {
+    setBusy(true);
+    setProbeNonce((n) => n + 1);
+    if (busyTimerRef.current !== null) clearTimeout(busyTimerRef.current);
+    busyTimerRef.current = setTimeout(() => {
+      busyTimerRef.current = null;
+      setBusy(false);
+    }, 600);
+  };
   useEffect(() => {
-    if (!health.isFetching) return;
-    const until = Date.now() + 600;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing external state
-    setBusyUntil(until);
-    if (until <= now) return;
-    const id = setInterval(() => setNow(Date.now()), 100);
-    return () => clearInterval(id);
-  }, [health.isFetching, now]);
-  const isBusy = health.isFetching || now < busyUntil;
+    return () => {
+      if (busyTimerRef.current !== null) clearTimeout(busyTimerRef.current);
+    };
+  }, []);
+  const isBusy = busy;
   const result = health.data;
   /*
    * Phase 63: the diagnostic row used to be just "name / message /
@@ -2876,14 +2877,7 @@ function ProviderDiagnostic({ provider }: { provider: ChessDatabaseProvider }) {
         ) : null}
         <Button
           size="sm"
-          onClick={() => {
-            // Fire the refetch even when the previous response is still
-            // cached. Without the explicit `void`, an early-return in the
-            // chained promise could be mistaken for a bug by callers who
-            // await the button. The state already animates above; this
-            // line is the only place the click turns into network.
-            void health.refetch();
-          }}
+          onClick={handleClick}
           disabled={isBusy}
           data-test-provider-test={provider.id}
         >

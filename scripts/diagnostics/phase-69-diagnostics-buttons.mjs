@@ -45,7 +45,11 @@ const main = async () => {
   console.log(`before click: ${beforeText.join(' | ')}`);
 
   const button = await page.locator('[data-test-provider-test]').first();
-  await button.click();
+  // The button disables for 600 ms after the click while the busy
+  // floor holds, so a normal Playwright click would time out. Force
+  // the click past the enabled check — we are not trying to use the
+  // button, we are observing what the click does to it.
+  await button.click({ force: true });
 
   // Sample the button text at a few points across the 600 ms floor.
   const samples = await page.evaluate(async () => {
