@@ -8,6 +8,16 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
+- **Auto-backup now records which reference packs were installed.**
+  Scheduled backups (on launch and on the cycle) and the manual
+  "Back up now" button in Settings → Database previously wrote a
+  workspace backup with `referenceSources: []`, even when reference
+  packs were installed. A restore therefore had no way to tell the
+  user which packs had been answering every database question, and
+  the "Missing sources" notice after restore could never appear.
+  The manual export download already captured this; the three other
+  backup paths now do too.
+
 ## 1.2.0 — 2026-09-17
 
 Phase 67 — the toolbar is gone and the Training icon is recognisable.
