@@ -368,6 +368,60 @@ surface change:
   application's alone. It now names both landing keys, who writes each
   and when, and states that a first visit writes neither.
 
+### The browser suite, re-run here (302 tests, 279 passed)
+
+The whole suite was run against the dev server with the bundled
+Chromium. Twenty-three failed, and each was traced rather than counted:
+
+- **Fourteen `visual.spec.ts` baselines.** Linux baselines are
+  committed, but this machine has Chromium 1194 where the repository's
+  Playwright pins 1234, so the whole page rasterises differently: the
+  diffs are 17–67 % of all pixels. `board-pieces` — a board crop with no
+  sidebar and no Training icon in it — differs by 67 %, which is what
+  rules the icon out as the cause (a 21 px icon is ~0.03 % of a page).
+  Nothing was written into the snapshot directory.
+- **Three `prod-phase60.spec.ts`.** They drive the live
+  `kingfisherchess.app`, and fail at `ERR_CERT_AUTHORITY_INVALID`: this
+  sandbox terminates HTTPS with its own CA, which Chromium does not
+  trust.
+- **One `en-croissant.spec.ts`**, which was this run's own fault: the
+  companion was given a fixed data directory instead of the per-process
+  one `playwright.config.ts` uses, so the second import of the fixture
+  reported `0 imported · 60 duplicates`, exactly as that spec's own
+  comment predicts. It passes on a cleared directory.
+- **Three already on the list above** — `phase60-regressions` tour
+  dismissal, `phase8` review candidates, and `settings.spec.ts`'s "every
+  setting has a test". They reproduce precisely as this report describes
+  them.
+- **One that was not on the list, and is a real defect.**
+
+### `stale-responses.spec.ts` — the explorer settles on a stale position
+
+`the explorer ends on the position and source the user actually chose`
+fails: after the raced walk the explorer shows the evidence for the
+position after **1. e4** (`c5:40,519/41%`, `e5:32,342/33%`, …) where the
+deliberate walk to the same position gives the position after
+**1. e4 e5 2. Nf3** (`Nc6:26,960/88%`, `Nf6:3,316/11%`, …). That is the
+staleness the spec exists to catch, and the rows are not close: they are
+a different position's evidence entirely.
+
+It is **not this phase's**. It reproduces on an idle machine in
+isolation, and it fails identically at `b251020`, the commit before this
+phase began:
+
+```
+git checkout b251020
+npx playwright test e2e/stale-responses.spec.ts
+  1 failed  the explorer ends on the position and source the user actually chose
+```
+
+Nothing in Phase 71 touches the explorer; the only Studio-side change is
+`AppShell` writing a `localStorage` flag on mount. This belongs to the
+audit that follows, with the other pre-existing findings above, and it
+should be treated as a product defect rather than a test to relax —
+"provenance is never lost" and a source's numbers being labelled with
+that source are what this test is defending.
+
 ### Still not run here
 
 `npm run test:e2e` cannot be run as the project defines it on this
