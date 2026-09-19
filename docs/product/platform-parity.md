@@ -24,20 +24,34 @@ validation, scheduled backup preference serialization, and an incorrect
 native-companion prerequisite on the AI assistant panel. The engine toolbar
 also wraps controls to keep the engine selector readable in a narrow panel.
 
-**Published revision check (Phase 71, Mac-facing, release pending).**
-Phase 71 changed application code the Mac shell renders: the Training
-icon (`src/components/icons.tsx`, `Recall`) is redrawn, and `AppShell`
-writes the `kingfisher.studio.visited` marker on mount (inert on the
-desktop — the shell never loads the landing). Everything else in the
-phase is web-only: the landing page (`src/app/landing/`), its captures,
-the `/studio` redirect in `next.config.ts` and the favicon set in
-`src/app/`. Nothing touches `desktop/src/` or the Electron shell. The
-public Mac 1.2.0 (build 651) therefore still shows the previous Training
-icon until the next Mac release, which is Section B of After-a-fix and
-has not been run for this phase: it is a version bump, a signed and
-notarised build and a public release, and it is left for the owner to
-trigger deliberately. The web at `kingfisherchess.app` shows the new
-icon from this commit.
+**Published revision check (2026-09-19, 1.2.1).** The public Mac 1.2.1
+(build 667, `359193c`) is built from the `v1.2.1` tag's revision, which is
+the revision `kingfisherchess.app` served when it was built
+(`deploy:status` at that commit: up to date). It carries everything the
+web had shipped since 1.2.0: the knight Training icon, the tour mounted
+again and opened from Settings → Help only (with `tourShowOnLaunch`
+retired by a version-6 preferences migration, which `desktop:upgrade`
+showed a real 1.2.0 profile surviving), the status bar's backup reminder
+reading `autoBackupReminderDays`, and Phase 70's auto-backup reference
+sources. Web-only by design and unchanged for the desktop: the landing,
+its captures, the favicon set and the `/studio` alias — the shell opens
+on `/analysis` and never loads the landing, and `AppShell`'s
+`kingfisher.studio.visited` marker is inert there. Nothing under
+`desktop/src/` changed between 1.2.0 and 1.2.1. The Mac is not behind
+`master` at this commit; the record below is the history of how it got
+here.
+
+**Published revision check (Phase 71, Mac-facing — released as 1.2.1
+above).** Phase 71 changed application code the Mac shell renders: the
+Training icon (`src/components/icons.tsx`, `Recall`) is redrawn, and
+`AppShell` writes the `kingfisher.studio.visited` marker on mount (inert
+on the desktop — the shell never loads the landing). Everything else in
+the phase is web-only: the landing page (`src/app/landing/`), its
+captures, the `/studio` redirect in `next.config.ts` and the favicon set
+in `src/app/`. Nothing touches `desktop/src/` or the Electron shell. The
+public Mac 1.2.0 (build 651) showed the previous Training icon until
+1.2.1, which is Section B of After-a-fix run in full on 2026-09-19
+(`docs/reports/phase-71-handover.md`).
 
 **Published revision check (Phase 70, web only).** Phase 70 changed four
 src/ files plus the diagnostic script and `.gitignore`: `runAutoBackup`
