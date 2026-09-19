@@ -42,7 +42,7 @@ async function withPreference(page: Page, key: string, value: unknown, route = '
   await page.evaluate(
     ({ key, value, storeKey }) => {
       const raw = window.localStorage.getItem(storeKey);
-      const parsed = raw ? JSON.parse(raw) : { state: {}, version: 5 };
+      const parsed = raw ? JSON.parse(raw) : { state: {}, version: 6 };
       parsed.state = { ...parsed.state, [key]: value };
       window.localStorage.setItem(storeKey, JSON.stringify(parsed));
     },
@@ -62,6 +62,109 @@ const stored = (page: Page, key: string) =>
     },
     { storeKey: KEY, key },
   );
+
+/** Set several preferences at once, then load the page with them in force. */
+async function withPreferences(page: Page, values: Record<string, unknown>, route = '/analysis') {
+  if (!page.url().includes(route)) {
+    await page.goto(route);
+    await page.locator(READY).waitFor();
+  }
+  await page.evaluate(
+    ({ values, storeKey }) => {
+      const raw = window.localStorage.getItem(storeKey);
+      const parsed = raw ? JSON.parse(raw) : { state: {}, version: 6 };
+      parsed.state = { ...parsed.state, ...values };
+      window.localStorage.setItem(storeKey, JSON.stringify(parsed));
+    },
+    { values, storeKey: KEY },
+  );
+  await page.goto(route);
+  await page.locator(READY).waitFor();
+  await page.waitForTimeout(400);
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * The auto-backup store, read and seeded directly.
+ *
+ * The three auto-backup settings act on launch, on the `backups` object
+ * store, and their effect is what that store holds afterwards — so the
+ * assertions below seed it with backups of a chosen age, reload, and read it
+ * back, rather than waiting days.
+ */
+async function backupRows(page: Page) {
+  return page.evaluate(async () => {
+    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open('kingfisher');
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    try {
+      return await new Promise<{ id: string; createdAt: number; reason?: string }[]>(
+        (resolve, reject) => {
+          const request = db.transaction('backups').objectStore('backups').getAll();
+          request.onsuccess = () =>
+            resolve(
+              (request.result as { id: string; createdAt: number; reason?: string }[]).map(
+                ({ id, createdAt, reason }) => ({ id, createdAt, reason }),
+              ),
+            );
+          request.onerror = () => reject(request.error);
+        },
+      );
+    } finally {
+      db.close();
+    }
+  });
+}
+
+/** Replace every backup with one seeded row per age given, in days. */
+async function seedBackups(page: Page, agesInDays: readonly number[]) {
+  await page.evaluate(
+    async ({ ages, dayMs }) => {
+      const db = await new Promise<IDBDatabase>((resolve, reject) => {
+        const request = indexedDB.open('kingfisher');
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      try {
+        await new Promise<void>((resolve, reject) => {
+          const transaction = db.transaction('backups', 'readwrite');
+          const store = transaction.objectStore('backups');
+          store.clear();
+          for (const age of ages) {
+            const createdAt = Date.now() - age * dayMs;
+            store.put({
+              id: `seeded-${age}`,
+              createdAt,
+              reason: 'scheduled',
+              payload: JSON.stringify({ seeded: age }),
+            });
+          }
+          transaction.oncomplete = () => resolve();
+          transaction.onerror = () => reject(transaction.error);
+        });
+      } finally {
+        db.close();
+      }
+    },
+    { ages: agesInDays, dayMs: DAY_MS },
+  );
+}
+
+/**
+ * A launch that writes no backup, so the store can be seeded without racing
+ * the previous launch's own backup — which is composed after the page is
+ * ready and lands whenever it lands.
+ */
+async function quietLaunch(page: Page) {
+  await withPreferences(page, { autoBackupEnabled: false });
+}
+
+/** Backups taken by the launch just performed, as opposed to the seeded ones. */
+const fresh = <T extends { id: string; createdAt: number }>(rows: T[]) =>
+  rows.filter((row) => !row.id.startsWith('seeded-') && Date.now() - row.createdAt < 60_000);
 
 /** A value distinguishable from the default, for any preference's type. */
 function differentFrom(value: unknown): unknown {
@@ -369,6 +472,81 @@ const RUNTIME: Record<string, (page: Page) => Promise<void>> = {
       'true',
     );
   },
+
+  autoBackupEnabled: async (page) => {
+    /*
+      Off: a launch with no backup at all takes none, and the status bar says
+      so. On: the same launch takes one, marked scheduled, and the status bar
+      moves to "today".
+    */
+    await quietLaunch(page);
+    await seedBackups(page, []);
+    await withPreferences(page, { autoBackupEnabled: false });
+    await page.waitForTimeout(1_500);
+    expect(fresh(await backupRows(page))).toEqual([]);
+    await expect(page.getByRole('button', { name: /No backup yet/ })).toBeVisible();
+
+    await seedBackups(page, []);
+    await withPreferences(page, { autoBackupEnabled: true });
+    await expect.poll(async () => fresh(await backupRows(page)).length).toBe(1);
+    expect(fresh(await backupRows(page))[0]?.reason).toBe('scheduled');
+    await expect(page.getByRole('button', { name: /Last backup today/ })).toBeVisible();
+  },
+
+  autoBackupReminderDays: async (page) => {
+    /*
+      Two things hang off the number of days. The schedule: a three-day-old
+      backup is fresh enough on a seven-day schedule and overdue on a two-day
+      one, so only the second launch takes a new backup. The reminder: with
+      the cycle switched off, so nothing replaces the old backup, the status
+      bar calls the same three-day-old backup fine at seven and overdue at two.
+    */
+    await quietLaunch(page);
+    await seedBackups(page, [3]);
+    await withPreferences(page, { autoBackupEnabled: true, autoBackupReminderDays: 7 });
+    await page.waitForTimeout(1_500);
+    expect(fresh(await backupRows(page)), 'a 3-day-old backup is not due at 7').toEqual([]);
+
+    await quietLaunch(page);
+    await seedBackups(page, [3]);
+    await withPreferences(page, { autoBackupEnabled: true, autoBackupReminderDays: 2 });
+    await expect
+      .poll(async () => fresh(await backupRows(page)).length, 'a 3-day-old backup is due at 2')
+      .toBe(1);
+
+    const indicator = page.getByRole('button', { name: /Last backup 3 days ago/ });
+    await quietLaunch(page);
+    await seedBackups(page, [3]);
+    await withPreferences(page, { autoBackupEnabled: false, autoBackupReminderDays: 7 });
+    await expect(indicator).toHaveAttribute('title', /Backed up 3 days ago/);
+    await withPreferences(page, { autoBackupEnabled: false, autoBackupReminderDays: 2 });
+    await expect(indicator).toHaveAttribute('title', /Backup is 3 days old/);
+  },
+
+  autoBackupRetention: async (page) => {
+    /*
+      Four old backups and a launch that takes a fifth: retention 2 leaves the
+      new one and the newest old one; retention 5 keeps all five.
+    */
+    await quietLaunch(page);
+    await seedBackups(page, [10, 11, 12, 13]);
+    await withPreferences(page, {
+      autoBackupEnabled: true,
+      autoBackupReminderDays: 7,
+      autoBackupRetention: 2,
+    });
+    await expect
+      .poll(async () => (await backupRows(page)).map((row) => row.id).sort())
+      .toEqual(expect.arrayContaining(['seeded-10']));
+    await expect.poll(async () => (await backupRows(page)).length).toBe(2);
+    expect(fresh(await backupRows(page))).toHaveLength(1);
+
+    await quietLaunch(page);
+    await seedBackups(page, [10, 11, 12, 13]);
+    await withPreferences(page, { autoBackupEnabled: true, autoBackupRetention: 5 });
+    await expect.poll(async () => fresh(await backupRows(page)).length).toBe(1);
+    await expect.poll(async () => (await backupRows(page)).length).toBe(5);
+  },
 };
 
 test.describe('every setting', () => {
@@ -388,7 +566,7 @@ test.describe('every setting', () => {
       await page.evaluate(
         ({ storeKey, key, value }) => {
           const raw = window.localStorage.getItem(storeKey);
-          const parsed = raw ? JSON.parse(raw) : { state: {}, version: 5 };
+          const parsed = raw ? JSON.parse(raw) : { state: {}, version: 6 };
           parsed.state = { ...parsed.state, [key]: value };
           window.localStorage.setItem(storeKey, JSON.stringify(parsed));
         },

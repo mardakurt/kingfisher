@@ -87,17 +87,30 @@ async function explorerState(page: Page) {
       // The move list *and* its numbers. The moves alone would match between
       // two positions that share their most-played continuations.
       rows,
-      fen: document.querySelector<HTMLElement>('[data-fen]')?.dataset.fen ?? null,
+      // The board's own position, from the status bar's FEN — so a walk that
+      // never arrived can be told apart from an explorer that answered late.
+      fen: document.querySelector<HTMLElement>('[data-fen-tooltip]')?.textContent ?? null,
     };
   });
 }
 
-/** Play a move from the board's move list, by its SAN, without waiting. */
-const playMove = (page: Page, san: string) =>
-  page.evaluate((move) => {
-    const button = document.querySelector<HTMLElement>(`[data-explorer-move="${move}"]`);
-    button?.click();
-  }, san);
+/**
+ * Play a move on the board, square to square, without waiting for anything
+ * the explorer does.
+ *
+ * Not through the explorer's own rows. A row exists only once the explorer
+ * has answered for the position on the board, so clicking rows "without
+ * waiting" was a race the panel could not lose: a click that found no row
+ * played nothing, and the walk simply stopped wherever the last answer had
+ * been rendered. The squares are always there.
+ */
+const square = (page: Page, name: string) =>
+  page.getByRole('gridcell', { name: new RegExp(`^${name},`) });
+
+const playMove = async (page: Page, from: string, to: string) => {
+  await square(page, from).click();
+  await square(page, to).click();
+};
 
 async function openExplorer(page: Page) {
   await page.goto('/analysis');
@@ -164,24 +177,34 @@ test('the explorer ends on the position and source the user actually chose', asy
   */
   await page.reload();
   await ready(page);
+  /*
+    The reload empties the query cache and the decoded shards, which is the
+    point of it — but autosave brings the deliberate walk's game back, board
+    and all. Left there, the race would start at its own destination and
+    every step of it would be a no-op; for two phases it was, and the
+    assertion below passed without a single query ever having been in
+    flight. Start again from the initial position.
+  */
+  await page.getByRole('button', { name: 'New analysis' }).click();
   const dock = page.locator('[data-workspace-dock]').first();
   await selectTool(page, dock, 'Explorer');
-  await expect(page.locator('[data-explorer-move]').first()).toBeVisible({ timeout: 60_000 });
+  await expect(page.locator('[data-explorer-move="e4"]')).toBeVisible({ timeout: 60_000 });
 
-  await playMove(page, 'e4');
-  await page.waitForTimeout(30);
-  await playMove(page, 'e5');
+  await playMove(page, 'e2', 'e4');
+  await playMove(page, 'e7', 'e5');
   if (other) {
     await select.selectOption(other);
     await select.selectOption(answering);
   }
-  await page.waitForTimeout(30);
-  await playMove(page, 'Nf3');
+  await playMove(page, 'g1', 'f3');
 
   // Let every in-flight answer land, including the ones now irrelevant.
   await page.waitForTimeout(5_000);
   const raced = await explorerState(page);
 
+  expect(raced.fen, 'the raced walk did not reach the position the deliberate one did').toBe(
+    deliberate.fen,
+  );
   expect(raced.source, 'the panel is showing a source the user switched away from').toBe(answering);
   expect(
     raced.rows,

@@ -53,7 +53,7 @@ const READY = 'html[data-kingfisher-ready="true"]';
 const browser = await chromium.launch({ channel: 'chrome' }).catch(() => chromium.launch());
 
 /**
- * A fresh profile with the tour off, the way every browser test starts.
+ * A fresh profile, the way every browser test starts.
  *
  * Durable storage is granted up front. A browser under automation has no
  * engagement history, so `navigator.storage.persist()` answers no and the
@@ -75,7 +75,7 @@ async function freshPage() {
   await context.addInitScript(() => {
     window.localStorage.setItem(
       'kingfisher.preferences',
-      JSON.stringify({ state: { tourShowOnLaunch: false }, version: 5 }),
+      JSON.stringify({ state: {}, version: 6 }),
     );
   });
   const page = await context.newPage();

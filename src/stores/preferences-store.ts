@@ -147,8 +147,6 @@ export interface Preferences {
   autoBackupReminderDays: number;
   /** How many auto-backups to keep (per platform). */
   autoBackupRetention: number;
-  /** Whether the first-run tour opens automatically on launch. */
-  tourShowOnLaunch: boolean;
 }
 
 interface PreferencesActions {
@@ -218,13 +216,6 @@ export const DEFAULT_PREFERENCES: Preferences = {
    * and prunes older ones; the web stores the last N in IndexedDB.
    */
   autoBackupRetention: 3,
-  /*
-   * First-run tour: show on the next launch, or only when the user
-   * opens it from Help. Defaults to true so a fresh install gets one
-   * walk-through; flipping it false is what the tour's "Don't show on
-   * launch" checkbox writes.
-   */
-  tourShowOnLaunch: true,
 };
 
 /**
@@ -255,7 +246,7 @@ export const usePreferences = create<Preferences & PreferencesActions>()(
     }),
     {
       name: 'kingfisher.preferences',
-      version: 5,
+      version: 6,
       storage: createJSONStorage(() => localStorage),
       /**
        * Phase 3 replaced two booleans with named scales. Migrating rather than
@@ -296,6 +287,17 @@ export const usePreferences = create<Preferences & PreferencesActions>()(
         */
         if (version < 5 && state.boardTheme === 'walnut') {
           state = { ...state, boardTheme: 'midnight' };
+        }
+
+        /*
+          Phase 61 stopped opening the tour on launch, and the preference that
+          decided it kept being stored — with a checkbox in the tour still
+          writing it and nothing anywhere reading it. Phase 71 removes the key.
+          The tour itself stays, opened on demand from Settings → Help.
+        */
+        if (version < 6) {
+          const { tourShowOnLaunch: _tourShowOnLaunch, ...rest } = state;
+          state = rest;
         }
 
         return state as unknown as Preferences;

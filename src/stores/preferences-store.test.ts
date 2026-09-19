@@ -127,6 +127,29 @@ describe('preferences store', () => {
     usePreferences.getState().set('lichessToken', 'secret-token');
     expect(localStorage.getItem('kingfisher.preferences') ?? '').toContain('secret-token');
   });
+
+  it('drops the retired tour-on-launch key from a version-5 profile', async () => {
+    /*
+      Every profile written between Phase 56 and Phase 71 holds
+      `tourShowOnLaunch`. The key has meant nothing since Phase 61; rehydrating
+      an old profile must neither keep it nor lose the settings beside it.
+    */
+    localStorage.setItem(
+      'kingfisher.preferences',
+      JSON.stringify({
+        state: { theme: 'light', tourShowOnLaunch: false, autoBackupRetention: 9 },
+        version: 5,
+      }),
+    );
+    await usePreferences.persist.rehydrate();
+    const state = usePreferences.getState() as unknown as Record<string, unknown>;
+    expect(state).not.toHaveProperty('tourShowOnLaunch');
+    expect(state.theme).toBe('light');
+    expect(state.autoBackupRetention).toBe(9);
+    const persisted = JSON.parse(localStorage.getItem('kingfisher.preferences') ?? '{}');
+    expect(persisted.version).toBe(6);
+    expect(persisted.state).not.toHaveProperty('tourShowOnLaunch');
+  });
 });
 
 describe('resolveAnimationMs', () => {

@@ -50,6 +50,18 @@ Phase numbers below this header will be moved into a dated `## <version>` sectio
   icons from), and the Apple touch icon no longer has transparent
   corners that iOS painted black. Search engines refresh cached icons
   on their own schedule. (Phase 71)
+- **The tour opens again — from Settings, and only from there.** Phase
+  61 stopped the sidebar tour opening on launch and unmounted it; Phase
+  62 added _Open the tour guide of the website_ to Settings → Help,
+  which set a flag nothing rendered. The dialog is mounted again and
+  that link opens it, with ←/→ and Esc as before. The _Don't show on
+  launch_ checkbox is gone with the preference behind it, which had
+  meant nothing since Phase 61; an older profile drops the key on its
+  next load. (Phase 71)
+- **The backup reminder honours your schedule.** The status bar's
+  backup indicator turned amber after seven days whatever
+  _Auto-backup schedule_ said; it now turns at the number of days you
+  set, which the auto-backup cycle was already using. (Phase 71)
 
 - **Auto-backup now records which reference packs were installed.**
   Scheduled backups (on launch and on the cycle) and the manual

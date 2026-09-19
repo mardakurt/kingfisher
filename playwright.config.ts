@@ -71,8 +71,10 @@ export default defineConfig({
     // server advertises localhost; using the canonical host keeps hydration
     // and browser event handlers deterministic.
     baseURL: 'http://localhost:3210',
-    // Ordinary workflow tests start after onboarding. Fresh-install and tour
-    // regressions override this with empty storage and exercise dismissal.
+    // Every test starts on a written, empty preferences profile at the
+    // current schema version. Nothing opens on launch any more (Phase 61
+    // dropped the tour and the name prompt); fresh-install regressions
+    // still override this with no storage at all and assert exactly that.
     storageState: {
       cookies: [],
       origins: [
@@ -81,7 +83,7 @@ export default defineConfig({
           localStorage: [
             {
               name: 'kingfisher.preferences',
-              value: JSON.stringify({ state: { tourShowOnLaunch: false }, version: 5 }),
+              value: JSON.stringify({ state: {}, version: 6 }),
             },
           ],
         },

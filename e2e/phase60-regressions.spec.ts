@@ -22,21 +22,40 @@ async function backups(page: Page) {
   });
 }
 
-test('tour dismissal survives reload, including Escape from its checkbox', async ({ page }) => {
+test('the tour opens from Settings only, steps by keyboard, and stays closed after a reload', async ({
+  page,
+}) => {
+  /*
+    Phase 61 stopped the tour opening on launch; Phase 62 added "Open the
+    tour guide" to Settings → Help; nothing mounted the dialog the link
+    opened until Phase 71. So the three claims here: a fresh profile gets no
+    tour, the link opens it, and a reload does not bring it back.
+  */
   await page.goto('/analysis');
   await ready(page);
   await page.evaluate(() => localStorage.removeItem('kingfisher.preferences'));
   await page.reload();
+  await ready(page);
   const tour = page.getByRole('dialog', { name: /^Tour/ });
+  await page.waitForTimeout(500);
+  await expect(tour).toBeHidden();
+
+  await page.getByRole('button', { name: 'Settings ⌘,' }).click();
+  await page.getByRole('tab', { name: 'Diagnostics', exact: true }).click();
+  await page.locator('[data-open-tour]').click();
   await expect(tour).toBeVisible();
-  await tour.getByRole('button', { name: 'Next', exact: true }).focus();
+  await expect(tour).toHaveAccessibleName(/step 1 of/);
   await page.keyboard.press('ArrowRight');
   await expect(tour).toHaveAccessibleName(/step 2 of/);
-  await tour.getByRole('checkbox').focus();
+  await page.keyboard.press('ArrowLeft');
+  await expect(tour).toHaveAccessibleName(/step 1 of/);
   await page.keyboard.press('Escape');
   await expect(tour).toBeHidden();
+
   await page.reload();
   await ready(page);
+  await page.waitForTimeout(500);
+  await expect(tour).toBeHidden();
   await page.getByRole('button', { name: 'Settings ⌘,' }).click();
   await expect(page.getByRole('dialog', { name: 'Settings', exact: true })).toBeVisible();
   await expect(tour).toBeHidden();

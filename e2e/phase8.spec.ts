@@ -350,7 +350,9 @@ test('review candidates are suggested from stored evidence, with their reasons',
 
   await page.getByRole('button', { name: 'Suggest positions' }).click();
   await expect(page.getByText(/suggested for review/)).toBeVisible({ timeout: 20_000 });
-  await expect(page.getByText(/engine evaluation changed from \+0\.40 to -1\.80/)).toBeVisible();
+  // One decimal, the Lichess convention `formatScore` adopted in Phase 58;
+  // this expectation kept the two decimals of the original for ten phases.
+  await expect(page.getByText(/engine evaluation changed from \+0\.4 to -1\.8/)).toBeVisible();
 
   // Running it again adds nothing.
   await page.getByRole('button', { name: 'Suggest positions' }).click();

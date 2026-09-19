@@ -1,8 +1,8 @@
 /**
  * What every user-visible setting is supposed to do, and who does it.
  *
- * Kingfisher has thirty-three preferences across fourteen surfaces, which is
- * more than anybody can hold in their head — and Phase 17 opened with a
+ * Kingfisher has thirty-seven preferences across twenty-one consumer modules,
+ * which is more than anybody can hold in their head — and Phase 17 opened with a
  * reported bug where a setting persisted correctly, had two runtime consumers,
  * and still changed nothing a user could see. "It is wired up" turned out not
  * to be the same claim as "it works", so this table states both separately:
@@ -460,27 +460,6 @@ export const SETTING_CONTRACTS: readonly SettingContract[] = [
     control: 'features/shell/SettingsDialog.tsx',
     consumer: 'features/shell/useAutoBackup.ts',
     effect: 'How many auto-backups to keep.',
-    indexedAs: null,
-    previewable: false,
-  },
-  /*
-   * Phase 61: the first-run tour was removed. The preference below is
-   * retained so existing user storage does not silently lose a key, but
-   * the tour machinery no longer reads it — nothing mounts the tour, and
-   * nothing sets the preference on launch. The contract entry stays
-   * because the test asserts every preference in DEFAULT_PREFERENCES has
-   * one; the effect below describes what it *would* mean, not what
-   * currently happens, and the dead-code consumer/control files are
-   * still on disk.
-   */
-  {
-    key: 'tourShowOnLaunch',
-    label: 'First-run tour on launch (deprecated)',
-    surface: 'in-place',
-    control: 'features/shell/FirstRunTour.tsx',
-    consumer: 'features/shell/useFirstRunTour.ts',
-    effect:
-      'Whether the first-run tour opens automatically on app launch. The tour is disabled in this build; this preference is preserved for storage compatibility and has no effect.',
     indexedAs: null,
     previewable: false,
   },

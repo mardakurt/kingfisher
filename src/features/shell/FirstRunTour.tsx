@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * The first-run tour.
+ * The tour of the sidebar.
  *
  * Phase 56 change: new users used to be dropped into a 13-section
  * sidebar with no orientation. The tour walks through each section in
@@ -9,12 +9,14 @@
  * will do there.
  *
  * Phase 61: the tour is no longer opened automatically. Phase 56 had
- * it auto-open on first launch and remember the dismiss via
- * `tourShowOnLaunch`. The user wanted neither — neither the prompt
- * nor the opening tour. The tour is still reachable, on demand, from
- * Settings → Help (the link "Open the tour guide of the website").
- * The `tourShowOnLaunch` preference is preserved for storage
- * compatibility but has no effect.
+ * it auto-open on first launch and remember the dismiss via a
+ * `tourShowOnLaunch` preference. The user wanted neither — neither the
+ * prompt nor the opening tour. The tour is reachable on demand, from
+ * Settings → Help ("Open the tour guide of the website"), and that is
+ * the only way it opens. Phase 71 mounted it again — Phase 61 had
+ * unmounted the dialog and Phase 62 added the Settings link to a dialog
+ * nothing rendered — and removed the preference and its checkbox, which
+ * had gone on being written while nothing read them.
  *
  * Phase 57: keyboard navigation. Left/Right arrows advance and retreat
  * through the steps, Esc closes and marks the tour as seen (the same
@@ -39,7 +41,6 @@ import {
 } from '@/components/icons';
 import { Button } from '@/components/ui/Button';
 import { Dialog } from '@/components/ui/Dialog';
-import { usePreferences } from '@/stores/preferences-store';
 import { useUi } from '@/stores/ui-store';
 
 import { NAV_SECTIONS } from './navigation';
@@ -128,8 +129,6 @@ function sectionTourDetail(id: string): string {
 export function FirstRunTour() {
   const open = useUi((state) => state.tourOpen);
   const setOpen = useUi((state) => state.setTourOpen);
-  const prefs = usePreferences();
-  const showOnLaunch = prefs.tourShowOnLaunch ?? true;
   const [stepIndex, setStepIndex] = useState(0);
 
   const step = STEPS[stepIndex];
@@ -142,21 +141,16 @@ export function FirstRunTour() {
    * stable across renders so the effect's dependency array does not
    * re-register the listener on every render.
    */
-  const close = useCallback(
-    (markSeen: boolean) => {
-      if (markSeen) prefs.set('tourShowOnLaunch', false);
-      setOpen(false);
-      setStepIndex(0);
-    },
-    [prefs, setOpen],
-  );
+  const close = useCallback(() => {
+    setOpen(false);
+    setStepIndex(0);
+  }, [setOpen]);
 
   /*
    * Phase 57: keyboard navigation. The keyboard handler is registered
    * only while the dialog is open and ignores keystrokes typed into a
-   * real input — the "Don't show on launch" checkbox is the only one
-   * in the dialog, and toggling it with the spacebar should not also
-   * advance the tour. The hook is declared before the early return
+   * real input, so a field that later joins the dialog cannot advance
+   * the tour with a spacebar. The hook is declared before the early return
    * below so the hook order is stable across the open → closed →
    * open transition — otherwise the React rules-of-hooks lint trips
    * the moment the user closes the tour.
@@ -176,17 +170,13 @@ export function FirstRunTour() {
         setStepIndex((current) => Math.max(0, current - 1));
       } else if (event.key === 'Escape') {
         /*
-         * Escape closes and marks the tour as seen — the same behaviour
-         * the close button and the Skip / Done buttons trigger. The
-         * Dialog component also listens for Escape and calls onClose;
-         * if our handler runs first the second call is a no-op because
-         * `close(false)` short-circuits on a non-truthy markSeen, and
-         * `setOpen(false)` is idempotent. Calling close here means a
-         * keyboard-driven dismiss always commits, regardless of which
-         * listener wins the race.
+         * Escape closes — the same as the close button and the Skip /
+         * Done buttons. The Dialog component also listens for Escape and
+         * calls onClose; whichever listener wins, the second call is a
+         * no-op because `setOpen(false)` is idempotent.
          */
         event.preventDefault();
-        close(true);
+        close();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -197,18 +187,8 @@ export function FirstRunTour() {
 
   return (
     <Dialog
-      /*
-       * The Dialog's onClose fires when the user clicks the close
-       * button or the backdrop. Either way, they have chosen to leave
-       * the tour — and on the last step, that decision is final. The
-       * previous behaviour inverted this: clicking outside the LAST
-       * step kept the tour on the next launch, while clicking outside
-       * any earlier step turned it off. That made the last step the
-       * one place where a dismiss did not commit, which is the worst
-       * place to be lenient about the user's intent.
-       */
       open={open}
-      onClose={() => close(true)}
+      onClose={close}
       title={`Tour · step ${stepIndex + 1} of ${STEPS.length} · ←/→ to step · Esc to close`}
     >
       <div className="flex flex-col gap-4 px-1 py-1">
@@ -221,22 +201,13 @@ export function FirstRunTour() {
           </div>
         </div>
         <p className="text-2xs leading-relaxed text-secondary">{step.detail}</p>
-        <div className="flex items-center justify-between">
-          <label className="flex items-center gap-2 text-2xs text-tertiary">
-            <input
-              type="checkbox"
-              checked={!showOnLaunch}
-              onChange={(event) => prefs.set('tourShowOnLaunch', !event.target.checked)}
-              className="h-3.5 w-3.5 accent-accent"
-            />
-            <span>Don&apos;t show on launch</span>
-          </label>
+        <div className="flex items-center justify-end">
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={() => close(true)}>
+            <Button variant="ghost" size="sm" onClick={close}>
               Skip
             </Button>
             {isLast ? (
-              <Button variant="accent" size="sm" onClick={() => close(true)}>
+              <Button variant="accent" size="sm" onClick={close}>
                 Done
               </Button>
             ) : (
@@ -249,11 +220,4 @@ export function FirstRunTour() {
       </div>
     </Dialog>
   );
-}
-
-/**
- * Imperative entry point used by the Help menu and the launch hook.
- */
-export function startTour(): void {
-  useUi.setState({ tourOpen: true });
 }

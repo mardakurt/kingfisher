@@ -2656,11 +2656,10 @@ function HelpSection() {
         </li>
         {/*
           Phase 62: the tour is no longer opened on launch, but it is
-          still useful for users who want a guided walk-through. The link
-          below opens the same dialog the old "Replay" button opened,
-          now without resetting the (no-op) tourShowOnLaunch preference.
-          Phrased as "Open the tour guide" so the user does not think
-          they are starting a saved session.
+          still useful for users who want a guided walk-through. This
+          link is the only way it opens; the dialog itself is mounted by
+          AppShell. Phrased as "Open the tour guide" so the user does not
+          think they are starting a saved session.
         */}
         <li>
           <button

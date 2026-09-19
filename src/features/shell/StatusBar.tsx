@@ -7,6 +7,7 @@ import { cn } from '@/lib/cn';
 import { documentTitle } from '@/persistence/describe';
 import { selectFen, selectSaveState, useAnalysis } from '@/stores/analysis-store';
 import { useEngine } from '@/stores/engine-store';
+import { usePreferences } from '@/stores/preferences-store';
 import { useUi } from '@/stores/ui-store';
 
 import { daysSinceLastBackup } from './auto-backup';
@@ -34,7 +35,14 @@ export function StatusBar() {
   const backupAt = useAutoBackupState((state) => state.lastBackupAt);
   const backupStatus = useAutoBackupState((state) => state.status);
   const backupDays = daysSinceLastBackup(backupAt);
-  const backupDue = backupDays === null || backupDays > 7;
+  /*
+    The schedule the user set is the reminder threshold — the settings
+    contract has said so since Phase 56, and until Phase 71 this line held a
+    literal 7 instead, so a person on a two-day schedule was told a five-day
+    gap was fine.
+  */
+  const reminderDays = usePreferences((state) => state.autoBackupReminderDays);
+  const backupDue = backupDays === null || backupDays > reminderDays;
   const [copied, setCopied] = useState(false);
   const [showFen, setShowFen] = useState(false);
 
