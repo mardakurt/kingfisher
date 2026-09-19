@@ -433,3 +433,275 @@ release) is unchanged and still the owner's to trigger, and
 `deploy:status` needs a `VERCEL_TOKEN` this machine does not hold —
 though the live site demonstrably serves this commit's favicon set,
 captures and `/studio` redirect.
+
+## macOS close-out and the 1.2.1 release (2026-09-19, the maintainer's Mac)
+
+The cloud checkout above could not run real Chrome, sign anything or
+open a window. This pass equalised the repositories, ran what Linux
+could not, resolved the six open items, and ran Section B of
+`docs/operations/after-a-fix.md` in full. Everything below was run on
+this machine; nothing is carried over from the section above.
+
+### Equalising
+
+```
+git fetch origin claude/kingfisher-enhancements-h6h15h
+git log --oneline master..FETCH_HEAD      42421bd, efaf459 — exactly the two
+git diff --stat master FETCH_HEAD         4 files (the prompt said five; there
+                                          were four: CHANGELOG, public-claims,
+                                          this handover, PrivacyPage.tsx)
+git merge --ff-only FETCH_HEAD            fast-forward, fe96dc5..efaf459
+git push origin master                    efaf459
+deploy:status                             up to date (efaf459), 25 min later
+```
+
+### The gates Linux could not close (at efaf459, then at 58f968b)
+
+```
+npm ci                       clean
+npm run typecheck            clean
+npm run lint                 clean
+npm run format:check         All matched files use Prettier code style
+npm test                     252 files, 3051 passed, 0 skipped — the two Linux
+                             failures were sparkle-updater's macOS-only branch
+npm run test:no-skips        OK
+npm run docs:check           344/344 — the Linux miss was the git-ignored
+                             .vercel/project.json
+npm run build                Compiled successfully; 33 static pages
+npm run public:check         All 22 public link(s) responded successfully
+npm run benchmark            heaviest route /review at 523.9 kB gzipped
+git diff --check             clean
+npm run test:e2e             baseline at efaf459: 297 passed, 5 failed (20.2 m)
+                             certified at 58f968b: 305 passed, 0 failed,
+                             0 flaky (17.2 m) — channel chrome (Google Chrome
+                             153.0.8010.53), retries = 0, against npm run dev
+```
+
+The five baseline failures were the five the section above predicted;
+`stale-responses.spec.ts:113` **passed** on this machine, at efaf459,
+five times out of five including under 6× CPU throttling — see below
+for why that was no comfort.
+
+### The six open items, and what each turned out to be
+
+**(a) `stale-responses.spec.ts` — the explorer race.** The premise
+handed to this pass was a product defect. It is not one. Instrumenting
+the raced walk showed every one of its three clicks reporting
+`found: false`: the walk plays moves by clicking explorer _rows_, a row
+exists only once the explorer has answered for the position on the
+board, and — the actual cause — `page.reload()` before the race
+**restores the deliberate walk's game** through autosave, so the race
+began at its own destination with rows for 1. e4 e5 2. Nf3 already on
+screen. Nothing was clicked, nothing was queried, and the assertion
+compared a restored panel with itself. On the cloud machine the reload
+caught a different autosave draft, the same no-op walk ended on a
+different restored position, and the mismatch read as a stale answer.
+The `fen` the spec captured was read from `[data-fen]`, which has not
+existed for some time (`null` on both sides), so it could not have told
+the two apart.
+
+The product keys every explorer answer by its position
+(`useExplorer`'s query key carries `fen`; `ExplorerResult` carries the
+`fen` it answers; `PackReader` is keyed by position). The test now
+resets to the start position after the reload (the `New analysis`
+button), plays the three moves on the board squares — which are always
+there — with the source switched away and back between them, and
+asserts the board's FEN (from `[data-fen-tooltip]`) as well as the
+rows against the oracle. Shown able to fail: removing `fen` from the
+explorer's query key fails the test (at the oracle walk, since that
+guard's removal stales the deliberate walk too). No product change was
+made, and no defensive `data.fen === node.fen` check was added: the
+query key already guarantees it, and a check that cannot fire is dead
+code.
+
+**(b) The tour.** Phase 61 unmounted `FirstRunTour` so it would stop
+opening on launch; Phase 62 added _Open the tour guide of the website_
+to Settings → Help, which set `tourOpen` for a dialog nothing rendered.
+Product decision, following the two owner decisions on record: the tour
+opens **from Settings only**. `AppShell` mounts it again; the
+_Don't show on launch_ checkbox is removed, and `tourShowOnLaunch` —
+written by that checkbox and read by nothing since Phase 61 — is
+retired by a version-6 preferences migration (unit-tested against a
+version-5 blob; `desktop:upgrade` later showed a real 1.2.0 profile's
+`boardTheme` surviving it). `useFirstRunTour.ts` is deleted.
+`phase60-regressions.spec.ts` now asserts no tour on a fresh profile,
+the Settings link opening it, ←/→/Esc, and nothing reopening after a
+reload; unmounting the dialog again fails it.
+
+**(c) The four settings without an assertion.** `tourShowOnLaunch` is
+gone (above). For the three auto-backup settings, reading the consumer
+turned up a product defect: the contract says `autoBackupReminderDays`
+is "the status-bar reminder threshold", and `StatusBar.tsx` held a
+literal `7`. It reads the preference now. `e2e/settings.spec.ts` has a
+runtime assertion for each of the three — seed the `backups` store with
+rows of a chosen age, reload, read back what the launch did — and the
+reminder one fails against the literal (`Received "Backed up 3 days
+ago"`, expected `Backup is 3 days old`). A first draft raced the
+previous launch's own backup write; each measured launch is now
+preceded by one with auto-backup off. Run ×3: 9/9.
+
+**(d) `phase8.spec.ts:283`.** The expectation was wrong. Phase 58
+(`b8de88b`) moved `formatScore` to one decimal — the Lichess convention
+— and updated three unit-test files; this e2e kept `+0.40 to -1.80`.
+Now `+0.4 to -1.8`.
+
+**(e) The board baselines.** The board did not change. The Sep 16
+`board-pieces` crops contain the floating _Analyse_ pill Phase 62 added
+over the h1 corner and Phase 67 removed: 2,433 differing pixels, every
+one inside the box (485,543)–(571,573), same 584 × 583 dimensions. The
+two darwin baselines were regenerated once, for that reason. The other
+darwin baselines passed as committed.
+
+**AGENTS.md** said thirty-three preferences; there are thirty-seven
+(and were thirty-eight). Both counts corrected.
+
+### The landing captures (section 4)
+
+Not re-captured. Real Chrome 153 on macOS refuses durable storage to an
+automation profile exactly as the cloud's Chromium did: Playwright's
+`persistent-storage` grant is unknown to the channel; the CDP
+`Browser.grantPermissions` `durableStorage` grant is accepted and
+`navigator.storage.persist()` still answers `false`, headed or headless.
+"Storage is not protected" is therefore a true statement about the
+profile in the picture and stays. `explorer.lichess.ovh` answers 401
+from this machine too, with or without a user agent, and no Lichess
+token exists here, so Lichess Masters cannot be the Research image's
+second source honestly. Nothing in the Studio's rendered surface
+changed in this pass, so the committed captures are current; the live
+ones are byte-identical to the repository's (`shasum` of all three).
+
+### Section B, in the runbook's order
+
+```
+B1  npm version 1.2.1 (root, desktop), lockfiles       1.2.0 → 1.2.1 only
+B2  CHANGELOG: Unreleased → ## 1.2.1 — 2026-09-19
+B3  docs/release/1.2.1.md; docs/README.md link
+B4  commit 359193c, push; HEAD = origin/master; tree clean
+B5  source ~/.kingfisher-release/env.sh
+B6  desktop:release:preflight:mac                       GREEN (identity 3B5CYF9DQ4,
+                                                        API key, master, clean, in sync,
+                                                        versions agree, 71 GB free)
+    desktop:sparkle:fetch                               Sparkle 2.10.0 is vendored
+    desktop:sparkle:bridge                              Sparkle bridge is current
+B7  npm run build                                       Compiled successfully
+B8  KINGFISHER_DESKTOP_CHANNEL=stable desktop:dist      Build identity: 1.2.1 · build 667 ·
+                                                        359193c · stable; notarization
+                                                        successful; fresh packaged boot
+                                                        verified (renderer, web, companion,
+                                                        engine catalogue, Sparkle 2.10.0)
+B9  release:mac:notarize <dmg>                          Accepted — submission 7be3f33b…;
+                                                        ticket stapled and validated
+B10 desktop:trust:verify                                GREEN — 29 code objects, stapled
+                                                        ticket validates, Gatekeeper accepts
+B11 verify-dmg.mjs --version 1.2.1 --commit 359193c…    DMG verified
+    desktop:certify (run 1)                             9/10 — suspend failed once, see below
+    desktop:certify (run 2)                             DESKTOP CERTIFIED — smoke 17/17,
+                                                        chrome 109/109, restart 5/5,
+                                                        engines 25/25, suspend 12/12,
+                                                        walk seed 46 (200) 0 findings,
+                                                        walk seed 7 (120, faults) 0 findings,
+                                                        dmg verified, no skips, 3051 unit
+    KINGFISHER_DESKTOP_PREV=<published 1.2.0> desktop:upgrade
+                                                        7/7 — 1.2.0 (651) → 1.2.1 (667);
+                                                        study, preferences (boardTheme sage,
+                                                        through the v6 migration), pack
+                                                        metadata all there
+    release:mac:appcast --zip <1.2.1 zip>               appcast.xml (build 667, signed,
+                                                        notes embedded), latest-mac.yml,
+                                                        1.2.1.html
+B14 release:mac:publish v1.2.1 "Kingfisher 1.2.1"       tag v1.2.1 at 359193c; 6 assets
+B15 gh release edit v1.2.1 --notes-file … --latest      Latest; not draft, not pre-release;
+                                                        publishedAt 2026-09-19T16:02:17Z
+B13 desktop:update:real --current <1.2.0> --public-feed Real update: PASS (19 checks, Sparkle's
+                                                        own window, relaunch on the test
+                                                        profile, study still there)
+    desktop:update:real --current <1.1.7> --public-feed Real update: PASS (16 checks, the
+                                                        electron-updater dialog, latest-mac.yml)
+B16 src/release/macos-download.json                     1.2.1 · 667 · 359193c ·
+                                                        Kingfisher-1.2.1-arm64.dmg ·
+                                                        sha256 9dab3692… · 172,114,997 bytes
+                                                        (GitHub reports the same count)
+B17 publish:release-manifest                            prepared for 1.2.1
+B18 README, SECURITY, install-macos (file + hash),
+    launch-kit, public-claims, SecurityPage.tsx, AGENTS.md
+B19 docs:check                                          344/344
+B20 commit 7034af1, push; deploy:status                 up to date (7034af1)
+B21 desktop:public:verify -- --landing --full           66/66 — PUBLIC DMG VERIFIED (every
+                                                        byte; 172,114,997 bytes in 18.5 s;
+                                                        landing and install guide link and
+                                                        name the file)
+```
+
+The previous builds: `Kingfisher-1.2.0-arm64.zip` and
+`Kingfisher-1.1.7-arm64.zip` were downloaded from their releases and
+matched their published `SHA256SUMS` before being used
+(`~/Library/Caches/kingfisher/release-<v>/`).
+
+**Certify, run 1.** The suspend gate failed one check, "the engine
+panel says something true about itself" — `[data-workspace-dock]`'s
+`innerText` was empty immediately after `SIGCONT`, once. A diagnostic
+copy of the harness that dumps the dock's geometry and text on both
+sides showed the dock at 380 × 840, `display: flex`, 22,883 bytes of
+markup and full text before and after; the unmodified harness passed
+three further times standalone, and run 2 of certify passed it 12/12.
+Not reproduced; recorded rather than explained. Two things the harness
+should say about itself: its "an engine that has been asked a question"
+premise is silently unmet — it looks for _Analyse this position_, which
+Phase 67 removed (0 buttons; the check only asserts the dock has text)
+— and an empty `innerText` is not distinguished from a hidden dock.
+Left for the next pass; the harness was not changed under a release.
+
+### Confirmed by looking
+
+The packaged 1.2.1 (`mac-arm64/Kingfisher.app`, the bundle the DMG was
+archived from), driven through `scripts/desktop-lib/launch.mjs` on a
+fresh profile to `/training`: the Training row's icon is the knight
+(`M7 16h10v3H7z` plinth, the silhouette path), captured with
+`window.screenshot` — sidebar expanded and collapsed, dark and light —
+in the accent colour on the selected row beside the Endgame king.
+`screencapture` is blocked on this machine; the renderer's own capture
+is the evidence.
+
+The live site, in a browser at 1440 × 900: the landing (header centred,
+frame titled "Kingfisher 1.2.1", download card 1.2.1 · build 667 ·
+`Kingfisher-1.2.1-arm64.dmg` · SHA-256 `9dab3692…` · asset URL under
+`v1.2.1`); `/install` (1.2.1 build 667, the hash, no "1.2.0" anywhere);
+`/privacy` (both landing keys named, "a first visit writes neither");
+`/studio?stay=1` → `/analysis?stay=1`; `/training` draws the knight and
+opens no tour. Also by command: `/studio?stay=1&x=2` → 308 →
+`/analysis?stay=1&x=2`; `favicon.ico`, `icon.svg`, `icon1.png`,
+`apple-icon.png` all 200 with their types; the three captures
+byte-identical to the repository's.
+
+### The five closing questions of After-a-fix, section A
+
+1. **Same source, web and Mac?** Yes, and the Mac is no longer behind:
+   the public Mac is 1.2.1, build 667, from `359193c`, the commit the
+   web served when it was built (`deploy:status` at 359193c: up to
+   date). `platform-parity.md` records it. The docs commit `7034af1`
+   after it is documentation only.
+2. **Documents accurate and current?** `npm run docs:check` 344/344 at
+   `7034af1`; CHANGELOG, the 1.2.1 release note, platform-parity, the
+   settings contract and AGENTS.md's counts and DMG line were each
+   updated with the behaviour they describe.
+3. **Vercel production is the latest commit?** `deploy:status`:
+   `kingfisherchess.app: up to date (7034af1)`.
+4. **Version, build, filename and hash on the landing and install pages
+   are the descriptor's?** `docs:check` asserts it; `desktop:public:verify
+-- --landing` confirms the live pages link and name the file; looked
+   at both pages.
+5. **The DMG on GitHub is the latest Mac build and the one the
+   descriptor names?** `gh release list`: `v1.2.1` is Latest;
+   `desktop:public:verify -- --full`: every byte of the public DMG
+   hashes to the descriptor's SHA-256 and verifies as 1.2.1 / 667 /
+   359193c, signed and stapled.
+
+### What remains
+
+- The suspend harness's stale _Analyse this position_ selector and its
+  `innerText`-only dock check (above).
+- Google's cached favicon: nothing here can force it; re-indexing was
+  not requested.
+- The captures' "Storage is not protected" and the single-pack Research
+  comparison, for the reasons stated: neither can be changed honestly
+  from an automation profile without a Lichess token.
