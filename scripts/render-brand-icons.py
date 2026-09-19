@@ -26,7 +26,11 @@ SS = 4  # supersampling factor
 
 # (relative path, pixel size, kind)
 # `kind` controls how the mark is composited into the canvas:
-#   - "fullbleed" — the mark fills the canvas edge to edge (any-purpose icons).
+#   - "fullbleed" — the mark fills the canvas edge to edge, with the tile's
+#     rounded corners left transparent (any-purpose icons and favicons).
+#   - "square"    — the same, but the corners are filled: iOS composites the
+#     Apple touch icon onto black and then applies its own corner mask, so a
+#     transparent corner shows as a black one on the home screen.
 #   - "maskable"  — the mark is shrunk to ~60% of the canvas so the operating
 #     system's mask (which can crop a circular or rounded square from the icon)
 #     never clips the kingfisher mark. The 60% target follows the Web App
@@ -36,7 +40,12 @@ TARGETS = [
     ("public/icon-192.png", 192, "fullbleed"),
     ("public/icon-512.png", 512, "fullbleed"),
     ("public/icon-maskable-512.png", 512, "maskable"),
-    ("src/app/apple-icon.png", 180, "fullbleed"),
+    ("src/app/apple-icon.png", 180, "square"),
+    # A PNG favicon at a multiple of 48 px, the size Google's search-result
+    # favicon crawler asks for; the .ico carries 16/32/48 and the SVG has no
+    # size, and this is the one file that satisfies the crawler outright.
+    # Next's file convention links every `icon*` file in `src/app/`.
+    ("src/app/icon1.png", 96, "fullbleed"),
     # The desktop application icon. electron-builder derives every macOS,
     # Windows and Linux size from this one, so it is the largest the packagers
     # ask for rather than a size anything displays directly.
@@ -137,7 +146,9 @@ def render(size, kind="fullbleed"):
         tdraw.rectangle([x, y, x + w, y + h], fill=rect.get("fill"))
     mask = Image.new("L", canvas.size, 0)
     ImageDraw.Draw(mask).rounded_rectangle(
-        [0, 0, canvas.size[0] - 1, canvas.size[1] - 1], radius=14 * scale, fill=255
+        [0, 0, canvas.size[0] - 1, canvas.size[1] - 1],
+        radius=0 if kind == "square" else 14 * scale,
+        fill=255,
     )
     canvas.paste(tile, (0, 0), mask)
 

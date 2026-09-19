@@ -268,61 +268,30 @@ export const Target = (p: IconProps) => (
 /**
  * Training: a chess knight, the tactical piece.
  *
- * Phase 67 walked the silhouette down through three redesigns (the
- * L-shape, the horse-head-on-column, the muzzle-out curve). The owner
- * said the L-shape looked like a tent peg and the muzzle-out curve
- * looked like a snail. Phase 69 redraws the knight the way every
- * wooden chess set draws it: a wide plinth, a vertical body column,
- * and on top of that a horse head whose silhouette is a clear
- * "head-on-column" — a recognisable mane curve on the back, an ear
- * notch at the top, a muzzle pointing right, and a chest that flows
- * back down to the base. At 16 px the silhouette alone (column with
- * a head-bump to the right) survives; at 21 px the eye becomes
- * visible; at 24 px every detail reads.
+ * With the pawn in Openings and the king in Endgame, the knight makes the
+ * three sections that carry a piece read as one family: the piece the phase
+ * is about, drawn as an outline on the same plinth. Phases 67–69 tried to
+ * describe the head feature by feature (a mane, an ear notch, a muzzle and an
+ * eye, on a column) and every version at 21 px read as something else — a
+ * tent peg, a desk lamp, a snail — because a knight is not its features, it
+ * is its silhouette: a muzzle pointing one way, an ear pointing up, and a
+ * neck curving down behind them. This is that silhouette and nothing more:
+ * one closed path, no interior detail, the muzzle to the left as every
+ * icon set draws it, and the king's plinth beneath so the two pieces line up
+ * in the rail. The head is drawn large — the piece fills 12 of the 24
+ * units — so it keeps the optical weight of the magnifier and the bullseye
+ * next to it rather than shrinking into a smudge at 16 px.
  */
 export const Recall = (p: IconProps) => (
   <Icon {...p}>
-    {/* Plinth — the wider rectangle the piece sits on. */}
-    <path d="M 4 19 H 20 V 21 H 4 Z" />
+    {/* The plinth, the same one the Endgame king stands on. */}
+    <path d="M7 16h10v3H7z" />
     {/*
-      Horse head + body, one continuous outline, traced clockwise:
-      up the body, up the mane, across the top, down behind the ear,
-      over to the muzzle, around the muzzle tip, back along the jaw,
-      across the throat, and down to the base. The Q curves are
-      what give the head its shape — straight segments read as a
-      rectangle at every size the sidebar uses.
+      Head and neck, one outline, traced clockwise from the chest: up to the
+      throat, forward along the jaw to the muzzle, up the nose and forehead
+      to the ear, then down the back of the neck to the plinth.
     */}
-    <path
-      d="
-        M 8 19
-        V 12
-        Q 8 10 9 9
-        Q 9.5 7 10 6
-        L 11 5
-        L 12.5 4
-        L 13.5 4
-        L 13.5 5.5
-        L 15.5 5.5
-        Q 17 6 18 7.5
-        L 18.5 9.5
-        L 18 10.5
-        L 16 11
-        L 14 11
-        Q 12.5 10.5 12 9
-        L 11.5 8
-        L 11 8
-        L 10 9
-        Q 10 11 11 12
-        L 11 19
-        Z
-      "
-    />
-    {/*
-      Eye. A filled dot at (14, 7.5), visible at 21 px and above;
-      gone at 16 px. A stroked circle at this radius would render as
-      a fuzzy ring, so it is solid.
-    */}
-    <circle cx="14" cy="7.5" r="0.6" fill="currentColor" stroke="none" />
+    <path d="M9.5 16C9.3 14 9.8 12.5 11 11.6L7.2 12.4C5.9 12.4 5.2 11.5 5.6 10.4L7 7.4C8.2 5.6 10 4.6 11.8 4.2L12.9 2.4L14.2 5C16.4 7.2 17.2 11 16.5 16Z" />
   </Icon>
 );
 /**

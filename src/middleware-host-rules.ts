@@ -33,6 +33,7 @@ export const LANDING_PATHS = new Set<string>([
   '/',
   '/favicon.ico',
   '/icon.svg',
+  '/icon1.png',
   '/icon-192.png',
   '/icon-512.png',
   '/apple-icon.png',

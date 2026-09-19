@@ -176,9 +176,9 @@ test('a backup survives a profile that no longer exists', async ({ page }) => {
   });
   await page.reload();
   await ready(page);
-  await page.getByRole('dialog', { name: /^Tour/ }).waitFor();
-  await page.keyboard.press('Escape');
-  await expect(page.getByRole('dialog', { name: /^Tour/ })).toBeHidden();
+  // A fresh profile opens straight into the workspace (Phase 61): no tour to
+  // dismiss, and its absence is the first sign the profile really is fresh.
+  await expect(page.getByRole('dialog', { name: /^Tour/ })).toHaveCount(0);
 
   // It really is gone. Without this the restore could be asserting on data
   // that was never removed.

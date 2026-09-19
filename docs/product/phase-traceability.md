@@ -183,12 +183,12 @@ Phase 47 made it structurally impossible (`required-resources.mjs`, the
 
 ## Phase 48 — full screen, palette, landing, update polish
 
-| Capability                        | Code                                                                            | Automated                                                      | Live (Phase 49)                                               | Status |
-| --------------------------------- | ------------------------------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------- | ------ |
-| Full-screen chrome collapse       | `desktop/src/main.mjs` (fullscreen relay), `useDesktop.ts`, `globals.css`       | `fullscreen-ipc.test.mjs`; `desktop:chrome` full-screen checks | `desktop:chrome -- --packaged` on the first build carrying it | Held   |
-| Command palette single focus ring | `src/features/command/` (`[data-palette-search]`)                               | `accessibility.spec.ts` "one focus ring"                       | matrix                                                        | Held   |
-| Landing hero from a real capture  | `scripts/landing-hero-capture.mjs`, `public/landing/img/workspace-2026-09.webp` | `docs:check`                                                   | recaptured for 1.1.1 (see final certification)                | Held   |
-| Update dialog copy                | `desktop/src/update-protocol.mjs`                                               | `update-protocol.test.mjs`                                     | dialog harness                                                | Held   |
+| Capability                        | Code                                                                           | Automated                                                      | Live (Phase 49)                                                                                 | Status |
+| --------------------------------- | ------------------------------------------------------------------------------ | -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ------ |
+| Full-screen chrome collapse       | `desktop/src/main.mjs` (fullscreen relay), `useDesktop.ts`, `globals.css`      | `fullscreen-ipc.test.mjs`; `desktop:chrome` full-screen checks | `desktop:chrome -- --packaged` on the first build carrying it                                   | Held   |
+| Command palette single focus ring | `src/features/command/` (`[data-palette-search]`)                              | `accessibility.spec.ts` "one focus ring"                       | matrix                                                                                          | Held   |
+| Landing hero from a real capture  | `scripts/landing-captures.mjs`, `public/landing/img/workspace-2026-09-19.webp` | `docs:check`, `e2e/landing-chrome.spec.ts`                     | recaptured for 1.1.1; all three images and the social card recaptured in Phase 71 by one script | Held   |
+| Update dialog copy                | `desktop/src/update-protocol.mjs`                                              | `update-protocol.test.mjs`                                     | dialog harness                                                                                  | Held   |
 
 ## What a handover claimed that was not true
 

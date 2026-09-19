@@ -24,6 +24,21 @@ validation, scheduled backup preference serialization, and an incorrect
 native-companion prerequisite on the AI assistant panel. The engine toolbar
 also wraps controls to keep the engine selector readable in a narrow panel.
 
+**Published revision check (Phase 71, Mac-facing, release pending).**
+Phase 71 changed application code the Mac shell renders: the Training
+icon (`src/components/icons.tsx`, `Recall`) is redrawn, and `AppShell`
+writes the `kingfisher.studio.visited` marker on mount (inert on the
+desktop — the shell never loads the landing). Everything else in the
+phase is web-only: the landing page (`src/app/landing/`), its captures,
+the `/studio` redirect in `next.config.ts` and the favicon set in
+`src/app/`. Nothing touches `desktop/src/` or the Electron shell. The
+public Mac 1.2.0 (build 651) therefore still shows the previous Training
+icon until the next Mac release, which is Section B of After-a-fix and
+has not been run for this phase: it is a version bump, a signed and
+notarised build and a public release, and it is left for the owner to
+trigger deliberately. The web at `kingfisherchess.app` shows the new
+icon from this commit.
+
 **Published revision check (Phase 70, web only).** Phase 70 changed four
 src/ files plus the diagnostic script and `.gitignore`: `runAutoBackup`
 and `ensureBackup` now accept and forward `referenceSources`, and the

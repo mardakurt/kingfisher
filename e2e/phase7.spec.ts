@@ -77,7 +77,7 @@ test('a large worker import can be backgrounded, remains responsive and cancels 
 
   await page
     .getByRole('navigation', { name: 'Sections' })
-    .getByRole('link', { name: 'Analysis' })
+    .getByRole('link', { name: 'Analysis', exact: true })
     .click();
   await play(page, 'e2', 'e4');
   await expect(page.getByRole('button', { name: 'e4' })).toBeVisible();
@@ -355,7 +355,7 @@ test('background analysis pauses for interactive work and persists resumable pro
     .click();
   await page
     .getByRole('navigation', { name: 'Sections' })
-    .getByRole('link', { name: 'Analysis' })
+    .getByRole('link', { name: 'Analysis', exact: true })
     .click();
   await page.getByRole('button', { name: 'Stop analysis (E)' }).click();
   await page

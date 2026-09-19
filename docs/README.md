@@ -56,6 +56,9 @@ with [`AGENTS.md`](../AGENTS.md).
   known issues, kept current as they are fixed or found.
 - [`product/work-continuity.md`](product/work-continuity.md) — what survives
   a quit, a crash, a reinstall, a restore.
+- [`product/studio-access.md`](product/studio-access.md) — how the landing
+  and the Studio connect: `/`, `/analysis`, `/studio`, the returning
+  player's line, `?stay`, and what the desktop shell opens.
 - [`product/platform-parity.md`](product/platform-parity.md) — the web
   application and the desktop application, feature by feature, with the
   deliberate differences named.
@@ -188,6 +191,10 @@ with [`AGENTS.md`](../AGENTS.md).
 
 ## Historical
 
+- [`reports/phase-71-handover.md`](reports/phase-71-handover.md) — the
+  Training knight, the landing's captures, header, identity and favicon
+  set, and the returning player's way into the Studio; every gate run,
+  and the Mac release that is still owed.
 - [`reports/phase-54-handover.md`](reports/phase-54-handover.md) — the
   update engine's move to Sparkle: the control pass over the other
   session's migration, ten findings, four real updates through Sparkle's

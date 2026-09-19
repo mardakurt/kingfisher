@@ -1,6 +1,19 @@
-/* Landing-only editorial palette. Studio preferences never change these bands. */
+/*
+  Landing-only editorial palette. Studio preferences never change these bands.
+
+  The two colours that make it Kingfisher's are the bird's: the blue of its
+  back (`--accent`, the mark's own #39a8c9 darkened for paper and lightened
+  for ink) and the amber of its breast (`--amber`), which is also the Studio's
+  accent — the colour of the selected section's rail in the sidebar. The ink
+  is the Studio's own dark surface, so the application in the screenshots
+  and the page around them are one material.
+
+  Two motifs recur and nothing else does: the mark's 2 × 2 tile, as the
+  bullet before every section label, and the board's grid, faint behind the
+  product. A page needs one signature it can afford to repeat, not five.
+*/
 .kf-landing {
-  --ink: #0b1823;
+  --ink: #071827;
   --paper: #f4efe5;
   --bg: var(--paper);
   --text: var(--ink);
@@ -8,12 +21,18 @@
   --text-mute: #596873;
   --accent: #296780;
   --accent-soft: #86bdd1;
+  --amber: #b8862b;
+  --tile-dark: #10151e;
+  --tile-light: #1a2331;
   --line: #d5d1c8;
   --line-strong: #8b9597;
   --font: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-editorial: Georgia, 'Times New Roman', serif;
+  --font-mono: var(--font-mono-face), ui-monospace, 'SF Mono', Menlo, monospace;
   --max: 1280px;
   --gutter: clamp(24px, 5vw, 80px);
+  /* Below this width the section links fold into the menu. */
+  --nav-collapse: 900px;
   background: var(--bg);
   color: var(--text);
   font-family: var(--font);
@@ -31,8 +50,9 @@
   --text-dim: #bcc9ce;
   --text-mute: #a0b1bb;
   --accent: var(--accent-soft);
-  --line: #293c48;
-  --line-strong: #658393;
+  --amber: #e2ad42;
+  --line: #1f3446;
+  --line-strong: #4f6d80;
   background: var(--bg);
   color: var(--text);
 }
@@ -101,24 +121,46 @@
   top: 16px;
 }
 
-/* One quiet navigation bar. The visible items match the page
-   sections; "Launch" is the only visually dominant action. */
+/*
+  One quiet navigation bar.
+
+  A three-column grid, `1fr auto 1fr`: the brand at the start of the first
+  column, the links in the middle one, the action at the end of the third.
+  The links are therefore centred on the page — the two outer columns are
+  equal whatever the wordmark and the button happen to measure — where a
+  flex row with `margin: auto` centred them between the brand and the button
+  and left them 26 px right of the hero underneath. The bar is translucent
+  ink with a blur so the page is read to scroll beneath it.
+*/
 .kf-landing .nav {
   position: sticky;
   top: 0;
   z-index: 50;
-  min-height: 72px;
-  padding: 14px max(var(--gutter), calc((100vw - var(--max)) / 2));
-  display: flex;
-  align-items: center;
-  gap: 32px;
   border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--ink) 86%, transparent);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+
+.kf-landing .nav-inner {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 24px;
+  min-height: 72px;
+  /* The same box as every section: content `--max` wide, a gutter each side,
+     so the brand's left edge and the action's right edge sit on the column
+     lines the sections use. */
+  max-width: calc(var(--max) + var(--gutter) * 2);
+  margin: 0 auto;
+  padding: 12px var(--gutter);
 }
 
 .kf-landing .nav-brand {
   display: inline-flex;
   align-items: center;
   gap: 11px;
+  justify-self: start;
   color: var(--text);
   white-space: nowrap;
   text-decoration: none;
@@ -133,6 +175,10 @@
   align-items: center;
 }
 
+.kf-landing .nav-mark img {
+  border-radius: 7px;
+}
+
 .kf-landing .nav-wordmark {
   font-family: var(--font-editorial);
   font-size: 24px;
@@ -142,26 +188,143 @@
 .kf-landing .nav-links {
   display: flex;
   gap: 28px;
-  margin: 0 auto;
   font-size: 13px;
   font-weight: 500;
   letter-spacing: 0.005em;
 }
 
 .kf-landing .nav-links a {
-  color: var(--text-dim);
   position: relative;
-  padding: 4px 0;
+  padding: 6px 0;
+  color: var(--text-dim);
   transition: color 160ms ease;
 }
 
-.kf-landing .nav-links a:hover {
+/* The underline is the Studio's selected-section rail turned on its side:
+   amber, and it grows from the centre rather than fading in. */
+.kf-landing .nav-links a::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  right: 50%;
+  bottom: 0;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--amber);
+  transition:
+    left 180ms ease,
+    right 180ms ease;
+}
+
+.kf-landing .nav-links a:is(:hover, :focus-visible) {
   color: var(--text);
   text-decoration: none;
 }
 
-.kf-landing .nav-links a:focus-visible {
+.kf-landing .nav-links a:is(:hover, :focus-visible)::after {
+  left: 0;
+  right: 0;
+}
+
+.kf-landing .nav-actions {
+  display: flex;
+  align-items: center;
+  justify-self: end;
+  gap: 10px;
+}
+
+/* The folded menu: a disclosure, styled as a button, hidden while the
+   links have room. */
+.kf-landing .nav-menu {
+  display: none;
+  position: relative;
+}
+
+.kf-landing .nav-menu summary {
+  list-style: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--line-strong);
+  border-radius: 5px;
+  cursor: pointer;
   color: var(--text);
+}
+
+.kf-landing .nav-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.kf-landing .nav-menu summary:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.kf-landing .nav-menu-bars {
+  position: relative;
+  display: block;
+  width: 18px;
+  height: 2px;
+  background: currentColor;
+  border-radius: 1px;
+}
+
+.kf-landing .nav-menu-bars::before,
+.kf-landing .nav-menu-bars::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  width: 18px;
+  height: 2px;
+  background: currentColor;
+  border-radius: 1px;
+  transition: transform 180ms ease;
+}
+
+.kf-landing .nav-menu-bars::before {
+  top: -6px;
+}
+
+.kf-landing .nav-menu-bars::after {
+  top: 6px;
+}
+
+.kf-landing .nav-menu[open] .nav-menu-bars {
+  background: transparent;
+}
+
+.kf-landing .nav-menu[open] .nav-menu-bars::before {
+  transform: translateY(6px) rotate(45deg);
+}
+
+.kf-landing .nav-menu[open] .nav-menu-bars::after {
+  transform: translateY(-6px) rotate(-45deg);
+}
+
+.kf-landing .nav-menu-list {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  min-width: 200px;
+  display: grid;
+  padding: 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: var(--ink);
+  box-shadow: 0 24px 48px -24px #000000cc;
+}
+
+.kf-landing .nav-menu-list a {
+  padding: 10px 12px;
+  border-radius: 4px;
+  color: var(--text);
+  font-size: 15px;
+}
+
+.kf-landing .nav-menu-list a:is(:hover, :focus-visible) {
+  background: var(--line);
+  text-decoration: none;
 }
 
 .kf-landing .nav-cta,
@@ -263,6 +426,50 @@
   min-width: 200px;
 }
 
+/*
+  The returning player's line. Reserved at its full height whether or not
+  anything is in it, so the hero does not shift when the script decides.
+*/
+.kf-landing .hero-return {
+  min-height: 40px;
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 22px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.kf-landing .hero-return-link {
+  color: var(--amber);
+  font-weight: 600;
+}
+
+.kf-landing .hero-return-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.kf-landing .hero-return-choice input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--amber);
+}
+
+.kf-landing .hero-return-note {
+  color: var(--text-mute);
+}
+
+.kf-landing .hero-return-note code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
 .kf-landing .hero-strip {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -304,12 +511,31 @@
 }
 
 .kf-landing .section-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--accent);
   margin-bottom: 18px;
+}
+
+.kf-landing .section-eyebrow::before {
+  flex-shrink: 0;
+}
+
+/* On paper the tile is drawn in ink and its own lighter square. */
+.kf-landing .section:not(.section-local) .section-eyebrow::before {
+  --tile-dark: var(--ink);
+  --tile-light: #2b3d4c;
+  box-shadow: none;
+}
+
+.kf-landing :is(.section-local, .download-head) .section-eyebrow,
+.kf-landing .local-statement .section-eyebrow {
+  justify-content: center;
 }
 
 .kf-landing .section-title {
@@ -344,14 +570,29 @@
 }
 
 .kf-landing .why-item {
+  position: relative;
   border-top: 1px solid var(--line-strong);
   padding-top: 18px;
   counter-increment: principle;
 }
 
+/* The Studio marks the selected section with a short amber rail; each
+   principle carries the same rail on its rule. */
+.kf-landing .why-item::after {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 0;
+  width: 40px;
+  height: 3px;
+  border-radius: 0 0 2px 2px;
+  background: var(--amber);
+}
+
 .kf-landing .why-item::before {
   content: '0' counter(principle);
   display: block;
+  font-family: var(--font-mono);
   color: var(--accent);
   font-size: 11px;
   letter-spacing: 0.1em;
@@ -410,6 +651,7 @@
 .kf-landing .research-list span {
   color: var(--text-dim);
   font-size: 12px;
+  font-variant-numeric: tabular-nums;
 }
 
 .kf-landing .hero-product-frame,
@@ -423,8 +665,28 @@
 }
 
 .kf-landing .hero-product-frame {
+  position: relative;
   max-width: 1120px;
   margin: 0 auto;
+}
+
+/*
+  The board's grid, faint and behind the product: eight files across the
+  frame's width, fading out towards the edges so it is a ground and not a
+  pattern. This is the one decoration on the page; it is a chess board.
+*/
+.kf-landing .hero-grid {
+  position: absolute;
+  z-index: -1;
+  inset: -72px -12% -40px;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, #86bdd118 1px, transparent 1px),
+    linear-gradient(to bottom, #86bdd118 1px, transparent 1px);
+  background-size: 96px 96px;
+  background-position: center top;
+  -webkit-mask-image: radial-gradient(ellipse 70% 80% at 50% 40%, #000 30%, transparent 75%);
+  mask-image: radial-gradient(ellipse 70% 80% at 50% 40%, #000 30%, transparent 75%);
 }
 
 /* The window's one lit edge, so the frame reads as a surface rather than a
@@ -438,23 +700,43 @@
 .kf-landing .hero-product-chrome {
   display: flex;
   align-items: center;
-  gap: 6px;
-  height: 32px;
+  gap: 10px;
+  height: 34px;
   padding: 0 14px;
   border-bottom: 1px solid var(--line);
+  font-size: 11px;
+  letter-spacing: 0.01em;
+  color: var(--text-mute);
 }
 
-.kf-landing .hero-product-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #658393;
+/* The mark's own tile — two squares of the board — stands in for the
+   three window dots a mock-up would draw. It is the same 2 × 2 the eyebrows
+   carry. */
+.kf-landing .hero-product-tile,
+.kf-landing .section-eyebrow::before {
+  content: '';
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: conic-gradient(
+    from 0deg at 50% 50%,
+    var(--tile-light) 0 25%,
+    var(--tile-dark) 0 50%,
+    var(--tile-light) 0 75%,
+    var(--tile-dark) 0
+  );
+  box-shadow: inset 0 0 0 1px #ffffff14;
 }
 
 .kf-landing .hero-product-title {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.kf-landing .hero-product-crumb {
   margin-left: auto;
-  font-size: 10px;
-  color: var(--text-mute);
+  font-variant-numeric: tabular-nums;
 }
 
 .kf-landing .hero-product-img,
@@ -464,10 +746,31 @@
 }
 
 .kf-landing .section-local {
+  position: relative;
   max-width: none;
   text-align: center;
   padding-top: 80px;
   padding-bottom: 80px;
+}
+
+/* The band between the paper sections is ruled the way the board is
+   ranked: a single amber line the width of the content, not the page. */
+.kf-landing .section-local::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: min(var(--max), calc(100% - var(--gutter) * 2));
+  height: 3px;
+  transform: translateX(-50%);
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--amber) 20%,
+    var(--amber) 80%,
+    transparent
+  );
+  opacity: 0.85;
 }
 
 .kf-landing .local-statement {
@@ -705,6 +1008,16 @@
   gap: 64px;
 }
 
+.kf-landing .footer-brand-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.kf-landing .footer-brand-row img {
+  border-radius: 6px;
+}
+
 .kf-landing .footer-brand .nav-wordmark {
   font-size: 28px;
 }
@@ -781,7 +1094,7 @@
     0 6px 18px -10px #86bdd166;
 }
 
-.kf-landing :is(.nav-links, .footer-cols, .download-meta) a {
+.kf-landing :is(.footer-cols, .download-meta) a {
   text-decoration: underline;
   text-decoration-color: transparent;
   transition:
@@ -789,7 +1102,7 @@
     text-decoration-color 180ms ease;
 }
 
-.kf-landing :is(.nav-links, .footer-cols, .download-meta) a:is(:hover, :focus-visible) {
+.kf-landing :is(.footer-cols, .download-meta) a:is(:hover, :focus-visible) {
   text-decoration: underline;
   text-decoration-color: currentColor;
 }
@@ -909,29 +1222,44 @@
   }
 }
 
-@media (max-width: 820px) {
-  .kf-landing .nav-cta {
-    margin-left: auto;
-  }
-
+/* The links fold into the menu; the grid keeps the brand at the start and
+   the actions at the end, with the empty middle column collapsing to nothing. */
+@media (max-width: 900px) {
   .kf-landing .nav-links {
     display: none;
+  }
+
+  .kf-landing .nav-menu {
+    display: block;
+  }
+
+  .kf-landing .nav-inner {
+    grid-template-columns: 1fr auto;
+    gap: 16px;
   }
 }
 
 @media (max-width: 759px) {
-  .kf-landing .nav {
+  .kf-landing .nav-inner {
     min-height: 64px;
-    gap: 16px;
-    padding-top: 10px;
-    padding-bottom: 10px;
+    padding-top: 8px;
+    padding-bottom: 8px;
   }
 
   .kf-landing .nav-cta {
-    margin-left: auto;
     min-height: 40px;
-    padding: 8px 16px;
+    padding: 8px 14px;
     font-size: 13px;
+  }
+
+  .kf-landing .nav-menu summary {
+    width: 40px;
+    height: 40px;
+  }
+
+  .kf-landing .hero-return {
+    font-size: 12px;
+    gap: 6px 16px;
   }
 
   .kf-landing .nav-wordmark {

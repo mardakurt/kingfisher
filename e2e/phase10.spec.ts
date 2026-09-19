@@ -122,7 +122,9 @@ test.describe('workspace composer', () => {
 
     await page.getByRole('button', { name: /^Layout/ }).click();
     await page.getByRole('menuitem', { name: 'Save layout as…' }).click();
-    await page.getByLabel('Name').fill('Tournament Prep');
+    // A textbox, not a label match: the workspace title's inline rename (Phase 63)
+    // is also labelled with the word.
+    await page.getByRole('textbox', { name: 'Name' }).fill('Tournament Prep');
     await page.getByRole('button', { name: 'Save layout' }).click();
 
     await page.getByRole('button', { name: /^Layout/ }).click();

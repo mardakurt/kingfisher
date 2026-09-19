@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+import macosDownload from '../src/release/macos-download.json' with { type: 'json' };
+
 /*
  * Production smoke test against kingfisherchess.app. Verifies the
  * Phase 60 browser-verification fixes are live.
@@ -14,7 +16,8 @@ test('live install page agrees with the notarised first-launch guide', async ({ 
   await page.goto('/install');
   await page.locator('h1').first().waitFor();
   const html = await page.content();
-  expect(html).toContain('Kingfisher-1.1.9-arm64.dmg');
+  // The descriptor names the DMG; a literal here went stale at the 1.2.0 release.
+  expect(html).toContain(macosDownload.filename);
   // The follow-up removed the right-click workaround for the notarised release.
   expect(html).not.toMatch(/right-click → Open is/);
   expect(html).not.toMatch(/Right-click/);

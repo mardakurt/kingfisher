@@ -222,7 +222,7 @@ async function play(page: Page, from: string, to: string) {
 async function navigate(page: Page, label: string) {
   await page
     .getByRole('navigation', { name: 'Sections' })
-    .getByRole('link', { name: label })
+    .getByRole('link', { name: label, exact: true })
     .click();
   await ready(page);
 }

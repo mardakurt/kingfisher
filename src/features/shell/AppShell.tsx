@@ -25,6 +25,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 import { Notices } from './Notices';
 import { Sidebar } from './Sidebar';
+import { markStudioVisited } from './studio-entry';
 import { TitleBarSafeBand } from './TitleBarSafeArea';
 import { StatusBar } from './StatusBar';
 import { FocusModeBar } from './FocusModeBar';
@@ -138,6 +139,13 @@ export function AppShell({ children }: { children: ReactNode }) {
   const feedbackOpen = useUi((state) => state.feedbackOpen);
   const feedbackInitialCategory = useUi((state) => state.feedbackInitialCategory);
   const closeFeedback = useUi((state) => state.closeFeedback);
+
+  useEffect(() => {
+    // The landing at `/` asks whether this browser has used the Studio before,
+    // and offers to continue (or, if asked, opens it straight away) when it
+    // has. This is the only place the answer is written. See studio-entry.ts.
+    markStudioVisited(typeof localStorage === 'undefined' ? null : localStorage);
+  }, []);
 
   useEffect(() => {
     // Browser tests and assistive automation need a deterministic signal that

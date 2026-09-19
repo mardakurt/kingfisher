@@ -21,17 +21,15 @@ test.use({ storageState: { cookies: [], origins: [] } });
 
 async function ready(page: Page) {
   await page.locator('html[data-kingfisher-ready="true"]').waitFor();
-  if (
-    await page.evaluate(
-      () =>
-        JSON.parse(localStorage.getItem('kingfisher.preferences') ?? '{}').state
-          ?.tourShowOnLaunch !== false,
-    )
-  ) {
-    await page.getByRole('dialog', { name: /^Tour/ }).waitFor();
-    await page.keyboard.press('Escape');
-    await expect(page.getByRole('dialog', { name: /^Tour/ })).toBeHidden();
-  }
+  /*
+    Phase 61 stopped opening the tour on launch; a brand-new installation
+    opens straight into the workspace. Until Phase 71 this helper still
+    waited for the tour dialog, so every test in this file had been timing
+    out since 2026-09-16 without anybody running the suite. The tour must
+    now be absent; if it ever comes back on launch, that is a product
+    decision and this assertion is where it is made visible.
+  */
+  await expect(page.getByRole('dialog', { name: /^Tour/ })).toHaveCount(0);
 }
 
 /** The bundled reference installs itself on first run; wait for it to finish. */

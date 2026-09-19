@@ -193,7 +193,8 @@ build, arm64, floor, file, size, trust), the FAQ. Corrected this phase: the
 minimum OS (13, not 11) and two FAQ answers that still said "macOS
 Preview". No user counts, testimonials, ratings or platform claims beyond
 what is built. The hero capture is regenerated from the 1.1.1 build by
-`scripts/landing-hero-capture.mjs` (see the handover § 7).
+`scripts/landing-hero-capture.mjs` (see the handover § 7); since Phase 71 the
+script is `scripts/landing-captures.mjs` and makes all three landing images.
 
 ## Feedback (Part BG)
 

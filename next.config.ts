@@ -82,6 +82,21 @@ const nextConfig: NextConfig = {
       })(),
   },
   ...(desktop ? { output: 'standalone' as const } : {}),
+  async redirects() {
+    /*
+      `/studio` is the address of the application, as a person would say it
+      and type it: the landing calls the product "Kingfisher Studio", and
+      the routes it is made of — `/analysis`, `/repertoire`, `/training` — are
+      sections, not the thing. The bookmarkable, canonical entry stays
+      `/analysis` (`publicUrl.studio`; changing it strands nobody, but the
+      documentation and the desktop shell name it), so `/studio` is an alias
+      that lands there: permanent, so a browser caches it and a shared link
+      keeps working, and query-preserving, so `/studio?set=x` still carries
+      what it was given. Checked before the filesystem and before the
+      middleware, so it holds on every host this project serves.
+    */
+    return [{ source: '/studio', destination: '/analysis', permanent: true }];
+  },
   async headers() {
     // Production-grade web-security headers, applied to every
     // response. The cross-origin isolation pair (COOP/COEP) is

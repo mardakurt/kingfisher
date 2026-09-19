@@ -195,26 +195,49 @@ and self-hosts them at build time. Both are SIL Open Font License 1.1.
 ## The Kingfisher mark
 
 `brand/kingfisher-mark.svg` and everything generated from it
-(`src/app/icon.svg`, `src/app/apple-icon.png`, `src/app/favicon.ico`, `public/icon-*.png`,
+(`src/app/icon.svg`, `src/app/icon1.png`, `src/app/apple-icon.png`,
+`src/app/favicon.ico`, `public/icon-*.png`, `desktop/build/icon.png`,
 `src/features/shell/BrandMark.tsx`) are original work for this project, drawn
 as plain geometry rather than traced from any photograph or existing logo.
-Regenerate the rasters with `python3 scripts/render-brand-icons.py`.
+Regenerate the rasters with `python3 scripts/render-brand-icons.py`; the
+script is the only source of every raster, so a change to the mark is one
+edit and one command.
 
-## Landing page product capture
+## Landing page product captures
 
-`public/landing/img/engine-analysis-v2.webp` is a capture of the real Kingfisher
-production build at `d30aa50`, taken on 2026-09-10 at 1440 × 900. It shows
-Stockfish 18 Lite WASM Multithreaded analysing after `1. e4 e5 2. Nf3`
-at depth 22/29. The engine was started on that position before capture.
-It replaces an empty-workspace image on the landing page; no evaluations or
-pieces were added to the screenshot. The displayed piece and board artwork
-retains the attribution recorded above. The image was encoded as WebP.
+The three product images on the landing and the social card are captures of
+the real Kingfisher interface, made by `scripts/landing-captures.mjs` against
+the development server on a fresh profile (tour off, durable storage not
+granted, nothing linked, nothing imported except the position the capture
+plays). Nothing is drawn or retouched; the only thing hidden is Next's
+development badge. The displayed piece and board artwork retains the
+attribution recorded above. Each capture is recorded here with the checkout
+it was made from; replace all of them together, with the script, when the
+workspace changes.
 
-`public/landing/img/workspace-2026-09.webp` is the hero capture: the analysis
-workspace of the checkout at `8039afa` (Kingfisher 1.1.0), taken on
-2026-09-12 at 1440 × 900 at 2× and encoded at 2240 × 1400. Stockfish 18 Lite
-was started on the position after `1. e4 e5 2. Nf3 Nc6 3. Bc4` and the
-capture waited for the engine's arrow; nothing was drawn or retouched. The
-script that made it is `scripts/landing-hero-capture.mjs`; the procedure is
-in its header. `research-explorer.webp` is the Explorer capture from Phase
-25, unchanged.
+`public/landing/img/workspace-2026-09-19.webp` — the hero. The analysis
+workspace of the checkout after `b251020` (Kingfisher 1.2.0, Phase 71), taken
+on 2026-09-19 at 1440 × 900 at 2× and encoded at 2240 × 1400 (WebP q82).
+Stockfish 18 Lite WASM Multithreaded was started on the position after
+`1. e4 e5 2. Nf3 Nc6 3. Bc4` with MultiPV 5 and the capture waited for the
+engine's arrow, then eight seconds; the panel shows the depth it had reached.
+
+`public/landing/img/engines-2026-09-19.webp` — the Engines section. The same
+search, cropped to the engine panel and the right half of the board
+(1558 × 1138, WebP q82).
+
+`public/landing/img/research-2026-09-19.webp` — the Research section. The
+Explorer's source comparison on the Najdorf after `5...a6`, with the bundled
+Kingfisher Starter Reference against the Recent Theory Reference (installed
+by the script from its public manifest, 34 MB), each in its own column with
+its own game count; the variation brief folded away and the dock widened by
+its handle so both columns fit (1718 × 1138, WebP q82).
+
+`public/landing/img/og.png` — the social card, 1200 × 630, the hero scaled
+to 1200 wide and cropped from 48 px below its top edge (PNG, palette). It is
+the size `src/app/layout.tsx` declares for Open Graph.
+
+The captures these replaced (`workspace-2026-09.webp`, `engine-analysis-v2.webp`,
+`research-explorer.webp`, the 1440 × 900 `og.png`) showed the toolbar removed
+in 1.2.0, the wooden board and the pre-Phase-71 Training icon, and the
+"research" one was in fact the Theory Book.

@@ -8,26 +8,46 @@ import {
 } from '@/release/macos-download';
 import { publicUrl } from '@/release/public-urls';
 
+import { StudioEntry } from './StudioEntry';
 import './landing.css';
 
 /**
  * The Kingfisher landing page.
  *
- * Served at the marketing origin. Every link that targets the
- * studio points at the studio's canonical URL (`publicUrl.studio`),
- * so a returning player who has the studio bookmarked opens it
- * directly without coming back through this page. The marketing
- * origin must never serve the studio.
+ * Served at `/` on the public origin, which also serves the Studio at its
+ * own routes. Every link into the Studio points at its canonical URL
+ * (`publicUrl.studio`, `/analysis`; `/studio` redirects there), so a
+ * returning player who has it bookmarked never comes back through this
+ * page — and one who arrives here anyway is offered the way in by
+ * `StudioEntry`, the page's only client component and the only part of it
+ * that differs between two visitors. See `src/features/shell/studio-entry.ts`
+ * for the rule.
  *
- * The landing component renders server-side; no event handlers and
- * no third-party scripts (page views are counted by the root layout's
+ * Everything else renders server-side with no event handlers and no
+ * third-party scripts (page views are counted by the root layout's
  * `WebAnalytics`, served from this origin). The static assets live under
- * `/landing/img/` and are served from the same origin as the
- * page so the application CSP, which is `default-src 'self'`,
- * accepts them.
+ * `/landing/img/` and are served from the same origin as the page so the
+ * application CSP, which is `default-src 'self'`, accepts them. The three
+ * product images are made by `scripts/landing-captures.mjs` from the
+ * application itself.
  */
+const studioPathOf = (url: string): string => {
+  try {
+    const parsed = new URL(url);
+    return `${parsed.pathname}${parsed.search}`;
+  } catch {
+    return url;
+  }
+};
+
 export function LandingPage(): JSX.Element {
   const studioUrl = publicUrl.studio;
+  /*
+    The Studio is on this origin, so the returning player's way in is the
+    path, not the public address: a preview deployment or a development
+    server must open its own Studio, not production's.
+  */
+  const studioPath = studioPathOf(studioUrl);
   const repoUrl = publicUrl.repository;
   const releaseUrl = publicUrl.release;
   const downloadUrl = publicUrl.macosDmg;
@@ -153,35 +173,57 @@ export function LandingPage(): JSX.Element {
         Skip to content
       </a>
 
+      {/*
+        The header is a three-column grid — brand, section links, action — so
+        the links are centred on the page and not on the space left between a
+        wordmark and a button of different widths. Below `--nav-collapse` the
+        links fold into a disclosure: a `<details>` element, so the menu
+        works without a line of script, closes on Escape in every browser
+        that implements the element, and is one control with a name rather
+        than three lines nobody can address. Every entry point into the
+        Studio says "Studio", and the wordmark itself goes to the top.
+      */}
       <header className="nav" role="banner">
-        <a className="nav-brand" href="#top" aria-label="Kingfisher home">
-          <span className="nav-mark" aria-hidden="true">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/landing/img/kingfisher-mark.svg"
-              alt=""
-              width="28"
-              height="28"
-              decoding="async"
-            />
-          </span>
-          <span className="nav-wordmark">Kingfisher</span>
-        </a>
-        <nav className="nav-links" aria-label="Primary">
-          <a href="#why">Why</a>
-          <a href="#research">Research</a>
-          <a href="#engines">Engines</a>
-          <a href="#local">Local-first</a>
-          <a href="#macos">macOS</a>
-        </nav>
-        <a
-          className="nav-cta"
-          href={studioUrl}
-          rel="noopener"
-          aria-label="Launch Kingfisher (opens the studio on a separate origin)"
-        >
-          Launch
-        </a>
+        <div className="nav-inner">
+          <a className="nav-brand" href="#top" aria-label="Kingfisher — top of page">
+            <span className="nav-mark" aria-hidden="true">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/landing/img/kingfisher-mark.svg"
+                alt=""
+                width="28"
+                height="28"
+                decoding="async"
+              />
+            </span>
+            <span className="nav-wordmark">Kingfisher</span>
+          </a>
+          <nav className="nav-links" aria-label="Primary">
+            <a href="#why">Why</a>
+            <a href="#research">Research</a>
+            <a href="#engines">Engines</a>
+            <a href="#local">Local-first</a>
+            <a href="#macos">macOS</a>
+          </nav>
+          <div className="nav-actions">
+            <a className="nav-cta" href={studioUrl} rel="noopener">
+              Open Studio
+            </a>
+            <details className="nav-menu">
+              <summary aria-label="Sections">
+                <span className="nav-menu-bars" aria-hidden="true" />
+              </summary>
+              <nav className="nav-menu-list" aria-label="Sections">
+                <a href="#why">Why</a>
+                <a href="#research">Research</a>
+                <a href="#engines">Engines</a>
+                <a href="#local">Local-first</a>
+                <a href="#macos">macOS</a>
+                <a href="/install">Install guide</a>
+              </nav>
+            </details>
+          </div>
+        </div>
       </header>
 
       <main id="main">
@@ -205,18 +247,19 @@ export function LandingPage(): JSX.Element {
                 <br className="hero-lede-break" /> Together in one local-first workspace.
               </p>
               <div className="hero-cta-row">
-                <a
-                  className="btn btn-primary"
-                  href={studioUrl}
-                  rel="noopener"
-                  aria-label="Launch Kingfisher (opens the studio on a separate origin)"
-                >
-                  Launch Kingfisher
+                <a className="btn btn-primary" href={studioUrl} rel="noopener">
+                  Open Kingfisher Studio
                 </a>
                 <a className="btn btn-secondary" href="#macos">
                   Download for macOS
                 </a>
               </div>
+              {/*
+                For a browser that has used the Studio: a way straight in, and
+                the choice to skip this page next time. Nothing for a first
+                visit; see StudioEntry.tsx. The address is the same either way.
+              */}
+              <StudioEntry studioUrl={studioPath} />
             </div>
           </div>
 
@@ -225,24 +268,22 @@ export function LandingPage(): JSX.Element {
             and a hero with two buttons and no picture asked the reader to take
             the headline on trust. The capture is the current build — the
             analysis workspace with Stockfish running and its best move drawn
-            on the board — made by `scripts/landing-hero-capture.mjs` against
-            the application itself, not a mock-up. Replace it when the
-            workspace changes; a landing that shows an old interface is a
-            claim the product no longer makes.
+            on the board — made by `scripts/landing-captures.mjs` against the
+            application itself, not a mock-up, together with the two section
+            images below. Replace them when the workspace changes; a landing
+            that shows an old interface is a claim the product no longer makes.
           */}
           <figure className="hero-product-frame">
+            <span className="hero-grid" aria-hidden="true" />
             <div className="hero-product-chrome" aria-hidden="true">
-              <span className="hero-product-dot" />
-              <span className="hero-product-dot" />
-              <span className="hero-product-dot" />
-              <span className="hero-product-title">
-                Kingfisher {macosDownload.version} · Analysis
-              </span>
+              <span className="hero-product-tile" />
+              <span className="hero-product-title">Kingfisher {macosDownload.version}</span>
+              <span className="hero-product-crumb">Analysis · Stockfish 18 · Italian Game</span>
             </div>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/landing/img/workspace-2026-09.webp"
-              alt="The Kingfisher analysis workspace: the board after 1. e4 e5 2. Nf3 Nc6 3. Bc4 with Stockfish 18 running, its best move drawn as an arrow on the board and three engine lines beside it"
+              src="/landing/img/workspace-2026-09-19.webp"
+              alt="The Kingfisher analysis workspace: the board after 1. e4 e5 2. Nf3 Nc6 3. Bc4 with Stockfish 18 running, its best move drawn as an arrow on the board, five engine lines beside it and the workspace sections — Analysis, Openings, Studies, Repertoire, Preparation, Players, Opening Files, Review, Training, Endgame, Games — in the sidebar"
               width="2240"
               height="1400"
               fetchPriority="high"
@@ -342,10 +383,10 @@ export function LandingPage(): JSX.Element {
             <div className="research-frame">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/landing/img/research-explorer.webp"
-                alt="Kingfisher Explorer comparing Elite OTB and Recent Theory on the same position, each with its own count and licence"
-                width="1080"
-                height="720"
+                src="/landing/img/research-2026-09-19.webp"
+                alt="The Explorer on the Najdorf after 5...a6, comparing the Kingfisher Starter Reference (7,649 games here) with the Recent Theory Reference (1,703 games here): the same candidate moves, each source's own frequency in its own column, and no combined figure"
+                width="1718"
+                height="1138"
                 loading="lazy"
                 decoding="async"
                 className="research-img"
@@ -359,10 +400,10 @@ export function LandingPage(): JSX.Element {
             <div className="engines-frame">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/landing/img/engine-analysis-v2.webp"
-                alt="Stockfish 18 analysing the position after 1. e4 e5 2. Nf3 in Kingfisher"
-                width="1440"
-                height="900"
+                src="/landing/img/engines-2026-09-19.webp"
+                alt="The engine panel with Stockfish 18 Lite running in the browser on the Italian Game: five ranked lines with their evaluations, the depth reached, and the best move drawn as an arrow on the board beside it"
+                width="1558"
+                height="1138"
                 loading="lazy"
                 decoding="async"
                 className="engines-img"
@@ -495,7 +536,7 @@ export function LandingPage(): JSX.Element {
                 </li>
               </ul>
               <a className="btn btn-secondary btn-block" href={studioUrl} rel="noopener">
-                Launch Kingfisher
+                Open Kingfisher Studio
               </a>
               <p className="download-meta">
                 <a href={repoUrl} rel="noopener">
@@ -615,7 +656,18 @@ export function LandingPage(): JSX.Element {
       <footer className="site-footer" role="contentinfo">
         <div className="footer-inner">
           <div className="footer-brand">
-            <span className="nav-wordmark">Kingfisher</span>
+            <span className="footer-brand-row">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/landing/img/kingfisher-mark.svg"
+                alt=""
+                width="24"
+                height="24"
+                loading="lazy"
+                decoding="async"
+              />
+              <span className="nav-wordmark">Kingfisher</span>
+            </span>
             <p className="footer-tag">
               A local-first chess research workstation. Open source under the MIT licence.
             </p>
@@ -626,7 +678,7 @@ export function LandingPage(): JSX.Element {
               <ul>
                 <li>
                   <a href={studioUrl} rel="noopener">
-                    Launch Studio
+                    Open Studio
                   </a>
                 </li>
                 <li>

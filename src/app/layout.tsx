@@ -102,9 +102,15 @@ export const metadata: Metadata = {
   },
   appleWebApp: { capable: true, title: 'Kingfisher', statusBarStyle: 'black-translucent' },
   /*
-    `icon.svg` and `apple-icon.png` in this directory are picked up by the file
-    convention; the manifest icons are declared in `manifest.ts`. Only the
-    Windows tile needs saying out loud.
+    The icons are the file convention, not this object: `favicon.ico`
+    (16, 32 and 48 px layers), `icon.svg`, `icon1.png` (96 px, the multiple
+    of 48 a search engine's favicon crawler asks for — the .ico's 48 layer
+    is not something every crawler unpacks) and `apple-icon.png` (180 px,
+    square-cornered because iOS masks it itself), all in this directory and
+    all rendered from `brand/kingfisher-mark.svg` by
+    `scripts/render-brand-icons.py`. The manifest's icons are declared in
+    `manifest.webmanifest/route.ts`. Only the Windows tile needs saying out
+    loud.
   */
   other: { 'msapplication-TileColor': '#0b0d11' },
 };

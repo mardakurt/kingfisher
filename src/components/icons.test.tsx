@@ -10,10 +10,10 @@
  *   - contain the keyword characters the user expects (a knight icon
  *     that does not contain a `path` element is not really drawn).
  *
- * Per-icon tests below assert the specific shape that distinguishes
- * the icon from a generic placeholder — e.g. the chess knight (`Recall`)
- * contains a curve through the muzzle area, where the previous garbage
- * draw did not.
+ * Per-icon tests below assert the structure that distinguishes the icon
+ * from a generic placeholder — e.g. the chess knight (`Recall`) is one
+ * closed, curved silhouette on a plinth, where the drawings it replaced
+ * were columns with features attached.
  */
 
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -37,28 +37,35 @@ describe('icons', () => {
     expect(html).toContain('<path');
   });
 
-  it('Recall (the chess knight for Training) draws the muzzle, ear and eye', () => {
+  it("Recall (the chess knight for Training) is one silhouette on the king's plinth", () => {
     /*
-      Phase 67 redrew the knight three times: an L-shape (looked like
-      a tent peg), a horse-head-on-column (looked like a rectangle
-      with a bump), and a curved silhouette (looked like a snail).
-      Phase 69 redraws it as a wide plinth, a vertical body column,
-      and a clear horse head: a mane curve on the back, an ear notch
-      at the top, a muzzle pointing right, a jaw curving back to the
-      chest. The path must contain the quadratic curves that trace
-      the muzzle and mane, and the eye must be at (14, 7.5) — a
-      future refactor that drops any of these is back to garbage.
+      Phases 67–69 drew the knight feature by feature — a column, a mane
+      curve, an ear notch, a filled eye — and each version read as a tent
+      peg, a lamp or a snail at 21 px. The icon is now a silhouette: one
+      closed outline for head and neck, a plinth beneath, nothing inside.
+      The assertions pin the shape's structure, not its coordinates: a
+      refactor that reintroduces interior detail (a filled eye), splits the
+      head into several open strokes, or drops the plinth is back to a
+      drawing nobody recognises.
     */
     const html = renderToStaticMarkup(<Recall />);
-    // Quadratic curves: at least one Q command traces the muzzle or mane.
-    expect(html).toMatch(/<path[^>]*\bd="[^"]*\bQ\b/);
-    // Both the plinth and the head/body are closed paths (Z commands).
-    expect(html).toMatch(/<path[^>]*\bZ\b/);
-    // The eye is a small filled circle at (14, 7.5) — visible at 21 px
-    // and above; gone at 16 px. Either way the element is in the
-    // markup so a future refactor cannot drop it without test failure.
-    expect(html).toMatch(/<circle[^>]*\bcx="14"/);
-    expect(html).toMatch(/<circle[^>]*\bcy="7\.5"/);
+    const paths = [...html.matchAll(/<path[^>]*\bd="([^"]*)"/g)].map((m) => m[1] ?? '');
+    // Exactly two paths: the plinth and the head-and-neck outline.
+    expect(paths).toHaveLength(2);
+    // Both are closed shapes; an open stroke reads as a squiggle, not a piece.
+    for (const d of paths) expect(/[zZ]$/.test(d.trim())).toBe(true);
+    // The plinth is the Endgame king's, so the two pieces line up in the rail.
+    expect(paths[0]).toBe('M7 16h10v3H7z');
+    // The head is curved (C commands), and its outline reaches both the
+    // muzzle on the left of the grid and the ear at the top: a shape confined
+    // to the middle of the box is the column-with-a-bump the owner rejected.
+    expect(paths[1]).toMatch(/C/);
+    const numbers = [...(paths[1] ?? '').matchAll(/-?\d+(?:\.\d+)?/g)].map((m) => Number(m[0]));
+    expect(Math.min(...numbers)).toBeLessThan(6); // the muzzle
+    // No filled interior detail: the pawn and the king are outlines, and a
+    // filled eye at 21 px is a smudge.
+    expect(html).not.toMatch(/fill="currentColor"/);
+    expect(html).not.toContain('<circle');
   });
 
   it('Board, Target, Review, Repertoire each render their own path', () => {

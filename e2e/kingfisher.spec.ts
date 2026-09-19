@@ -105,9 +105,11 @@ test('all major routes are reachable and mobile navigation stays usable', async 
   ] as const;
 
   for (const [label, path] of routes) {
+    // Exact: since Phase 62 the brand link ("Back to Analysis") sits in the
+    // same navigation, and a substring match for "Analysis" found both.
     await page
       .getByRole('navigation', { name: 'Sections' })
-      .getByRole('link', { name: label })
+      .getByRole('link', { name: label, exact: true })
       .click();
     await expect(page).toHaveURL(new RegExp(`${path}$`));
     await expectNoHorizontalOverflow(page);

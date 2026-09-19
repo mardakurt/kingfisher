@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 test('the landing page scrolls and serves actual manifest images', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'Chess research, in one place.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Kingfisher Chess/ })).toBeVisible();
   /*
     Scrolled programmatically rather than with a synthetic wheel: WebKit's
     driver does not turn `mouse.wheel` into a scroll, and the contract here is

@@ -8,6 +8,41 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
+- **The Training icon is a knight you can recognise.** The sidebar,
+  the Recent page, the tour and the workspace tool strip all draw
+  Training from one icon, and that icon was a column with a curve on
+  it that read as a desk lamp or a snail at the size the sidebar uses.
+  It is now a knight silhouette — muzzle, ear, neck — on the same
+  plinth as the Endgame king, drawn at the same stroke as every other
+  section icon, and checked at 16, 21, 24 and 32 px in both themes.
+  (Phase 71; the Mac application picks this up at its next release.)
+- **The Studio is one step away for a returning player.** A browser
+  that has opened the Studio before sees _Continue in Studio →_ under
+  the landing's headline, and can choose to open the Studio straight
+  away on future visits (`/?stay` shows the landing again and undoes
+  the choice). `kingfisherchess.app/studio` is a permanent alias for
+  the Studio. First-time visitors see the landing exactly as before.
+  See `docs/product/studio-access.md`. (Phase 71)
+- **The landing's screenshots are the current application.** The hero,
+  the Research image and the Engines image were captures from before
+  1.2.0 — the removed toolbar, the wooden board, the old Training
+  icon, and a "Research" picture that was actually the Theory Book.
+  All three, and the social-sharing card, are now made from the
+  running application by one script (`scripts/landing-captures.mjs`)
+  and weigh half what the old set did. (Phase 71)
+- **The landing's header is centred and folds on narrow screens.**
+  The section links sat 26 px right of the page's centre at every
+  desktop width; they are now centred on the page, and below 900 px
+  they fold into a menu that works without JavaScript. The page also
+  gains its two signature details — the mark's board tile before each
+  section label and the Studio's amber rail on each principle — and
+  the Studio's own dark surface as its ink. (Phase 71)
+- **A complete favicon set.** The site now serves a 96 px PNG icon
+  alongside the .ico and SVG (the size search engines make result
+  icons from), and the Apple touch icon no longer has transparent
+  corners that iOS painted black. Search engines refresh cached icons
+  on their own schedule. (Phase 71)
+
 - **Auto-backup now records which reference packs were installed.**
   Scheduled backups (on launch and on the cycle) and the manual
   "Back up now" button in Settings → Database previously wrote a
