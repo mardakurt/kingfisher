@@ -142,11 +142,37 @@ hard-coded; the value is the engine's.
 
 ## 6. Verification
 
-See the closing report in the audit response for the command log; the
-gates run at this commit were typecheck, lint, format:check, test (3073,
-0 skipped), test:no-skips, docs:check (344/344), build (33 pages),
-benchmark, public:check (22/22), `git diff --check`, and the browser
-suite (`npm run test:e2e`, channel chrome, retries 0).
+Run at `69c3858` (application) on this machine, 2026-09-19:
+
+```
+npm run typecheck            clean
+npm run lint                 clean
+npm run format:check         All matched files use Prettier code style
+npm test                     255 files, 3073 passed, 0 skipped
+npm run test:no-skips        OK
+npm run docs:check           344/344 checks passed
+npm run build                Compiled successfully; 33 static pages; four
+                             icons emitted and linked; the entry script in /
+npm run benchmark            heaviest route /review at 529.7 kB gzipped
+npm run public:check         All 22 public link(s) responded successfully
+git diff --check             clean
+npm run test:e2e             305 passed, 0 failed, 0 flaky (17.5 m) — channel
+                             chrome, retries 0; an earlier run at an interim
+                             strip had 4 failures (pinned tabs folded), which
+                             the compact mode and the priority order fixed
+deploy:status                kingfisherchess.app: up to date (69c3858)
+```
+
+Live, after the deployment (build 48 s, no network download in the build
+log): `/studio` → 308 `/analysis`; `favicon.ico`, `icon.svg`, `icon1.png`,
+`apple-icon.png` all 200 with their types; the manifest names unpkg; the
+bootstrap worker is served; the old `.wasm` path answers 404; the three
+captures are byte-identical to the repository's; `/privacy` names unpkg.
+In Chrome on the live origin: the strip is one row of four compact tabs,
+the selector says "Lc0 — Mac app only", the full-network engine loaded
+from unpkg (`200 application/wasm`) and reached depth 16 in 28.4 s, the
+bar read `+0.5`, and Settings → Companion reads "Not available on the
+web … Download Kingfisher for macOS".
 
 ## 7. Platform parity and what remains
 
