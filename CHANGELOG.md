@@ -8,6 +8,13 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
+## 1.2.1 — 2026-09-19
+
+Kingfisher 1.2.1 carries every change below to the Mac application; the
+web at `kingfisherchess.app` has shipped each one as it landed. The
+Mac 1.2.0 build still drew the previous Training icon and lacked the
+Phase 70 auto-backup fix.
+
 - **The Training icon is a knight you can recognise.** The sidebar,
   the Recent page, the tour and the workspace tool strip all draw
   Training from one icon, and that icon was a column with a curve on
