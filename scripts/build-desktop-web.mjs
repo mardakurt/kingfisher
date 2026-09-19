@@ -151,6 +151,17 @@ const EXCLUDED = [
     at: 'engine/stockfish/stockfish-18-single.wasm',
     because: 'full-network browser Stockfish; the Mac app has native Stockfish',
   },
+  // The bootstrap workers that fetch the full network from its recorded
+  // address (Phase 72); harmless in a bundle, but they name a build the
+  // desktop's manifest does not list.
+  {
+    at: 'engine/stockfish/stockfish-18-remote.js',
+    because: 'full-network browser Stockfish; the Mac app has native Stockfish',
+  },
+  {
+    at: 'engine/stockfish/stockfish-18-single-remote.js',
+    because: 'full-network browser Stockfish; the Mac app has native Stockfish',
+  },
 ];
 
 /*

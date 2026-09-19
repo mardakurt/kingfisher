@@ -72,7 +72,7 @@ export class UciWorkerClient implements UciTransport {
         reject(
           new EngineError(
             `The engine failed to load: ${event.message || 'unknown error'}`,
-            'Run `npm run engine:install` to download the Stockfish build.',
+            'Choose the standard Stockfish 18 build, which is served with the application. In a checkout, `npm run engine:install` restores the files.',
           ),
         );
       };

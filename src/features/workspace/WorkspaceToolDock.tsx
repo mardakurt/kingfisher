@@ -193,8 +193,13 @@ export function WorkspaceToolDock({
         */
         visible={[
           ...(dockModules.includes('document') ? (['document'] as WorkspaceModuleId[]) : []),
-          ...(pinned as readonly WorkspaceModuleId[]),
+          /*
+            Phase 72: this order is also the strip's priority when the row is
+            too narrow for everything. The lower panel's content — the Move
+            Tree, on a phone — outranks a pinned tool: it is the notation.
+          */
           ...foldedFromLower,
+          ...(pinned as readonly WorkspaceModuleId[]),
         ]}
         value={activeDock}
         onChange={select}

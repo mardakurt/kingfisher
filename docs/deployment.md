@@ -178,6 +178,51 @@ This is the script the maintainer runs after a phase to
 answer "is production actually running master?" without
 opening Vercel.
 
+### Deployment storage
+
+Vercel's Hobby plan holds 10 GB of _Deployment Storage_: the build output
+and static assets of every retained deployment, measured daily. On
+2026-09-19 the project reported **12.44 GB / 10 GB**, with every other
+metered resource far below its allowance. The cause was arithmetic, not
+a leak: every deployment carried `public/engine/stockfish/`, and
+`engine:install -- --full` (the Vercel build command) put both 113 MB
+full-network Stockfish `.wasm` files in it — ~260 MB of static output per
+deployment, one deployment per push to `master` (about forty in the
+month), thirty days of retention. The landing captures added in Phase 71
+were 233 KB and did not contribute.
+
+What changed, and why it stays fixed:
+
+- **The network is not in the deployment any more.** The installer records
+  each full build's address on `unpkg.com/stockfish@18.0.8` and its
+  SHA-256, and writes a same-origin bootstrap worker that fetches the file
+  with that digest as `integrity` (`docs/ENGINES.md`, _Where the full
+  network's bytes come from_). Static output per deployment is now ~44 MB
+  (`public/` without the network: 14 MB of lite Stockfish, 23 MB of the
+  bundled reference pack, icons and captures; plus `.next/static`).
+  Measured locally: `du -sk public .next/static` after `npm run build`.
+- **Retention is a week, not a month.** The project's deployment
+  retention policy (Vercel → project → Settings → Security, or
+  `PATCH /v1/projects/{id}/deployment-expiration`) is production `1w`,
+  preview / canceled / errored `1d`; Vercel always keeps the current
+  production deployment and the last ten production deployments
+  regardless, so a rollback of any recent release stays possible.
+
+Expected steady state: at most ~50 deployments a week × ~44 MB ≈ 2.2 GB
+even in a busy week, against 10 GB. The Usage page is the only place the
+figure itself is reported — the REST API exposes deployments and the
+retention policy, not the metered total — so the after-number is to be
+read there; the measurable part, the per-deployment output, dropped
+from ~260 MB to ~44 MB (5.9×). Nothing was deleted: the five deployments
+that existed on 2026-09-19 were left for the policy to expire, no data
+store is involved (the application keeps every user's work in their own
+browser or Mac), and no asset was degraded.
+
+If the figure ever climbs again, the first thing to check is
+`public/`: `git ls-files public | xargs du -ch | tail -1` for what is
+committed, and the build log's `engine:install` lines for what the build
+fetched.
+
 ### Custom domain
 
 Optional, post-launch. Configure in

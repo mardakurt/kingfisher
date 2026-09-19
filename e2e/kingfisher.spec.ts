@@ -156,9 +156,16 @@ test('analysis, games, repertoire and explorer share a working position', async 
     .getByRole('link', { name: 'Repertoire' })
     .click();
   await expectSquareBoard(page);
-  await expect(page.getByRole('complementary', { name: 'Workspace tools' })).toBeVisible();
-  await expect(page.getByRole('tab', { name: 'Explorer' })).toBeVisible();
-  await expect(page.getByRole('tab', { name: 'Engine' })).toBeVisible();
+  const repertoireDock = page.getByRole('complementary', { name: 'Workspace tools' });
+  await expect(repertoireDock).toBeVisible();
+  /*
+    Phase 72: the strip fits one row and folds what does not fit under More
+    (the Repertoire dock is 299 px at this viewport, and its own tree tab
+    comes first). What matters is that the evidence is reachable, which is
+    what `selectTool` asserts, in the strip or under More.
+  */
+  await selectTool(page, repertoireDock, 'Explorer');
+  await selectTool(page, repertoireDock, 'Engine');
 
   await page
     .getByRole('navigation', { name: 'Sections' })

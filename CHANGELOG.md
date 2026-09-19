@@ -8,6 +8,61 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
+- **The evaluation bar shows the result of a finished game.** A
+  checkmated position filled the winner's band completely and reads
+  `1-0` or `0-1`; stalemate and the rule draws sit at the middle as
+  `½-½`. Before, the bar answered checkmate with an even split and "no
+  evaluation", and the engine panel offered a button that could only
+  produce more silence; it now says "Checkmate — White wins" and that
+  there is nothing to search. (Phase 72)
+- **No dip between moves.** With the engine running, every move used to
+  drop the bar to the middle for about a tenth of a second and flash the
+  engine panel's "No analysis yet" button while the new search warmed
+  up. The bar now keeps the previous reading, dimmed and titled as the
+  previous position's, until the new search is deep enough to show; the
+  panel says "Analysing…" instead of offering to start. (Phase 72)
+- **The board flips without collapsing.** The flip was a 3-D rotation
+  that squeezed every piece toward the centre line and back; it is now a
+  snap with a short fade, the way published boards do it. (Phase 72)
+- **One row of tool tabs.** The dock's tabs fit the width they have —
+  dropping their icons first, then folding what still does not fit under
+  _More_ — so "More" no longer sits alone on a second line with a blank
+  band beside it. On a phone the Move Tree outranks the pinned tools.
+  (Phase 72)
+- **The full-network Stockfish is fetched from its recorded address.**
+  The 113 MB network was copied into every web deployment; it is now
+  fetched by the browser from the same package the installer uses, held
+  to a recorded SHA-256, and the deployment carries 36 KB of worker
+  script instead. Nothing changes for the person choosing it, except
+  that a wrong file is refused at once rather than after a five-minute
+  timeout. (Phase 72)
+- **The Companion panel tells the truth about where you are.** On
+  `kingfisherchess.app` it says native engines are the Mac application's
+  and why; in the Mac application it says the companion is built in; on
+  a checkout it gives the terminal steps. The engine selector says "Mac
+  app only" on the web instead of "needs the companion". (Phase 72)
+- **The landing skips itself before it paints** for a browser whose
+  owner asked it to, instead of after the page has loaded. (Phase 72)
+- **The command palette knows every page and every settings section**,
+  plus _Back up my work_ and _Open the tour_; "review" and "companion"
+  find what they name. (Phase 72)
+- **The tour draws each section with the sidebar's own icon.** Five
+  steps had icons the sidebar uses for other sections. (Phase 72)
+- **A synced game says whose it was.** "You played White" / "You played
+  Black" in the title strip for games from your linked accounts, at
+  every width, for stored games too. (Phase 72)
+- **Account sync reports progress and can be cancelled.** "Downloading
+  games…", "Importing 120 of 3,400 games…", and a Cancel button that
+  keeps what has already landed. (Phase 72)
+- **The Databases page says what each source is.** Each data source
+  shows its own one-line description, so the three Lichess sources
+  (Masters, Rated Games, by player) read as three populations rather
+  than one source listed three times. (Phase 72)
+- **Sparkle's update window gets a summary, not the changelog.** From
+  the next release, the notes beside "Install Update" are the entry's
+  opening paragraph and one line per change, with a link to the full
+  changelog. (Phase 72; affects releases after 1.2.1)
+
 ## 1.2.1 — 2026-09-19
 
 Kingfisher 1.2.1 carries every change below to the Mac application; the

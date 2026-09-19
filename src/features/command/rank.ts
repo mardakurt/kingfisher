@@ -50,7 +50,9 @@ export function rank(commands: readonly Command[], query: string): Command[] {
     if (score > 0) scored.push({ command, score });
   }
 
-  scored.sort((a, b) => b.score - a.score);
+  // Equal scores: the shorter title wins, because the query is more of it —
+  // "Go to Endgame" over "Caro-Kann Defense: Endgame Offer" for "endgame".
+  scored.sort((a, b) => b.score - a.score || a.command.title.length - b.command.title.length);
 
   const sections = new Map<string, Command[]>();
   for (const { command } of scored) {

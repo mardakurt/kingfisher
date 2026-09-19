@@ -26,19 +26,6 @@
 
 import { useCallback, useEffect, useState } from 'react';
 
-import {
-  Board,
-  Clock,
-  Dossier,
-  Library,
-  Notebook,
-  PlayPosition,
-  Repertoire,
-  Recall,
-  Search,
-  Target,
-  Players,
-} from '@/components/icons';
 import { Button } from '@/components/ui/Button';
 import { Dialog } from '@/components/ui/Dialog';
 import { useUi } from '@/stores/ui-store';
@@ -52,48 +39,26 @@ interface TourStep {
   readonly icon: React.ReactNode;
 }
 
-const STEPS: readonly TourStep[] = NAV_SECTIONS.map((section) => ({
-  id: section.id,
-  title: section.label,
-  detail: sectionTourDetail(section.id),
-  icon: iconForSection(section.id),
-}));
+/*
+ * Each step draws the section's own icon — the one `NAV_SECTIONS` gives the
+ * sidebar — so the tour cannot show a different picture from the thing it
+ * is pointing at. Phase 62 fixed one such mismatch (Recent opened with the
+ * Analysis icon) by adding a case to a hand-kept map here; the map still
+ * drew Openings, Repertoire, Review, Endgame and Games with icons the sidebar
+ * uses for other sections. There is no map now.
+ */
+const STEPS: readonly TourStep[] = NAV_SECTIONS.map((section) => {
+  const Icon = section.icon;
+  return {
+    id: section.id,
+    title: section.label,
+    detail: sectionTourDetail(section.id),
+    icon: <Icon />,
+  };
+});
 
-function iconForSection(id: string): React.ReactNode {
-  switch (id) {
-    case 'recent':
-      // Phase 62: 'recent' is the first NAV_SECTION but had no case
-      // here, so the tour opened with the Analysis (Board) icon next
-      // to the Recent label. Users saw a step called "Recent" with
-      // an Analysis icon — a misleading first impression. The icon
-      // is the same one the sidebar uses for Recent (Clock).
-      return <Clock />;
-    case 'analysis':
-      return <Board />;
-    case 'preparation':
-      return <Target />;
-    case 'openings':
-      return <Library />;
-    case 'opening-files':
-      return <Dossier />;
-    case 'training':
-      return <Recall />;
-    case 'endgame':
-      return <Repertoire />;
-    case 'repertoire':
-      return <Notebook />;
-    case 'review':
-      return <Search />;
-    case 'studies':
-      return <Notebook />;
-    case 'games':
-      return <PlayPosition />;
-    case 'players':
-      return <Players />;
-    default:
-      return <Board />;
-  }
-}
+/** Exported for the test that holds every section to a sentence. */
+export const sectionTourDetailForTest = (id: string): string => sectionTourDetail(id);
 
 function sectionTourDetail(id: string): string {
   switch (id) {
@@ -121,6 +86,8 @@ function sectionTourDetail(id: string): string {
       return 'Every imported game, searchable by player, opening, date. Filter to "my games" once you set up an account.';
     case 'players':
       return 'A roster of players you keep an eye on, with their games pulled in via Lichess or Chess.com usernames.';
+    case 'databases':
+      return 'Your game collections and the reference sources beside them: what is installed, what each one answers, and where a game can be moved or copied.';
     default:
       return '';
   }

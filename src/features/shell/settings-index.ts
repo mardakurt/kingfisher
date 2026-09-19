@@ -26,6 +26,29 @@ export type SettingsSection =
   | 'profile'
   | 'diagnostics';
 
+/**
+ * The sections of the Settings dialog, in the order its navigation lists them.
+ * The dialog draws its rail from this and the command palette offers each as
+ * a command, so a section exists once.
+ */
+export const SETTINGS_SECTIONS: readonly {
+  readonly id: SettingsSection;
+  readonly label: string;
+}[] = [
+  { id: 'appearance', label: 'Appearance' },
+  { id: 'board', label: 'Board' },
+  { id: 'pieces', label: 'Pieces' },
+  { id: 'workspace', label: 'Workspace' },
+  { id: 'engine', label: 'Engine' },
+  { id: 'companion', label: 'Companion' },
+  { id: 'database', label: 'Database' },
+  { id: 'accounts', label: 'Accounts' },
+  { id: 'keyboard', label: 'Keyboard' },
+  { id: 'assistant', label: 'Assistant' },
+  { id: 'profile', label: 'Profile' },
+  { id: 'diagnostics', label: 'Diagnostics' },
+];
+
 export interface SettingsEntry {
   readonly id: string;
   readonly label: string;

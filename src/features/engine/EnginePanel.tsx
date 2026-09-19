@@ -15,6 +15,8 @@
 import { useCallback, useMemo, useState } from 'react';
 
 import { formatScore } from '@/chess/evaluation';
+import { outcomeAt } from '@/chess/game';
+import { describeOutcome } from '@/features/analysis/evaluation-bar-layout';
 import { variationPositions, variationTokens } from '@/engine/pv';
 import { describeGap, engineSessionMetrics } from '@/engine/metrics';
 import type { PrincipalVariation } from '@/engine/types';
@@ -36,9 +38,10 @@ import { useCompanionStatus } from '@/companion/useCompanion';
 import { EngineSelect } from './EngineSelect';
 
 export function EnginePanel() {
-  const { node, currentId } = useAnalysisPosition();
+  const { node, currentId, tree } = useAnalysisPosition();
 
   const status = useEngine((state) => state.primary.status);
+  const engineId = useEngine((state) => state.primary.engineId);
   const problem = useEngine((state) => state.primary.problem);
   const identity = useEngine((state) => state.primary.identity);
   const analysis = useEngine((state) => state.primary.analysis);
@@ -66,6 +69,13 @@ export function EnginePanel() {
 
   const stale = analysedFen !== node.fen;
   const metrics = engineSessionMetrics(history);
+  /*
+    A finished game has nothing to search. Stockfish answers a checkmated or
+    stalemated position with `bestmove (none)` and no line, and before Phase
+    72 the panel read that silence as "No analysis yet" and offered a button
+    that could only produce more silence. The rules know the answer; say it.
+  */
+  const outcome = useMemo(() => outcomeAt(tree, currentId), [tree, currentId]);
 
   const start = useCallback(() => {
     void runEngine('primary', node.fen, prefs.engineLimit, {
@@ -152,7 +162,7 @@ export function EnginePanel() {
               <IconButton
                 label="Start analysis (E)"
                 onClick={start}
-                disabled={status === 'unavailable' || status === 'loading'}
+                disabled={status === 'unavailable' || status === 'loading' || outcome !== null}
               >
                 <Play />
               </IconButton>
@@ -248,17 +258,45 @@ export function EnginePanel() {
             }
           />
         ) : status === 'loading' ? (
-          <EmptyState title="Loading Stockfish…" description="The build is about 7 MB." />
-        ) : stale || !analysis || analysis.lines.length === 0 ? (
           <EmptyState
-            title="No analysis yet"
-            description="Start the engine to see its candidate moves and evaluations for this position."
-            action={
-              <Button variant="subtle" icon={<Play />} onClick={start}>
-                Analyse this position
-              </Button>
+            title="Loading Stockfish…"
+            description={
+              engineId === 'stockfish-wasm-full'
+                ? 'The full-network build is 113 MB, fetched from its recorded address the first time and kept by the browser afterwards.'
+                : 'The build is about 7 MB.'
             }
           />
+        ) : outcome ? (
+          <EmptyState
+            title={describeOutcome(outcome)}
+            description="The game is over in this position; there is nothing for an engine to search. Step back a move to analyse how it got here."
+          />
+        ) : stale || !analysis || analysis.lines.length === 0 ? (
+          running ? (
+            /*
+              A search is in flight for this position and has not reported a
+              line yet — the ~25 ms after every move. The previous state here
+              was the "No analysis yet" empty state with its Analyse button,
+              which flashed once per move while the engine was plainly on.
+            */
+            <p
+              className="px-2.5 py-3 text-2xs text-tertiary"
+              data-engine-panel-warming
+              aria-live="polite"
+            >
+              Analysing…
+            </p>
+          ) : (
+            <EmptyState
+              title="No analysis yet"
+              description="Start the engine to see its candidate moves and evaluations for this position."
+              action={
+                <Button variant="subtle" icon={<Play />} onClick={start}>
+                  Analyse this position
+                </Button>
+              }
+            />
+          )
         ) : (
           <ol className={cn('divide-y divide-line-subtle', stale && 'opacity-50')}>
             {analysis.lines.map((line) => (

@@ -48,9 +48,19 @@ export function DocumentHeader() {
             "read-only source" pill alone says nothing about whose game
             it was.
           */}
-          {document.kind === 'reference-game' && document.viewerSide ? (
-            <span className="hidden shrink-0 rounded-[3px] bg-accent/15 px-1 text-[10px] font-medium text-accent wide:inline">
-              Playing as {document.viewerSide === 'w' ? 'White' : 'Black'}
+          {(document.kind === 'reference-game' || document.kind === 'database-game') &&
+          document.viewerSide ? (
+            /*
+              Phase 72: shown at every width, and for stored games too. The
+              pill was `wide:` only, so on a laptop the one fact a player
+              wants on the second click — which side was theirs — was hidden
+              exactly where the board is smallest.
+            */
+            <span
+              className="shrink-0 rounded-[3px] bg-accent/15 px-1 text-[10px] font-medium text-accent"
+              data-viewer-side={document.viewerSide}
+            >
+              You played {document.viewerSide === 'w' ? 'White' : 'Black'}
             </span>
           ) : null}
           {document.kind === 'database-game' || document.kind === 'reference-game' ? (

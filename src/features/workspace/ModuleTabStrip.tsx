@@ -1,5 +1,7 @@
 'use client';
 
+import { useLayoutEffect, useRef, useState } from 'react';
+
 import { Menu, type MenuSection } from '@/components/ui/Menu';
 import { cn } from '@/lib/cn';
 
@@ -27,16 +29,23 @@ export interface ModuleTab {
  * navigation is cheap to add and expensive to use, and §56 exists because it
  * has been reintroduced before.
  *
- * The strip never scrolls. When the row is narrower than its tabs it wraps
- * onto a second line, so every pinned tool stays visible and clickable — a
- * pinned tab that has scrolled out of sight is not pinned. It used to scroll,
- * with the More button as the row's last child — and the More menu, a
- * 370px-tall absolutely positioned list, was clipped by the row's
- * `overflow-x: auto`, which the browser promotes to `overflow-y: auto` as
- * well. Opening More showed one item and scrolled the row sideways so the
- * pinned tabs vanished off its left edge: the user pressed More and found
- * themselves in what looked like a different layout with no way back. The
- * More button now sits outside the row, in a box that never clips.
+ * The strip never scrolls and never wraps. It used to scroll, with the More
+ * button as the row's last child — and the More menu, a 370px-tall
+ * absolutely positioned list, was clipped by the row's `overflow-x: auto`,
+ * which the browser promotes to `overflow-y: auto` as well. Then (Phase 62)
+ * it wrapped: a row narrower than its tabs put More and the collapse control
+ * on a second line, which at the default 380px dock was a line holding
+ * "More ▾" and 300px of nothing under every pinned tab — the blank band the
+ * owner read as something missing.
+ *
+ * Phase 72: the row fits itself. It measures its own width and the width of
+ * each tab; when the tabs do not all fit with their icons it draws them
+ * without (the words are the tabs; the icons are decoration the More menu
+ * keeps), and only what still does not fit is folded into More, in priority
+ * order — the route's own panel, then the lower panel's content, then the
+ * pinned tools. The active tab is always in the row, so choosing a tool from
+ * More never sends it straight back into the menu. A dock resized narrower
+ * folds tabs; resized wider unfolds them; nothing ever needs a second line.
  */
 export function ModuleTabStrip({
   tabs,
@@ -55,8 +64,104 @@ export function ModuleTabStrip({
   // The active tab is always in the row, whether or not it is pinned:
   // selecting something from More and watching it vanish back into the menu
   // is the discoverability bug in a new place.
-  const shown = tabs.filter((tab) => visible.includes(tab.id) || tab.id === value);
-  const overflow = tabs.filter((tab) => !shown.includes(tab));
+  const wanted = tabs.filter((tab) => visible.includes(tab.id) || tab.id === value);
+
+  const strip = useRef<HTMLDivElement>(null);
+  const [rowWidth, setRowWidth] = useState(0);
+  /*
+    Everything measured lives in state, written from layout effects and read
+    by render: the tab widths (a folded tab keeps the width it had when it
+    was last drawn), and the width of the More box and the actions box.
+  */
+  const [measured, setMeasured] = useState<{
+    /** Keyed by `${mode}:${id}`: a tab is a different width with its icon. */
+    readonly widths: Readonly<Record<string, number>>;
+    readonly more: number;
+    readonly actions: number;
+  }>({ widths: {}, more: 0, actions: 0 });
+  /*
+    Before any tab is folded, the icons go. A tab's icon is 18 px of
+    decoration beside a real word; at the default 380 px dock the four
+    pinned Analysis tools fit on one row without them and do not with them.
+    `compact` is decided from the measurements, below.
+  */
+  const [compact, setCompact] = useState(false);
+
+  useLayoutEffect(() => {
+    const element = strip.current;
+    if (!element) return;
+    const observer = new ResizeObserver(() => {
+      const next = element.clientWidth;
+      setRowWidth((current) => (current === next ? current : next));
+    });
+    observer.observe(element);
+    setRowWidth(element.clientWidth);
+    return () => observer.disconnect();
+  }, []);
+
+  // Re-measured whenever the row's contents could have changed size: the
+  // set of tabs drawn, or the row itself. Written only when a number moved,
+  // so the effect settles after one extra render at most.
+  const drawn = wanted.map((tab) => tab.id).join('|');
+  useLayoutEffect(() => {
+    const element = strip.current;
+    if (!element) return;
+    // The observer reports size changes; this is the same number read again
+    // whenever the contents change, so a width the observer has not delivered
+    // yet is still caught on the next render.
+    const width = element.clientWidth;
+    setRowWidth((current) => (current === width ? current : width));
+    const widths: Record<string, number> = {};
+    const mode = element.dataset.tabStripCompact ? 'compact' : 'full';
+    for (const tab of element.querySelectorAll<HTMLElement>('[data-tab-id]')) {
+      const width = tab.offsetWidth;
+      if (width > 0) widths[`${mode}:${tab.dataset.tabId!}`] = width;
+    }
+    const more = element.querySelector<HTMLElement>('[data-tab-strip-more-box]')?.offsetWidth ?? 0;
+    const actions =
+      element.querySelector<HTMLElement>('[data-tab-strip-actions]')?.offsetWidth ?? 0;
+    setMeasured((current) => {
+      const merged = { ...current.widths, ...widths };
+      const changed =
+        Object.keys(merged).some((id) => merged[id] !== current.widths[id]) ||
+        (more > 0 && more !== current.more) ||
+        actions !== current.actions;
+      return changed ? { widths: merged, more: more > 0 ? more : current.more, actions } : current;
+    });
+  }, [drawn, rowWidth, value, compact]);
+
+  const rest = tabs.filter((tab) => !wanted.includes(tab));
+  /*
+    A tab is measured only while it is drawn, so a tab folded in one mode has
+    no measurement in that mode; the other mode's width, less or plus the
+    icon and its gap, is the next best number — every wanted tab is drawn
+    with its icon at least once, on the first, unmeasured render.
+  */
+  const widthIn = (mode: 'full' | 'compact', id: WorkspaceModuleId): number | undefined => {
+    const own = measured.widths[`${mode}:${id}`];
+    if (own !== undefined) return own;
+    const other = measured.widths[`${mode === 'full' ? 'compact' : 'full'}:${id}`];
+    if (other === undefined) return undefined;
+    return mode === 'full' ? other + ICON_ALLOWANCE : other - ICON_ALLOWANCE;
+  };
+  const fit = (mode: 'full' | 'compact') =>
+    fitTabs({
+      wanted,
+      active: value,
+      rowWidth,
+      widthOf: (id) => widthIn(mode, id),
+      moreWidth: measured.more || MORE_WIDTH_ESTIMATE,
+      actionsWidth: measured.actions,
+      // The remaining tools are folded even when they are not pinned.
+      rest,
+      priority: visible,
+    });
+  const full = fit('full');
+  // Icons stay while every wanted tab fits with them; otherwise the row is
+  // drawn compact, and only what still does not fit is folded.
+  const wantCompact = rowWidth > 0 && full.shown.length < wanted.length;
+  if (wantCompact !== compact) setCompact(wantCompact);
+  const { shown, overflow } = compact ? fit('compact') : full;
 
   const sections: readonly MenuSection[] = [
     {
@@ -74,16 +179,12 @@ export function ModuleTabStrip({
   ];
 
   return (
-    /*
-      One wrapping row for everything. The tabs, the More button and the
-      collapse control share the same flex flow, so a strip too narrow for its
-      tabs wraps to a second line rather than squeezing the tabs into whatever
-      is left beside two fixed buttons — which at a 300px dock was 204px, and
-      four lines of tabs.
-    */
     <div
+      ref={strip}
       role="tablist"
-      className="flex shrink-0 flex-wrap items-stretch border-b border-line-subtle"
+      className="flex shrink-0 flex-nowrap items-stretch overflow-hidden border-b border-line-subtle"
+      data-tab-strip
+      data-tab-strip-compact={compact ? 'true' : undefined}
     >
       {shown.map((tab) => {
         const selected = tab.id === value;
@@ -93,6 +194,7 @@ export function ModuleTabStrip({
             key={tab.id}
             type="button"
             role="tab"
+            data-tab-id={tab.id}
             aria-selected={selected}
             title={tab.unavailable ?? tab.label}
             onClick={() => onChange(tab.id)}
@@ -103,7 +205,7 @@ export function ModuleTabStrip({
                 : 'text-tertiary hover:bg-surface-2/50 hover:text-secondary',
             )}
           >
-            <Icon className="h-3.5 w-3.5 shrink-0" />
+            {compact ? null : <Icon className="h-3.5 w-3.5 shrink-0" />}
             {tab.label}
             {/* A tool that cannot help still shows; the dot says so at a glance. */}
             {tab.unavailable ? (
@@ -115,14 +217,14 @@ export function ModuleTabStrip({
       })}
       {overflow.length > 0 ? (
         /*
-          Phase 62: `ml-auto` used to push the More button to the far
-          right of the row, which left a wide blank band between the
-          last shown tab and More. The user reads that band as "empty
-          space where something is missing" rather than "spare room".
-          A small left margin keeps a visible separator while pulling
-          More next to the tabs.
+          A small left margin keeps a visible separator while pulling More
+          next to the tabs; `ml-auto` here once left a blank band the user
+          read as "empty space where something is missing".
         */
-        <div className="ml-2 flex shrink-0 items-stretch border-l border-line-subtle">
+        <div
+          data-tab-strip-more-box
+          className="ml-2 flex shrink-0 items-stretch border-l border-line-subtle"
+        >
           <Menu
             align="end"
             sections={sections}
@@ -134,7 +236,7 @@ export function ModuleTabStrip({
                 aria-expanded={open}
                 aria-haspopup="menu"
                 data-tab-strip-more
-                className="flex h-8 shrink-0 items-center gap-1 px-2 text-xs font-medium text-tertiary hover:bg-surface-2/50 hover:text-secondary"
+                className="flex h-8 shrink-0 items-center gap-1 px-2 text-xs font-medium whitespace-nowrap text-tertiary hover:bg-surface-2/50 hover:text-secondary"
               >
                 More
                 <span aria-hidden className="text-[9px]">
@@ -147,10 +249,84 @@ export function ModuleTabStrip({
         </div>
       ) : null}
       {actions ? (
-        <div className={cn('flex shrink-0 items-stretch', overflow.length === 0 && 'ml-auto')}>
+        <div
+          data-tab-strip-actions
+          className={cn('flex shrink-0 items-stretch', overflow.length === 0 && 'ml-auto')}
+        >
           {actions}
         </div>
       ) : null}
     </div>
   );
+}
+
+/** A tab's icon (14 px) and the gap after it (4 px). */
+const ICON_ALLOWANCE = 18;
+/** "More ▾" with its margin and border, before it has been drawn once. */
+const MORE_WIDTH_ESTIMATE = 60;
+/** A tab that has never been drawn: icon, gap, a typical label, padding. */
+const TAB_WIDTH_ESTIMATE = 84;
+
+/**
+ * Which tabs stay in one row. Pure, so the rule is unit-tested without a DOM.
+ *
+ * The active tab is placed first (whatever its position), then the wanted
+ * tabs in their own order while they fit. Nothing is ever reordered on screen
+ * — the row is drawn in `wanted` order — the active tab is only *reserved*
+ * first so it can never be the one that is dropped. A row too narrow for even
+ * the active tab still shows it: a strip with no tab at all has no tool.
+ */
+export function fitTabs({
+  wanted,
+  active,
+  rowWidth,
+  widthOf,
+  moreWidth,
+  actionsWidth,
+  rest,
+  priority = [],
+}: {
+  readonly wanted: readonly ModuleTab[];
+  readonly active: WorkspaceModuleId | null;
+  readonly rowWidth: number;
+  readonly widthOf: (id: WorkspaceModuleId) => number | undefined;
+  readonly moreWidth: number;
+  readonly actionsWidth: number;
+  readonly rest: readonly ModuleTab[];
+  /** Ids in the order they deserve the row; absent ids come last. */
+  readonly priority?: readonly WorkspaceModuleId[];
+}): { readonly shown: readonly ModuleTab[]; readonly overflow: readonly ModuleTab[] } {
+  // Unmeasured (the first render, or before layout): draw everything wanted.
+  if (rowWidth <= 0) return { shown: wanted, overflow: rest };
+
+  const width = (tab: ModuleTab) => widthOf(tab.id) ?? TAB_WIDTH_ESTIMATE;
+  const total = wanted.reduce((sum, tab) => sum + width(tab), 0);
+  if (total + actionsWidth <= rowWidth && rest.length === 0) {
+    return { shown: wanted, overflow: [] };
+  }
+  // Something goes under More, so More is in the row and takes its share.
+  const budget = rowWidth - actionsWidth - moreWidth;
+  const kept = new Set<WorkspaceModuleId>();
+  let used = 0;
+  const activeTab = wanted.find((tab) => tab.id === active);
+  if (activeTab) {
+    kept.add(activeTab.id);
+    used += width(activeTab);
+  }
+  // Kept in priority order — the `visible` list's order, which puts the
+  // route's own panel first and the lower panel's content (the Move Tree on a
+  // phone) before the pinned tools — but drawn in the row's own order.
+  const rank = (tab: ModuleTab) => {
+    const index = priority.indexOf(tab.id);
+    return index === -1 ? priority.length : index;
+  };
+  for (const tab of [...wanted].sort((a, b) => rank(a) - rank(b))) {
+    if (kept.has(tab.id)) continue;
+    if (used + width(tab) > budget) break;
+    kept.add(tab.id);
+    used += width(tab);
+  }
+  const shown = wanted.filter((tab) => kept.has(tab.id));
+  const overflow = [...wanted.filter((tab) => !kept.has(tab.id)), ...rest];
+  return { shown, overflow };
 }

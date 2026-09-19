@@ -8,6 +8,8 @@ import {
 } from '@/release/macos-download';
 import { publicUrl } from '@/release/public-urls';
 
+import { studioAutoOpenScript } from '@/features/shell/studio-entry';
+
 import { StudioEntry } from './StudioEntry';
 import './landing.css';
 
@@ -169,6 +171,16 @@ export function LandingPage(): JSX.Element {
 
   return (
     <div className="kf-landing">
+      {/*
+        The one decision made before paint: a browser whose owner ticked
+        "open the Studio straight away" leaves here, parser-blocking, before
+        the landing is drawn. The rule is `studio-entry.ts`'s, rendered as a
+        script; StudioEntry below makes the same decision after hydration for
+        a browser that did not run this. A first visit runs the script and
+        does nothing — it writes nothing, and reads two keys the Studio
+        alone writes (see /privacy).
+      */}
+      <script dangerouslySetInnerHTML={{ __html: studioAutoOpenScript(studioPath) }} />
       <a className="skip" href="#main">
         Skip to content
       </a>

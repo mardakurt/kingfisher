@@ -63,9 +63,30 @@ export const useAccountSync = create<AccountSyncStore>((set, get) => ({
         lastSyncStartedAt: Date.now(),
       }));
 
+      /*
+        Phase 72: the run reports where it is. A first sync of a large
+        account takes minutes — every game the account has ever played —
+        and "Syncing…" for the whole of it was indistinguishable from a
+        hang. Progress arrives from the importer once the download is in;
+        before that the message says what it is waiting for.
+      */
+      patch({ ...get().runs[account.id]!, message: 'Downloading games…' });
       const result = await syncAccount(account, repositories.games, {
         signal: controller.signal,
         ...(await lichessToken()),
+        onProgress: (progress) => {
+          const current = get().runs[account.id];
+          if (!current?.running) return;
+          const message =
+            progress.stage === 'parsing'
+              ? 'Reading the games…'
+              : progress.stage === 'indexing'
+                ? 'Indexing positions…'
+                : progress.total > 0
+                  ? `Importing ${progress.completed.toLocaleString()} of ${progress.total.toLocaleString()} games…`
+                  : 'Importing games…';
+          if (message !== current.message) patch({ ...current, message });
+        },
       });
 
       /*
@@ -105,11 +126,18 @@ export const useAccountSync = create<AccountSyncStore>((set, get) => ({
       const failure =
         error instanceof SyncFetchError
           ? { state: error.state, message: error.message, remedy: error.remedy }
-          : {
-              state: 'network-error' as ProviderHealthState,
-              message: error instanceof Error ? error.message : 'The sync failed.',
-              remedy: undefined,
-            };
+          : controller.signal.aborted
+            ? {
+                state: 'error' as ProviderHealthState,
+                message:
+                  'Sync cancelled. Games already imported are kept; the next sync continues from the stored cursor.',
+                remedy: undefined,
+              }
+            : {
+                state: 'network-error' as ProviderHealthState,
+                message: error instanceof Error ? error.message : 'The sync failed.',
+                remedy: undefined,
+              };
 
       await repositories.linkedAccounts
         .update(account.id, (current) => ({

@@ -49,3 +49,12 @@ describe('first-run tour contract', () => {
     expect(daysSinceLastBackup(now, now)).toBe(0);
   });
 });
+
+describe('every tour step describes a real section', () => {
+  it('has a detail sentence for each navigation section', async () => {
+    const { sectionTourDetailForTest } = await import('./FirstRunTour');
+    for (const section of NAV_SECTIONS) {
+      expect(sectionTourDetailForTest(section.id), section.id).not.toBe('');
+    }
+  });
+});

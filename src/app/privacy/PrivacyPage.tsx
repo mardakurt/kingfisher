@@ -139,8 +139,16 @@ export function PrivacyPage(): JSX.Element {
           verification is reported and the bytes are discarded.
         </li>
         <li>
-          <strong>The application&apos;s own origin</strong> for the static assets (Stockfish WASM,
-          piece art, the marketing/landing assets, the app code itself).
+          <strong>unpkg.com</strong> (<code>unpkg.com/stockfish@18.0.8</code>), used only when you
+          choose <em>Stockfish 18 (full network)</em> in the engine selector: the 113 MB evaluation
+          network is fetched from that npm package mirror the first time and kept by your browser
+          afterwards. The request carries no identifier of yours, and the browser refuses the bytes
+          unless they hash to the SHA-256 recorded in Kingfisher (<code>docs/ENGINES.md</code>). The
+          standard Stockfish 18 build is served from this origin and needs nothing else.
+        </li>
+        <li>
+          <strong>The application&apos;s own origin</strong> for the static assets (the standard
+          Stockfish WASM, piece art, the marketing/landing assets, the app code itself).
         </li>
       </ul>
       <p>

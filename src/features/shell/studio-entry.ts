@@ -100,3 +100,30 @@ export function landingEntryFor(store: KeyValueStore | null, search: string): La
   if (autoOpen && !stay) return { kind: 'open-studio' };
   return { kind: 'returning', autoOpen };
 }
+
+/**
+ * The `open-studio` decision as an inline script, for the landing's `<head>`.
+ *
+ * `StudioEntry` makes the same decision from React, but React runs after the
+ * page has been parsed, painted and hydrated — so a browser whose owner asked
+ * to skip the landing saw the landing anyway, for the length of a script
+ * download, on every visit. A parser-blocking script at the top of the
+ * document runs before the first paint. It is the rule above, written once
+ * more in the only form that can run that early, and `studio-entry.test.ts`
+ * executes this string against the same cases `landingEntryFor` is held to,
+ * so the two cannot disagree without a test saying so. `StudioEntry` keeps
+ * its own redirect as the fallback for a browser that blocked the script.
+ *
+ * The keys and the query parameter are interpolated from the constants, not
+ * retyped. `location.replace`, as in the component: the landing must not sit
+ * in the history as a page the back button lands on and immediately leaves.
+ */
+export function studioAutoOpenScript(studioPath: string): string {
+  return (
+    '(function(){try{var s=window.localStorage;' +
+    `if(s.getItem(${JSON.stringify(AUTO_OPEN_KEY)})==='1'` +
+    `&&s.getItem(${JSON.stringify(STUDIO_VISITED_KEY)})` +
+    `&&!new URLSearchParams(window.location.search).has(${JSON.stringify(STAY_PARAM)}))` +
+    `{window.location.replace(${JSON.stringify(studioPath)});}}catch(e){}})();`
+  );
+}

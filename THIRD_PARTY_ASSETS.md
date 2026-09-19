@@ -216,8 +216,10 @@ it was made from; replace all of them together, with the script, when the
 workspace changes.
 
 `public/landing/img/workspace-2026-09-19.webp` — the hero. The analysis
-workspace of the checkout after `b251020` (Kingfisher 1.2.0, Phase 71), taken
-on 2026-09-19 at 1440 × 900 at 2× and encoded at 2240 × 1400 (WebP q82).
+workspace of the Phase 72 checkout (after `9d614d8`, Kingfisher 1.2.1, with
+the one-row tool tab strip), re-taken on 2026-09-19 at 1440 × 900 at 2× and
+encoded at 2240 × 1400 (WebP q82); it replaces the same-named Phase 71
+capture, which showed the tab strip's second line.
 Stockfish 18 Lite WASM Multithreaded was started on the position after
 `1. e4 e5 2. Nf3 Nc6 3. Bc4` with MultiPV 5 and the capture waited for the
 engine's arrow, then eight seconds; the panel shows the depth it had reached.

@@ -511,14 +511,31 @@ function ProviderHealthRow({ provider }: { readonly provider: ChessDatabaseProvi
         <StatusDot state={state} className="mt-1.5" />
         <div className="min-w-0 flex-1">
           <span className="block text-sm text-primary">{provider.name}</span>
-          <span className="block text-[10px] uppercase tracking-wide text-tertiary">
+          {/*
+            What population this source answers about, in one line. Three
+            rows all called "Lichess …" and all saying "authentication
+            required" read as one source listed three times (the Phase 72
+            report); the description is what tells Masters, Rated Games and
+            by-player apart, and it is the provider's own.
+          */}
+          <span className="block text-[11px] leading-snug text-secondary">
+            {provider.description}
+          </span>
+          <span className="mt-0.5 block text-[10px] uppercase tracking-wide text-tertiary">
             {LABELS[state]}
           </span>
         </div>
       </div>
-      <p className="mt-1 pl-4 text-xs leading-relaxed text-tertiary">
-        {health.data?.message ?? 'Checking connection…'}
-      </p>
+      {/*
+        A source waiting for a credential says so through its button and the
+        remedy beside it; repeating the same "needs a token" paragraph under
+        each of three Lichess rows was the clutter, not the information.
+      */}
+      {state !== 'authentication-required' ? (
+        <p className="mt-1 pl-4 text-xs leading-relaxed text-tertiary">
+          {health.data?.message ?? 'Checking connection…'}
+        </p>
+      ) : null}
       {/*
         A source that needs a credential gets the button that supplies one.
         "Test connection" on a source with no token re-ran the test and

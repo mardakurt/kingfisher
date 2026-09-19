@@ -323,6 +323,13 @@ export type AnalysisDocument =
       readonly kind: 'database-game';
       readonly title: string;
       readonly gameId: GameId;
+      /**
+       * The side the viewer played, when the game came from one of their
+       * linked accounts. Phase 63 set the board's orientation from it and
+       * dropped the fact on the floor: the header of a synced game said
+       * "From your game database" and nothing about whose game it was.
+       */
+      readonly viewerSide?: 'w' | 'b';
     }
   /**
    * A game from a reference source, opened on the board.

@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { Shape } from '@/chess/annotations';
+import type { Score } from '@/chess/evaluation';
+import { outcomeAt } from '@/chess/game';
 import type { EngineArrow } from '@/features/board/engine-arrows';
 import type { MoveIntent } from '@/chess/types';
 import { Chessboard } from '@/features/board/Chessboard';
@@ -73,6 +75,7 @@ export function CanonicalBoardSurface({
   const goTo = useAnalysis((state) => state.goTo);
   const analysis = useEngine((state) => state.primary.analysis);
   const analysedFen = useEngine((state) => state.primary.analysedFen);
+  const engineRunning = useEngine((state) => state.primary.running);
   const engineName = useEngine((state) => state.primary.identity?.name ?? null);
   const engineArrows = useEngineArrows(node.fen);
   const boardContainer = useRef<HTMLDivElement>(null);
@@ -137,11 +140,58 @@ export function CanonicalBoardSurface({
   const MIN_LIVE_DEPTH = 8;
   const liveRaw = analysedFen === node.fen && analysis?.lines[0] ? analysis : null;
   const live = liveRaw && liveRaw.depth >= MIN_LIVE_DEPTH ? liveRaw : null;
-  const evaluation = live ? live.lines[0]!.score : (node.evaluation?.score ?? null);
-  const evaluationDepth = live ? live.depth : node.evaluation?.depth;
-  const evaluationEngine = live ? engineName : node.evaluation?.engine;
-  const evaluationStale = !live && evaluation !== null;
+  /*
+    The last reading the bar showed, kept across positions. When the player
+    moves with the engine running there is a window — the old search is
+    stopped, the new one has not reached the depth floor — in which this
+    position has neither a live line nor a stored evaluation. Before Phase 72
+    the bar answered that window with an even split and "no evaluation",
+    every move, for about a tenth of a second: with the 900 ms height
+    transition that read as the evaluation collapsing and recovering after
+    each move. The bar now keeps the previous reading, dimmed and titled as
+    the previous position's, until the new search is worth showing. It does
+    so only while a search is actually in flight (`engineRunning`): with the
+    engine off, a position without an evaluation says so.
+  */
+  const [lastReading, setLastReading] = useState<{
+    readonly fen: string;
+    readonly score: Score;
+    readonly depth: number;
+    readonly engine: string | null;
+  } | null>(null);
+  if (
+    live &&
+    (lastReading === null ||
+      lastReading.fen !== node.fen ||
+      lastReading.depth !== live.depth ||
+      !sameScore(lastReading.score, live.lines[0]!.score))
+  ) {
+    // Set during render, from render's own inputs: React re-renders at once
+    // with the new value, and nothing here reads a ref.
+    setLastReading({
+      fen: node.fen,
+      score: live.lines[0]!.score,
+      depth: live.depth,
+      engine: engineName,
+    });
+  }
+  const stored = node.evaluation ?? null;
+  const previous =
+    !live && !stored && engineRunning && lastReading && lastReading.fen !== node.fen
+      ? lastReading
+      : null;
+  const evaluation = live ? live.lines[0]!.score : (stored?.score ?? previous?.score ?? null);
+  const evaluationDepth = live ? live.depth : (stored?.depth ?? previous?.depth);
+  const evaluationEngine = live ? engineName : (stored?.engine ?? previous?.engine);
+  const evaluationStale = !live && stored !== null;
+  const evaluationCatchingUp = previous !== null;
   const evaluationLiveLowDepth = liveRaw && !live;
+  /*
+    A finished game has a result, not an evaluation. The outcome is read the
+    same way the position summary reads it, so the bar and the line under
+    the board never disagree about whether the game is over.
+  */
+  const outcome = useMemo(() => outcomeAt(tree, currentId), [tree, currentId]);
 
   /*
     A tool may borrow the board's moves — Review's journal records candidates
@@ -250,7 +300,9 @@ export function CanonicalBoardSurface({
             <EvaluationBar
               score={evaluation}
               orientation={orientation}
+              outcome={outcome}
               stale={evaluationStale}
+              catchingUp={evaluationCatchingUp}
               {...(evaluationLiveLowDepth
                 ? { depth: 1 }
                 : evaluationDepth
@@ -328,6 +380,13 @@ export function CanonicalBoardSurface({
     </div>
   );
 }
+
+/** Whether two scores say the same thing, so a repeated snapshot is not a new reading. */
+const sameScore = (a: Score, b: Score): boolean =>
+  a.kind === b.kind &&
+  (a.kind === 'cp'
+    ? a.cp === (b as { cp: number }).cp
+    : a.moves === (b as { moves: number }).moves);
 
 /* Stable empties, so withholding does not remount the board on every render. */
 const EMPTY = new Map<never, never>() as never;

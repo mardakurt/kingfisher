@@ -12,6 +12,8 @@
  * differences as folklore; asking the engine keeps them true.
  */
 
+import { companionReachFor } from '@/companion/reach';
+import { isDesktop } from '@/desktop/bridge';
 import { parseUciOptions } from '../uci';
 import { UciSession } from '../uci-session';
 import {
@@ -87,11 +89,17 @@ export class CompanionEngineProvider implements EngineProvider {
   async checkAvailability(): Promise<EngineAvailability> {
     const client = companionClient();
     if (!client) {
+      const reach = companionReachFor(
+        typeof window === 'undefined' ? null : window.location.origin,
+        isDesktop(),
+      );
       return {
         available: false,
         reason: 'This engine runs as a native process, which needs the local companion.',
         remedy:
-          'The Kingfisher desktop application includes it. In a browser, pair a companion in Settings → Companion — or choose Stockfish 18, which runs here without one.',
+          reach === 'checkout'
+            ? 'Pair the companion in Settings → Companion (one command in a terminal) — or choose Stockfish 18, which runs here without one.'
+            : 'Native engines run in the Kingfisher Mac application, which includes the companion. In this browser, choose Stockfish 18, which runs without one.',
       };
     }
     try {

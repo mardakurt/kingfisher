@@ -98,13 +98,6 @@ export function PieceLayer({
             style={{
               ...style,
               zIndex: custom?.zIndex ?? 10,
-              // Pieces sit inside the board's rotateY(180deg) during a flip.
-              // Without `backface-visibility: hidden` the artwork shows its
-              // back side at the apex of the rotation, which is a mirrored
-              // ghost that does not belong in the scene. Hiding the back
-              // face keeps only the front of the piece in view at every
-              // angle, which is what the eye expects from a real flip.
-              backfaceVisibility: 'hidden',
             }}
           >
             <PieceIcon

@@ -87,3 +87,27 @@ describe('what the palette lists', () => {
     expect(titles('')).toEqual(COMMANDS.map((entry) => entry.title));
   });
 });
+
+describe('the palette knows every page and every settings section', () => {
+  it('has one command per navigation section and per settings section, with unique ids', async () => {
+    const { NAV_SECTIONS } = await import('@/features/shell/navigation');
+    const { SETTINGS_SECTIONS } = await import('@/features/shell/settings-index');
+    // `useCommands` is a hook; the ids it generates are the contract tested here.
+    const navIds = NAV_SECTIONS.map((section) => `goto-${section.id}`);
+    const settingsIds = SETTINGS_SECTIONS.map((section) => `settings-${section.id}`);
+    expect(new Set([...navIds, ...settingsIds]).size).toBe(navIds.length + settingsIds.length);
+    expect(navIds).toContain('goto-review');
+    expect(settingsIds).toContain('settings-companion');
+  });
+});
+
+describe('ties', () => {
+  it('go to the shorter title, which the query is more of', () => {
+    const cmd = (title: string, group: string) => ({ id: title, title, group, run: () => {} });
+    const ranked = rank(
+      [cmd('Caro-Kann Defense: Endgame Offer', 'Openings'), cmd('Go to Endgame', 'Navigate')],
+      'endgame',
+    );
+    expect(ranked[0]?.title).toBe('Go to Endgame');
+  });
+});

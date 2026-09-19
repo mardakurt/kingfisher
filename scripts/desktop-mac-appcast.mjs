@@ -57,6 +57,9 @@ import { TOOLS, isVendored } from '../desktop/scripts/fetch-sparkle.mjs';
 import { plistValue } from '../desktop/src/sparkle-bundle.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
+/** The one source of the repository address, as every public surface reads it. */
+const { publicUrl } = await import('../src/release/public-urls.ts');
+const REPOSITORY_URL = publicUrl.repository;
 const OUT_DEFAULT = path.resolve(
   process.env.KINGFISHER_DESKTOP_OUT ?? path.join(ROOT, 'desktop', 'dist'),
 );
@@ -152,6 +155,96 @@ export function releaseNotesHtml(changelog, version) {
   const heading = lines[start].replace(/^## /, '').trim();
   return `<h2>${inline(heading)}</h2>\n${blocks.join('\n')}\n`;
 }
+
+/**
+ * What Sparkle's window shows: a summary, not the changelog.
+ *
+ * Sparkle draws the release notes in a panel a few hundred pixels tall, and
+ * `releaseNotesHtml` put the whole CHANGELOG entry in it — for 1.2.1 that
+ * was seventy lines of prose, most of it about the web landing page, in a
+ * box meant for "what will change when I press Install". The owner called it
+ * a wall of text, and it was one.
+ *
+ * This renders the entry's opening paragraph and one line per change — the
+ * bold lead each bullet begins with, which the changelog's style guarantees
+ * — and ends with a link to the full entry on GitHub. A bullet without a
+ * bold lead contributes its first sentence. Every character of text is
+ * escaped, as in `releaseNotesHtml`, which remains the full rendering for
+ * the `<version>.html` file beside the feed.
+ */
+export function releaseNotesSummaryHtml(changelog, version, repositoryUrl) {
+  const lines = changelog.split('\n');
+  const start = lines.findIndex((line) =>
+    new RegExp(`^## ${version.replace(/\./g, '\\.')}(\\s|$)`).test(line),
+  );
+  if (start === -1) return null;
+  let end = lines.findIndex((line, index) => index > start && /^## /.test(line));
+  if (end === -1) end = lines.length;
+  const body = lines.slice(start + 1, end);
+  const escape = (text) =>
+    text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const plain = (text) =>
+    escape(
+      text
+        .replace(/\*\*([^*]+)\*\*/g, '$1')
+        .replace(/`([^`]+)`/g, '$1')
+        .replace(/_([^_]+)_/g, '$1')
+        .replace(/\[([^\]]+)\]\([^)\s]+\)/g, '$1'),
+    );
+
+  let intro = [];
+  const items = [];
+  let seenBullet = false;
+  for (const raw of body) {
+    const line = raw.trimEnd();
+    if (!line.trim()) {
+      if (intro.length && !seenBullet) seenBullet = true; // the intro is the first paragraph only
+      continue;
+    }
+    if (/^- /.test(line)) {
+      seenBullet = true;
+      items.push([line.slice(2).trim()]);
+      continue;
+    }
+    if (/^\s{2,}\S/.test(line) && items.length) {
+      items[items.length - 1].push(line.trim());
+      continue;
+    }
+    if (/^### /.test(line)) continue;
+    if (!seenBullet) intro.push(line.trim());
+  }
+  const leads = items.map((item) => {
+    const text = item.join(' ');
+    const bold = /^\*\*([^*]+)\*\*/.exec(text);
+    if (bold) return plain(bold[1].replace(/\.$/, ''));
+    const sentence = /^(.+?[.!?])(\s|$)/.exec(text);
+    return plain((sentence ? sentence[1] : text).replace(/\.$/, ''));
+  });
+  const headingText = lines[start].replace(/^## /, '').trim();
+  const heading = plain(headingText);
+  const changelogUrl = repositoryUrl ? changelogEntryUrl(repositoryUrl, headingText) : null;
+  const blocks = [`<h2>${heading}</h2>`];
+  if (intro.length) blocks.push(`<p>${plain(intro.join(' '))}</p>`);
+  if (leads.length)
+    blocks.push(`<ul>\n${leads.map((lead) => `  <li>${lead}</li>`).join('\n')}\n</ul>`);
+  if (changelogUrl && /^https:\/\//.test(changelogUrl))
+    blocks.push(
+      `<p><a href="${escape(changelogUrl)}">Full changelog for ${heading.split(' ')[0]}</a></p>`,
+    );
+  return `${blocks.join('\n')}\n`;
+}
+
+/**
+ * Where the full changelog entry lives on GitHub: the file, plus the anchor
+ * GitHub derives from the heading — lower-cased, punctuation dropped, spaces
+ * to hyphens — so `## 1.2.1 — 2026-09-19` is `#121--2026-09-19`.
+ */
+export const changelogEntryUrl = (repositoryUrl, heading) =>
+  `${repositoryUrl}/blob/master/CHANGELOG.md#${heading
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s-]/gu, '')
+    .trim()
+    .replace(/\s/g, '-')}`;
 
 /** electron-updater's feed, for the installs that predate Sparkle. */
 export function latestMacYml({ zipName, zipBytes, releaseDate }) {
@@ -250,7 +343,10 @@ export function writeAppcast({
       notesFile = path.join(staging, `${zipName.replace(/\.zip$/, '')}${path.extname(notes)}`);
       copyFileSync(notes, notesFile);
     } else {
-      const html = releaseNotesHtml(readFileSync(path.join(ROOT, 'CHANGELOG.md'), 'utf8'), version);
+      // The feed carries the summary; the full entry is written beside it
+      // as `<version>.html` for the release page (see below).
+      const changelog = readFileSync(path.join(ROOT, 'CHANGELOG.md'), 'utf8');
+      const html = releaseNotesSummaryHtml(changelog, version, REPOSITORY_URL);
       if (html) {
         notesFile = path.join(staging, `${zipName.replace(/\.zip$/, '')}.html`);
         writeFileSync(notesFile, html);

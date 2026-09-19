@@ -8,6 +8,7 @@ import {
   markStudioVisited,
   setAutoOpenStudio,
   STUDIO_VISITED_KEY,
+  studioAutoOpenScript,
   type KeyValueStore,
 } from './studio-entry';
 
@@ -85,5 +86,74 @@ describe('studio entry', () => {
     expect(hasVisitedStudio(broken)).toBe(false);
     expect(autoOpenStudio(broken)).toBe(false);
     expect(landingEntryFor(broken, '')).toEqual({ kind: 'first-visit' });
+  });
+});
+
+describe('the inline script agrees with the rule', () => {
+  /** Run the script in a fake window and report whether it redirected. */
+  const run = (store: KeyValueStore, search: string): string | null => {
+    let replaced: string | null = null;
+    const window = {
+      localStorage: store,
+      location: {
+        search,
+        replace: (url: string) => {
+          replaced = url;
+        },
+      },
+    };
+    // The script names only `window`, `URLSearchParams` and `JSON`-safe
+    // literals; a Function with `window` as its one parameter runs it.
+    new Function('window', studioAutoOpenScript('/analysis'))(window);
+    return replaced;
+  };
+
+  it('redirects exactly when landingEntryFor says open-studio', () => {
+    const cases: readonly { store: KeyValueStore; search: string }[] = [
+      { store: memory(), search: '' },
+      {
+        store: (() => {
+          const s = memory();
+          markStudioVisited(s);
+          return s;
+        })(),
+        search: '',
+      },
+      {
+        store: (() => {
+          const s = memory();
+          markStudioVisited(s);
+          setAutoOpenStudio(s, true);
+          return s;
+        })(),
+        search: '',
+      },
+      {
+        store: (() => {
+          const s = memory();
+          markStudioVisited(s);
+          setAutoOpenStudio(s, true);
+          return s;
+        })(),
+        search: '?stay',
+      },
+      {
+        store: (() => {
+          const s = memory();
+          setAutoOpenStudio(s, true);
+          return s;
+        })(),
+        search: '',
+      },
+      { store: broken, search: '' },
+    ];
+    for (const { store, search } of cases) {
+      const expected = landingEntryFor(store, search).kind === 'open-studio' ? '/analysis' : null;
+      expect(run(store, search)).toBe(expected);
+    }
+  });
+
+  it('never throws, even when storage does', () => {
+    expect(() => run(broken, '')).not.toThrow();
   });
 });

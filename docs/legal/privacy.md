@@ -102,8 +102,14 @@ product needs:
   manifests and chunks. Every chunk is verified against the
   manifest's SHA-256 before it is used. A failed verification
   is reported and the bytes are discarded.
+- **unpkg.com** (`unpkg.com/stockfish@18.0.8`), only when you choose
+  _Stockfish 18 (full network)_: the 113 MB evaluation network is
+  fetched from that npm package mirror the first time and kept by your
+  browser afterwards. The request carries no identifier of yours, and
+  the bytes are refused unless they hash to the SHA-256 recorded in
+  Kingfisher.
 - **The application's own origin** for the static assets
-  (Stockfish WASM, piece art, the marketing/landing assets,
+  (the standard Stockfish WASM, piece art, the marketing/landing assets,
   the app code itself).
 - **GitHub Releases** for the macOS desktop build's update
   feed. The macOS application's **Check for Updates…** menu

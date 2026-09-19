@@ -23,20 +23,24 @@ import { boardTheme, boardThemeVariables } from './themes';
 import type { ChessboardProps } from './types';
 
 /**
- * A flipped board is a *rigid* motion.
+ * A flipped board does not travel.
  *
- * Phase 55 change: when `orientation` changes, every piece is at a mirrored
- * square. Animating each piece's `translate(x%, y%)` to the new mirror had
- * them all converging on the centre of the board on the way through — a
- * flapping-the-tablecloth motion that hurt to watch. A flip is not 32
- * independent translations, it is one rotation. So the board itself briefly
- * applies `rotateY(180deg)` while pieces snap to their new squares with no
- * transition, and the rotation drives the visual change. The container holds
- * the transform for the duration of the animation and releases it on the
- * far side: the pieces, already at their mirrored positions, appear back
- * where they should be, and the rigid flip did the travelling.
+ * Phase 55 animated each piece's `translate(x%, y%)` to its mirrored square,
+ * and thirty-two pieces converging on the centre of the board on the way
+ * read as a tablecloth being flapped. It was replaced with a `rotateY(180deg)`
+ * of the whole board, which is one motion instead of thirty-two — but a
+ * rotation about the vertical axis foreshortens the board to a line and back,
+ * so every piece still rushes to the middle and out again, now with the
+ * squares. Two attempts, the same complaint.
+ *
+ * Phase 72: nothing moves. Pieces and squares snap to their new places with
+ * no per-piece transition, and the board fades through a short dip in opacity
+ * so the change registers as one event rather than a jump cut. That is what
+ * the published boards do (Lichess and Chess.com flip instantly); the dip is
+ * the one concession to the eye. Reduced motion removes it through the global
+ * stylesheet's rule on transitions.
  */
-const FLIP_DURATION_MS = 520;
+const FLIP_DURATION_MS = 180;
 
 /**
  * What the pointer is currently doing.
@@ -150,10 +154,8 @@ export function Chessboard({
   const [drag, setDrag] = useState<DragState | null>(null);
   const [shapeDraft, setShapeDraft] = useState<ShapeDraft | null>(null);
   const [pendingPromotion, setPendingPromotion] = useState<PendingPromotion | null>(null);
-  // True while a board flip is animating. The container holds a rotateY(180deg)
-  // transform for FLIP_DURATION_MS and pieces opt out of their own translate
-  // transition; otherwise every piece would slide to its mirror while the
-  // board also rotates, and the two motions would fight each other.
+  // True for FLIP_DURATION_MS after the orientation changes: the board dips
+  // and the pieces skip their translate transition. See FLIP_DURATION_MS.
   const [flipping, setFlipping] = useState(false);
   const previousOrientation = useRef<Color>(orientation);
 
@@ -189,18 +191,10 @@ export function Chessboard({
   const squares = useMemo(() => boardSquares(orientation), [orientation]);
 
   /*
-    A flip is one rigid rotation, not 32 independent slides. When the
-    orientation changes the container picks up `data-flipping`, which CSS
-    uses to apply rotateY(180deg) over FLIP_DURATION_MS. Pieces opt out of
+    When the orientation changes the container picks up `data-flipping` for
+    FLIP_DURATION_MS: the board dips in opacity, and the pieces opt out of
     their own translate transition for the same window (the `transition:
-    none` on each piece style below), which means the rotation drives the
-    visual change end-to-end instead of the rotation and the slides
-    cancelling each other out midway through.
-
-    The timer exists because `data-flipping` is otherwise latched: it would
-    hold the rotation past 180deg, and the next render would un-flip in
-    place. Releasing after the duration lets the board come back to flat on
-    the far side of the rotation, which is what the eye expects.
+    none` on each piece style below) so nothing slides to its mirror.
   */
   useEffect(() => {
     if (previousOrientation.current === orientation) return;
@@ -478,17 +472,7 @@ export function Chessboard({
       data-board-theme={theme}
       data-coordinates={coordinates}
       data-flipping={flipping ? 'true' : undefined}
-      className={cn(
-        'relative aspect-square w-full touch-none select-none',
-        /*
-         * `perspective` gives the rotateY(180deg) somewhere to live: without
-         * a perspective on the parent the rotation is a flat 2D flip, which
-         * is not what we want. The transform is applied to the inner layer
-         * so the perspective does not rotate with it.
-         */
-        '[perspective:1200px]',
-        className,
-      )}
+      className={cn('relative aspect-square w-full touch-none select-none', className)}
       style={themeTokens as React.CSSProperties}
     >
       {/*
@@ -512,22 +496,12 @@ export function Chessboard({
           )}
           style={{
             /*
-             * When the board flips, this layer rotates 180 degrees on the Y
-             * axis. The rotation has a real CSS transition, applied via an
-             * inline style rather than a Tailwind class because the cubic
-             * bezier (a snappy ease-out) reads better here than the default
-             * ease-in-out. The transform-style is set so the rotateY has
-             * real depth; without it, the rotation is a flat 2D flip.
+             * The flip dip: the board is drawn at reduced opacity for the
+             * FLIP_DURATION_MS window and fades back to full. No transform —
+             * see the note on FLIP_DURATION_MS for why a rotation was wrong.
              */
-            transform: flipping ? 'rotateY(180deg)' : 'rotateY(0deg)',
-            transition: flipping
-              ? `transform ${FLIP_DURATION_MS}ms cubic-bezier(0.2, 0.8, 0.3, 1)`
-              : `transform ${FLIP_DURATION_MS}ms cubic-bezier(0.2, 0.8, 0.3, 1)`,
-            transformStyle: 'preserve-3d',
-            // Backface hidden keeps the back of the rotation from appearing
-            // at the apex of the flip. The squares' background colours are
-            // already accounted for; only the back of the pieces needs this.
-            backfaceVisibility: 'hidden',
+            opacity: flipping ? 0.35 : 1,
+            transition: `opacity ${FLIP_DURATION_MS}ms ease-out`,
           }}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
@@ -644,13 +618,9 @@ export function Chessboard({
                 : {
                     transform: `translate(${offset.x}%, ${offset.y}%)`,
                     /*
-                     * A board flip is one rigid motion driven by the container's
-                     * rotateY(180deg). Letting each piece also slide to its mirror
-                     * runs two animations on top of each other; the pieces fight
-                     * the rotation and pass through the centre of the board on
-                     * the way. While a flip is in flight, the per-piece
-                     * transition is suppressed and the parent rotation does the
-                     * whole job.
+                     * A flip is a snap, not thirty-two slides through the
+                     * centre of the board: while one is in flight the per-piece
+                     * transition is suppressed. See FLIP_DURATION_MS.
                      */
                     transition:
                       animationMs > 0 && !flipping

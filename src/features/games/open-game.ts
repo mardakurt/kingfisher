@@ -101,7 +101,12 @@ export async function openStoredGame(
       anything that is not a study chapter as a draft, and "Save to study" is
       how an analysis of a game becomes the user's.
     */
-    document: { kind: 'database-game', title: gameTitle(full), gameId: full.id },
+    document: {
+      kind: 'database-game',
+      title: gameTitle(full),
+      gameId: full.id,
+      ...(orientation ? { viewerSide: orientation } : {}),
+    },
   });
 
   if (options.ply && options.ply > 0) {

@@ -2,14 +2,21 @@
 
 import { cn } from '@/lib/cn';
 import type { Score } from '@/chess/evaluation';
-import type { Color } from '@/chess/types';
+import type { Color, GameOutcome } from '@/chess/types';
 
-import { evaluationBarLayout } from './evaluation-bar-layout';
+import { describeOutcome, evaluationBarLayout } from './evaluation-bar-layout';
 
 interface EvaluationBarProps {
   readonly score: Score | null;
   readonly orientation: Color;
+  /** The game is over here: the bar shows the result, whatever the score says. */
+  readonly outcome?: GameOutcome | null;
   readonly stale?: boolean;
+  /**
+   * The score belongs to the position before this one, shown while the
+   * engine catches up. Drawn like a stale reading; the title says which.
+   */
+  readonly catchingUp?: boolean;
   /** Search depth behind the score, for the title. */
   readonly depth?: number;
   /** The engine that produced it, for the title. */
@@ -45,28 +52,45 @@ export const EVALUATION_BAR_WIDTH = 24;
  * figure the engine panel shows, and the full reading — score, depth,
  * engine — is the title.
  */
-export function EvaluationBar({ score, orientation, stale, depth, engine }: EvaluationBarProps) {
-  const layout = evaluationBarLayout(score, orientation);
+export function EvaluationBar({
+  score,
+  orientation,
+  outcome = null,
+  stale,
+  catchingUp,
+  depth,
+  engine,
+}: EvaluationBarProps) {
+  const layout = evaluationBarLayout(score, orientation, outcome);
   const bottomIsWhite = layout.bottomSide === 'w';
-  const reading = score
-    ? `Evaluation ${layout.label}${depth ? ` at depth ${depth}` : ''}${engine ? ` · ${engine}` : ''}${
-        stale ? ' · from an earlier search' : ''
-      }`
-    : 'No evaluation for this position yet — start the engine to get one';
+  const dimmed = !outcome && (stale || catchingUp);
+  const reading = outcome
+    ? describeOutcome(outcome)
+    : score
+      ? `Evaluation ${layout.label}${depth ? ` at depth ${depth}` : ''}${engine ? ` · ${engine}` : ''}${
+          catchingUp
+            ? ' · previous position, while the engine catches up'
+            : stale
+              ? ' · from an earlier search'
+              : ''
+        }`
+      : 'No evaluation for this position yet — start the engine to get one';
 
   return (
     <div
       data-evaluation-bar
       data-leading={layout.leading ?? 'none'}
       data-bottom-side={layout.bottomSide}
-      data-stale={stale ? 'true' : undefined}
+      data-stale={dimmed ? 'true' : undefined}
+      data-catching-up={catchingUp && !outcome ? 'true' : undefined}
+      data-outcome={outcome?.kind}
       className={cn(
         'relative flex h-full shrink-0 flex-col overflow-hidden rounded-[2px] border border-line-strong/70 transition-opacity',
-        stale && 'opacity-60',
+        dimmed && 'opacity-60',
       )}
       style={{ width: EVALUATION_BAR_WIDTH }}
       title={reading}
-      aria-label={score ? `Evaluation ${layout.label}` : 'No evaluation'}
+      aria-label={outcome ? reading : score ? `Evaluation ${layout.label}` : 'No evaluation'}
     >
       {/* The band of the side at the top fills the whole bar; the bottom side's band is drawn over it. */}
       <div className={cn('absolute inset-0', bottomIsWhite ? 'bg-eval-black' : 'bg-eval-white')} />

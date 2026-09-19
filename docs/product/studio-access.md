@@ -40,8 +40,18 @@ does not jump.
 
 **A returning visitor who ticked the box** —
 `localStorage['kingfisher.landing.auto-open-studio'] = '1'` — is sent to
-`/analysis` by `location.replace` as soon as the landing's script runs,
-on every visit to `/` that does not carry `?stay`. `replace`, not
+`/analysis` by `location.replace` before the landing is painted, on
+every visit to `/` that does not carry `?stay`. The decision is a
+parser-blocking inline script at the top of the document
+(`studioAutoOpenScript` in `studio-entry.ts`, rendered by
+`LandingPage.tsx`): Phase 71 made it in a React effect, which runs after
+the page has been parsed, painted and hydrated, so a person who had
+asked to skip the landing saw it anyway for the length of a script
+download on every visit. The script is the same rule written once more
+in the only form that can run that early, and `studio-entry.test.ts`
+executes the string against the cases `landingEntryFor` is held to.
+`StudioEntry` keeps its own redirect as the fallback for a browser that
+did not run the script. `replace`, not
 `assign`: the landing does not stay in the history as a page the back
 button lands on and immediately leaves again, so Back from the Studio
 goes to wherever the person was before. The choice is undone at

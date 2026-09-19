@@ -66,7 +66,9 @@ const STOCKFISH_WASM: EngineDefinition = {
  * The same engine with the full-size evaluation network — the network the
  * native binary runs — so a person analysing in a browser is not held to a
  * weaker Stockfish than a person with the Mac application. 113 MB, fetched
- * the first time it is chosen and kept by the browser's cache after that.
+ * the first time it is chosen from the address the manifest records (not from
+ * this deployment — see scripts/install-engine.mjs), held to a recorded
+ * SHA-256, and kept by the browser's cache after that.
  *
  * Registered by `discoverBrowserEngines()` only where the deployment installed
  * it (`npm run engine:install -- --full`; the web deployment does, the Mac
@@ -90,7 +92,7 @@ const STOCKFISH_WASM_FULL: EngineDefinition = {
   source: 'https://github.com/official-stockfish/Stockfish',
   notes:
     'WebAssembly with the full-size evaluation network the native engine uses. ' +
-    'A 113 MB download the first time it is chosen; the browser keeps it afterwards. ' +
+    'A 113 MB download from its recorded address the first time it is chosen, verified against a recorded SHA-256; the browser keeps it afterwards. ' +
     'No companion needed.',
   provider: new StockfishWasmProvider('full'),
 };

@@ -17,7 +17,7 @@
 
 import { useSyncExternalStore } from 'react';
 
-import { useCompanionStatus } from '@/companion/useCompanion';
+import { useCompanionReach, useCompanionStatus } from '@/companion/useCompanion';
 import { enginesNotPublishedFor, publishedPlatformWords } from '@/engine/registry';
 import { useVisibleEngineDefinitions } from '@/engine/use-engines';
 import { cn } from '@/lib/cn';
@@ -48,6 +48,12 @@ export function EngineSelect({
   */
   const family = useBrowserPlatformFamily();
   const notPublished = family ? enginesNotPublishedFor(family) : [];
+  /*
+    On the public site a companion cannot be paired at all (see
+    `companion/reach.ts`), so "needs the companion" would name a setup that
+    cannot succeed. The note there says where the engine does run.
+  */
+  const reach = useCompanionReach();
 
   return (
     <select
@@ -72,7 +78,9 @@ export function EngineSelect({
           : !publishedHere
             ? ` — ${publishedPlatformWords(definition.platforms)} only`
             : !paired
-              ? ' — needs the companion'
+              ? reach === 'remote'
+                ? ' — Mac app only'
+                : ' — needs the companion'
               : installed.has(definition.id)
                 ? ''
                 : ' — not installed';

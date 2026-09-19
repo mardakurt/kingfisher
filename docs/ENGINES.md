@@ -26,6 +26,31 @@ view keeps each engine's outputs and settings separate. A disagreement is a
 reason to inspect the lines and search conditions, not proof of a strategic
 claim or of which engine is right.
 
+### Where each engine runs
+
+One application, two identities, and the companion answers loopback origins
+only (`companion/src/security.mjs`). So the same engine list means three
+different things depending on where the page is served from, and the
+selector says which (`src/companion/reach.ts`):
+
+| Engine                                            | Web at `kingfisherchess.app` | Mac application                      | Checkout on `localhost`          | How it runs                                                                |
+| ------------------------------------------------- | ---------------------------- | ------------------------------------ | -------------------------------- | -------------------------------------------------------------------------- |
+| Stockfish 18 (lite network)                       | **yes**, nothing to set up   | yes                                  | yes                              | WebAssembly worker, 7 MB served by the deployment                          |
+| Stockfish 18 (full network)                       | **yes**, first use 113 MB    | no — native Stockfish 19 instead     | yes (`engine:install -- --full`) | WebAssembly worker; the network is fetched from a recorded address (below) |
+| Stockfish 19 (native)                             | no — Mac application         | yes, one click in Settings → Engines | yes, after `npm run companion`   | native process through the companion, digest-verified                      |
+| Lc0, Stormphrax, Viridithas, Halogen, PlentyChess | no — Mac application         | yes, one click each                  | yes, after `npm run companion`   | native process through the companion, digest-verified                      |
+| Berserk, Koivisto, Obsidian                       | no                           | no — Windows / Linux releases only   | only on those platforms          | native process; the selector says "Windows only" and the like              |
+| Custom engine by path                             | no                           | yes (Settings → Companion)           | yes                              | native process the person registered; capabilities read from the engine    |
+
+"Tested" in this table means what `npm run engines:verify` and the fleet
+section below record: the native rows were installed and searched on Apple
+silicon; the browser rows are exercised by `e2e/engines.spec.ts` and the
+audit probe in Phase 72 (the full-network build searched the start position
+to depth 18 in 31 s from a cold cache, network download included). Windows
+rows have not been run by this project — there is no Windows machine — and
+are listed from their publishers' releases, which is why the selector names
+the platform rather than promising a result.
+
 ### Engines considered and left out
 
 | Engine    | Why not                                                                                                                                                                                                                                                                                            |
@@ -100,14 +125,33 @@ Now there are two browser rows:
 The full build is fetched the first time it is chosen — the engine's handshake
 waits five minutes for it instead of twenty seconds, because "did not respond"
 about an engine still downloading is a false report — and kept by the browser's
-HTTP cache afterwards (`next.config.ts` sends a week of `Cache-Control` for
-`/engine/stockfish/`). The Mac application deliberately does not carry it:
-`scripts/build-desktop-web.mjs` leaves the four full-network files out of the
+HTTP cache afterwards. The Mac application deliberately does not carry it:
+`scripts/build-desktop-web.mjs` leaves the full-network files out of the
 bundle and rewrites the staged manifest without them, because a Mac user has
 native Stockfish 19 and a second copy of the network would double the download
 for nothing. The registry offers the row only where the manifest lists the
 build (`registerBrowserEngineBuilds`), so neither identity ever shows an
 engine it cannot start.
+
+**Where the full network's bytes come from (Phase 72).** The deployment does
+not serve them. Until Phase 72 `engine:install -- --full` copied both
+113 MB `.wasm` files into `public/`, so every Vercel deployment — one per
+push, kept for thirty days — carried 226 MB of network that never changed,
+and that alone filled the free plan's 10 GB of deployment storage
+(`docs/deployment.md`, _Deployment storage_). Now the manifest names a
+same-origin bootstrap worker (`stockfish-18-remote.js`, written by the
+installer) whose URL carries the network's address in its hash — the same
+`unpkg.com/stockfish@18.0.8` package the installer itself downloads from —
+and the recorded SHA-256 in its query string. The bootstrap wraps the one
+`fetch` the engine makes for that address with `integrity`, so the browser
+refuses bytes that do not hash to the record (checked: a wrong digest fails
+in 26 s with "The engine network could not be fetched … the bytes must match
+the recorded SHA-256", not after the five-minute handshake), normalises the
+content type `instantiateStreaming` requires, and imports the engine script
+unchanged; the threads the engine spawns receive the compiled module and
+fetch nothing. The 36 KB worker script stays on this origin because workers
+must (`worker-src 'self'`). The digests live in `scripts/install-engine.mjs`
+beside the addresses, and change only with the version in the file name.
 
 Measured on 14 September 2026 in Chrome on Apple silicon, from a fresh cache:
 the full multi-threaded build handshook, searched the start position to depth

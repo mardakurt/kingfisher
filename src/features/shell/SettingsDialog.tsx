@@ -16,7 +16,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check } from '@/components/icons';
 import { Button } from '@/components/ui/Button';
 import { PathField } from '@/components/ui/PathField';
-import { desktop, isDesktop } from '@/desktop/bridge';
+import { desktop } from '@/desktop/bridge';
 import { Toggle } from '@/components/ui/Toggle';
 import { BookManager } from '@/features/book/BookManager';
 import { EngineManager } from '@/features/engine/EngineManager';
@@ -68,18 +68,24 @@ import {
   buildSupportSummary,
   type DiagnosticInput,
 } from './diagnostic-report';
-import { searchSettings, SETTINGS_INDEX, type SettingsSection } from './settings-index';
+import {
+  searchSettings,
+  SETTINGS_INDEX,
+  SETTINGS_SECTIONS,
+  type SettingsSection,
+} from './settings-index';
 import { exportSettings, parseSettingsExport } from './settings-transfer';
 import { useShortcuts } from '@/stores/shortcuts-store';
 import type { ChessDatabaseProvider, ProviderHealth } from '@/database/types';
 import { engineDefinitions } from '@/engine/registry';
-import { useCompanionStatus } from '@/companion/useCompanion';
+import { useCompanionReach, useCompanionStatus } from '@/companion/useCompanion';
 import { useAccountSync, type AccountSyncState } from '@/stores/account-sync-store';
 import type { LinkedAccountRecord, SyncProvider } from '@/persistence/domain';
 import { cn } from '@/lib/cn';
 import type { PieceType } from '@/chess/types';
 import { PwaInstallCard, PwaDiagnostic } from '@/pwa';
 import { UpdateCheckSection } from '@/release/UpdateCheckSection';
+import { publicUrl } from '@/release/public-urls';
 import { DEFAULT_PREFERENCES, usePreferences, type Preferences } from '@/stores/preferences-store';
 import { catalogPack } from '@/reference/catalog';
 import { useReferenceSources } from '@/reference/use-references';
@@ -94,20 +100,7 @@ import { TablebaseSettings } from './TablebaseSettings';
 
 type Section = SettingsSection;
 
-const SECTIONS: readonly { id: Section; label: string }[] = [
-  { id: 'appearance', label: 'Appearance' },
-  { id: 'board', label: 'Board' },
-  { id: 'pieces', label: 'Pieces' },
-  { id: 'workspace', label: 'Workspace' },
-  { id: 'engine', label: 'Engine' },
-  { id: 'companion', label: 'Companion' },
-  { id: 'database', label: 'Database' },
-  { id: 'accounts', label: 'Accounts' },
-  { id: 'keyboard', label: 'Keyboard' },
-  { id: 'assistant', label: 'Assistant' },
-  { id: 'profile', label: 'Profile' },
-  { id: 'diagnostics', label: 'Diagnostics' },
-];
+const SECTIONS: readonly { id: Section; label: string }[] = SETTINGS_SECTIONS;
 
 const isSection = (value: string | null): value is Section =>
   value !== null && SECTIONS.some((entry) => entry.id === value);
@@ -716,6 +709,7 @@ function DatabaseSection() {
 function CompanionSection() {
   const prefs = usePreferences();
   const status = useCompanionStatus();
+  const reach = useCompanionReach();
   const [pairing, setPairing] = useState('');
   const [error, setError] = useState<string | null>(null);
   const connected = Boolean(prefs.companionUrl && prefs.companionToken);
@@ -732,76 +726,95 @@ function CompanionSection() {
     setPairing('');
   };
 
+  /*
+    Phase 63 said out loud what runs without the companion, what it adds and
+    what it costs to set up. Phase 72 makes that answer depend on where the
+    page is served from, because the answer differs and one of the three was
+    wrong for most readers. The companion answers loopback origins only
+    (`companion/src/security.mjs`): the Mac application carries its own and
+    starts it, a checkout on `localhost` can pair one from a terminal, and
+    the public site cannot pair one at all — so on `kingfisherchess.app` the
+    old four-step recipe ("open a terminal in the folder you ran `npm run
+    dev` from") described a folder the reader did not have and a pairing the
+    companion would have refused. See `src/companion/reach.ts`.
+  */
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4" data-companion-reach={reach}>
       <ConfigurationHealth area="companion" />
       <div>
         <h3 className="text-xs text-primary">Local companion</h3>
         <p className="mt-1 text-2xs leading-relaxed text-tertiary">
-          {/*
-            Phase 63: the previous prose made two errors a user kept
-            making — they ran the project, looked at Settings →
-            Engines, saw only "Stockfish 18" and "Stockfish 18 (full
-            network)", and concluded either that the project does not
-            ship other engines or that they needed to be a developer
-            to install them. The fix is to say out loud, in the same
-            panel, what runs without the companion, what the companion
-            adds, and what it costs to set the companion up. The
-            full prose is below — the helper inside `<details>` now
-            shows a short version on the panel and the longer how-to
-            on click, with a link to the install page for anyone
-            who would rather read it.
-          */}
-          Optional. The browser already runs{' '}
+          The browser already runs{' '}
           <strong className="font-medium text-secondary">Stockfish 18</strong> with no setup — the
-          Engines page picks it without you doing anything. The companion adds{' '}
+          Engines page picks it without you doing anything. The companion is a small local program
+          that adds what a browser cannot do:{' '}
           <strong className="font-medium text-secondary">Stockfish 19</strong>, Leela Chess Zero,
-          Stormphrax, Viridithas, Halogen, PlentyChess and{' '}
-          <strong className="font-medium text-secondary">local Syzygy tables</strong>, which a
-          browser cannot do. Setting it up takes a single command in a terminal and one paste here.
+          Stormphrax, Viridithas, Halogen and PlentyChess as native processes, large SQLite game
+          databases, and <strong className="font-medium text-secondary">local Syzygy tables</strong>
+          .
         </p>
-        {/*
-          Phase 55: a web user has to start the companion themselves.
-          Phase 63: the helper is now in two layers — the open-by-default
-          short version tells a non-technical user *what* the companion
-          is and *why* it is worth setting up; the still-collapsed details
-          are the step-by-step. The install link at the bottom is one
-          click away for anyone who would rather read a longer guide.
-        */}
-        {typeof window !== 'undefined' && !isDesktop() ? (
+        {reach === 'desktop' ? (
+          <p className="mt-3 rounded-[4px] border border-line bg-surface-inset px-2.5 py-2 text-2xs leading-relaxed text-secondary">
+            This is the Mac application: the companion is built in and started with the application.
+            There is nothing to install or pair — native engines are installed from{' '}
+            <em className="not-italic">Settings → Engines</em>.
+          </p>
+        ) : reach === 'remote' ? (
+          <div className="mt-3 rounded-[4px] border border-line bg-surface-inset px-2.5 py-2 text-2xs leading-relaxed text-secondary">
+            <p>
+              <strong className="font-medium text-primary">Not available on the web.</strong> The
+              companion runs on your own machine and, for your safety, answers only pages served
+              from that machine — a page from{' '}
+              <span className="font-mono text-[11px]">
+                {typeof window === 'undefined' ? 'this site' : window.location.host}
+              </span>{' '}
+              cannot reach it, by design. Native engines, SQLite databases and local tablebases are
+              in the Kingfisher Mac application, which includes the companion and needs no setup.
+            </p>
+            <a
+              href={publicUrl.landing + '#macos'}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-2 inline-block text-accent hover:underline"
+            >
+              Download Kingfisher for macOS →
+            </a>
+          </div>
+        ) : (
           <details
             className="mt-3 rounded-[4px] border border-line bg-surface-inset px-2.5 py-2 text-2xs text-secondary"
             open
           >
             <summary className="cursor-pointer select-none font-medium text-primary">
-              How to start the companion (4 steps, ~1 minute)
+              How to start the companion (3 steps, about a minute)
             </summary>
+            <p className="mt-2 leading-relaxed text-tertiary">
+              This page is served from your own machine, so a companion started here can answer it.
+              It needs the Kingfisher checkout this page is running from.
+            </p>
             <ol className="mt-2 list-decimal pl-4 leading-relaxed marker:text-tertiary">
               <li>
-                Open a terminal in the same folder you ran{' '}
-                <code className="font-mono text-[11px]">npm run dev</code> from. Its name is on the
-                title bar of the window that opened.
+                In a terminal, in the Kingfisher folder, run{' '}
+                <code className="font-mono text-[11px]">npm run companion</code>.
               </li>
               <li>
-                Paste <code className="font-mono text-[11px]">npm run companion</code> and press
-                Enter. The terminal prints a line that begins with{' '}
-                <code className="font-mono text-[11px]">Pair this device:</code> — copy the whole
-                line, including the <code className="font-mono text-[11px]">#token=…</code> at the
-                end.
+                It prints a line beginning{' '}
+                <code className="font-mono text-[11px]">Pair this device:</code>. Copy the whole
+                address, including the <code className="font-mono text-[11px]">#token=…</code> at
+                the end, and paste it into the box below.
               </li>
-              <li>Paste it into the box below.</li>
               <li>
-                Done. Engines → Companion engines becomes a list you can install with one click
-                (LC0, Stormphrax, Viridithas, etc.). The download comes from each project&apos;s own
-                GitHub release and is checked against a recorded SHA-256 before it runs.
+                Done. <em className="not-italic">Settings → Engines</em> now lists Lc0, Stormphrax,
+                Viridithas and the rest, each installed with one click from its own GitHub release
+                and checked against a recorded SHA-256 before it runs.
               </li>
             </ol>
             <p className="mt-2 text-2xs text-tertiary">
-              The companion runs in this terminal window until you close it. Closing the terminal
+              The companion runs in that terminal window until you close it. Closing the terminal
               does not unpair — Kingfisher remembers the address until you press Unpair.
             </p>
             <a
-              href="https://github.com/mardakurt/kingfisher/blob/master/companion/README.md"
+              href={`${publicUrl.repository}/blob/master/companion/README.md`}
               target="_blank"
               rel="noreferrer"
               className="mt-2 inline-block text-accent hover:underline"
@@ -809,10 +822,7 @@ function CompanionSection() {
               Read the full setup guide →
             </a>
           </details>
-        ) : null}
-        <p className="mt-2 rounded-[4px] border border-line bg-surface-inset px-2.5 py-2 font-mono text-[10.5px] text-secondary">
-          npm run companion
-        </p>
+        )}
       </div>
 
       {connected ? (
@@ -854,7 +864,7 @@ function CompanionSection() {
             </Button>
           </div>
         </div>
-      ) : (
+      ) : reach === 'remote' ? null : (
         <div>
           <label className="block text-2xs text-tertiary">
             Pairing address
@@ -898,6 +908,7 @@ function AccountsSection() {
   const notify = useUi((state) => state.notify);
   const runs = useAccountSync((state) => state.runs);
   const syncNow = useAccountSync((state) => state.syncNow);
+  const cancelSync = useAccountSync((state) => state.cancel);
   const [provider, setProvider] = useState<SyncProvider>('lichess');
   const [username, setUsername] = useState('');
   const [busy, setBusy] = useState(false);
@@ -978,14 +989,20 @@ function AccountsSection() {
                     <span className="font-mono text-primary">{account.username}</span>
                   </span>
                   <div className="flex shrink-0 gap-1.5">
+                    {run?.running ? (
+                      <Button variant="subtle" onClick={() => cancelSync(account.id)}>
+                        Cancel
+                      </Button>
+                    ) : (
+                      <Button variant="accent" onClick={() => void sync(account)}>
+                        Sync now
+                      </Button>
+                    )}
                     <Button
-                      variant="accent"
+                      variant="danger"
                       disabled={run?.running}
-                      onClick={() => void sync(account)}
+                      onClick={() => void unlink(account.id)}
                     >
-                      {run?.running ? 'Syncing…' : 'Sync now'}
-                    </Button>
-                    <Button variant="danger" onClick={() => void unlink(account.id)}>
                       Unlink
                     </Button>
                   </div>
@@ -1073,7 +1090,7 @@ function describeAccountStatus(
   account: LinkedAccountRecord,
   run: AccountSyncState | undefined,
 ): string {
-  if (run?.running) return 'Syncing…';
+  if (run?.running) return run.message || 'Syncing…';
   if (run && run.state !== 'ready') return run.message;
   if (run?.state === 'ready') {
     return `${run.message} ${account.importedCount.toLocaleString()} imported in total.`;

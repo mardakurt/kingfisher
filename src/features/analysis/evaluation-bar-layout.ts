@@ -1,5 +1,5 @@
 import { formatScore, winningChances, type Score } from '@/chess/evaluation';
-import type { Color } from '@/chess/types';
+import type { Color, GameOutcome } from '@/chess/types';
 
 /**
  * Everything the evaluation bar draws, decided in one place.
@@ -65,9 +65,70 @@ export function compactScore(score: Score | null): string {
   return `${pawns > 0 ? '+' : '-'}${Math.abs(pawns).toFixed(1)}`;
 }
 
-export function evaluationBarLayout(score: Score | null, orientation: Color): EvaluationBarLayout {
-  const white = whiteShare(score);
+/**
+ * White's share once the game is over. Checkmate is the whole bar — not the
+ * 0.98 a mate-in-N gets, because there is no longer a move to find — and
+ * every draw is the middle.
+ */
+export function outcomeWhiteShare(outcome: GameOutcome): number {
+  if (outcome.kind === 'checkmate') return outcome.winner === 'w' ? 1 : 0;
+  return 0.5;
+}
+
+/** The text a finished game shows on the bar: the result, not a number. */
+export function outcomeLabel(outcome: GameOutcome): string {
+  if (outcome.kind === 'checkmate') return outcome.winner === 'w' ? '1-0' : '0-1';
+  return '½-½';
+}
+
+export function describeOutcome(outcome: GameOutcome): string {
+  switch (outcome.kind) {
+    case 'checkmate':
+      return `Checkmate — ${outcome.winner === 'w' ? 'White' : 'Black'} wins`;
+    case 'stalemate':
+      return 'Stalemate — draw';
+    case 'insufficient-material':
+      return 'Draw — insufficient material';
+    case 'fifty-move':
+      return 'Draw — fifty-move rule';
+    case 'threefold-repetition':
+      return 'Draw — threefold repetition';
+  }
+}
+
+/**
+ * The bar for a position, or for a finished game.
+ *
+ * An `outcome` outranks any score. An engine asked about a checkmated
+ * position has nothing to search and reports nothing, and before Phase 72
+ * the bar answered that silence with an even split and "no evaluation" —
+ * the one position whose assessment is certain was the one the bar refused
+ * to give. A checkmate fills the winner's band completely; a draw by rule
+ * is the middle, labelled as a result rather than as 0.0, because the
+ * engine did not say "equal" — the rules said "over".
+ */
+export function evaluationBarLayout(
+  score: Score | null,
+  orientation: Color,
+  outcome: GameOutcome | null = null,
+): EvaluationBarLayout {
   const bottomSide = orientation;
+  if (outcome) {
+    const white = outcomeWhiteShare(outcome);
+    const leading: Color | null = outcome.kind === 'checkmate' ? outcome.winner : null;
+    const labelOn: Color = leading ?? 'w';
+    const label = outcomeLabel(outcome);
+    return {
+      bottomShare: bottomSide === 'w' ? white : 1 - white,
+      bottomSide,
+      label,
+      barLabel: label,
+      leading,
+      labelAt: labelOn === bottomSide ? 'bottom' : 'top',
+      labelOn,
+    };
+  }
+  const white = whiteShare(score);
   const bottomShare = bottomSide === 'w' ? white : 1 - white;
   const leading = leadingSide(score);
   // The label lives in the leading band; at equality it stays with White so

@@ -8,9 +8,10 @@
  * any other. This is the one place the two meet.
  */
 
-import { useEffect } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 import { useQuery } from '@tanstack/react-query';
 
+import { isDesktop } from '@/desktop/bridge';
 import { usePreferences } from '@/stores/preferences-store';
 
 import { sqliteProvidersFrom } from '@/database/providers/companion-sqlite';
@@ -23,6 +24,7 @@ import {
 } from '@/engine/registry';
 import { useEngine } from '@/stores/engine-store';
 
+import { companionReachFor, type CompanionReach } from './reach';
 import { setCompanion } from './session';
 import { CompanionClient } from './client';
 
@@ -108,3 +110,17 @@ export function useCompanionStatus() {
     },
   });
 }
+
+/**
+ * `companionReachFor` for this page, resolved after hydration. The server
+ * has no origin and no bridge; it renders the `remote` answer, which is the
+ * one that promises the least, and the client corrects it one effect later
+ * — the same pattern the engine selector uses for the platform note.
+ */
+export function useCompanionReach(): CompanionReach {
+  return useSyncExternalStore(subscribeNever, readReach, () => 'remote');
+}
+
+const subscribeNever = () => () => {};
+const readReach = (): CompanionReach =>
+  companionReachFor(typeof window === 'undefined' ? null : window.location.origin, isDesktop());

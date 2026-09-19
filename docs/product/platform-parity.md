@@ -24,6 +24,24 @@ validation, scheduled backup preference serialization, and an incorrect
 native-companion prerequisite on the AI assistant panel. The engine toolbar
 also wraps controls to keep the engine selector readable in a narrow panel.
 
+**Published revision check (Phase 72, Mac-facing — not yet released).**
+Phase 72 changed application code the Mac shell renders, so the public
+Mac 1.2.1 (build 667, `359193c`) is behind `master` on: the evaluation
+bar's result for a finished game and its steadiness between moves, the
+engine panel's terminal-position and warming states, the board flip
+(snap and fade instead of a rotation), the one-row tool tab strip, the
+tour's icons, the command palette's page and settings commands, the
+"You played White/Black" pill on synced games, account-sync progress and
+Cancel, the Databases page's source descriptions, and the Companion
+panel's desktop wording ("the companion is built in"). Web-only by
+design and unchanged for the desktop: the landing's pre-paint Studio
+redirect, the remote full-network Stockfish (the desktop's manifest
+lists no full build), the Vercel retention policy, and the Sparkle
+release-notes summary (which is how the _next_ release's feed is
+generated, not a change to the running application). Section B of
+`docs/operations/after-a-fix.md` — a signed, notarised 1.2.2 — is the
+owner's to trigger; every gate below Section A was run at this commit.
+
 **Published revision check (2026-09-19, 1.2.1).** The public Mac 1.2.1
 (build 667, `359193c`) is built from the `v1.2.1` tag's revision, which is
 the revision `kingfisherchess.app` served when it was built

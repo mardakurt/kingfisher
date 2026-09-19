@@ -8,11 +8,16 @@
  *
  * Two networks. The `lite` builds carry the small evaluation network and are
  * what every deployment has; the `full` builds carry Stockfish's full-size
- * network — the one the native binary runs — at 113 MB each, and exist only
- * where `engine:install -- --full` put them (the web deployment; not the Mac
- * application, which has native Stockfish). One provider instance serves one
- * network, so the registry can offer them as two engines and the engine store
- * can treat them as any other pair.
+ * network — the one the native binary runs — at 113 MB each, and are listed
+ * only where `engine:install -- --full` recorded them (the web deployment;
+ * not the Mac application, which has native Stockfish). Since Phase 72 their
+ * `.wasm` is not served by the deployment: the manifest names a same-origin
+ * bootstrap worker that fetches it from a recorded address with a recorded
+ * SHA-256 as the request's integrity, so the deployment carries 36 KB of
+ * worker script instead of 226 MB of network (see scripts/install-engine.mjs
+ * for why that mattered). One provider instance serves one network, so the
+ * registry can offer them as two engines and the engine store can treat them
+ * as any other pair.
  */
 
 import { parseOption, parseUciLine } from '../uci';
@@ -42,6 +47,10 @@ export interface EngineBuild {
   readonly network?: StockfishNetwork;
   /** The `.wasm` size, so the selector can say what choosing it downloads. */
   readonly bytes?: number;
+  /** Where the `.wasm` is fetched from when it is not served by this origin. */
+  readonly wasm?: string;
+  /** The SHA-256 the browser holds those bytes to, as `fetch` integrity. */
+  readonly sha256?: string;
 }
 
 export interface EngineManifest {

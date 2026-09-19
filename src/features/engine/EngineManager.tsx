@@ -22,6 +22,8 @@ import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Toggle } from '@/components/ui/Toggle';
 import { companionClient } from '@/companion/session';
+import { useCompanionReach } from '@/companion/useCompanion';
+import { publicUrl } from '@/release/public-urls';
 import type { CatalogueEngine } from '@/companion/client';
 import {
   engineDefinitions,
@@ -47,6 +49,7 @@ const formatBytes = (value: number): string =>
 
 export function EngineManager() {
   const client = companionClient();
+  const reach = useCompanionReach();
   const queryClient = useQueryClient();
   const notify = useUi((state) => state.notify);
   const hidden = usePreferences((state) => state.hiddenEngineIds);
@@ -114,7 +117,7 @@ export function EngineManager() {
           trust="browser"
           detail={
             browserEngine.id === 'stockfish-wasm-full'
-              ? 'Runs in this browser with the full-size evaluation network — the one the native engine uses. 113 MB, fetched the first time it is chosen and kept by the browser afterwards. No companion.'
+              ? 'Runs in this browser with the full-size evaluation network — the one the native engine uses. 113 MB, fetched from its recorded address the first time it is chosen, checked against a recorded SHA-256, and kept by the browser afterwards. No companion.'
               : 'Runs in this browser. No companion, no install, nothing to download.'
           }
           license={browserEngine.license}
@@ -133,15 +136,36 @@ export function EngineManager() {
           missing by name, so the cost of not pairing is concrete and
           the next step is obvious. Browsers run Stockfish; everything
           else is the companion's job.
+
+          Phase 72: which next step depends on where this page is served
+          from. A companion answers loopback origins only, so on the public
+          site there is no companion to pair — the native engines are the
+          Mac application's — and saying "pair the companion" there was an
+          instruction that could not succeed. See `companion/reach.ts`.
         */
-        <div className="rounded-[4px] border border-line bg-surface-2 p-3 text-xs text-tertiary">
+        <div
+          className="rounded-[4px] border border-line bg-surface-2 p-3 text-xs text-tertiary"
+          data-engine-manager-unpaired={reach}
+        >
           <p className="text-secondary">
-            <strong className="font-medium text-primary">Stockfish 18</strong> is the only engine
-            the browser runs. Everything else is a one-command install once you pair the companion.
+            <strong className="font-medium text-primary">Stockfish 18</strong> is the engine the
+            browser runs.{' '}
+            {reach === 'checkout'
+              ? 'Everything else is a one-command install once you pair the companion.'
+              : 'Every other engine runs natively inside the Kingfisher Mac application, which includes the companion and needs no setup.'}
           </p>
           <p className="mt-2 text-2xs">
-            Pair under <em className="not-italic">Settings → Companion</em>. When the companion is
-            up, this list grows to include{' '}
+            {reach === 'checkout' ? (
+              <>
+                Pair under <em className="not-italic">Settings → Companion</em>. When the companion
+                is up, this list grows to include{' '}
+              </>
+            ) : (
+              <>
+                On a Mac, <em className="not-italic">Settings → Engines</em> in the application
+                lists{' '}
+              </>
+            )}
             <strong className="font-medium text-secondary">Lc0</strong> (neural network, plays
             positions Stockfish does not),{' '}
             <strong className="font-medium text-secondary">Stormphrax 8</strong>,{' '}
@@ -152,6 +176,18 @@ export function EngineManager() {
             installs with a single click from its own GitHub release, with a SHA-256 check before
             the binary runs.
           </p>
+          {reach === 'remote' ? (
+            <p className="mt-2 text-2xs">
+              <a
+                href={publicUrl.landing + '#macos'}
+                className="text-accent hover:underline"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Download Kingfisher for macOS →
+              </a>
+            </p>
+          ) : null}
         </div>
       ) : catalogue.isPending ? (
         <p className="text-xs text-tertiary">Asking the companion what it can install…</p>

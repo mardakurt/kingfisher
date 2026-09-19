@@ -146,3 +146,43 @@ describe('the bar label fits the bar', () => {
     expect(layout.barLabel).toBe('+12.5');
   });
 });
+
+describe('a finished game shows its result, not a number', () => {
+  it('checkmate fills the whole bar for the winner, in both orientations', () => {
+    const whiteWins = evaluationBarLayout(null, 'w', { kind: 'checkmate', winner: 'w' });
+    expect(whiteWins.bottomShare).toBe(1);
+    expect(whiteWins.leading).toBe('w');
+    expect(whiteWins.label).toBe('1-0');
+    expect(whiteWins.labelAt).toBe('bottom');
+
+    const flipped = evaluationBarLayout(null, 'b', { kind: 'checkmate', winner: 'w' });
+    expect(flipped.bottomShare).toBe(0);
+    expect(flipped.leading).toBe('w');
+    expect(flipped.labelAt).toBe('top');
+
+    const blackWins = evaluationBarLayout(cp(500), 'w', { kind: 'checkmate', winner: 'b' });
+    // A stale +5.0 on the node does not outrank the rules of the game.
+    expect(blackWins.bottomShare).toBe(0);
+    expect(blackWins.leading).toBe('b');
+    expect(blackWins.label).toBe('0-1');
+  });
+
+  it('every draw is the middle of the bar, labelled as a result', () => {
+    for (const kind of [
+      'stalemate',
+      'insufficient-material',
+      'fifty-move',
+      'threefold-repetition',
+    ] as const) {
+      const layout = evaluationBarLayout(mate(3), 'w', { kind });
+      expect(layout.bottomShare).toBe(0.5);
+      expect(layout.leading).toBeNull();
+      expect(layout.label).toBe('½-½');
+      expect(layout.barLabel).toBe('½-½');
+    }
+  });
+
+  it('without an outcome the score rules, exactly as before', () => {
+    expect(evaluationBarLayout(cp(100), 'w', null)).toEqual(evaluationBarLayout(cp(100), 'w'));
+  });
+});

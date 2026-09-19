@@ -18,6 +18,8 @@ import { useWorkspaceLayout } from '@/stores/workspace-layout-store';
 import { useUi } from '@/stores/ui-store';
 import { desktop } from '@/desktop/bridge';
 import { showTool } from '@/features/workspace/select-tool';
+import { NAV_SECTIONS } from '@/features/shell/navigation';
+import { SETTINGS_INDEX, SETTINGS_SECTIONS } from '@/features/shell/settings-index';
 
 export interface Command {
   readonly id: string;
@@ -61,7 +63,48 @@ export function useCommands(): readonly Command[] {
       );
     };
 
+    /*
+      Phase 72: a page for every section of the sidebar, and every section of
+      Settings, from the same lists the sidebar and the dialog are built from.
+      The palette used to know two pages ("Go to Analysis", "Go to Studies")
+      and one settings entry; "review" and "companion" found nothing, in a
+      box whose placeholder promises commands. Nothing here is a second list:
+      a section added to `NAV_SECTIONS` or `SETTINGS_SECTIONS` is a command.
+    */
+    const navigation: Command[] = NAV_SECTIONS.map((section) => ({
+      id: `goto-${section.id}`,
+      title: `Go to ${section.label}`,
+      group: 'Navigate',
+      keywords: `${section.hint} page open show${section.id === 'games' ? ' search database collection pgn library find' : ''}`,
+      run: () => router.push(section.href),
+    }));
+    const settingsSections: Command[] = SETTINGS_SECTIONS.map((section) => ({
+      id: `settings-${section.id}`,
+      title: `Settings → ${section.label}`,
+      group: 'Interface',
+      keywords: `${SETTINGS_INDEX.filter((entry) => entry.section === section.id)
+        .flatMap((entry) => [entry.label, ...entry.keywords])
+        .join(' ')} preferences options configure`,
+      run: () => ui().openSettingsAt(section.id),
+    }));
+
     const commands: Command[] = [
+      ...navigation,
+      ...settingsSections,
+      {
+        id: 'backup-export',
+        title: 'Back up my work (export a backup file)',
+        group: 'Data',
+        keywords: 'backup export download save json restore import',
+        run: () => ui().openSettingsAt('database'),
+      },
+      {
+        id: 'tour-open',
+        title: 'Open the tour of the sidebar',
+        group: 'Help',
+        keywords: 'tour guide onboarding walkthrough help sections',
+        run: () => ui().setTourOpen(true),
+      },
       {
         id: 'new-analysis',
         title: 'New analysis',
@@ -132,20 +175,6 @@ export function useCommands(): readonly Command[] {
         group: 'Study',
         keywords: 'chapter notebook persist file',
         run: () => ui().setSaveToStudyOpen(true),
-      },
-      {
-        id: 'goto-studies',
-        title: 'Go to Studies',
-        group: 'Navigate',
-        keywords: 'chapters notebooks library',
-        run: () => router.push('/studies'),
-      },
-      {
-        id: 'goto-games',
-        title: 'Search my games',
-        group: 'Navigate',
-        keywords: 'database collection pgn library find',
-        run: () => router.push('/games'),
       },
       {
         id: 'search-this-position',
@@ -497,12 +526,6 @@ export function useCommands(): readonly Command[] {
         group: 'Interface',
         shortcut: '⌘,',
         run: () => ui().setSettingsOpen(true),
-      },
-      {
-        id: 'goto-analysis',
-        title: 'Go to Analysis',
-        group: 'Navigate',
-        run: () => router.push('/analysis'),
       },
       {
         /*

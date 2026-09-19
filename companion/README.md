@@ -13,6 +13,23 @@ It is not a server for the application. Kingfisher works completely without it;
 the companion adds capabilities and never becomes a dependency of the UI. No
 rendering, no chess logic, no application state lives here.
 
+## Where it can be used
+
+The companion answers **loopback origins only** (`allowedOrigins` in
+`src/security.mjs`), which decides who can use it:
+
+- **The Mac application** carries its own companion and starts it with
+  the application. Nothing to install or pair; native engines are one
+  click each in Settings → Engines.
+- **A checkout served from `localhost`** (`npm run dev`, `next start`)
+  pairs one from a terminal, as below.
+- **The public site at `kingfisherchess.app` cannot.** A page from that
+  origin is refused by design — the allowlist is one of the two things
+  standing between a web page in your browser and your engines and
+  files — and the Settings → Companion panel says so there instead of
+  offering steps that cannot succeed. Native engines on the web are the
+  Mac application's.
+
 ## Running it
 
 ```bash

@@ -54,6 +54,14 @@ with [`AGENTS.md`](../AGENTS.md).
   longer guide written for the first hundred users.
 - [`product/first-100-known-issues.md`](product/first-100-known-issues.md) —
   known issues, kept current as they are fixed or found.
+- [`product/planner.md`](product/planner.md) — the Kingfisher Planner:
+  a tournament calendar and study schedule. **Idea only; not
+  implemented.**
+- [`product/long-term-data.md`](product/long-term-data.md) — where a
+  player's work lives, the decision on accounts and sync, and the staged
+  plan (Phase 72)
+- [`product/player-style-opponent.md`](product/player-style-opponent.md)
+  — the player-style sparring opponent: feasibility and plan, not built
 - [`product/work-continuity.md`](product/work-continuity.md) — what survives
   a quit, a crash, a reinstall, a restore.
 - [`product/studio-access.md`](product/studio-access.md) — how the landing
@@ -191,6 +199,11 @@ with [`AGENTS.md`](../AGENTS.md).
 
 ## Historical
 
+- [`reports/phase-72-handover.md`](reports/phase-72-handover.md) — the
+  independent audit of Phase 71, eleven defects reproduced and fixed
+  (checkmate on the eval bar, the between-moves dip, the board flip, the
+  tool strip, the Companion panel's honesty), and the Vercel
+  deployment-storage cause and remedy.
 - [`reports/phase-71-handover.md`](reports/phase-71-handover.md) — the
   Training knight, the landing's captures, header, identity and favicon
   set, and the returning player's way into the Studio; every gate run,

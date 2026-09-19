@@ -151,9 +151,32 @@ describe('position changes invalidate evidence and pending searches', () => {
     const other = START_FEN.replace(' w ', ' b ') as typeof START_FEN;
     useEngine.getState().invalidatePosition(other);
     expect(session.stop).toHaveBeenCalled();
-    expect(useEngine.getState().primary.running).toBe(false);
     expect(useEngine.getState().primary.analysedFen).toBeNull();
     expect(useEngine.getState().primary.analysis).toBeNull();
+    /*
+      Phase 72: the engine was on and follows the board, so a search for the
+      new position is pending from this very moment and the slot says so.
+      It used to say `running: false` until the asynchronous restart reached
+      its own patch — a frame in which the evaluation bar read "engine off"
+      on every move.
+    */
+    expect(useEngine.getState().primary.running).toBe(true);
+    expect(useEngine.getState().primary.status).toBe('analysing');
+    await vi.waitFor(() => expect(session.analyse).toHaveBeenCalledTimes(2));
+    expect(useEngine.getState().primary.analysedFen).toBe(other);
+  });
+
+  it('leaves a stopped engine stopped when the board changes', async () => {
+    const { session } = failingSession(new Error('unused'));
+    create.mockResolvedValue(session);
+    await useEngine
+      .getState()
+      .analyse('primary', START_FEN, { kind: 'infinite' }, { multiPv: 1, threads: 1, hashMb: 16 });
+    useEngine.getState().stop('primary');
+    const other = START_FEN.replace(' w ', ' b ') as typeof START_FEN;
+    useEngine.getState().invalidatePosition(other);
+    expect(useEngine.getState().primary.running).toBe(false);
+    expect(session.analyse).toHaveBeenCalledTimes(1);
   });
 
   it('keeps a pending search when the mounted workspace has the same position', async () => {

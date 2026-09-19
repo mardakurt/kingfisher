@@ -339,6 +339,8 @@ export const useEngine = create<EngineState>((set, get) => {
     const session = await startSession(slot, config);
     if (!session) {
       runtime.pendingFen = null;
+      // A restart claimed by `invalidatePosition` that never got a session.
+      if (get()[slot].running) patch(slot, { running: false });
       return;
     }
     if (runtime.request !== request) {
@@ -503,6 +505,16 @@ export const useEngine = create<EngineState>((set, get) => {
         // stopped comparison must not quietly keep a second engine running.
         const follows = slot === 'primary' || get().comparing;
         if (wasRunning && last && follows && get().followBoard) {
+          /*
+            The restart is a fact from this moment, not from the moment the
+            asynchronous `run` reaches its own patch. `stop` above cleared
+            `running`, and a reader that looked between here and the start of
+            the new search — the evaluation bar, deciding whether a search is
+            in flight — saw an engine that was off for a frame on every move.
+            Claiming the search here closes that gap; `run` writes the same
+            values again when it starts, and clears them if it cannot.
+          */
+          patch(slot, { running: true, status: 'analysing' });
           void run(slot, fen, last.limit, last.config);
         }
       }
