@@ -37,6 +37,14 @@ Phase numbers below this header will be moved into a dated `## <version>` sectio
   gains its two signature details — the mark's board tile before each
   section label and the Studio's amber rail on each principle — and
   the Studio's own dark surface as its ink. (Phase 71)
+- **The privacy page and the claims register name the landing's two
+  keys.** The landing began reading `kingfisher.studio.visited` and
+  `kingfisher.landing.auto-open-studio` to offer _Continue in Studio_,
+  but the privacy page still described browser storage as the
+  application's alone, and `docs/product/public-claims.md` had no row
+  for the new `/studio` address or for what is remembered. Both now say
+  exactly what is stored, by whom and when — a first visit to the
+  landing writes neither key. (Phase 71)
 - **A complete favicon set.** The site now serves a 96 px PNG icon
   alongside the .ico and SVG (the size search engines make result
   icons from), and the Apple touch icon no longer has transparent

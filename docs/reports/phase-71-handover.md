@@ -271,3 +271,111 @@ trigger.
   the suite passes; regenerating twenty binaries for a 21 px icon adds
   bulk without evidence.
 - Google's cached favicon: nothing here can force it.
+
+## Independent re-verification (2026-09-19, Linux cloud checkout)
+
+The phase was re-checked from a clean clone of `fe96dc5` on Linux, by
+running the gates again rather than reading the section above. What was
+run, and what it said:
+
+```
+npm ci                       clean
+npm run typecheck            clean
+npm run lint                 clean
+npm run format:check         All matched files use Prettier code style
+npm test                     3049 passed, 2 failed, 0 skipped  (see below)
+npm run test:no-skips        OK
+npm run docs:check           343/344 — the one miss is `.vercel/project.json`,
+                             which is git-ignored and absent from any clone
+npm run build                Compiled successfully; 33 routes
+npm run public:check         All 22 public link(s) responded successfully
+git diff --check             clean
+```
+
+The two failing tests are both in `desktop/src/sparkle-updater.test.mjs`,
+a file this phase did not touch. They fail here because
+`sparkle-updater.mjs` returns "Updates are delivered through Sparkle,
+which is macOS only." at `process.platform !== 'darwin'` before it
+reaches the checkout and missing-bridge branches the tests assert. A
+third failure, `platform-floor.test.mjs`, was only `desktop/node_modules`
+being absent; it passes once `npm install` is run there. This is a
+platform limitation of the verification machine, not a regression.
+
+### The six enhancements, each checked against the running application
+
+Served by `npm start` (the production build) and driven with Playwright
+against the bundled Chromium.
+
+1. **Training icon.** Rendered the whole navigation set at 16/21/24/32 px
+   in both themes and compared the knight with the pawn (`Opening`) and
+   the king (`Endgame`) it shares a plinth with: three distinct
+   silhouettes, one family, the knight legible at 16 px. Then captured
+   the _live_ sidebar at `/training` at 3×: the row is selected, the icon
+   carries `text-accent` beside the amber rail, and it is centred on the
+   same axis as `Review` above and `Endgame` below. `desktop/src/`
+   contains no icon code at all, so web and desktop share the icon by
+   construction — only the already-published Mac 1.2.0 binary is behind,
+   which _Platform parity_ above records.
+2. **Landing captures.** All three files are WebP at exactly the natural
+   size the markup declares (2240 × 1400, 1718 × 1138, 1558 × 1138),
+   233 KB together, `og.png` 1200 × 630. Opened each one: they are the
+   current interface, the hero's sidebar shows the new knight, the
+   Research image is the Explorer's two-column source comparison (not the
+   Theory Book), and none carries personal or development-only content.
+3. **Header.** Measured in the browser at 1920/1440/1280/1024: the links'
+   centre is within **0.01 px** of the viewport centre at every width,
+   `.nav-brand`'s left edge equals the section column's left edge
+   exactly, and horizontal overflow is 0 at all six widths tested
+   (1920, 1440, 1280, 1024, 820, 390). At 820 and 390 the links fold into
+   the `<details>` menu. The assertion was then shown to be able to fail:
+   reverting `.nav-inner` to `display: flex` with `.nav-links { margin: 0
+auto }` and rebuilding made the three centring tests fail (off by
+   5.32 px); restored and re-checked green.
+4. **Favicon.** Production HTML links four icons — `.ico` 48×48,
+   `icon.svg`, `icon1.png` 96×96 and `apple-icon.png` 180×180 — and all
+   four return 200 with the right `content-type` and real bytes. The same
+   four are linked on the live `kingfisherchess.app`, where `icon1.png`
+   is 4085 bytes, byte-for-byte the size of the file in this checkout.
+   No claim is made about when a search engine refreshes its cache.
+5. **Studio access.** Driven end to end in a browser: a first visit
+   stores **nothing** (`localStorage` empty, no cookies) and shows no
+   continue line; `/analysis` writes the marker; the landing then offers
+   _Continue in Studio_; ticking the box leaves the visitor on the page;
+   the next visit to `/` lands on `/analysis`; `/?stay` shows the landing
+   with the box ticked; unticking undoes it; `/repertoire` deep-links and
+   survives a reload; and Back from an auto-opened Studio goes to
+   `/?stay`, not into a loop. `/studio` answers 308 to `/analysis` with
+   the query preserved, locally and on the live site.
+6. **Identity.** Inspected the rendered page at 1440 and 390 down its
+   full 5,733 px: the ink/paper bands, the editorial serif, the board-tile
+   bullet before each section label, the amber rails and the spec cards
+   read as one deliberate system, and the download card's version, build,
+   filename, size and SHA-256 are the ones in
+   `src/release/macos-download.json`.
+
+The regression test for the icon was also shown to be able to fail:
+replacing `Recall`'s two paths with a placeholder made
+`src/components/icons.test.tsx` fail on the silhouette's structure.
+
+### What this pass added
+
+Two gaps the phase left, both required by `AGENTS.md` for a public
+surface change:
+
+- `docs/product/public-claims.md` had no row for the `/studio` address
+  or for what the landing now remembers. Two rows added.
+- `src/app/privacy/PrivacyPage.tsx` described browser storage as the
+  application's alone. It now names both landing keys, who writes each
+  and when, and states that a first visit writes neither.
+
+### Still not run here
+
+`npm run test:e2e` cannot be run as the project defines it on this
+machine: the Playwright project pins `channel: 'chrome'` and no Google
+Chrome is installed. The phase's own specs were run against the bundled
+Chromium instead — `landing-chrome.spec.ts` (7), `studio-entry.spec.ts`
+(5) and `surface-contracts.spec.ts` (2) all pass. Section B (a Mac
+release) is unchanged and still the owner's to trigger, and
+`deploy:status` needs a `VERCEL_TOKEN` this machine does not hold —
+though the live site demonstrably serves this commit's favicon set,
+captures and `/studio` redirect.

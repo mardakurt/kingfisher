@@ -70,6 +70,17 @@ export function PrivacyPage(): JSX.Element {
         study name, a repertoire name, your display name).
       </p>
       <p>
+        The landing page at <code>/</code> reads two further <code>localStorage</code> entries on
+        this origin, so that a browser which already uses Kingfisher is offered{' '}
+        <em>Continue in Studio</em> rather than the introduction:{' '}
+        <code>kingfisher.studio.visited</code>, which the application writes when it opens, and{' '}
+        <code>kingfisher.landing.auto-open-studio</code>, which is written only if you tick{' '}
+        <em>Open the Studio straight away next time</em> and is removed when you untick it at{' '}
+        <code>/?stay</code>. A first visit writes neither: there is nothing to read, and the landing
+        stores nothing until the application has been opened. Both are flags on this origin, not
+        identifiers, and neither leaves the browser.
+      </p>
+      <p>
         The bulk of your work is in <strong>IndexedDB</strong>. IndexedDB is origin-scoped, so a
         profile on <code>kingfisherchess.app</code> is not the same database as one on{' '}
         <code>localhost</code>, in another browser, or in another browser profile. If you move
