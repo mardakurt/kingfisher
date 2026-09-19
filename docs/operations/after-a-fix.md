@@ -13,7 +13,7 @@ Do every step. Report the command and its output, not a claim.
 7. If a browser-rendered file changed: `npm run test:e2e` — 0 failed, 0 flaky
 8. If a public page, claim or URL changed: `npm run public:check`
 9. Commit with a message that says why; push to `master`
-10. Wait ~1 min, then `VERCEL_TOKEN=<token> npm run deploy:status` — must print `up to date (<sha of HEAD>)`
+10. Wait ~1 min, then `VERCEL_TOKEN=<token> npm run deploy:status` — must print `up to date (<sha of HEAD>)`, or `up to date (<older sha>; … skipped)` when every commit since changed nothing the web build reads (docs, `e2e/`, `desktop/`, `companion/` — the rule is `scripts/vercel-build-scope.mjs`, and Vercel's `ignoreCommand` applies the same rule)
 11. Open the changed page on `https://kingfisherchess.app` in a real browser and look at it
 12. If the fix is user-visible: add a line under `## Unreleased (web)` in `CHANGELOG.md`
 13. If a claim changed: update `docs/product/public-claims.md` and the page that makes the claim in the same commit

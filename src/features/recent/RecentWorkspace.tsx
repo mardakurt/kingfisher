@@ -36,6 +36,7 @@ import { Button, IconButton } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/Panel';
 import { getRepositories } from '@/persistence/repositories';
 import { gameTitle } from '@/persistence/describe';
+import { continueStoredDraft } from '@/features/persistence/useWorkspacePersistence';
 import { useAnalysis } from '@/stores/analysis-store';
 import { usePins, type PinKind } from '@/stores/pins-store';
 import { useUi } from '@/stores/ui-store';
@@ -67,9 +68,42 @@ const FIRST_RUN_KEY = 'kingfisher.first-run-done';
 
 export function RecentWorkspace() {
   const router = useRouter();
-  const document = useAnalysis((state) => state.document);
-  const openedAt = useAnalysis((state) => state.openedAt);
+  const liveDocument = useAnalysis((state) => state.document);
+  const liveOpenedAt = useAnalysis((state) => state.openedAt);
+  const revision = useAnalysis((state) => state.revision);
   const openDocument = useAnalysis((state) => state.openDocument);
+  /*
+    Phase 72: a fresh launch no longer puts the stored draft on the board
+    (`persistence/session-launch.ts`), so "Continue" describes the *stored*
+    draft while the board is still untouched, and restores it on click. Once
+    there is work on the board — a reload of the session, or anything played
+    here — the card describes that, as it always did.
+  */
+  const held = useQuery({
+    queryKey: ['held-draft'],
+    enabled: revision === 0,
+    staleTime: 0,
+    queryFn: async () => (await getRepositories()).drafts.get(),
+  });
+  const heldDraft = revision === 0 ? (held.data ?? null) : null;
+  const document = heldDraft ? heldDraft.document : liveDocument;
+  const openedAt = heldDraft ? heldDraft.updatedAt : liveOpenedAt;
+  const continuable = heldDraft !== null || revision !== 0;
+  const continueWork = async () => {
+    if (heldDraft) {
+      try {
+        await continueStoredDraft();
+      } catch (error) {
+        notify({
+          tone: 'error',
+          message: 'Your last analysis could not be reopened.',
+          detail: error instanceof Error ? error.message : String(error),
+        });
+        return;
+      }
+    }
+    router.push('/analysis');
+  };
   const notify = useUi((state) => state.notify);
   const pins = usePins((state) => state.pins);
   const togglePin = usePins((state) => state.toggle);
@@ -226,27 +260,36 @@ export function RecentWorkspace() {
         <h1 className="text-xl font-semibold tracking-tight text-primary">Recent work</h1>
         <p className="mt-0.5 text-sm text-secondary">Pick up where you left off.</p>
 
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          <Button
-            variant="accent"
-            icon={<Board />}
-            onClick={() => router.push('/analysis')}
-            data-continue
-          >
-            Continue {document.title}
-          </Button>
-          <span className="text-xs text-tertiary">
-            {document.kind === 'study-chapter'
-              ? `Chapter in ${document.studyTitle}`
-              : document.kind === 'database-game'
-                ? 'A game from your database'
-                : document.kind === 'reference-game'
-                  ? `A game from ${document.sourceName}`
-                  : 'Your unsaved analysis'}
-            {' · board, position and tools as you left them'}
-            {openedAt > 0 ? ` · last opened ${ago(openedAt)}` : ''}
-          </span>
-        </div>
+        {continuable ? (
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <Button
+              variant="accent"
+              icon={<Board />}
+              onClick={() => void continueWork()}
+              data-continue
+              data-continue-held={heldDraft ? 'true' : undefined}
+            >
+              Continue {document.title}
+            </Button>
+            <span className="text-xs text-tertiary">
+              {document.kind === 'study-chapter'
+                ? `Chapter in ${document.studyTitle}`
+                : document.kind === 'database-game'
+                  ? 'A game from your database'
+                  : document.kind === 'reference-game'
+                    ? `A game from ${document.sourceName}`
+                    : 'Your unsaved analysis'}
+              {heldDraft
+                ? ' · the board, position and tools as you left them, put back on request'
+                : ' · board, position and tools as you left them'}
+              {openedAt > 0 ? ` · last ${heldDraft ? 'worked on' : 'opened'} ${ago(openedAt)}` : ''}
+            </span>
+          </div>
+        ) : (
+          <p className="mt-4 text-xs text-tertiary" data-nothing-to-continue>
+            Nothing is waiting on the board. Start below, or open something from the lists.
+          </p>
+        )}
 
         <nav className="mt-4 flex flex-wrap gap-1.5" aria-label="Start something">
           {START_POINTS.map((entry) => {

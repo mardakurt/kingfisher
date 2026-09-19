@@ -17,6 +17,7 @@ import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { autosaveDelay } from '@/persistence/autosave';
+import { beginSession, releaseHeldDraft, shouldHoldDraft } from '@/persistence/session-launch';
 import { ensurePersistenceForAuthoredWork } from '@/persistence/storage-persistence';
 import { getRepositories } from '@/persistence/repositories';
 import { announceChapterSaved, subscribeCrossTab } from '@/persistence/cross-tab';
@@ -26,6 +27,36 @@ import { useAnalysis, selectDirty, UNTITLED_DOCUMENT } from '@/stores/analysis-s
 import { useUi } from '@/stores/ui-store';
 
 import { invalidateStudies } from './queries';
+
+/**
+ * One answer per page load. The effect that asks is mounted twice under
+ * StrictMode and again on every route change, and the second asking must not
+ * read the marker the first one wrote — the question is about the page load,
+ * not the mount.
+ */
+let launch: boolean | null = null;
+const sessionStore = () => (typeof window === 'undefined' ? null : window.sessionStorage);
+const freshLaunch = (): boolean => {
+  launch ??= beginSession(sessionStore());
+  return launch;
+};
+
+/**
+ * Put the stored draft back on the board, on request. Recent's "Continue"
+ * calls this when the workspace is still the untouched initial position of a
+ * fresh launch; a session that already has work on the board is left alone.
+ * Returns whether a draft was restored.
+ */
+export async function continueStoredDraft(): Promise<boolean> {
+  const repositories = await getRepositories();
+  const draft = await repositories.drafts.get();
+  if (!draft) return false;
+  if (useAnalysis.getState().revision !== 0) return false;
+  await restoreDraft(repositories, draft);
+  // From here this session is working on it again, so a reload restores it.
+  releaseHeldDraft(sessionStore());
+  return true;
+}
 
 /** Wired once, in the shell, so every route keeps the same session alive. */
 export function useWorkspacePersistence(): void {
@@ -44,6 +75,14 @@ export function useWorkspacePersistence(): void {
   */
   const draftStale = useRef(true);
   const lastDocument = useRef('');
+  /**
+   * A stored draft this launch chose not to put on the board. While it is
+   * held and nothing has happened here (`revision === 0`), the autosave must
+   * not write the empty board over it: that would turn "not shown" into
+   * "gone". The first move, import or open here releases it — the draft is
+   * one slot, "what is on screen", and from then on this is what is.
+   */
+  const heldDraft = useRef(false);
 
   useEffect(() => {
     /*
@@ -57,6 +96,15 @@ export function useWorkspacePersistence(): void {
     */
     let active = true;
 
+    /*
+      Phase 72: a fresh launch opens on the initial position. The draft is
+      restored to the board only for a reload of the session it was written
+      in; on a new launch it is *held* — kept in storage, offered by Recent as
+      "Continue …", and not overwritten by the empty board until the person
+      does something here (see `save`). See `persistence/session-launch.ts`.
+    */
+    const hold = shouldHoldDraft(sessionStore(), freshLaunch());
+
     void (async () => {
       try {
         const repositories = await getRepositories();
@@ -67,6 +115,10 @@ export function useWorkspacePersistence(): void {
         // and anything the user played in the meantime outranks the draft.
         if (useAnalysis.getState().revision !== 0) return;
 
+        if (hold) {
+          heldDraft.current = true;
+          return;
+        }
         await restoreDraft(repositories, draft);
       } catch (error) {
         if (!active) return;
@@ -100,6 +152,19 @@ export function useWorkspacePersistence(): void {
       const dirty = selectDirty(state);
       // A refused write would only be refused again; the user has to choose.
       if ((!dirty && !draftStale.current) || state.saving || state.conflict) return;
+      // The held draft outranks an untouched board (see `heldDraft`).
+      if (heldDraft.current && state.revision === 0) return;
+      /*
+        Past that guard this session has work of its own, so it is no longer
+        holding anything: the draft about to be written is this session's and
+        a reload must bring it back. That is the crash-safety the draft
+        exists for; all Phase 72 changed is which session gets it back
+        without asking. Released on every save rather than only when a draft
+        was held, because a session that started with an empty store never
+        held one and still owns what it writes.
+      */
+      heldDraft.current = false;
+      releaseHeldDraft(sessionStore());
 
       const revision = state.revision;
       state.markSaving();

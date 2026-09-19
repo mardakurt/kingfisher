@@ -13,6 +13,32 @@ Nothing leaves that device unless the user explicitly enables the
 optional cloud sync, which is documented separately and is not part
 of the 1.0 default experience.
 
+## What a launch shows (Phase 72)
+
+Opening Kingfisher opens a **chessboard**. Until Phase 72 the draft — the
+board, position and tools as you left them — was put back on screen at
+every start, which meant opening the application on Monday put Sunday's
+half-played line on the board, and the Mac application (every launch of
+which is a new window) never once opened on the initial position.
+
+What changed is _when_ the draft is restored, not whether it is kept:
+
+| Situation                                                  | What the board shows | Where the draft is                                        |
+| ---------------------------------------------------------- | -------------------- | --------------------------------------------------------- |
+| A new tab, a new window, a relaunch of the Mac application | The initial position | Stored; Recent offers _Continue …_                        |
+| A reload, or a route change, of a session that has work    | That work            | On screen and stored                                      |
+| A crash, then reopening                                    | The initial position | Stored; _Continue_ puts it back                           |
+| Any session after you press _Continue_                     | The restored work    | On screen and stored                                      |
+| A fresh launch where you then play a move                  | Your new moves       | Your new moves (the draft is one slot: what is on screen) |
+
+A launch that holds the draft does not overwrite it: the empty board is
+not written over your work, and the hold lasts the whole session, so
+landing on Recent and then opening Analysis still shows a board rather
+than a position you did not ask for. The rule is
+`src/persistence/session-launch.ts` (pure, unit-tested); the browser test
+that holds both halves — including the crash-safety half — is
+`e2e/launch-board.spec.ts`.
+
 ## What survives what, exactly
 
 The table below describes what happens to authored work in each

@@ -520,7 +520,7 @@ function createWindow() {
     dialog.showErrorBox(
       'Kingfisher stopped responding',
       `The window closed unexpectedly (${details.reason}). Your work is saved as you go; ` +
-        'reopening Kingfisher will bring back the last session.',
+        'reopen Kingfisher and press Continue on the Recent page to put it back on the board.',
     );
   });
 

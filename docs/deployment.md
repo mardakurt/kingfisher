@@ -154,6 +154,17 @@ promoted. There is nothing to run by hand and no GitHub Actions workflow
 involved; the Phase 50 `deploy-*.yml` workflows, which had no secrets and
 never deployed anything, were removed the same day.
 
+Not every push builds. `vercel.json` names an `ignoreCommand`,
+`scripts/vercel-ignore-build.mjs`, which diffs the pushed commit against
+the previous deployment's commit (`VERCEL_GIT_PREVIOUS_SHA`) and skips the
+build when nothing the web build reads changed — `docs/`, any Markdown,
+`e2e/`, `desktop/`, `companion/`, the brand sources, the diagnostics and
+release scripts (`scripts/vercel-build-scope.mjs` is the one list, with a
+reason per entry, and its test). Anything it cannot place builds, and so
+does a first deployment or one whose predecessor git cannot reach.
+`deploy:status` applies the same rule, so a docs-only push reads as
+"up to date (<older sha>; … skipped)" rather than "BEHIND".
+
 `vercel deploy --prod --yes` from a linked checkout still works and is the
 fallback if the integration is ever disconnected; it produces the same kind
 of deployment.
@@ -201,6 +212,8 @@ What changed, and why it stays fixed:
   (`public/` without the network: 14 MB of lite Stockfish, 23 MB of the
   bundled reference pack, icons and captures; plus `.next/static`).
   Measured locally: `du -sk public .next/static` after `npm run build`.
+- **Docs-only pushes do not deploy** (`ignoreCommand`, above), which
+  removes roughly half of the deployments a phase used to create.
 - **Retention is a week, not a month.** The project's deployment
   retention policy (Vercel → project → Settings → Security, or
   `PATCH /v1/projects/{id}/deployment-expiration`) is production `1w`,
@@ -208,15 +221,31 @@ What changed, and why it stays fixed:
   production deployment and the last ten production deployments
   regardless, so a rollback of any recent release stays possible.
 
-Expected steady state: at most ~50 deployments a week × ~44 MB ≈ 2.2 GB
-even in a busy week, against 10 GB. The Usage page is the only place the
-figure itself is reported — the REST API exposes deployments and the
-retention policy, not the metered total — so the after-number is to be
-read there; the measurable part, the per-deployment output, dropped
-from ~260 MB to ~44 MB (5.9×). Nothing was deleted: the five deployments
-that existed on 2026-09-19 were left for the policy to expire, no data
-store is involved (the application keeps every user's work in their own
-browser or Mac), and no asset was degraded.
+**How the figure behaves, and why it rose after the fix.** The metered
+number is cumulative over the 30-day billing period — Vercel adds each
+day's stored amount to a running total and resets it when the next
+period starts (confirmed by Vercel staff on the community forum; the
+Usage API that would show it is Pro-only — it answers
+`plan_upgrade_required` on Hobby). So the figure can only grow within a
+period, and deleting deployments does not lower it; it lowers what each
+further day adds. The day after the fix it read 15.72 GB: the five
+260 MB deployments from before the fix were still stored and still
+accruing. They were deleted through the API the same day — the current
+production deployment and the one before it (identical application code,
+kept so a rollback is possible) are the only ones left — so the project
+now stores ~2 × 44 MB. Expected accrual from here: under 0.1 GB a day
+against 10 GB, and the counter resets at the start of the next 30-day
+period.
+
+The deployments deleted were build outputs only: the application holds
+every user's work in their own browser or Mac, so there was nothing in
+them to lose, and the live site was checked (200) immediately after.
+
+Read the after-number on the Usage page — the REST API exposes
+deployments and the retention policy, not the metered total. The
+measurable part, the per-deployment output, dropped from ~260 MB to
+~44 MB (5.9×). No data store is involved (the application keeps every
+user's work in their own browser or Mac), and no asset was degraded.
 
 If the figure ever climbs again, the first thing to check is
 `public/`: `git ls-files public | xargs du -ch | tail -1` for what is

@@ -27,6 +27,8 @@ import { readFileSync } from 'node:fs';
 import { exit } from 'node:process';
 import { fileURLToPath } from 'node:url';
 
+import { needsWebBuild } from './vercel-build-scope.mjs';
+
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 
 const TOKEN = process.env.VERCEL_TOKEN;
@@ -103,6 +105,27 @@ const fetchBehind = async (projectSha) => {
 };
 
 /**
+ * Whether the commits since the deployed one changed anything the web build
+ * reads. `vercel.json`'s `ignoreCommand` skips deployments for commits that
+ * did not (docs, the browser suite, the desktop shell — see
+ * `vercel-build-scope.mjs`), so the deployed commit is allowed to be older
+ * than `origin/master` exactly when this says so. A commit git cannot reach
+ * answers "changed": the skip is claimed only when it can be shown.
+ */
+const skippedOnPurpose = (projectSha) => {
+  const result = spawnSync('git', ['diff', '--name-only', projectSha, HEAD_REV], {
+    encoding: 'utf8',
+    cwd: ROOT,
+  });
+  if (result.status !== 0) return false;
+  const changed = (result.stdout ?? '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+  return changed.length > 0 && !needsWebBuild(changed);
+};
+
+/**
  * "up to date" means the commit is *serving*, not merely submitted.
  *
  * The newest production deployment is the one Vercel is building, and for
@@ -129,6 +152,9 @@ const formatRow = (label, project, deployment, behind) => {
     return `${label}: ${short} is ${deployment.state} — not yet serving; re-run in a minute`;
   }
   if (deployment.sha === HEAD_REV) return `${label}: up to date (${short})`;
+  if (skippedOnPurpose(deployment.sha)) {
+    return `${label}: up to date (${short}; the ${behind} commit(s) since changed nothing the web build reads, so Vercel skipped them)`;
+  }
   return `${label}: BEHIND master by ${behind} commits (running ${short})`;
 };
 

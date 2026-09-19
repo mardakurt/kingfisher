@@ -8,6 +8,15 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
+- **Opening Kingfisher opens a chessboard.** The last position you were
+  working on was put back on the board at every start — so opening the
+  application showed yesterday's half-played line, and the Mac
+  application never opened on the initial position. A fresh launch (a
+  new tab, a new window, reopening the Mac app) now starts from the
+  initial position; your work is still saved and is one click away as
+  _Continue …_ on Recent. A reload, a route change, or anything you play
+  in this session still comes back by itself, which is what the draft is
+  for. (Phase 72)
 - **The evaluation bar shows the result of a finished game.** A
   checkmated position filled the winner's band completely and reads
   `1-0` or `0-1`; stalemate and the rule draws sit at the middle as
