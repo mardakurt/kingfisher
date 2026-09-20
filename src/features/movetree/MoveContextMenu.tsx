@@ -16,7 +16,7 @@ import { nagInfo, qualityNags } from '@/chess/annotations';
 import { isOnMainline, siblings, variationHeadId } from '@/chess/tree/tree';
 import { ArrowDown, ArrowUp, Copy, Pencil, Scissors, Search, Trash } from '@/components/icons';
 import { ContextMenu, type MenuSection } from '@/components/ui/Menu';
-import { serializeMovetext } from '@/chess/pgn';
+import { serializeMovetext, serializePgnFrom } from '@/chess/pgn';
 import { nodePath } from '@/chess/tree/tree';
 import { useAnalysis } from '@/stores/analysis-store';
 import { useUi } from '@/stores/ui-store';
@@ -155,6 +155,19 @@ export function MoveContextMenu() {
               void navigator.clipboard
                 .writeText(text)
                 .then(() => notify({ tone: 'success', message: 'Line copied.' }))
+                .catch(() =>
+                  notify({ tone: 'error', message: 'The clipboard is not available here.' }),
+                );
+            },
+          },
+          {
+            id: 'copy-pgn-from-here',
+            label: 'Copy PGN from here',
+            icon: <Copy />,
+            run: () => {
+              void navigator.clipboard
+                .writeText(serializePgnFrom(tree, nodeId))
+                .then(() => notify({ tone: 'success', message: 'PGN from this move copied.' }))
                 .catch(() =>
                   notify({ tone: 'error', message: 'The clipboard is not available here.' }),
                 );

@@ -11,13 +11,15 @@
 
 import { useCallback, useMemo } from 'react';
 
-import { serializeMovetext, serializePgn } from '@/chess/pgn';
+import { serializeMovetext, serializePgn, serializePgnFrom } from '@/chess/pgn';
 import { nodePath } from '@/chess/tree/tree';
 import { useAnalysis } from '@/stores/analysis-store';
 import { useUi } from '@/stores/ui-store';
 
 export interface CopyActions {
   pgn(): void;
+  /** The game from the current move on, as its own PGN with a `[FEN]` tag. */
+  pgnFromHere(): void;
   fen(): void;
   sanLine(): void;
   uciLine(): void;
@@ -45,6 +47,10 @@ export function useCopyActions(): CopyActions {
   return useMemo<CopyActions>(
     () => ({
       pgn: () => void write(serializePgn(useAnalysis.getState().tree), 'PGN'),
+      pgnFromHere: () => {
+        const { tree, currentId } = useAnalysis.getState();
+        void write(serializePgnFrom(tree, currentId), 'PGN from this move');
+      },
       fen: () => {
         const { tree, currentId } = useAnalysis.getState();
         void write(tree.nodes[currentId]?.fen ?? '', 'FEN');

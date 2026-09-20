@@ -36,6 +36,7 @@ const CRITICAL_CATEGORIES: readonly { id: CriticalCategory; label: string }[] = 
 export function Toolbar() {
   const newGame = useAnalysis((state) => state.newGame);
   const currentId = useAnalysis((state) => state.currentId);
+  const rootId = useAnalysis((state) => state.tree.rootId);
   const critical = useAnalysis((state) => state.tree.nodes[state.currentId]?.meta.critical);
   const setCritical = useAnalysis((state) => state.setCritical);
   const clearMoves = useAnalysis((state) => state.clearMoves);
@@ -54,6 +55,13 @@ export function Toolbar() {
       id: 'copy',
       items: [
         { id: 'pgn', label: 'Copy PGN', shortcut: '', icon: <Export />, run: copy.pgn },
+        {
+          id: 'pgn-from-here',
+          label: 'Copy PGN from this move',
+          icon: <Export />,
+          disabled: currentId === rootId,
+          run: copy.pgnFromHere,
+        },
         { id: 'fen', label: 'Copy FEN', icon: <Copy />, run: copy.fen },
         { id: 'line', label: 'Copy this line (SAN)', icon: <Copy />, run: copy.sanLine },
         { id: 'uci', label: 'Copy this line (UCI)', icon: <Copy />, run: copy.uciLine },

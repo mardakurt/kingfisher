@@ -4,7 +4,7 @@ import { shapeKey } from '../annotations';
 import { mainlinePath, mustGetNode, nodeCount } from '../tree/tree';
 import type { GameTree, NodeId } from '../tree/types';
 import { parsePgn, parseSingleGame } from './parse';
-import { serializePgn } from './serialize';
+import { serializePgn, serializePgnFrom } from './serialize';
 import { tokenize } from './lexer';
 import { expect as unwrap } from '../result';
 
@@ -216,6 +216,37 @@ describe('serializePgn', () => {
     expect(new Set(root.shapes.map(shapeKey))).toEqual(
       new Set(mustGetNode(first.tree, first.tree.rootId).shapes.map(shapeKey)),
     );
+  });
+
+  it('writes the game from one move on as its own PGN', () => {
+    const source =
+      '[Event "Study"]\n[Result "*"]\n\n' +
+      '1. e4 e5 2. Nf3 {Develops [%cal Gf3e5]} Nc6 (2... Nf6 3. Nxe5 d6) 3. Bb5 a6 *';
+    const first = unwrap(parseSingleGame(source));
+    const path = mainlinePath(first.tree);
+    const nf3 = path[3] as NodeId;
+    const text = serializePgnFrom(first.tree, nf3);
+
+    // The position after 2.Nf3 is the start, written so any reader can set it up.
+    expect(text).toContain('[SetUp "1"]');
+    expect(text).toContain(
+      '[FEN "rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2"]',
+    );
+    expect(text).toContain('[Event "Study"]');
+    // Its comment and arrow describe the position and open the game; the
+    // moves below it keep their numbers and their variation.
+    expect(text).toContain('{ Develops [%cal Gf3e5] } 2... Nc6 (2... Nf6 3. Nxe5 d6) 3. Bb5 a6 *');
+    expect(text).not.toContain('1. e4');
+
+    const second = unwrap(parseSingleGame(text));
+    expect(mainline(second.tree)).toEqual(['Nc6', 'Bb5', 'a6']);
+    expect(nodeCount(second.tree)).toBe(6);
+    expect(mustGetNode(second.tree, second.tree.rootId).shapes).toHaveLength(1);
+  });
+
+  it('exporting from the root is the whole game', () => {
+    const game = unwrap(parseSingleGame('1. e4 e5 *'));
+    expect(serializePgnFrom(game.tree, game.tree.rootId)).toBe(serializePgn(game.tree));
   });
 
   it('round-trips a game that starts from a FEN', () => {

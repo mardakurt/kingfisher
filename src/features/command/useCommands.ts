@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { START_FEN } from '@/chess/fen';
 import { BOARD_THEMES, boardTheme } from '@/features/board/themes';
 import { PIECE_SETS, pieceSet } from '@/features/board/pieces';
-import { serializeMovetext, serializePgn } from '@/chess/pgn';
+import { serializeMovetext, serializePgn, serializePgnFrom } from '@/chess/pgn';
 import { nodePath } from '@/chess/tree/tree';
 import { evaluationFromAnalysis } from '@/features/analysis/useEngineSnapshots';
 import { formatScore } from '@/chess/evaluation';
@@ -127,6 +127,17 @@ export function useCommands(): readonly Command[] {
         run: async () => {
           await navigator.clipboard.writeText(serializePgn(analysis().tree));
           ui().notify({ tone: 'success', message: 'PGN copied to the clipboard.' });
+        },
+      },
+      {
+        id: 'copy-pgn-from-here',
+        title: 'Copy PGN from this move',
+        group: 'Game',
+        keywords: 'export share line variation subtree',
+        run: async () => {
+          const state = analysis();
+          await navigator.clipboard.writeText(serializePgnFrom(state.tree, state.currentId));
+          ui().notify({ tone: 'success', message: 'PGN from this move copied to the clipboard.' });
         },
       },
       {

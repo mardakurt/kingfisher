@@ -8,7 +8,7 @@
 
 import { START_FEN } from '../fen';
 import { formatComment } from './comment-commands';
-import { mustGetNode } from '../tree/tree';
+import { collectSubtree, mustGetNode } from '../tree/tree';
 import type { GameTree, MoveNode, NodeId } from '../tree/types';
 import { moveNumberOfPly } from '../tree/types';
 
@@ -67,6 +67,53 @@ export function serializePgn(tree: GameTree, options: SerializeOptions = {}): st
   if (!includeHeaders) return movetext;
 
   return `${serializeHeaders(tree)}\n\n${movetext}\n`;
+}
+
+/**
+ * The game from one move on, as its own PGN.
+ *
+ * A study's opening line is often forty moves of which the last twelve are
+ * the point, and sharing them meant exporting the whole chapter and asking
+ * the reader to scroll. This writes the position at `nodeId` as the start
+ * (`[SetUp "1"]` and `[FEN]`, so any reader can set it up) and everything
+ * below it — every variation, comment, glyph and arrow — as the movetext.
+ * The node's own comment and shapes describe the position reached, so they
+ * become the game's opening comment; its NAG describes the move that led
+ * here, which is not part of this game, and is left behind. Ply numbers are
+ * kept, so "24...Rxe4" is still move 24.
+ */
+export function serializePgnFrom(
+  tree: GameTree,
+  nodeId: NodeId,
+  options: SerializeOptions = {},
+): string {
+  if (nodeId === tree.rootId) return serializePgn(tree, options);
+  const node = mustGetNode(tree, nodeId);
+  const nodes: Record<NodeId, MoveNode> = {};
+  for (const id of collectSubtree(tree, nodeId)) {
+    if (id === nodeId) continue;
+    nodes[id] = mustGetNode(tree, id);
+  }
+  const root: MoveNode = {
+    id: nodeId,
+    parentId: null,
+    children: node.children,
+    move: null,
+    fen: node.fen,
+    ply: node.ply,
+    nags: [],
+    shapes: node.shapes,
+    meta: {},
+    ...(node.comment ? { comment: node.comment } : {}),
+  };
+  nodes[nodeId] = root;
+  // The start is no longer what the headers said it was; the serializer
+  // writes the tags for the new one from `startFen`.
+  const { SetUp: _setUp, FEN: _fen, ...headers } = tree.headers;
+  return serializePgn(
+    { rootId: nodeId, nodes, startFen: node.fen, headers, nextId: tree.nextId },
+    options,
+  );
 }
 
 export function serializeHeaders(tree: GameTree): string {
