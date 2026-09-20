@@ -155,9 +155,12 @@ involved; the Phase 50 `deploy-*.yml` workflows, which had no secrets and
 never deployed anything, were removed the same day.
 
 Not every push builds. `vercel.json` names an `ignoreCommand`,
-`scripts/vercel-ignore-build.mjs`, which diffs the pushed commit against
-the previous deployment's commit (`VERCEL_GIT_PREVIOUS_SHA`) and skips the
-build when nothing the web build reads changed — `docs/`, any Markdown,
+`scripts/vercel-ignore-build.mjs`, which lists the paths changed between
+the previous deployment's commit (`VERCEL_GIT_PREVIOUS_SHA`) and the
+pushed one — through GitHub's compare API, because `.vercelignore`
+strips `.git` before the step runs and `git diff` has no history there
+(the first deployment with the command built for exactly that reason) —
+and skips the build when nothing the web build reads changed — `docs/`, any Markdown,
 `e2e/`, `desktop/`, `companion/`, the brand sources, the diagnostics and
 release scripts (`scripts/vercel-build-scope.mjs` is the one list, with a
 reason per entry, and its test). Anything it cannot place builds, and so
