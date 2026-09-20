@@ -15,8 +15,17 @@ export const ROLE_LABEL: Readonly<Record<TeamRole, string>> = {
   student: 'Student',
 };
 
-/** Coaches and seconds review; players and students hand in. The label puts the right button first. */
-export const REVIEWING_ROLES: ReadonlySet<TeamRole> = new Set(['coach', 'second']);
+/**
+ * Who reviews and who hands in, by role.
+ *
+ * A coach reviews a student's work; a *player* reviews a second's — the
+ * second produces the file, the player reads it the morning of the game and
+ * accepts it or asks for more (`docs/design/team-hub.md` §1). The first
+ * version put seconds with coaches, which offered a second "Accept" on the
+ * file they were supposed to be writing. The label only orders the buttons;
+ * an assignment addressed to you always shows the hand-in first.
+ */
+export const REVIEWING_ROLES: ReadonlySet<TeamRole> = new Set(['coach', 'player']);
 
 /** `19 Sep`, or `19 Sep 2025` when it was not this year. */
 export function shortDate(at: number, now = Date.now()): string {

@@ -5,8 +5,8 @@
  *
  * The brief at the top, the handovers in order, and an action box **pinned
  * under the thread** whose first button depends on who you are: a student
- * sees "Hand in what's on the board", a coach sees "Return with notes" and
- * "Accept". Pinned, because a thread of ten handovers scrolls and the button
+ * or a second sees "Hand in what's on the board"; a coach, or the player a
+ * second's file is for, sees "Return with notes" and "Accept". Pinned, because a thread of ten handovers scrolls and the button
  * a coach reaches for thirty times an evening must not move. Nothing is
  * hidden from anyone — the file can be edited by whoever holds it, so a
  * permission would be theatre — but the button you need is the one you see

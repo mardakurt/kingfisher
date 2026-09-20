@@ -109,8 +109,10 @@ true statements, and a coach can tell them apart.
 
 **Roles are labels, not permissions.** Whoever holds the file can edit it,
 so a permission would be theatre. The role decides which button comes
-first: a student sees _Hand in what's on the board_; a coach or second sees
-_Return with notes_ and _Accept_.
+first: a student or a second sees _Hand in what's on the board_; a coach or
+a player — the people the work is _for_ — sees _Return with notes_ and
+_Accept_. An assignment addressed to you shows the hand-in first whatever
+your role.
 
 **`me` never travels.** Which member an installation is, is a fact about
 that installation. A packet strips it; a merge preserves it.

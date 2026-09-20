@@ -121,6 +121,16 @@ in `e2e/team.spec.ts`:
 11. An empty board disabled _Hand in_ with a tooltip. It now says so and
     offers _import a PGN_.
 
+**Found on the deployed site, as a second.** Creating a team as a
+_Second_ and setting an opponent assignment offered _Return with notes_ /
+_Accept_ — the second was grouped with the coach as a reviewer. That is
+backwards for how the work flows: the second writes the file and the
+_player_ reads it the morning of the game and accepts it or asks for more,
+exactly as the coach does with a student's game. Reviewers are now coach
+and player; seconds and students hand in; an assignment addressed to you
+shows the hand-in first whatever your role. The spec adds a second and
+asserts the first button.
+
 And two bridges for the professional case: an **opponent** assignment
 carries the opponent and the player's colour, with _Open in Preparation_
 (the dossier) one click away — and the second's file, opened on the board,

@@ -269,6 +269,24 @@ test('a coach and a student hand work to each other through packets', async ({
   await coach.getByRole('combobox', { name: 'Our colour' }).selectOption('b');
   await coach.getByRole('button', { name: 'Set assignment' }).click();
   await expect(thread(coach)).toContainText('vs Rival · we have Black');
+
+  // A second is who writes the file: as one, the first button is the hand-in,
+  // not the review that the first version of the role split offered.
+  await routeAction(coach, 'Members…');
+  await coach.locator('[data-team-member-name]').fill('Anish');
+  await coach.getByRole('combobox', { name: 'Role' }).selectOption('second');
+  await coach.getByRole('button', { name: 'Add', exact: true }).click();
+  await coach.getByRole('radio', { name: 'This is me: Anish' }).click();
+  await expect(coach.getByRole('radio', { name: 'This is me: Anish' })).toBeChecked();
+  await coach.getByRole('button', { name: 'Done' }).click();
+  await expect(
+    thread(coach).getByRole('button', { name: 'Hand in what’s on the board' }),
+  ).toBeVisible();
+  await expect(thread(coach).getByRole('button', { name: 'Accept' })).toHaveCount(0);
+  await routeAction(coach, 'Members…');
+  await coach.getByRole('radio', { name: 'This is me: Coach' }).click();
+  await expect(coach.getByRole('radio', { name: 'This is me: Coach' })).toBeChecked();
+  await coach.getByRole('button', { name: 'Done' }).click();
   await thread(coach).getByRole('button', { name: 'Open in Preparation' }).click();
   await expect(coach).toHaveURL(/\/preparation\?player=Rival/);
 

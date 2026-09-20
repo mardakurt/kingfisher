@@ -1223,8 +1223,9 @@ export interface TeamRecord {
 /**
  * Roles are labels, not permissions. Nothing is enforced, because nothing
  * could be: a file can be edited by whoever holds it. The label says who is
- * expected to hand in and who is expected to review, which is what the thread
- * panel uses to put the right button first.
+ * expected to hand in (a student, a second) and who is expected to review (a
+ * coach, the player a second works for), which is what the thread panel uses
+ * to put the right button first.
  */
 export type TeamRole = 'coach' | 'second' | 'player' | 'student';
 
