@@ -51,7 +51,13 @@ import {
   waitForReady,
 } from './desktop-lib/launch.mjs';
 import { writeCorpus } from './desktop-lib/pgn-corpus.mjs';
-import { clickButton, closeWindow, waitForWindow, windowsOf } from './desktop-lib/sparkle-ui.mjs';
+import {
+  clickButton,
+  closeWindow,
+  findWindow,
+  waitForWindow,
+  windowsOf,
+} from './desktop-lib/sparkle-ui.mjs';
 
 // --- arguments ---------------------------------------------------------------
 
@@ -802,8 +808,26 @@ class Walk {
             const dismiss = ['OK', 'Cancel Update', 'Close', 'Remind Me Later'].find((name) =>
               shown.buttons.includes(name),
             );
-            if (dismiss) clickButton(target, shown.index, dismiss, shown.sheet);
-            else closeWindow(target, shown.index);
+            // Re-resolve the window at click time, and retry: Sparkle's
+            // "Checking for updates…" panel closes as the verdict alert
+            // opens, and the index found a moment ago can name a window that
+            // is already gone (seed 46, step 83, at the 1.2.6 certification).
+            let clicked = false;
+            let lastError = null;
+            for (let attempt = 0; attempt < 8 && !clicked; attempt += 1) {
+              const current =
+                findWindow(target, { button: dismiss ? new RegExp(`^${dismiss}$`) : null }) ??
+                shown;
+              try {
+                if (dismiss) clickButton(target, current.index, dismiss, current.sheet);
+                else closeWindow(target, current.index);
+                clicked = true;
+              } catch (error) {
+                lastError = error;
+                await p.waitForTimeout(400);
+              }
+            }
+            if (!clicked) throw lastError;
             await p.waitForTimeout(700);
           }
           const verdict = await p.evaluate(() => window.kingfisher.updateStatus());

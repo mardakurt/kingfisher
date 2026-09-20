@@ -24,24 +24,25 @@ validation, scheduled backup preference serialization, and an incorrect
 native-companion prerequisite on the AI assistant panel. The engine toolbar
 also wraps controls to keep the engine selector readable in a narrow panel.
 
-**Published revision check (Phase 74, Mac-facing — not yet released).**
-After 1.2.5 shipped, two changes landed in application code the Mac shell
-renders, and each is something a Mac user sees: the Team hub at `/team` (a
-new section in the rail, two new IndexedDB stores at schema v18, the packet
-file as its transport — the Mac's download and file-chooser are the
-browser's own, and no bridge route was added), and the reset control's
-label — _Clear the move tree — back to the starting position_ — in the
-Position menu, the Analysis menu, the command palette and the board
-control. Nothing under `desktop/` changed. The public Mac 1.2.5 (build
-704, `738d22d`) is therefore behind `master` from the commit that carries
-them; section B of `docs/operations/after-a-fix.md` is due before the next
-Mac release and has not been run for this change.
-
-The Team preparation follow-up (`f512f39`, `a4daae4`) also changes shared
-application code the Mac shell renders: brief starters, an inbox with
-search and review filters, _Open latest board_, and note drafts that
-survive a failed write. It is Mac-facing and needs the same future Mac
-package; nothing under `desktop/` changed and no package was built for it.
+**Published revision check (Phase 74, 1.2.6 — 2026-09-20, evening).**
+After 1.2.5 shipped, three changes landed in application code the Mac
+shell renders, and each is something a Mac user sees: the Team hub at
+`/team` (a new section in the rail, two new IndexedDB stores at schema
+v18, the packet file as its transport — the Mac's download and
+file-chooser are the browser's own, and no bridge route was added); the
+reset control's label — _Clear the move tree — back to the starting
+position_ — in the Position menu, the Analysis menu, the command palette
+and the board control; and the Team preparation follow-up (`f512f39`,
+`a4daae4`): brief starters, an inbox with search and review filters,
+_Open latest board_, and note drafts that survive a failed write. Nothing
+under `desktop/` changed. Section B of `docs/operations/after-a-fix.md`
+was run for them: the public Mac is **1.2.6, build 714, `6281e03`**,
+built from the `v1.2.6` tag's revision, signed, notarised, certified
+(`desktop:certify` — 9 of 10 gates on the first run, the tenth a race in
+the walk's own Sparkle-dialog dismissal, fixed in the harness and the
+same seed re-run to 0 findings) and updated to from 1.2.5 through the
+public feed. The commits after `6281e03` on `master` are the descriptor,
+the documentation and the harness fix — nothing the Mac shell renders.
 
 **Published revision check (2026-09-20, 1.2.5).** The public Mac 1.2.5
 (build 704, `738d22d`) is built from the `v1.2.5` tag's revision, the

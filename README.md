@@ -2,7 +2,7 @@
 
 A local-first chess research workstation for serious players.
 
-> **Public release · 1.2.5** (web · macOS, Developer ID signed and notarised)
+> **Public release · 1.2.6** (web · macOS, Developer ID signed and notarised)
 > No account. No cookies. No subscription.
 
 |                                                                           |                                                                                            |
@@ -238,7 +238,7 @@ games behind him, and the page says so. See
 
 The sections below are the record of what each phase set out to fix, kept
 because the reasons are still the reasons. They are history, not a status line:
-the current public release is **Kingfisher 1.2.5** (web and macOS), and
+the current public release is **Kingfisher 1.2.6** (web and macOS), and
 what changed is in [`CHANGELOG.md`](CHANGELOG.md); the 1.0.0 notes are in
 [`docs/release/1.0.0.md`](docs/release/1.0.0.md).
 
