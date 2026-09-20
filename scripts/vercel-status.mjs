@@ -63,10 +63,17 @@ if (!TOKEN) {
   exit(0);
 }
 
-const fetchDeployment = async (projectId) => {
+/**
+ * The newest production deployments, newest first. Several rather than
+ * one: a build the `ignoreCommand` skipped is recorded as a `CANCELED`
+ * deployment in front of the one that is serving, and the answer to "is
+ * production the latest commit?" needs both — what serves, and whether what
+ * came after it was skipped on purpose.
+ */
+const fetchDeployments = async (projectId) => {
   if (!projectId) return null;
   const url = new URL(
-    `https://api.vercel.com/v6/deployments?projectId=${encodeURIComponent(projectId)}&target=production&limit=1`,
+    `https://api.vercel.com/v6/deployments?projectId=${encodeURIComponent(projectId)}&target=production&limit=8`,
   );
   if (TEAM) url.searchParams.set('teamId', TEAM);
   const response = await fetch(url, {
@@ -76,15 +83,15 @@ const fetchDeployment = async (projectId) => {
     throw new Error(`Vercel API responded ${response.status} for ${projectId}`);
   }
   const body = await response.json();
-  const deployment = body.deployments?.[0];
-  if (!deployment) return null;
-  const meta = deployment.meta?.githubCommitSha ?? null;
-  return {
-    sha: typeof meta === 'string' ? meta : null,
-    state: deployment.state ?? 'UNKNOWN',
-    url: deployment.url ?? null,
-    created: deployment.createdAt ?? null,
-  };
+  return (body.deployments ?? []).map((deployment) => {
+    const meta = deployment.meta?.githubCommitSha ?? null;
+    return {
+      sha: typeof meta === 'string' ? meta : null,
+      state: deployment.state ?? 'UNKNOWN',
+      url: deployment.url ?? null,
+      created: deployment.createdAt ?? null,
+    };
+  });
 };
 
 const commitCount = (() => {
@@ -94,15 +101,6 @@ const commitCount = (() => {
   });
   return (result.stdout ?? '').trim();
 })();
-
-const fetchBehind = async (projectSha) => {
-  if (!projectSha) return null;
-  const result = spawnSync('git', ['rev-list', '--count', `${projectSha}..${HEAD_REV}`], {
-    encoding: 'utf8',
-    cwd: ROOT,
-  });
-  return (result.stdout ?? '').trim();
-};
 
 /**
  * Whether the commits since the deployed one changed anything the web build
@@ -117,12 +115,13 @@ const skippedOnPurpose = (projectSha) => {
     encoding: 'utf8',
     cwd: ROOT,
   });
-  if (result.status !== 0) return false;
+  if (result.status !== 0) return 'unknown';
   const changed = (result.stdout ?? '')
     .split('\n')
     .map((line) => line.trim())
     .filter(Boolean);
-  return changed.length > 0 && !needsWebBuild(changed);
+  if (changed.length === 0) return 'same';
+  return needsWebBuild(changed) ? 'changed' : 'skipped';
 };
 
 /**
@@ -138,24 +137,42 @@ const skippedOnPurpose = (projectSha) => {
  * and `INITIALIZING` say so and ask for a re-run; `ERROR` and `CANCELED`
  * are a failure, printed as one and exiting non-zero.
  */
-const formatRow = (label, project, deployment, behind) => {
-  if (!deployment)
+const formatRow = (label, project, deployments, behindOf) => {
+  if (!deployments)
     return `${label}: not configured (no .vercel/project.json and no VERCEL_PROJECT_ID)`;
-  if (!deployment.sha)
-    return `${label}: deployment has no github commit (state=${deployment.state})`;
-  const short = deployment.sha.slice(0, 7);
-  if (deployment.state === 'ERROR' || deployment.state === 'CANCELED') {
+  const newest = deployments[0];
+  if (!newest) return `${label}: no production deployment yet`;
+  if (!newest.sha) return `${label}: deployment has no github commit (state=${newest.state})`;
+  const newestShort = newest.sha.slice(0, 7);
+  const servingIndex = deployments.findIndex((d) => d.state === 'READY' && d.sha);
+  const serving = servingIndex === -1 ? null : deployments[servingIndex];
+  if (serving?.sha === HEAD_REV) return `${label}: up to date (${serving.sha.slice(0, 7)})`;
+  /*
+    Builds the ignoreCommand skipped are recorded as CANCELED deployments in
+    front of the one that serves. They are the intended path exactly when
+    every deployment newer than the serving one is CANCELED and the commits
+    since it change nothing the web build reads — the same rule the
+    ignoreCommand applied. Anything else CANCELED is a failure.
+  */
+  if (
+    serving &&
+    servingIndex > 0 &&
+    deployments.slice(0, servingIndex).every((d) => d.state === 'CANCELED') &&
+    skippedOnPurpose(serving.sha) === 'skipped'
+  ) {
+    return `${label}: up to date (${serving.sha.slice(0, 7)}; the ${behindOf(serving.sha)} commit(s) since changed nothing the web build reads, so Vercel skipped them)`;
+  }
+  if (newest.state === 'ERROR' || newest.state === 'CANCELED') {
     process.exitCode = 1;
-    return `${label}: deployment of ${short} ${deployment.state} — the live site still serves the previous deployment`;
+    return `${label}: deployment of ${newestShort} ${newest.state} — the live site still serves the previous deployment`;
   }
-  if (deployment.state !== 'READY') {
-    return `${label}: ${short} is ${deployment.state} — not yet serving; re-run in a minute`;
+  if (newest.state !== 'READY') {
+    return `${label}: ${newestShort} is ${newest.state} — not yet serving; re-run in a minute`;
   }
-  if (deployment.sha === HEAD_REV) return `${label}: up to date (${short})`;
-  if (skippedOnPurpose(deployment.sha)) {
-    return `${label}: up to date (${short}; the ${behind} commit(s) since changed nothing the web build reads, so Vercel skipped them)`;
+  if (skippedOnPurpose(newest.sha) === 'skipped') {
+    return `${label}: up to date (${newestShort}; the ${behindOf(newest.sha)} commit(s) since changed nothing the web build reads, so Vercel skipped them)`;
   }
-  return `${label}: BEHIND master by ${behind} commits (running ${short})`;
+  return `${label}: BEHIND master by ${behindOf(newest.sha)} commits (running ${newestShort})`;
 };
 
 (async () => {
@@ -164,16 +181,20 @@ const formatRow = (label, project, deployment, behind) => {
     `Local master HEAD: ${HEAD_REV.slice(0, 7)} (${Number.isFinite(localCommits) ? localCommits : '?'} commits)\n`,
   );
   for (const project of PROJECTS) {
-    let deployment = null;
-    let behind = '?';
+    let deployments = null;
     try {
-      deployment = await fetchDeployment(project.id);
-      const count = await fetchBehind(deployment?.sha);
-      behind = count ?? '?';
+      deployments = await fetchDeployments(project.id);
     } catch (error) {
       console.error(`${project.label}: API error — ${error.message}`);
       continue;
     }
-    console.log(formatRow(project.label, project, deployment, behind));
+    const behindOf = (sha) => {
+      const result = spawnSync('git', ['rev-list', '--count', `${sha}..${HEAD_REV}`], {
+        encoding: 'utf8',
+        cwd: ROOT,
+      });
+      return (result.stdout ?? '').trim() || '?';
+    };
+    console.log(formatRow(project.label, project, deployments, behindOf));
   }
 })();

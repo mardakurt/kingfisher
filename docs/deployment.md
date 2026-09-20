@@ -165,8 +165,11 @@ and skips the build when nothing the web build reads changed — `docs/`, any Ma
 release scripts (`scripts/vercel-build-scope.mjs` is the one list, with a
 reason per entry, and its test). Anything it cannot place builds, and so
 does a first deployment or one whose predecessor git cannot reach.
-`deploy:status` applies the same rule, so a docs-only push reads as
-"up to date (<older sha>; … skipped)" rather than "BEHIND".
+Vercel records a skipped build as a `CANCELED` deployment in front of
+the one that serves; `deploy:status` applies the same rule, so a
+docs-only push reads as "up to date (<serving sha>; … skipped)" rather
+than "BEHIND" or a failure, while a CANCELED build whose commit did
+change the web's inputs is still reported as the failure it is.
 
 `vercel deploy --prod --yes` from a linked checkout still works and is the
 fallback if the integration is ever disconnected; it produces the same kind
