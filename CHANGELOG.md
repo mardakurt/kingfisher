@@ -43,6 +43,27 @@ Phase numbers below this header will be moved into a dated `## <version>` sectio
   noun below 1536 px and the Training queue counts, which the rail also
   shows, appear in the header only from 1536 px. The "My games" facts on
   Databases no longer truncate "not tracked" to a syllable. (Phase 73)
+- **Route actions fold to fit.** Every workspace header now keeps its
+  title readable: a route's buttons shorten their labels first and then
+  fold, from the least important, into a "⋯" menu — one rule in the frame,
+  in place of the per-route label tricks. (Phase 73)
+- **Copy PGN from this move.** In the Export menu, a move's right-click
+  menu and the command palette: the game from the current move on, as its
+  own PGN with a `[FEN]` tag, every variation and comment below it kept.
+  (Phase 73)
+- **Score by depth.** The engine panel's footer draws the top line's score
+  at every depth of the running search, with a hollow point where the top
+  move changed, and the readings in its tooltip. (Phase 73)
+- **"Known position?" in Set up.** While you place pieces the dialog says
+  where that exact position already is — your games, chapters, repertoire,
+  training — and how many games the chosen reference source has for it.
+  (Phase 73)
+- **Train these gaps.** The repertoire's coverage panel now offers the
+  built-in Starter pack as a source, and one click enrols every gap as a
+  card in a set named for the repertoire and opens it in Training; a
+  position with several undecided replies is one card that names them
+  all, and a Black repertoire's cards are Black to move (they were written
+  as White's). (Phase 73)
 - **A tab left open across an update says what to do.** When another tab
   upgraded the local database, this one used to fail every save with the
   browser's "connection is closing"; it now says Kingfisher was updated in

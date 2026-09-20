@@ -29,6 +29,13 @@ import type { TrainingItemRecord, TrainingMode } from '@/persistence/domain';
  * player supplies when they create the item is what goes into `solutionUci`.
  * The generator leaves that empty so the caller can decide what to teach.
  */
+export interface GapMove {
+  readonly uci: string;
+  readonly san: string;
+  readonly games: number;
+  readonly share: number;
+}
+
 export interface TrainingSetPrompt {
   /** Canonical key the prompt is keyed on. */
   readonly positionKey: string;
@@ -36,13 +43,17 @@ export interface TrainingSetPrompt {
   readonly fen: Fen;
   /** The side to move here. */
   readonly sideToMove: 'w' | 'b';
-  /** The opponent move that the repertoire has not decided. */
-  readonly opponentMove: {
-    readonly uci: string;
-    readonly san: string;
-    readonly games: number;
-    readonly share: number;
-  };
+  /** The most played move the repertoire has not decided here. */
+  readonly opponentMove: GapMove;
+  /**
+   * Every move the repertoire has not decided here, most played first.
+   *
+   * A position is one prompt however many replies it has; a card that named
+   * only the first reply hid the other two the source reported at the same
+   * position, and the player who answered d4 was not told Nf3 and c4 were
+   * gaps too.
+   */
+  readonly opponentMoves: readonly GapMove[];
   /**
    * Source the prompt was derived from. Surfaced so the player can see which
    * population the gap came from.
@@ -60,10 +71,14 @@ export interface TrainingSetPrompt {
  * for a tournament or revising after a session.
  */
 export function defaultPrompt(prompt: TrainingSetPrompt): string {
-  const share = prompt.opponentMove.share
-    ? `${(prompt.opponentMove.share * 100).toFixed(1)}%`
-    : '—';
-  return `Find your response to ${prompt.opponentMove.san} (${prompt.opponentMove.games} games in ${prompt.source.name}, ${share}).`;
+  const describe = (move: GapMove) =>
+    `${move.san} (${move.games.toLocaleString()} games, ${move.share ? `${(move.share * 100).toFixed(1)}%` : '—'})`;
+  const moves = prompt.opponentMoves.length > 0 ? prompt.opponentMoves : [prompt.opponentMove];
+  if (moves.length === 1) {
+    return `Find your response to ${describe(moves[0]!)} in ${prompt.source.name}.`;
+  }
+  const list = moves.map(describe);
+  return `Find your responses to ${list.slice(0, -1).join(', ')} and ${list.at(-1)} in ${prompt.source.name}.`;
 }
 
 /**
@@ -78,38 +93,61 @@ export function buildTrainingPrompts(
   reports: readonly CoverageReport[],
   sourceName: string,
 ): readonly TrainingSetPrompt[] {
-  const prompts: TrainingSetPrompt[] = [];
-  for (const report of reports) {
-    for (const gap of report.gaps) {
-      prompts.push({
-        positionKey: report.positionKey,
-        fen: positionKeyForTraining(report.positionKey) as Fen,
-        sideToMove: 'w',
-        opponentMove: {
-          uci: gap.uci,
-          san: gap.san,
-          games: gap.games,
-          share: gap.share,
-        },
-        source: {
-          id: report.sourceId,
-          name: report.sourceName || sourceName,
-        },
-      });
-    }
-  }
   /*
-    Transposition deduplication: two move orders that reach the same canonical
-    position are one prompt. The first one survives, because it is the one
-    that was the strongest evidence.
+    One prompt per canonical position, carrying every gap reported there.
+    Two move orders that reach the same position are one prompt (the first
+    report's source names it), and a position with three undecided replies
+    is one card that names all three rather than three cards or one that
+    names the first.
   */
-  const seen = new Set<string>();
-  return prompts.filter((prompt) => {
-    const canonical = positionKeyForTraining(prompt.fen);
-    if (seen.has(canonical)) return false;
-    seen.add(canonical);
-    return true;
+  const byPosition = new Map<string, { prompt: TrainingSetPrompt; moves: GapMove[] }>();
+  for (const report of reports) {
+    if (report.gaps.length === 0) continue;
+    const canonical = positionKeyForTraining(report.positionKey);
+    const moves = report.gaps.map((gap) => ({
+      uci: gap.uci,
+      san: gap.san,
+      games: gap.games,
+      share: gap.share,
+    }));
+    const held = byPosition.get(canonical);
+    if (held) {
+      for (const move of moves) {
+        if (!held.moves.some((known) => known.uci === move.uci)) held.moves.push(move);
+      }
+      continue;
+    }
+    byPosition.set(canonical, {
+      moves,
+      prompt: {
+        positionKey: canonical,
+        fen: fenForKey(canonical),
+        sideToMove: sideToMoveOf(canonical),
+        opponentMove: moves[0]!,
+        opponentMoves: [],
+        source: { id: report.sourceId, name: report.sourceName || sourceName },
+      },
+    });
+  }
+  return [...byPosition.values()].map(({ prompt, moves }) => {
+    const ordered = [...moves].sort((a, b) => b.games - a.games);
+    return { ...prompt, opponentMove: ordered[0]!, opponentMoves: ordered };
   });
+}
+
+/**
+ * A full FEN for a canonical key: the four identity fields plus the
+ * counters a FEN needs. The key has no counters by design (ADR 0009); a
+ * training item stores a position, which does.
+ */
+function fenForKey(key: string): Fen {
+  const fields = key.trim().split(/\s+/);
+  return (fields.length >= 6 ? fields.join(' ') : `${fields.slice(0, 4).join(' ')} 0 1`) as Fen;
+}
+
+/** Whose move it is at a key — the second field, never assumed. */
+function sideToMoveOf(key: string): 'w' | 'b' {
+  return key.split(/\s+/)[1] === 'b' ? 'b' : 'w';
 }
 
 /** Canonical key used to dedupe transposed prompts. */
@@ -146,8 +184,14 @@ export function draftTrainingItem(prompt: TrainingSetPrompt): DraftTrainingItem 
     positionKey: prompt.positionKey,
     fen: prompt.fen,
     sideToMove: prompt.sideToMove,
-    tags: [`source:${prompt.source.id}`, 'data-generated', `opponent:${prompt.opponentMove.uci}`],
-    explanation: `Generated from ${prompt.source.name} (${prompt.opponentMove.games} games). The repertoire does not currently have a decision for this position.`,
+    tags: [
+      `source:${prompt.source.id}`,
+      'data-generated',
+      ...(prompt.opponentMoves.length > 0 ? prompt.opponentMoves : [prompt.opponentMove]).map(
+        (move) => `opponent:${move.uci}`,
+      ),
+    ],
+    explanation: `Generated from ${prompt.source.name} (${prompt.opponentMove.games} games for the most played reply). The repertoire does not currently have a decision for this position.`,
   };
 }
 

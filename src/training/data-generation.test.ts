@@ -164,14 +164,45 @@ describe('data-driven training generation', () => {
       },
     ]);
     // The coverage report is at the startpos; both gaps are at the same
-    // canonical position, so dedup keeps only one. That is the correct
-    // transposition-aware behaviour.
+    // canonical position, so dedup keeps one prompt — and that prompt names
+    // both replies, most played first, rather than hiding the second.
     const prompts = buildTrainingPrompts(reports, 'Elite OTB');
     expect(prompts).toHaveLength(1);
+    expect(prompts[0]!.opponentMoves.map((entry) => entry.san)).toEqual(['d4', 'Nf3']);
+    expect(defaultPrompt(prompts[0]!)).toBe(
+      'Find your responses to d4 (600 games, 40.0%) and Nf3 (500 games, 33.3%) in Elite OTB.',
+    );
+    expect(draftTrainingItem(prompts[0]!).tags).toEqual(
+      expect.arrayContaining(['opponent:d2d4', 'opponent:g1f3']),
+    );
     // Sanity: the positionKey helper is stable for a real FEN.
     expect(positionKeyForTraining('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -')).toBe(
       'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -',
     );
+  });
+
+  it('reads the side to move from the position instead of assuming White', () => {
+    // A Black repertoire's gap: White has just played, Black is to move.
+    const black: RepertoirePositionRecord = {
+      ...position([]),
+      positionKey: 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq -',
+      fen: asFen('rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1'),
+      sideToMove: 'b',
+    };
+    const reports = computeCoverage(black, [
+      {
+        id: 'elite',
+        name: 'Elite OTB',
+        result: {
+          ...result([{ uci: 'c7c5', san: 'c5', games: 700, total: 1500 }]),
+          fen: black.fen,
+        },
+      },
+    ]);
+    const [prompt] = buildTrainingPrompts(reports, 'Elite OTB');
+    expect(prompt?.sideToMove).toBe('b');
+    // A full FEN, so the training board can be built from it as stored.
+    expect(prompt?.fen).toBe('rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1');
   });
 
   it('reuses draftTrainingItem on a single prompt', () => {

@@ -16,7 +16,8 @@
  */
 
 import { useEffect, useMemo, useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/Button';
 import { useDatabaseProviders } from '@/database/use-database-providers';
@@ -28,9 +29,15 @@ import { isActionable, topGaps, computeCoverage } from '@/repertoire/coverage';
 import type { CoverageGap, CoverageReport } from '@/repertoire/coverage';
 import { draftTrainingSet } from '@/training/data-generation';
 import { useUi } from '@/stores/ui-store';
+import { invalidateTraining } from '@/features/persistence/queries';
+import { reviewKeys } from '@/features/review/queries';
+import { asFen, type Uci } from '@/chess/types';
 import { plural } from '@/lib/plural';
 
 const SOURCES = [
+  // The bundled pack first: it is on every machine, so a repertoire can be
+  // checked against a real population before any optional pack is installed.
+  { id: 'kingfisher-starter', label: 'Starter' },
   { id: 'kingfisher-elite-otb', label: 'Elite OTB' },
   { id: 'kingfisher-recent-theory', label: 'Recent Theory (2y)' },
   { id: 'kingfisher-recent-theory-narrow', label: 'Recent Theory (6m)' },
@@ -39,13 +46,21 @@ const SOURCES = [
 
 type SourceId = (typeof SOURCES)[number]['id'];
 
+export interface CoverageRepertoire {
+  readonly id: string;
+  readonly title: string;
+}
+
 export function ReferenceCoveragePanel({
   positions,
+  repertoire,
 }: {
   readonly positions: readonly RepertoirePositionRecord[];
+  /** Names the training set the gaps are drilled from. */
+  readonly repertoire?: CoverageRepertoire;
 }) {
   const providers = useDatabaseProviders();
-  const [sourceId, setSourceId] = useState<SourceId>('kingfisher-elite-otb');
+  const [sourceId, setSourceId] = useState<SourceId>('kingfisher-starter');
   const provider = useMemo(
     () => providers.find((entry) => entry.id === sourceId) ?? null,
     [providers, sourceId],
@@ -84,9 +99,14 @@ export function ReferenceCoveragePanel({
           This reference is not installed.
         </p>
       ) : reports.pending ? (
-        <CoverageProgress completed={reports.completed} total={reports.total} data={reports.data} />
+        <CoverageProgress
+          completed={reports.completed}
+          total={reports.total}
+          data={reports.data}
+          repertoire={repertoire}
+        />
       ) : (
-        <ReferenceCoverageTable reports={reports.data} />
+        <ReferenceCoverageTable reports={reports.data} repertoire={repertoire} />
       )}
     </section>
   );
@@ -96,10 +116,12 @@ function CoverageProgress({
   completed,
   total,
   data,
+  repertoire,
 }: {
   readonly completed: number;
   readonly total: number;
   readonly data: readonly CoverageReport[];
+  readonly repertoire?: CoverageRepertoire;
 }) {
   const share = total > 0 ? Math.min(1, completed / total) : 0;
   return (
@@ -119,7 +141,7 @@ function CoverageProgress({
         </div>
       </div>
       {data.length > 0 ? (
-        <ReferenceCoverageTable reports={data} />
+        <ReferenceCoverageTable reports={data} repertoire={repertoire} />
       ) : (
         <p className="border-t border-line-subtle px-3 py-2 text-[10.5px] text-tertiary">
           Starting…
@@ -129,7 +151,13 @@ function CoverageProgress({
   );
 }
 
-function ReferenceCoverageTable({ reports }: { readonly reports: readonly CoverageReport[] }) {
+function ReferenceCoverageTable({
+  reports,
+  repertoire,
+}: {
+  readonly reports: readonly CoverageReport[];
+  readonly repertoire?: CoverageRepertoire;
+}) {
   const actionable = reports.filter(isActionable);
   const flatGaps: { gap: CoverageGap; fen: string }[] = [];
   for (const report of actionable) {
@@ -139,36 +167,63 @@ function ReferenceCoverageTable({ reports }: { readonly reports: readonly Covera
   }
   flatGaps.sort((a, b) => b.gap.games - a.gap.games);
   const notify = useUi((state) => state.notify);
+  const client = useQueryClient();
+  const router = useRouter();
+  /*
+    One click from the gap list to working through it. The items go through
+    the same enrolment the repertoire review uses, so a second click does not
+    duplicate a position already enrolled; they are then the membership of one
+    static set named for this repertoire, replaced rather than added to, and
+    the training workspace opens on it. The set holds membership only — the
+    cards and their schedules belong to the queue, as ADR 0011 has it.
+  */
   const createTraining = useMutation({
     mutationFn: async () => {
       const drafts = draftTrainingSet(reports, reports[0]?.sourceName ?? 'Reference');
-      if (drafts.length === 0) return { created: 0 };
+      if (drafts.length === 0) return null;
       const repositories = await getRepositories();
-      for (const draft of drafts) {
-        await repositories.training.create({
+      const items = await repositories.training.enrolRepertoire(
+        drafts.map((draft) => ({
           mode: draft.mode,
           positionKey: draft.positionKey,
-          fen: draft.fen,
+          fen: asFen(draft.fen),
           sideToMove: draft.sideToMove,
           prompt: draft.prompt,
-          solutionUci: [],
+          solutionUci: [] as Uci[],
           solutionSan: [],
           candidatesUci: [],
           plans: [],
           tags: draft.tags,
           explanation: draft.explanation,
-        });
-      }
-      return { created: drafts.length };
+          ...(repertoire
+            ? {
+                source: { kind: 'repertoire' as const, id: repertoire.id, label: repertoire.title },
+              }
+            : {}),
+        })),
+      );
+      const name = `${repertoire?.title ?? 'Repertoire'} — gaps`;
+      const existing = (await repositories.trainingSets.list()).find(
+        (set) => set.name === name && set.kind === 'static',
+      );
+      const ids = items.map((item) => item.id);
+      const set = existing
+        ? await repositories.trainingSets.replaceItems(existing.id, existing.revision, ids)
+        : await repositories.trainingSets.create({ name, kind: 'static', itemIds: ids });
+      invalidateTraining(client);
+      await client.invalidateQueries({ queryKey: reviewKeys.sets });
+      return { set, count: ids.length };
     },
-    onSuccess: ({ created }) => {
+    onSuccess: (result) => {
+      if (!result) {
+        notify({ tone: 'info', message: 'Nothing to train here yet.' });
+        return;
+      }
       notify({
         tone: 'success',
-        message:
-          created > 0
-            ? `Created ${created} training item${created === 1 ? '' : 's'}. Add a repertoire response for each.`
-            : 'Nothing to train here yet.',
+        message: `${plural(result.count, 'gap')} in the set "${result.set.name}". Decide a move for each and add it to the repertoire.`,
       });
+      router.push(`/training?set=${encodeURIComponent(result.set.id)}&scope=all`);
     },
     onError: (error) => {
       notify({
@@ -213,7 +268,7 @@ function ReferenceCoverageTable({ reports }: { readonly reports: readonly Covera
           disabled={createTraining.isPending}
           onClick={() => createTraining.mutate()}
         >
-          {createTraining.isPending ? 'Creating…' : 'Create training set'}
+          {createTraining.isPending ? 'Preparing…' : 'Train these gaps'}
         </Button>
       </div>
     </div>
