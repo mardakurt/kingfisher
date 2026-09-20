@@ -284,3 +284,27 @@ was recovered from its published ZIP (`gh release download`, hash against
 `SHA256SUMS` — note that file carries a size column `shasum -c` does not
 read; compare the digest directly). `~/Library/Caches/kingfisher/` would
 survive; nothing was moved there this time.
+
+## 7. The stale manifests on v1.2.2–v1.2.5, corrected (2026-09-20, late)
+
+Phase 73 found that `kingfisher-release-manifest.json` uploaded with
+v1.2.2, v1.2.3, v1.2.4 and v1.2.5 was the file generated for 1.2.1, and
+left the four as they were under the rule against replacing the bytes of
+a published asset, the correction being the owner's call. The owner made
+it. The replacement was done as an exception to that rule, and only for
+this file: it is a metadata file for people, nothing reads it (Sparkle
+reads `appcast.xml`, `desktop:public:verify` reads the descriptor), and
+it is not listed in any release's `SHA256SUMS`, so no published digest
+changed.
+
+Each corrected manifest was built from that release's own public bytes,
+not from anything on this machine: the DMG was downloaded from the
+release and hashed (every digest and size matched the release's
+`SHA256SUMS` — `ab8fa1a6…`/172,411,147 · `63204418…`/172,413,409 ·
+`a66337788…`/172,497,329 · `8e121767…`/172,496,902), `publishedAt` was
+read from `gh release view`, and the shape is the one
+`scripts/desktop-mac-publish.mjs` writes since `31f7a04` (same keys as
+the 1.2.6 manifest). Uploaded with `gh release upload --clobber`, then
+read back from the public download URL: each now names its own version
+and its own DMG digest. v1.2.6, whose manifest was correct, was not
+touched (still 6 assets). No other asset on any release was modified.

@@ -270,7 +270,8 @@ descriptor — so no update and no verification was affected. The script
 now derives it from the files being published every time (`31f7a04`). The
 four published assets were left as they are under the rule against
 replacing the bytes of a published asset; whether to correct a wrong
-metadata file on those releases is the owner's call.
+metadata file on those releases is the owner's call. (Corrected on 2026-09-20 at the owner's
+decision — `docs/reports/phase-74-handover.md` §7.)
 
 ## 7. Remaining concerns
 
