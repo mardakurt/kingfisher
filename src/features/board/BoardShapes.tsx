@@ -14,10 +14,9 @@
  */
 
 import type { Shape } from '@/chess/annotations';
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useId, useMemo, useRef } from 'react';
 
 import type { Color } from '@/chess/types';
-import { formatScore } from '@/chess/evaluation';
 
 import { ENGINE_ARROW_STYLES, type EngineArrow, type EngineArrowIdentity } from './engine-arrows';
 import { squareOffset } from './layout';
@@ -69,7 +68,6 @@ const ENGINE_ARROW = {
   /** … and the tip stops this far before the destination's, off the piece. */
   endInset: 0.2,
   opacity: 0.82,
-  hoverOpacity: 1,
   /** The dashed core drawn down a shared (agreed) arrow, and its dashes. */
   coreWidth: 0.045,
   coreDash: '0.2 0.14',
@@ -189,24 +187,6 @@ function arrowGeometry(arrow: ResolvedArrow) {
   };
 }
 
-/** How close, in squares, the pointer must be to an arrow's shaft to hover it. */
-const HOVER_DISTANCE = 0.17;
-
-/** Distance from a point to a segment, all in board units. */
-function distanceToSegment(px: number, py: number, arrow: ResolvedArrow): number {
-  const dx = arrow.toX - arrow.fromX;
-  const dy = arrow.toY - arrow.fromY;
-  const lengthSquared = dx * dx + dy * dy;
-  const t =
-    lengthSquared === 0
-      ? 0
-      : Math.max(
-          0,
-          Math.min(1, ((px - arrow.fromX) * dx + (py - arrow.fromY) * dy) / lengthSquared),
-        );
-  return Math.hypot(px - (arrow.fromX + t * dx), py - (arrow.fromY + t * dy));
-}
-
 export function BoardShapes({
   shapes,
   engineArrows = [],
@@ -220,49 +200,7 @@ export function BoardShapes({
     () => resolveEngineArrows(engineArrows, orientation),
     [engineArrows, orientation],
   );
-  const [hoveredArrowId, setHoveredArrowId] = useState<number | null>(null);
-  const hovered =
-    !movingPiece && hoveredArrowId !== null ? (resolvedEngine[hoveredArrowId] ?? null) : null;
   const engineSvg = useRef<SVGSVGElement | null>(null);
-
-  /*
-    Hover is computed from where the pointer is, not from what it is over.
-
-    Nothing in the engine-arrow layer may receive pointer events: the sheet
-    is a rectangle over every square, and a hit stroke along an arrow's shaft
-    sits exactly on the square a person clicks to play the engine's own
-    suggestion. Phase 43 made the hit strokes hoverable and the board stopped
-    taking clicks under them. So the layer is inert, and the board container
-    reports pointer movement; the nearest shaft within a sixth of a square
-    is the hovered arrow.
-  */
-  useEffect(() => {
-    const container = engineSvg.current?.parentElement;
-    if (!container || resolvedEngine.length === 0) return undefined;
-    const onMove = (event: PointerEvent) => {
-      const rect = container.getBoundingClientRect();
-      if (rect.width === 0 || rect.height === 0) return;
-      const px = ((event.clientX - rect.left) / rect.width) * 8;
-      const py = ((event.clientY - rect.top) / rect.height) * 8;
-      let best: number | null = null;
-      let bestDistance = HOVER_DISTANCE;
-      resolvedEngine.forEach((arrow, index) => {
-        const distance = distanceToSegment(px, py, arrow);
-        if (distance < bestDistance) {
-          bestDistance = distance;
-          best = index;
-        }
-      });
-      setHoveredArrowId((current) => (current === best ? current : best));
-    };
-    const onLeave = () => setHoveredArrowId(null);
-    container.addEventListener('pointermove', onMove);
-    container.addEventListener('pointerleave', onLeave);
-    return () => {
-      container.removeEventListener('pointermove', onMove);
-      container.removeEventListener('pointerleave', onLeave);
-    };
-  }, [resolvedEngine]);
 
   return (
     <>
@@ -281,14 +219,13 @@ export function BoardShapes({
           {resolvedEngine.map((arrow, index) => {
             const geometry = arrowGeometry(arrow);
             if (!geometry) return null;
-            const isHovered = hovered === arrow;
             const shared = arrow.arrows.length > 1;
             const b = ENGINE_ARROW_STYLES['engine-b'];
             const dashed = !shared && arrow.identity === 'engine-b';
             return (
               <g
                 key={`e${index}-${arrow.identity}`}
-                opacity={isHovered ? ENGINE_ARROW.hoverOpacity : variationOpacity(arrow.rank)}
+                opacity={variationOpacity(arrow.rank)}
                 data-engine-arrow-shared={shared ? 'true' : undefined}
                 data-engine-arrow-rank={arrow.rank}
                 pointerEvents="none"
@@ -387,12 +324,6 @@ export function BoardShapes({
           })}
         </svg>
       ) : null}
-      {/*
-       * Hover tooltip, anchored at the arrow's head. Lives outside the SVG so
-       * HTML can render the move/score/depth lines without inheriting stroke
-       * conventions; pointer-events: none so it never takes the cursor.
-       */}
-      {hovered ? <EngineArrowTooltip arrow={hovered} /> : null}
       {all.length === 0 ? null : (
         <svg
           viewBox="0 0 8 8"
@@ -470,59 +401,5 @@ export function BoardShapes({
         </svg>
       )}
     </>
-  );
-}
-
-/**
- * Floating tooltip for a hovered engine arrow, beside the arrow's head.
- *
- * One line per engine: name, move, evaluation, depth — and nothing more. A
- * "PV wall" is the failure mode here; a player who wants the line has the
- * engine panel. It sits on the side of the head that has room, so it never
- * leaves the board, and never over the destination square itself.
- *
- * `aria-live="polite"` is intentional: when a player sweeps the cursor
- * across two engines' arrows, a screen reader announces the change without
- * interrupting whatever the user is currently saying.
- */
-function EngineArrowTooltip({ arrow }: { readonly arrow: ResolvedArrow }) {
-  // Board fractions of the head; the tooltip hangs off the head's far side.
-  const x = arrow.toX / 8;
-  const y = arrow.toY / 8;
-  const right = x > 0.62;
-  const below = y < 0.25;
-  const style = {
-    left: `${(right ? x - 0.07 : x + 0.07) * 100}%`,
-    top: `${(below ? y + 0.07 : y - 0.07) * 100}%`,
-    transform: `translate(${right ? '-100%' : '0'}, ${below ? '0' : '-100%'})`,
-  };
-  return (
-    <div
-      role="status"
-      aria-live="polite"
-      data-engine-arrow-tooltip
-      data-engine-name={arrow.arrows.map((a) => a.engineName).join(' · ')}
-      style={style}
-      className="pointer-events-none absolute z-30 whitespace-nowrap rounded-md bg-overlay/95 px-2 py-1 text-[10.5px] leading-snug text-primary shadow"
-    >
-      {arrow.arrows.map((engineArrow) => {
-        const move = engineArrow.san ?? `${engineArrow.from}${engineArrow.to}`;
-        const scoreText = engineArrow.score ? formatScore(engineArrow.score) : null;
-        const depthText = engineArrow.depth !== undefined ? `d${engineArrow.depth}` : null;
-        return (
-          <div key={engineArrow.identity} className="flex items-center gap-1.5 tabular">
-            <span
-              className="inline-block h-1.5 w-1.5 shrink-0 rounded-full"
-              style={{ background: ENGINE_ARROW_STYLES[engineArrow.identity].color }}
-              aria-hidden
-            />
-            <span className="font-semibold">{engineArrow.engineName}</span>
-            <span className="font-medium">{move}</span>
-            {scoreText ? <span>{scoreText}</span> : null}
-            {depthText ? <span className="text-tertiary">{depthText}</span> : null}
-          </div>
-        );
-      })}
-    </div>
   );
 }

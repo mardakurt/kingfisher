@@ -141,8 +141,9 @@ test('opening books are listed, and the engine book is refused out loud', async 
 /*
   The board is playable while an engine is analysing.
 
-  Phase 43 gave the engine arrows a hover tooltip and, to make the hit lines
-  hoverable, removed `pointer-events: none` from the SVG that holds them. That
+  Phase 43 gave the engine arrows a hover tooltip (removed in Phase 73) and,
+  to make the hit lines hoverable, removed `pointer-events: none` from the
+  SVG that holds them. That
   SVG is a rectangle over every square, so every click and drag on the board
   landed on it instead: with an arrow drawn, no move could be made — click or
   drag — until the engine was stopped. Found by the seeded desktop walk, where
@@ -182,9 +183,10 @@ test('the board can be played while an engine arrow is drawn', async ({ page }) 
   // guard's contract (Phase 30): the old arrow cannot survive a FEN change.
   // Since Phase 52 a running engine then follows the board, so the search
   // restarts on the new position without anyone pressing anything — the
-  // button still reads Stop — and the new arrow must be hoverable: the
-  // tooltip appears with the pointer on the shaft, even though nothing in
-  // the arrow layer takes pointer events any more.
+  // button still reads Stop. The arrow is an arrow and nothing else: Phase 43
+  // hung a tooltip off its shaft on hover, and the owner asked for it gone
+  // (Phase 73) — text over the board is not wanted. Hovering the shaft must
+  // draw nothing; the move, score and depth are the engine panel's.
   await expect(page.getByRole('button', { name: 'Stop analysis (E)' })).toBeVisible();
   const hit = page.locator('[data-engine-arrow-hit]').first();
   // Arrows are drawn for the board's position only (useEngineArrows drops a
@@ -193,35 +195,21 @@ test('the board can be played while an engine arrow is drawn', async ({ page }) 
   const grid = page.getByRole('grid', { name: 'Chessboard' });
   const gridBox = await grid.boundingBox();
   expect(gridBox).toBeTruthy();
-  /*
-    The arrow follows the search: the first best move at depth 1 is often
-    not the one a few plies later, so the squares read here can be stale by
-    the time the pointer arrives — and a pointer that is not on the current
-    shaft correctly gets no tooltip. Read, move and check together, and
-    retry until the three describe the same arrow.
-  */
-  await expect(async () => {
-    const fromSquare = await hit.getAttribute('data-engine-arrow-from');
-    const toSquare = await hit.getAttribute('data-engine-arrow-to');
-    const from = await page
-      .getByRole('gridcell', { name: new RegExp(`^${fromSquare},`) })
-      .boundingBox();
-    const to = await page
-      .getByRole('gridcell', { name: new RegExp(`^${toSquare},`) })
-      .boundingBox();
-    expect(from && to).toBeTruthy();
-    // Step off first so the move to the midpoint is a pointermove of its own.
-    await page.mouse.move(gridBox!.x - 40, gridBox!.y - 40);
-    // The midpoint of the shaft, in page coordinates.
-    await page.mouse.move(
-      (from!.x + from!.width / 2 + to!.x + to!.width / 2) / 2,
-      (from!.y + from!.height / 2 + to!.y + to!.height / 2) / 2,
-    );
-    await expect(page.locator('[data-engine-arrow-tooltip]')).toBeVisible({ timeout: 1_000 });
-  }).toPass({ timeout: 20_000 });
-  // Away from any shaft, the tooltip goes.
+  const fromSquare = await hit.getAttribute('data-engine-arrow-from');
+  const toSquare = await hit.getAttribute('data-engine-arrow-to');
+  const from = await page
+    .getByRole('gridcell', { name: new RegExp(`^${fromSquare},`) })
+    .boundingBox();
+  const to = await page.getByRole('gridcell', { name: new RegExp(`^${toSquare},`) }).boundingBox();
+  expect(from && to).toBeTruthy();
   await page.mouse.move(gridBox!.x - 40, gridBox!.y - 40);
+  await page.mouse.move(
+    (from!.x + from!.width / 2 + to!.x + to!.width / 2) / 2,
+    (from!.y + from!.height / 2 + to!.y + to!.height / 2) / 2,
+  );
+  await page.waitForTimeout(300);
   await expect(page.locator('[data-engine-arrow-tooltip]')).toHaveCount(0);
+  await expect(page.locator('[role="status"]', { hasText: /Stockfish|d\d+/ })).toHaveCount(0);
   const e7 = await page.getByRole('gridcell', { name: /^e7,/ }).boundingBox();
   const e5 = await page.getByRole('gridcell', { name: /^e5,/ }).boundingBox();
   expect(e7 && e5).toBeTruthy();

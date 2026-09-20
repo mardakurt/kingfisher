@@ -13,6 +13,9 @@ Phase numbers below this header will be moved into a dated `## <version>` sectio
   — Windows-only projects — as rows with a switch turned on, above a note
   saying they are not offered here. The note now carries them and the rows
   are the engines the machine can install or has installed. (Phase 73)
+- **No text on the board when the pointer crosses an engine arrow.** The
+  hover tooltip 1.1.x added to the best-move arrow is gone; the move, score
+  and depth are in the engine panel and the legend. (Phase 73)
 - **More to set under Settings → Engine → Analysis settings.** Threads
   and hash are chosen directly (they were read-only, "set by the preset");
   the search limit is a control — until stopped, a depth, a time or a node

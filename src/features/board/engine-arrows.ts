@@ -42,9 +42,9 @@ export interface EngineArrow {
    */
   readonly agreedWith?: EngineArrowIdentity;
   /**
-   * The move as written in standard algebraic notation, for the hover
-   * tooltip. The renderer still draws the arrow by UCI squares; this is
-   * what the user reads.
+   * The move as written in standard algebraic notation, for the legend and
+   * for tests. The renderer draws the arrow by UCI squares and writes no
+   * text on the board.
    */
   readonly san?: San;
   /** Evaluation the engine reported at the head of the line. */
