@@ -128,7 +128,7 @@ export function OpeningFilesWorkspace() {
       title="Opening files"
       subtitle={file ? file.name : 'One subject, and everything already stored about it.'}
       icon={<Opening />}
-      actions={<Button onClick={() => setCreating(true)}>New file</Button>}
+      routeActions={[{ id: 'create', label: 'New file', onClick: () => setCreating(true) }]}
       rail={{ label: 'Files', width: 250, content: railContent }}
       board={{ mode: 'interactive', showEvaluationArtifacts: true }}
       belowBoard={

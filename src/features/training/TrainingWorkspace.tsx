@@ -279,17 +279,23 @@ export function TrainingWorkspace() {
       workspace="training"
       title="Training"
       icon={<Target />}
-      actions={
-        <>
-          <QueueSummary counts={counts} />
-          <Button onClick={() => setSetsOpen(true)}>
-            {selectedSet ? selectedSet.name : 'Training sets'}
-          </Button>
-          <Button variant="accent" icon={<Plus />} onClick={() => setCaptureOpen(true)}>
-            Create position
-          </Button>
-        </>
-      }
+      routeActions={[
+        {
+          id: 'create',
+          label: 'Create position',
+          shortLabel: 'Create',
+          icon: <Plus />,
+          variant: 'accent',
+          onClick: () => setCaptureOpen(true),
+        },
+        {
+          id: 'sets',
+          label: selectedSet ? selectedSet.name : 'Training sets',
+          shortLabel: selectedSet ? undefined : 'Sets',
+          onClick: () => setSetsOpen(true),
+        },
+      ]}
+      actions={<QueueSummary counts={counts} />}
       rail={{ label: 'Queue', width: 260, content: railContent }}
       /*
         The answer board is the route's own: it records an attempt rather than
@@ -522,13 +528,12 @@ function TrainingAuthoringEditor({
 
 function QueueSummary({ counts }: { readonly counts: ReturnType<typeof countQueue> }) {
   /*
-    The header's action area never shrinks, so this summary was what pushed
-    the route's title out: at 1280 px with the sidebar open "Training" was two
-    pixels wide. The four counts are also the Queue rail's headings, so below
-    2xl the header keeps its name and the rail keeps the numbers.
+    Not a foldable action, so it sits in the header's fixed content; the
+    frame folds the route's buttons around it and keeps the title's floor,
+    which is what stopped "Training" being two pixels wide at 1280 px.
   */
   return (
-    <div className="hidden items-center gap-3 text-[10.5px] text-tertiary tabular 2xl:flex">
+    <div className="hidden items-center gap-3 text-[10.5px] text-tertiary tabular sm:flex">
       <span>Due {counts.due}</span>
       <span>New {counts.new}</span>
       <span>Learning {counts.learning}</span>

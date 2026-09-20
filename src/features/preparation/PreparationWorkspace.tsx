@@ -510,26 +510,32 @@ export function PreparationWorkspace({ initialPlayer = '' }: { readonly initialP
               ))}
             </select>
           ) : null}
-          {submitted ? (
-            <Button
-              title={
-                isFavorite ? 'Remove from favourites' : 'Keep this opponent one keystroke away'
-              }
-              onClick={() => void toggleFavorite()}
-            >
-              {isFavorite ? 'Favourited' : 'Favourite'}
-            </Button>
-          ) : null}
-          {profile.data?.aliases.length ? (
-            <Button
-              title="Report on your own games, using the aliases in Settings → Profile"
-              onClick={() => search(profile.data?.aliases[0] ?? '', null)}
-            >
-              My games
-            </Button>
-          ) : null}
         </>
       }
+      routeActions={[
+        ...(submitted
+          ? [
+              {
+                id: 'favourite',
+                label: isFavorite ? 'Favourited' : 'Favourite',
+                title: isFavorite
+                  ? 'Remove from favourites'
+                  : 'Keep this opponent one keystroke away',
+                onClick: () => void toggleFavorite(),
+              },
+            ]
+          : []),
+        ...(profile.data?.aliases.length
+          ? [
+              {
+                id: 'mine',
+                label: 'My games',
+                title: 'Report on your own games, using the aliases in Settings → Profile',
+                onClick: () => search(profile.data?.aliases[0] ?? '', null),
+              },
+            ]
+          : []),
+      ]}
       banner={
         <>
           <SessionBar

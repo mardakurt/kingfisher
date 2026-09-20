@@ -266,48 +266,48 @@ export function RepertoireWorkspace() {
           : 'What you intend to play, stored by position.'
       }
       icon={<RepertoireIcon />}
-      actions={
-        <>
-          {repertoire.data ? (
-            /*
-              The verb the empty state names, where the user can see it. The
-              repertoire told people to "use Add to repertoire" and offered
-              it only inside the Position menu on another route; if the
-              maintainer could not find it, nobody could.
-            */
-            <Button
-              variant="accent"
-              icon={<Plus />}
-              onClick={() => setAddToRepertoireOpen(true)}
-              data-add-to-repertoire
-            >
-              Add to repertoire
-            </Button>
-          ) : null}
-          {/*
-            Four route actions beside the three every workspace has left the
-            title 46 px wide on a 1440 px display with the sidebar open —
-            "Rep…". Below 2xl the two secondary verbs drop the noun, which the
-            route's own icon and the sidebar already supply.
-          */}
-          {repertoire.data ? (
-            <Button onClick={() => setReviewOpen(true)} aria-label="Review repertoire">
-              <span className="hidden 2xl:inline">Review repertoire</span>
-              <span className="2xl:hidden">Review</span>
-            </Button>
-          ) : null}
-          {repertoire.data ? (
-            <Button icon={<Export />} onClick={() => void exportPgn()}>
-              <span className="hidden sm:inline">Export PGN</span>
-              <span className="sm:hidden">PGN</span>
-            </Button>
-          ) : null}
-          <Button icon={<Plus />} onClick={() => setCreating(true)} aria-label="New repertoire">
-            <span className="hidden 2xl:inline">New repertoire</span>
-            <span className="2xl:hidden">New</span>
-          </Button>
-        </>
-      }
+      routeActions={[
+        /*
+          The verb the empty state names, where the user can see it. The
+          repertoire told people to "use Add to repertoire" and offered it
+          only inside the Position menu on another route; if the maintainer
+          could not find it, nobody could. Listed first, so the frame keeps it
+          in the row longest when the header folds.
+        */
+        ...(repertoire.data
+          ? [
+              {
+                id: 'add',
+                label: 'Add to repertoire',
+                shortLabel: 'Add',
+                icon: <Plus />,
+                variant: 'accent' as const,
+                onClick: () => setAddToRepertoireOpen(true),
+                dataAttribute: 'data-add-to-repertoire',
+              },
+              {
+                id: 'review',
+                label: 'Review repertoire',
+                shortLabel: 'Review',
+                onClick: () => setReviewOpen(true),
+              },
+              {
+                id: 'export',
+                label: 'Export PGN',
+                shortLabel: 'PGN',
+                icon: <Export />,
+                onClick: () => void exportPgn(),
+              },
+            ]
+          : []),
+        {
+          id: 'create',
+          label: 'New repertoire',
+          shortLabel: 'New',
+          icon: <Plus />,
+          onClick: () => setCreating(true),
+        },
+      ]}
       rail={{ label: 'Repertoire', width: 250, content: railContent }}
       empty={
         !repertoire.data ? (
@@ -370,7 +370,14 @@ export function RepertoireWorkspace() {
               )
             }
           />
-          <ReferenceCoveragePanel positions={positions} />
+          <ReferenceCoveragePanel
+            positions={positions}
+            repertoire={
+              repertoire.data
+                ? { id: repertoire.data.repertoire.id, title: repertoire.data.repertoire.title }
+                : undefined
+            }
+          />
           <div className="min-h-0 flex-1">
             <PositionEvidence
               position={current}

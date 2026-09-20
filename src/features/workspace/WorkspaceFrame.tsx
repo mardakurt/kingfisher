@@ -37,7 +37,15 @@
  * board through the analysis store, exactly as before.
  */
 
-import { Suspense, useEffect, useRef, type ReactNode } from 'react';
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 import { positionKey, START_FEN } from '@/chess/fen';
@@ -58,6 +66,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Button, IconButton } from '@/components/ui/Button';
 import { Menu } from '@/components/ui/Menu';
 import { MoveTreePanel } from '@/features/movetree/MoveTreePanel';
+import { HeaderActions, type RouteAction } from './HeaderActions';
 import { NavButton } from '@/features/shell/NavButton';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { cn } from '@/lib/cn';
@@ -109,7 +118,18 @@ export interface WorkspaceFrameProps {
    * its document header; every other route has a title and actions.
    */
   readonly toolbar?: ReactNode;
-  /** The route's own actions, right of the title. */
+  /**
+   * The route's own actions, right of the title, folded to fit.
+   *
+   * Listed in priority order: the first is kept in the row longest. When the
+   * header is too narrow for the title's floor, actions take their short
+   * labels first and then fold from the end into a "⋯" menu — the rule the
+   * frame applies for every route, so no route shortens its own labels at a
+   * breakpoint it guessed. Anything that is not a plain button (a segmented
+   * control, a status, a select) goes in `actions` and is never folded.
+   */
+  readonly routeActions?: readonly RouteAction[];
+  /** Route header content that is not a foldable action. */
   readonly actions?: ReactNode;
   /** A full-width strip between the header and the workspace. */
   readonly banner?: ReactNode;
@@ -155,6 +175,7 @@ export function WorkspaceFrame({
   subtitle,
   icon,
   toolbar,
+  routeActions,
   actions,
   banner,
   rail,
@@ -211,6 +232,7 @@ export function WorkspaceFrame({
         subtitle={subtitle}
         icon={icon}
         toolbar={toolbar}
+        routeActions={routeActions}
         actions={actions}
         position={position}
         railToggle={
@@ -318,17 +340,76 @@ export function WorkspaceFrame({
  * on d3" question all begin, and it was reachable from one route out of
  * eleven, two menus deep.
  */
+/**
+ * How much of the title is protected from the route's actions.
+ *
+ * A route's name is never squeezed below this; a long subtitle still
+ * truncates, because folding an action to keep every word of "Open one of
+ * your own games…" on screen would be the wrong trade.
+ */
+const TITLE_FLOOR = 200;
+
 function FrameHeader({
   title,
   subtitle,
   icon,
   toolbar,
+  routeActions,
   actions,
   position,
   railToggle,
-}: Pick<WorkspaceFrameProps, 'title' | 'subtitle' | 'icon' | 'toolbar' | 'actions' | 'position'> & {
+}: Pick<
+  WorkspaceFrameProps,
+  'title' | 'subtitle' | 'icon' | 'toolbar' | 'routeActions' | 'actions' | 'position'
+> & {
   readonly railToggle?: ReactNode;
 }) {
+  const header = useRef<HTMLElement>(null);
+  /*
+    Room for the route's actions: the header's content box, less everything
+    left of the title, the title's floor, and everything right of the actions
+    (the route's other content and the common controls). Independent of what
+    the actions currently draw — their own row is subtracted back out — so
+    the fold settles rather than oscillates. Negative until measured, which
+    draws everything.
+  */
+  const [available, setAvailable] = useState(-1);
+  const measure = useCallback(() => {
+    const element = header.current;
+    if (!element) return;
+    const titleBlock = element.querySelector<HTMLElement>('[data-header-title]');
+    const trailing = element.querySelector<HTMLElement>('[data-header-trailing]');
+    if (!titleBlock || !trailing) {
+      setAvailable(-1);
+      return;
+    }
+    const style = getComputedStyle(element);
+    const paddingLeft = Number.parseFloat(style.paddingLeft) || 0;
+    const paddingRight = Number.parseFloat(style.paddingRight) || 0;
+    const inner = element.clientWidth - paddingLeft - paddingRight;
+    const contentLeft = element.getBoundingClientRect().left + paddingLeft;
+    const titleLeft = titleBlock.getBoundingClientRect().left - contentLeft;
+    // The title and subtitle each clip themselves, so the block's own
+    // scrollWidth is only the room it was given; the children know the text.
+    const natural = Math.max(
+      0,
+      ...[...titleBlock.children].map((child) => (child as HTMLElement).scrollWidth),
+    );
+    const titleNeed = Math.min(TITLE_FLOOR, natural);
+    const row = element.querySelector<HTMLElement>('[data-header-actions]');
+    const others = trailing.offsetWidth - (row?.offsetWidth ?? 0);
+    const next = Math.floor(inner - titleLeft - titleNeed - others - 12);
+    setAvailable((current) => (current === next ? current : next));
+  }, []);
+  useLayoutEffect(() => {
+    const element = header.current;
+    if (!element) return;
+    measure();
+    const observer = new ResizeObserver(() => measure());
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [measure]);
+
   const fen = useAnalysis((state) => state.tree.nodes[state.currentId]?.fen ?? START_FEN);
   const documentTitle = useAnalysis((state) => state.document.title);
   const setSettingsOpen = useUi((state) => state.setSettingsOpen);
@@ -344,6 +425,7 @@ function FrameHeader({
 
   return (
     <header
+      ref={header}
       className="flex min-h-14 min-w-0 shrink-0 items-center gap-1.5 border-b border-line-subtle bg-surface-1 px-2 sm:px-4"
       data-workspace-header
       data-titlebar-drag=""
@@ -356,7 +438,7 @@ function FrameHeader({
           {icon ? (
             <span className="shrink-0 text-accent [&>svg]:h-5 [&>svg]:w-5">{icon}</span>
           ) : null}
-          <div className="min-w-0">
+          <div className="min-w-0" data-header-title>
             <h1 className="truncate text-sm font-semibold text-primary">{title}</h1>
             {subtitle ? (
               <p className="hidden truncate text-xs text-tertiary sm:block">{subtitle}</p>
@@ -365,7 +447,10 @@ function FrameHeader({
         </div>
       )}
 
-      <div className="ml-auto flex shrink-0 items-center gap-1.5">
+      <div className="ml-auto flex shrink-0 items-center gap-1.5" data-header-trailing>
+        {routeActions ? (
+          <HeaderActions actions={routeActions} available={available} onMeasured={measure} />
+        ) : null}
         {actions}
         <span className="mx-1 hidden h-4 w-px bg-line-subtle sm:block" />
         <Menu

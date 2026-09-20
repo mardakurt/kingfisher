@@ -351,6 +351,13 @@ export const PanelRight = (p: IconProps) => (
     <path d="M9 5v14" strokeDasharray="2 2" />
   </Icon>
 );
+export const MoreHorizontal = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="6" cy="12" r="1" fill="currentColor" />
+    <circle cx="12" cy="12" r="1" fill="currentColor" />
+    <circle cx="18" cy="12" r="1" fill="currentColor" />
+  </Icon>
+);
 export const Menu = (p: IconProps) => (
   <Icon {...p}>
     <path d="M4 7h16M4 12h16M4 17h16" />

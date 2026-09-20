@@ -359,15 +359,18 @@ export function StudiesWorkspace() {
               <Trash />
             </IconButton>
           ) : null}
-          <Button
-            variant="accent"
-            icon={<Plus />}
-            onClick={() => setPrompt({ kind: 'create-study' })}
-          >
-            New study
-          </Button>
         </>
       }
+      routeActions={[
+        {
+          id: 'create',
+          label: 'New study',
+          shortLabel: 'New',
+          icon: <Plus />,
+          variant: 'accent',
+          onClick: () => setPrompt({ kind: 'create-study' }),
+        },
+      ]}
       rail={{ label: 'Study', width: 260, content: railContent }}
       empty={
         failed ? (
