@@ -97,9 +97,12 @@ export class UciSession implements EngineSession {
       changes.push([name, String(value)]);
     };
 
-    push('MultiPV', configuration.multiPv, this.applied.multiPv);
+    // Options the engine never declared are not sent: Lc0 publishes no
+    // `Hash`, and a `setoption` it does not recognise is at best noise on
+    // stderr and at worst a line the next handshake trips over.
+    if (this.capabilities.multiPv) push('MultiPV', configuration.multiPv, this.applied.multiPv);
     if (this.capabilities.threads) push('Threads', configuration.threads, this.applied.threads);
-    push('Hash', configuration.hashMb, this.applied.hashMb);
+    if (this.capabilities.hash) push('Hash', configuration.hashMb, this.applied.hashMb);
     if (configuration.syzygyPath !== undefined) {
       push('SyzygyPath', configuration.syzygyPath, this.applied.syzygyPath);
     }

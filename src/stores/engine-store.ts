@@ -100,6 +100,18 @@ interface Runtime {
   session: EngineSession | null;
   handle: AnalysisHandle | null;
   starting: Promise<EngineSession | null> | null;
+  /**
+   * Bumped by every teardown, and read by a start still in flight.
+   *
+   * A native engine can take seconds to answer `uci` — Lc0 loads its weights
+   * first — and a user who changes their mind in that window selects a
+   * different engine. The teardown that follows cannot cancel the start; it
+   * can only make sure that, when the start finishes, the session it produced
+   * is thrown away rather than installed under an engine id that is no longer
+   * the slot's. Without this the next request found `starting` set and
+   * adopted it, and the slot searched with one engine while naming another.
+   */
+  startToken: number;
   /** Which engine the live session actually is, so a switch can be detected. */
   engineId: string | null;
   /**
@@ -139,6 +151,7 @@ const runtimes: Record<SlotId, Runtime> = {
     session: null,
     handle: null,
     starting: null,
+    startToken: 0,
     engineId: null,
     request: 0,
     pendingFen: null,
@@ -148,6 +161,7 @@ const runtimes: Record<SlotId, Runtime> = {
     session: null,
     handle: null,
     starting: null,
+    startToken: 0,
     engineId: null,
     request: 0,
     pendingFen: null,
@@ -276,8 +290,12 @@ export const useEngine = create<EngineState>((set, get) => {
       return null;
     }
 
+    const token = runtime.startToken;
     runtime.starting = (async () => {
       const availability = await provider.checkAvailability();
+      // The slot was torn down (or re-pointed) while this was in flight: its
+      // verdict is about an engine the slot no longer wants.
+      if (runtime.startToken !== token) return null;
       if (!availability.available) {
         patch(slot, {
           status: 'unavailable',
@@ -290,6 +308,10 @@ export const useEngine = create<EngineState>((set, get) => {
       }
       try {
         const created = await provider.create(config);
+        if (runtime.startToken !== token) {
+          created.dispose();
+          return null;
+        }
         runtime.session = created;
         runtime.engineId = engineId;
         patch(slot, {
@@ -300,6 +322,7 @@ export const useEngine = create<EngineState>((set, get) => {
         });
         return created;
       } catch (error) {
+        if (runtime.startToken !== token) return null;
         patch(slot, {
           status: 'error',
           problem: {
@@ -311,7 +334,7 @@ export const useEngine = create<EngineState>((set, get) => {
         });
         return null;
       } finally {
-        runtime.starting = null;
+        if (runtime.startToken === token) runtime.starting = null;
       }
     })();
 
@@ -431,6 +454,8 @@ export const useEngine = create<EngineState>((set, get) => {
     // Anything still starting is now obsolete; without this a `run` awaiting a
     // session would resume after the teardown and revive a dead slot.
     runtime.request += 1;
+    runtime.startToken += 1;
+    runtime.starting = null;
     runtime.handle?.stop();
     runtime.handle = null;
     runtime.session?.dispose();

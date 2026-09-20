@@ -88,6 +88,53 @@ describe('an engine that dies mid-search fails its own panel', () => {
   });
 });
 
+describe('switching engines while one is still starting', () => {
+  /*
+    Lc0 loads its weights before it answers `uci`, which is seconds. A user
+    who selects it and then changes their mind to Stockfish in that window
+    used to get Lc0's session installed under Stockfish's name: the next
+    request found `starting` set and adopted whatever it produced.
+  */
+  beforeEach(() => {
+    useEngine.getState().shutdown();
+    create.mockReset();
+  });
+
+  it('discards the late session and starts the engine the slot now names', async () => {
+    let releaseSlow!: (session: EngineSession) => void;
+    const slow = new Promise<EngineSession>((resolve) => {
+      releaseSlow = resolve;
+    });
+    const slowSession = failingSession(new Error('unused')).session;
+    const fastSession = failingSession(new Error('unused')).session;
+    (fastSession as { identity: { name: string } }).identity = { name: 'Fast engine' };
+    create.mockImplementationOnce(() => slow).mockImplementationOnce(async () => fastSession);
+
+    const config = { multiPv: 1, threads: 1, hashMb: 16 };
+    // Slow engine chosen and started; it has not answered yet.
+    await useEngine.getState().selectEngine('primary', 'slow-engine');
+    const first = useEngine.getState().analyse('primary', START_FEN, { kind: 'infinite' }, config);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(useEngine.getState().primary.status).toBe('loading');
+
+    // The user changes their mind before the slow engine is up.
+    await useEngine.getState().selectEngine('primary', 'fast-engine');
+    const second = useEngine.getState().analyse('primary', START_FEN, { kind: 'infinite' }, config);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    // Now the slow one finally answers.
+    releaseSlow(slowSession);
+    await Promise.all([first, second]);
+
+    const slot = useEngine.getState().primary;
+    expect(slot.engineId).toBe('fast-engine');
+    expect(slot.identity?.name).toBe('Fast engine');
+    expect(slowSession.dispose).toHaveBeenCalled();
+    expect(slowSession.analyse).not.toHaveBeenCalled();
+    expect(fastSession.analyse).toHaveBeenCalled();
+  });
+});
+
 describe('sharing a machine between engines', () => {
   /*
     Threads were split and hash was not, so turning comparison on doubled the

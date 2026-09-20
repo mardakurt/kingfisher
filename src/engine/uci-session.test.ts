@@ -113,3 +113,20 @@ describe('capabilities of a native engine', () => {
     expect(capabilitiesFrom([], { ...measured, searchmoves: false }).searchMoves).toBe(false);
   });
 });
+
+describe('configuration', () => {
+  it('sends only the options the engine declared', async () => {
+    // Lc0 declares MultiPV but no Hash. A `setoption name Hash` sent to an
+    // engine without one is a command it never asked for.
+    const { transport, sent } = scripted('e2e4');
+    const session = new UciSession(transport, { name: 'Test' }, [], {
+      ...CAPABILITIES,
+      hash: false,
+      threads: false,
+    });
+    await session.configure({ multiPv: 2, threads: 4, hashMb: 256 });
+    expect(sent).toContain('setoption name MultiPV value 2');
+    expect(sent.some((line) => line.startsWith('setoption name Hash'))).toBe(false);
+    expect(sent.some((line) => line.startsWith('setoption name Threads'))).toBe(false);
+  });
+});
