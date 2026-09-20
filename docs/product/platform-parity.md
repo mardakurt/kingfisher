@@ -24,8 +24,18 @@ validation, scheduled backup preference serialization, and an incorrect
 native-companion prerequisite on the AI assistant panel. The engine toolbar
 also wraps controls to keep the engine selector readable in a narrow panel.
 
-**Published revision check (Phase 72 follow-up, Mac-facing — not yet
-released).** After 1.2.2 shipped, three owner reports changed
+**Published revision check (2026-09-20, 1.2.3).** The public Mac 1.2.3
+(build 679, `9a6265b`) is built from the `v1.2.3` tag's revision, the
+revision `kingfisherchess.app` served when it was built. It carries the
+three follow-up fixes below; the More menu was driven on the signed
+bundle itself (15 of 15 items reachable, the last one selectable), the
+real update 1.2.2 → 1.2.3 was performed through Sparkle's own window
+against the public feed (19 checks, PASS), and the Windows-only engines
+are not offered inside the application at all (its built-in companion
+reports the platform). The Mac is not behind `master` at this commit.
+
+**Published revision check (Phase 72 follow-up, Mac-facing — released as
+1.2.3 above).** After 1.2.2 shipped, three owner reports changed
 application code the Mac shell renders: the dock's More menu was clipped
 to one item by the one-row strip (1.2.2 carries that regression — in the
 Mac application, choosing a folded tool means pinning everything before
@@ -35,8 +45,8 @@ one tested rule from the browser's OS and where the page is served
 companion" / "Windows only"); and Settings → Workspace gains the "skip
 the landing page" switch, which the Mac application hides because it
 never loads the landing. Web-facing in substance, but the More-menu fix
-matters to a Mac user, so the difference is recorded and a 1.2.3 is
-owed.
+matters to a Mac user, so the difference was recorded and 1.2.3 followed
+the same day.
 
 **Published revision check (2026-09-20, 1.2.2).** The public Mac 1.2.2
 (build 673, `96f1822`) is built from the `v1.2.2` tag's revision, which
