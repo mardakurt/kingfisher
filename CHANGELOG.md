@@ -8,6 +8,13 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
+## 1.2.3 — 2026-09-20
+
+Kingfisher 1.2.3 carries the three fixes below to the Mac application;
+the web has shipped each one as it landed. The Mac 1.2.2 build clipped
+the dock's More menu to one item, so a folded tool could only be reached
+by pinning everything before it.
+
 - **The More menu shows every tool again.** The one-row tool strip
   (1.2.2) clipped its own More menu to a single item, so the last tools
   could only be reached by pinning everything before them. (Phase 72)
