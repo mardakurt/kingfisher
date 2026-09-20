@@ -37,10 +37,11 @@ control. Nothing under `desktop/` changed. The public Mac 1.2.5 (build
 them; section B of `docs/operations/after-a-fix.md` is due before the next
 Mac release and has not been run for this change.
 
-The Team preparation follow-up also changes shared application code the
-Mac shell renders: brief starters, an inbox with search and review filters,
-_Open latest board_, and note drafts that survive a failed write. It needs
-the same future Mac package; nothing here certifies or publishes one.
+The Team preparation follow-up (`f512f39`, `a4daae4`) also changes shared
+application code the Mac shell renders: brief starters, an inbox with
+search and review filters, _Open latest board_, and note drafts that
+survive a failed write. It is Mac-facing and needs the same future Mac
+package; nothing under `desktop/` changed and no package was built for it.
 
 **Published revision check (2026-09-20, 1.2.5).** The public Mac 1.2.5
 (build 704, `738d22d`) is built from the `v1.2.5` tag's revision, the
