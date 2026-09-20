@@ -43,6 +43,7 @@ import { useUi } from '@/stores/ui-store';
 
 import { exportStudyPgn } from './export';
 import { ChapterReferences } from './ChapterReferences';
+import { plural } from '@/lib/plural';
 
 type Prompt =
   | { readonly kind: 'create-study' }
@@ -283,7 +284,7 @@ export function StudiesWorkspace() {
                     {index + 1}. {entry.title}
                   </span>
                   <span className="mt-0.5 block text-[10px] text-tertiary">
-                    {nodeCount(entry.tree)} moves
+                    {plural(nodeCount(entry.tree), 'move')}
                   </span>
                 </button>
                 {entry.id === chapterId ? (

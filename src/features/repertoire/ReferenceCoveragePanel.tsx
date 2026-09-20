@@ -28,6 +28,7 @@ import { isActionable, topGaps, computeCoverage } from '@/repertoire/coverage';
 import type { CoverageGap, CoverageReport } from '@/repertoire/coverage';
 import { draftTrainingSet } from '@/training/data-generation';
 import { useUi } from '@/stores/ui-store';
+import { plural } from '@/lib/plural';
 
 const SOURCES = [
   { id: 'kingfisher-elite-otb', label: 'Elite OTB' },
@@ -197,7 +198,7 @@ function ReferenceCoverageTable({ reports }: { readonly reports: readonly Covera
               {gap.share ? `${(gap.share * 100).toFixed(1)}%` : '—'}
             </span>
             <span className="ml-auto text-[10px] text-tertiary tabular">
-              {gap.games.toLocaleString()} games
+              {plural(gap.games, 'game')}
             </span>
           </li>
         ))}

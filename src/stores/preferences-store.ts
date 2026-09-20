@@ -64,14 +64,6 @@ export interface Preferences {
   explorerMinRating: number | null;
   explorerSinceYear: number | null;
   /**
-   * Which data sources are in use, and for what.
-   *
-   * Sparse: a source absent from this record is on, with every capability it
-   * declares. Storing only what the user has changed is what lets a later
-   * build add a source without every saved profile needing a migration to
-   * mention it — and what makes "reset" mean something.
-   */
-  /**
    * Which half of the Openings route was last used.
    *
    * Persisted because a mode that resets on every reload is a mode the user
@@ -86,6 +78,14 @@ export interface Preferences {
    * turns it off once and it stays off.
    */
   showVariationBrief: boolean;
+  /**
+   * Which data sources are in use, and for what.
+   *
+   * Sparse: a source absent from this record is on, with every capability it
+   * declares. Storing only what the user has changed is what lets a later
+   * build add a source without every saved profile needing a migration to
+   * mention it — and what makes "reset" mean something.
+   */
   sourceSettings: Record<string, SourcePreference>;
   /**
    * Source ids in the order the user prefers them, most trusted first.

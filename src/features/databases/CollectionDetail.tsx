@@ -182,7 +182,7 @@ export function CollectionDetail({ collection, onTransfer, onChanged }: Collecti
   const isReference = collection.reference;
 
   return (
-    <div className="mx-auto max-w-4xl p-5 md:p-8">
+    <div className="@container mx-auto max-w-4xl p-5 md:p-8">
       <header className="flex flex-wrap items-start gap-4 border-b border-line-subtle pb-6">
         <Database className="h-10 w-10 shrink-0 text-accent" />
         <div className="min-w-0 flex-1">
@@ -219,7 +219,13 @@ export function CollectionDetail({ collection, onTransfer, onChanged }: Collecti
         </Button>
       </header>
 
-      <dl className="grid grid-cols-2 gap-x-8 gap-y-4 border-b border-line-subtle py-5 text-sm md:grid-cols-4">
+      {/*
+        Columns follow the panel's own width, not the viewport's: this detail
+        sits between a collections rail and a sources column, and at 1280 px
+        a viewport breakpoint put four columns into 250 px and truncated
+        "not tracked" and "This browser" to their first syllable.
+      */}
+      <dl className="grid grid-cols-2 gap-x-8 gap-y-4 border-b border-line-subtle py-5 text-sm @lg:grid-cols-4">
         <Fact
           label="Games"
           value={collection.games === null ? 'unavailable' : collection.games.toLocaleString()}

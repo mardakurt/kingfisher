@@ -49,6 +49,7 @@ import { SourceFallback, SourcePicker } from './SourcePicker';
 import { SourceComparison } from './SourceComparison';
 import { useExplorer, useExplorerPrefetch } from './useExplorer';
 import { usePositionContext } from './usePositionContext';
+import { plural } from '@/lib/plural';
 
 /** Whatever went wrong, in the words the source itself used. */
 function describeFailure(error: unknown): string {
@@ -778,7 +779,7 @@ function Comparison({ entries }: { readonly entries: readonly MoveEvidence[] }) 
   return (
     <section className="border-t border-line-subtle bg-surface-2/40 px-2.5 py-2">
       <h3 className="text-[10px] uppercase tracking-wide text-tertiary">
-        Comparing {entries.length} moves
+        Comparing {plural(entries.length, 'move')}
       </h3>
       <div className="mt-1.5 overflow-x-auto">
         <table className="w-full border-collapse text-[10.5px]">

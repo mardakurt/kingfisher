@@ -538,7 +538,8 @@ test('a 20,000-node branched study virtualizes and keeps keyboard navigation res
   const reloadStarted = Date.now();
   await page.reload();
   await ready(page);
-  await expect(page.getByText('20000 moves')).toBeVisible();
+  // The chapter card counts the way the rest of the interface does: 20,000.
+  await expect(page.getByText('20,000 moves')).toBeVisible();
   const virtual = page.locator('[data-virtualized-move-tree="true"]');
   await expect(virtual).toBeVisible();
   const reloadMs = Date.now() - reloadStarted;

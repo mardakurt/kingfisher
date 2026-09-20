@@ -521,8 +521,14 @@ function TrainingAuthoringEditor({
 }
 
 function QueueSummary({ counts }: { readonly counts: ReturnType<typeof countQueue> }) {
+  /*
+    The header's action area never shrinks, so this summary was what pushed
+    the route's title out: at 1280 px with the sidebar open "Training" was two
+    pixels wide. The four counts are also the Queue rail's headings, so below
+    2xl the header keeps its name and the rail keeps the numbers.
+  */
   return (
-    <div className="hidden items-center gap-3 text-[10.5px] text-tertiary tabular sm:flex">
+    <div className="hidden items-center gap-3 text-[10.5px] text-tertiary tabular 2xl:flex">
       <span>Due {counts.due}</span>
       <span>New {counts.new}</span>
       <span>Learning {counts.learning}</span>

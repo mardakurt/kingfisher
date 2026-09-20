@@ -45,6 +45,7 @@ import { MultiSearchPanel } from './MultiSearchPanel';
 import { ReferenceCatalogPanel } from './ReferenceCatalogPanel';
 import { SourceSetsPanel } from './SourceSetsPanel';
 import { TransferDialog, type TransferRequest } from './TransferDialog';
+import { plural } from '@/lib/plural';
 
 const EnCroissantImportDialog = dynamic(() =>
   import('./EnCroissantImportDialog').then((module) => module.EnCroissantImportDialog),
@@ -414,7 +415,7 @@ function StorageSummary({
       */}
       <p className="mt-2 text-2xs text-tertiary tabular">
         {storage.data
-          ? `${storage.data.games.toLocaleString()} games · ${storage.data.studies} studies · ${storage.data.training} training items`
+          ? `${plural(storage.data.games, 'game')} · ${plural(storage.data.studies, 'study', 'studies')} · ${plural(storage.data.training, 'training item')}`
           : storage.isError
             ? 'Stored counts could not be read from this browser.'
             : 'Reading browser storage…'}

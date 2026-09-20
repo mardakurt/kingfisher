@@ -13,6 +13,7 @@
 import { Check, Database, Warning } from '@/components/icons';
 import type { CollectionFacts } from '@/database/collections/types';
 import { cn } from '@/lib/cn';
+import { plural } from '@/lib/plural';
 
 interface CollectionListProps {
   readonly collections: readonly CollectionFacts[];
@@ -72,9 +73,7 @@ export function CollectionList({
                 ) : null}
               </span>
               <span className="mt-0.5 block truncate text-[11px] text-tertiary tabular">
-                {collection.games === null
-                  ? 'count unavailable'
-                  : `${collection.games.toLocaleString()} games`}
+                {collection.games === null ? 'count unavailable' : plural(collection.games, 'game')}
                 {' · '}
                 {collection.kind === 'sqlite' ? 'SQLite' : 'IndexedDB'}
                 {/*

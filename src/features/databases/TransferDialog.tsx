@@ -37,6 +37,7 @@ import {
   useTransferJob,
   type TransferKind,
 } from './transfer-job-store';
+import { plural } from '@/lib/plural';
 
 export interface TransferRequest {
   readonly kind: Exclude<TransferKind, 'dedupe'>;
@@ -195,7 +196,7 @@ export function TransferDialog({ request, collections, onClose, onChanged }: Tra
         <dd className="text-primary">
           {request.source.name}
           <span className="ml-2 text-xs text-tertiary tabular">
-            {request.source.games?.toLocaleString() ?? '—'} games
+            {request.source.games == null ? '— games' : plural(request.source.games, 'game')}
           </span>
         </dd>
         {request.scopeLabel ? (
@@ -221,7 +222,7 @@ export function TransferDialog({ request, collections, onClose, onChanged }: Tra
               {candidates.map((entry) => (
                 <option key={entry.id} value={entry.id}>
                   {entry.name} · {entry.kind === 'sqlite' ? 'SQLite' : 'this browser'} ·{' '}
-                  {entry.games?.toLocaleString() ?? '—'} games
+                  {entry.games == null ? '— games' : plural(entry.games, 'game')}
                 </option>
               ))}
             </select>

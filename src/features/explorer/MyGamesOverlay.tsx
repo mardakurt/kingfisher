@@ -24,6 +24,7 @@ import { useQuery } from '@tanstack/react-query';
 import type { Fen } from '@/chess/types';
 import { getRepositories } from '@/persistence/repositories';
 import type { ExplorerResult } from '@/database/types';
+import { plural } from '@/lib/plural';
 
 export interface MyGamesOverlayProps {
   readonly fen: Fen;
@@ -64,7 +65,7 @@ export function MyGamesOverlay({ fen, forceShow = false }: MyGamesOverlayProps) 
       <div className="flex items-baseline justify-between gap-2">
         <h3 className="text-[10px] uppercase tracking-wide text-tertiary">My games</h3>
         <span className="text-[10px] tabular text-tertiary">
-          {query.isPending ? '…' : `${total.toLocaleString()} games`}
+          {query.isPending ? '…' : plural(total, 'game')}
         </span>
       </div>
       {total === 0 && !query.isPending ? (

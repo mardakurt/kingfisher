@@ -36,6 +36,7 @@ import { useUi } from '@/stores/ui-store';
 import { WorkspaceFrame } from '@/features/workspace/WorkspaceFrame';
 import { RepertoireReviewDialog } from './RepertoireReviewDialog';
 import { ReferenceCoveragePanel } from './ReferenceCoveragePanel';
+import { plural } from '@/lib/plural';
 
 const ROLE_LABEL: Record<RepertoireRole, string> = {
   main: 'Main',
@@ -229,8 +230,8 @@ export function RepertoireWorkspace() {
           {repertoire.data ? (
             <div className="flex items-center border-t border-line-subtle px-2 py-1.5">
               <span className="text-[10.5px] text-tertiary tabular">
-                {metrics.totalMoves} moves · {metrics.expectedReplies} replies · max depth{' '}
-                {metrics.maxDepth}
+                {plural(metrics.totalMoves, 'move')} ·{' '}
+                {plural(metrics.expectedReplies, 'reply', 'replies')} · max depth {metrics.maxDepth}
               </span>
               <IconButton
                 className="ml-auto"
@@ -283,8 +284,17 @@ export function RepertoireWorkspace() {
               Add to repertoire
             </Button>
           ) : null}
+          {/*
+            Four route actions beside the three every workspace has left the
+            title 46 px wide on a 1440 px display with the sidebar open —
+            "Rep…". Below 2xl the two secondary verbs drop the noun, which the
+            route's own icon and the sidebar already supply.
+          */}
           {repertoire.data ? (
-            <Button onClick={() => setReviewOpen(true)}>Review repertoire</Button>
+            <Button onClick={() => setReviewOpen(true)} aria-label="Review repertoire">
+              <span className="hidden 2xl:inline">Review repertoire</span>
+              <span className="2xl:hidden">Review</span>
+            </Button>
           ) : null}
           {repertoire.data ? (
             <Button icon={<Export />} onClick={() => void exportPgn()}>
@@ -292,8 +302,9 @@ export function RepertoireWorkspace() {
               <span className="sm:hidden">PGN</span>
             </Button>
           ) : null}
-          <Button icon={<Plus />} onClick={() => setCreating(true)}>
-            New repertoire
+          <Button icon={<Plus />} onClick={() => setCreating(true)} aria-label="New repertoire">
+            <span className="hidden 2xl:inline">New repertoire</span>
+            <span className="2xl:hidden">New</span>
           </Button>
         </>
       }
@@ -594,7 +605,7 @@ function GapSummary({
                 <span className="font-medium text-primary">{gap.opponentMove.san}</span>
                 <span className="truncate text-[10.5px] text-secondary">no prepared response</span>
                 <span className="ml-auto shrink-0 text-[10px] text-tertiary tabular">
-                  {gap.games} games
+                  {plural(gap.games, 'game')}
                 </span>
               </button>
             </li>

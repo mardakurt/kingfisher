@@ -42,6 +42,7 @@ import { openingLineage } from '@/theory/openings';
 import { useAnalysis } from '@/stores/analysis-store';
 import { usePreferences } from '@/stores/preferences-store';
 import { useUi } from '@/stores/ui-store';
+import { plural } from '@/lib/plural';
 
 /**
  * Starting points, so an empty search box is a menu rather than a blank.
@@ -300,7 +301,7 @@ function OpeningDetail({ entry }: { readonly entry: OpeningEntry }) {
         ) : (
           <>
             <p className="mb-2 text-xs text-secondary">
-              {total.toLocaleString()} games · {percent(explorer.data?.white ?? 0, total)} white,{' '}
+              {plural(total, 'game')} · {percent(explorer.data?.white ?? 0, total)} white,{' '}
               {percent(explorer.data?.draws ?? 0, total)} drawn,{' '}
               {percent(explorer.data?.black ?? 0, total)} black
             </p>

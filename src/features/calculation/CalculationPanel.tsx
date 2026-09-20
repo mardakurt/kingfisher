@@ -40,6 +40,7 @@ import {
   type BoardVisibility,
 } from './calculation-store';
 import { branchAt, candidatesOf, countMoves, lines, maxDepth, movesAlong } from './tree';
+import { plural } from '@/lib/plural';
 
 const FIELD =
   'mt-1 w-full rounded-[4px] border border-line bg-surface-inset px-2.5 py-1.5 text-xs text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60';
@@ -181,7 +182,7 @@ export function CalculationPanel({
       >
         Calculation
         <span className="text-tertiary tabular">
-          {summary.moves} moves · depth {summary.depth}
+          {plural(summary.moves, 'move')} · depth {summary.depth}
         </span>
       </PanelHeader>
       <PanelBody className="px-3 py-3">
@@ -245,7 +246,7 @@ export function CalculationPanel({
             <h4 className="text-[9.5px] uppercase tracking-wide text-tertiary">Your lines</h4>
             {state.hideMoves ? (
               <p className="mt-1 text-[10.5px] text-tertiary">
-                Lines hidden. {summary.moves} moves entered.
+                Lines hidden. {plural(summary.moves, 'move')} entered.
               </p>
             ) : summary.lines.length === 0 ? (
               <p className="mt-1 text-[10.5px] leading-relaxed text-tertiary">

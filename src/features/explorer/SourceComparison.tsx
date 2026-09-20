@@ -25,6 +25,7 @@ import { compareSources, type SourceColumn } from './source-comparison';
 import { useExplorerSources } from './useExplorer';
 import { MyGamesOverlay } from './MyGamesOverlay';
 import type { ExplorerFilters } from '@/database/types';
+import { plural } from '@/lib/plural';
 
 /** Enough columns to see a disagreement; more is a spreadsheet. */
 const MAX_COLUMNS = 4;
@@ -152,7 +153,7 @@ export function SourceComparison({
                           ? '…'
                           : column.result === null
                             ? 'unavailable'
-                            : `${column.result.totalGames.toLocaleString()} games`}
+                            : plural(column.result.totalGames, 'game')}
                       </span>
                     </th>
                   ))}
@@ -177,7 +178,7 @@ export function SourceComparison({
                         title={
                           cell.absence
                             ? ABSENCE_TITLE[cell.absence]
-                            : `${cell.games?.toLocaleString()} games`
+                            : plural(cell.games ?? 0, 'game')
                         }
                       >
                         {cell.absence ? (

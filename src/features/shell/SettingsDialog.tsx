@@ -99,6 +99,7 @@ import { portablePreferences, SECRET_PREFERENCE_KEYS } from '@/stores/portable-p
 import { useUi } from '@/stores/ui-store';
 
 import { TablebaseSettings } from './TablebaseSettings';
+import { plural } from '@/lib/plural';
 
 type Section = SettingsSection;
 
@@ -1344,7 +1345,7 @@ function SqliteDatabases() {
       await status.refetch();
       notify({
         tone: 'success',
-        message: `${result.imported} games imported, ${result.duplicates} duplicates skipped.`,
+        message: `${plural(result.imported, 'game')} imported, ${plural(result.duplicates, 'duplicate')} skipped.`,
       });
     } catch (error) {
       notify({
@@ -1380,7 +1381,7 @@ function SqliteDatabases() {
                 ) : null}
               </div>
               <span className="text-tertiary tabular">
-                {entry.games === null ? '—' : `${entry.games.toLocaleString()} games`}
+                {entry.games === null ? '—' : plural(entry.games, 'game')}
               </span>
               <Button
                 variant="ghost"

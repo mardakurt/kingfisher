@@ -29,6 +29,7 @@ import { openingDisplay } from '@/theory/classify-games';
 import { useUi } from '@/stores/ui-store';
 
 import type { TransferRequest } from './TransferDialog';
+import { plural } from '@/lib/plural';
 
 type DeleteScope = 'selected' | 'matching';
 
@@ -133,7 +134,7 @@ export function CollectionGames({ collection, onTransfer, onChanged }: Collectio
   const scopeLabel = selected.size
     ? `${selected.size} selected game${selected.size === 1 ? '' : 's'}`
     : hasFilter
-      ? `${total.toLocaleString()} games matching the visible filter`
+      ? `${plural(total, 'game')} matching the visible filter`
       : 'Every game in this collection';
 
   return (

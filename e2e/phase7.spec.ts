@@ -277,7 +277,8 @@ test('study references, saved filters and storage facts are usable', async ({ pa
 
   await page.goto('/databases');
   await expect(page.getByText(/Browser estimate:/)).toBeVisible();
-  await expect(page.getByText(/games · .* studies · .* training items/)).toBeVisible();
+  // Counts of one read as one: "1 game · 1 study · 1 training item".
+  await expect(page.getByText(/games? · .* stud(y|ies) · .* training items?/)).toBeVisible();
 });
 
 /**

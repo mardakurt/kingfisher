@@ -30,6 +30,7 @@ import {
 import type { CollectionFacts } from '@/database/collections/types';
 import { cn } from '@/lib/cn';
 import { useUi } from '@/stores/ui-store';
+import { plural } from '@/lib/plural';
 
 interface DuplicatesPanelProps {
   readonly selected: readonly CollectionFacts[];
@@ -132,7 +133,7 @@ export function DuplicatesPanel({ selected, onChanged }: DuplicatesPanelProps) {
 
       {result ? (
         <p className="mt-4 text-xs text-secondary tabular" role="status">
-          {result.scanned.toLocaleString()} games examined · {exact.length} exact duplicate group
+          {plural(result.scanned, 'game')} examined · {exact.length} exact duplicate group
           {exact.length === 1 ? '' : 's'} · {annotated.length} with differing annotations
           {result.partial ? ' · stopped early, so there may be more' : ''}
         </p>
