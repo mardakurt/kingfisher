@@ -5,9 +5,9 @@ documentation, configuration drift, dependency health, and the application
 used as a person would use it — with fixes rather than a list. Everything
 below was run on the maintainer's Mac on 2026-09-20, from `4af035d` (the
 1.2.3 record) to the commit this report ships in. Nothing is carried over
-from a previous report, and nothing was pushed: `master` on the machine is
-eight commits ahead of `origin/master` and the push, the Vercel deployment
-and the section-B Mac release are the owner's calls.
+from a previous report. The audit's nine commits were pushed on the owner's
+instruction and the deployment confirmed (`deploy:status`: up to date at
+`3cc3933`); section 6 records what followed the same day.
 
 ## 1. What was inspected
 
@@ -130,19 +130,83 @@ list in AGENTS.md). They need the signing identity and a real window server
 and are section B of `after-a-fix.md`, which follows the next version bump;
 the Mac 1.2.3 is recorded as behind `master` in platform-parity.
 
-## 6. Remaining concerns
+## 6. The five additions, the tooling, and 1.2.4 (2026-09-20, later the same day)
 
-- **Push and deploy.** The eight commits are local. `deploy:status` and the
-  live-site check in after-a-fix.md steps 9–11 cannot be done until the
-  owner pushes.
-- **Section B** for the next Mac release: fixes 1, 5, 7, 12 and 13 are
-  Mac-facing.
-- **Dependencies**: four major versions behind on dev tooling (ESLint 10,
-  Vitest 5, TypeScript 7, jsdom 29). Each is a deliberate migration, not a
-  patch.
-- **The workspace header's layout rule** (actions never shrink, the title
-  always does) is still the same rule; the two routes that broke it were
-  fixed individually. A route that adds a fourth action will meet it again.
+The owner asked for the five suggestions to be built and the three
+remaining concerns closed. Each addition was driven in the browser after it
+was written; the browser suite was run in full once more (306 passed, 2
+failed — both the header fold's own doing, see below — then the affected
+spec files green after the fix).
+
+- **Route actions fold to fit** (`WorkspaceFrame` + `header-actions.ts`,
+  pure and tested). Measured on Repertoire: 1440 px four short labels,
+  1180 px "Add" + ⋯, 1024 px ⋯ alone, title intact, no overflow. The
+  first version protected the whole title block including the subtitle
+  (200 px), which at Playwright's 1280 × 720 cost "Review repertoire" and
+  "Training sets" their place in the row and failed two specs; only the
+  route's name is protected now. This retires the third remaining concern.
+- **Copy PGN from this move** (`serializePgnFrom`), in the Export menu,
+  the move context menu and the palette; round-trip tested.
+- **Score by depth** in the engine footer (`depthSamples`); live on the
+  initial position: fourteen depths, four e4/d4 changes marked.
+- **"Known position?"** in Set up, from the palette's position search plus
+  the chosen reference source's count; live: both audit games at ply 2.
+- **Train these gaps** from the repertoire's coverage panel, with the
+  Starter pack added as a source. Building it found three defects in the
+  prompt generator (side to move hard-coded to White; the four-field key
+  stored as the FEN; one card per gap then only the first kept) and one
+  in the collector (`null` slots reaching the table mid-run — the soak's
+  research chain crashed on `report.gaps` once the Starter was the default).
+- **Tooling**: Vitest 5, jsdom 29, TypeScript 6.0.3, Next 16.3.5,
+  React 19.3, Playwright 1.63, Prettier 3.9.8 — all gates green. Not
+  applied: ESLint 10 (`eslint-config-next`'s `eslint-plugin-react` 7.37.5
+  crashes on it and its a11y/import plugins declare ≤ 9) and TypeScript 7
+  (no JavaScript API; `typescript-eslint` needs one, peer `< 6.1`). The
+  reasons are in the tooling commit.
+
+### Section B, in the runbook's order
+
+```
+B1–B4  1.2.3 → 1.2.4 (root, desktop, lockfiles); CHANGELOG closed;
+       docs/release/1.2.4.md; commit 7bfdb67, pushed; tree clean
+B6     preflight GREEN; Sparkle 2.10.0 vendored; bridge current
+B7     build: Compiled successfully
+B8     stable desktop:dist: 1.2.4 · build 698 · 7bfdb67; notarised; boot
+       verified (renderer, web, companion, engine catalogue, Sparkle)
+B9     release:mac:notarize: Accepted 58ea754f…; stapled, validated
+B10    trust: GREEN
+B11    verify-dmg --version 1.2.4 --commit 7bfdb67…: verified, 3244 entries
+B12    desktop:smoke --packaged: 17/17
+       appcast: build 698, notes embedded, latest-mac.yml
+B14    release:mac:publish v1.2.4: 6 assets
+B15    Latest; publishedAt 2026-09-20T11:20:44Z
+B13    desktop:update:real --current <1.2.3, ZIP hash-checked> --public-feed:
+       PASS, 19 checks, first try
+B16    descriptor: 1.2.4 · 698 · 7bfdb67 · Kingfisher-1.2.4-arm64.dmg ·
+       sha256 a6633778… · 172,497,329 bytes (GitHub reports the same)
+B17    publish:release-manifest: prepared for 1.2.4
+B18    README, SECURITY, install-macos (file + hash), launch-kit,
+       public-claims, SecurityPage.tsx, AGENTS.md, platform-parity
+B19    docs:check 344/344
+```
+
+**A finding on the machine, not in the repository.** During the second
+browser run `~/Library/Caches/Kingfisher/` was recreated empty (mtime
+13:52:42, the run's end); the previous release applications kept there for
+the update harness, and the pack, engine and archive caches, are gone.
+Nothing in the repository removes that directory, and the cause was not
+found. The 1.2.3 application was recovered from its ZIP in the dist
+directory (hash checked against the published `SHA256SUMS`) and the
+harness's previous builds now live under `$TMPDIR/kingfisher-previous/`.
+
+## 7. Remaining concerns
+
+- **ESLint 10 and TypeScript 7** wait on `eslint-config-next`'s plugins
+  and on `typescript-eslint` respectively; check their peer ranges before
+  the next attempt.
+- **`~/Library/Caches/Kingfisher/`** was emptied by something outside this
+  repository during a browser run (section 6). Do not keep the only copy of
+  anything there.
 - **`connect-src https:`** is honest now in the documents; narrowing it
   would need the full-engine host (unpkg) and the assistant's user-typed
   host handled some other way.

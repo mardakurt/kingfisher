@@ -1,6 +1,6 @@
 # Installing Kingfisher on macOS
 
-Kingfisher 1.2.3 for macOS is signed with a **Developer ID** certificate
+Kingfisher 1.2.4 for macOS is signed with a **Developer ID** certificate
 and **notarised by Apple**, with the notarisation ticket stapled to the
 disk image and to the application. It opens like any other downloaded
 application: a normal double-click, one confirmation from macOS, done.
@@ -28,7 +28,7 @@ Get the DMG from the landing page or the latest release on GitHub:
 > <https://kingfisherchess.app/#macos>
 > <https://github.com/mardakurt/kingfisher/releases/latest>
 
-The file is **`Kingfisher-1.2.3-arm64.dmg`**. If the file you downloaded
+The file is **`Kingfisher-1.2.4-arm64.dmg`**. If the file you downloaded
 has a different name, the release page is the source of truth — stop and
 check the SHA-256 listed there.
 
@@ -36,12 +36,12 @@ check the SHA-256 listed there.
 
 The release page and the install page list the SHA-256 of the DMG:
 
-`63204418206c9336c06876ea926d5e48067e2547d5dd35771d4271bd85b2410d`
+`a66337788f5b4cd7fd843d828670b1e4b5ed8e026777faf5f4b6bd328b624109`
 
 To check yours:
 
 ```bash
-shasum -a 256 ~/Downloads/Kingfisher-1.2.3-arm64.dmg
+shasum -a 256 ~/Downloads/Kingfisher-1.2.4-arm64.dmg
 ```
 
 The output should match. If it does not, the download was corrupted or
@@ -49,7 +49,7 @@ tampered with — delete it and download it again.
 
 ## 3. Open the DMG
 
-Double-click `Kingfisher-1.2.3-arm64.dmg` in your Downloads folder. A
+Double-click `Kingfisher-1.2.4-arm64.dmg` in your Downloads folder. A
 window opens with the Kingfisher icon and a shortcut to Applications.
 
 ## 4. Move to Applications
@@ -70,7 +70,7 @@ cannot be verified”_, _“cannot be checked for malicious software”_, or
 _“damaged”_. Those messages mean the file you have is not the build Apple
 notarised — check the SHA-256 above and download it again from the
 release page. There is no right-click workaround to apply, and no
-system-wide setting to change; if a genuine Kingfisher 1.2.3 download
+system-wide setting to change; if a genuine Kingfisher 1.2.4 download
 does show one of those messages, that is a bug — please report it.
 
 ## 6. Updates
