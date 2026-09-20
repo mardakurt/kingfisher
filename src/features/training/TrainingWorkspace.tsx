@@ -528,12 +528,13 @@ function TrainingAuthoringEditor({
 
 function QueueSummary({ counts }: { readonly counts: ReturnType<typeof countQueue> }) {
   /*
-    Not a foldable action, so it sits in the header's fixed content; the
-    frame folds the route's buttons around it and keeps the title's floor,
-    which is what stopped "Training" being two pixels wide at 1280 px.
+    Not a foldable action, so it sits in the header's fixed content and the
+    frame folds the route's buttons around it. Below 2xl it is left out: the
+    four counts are also the Queue rail's headings, and at 1280 px keeping
+    them in the header cost "Training sets" its place in the row.
   */
   return (
-    <div className="hidden items-center gap-3 text-[10.5px] text-tertiary tabular sm:flex">
+    <div className="hidden items-center gap-3 text-[10.5px] text-tertiary tabular 2xl:flex">
       <span>Due {counts.due}</span>
       <span>New {counts.new}</span>
       <span>Learning {counts.learning}</span>

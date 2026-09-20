@@ -343,9 +343,11 @@ export function WorkspaceFrame({
 /**
  * How much of the title is protected from the route's actions.
  *
- * A route's name is never squeezed below this; a long subtitle still
- * truncates, because folding an action to keep every word of "Open one of
- * your own games…" on screen would be the wrong trade.
+ * The route's *name* is never squeezed below its own width (up to this);
+ * the subtitle is descriptive and truncates first, because folding an
+ * action to keep every word of "Audit repertoire · White · 0 prepared
+ * positions" on screen would be the wrong trade — measured, it cost
+ * "Review repertoire" its place in the row at 1280 px.
  */
 const TITLE_FLOOR = 200;
 
@@ -389,13 +391,10 @@ function FrameHeader({
     const inner = element.clientWidth - paddingLeft - paddingRight;
     const contentLeft = element.getBoundingClientRect().left + paddingLeft;
     const titleLeft = titleBlock.getBoundingClientRect().left - contentLeft;
-    // The title and subtitle each clip themselves, so the block's own
-    // scrollWidth is only the room it was given; the children know the text.
-    const natural = Math.max(
-      0,
-      ...[...titleBlock.children].map((child) => (child as HTMLElement).scrollWidth),
-    );
-    const titleNeed = Math.min(TITLE_FLOOR, natural);
+    // The name clips itself, so the block's own scrollWidth is only the room
+    // it was given; the h1 knows the text. Only the name is protected.
+    const name = titleBlock.querySelector<HTMLElement>('h1');
+    const titleNeed = Math.min(TITLE_FLOOR, name?.scrollWidth ?? 0);
     const row = element.querySelector<HTMLElement>('[data-header-actions]');
     const others = trailing.offsetWidth - (row?.offsetWidth ?? 0);
     const next = Math.floor(inner - titleLeft - titleNeed - others - 12);

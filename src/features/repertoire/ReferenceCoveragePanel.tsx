@@ -278,6 +278,8 @@ function ReferenceCoverageTable({
 /** Minimal shape the hook requires from the registry. */
 export interface ReferenceProvider {
   readonly id: string;
+  /** What a person calls the source; the id is what the registry calls it. */
+  readonly name?: string;
   readonly explore: (query: ExplorerQuery) => Promise<ExplorerResult>;
 }
 
@@ -330,7 +332,14 @@ function useReferenceCoverage(
     // its synchronous prefix is exactly what we want.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setState({ data: [], pending: true, completed: 0, total: positions.length });
-    const reports: CoverageReport[] = new Array(positions.length).fill(null) as CoverageReport[];
+    // One slot per position, filled as each answer lands; a slot that has
+    // not landed is `null`, and every reader below leaves it out. (The
+    // filters used to test for `undefined`, so a run in progress handed the
+    // table nulls, which crashed it on `report.gaps` — unseen until the
+    // bundled pack became the default source and the table drew mid-run.)
+    const reports: (CoverageReport | null)[] = new Array<CoverageReport | null>(
+      positions.length,
+    ).fill(null);
     let completed = 0;
     void runBounded({
       items: positions,
@@ -344,18 +353,18 @@ function useReferenceCoverage(
           // itself may be `undefined` if a previous run's
           // effect was reused; guard accordingly.
           const newReports = computeCoverage(position, [
-            { id: provider.id, name: provider.id, result },
+            { id: provider.id, name: provider.name ?? provider.id, result },
           ]);
           // Take the first report (one position yields one
           // report). If `newReports` is empty (e.g. the
           // provider returned zero moves), the row stays
           // blank but the slot's progress is still
           // counted.
-          reports[index] = newReports[0] as CoverageReport;
+          reports[index] = newReports[0] ?? null;
           completed += 1;
           if (!cancelled) {
             setState({
-              data: [...reports].filter((report): report is CoverageReport => report !== undefined),
+              data: reports.filter((report): report is CoverageReport => report !== null),
               pending: completed < positions.length,
               completed,
               total: positions.length,
@@ -365,7 +374,7 @@ function useReferenceCoverage(
     }).catch(() => {
       if (!cancelled)
         setState({
-          data: reports.filter((r): r is CoverageReport => r !== undefined),
+          data: reports.filter((r): r is CoverageReport => r !== null),
           pending: false,
           completed,
           total: positions.length,
