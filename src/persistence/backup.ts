@@ -50,7 +50,7 @@ import type { PersistenceDatabase, PersistenceTransaction } from './indexeddb/da
 export const BACKUP_FORMAT = 'kingfisher-workspace';
 export const BACKUP_VERSION = 1;
 
-const PORTABLE_STORES = [
+export const PORTABLE_STORES = [
   STORE_NAMES.studies,
   STORE_NAMES.chapters,
   STORE_NAMES.drafts,
@@ -84,7 +84,33 @@ const LATER_AUTHORED_STORES = new Set<StoreName>([
   STORE_NAMES.playerIdentities,
 ]);
 
-const GAME_STORES = [STORE_NAMES.games, STORE_NAMES.gameContent, STORE_NAMES.positions] as const;
+export const GAME_STORES = [
+  STORE_NAMES.games,
+  STORE_NAMES.gameContent,
+  STORE_NAMES.positions,
+] as const;
+
+/**
+ * Stores a backup deliberately leaves out, each with the reason.
+ *
+ * Every store in the schema must be in exactly one of the three lists. A
+ * store in none of them is a store whose portability nobody decided, and
+ * `backup-completeness.test.ts` refuses that: the list of portable stores has
+ * been wrong before, and a backup that silently omits a store is
+ * indistinguishable from a complete one until somebody restores it.
+ */
+export const NON_PORTABLE_STORES: Readonly<Partial<Record<StoreName, string>>> = {
+  // Pack bytes are re-downloadable from the catalog; only the *metadata*
+  // travels (as `referenceSources`), so a restore can say what to reinstall.
+  [STORE_NAMES.referencePacks]: 'reference pack metadata is recorded as referenceSources instead',
+  [STORE_NAMES.referenceChunks]: 'reference pack contents are re-downloaded, never exported',
+  // A Polyglot book is a file the user already has, tens of megabytes of
+  // binary that would have to be base64 inside a JSON document.
+  [STORE_NAMES.openingBooks]: 'opening books are files the user adds again from disk',
+  // A backup of the backups would nest every previous snapshot inside the
+  // next one.
+  [STORE_NAMES.backups]: 'automatic backup snapshots are not themselves backed up',
+};
 
 export interface WorkspaceBackup {
   readonly format: typeof BACKUP_FORMAT;

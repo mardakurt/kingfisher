@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { toggleShape as toggleShapeOn } from '@/chess/tree/tree';
 import { cp, mate } from '@/chess/evaluation';
-import { START_FEN } from '@/chess/fen';
+import { START_FEN, positionKey } from '@/chess/fen';
 import { playSanAt } from '@/chess/game';
 import { parsePgn, serializePgn } from '@/chess/pgn';
 import { expect as unwrap } from '@/chess/result';
@@ -16,9 +16,9 @@ import {
   setNags,
 } from '@/chess/tree/tree';
 import type { GameTree, NodeId } from '@/chess/tree/types';
-import type { Square } from '@/chess/types';
+import type { Fen, Square } from '@/chess/types';
 
-import { normalizeGame } from '../import-game';
+import { indexGame, normalizeGame } from '../import-game';
 import type { AppRepositories, ChapterRecord } from '../types';
 import { createMemoryRepositories } from './index';
 
@@ -386,6 +386,33 @@ describe('game repository', () => {
   it('preserves PGN tags it has no column for', () => {
     const game = gameFrom('[White "A"]\n[Black "B"]\n[Annotator "Nunn"]\n\n1. e4 *');
     expect(game.tree.headers.Annotator).toBe('Nunn');
+  });
+
+  it('lists the move orders that reach a position, and only the moves before it', async () => {
+    /*
+      A position record carries the move played *from* its position, so the
+      record that arrives at a position is one move past it. The routes are
+      the moves before that record; the continuation is not part of how the
+      game got there, and a game that begins at the position from a FEN has
+      no route at all.
+    */
+    const store = async (pgn: string) => {
+      const game = gameFrom(pgn);
+      await repositories.games.persist(game, indexGame(game));
+    };
+    await store('[White "A"]\n[Black "B"]\n\n1. d4 d5 2. Nf3 Nf6 3. c4 e6 *');
+    await store('[White "C"]\n[Black "D"]\n\n1. Nf3 d5 2. d4 Nf6 3. e3 *');
+    await store(
+      '[White "E"]\n[Black "F"]\n[SetUp "1"]\n' +
+        '[FEN "rnbqkbnr/ppp1pppp/8/3p4/3P4/5N2/PPP1PPPP/RNBQKB1R b KQkq - 1 2"]\n\n2... Nf6 3. c4 *',
+    );
+
+    const tabiya = positionKey(
+      'rnbqkbnr/ppp1pppp/8/3p4/3P4/5N2/PPP1PPPP/RNBQKB1R b KQkq - 1 2' as Fen,
+    );
+    const routes = await repositories.games.routesToPosition(tabiya);
+    expect(routes.map((route) => route.moves.join(' ')).sort()).toEqual(['Nf3 d5 d4', 'd4 d5 Nf3']);
+    for (const route of routes) expect(route.games).toBe(1);
   });
 
   it('skips a game that is already stored instead of duplicating it', async () => {

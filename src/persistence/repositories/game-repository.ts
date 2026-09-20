@@ -370,8 +370,17 @@ export class LocalGameRepository implements GameRepository {
         'gameId',
         gameId,
       );
+      /*
+        A record is keyed by the position *before* its move, and `ply` is that
+        move's ply — so the record that arrives at the position carries the
+        move played *from* it. The route is every move strictly before that
+        one. Including the arrival record itself listed the continuation as
+        part of the move order ("e4 e5" as a route to the position after
+        1.e4), and a game that starts from a FEN at this very position has
+        no route at all rather than a route of one move.
+      */
       const moves = records
-        .filter((record) => record.ply <= ply)
+        .filter((record) => record.ply < ply)
         .sort((a, b) => a.ply - b.ply)
         .map((record) => record.moveSan);
       if (moves.length === 0) continue;

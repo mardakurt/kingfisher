@@ -2,7 +2,13 @@ import { describe, expect, it } from 'vitest';
 
 import { START_FEN, positionKey } from '@/chess/fen';
 import { createMemoryRepositories } from './repositories';
-import { createWorkspaceBackup, restoreWorkspaceBackup } from './backup';
+import {
+  createWorkspaceBackup,
+  GAME_STORES,
+  NON_PORTABLE_STORES,
+  PORTABLE_STORES,
+  restoreWorkspaceBackup,
+} from './backup';
 import { STORE_NAMES, type StoreName } from './schema/migrations';
 
 const common = { id: 'authored', createdAt: 1, updatedAt: 2, revision: 0 };
@@ -106,5 +112,33 @@ describe('the whole authored workspace is portable', () => {
       ),
     ).rejects.toThrow(/openingFiles/);
     expect(await target.studies.get(study.id)).not.toBeNull();
+  });
+});
+
+describe('every store in the schema has a portability decision', () => {
+  /*
+    The rule in AGENTS.md: every store holding work a person authored must be
+    in PORTABLE_STORES. This is the check that a store added to the schema
+    was placed somewhere on purpose — portable, a game store, or excluded
+    with a written reason — rather than left out by omission.
+  */
+  it('classifies each store exactly once', () => {
+    const portable = new Set<string>(PORTABLE_STORES);
+    const games = new Set<string>(GAME_STORES);
+    const excluded = new Set<string>(Object.keys(NON_PORTABLE_STORES));
+    const all = Object.values(STORE_NAMES);
+    for (const store of all) {
+      const memberships = [portable.has(store), games.has(store), excluded.has(store)].filter(
+        Boolean,
+      ).length;
+      expect(memberships, `${store} must be in exactly one list`).toBe(1);
+    }
+    expect(portable.size + games.size + excluded.size).toBe(all.length);
+  });
+
+  it('gives every exclusion a reason', () => {
+    for (const [store, reason] of Object.entries(NON_PORTABLE_STORES)) {
+      expect(typeof reason === 'string' && reason.length > 10, store).toBe(true);
+    }
   });
 });

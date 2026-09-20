@@ -211,38 +211,60 @@ class NativeTransaction implements PersistenceTransaction {
   }
 }
 
+/**
+ * What a tab is told when another tab upgraded the schema under it.
+ *
+ * The browser's own message is "The database connection is closing", which
+ * says nothing about why or what to do. The connection was closed on purpose
+ * (see `onversionchange` below) so the newer tab's upgrade could proceed;
+ * this tab's code predates that schema and cannot reopen it, so the only
+ * remedy is the one named here.
+ */
+export const UPGRADED_ELSEWHERE_MESSAGE =
+  'Kingfisher was updated in another tab. Reload this tab to keep working.';
+
 class NativeDatabase implements PersistenceDatabase {
+  private upgradedElsewhere = false;
+
   constructor(private readonly value: IDBDatabase) {}
 
+  /** Called when another connection asked for a newer version. */
+  markUpgradedElsewhere(): void {
+    this.upgradedElsewhere = true;
+  }
+
   private readonly(stores: readonly StoreName[]): NativeTransaction {
+    if (this.upgradedElsewhere) throw new Error(UPGRADED_ELSEWHERE_MESSAGE);
     return new NativeTransaction(this.value.transaction(stores, 'readonly'));
   }
 
-  get<T>(store: StoreName, key: IDBValidKey): Promise<T | undefined> {
+  // `async`, so a connection that can no longer open a transaction rejects
+  // the promise a caller is awaiting rather than throwing before it exists.
+  async get<T>(store: StoreName, key: IDBValidKey): Promise<T | undefined> {
     return this.readonly([store]).get<T>(store, key);
   }
 
-  getAll<T>(store: StoreName): Promise<T[]> {
+  async getAll<T>(store: StoreName): Promise<T[]> {
     return this.readonly([store]).getAll<T>(store);
   }
 
-  count(store: StoreName): Promise<number> {
+  async count(store: StoreName): Promise<number> {
     return this.readonly([store]).count(store);
   }
 
-  countRange(store: StoreName, index: string | null, range?: KeyRange): Promise<number> {
+  async countRange(store: StoreName, index: string | null, range?: KeyRange): Promise<number> {
     return this.readonly([store]).countRange(store, index, range);
   }
 
-  scan<T>(store: StoreName, options?: ScanOptions<T>): Promise<ScanResult<T>> {
+  async scan<T>(store: StoreName, options?: ScanOptions<T>): Promise<ScanResult<T>> {
     return this.readonly([store]).scan<T>(store, options);
   }
 
-  getAllFromIndex<T>(store: StoreName, index: string, key?: Key): Promise<T[]> {
+  async getAllFromIndex<T>(store: StoreName, index: string, key?: Key): Promise<T[]> {
     return this.readonly([store]).getAllFromIndex<T>(store, index, key);
   }
 
-  getAllKeysFromIndex(store: StoreName, index: string, key?: Key): Promise<IDBValidKey[]> {
+  async getAllKeysFromIndex(store: StoreName, index: string, key?: Key): Promise<IDBValidKey[]> {
     return this.readonly([store]).getAllKeysFromIndex(store, index, key);
   }
 
@@ -263,6 +285,7 @@ class NativeDatabase implements PersistenceDatabase {
     mode: IDBTransactionMode,
     work: (transaction: PersistenceTransaction) => Promise<T>,
   ): Promise<T> {
+    if (this.upgradedElsewhere) throw new Error(UPGRADED_ELSEWHERE_MESSAGE);
     const native = this.value.transaction(stores, mode);
     const done = complete(native);
     try {
@@ -373,8 +396,18 @@ export async function openPersistenceDatabaseAt(
     open.onblocked = () => reject(new Error('Local storage upgrade is blocked by another tab.'));
   });
 
-  value.onversionchange = () => value.close();
-  return new NativeDatabase(value);
+  const database = new NativeDatabase(value);
+  /*
+    Another tab is opening the database at a newer version — this build was
+    updated and that tab reloaded first. Closing promptly is what lets its
+    upgrade run instead of blocking on this connection; every later call from
+    this tab then fails with a message that names the remedy.
+  */
+  value.onversionchange = () => {
+    database.markUpgradedElsewhere();
+    value.close();
+  };
+  return database;
 }
 
 export function openPersistenceDatabase(): Promise<PersistenceDatabase> {
