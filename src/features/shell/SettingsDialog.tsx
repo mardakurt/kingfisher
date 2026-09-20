@@ -79,12 +79,14 @@ import { useShortcuts } from '@/stores/shortcuts-store';
 import type { ChessDatabaseProvider, ProviderHealth } from '@/database/types';
 import { engineDefinitions } from '@/engine/registry';
 import { useCompanionReach, useCompanionStatus } from '@/companion/useCompanion';
+import { useBrowserPlatformFamily } from '@/features/engine/EngineSelect';
 import { useAccountSync, type AccountSyncState } from '@/stores/account-sync-store';
 import type { LinkedAccountRecord, SyncProvider } from '@/persistence/domain';
 import { cn } from '@/lib/cn';
 import type { PieceType } from '@/chess/types';
 import { PwaInstallCard, PwaDiagnostic } from '@/pwa';
 import { UpdateCheckSection } from '@/release/UpdateCheckSection';
+import { StudioEntrySetting } from './StudioEntrySetting';
 import { publicUrl } from '@/release/public-urls';
 import { DEFAULT_PREFERENCES, usePreferences, type Preferences } from '@/stores/preferences-store';
 import { catalogPack } from '@/reference/catalog';
@@ -710,6 +712,7 @@ function CompanionSection() {
   const prefs = usePreferences();
   const status = useCompanionStatus();
   const reach = useCompanionReach();
+  const onMac = useBrowserPlatformFamily() === 'darwin';
   const [pairing, setPairing] = useState('');
   const [error, setError] = useState<string | null>(null);
   const connected = Boolean(prefs.companionUrl && prefs.companionToken);
@@ -768,17 +771,30 @@ function CompanionSection() {
               <span className="font-mono text-[11px]">
                 {typeof window === 'undefined' ? 'this site' : window.location.host}
               </span>{' '}
-              cannot reach it, by design. Native engines, SQLite databases and local tablebases are
-              in the Kingfisher Mac application, which includes the companion and needs no setup.
+              cannot reach it, by design.{' '}
+              {onMac
+                ? 'Native engines, SQLite databases and local tablebases are in the Kingfisher Mac application, which includes the companion and needs no setup.'
+                : 'There is no Kingfisher application for Windows or Linux yet. Native engines, SQLite databases and local tablebases are available in the Kingfisher Mac application, and from a Kingfisher checkout run on your own machine (companion/README.md).'}
             </p>
-            <a
-              href={publicUrl.landing + '#macos'}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-2 inline-block text-accent hover:underline"
-            >
-              Download Kingfisher for macOS →
-            </a>
+            {onMac ? (
+              <a
+                href={publicUrl.landing + '#macos'}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-2 inline-block text-accent hover:underline"
+              >
+                Download Kingfisher for macOS →
+              </a>
+            ) : (
+              <a
+                href={`${publicUrl.repository}/blob/master/companion/README.md`}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-2 inline-block text-accent hover:underline"
+              >
+                Read about the companion →
+              </a>
+            )}
           </div>
         ) : (
           <details
@@ -3073,6 +3089,7 @@ function WorkspaceSection() {
 
   return (
     <div className="flex flex-col gap-4">
+      <StudioEntrySetting />
       {/*
         A policy rather than a pixel size, because the same number of pixels is
         a huge board on a desktop display and an impossible one on a laptop.

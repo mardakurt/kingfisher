@@ -491,4 +491,11 @@ export const NON_PREFERENCE_SETTINGS: Readonly<Record<string, string>> = {
     which is why it lives here and not in SETTING_CONTRACTS.
   */
   'help-and-feedback': 'a navigation target, not a stored value',
+  /*
+    Phase 72: the landing's "open the Studio straight away" choice, a
+    localStorage key this browser owns (`studio-entry.ts`, AUTO_OPEN_KEY),
+    read by the landing's inline script and StudioEntry rather than by any
+    preferences consumer; asserted end to end in e2e/studio-entry.spec.ts.
+  */
+  'skip-landing': 'studio-entry: localStorage AUTO_OPEN_KEY, read by the landing',
 };

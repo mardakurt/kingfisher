@@ -182,7 +182,14 @@ export function ModuleTabStrip({
     <div
       ref={strip}
       role="tablist"
-      className="flex shrink-0 flex-nowrap items-stretch overflow-hidden border-b border-line-subtle"
+      /*
+        Clipped on the x axis only. The row never needs to scroll, and the
+        unmeasured first paint may briefly be wider than the strip — but the
+        More menu is an absolutely positioned list hanging *below* the row,
+        and `overflow-hidden` here cut it to one item (the Phase 72 audit's
+        own regression, caught by the owner: "More shows only one option").
+      */
+      className="flex shrink-0 flex-nowrap items-stretch overflow-x-clip overflow-y-visible border-b border-line-subtle"
       data-tab-strip
       data-tab-strip-compact={compact ? 'true' : undefined}
     >

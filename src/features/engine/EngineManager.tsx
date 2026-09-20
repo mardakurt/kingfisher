@@ -23,6 +23,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Toggle } from '@/components/ui/Toggle';
 import { companionClient } from '@/companion/session';
 import { useCompanionReach } from '@/companion/useCompanion';
+import { useBrowserPlatformFamily } from './EngineSelect';
 import { publicUrl } from '@/release/public-urls';
 import type { CatalogueEngine } from '@/companion/client';
 import {
@@ -50,6 +51,9 @@ const formatBytes = (value: number): string =>
 export function EngineManager() {
   const client = companionClient();
   const reach = useCompanionReach();
+  // Which application can run these engines depends on the machine: the Mac
+  // application exists, a Windows or Linux one does not (see platform-note.ts).
+  const onMac = useBrowserPlatformFamily() === 'darwin';
   const queryClient = useQueryClient();
   const notify = useUi((state) => state.notify);
   const hidden = usePreferences((state) => state.hiddenEngineIds);
@@ -152,7 +156,9 @@ export function EngineManager() {
             browser runs.{' '}
             {reach === 'checkout'
               ? 'Everything else is a one-command install once you pair the companion.'
-              : 'Every other engine runs natively inside the Kingfisher Mac application, which includes the companion and needs no setup.'}
+              : onMac
+                ? 'Every other engine runs natively inside the Kingfisher Mac application, which includes the companion and needs no setup.'
+                : 'No other engine runs in a browser, and there is no Kingfisher application for Windows or Linux yet; the native engines below are what the Mac application and a Kingfisher checkout can run.'}
           </p>
           <p className="mt-2 text-2xs">
             {reach === 'checkout' ? (
@@ -162,8 +168,8 @@ export function EngineManager() {
               </>
             ) : (
               <>
-                On a Mac, <em className="not-italic">Settings → Engines</em> in the application
-                lists{' '}
+                {onMac ? 'On a Mac, ' : 'In the Mac application, '}
+                <em className="not-italic">Settings → Engines</em> lists{' '}
               </>
             )}
             <strong className="font-medium text-secondary">Lc0</strong> (neural network, plays
@@ -176,7 +182,7 @@ export function EngineManager() {
             installs with a single click from its own GitHub release, with a SHA-256 check before
             the binary runs.
           </p>
-          {reach === 'remote' ? (
+          {reach === 'remote' && onMac ? (
             <p className="mt-2 text-2xs">
               <a
                 href={publicUrl.landing + '#macos'}

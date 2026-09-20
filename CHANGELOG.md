@@ -8,6 +8,22 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
+- **The More menu shows every tool again.** The one-row tool strip
+  (1.2.2) clipped its own More menu to a single item, so the last tools
+  could only be reached by pinning everything before them. (Phase 72)
+- **Engine notes say what is true for your machine.** On a Mac the
+  public site used to say "Windows only" for the Windows-only engines
+  and, from a Windows or Linux browser, "Mac app only" for every native
+  engine — neither a path anyone on the web can take. Now: from a Mac,
+  "Mac app only" for the engines the Mac application runs; from Windows
+  or Linux, "not available in the browser"; in the Mac application and a
+  checkout, "needs the companion" or "Windows only" as before. The
+  Engines list and the Companion panel say the same. (Phase 72)
+- **Skip the landing page, from Settings.** _Settings → Workspace_ has
+  the "open the Studio straight away" choice the landing offers, so it
+  can be turned on or off from inside the Studio on any device, not only
+  at `/?stay`. (Phase 72)
+
 ## 1.2.2 — 2026-09-20
 
 Kingfisher 1.2.2 carries every change below to the Mac application; the

@@ -60,6 +60,19 @@ them this address when they tick it. The auto-open key on its own —
 without the visit marker — never fires, so cleared site data or a
 restored profile cannot send a stranger into an empty Studio.
 
+**Turning it off, from any device.** The choice is also in the Studio
+itself — _Settings → Workspace → Skip the landing page_ — reading and
+writing the same key, so a person who ticked the box can undo it without
+remembering `/?stay`, and a device whose landing never showed the box
+can still set it. Both surfaces exist because the landing's own checkbox
+appears only where _this browser_ has visited the Studio: a Studio
+installed as a web app (its own storage, apart from the browser's), a
+different browser on the same machine, or a private window each count
+as a browser that has not — which is why "the option shows on some
+devices and not others" was true, and why the setting lives inside the
+Studio too. The Mac application never loads the landing and does not
+show the setting.
+
 **A search engine** has no `localStorage` and sees the first-time
 landing. `/analysis` and the other Studio routes carry
 `X-Robots-Tag: noindex` (`src/middleware.ts`); `/studio` is a redirect

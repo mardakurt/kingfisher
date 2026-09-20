@@ -24,6 +24,20 @@ validation, scheduled backup preference serialization, and an incorrect
 native-companion prerequisite on the AI assistant panel. The engine toolbar
 also wraps controls to keep the engine selector readable in a narrow panel.
 
+**Published revision check (Phase 72 follow-up, Mac-facing — not yet
+released).** After 1.2.2 shipped, three owner reports changed
+application code the Mac shell renders: the dock's More menu was clipped
+to one item by the one-row strip (1.2.2 carries that regression — in the
+Mac application, choosing a folded tool means pinning everything before
+it until 1.2.3); the engine selector's platform notes are now decided by
+one tested rule from the browser's OS and where the page is served
+(inside the Mac application the wording is unchanged: "needs the
+companion" / "Windows only"); and Settings → Workspace gains the "skip
+the landing page" switch, which the Mac application hides because it
+never loads the landing. Web-facing in substance, but the More-menu fix
+matters to a Mac user, so the difference is recorded and a 1.2.3 is
+owed.
+
 **Published revision check (2026-09-20, 1.2.2).** The public Mac 1.2.2
 (build 673, `96f1822`) is built from the `v1.2.2` tag's revision, which
 is the revision `kingfisherchess.app` served when it was built

@@ -60,6 +60,13 @@ export interface SettingsEntry {
 
 export const SETTINGS_INDEX: readonly SettingsEntry[] = [
   {
+    id: 'skip-landing',
+    label: 'Skip the landing page',
+    section: 'workspace',
+    description: 'Open the Studio straight away when this browser visits the public address.',
+    keywords: ['landing', 'skip', 'studio', 'home', 'start page', 'marketing', 'continue'],
+  },
+  {
     id: 'theme',
     label: 'Application theme',
     section: 'appearance',

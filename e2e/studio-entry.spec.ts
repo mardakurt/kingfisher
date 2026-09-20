@@ -103,3 +103,36 @@ test('the Studio never redirects to the landing, and a deep link reloads in plac
     await expect(page).toHaveURL(new RegExp(`${route}$`));
   }
 });
+
+/*
+  Phase 72: the choice is also in Settings → Workspace, from inside the
+  Studio, on every device — the landing's own checkbox appears only where
+  this browser has already visited the Studio, and `/?stay` was the only
+  way to undo it. The toggle reads and writes the same key the landing does.
+*/
+test('Settings → Workspace turns the landing skip on and off', async ({ page }) => {
+  await page.goto('/analysis');
+  await page.locator('html[data-kingfisher-ready="true"]').waitFor();
+  await page.keyboard.press('Meta+,');
+  await page.getByRole('tab', { name: 'Workspace' }).click();
+  const toggle = page.getByRole('switch', {
+    name: 'Skip the landing page and open the Studio straight away',
+  });
+  await expect(toggle).toHaveAttribute('aria-checked', 'false');
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-checked', 'true');
+  expect(await page.evaluate((key) => localStorage.getItem(key), AUTO_OPEN)).toBe('1');
+
+  // The landing now skips itself for this browser…
+  await page.goto('/');
+  await expect(page).toHaveURL(/\/analysis$/);
+
+  // …and the same toggle turns it off again.
+  await page.keyboard.press('Meta+,');
+  await page.getByRole('tab', { name: 'Workspace' }).click();
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-checked', 'false');
+  expect(await page.evaluate((key) => localStorage.getItem(key), AUTO_OPEN)).toBeNull();
+  await page.goto('/');
+  await expect(page).toHaveURL(/\/$/);
+});

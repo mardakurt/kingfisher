@@ -18,7 +18,7 @@
 import { useSyncExternalStore } from 'react';
 
 import { useCompanionReach, useCompanionStatus } from '@/companion/useCompanion';
-import { enginesNotPublishedFor, publishedPlatformWords } from '@/engine/registry';
+import { browserPlatformFamily, engineNote, type PlatformFamily } from '@/engine/platform-note';
 import { useVisibleEngineDefinitions } from '@/engine/use-engines';
 import { cn } from '@/lib/cn';
 import { useEngine, type SlotId } from '@/stores/engine-store';
@@ -41,18 +41,11 @@ export function EngineSelect({
   const installed = new Set((companion.data?.engines ?? []).map((engine) => engine.id));
   const paired = companion.data !== undefined;
   /*
-    With no companion the platform is not yet known from the machine, so the
-    browser's own family stands in for the one question a Mac user has: is
-    this engine even published for a Mac? "Needs the companion" for an engine
-    that will never exist on macOS would send them to pair one for nothing.
+    The note after a native engine's name is one tested rule
+    (`engine/platform-note.ts`), fed the browser's operating system — read
+    after hydration, never during it — and where this page is served from.
   */
   const family = useBrowserPlatformFamily();
-  const notPublished = family ? enginesNotPublishedFor(family) : [];
-  /*
-    On the public site a companion cannot be paired at all (see
-    `companion/reach.ts`), so "needs the companion" would name a setup that
-    cannot succeed. The note there says where the engine does run.
-  */
   const reach = useCompanionReach();
 
   return (
@@ -70,20 +63,14 @@ export function EngineSelect({
       )}
     >
       {definitions.map((definition) => {
-        const native = definition.transport === 'native';
-        const publishedHere =
-          family === null || !notPublished.some((entry) => entry.id === definition.id);
-        const note = !native
-          ? ''
-          : !publishedHere
-            ? ` — ${publishedPlatformWords(definition.platforms)} only`
-            : !paired
-              ? reach === 'remote'
-                ? ' — Mac app only'
-                : ' — needs the companion'
-              : installed.has(definition.id)
-                ? ''
-                : ' — not installed';
+        const note = engineNote({
+          native: definition.transport === 'native',
+          ...(definition.platforms ? { platforms: definition.platforms } : {}),
+          family,
+          reach,
+          paired,
+          installed: installed.has(definition.id),
+        });
         return (
           <option key={definition.id} value={definition.id}>
             {definition.name}
@@ -95,8 +82,6 @@ export function EngineSelect({
   );
 }
 
-type PlatformFamily = 'darwin' | 'win32' | 'linux';
-
 /**
  * The operating-system family the browser runs on, in the registry's terms.
  *
@@ -104,24 +89,13 @@ type PlatformFamily = 'darwin' | 'win32' | 'linux';
  * and rendered every option without a platform note; a client that read the
  * user agent while hydrating rendered "— Windows only" into the same option,
  * and React answered the mismatch by discarding the server's whole tree and
- * regenerating it — a console error on every visit to Analysis, and the
- * inline bootstrap scripts in the document head re-rendered as inert
- * elements. The first client render therefore matches the server exactly,
- * and the notes arrive one effect later.
+ * regenerating it. The first client render therefore matches the server
+ * exactly, and the notes arrive one effect later.
  */
-function useBrowserPlatformFamily(): PlatformFamily | null {
+export function useBrowserPlatformFamily(): PlatformFamily | null {
   // The user agent never changes, so the store never notifies; what matters
   // is the server snapshot, which is the null the server also rendered.
   return useSyncExternalStore(subscribeNever, browserPlatformFamily, () => null);
 }
 
 const subscribeNever = () => () => {};
-
-function browserPlatformFamily(): PlatformFamily | null {
-  if (typeof navigator === 'undefined') return null;
-  const agent = navigator.userAgent;
-  if (/Mac OS X|Macintosh/.test(agent)) return 'darwin';
-  if (/Windows/.test(agent)) return 'win32';
-  if (/Linux/.test(agent)) return 'linux';
-  return null;
-}

@@ -61,14 +61,28 @@ test('More lists every remaining tool and leaves the pinned tabs where they were
   await expect(menu).toBeVisible();
   const items = menu.getByRole('menuitem');
   expect(await items.count()).toBeGreaterThan(8);
-  // Every item is actually on screen — the menu used to be clipped to one.
-  const boxes = await items.evaluateAll((nodes) =>
+  /*
+    Every item is actually on screen — the menu used to be clipped to one.
+    A bounding box is not enough to know: Phase 72's one-row strip put
+    `overflow: hidden` on the row and the menu still *had* boxes below it,
+    it was just painted over. So each item is hit-tested at its own centre:
+    the element the browser would deliver a click to must be the item.
+  */
+  const reachable = await items.evaluateAll((nodes) =>
     nodes.map((node) => {
       const rect = node.getBoundingClientRect();
-      return rect.height > 0 && rect.bottom <= window.innerHeight;
+      if (rect.height === 0 || rect.bottom > window.innerHeight) return false;
+      const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+      return hit === node || node.contains(hit);
     }),
   );
-  expect(boxes.every(Boolean)).toBe(true);
+  expect(
+    reachable.every(Boolean),
+    `unreachable menu items: ${reachable
+      .map((r, i) => (r ? '' : i))
+      .filter((x) => x !== '')
+      .join(',')}`,
+  ).toBe(true);
   await menu.getByRole('menuitem', { name: 'Calculation' }).click();
   await expect(dock.getByRole('tab', { name: 'Calculation' })).toBeVisible();
   // The pinned tab did not scroll away; one click returns.
