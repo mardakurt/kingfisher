@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { studioHostFor } from './host';
 
 describe('studioHostFor', () => {
-  it('treats the public host as an application host, as the middleware does', () => {
+  it('treats the public host as an application host, as the proxy does', () => {
     expect(studioHostFor('kingfisherchess.app')).toBe('kingfisherchess.app');
     expect(studioHostFor('www.kingfisherchess.app:443')).toBe('www.kingfisherchess.app');
   });

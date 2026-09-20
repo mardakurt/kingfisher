@@ -203,7 +203,7 @@ for (const rel of CANONICAL) {
 // continuity story or are themselves the compatibility record.
 const legacyPagesRe = /mardakurt\.github\.io\/kingfisher-data\b/g;
 const allowLegacyPages = new Set([
-  'src/middleware-host-rules.ts',
+  'src/proxy-host-rules.ts',
   'src/release/public-urls.ts',
   'docs/data/data-inventory.md',
   'docs/operations/search-console.md',

@@ -75,7 +75,7 @@ show the setting.
 
 **A search engine** has no `localStorage` and sees the first-time
 landing. `/analysis` and the other Studio routes carry
-`X-Robots-Tag: noindex` (`src/middleware.ts`); `/studio` is a redirect
+`X-Robots-Tag: noindex` (`src/proxy.ts`); `/studio` is a redirect
 and is not in the sitemap.
 
 **The Mac application** never loads the landing. Its window opens on
@@ -89,7 +89,7 @@ reachable from it only as an external link in the system browser.
   opted in, and never on `/?stay`. `/analysis` never redirects to `/`.
 - `/studio` → `/analysis` is a single server redirect to a page that
   redirects nowhere.
-- On the legacy landing-only hosts (`src/middleware-host-rules.ts`), a
+- On the legacy landing-only hosts (`src/proxy-host-rules.ts`), a
   Studio route is redirected to `/`, and `/` serves the landing; the
   client-side rule then finds no visit marker on that origin and does
   nothing.

@@ -1,18 +1,18 @@
 /**
- * Browser-side mirror of the middleware's studio-host decision.
+ * Browser-side mirror of the proxy's studio-host decision.
  *
- * The middleware lives in the Edge runtime and cannot be imported
- * from a browser bundle, but the rule it enforces — "the studio
+ * The proxy (`src/proxy.ts`) runs on the server and is not imported
+ * into a browser bundle, but the rule it enforces — "the studio
  * host is a particular set of hostnames, everything else is the
  * landing page" — has to be enforced in the browser too, so that
  * the PWA does not try to install on the marketing origin.
  *
- * Keep this list in lockstep with `src/middleware-host-rules.ts`.
+ * Keep this list in lockstep with `src/proxy-host-rules.ts`.
  * A divergence here would mean a player can install the marketing
  * page as a PWA, which the directive explicitly forbids.
  *
  * Pure function: no environment access, no `window`, no side
- * effects. Test the same way the middleware test does.
+ * effects. Test the same way the proxy test does.
  */
 
 const STUDIO_HOSTS = new Set<string>([
@@ -28,7 +28,7 @@ const STUDIO_HOSTS = new Set<string>([
 /**
  * Return the bare hostname (no port) when the visitor is on a
  * studio host, or `null` otherwise. Mirrors
- * `middleware-host-rules.studioHostFor`.
+ * `proxy-host-rules.studioHostFor`.
  */
 export function studioHostFor(hostHeader: string | null | undefined): string | null {
   if (!hostHeader) return null;

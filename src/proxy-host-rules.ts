@@ -1,11 +1,10 @@
 /**
- * Host-routing rules extracted from the middleware for testability.
+ * Host-routing rules extracted from the proxy for testability.
  *
- * The middleware itself cannot be unit-tested in isolation because it
- * runs inside Next's Edge runtime and reads the host header from the
- * incoming `NextRequest`. The two pure functions here carry the
- * actual decision logic, so a unit tests pins the rule and the
- * middleware is a thin shim around them.
+ * The proxy itself (`proxy.ts`) reads the host header from the incoming
+ * `NextRequest` and is not worth unit-testing in isolation. The pure
+ * functions here carry the actual decision logic, so a unit test pins the
+ * rule and the proxy is a thin shim around them.
  */
 
 export const STUDIO_HOST_ENV = 'KINGFISHER_STUDIO_HOST';
@@ -101,8 +100,8 @@ export function isLandingAsset(pathname: string): boolean {
 }
 
 /**
- * What the middleware should do for a given host + path combination.
- * The middleware translates this into NextResponse.rewrite /
+ * What the proxy should do for a given host + path combination.
+ * The proxy translates this into NextResponse.rewrite /
  * .redirect / .next calls.
  */
 export type RoutingAction =

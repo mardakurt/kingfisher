@@ -4,17 +4,15 @@ import { publicUrl } from '@/release/public-urls';
 /**
  * /robots.txt
  *
- * The landing is the only surface that should be indexed like a
- * marketing site. The Studio is an application; its routes are
- * application surfaces, not search landing pages, and are marked
- * `noindex, nofollow` per-route. A `Disallow: /analysis` etc. is
- * not the right tool here: the application shares the marketing
- * origin's robots and we want the landing to be fully
- * crawlable.
- *
- * The Studio host (a different Vercel alias) is expected to ship
- * its own robots.txt that disallows all routes, but that file
- * lives on the Studio deployment and is not generated here.
+ * The landing and the public documents are the only surfaces that
+ * should be indexed like a marketing site. The Studio is an
+ * application; its routes are application surfaces, not search
+ * landing pages, and every response to one carries
+ * `X-Robots-Tag: noindex, nofollow` from `src/proxy.ts`. A
+ * `Disallow: /analysis` etc. is not the right tool here: the
+ * application shares the origin with the landing, and a disallowed
+ * route can still be indexed from links — the header is what keeps
+ * it out.
  */
 export default function robots(): MetadataRoute.Robots {
   const base = publicUrl.landing;

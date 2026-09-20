@@ -29,16 +29,16 @@
  * landing page instead of trying to install the marketing origin as a
  * standalone window.
  *
- * See `src/middleware-host-rules.ts` for the host detection that
- * this route relies on. The decision is duplicated here (rather than
- * imported) because route handlers run in the Node runtime while the
- * middleware runs in the Edge runtime.
+ * See `src/proxy-host-rules.ts` for the host detection that this
+ * route relies on. The decision is duplicated here (rather than
+ * imported) so that a route handler does not depend on the proxy's
+ * module, which Next may deploy separately from the application.
  */
 
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-import { isApplicationHost } from '@/middleware-host-rules';
+import { isApplicationHost } from '@/proxy-host-rules';
 
 const ICON_192 = '/icon-192.png';
 const ICON_512 = '/icon-512.png';
@@ -101,7 +101,7 @@ export function GET(request: NextRequest): NextResponse {
       'cache-control': isStudio ? 'public, max-age=300, must-revalidate' : 'public, max-age=300',
       // The studio manifest is not a search-engine target. The
       // marketing manifest must remain indexable; it is served with
-      // the same content-type either way, so the middleware-applied
+      // the same content-type either way, so the proxy-applied
       // `X-Robots-Tag: noindex` on studio responses is the single
       // source of truth for indexing.
       'x-robots-tag': isStudio ? 'noindex, nofollow' : 'all',

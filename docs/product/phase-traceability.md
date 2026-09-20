@@ -76,7 +76,7 @@ champion. Each has a test that fails on the previous code.
 | ------------------------------------------------------- | --------------------------------------------------------------------- | ----------------------------------------------- | ----------------------------------------- | ------ |
 | Reference pack pipeline, seekable zstd, early rejection | `scripts/build-reference-pack.mjs`, `scripts/reference/packs.mjs`     | pack builder tests, `pack.test.ts`              | four packs read by `bench-explorer-depth` | Held   |
 | Content-addressed chunk reuse across pack versions      | `src/reference/install.ts`, `store.ts`                                | `install.test.ts`                               | —                                         | Held   |
-| Landing and studio on separate origins                  | `src/middleware.ts`, `middleware-host-rules.ts`                       | host-rule tests                                 | both hosts answer from one deployment     | Held   |
+| Landing and studio on separate origins                  | `src/proxy.ts`, `proxy-host-rules.ts`                                 | host-rule tests                                 | both hosts answer from one deployment     | Held   |
 | Persistent-storage detection and degradation            | `src/persistence/storage-persistence.ts`, `StoragePersistenceStatus`  | `storage-hydration.test.ts`; `settings.spec.ts` | —                                         | Held   |
 | Caches outside the repository                           | `scripts/workspace-audit.mjs`, `operations/local-workspace-layout.md` | `workspace:audit` in the gate                   | 0 B inside the checkout                   | Held   |
 
@@ -96,7 +96,7 @@ champion. Each has a test that fails on the previous code.
 | --------------------------------------------- | -------------------------------------------------- | ----------------------------------------------- | --------------------------------------------------- | ------ |
 | Host-aware web manifest                       | `src/app/manifest.webmanifest/route.ts`            | `docs:check`                                    | `/manifest.webmanifest` on the studio               | Held   |
 | Service worker: offline shell, update check   | `public/sw.js`, `src/features/shell/` registration | `settings.spec.ts` (SW rows), `phase14.spec.ts` | production install prompt (see final certification) | Held   |
-| `noindex` on the studio, index on the landing | `src/app/robots.ts`, `middleware-host-rules.ts`    | `docs:check`                                    | headers read                                        | Held   |
+| `noindex` on the studio, index on the landing | `src/app/robots.ts`, `proxy-host-rules.ts`         | `docs:check`                                    | headers read                                        | Held   |
 
 ## Phase 35–36 — polished DMG, updater infrastructure
 

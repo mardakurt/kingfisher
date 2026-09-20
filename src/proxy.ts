@@ -1,49 +1,37 @@
 /**
- * Host-based middleware.
+ * Host-based proxy (Next's `proxy` file convention, formerly `middleware`).
  *
- * Kingfisher's public surface is two products on separate origins:
+ * Kingfisher's public surface is one origin, `kingfisherchess.app`: the
+ * landing at `/`, the public documents (`/install`, `/privacy`, …) and the
+ * application at `/analysis` and the other routes, exactly as on
+ * `localhost`. The host-routing rules also still understand a dedicated
+ * studio host — one that is the application and nothing else — for the
+ * deployments that had one before 2026-09-13 and for anyone who maps one.
  *
- *   - the *landing page* on `kingfisher-chess.vercel.app/` (or any
- *     domain the owner maps to the marketing origin);
- *   - the *studio* on a dedicated studio host (or any
- *     additional host the owner maps to the studio origin).
+ * The application routes are the working product — every page there is
+ * either deeply user-specific (a Study, a Repertoire chapter, a Training
+ * queue) or a product surface (Settings). It is not a place a search engine
+ * should ever send a visitor. Every application response therefore carries
+ * `X-Robots-Tag: noindex`, which is the one contract that works without
+ * shipping a different HTML document per host, and is what Google itself
+ * recommends for host-scoped noindex. The landing and the public documents
+ * are untouched and remain fully indexable.
  *
- * A player who has the studio bookmarked opens the studio directly;
- * they do not pass through the landing page. A reader who has not
- * installed anything yet opens the landing page and clicks a link.
+ * The decision logic lives in `proxy-host-rules.ts` so the rule is
+ * unit-testable in isolation; this file is a thin shim around it.
  *
- * The same Next.js project serves both. The host header tells the
- * middleware which surface the visitor is asking for. The studio's
- * existing routes (`/analysis`, `/openings`, ...) are served as-is;
- * the landing page (`/`) is rejected if the visitor is on the studio
- * host, and any studio route on the landing host redirects to `/`.
- *
- * The studio surface is the working application — every page there is
- * either deeply user-specific (a Study, a Repertoire chapter, a
- * Training queue) or a product surface (Settings). It is not a place
- * a search engine should ever send a visitor. The middleware adds a
- * `X-Robots-Tag: noindex` header to every studio response so the
- * search engines that respect the header keep the whole studio out
- * of their index. The header is the only contract that works without
- * shipping a different HTML document per host, and it is what Google
- * itself recommends for host-scoped noindex. The marketing origin is
- * untouched and remains fully indexable.
- *
- * The decision logic lives in `middleware-host-rules.ts` so the rule
- * is unit-testable in isolation.
- *
- * `KINGFISHER_STUDIO_HOST` names the host that should be treated as
- * the studio. When unset, the middleware is a no-op and the project
- * behaves as a single-origin Next.js app. That keeps local
- * development at `localhost:3210` working without configuration.
+ * `KINGFISHER_STUDIO_HOST` names an additional host that should be treated
+ * as the application-only studio. When unset, only the defaults in
+ * `proxy-host-rules.ts` apply, which keeps local development at
+ * `localhost:3210` working without configuration.
  */
 
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-import { noindexFor, routingFor } from './middleware-host-rules';
+import { noindexFor, routingFor } from './proxy-host-rules';
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const url = request.nextUrl;
   const host = request.headers.get('host');
   const action = routingFor(host, url.pathname);
@@ -77,7 +65,7 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   /*
-    The middleware runs for every navigation path. Static assets
+    The proxy runs for every navigation path. Static assets
     and Next's own internals are filtered out so a studio-host
     request for `/_next/static/...` is not redirected.
   */

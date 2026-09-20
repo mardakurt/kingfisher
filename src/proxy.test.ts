@@ -9,7 +9,7 @@ import {
   studioHostFor,
   PUBLIC_DEFAULT_HOSTS,
   STUDIO_DEFAULT_HOSTS,
-} from './middleware-host-rules';
+} from './proxy-host-rules';
 
 describe('the public host serves both surfaces on one origin', () => {
   it('recognises the apex and www, with or without a port, and nothing else', () => {

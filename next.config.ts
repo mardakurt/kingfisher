@@ -93,7 +93,7 @@ const nextConfig: NextConfig = {
       that lands there: permanent, so a browser caches it and a shared link
       keeps working, and query-preserving, so `/studio?set=x` still carries
       what it was given. Checked before the filesystem and before the
-      middleware, so it holds on every host this project serves.
+      proxy, so it holds on every host this project serves.
     */
     return [{ source: '/studio', destination: '/analysis', permanent: true }];
   },
@@ -168,7 +168,7 @@ const nextConfig: NextConfig = {
               //   - HTTPS (a permissive fallback for engine downloads
               //     and OAuth callback paths the runtime chooses)
               //   - WSS for the desktop companion
-              "connect-src 'self' https://mardakurt.github.io https://lichess.org https://api.chess.com https://tablebase.lichess.ovh https://explorer.lichess.ovh wss: https: http://127.0.0.1:* http://localhost:* ws://127.0.0.1:* ws://localhost:*",
+              "connect-src 'self' https://mardakurt.github.io https://lichess.org https://api.chess.com https://tablebase.lichess.ovh https://explorer.lichess.org wss: https: http://127.0.0.1:* http://localhost:* ws://127.0.0.1:* ws://localhost:*",
               "frame-ancestors 'none'",
               "form-action 'self'",
               "base-uri 'self'",
