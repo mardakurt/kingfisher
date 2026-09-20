@@ -199,6 +199,12 @@ with [`AGENTS.md`](../AGENTS.md).
 
 ## Historical
 
+- [`reports/phase-73-handover.md`](reports/phase-73-handover.md) — the
+  whole-codebase audit after 1.2.3: sixteen defects fixed (position
+  identity for a pasted FEN, an engine switched mid-start, the Lichess
+  rating bands, the feedback header encoding, the move-order list), the
+  `middleware` → `proxy` rename, and the documents brought back to what
+  the code does.
 - [`reports/phase-72-handover.md`](reports/phase-72-handover.md) — the
   independent audit of Phase 71, eleven defects reproduced and fixed
   (checkmate on the eval bar, the between-moves dip, the board flip, the

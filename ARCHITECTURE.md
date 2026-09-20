@@ -1939,8 +1939,9 @@ Run with `npm test`.
 
 ### Browser tests
 
-Seventy-two Playwright tests across nine spec files in `e2e/`, run with
-`npm run test:e2e` against a real dev server and a real Stockfish build, and at
+308 Playwright tests across 44 spec files in `e2e/` (channel chrome,
+2026-09-20), run with `npm run test:e2e` against a real dev server and a real
+Stockfish build, and at
 **zero retries** — a test that only passes on its second attempt is a bug, and a
 gate that re-runs it hides that bug rather than reporting it. They exist because the failures these
 phases fixed — a board that did not track the selected node, tools missing from
