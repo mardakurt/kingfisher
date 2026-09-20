@@ -45,13 +45,19 @@ export function BoardControls() {
         Reset the move tree, where it can be found. Since Phase 51 the command
         existed in three menus and the owner could not find any of them; a
         control that clears the board's moves belongs beside the controls that
-        walk them. It keeps the starting position and is one undo away.
+        walk them. The board returns to the starting position (the initial one, or
+        the FEN that was set up) and the tree is one undo away. The label says
+        so: "keep this position" read as the position on screen, which is exactly
+        what the button does not keep.
       */}
       <IconButton
-        label="Reset moves — clear the move tree, keep the position (undo with ⌘Z)"
+        label="Clear the move tree — back to the starting position (undo with ⌘Z)"
         onClick={() => {
           clearMoves();
-          notify({ tone: 'info', message: 'Move tree cleared. Undo with ⌘Z.' });
+          notify({
+            tone: 'info',
+            message: 'Move tree cleared — back to the starting position. Undo with ⌘Z.',
+          });
         }}
         disabled={!hasMoves}
         data-reset-moves

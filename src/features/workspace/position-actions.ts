@@ -120,7 +120,7 @@ export function positionActionSections(
       items: [
         {
           id: 'clear-moves',
-          label: 'Clear the move tree (keep this position)',
+          label: 'Clear the move tree — back to the starting position',
           danger: true,
           run: handlers.clearMoves,
         },

@@ -272,7 +272,7 @@ export function useCommands(): readonly Command[] {
       },
       {
         id: 'clear-moves',
-        title: 'Clear the move tree (keep this starting position)',
+        title: 'Clear the move tree — back to the starting position',
         group: 'Editing',
         keywords: 'reset clear moves tree start over empty',
         run: () => analysis().clearMoves(),
