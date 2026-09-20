@@ -8,6 +8,19 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
+- **Engines that do not exist for your machine are not switches.** The
+  Mac application's Settings → Engines drew Berserk, Koivisto and Obsidian
+  — Windows-only projects — as rows with a switch turned on, above a note
+  saying they are not offered here. The note now carries them and the rows
+  are the engines the machine can install or has installed. (Phase 73)
+- **More to set under Settings → Engine → Analysis settings.** Threads
+  and hash are chosen directly (they were read-only, "set by the preset");
+  the search limit is a control — until stopped, a depth, a time or a node
+  count; the line length (6–24 moves); whether a running engine follows the
+  board; and variation arrows — the first move of every line, fainter by
+  rank, or the best move only. Every one is searchable, persists, and has
+  a browser test that looks at its effect. (Phase 73)
+
 ## 1.2.4 — 2026-09-20
 
 Kingfisher 1.2.4 carries the whole-codebase audit after 1.2.3 and the

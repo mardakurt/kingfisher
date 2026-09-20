@@ -342,6 +342,83 @@ const RUNTIME: Record<string, (page: Page) => Promise<void>> = {
     await expect(page.locator('[data-engine-select="primary"]')).toHaveValue('stockfish-wasm');
   },
 
+  engineArrowLines: async (page) => {
+    /*
+      "Every line" puts one arrow per MultiPV line on the board, each
+      carrying its rank, the best at full strength; "best move only" leaves
+      exactly one. Asserted on the arrows' own data attributes, with the
+      engine actually running, because a setting that merely changed a
+      legend would leave the board as it was.
+    */
+    await withPreferences(page, {
+      engineArrowLines: 'all',
+      engineMultiPv: 3,
+      showEngineArrows: true,
+    });
+    await page.getByRole('button', { name: 'Start analysis (E)' }).click();
+    await expect
+      .poll(async () => page.locator('[data-engine-arrow-rank]').count(), { timeout: 30_000 })
+      .toBeGreaterThan(1);
+    const ranks = await page
+      .locator('[data-engine-arrow-rank]')
+      .evaluateAll((nodes) =>
+        nodes.map((node) => Number(node.getAttribute('data-engine-arrow-rank'))),
+      );
+    expect(ranks).toContain(1);
+    expect(Math.max(...ranks)).toBeGreaterThan(1);
+
+    await withPreferences(page, { engineArrowLines: 'best', engineMultiPv: 3 });
+    await page.getByRole('button', { name: 'Start analysis (E)' }).click();
+    await expect(page.locator('[data-engine-arrow-hit]').first()).toBeAttached({
+      timeout: 30_000,
+    });
+    await page.waitForTimeout(500);
+    expect(await page.locator('[data-engine-arrow-rank]').count()).toBe(1);
+  },
+
+  engineLineLength: async (page) => {
+    /*
+      Every line the panel shows has at most that many moves. Six is short
+      enough that a live search always exceeds it, so the cap is what the
+      count proves rather than the search's own length.
+    */
+    await withPreference(page, 'engineLineLength', 6);
+    await page.getByRole('tab', { name: 'Engine' }).click();
+    await page.getByRole('button', { name: 'Start analysis (E)' }).click();
+    const line = page.locator('[data-engine-line]').first();
+    const moves = line.locator('button[title="Add this line up to here"]');
+    await expect(line).toBeVisible({ timeout: 30_000 });
+    await expect.poll(async () => moves.count(), { timeout: 30_000 }).toBeGreaterThan(3);
+    await page.waitForTimeout(400);
+    expect(await moves.count()).toBeLessThanOrEqual(6);
+  },
+
+  engineFollowBoard: async (page) => {
+    /*
+      Off, a move leaves the panel offering to analyse the new position —
+      the search that following would have restarted does not run. On, the
+      same move keeps the engine analysing.
+    */
+    await withPreference(page, 'engineFollowBoard', false);
+    await page.getByRole('tab', { name: 'Engine' }).click();
+    await page.getByRole('button', { name: 'Start analysis (E)' }).click();
+    await expect(page.getByText(/^depth \d+/).first()).toBeVisible({ timeout: 30_000 });
+    await page.getByRole('gridcell', { name: /^e2,/ }).click();
+    await page.getByRole('gridcell', { name: /^e4,/ }).click();
+    await expect(page.getByRole('button', { name: 'Analyse this position' })).toBeVisible({
+      timeout: 10_000,
+    });
+
+    await withPreference(page, 'engineFollowBoard', true);
+    await page.getByRole('tab', { name: 'Engine' }).click();
+    await page.getByRole('button', { name: 'Start analysis (E)' }).click();
+    await expect(page.getByText(/^depth \d+/).first()).toBeVisible({ timeout: 30_000 });
+    await page.getByRole('gridcell', { name: /^e2,/ }).click();
+    await page.getByRole('gridcell', { name: /^e4,/ }).click();
+    await page.waitForTimeout(1500);
+    await expect(page.getByRole('button', { name: 'Analyse this position' })).toHaveCount(0);
+  },
+
   engineMultiPv: async (page) => {
     /*
       The value the engine is configured with, asserted where it reaches the

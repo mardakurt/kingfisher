@@ -96,7 +96,7 @@ combined figure. Elite over-the-board play and 2400+ blitz disagree, and the
 disagreement is the reason to look at both.
 
 **Every visible setting needs a real consumer, and a way to check it.**
-`src/features/shell/settings-contract.ts` names, for all thirty-seven
+`src/features/shell/settings-contract.ts` names, for all forty
 preferences, the module that writes it, the module where it becomes visible,
 and what a person would see. A setting with no runtime assertion in
 `e2e/settings.spec.ts` must carry a written reason why one is impossible.

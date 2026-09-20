@@ -292,3 +292,59 @@ describe('uciToArrow', () => {
     }
   });
 });
+
+describe('variation arrows', () => {
+  const multi: EngineArrowInput['primary'] = {
+    analysis: {
+      bestMove: 'e2e4' as Uci,
+      depth: 20,
+      lines: [
+        { moves: ['e2e4' as Uci], score: { kind: 'cp', cp: 30 } },
+        { moves: ['d2d4' as Uci], score: { kind: 'cp', cp: 25 } },
+        { moves: ['e2e4' as Uci, 'e7e5' as Uci] }, // a duplicate first move: no second arrow
+        { moves: ['a1h8' as Uci] }, // illegal: never drawn
+        { moves: ['g1f3' as Uci], score: { kind: 'cp', cp: 10 } },
+      ],
+    },
+    analysedFen: START_FEN,
+    identity: { name: 'Stockfish' },
+  };
+
+  it('draws only the best move by default', () => {
+    const arrows = computeEngineArrows(
+      { primary: multi, secondary: EMPTY_SLOT, comparing: false },
+      START_FEN,
+      true,
+    );
+    expect(arrows.map((arrow) => `${arrow.from}${arrow.to}`)).toEqual(['e2e4']);
+  });
+
+  it('draws one arrow per distinct legal line, ranked, with every line on', () => {
+    const arrows = computeEngineArrows(
+      { primary: multi, secondary: EMPTY_SLOT, comparing: false },
+      START_FEN,
+      true,
+      'all',
+    );
+    expect(arrows.map((arrow) => [`${arrow.from}${arrow.to}`, arrow.rank ?? 1])).toEqual([
+      ['e2e4', 1],
+      ['d2d4', 2],
+      ['g1f3', 5],
+    ]);
+    expect(arrows[1]?.score).toEqual({ kind: 'cp', cp: 25 });
+  });
+
+  it('draws no variation arrows for the second engine', () => {
+    const arrows = computeEngineArrows(
+      { primary: multi, secondary: { ...multi, identity: { name: 'Lc0' } }, comparing: true },
+      START_FEN,
+      true,
+      'all',
+    );
+    // Best moves for both engines (one shared move), then the primary's variations only.
+    expect(
+      arrows.filter((arrow) => arrow.rank !== undefined).every((a) => a.identity === 'engine-a'),
+    ).toBe(true);
+    expect(arrows.filter((arrow) => arrow.identity === 'engine-b')).toHaveLength(1);
+  });
+});

@@ -306,7 +306,7 @@ export function EnginePanel() {
         ) : (
           <ol className={cn('divide-y divide-line-subtle', stale && 'opacity-50')}>
             {analysis.lines.map((line) => (
-              <li key={line.rank} className="group px-2.5 py-1.5">
+              <li key={line.rank} className="group px-2.5 py-1.5" data-engine-line={line.rank}>
                 <div className="flex items-baseline gap-2">
                   <span
                     className={cn(

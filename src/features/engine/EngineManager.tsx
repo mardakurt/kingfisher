@@ -209,8 +209,20 @@ export function EngineManager() {
             release page, checked against a digest recorded in Kingfisher, and made to prove it
             speaks UCI before it is registered.
           </p>
+          {/*
+            An engine whose project publishes no build for this machine is
+            not a row with a switch — a switch on "Berserk 14 · Unavailable"
+            offers a choice nobody can make, and the Mac application drew
+            three of them, on, above a note saying they are not offered
+            here. The note below is where they are named; the rows are the
+            engines this machine can install or has installed.
+          */}
           {catalogue.data.engines
             .filter((engine) => engine.kind !== 'wasm')
+            .filter(
+              (engine) =>
+                engine.installed || !notPublishedHere(catalogue.data.platform).has(engine.id),
+            )
             .map((engine) => (
               <ManagedRow
                 key={engine.id}
@@ -244,6 +256,10 @@ export function EngineManager() {
     </div>
   );
 }
+
+/** Ids of the catalogue engines whose projects publish no build for a platform. */
+const notPublishedHere = (platform: string): ReadonlySet<string> =>
+  new Set(enginesNotPublishedFor(platform).map((engine) => engine.id));
 
 /**
  * The catalogue engines this machine will never be offered, and why.

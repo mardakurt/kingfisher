@@ -1,7 +1,7 @@
 /**
  * What every user-visible setting is supposed to do, and who does it.
  *
- * Kingfisher has thirty-seven preferences across twenty-one consumer modules,
+ * Kingfisher has forty preferences across twenty-two consumer modules,
  * which is more than anybody can hold in their head — and Phase 17 opened with a
  * reported bug where a setting persisted correctly, had two runtime consumers,
  * and still changed nothing a user could see. "It is wired up" turned out not
@@ -224,9 +224,41 @@ export const SETTING_CONTRACTS: readonly SettingContract[] = [
     control: 'features/shell/SettingsDialog.tsx',
     consumer: 'features/engine/EnginePanel.tsx',
     effect: 'A search stops at that depth, node count or time instead of running on.',
-    indexedAs: null,
+    indexedAs: 'engine-limit',
     previewable: true,
     notBrowserCheckable: 'When a search stops is a timing assertion against a live engine.',
+  },
+  {
+    key: 'engineLineLength',
+    label: 'Line length',
+    surface: 'settings',
+    control: 'features/shell/SettingsDialog.tsx',
+    consumer: 'stores/engine-store.ts',
+    effect: 'Every line in the engine panel shows at most that many moves.',
+    indexedAs: 'engine-line-length',
+    previewable: true,
+  },
+  {
+    key: 'engineFollowBoard',
+    label: 'Follow the board',
+    surface: 'settings',
+    control: 'features/shell/SettingsDialog.tsx',
+    consumer: 'features/workspace/CanonicalBoardSurface.tsx',
+    effect:
+      'On, a running engine restarts on the next position; off, a move leaves the panel offering to analyse the new position rather than analysing it.',
+    indexedAs: 'engine-follow-board',
+    previewable: true,
+  },
+  {
+    key: 'engineArrowLines',
+    label: 'Variation arrows',
+    surface: 'settings',
+    control: 'features/shell/SettingsDialog.tsx',
+    consumer: 'features/board/engine-arrows.ts',
+    effect:
+      'Every line: one arrow per MultiPV line, the best at full strength and the rest fainter, each carrying its rank; best move only: one arrow.',
+    indexedAs: 'engine-variation-arrows',
+    previewable: true,
   },
   {
     key: 'enginePreset',

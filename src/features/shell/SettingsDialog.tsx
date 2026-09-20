@@ -28,6 +28,7 @@ import { PIECE_SETS, PieceIcon } from '@/features/board/pieces';
 import { MiniBoard } from '@/features/board/MiniBoard';
 import { ENGINE_PRESETS, detectCores, enginePreset, resolveThreads } from '@/engine/presets';
 import { useEngine } from '@/stores/engine-store';
+import type { AnalysisLimit } from '@/engine/types';
 import {
   createWorkspaceBackup,
   parseWorkspaceBackup,
@@ -591,15 +592,90 @@ function AnalysisSettings() {
         />
       </Row>
 
+      {/*
+        Threads and hash were read-only here — "set by the preset" — which
+        left a person with a twelve-core machine unable to say so without
+        choosing a preset that also changed their lines and their limit. They
+        are the two numbers every analysis interface lets you set directly;
+        setting either puts the preset into Custom, as changing lines does.
+      */}
       <Row
-        label="Hash and threads"
-        hint="Threads is how many CPU cores the search runs on. Hash is the memory it keeps its table of already-searched positions in — a bigger table means fewer positions searched twice, until it is large enough that your machine starts swapping. Both are set by the preset, sized to the cores this machine reports."
+        label="Threads"
+        hint={`How many CPU cores the search runs on. This machine reports ${detectCores()}; one is always left for the interface, and two engines running together split what you allow here.`}
       >
-        <span className="text-2xs text-secondary tabular">
-          {prefs.engineHashMb} MB · {prefs.engineThreads} thread
-          {prefs.engineThreads === 1 ? '' : 's'}
-          {capabilities?.maxThreads ? ` of ${capabilities.maxThreads}` : ''}
-        </span>
+        <select
+          aria-label="Threads"
+          value={String(prefs.engineThreads)}
+          onChange={(event) => {
+            prefs.set('engineThreads', Number(event.target.value));
+            prefs.set('enginePreset', 'custom');
+          }}
+          className="h-8 w-full max-w-[220px] rounded-[4px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
+        >
+          {threadChoices(detectCores(), capabilities?.maxThreads, prefs.engineThreads).map(
+            (count) => (
+              <option key={count} value={String(count)}>
+                {count} {count === 1 ? 'thread' : 'threads'}
+              </option>
+            ),
+          )}
+        </select>
+      </Row>
+
+      <Row
+        label="Hash"
+        hint="The memory the engine keeps its table of already-searched positions in. A bigger table means fewer positions searched twice, until it is large enough that your machine starts swapping; the table is allocated up front, and two engines together are each given half."
+      >
+        <select
+          aria-label="Hash"
+          value={String(prefs.engineHashMb)}
+          onChange={(event) => {
+            prefs.set('engineHashMb', Number(event.target.value));
+            prefs.set('enginePreset', 'custom');
+          }}
+          className="h-8 w-full max-w-[220px] rounded-[4px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
+        >
+          {hashChoices(capabilities?.maxHashMb, prefs.engineHashMb).map((mb) => (
+            <option key={mb} value={String(mb)}>
+              {mb >= 1024 ? `${mb / 1024} GB` : `${mb} MB`}
+            </option>
+          ))}
+        </select>
+      </Row>
+
+      <Row
+        label="Search limit"
+        hint="Until stopped is what a study board wants: you watch the search and stop it. A depth or a time is for a quick opinion while moving through a game, or for an engine that must not run on."
+      >
+        <SearchLimitControl
+          value={prefs.engineLimit}
+          onChange={(limit) => {
+            prefs.set('engineLimit', limit);
+            prefs.set('enginePreset', 'custom');
+          }}
+        />
+      </Row>
+
+      <Row
+        label="Line length"
+        hint="How many moves of each line the panel shows. The engine reports more; the tail of a long line is its least reliable part and its least readable."
+      >
+        <Segmented
+          items={[6, 8, 12, 16, 24].map((n) => ({ id: String(n), label: String(n) }))}
+          value={String(prefs.engineLineLength)}
+          onChange={(value) => prefs.set('engineLineLength', Number(value))}
+        />
+      </Row>
+
+      <Row
+        label="Follow the board"
+        hint="A running engine restarts on the position the board moves to, the way every published interface does. Off, it keeps searching the position it was started on until you start another — kinder to a laptop battery while browsing."
+      >
+        <Toggle
+          label="Follow the board"
+          checked={prefs.engineFollowBoard}
+          onChange={(value) => prefs.set('engineFollowBoard', value)}
+        />
       </Row>
 
       <Row
@@ -623,6 +699,109 @@ function AnalysisSettings() {
           onChange={(value) => prefs.set('showEngineArrows', value)}
         />
       </Row>
+
+      <Row
+        label="Variation arrows"
+        hint="Draw the first move of every line the engine reports, fainter by rank, not only the best move. Only the primary engine's lines: with two engines the board is already saying two things."
+      >
+        <Segmented
+          items={[
+            { id: 'best', label: 'Best move only' },
+            { id: 'all', label: 'Every line' },
+          ]}
+          value={prefs.engineArrowLines}
+          onChange={(value) => prefs.set('engineArrowLines', value)}
+        />
+      </Row>
+    </div>
+  );
+}
+
+/**
+ * Thread counts worth offering: 1 up to what the machine and the engine
+ * allow, always including the value in force so the select never shows a
+ * number it does not hold.
+ */
+function threadChoices(cores: number, maxThreads: number | undefined, current: number): number[] {
+  const ceiling = Math.max(1, Math.min(cores, maxThreads ?? cores));
+  const choices = new Set<number>([current]);
+  for (let count = 1; count <= ceiling; count += 1) choices.add(count);
+  return [...choices].sort((a, b) => a - b);
+}
+
+/** Hash sizes in the doublings engines expect, up to what the engine allows. */
+function hashChoices(maxHashMb: number | undefined, current: number): number[] {
+  const ceiling = maxHashMb ?? 4096;
+  const choices = new Set<number>([current]);
+  for (let mb = 16; mb <= Math.min(ceiling, 8192); mb *= 2) choices.add(mb);
+  return [...choices].sort((a, b) => a - b);
+}
+
+/**
+ * The search limit as two controls: which kind, and how much of it. The
+ * number is kept per kind while the dialog is open, so switching from
+ * depth to time and back does not lose the depth that was typed.
+ */
+function SearchLimitControl({
+  value,
+  onChange,
+}: {
+  readonly value: AnalysisLimit;
+  readonly onChange: (limit: AnalysisLimit) => void;
+}) {
+  const amount =
+    value.kind === 'depth'
+      ? value.depth
+      : value.kind === 'movetime'
+        ? Math.round(value.ms / 1000)
+        : value.kind === 'nodes'
+          ? Math.round(value.nodes / 1_000_000)
+          : null;
+  const build = (kind: AnalysisLimit['kind'], raw: number | null): AnalysisLimit => {
+    const number = raw !== null && Number.isFinite(raw) && raw > 0 ? Math.round(raw) : null;
+    switch (kind) {
+      case 'depth':
+        return { kind: 'depth', depth: Math.min(99, number ?? 20) };
+      case 'movetime':
+        return { kind: 'movetime', ms: Math.min(3600, number ?? 5) * 1000 };
+      case 'nodes':
+        return { kind: 'nodes', nodes: Math.min(100_000, number ?? 10) * 1_000_000 };
+      default:
+        return { kind: 'infinite' };
+    }
+  };
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <Segmented
+        items={[
+          { id: 'infinite', label: 'Until stopped' },
+          { id: 'depth', label: 'Depth' },
+          { id: 'movetime', label: 'Time' },
+          { id: 'nodes', label: 'Nodes' },
+        ]}
+        value={value.kind}
+        onChange={(kind) => onChange(build(kind, amount))}
+      />
+      {value.kind === 'infinite' ? null : (
+        <label className="flex items-center gap-1.5 text-2xs text-tertiary">
+          <input
+            aria-label={
+              value.kind === 'depth'
+                ? 'Search depth'
+                : value.kind === 'movetime'
+                  ? 'Seconds per search'
+                  : 'Million nodes per search'
+            }
+            type="number"
+            min="1"
+            max={value.kind === 'depth' ? 99 : value.kind === 'movetime' ? 3600 : 100000}
+            value={amount ?? ''}
+            onChange={(event) => onChange(build(value.kind, Number(event.target.value)))}
+            className="h-8 w-20 rounded-[4px] border border-line bg-surface-inset px-2 text-xs text-primary tabular outline-none focus:border-accent/60"
+          />
+          {value.kind === 'depth' ? 'plies' : value.kind === 'movetime' ? 'seconds' : 'M nodes'}
+        </label>
+      )}
     </div>
   );
 }

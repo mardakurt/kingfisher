@@ -51,6 +51,12 @@ export interface EngineArrow {
   readonly score?: Score;
   /** Search depth when the line was produced. */
   readonly depth?: number;
+  /**
+   * The MultiPV rank of the line this arrow heads; 1 is the engine's own
+   * choice. Present only for the fainter "variation" arrows, so a renderer
+   * that knows nothing about ranks still draws the best move as before.
+   */
+  readonly rank?: number;
 }
 
 export interface EngineArrowStyle {
@@ -138,6 +144,7 @@ export function computeEngineArrows(
   input: EngineArrowInput,
   currentFen: string | null,
   show: boolean,
+  lines: 'best' | 'all' = 'best',
 ): readonly EngineArrow[] {
   if (!show || !currentFen) return [];
   const targetKey = positionKey(currentFen);
@@ -219,6 +226,36 @@ export function computeEngineArrows(
       ...(agree ? { agreedWith: 'engine-a' } : {}),
     });
   }
+
+  /*
+    Variation arrows: the first move of every other line the primary engine
+    reports, fainter by rank. Only the primary slot draws them — with two
+    engines the board is already saying two things, and six arrows would say
+    nothing. A line whose first move is the best move (or illegal, or a
+    repeat) adds no arrow: one move, one arrow.
+  */
+  if (lines === 'all' && primary && input.primary.analysis) {
+    const drawn = new Set<string>([primary.uci]);
+    for (const line of input.primary.analysis.lines) {
+      const uci = line.moves[0];
+      if (!uci || drawn.has(uci) || !legal(uci)) continue;
+      const geometry = uciToArrow(uci);
+      if (!geometry) continue;
+      drawn.add(uci);
+      const rank = input.primary.analysis.lines.indexOf(line) + 1;
+      arrows.push({
+        kind: 'arrow',
+        identity: primary.identity,
+        engineName: primary.engineName,
+        from: geometry.from,
+        to: geometry.to,
+        rank,
+        ...(line.san?.[0] ? { san: line.san[0] } : {}),
+        ...(line.score !== undefined ? { score: line.score } : {}),
+        ...(primary.depth !== undefined ? { depth: primary.depth } : {}),
+      });
+    }
+  }
   return arrows;
 }
 
@@ -231,6 +268,7 @@ export function computeEngineArrows(
  */
 export function useEngineArrows(currentFen: string | null): readonly EngineArrow[] {
   const show = usePreferences((state) => state.showEngineArrows);
+  const lines = usePreferences((state) => state.engineArrowLines);
   const primaryAnalysis = useEngine((state) => state.primary.analysis);
   const primaryAnalysedFen = useEngine((state) => state.primary.analysedFen);
   const primaryIdentity = useEngine((state) => state.primary.identity);
@@ -257,6 +295,7 @@ export function useEngineArrows(currentFen: string | null): readonly EngineArrow
         },
         currentFen,
         show,
+        lines,
       ),
     [
       comparing,
@@ -268,6 +307,7 @@ export function useEngineArrows(currentFen: string | null): readonly EngineArrow
       secondaryAnalysedFen,
       secondaryIdentity,
       show,
+      lines,
     ],
   );
 }

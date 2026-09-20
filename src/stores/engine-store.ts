@@ -30,6 +30,7 @@ import type {
 } from '@/engine/types';
 import type { Score } from '@/chess/evaluation';
 import type { Fen, San, Uci } from '@/chess/types';
+import { usePreferences } from '@/stores/preferences-store';
 
 export type EngineStatus = 'idle' | 'loading' | 'ready' | 'analysing' | 'error' | 'unavailable';
 export type SlotId = 'primary' | 'secondary';
@@ -257,6 +258,12 @@ export function shareResources<T extends { threads: number; hashMb: number }>(
   };
 }
 
+/** The preferred line length, clamped to what the panel can show. */
+const lineLength = (): number => {
+  const value = usePreferences.getState().engineLineLength;
+  return Number.isFinite(value) ? Math.min(24, Math.max(4, Math.round(value))) : 12;
+};
+
 export const useEngine = create<EngineState>((set, get) => {
   const patch = (slot: SlotId, changes: Partial<EngineSlot>) =>
     set((state) =>
@@ -414,7 +421,9 @@ export const useEngine = create<EngineState>((set, get) => {
       // per slot: the two engines finish at different times by definition.
       if (runtime.request !== request) return;
       if (get()[slot].analysedFen !== snapshot.fen) return;
-      const annotated = annotateAnalysis(snapshot);
+      // The preference is read per snapshot rather than captured at start,
+      // so a change in Settings shortens the lines of the running search.
+      const annotated = annotateAnalysis(snapshot, lineLength());
       const next = (current: EngineSlot): EngineSlot => ({
         ...current,
         analysis: annotated,

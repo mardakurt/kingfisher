@@ -105,15 +105,18 @@ export function CanonicalBoardSurface({
   */
   const setFollowBoard = useEngine((state) => state.setFollowBoard);
   const stopEngine = useEngine((state) => state.stop);
+  // What following comes back to when nothing conceals: the person's own
+  // setting (Settings → Engine → Follow the board), not always "on".
+  const followPreference = usePreferences((state) => state.engineFollowBoard);
   useEffect(() => {
     if (caps.showEvaluation) {
-      setFollowBoard(true);
+      setFollowBoard(followPreference);
       return;
     }
     setFollowBoard(false);
     stopEngine();
-    return () => setFollowBoard(true);
-  }, [caps.showEvaluation, node.fen, setFollowBoard, stopEngine]);
+    return () => setFollowBoard(followPreference);
+  }, [caps.showEvaluation, node.fen, setFollowBoard, stopEngine, followPreference]);
 
   const evaluationBarVisible =
     showEvaluationArtifacts && caps.showEvaluation && prefs.showEvaluationBar;

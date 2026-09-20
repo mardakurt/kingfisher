@@ -223,6 +223,37 @@ export const SETTINGS_INDEX: readonly SettingsEntry[] = [
     keywords: ['hash', 'memory', 'ram', 'mb', 'table', 'transposition'],
   },
   {
+    id: 'engine-limit',
+    label: 'Search limit',
+    section: 'engine',
+    description:
+      'Whether a search runs until you stop it, or stops at a depth, a time or a node count.',
+    keywords: ['limit', 'depth', 'time', 'seconds', 'nodes', 'infinite', 'stop'],
+  },
+  {
+    id: 'engine-line-length',
+    label: 'Line length',
+    section: 'engine',
+    description: 'How many moves of each engine line the panel shows.',
+    keywords: ['line', 'length', 'moves', 'pv', 'variation', 'principal'],
+  },
+  {
+    id: 'engine-follow-board',
+    label: 'Follow the board',
+    section: 'engine',
+    description:
+      'Whether a running engine restarts on the position the board moves to, or keeps the one it was started on.',
+    keywords: ['follow', 'board', 'restart', 'automatic', 'battery', 'position'],
+  },
+  {
+    id: 'engine-variation-arrows',
+    label: 'Variation arrows',
+    section: 'engine',
+    description:
+      'Draw the first move of every line the engine reports, fainter by rank, not only the best move.',
+    keywords: ['variation', 'arrows', 'lines', 'multipv', 'candidates', 'every line'],
+  },
+  {
     id: 'engine-multipv',
     label: 'Lines',
     section: 'engine',

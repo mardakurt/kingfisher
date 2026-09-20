@@ -47,6 +47,29 @@ export interface Preferences {
    */
   showEngineArrows: boolean;
   /**
+   * Which engine lines are drawn as arrows: the best move only, or the
+   * first move of every MultiPV line, fainter by rank. Lichess calls the
+   * second "variation arrows"; a player comparing three candidates wants
+   * them on the board, a player reading one line does not.
+   */
+  engineArrowLines: 'best' | 'all';
+  /**
+   * Whether a running engine follows the board to the next position.
+   *
+   * The engine store's `followBoard` is the live value — concealing
+   * workspaces switch it off while they are on screen — and this is what it
+   * comes back to. Off means the search runs on the position it was started
+   * on until the person starts another, which is the older behaviour some
+   * players prefer on a laptop battery.
+   */
+  engineFollowBoard: boolean;
+  /**
+   * How many moves of each engine line are shown, 4–24. The engine reports
+   * longer lines; the tail of a long principal variation is the least
+   * reliable part of it and the least readable.
+   */
+  engineLineLength: number;
+  /**
    * How much of a workspace the board is entitled to.
    *
    * A policy, not a pixel count — see `BOARD_PRIORITIES`. It sizes the chrome
@@ -174,6 +197,9 @@ export const DEFAULT_PREFERENCES: Preferences = {
    */
   showEvaluationGraph: false,
   showEngineArrows: true,
+  engineArrowLines: 'best',
+  engineFollowBoard: true,
+  engineLineLength: 12,
   autoAnalyse: false,
   engineMultiPv: 3,
   engineThreads: 1,

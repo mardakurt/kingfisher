@@ -85,6 +85,8 @@ interface ResolvedArrow {
   /** The identity that paints the shaft and head. */
   readonly identity: EngineArrowIdentity;
   readonly style: (typeof ENGINE_ARROW_STYLES)[EngineArrowIdentity];
+  /** 1 for a best move; the MultiPV rank for a variation arrow. */
+  readonly rank: number;
   /**
    * Every engine this arrow stands for. One entry normally; two when both
    * engines chose the move, in which case one arrow is drawn with both
@@ -125,10 +127,21 @@ function resolveEngineArrows(
       identity: head.identity,
       style: ENGINE_ARROW_STYLES[head.identity],
       arrows: list,
+      // A best-move arrow (no rank) outranks everything; variation arrows
+      // carry their MultiPV rank and are drawn fainter for it.
+      rank: Math.min(...list.map((arrow) => arrow.rank ?? 1)),
     });
   }
-  return resolved;
+  // Best move last, so it paints over the variations it shares squares with.
+  return resolved.sort((a, b) => b.rank - a.rank);
 }
+
+/**
+ * How faint a variation arrow is. The best move keeps the full opacity;
+ * the second line is clearly a second opinion, the fifth is a hint.
+ */
+const variationOpacity = (rank: number): number =>
+  rank <= 1 ? ENGINE_ARROW.opacity : Math.max(0.22, ENGINE_ARROW.opacity * 0.62 ** (rank - 1));
 
 /** The shaft and head of an arrow as one outline, in board units. */
 function arrowGeometry(arrow: ResolvedArrow) {
@@ -275,8 +288,9 @@ export function BoardShapes({
             return (
               <g
                 key={`e${index}-${arrow.identity}`}
-                opacity={isHovered ? ENGINE_ARROW.hoverOpacity : ENGINE_ARROW.opacity}
+                opacity={isHovered ? ENGINE_ARROW.hoverOpacity : variationOpacity(arrow.rank)}
                 data-engine-arrow-shared={shared ? 'true' : undefined}
+                data-engine-arrow-rank={arrow.rank}
                 pointerEvents="none"
                 aria-hidden
               >
