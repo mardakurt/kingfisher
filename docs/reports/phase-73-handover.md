@@ -199,8 +199,83 @@ found. The 1.2.3 application was recovered from its ZIP in the dist
 directory (hash checked against the published `SHA256SUMS`) and the
 harness's previous builds now live under `$TMPDIR/kingfisher-previous/`.
 
+## 8. Three owner reports, the features document, and 1.2.5 (2026-09-20, evening)
+
+After 1.2.4 the owner reported, with screenshots: Windows-only engines
+drawn as switched-on rows in the Mac Settings → Engines; the wish for
+lichess-style analysis configuration; and the tooltip the best-move arrow
+drew on the board. Commits `18140bc` (rows + six analysis settings:
+threads, hash, search limit, line length, follow the board, variation
+arrows — each in the contract, the search index and `e2e/settings.spec.ts`)
+and `a49b340` (tooltip removed; the engines spec asserts hovering the shaft
+draws nothing). `docs/product/features.md` is the complete feature
+inventory (`e675e6e`), written from `navigation.ts`, `modules.ts`,
+`useCommands.ts`, `shortcuts.ts`, `settings-index.ts`, `registry.ts`,
+`packs.mjs`, `themes.ts` and the piece sets, counts checked against README
+and ARCHITECTURE.
+
+`docs/operations/after-a-fix.md`, every step, as run:
+
+```
+A1   typecheck                          exit 0
+A2   lint                               exit 0
+A3   format:check                       All matched files use Prettier code style
+A4   npm test                           261 files, 3134 passed, 0 skipped
+     test:no-skips                      OK
+A5   docs:check                         344/344
+A6   git diff --check                   clean
+A7   test:e2e                           311 passed (18.8m), 0 failed, 0 flaky
+A9   d24d778 pushed                     (parity record)
+A10  deploy:status                      up to date (d24d778)
+A11  kingfisherchess.app/analysis       Settings → Engine shows Threads, Hash,
+                                        Search limit, Line length, Follow the
+                                        board, Variation arrows (browser pane)
+A12  CHANGELOG                          three entries, moved under 1.2.5 in B2
+B1   1.2.5 in both package.json         lockfiles followed
+B4   738d22d = origin/master            clean tree
+B6   preflight (mac)                    GREEN
+B7   npm run build                      exit 0
+B8   desktop:dist (stable)              1.2.5 · build 704 · 738d22d · stable,
+                                        notarization successful
+B9   release:mac:notarize               Accepted 2b9a3c8b…, ticket stapled
+B10  desktop:trust:verify               GREEN
+B11  verify-dmg --version 1.2.5         DMG verified, 3244 entries
+B12  desktop:smoke --packaged           17/17
+B14  release:mac:publish v1.2.5         6 assets; /releases/latest → v1.2.5
+B15  gh release edit --latest           notes = docs/release/1.2.5.md
+B13  desktop:update:real --current <1.2.4 app, preserved before B8>
+     --public-feed                      first run 98 s after publication:
+                                        1.2.4 told "on the latest version"
+                                        (GitHub's /releases/latest redirect
+                                        not yet moved); second run 12 min
+                                        later: PASS, 19 checks
+B16  descriptor                         1.2.5 · 704 · 738d22d ·
+                                        Kingfisher-1.2.5-arm64.dmg ·
+                                        sha256 8e121767… · 172,496,902 bytes
+B17  publish:release-manifest           prepared for 1.2.5
+B18  README, SECURITY, install-macos, launch-kit, public-claims,
+     SecurityPage.tsx, AGENTS.md, platform-parity
+B19  docs:check                         344/344; public:check 22/22 links
+B20  31f7a04 pushed                     deploy:status up to date (31f7a04)
+B21  desktop:public:verify --landing --full   66/66 (a run started before
+                                        the deployment was live: 62/66)
+```
+
+**A defect found in the release script.** `scripts/desktop-mac-publish.mjs`
+wrote `kingfisher-release-manifest.json` only when the out dir had none,
+and the out dir is shared between releases: the manifest uploaded with
+v1.2.2, v1.2.3, v1.2.4 and v1.2.5 is the one generated for 1.2.1. Nothing
+reads it — Sparkle reads `appcast.xml`, `desktop:public:verify` reads the
+descriptor — so no update and no verification was affected. The script
+now derives it from the files being published every time (`31f7a04`). The
+four published assets were left as they are under the rule against
+replacing the bytes of a published asset; whether to correct a wrong
+metadata file on those releases is the owner's call.
+
 ## 7. Remaining concerns
 
+- **`kingfisher-release-manifest.json` on v1.2.2–v1.2.5** names 1.2.1
+  (section 8); the script is fixed, the assets are not.
 - **ESLint 10 and TypeScript 7** wait on `eslint-config-next`'s plugins
   and on `typescript-eslint` respectively; check their peer ranges before
   the next attempt.
