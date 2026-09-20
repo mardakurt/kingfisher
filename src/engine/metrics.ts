@@ -1,4 +1,4 @@
-import { scoreToCentipawns, type Score } from '@/chess/evaluation';
+import { formatScore, scoreToCentipawns, type Score } from '@/chess/evaluation';
 import type { EngineAnalysis } from './types';
 
 /**
@@ -89,3 +89,47 @@ export function describeGap(gap: MultiPvGap): string {
   }
   return 'mate vs evaluation';
 }
+
+/** One depth of a search, for the score-by-depth strip. */
+export interface DepthSample {
+  readonly depth: number;
+  readonly score: Score;
+  /** White's point of view, clamped the way the evaluation bar clamps. */
+  readonly cp: number;
+  readonly move: string;
+  /** True when the top move differs from the previous depth's. */
+  readonly changed: boolean;
+}
+
+/**
+ * The top line at every depth the session has seen, oldest first.
+ *
+ * One sample per depth — the last snapshot at that depth wins, as the panel
+ * shows it — so the strip reads as a search deepening rather than as a
+ * stream of updates. "Changed" is a fact about consecutive samples: the top
+ * move is not the one the previous depth preferred.
+ */
+export function depthSamples(snapshots: readonly EngineAnalysis[]): readonly DepthSample[] {
+  const byDepth = new Map<number, EngineAnalysis>();
+  for (const snapshot of snapshots) {
+    if (snapshot.depth > 0 && snapshot.lines[0]?.moves[0]) byDepth.set(snapshot.depth, snapshot);
+  }
+  const ordered = [...byDepth.values()].sort((a, b) => a.depth - b.depth);
+  return ordered.map((snapshot, index) => {
+    const top = snapshot.lines[0]!;
+    const move = top.san?.[0] ?? top.moves[0]!;
+    const previous = ordered[index - 1]?.lines[0];
+    const previousMove = previous ? (previous.san?.[0] ?? previous.moves[0]) : undefined;
+    return {
+      depth: snapshot.depth,
+      score: top.score,
+      cp: scoreToCentipawns(top.score),
+      move,
+      changed: previousMove !== undefined && previousMove !== move,
+    };
+  });
+}
+
+/** "d18 +0.4 Nf3" — one sample, as a tooltip line. */
+export const describeDepthSample = (sample: DepthSample): string =>
+  `d${sample.depth} ${formatScore(sample.score)} ${sample.move}`;

@@ -4,7 +4,7 @@ import { cp, mate } from '@/chess/evaluation';
 import { START_FEN } from '@/chess/fen';
 import { asUci } from '@/chess/types';
 import type { EngineAnalysis } from './types';
-import { describeGap, engineSessionMetrics } from './metrics';
+import { depthSamples, describeDepthSample, describeGap, engineSessionMetrics } from './metrics';
 
 const snapshot = (
   depth: number,
@@ -83,5 +83,39 @@ describe('mate scores in the MultiPV gap', () => {
   it('does not count a mate line as a near-equal candidate', () => {
     expect(engineSessionMetrics([withScores(mate(2), cp(0))]).nearEqualCandidates).toBe(0);
     expect(engineSessionMetrics([withScores(cp(10), cp(20))]).nearEqualCandidates).toBe(2);
+  });
+});
+
+describe('depthSamples', () => {
+  const at = (depth: number, cp: number, move: string): EngineAnalysis => ({
+    fen: START_FEN,
+    depth,
+    seldepth: depth,
+    nodes: depth * 1000,
+    nps: 1000,
+    timeMs: depth * 10,
+    lines: [{ rank: 1, score: { kind: 'cp', cp }, depth, moves: [asUci(move)] }],
+    complete: false,
+  });
+
+  it('keeps one sample per depth, in depth order, and marks where the top move changed', () => {
+    const samples = depthSamples([
+      at(3, 20, 'e2e4'),
+      at(2, 10, 'd2d4'),
+      at(3, 25, 'e2e4'),
+      at(4, -5, 'g1f3'),
+    ]);
+    expect(samples.map((sample) => [sample.depth, sample.cp, sample.changed])).toEqual([
+      [2, 10, false],
+      // Depth 3 was reported twice; the later reading wins, and its move is
+      // not the one depth 2 preferred.
+      [3, 25, true],
+      [4, -5, true],
+    ]);
+  });
+
+  it('reads as a tooltip line', () => {
+    const [sample] = depthSamples([at(18, 40, 'g1f3')]);
+    expect(describeDepthSample(sample!)).toBe('d18 +0.4 g1f3');
   });
 });

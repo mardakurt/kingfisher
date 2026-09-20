@@ -18,7 +18,13 @@ import { formatScore } from '@/chess/evaluation';
 import { outcomeAt } from '@/chess/game';
 import { describeOutcome } from '@/features/analysis/evaluation-bar-layout';
 import { variationPositions, variationTokens } from '@/engine/pv';
-import { describeGap, engineSessionMetrics } from '@/engine/metrics';
+import {
+  depthSamples,
+  describeDepthSample,
+  describeGap,
+  engineSessionMetrics,
+  type DepthSample,
+} from '@/engine/metrics';
 import type { PrincipalVariation } from '@/engine/types';
 import { Pin, Play, Plus, Save, Stop, Trash } from '@/components/icons';
 import { Button, IconButton } from '@/components/ui/Button';
@@ -390,6 +396,7 @@ export function EnginePanel() {
             {analysis.tbHits ? <span>tb {formatCount(analysis.tbHits)}</span> : null}
             <span className="ml-auto">{(analysis.timeMs / 1000).toFixed(1)}s</span>
           </div>
+          <DepthStrip samples={depthSamples(history)} />
           <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-tertiary/80">
             <span>top unchanged {metrics.topMoveStableDepths} depths</span>
             <span>{metrics.topMoveChanges} top-move changes</span>
@@ -401,6 +408,67 @@ export function EnginePanel() {
           </div>
         </footer>
       )}
+    </div>
+  );
+}
+
+/**
+ * The score at every depth of this search, as a strip.
+ *
+ * The footer already says how many times the top move changed and how far
+ * the score swung; the strip shows *where*. A line that settles by depth
+ * twelve and a line still crossing zero at depth twenty-four are different
+ * positions, and the difference is easier to see than to count. Each point
+ * is one depth, from White's point of view like the bar; a hollow point is
+ * a depth whose top move differs from the previous one. Nothing here is a
+ * judgement — the tooltip is the readings themselves.
+ */
+function DepthStrip({ samples }: { readonly samples: readonly DepthSample[] }) {
+  if (samples.length < 2) return null;
+  const width = 160;
+  const height = 22;
+  const pad = 2;
+  const span = Math.max(100, ...samples.map((sample) => Math.abs(sample.cp)));
+  const x = (index: number) => pad + (index / Math.max(1, samples.length - 1)) * (width - 2 * pad);
+  const y = (cp: number) => height / 2 - (cp / span) * (height / 2 - pad);
+  const path = samples.map((sample, index) => `${index ? 'L' : 'M'}${x(index)} ${y(sample.cp)}`);
+  const title = samples.map(describeDepthSample).join('\n');
+  return (
+    <div className="mt-1 flex items-center gap-2" title={title} data-depth-strip>
+      <span className="shrink-0 text-tertiary/80">by depth</span>
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        width={width}
+        height={height}
+        className="shrink-0 overflow-visible"
+        role="img"
+        aria-label={`Score by depth: ${title.replace(/\n/g, ', ')}`}
+      >
+        <line
+          x1={pad}
+          x2={width - pad}
+          y1={height / 2}
+          y2={height / 2}
+          className="stroke-line-subtle"
+          strokeWidth={1}
+        />
+        <path d={path.join(' ')} fill="none" className="stroke-secondary" strokeWidth={1.25} />
+        {samples.map((sample, index) => (
+          <circle
+            key={sample.depth}
+            cx={x(index)}
+            cy={y(sample.cp)}
+            r={sample.changed ? 2.5 : 1.5}
+            className={sample.changed ? 'fill-surface-1 stroke-accent' : 'fill-secondary'}
+            strokeWidth={sample.changed ? 1.25 : 0}
+            data-depth={sample.depth}
+            data-changed={sample.changed ? 'true' : undefined}
+          />
+        ))}
+      </svg>
+      <span className="shrink-0 text-tertiary/80">
+        d{samples[0]!.depth}–{samples.at(-1)!.depth}
+      </span>
     </div>
   );
 }
