@@ -24,8 +24,23 @@ validation, scheduled backup preference serialization, and an incorrect
 native-companion prerequisite on the AI assistant panel. The engine toolbar
 also wraps controls to keep the engine selector readable in a narrow panel.
 
+**Published revision check (2026-09-20, 1.2.5).** The public Mac 1.2.5
+(build 704, `738d22d`) is built from the `v1.2.5` tag's revision, the
+revision `kingfisherchess.app` served when it was built (`deploy:status`
+at that commit: up to date). It carries the three follow-ups below to the
+desktop: engines with no macOS build named in the note rather than drawn
+as switches, no tooltip under the best-move arrow, and threads, hash, the
+search limit, line length, follow-the-board and variation arrows as
+controls. The real update 1.2.4 → 1.2.5 was performed through Sparkle's
+own window against the public feed (19 checks, PASS — a first run 98 s
+after publication was told "on the latest version" because GitHub's
+`/releases/latest` redirect had not yet moved; the second run, twelve
+minutes later, was offered 1.2.5); the packaged smoke passed 17/17.
+Nothing under `desktop/` changed between 1.2.4 and 1.2.5. The Mac is not
+behind `master` at this commit.
+
 **Published revision check (Phase 73 follow-up, Mac-facing — released as
-1.2.5 below).** After 1.2.4 shipped, three owner reports changed application
+1.2.5 above).** After 1.2.4 shipped, three owner reports changed application
 code the Mac shell renders, and each is something a Mac user sees: Settings
 → Engines drew Berserk, Koivisto and Obsidian — projects that publish no
 macOS build — as catalogue rows with a switch turned on, above the note

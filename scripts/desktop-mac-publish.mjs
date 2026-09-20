@@ -119,11 +119,12 @@ const sumPath = join(distDir, 'SHA256SUMS');
 writeFileSync(sumPath, sums.join('\n') + '\n');
 console.log(`Wrote ${sumPath}`);
 
-/* Build a release manifest in the kingfisher format if one is not
-   present. The manifest is for people and for the verify scripts;
-   Sparkle reads only appcast.xml. */
+/* Build the release manifest from the files being published — always.
+   The out dir is shared between releases, and "write it if absent" let
+   the 1.2.1 manifest ride along on v1.2.2–v1.2.5, each naming 1.2.1.
+   The manifest is for people; Sparkle reads only appcast.xml. */
 const manifestPath = join(distDir, 'kingfisher-release-manifest.json');
-if (!existsSync(manifestPath)) {
+{
   const pkg = JSON.parse(readFileSync(join(HERE, 'package.json'), 'utf8'));
   const manifest = {
     schema: 'kingfisher-runtime-release-manifest/1',
