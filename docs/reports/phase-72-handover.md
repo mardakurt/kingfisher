@@ -174,9 +174,77 @@ from unpkg (`200 application/wasm`) and reached depth 16 in 28.4 s, the
 bar read `+0.5`, and Settings → Companion reads "Not available on the
 web … Download Kingfisher for macOS".
 
-## 7. Platform parity and what remains
+## 7. The two reports after the audit, and the 1.2.2 release
 
-Application code changed, so the public Mac 1.2.1 is behind `master`
-(recorded in `docs/product/platform-parity.md`). Section B — a signed,
-notarised 1.2.2 — is the owner's to trigger. Remaining limitations are
-listed in the audit response.
+The owner reported two things after the first pass, both real:
+
+**Deployment Storage rose to 15.72 GB.** The metric is cumulative over
+the 30-day period and resets at the next one (Vercel staff on the
+forum; the Usage API answers `plan_upgrade_required` on Hobby), so it
+cannot fall within a period — the five 260 MB pre-fix deployments were
+still stored and accruing. Deleted through the API (build outputs only;
+the current production and its identical-code predecessor kept; live
+site 200 after). `vercel.json` gained an `ignoreCommand`
+(`scripts/vercel-ignore-build.mjs`, rule and test in
+`vercel-build-scope.mjs`) so docs-only pushes no longer deploy, and
+`deploy:status` applies the same rule.
+
+**A launch showed the last position.** The draft was restored at every
+start. `persistence/session-launch.ts` now holds it on a fresh launch
+(new tab, new window, relaunched Mac app) and restores it on a reload
+of a session with work; Recent's Continue puts it back on request.
+Twelve browser cases, three real desktop launches, the live site, and
+`e2e/launch-board.spec.ts` (fails against the old rule). Browser suite
+at that commit: 307 passed, 0 failed, 0 flaky (17.8 m).
+
+### Section B, in the runbook's order (2026-09-20)
+
+```
+B1  1.2.1 → 1.2.2 (root, desktop), lockfiles
+B2  CHANGELOG: Unreleased → ## 1.2.2 — 2026-09-20 (14 entries)
+B3  docs/release/1.2.2.md; docs/README.md link
+B4  commit 96f1822, push; HEAD = origin/master; tree clean
+B5  source ~/.kingfisher-release/env.sh
+B6  desktop:release:preflight:mac                    GREEN
+    desktop:sparkle:fetch / :bridge                  Sparkle 2.10.0 vendored; bridge current
+B7  npm run build                                    Compiled successfully
+B8  KINGFISHER_DESKTOP_CHANNEL=stable desktop:dist   first run: Build identity 1.2.2 · build 673
+                                                     · 96f1822 · stable; notarised; boot verified —
+                                                     then verify-dmg REFUSED it: five stray
+                                                     "name 2.js"-style duplicates inside the
+                                                     bundled node_modules/next, Finder copies in
+                                                     the local install the standalone trace swept
+                                                     in. npm ci at root and in desktop/ (3,513 and
+                                                     5,663 such files gone), rebuilt: same identity,
+                                                     notarised, boot verified
+B9  release:mac:notarize <dmg>                       Accepted — a9e16fec…; ticket stapled, validated
+B10 desktop:trust:verify                             GREEN
+B11 verify-dmg.mjs --version 1.2.2 --commit 96f1822… DMG verified — 3244 entries, no unexpected files
+B12 desktop:smoke -- --packaged                      17/17
+    packaged launch rule (three launches)            play → relaunch: board 0, Continue: 2 →
+                                                     relaunch: board 0
+    release:mac:appcast --zip <1.2.2 zip>            appcast.xml (build 673, signed, the new summary
+                                                     notes embedded), latest-mac.yml, 1.2.2.html
+B14 release:mac:publish v1.2.2 "Kingfisher 1.2.2"    tag v1.2.2; 6 assets
+B15 gh release edit v1.2.2 --notes-file … --latest   Latest; publishedAt 2026-09-20T06:30:56Z
+B13 desktop:update:real --current <1.2.1> --public-feed
+                                                     first two runs failed at "Install Update":
+                                                     leftover 1.2.1 processes from the first run
+                                                     confused the window index; killed, third run
+                                                     Real update: PASS (19 checks — Sparkle's own
+                                                     window, download, verify, Install and
+                                                     Relaunch, 1.2.2 on the test profile, study
+                                                     still there, post-update notice)
+B16 src/release/macos-download.json                  1.2.2 · 673 · 96f1822 · Kingfisher-1.2.2-arm64.dmg
+                                                     · sha256 ab8fa1a6… · 172,411,147 bytes (GitHub
+                                                     reports the same)
+B17 publish:release-manifest                         prepared for 1.2.2
+B18 README, SECURITY, install-macos (file + hash), launch-kit, public-claims,
+    SecurityPage.tsx, AGENTS.md, platform-parity
+B19 docs:check                                       344/344
+B20 commit dbe93d9, push; deploy:status              up to date (dbe93d9)
+B21 desktop:public:verify -- --landing --full        66/66 — PUBLIC DMG VERIFIED (every byte)
+```
+
+The Mac is not behind `master`. Nothing remains from the audit's own
+list; the future ideas are documented, not built.
