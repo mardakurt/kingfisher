@@ -8,6 +8,15 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
+## 1.2.4 — 2026-09-20
+
+Kingfisher 1.2.4 carries the whole-codebase audit after 1.2.3 and the
+five improvements built on it to the Mac application; the web has
+shipped each as it landed. The Mac 1.2.3 build gives a position pasted
+from a FEN a different identity from the same position reached by
+playing, and can run one engine under another's name when they are
+switched mid-start.
+
 - **A pasted position is the same position as a played one.** A FEN from
   another program records an en passant square after every double push;
   Kingfisher records one only when the capture is possible. The two
