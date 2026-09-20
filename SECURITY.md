@@ -42,13 +42,19 @@ in the running deployment.
   response.
 - **Permissions-Policy** disables `camera`, `microphone`, `geolocation`
   and `interest-cohort` (FLoC) at the document level.
-- **Trusted remote origins** for the application's network calls are
-  listed in `connect-src`: the application's own host, the GitHub
-  Pages data mirror (`mardakurt.github.io`), Lichess
-  (`lichess.org`, `api.chess.com`, `tablebase.lichess.ovh`,
-  `explorer.lichess.ovh`), and the desktop companion's loopback
-  range (`127.0.0.1`, `localhost`, `ws://`). Any other host is
-  refused at the CSP layer.
+- **Remote origins** the application calls are named in
+  `connect-src`: the application's own host, the GitHub Pages data
+  mirror (`mardakurt.github.io`), Lichess (`lichess.org`,
+  `explorer.lichess.org`, `tablebase.lichess.ovh`), Chess.com
+  (`api.chess.com`), and the desktop companion's loopback range
+  (`127.0.0.1`, `localhost`, `ws://`). `connect-src` also carries
+  `https:`, because two calls choose their host at runtime — the
+  full-network browser engine is fetched from the address its
+  manifest records (unpkg) with a pinned SHA-256, and a user-configured
+  assistant endpoint is whatever the user typed — so the policy does
+  not refuse other HTTPS hosts; what the application connects to is
+  bounded by its code, which makes no other call. Scripts, styles,
+  frames and objects are restricted to the origin regardless.
 - **External link restrictions** — outbound links are validated
   against an allow-list before the application will follow them; see
   `src/middleware-host-rules.ts` and `src/lib/redirect-validation.ts`.

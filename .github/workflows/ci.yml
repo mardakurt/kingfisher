@@ -6,7 +6,7 @@
 #   - GitHub Actions minutes are scarce. The full Playwright suite, full
 #     desktop packaging, engine fleet and long soak are NOT in this file.
 #     They live in `browser-cert.yml`, `desktop-package.yml`,
-#     `engine-fleet.yml`, `engine-build.yml` and are workflow_dispatch or
+#     `engines.yml`, `engine-build.yml` and are workflow_dispatch or
 #     scheduled — invoked deliberately, not on every push.
 #   - This workflow answers: "did the source compile, lint, format, and pass
 #     the unit/integration tests, and did `next build` still succeed?"

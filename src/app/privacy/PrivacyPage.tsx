@@ -110,8 +110,9 @@ export function PrivacyPage(): JSX.Element {
           <strong>Lichess</strong> (<code>lichess.org</code>), used when:
           <ul>
             <li>
-              you sign in to Lichess from Kingfisher (OAuth with PKCE, no scopes beyond “read your
-              games”; the token is stored in IndexedDB and never leaves the device);
+              you sign in to Lichess from Kingfisher (OAuth with PKCE, no scopes requested; the
+              token is kept in memory for the session, in <code>localStorage</code> only while{' '}
+              <em>Remember</em> is on, and never leaves the device);
             </li>
             <li>
               you ask for games from a Lichess username via{' '}

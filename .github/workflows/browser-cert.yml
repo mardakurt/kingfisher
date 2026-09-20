@@ -5,7 +5,7 @@
 # suite, intended for:
 #
 #   - pre-release certification (manual run before tagging);
-#   - monthly sanity sweep (schedule);
+#   - weekly sanity sweep (schedule);
 #   - a deliberate re-run after a known browser-shape change.
 #
 # Phase 22 established that 2177 unit/integration tests and the local
@@ -23,7 +23,7 @@ on:
         required: false
         default: '0'
   schedule:
-    # The first Monday of every month, in the early hours of UTC.
+    # Every Monday, in the early hours of UTC (cron cannot say "first Monday").
     - cron: '0 4 * * 1'
   # Release tag trigger — runs on every tag push that looks like a release.
   push:

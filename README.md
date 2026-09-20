@@ -53,8 +53,10 @@ training** — six routes to the same FEN, one keystroke to each.
 Recent work lives behind a single click on **Continue** on the recent
 workspace. The card shows what you were doing, the last position the board
 held, and when you last touched it. Closing the tab does not lose the
-work; reopening the application brings you back to the same chapter, the
-same move, the same orientation.
+work: a reload of the same tab restores it, and a fresh launch — a new tab,
+a new window, the Mac application opened again — shows a chessboard and
+keeps the work behind **Continue**, which puts back the same chapter, the
+same move and the same orientation.
 
 Reference data is **online by default** and **installable for offline use**.
 A first install of a pack can be a few hundred megabytes; the catalog row
@@ -100,7 +102,7 @@ you did not put in the address bar.
 | **Engines**             | Stockfish 18 in the browser (sandboxed), with a lite 7 MB network everywhere and the full 113 MB network on the web. Native Stockfish, Halogen, PlentyChess, Stormphrax, Viridithas and Lc0 on Apple Silicon. Berserk, Obsidian and Koivisto publish Windows builds only (Koivisto also Linux) and are not offered on a Mac — Settings → Engines says so; availability and licences are shown in the app. |
 | **Databases**           | Attach large personal collections (SQLite), search by position, structure, player, or claim. Copy, move, merge, dedupe, federate. Open positions and games back into the board.                                                                                                                                                                                                                           |
 | **Theory Book**         | 3,810 named positions with ECO codes, browsable. Explains a variation by name only; never invents an evaluation.                                                                                                                                                                                                                                                                                          |
-| **Players**             | 13,738 players with games in the bundled pack, 106 curated historical figures, and a roster of 8,339 titled players (GM, WGM, IM, WIM) from Wikidata. Diacritics, aliases, rapid typing, backspacing. Profile, what they play as White, what they play as Black, what changed recently.                                                                                                                   |
+| **Players**             | 13,738 player identities in the bundled pack (11,746 people once the library merges the archive's spellings of one name), 106 curated historical figures, and a roster of 8,339 titled players (GM, WGM, IM, WIM) from Wikidata. Diacritics, aliases, rapid typing, backspacing. Profile, what they play as White, what they play as Black, what changed recently.                                        |
 | **Repertoire & review** | Add positions to repertoire, drill them, mark progress. Repertoire survives quit. Backup and restore work.                                                                                                                                                                                                                                                                                                |
 | **Local-first**         | No account required. No hidden data collection — the website counts page views and load times (see the privacy page), the Mac app sends nothing. Studies, repertoire, training and notes are stored locally. The diagnostic report is local; the log file is local.                                                                                                                                       |
 
@@ -286,7 +288,9 @@ chapter, so a failed write no longer takes the session with it, and unsaved
 work found on startup is offered back rather than discarded. A data-integrity
 scan reports what does not resolve and repairs only what is unambiguous.
 Diagnostics produces a report you can paste into a bug thread without leaking a
-token. Every gate runs in GitHub Actions, including the browser tests.
+token. The typecheck, lint, unit suite and build run in GitHub Actions on
+every push; the browser suite runs there on manual dispatch, on release tags
+and weekly, and in full on the maintainer's machine before every release.
 
 Phase 7 is about whether it gets out of the way. The opening explorer answers
 an unfiltered question about a 100,000-game SQLite collection in 0.3 ms instead

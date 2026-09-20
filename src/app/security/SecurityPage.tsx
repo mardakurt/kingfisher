@@ -68,15 +68,19 @@ export function SecurityPage({ issuesUrl }: { issuesUrl: string }): JSX.Element 
           <code>geolocation</code> and <code>interest-cohort</code> (FLoC) at the document level.
         </li>
         <li>
-          <strong>Trusted remote origins</strong> for the application&apos;s network calls are
-          listed in <code>connect-src</code>: the application&apos;s own host, the GitHub Pages data
-          mirror, Lichess, and the desktop companion&apos;s loopback range. Any other host is
-          refused at the CSP layer.
+          <strong>Remote origins</strong> the application calls are named in{' '}
+          <code>connect-src</code>: the application&apos;s own host, the GitHub Pages data mirror,
+          Lichess, Chess.com and the desktop companion&apos;s loopback range. The policy also allows{' '}
+          <code>https:</code>, because two calls choose their host at runtime — the full-network
+          browser engine is fetched from the address its manifest records with a pinned SHA-256, and
+          a user-configured assistant endpoint is whatever you typed — so it does not refuse other
+          HTTPS hosts; the application&apos;s own code makes no other call. Scripts, styles, frames
+          and objects are restricted to the origin regardless.
         </li>
         <li>
           <strong>External link restrictions</strong> — outbound links are validated against an
           allow-list before the application will follow them; see{}
-          <code>src/middleware-host-rules.ts</code> and <code>src/lib/redirect-validation.ts</code>.
+          <code>src/proxy-host-rules.ts</code> and <code>src/lib/redirect-validation.ts</code>.
         </li>
         <li>
           <strong>Downloaded data is verified.</strong> Every reference-pack chunk and every managed

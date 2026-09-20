@@ -24,6 +24,27 @@ validation, scheduled backup preference serialization, and an incorrect
 native-companion prerequisite on the AI assistant panel. The engine toolbar
 also wraps controls to keep the engine selector readable in a narrow panel.
 
+**Published revision check (Phase 73 audit, Mac-facing — not yet
+released).** The whole-codebase audit after 1.2.3 changed application code
+the Mac shell renders, so the public Mac 1.2.3 (build 679, `9a6265b`) is
+behind `master` on: the canonical form of a pasted or imported FEN (the
+en passant field, so a `[FEN]` game, a Set up position and an `?fen=` link
+share one identity with the played position in the explorer, the
+repertoire and the "in your work" counts); a FEN describing nine squares
+on a rank refused; arrows on the starting position kept through a PGN
+export; an engine switched during a slow start no longer running the first
+engine under the second one's name (Lc0 → Stockfish 19 inside the Mac
+application is exactly that case); `setoption` sent only for options the
+engine declared; the Lichess "Min Elo" band; the explorer's "also reached
+by" move orders; counts of one pluralised; the Repertoire and Training
+header titles at 1280–1440 px; the Databases facts grid; and the message a
+tab shows when another tab upgraded the local database. Web-only by
+design: the `middleware` → `proxy` rename (the shell serves `/analysis`
+directly and never routes by host), the feedback route's header encoding
+(the Mac application posts to the same route on the public origin), and
+the CSP wording. Section B of `docs/operations/after-a-fix.md` is due
+before the next Mac release.
+
 **Published revision check (2026-09-20, 1.2.3).** The public Mac 1.2.3
 (build 679, `9a6265b`) is built from the `v1.2.3` tag's revision, the
 revision `kingfisherchess.app` served when it was built. It carries the

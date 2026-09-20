@@ -674,16 +674,20 @@ AnalysisQueueRepo      background analysis jobs and their stored engine evidence
 LinkedAccountRepo      linked Lichess/Chess.com usernames and their sync cursors
 ```
 
-Fifteen object stores are created by a versioned migration array, never by
-deleting the database. Schema v3 moves trees and normalized PGN into
+Twenty-nine object stores (schema version 17) are created by a versioned
+migration array, never by deleting the database. Schema v3 moves trees and normalized PGN into
 `gameContent`; lists, search and explorer read only `games` summaries. Phase 3
 adds repertoires/positions, training items/reviews, model-game links and the
 explicit personal profile. Schema v4 adds chapter revisions; v5 extends
 revisions to repertoire positions and training items; v6 adds `studyReferences`
 with a unique `(chapterId, kind, targetId)` index; v7 adds `analysisQueue` and
-`engineEvidence`. Schema v11 adds `linkedAccounts`. Records are validated on the
-way out, because a record written by an older build is plausible and malformed
-data must not reach the board.
+`engineEvidence`; v8 the decision journal, review queue and training sets; v9
+the structural indexes on positions; v10 preparation sessions, opening files,
+endgame positions and pinned lines; v11 `linkedAccounts`; v12 the opening
+classification indexes; v13 source sets; v14 player identities; v15 reference
+packs and their chunks; v16 opening books; and v17 the auto-backup store.
+Records are validated on the way out, because a record written by an older
+build is plausible and malformed data must not reach the board.
 
 Every one of those versions now has a **historical migration fixture**: a real
 IndexedDB database opened at that version, seeded the way a session at that
@@ -1877,7 +1881,7 @@ and deletes it.
 
 ## Testing
 
-1,570 tests across 108 files, all on the parts where being wrong is expensive.
+3,112 tests across 260 files (`npm test`, 2026-09-20; the count includes the desktop shell's, the companion's and the scripts' own suites), all on the parts where being wrong is expensive.
 
 | Area                | Covered                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -1984,10 +1988,21 @@ suite that depends on them fails for reasons nobody changed.
 ## Continuous integration
 
 `.github/workflows/ci.yml` runs on pushes to `master` and on pull requests
-targeting it, in three jobs. `quality` runs typecheck, lint, format, the unit
-suite and `git diff --check`; `build` runs the production build; `e2e` installs
-Chromium and a real Stockfish and runs Playwright, uploading traces,
-screenshots and video when it fails.
+targeting it, in two jobs, and skips documentation-only changes. `quality`
+runs typecheck, lint, the unit suite (which includes the desktop shell's,
+the companion's and the scripts' own tests) and `git diff --check`; `build`
+runs the production build. Prettier is deliberately not in that gate — a
+hand-edited prose document can fail it without saying anything about the
+application — and is enforced by `npm run format:check` in the local release
+checklist instead.
+
+The browser suite is not a push gate. `browser-cert.yml` installs Chromium and
+a real Stockfish and runs the whole Playwright suite on manual dispatch, on
+every release tag and every Monday; it uploads traces, screenshots and video
+when it fails. The packaged desktop build, the engine fleet and the engine
+build are likewise `workflow_dispatch` workflows (`desktop-package.yml`,
+`engines.yml`, `engine-build.yml`), because a GitHub runner cannot sign or
+drive a Mac and the minutes are better spent deliberately.
 
 Only the npm download cache is kept — never `node_modules` — so every run
 proves that a fresh checkout installs. Playwright browsers are cached by
@@ -1998,13 +2013,14 @@ real engine, and a cached copy would let a broken installer pass unnoticed.
 No credentials are installed. The authenticated Lichess paths stay
 contract-tested against a routed network.
 
-### The scheduled Lichess contract check
+### The Lichess contract check
 
 `.github/workflows/lichess-smoke.yml` runs `npm run smoke:lichess` against the
-real API weekly (Mondays, 06:23 UTC) and on manual dispatch. It is a separate
-workflow on purpose: ordinary CI must never depend on a third party's uptime or
-on a credential, and this check exists precisely to fail when Lichess changes
-something nobody in this repository changed.
+real API on manual dispatch; its weekly schedule was removed for the public
+preview to conserve runner minutes. It is a separate workflow on purpose:
+ordinary CI must never depend on a third party's uptime or on a credential,
+and this check exists precisely to fail when Lichess changes something nobody
+in this repository changed.
 
 The token comes only from the `KINGFISHER_LICHESS_TOKEN` repository secret, is
 passed only as an environment variable, and is never printed — the script reads

@@ -8,6 +8,46 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
+- **A pasted position is the same position as a played one.** A FEN from
+  another program records an en passant square after every double push;
+  Kingfisher records one only when the capture is possible. The two
+  spellings used to give one position two identities, so a game imported
+  with a `[FEN]` tag, a position from Set up or an `?fen=` link could sit
+  beside its own transpositions in the explorer, the repertoire and the
+  "in your work" counts without being counted with them. Every position
+  now enters through one canonical form. (Phase 73)
+- **A FEN describing nine squares on a rank is refused** instead of being
+  accepted with the ninth silently dropped. (Phase 73)
+- **Arrows and highlights on the starting position survive a PGN export.**
+  They were read on import and lost on the way out. (Phase 73)
+- **Switching engines while one is still starting no longer runs the
+  first one under the second one's name.** Lc0 takes seconds to load its
+  weights; choosing Stockfish in that window used to install Lc0's session
+  under the Stockfish label. (Phase 73)
+- **The Lichess "Min Elo" filter asks for the band you typed.** 2200 used
+  to request the 2000+ band as well, so the column was labelled 2200+ and
+  counted games from 2000. (Phase 73)
+- **"Also reached by … move orders" lists routes, not continuations.**
+  The list included the move played _from_ the position, so after 1.e4 it
+  offered "e4 e5" as a route to the position after 1.e4. (Phase 73)
+- **Feedback with a non-Latin first line is delivered.** A message opening
+  with a piece glyph, an emoji or a Turkish ş failed the ntfy delivery as
+  "the sink rejected it". (Phase 73)
+- **Engines are sent only the options they declared.** Lc0 has no `Hash`;
+  it was sent one anyway. (Phase 73)
+- **"1 move", "1 game", "1 reply"** — counts of one read as one throughout
+  Studies, Openings, the explorer, the repertoire and Databases. (Phase 73)
+- **Route titles stay readable on a 1280–1440 px display.** The Repertoire
+  header read "Rep…" and the Training header lost its name entirely once
+  the sidebar was open; the two secondary repertoire verbs now drop their
+  noun below 1536 px and the Training queue counts, which the rail also
+  shows, appear in the header only from 1536 px. The "My games" facts on
+  Databases no longer truncate "not tracked" to a syllable. (Phase 73)
+- **A tab left open across an update says what to do.** When another tab
+  upgraded the local database, this one used to fail every save with the
+  browser's "connection is closing"; it now says Kingfisher was updated in
+  another tab and asks for a reload. (Phase 73)
+
 ## 1.2.3 — 2026-09-20
 
 Kingfisher 1.2.3 carries the three fixes below to the Mac application;

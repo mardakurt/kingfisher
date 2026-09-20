@@ -92,11 +92,12 @@ outbound network calls the application makes are the ones the
 product needs:
 
 - **Lichess** (when you sign in or query Lichess-hosted
-  resources): `lichess.org`, `api.chess.com`,
-  `tablebase.lichess.ovh`, `explorer.lichess.ovh`. Each call is
-  made because the user asked for the answer. Sign-in uses OAuth
-  with PKCE and no scopes beyond "read your games"; the token
-  is stored in IndexedDB and never leaves the device.
+  resources): `lichess.org`, `explorer.lichess.org`,
+  `tablebase.lichess.ovh`; **Chess.com** (`api.chess.com`) when you
+  sync a Chess.com account. Each call is made because the user asked
+  for the answer. Sign-in uses OAuth with PKCE and requests no scopes;
+  the token is kept in memory for the session, and in `localStorage`
+  only while _Remember_ is on, and never leaves the device.
 - **The public data mirror** at
   `mardakurt.github.io/kingfisher-data` for reference-pack
   manifests and chunks. Every chunk is verified against the
