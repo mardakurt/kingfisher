@@ -24,9 +24,21 @@ validation, scheduled backup preference serialization, and an incorrect
 native-companion prerequisite on the AI assistant panel. The engine toolbar
 also wraps controls to keep the engine selector readable in a narrow panel.
 
-**Published revision check (Phase 72, Mac-facing — not yet released).**
-Phase 72 changed application code the Mac shell renders, so the public
-Mac 1.2.1 (build 667, `359193c`) is behind `master` on: the evaluation
+**Published revision check (2026-09-20, 1.2.2).** The public Mac 1.2.2
+(build 673, `96f1822`) is built from the `v1.2.2` tag's revision, which
+is the revision `kingfisherchess.app` served when it was built
+(`deploy:status` at that commit: up to date). It carries every Phase 72
+change to the desktop, including the one the owner reported for both
+the web and the Mac: a launch opens on the initial position, with the
+last work one click away on Recent. The real update 1.2.1 → 1.2.2 was
+performed through Sparkle's own window against the public feed (19
+checks, PASS), and the packaged bundle was driven through three
+launches to prove the launch rule. The Mac is not behind `master` at
+this commit; the record below is the history of how it got here.
+
+**Published revision check (Phase 72, Mac-facing — released as 1.2.2
+above).** Phase 72 changed application code the Mac shell renders, so
+the public Mac 1.2.1 (build 667, `359193c`) was behind `master` on: the evaluation
 bar's result for a finished game and its steadiness between moves, the
 engine panel's terminal-position and warming states, the board flip
 (snap and fade instead of a rotation), the one-row tool tab strip, the
@@ -39,8 +51,8 @@ redirect, the remote full-network Stockfish (the desktop's manifest
 lists no full build), the Vercel retention policy, and the Sparkle
 release-notes summary (which is how the _next_ release's feed is
 generated, not a change to the running application). Section B of
-`docs/operations/after-a-fix.md` — a signed, notarised 1.2.2 — is the
-owner's to trigger; every gate below Section A was run at this commit.
+`docs/operations/after-a-fix.md` was then run in full; the result is the
+1.2.2 entry above.
 
 **Published revision check (2026-09-19, 1.2.1).** The public Mac 1.2.1
 (build 667, `359193c`) is built from the `v1.2.1` tag's revision, which is

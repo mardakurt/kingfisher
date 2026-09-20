@@ -26,7 +26,7 @@ export function SecurityPage({ issuesUrl }: { issuesUrl: string }): JSX.Element 
           </tr>
           <tr>
             <td>macOS application</td>
-            <td>Kingfisher 1.2.1</td>
+            <td>Kingfisher 1.2.2</td>
             <td>
               Apple Silicon DMG, signed with Developer ID and <strong>notarised by Apple</strong>;
               opens with a double-click.
@@ -192,7 +192,7 @@ export function SecurityPage({ issuesUrl }: { issuesUrl: string }): JSX.Element 
       <ul>
         <li>
           the affected version (e.g. <code>Kingfisher 1.1</code> for the web build or{}
-          <code>Kingfisher 1.2.1</code> and its build number for the macOS application);
+          <code>Kingfisher 1.2.2</code> and its build number for the macOS application);
         </li>
         <li>a minimal reproduction;</li>
         <li>what you observed and what you expected;</li>
