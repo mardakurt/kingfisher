@@ -24,6 +24,21 @@ validation, scheduled backup preference serialization, and an incorrect
 native-companion prerequisite on the AI assistant panel. The engine toolbar
 also wraps controls to keep the engine selector readable in a narrow panel.
 
+**Published revision check (Phase 73 follow-up, Mac-facing — released as
+1.2.5 below).** After 1.2.4 shipped, three owner reports changed application
+code the Mac shell renders, and each is something a Mac user sees: Settings
+→ Engines drew Berserk, Koivisto and Obsidian — projects that publish no
+macOS build — as catalogue rows with a switch turned on, above the note
+saying they are not offered here (1.2.4 carries that; the rows are now the
+engines the machine can install or has installed and the note names the
+rest); the best-move arrow drew a tooltip on the board when the pointer
+crossed it (removed; the move, score and depth stay in the engine panel);
+and Settings → Engine → Analysis settings gains threads, hash, the search
+limit, line length, follow-the-board and variation arrows as controls with
+a runtime assertion each. Nothing under `desktop/` changed. Section B of
+`docs/operations/after-a-fix.md` was then run in full; the result is the
+1.2.5 entry.
+
 **Published revision check (2026-09-20, 1.2.4).** The public Mac 1.2.4
 (build 698, `7bfdb67`) is built from the `v1.2.4` tag's revision, the
 revision `kingfisherchess.app` served when it was built (`deploy:status`
