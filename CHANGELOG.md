@@ -8,12 +8,21 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
-- **Team preparation workflow.** Editable brief starters for game review,
-  opening work and opponent preparation; a searchable inbox with member and
-  review filters, earliest due first; and a shortcut to the latest board.
-  Notes stay with their assignment during thread switches and are retained
-  when a write fails. Text notes no longer attach a board. Sharing guidance
-  explains that filters do not restrict whole-team packet exports.
+## 1.2.6 — 2026-09-20
+
+Kingfisher 1.2.6 brings the Team hub to the Mac application, and with it
+the preparation loop a coach or a second uses every day: a searchable
+inbox, suggested briefs, the latest board one click away, and note drafts
+that survive a failed save. It also corrects the reset control's label.
+The web has shipped each as it landed; the Mac 1.2.5 build has none of
+them.
+
+- **The reset control says where the board goes.** _Clear the move tree
+  (keep this position)_ read as keeping the position on screen, which is
+  exactly what it does not keep; it is now _Clear the move tree — back to the
+  starting position_ in the Position menu, the Analysis menu, the command
+  palette and the board control, and the toast says the same. The behaviour
+  is unchanged. (Phase 74)
 - **The Team hub (`/team`).** A coach and their students, or a player and
   their seconds, hand work to each other on one board: assignments with a
   brief and a due date, a thread of hand-ins, reviews and notes on each,
@@ -35,12 +44,12 @@ Phase numbers below this header will be moved into a dated `## <version>` sectio
   variations and comments. One defect fixed before anyone met it: the merge
   kept a stale `archived`, due date or assignee after the other side had
   cleared it. (Phase 74)
-- **The reset control says where the board goes.** _Clear the move tree
-  (keep this position)_ read as keeping the position on screen, which is
-  exactly what it does not keep; it is now _Clear the move tree — back to the
-  starting position_ in the Position menu, the Analysis menu, the command
-  palette and the board control, and the toast says the same. The behaviour
-  is unchanged. (Phase 74)
+- **Team preparation workflow.** Editable brief starters for game review,
+  opening work and opponent preparation; a searchable inbox with member and
+  review filters, earliest due first; and a shortcut to the latest board.
+  Notes stay with their assignment during thread switches and are retained
+  when a write fails. Text notes no longer attach a board. Sharing guidance
+  explains that filters do not restrict whole-team packet exports. (Phase 74)
 
 ## 1.2.5 — 2026-09-20
 
