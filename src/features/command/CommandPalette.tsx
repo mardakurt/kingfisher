@@ -9,11 +9,7 @@ import { cn } from '@/lib/cn';
 import { gameTitle } from '@/persistence/describe';
 import { getRepositories } from '@/persistence/repositories';
 import { playerKey } from '@/persistence/schema/migrations';
-import {
-  canonicalise,
-  searchByPosition,
-  type PositionHitKind,
-} from '@/persistence/position-search';
+import { canonicalise, searchByPosition, positionHitLabel } from '@/persistence/position-search';
 import { useQuery } from '@tanstack/react-query';
 import type { WorkspaceSearchHit } from '@/persistence/search';
 import { useAnalysis } from '@/stores/analysis-store';
@@ -593,27 +589,3 @@ function commandForPlayer(hit: PlayerSearchHit, router: ReturnType<typeof useRou
 }
 
 /** What kind of record a position hit is, shown in the palette's group column. */
-function positionHitLabel(kind: PositionHitKind): string {
-  switch (kind) {
-    case 'game':
-      return 'Game';
-    case 'chapter':
-      return 'Chapter';
-    case 'repertoire':
-      return 'Repertoire';
-    case 'training':
-      return 'Training';
-    case 'model-game':
-      return 'Model game';
-    case 'endgame':
-      return 'Endgame';
-    case 'opening-file':
-      return 'Opening file';
-    case 'preparation':
-      return 'Preparation';
-    case 'decision':
-      return 'Decision';
-    case 'critical-position':
-      return 'Critical';
-  }
-}

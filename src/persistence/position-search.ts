@@ -209,3 +209,29 @@ export function canonicalise(input: string): string | null {
   // Four space-separated fields is the shape of a canonical key.
   return /^\S+ [wb] \S+ \S+$/.test(trimmed) ? trimmed : null;
 }
+
+/** The kind of a hit, as a word a person reads. */
+export function positionHitLabel(kind: PositionHitKind): string {
+  switch (kind) {
+    case 'game':
+      return 'Game';
+    case 'chapter':
+      return 'Chapter';
+    case 'repertoire':
+      return 'Repertoire';
+    case 'training':
+      return 'Training';
+    case 'model-game':
+      return 'Model game';
+    case 'endgame':
+      return 'Endgame';
+    case 'opening-file':
+      return 'Opening file';
+    case 'preparation':
+      return 'Preparation';
+    case 'decision':
+      return 'Decision';
+    case 'critical-position':
+      return 'Critical';
+  }
+}

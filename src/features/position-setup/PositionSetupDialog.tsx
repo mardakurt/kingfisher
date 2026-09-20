@@ -14,6 +14,8 @@ import { useAnalysis } from '@/stores/analysis-store';
 import { usePreferences } from '@/stores/preferences-store';
 import { useUi } from '@/stores/ui-store';
 
+import { KnownPosition } from './KnownPosition';
+
 import {
   clearSetup,
   setupFen,
@@ -303,6 +305,8 @@ export function PositionSetupDialog() {
           >
             {pasteError ?? (validation.ok ? 'Legal position. Ready to apply.' : validation.message)}
           </p>
+
+          {open ? <KnownPosition fen={validation.ok ? validation.fen : null} /> : null}
         </div>
       </div>
     </Dialog>
