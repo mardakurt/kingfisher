@@ -179,3 +179,108 @@ final message of the session; B (a Mac release) was **not run** — the Mac
   the `study:write` scope and a privacy-claim change first.
 - **`~/Library/Caches/Kingfisher/`**, the release manifest on v1.2.2–v1.2.5,
   ESLint 10 and TypeScript 7: unchanged from Phase 73's list.
+
+## 6. The preparation loop, and 1.2.6 (2026-09-20, evening)
+
+A third owner request after the hub's second pass: make it the tool a
+professional's team would choose — research how players prepare with a
+second or a coach, keep the interface as plain as a teacher checking a
+student's work with Stockfish, and make the design precise. Started by
+Codex on `codex/team-preparation`, finished here from its uncommitted tree.
+The research and the staged plan are `docs/design/team-preparation.md`;
+what shipped: `src/team/inbox.ts` (the review queue, member filter and
+search, earliest due first), `src/features/team/briefs.ts` (one authored,
+editable starter per assignment kind), _Open latest board_, note drafts
+keyed by assignment that carry no board and survive a failed write, and a
+rail that says the packet is the whole team. Commits `f512f39`, `a4daae4`
+(the chosen view survives a roster change), `1ec31b4` (parity record).
+
+`e2e/team.spec.ts` refuses one `readwrite` transaction on `assignments`
+and asserts the draft survives; with the fix mutated to clear the draft
+regardless, the check fails (`Expected "Keep this draft after a failed
+save." / Received ""`) — run once, then reversed.
+
+`docs/operations/after-a-fix.md`, every step, as run (Node 24 — the
+shell's Node 20 fails every companion suite on `node:sqlite`):
+
+```
+A1–3 typecheck, lint, format:check       clean
+A4   npm test                            266 files, 3172 passed, 0 skipped
+A5   docs:check                          344/344
+A6   git diff --check                    clean
+A7   test:e2e                            314 passed (17.6 m); again after
+                                         a4daae4: 314 passed (17.8 m)
+A8   public:check                        22/22 links
+A9   1ec31b4 = origin/master
+A10  deploy:status                       Vercel token 403 (com.vercel.cli
+                                         login) — proven from GitHub:
+                                         deployment 6556075467 for a4daae4
+                                         success; 1ec31b4 docs-only,
+                                         vercel-ignore-build.mjs prints skip
+A11  kingfisherchess.app/team            team created in the browser pane;
+                                         Find work, How sharing works, Use
+                                         suggested brief inserts the starter
+                                         and disables itself
+A12  CHANGELOG                           entry under Unreleased (web)
+A13  no public claim names Team
+B1   1.2.6 in both package.json          lockfiles followed
+B2–3 changelog closed; docs/release/1.2.6.md; docs/README links it
+B4   6281e03 = origin/master             clean tree (local master created
+                                         at the same commit — preflight
+                                         requires the branch by name)
+B6   preflight (mac)                     GREEN
+B7   npm run build                       exit 0, 34/34 pages
+B8   desktop:dist (stable)               1.2.6 · build 714 · 6281e03 ·
+                                         notarization successful; fresh
+                                         packaged boot verified
+B9   release:mac:notarize                Accepted 0e91cbdb…, ticket stapled
+B10  desktop:trust:verify                GREEN
+B11  verify-dmg --version 1.2.6          DMG verified, 3269 entries
+B12  desktop:smoke --packaged            17/17
+     desktop:certify (beyond the list)   smoke 17/17, chrome 109/109,
+                                         restart 5/5, engines 25/25,
+                                         suspend 12/12, faults walk (seed 7)
+                                         0 findings, dmg verified, no-skips,
+                                         unit 3172; walk seed 46 FAILED at
+                                         step 83 — the harness's own click
+                                         on Sparkle's "up to date" alert by a
+                                         stale window index (see below);
+                                         fixed, seed 46 re-run: 200 actions,
+                                         0 findings, exit 0
+     release:mac:appcast --zip           1.2.6 · sparkle:version 714 · signed
+B14  release:mac:publish v1.2.6          6 assets; tag v1.2.6 = 6281e03
+B15  gh release edit --latest            notes = docs/release/1.2.6.md;
+                                         /releases/latest → v1.2.6; the
+                                         appcast redirect served 1.2.6 within
+                                         a minute this time
+B13  desktop:update:real --current <1.2.5 app, recovered from the published
+     ZIP, hash-matched> --public-feed    PASS, 19 checks
+B16  descriptor                          1.2.6 · 714 · 6281e03 ·
+                                         Kingfisher-1.2.6-arm64.dmg ·
+                                         sha256 67921938… · 172,583,211 bytes
+B17  publish:release-manifest            prepared for 1.2.6
+B18  README, SECURITY, install-macos, launch-kit, public-claims,
+     SecurityPage.tsx, AGENTS.md, platform-parity
+B19  docs:check                          344/344
+B20  fb73356 pushed                      deployment 6556751877 success;
+                                         landing and /install name 1.2.6,
+                                         build 714, 67921938…
+B21  desktop:public:verify --landing --full   66/66
+```
+
+**A defect in the walk harness, not the product.** The `update-dialog`
+step of `scripts/desktop-walk.mjs` found Sparkle's alert, then clicked
+"window 1" by the index it had resolved a moment before; Sparkle's
+_Checking for updates…_ panel closes as the verdict alert opens, and the
+index named a window that was gone (`Can't get window 1 of process …
+Invalid index`). The alert stayed on screen — the owner saw it and asked —
+saying, correctly for an unpublished 1.2.6, that 1.2.5 was the newest on
+the feed. The driver's `waitAndClick` already re-resolved at click time;
+the step now does the same and retries (`fb73356`).
+
+**The machine.** `$TMPDIR` is cleared between sessions: the previous
+release applications the update harness needs were gone again and 1.2.5
+was recovered from its published ZIP (`gh release download`, hash against
+`SHA256SUMS` — note that file carries a size column `shasum -c` does not
+read; compare the digest directly). `~/Library/Caches/kingfisher/` would
+survive; nothing was moved there this time.
