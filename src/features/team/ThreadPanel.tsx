@@ -26,12 +26,14 @@ import {
   assignmentStatus,
   describeEvidence,
   handoverEvidence,
+  latestBoard,
   STATUS_LABEL,
   threadOrder,
 } from '@/team';
 import { cn } from '@/lib/cn';
+import { canReview } from '@/team/inbox';
 
-import { describeDue, KIND_LABEL, REVIEWING_ROLES, ROLE_LABEL, shortDate } from './labels';
+import { describeDue, KIND_LABEL, ROLE_LABEL, shortDate } from './labels';
 import { WhoAmI } from './WhoAmI';
 
 export interface HandoverDraft {
@@ -45,6 +47,8 @@ export interface HandoverDraft {
 export function ThreadPanel({
   team,
   assignment,
+  note,
+  onNoteChange: setNote,
   onOpenBoard,
   onHandover,
   onArchive,
@@ -53,14 +57,15 @@ export function ThreadPanel({
 }: {
   readonly team: TeamRecord;
   readonly assignment: AssignmentRecord;
+  readonly note: string;
+  readonly onNoteChange: (note: string) => void;
   readonly onOpenBoard: (handover: Handover) => void;
-  readonly onHandover: (draft: HandoverDraft) => void;
+  readonly onHandover: (draft: HandoverDraft) => Promise<boolean>;
   readonly onArchive: (archived: boolean) => void;
   readonly onChooseMe: (memberId: string) => void;
   readonly busy: boolean;
 }) {
   const router = useRouter();
-  const [note, setNote] = useState('');
   const [attachBoard, setAttachBoard] = useState(true);
   const notify = useUi((state) => state.notify);
   const openImport = useUi((state) => state.setImportOpen);
@@ -71,7 +76,8 @@ export function ThreadPanel({
   const nameOf = (id: string | undefined) =>
     team.members.find((member) => member.id === id)?.name ?? 'someone no longer in the team';
   const status = assignmentStatus(assignment);
-  const iReview = me ? REVIEWING_ROLES.has(me.role) && assignment.assignedTo !== me.id : false;
+  const iReview = canReview(assignment, me);
+  const latest = latestBoard(assignment);
   const due = describeDue(assignment.due);
 
   const snapshot = (): Pick<HandoverDraft, 'pgn' | 'evidence'> => {
@@ -79,10 +85,15 @@ export function ThreadPanel({
     return { pgn: serializePgn(tree), evidence: handoverEvidence(tree) };
   };
 
-  const submit = (kind: Handover['kind'], verdict?: ReviewVerdict) => {
-    const withBoard = kind === 'hand-in' || (attachBoard && boardHasMoves);
-    onHandover({ kind, note, ...(verdict ? { verdict } : {}), ...(withBoard ? snapshot() : {}) });
-    setNote('');
+  const submit = async (kind: Handover['kind'], verdict?: ReviewVerdict) => {
+    const withBoard = kind === 'hand-in' || (kind === 'review' && attachBoard && boardHasMoves);
+    const saved = await onHandover({
+      kind,
+      note,
+      ...(verdict ? { verdict } : {}),
+      ...(withBoard ? snapshot() : {}),
+    });
+    if (saved) setNote('');
   };
 
   const copyPgn = async (handover: Handover) => {
@@ -169,6 +180,24 @@ export function ThreadPanel({
           </p>
         ) : null}
 
+        {latest ? (
+          <div className="mt-3 rounded border border-line-subtle bg-surface-2 px-2.5 py-2">
+            <p className="text-[10.5px] text-secondary">
+              Latest board · {latest.authorName} · {shortDate(latest.at)}
+            </p>
+            <Button
+              size="sm"
+              variant="subtle"
+              className="mt-1.5"
+              onClick={() => onOpenBoard(latest)}
+            >
+              Open latest board
+            </Button>
+            <p className="mt-1 text-[10px] text-secondary">
+              Walk the moves; use the Engine tab to check critical positions.
+            </p>
+          </div>
+        ) : null}
         <h4 className="mt-4 text-[9.5px] uppercase tracking-wide text-tertiary">Thread</h4>
         {assignment.handovers.length === 0 ? (
           <p className="mt-1 text-[10.5px] text-tertiary">Nothing handed over yet.</p>
@@ -227,6 +256,7 @@ export function ThreadPanel({
           </p>
           <textarea
             rows={3}
+            disabled={busy}
             value={note}
             onChange={(event) => setNote(event.target.value)}
             placeholder={

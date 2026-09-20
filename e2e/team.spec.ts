@@ -131,6 +131,9 @@ test('a coach and a student hand work to each other through packets', async ({
   await routeAction(coach, 'New assignment');
   await coach.locator('[data-team-assignment-title]').fill('Round 3 game');
   await coach.locator('[data-team-assignment-for]').selectOption({ label: 'Ana' });
+  await coach.getByRole('button', { name: 'Use suggested brief' }).click();
+  await expect(coach.locator('[data-team-assignment-brief]')).toHaveValue(/Your thinking:/);
+  await expect(coach.getByRole('button', { name: 'Use suggested brief' })).toBeDisabled();
   await coach.locator('[data-team-assignment-brief]').fill('Annotate your game.');
   await coach.getByRole('button', { name: 'Set assignment' }).click();
   await expect(coach.locator('[data-team-column="todo"]')).toContainText('Round 3 game');
@@ -198,7 +201,13 @@ test('a coach and a student hand work to each other through packets', async ({
   await dropPacket(coach, studentPacket);
   await expect(coach.getByText(/Packet received from Ana: 1 new handover\./)).toBeVisible();
   const handedIn = coach.locator('[data-team-column="handed-in"]');
+  await coach.getByRole('combobox', { name: 'Assignment view' }).selectOption('review');
+  await coach.getByRole('combobox', { name: 'Filter by member' }).selectOption({ label: 'Ana' });
+  await coach.getByRole('searchbox', { name: 'Find work' }).fill('round 3');
   await expect(handedIn).toContainText('Round 3 game');
+  await coach.getByRole('searchbox', { name: 'Find work' }).fill('no such assignment');
+  await expect(coach.getByText('No matching assignments.')).toBeVisible();
+  await coach.getByRole('button', { name: 'Clear filters' }).click();
   await expect(handedIn).toContainText('1 new');
   await expect(coach.locator('[data-team-assignment="Round 3 game"][data-team-new]')).toBeVisible();
   await coach.locator('[data-team-assignment="Round 3 game"]').click();
@@ -223,7 +232,7 @@ test('a coach and a student hand work to each other through packets', async ({
 
   // Unsaved moves on the board are not replaced without asking.
   await play(coach, 'd2', 'd4');
-  await thread(coach).getByRole('button', { name: 'Open on board' }).click();
+  await thread(coach).getByRole('button', { name: 'Open latest board' }).click();
   const replace = coach.getByRole('dialog', { name: 'Replace what is on the board?' });
   await expect(replace).toBeVisible();
   await replace.getByRole('button', { name: 'Cancel' }).click();
@@ -251,6 +260,47 @@ test('a coach and a student hand work to each other through packets', async ({
     'Look at 2.f4 too.',
   );
 
+  // Refuse the storage boundary once: losing a review draft is worse than a failed save.
+  await thread(coach)
+    .getByRole('textbox', { name: 'Note' })
+    .fill('Keep this draft after a failed save.');
+  await coach.evaluate(() => {
+    const original = IDBDatabase.prototype.transaction;
+    const target = window as unknown as { restoreTeamWrites: () => void };
+    target.restoreTeamWrites = () => {
+      IDBDatabase.prototype.transaction = original;
+    };
+    IDBDatabase.prototype.transaction = function (stores, mode, options) {
+      if (mode === 'readwrite' && [stores].flat().includes('assignments')) {
+        throw new DOMException('Simulated storage exhaustion', 'QuotaExceededError');
+      }
+      return original.call(this, stores, mode, options);
+    };
+  });
+  try {
+    await thread(coach).getByRole('button', { name: 'Add a note' }).click();
+    await expect(coach.getByText('Could not hand over.', { exact: true })).toBeVisible();
+    await expect(thread(coach).getByRole('textbox', { name: 'Note' })).toHaveValue(
+      'Keep this draft after a failed save.',
+    );
+    await expect(thread(coach).locator('[data-team-handover="note"]')).toHaveCount(0);
+  } finally {
+    await coach.evaluate(() =>
+      (window as unknown as { restoreTeamWrites: () => void }).restoreTeamWrites(),
+    );
+  }
+
+  // A text-only note must not silently attach the currently loaded preparation.
+  await thread(coach).getByRole('textbox', { name: 'Note' }).fill('Discuss the plan next lesson.');
+  await thread(coach).getByRole('button', { name: 'Add a note' }).click();
+  await expect(thread(coach).getByRole('textbox', { name: 'Note' })).toHaveValue('');
+  await expect(thread(coach).locator('[data-team-handover="note"]')).toContainText(
+    'Discuss the plan',
+  );
+  await expect(
+    thread(coach).locator('[data-team-handover="note"]').getByRole('button', { name: 'Copy PGN' }),
+  ).toHaveCount(0);
+
   // --- Archive hides it behind one toggle; Unarchive brings it back.
   await thread(coach).getByRole('button', { name: 'Archive' }).click();
   await expect(coach.locator('[data-team-column]')).toHaveCount(0);
@@ -261,14 +311,26 @@ test('a coach and a student hand work to each other through packets', async ({
   await coach.getByRole('button', { name: 'Hide archived' }).click();
   await expect(coach.locator('[data-team-column="todo"]')).toContainText('Round 3 game');
 
+  await thread(coach)
+    .getByRole('textbox', { name: 'Note' })
+    .fill('Draft for Ana, not for the second.');
+
   // --- An opponent assignment names the person and the colour, and links to their dossier.
   await routeAction(coach, 'New assignment');
   await coach.locator('[data-team-assignment-title]').fill('Round 5 file');
   await coach.getByRole('combobox', { name: 'Kind' }).selectOption('opponent');
+  await coach.getByRole('button', { name: 'Use suggested brief' }).click();
+  await expect(coach.locator('[data-team-assignment-brief]')).toHaveValue(/time zone/);
   await coach.locator('[data-team-assignment-opponent]').fill('Rival');
   await coach.getByRole('combobox', { name: 'Our colour' }).selectOption('b');
   await coach.getByRole('button', { name: 'Set assignment' }).click();
   await expect(thread(coach)).toContainText('vs Rival · we have Black');
+  await expect(thread(coach).getByRole('textbox', { name: 'Note' })).toHaveValue('');
+  await coach.locator('[data-team-assignment="Round 3 game"]').click();
+  await expect(thread(coach).getByRole('textbox', { name: 'Note' })).toHaveValue(
+    'Draft for Ana, not for the second.',
+  );
+  await coach.locator('[data-team-assignment="Round 5 file"]').click();
 
   // A second is who writes the file: as one, the first button is the hand-in,
   // not the review that the first version of the role split offered.

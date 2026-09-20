@@ -13,6 +13,7 @@ import type {
 } from '@/persistence/repositories/team-repository';
 
 import { KIND_LABEL, ROLE_LABEL } from './labels';
+import { BRIEF_STARTERS } from './briefs';
 
 const INPUT =
   'h-8 rounded-[4px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60';
@@ -329,7 +330,7 @@ export function NewAssignmentDialog({
             data-team-assignment-title
           />
         </Field>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <Field label="Kind">
             <select
               value={kind}
@@ -390,9 +391,23 @@ export function NewAssignmentDialog({
             </Field>
           </div>
         ) : null}
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[11px] text-secondary">A clear brief makes a useful hand-in.</span>
+          <Button
+            type="button"
+            size="sm"
+            disabled={Boolean(brief.trim())}
+            title={
+              brief.trim() ? 'Clear the brief to start again. Your writing is kept.' : undefined
+            }
+            onClick={() => setBrief(BRIEF_STARTERS[kind])}
+          >
+            Use suggested brief
+          </Button>
+        </div>
         <Field label="Brief">
           <textarea
-            rows={4}
+            rows={7}
             value={brief}
             onChange={(event) => setBrief(event.target.value)}
             placeholder="What to do, and what a good hand-in looks like. “Annotate your game; mark the move where you stopped calculating and say what you saw.”"

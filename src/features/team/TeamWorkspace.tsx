@@ -25,6 +25,7 @@ import { Team as TeamIcon } from '@/components/icons';
 import { useEngineSnapshots } from '@/features/analysis/useEngineSnapshots';
 import { WorkspaceFrame } from '@/features/workspace/WorkspaceFrame';
 import { cn } from '@/lib/cn';
+import { assignmentInbox, type InboxView } from '@/team/inbox';
 import { plural } from '@/lib/plural';
 import type { AssignmentRecord, Handover, TeamRecord } from '@/persistence/domain';
 import { getRepositories } from '@/persistence/repositories';
@@ -83,6 +84,10 @@ export function TeamWorkspace() {
   const [dropping, setDropping] = useState(false);
   const [dialog, setDialog] = useState<DialogKind>(null);
   const [showArchived, setShowArchived] = useState(false);
+  const [inboxView, setInboxView] = useState<InboxView>('all');
+  const [assignee, setAssignee] = useState('');
+  const [search, setSearch] = useState('');
+  const [notes, setNotes] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -109,8 +114,10 @@ export function TeamWorkspace() {
     try {
       await work();
       invalidateTeams(client);
+      return true;
     } catch (error) {
       fail(failure, error);
+      return false;
     } finally {
       setBusy(false);
     }
@@ -162,10 +169,18 @@ export function TeamWorkspace() {
       }
     }, failure);
 
-  const chooseMe = (memberId: string) =>
+  const clearFilters = () => {
+    setAssignee('');
+    setSearch('');
+    setInboxView('all');
+  };
+
+  const chooseMe = (memberId: string) => {
+    setInboxView('all');
     void withTeam((repositories, current) =>
       repositories.team.updateTeam(current.id, current.revision, { me: memberId }),
     );
+  };
 
   /**
    * A board from the thread replaces what is on the board. When that is
@@ -198,8 +213,8 @@ export function TeamWorkspace() {
   };
 
   const handover = (draft: HandoverDraft) => {
-    if (!me) return;
-    void withAssignment(async (repositories, current) => {
+    if (!me) return Promise.resolve(false);
+    return withAssignment(async (repositories, current) => {
       const next = await repositories.team.addHandover(current.id, current.revision, {
         ...draft,
         authorId: me.id,
@@ -240,7 +255,10 @@ export function TeamWorkspace() {
       const received = await receivePacket(file);
       notify({ tone: 'success', message: describeReceipt(received) });
       setChosenTeamId(received.teamId);
-      if (received.teamId !== teamId) setSelectedId(null);
+      if (received.teamId !== teamId) {
+        setSelectedId(null);
+        clearFilters();
+      }
     }, 'Could not receive the packet.');
 
   /** A packet dropped anywhere on the route is received; anything else is left to the shell. */
@@ -261,8 +279,15 @@ export function TeamWorkspace() {
     return last.at > (seen[entry.id] ?? 0);
   };
 
-  const visible = assignments.filter((entry) => showArchived || !entry.archived);
-  const archivedCount = assignments.length - visible.length;
+  const visible = assignmentInbox(assignments, {
+    view: inboxView,
+    member: me,
+    assignee,
+    query: search,
+    showArchived,
+  });
+  const archivedCount = assignments.filter((entry) => entry.archived).length;
+  const filtered = Boolean(search.trim() || assignee || inboxView !== 'all');
   const grouped = useMemo(() => {
     const groups = new Map<AssignmentColumn, AssignmentRecord[]>(
       COLUMNS.map((column) => [column, []]),
@@ -301,6 +326,7 @@ export function TeamWorkspace() {
             onChange={(event) => {
               setChosenTeamId(event.target.value);
               setSelectedId(null);
+              clearFilters();
             }}
             className="h-6 min-w-0 flex-1 rounded-[3px] border border-line bg-surface-inset px-1.5 text-[11px] text-primary outline-none focus:border-accent/60"
           >
@@ -312,16 +338,84 @@ export function TeamWorkspace() {
           </select>
         </label>
       ) : null}
+      <div className="space-y-2 border-b border-line-subtle px-3 py-2.5">
+        <label className="block text-[10.5px] text-secondary">
+          Find work
+          <input
+            type="search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Title, opponent or brief"
+            className="mt-1 h-8 w-full rounded border border-line bg-surface-inset px-2 text-xs text-primary focus:border-accent"
+          />
+        </label>
+        <div className="grid grid-cols-2 gap-2">
+          <label className="text-[10.5px] text-secondary">
+            View
+            <select
+              aria-label="Assignment view"
+              value={inboxView}
+              onChange={(event) => setInboxView(event.target.value as InboxView)}
+              className="mt-1 h-8 w-full rounded border border-line bg-surface-inset px-1 text-[11px] text-primary"
+            >
+              <option value="all">All work</option>
+              {me?.role === 'coach' || me?.role === 'player' ? (
+                <option value="review">To review</option>
+              ) : null}
+              <option value="mine">Assigned to me</option>
+            </select>
+          </label>
+          <label className="text-[10.5px] text-secondary">
+            Assigned to
+            <select
+              aria-label="Filter by member"
+              value={assignee}
+              onChange={(event) => setAssignee(event.target.value)}
+              className="mt-1 h-8 w-full rounded border border-line bg-surface-inset px-1 text-[11px] text-primary"
+            >
+              <option value="">Everyone</option>
+              {team.members.map((member) => (
+                <option key={member.id} value={member.id}>
+                  {member.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <p className="text-[10px] text-secondary" role="status">
+          {visible.length} shown · earliest due first
+        </p>
+        <details className="text-[10px] text-secondary">
+          <summary className="cursor-pointer">How sharing works</summary>
+          <p className="mt-1 leading-relaxed">
+            Share packet exports every assignment and the roster, including archived work. Filters
+            do not limit sharing. Use separate teams for confidential preparation or individual
+            students. Send and receive files to exchange updates.
+          </p>
+        </details>
+      </div>
       {visible.length === 0 ? (
         <EmptyState
-          title="Nothing set yet."
+          title={filtered ? 'No matching assignments.' : 'Nothing set yet.'}
           description={
-            me
-              ? 'Set an assignment, or receive a packet that carries some.'
-              : 'Choose who you are in the team first (Members…).'
+            filtered
+              ? 'Change the view, member or search to find other work.'
+              : me
+                ? 'Set an assignment, or receive a packet that carries some.'
+                : 'Choose who you are in the team first (Members…).'
           }
           action={
-            me ? (
+            filtered ? (
+              <Button
+                onClick={() => {
+                  setSearch('');
+                  setAssignee('');
+                  setInboxView('all');
+                }}
+              >
+                Clear filters
+              </Button>
+            ) : me ? (
               <Button variant="accent" onClick={() => setDialog('new-assignment')}>
                 New assignment
               </Button>
@@ -492,6 +586,10 @@ export function TeamWorkspace() {
             <ThreadPanel
               team={team}
               assignment={assignment}
+              note={notes[assignment.id] ?? ''}
+              onNoteChange={(note) =>
+                setNotes((current) => ({ ...current, [assignment.id]: note }))
+              }
               busy={busy}
               onOpenBoard={openBoard}
               onHandover={handover}
@@ -533,6 +631,7 @@ export function TeamWorkspace() {
                 });
                 setChosenTeamId(created.id);
                 setSelectedId(null);
+                clearFilters();
               }, 'Could not create the team.');
             }}
           />
@@ -551,11 +650,7 @@ export function TeamWorkspace() {
                 repositories.team.removeMember(current.id, current.revision, memberId),
               )
             }
-            onChooseMe={(memberId) =>
-              void withTeam((repositories, current) =>
-                repositories.team.updateTeam(current.id, current.revision, { me: memberId }),
-              )
-            }
+            onChooseMe={chooseMe}
             onRename={(name) =>
               void withTeam((repositories, current) =>
                 repositories.team.updateTeam(current.id, current.revision, { name }),
@@ -585,6 +680,7 @@ export function TeamWorkspace() {
                   setBy: me.id,
                 });
                 setSelectedId(created.id);
+                clearFilters();
               }, 'Could not set the assignment.');
             }}
           />

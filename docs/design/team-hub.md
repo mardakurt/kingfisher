@@ -5,6 +5,11 @@ Sections 1 and 2 are the research and the decisions; sections 3–6 are the
 design, written from the code (`src/team/`, `src/features/team/`,
 `src/persistence/repositories/team-repository.ts`)._
 
+The follow-up [Team preparation design](team-preparation.md) distinguishes the
+implemented inbox and brief improvements from the remaining audience, review
+identity and tournament-brief work. It uses first-hand sources and states the
+limits of packet confidentiality.
+
 ## 0. The one-paragraph version
 
 A **team** is a coach and their students, or a player and their seconds. Its
@@ -176,7 +181,10 @@ One `WorkspaceFrame`, like every board route. Nothing is new to learn.
   you are), _Share packet_, _Receive packet…_, _Members…_, _New team_. The
   subtitle says the team, the member count, and who you are — or that you
   have not said.
-- **Rail — Assignments**: three columns, _To do_, _Handed in_, _Accepted_.
+- **Rail — Assignments**: search by title/opponent/brief, filter by assignee,
+  choose _All work_, _To review_ (coach/player) or _Assigned to me_. Rows
+  are ordered by due date, then creation time, with undated work last.
+  Filters do not restrict packet exports. Within that view, three columns, _To do_, _Handed in_, _Accepted_.
   A row is the title, who it is for, the kind, _Returned_ when it came back,
   and the due date (_overdue_ once it has passed). Archived ones are hidden
   behind one toggle. A coach's inbox is the _Handed in_ column.
@@ -196,6 +204,11 @@ One `WorkspaceFrame`, like every board route. Nothing is new to learn.
   role. A hand-in needs moves on the board — an empty board says so and
   offers _import a PGN_; a review may attach the board or not; a note
   carries no board. _Archive_ / _Unarchive_ is in the panel's header.
+- **Brief starters**: _Use suggested brief_ inserts editable guidance for the
+  selected assignment kind only when the brief is empty. _Open latest board_
+  reaches the latest handover carrying a board without searching the history.
+  Note drafts stay with their assignment while switching threads and clear
+  only after a successful write; they are not saved across reloads.
 - **Who are you?** is asked in place — one select and _That's me_ — the
   moment a team has a roster and no `me`, which is what a received packet
   produces.

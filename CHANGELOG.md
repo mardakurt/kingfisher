@@ -8,6 +8,12 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
+- **Team preparation workflow.** Editable brief starters for game review,
+  opening work and opponent preparation; a searchable inbox with member and
+  review filters, earliest due first; and a shortcut to the latest board.
+  Notes stay with their assignment during thread switches and are retained
+  when a write fails. Text notes no longer attach a board. Sharing guidance
+  explains that filters do not restrict whole-team packet exports.
 - **The Team hub (`/team`).** A coach and their students, or a player and
   their seconds, hand work to each other on one board: assignments with a
   brief and a due date, a thread of hand-ins, reviews and notes on each,

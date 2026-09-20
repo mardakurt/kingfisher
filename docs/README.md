@@ -92,6 +92,8 @@ with [`AGENTS.md`](../AGENTS.md).
   dataset and asset, with licence and provenance.
 - [`../companion/README.md`](../companion/README.md) — the companion process:
   what it does and its trust boundary.
+- [`design/team-preparation.md`](design/team-preparation.md) — first-hand research,
+  coach/second workflows, implemented improvements and staged implementation plan.
 - [`design/team-hub.md`](design/team-hub.md) — the Team hub: the research
   on how seconds and coaches actually hand work around, the decisions
   (local-first, packet file, immutable handovers, verified PGN, derived
