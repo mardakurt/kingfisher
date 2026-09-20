@@ -246,5 +246,49 @@ B20 commit dbe93d9, push; deploy:status              up to date (dbe93d9)
 B21 desktop:public:verify -- --landing --full        66/66 — PUBLIC DMG VERIFIED (every byte)
 ```
 
+### Three more reports, and 1.2.3 (2026-09-20)
+
+After 1.2.2 the owner reported three things: the dock's More menu showed
+one item (the one-row strip's `overflow: hidden` painted over the menu
+— caught by the owner, not the suite, whose "every item is on screen"
+check passed against boxes that were painted over; it now hit-tests each
+item at its centre and fails against the clipped strip, 14 of 15
+unreachable); the engine notes read "Windows only" on a Mac and "Mac app
+only" on Windows (one tested rule, `engine/platform-note.ts`, now
+decides from the browser's OS and the origin; verified live from Mac,
+Windows and Linux user agents); and the landing skip could be undone
+only at `/?stay` (Settings → Workspace has the switch; the Mac
+application hides it). Section A run in full: 3091 unit, 308 browser,
+0 failed, 0 flaky; production at `0d39de7`.
+
+Then Section B again, for 1.2.3:
+
+```
+B1–B4  1.2.2 → 1.2.3; changelog closed (3 entries); docs/release/1.2.3.md;
+       commit 9a6265b, pushed, tree clean
+B6     preflight GREEN; Sparkle 2.10.0 vendored; bridge current
+B7     build: Compiled successfully
+B8     stable desktop:dist: 1.2.3 · build 679 · 9a6265b; notarised; boot verified
+B9     release:mac:notarize: Accepted da7fbbb3…; stapled, validated
+B10    trust: GREEN
+B11    verify-dmg --version 1.2.3 --commit 9a6265b…: verified, 3244 entries
+B12    desktop:smoke --packaged: 17/17
+       packaged bundle: More menu 15/15 reachable, last item selectable;
+       Windows-only engines not offered; landing switch hidden (0)
+       appcast: build 679, summary notes (3 lines), latest-mac.yml
+B14    release:mac:publish v1.2.3: 6 assets
+B15    Latest; publishedAt 2026-09-20T07:43:14Z
+B13    desktop:update:real --current <1.2.2, hash-checked> --public-feed:
+       PASS, 19 checks (first try — no leftover processes this time)
+B16    descriptor: 1.2.3 · 679 · 9a6265b · Kingfisher-1.2.3-arm64.dmg ·
+       sha256 63204418… · 172,413,409 bytes (GitHub reports the same)
+B17    publish:release-manifest: prepared for 1.2.3
+B18    README, SECURITY, install-macos (file + hash), launch-kit, public-claims,
+       SecurityPage.tsx, AGENTS.md, platform-parity
+B19    docs:check 344/344
+B20    commit c9ea16f, pushed; deploy:status up to date (c9ea16f)
+B21    desktop:public:verify -- --landing --full: 66/66, every byte
+```
+
 The Mac is not behind `master`. Nothing remains from the audit's own
 list; the future ideas are documented, not built.
