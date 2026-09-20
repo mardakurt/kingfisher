@@ -259,6 +259,24 @@ export const Endgame = (p: IconProps) => (
     <path d="M7 16h10v3H7z" />
   </Icon>
 );
+/**
+ * Team: three people around one thing.
+ *
+ * Players already owns the two-heads shape, so this is not heads. Three
+ * points joined to a centre is the oldest picture of a hub there is, and a
+ * small square at the centre — the board they hand each other — keeps it
+ * from reading as a generic network glyph beside the bullseye and the
+ * folder.
+ */
+export const Team = (p: IconProps) => (
+  <Icon {...p}>
+    <rect x="9.5" y="9.5" width="5" height="5" rx="0.75" />
+    <circle cx="12" cy="4" r="2" />
+    <circle cx="5" cy="17" r="2" />
+    <circle cx="19" cy="17" r="2" />
+    <path d="M12 6v3.5M6.6 15.9l2.9-2M17.4 15.9l-2.9-2" />
+  </Icon>
+);
 export const Target = (p: IconProps) => (
   <Icon {...p}>
     <circle cx="12" cy="12" r="8" />

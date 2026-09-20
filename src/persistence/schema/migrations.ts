@@ -1,5 +1,5 @@
 export const DATABASE_NAME = 'kingfisher';
-export const DATABASE_VERSION = 17;
+export const DATABASE_VERSION = 18;
 
 export const STORE_NAMES = {
   studies: 'studies',
@@ -38,6 +38,12 @@ export const STORE_NAMES = {
    * writes.
    */
   backups: 'backups',
+  /*
+   * Phase 74: the team hub. A team is people; an assignment is one piece of
+   * work and its thread of handovers, keyed to its team.
+   */
+  teams: 'teams',
+  assignments: 'assignments',
 } as const;
 
 export type StoreName = (typeof STORE_NAMES)[keyof typeof STORE_NAMES];
@@ -459,6 +465,24 @@ export const MIGRATIONS: readonly Migration[] = [
        */
       target.createStore(STORE_NAMES.backups, { keyPath: 'id' }, [
         { name: 'createdAt', keyPath: 'createdAt' },
+      ]);
+    },
+  },
+  {
+    version: 18,
+    description: 'Add the team hub: teams, and assignments indexed by team.',
+    apply(target) {
+      /*
+       * Assignments are read by team — the rail lists one team's work — so
+       * `teamId` is the index that matters. `updatedAt` orders the list the
+       * way a person expects: the thread somebody touched last, first.
+       */
+      target.createStore(STORE_NAMES.teams, { keyPath: 'id' }, [
+        { name: 'updatedAt', keyPath: 'updatedAt' },
+      ]);
+      target.createStore(STORE_NAMES.assignments, { keyPath: 'id' }, [
+        { name: 'teamId', keyPath: 'teamId' },
+        { name: 'updatedAt', keyPath: 'updatedAt' },
       ]);
     },
   },

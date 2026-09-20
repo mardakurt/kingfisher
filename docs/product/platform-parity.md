@@ -24,6 +24,19 @@ validation, scheduled backup preference serialization, and an incorrect
 native-companion prerequisite on the AI assistant panel. The engine toolbar
 also wraps controls to keep the engine selector readable in a narrow panel.
 
+**Published revision check (Phase 74, Mac-facing — not yet released).**
+After 1.2.5 shipped, two changes landed in application code the Mac shell
+renders, and each is something a Mac user sees: the Team hub at `/team` (a
+new section in the rail, two new IndexedDB stores at schema v18, the packet
+file as its transport — the Mac's download and file-chooser are the
+browser's own, and no bridge route was added), and the reset control's
+label — _Clear the move tree — back to the starting position_ — in the
+Position menu, the Analysis menu, the command palette and the board
+control. Nothing under `desktop/` changed. The public Mac 1.2.5 (build
+704, `738d22d`) is therefore behind `master` from the commit that carries
+them; section B of `docs/operations/after-a-fix.md` is due before the next
+Mac release and has not been run for this change.
+
 **Published revision check (2026-09-20, 1.2.5).** The public Mac 1.2.5
 (build 704, `738d22d`) is built from the `v1.2.5` tag's revision, the
 revision `kingfisherchess.app` served when it was built (`deploy:status`

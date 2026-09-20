@@ -8,6 +8,23 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
+- **The Team hub (`/team`).** A coach and their students, or a player and
+  their seconds, hand work to each other on one board: assignments with a
+  brief and a due date, a thread of hand-ins, reviews and notes on each,
+  the board carried as PGN and replayed through Kingfisher's rules before it
+  is stored, and an evidence line per handover that says which engine
+  evaluated how many positions at what depth — or that none did. The rail is
+  _To do_, _Handed in_, _Accepted_; the first button is the one your role
+  needs. The team travels as a packet file — no server, no account — and
+  threads merge by adding, so receiving the same packet twice changes
+  nothing. Research and decisions in `docs/design/team-hub.md`. (Phase 74)
+- **The reset control says where the board goes.** _Clear the move tree
+  (keep this position)_ read as keeping the position on screen, which is
+  exactly what it does not keep; it is now _Clear the move tree — back to the
+  starting position_ in the Position menu, the Analysis menu, the command
+  palette and the board control, and the toast says the same. The behaviour
+  is unchanged. (Phase 74)
+
 ## 1.2.5 — 2026-09-20
 
 Kingfisher 1.2.5 carries three owner reports from the day 1.2.4 shipped

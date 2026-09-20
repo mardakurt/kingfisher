@@ -436,6 +436,75 @@ describe('migrating a Phase 11 installation (pre-classification) to current', ()
   });
 });
 
+describe('migrating a Phase 73 installation (pre-team-hub, v17) to current', () => {
+  it('adds the team stores empty, indexes assignments by team, and disturbs nothing', async () => {
+    const name = dbName();
+
+    // A real v17 profile: a chapter and an auto-backup row, as 1.2.5 writes them.
+    const v17 = await openPersistenceDatabaseAt(17, name);
+    await v17.put(STORE_NAMES.studies, { id: 's1', title: 'Kept', createdAt: 1, updatedAt: 1 });
+    await v17.put(STORE_NAMES.chapters, {
+      id: 'c1',
+      studyId: 's1',
+      title: 'Chapter',
+      order: 0,
+      tree: chapterTree(),
+      createdAt: 1,
+      updatedAt: 1,
+      revision: 3,
+    });
+    await v17.put(STORE_NAMES.backups, { id: 'b1', createdAt: 5, payload: '{}' });
+    v17.close();
+
+    const current = await openPersistenceDatabaseAt(DATABASE_VERSION, name);
+
+    // Nothing the profile already held moved or changed.
+    const chapter = await current.get<Record<string, unknown>>(STORE_NAMES.chapters, 'c1');
+    expect(chapter?.revision).toBe(3);
+    expect(chapter?.tree).toEqual(chapterTree());
+    expect(await current.getAllFromIndex(STORE_NAMES.backups, 'createdAt', 5)).toHaveLength(1);
+
+    // The two new stores exist and hold nothing: a team is created, never found.
+    expect(await current.getAll(STORE_NAMES.teams)).toEqual([]);
+    expect(await current.getAll(STORE_NAMES.assignments)).toEqual([]);
+
+    await current.put(STORE_NAMES.teams, {
+      id: 't1',
+      name: 'Academy',
+      members: [{ id: 'm1', name: 'Coach', role: 'coach' }],
+      createdAt: 1,
+      updatedAt: 1,
+      revision: 0,
+    });
+    for (const [id, teamId] of [
+      ['a1', 't1'],
+      ['a2', 't1'],
+      ['a3', 't2'],
+    ] as const) {
+      await current.put(STORE_NAMES.assignments, {
+        id,
+        teamId,
+        title: id,
+        kind: 'game',
+        brief: '',
+        setBy: 'm1',
+        handovers: [],
+        createdAt: 1,
+        updatedAt: 1,
+        revision: 0,
+      });
+    }
+    const forTeam = await current.getAllFromIndex<Record<string, unknown>>(
+      STORE_NAMES.assignments,
+      'teamId',
+      't1',
+    );
+    expect(forTeam.map((row) => row.id).sort()).toEqual(['a1', 'a2']);
+
+    current.close();
+  });
+});
+
 describe('opening an already-current database', () => {
   it('runs no migration and disturbs nothing', async () => {
     const name = dbName();

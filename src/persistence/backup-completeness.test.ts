@@ -62,6 +62,33 @@ const authored: Partial<Record<StoreName, Record<string, unknown>>> = {
     pvSan: ['e4'],
   },
   sourceSets: { ...common, name: 'My sources', collectionIds: ['local'] },
+  teams: {
+    ...common,
+    name: 'Academy',
+    members: [{ id: 'coach', name: 'Coach', role: 'coach' }],
+    me: 'coach',
+  },
+  assignments: {
+    ...common,
+    teamId: 'authored',
+    title: 'Round 3 game',
+    kind: 'game',
+    brief: 'Annotate it.',
+    setBy: 'coach',
+    assignedTo: 'ana',
+    handovers: [
+      {
+        id: 'ho-1',
+        kind: 'hand-in',
+        authorId: 'ana',
+        authorName: 'Ana',
+        at: 3,
+        note: 'Done.',
+        pgn: '1. e4 e5 *',
+        evidence: { positions: 3, evaluated: 0, engines: [] },
+      },
+    ],
+  },
   playerIdentities: {
     ...common,
     name: 'A player',

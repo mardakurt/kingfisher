@@ -672,9 +672,10 @@ Library repositories   model-game references and explicit personal aliases
 StudyReferenceRepo     typed chapter links to games, repertoire positions, items
 AnalysisQueueRepo      background analysis jobs and their stored engine evidence
 LinkedAccountRepo      linked Lichess/Chess.com usernames and their sync cursors
+TeamRepository         teams, assignments and their append-only handovers; the packet merge's commit
 ```
 
-Twenty-nine object stores (schema version 17) are created by a versioned
+Thirty-one object stores (schema version 18) are created by a versioned
 migration array, never by deleting the database. Schema v3 moves trees and normalized PGN into
 `gameContent`; lists, search and explorer read only `games` summaries. Phase 3
 adds repertoires/positions, training items/reviews, model-game links and the
@@ -685,7 +686,8 @@ with a unique `(chapterId, kind, targetId)` index; v7 adds `analysisQueue` and
 the structural indexes on positions; v10 preparation sessions, opening files,
 endgame positions and pinned lines; v11 `linkedAccounts`; v12 the opening
 classification indexes; v13 source sets; v14 player identities; v15 reference
-packs and their chunks; v16 opening books; and v17 the auto-backup store.
+packs and their chunks; v16 opening books; v17 the auto-backup store; and
+v18 the team hub's teams and assignments.
 Records are validated on the way out, because a record written by an older
 build is plausible and malformed data must not reach the board.
 

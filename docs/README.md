@@ -92,6 +92,10 @@ with [`AGENTS.md`](../AGENTS.md).
   dataset and asset, with licence and provenance.
 - [`../companion/README.md`](../companion/README.md) — the companion process:
   what it does and its trust boundary.
+- [`design/team-hub.md`](design/team-hub.md) — the Team hub: the research
+  on how seconds and coaches actually hand work around, the decisions
+  (local-first, packet file, immutable handovers, verified PGN, derived
+  evidence), the model, the merge and the interface.
 - [`design/visual-system.md`](design/visual-system.md),
   [`design/iconography.md`](design/iconography.md),
   [`design/piece-proportions.md`](design/piece-proportions.md),
@@ -199,6 +203,10 @@ with [`AGENTS.md`](../AGENTS.md).
 
 ## Historical
 
+- [`reports/phase-74-handover.md`](reports/phase-74-handover.md) — the
+  reset control renamed to say where the board goes, and the Team hub:
+  the research, the cloud-account answer, the local-first packet design,
+  what building it found, and section A of the checklist as run.
 - [`reports/phase-73-handover.md`](reports/phase-73-handover.md) — the
   whole-codebase audit after 1.2.3: sixteen defects fixed (position
   identity for a pasted FEN, an engine switched mid-start, the Lichess

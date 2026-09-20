@@ -21,6 +21,9 @@ import type {
   LinkedAccountRecord,
   SourceSetRecord,
   PlayerIdentityRecord,
+  TeamRecord,
+  AssignmentRecord,
+  Handover,
 } from './domain';
 import { ENDGAME_CATEGORIES } from './domain';
 import type { ChapterRecord, DraftRecord, GameRecord, GameSummary, StudyRecord } from './types';
@@ -419,3 +422,80 @@ export const isLinkedAccountRecord = (value: unknown): value is LinkedAccountRec
   finite(value.createdAt) &&
   finite(value.importedCount) &&
   finite(value.duplicatesSkipped);
+
+// --- Team hub ---------------------------------------------------------------
+
+const optionalText = (value: unknown): boolean => value === undefined || text(value);
+
+const TEAM_ROLES = new Set(['coach', 'second', 'player', 'student']);
+const ASSIGNMENT_KINDS = new Set(['game', 'opening', 'opponent', 'positions', 'other']);
+const HANDOVER_KINDS = new Set(['hand-in', 'review', 'note']);
+
+const isTeamMember = (value: unknown): boolean =>
+  object(value) &&
+  text(value.id) &&
+  text(value.name) &&
+  TEAM_ROLES.has(value.role as string) &&
+  optionalText(value.lichessUsername);
+
+export const isTeamRecord = (value: unknown): value is TeamRecord =>
+  object(value) &&
+  text(value.id) &&
+  text(value.name) &&
+  array(value.members) &&
+  value.members.every(isTeamMember) &&
+  optionalText(value.me) &&
+  finite(value.createdAt) &&
+  finite(value.updatedAt) &&
+  finite(value.revision);
+
+const isHandoverEvidence = (value: unknown): boolean =>
+  value === undefined ||
+  (object(value) &&
+    finite(value.positions) &&
+    finite(value.evaluated) &&
+    array(value.engines) &&
+    value.engines.every(
+      (engine) =>
+        object(engine) &&
+        text(engine.name) &&
+        finite(engine.positions) &&
+        finite(engine.minDepth) &&
+        finite(engine.maxDepth),
+    ));
+
+/**
+ * Shape only. Whether the PGN plays is a separate question, answered by
+ * `parseHandoverPgn` in `@/team/packet` when a packet is received and by the
+ * repository when a handover is written; a validator that replayed every
+ * game on every read would make listing a team's work cost a database's worth
+ * of move generation.
+ */
+export const isHandover = (value: unknown): value is Handover =>
+  object(value) &&
+  text(value.id) &&
+  HANDOVER_KINDS.has(value.kind as string) &&
+  text(value.authorId) &&
+  text(value.authorName) &&
+  finite(value.at) &&
+  text(value.note) &&
+  optionalText(value.pgn) &&
+  (value.verdict === undefined || value.verdict === 'accepted' || value.verdict === 'needs-work') &&
+  isHandoverEvidence(value.evidence);
+
+export const isAssignmentRecord = (value: unknown): value is AssignmentRecord =>
+  object(value) &&
+  text(value.id) &&
+  text(value.teamId) &&
+  text(value.title) &&
+  ASSIGNMENT_KINDS.has(value.kind as string) &&
+  text(value.brief) &&
+  text(value.setBy) &&
+  optionalText(value.assignedTo) &&
+  optionalText(value.due) &&
+  (value.archived === undefined || typeof value.archived === 'boolean') &&
+  array(value.handovers) &&
+  value.handovers.every(isHandover) &&
+  finite(value.createdAt) &&
+  finite(value.updatedAt) &&
+  finite(value.revision);

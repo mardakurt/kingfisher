@@ -86,6 +86,8 @@ function sectionTourDetail(id: string): string {
       return 'Every imported game, searchable by player, opening, date. Filter to "my games" once you set up an account.';
     case 'players':
       return 'A roster of players you keep an eye on, with their games pulled in via Lichess or Chess.com usernames.';
+    case 'team':
+      return 'Assignments, hand-ins and reviews between you and the people you work with, on one board. Shared as a packet file; no account.';
     case 'databases':
       return 'Your game collections and the reference sources beside them: what is installed, what each one answers, and where a game can be moved or copied.';
     default:

@@ -1,6 +1,6 @@
 # Every feature of Kingfisher
 
-The complete inventory of what Kingfisher does, as of 1.2.4 (2026-09-20),
+The complete inventory of what Kingfisher does, as of 1.2.5 and the Team hub (2026-09-20),
 written from the code rather than from memory: the routes in
 `src/features/shell/navigation.ts`, the tools in
 `src/features/workspace/modules.ts`, the commands in
@@ -44,8 +44,9 @@ starting point:
   move for stored evaluations.
 - **The position summary** under the board — side to move, move number,
   ECO code and opening name, orientation.
-- **Board controls** — start, back, forward, end, flip, and _Reset moves_
-  (clear the tree, keep the position, undoable).
+- **Board controls** — start, back, forward, end, flip, and _Clear the move
+  tree — back to the starting position_ (the tree goes, the board returns to
+  the initial position or the FEN that was set up; undoable).
 - **Three regions**: the board column (_primary_), the resizable **dock** on
   the right with a tab strip, and the resizable **lower panel** under the
   board (home of the Move Tree). Tools can be moved between the regions they
@@ -190,6 +191,26 @@ under Settings → Profile.
 
 One subject and everything stored about it: positions with their lines,
 linked repertoires, chapters, model games, training items and review items.
+
+### Team (`/team`)
+
+The hub for a coach and their students, or a player and their seconds:
+**assignments** (annotate a game, prepare a line, prepare for an opponent,
+positions to solve) set for a member with a brief and a due date; a
+**thread** of handovers on each — _Hand in what's on the board_, _Return
+with notes_, _Accept_, _Add a note_ — each written once with its author,
+time, note, the board as PGN and an evidence line derived from the tree
+("1 of 3 positions evaluated · Stockfish 18 Lite, depth 27", or "no engine
+evaluations recorded"); a rail in three columns, _To do_, _Handed in_,
+_Accepted_; _Open on board_ on any handover; a search that settles on this
+board is kept in the tree, as on Analysis. Members carry a role (coach,
+second, player, student) that orders the buttons and enforces nothing, and
+_This is me_ names whose hand-ins are yours. The team travels as a
+**packet** file (_Share packet_, _Receive packet…_): every board in it is
+replayed through Kingfisher's rules before anything is written, threads
+merge by union of their handovers, the newer copy sets the assignment, and
+receiving the same packet twice changes nothing. No server, no account;
+`docs/design/team-hub.md` has the research and the decisions.
 
 ### Review (`/review`)
 

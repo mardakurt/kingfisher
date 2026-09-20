@@ -1,0 +1,229 @@
+/**
+ * The team hub, end to end, across two machines.
+ *
+ * Two browser contexts are two IndexedDBs, which is exactly a coach's Mac and
+ * a student's laptop: nothing is shared but the packet file. The coach sets
+ * an assignment and shares a packet; the student receives it, chooses who
+ * they are, puts moves on the board and hands in; the student's packet comes
+ * back and the coach sees the hand-in, opens it on the board and returns it
+ * with notes. Every step is the real UI, every file the real download.
+ *
+ * What the spec also asserts, because each one was a design decision: a
+ * hand-in with an empty board is refused; a packet whose board does not play
+ * is refused whole with a reason; `me` never travels in a packet; the same
+ * packet received twice changes nothing; and the reset button says where the
+ * board goes.
+ */
+
+import { expect, test, type Browser, type Page } from '@playwright/test';
+import { readFile, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+
+import { isNavigationAbortNoise } from './tools';
+
+function watchConsole(page: Page, browserName: string): string[] {
+  const failures: string[] = [];
+  const note = (text: string) => {
+    if (!isNavigationAbortNoise(text, browserName)) failures.push(text);
+  };
+  page.on('console', (message) => {
+    if (message.type() === 'error') note(`error: ${message.text()}`);
+  });
+  page.on('pageerror', (error) => note(`pageerror: ${error.message}`));
+  return failures;
+}
+
+async function openTeam(page: Page) {
+  await page.goto('/team');
+  await page.locator('html[data-kingfisher-ready="true"]').waitFor();
+}
+
+async function play(page: Page, from: string, to: string) {
+  await page.getByRole('gridcell', { name: new RegExp(`^${from},`) }).click();
+  await page.getByRole('gridcell', { name: new RegExp(`^${to},`) }).click();
+}
+
+const thread = (page: Page) => page.locator('[data-team-thread]');
+
+/**
+ * A route action, wherever the header's fold put it.
+ *
+ * At 1280 px the Team header keeps New, Share and Receive in the row and folds
+ * Members… and New team behind "More actions"; the test must not care which.
+ */
+async function routeAction(page: Page, name: string) {
+  const inRow = page.locator('[data-header-actions]').getByRole('button', { name, exact: true });
+  if (await inRow.isVisible()) {
+    await inRow.click();
+    return;
+  }
+  await page.getByRole('button', { name: 'More actions' }).click();
+  await page.getByRole('menuitem', { name, exact: true }).click();
+}
+
+async function sharePacket(page: Page): Promise<string> {
+  const download = page.waitForEvent('download');
+  await routeAction(page, 'Share packet');
+  const file = await download;
+  expect(file.suggestedFilename()).toMatch(/\.kingfisher-team\.json$/);
+  const saved = path.join(test.info().outputDir, `${Date.now()}-${file.suggestedFilename()}`);
+  await file.saveAs(saved);
+  return saved;
+}
+
+async function receivePacket(page: Page, file: string) {
+  await page.locator('[data-team-packet-input]').setInputFiles(file);
+}
+
+async function studentMachine(browser: Browser) {
+  const context = await browser.newContext({
+    storageState: {
+      cookies: [],
+      origins: [
+        {
+          origin: 'http://localhost:3210',
+          localStorage: [
+            { name: 'kingfisher.preferences', value: JSON.stringify({ state: {}, version: 6 }) },
+          ],
+        },
+      ],
+    },
+  });
+  return { context, page: await context.newPage() };
+}
+
+test('a coach and a student hand work to each other through packets', async ({
+  page: coach,
+  browser,
+  browserName,
+}) => {
+  test.setTimeout(120_000);
+  const coachConsole = watchConsole(coach, browserName);
+  await openTeam(coach);
+
+  // --- The coach creates the team, adds Ana, and sets an assignment for her.
+  await routeAction(coach, 'New team');
+  await coach.locator('[data-team-name]').fill('Academy U16');
+  await coach.locator('[data-team-my-name]').fill('Coach');
+  await coach.getByRole('button', { name: 'Create team' }).click();
+  await expect(coach.getByText('you are Coach (Coach)').first()).toBeVisible();
+
+  await routeAction(coach, 'Members…');
+  await coach.locator('[data-team-member-name]').fill('Ana');
+  await coach.getByRole('button', { name: 'Add', exact: true }).click();
+  await expect(coach.locator('[data-team-member="Ana"]')).toBeVisible();
+  await coach.getByRole('button', { name: 'Done' }).click();
+
+  await routeAction(coach, 'New assignment');
+  await coach.locator('[data-team-assignment-title]').fill('Round 3 game');
+  await coach.locator('[data-team-assignment-for]').selectOption({ label: 'Ana' });
+  await coach.locator('[data-team-assignment-brief]').fill('Annotate your game.');
+  await coach.getByRole('button', { name: 'Set assignment' }).click();
+  await expect(coach.locator('[data-team-column="todo"]')).toContainText('Round 3 game');
+  await expect(thread(coach).locator('[data-team-status]')).toHaveText('To do');
+
+  // A coach is a reviewer: the review buttons come first, and a review with
+  // an empty board is a note, not a board.
+  await expect(thread(coach).getByRole('button', { name: 'Return with notes' })).toBeVisible();
+  await expect(thread(coach).getByRole('checkbox')).toBeDisabled();
+
+  const coachPacket = await sharePacket(coach);
+  const written = JSON.parse(await readFile(coachPacket, 'utf8')) as {
+    team: Record<string, unknown>;
+    assignments: readonly Record<string, unknown>[];
+  };
+  // `me` is a fact about the coach's machine and must not travel.
+  expect('me' in written.team).toBe(false);
+  expect(written.assignments).toHaveLength(1);
+
+  // --- The student's machine: nothing there but what the packet brings.
+  const student = await studentMachine(browser);
+  const studentConsole = watchConsole(student.page, browserName);
+  await openTeam(student.page);
+  await expect(student.page.getByText('No team yet.').first()).toBeVisible();
+  await receivePacket(student.page, coachPacket);
+  await expect(
+    student.page.getByText(/Packet received from Coach: joined “Academy U16”/),
+  ).toBeVisible();
+  await expect(student.page.getByText('who are you? (Members…)')).toBeVisible();
+
+  // Until she says who she is, she cannot hand in.
+  await student.page.locator('[data-team-assignment="Round 3 game"]').click();
+  await expect(thread(student.page).locator('[data-team-actions]')).toHaveCount(0);
+  await routeAction(student.page, 'Members…');
+  await student.page.getByRole('radio', { name: 'This is me: Ana' }).click();
+  await expect(student.page.getByRole('radio', { name: 'This is me: Ana' })).toBeChecked();
+  await student.page.getByRole('button', { name: 'Done' }).click();
+  await expect(student.page.getByText('you are Ana (Student)').first()).toBeVisible();
+
+  // An empty board cannot be handed in.
+  const handIn = thread(student.page).getByRole('button', { name: 'Hand in what’s on the board' });
+  await expect(handIn).toBeDisabled();
+  await play(student.page, 'e2', 'e4');
+  await play(student.page, 'e7', 'e5');
+  await expect(handIn).toBeEnabled();
+  await thread(student.page)
+    .getByRole('textbox', { name: 'Note' })
+    .fill('I saw 2.Nf3 but not 2.f4.');
+  await handIn.click();
+  await expect(student.page.locator('[data-team-column="handed-in"]')).toContainText(
+    'Round 3 game',
+  );
+  await expect(thread(student.page).locator('[data-team-handover="hand-in"]')).toContainText(
+    'no engine evaluations recorded',
+  );
+  const studentPacket = await sharePacket(student.page);
+
+  // --- Back on the coach's machine: the hand-in arrives, and only it.
+  await receivePacket(coach, studentPacket);
+  await expect(coach.getByText(/Packet received from Ana: 1 new handover\./)).toBeVisible();
+  await expect(coach.locator('[data-team-column="handed-in"]')).toContainText('Round 3 game');
+  await coach.locator('[data-team-assignment="Round 3 game"]').click();
+  await expect(thread(coach).locator('[data-team-status]')).toHaveText('Handed in');
+  await expect(thread(coach).locator('[data-team-handover="hand-in"]')).toContainText(
+    'I saw 2.Nf3 but not 2.f4.',
+  );
+
+  // The same packet again changes nothing.
+  await receivePacket(coach, studentPacket);
+  await expect(coach.getByText(/Packet received from Ana: nothing new\./)).toBeVisible();
+  await expect(thread(coach).locator('[data-team-handover="hand-in"]')).toHaveCount(1);
+
+  // Open it on the board: her moves, named as hers.
+  await thread(coach).getByRole('button', { name: 'Open on board' }).click();
+  await expect(coach.getByText(/On the board: Round 3 game — Ana’s hand-in/)).toBeVisible();
+  await expect(coach.getByRole('button', { name: 'e5', exact: true })).toBeVisible();
+
+  // Return it with notes, attaching the board.
+  await thread(coach).getByRole('textbox', { name: 'Note' }).fill('Look at 2.f4 too.');
+  await expect(thread(coach).getByRole('checkbox')).toBeChecked();
+  await thread(coach).getByRole('button', { name: 'Return with notes' }).click();
+  await expect(thread(coach).locator('[data-team-status]')).toHaveText('Returned');
+  await expect(coach.locator('[data-team-column="todo"]')).toContainText('Returned');
+  await expect(thread(coach).locator('[data-team-handover="review"]')).toContainText(
+    'Look at 2.f4 too.',
+  );
+
+  // --- A packet whose board does not play is refused whole, with a reason.
+  const tampered = JSON.parse(await readFile(studentPacket, 'utf8')) as {
+    assignments: { handovers: { pgn?: string }[] }[];
+  };
+  tampered.assignments[0]!.handovers[0]!.pgn = '1. e4 e5 2. Kd3 *';
+  const tamperedFile = path.join(test.info().outputDir, 'tampered.kingfisher-team.json');
+  await writeFile(tamperedFile, JSON.stringify(tampered));
+  await receivePacket(coach, tamperedFile);
+  await expect(coach.getByText('Could not receive the packet.')).toBeVisible();
+  await expect(coach.getByText(/A board in “Round 3 game” does not play/)).toBeVisible();
+  await expect(thread(coach).locator('[data-team-handover="hand-in"]')).toHaveCount(1);
+
+  // --- The reset control says where the board goes, and goes there.
+  await coach
+    .getByRole('button', { name: /^Clear the move tree — back to the starting position/ })
+    .click();
+  await expect(coach.getByText('Move tree cleared — back to the starting position.')).toBeVisible();
+  await expect(coach.getByRole('button', { name: 'e5', exact: true })).toHaveCount(0);
+
+  await student.context.close();
+  expect(coachConsole).toEqual([]);
+  expect(studentConsole).toEqual([]);
+});

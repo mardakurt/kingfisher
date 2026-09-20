@@ -193,6 +193,7 @@ const BOARD_ROUTES = [
   '/review',
   '/endgame',
   '/opening-files',
+  '/team',
   '/training',
 ] as const;
 

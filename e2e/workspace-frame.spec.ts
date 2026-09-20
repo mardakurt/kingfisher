@@ -37,7 +37,14 @@ test('a ?fen= in the address puts that position on the board, in Explorer mode',
 
 test('every board route offers position setup from its header', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  for (const route of ['/analysis', '/endgame', '/opening-files', '/repertoire', '/review']) {
+  for (const route of [
+    '/analysis',
+    '/endgame',
+    '/opening-files',
+    '/repertoire',
+    '/review',
+    '/team',
+  ]) {
     await page.goto(route);
     await ready(page);
     const setup = page.getByRole('button', { name: /^Set up position/ });

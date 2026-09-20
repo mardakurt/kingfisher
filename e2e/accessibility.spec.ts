@@ -79,6 +79,7 @@ const ROUTES = [
   '/review',
   '/openings',
   '/opening-files',
+  '/team',
   '/recent',
 ];
 

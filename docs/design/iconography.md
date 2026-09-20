@@ -18,7 +18,8 @@ Generic actions use conventional forms: magnifier, sliders, close, arrows,
 copy, import/export and delete. Chess sections use purpose-drawn forms:
 Analysis is a board, Openings a move branch, Repertoire a prepared document,
 Preparation a target, Studies a notebook, Review a magnified position,
-Training a recall loop, Endgame a lone king, and Opening Files a dossier.
+Training a recall loop, Endgame a lone king, Opening Files a dossier, and
+Team three people joined around one board.
 Players uses two people and Databases an archive cylinder. No primary route
 shares a component; `navigation.test.ts` enforces that invariant.
 

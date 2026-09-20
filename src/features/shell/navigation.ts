@@ -6,7 +6,7 @@
  * shipping a permanently dead row is just placeholder UI.
  *
  * Three things this file is responsible for, and they are all about being able
- * to find something in a list that has grown to thirteen entries:
+ * to find something in a list that has grown to fourteen entries:
  *
  *  - **Groups.** Thirteen equally-weighted rows is a menu nobody reads. Four
  *    named groups turn it into four short lists, and the names say what the
@@ -35,6 +35,7 @@ import {
   Repertoire,
   Review,
   Target,
+  Team,
 } from '@/components/icons';
 
 export type NavGroupId = 'start' | 'study' | 'prepare' | 'improve' | 'data';
@@ -120,6 +121,14 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     href: '/opening-files',
     icon: Dossier,
     hint: 'One subject, and everything already stored about it.',
+    group: 'prepare',
+  },
+  {
+    id: 'team',
+    label: 'Team',
+    href: '/team',
+    icon: Team,
+    hint: 'Hand work to your coach, second or students, and get it back reviewed.',
     group: 'prepare',
   },
   {

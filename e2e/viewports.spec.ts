@@ -44,6 +44,7 @@ const ROUTES = [
   '/model-game',
   '/endgame',
   '/opening-files',
+  '/team',
 ] as const;
 
 async function waitForApp(page: Page) {

@@ -1192,3 +1192,149 @@ export interface PlayerIdentityRecord {
   readonly createdAt: number;
   readonly updatedAt: number;
 }
+
+// --- Team hub --------------------------------------------------------------
+
+/**
+ * The people a player works with, and the work they hand each other.
+ *
+ * A team is a coach and their students, or a player and their seconds — the
+ * shape is the same: somebody sets a piece of work, somebody hands it in,
+ * somebody reviews it, on one board. Kingfisher has no account and no server
+ * (`docs/product/features.md` §13), so a team lives in each member's own
+ * browser and travels between them as a **packet** — a file, which is what
+ * seconds and coaches pass around anyway (`docs/design/team-hub.md`).
+ *
+ * `me` is which member this installation is. It is local by definition — the
+ * same team on the coach's Mac and the student's laptop has a different `me`
+ * on each — so a packet never carries it and a merge never overwrites it.
+ */
+export interface TeamRecord {
+  readonly id: string;
+  readonly name: string;
+  readonly members: readonly TeamMember[];
+  /** The member id this installation acts as; unset until chosen. */
+  readonly me?: string;
+  readonly createdAt: number;
+  readonly updatedAt: number;
+  readonly revision: number;
+}
+
+/**
+ * Roles are labels, not permissions. Nothing is enforced, because nothing
+ * could be: a file can be edited by whoever holds it. The label says who is
+ * expected to hand in and who is expected to review, which is what the thread
+ * panel uses to put the right button first.
+ */
+export type TeamRole = 'coach' | 'second' | 'player' | 'student';
+
+export interface TeamMember {
+  readonly id: string;
+  readonly name: string;
+  readonly role: TeamRole;
+  readonly lichessUsername?: string;
+}
+
+/**
+ * What kind of work an assignment asks for.
+ *
+ * The four things the research found people actually hand each other
+ * (`docs/design/team-hub.md` §1): an annotated game, a prepared line, a file
+ * on an opponent for a round, and a set of positions to solve or annotate.
+ * The kind changes only the label; every kind is the same thread on one
+ * board.
+ */
+export type AssignmentKind = 'game' | 'opening' | 'opponent' | 'positions' | 'other';
+
+/**
+ * One piece of work and its thread.
+ *
+ * The title, brief, assignee and due date are the assignment as *set*; they
+ * change rarely and the newer copy wins when two packets disagree. The
+ * `handovers` are the thread — each one written once, never edited, identified
+ * by id — so two copies of the same assignment merge by taking the union of
+ * their handovers. That is the whole reason a team can be shared as a file:
+ * there is nothing to reconcile, only to add.
+ */
+export interface AssignmentRecord {
+  readonly id: string;
+  readonly teamId: string;
+  readonly title: string;
+  readonly kind: AssignmentKind;
+  /** What is being asked, in the setter's words. */
+  readonly brief: string;
+  /** Who set it and who it is for; member ids. `assignedTo` may be unset for a shared task. */
+  readonly setBy: string;
+  readonly assignedTo?: string;
+  /** ISO `YYYY-MM-DD`: a round has a date, not a moment. */
+  readonly due?: string;
+  /** Set when the work is over; the assignment leaves the board but stays in the record. */
+  readonly archived?: boolean;
+  readonly handovers: readonly Handover[];
+  readonly createdAt: number;
+  readonly updatedAt: number;
+  readonly revision: number;
+}
+
+export type HandoverKind = 'hand-in' | 'review' | 'note';
+export type ReviewVerdict = 'accepted' | 'needs-work';
+
+/**
+ * One thing one person handed the others.
+ *
+ * A hand-in or a review carries the board as **PGN** — the format a second
+ * with ChessBase or a coach with a Lichess study can open without Kingfisher —
+ * and the PGN is verified to parse through Kingfisher's own rules before it is
+ * stored, so a packet can never hand the board something it cannot play.
+ * `evidence` is derived from the tree at the moment of the handover: which
+ * engines evaluated how many of its positions, at what depths. PGN carries a
+ * score but not who produced it, and "Stockfish 17 at depth 24" is the
+ * difference between a claim and a number.
+ */
+export interface Handover {
+  readonly id: string;
+  readonly kind: HandoverKind;
+  readonly authorId: string;
+  /** The author's name at the time, so a thread reads correctly on a machine that has not met them. */
+  readonly authorName: string;
+  readonly at: number;
+  readonly note: string;
+  readonly pgn?: string;
+  /** Review only. */
+  readonly verdict?: ReviewVerdict;
+  readonly evidence?: HandoverEvidence;
+}
+
+export interface HandoverEvidence {
+  /** Positions in the tree, and how many of them carry a stored evaluation. */
+  readonly positions: number;
+  readonly evaluated: number;
+  readonly engines: readonly HandoverEngineEvidence[];
+}
+
+export interface HandoverEngineEvidence {
+  readonly name: string;
+  readonly positions: number;
+  readonly minDepth: number;
+  readonly maxDepth: number;
+}
+
+export class StaleTeamWriteError extends Error {
+  override readonly name = 'StaleTeamWriteError';
+  constructor(
+    readonly current: TeamRecord,
+    readonly attemptedRevision: number,
+  ) {
+    super('This team changed in another Kingfisher tab.');
+  }
+}
+
+export class StaleAssignmentWriteError extends Error {
+  override readonly name = 'StaleAssignmentWriteError';
+  constructor(
+    readonly current: AssignmentRecord,
+    readonly attemptedRevision: number,
+  ) {
+    super('This assignment changed in another Kingfisher tab.');
+  }
+}

@@ -12,6 +12,7 @@ import type { ReviewRepository } from './repositories/review-repository';
 import type { TrainingSetRepository } from './repositories/training-set-repository';
 import type { PreparationRepository } from './repositories/preparation-repository';
 import type { OpeningFileRepository } from './repositories/opening-file-repository';
+import type { TeamRepository } from './repositories/team-repository';
 import type { EndgameRepository } from './repositories/endgame-repository';
 import type { PinnedLineRepository } from './repositories/pinned-line-repository';
 import type { LinkedAccountRepository } from './repositories/linked-account-repository';
@@ -393,6 +394,7 @@ export interface AppRepositories {
   readonly trainingSets: TrainingSetRepository;
   readonly preparation: PreparationRepository;
   readonly openingFiles: OpeningFileRepository;
+  readonly team: TeamRepository;
   readonly endgames: EndgameRepository;
   readonly pinnedLines: PinnedLineRepository;
   readonly linkedAccounts: LinkedAccountRepository;

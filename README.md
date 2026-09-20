@@ -593,6 +593,7 @@ fails, the header says the work is not saved.
 | `/review`        | Self-analysis, the decision journal, the critical queue and the improvement summary |
 | `/model-game`    | Step through a model game with the engine off, or guess the moves                   |
 | `/opening-files` | One opening subject and everything already stored about it                          |
+| `/team`          | Assignments, hand-ins and reviews between you and your coach, second or students    |
 | `/endgame`       | The endgame library, with tablebase proof beside it                                 |
 | `/players`       | Every player the installed reference sources know, plus the historical roster       |
 | `/oauth/lichess` | Where a Lichess sign-in returns to. Not part of the workspace                       |
