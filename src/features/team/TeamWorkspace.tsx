@@ -279,15 +279,19 @@ export function TeamWorkspace() {
     return last.at > (seen[entry.id] ?? 0);
   };
 
+  // A packet can replace the roster under a chosen view: a `me` who is no
+  // longer a reviewer must not be left on a filter whose option is gone.
+  const view: InboxView =
+    inboxView === 'review' && !(me?.role === 'coach' || me?.role === 'player') ? 'all' : inboxView;
   const visible = assignmentInbox(assignments, {
-    view: inboxView,
+    view,
     member: me,
     assignee,
     query: search,
     showArchived,
   });
   const archivedCount = assignments.filter((entry) => entry.archived).length;
-  const filtered = Boolean(search.trim() || assignee || inboxView !== 'all');
+  const filtered = Boolean(search.trim() || assignee || view !== 'all');
   const grouped = useMemo(() => {
     const groups = new Map<AssignmentColumn, AssignmentRecord[]>(
       COLUMNS.map((column) => [column, []]),
@@ -354,7 +358,7 @@ export function TeamWorkspace() {
             View
             <select
               aria-label="Assignment view"
-              value={inboxView}
+              value={view}
               onChange={(event) => setInboxView(event.target.value as InboxView)}
               className="mt-1 h-8 w-full rounded border border-line bg-surface-inset px-1 text-[11px] text-primary"
             >
