@@ -17,7 +17,18 @@ Phase numbers below this header will be moved into a dated `## <version>` sectio
   _To do_, _Handed in_, _Accepted_; the first button is the one your role
   needs. The team travels as a packet file — no server, no account — and
   threads merge by adding, so receiving the same packet twice changes
-  nothing. Research and decisions in `docs/design/team-hub.md`. (Phase 74)
+  nothing. Research and decisions in `docs/design/team-hub.md`. A second
+  pass, from using it as a coach and as a student: the action box is pinned
+  under the thread; rows say what is new since you last looked; the team and
+  thread you had open come back after a reload; _Open on board_ asks before
+  replacing unsaved moves; _Copy PGN_ on every handover; an empty board
+  says so and offers an import; _Archive_ has an _Unarchive_; a packet can
+  be dropped on the route; an opponent assignment names the person and your
+  colour and opens their dossier in Preparation; _Position → Hand in to the
+  team…_ from any board route; and the evidence line counts moves,
+  variations and comments. One defect fixed before anyone met it: the merge
+  kept a stale `archived`, due date or assignee after the other side had
+  cleared it. (Phase 74)
 - **The reset control says where the board goes.** _Clear the move tree
   (keep this position)_ read as keeping the position on screen, which is
   exactly what it does not keep; it is now _Clear the move tree — back to the

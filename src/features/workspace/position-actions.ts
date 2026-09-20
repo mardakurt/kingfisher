@@ -44,6 +44,8 @@ export interface PositionActionHandlers {
   readonly searchStructure: () => void;
   readonly addToPreparation?: () => void;
   readonly saveEndgame: () => void;
+  /** Take the board to the Team hub, where it can be handed in or attached to a review. */
+  readonly handInToTeam: () => void;
   readonly copyFen: () => void;
   readonly clearMoves: () => void;
 }
@@ -106,6 +108,9 @@ export function positionActionSections(
           run: () => handlers.addToPreparation?.(),
         },
         { id: 'endgame', label: 'Save to endgame library…', run: handlers.saveEndgame },
+        ...(onRoute('/team')
+          ? []
+          : [{ id: 'team', label: 'Hand in to the team…', run: handlers.handInToTeam }]),
       ],
     },
     {

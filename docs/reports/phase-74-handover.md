@@ -90,6 +90,44 @@ evaluated · Stockfish 18 Lite WASM Multithreaded, depth 27") → Share packet
 errors at any step. The receive side needs a file chooser the pane cannot
 drive; it is exercised by the spec below.
 
+## 3a. The second pass — used as a coach and as a student
+
+The owner asked for the hub to be used as a real user would, and for it
+to become a professional's first choice. The walk (dev server, 1440 × 900,
+then the deployed site) found eleven rough edges; each is fixed and each is
+in `e2e/team.spec.ts`:
+
+1. **Merge defect.** `mergeAssignment` copied only the fields the newer
+   copy _had_, so un-archiving, clearing a due date or removing an
+   assignee never propagated through a packet; a stale `archived: true`
+   stayed forever. The newer copy now sets the assignment whole.
+2. No _Unarchive_. Added.
+3. The action box scrolled with the thread. Pinned under it.
+4. _Open on board_ replaced unsaved analysis silently. It asks, when the
+   board holds moves that were not opened from the thread and belong to no
+   saved document.
+5. Nothing survived a reload and nothing said what was new. The team and
+   thread you had open are remembered on the device; a row whose latest
+   handover is somebody else's and later than your last look carries a dot
+   and counts in its column heading.
+6. "3 positions" said nothing about the work. The evidence line now leads
+   with moves, variations and comments.
+7. No path into ChessBase. _Copy PGN_ on every handover.
+8. A packet dropped on the Mac window went to the PGN opener. The route
+   receives a dropped `.json` itself and stops the window handler.
+9. The subtitle truncated at 1440 px. Shortened.
+10. "Who are you?" sent the person to a dialog. One select and _That's me_,
+    in place, wherever the answer is missing.
+11. An empty board disabled _Hand in_ with a tooltip. It now says so and
+    offers _import a PGN_.
+
+And two bridges for the professional case: an **opponent** assignment
+carries the opponent and the player's colour, with _Open in Preparation_
+(the dossier) one click away — and the second's file, opened on the board,
+meets _Add to game-day sheet_ in the Position menu; and **_Hand in to the
+team…_** in the Position menu on every board route, since the board is one
+store.
+
 ## 4. Verification — `docs/operations/after-a-fix.md`, section A
 
 ```

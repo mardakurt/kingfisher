@@ -12,6 +12,7 @@
 import { stableId } from '../ids';
 import type { PersistenceDatabase } from '../indexeddb/database';
 import { STORE_NAMES } from '../schema/migrations';
+import type { Color } from '@/chess/types';
 import type {
   AssignmentKind,
   AssignmentRecord,
@@ -48,6 +49,8 @@ export interface CreateAssignmentInput {
   readonly setBy: string;
   readonly assignedTo?: string;
   readonly due?: string;
+  readonly opponent?: string;
+  readonly myColor?: Color;
 }
 
 export interface HandoverInput {
@@ -248,6 +251,8 @@ export class LocalTeamRepository implements TeamRepository {
       setBy: input.setBy,
       ...optional('assignedTo', input.assignedTo),
       ...optional('due', input.due),
+      ...optional('opponent', input.opponent?.trim()),
+      ...optional('myColor', input.myColor),
       handovers: [],
       createdAt: now,
       updatedAt: now,
@@ -265,9 +270,11 @@ export class LocalTeamRepository implements TeamRepository {
     },
   ): Promise<AssignmentRecord> {
     return this.writeAssignment(id, expectedRevision, (current) => {
-      const { assignedTo: _a, due: _d, archived: _x, ...rest } = current;
+      const { assignedTo: _a, due: _d, archived: _x, opponent: _o, myColor: _m, ...rest } = current;
       const assignedTo = change.assignedTo === undefined ? current.assignedTo : change.assignedTo;
       const due = change.due === undefined ? current.due : change.due;
+      const opponent = change.opponent === undefined ? current.opponent : change.opponent;
+      const myColor = change.myColor === undefined ? current.myColor : change.myColor;
       const archived = change.archived === undefined ? current.archived : change.archived;
       return {
         ...rest,
@@ -276,6 +283,8 @@ export class LocalTeamRepository implements TeamRepository {
         ...(change.brief !== undefined ? { brief: change.brief.trim() } : {}),
         ...optional('assignedTo', assignedTo),
         ...optional('due', due),
+        ...optional('opponent', opponent?.trim()),
+        ...optional('myColor', myColor),
         ...(archived ? { archived: true } : {}),
       };
     });

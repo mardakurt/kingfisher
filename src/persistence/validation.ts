@@ -454,6 +454,9 @@ const isHandoverEvidence = (value: unknown): boolean =>
   (object(value) &&
     finite(value.positions) &&
     finite(value.evaluated) &&
+    (value.moves === undefined || finite(value.moves)) &&
+    (value.variations === undefined || finite(value.variations)) &&
+    (value.comments === undefined || finite(value.comments)) &&
     array(value.engines) &&
     value.engines.every(
       (engine) =>
@@ -493,6 +496,8 @@ export const isAssignmentRecord = (value: unknown): value is AssignmentRecord =>
   text(value.setBy) &&
   optionalText(value.assignedTo) &&
   optionalText(value.due) &&
+  optionalText(value.opponent) &&
+  (value.myColor === undefined || color(value.myColor)) &&
   (value.archived === undefined || typeof value.archived === 'boolean') &&
   array(value.handovers) &&
   value.handovers.every(isHandover) &&

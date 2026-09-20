@@ -90,6 +90,8 @@ export function usePositionActions(options: UsePositionActionsOptions) {
       router.push('/endgame');
     },
     clearMoves: () => useAnalysis.getState().clearMoves(),
+    // The board is one store, so what is on it is on the Team route's board too.
+    handInToTeam: () => router.push('/team'),
     copyFen: () => {
       void navigator.clipboard
         .writeText(options.fen)

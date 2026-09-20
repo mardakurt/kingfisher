@@ -120,12 +120,13 @@ that installation. A packet strips it; a merge preserves it.
 ```
 TeamRecord        id, name, members[], me?, createdAt, updatedAt, revision
   TeamMember      id, name, role: coach | second | player | student, lichessUsername?
-AssignmentRecord  id, teamId, title, kind, brief, setBy, assignedTo?, due?, archived?,
-                  handovers[], createdAt, updatedAt, revision
+AssignmentRecord  id, teamId, title, kind, brief, setBy, assignedTo?, due?,
+                  opponent?, myColor?, archived?, handovers[], createdAt, updatedAt, revision
   kind            game | opening | opponent | positions | other   (a label only)
   Handover        id, kind: hand-in | review | note, authorId, authorName, at, note,
                   pgn?, verdict?: accepted | needs-work, evidence?
-  HandoverEvidence positions, evaluated, engines[{ name, positions, minDepth, maxDepth }]
+  HandoverEvidence positions, evaluated, moves?, variations?, comments?,
+                   engines[{ name, positions, minDepth, maxDepth }]
 ```
 
 Two stores, `teams` and `assignments` (indexed by `teamId` and `updatedAt`),
@@ -181,20 +182,53 @@ One `WorkspaceFrame`, like every board route. Nothing is new to learn.
   board on it, and a strip under the board says whose it is:
   "Round 3 game — Ana's hand-in, 20 Sept". A search that settles here is
   kept in the tree, as on Analysis, so a review carries its evidence.
-- **Dock — Thread**: the assignment's facts and status, the brief, then each
-  handover as a card (author, what they did, when, note, _Open on board_,
-  the evidence line), then the action box: a note, and the buttons for your
-  role. A hand-in needs moves on the board; a review may attach the board
-  or not; a note carries no board. _Archive_ is in the panel's header.
+- **Dock — Thread**: the assignment's facts and status, the brief (and, for
+  an opponent assignment, _vs Rival · we have Black_ with **Open in
+  Preparation** — the dossier of their games, one click away), then each
+  handover as a card: author, what they did, when, the note, the evidence
+  line ("14 moves · 3 variations · 5 comments · 6 of 21 positions evaluated
+  · Stockfish 17, depth 20–26"), _Open on board_ and **Copy PGN** for
+  whoever works in ChessBase or a Lichess study. The action box is
+  **pinned under the thread**, so the button a coach reaches for thirty
+  times an evening never scrolls away: a note, and the buttons for your
+  role. A hand-in needs moves on the board — an empty board says so and
+  offers _import a PGN_; a review may attach the board or not; a note
+  carries no board. _Archive_ / _Unarchive_ is in the panel's header.
+- **Who are you?** is asked in place — one select and _That's me_ — the
+  moment a team has a roster and no `me`, which is what a received packet
+  produces.
+- **What's new.** A row whose latest handover is by somebody else and later
+  than the last time this device opened the thread carries a dot and counts
+  in its column's heading ("Handed in · 3 · 2 new"). Opening the thread
+  clears it. Which team and thread were open are remembered on the device
+  too (`localStorage`; never in a packet).
+- **Open on board asks first** when the board holds moves that were not
+  opened from the thread and belong to no saved document — a hand-in about
+  to be made is not a thing to lose to a misclick.
+- **A packet can be dropped on the route** (the banner says so while it
+  hovers); the Mac shell's window-level drop, which opens PGN and database
+  files, is not consulted for it.
+- **From any board route**, _Position → Hand in to the team…_ goes to Team
+  with the board as it is — the board is one store — so a student who
+  annotated on Analysis or in a study hands in from there.
 - **Members…**: rename the team, the roster with roles and optional Lichess
   usernames, _This is me_, add, remove, and _Delete team from this device_
   (a packet that still holds it brings it back).
 
 What a coach with thirty students does on a Tuesday: open Team, look at
-_Handed in_, click the top one, _Open on board_, walk it with Engine open,
-add comments in the move tree, type two lines, _Return with notes_. Then
-_Share packet_ once, and send the file the way the academy already sends
-files.
+_Handed in · 3 new_, click the first dot, _Open on board_, walk it with
+Engine open, add comments in the move tree, type two lines, _Return with
+notes_ — the button is where it was for the last one. Then _Share packet_
+once, and send the file the way the academy already sends files.
+
+What a second does the night before round five: the player's assignment
+says _vs Rival · we have Black_; _Open in Preparation_ shows what Rival
+plays against 1…e5 and what changed this year; the second builds the
+file on the board with the engine, _Hand in what's on the board_, _Share
+packet_. In the morning the player opens it, reads "38 moves · 9
+variations · 12 comments · 31 of 58 positions evaluated · Stockfish 17,
+depth 24–30", walks the lines, and _Position → Add to game-day sheet_ for
+the three that matter.
 
 ## 6. What is deliberately not here
 
@@ -223,7 +257,12 @@ files.
 - `src/persistence/backup-completeness.test.ts` — a team and an assignment
   round-trip through a portable backup.
 - `e2e/team.spec.ts` — two browser contexts (two IndexedDBs) as the coach's
-  and the student's machines: create, assign, share, receive, choose who you
-  are, hand in from the board, share back, receive, open on board, return
-  with notes; a tampered packet refused with its reason; the same packet
-  twice; and the reset control's label and effect.
+  and the student's machines: create, assign, share, receive, say who you
+  are in place, the empty-board hint, hand in from the board, share back,
+  **drop** the packet on the coach's window, the _new_ marker set and
+  cleared, a reload keeping the thread open, _Open on board_ asking before
+  replacing unsaved moves, Copy PGN reaching the clipboard, return with
+  notes, archive and unarchive, an opponent assignment linking into
+  Preparation, _Hand in to the team…_ from Analysis, a tampered packet
+  refused with its reason, the same packet twice, and the reset control's
+  label and effect. Run three times in a row before it was committed.

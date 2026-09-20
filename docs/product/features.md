@@ -202,15 +202,21 @@ with notes_, _Accept_, _Add a note_ — each written once with its author,
 time, note, the board as PGN and an evidence line derived from the tree
 ("1 of 3 positions evaluated · Stockfish 18 Lite, depth 27", or "no engine
 evaluations recorded"); a rail in three columns, _To do_, _Handed in_,
-_Accepted_; _Open on board_ on any handover; a search that settles on this
-board is kept in the tree, as on Analysis. Members carry a role (coach,
-second, player, student) that orders the buttons and enforces nothing, and
-_This is me_ names whose hand-ins are yours. The team travels as a
-**packet** file (_Share packet_, _Receive packet…_): every board in it is
-replayed through Kingfisher's rules before anything is written, threads
-merge by union of their handovers, the newer copy sets the assignment, and
-receiving the same packet twice changes nothing. No server, no account;
-`docs/design/team-hub.md` has the research and the decisions.
+_Accepted_, with a dot and a count for what is **new since you last
+looked**; _Open on board_ (asking first when it would replace unsaved
+moves) and _Copy PGN_ on any handover; the action box pinned under the
+thread; an **opponent** assignment names the person and your colour and
+opens their dossier in Preparation; _Position → Hand in to the team…_ from
+any board route; a search that settles on this board is kept in the tree,
+as on Analysis. Members carry a role (coach, second, player, student) that
+orders the buttons and enforces nothing; _That's me_ is asked in place. The
+team travels as a **packet** file (_Share packet_, _Receive packet…_, or
+drop it on the route): every board in it is replayed through Kingfisher's
+rules before anything is written, threads merge by union of their
+handovers, the newer copy sets the assignment whole, and receiving the
+same packet twice changes nothing. Which team and thread were open are
+remembered on the device. No server, no account; `docs/design/team-hub.md`
+has the research and the decisions.
 
 ### Review (`/review`)
 

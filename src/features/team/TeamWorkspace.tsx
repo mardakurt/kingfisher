@@ -15,10 +15,11 @@
  * your device (`docs/design/team-hub.md`).
  */
 
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type DragEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { Button } from '@/components/ui/Button';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/Panel';
 import { Team as TeamIcon } from '@/components/icons';
 import { useEngineSnapshots } from '@/features/analysis/useEngineSnapshots';
@@ -35,13 +36,16 @@ import {
   COLUMN_OF,
   parseHandoverPgn,
   STATUS_LABEL,
+  threadOrder,
   type AssignmentColumn,
 } from '@/team';
 
 import { MembersDialog, NewAssignmentDialog, NewTeamDialog } from './dialogs';
 import { describeDue, KIND_LABEL, ROLE_LABEL, shortDate } from './labels';
 import { describeReceipt, receivePacket, sharePacket } from './packet-io';
+import { markSeen, readSeen, readSelection, rememberSelection } from './local-state';
 import { invalidateTeams, useAssignments, useTeam, useTeams } from './queries';
+import { WhoAmI } from './WhoAmI';
 import { ThreadPanel, type HandoverDraft } from './ThreadPanel';
 
 const COLUMNS: readonly AssignmentColumn[] = ['todo', 'handed-in', 'accepted'];
@@ -61,7 +65,8 @@ export function TeamWorkspace() {
   useEngineSnapshots();
 
   const teams = useTeams();
-  const [chosenTeamId, setChosenTeamId] = useState<string | null>(null);
+  const remembered = useMemo(() => readSelection(), []);
+  const [chosenTeamId, setChosenTeamId] = useState<string | null>(remembered.teamId ?? null);
   // A chosen team that was deleted, or one a packet has not created yet, falls back to the first.
   const chosenExists = Boolean(
     chosenTeamId && teams.data?.some((entry) => entry.id === chosenTeamId),
@@ -69,14 +74,28 @@ export function TeamWorkspace() {
   const teamId = (chosenExists ? chosenTeamId : null) ?? teams.data?.[0]?.id ?? null;
   const team = useTeam(teamId).data ?? null;
   const assignments = useAssignments(teamId).data ?? [];
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(
+    (remembered.teamId && remembered.assignmentByTeam?.[remembered.teamId]) ?? null,
+  );
   const assignment = assignments.find((entry) => entry.id === selectedId) ?? null;
+  const [seen, setSeen] = useState<Readonly<Record<string, number>>>(() => readSeen());
+  const [replaceWith, setReplaceWith] = useState<Handover | null>(null);
+  const [dropping, setDropping] = useState(false);
   const [dialog, setDialog] = useState<DialogKind>(null);
   const [showArchived, setShowArchived] = useState(false);
   const [busy, setBusy] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
   const me = team?.members.find((member) => member.id === team.me) ?? null;
+
+  useEffect(() => {
+    rememberSelection(teamId, selectedId);
+  }, [teamId, selectedId]);
+
+  const select = (id: string) => {
+    setSelectedId(id);
+    setSeen(markSeen(id));
+  };
 
   const fail = (message: string, error: unknown) =>
     notify({
@@ -143,7 +162,29 @@ export function TeamWorkspace() {
       }
     }, failure);
 
+  const chooseMe = (memberId: string) =>
+    void withTeam((repositories, current) =>
+      repositories.team.updateTeam(current.id, current.revision, { me: memberId }),
+    );
+
+  /**
+   * A board from the thread replaces what is on the board. When that is
+   * somebody's unsaved analysis — moves, and not a board this route opened —
+   * the person is asked first; a hand-in that was about to be made is not a
+   * thing to lose to a misclick on "Open on board".
+   */
   const openBoard = (handover: Handover) => {
+    const state = useAnalysis.getState();
+    const hasMoves = (state.tree.nodes[state.tree.rootId]?.children.length ?? 0) > 0;
+    const isOurs = assignment ? state.document.title.startsWith(`${assignment.title} — `) : false;
+    if (hasMoves && !isOurs && state.document.kind === 'untitled') {
+      setReplaceWith(handover);
+      return;
+    }
+    loadBoard(handover);
+  };
+
+  const loadBoard = (handover: Handover) => {
     if (!handover.pgn || !assignment) return;
     const parsed = parseHandoverPgn(handover.pgn);
     if (!parsed.ok) {
@@ -199,7 +240,26 @@ export function TeamWorkspace() {
       const received = await receivePacket(file);
       notify({ tone: 'success', message: describeReceipt(received) });
       setChosenTeamId(received.teamId);
+      if (received.teamId !== teamId) setSelectedId(null);
     }, 'Could not receive the packet.');
+
+  /** A packet dropped anywhere on the route is received; anything else is left to the shell. */
+  const isPacketFile = (file: File) => /\.json$/i.test(file.name);
+  const onDrop = (event: DragEvent<HTMLDivElement>) => {
+    const file = [...(event.dataTransfer?.files ?? [])].find(isPacketFile);
+    setDropping(false);
+    if (!file) return;
+    event.preventDefault();
+    event.stopPropagation();
+    void receive(file);
+  };
+
+  /** New since this device last opened the thread: a handover by somebody else, later than that. */
+  const isNew = (entry: AssignmentRecord) => {
+    const last = threadOrder(entry.handovers).at(-1);
+    if (!last || last.authorId === me?.id) return false;
+    return last.at > (seen[entry.id] ?? 0);
+  };
 
   const visible = assignments.filter((entry) => showArchived || !entry.archived);
   const archivedCount = assignments.length - visible.length;
@@ -272,10 +332,12 @@ export function TeamWorkspace() {
         COLUMNS.map((column) => {
           const rows = grouped.get(column) ?? [];
           if (rows.length === 0) return null;
+          const fresh = rows.filter(isNew).length;
           return (
             <section key={column} data-team-column={column}>
               <h3 className="px-3 pb-1 pt-2.5 text-[9.5px] uppercase tracking-wide text-tertiary">
                 {COLUMN_LABEL[column]} · {rows.length}
+                {fresh > 0 ? <span className="text-accent"> · {fresh} new</span> : null}
               </h3>
               <ul className="divide-y divide-line-subtle border-b border-line-subtle">
                 {rows.map((entry) => {
@@ -285,15 +347,24 @@ export function TeamWorkspace() {
                     <li key={entry.id}>
                       <button
                         type="button"
-                        onClick={() => setSelectedId(entry.id)}
+                        onClick={() => select(entry.id)}
                         className={cn(
                           'w-full px-3 py-2 text-left transition-colors hover:bg-surface-2',
                           entry.id === selectedId && 'bg-surface-2',
                           entry.archived && 'opacity-60',
                         )}
                         data-team-assignment={entry.title}
+                        {...(isNew(entry) ? { 'data-team-new': '' } : {})}
                       >
-                        <p className="truncate text-[11.5px] text-primary">{entry.title}</p>
+                        <p className="flex items-center gap-1.5 truncate text-[11.5px] text-primary">
+                          {isNew(entry) ? (
+                            <span
+                              className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-accent"
+                              aria-label="New since you last looked"
+                            />
+                          ) : null}
+                          <span className="truncate">{entry.title}</span>
+                        </p>
                         <p className="mt-0.5 truncate text-[10px] text-tertiary">
                           {entry.assignedTo
                             ? (nameOf(entry.assignedTo) ?? 'someone')
@@ -326,181 +397,212 @@ export function TeamWorkspace() {
   );
 
   return (
-    <WorkspaceFrame
-      workspace="team"
-      title="Team"
-      subtitle={
-        team
-          ? `${team.name} · ${plural(team.members.length, 'member')}${me ? ` · you are ${me.name} (${ROLE_LABEL[me.role]})` : ' · who are you? (Members…)'}`
-          : 'Assignments, hand-ins and reviews, on one board.'
-      }
-      icon={<TeamIcon />}
-      routeActions={[
-        {
-          id: 'new-assignment',
-          label: 'New assignment',
-          shortLabel: 'New',
-          variant: 'accent',
-          disabled: !team || !me,
-          title: !team
-            ? 'Create a team first.'
-            : !me
-              ? 'Choose who you are first (Members…).'
-              : undefined,
-          onClick: () => setDialog('new-assignment'),
-        },
-        {
-          id: 'share',
-          label: 'Share packet',
-          shortLabel: 'Share',
-          disabled: !team || busy,
-          onClick: () => void share(),
-        },
-        {
-          id: 'receive',
-          label: 'Receive packet…',
-          shortLabel: 'Receive',
-          disabled: busy,
-          onClick: () => fileInput.current?.click(),
-        },
-        { id: 'members', label: 'Members…', disabled: !team, onClick: () => setDialog('members') },
-        { id: 'new-team', label: 'New team', onClick: () => setDialog('new-team') },
-      ]}
-      rail={{ label: 'Assignments', width: 260, content: railContent }}
-      board={{ mode: 'interactive', showEvaluationArtifacts: true }}
-      belowBoard={
-        onBoard ? (
-          <div className="shrink-0 border-t border-line-subtle px-3 py-1.5 text-[10.5px] text-secondary">
-            On the board: <span className="text-primary">{onBoard}</span>
-          </div>
-        ) : undefined
-      }
-      contextLabel="Thread"
-      contextPanel={
-        !team ? (
-          <EmptyState
-            title="No team yet."
-            description="A team is the people you hand work to and receive it from. Create one, or receive a packet."
-          />
-        ) : !assignment ? (
-          <EmptyState
-            title={me ? 'No assignment selected.' : `Who are you in ${team.name}?`}
-            description={
-              me
-                ? 'Choose one on the left, or set one. Its thread — brief, hand-ins, reviews — appears here.'
-                : 'Mark yourself in Members… so your hand-ins and reviews carry your name.'
-            }
-            action={
-              me ? undefined : (
-                <Button variant="accent" onClick={() => setDialog('members')}>
-                  Members…
-                </Button>
-              )
-            }
-          />
-        ) : (
-          <ThreadPanel
-            team={team}
-            assignment={assignment}
-            busy={busy}
-            onOpenBoard={openBoard}
-            onHandover={handover}
-            onArchive={() =>
-              void withAssignment((repositories, current) =>
-                repositories.team.updateAssignment(current.id, current.revision, {
-                  archived: true,
-                }),
-              )
-            }
-          />
-        )
-      }
+    <div
+      className="contents"
+      onDragOver={(event) => {
+        if ([...(event.dataTransfer?.items ?? [])].some((item) => item.kind === 'file')) {
+          event.preventDefault();
+          if (!dropping) setDropping(true);
+        }
+      }}
+      onDragLeave={() => setDropping(false)}
+      onDrop={onDrop}
+      data-team-drop
     >
-      <input
-        ref={fileInput}
-        type="file"
-        accept=".json,application/json"
-        className="hidden"
-        aria-label="Receive packet"
-        data-team-packet-input
-        onChange={(event) => {
-          const file = event.target.files?.[0];
-          event.target.value = '';
-          if (file) void receive(file);
-        }}
-      />
-      {dialog === 'new-team' ? (
-        <NewTeamDialog
-          onClose={() => setDialog(null)}
-          onCreate={({ name, me: myself }) => {
-            setDialog(null);
-            void run(async () => {
-              const created = await (
-                await getRepositories()
-              ).team.createTeam({
-                name,
-                members: [myself],
-                meIndex: 0,
-              });
-              setChosenTeamId(created.id);
+      <WorkspaceFrame
+        workspace="team"
+        title="Team"
+        subtitle={
+          team
+            ? me
+              ? `${team.name} · you are ${me.name} (${ROLE_LABEL[me.role]})`
+              : `${team.name} · ${plural(team.members.length, 'member')} · who are you?`
+            : 'Assignments, hand-ins and reviews, on one board.'
+        }
+        icon={<TeamIcon />}
+        routeActions={[
+          {
+            id: 'new-assignment',
+            label: 'New assignment',
+            shortLabel: 'New',
+            variant: 'accent',
+            disabled: !team || !me,
+            title: !team
+              ? 'Create a team first.'
+              : !me
+                ? 'Choose who you are first (Members…).'
+                : undefined,
+            onClick: () => setDialog('new-assignment'),
+          },
+          {
+            id: 'share',
+            label: 'Share packet',
+            shortLabel: 'Share',
+            disabled: !team || busy,
+            onClick: () => void share(),
+          },
+          {
+            id: 'receive',
+            label: 'Receive packet…',
+            shortLabel: 'Receive',
+            disabled: busy,
+            onClick: () => fileInput.current?.click(),
+          },
+          {
+            id: 'members',
+            label: 'Members…',
+            disabled: !team,
+            onClick: () => setDialog('members'),
+          },
+          { id: 'new-team', label: 'New team', onClick: () => setDialog('new-team') },
+        ]}
+        banner={
+          dropping ? (
+            <div className="border-b border-accent/40 bg-accent/10 px-3 py-1.5 text-[11px] text-accent">
+              Drop the packet to receive it.
+            </div>
+          ) : undefined
+        }
+        rail={{ label: 'Assignments', width: 260, content: railContent }}
+        board={{ mode: 'interactive', showEvaluationArtifacts: true }}
+        belowBoard={
+          onBoard ? (
+            <div className="shrink-0 border-t border-line-subtle px-3 py-1.5 text-[10.5px] text-secondary">
+              On the board: <span className="text-primary">{onBoard}</span>
+            </div>
+          ) : undefined
+        }
+        contextLabel="Thread"
+        contextPanel={
+          !team ? (
+            <EmptyState
+              title="No team yet."
+              description="A team is the people you hand work to and receive it from. Create one, or receive a packet."
+            />
+          ) : !me ? (
+            <div className="px-3 py-3">
+              <WhoAmI team={team} onChoose={chooseMe} busy={busy} />
+            </div>
+          ) : !assignment ? (
+            <EmptyState
+              title="No assignment selected."
+              description="Choose one on the left, or set one. Its thread — brief, hand-ins, reviews — appears here."
+            />
+          ) : (
+            <ThreadPanel
+              team={team}
+              assignment={assignment}
+              busy={busy}
+              onOpenBoard={openBoard}
+              onHandover={handover}
+              onChooseMe={chooseMe}
+              onArchive={(archived) =>
+                void withAssignment((repositories, current) =>
+                  repositories.team.updateAssignment(current.id, current.revision, { archived }),
+                )
+              }
+            />
+          )
+        }
+      >
+        <input
+          ref={fileInput}
+          type="file"
+          accept=".json,application/json"
+          className="hidden"
+          aria-label="Receive packet"
+          data-team-packet-input
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            event.target.value = '';
+            if (file) void receive(file);
+          }}
+        />
+        {dialog === 'new-team' ? (
+          <NewTeamDialog
+            onClose={() => setDialog(null)}
+            onCreate={({ name, me: myself }) => {
+              setDialog(null);
+              void run(async () => {
+                const created = await (
+                  await getRepositories()
+                ).team.createTeam({
+                  name,
+                  members: [myself],
+                  meIndex: 0,
+                });
+                setChosenTeamId(created.id);
+                setSelectedId(null);
+              }, 'Could not create the team.');
+            }}
+          />
+        ) : null}
+        {dialog === 'members' && team ? (
+          <MembersDialog
+            team={team}
+            onClose={() => setDialog(null)}
+            onAdd={(member) =>
+              void withTeam((repositories, current) =>
+                repositories.team.addMember(current.id, current.revision, member),
+              )
+            }
+            onRemove={(memberId) =>
+              void withTeam((repositories, current) =>
+                repositories.team.removeMember(current.id, current.revision, memberId),
+              )
+            }
+            onChooseMe={(memberId) =>
+              void withTeam((repositories, current) =>
+                repositories.team.updateTeam(current.id, current.revision, { me: memberId }),
+              )
+            }
+            onRename={(name) =>
+              void withTeam((repositories, current) =>
+                repositories.team.updateTeam(current.id, current.revision, { name }),
+              )
+            }
+            onDelete={async () => {
+              const id = team.id;
+              await (await getRepositories()).team.deleteTeam(id);
+              setChosenTeamId(null);
               setSelectedId(null);
-            }, 'Could not create the team.');
+              invalidateTeams(client);
+            }}
+          />
+        ) : null}
+        {dialog === 'new-assignment' && team && me ? (
+          <NewAssignmentDialog
+            team={team}
+            onClose={() => setDialog(null)}
+            onCreate={(input) => {
+              setDialog(null);
+              void run(async () => {
+                const created = await (
+                  await getRepositories()
+                ).team.createAssignment({
+                  ...input,
+                  teamId: team.id,
+                  setBy: me.id,
+                });
+                setSelectedId(created.id);
+              }, 'Could not set the assignment.');
+            }}
+          />
+        ) : null}
+        <ConfirmDialog
+          open={replaceWith !== null}
+          title="Replace what is on the board?"
+          description="The board holds moves that were not opened from this thread. Opening this handover replaces them; hand them in or save them to a study first if they matter."
+          confirmLabel="Replace"
+          danger={false}
+          onConfirm={() => {
+            if (replaceWith) loadBoard(replaceWith);
+            setReplaceWith(null);
           }}
+          onCancel={() => setReplaceWith(null)}
         />
-      ) : null}
-      {dialog === 'members' && team ? (
-        <MembersDialog
-          team={team}
-          onClose={() => setDialog(null)}
-          onAdd={(member) =>
-            void withTeam((repositories, current) =>
-              repositories.team.addMember(current.id, current.revision, member),
-            )
-          }
-          onRemove={(memberId) =>
-            void withTeam((repositories, current) =>
-              repositories.team.removeMember(current.id, current.revision, memberId),
-            )
-          }
-          onChooseMe={(memberId) =>
-            void withTeam((repositories, current) =>
-              repositories.team.updateTeam(current.id, current.revision, { me: memberId }),
-            )
-          }
-          onRename={(name) =>
-            void withTeam((repositories, current) =>
-              repositories.team.updateTeam(current.id, current.revision, { name }),
-            )
-          }
-          onDelete={async () => {
-            const id = team.id;
-            await (await getRepositories()).team.deleteTeam(id);
-            setChosenTeamId(null);
-            setSelectedId(null);
-            invalidateTeams(client);
-          }}
-        />
-      ) : null}
-      {dialog === 'new-assignment' && team && me ? (
-        <NewAssignmentDialog
-          team={team}
-          onClose={() => setDialog(null)}
-          onCreate={(input) => {
-            setDialog(null);
-            void run(async () => {
-              const created = await (
-                await getRepositories()
-              ).team.createAssignment({
-                ...input,
-                teamId: team.id,
-                setBy: me.id,
-              });
-              setSelectedId(created.id);
-            }, 'Could not set the assignment.');
-          }}
-        />
-      ) : null}
-    </WorkspaceFrame>
+      </WorkspaceFrame>
+    </div>
   );
 }
 

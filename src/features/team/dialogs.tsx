@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Dialog } from '@/components/ui/Dialog';
+import type { Color } from '@/chess/types';
 import type { AssignmentKind, TeamMember, TeamRecord, TeamRole } from '@/persistence/domain';
 import type {
   CreateAssignmentInput,
@@ -297,6 +298,8 @@ export function NewAssignmentDialog({
   const [assignedTo, setAssignedTo] = useState('');
   const [due, setDue] = useState('');
   const [brief, setBrief] = useState('');
+  const [opponent, setOpponent] = useState('');
+  const [myColor, setMyColor] = useState<Color>('w');
   return (
     <Dialog open title="New assignment" onClose={onClose} width="w-[600px]">
       <form
@@ -310,6 +313,9 @@ export function NewAssignmentDialog({
             brief,
             ...(assignedTo ? { assignedTo } : {}),
             ...(due ? { due } : {}),
+            ...(kind === 'opponent' && opponent.trim()
+              ? { opponent: opponent.trim(), myColor }
+              : {}),
           });
         }}
       >
@@ -361,6 +367,29 @@ export function NewAssignmentDialog({
             />
           </Field>
         </div>
+        {kind === 'opponent' ? (
+          <div className="grid grid-cols-[1fr_auto] gap-3">
+            <Field label="Opponent">
+              <input
+                value={opponent}
+                onChange={(event) => setOpponent(event.target.value)}
+                placeholder="As their name appears in the games"
+                className={INPUT}
+                data-team-assignment-opponent
+              />
+            </Field>
+            <Field label="Our colour">
+              <select
+                value={myColor}
+                onChange={(event) => setMyColor(event.target.value as Color)}
+                className={INPUT}
+              >
+                <option value="w">White</option>
+                <option value="b">Black</option>
+              </select>
+            </Field>
+          </div>
+        ) : null}
         <Field label="Brief">
           <textarea
             rows={4}

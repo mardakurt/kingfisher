@@ -166,6 +166,23 @@ describe('mergeAssignment', () => {
     expect(older.title).toBe('Old title');
     expect(older.updatedAt).toBe(10);
   });
+
+  it('lets the newer copy clear what the older one had set: un-archive, no due, no assignee', () => {
+    const local = assignment({
+      archived: true,
+      due: '2026-09-25',
+      assignedTo: 'ana',
+      updatedAt: 10,
+    });
+    const cleared = assignment({ updatedAt: 20 });
+    const { archived: _a, due: _d, assignedTo: _t, ...withoutThem } = cleared;
+    const merged = mergeAssignment(local, withoutThem);
+    expect(merged.archived).toBeUndefined();
+    expect(merged.due).toBeUndefined();
+    expect(merged.assignedTo).toBeUndefined();
+    expect(merged.id).toBe(local.id);
+    expect(merged.revision).toBe(local.revision);
+  });
 });
 
 describe('mergePacket', () => {

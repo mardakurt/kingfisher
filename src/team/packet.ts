@@ -234,19 +234,22 @@ export function mergeAssignment(
   if (!local) {
     return { ...incoming, handovers: unionHandovers([], incoming.handovers), revision: 0 };
   }
+  /*
+    The assignment *as set* is whatever the newer copy says, whole — including
+    what it no longer says. Taking only the fields the newer copy carries kept
+    a local `archived: true` after the other side had un-archived, and a
+    cleared due date or assignee never cleared anywhere else.
+  */
   const newer = incoming.updatedAt > local.updatedAt ? incoming : local;
+  const { handovers: _h, createdAt: _c, updatedAt: _u, ...asSet } = newer;
   return {
-    ...local,
-    title: newer.title,
-    kind: newer.kind,
-    brief: newer.brief,
-    setBy: newer.setBy,
-    ...(newer.assignedTo !== undefined ? { assignedTo: newer.assignedTo } : {}),
-    ...(newer.due !== undefined ? { due: newer.due } : {}),
-    ...(newer.archived !== undefined ? { archived: newer.archived } : {}),
+    ...asSet,
+    id: local.id,
+    teamId: local.teamId,
     handovers: unionHandovers(local.handovers, incoming.handovers),
     createdAt: Math.min(local.createdAt, incoming.createdAt),
     updatedAt: Math.max(local.updatedAt, incoming.updatedAt),
+    revision: local.revision,
   };
 }
 
@@ -265,6 +268,8 @@ const AS_SET: readonly (keyof AssignmentRecord)[] = [
   'setBy',
   'assignedTo',
   'due',
+  'opponent',
+  'myColor',
   'archived',
 ];
 

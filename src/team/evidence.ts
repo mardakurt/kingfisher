@@ -9,7 +9,9 @@
  * evaluation counts as unevaluated, whatever was on the engine panel.
  */
 
+import { mainlinePath } from '@/chess/tree/tree';
 import type { GameTree } from '@/chess/tree/types';
+import { plural } from '@/lib/plural';
 import type { HandoverEvidence } from '@/persistence/domain';
 
 const UNNAMED = 'Engine';
@@ -18,8 +20,14 @@ export function handoverEvidence(tree: GameTree): HandoverEvidence {
   const byEngine = new Map<string, { positions: number; minDepth: number; maxDepth: number }>();
   let positions = 0;
   let evaluated = 0;
+  let variations = 0;
+  let comments = 0;
   for (const node of Object.values(tree.nodes)) {
     positions += 1;
+    // Every child past the first is the head of a side variation.
+    variations += Math.max(0, node.children.length - 1);
+    if (node.comment) comments += 1;
+    if (node.preComment) comments += 1;
     const evaluation = node.evaluation;
     if (!evaluation) continue;
     evaluated += 1;
@@ -37,6 +45,9 @@ export function handoverEvidence(tree: GameTree): HandoverEvidence {
   return {
     positions,
     evaluated,
+    moves: mainlinePath(tree).length - 1,
+    variations,
+    comments,
     engines: [...byEngine]
       .map(([name, entry]) => ({ name, ...entry }))
       .sort((a, b) => b.positions - a.positions || a.name.localeCompare(b.name)),
@@ -46,8 +57,13 @@ export function handoverEvidence(tree: GameTree): HandoverEvidence {
 /** One line for a card: what was evaluated, by what, how deep. */
 export function describeEvidence(evidence: HandoverEvidence | undefined): string {
   if (!evidence || evidence.positions === 0) return 'No positions.';
+  const work: string[] = [];
+  if (evidence.moves !== undefined) work.push(plural(evidence.moves, 'move'));
+  if (evidence.variations) work.push(plural(evidence.variations, 'variation'));
+  if (evidence.comments) work.push(plural(evidence.comments, 'comment'));
+  const lead = work.length > 0 ? `${work.join(' · ')} · ` : '';
   if (evidence.evaluated === 0) {
-    return `${evidence.positions} positions · no engine evaluations recorded.`;
+    return `${lead}${evidence.positions} positions · no engine evaluations recorded.`;
   }
   const engines = evidence.engines
     .map((engine) =>
@@ -56,5 +72,5 @@ export function describeEvidence(evidence: HandoverEvidence | undefined): string
         : `${engine.name}, depth ${engine.minDepth}–${engine.maxDepth}`,
     )
     .join('; ');
-  return `${evidence.evaluated} of ${evidence.positions} positions evaluated · ${engines}.`;
+  return `${lead}${evidence.evaluated} of ${evidence.positions} positions evaluated · ${engines}.`;
 }

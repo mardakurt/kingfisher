@@ -3,21 +3,25 @@
 /**
  * One assignment's thread, and the one thing you can do next.
  *
- * The brief at the top, the handovers in order, and an action box at the
- * bottom whose first button depends on who you are: a student sees "Hand in
- * what's on the board", a coach sees "Return with notes" and "Accept". Nothing
- * is hidden from anyone — the file can be edited by whoever holds it, so a
+ * The brief at the top, the handovers in order, and an action box **pinned
+ * under the thread** whose first button depends on who you are: a student
+ * sees "Hand in what's on the board", a coach sees "Return with notes" and
+ * "Accept". Pinned, because a thread of ten handovers scrolls and the button
+ * a coach reaches for thirty times an evening must not move. Nothing is
+ * hidden from anyone — the file can be edited by whoever holds it, so a
  * permission would be theatre — but the button you need is the one you see
- * first, which is what a coach with thirty students needs from this panel.
+ * first.
  */
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 import { serializePgn } from '@/chess/pgn';
 import { Button } from '@/components/ui/Button';
 import { PanelBody, PanelHeader } from '@/components/ui/Panel';
 import type { AssignmentRecord, Handover, ReviewVerdict, TeamRecord } from '@/persistence/domain';
 import { useAnalysis } from '@/stores/analysis-store';
+import { useUi } from '@/stores/ui-store';
 import {
   assignmentStatus,
   describeEvidence,
@@ -28,6 +32,7 @@ import {
 import { cn } from '@/lib/cn';
 
 import { describeDue, KIND_LABEL, REVIEWING_ROLES, ROLE_LABEL, shortDate } from './labels';
+import { WhoAmI } from './WhoAmI';
 
 export interface HandoverDraft {
   readonly kind: Handover['kind'];
@@ -43,17 +48,22 @@ export function ThreadPanel({
   onOpenBoard,
   onHandover,
   onArchive,
+  onChooseMe,
   busy,
 }: {
   readonly team: TeamRecord;
   readonly assignment: AssignmentRecord;
   readonly onOpenBoard: (handover: Handover) => void;
   readonly onHandover: (draft: HandoverDraft) => void;
-  readonly onArchive: () => void;
+  readonly onArchive: (archived: boolean) => void;
+  readonly onChooseMe: (memberId: string) => void;
   readonly busy: boolean;
 }) {
+  const router = useRouter();
   const [note, setNote] = useState('');
   const [attachBoard, setAttachBoard] = useState(true);
+  const notify = useUi((state) => state.notify);
+  const openImport = useUi((state) => state.setImportOpen);
   const boardHasMoves = useAnalysis(
     (state) => (state.tree.nodes[state.tree.rootId]?.children.length ?? 0) > 0,
   );
@@ -75,15 +85,35 @@ export function ThreadPanel({
     setNote('');
   };
 
+  const copyPgn = async (handover: Handover) => {
+    if (!handover.pgn) return;
+    try {
+      await navigator.clipboard.writeText(handover.pgn);
+      notify({
+        tone: 'success',
+        message: 'PGN copied. Paste it into ChessBase, a study, or anywhere.',
+      });
+    } catch (error) {
+      notify({
+        tone: 'error',
+        message: 'Could not copy the PGN.',
+        detail: error instanceof Error ? error.message : undefined,
+      });
+    }
+  };
+
   return (
     <div className="flex h-full min-h-0 flex-col" data-team-thread>
       <PanelHeader
         actions={
-          assignment.archived ? null : (
-            <Button variant="ghost" size="sm" onClick={onArchive} disabled={busy}>
-              Archive
-            </Button>
-          )
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onArchive(!assignment.archived)}
+            disabled={busy}
+          >
+            {assignment.archived ? 'Unarchive' : 'Archive'}
+          </Button>
         }
       >
         <span className="truncate normal-case tracking-normal text-primary">
@@ -97,6 +127,7 @@ export function ThreadPanel({
             ? ` · for ${nameOf(assignment.assignedTo)}`
             : ' · for the whole team'}
           {due ? ` · ${due}` : ''}
+          {assignment.archived ? ' · archived' : ''}
         </p>
         <p className="mt-1">
           <span
@@ -112,6 +143,26 @@ export function ThreadPanel({
             {STATUS_LABEL[status]}
           </span>
         </p>
+        {assignment.opponent ? (
+          <div className="mt-2 flex flex-wrap items-center gap-2 rounded-[4px] border border-line-subtle bg-surface-2 px-2.5 py-1.5">
+            <span className="text-[11px] text-primary">
+              vs {assignment.opponent}
+              {assignment.myColor
+                ? ` · we have ${assignment.myColor === 'w' ? 'White' : 'Black'}`
+                : ''}
+            </span>
+            <Button
+              size="sm"
+              variant="subtle"
+              className="ml-auto"
+              onClick={() =>
+                router.push(`/preparation?player=${encodeURIComponent(assignment.opponent!)}`)
+              }
+            >
+              Open in Preparation
+            </Button>
+          </div>
+        ) : null}
         {assignment.brief ? (
           <p className="mt-2 whitespace-pre-wrap text-[11.5px] leading-relaxed text-primary">
             {assignment.brief}
@@ -148,78 +199,85 @@ export function ThreadPanel({
                   </p>
                 ) : null}
                 {handover.pgn ? (
-                  <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                    <Button size="sm" variant="subtle" onClick={() => onOpenBoard(handover)}>
-                      Open on board
-                    </Button>
-                    <span className="text-[10px] text-tertiary">
+                  <>
+                    <p className="mt-1 text-[10px] text-tertiary">
                       {describeEvidence(handover.evidence)}
-                    </span>
-                  </div>
+                    </p>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                      <Button size="sm" variant="subtle" onClick={() => onOpenBoard(handover)}>
+                        Open on board
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => void copyPgn(handover)}>
+                        Copy PGN
+                      </Button>
+                    </div>
+                  </>
                 ) : null}
               </li>
             ))}
           </ol>
         )}
+      </PanelBody>
 
-        {me ? (
-          <div className="mt-4 border-t border-line-subtle pt-3" data-team-actions>
-            <p className="text-[10px] text-tertiary">
-              You are {me.name} ({ROLE_LABEL[me.role]}).
-            </p>
-            <textarea
-              rows={3}
-              value={note}
-              onChange={(event) => setNote(event.target.value)}
-              placeholder={
-                iReview
-                  ? 'What to fix, what was good, what to look at next.'
-                  : 'What you found, and where you were unsure.'
-              }
-              aria-label="Note"
-              className="mt-1.5 w-full resize-y rounded-[4px] border border-line bg-surface-inset px-2 py-1.5 text-[11px] leading-relaxed text-primary outline-none focus:border-accent/60"
-            />
-            {iReview ? (
-              <>
-                <label className="mt-1.5 flex items-center gap-1.5 text-[10.5px] text-secondary">
-                  <input
-                    type="checkbox"
-                    checked={attachBoard && boardHasMoves}
-                    disabled={!boardHasMoves}
-                    onChange={(event) => setAttachBoard(event.target.checked)}
-                    className="accent-accent"
-                  />
-                  Attach what is on the board
-                </label>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  <Button
-                    variant="accent"
-                    size="sm"
-                    disabled={busy}
-                    onClick={() => submit('review', 'needs-work')}
-                  >
-                    Return with notes
-                  </Button>
-                  <Button
-                    variant="subtle"
-                    size="sm"
-                    disabled={busy}
-                    onClick={() => submit('review', 'accepted')}
-                  >
-                    Accept
-                  </Button>
-                  <Button variant="ghost" size="sm" disabled={busy} onClick={() => submit('note')}>
-                    Add a note
-                  </Button>
-                </div>
-              </>
-            ) : (
+      {/* Pinned under the thread: the one thing to do next never scrolls away. */}
+      {me ? (
+        <div className="shrink-0 border-t border-line-subtle px-3 py-2.5" data-team-actions>
+          <p className="text-[10px] text-tertiary">
+            You are {me.name} ({ROLE_LABEL[me.role]}).
+          </p>
+          <textarea
+            rows={3}
+            value={note}
+            onChange={(event) => setNote(event.target.value)}
+            placeholder={
+              iReview
+                ? 'What to fix, what was good, what to look at next.'
+                : 'What you found, and where you were unsure.'
+            }
+            aria-label="Note"
+            className="mt-1.5 w-full resize-y rounded-[4px] border border-line bg-surface-inset px-2 py-1.5 text-[11px] leading-relaxed text-primary outline-none focus:border-accent/60"
+          />
+          {iReview ? (
+            <>
+              <label className="mt-1.5 flex items-center gap-1.5 text-[10.5px] text-secondary">
+                <input
+                  type="checkbox"
+                  checked={attachBoard && boardHasMoves}
+                  disabled={!boardHasMoves}
+                  onChange={(event) => setAttachBoard(event.target.checked)}
+                  className="accent-accent"
+                />
+                Attach what is on the board
+              </label>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                <Button
+                  variant="accent"
+                  size="sm"
+                  disabled={busy}
+                  onClick={() => submit('review', 'needs-work')}
+                >
+                  Return with notes
+                </Button>
+                <Button
+                  variant="subtle"
+                  size="sm"
+                  disabled={busy}
+                  onClick={() => submit('review', 'accepted')}
+                >
+                  Accept
+                </Button>
+                <Button variant="ghost" size="sm" disabled={busy} onClick={() => submit('note')}>
+                  Add a note
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 <Button
                   variant="accent"
                   size="sm"
                   disabled={busy || !boardHasMoves}
-                  title={boardHasMoves ? undefined : 'Put your analysis on the board first.'}
                   onClick={() => submit('hand-in')}
                 >
                   Hand in what’s on the board
@@ -228,10 +286,27 @@ export function ThreadPanel({
                   Add a note
                 </Button>
               </div>
-            )}
-          </div>
-        ) : null}
-      </PanelBody>
+              {!boardHasMoves ? (
+                <p className="mt-1.5 text-[10.5px] text-tertiary" data-team-empty-board>
+                  The board is empty. Play your moves on it, or{' '}
+                  <button
+                    type="button"
+                    className="text-accent underline-offset-2 hover:underline"
+                    onClick={() => openImport(true)}
+                  >
+                    import a PGN
+                  </button>
+                  ; then hand it in.
+                </p>
+              ) : null}
+            </>
+          )}
+        </div>
+      ) : (
+        <div className="shrink-0 border-t border-line-subtle px-3 py-2.5" data-team-who>
+          <WhoAmI team={team} onChoose={onChooseMe} busy={busy} />
+        </div>
+      )}
     </div>
   );
 }

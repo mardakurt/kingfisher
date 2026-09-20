@@ -1268,6 +1268,14 @@ export interface AssignmentRecord {
   readonly assignedTo?: string;
   /** ISO `YYYY-MM-DD`: a round has a date, not a moment. */
   readonly due?: string;
+  /**
+   * For an opponent assignment: who, and which colour *the player* has. A
+   * second does not prepare "the Najdorf"; they prepare a person, with a
+   * colour, for a round — the framing Preparation sessions already use, and
+   * the link into the opponent's dossier is one click from the thread.
+   */
+  readonly opponent?: string;
+  readonly myColor?: Color;
   /** Set when the work is over; the assignment leaves the board but stays in the record. */
   readonly archived?: boolean;
   readonly handovers: readonly Handover[];
@@ -1310,6 +1318,14 @@ export interface HandoverEvidence {
   readonly positions: number;
   readonly evaluated: number;
   readonly engines: readonly HandoverEngineEvidence[];
+  /**
+   * How much work the board carries: main-line moves, side variations and
+   * comments. Optional because handovers written before Phase 74's second
+   * pass have none, and a missing count is shown as nothing, not as zero.
+   */
+  readonly moves?: number;
+  readonly variations?: number;
+  readonly comments?: number;
 }
 
 export interface HandoverEngineEvidence {
