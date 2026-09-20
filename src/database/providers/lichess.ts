@@ -485,10 +485,21 @@ function toGameRef(game: LichessGame): DatabaseGameRef {
   };
 }
 
-/** Lichess accepts a fixed set of rating bands rather than arbitrary bounds. */
-function ratingBuckets(min?: number, max?: number): number[] {
+/**
+ * Lichess accepts a fixed set of rating bands rather than arbitrary bounds.
+ *
+ * A band is named by its lower edge and runs to the next one: `2200` is
+ * 2200–2499, `2500` is everything above. A minimum therefore selects from
+ * the band that *contains* it — 2300 starts at 2200, which is the closest
+ * the explorer can come — and never the band below. The rule used to be
+ * "every band from `min − 200`", which for the round numbers people type
+ * (2000, 2200) began one whole band too low and reported a 2200+ filter as
+ * games from 2000.
+ */
+export function ratingBuckets(min?: number, max?: number): number[] {
   const lower = min ?? 0;
   const upper = max ?? Number.POSITIVE_INFINITY;
-  const selected = RATING_BUCKETS.filter((bucket) => bucket >= lower - 200 && bucket <= upper);
+  const containing = [...RATING_BUCKETS].reverse().find((bucket) => bucket <= lower) ?? 0;
+  const selected = RATING_BUCKETS.filter((bucket) => bucket >= containing && bucket <= upper);
   return selected.length > 0 ? [...selected] : [1600, 1800, 2000, 2200, 2500];
 }

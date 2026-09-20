@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { START_FEN } from '@/chess/fen';
 
-import { LichessExplorerProvider } from './lichess';
+import { LichessExplorerProvider, ratingBuckets } from './lichess';
 import { setLichessToken } from './lichess-auth';
 
 describe('LichessExplorerProvider authentication', () => {
@@ -149,5 +149,33 @@ describe('LichessExplorerProvider authentication', () => {
       opening: { eco: 'B00' },
     });
     expect(result.topGames?.[0]?.id).toBe('abcd1234');
+  });
+});
+
+describe('rating bands', () => {
+  /*
+    Lichess names a band by its lower edge: 2200 is 2200–2499. A minimum of
+    2200 must ask for 2200 and up, not for the band below it as well; the
+    explorer column is labelled with the filter, and a population that quietly
+    starts 200 points lower is a mislabelled population.
+  */
+  it('starts at the band that contains the minimum', () => {
+    expect(ratingBuckets(2200)).toEqual([2200, 2500]);
+    expect(ratingBuckets(2000)).toEqual([2000, 2200, 2500]);
+    expect(ratingBuckets(2500)).toEqual([2500]);
+  });
+
+  it('rounds a minimum inside a band down to that band, the closest Lichess offers', () => {
+    expect(ratingBuckets(2300)).toEqual([2200, 2500]);
+    expect(ratingBuckets(1950)).toEqual([1800, 2000, 2200, 2500]);
+  });
+
+  it('asks for every band when there is no minimum', () => {
+    expect(ratingBuckets()).toEqual([400, 1000, 1200, 1400, 1600, 1800, 2000, 2200, 2500]);
+    expect(ratingBuckets(0)).toEqual([400, 1000, 1200, 1400, 1600, 1800, 2000, 2200, 2500]);
+  });
+
+  it('honours a maximum by its band too', () => {
+    expect(ratingBuckets(1600, 2000)).toEqual([1600, 1800, 2000]);
   });
 });
