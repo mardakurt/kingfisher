@@ -8,6 +8,15 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
+## 1.2.2 — 2026-09-20
+
+Kingfisher 1.2.2 carries every change below to the Mac application; the
+web at `kingfisherchess.app` has shipped each one as it landed. The Mac
+1.2.1 build still opened on the last position rather than a chessboard,
+dipped the evaluation bar between moves, answered checkmate with an even
+split, and flipped the board with a rotation that squeezed the pieces
+to the centre.
+
 - **Opening Kingfisher opens a chessboard.** The last position you were
   working on was put back on the board at every start — so opening the
   application showed yesterday's half-played line, and the Mac
