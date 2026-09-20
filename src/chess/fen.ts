@@ -137,7 +137,11 @@ function parsePlacement(placement: string): Result<(Piece | null)[]> {
           input: placement,
         });
       }
-      if (file > 7) break;
+      if (file > 7) {
+        return fail('invalid-fen', `Rank ${rankIndex + 1} describes more than 8 squares.`, {
+          input: placement,
+        });
+      }
       board[rankIndex * 8 + file] = piece;
       file += 1;
     }

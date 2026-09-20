@@ -40,6 +40,9 @@ describe('parseFen', () => {
     ['4k3/8/8/8/8/8/8/4K3 w KQxq - 0 1', 'bad castling field'],
     ['4k3/8/8/8/8/8/8/4K3 w - e4 0 1', 'impossible en passant square'],
     ['4k3/8/8/8/8/8/8/4K3 w - - x 1', 'non-numeric halfmove clock'],
+    ['44p/8/8/8/8/8/8/4K2k w - - 0 1', 'a ninth square after eight empties'],
+    ['8K/8/8/8/8/8/8/4K2k w - - 0 1', 'a ninth square after a full rank'],
+    ['rnbqkbnrp/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', 'nine pieces on one rank'],
   ])('rejects %s (%s)', (fen) => {
     expect(parseFen(fen).ok).toBe(false);
   });

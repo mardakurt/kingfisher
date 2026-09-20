@@ -43,7 +43,7 @@ export function makeSquare(file: number, rank: number): Square | null {
   return squareAt(rank * 8 + file);
 }
 
-/** Light squares are those where file and rank indices share parity. */
+/** Dark squares are those where file and rank indices share parity: a1 is dark. */
 export const squareColor = (square: Square): 'light' | 'dark' =>
   (fileOf(square) + rankOf(square)) % 2 === 0 ? 'dark' : 'light';
 

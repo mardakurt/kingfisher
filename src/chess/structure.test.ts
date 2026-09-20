@@ -98,6 +98,16 @@ describe('structure facts', () => {
     expect(blackUp.materialBalance).toBe(-9);
   });
 
+  it('does not name a side as ahead when the points are level', () => {
+    // Bishop against knight: an imbalance, and nobody is ahead by anything.
+    const level = facts('4k3/8/8/8/8/8/8/1N2K3 w - - 0 1');
+    const evenOnPoints = facts('1n2k3/8/8/8/8/8/8/1B2K3 w - - 0 1');
+    expect(level.materialProfile).toBe('n+1');
+    const claim = structureClaims(evenOnPoints).find((entry) => entry.id.startsWith('mat-'));
+    expect(claim?.label).toContain('level on points');
+    expect(claim?.label).not.toContain('ahead by 0');
+  });
+
   it('places kings by wing', () => {
     const castled = facts('r4rk1/pppppppp/8/8/8/8/PPPPPPPP/R4RK1 w - - 0 10');
     expect(castled.whiteKingSide).toBe('kingside');

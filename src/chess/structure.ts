@@ -341,6 +341,11 @@ function materialProfileOf(difference: {
 }
 
 function materialLabel(facts: StructureFacts): string {
+  // A bishop for a knight is an imbalance with nobody ahead on points; saying
+  // "Black ahead by 0" would be a claim the count does not support.
+  if (facts.materialBalance === 0) {
+    return `Material imbalance (${facts.materialProfile}), level on points`;
+  }
   const side = facts.materialBalance > 0 ? 'White' : 'Black';
   return `Material imbalance (${facts.materialProfile}), ${side} ahead by ${Math.abs(facts.materialBalance)}`;
 }

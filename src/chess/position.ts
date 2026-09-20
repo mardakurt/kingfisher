@@ -45,17 +45,33 @@ export class Position {
     const parsed = parseFen(input);
     if (!parsed.ok) return parsed;
 
-    const normalized = input.trim().replace(/\s+/g, ' ');
-    const position = new Position(asFen(normalized));
-    position.parsedParts = parsed.value;
-
     // The structural parser accepts positions the rules engine rejects
     // (a side to move already giving check, impossible castling rights…).
+    let engine: Chess;
     try {
-      position.chess();
+      engine = new Chess(input.trim().replace(/\s+/g, ' '));
     } catch (error) {
       return fail('invalid-position', describeError(error), { input });
     }
+
+    /*
+      The position keeps the rules engine's own rendering of the FEN, not the
+      caller's text. The two differ in exactly one way that matters: a pasted
+      or imported FEN records an en passant square after every double push,
+      while a FEN this application produced by playing a move records one only
+      when the capture is actually available. `positionKey()` is the first four
+      fields, so keeping the caller's text would give the same position two
+      identities — one reached through a `[FEN]` tag or the setup dialog, the
+      other reached by playing the moves — and the explorer, the repertoire and
+      the transposition search would each see half the evidence. ADR 0009.
+    */
+    const canonical = asFen(engine.fen());
+    const position = new Position(canonical);
+    position.engine = engine;
+    position.parsedParts =
+      parsed.value.epSquare === null || canonical.split(' ')[3] !== '-'
+        ? parsed.value
+        : { ...parsed.value, epSquare: null };
     return ok(position);
   }
 

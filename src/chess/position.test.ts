@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { positionKey } from './fen';
 import { Position } from './position';
 import { expect as unwrap } from './result';
 
@@ -34,6 +35,32 @@ describe('Position', () => {
     const attacked = unwrap(Position.fromFen('4k3/8/8/8/8/8/5r2/R3K2R w KQ - 0 1'));
     expect(position.playSan('O-O').ok).toBe(true);
     expect(attacked.playSan('O-O').ok).toBe(false);
+  });
+
+  it('gives a pasted FEN the same identity as the position reached by playing', () => {
+    // Every other program writes "e3" after 1.e4; this application does not
+    // unless a capture there is possible. The key must not depend on which
+    // door the position came in through. ADR 0009.
+    const pasted = unwrap(
+      Position.fromFen('rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1'),
+    );
+    const played = unwrap(Position.initial().play({ from: 'e2', to: 'e4' }));
+    expect(positionKey(pasted.fen)).toBe(positionKey(played.after));
+    expect(pasted.parts.epSquare).toBeNull();
+
+    // But when the capture is real, the square is part of the position.
+    const capturable = unwrap(
+      Position.fromFen('rnbqkbnr/pp1ppppp/8/2pP4/8/8/PPP1PPPP/RNBQKBNR w KQkq c6 0 3'),
+    );
+    expect(positionKey(capturable.fen)).toContain(' c6');
+    expect(capturable.parts.epSquare).toBe('c6');
+  });
+
+  it('completes a four-field FEN with the standard counters', () => {
+    const short = unwrap(Position.fromFen('4k3/8/8/8/8/8/8/4K3 w - -'));
+    expect(short.fen).toBe('4k3/8/8/8/8/8/8/4K3 w - - 0 1');
+    expect(short.halfmoveClock).toBe(0);
+    expect(short.fullmoveNumber).toBe(1);
   });
 
   it('plays en passant and removes the captured pawn', () => {

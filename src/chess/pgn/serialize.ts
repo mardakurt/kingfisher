@@ -46,7 +46,13 @@ export function serializePgn(tree: GameTree, options: SerializeOptions = {}): st
   const tokens: string[] = [];
   const root = mustGetNode(tree, tree.rootId);
 
-  if (includeComments && root.comment) tokens.push(`{ ${root.comment} }`);
+  if (includeComments) {
+    // The starting position can carry arrows and highlights of its own; the
+    // parser reads them from a comment before the first move, so they are
+    // written back the same way rather than lost on the way out.
+    const rootComment = formatComment({ text: root.comment ?? '', shapes: root.shapes });
+    if (rootComment) tokens.push(`{ ${rootComment} }`);
+  }
 
   writeChildren(tree, root, tokens, true, {
     includeComments,

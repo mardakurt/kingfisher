@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { shapeKey } from '../annotations';
 import { mainlinePath, mustGetNode, nodeCount } from '../tree/tree';
 import type { GameTree, NodeId } from '../tree/types';
 import { parsePgn, parseSingleGame } from './parse';
@@ -198,6 +199,23 @@ describe('serializePgn', () => {
     const node = mustGetNode(second.tree, e4);
     expect(node.shapes).toHaveLength(2);
     expect(node.evaluation?.score).toEqual({ kind: 'cp', cp: -25 });
+  });
+
+  it('round-trips shapes drawn on the starting position', () => {
+    // An arrow on the root belongs to the game, not to a move; the parser
+    // reads it from the comment before 1. e4 and the serializer must put it
+    // back there, or exporting a study loses what was drawn on the opening
+    // diagram.
+    const source = '{ Plan [%cal Ge2e4,Gd2d4][%csl Rd5] } 1. e4 e5 *';
+    const first = unwrap(parseSingleGame(source));
+    expect(mustGetNode(first.tree, first.tree.rootId).shapes).toHaveLength(3);
+    const text = serializePgn(first.tree);
+    const second = unwrap(parseSingleGame(text));
+    const root = mustGetNode(second.tree, second.tree.rootId);
+    expect(root.comment).toBe('Plan');
+    expect(new Set(root.shapes.map(shapeKey))).toEqual(
+      new Set(mustGetNode(first.tree, first.tree.rootId).shapes.map(shapeKey)),
+    );
   });
 
   it('round-trips a game that starts from a FEN', () => {
