@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { POST, GET } from './route';
+import { GET, ntfyHeaderValue, POST } from './route';
 import type { NextRequest } from 'next/server';
 
 /**
@@ -52,42 +52,101 @@ describe('POST /api/feedback', () => {
   });
 
   it('accepts a well-formed payload and returns a reference when the GitHub sink is configured', async () => {
-    /* A sink is faked by setting env vars; `deliverToGitHub`
-       will still fail because no real GitHub API exists in
-       tests, but the route must accept the envelope and
-       surface the reference through the 502 path. */
+    /* The sink is configured through env vars and the network is stubbed:
+       a unit test must not call api.github.com, and the assertion is about
+       what the route sends, which a real call could not show. */
     process.env.KINGFISHER_FEEDBACK_REPOSITORY = 'mardakurt/kingfisher-feedback-test';
     process.env.KINGFISHER_FEEDBACK_TOKEN = 'test-pat-no-network-access';
     delete process.env.KINGFISHER_FEEDBACK_NTFY_TOPIC;
+    const calls: { url: string; headers: Headers; body: unknown }[] = [];
+    const spy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      calls.push({
+        url: String(input),
+        headers: new Headers(init?.headers),
+        body: JSON.parse(String(init?.body)),
+      });
+      return new Response('{}', { status: 201 });
+    });
     try {
       const response = await POST(makeRequest(validBody, { origin: 'http://localhost:3210' }));
-      expect([200, 502]).toContain(response.status);
+      expect(response.status).toBe(200);
       const body = await response.json();
-      expect(typeof body.reference).toBe('string');
       expect(body.reference).toMatch(/^kf-/);
+      expect(calls).toHaveLength(1);
+      expect(calls[0]?.url).toBe(
+        'https://api.github.com/repos/mardakurt/kingfisher-feedback-test/issues',
+      );
+      expect(calls[0]?.headers.get('authorization')).toBe('Bearer test-pat-no-network-access');
+      expect(calls[0]?.body).toMatchObject({ labels: ['user-feedback', 'broken'] });
     } finally {
+      spy.mockRestore();
       delete process.env.KINGFISHER_FEEDBACK_REPOSITORY;
       delete process.env.KINGFISHER_FEEDBACK_TOKEN;
     }
   });
 
-  it('publishes to ntfy and returns 200 when only the ntfy topic is configured', async () => {
-    delete process.env.KINGFISHER_FEEDBACK_REPOSITORY;
-    delete process.env.KINGFISHER_FEEDBACK_TOKEN;
-    process.env.KINGFISHER_FEEDBACK_NTFY_TOPIC = 'kf-test-topic-not-real';
-    try {
-      const response = await POST(makeRequest(validBody, { origin: 'http://localhost:3210' }));
-      /* The route returns 200 on a successful ntfy publish.
-         A 502 here would mean the ntfy network call failed in
-         the test environment; both are acceptable, what we
-         verify is that the reference is always present. */
-      expect([200, 502]).toContain(response.status);
-      const body = await response.json();
-      expect(typeof body.reference).toBe('string');
-      expect(body.reference).toMatch(/^kf-/);
-    } finally {
+  describe('the ntfy sink', () => {
+    /* The network is stubbed: a unit test must not post to ntfy.sh, and a
+       real request could not tell us what headers were sent anyway. */
+    const sent: { url: string; headers: Headers; body: string }[] = [];
+    const stubFetch = () =>
+      vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+        sent.push({
+          url: String(input),
+          headers: new Headers(init?.headers),
+          body: String(init?.body),
+        });
+        return new Response('', { status: 200 });
+      });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+      sent.length = 0;
       delete process.env.KINGFISHER_FEEDBACK_NTFY_TOPIC;
-    }
+    });
+
+    it('publishes to ntfy and returns 200 when only the ntfy topic is configured', async () => {
+      delete process.env.KINGFISHER_FEEDBACK_REPOSITORY;
+      delete process.env.KINGFISHER_FEEDBACK_TOKEN;
+      process.env.KINGFISHER_FEEDBACK_NTFY_TOPIC = 'kf-test-topic-not-real';
+      stubFetch();
+      const response = await POST(makeRequest(validBody, { origin: 'http://localhost:3210' }));
+      expect(response.status).toBe(200);
+      const body = await response.json();
+      expect(body.reference).toMatch(/^kf-/);
+      expect(sent).toHaveLength(1);
+      expect(sent[0]?.url).toBe('https://ntfy.sh/kf-test-topic-not-real');
+      expect(sent[0]?.headers.get('title')).toBe(
+        '[broken] The explorer is showing the wrong source.',
+      );
+      expect(sent[0]?.body).toContain('Reference: kf-');
+    });
+
+    it('delivers a message that does not fit in a Latin-1 header', async () => {
+      /* `fetch` throws on a header value with a character above U+00FF, and
+         the catch used to turn that into "the sink rejected the delivery".
+         A message in Turkish, or one that starts with a piece glyph, is not
+         an error. */
+      process.env.KINGFISHER_FEEDBACK_NTFY_TOPIC = 'kf-test-topic-not-real';
+      stubFetch();
+      const message = 'Şah çekildi ama ♞ hamlesi gösterilmiyor.';
+      const response = await POST(
+        makeRequest({ ...validBody, message }, { origin: 'http://localhost:3210' }),
+      );
+      expect(response.status).toBe(200);
+      expect(sent).toHaveLength(1);
+      const title = sent[0]?.headers.get('title') ?? '';
+      expect(title.startsWith('=?UTF-8?B?')).toBe(true);
+      expect(Buffer.from(title.slice(10, -2), 'base64').toString('utf8')).toBe(
+        `[broken] ${message}`,
+      );
+      // The body is UTF-8 and needs no encoding.
+      expect(sent[0]?.body).toContain(message);
+    });
+
+    it('leaves plain ASCII titles alone', () => {
+      expect(ntfyHeaderValue('[idea] Plain ascii title')).toBe('[idea] Plain ascii title');
+    });
   });
 
   it('rejects an unknown origin', async () => {

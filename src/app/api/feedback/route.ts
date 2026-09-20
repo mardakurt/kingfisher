@@ -233,9 +233,23 @@ function ntfyConfigured(): boolean {
   return Boolean(process.env.KINGFISHER_FEEDBACK_NTFY_TOPIC);
 }
 
+/**
+ * A value for an ntfy header, which is where the title travels.
+ *
+ * HTTP header values are Latin-1: `fetch` throws on the first character
+ * above U+00FF, so a message that opens with an emoji, a knight glyph or a
+ * Turkish ş used to fail the whole delivery as "the sink rejected it". ntfy
+ * reads RFC 2047 encoded words in exactly this case, so anything outside
+ * ASCII is sent as one.
+ */
+export function ntfyHeaderValue(text: string): string {
+  if (/^[\x20-\x7e]*$/.test(text)) return text;
+  return `=?UTF-8?B?${Buffer.from(text, 'utf8').toString('base64')}?=`;
+}
+
 async function publishToNtfy(envelope: Validated, reference: string): Promise<boolean> {
   const topic = process.env.KINGFISHER_FEEDBACK_NTFY_TOPIC!;
-  const title = `[${envelope.category}] ${envelope.message.slice(0, 80)}`.trim();
+  const title = ntfyHeaderValue(`[${envelope.category}] ${envelope.message.slice(0, 80)}`.trim());
   const bodyLines = [
     envelope.message,
     '',
