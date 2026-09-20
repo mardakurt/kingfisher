@@ -8,6 +8,14 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
+## 1.2.5 — 2026-09-20
+
+Kingfisher 1.2.5 carries three owner reports from the day 1.2.4 shipped
+to the Mac application; the web has shipped each as it landed. The Mac
+1.2.4 build lists engines it cannot install as switches, draws a tooltip
+on the board under the best-move arrow, and offers threads, hash and the
+search limit only as a preset's read-only summary.
+
 - **Engines that do not exist for your machine are not switches.** The
   Mac application's Settings → Engines drew Berserk, Koivisto and Obsidian
   — Windows-only projects — as rows with a switch turned on, above a note
