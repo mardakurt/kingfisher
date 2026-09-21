@@ -172,6 +172,34 @@ specification or from any of the dozens of implementations that carry it.
 
 ---
 
+## ChessBase interoperability
+
+Kingfisher reads ChessBase databases (`.cbh` and their siblings) and archives
+(`.cbv`), and never writes them. The reader is `src/database/chessbase/`; the
+evidence behind it is `docs/data/chessbase-archive-format.md`.
+
+**The movetext translation table** (`src/database/chessbase/table.ts`) is a
+256-entry permutation ChessBase applies to every move byte in encoding mode 0.
+It is a property of the file format that every third-party reader carries. It
+was taken from the format description published with Jimmy Mårdell's `morphy`
+(<https://github.com/Yarin78/morphy>, no licence declared; no code was used)
+and checked entry for entry against the independently derived table in
+`cbh2pgn` (<https://github.com/harshitpawar64/cbh2pgn>, MIT). It is data
+required for interoperability, not a creative work.
+
+**Fixtures** (`src/database/chessbase/__fixtures__/`, 104 KB):
+
+|             |                                                                                                                                                                                                                                                                                          |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `world-ch/` | 23 games sliced from `morphy`'s `World-ch` test database (written by ChessBase): the 1886 Steinitz–Zukertort match, one 1892 game, two symbol-only annotated games. Game records, movetext and entity files copied; **every text annotation removed** and the slice checked to hold none |
+| `mate2/`    | `morphy`'s `Mate2` (ChessBase 6, 1992): seven three-move puzzle fragments from set-up positions, the annotation file removed                                                                                                                                                             |
+| `archive/`  | four packed entries of The Week in Chess issue 1600's `.cbv` (tournament index, source record, annotation header, flags — event names and a publisher record, no games) with the files they unpack to                                                                                    |
+
+The games are chess moves — facts — and the names are those of the players,
+events and publisher; no commentary, no analysis text and no game collection
+is redistributed. The Week in Chess is © Mark Crowther
+(<https://theweekinchess.com>); the four entries are metadata about one issue.
+
 ## En Croissant interoperability fixture
 
 `src/database/encroissant/__fixtures__/en-croissant-0.15.db` (256 KB) and its

@@ -199,6 +199,34 @@ export class Position {
     }
   }
 
+  /**
+   * `advanceSan` for a move given as squares.
+   *
+   * Binary game formats (En Croissant, ChessBase) name a move by its squares,
+   * not its SAN; asking `play()` to find it enumerates every legal move first,
+   * which is what made a ChessBase import of a thousand games take three
+   * minutes. This hands the rules engine forward exactly as `advanceSan` does.
+   */
+  advance(intent: MoveIntent): Result<{ readonly move: ChessMove; readonly next: Position }> {
+    const chess = this.engine ?? new Chess(this.fen);
+    this.engine = null;
+    try {
+      const move = chess.move({
+        from: intent.from,
+        to: intent.to,
+        ...(intent.promotion ? { promotion: intent.promotion } : {}),
+      });
+      const next = new Position(asFen(move.after));
+      next.engine = chess;
+      return ok({ move: toChessMove(move), next });
+    } catch {
+      this.engine = chess;
+      return fail('illegal-move', `${formatUci(intent)} is not legal in this position.`, {
+        input: formatUci(intent),
+      });
+    }
+  }
+
   playUci(uci: string): Result<ChessMove> {
     const text = uci.trim().toLowerCase();
     if (text.length < 4) return fail('invalid-uci', `"${uci}" is not a UCI move.`, { input: uci });

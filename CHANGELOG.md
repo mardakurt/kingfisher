@@ -8,6 +8,18 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
+- **Import ChessBase (`/databases`).** The database every club player
+  and coach already has — a `.cbh` and its siblings, or the `.cbv` archive
+  ChessBase exports — read in the browser and stored in _My games_ or a
+  new companion collection. Moves, variations, set-up positions, comments,
+  symbols, coloured squares, arrows and clocks come across; every game
+  keeps the database's own source and annotator as tags and a
+  `ChessBaseFile` tag naming the file it came from; what the PGN cannot
+  hold (medals, training questions, media, a line past a null move) is
+  counted and shown, never silently dropped. The files are only read.
+  Checked against a ChessBase-written archive of 8,895 games: every
+  game's moves, result and date agree with the publisher's own PGN
+  (`docs/data/chessbase-archive-format.md`). (Phase 76)
 - **After the round (`/analysis`, `/games`, `/review` → dock).** The
   evening-of-the-game page a tournament player runs from the game on the
   board: which side you played, where the game left your repertoire and

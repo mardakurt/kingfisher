@@ -115,6 +115,10 @@ with [`AGENTS.md`](../AGENTS.md).
   counts and provenance, generated from the manifests where it matters.
 - [`data/reference-packs.md`](data/reference-packs.md) — pack architecture:
   shape, filters, verification, where the bytes live.
+- [`data/chessbase-archive-format.md`](data/chessbase-archive-format.md) —
+  the ChessBase file family and the `.cbv` archive as Kingfisher reads them:
+  what was derived, from which files, and what was run to check it (Phase
+  76).
 - [`data/high-rated-online.md`](data/high-rated-online.md) — the online
   reference and why its thresholds are what they are.
 - [`data/variation-briefs.md`](data/variation-briefs.md) — where the words in

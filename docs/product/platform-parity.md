@@ -24,6 +24,15 @@ validation, scheduled backup preference serialization, and an incorrect
 native-companion prerequisite on the AI assistant panel. The engine toolbar
 also wraps controls to keep the engine selector readable in a narrow panel.
 
+**Published revision check (Phase 76, Mac-facing — not yet released).**
+_Import ChessBase_ on the Databases route: a new dialog, a worker, a store
+and the reader under `src/database/chessbase/`, all in the web application
+the Mac shell serves; the file chooser is the browser's own, and the
+companion collection destination uses the existing `createDatabase` route.
+Nothing under `desktop/` changed. The public Mac 1.2.6 (build 714) is
+behind `master` by this change as well; section B of
+`docs/operations/after-a-fix.md` is due before the next Mac release.
+
 **Published revision check (Phase 75, Mac-facing — not yet released).**
 After 1.2.6 shipped, three changes landed in application code the Mac
 shell renders, and each is something a Mac user sees: the _After the

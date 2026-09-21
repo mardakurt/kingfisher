@@ -356,6 +356,24 @@ implementation of the same aggregation, which is what the aggregation tests run
 against. A collection of millions belongs behind a third implementation of the
 same interface, which is exactly why the interface exists.
 
+### Other programs' databases
+
+Two readers bring another program's database into a Kingfisher collection,
+and both end in the same place as a PGN import: a validated tree,
+`normalizeGame`, `indexGame`, the classifier, one write per page to whichever
+`GameCollection` the player chose. `database/encroissant/` reads En Croissant's
+SQLite through the companion; `database/chessbase/` reads a ChessBase database
+(the `.cbh` file family) or a `.cbv` archive entirely in the browser — the
+files are chosen in a dialog, handed to a Worker as transferred buffers and
+never written. The ChessBase reader is layered as the format is: `archive.ts`
+unpacks the four block methods of a `.cbv`, `headers.ts`, `entities.ts`,
+`moves.ts` and `annotations.ts` read one file each, `database.ts` joins them
+into PGN with the source, annotator and file named in tags, and
+`prepare.ts` is the bridge into the store. Every move a `.cbg` names is played
+through `Position`, because the format names pieces by slot and a table one
+step out of date yields a legal, plausible, wrong move.
+`docs/data/chessbase-archive-format.md` is the derivation and the evidence.
+
 ### The compact position index
 
 In a SQLite collection the position index and its indexes are **81% of the

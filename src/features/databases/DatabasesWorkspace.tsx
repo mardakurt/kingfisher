@@ -18,6 +18,7 @@
  */
 
 import dynamic from 'next/dynamic';
+import { useChessBaseImport } from '@/stores/chessbase-import-store';
 import { useEnCroissantImport } from '@/stores/en-croissant-import-store';
 import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -47,6 +48,9 @@ import { SourceSetsPanel } from './SourceSetsPanel';
 import { TransferDialog, type TransferRequest } from './TransferDialog';
 import { plural } from '@/lib/plural';
 
+const ChessBaseImportDialog = dynamic(() =>
+  import('./ChessBaseImportDialog').then((module) => module.ChessBaseImportDialog),
+);
 const EnCroissantImportDialog = dynamic(() =>
   import('./EnCroissantImportDialog').then((module) => module.EnCroissantImportDialog),
 );
@@ -68,6 +72,8 @@ type CentreTab = 'collection' | 'search' | 'duplicates' | 'sources';
 export function DatabasesWorkspace() {
   const queryClient = useQueryClient();
   const [enCroissantOpen, setEnCroissantOpen] = useState(false);
+  const [chessBaseOpen, setChessBaseOpen] = useState(false);
+  const chessBaseRunning = useChessBaseImport((state) => state.running);
   const enCroissantRunning = useEnCroissantImport((state) => state.running);
   const setImportOpen = useUi((state) => state.setImportOpen);
   const setSettingsOpen = useUi((state) => state.setSettingsOpen);
@@ -142,6 +148,9 @@ export function DatabasesWorkspace() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
+      {chessBaseOpen ? (
+        <ChessBaseImportDialog open onClose={() => setChessBaseOpen(false)} />
+      ) : null}
       {enCroissantOpen ? (
         <EnCroissantImportDialog open onClose={() => setEnCroissantOpen(false)} />
       ) : null}
@@ -166,6 +175,9 @@ export function DatabasesWorkspace() {
         </Button>
         <Button variant="subtle" icon={<Import />} onClick={() => setImportOpen(true)}>
           Import PGN
+        </Button>
+        <Button onClick={() => setChessBaseOpen(true)}>
+          {chessBaseRunning ? 'ChessBase import running…' : 'Import ChessBase'}
         </Button>
         <Button onClick={() => setEnCroissantOpen(true)}>
           {enCroissantRunning ? 'En Croissant import running…' : 'Import En Croissant'}

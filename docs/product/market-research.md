@@ -173,7 +173,7 @@ today (after Phase 75); "ChessBase" is the incumbent.
 | 9   | Whole-game check with one button, feeding a to-do list                  | ChessMind (Vladimir), Chess.com forums      | Tactical Analysis | **yes** — queue + After the round + review queue                               |
 | 10  | Coach ↔ student: homework, hand-in, review, on one board                | Chessido, ChessNexus, Chessr                | worksheets        | **yes** — Team hub; no cloud delivery                                          |
 | 11  | Own data, exportable, no lock-in                                        | 64Squares, Solon, Trustpilot-CB             | proprietary CBH   | **yes** — PGN, JSON backup; CBH read-only via HIARCS not us                    |
-| 12  | Reads ChessBase files (CBH/CBV/CTG)                                     | Disco, Chess.com-Mac                        | native            | **no**                                                                         |
+| 12  | Reads ChessBase files (CBH/CBV/CTG)                                     | Disco, Chess.com-Mac                        | native            | **yes** (Phase 76) — CBH and CBV read, never written; CTG (books) not read     |
 | 13  | A large annotated master database                                       | Disco, Chess.com-Mac                        | Mega Database     | **no** — packs are aggregates; annotated corpora are a licensing question      |
 | 14  | Getting the OTB game in (scoresheet, DGT, camera)                       | OTB                                         | DGT               | PGN import, paste, drop; no capture                                            |
 | 15  | Duplicate removal, dynamic ECO, auto-flip to my colour                  | ChessMind                                   | partial           | duplicates by fingerprint; own classification; orientation from linked account |
@@ -225,6 +225,7 @@ See `features.md`.
 1. **Read ChessBase files.** CBH/CBV import (read-only, never write): the
    file every club player and coach already has. HIARCS reads them; it is
    documented enough to do. Provenance recorded; the source named.
+   _Done in Phase 76_ — `docs/data/chessbase-archive-format.md`.
 2. **Getting the game in.** Scoresheet photo → PGN (the OCR apps exist;
    the honest version says "check these six moves" and shows them on the
    board) and DGT PGN drop. Every After-the-round starts here.

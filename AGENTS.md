@@ -266,7 +266,8 @@ provenance record with the compiler, the flags and the resulting SHA-256.
 
 ## Interoperability
 
-`src/database/encroissant/` reads another program's database. Two rules:
+`src/database/encroissant/` and `src/database/chessbase/` read other
+programs' databases. Two rules:
 
 Kingfisher **never writes to it**. It belongs to a program that may be running.
 
@@ -277,6 +278,15 @@ nothing downstream able to tell. `shakmaty-order.ts` reproduces that ordering an
 `decode.test.ts` checks it against a database En Croissant actually wrote, using
 that program's own decoding as the reference. If you touch the ordering, that
 test is the one that must fail first.
+
+The ChessBase reader has the same shape of proof. Its movetext decoder
+names a piece by slot ("the second rook") and a displacement, so a slot
+table one step out of date yields a legal, plausible, wrong move; every move
+is therefore played through Kingfisher's rules, and the encoder written to
+check it reproduces ChessBase's own bytes for 421 games. The `.cbv` archive
+format was derived here, not copied from anywhere: `docs/data/chessbase-archive-format.md`
+records the derivation and the run that read 8,895 games back against the
+publisher's PGN. Keep that document true when you touch `archive.ts`.
 
 ## Testing expectations
 

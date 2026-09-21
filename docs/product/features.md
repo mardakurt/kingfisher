@@ -282,6 +282,12 @@ delete.
 
 Collections (the browser's IndexedDB collection, any SQLite collection
 behind the companion, En Croissant databases read but never written),
+**Import ChessBase** (a `.cbh` database chosen as its files, or a `.cbv`
+archive, read in the browser — moves, variations, set-up positions,
+comments, symbols, squares, arrows and clocks — into _My games_ or a new
+companion collection, every game tagged with its source, annotator and
+file; what the PGN cannot hold is counted, never dropped silently; the
+files are never written),
 **Copy to… / Move to… / Merge into…** with pages, progress and cancel (a
 move never deletes what the destination has not confirmed), _Import PGN_ /
 _Export PGN_ per collection, **Duplicates** (byte-identical copies removable;
