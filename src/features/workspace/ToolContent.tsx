@@ -55,6 +55,11 @@ const TranspositionsPanel = lazyPanel(() =>
     default: module.TranspositionsPanel,
   })),
 );
+const AfterRoundPanel = lazyPanel(() =>
+  import('@/features/round/AfterRoundPanel').then((module) => ({
+    default: module.AfterRoundPanel,
+  })),
+);
 const GameInsightsPanel = lazyPanel(() =>
   import('@/features/games/GameInsightsPanel').then((module) => ({
     default: module.GameInsightsPanel,
@@ -153,6 +158,7 @@ export function ToolContent({
   if (tool === 'play') return <PlayFromHerePanel />;
   if (tool === 'sparring') return <SparringPanel />;
   if (tool === 'report') return <PositionReportPanel />;
+  if (tool === 'after-round') return <AfterRoundPanel />;
   if (tool === 'companion') return <CompanionPanel />;
   if (tool === 'document') {
     return (

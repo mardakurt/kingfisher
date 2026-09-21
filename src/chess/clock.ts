@@ -24,10 +24,12 @@ export interface ClockReading {
 }
 
 export interface TimeControlMetadata {
-  /** Total seconds at the start of the game for the side. */
+  /** Total seconds at the start of the game for the side (the first period, when there are several). */
   readonly initialSeconds: number;
-  /** Increment per move in seconds. */
+  /** Increment per move in seconds (in the first period). */
   readonly incrementSeconds: number;
+  /** Moves in the first period, for a `40/5400+30:1800+30` control; absent for sudden death. */
+  readonly periodMoves?: number;
 }
 
 export function thinkTimeSeconds(prior: ClockReading, next: ClockReading): number | null {
@@ -95,19 +97,31 @@ export function formatClockReading(seconds: number): string {
  */
 export function parseTimeControlTag(value: string | undefined): TimeControlMetadata | null {
   if (!value) return null;
-  /* Match `seconds[+increment]` and ignore the
-     `moves/seconds+increment:total` form for now — the brief asks
-     for accurate handling of common annotations, and the simple
-     form covers the bulk of online play. */
-  const simple = /^(\d+)(?:\+(\d+))?$/.exec(value.trim());
+  const trimmed = value.trim();
+  /* `seconds[+increment]` — the form online play writes. */
+  const simple = /^(\d+)(?:\+(\d+))?$/.exec(trimmed);
   if (simple) {
     const initial = Number(simple[1]);
     const increment = simple[2] !== undefined ? Number(simple[2]) : 0;
     if (!Number.isFinite(initial) || !Number.isFinite(increment)) return null;
     return { initialSeconds: initial, incrementSeconds: increment };
   }
-  /* The full moves/seconds form is too ambiguous to derive a
-     starting clock from, so we return null and the renderer
-     shows clock-only. The parser never throws. */
+  /*
+    `moves/seconds[+increment][:more periods]` — the form an over-the-board
+    game carries (`40/5400+30:1800+30` is the FIDE classical control). The
+    first period is what a clock reading before the control is measured
+    against, so that is what is returned; the later periods are not modelled,
+    and a reading after the period's move count is judged against the same
+    base, which understates time trouble rather than inventing it.
+  */
+  const periods = /^(\d+)\/(\d+)(?:\+(\d+))?(?::.+)?$/.exec(trimmed);
+  if (periods) {
+    const moves = Number(periods[1]);
+    const initial = Number(periods[2]);
+    const increment = periods[3] !== undefined ? Number(periods[3]) : 0;
+    if (![moves, initial, increment].every(Number.isFinite) || moves <= 0) return null;
+    return { initialSeconds: initial, incrementSeconds: increment, periodMoves: moves };
+  }
+  /* `?`, `-`, `sandclock` and the rest: nothing a clock can be measured against. */
   return null;
 }

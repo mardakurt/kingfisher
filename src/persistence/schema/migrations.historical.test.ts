@@ -525,3 +525,65 @@ describe('opening an already-current database', () => {
     second.close();
   });
 });
+
+describe('migrating a Phase 74 installation (team hub, v18) to current', () => {
+  it('adds the journal store empty, indexes it by fingerprint uniquely, and disturbs nothing', async () => {
+    const name = dbName();
+
+    // A real v18 profile: a chapter and a team, as 1.2.6 writes them.
+    const v18 = await openPersistenceDatabaseAt(18, name);
+    await v18.put(STORE_NAMES.chapters, {
+      id: 'c1',
+      studyId: 's1',
+      title: 'Chapter',
+      order: 0,
+      tree: chapterTree(),
+      createdAt: 1,
+      updatedAt: 1,
+      revision: 3,
+    });
+    await v18.put(STORE_NAMES.teams, {
+      id: 't1',
+      name: 'Academy',
+      members: [{ id: 'm1', name: 'Coach', role: 'coach' }],
+      createdAt: 1,
+      updatedAt: 1,
+      revision: 0,
+    });
+    v18.close();
+
+    const current = await openPersistenceDatabaseAt(DATABASE_VERSION, name);
+
+    const chapter = await current.get<Record<string, unknown>>(STORE_NAMES.chapters, 'c1');
+    expect(chapter?.revision).toBe(3);
+    expect(await current.getAll(STORE_NAMES.teams)).toHaveLength(1);
+
+    // The journal exists and holds nothing; an entry is written, never found.
+    expect(await current.getAll(STORE_NAMES.journal)).toEqual([]);
+
+    const entry = (id: string, fingerprint: string) => ({
+      id,
+      fingerprint,
+      title: id,
+      learningPoint: 'One thing.',
+      createdAt: 1,
+      updatedAt: 1,
+      revision: 0,
+    });
+    await current.put(STORE_NAMES.journal, entry('j1', 'fp-a'));
+    await current.put(STORE_NAMES.journal, entry('j2', 'fp-b'));
+    expect(
+      (
+        await current.getAllFromIndex<Record<string, unknown>>(
+          STORE_NAMES.journal,
+          'fingerprint',
+          'fp-a',
+        )
+      ).map((row) => row.id),
+    ).toEqual(['j1']);
+    // One entry per game: a second id under the same fingerprint is refused.
+    await expect(current.put(STORE_NAMES.journal, entry('j3', 'fp-a'))).rejects.toThrow();
+
+    current.close();
+  });
+});

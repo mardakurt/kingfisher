@@ -39,6 +39,7 @@ export type WorkspaceToolId =
   | 'play'
   | 'sparring'
   | 'report'
+  | 'after-round'
   | 'notes';
 
 export interface WorkspaceModuleDescriptor {
@@ -128,6 +129,12 @@ export const WORKSPACE_MODULES: Readonly<Record<WorkspaceToolId, WorkspaceModule
   */
   sparring: { id: 'sparring', label: 'Sparring', home: 'dock', regions: ['dock'] },
   report: { id: 'report', label: 'Report', home: 'dock', regions: ['dock'] },
+  'after-round': {
+    id: 'after-round',
+    label: 'After the round',
+    home: 'dock',
+    regions: ['dock', 'lower'],
+  },
   notes: { id: 'notes', label: 'Notes', home: 'dock', regions: ['dock', 'lower'] },
 };
 
@@ -188,6 +195,7 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'conversion',
     'play',
     'report',
+    'after-round',
     'notes',
   ],
   studies: [
@@ -299,6 +307,7 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'calculation',
     'features',
     'tablebase',
+    'after-round',
     'notes',
     'play',
   ],
@@ -340,6 +349,7 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'features',
     'tablebase',
     'companion',
+    'after-round',
     'notes',
     'play',
   ],

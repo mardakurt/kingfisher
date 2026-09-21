@@ -98,8 +98,26 @@ describe('parseTimeControlTag', () => {
     expect(parseTimeControlTag('180')).toEqual({ initialSeconds: 180, incrementSeconds: 0 });
   });
 
-  it('returns null for the moves/seconds form — too ambiguous', () => {
-    expect(parseTimeControlTag('40/5400+30:3600')).toBeNull();
+  it('reads the first period of the over-the-board moves/seconds form', () => {
+    // FIDE classical: 90 minutes for 40 moves, then 30 more, 30 s a move throughout.
+    expect(parseTimeControlTag('40/5400+30:1800+30')).toEqual({
+      initialSeconds: 5400,
+      incrementSeconds: 30,
+      periodMoves: 40,
+    });
+    // A club control with no increment and a sudden-death second period.
+    expect(parseTimeControlTag('40/7200:3600')).toEqual({
+      initialSeconds: 7200,
+      incrementSeconds: 0,
+      periodMoves: 40,
+    });
+    expect(parseTimeControlTag('0/5400')).toBeNull();
+  });
+
+  it('returns null for the unknown and sandclock forms', () => {
+    expect(parseTimeControlTag('?')).toBeNull();
+    expect(parseTimeControlTag('-')).toBeNull();
+    expect(parseTimeControlTag('*180')).toBeNull();
   });
 
   it('returns null for garbage input rather than throwing', () => {

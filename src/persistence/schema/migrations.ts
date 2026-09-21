@@ -1,5 +1,5 @@
 export const DATABASE_NAME = 'kingfisher';
-export const DATABASE_VERSION = 18;
+export const DATABASE_VERSION = 19;
 
 export const STORE_NAMES = {
   studies: 'studies',
@@ -44,6 +44,7 @@ export const STORE_NAMES = {
    */
   teams: 'teams',
   assignments: 'assignments',
+  journal: 'journal',
 } as const;
 
 export type StoreName = (typeof STORE_NAMES)[keyof typeof STORE_NAMES];
@@ -482,6 +483,22 @@ export const MIGRATIONS: readonly Migration[] = [
       ]);
       target.createStore(STORE_NAMES.assignments, { keyPath: 'id' }, [
         { name: 'teamId', keyPath: 'teamId' },
+        { name: 'updatedAt', keyPath: 'updatedAt' },
+      ]);
+    },
+  },
+  {
+    version: 19,
+    description: 'Add the round journal: one entry per game played, by fingerprint.',
+    apply(target) {
+      /*
+       * An entry is looked up by the game it is about — the After-the-round
+       * tool asks "is there already an entry for this game?" — so the
+       * fingerprint is the index, and it is unique because a game has one
+       * entry. `updatedAt` orders the journal newest first.
+       */
+      target.createStore(STORE_NAMES.journal, { keyPath: 'id' }, [
+        { name: 'fingerprint', keyPath: 'fingerprint', unique: true },
         { name: 'updatedAt', keyPath: 'updatedAt' },
       ]);
     },

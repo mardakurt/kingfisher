@@ -39,6 +39,7 @@ import {
   isLinkedAccountRecord,
   isTeamRecord,
   isAssignmentRecord,
+  isJournalEntryRecord,
   isPreparationSessionRecord,
   isOpeningFileRecord,
   isEndgamePositionRecord,
@@ -77,6 +78,7 @@ export const PORTABLE_STORES = [
   STORE_NAMES.playerIdentities,
   STORE_NAMES.teams,
   STORE_NAMES.assignments,
+  STORE_NAMES.journal,
 ] as const;
 
 const LATER_AUTHORED_STORES = new Set<StoreName>([
@@ -88,6 +90,7 @@ const LATER_AUTHORED_STORES = new Set<StoreName>([
   STORE_NAMES.playerIdentities,
   STORE_NAMES.teams,
   STORE_NAMES.assignments,
+  STORE_NAMES.journal,
 ]);
 
 export const GAME_STORES = [
@@ -420,6 +423,7 @@ function validateRecord(store: StoreName, value: unknown, index: number): void {
     if (store === STORE_NAMES.linkedAccounts) return isLinkedAccountRecord(value);
     if (store === STORE_NAMES.teams) return isTeamRecord(value);
     if (store === STORE_NAMES.assignments) return isAssignmentRecord(value);
+    if (store === STORE_NAMES.journal) return isJournalEntryRecord(value);
     if (store === STORE_NAMES.games) return isGameSummary(value);
     if (store === STORE_NAMES.gameContent) {
       return (

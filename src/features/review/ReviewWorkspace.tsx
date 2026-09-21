@@ -35,6 +35,7 @@ import { getRepositories } from '@/persistence/repositories';
 import type { DecisionRecord, ReviewItemRecord } from '@/persistence/domain';
 import { createTree } from '@/chess/tree/tree';
 import { JournalAnalytics } from './JournalAnalytics';
+import { RoundsJournal } from '@/features/round/RoundsJournal';
 import { useAnalysis } from '@/stores/analysis-store';
 import { useUi } from '@/stores/ui-store';
 
@@ -46,7 +47,7 @@ import { strategicContextForNode } from './strategic-context';
 import { useDecisionAt, useReviewItems } from './queries';
 import { useReviewSession } from './review-session-store';
 
-type LeftTab = 'queue' | 'improvement' | 'journal';
+type LeftTab = 'queue' | 'improvement' | 'journal' | 'rounds';
 
 export function ReviewWorkspace() {
   const client = useQueryClient();
@@ -215,6 +216,7 @@ export function ReviewWorkspace() {
               claiming a score for any of them.
             */
             { id: 'journal' as const, label: 'Patterns' },
+            { id: 'rounds' as const, label: 'Rounds' },
           ]}
           value={tab}
           onChange={setTab}
@@ -227,13 +229,17 @@ export function ReviewWorkspace() {
               ? 'The review queue'
               : tab === 'journal'
                 ? 'Journal analytics'
-                : 'The improvement summary'
+                : tab === 'rounds'
+                  ? 'The round journal'
+                  : 'The improvement summary'
           }
         >
           {tab === 'queue' ? (
             <CriticalInbox selectedId={selectedItemId} onOpen={(item) => void openItem(item)} />
           ) : tab === 'journal' ? (
             <JournalAnalytics onOpenDecision={(decision) => void openDecision(decision)} />
+          ) : tab === 'rounds' ? (
+            <RoundsJournal />
           ) : (
             <ImprovementSummary onOpenItem={(item) => void openItem(item)} />
           )}

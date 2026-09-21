@@ -2,6 +2,7 @@ import { parseFen } from '@/chess/fen';
 import type { GameTree } from '@/chess/tree/types';
 
 import type {
+  JournalEntryRecord,
   ModelGameLinkRecord,
   RepertoirePositionRecord,
   RepertoireRecord,
@@ -445,6 +446,23 @@ export const isTeamRecord = (value: unknown): value is TeamRecord =>
   array(value.members) &&
   value.members.every(isTeamMember) &&
   optionalText(value.me) &&
+  finite(value.createdAt) &&
+  finite(value.updatedAt) &&
+  finite(value.revision);
+
+export const isJournalEntryRecord = (value: unknown): value is JournalEntryRecord =>
+  object(value) &&
+  text(value.id) &&
+  text(value.fingerprint) &&
+  optionalText(value.gameId) &&
+  text(value.title) &&
+  optionalText(value.event) &&
+  optionalText(value.round) &&
+  optionalText(value.date) &&
+  optionalText(value.opponent) &&
+  (value.color === undefined || value.color === 'w' || value.color === 'b') &&
+  optionalText(value.result) &&
+  text(value.learningPoint) &&
   finite(value.createdAt) &&
   finite(value.updatedAt) &&
   finite(value.revision);

@@ -1355,3 +1355,49 @@ export class StaleAssignmentWriteError extends Error {
     super('This assignment changed in another Kingfisher tab.');
   }
 }
+
+/* ---------- the round journal (Phase 75) ---------- */
+
+/**
+ * One entry per game a person played: what they took from it, in their own
+ * words, written the evening of the round.
+ *
+ * The entry names the game (its stored id when it is in the database, its
+ * fingerprint always, so the same game imported twice is one entry) and the
+ * headers a journal is read by — event, round, date, opponent, colour and
+ * result — copied at the time of writing so the list can be drawn without
+ * opening every game. The one thing a person authors is `learningPoint`.
+ * Nothing derived is stored: where the game left the repertoire and where the
+ * clock ran low are recomputed from the game and the repertoire as they are
+ * now, not as they were.
+ */
+export interface JournalEntryRecord {
+  readonly id: string;
+  /** The game's fingerprint (`GameSummary.fingerprint`): the identity of the entry. */
+  readonly fingerprint: string;
+  /** The stored game, when the game is in the database. */
+  readonly gameId?: string;
+  readonly title: string;
+  readonly event?: string;
+  readonly round?: string;
+  /** PGN `Date`, as written (`2026.09.20`), or absent. */
+  readonly date?: string;
+  readonly opponent?: string;
+  /** The colour the person played, when known. */
+  readonly color?: Color;
+  readonly result?: string;
+  readonly learningPoint: string;
+  readonly createdAt: number;
+  readonly updatedAt: number;
+  readonly revision: number;
+}
+
+export class StaleJournalWriteError extends Error {
+  override readonly name = 'StaleJournalWriteError';
+  constructor(
+    readonly current: JournalEntryRecord,
+    readonly attemptedRevision: number,
+  ) {
+    super('This journal entry changed in another Kingfisher tab.');
+  }
+}

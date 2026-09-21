@@ -17,15 +17,12 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
-import { positionKey } from '@/chess/fen';
 import { Button } from '@/components/ui/Button';
 import { invalidateReview } from '@/features/persistence/queries';
-import { getRepositories } from '@/persistence/repositories';
 import { useAnalysis } from '@/stores/analysis-store';
 import { useUi } from '@/stores/ui-store';
 
-import { suggestReviewCandidates, type EvidencePoint } from './candidates';
-import { strategicContextForNode } from './strategic-context';
+import { suggestForGame } from './suggest-for-game';
 
 export function SuggestCandidatesButton() {
   const client = useQueryClient();
@@ -40,70 +37,17 @@ export function SuggestCandidatesButton() {
   const run = async () => {
     setBusy(true);
     try {
-      const repositories = await getRepositories();
-      const evidence = await repositories.analysisQueue.evidenceForGame(gameId);
-
-      /*
-        Whose decisions this game was analysed for.
-
-        The job carries it, and the most recent one for this game is the answer
-        — a player who queued their own game as White asked for their own
-        moves, and the review is where that request can actually be honoured.
-        Absent means both, which is what every job queued before the control
-        existed meant.
-      */
-      const jobs = await repositories.analysisQueue.list();
-      const sides = jobs.filter((job) => job.gameId === gameId).at(-1)?.sides ?? 'both';
-
-      /*
-        Stored evidence first, then whatever the tree itself carries. A game
-        analysed by the background queue has rows; a game the user walked
-        through with the engine on has evaluations on its nodes. Both are the
-        same kind of fact, and using both means the suggester works before the
-        queue has ever run.
-      */
-      const points: EvidencePoint[] = [
-        ...evidence.map((row) => ({
-          nodeId: row.nodeId,
-          score: row.score,
-          ...(row.pv[0] ? { bestMoveUci: row.pv[0] } : {}),
-          ...(row.depth ? { depth: row.depth } : {}),
-          /*
-            The first move of every line the pass recorded, best first. A
-            record written before alternatives were kept, or a MultiPV 1 pass,
-            supplies none, and the rule that reads this declines to fire
-            without at least two.
-          */
-          ...(row.alternatives && row.alternatives.length > 0
-            ? {
-                candidateUcis: [
-                  ...(row.pv[0] ? [row.pv[0]] : []),
-                  ...row.alternatives.flatMap((line) => (line.pv[0] ? [line.pv[0]] : [])),
-                ],
-              }
-            : {}),
-        })),
-        ...Object.values(tree.nodes).flatMap((node) =>
-          node.evaluation && !evidence.some((row) => row.nodeId === node.id)
-            ? [
-                {
-                  nodeId: node.id,
-                  score: node.evaluation.score,
-                  ...(node.evaluation.bestMove ? { bestMoveUci: node.evaluation.bestMove } : {}),
-                  ...(node.evaluation.depth ? { depth: node.evaluation.depth } : {}),
-                },
-              ]
-            : [],
-        ),
-      ];
-
-      const candidates = suggestReviewCandidates(tree, points, positionKey, { sides });
-      if (candidates.length === 0) {
+      const { suggested, points, sides } = await suggestForGame({
+        tree,
+        gameId,
+        gameLabel: document.title,
+      });
+      if (suggested === 0) {
         notify({
           tone: 'info',
           message: 'Nothing in this game meets the threshold.',
           detail:
-            points.length === 0
+            points === 0
               ? 'There is no saved engine evidence for it yet. Queue it for background analysis first.'
               : sides === 'both'
                 ? 'No single move changed the expected result by ten percentage points or more, and nothing is marked critical.'
@@ -111,28 +55,10 @@ export function SuggestCandidatesButton() {
         });
         return;
       }
-
-      for (const candidate of candidates) {
-        const transitions = strategicContextForNode(tree, candidate.nodeId);
-        await repositories.review.upsertReviewItem({
-          positionKey: candidate.positionKey,
-          fen: candidate.fen as never,
-          sideToMove: candidate.sideToMove,
-          source: 'suggested',
-          gameId,
-          gameLabel: document.title,
-          nodeId: candidate.nodeId,
-          ply: candidate.ply,
-          ...(candidate.category ? { category: candidate.category } : {}),
-          reason: candidate.reason,
-          signals: candidate.signals,
-          ...(transitions.length > 0 ? { strategicContext: transitions } : {}),
-        });
-      }
       invalidateReview(client);
       notify({
         tone: 'success',
-        message: `${candidates.length} position${candidates.length === 1 ? '' : 's'} suggested for review.`,
+        message: `${suggested} position${suggested === 1 ? '' : 's'} suggested for review.`,
         detail: 'Each one shows the facts behind it. Ignore any that do not interest you.',
       });
     } catch (error) {
