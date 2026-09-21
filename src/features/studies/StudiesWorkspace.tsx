@@ -11,6 +11,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 import { START_FEN } from '@/chess/fen';
 import { createTree, nodeCount } from '@/chess/tree/tree';
@@ -68,6 +69,26 @@ export function StudiesWorkspace() {
   */
   const [chosenStudyId, setChosenStudyId] = useState<StudyId | null>(null);
   const [chosenChapterId, setChosenChapterId] = useState<string | null>(null);
+  /*
+    A link into a study — a position-search hit, `?study=…&chapter=…&node=…` —
+    chooses the chapter it names, and the move in it. Read through
+    `useSearchParams` so a client navigation from another route (or from this
+    one, with different ids) is honoured, not only a page load; the page has
+    the Suspense boundary that needs. The params are applied once per change
+    and then the person's own choices take over.
+  */
+  const params = useSearchParams();
+  const paramStudy = params.get('study');
+  const paramChapter = params.get('chapter');
+  const paramNode = params.get('node');
+  const [seenParams, setSeenParams] = useState<string | null>(null);
+  const paramsKey = `${paramStudy ?? ''}|${paramChapter ?? ''}|${paramNode ?? ''}`;
+  if (seenParams !== paramsKey) {
+    setSeenParams(paramsKey);
+    if (paramStudy) setChosenStudyId(paramStudy as StudyId);
+    if (paramChapter) setChosenChapterId(paramChapter);
+  }
+  const goTo = useAnalysis((state) => state.goTo);
   const [prompt, setPrompt] = useState<Prompt | null>(null);
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
 
@@ -183,7 +204,9 @@ export function StudiesWorkspace() {
     if (!chapter || loadedChapter.current === chapter.id) return;
     loadedChapter.current = chapter.id;
     open(chapter);
-  }, [chapter, open]);
+    // The node a search hit named, when the chapter is the one it named.
+    if (paramNode && chapter.id === paramChapter && chapter.tree.nodes[paramNode]) goTo(paramNode);
+  }, [chapter, open, paramNode, paramChapter, goTo]);
 
   const exportStudy = async () => {
     if (!study.data) return;

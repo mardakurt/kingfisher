@@ -16,6 +16,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState, type DragEvent } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { Button } from '@/components/ui/Button';
@@ -68,6 +69,13 @@ export function TeamWorkspace() {
   const teams = useTeams();
   const remembered = useMemo(() => readSelection(), []);
   const [chosenTeamId, setChosenTeamId] = useState<string | null>(remembered.teamId ?? null);
+  /* A link into the hub (`?team=…&assignment=…`, a position-search hit) picks
+     the thread it names; applied once per change, then the person's own
+     choices take over. */
+  const params = useSearchParams();
+  const paramTeam = params.get('team');
+  const paramAssignment = params.get('assignment');
+  const [seenParams, setSeenParams] = useState<string | null>(null);
   // A chosen team that was deleted, or one a packet has not created yet, falls back to the first.
   const chosenExists = Boolean(
     chosenTeamId && teams.data?.some((entry) => entry.id === chosenTeamId),
@@ -78,6 +86,12 @@ export function TeamWorkspace() {
   const [selectedId, setSelectedId] = useState<string | null>(
     (remembered.teamId && remembered.assignmentByTeam?.[remembered.teamId]) ?? null,
   );
+  const paramsKey = `${paramTeam ?? ''}|${paramAssignment ?? ''}`;
+  if (seenParams !== paramsKey) {
+    setSeenParams(paramsKey);
+    if (paramTeam) setChosenTeamId(paramTeam);
+    if (paramAssignment) setSelectedId(paramAssignment);
+  }
   const assignment = assignments.find((entry) => entry.id === selectedId) ?? null;
   const [seen, setSeen] = useState<Readonly<Record<string, number>>>(() => readSeen());
   const [replaceWith, setReplaceWith] = useState<Handover | null>(null);

@@ -9,7 +9,13 @@ import { cn } from '@/lib/cn';
 import { gameTitle } from '@/persistence/describe';
 import { getRepositories } from '@/persistence/repositories';
 import { playerKey } from '@/persistence/schema/migrations';
-import { canonicalise, searchByPosition, positionHitLabel } from '@/persistence/position-search';
+import {
+  canonicalise,
+  searchByPosition,
+  positionHitLabel,
+  type PositionHit,
+} from '@/persistence/position-search';
+import { openStoredGame } from '@/features/games/open-game';
 import { useQuery } from '@tanstack/react-query';
 import type { WorkspaceSearchHit } from '@/persistence/search';
 import { useAnalysis } from '@/stores/analysis-store';
@@ -178,24 +184,48 @@ function PaletteDialog() {
 
   const positionCommands = useMemo<readonly Command[]>(() => {
     if (pastedPosition) {
-      return (positions.data?.hits ?? []).map((hit) => ({
-        id: `position:${hit.id}`,
-        title: hit.subtitle ? `${hit.title} — ${hit.subtitle}` : hit.title,
-        // The palette renders the group and the title, so the kind goes in the
-        // group where it is actually read rather than in a subtitle nothing
-        // displays.
-        group: positionHitLabel(hit.kind),
-        run: () => {
-          if (hit.kind === 'game' || hit.kind === 'model-game') router.push('/games');
-          else if (hit.kind === 'endgame') router.push('/endgame');
-          else if (hit.kind === 'opening-file') router.push('/opening-files');
-          else if (hit.kind === 'preparation') router.push('/preparation');
-          else if (hit.kind === 'repertoire') router.push('/repertoire');
-          else if (hit.kind === 'decision' || hit.kind === 'critical-position') {
-            router.push('/review');
-          } else router.push('/training');
-        },
-      }));
+      const openHit = (hit: PositionHit) => {
+        const at = hit.ply !== undefined ? `&ply=${hit.ply}` : '';
+        if (hit.kind === 'game' || hit.kind === 'model-game') {
+          void openStoredGame(hit.targetId, hit.ply !== undefined ? { ply: hit.ply } : {})
+            .then(() => router.push('/analysis'))
+            .catch(() => router.push('/games'));
+        } else if (hit.kind === 'chapter') {
+          router.push(
+            `/studies?study=${encodeURIComponent(hit.parentId ?? '')}&chapter=${encodeURIComponent(hit.targetId)}${hit.nodeId ? `&node=${encodeURIComponent(hit.nodeId)}` : ''}`,
+          );
+        } else if (hit.kind === 'team') {
+          router.push(
+            `/team?team=${encodeURIComponent(hit.parentId ?? '')}&assignment=${encodeURIComponent(hit.targetId)}${at}`,
+          );
+        } else if (hit.kind === 'endgame') router.push('/endgame');
+        else if (hit.kind === 'opening-file') router.push('/opening-files');
+        else if (hit.kind === 'preparation') router.push('/preparation');
+        else if (hit.kind === 'repertoire')
+          router.push(`/repertoire?repertoire=${encodeURIComponent(hit.targetId)}`);
+        else if (hit.kind === 'decision' || hit.kind === 'critical-position') {
+          router.push('/review');
+        } else router.push('/training');
+      };
+      return [
+        ...(positions.data?.hits ?? []).map((hit) => ({
+          id: `position:${hit.id}`,
+          title: hit.subtitle ? `${hit.title} — ${hit.subtitle}` : hit.title,
+          // The palette renders the group and the title, so the kind goes in the
+          // group where it is actually read rather than in a subtitle nothing
+          // displays.
+          group: positionHitLabel(hit.kind),
+          run: () => openHit(hit),
+        })),
+        // The same pawns, elsewhere in your work: a second group, after the
+        // exact hits, never mixed with them.
+        ...(positions.data?.structure ?? []).map((hit) => ({
+          id: `structure:${hit.id}`,
+          title: hit.subtitle ? `${hit.title} — ${hit.subtitle}` : hit.title,
+          group: `Same pawns · ${positionHitLabel(hit.kind)}`,
+          run: () => openHit(hit),
+        })),
+      ];
     }
     if (sequencePosition) {
       // The user typed a move sequence, not pasted a FEN. The hits are the

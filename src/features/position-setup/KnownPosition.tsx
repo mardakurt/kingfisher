@@ -105,6 +105,25 @@ export function KnownPosition({ fen }: { readonly fen: Fen | null }) {
             )}
           </dd>
         </div>
+        {mine.data && mine.data.structure.length > 0 ? (
+          <div className="flex gap-2" data-known-structure>
+            <dt className="w-20 shrink-0 text-tertiary">Same pawns</dt>
+            <dd className="min-w-0 flex-1 text-secondary">
+              <ul className="space-y-0.5">
+                {mine.data.structure.slice(0, SHOWN).map((hit) => (
+                  <li key={hit.id} className="truncate text-tertiary">
+                    <span className="text-secondary">{positionHitLabel(hit.kind)}</span> ·{' '}
+                    {hit.title}
+                    {hit.subtitle ? ` · ${hit.subtitle}` : ''}
+                  </li>
+                ))}
+                {mine.data.structure.length > SHOWN ? (
+                  <li className="text-tertiary">and {mine.data.structure.length - SHOWN} more</li>
+                ) : null}
+              </ul>
+            </dd>
+          </div>
+        ) : null}
         <div className="flex gap-2">
           <dt className="w-20 shrink-0 text-tertiary">Reference</dt>
           <dd className="min-w-0 flex-1 text-secondary tabular">

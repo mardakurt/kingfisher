@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { START_FEN, positionKey } from '@/chess/fen';
+import { parsePgn } from '@/chess/pgn/parse';
 import { asFen, asSan, asUci } from '@/chess/types';
 import { createMemoryRepositories } from '@/persistence/repositories';
 import { canonicalise, searchByPosition } from './position-search';
@@ -125,5 +126,109 @@ describe('finding a position across the workspace', () => {
       'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 99 250',
     );
     expect(result.hits.map((hit) => hit.kind)).toContain('endgame');
+  });
+});
+
+describe('finding a position in studies and team hand-ins, and its structure elsewhere', () => {
+  const tree = (pgn: string) => {
+    const game = parsePgn(pgn).games[0];
+    if (!game) throw new Error('no game');
+    return game.tree;
+  };
+  // After 1.e4 e5 2.Nf3: the position the search is for.
+  const target = asFen('rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2');
+
+  it('finds the position in a chapter sideline and in a hand-in, with where it is', async () => {
+    const repositories = createMemoryRepositories();
+    const study = await repositories.studies.create({ title: 'Open games' });
+    // The main line goes elsewhere; the position is only in the variation.
+    await repositories.studies.createChapter({
+      studyId: study.id,
+      title: 'Petroff or not',
+      tree: tree('1. e4 e5 2. Nc3 (2. Nf3 Nf6) Nf6 *'),
+    });
+    await repositories.studies.createChapter({
+      studyId: study.id,
+      title: 'Queen pawn',
+      tree: tree('1. d4 d5 *'),
+    });
+    const team = await repositories.team.createTeam({
+      name: 'Academy',
+      members: [{ name: 'Ana', role: 'student' }],
+      meIndex: 0,
+    });
+    const assignment = await repositories.team.createAssignment({
+      teamId: team.id,
+      title: 'Round 3 game',
+      kind: 'game',
+      brief: '',
+      setBy: team.members[0]!.id,
+    });
+    await repositories.team.addHandover(assignment.id, assignment.revision, {
+      kind: 'hand-in',
+      authorId: team.members[0]!.id,
+      note: 'Done.',
+      pgn: '1. e4 e5 2. Nf3 Nc6 *',
+    });
+
+    const result = await searchByPosition(repositories, target);
+    const chapter = result.hits.find((hit) => hit.kind === 'chapter');
+    expect(chapter).toMatchObject({
+      title: 'Open games · Petroff or not',
+      subtitle: 'at 2.Nf3',
+      parentId: study.id,
+      ply: 3,
+    });
+    expect(chapter?.nodeId).toBeTruthy();
+    expect(result.hits.filter((hit) => hit.kind === 'chapter')).toHaveLength(1);
+    const handIn = result.hits.find((hit) => hit.kind === 'team');
+    expect(handIn).toMatchObject({
+      title: 'Academy · Round 3 game',
+      subtitle: 'hand-in by Ana',
+      targetId: assignment.id,
+      parentId: team.id,
+      ply: 3,
+    });
+  });
+
+  it('reports work that holds the same pawn skeleton without the position', async () => {
+    const repositories = createMemoryRepositories();
+    const study = await repositories.studies.create({ title: 'Structures' });
+    // 1.e4 e5 2.Bc4: the same pawns as after 2.Nf3, different pieces.
+    await repositories.studies.createChapter({
+      studyId: study.id,
+      title: 'Bishop first',
+      tree: tree('1. e4 e5 2. Bc4 Nf6 *'),
+    });
+    await repositories.studies.createChapter({
+      studyId: study.id,
+      title: 'Exact',
+      tree: tree('1. e4 e5 2. Nf3 *'),
+    });
+    const repertoire = await repositories.repertoires.create({ title: 'Italian', color: 'w' });
+    const italian = asFen('rnbqkbnr/pppp1ppp/8/4p3/2B1P3/8/PPPP1PPP/RNBQK1NR b KQkq - 1 2');
+    await repositories.repertoires.upsertPosition({
+      repertoireId: repertoire.id,
+      fen: italian,
+      sideToMove: 'b',
+      depth: 3,
+      moves: [],
+    });
+
+    const result = await searchByPosition(repositories, target);
+    expect(result.pawnSkeleton).toBeTruthy();
+    // The exact chapter is a hit, not a structure hit.
+    expect(result.hits.map((hit) => hit.title)).toEqual(['Structures · Exact']);
+    expect(result.structure.map((hit) => [hit.kind, hit.title, hit.subtitle])).toEqual([
+      // The skeleton is there from 1…e5; 2.Bc4 only moves a piece.
+      ['chapter', 'Structures · Bishop first', 'same pawns from 1…e5'],
+      ['repertoire', 'Italian', 'same pawns at depth 3'],
+    ]);
+  });
+
+  it('reads the skeleton from a bare key too, and reports nothing when nothing holds it', async () => {
+    const result = await searchByPosition(createMemoryRepositories(), KEY);
+    expect(result.pawnSkeleton).toBeTruthy();
+    expect(result.structure).toEqual([]);
   });
 });
