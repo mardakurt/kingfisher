@@ -84,7 +84,7 @@ test('After the round reads the game and files one learning point', async ({ pag
         __kingfisher: { profile: { setAliases(aliases: string[]): Promise<unknown> } };
       }
     ).__kingfisher;
-    await app.profile.setAliases(['Metin Kurt']);
+    await app.profile.setAliases(['kurt, metin']);
   });
 
   await buildRepertoire(page);
@@ -98,7 +98,7 @@ test('After the round reads the game and files one learning point', async ({ pag
   const after = panel(page);
   await expect(after).toContainText('Kurt, Metin – Rival, R');
   await expect(after).toContainText('Club Open · Round 3 · 2026.09.20 · 0-1');
-  // Identity: from the alias, punctuation and order notwithstanding.
+  // Identity: from the alias, matched the way the games index matches it.
   await expect(after.locator('[data-after-round-color="w"]')).toContainText(
     'White (from your profile)',
   );
@@ -180,7 +180,9 @@ test('After the round asks which side you played when the profile cannot say', a
   await page.waitForURL(/\/analysis/);
   await selectTool(page, dock(page), 'After the round');
   const after = panel(page);
-  await expect(after).toContainText('Add your name under Settings → Profile');
+  await expect(after).toContainText(
+    'Add your name exactly as this game spells it — “Kurt, Metin” or “Rival, R” — under Settings → Profile',
+  );
   await expect(after).toContainText('Say which side you played first.');
   await after.getByRole('combobox', { name: 'Which side you played' }).selectOption('b');
   await expect(after).toContainText('No Black repertoire yet.');

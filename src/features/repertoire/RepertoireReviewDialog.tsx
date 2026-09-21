@@ -7,12 +7,16 @@ import { positionKey } from '@/chess/fen';
 import { asFen, asSan, asUci } from '@/chess/types';
 import { Button } from '@/components/ui/Button';
 import { Dialog } from '@/components/ui/Dialog';
-import { invalidateTraining, useTrainingItems } from '@/features/persistence/queries';
+import { useDatabaseProviders } from '@/database/use-database-providers';
+import type { ChessDatabaseProvider } from '@/database/types';
+import { invalidateTraining, useProfile, useTrainingItems } from '@/features/persistence/queries';
 import { reviewKeys } from '@/features/review/queries';
 import type { RepertoireWithPositions } from '@/persistence/domain';
 import { getRepositories } from '@/persistence/repositories';
 import { cardFor, planEnrolment } from '@/repertoire/enrol';
 import { buildReviewSession, describePromptReason, type DrillMode } from '@/repertoire/review';
+
+import { useRepertoireReach } from './reach';
 
 const MODES: readonly { id: DrillMode; label: string }[] = [
   { id: 'my-move', label: 'My move' },
@@ -37,18 +41,49 @@ export function RepertoireReviewDialog({
   const [now] = useState(Date.now);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const prompts = useMemo(
+  /*
+    Ordered by what is actually reached: the player's own games and the
+    bundled population, counted by the same hook the Played-against-you panel
+    reads, so the two agree. The session builds without them and re-orders
+    when they arrive; a review is never blocked on a count.
+  */
+  const providers = useDatabaseProviders();
+  const starter = useMemo(
     () =>
-      buildReviewSession(
-        {
-          positions: repertoire.positions,
-          colour: repertoire.repertoire.color,
-          existingItems: training.data ?? [],
-        },
-        { mode, dueOnly, limit, now },
-      ),
-    [repertoire, training.data, mode, dueOnly, limit, now],
+      (providers.find((entry) => entry.id === 'kingfisher-starter') as
+        ChessDatabaseProvider | undefined) ?? null,
+    [providers],
   );
+  const aliases = useProfile().data?.aliases ?? [];
+  const reach = useRepertoireReach(repertoire, starter, aliases);
+  const prompts = useMemo(() => {
+    const rows = reach.data?.rows ?? [];
+    const own = new Map<string, number>();
+    const population = new Map<string, { games: number; total: number }>();
+    for (const row of rows) {
+      if (row.own !== null) own.set(row.position.positionKey, row.own);
+      if (row.reference) {
+        population.set(row.position.positionKey, {
+          games: row.reference.games,
+          total: row.reference.total,
+        });
+      }
+    }
+    return buildReviewSession(
+      {
+        positions: repertoire.positions,
+        colour: repertoire.repertoire.color,
+        existingItems: training.data ?? [],
+        ...(reach.data && !reach.data.ownIsEveryGame && own.size > 0
+          ? { own: { games: own, of: reach.data.ownOf } }
+          : {}),
+        ...(reach.data?.source && population.size > 0
+          ? { population: { source: reach.data.source.name, games: population } }
+          : {}),
+      },
+      { mode, dueOnly, limit, now },
+    );
+  }, [repertoire, training.data, mode, dueOnly, limit, now, reach.data]);
   const plan = planEnrolment(prompts, training.data ?? []);
   const start = async () => {
     setBusy(true);
@@ -157,6 +192,13 @@ export function RepertoireReviewDialog({
         <p role="status">
           {prompts.length} prompts · {plan.toCreate.length} new · {plan.alreadyCovered.length}{' '}
           already scheduled
+          {reach.isPending
+            ? ' · counting what your games reach…'
+            : reach.data && !reach.data.ownIsEveryGame
+              ? ` · ordered by your ${reach.data.ownOf} games${reach.data.source ? ` and ${reach.data.source.name}` : ''}`
+              : reach.data?.source
+                ? ` · ordered by ${reach.data.source.name}`
+                : ''}
         </p>
         {prompts.length === 0 && (
           <p>

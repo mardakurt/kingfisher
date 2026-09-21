@@ -35,6 +35,7 @@ import { useAnalysis } from '@/stores/analysis-store';
 import { useUi } from '@/stores/ui-store';
 import { WorkspaceFrame } from '@/features/workspace/WorkspaceFrame';
 import { RepertoireReviewDialog } from './RepertoireReviewDialog';
+import { PlayedAgainstYouPanel } from './PlayedAgainstYouPanel';
 import { ReferenceCoveragePanel } from './ReferenceCoveragePanel';
 import { plural } from '@/lib/plural';
 
@@ -369,6 +370,11 @@ export function RepertoireWorkspace() {
                 `Unanswered after ${gap.opponentMove.san} · ${repertoire.data?.repertoire.title ?? 'Repertoire'}`,
               )
             }
+          />
+          <PlayedAgainstYouPanel
+            repertoire={repertoire.data ?? null}
+            selectedId={current?.id ?? null}
+            onSelect={setSelectedPositionId}
           />
           <ReferenceCoveragePanel
             positions={positions}

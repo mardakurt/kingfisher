@@ -7,21 +7,14 @@ import type { GameTree } from '@/chess/tree/types';
 import type { Color } from '@/chess/types';
 
 /**
- * `Carlsen, Magnus` and `Magnus Carlsen` → `carlsen magnus`. Looser than the
- * game index's key on purpose: a name typed from a scoresheet and the same
- * name in a profile alias differ in commas, case and order far more often
- * than in letters, and the surname-first form is what every tournament
- * pairing sheet writes.
+ * The same key the games index uses for a player (`playerKey`): case and
+ * runs of whitespace are ignored, nothing else is. "Kurt, Metin" and "Metin
+ * Kurt" are two aliases, not one — Kingfisher never guesses which player is
+ * you, and the profile asks for the exact spellings so that this page, the
+ * explorer's "my games" and the repertoire's counts all agree on them.
  */
 export const nameKey = (name: string | undefined): string =>
-  (name ?? '')
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}]+/gu, ' ')
-    .trim()
-    .split(' ')
-    .filter(Boolean)
-    .sort()
-    .join(' ');
+  (name ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
 
 /** The colour the person played, when one of the players is one of their aliases. */
 export function ownColor(headers: GameTree['headers'], aliases: readonly string[]): Color | null {

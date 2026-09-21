@@ -233,9 +233,14 @@ export function AfterRoundPanel() {
               </select>
             )}
           </div>
-          {!detected && aliases.length === 0 ? (
+          {!detected ? (
             <p className="mt-1 text-2xs text-tertiary">
-              Add your name under Settings → Profile and Kingfisher will know next time.
+              Add your name exactly as this game spells it
+              {tree.headers.White || tree.headers.Black
+                ? ` — “${tree.headers.White ?? ''}” or “${tree.headers.Black ?? ''}” —`
+                : ''}{' '}
+              under Settings → Profile, and Kingfisher will know next time. It never guesses which
+              player is you.
             </p>
           ) : null}
         </section>

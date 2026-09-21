@@ -75,6 +75,8 @@ export type PromptReason =
       readonly share: number;
     }
   | { readonly kind: 'opponent'; readonly player: string; readonly games: number }
+  /** Reached in this many of the player's own games (their side of the board). */
+  | { readonly kind: 'reached'; readonly games: number; readonly of: number }
   | { readonly kind: 'branching'; readonly answers: number };
 
 export interface RepertoirePrompt {
@@ -113,6 +115,16 @@ export interface SessionInput {
     readonly name: string;
     readonly games: ReadonlyMap<string, number>;
   };
+  /**
+   * How often each position was reached in the player's own games, keyed by
+   * position key, with the number of their games it was counted over. The
+   * position a player meets every other weekend comes before the one they
+   * have never had on the board.
+   */
+  readonly own?: {
+    readonly games: ReadonlyMap<string, number>;
+    readonly of: number;
+  };
 }
 
 export interface SessionOptions {
@@ -135,6 +147,7 @@ const WEIGHT: Record<PromptReason['kind'], number> = {
   lapsed: 4,
   due: 3,
   opponent: 3,
+  reached: 3,
   population: 2,
   branching: 1,
   new: 1,
@@ -263,6 +276,11 @@ export function buildReviewSession(
       reasons.push({ kind: 'opponent', player: input.opponent.name, games: played });
     }
 
+    const own = input.own?.games.get(key);
+    if (input.own && own !== undefined && own > 0) {
+      reasons.push({ kind: 'reached', games: own, of: input.own.of });
+    }
+
     if (moves.length > 1) reasons.push({ kind: 'branching', answers: moves.length });
 
     const order = reasons.reduce((sum, reason) => {
@@ -275,7 +293,9 @@ export function buildReviewSession(
               ? Math.min(1, reason.lapses / 3)
               : reason.kind === 'opponent'
                 ? 1
-                : 0.25;
+                : reason.kind === 'reached'
+                  ? Math.min(1, reason.games / Math.max(1, reason.of))
+                  : 0.25;
       return sum + WEIGHT[reason.kind] * magnitude;
     }, 0);
 
@@ -326,6 +346,8 @@ export function describePromptReason(reason: PromptReason): string {
       )} of ${count(reason.total)})`;
     case 'opponent':
       return `${reason.player} reached it ${count(reason.games)} times`;
+    case 'reached':
+      return `reached in ${count(reason.games)} of your ${count(reason.of)} games`;
     case 'branching':
       return `${count(reason.answers)} answers recorded here`;
   }

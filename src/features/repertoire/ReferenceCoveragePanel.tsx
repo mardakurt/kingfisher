@@ -34,17 +34,7 @@ import { reviewKeys } from '@/features/review/queries';
 import { asFen, type Uci } from '@/chess/types';
 import { plural } from '@/lib/plural';
 
-const SOURCES = [
-  // The bundled pack first: it is on every machine, so a repertoire can be
-  // checked against a real population before any optional pack is installed.
-  { id: 'kingfisher-starter', label: 'Starter' },
-  { id: 'kingfisher-elite-otb', label: 'Elite OTB' },
-  { id: 'kingfisher-recent-theory', label: 'Recent Theory (2y)' },
-  { id: 'kingfisher-recent-theory-narrow', label: 'Recent Theory (6m)' },
-  { id: 'kingfisher-high-rated-online', label: 'High-Rated Online' },
-] as const;
-
-type SourceId = (typeof SOURCES)[number]['id'];
+import { SOURCES, type SourceId } from './sources';
 
 export interface CoverageRepertoire {
   readonly id: string;

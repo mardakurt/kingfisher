@@ -3,10 +3,12 @@ import { describe, expect, it } from 'vitest';
 import { gameIdentity, nameKey, ownColor } from './identity';
 
 describe('ownColor', () => {
-  it('matches an alias against either player, ignoring case, punctuation and order', () => {
-    expect(ownColor({ White: 'Kurt, Metin', Black: 'Rival' }, ['Metin Kurt'])).toBe('w');
-    expect(nameKey('Carlsen, Magnus')).toBe(nameKey('Magnus Carlsen'));
+  it('matches an alias against either player exactly, up to case and whitespace', () => {
+    expect(ownColor({ White: 'Kurt,  Metin', Black: 'Rival' }, ['kurt, metin'])).toBe('w');
     expect(ownColor({ White: 'Rival', Black: 'KURT, METIN' }, ['Kurt, Metin'])).toBe('b');
+    // Two spellings are two aliases: nothing is guessed from the letters.
+    expect(ownColor({ White: 'Kurt, Metin', Black: 'Rival' }, ['Metin Kurt'])).toBeNull();
+    expect(nameKey('Carlsen, Magnus')).not.toBe(nameKey('Magnus Carlsen'));
   });
 
   it('answers nothing when neither or both players are the person', () => {
