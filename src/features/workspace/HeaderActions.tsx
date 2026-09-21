@@ -104,7 +104,12 @@ export function HeaderActions({
     invisible until the numbers are in.
   */
   const measured =
-    Number.isFinite(available) && available >= 0 && ids.every((id) => widths[id] !== undefined);
+    Number.isFinite(available) &&
+    available >= 0 &&
+    // Over the drawn buttons only: a folded action is never drawn, so it has
+    // no width to wait for — a route whose frame already knew its room folds
+    // on its first render and would otherwise never be shown.
+    fit.shown.every((id) => widths[id] !== undefined);
 
   return (
     <div
