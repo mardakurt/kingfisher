@@ -8,6 +8,34 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
+- **After the round (`/analysis`, `/games`, `/review` → dock).** The
+  evening-of-the-game page a tournament player runs from the game on the
+  board: which side you played, where the game left your repertoire and
+  who left it, what the clock says (the three longest thinks, the last
+  reading, the first move under a third of the control — the
+  over-the-board `40/5400+30:1800+30` control is now read), the engine's
+  evidence from the background queue with _Send positions to review_, and
+  one thing for tomorrow, filed in the new **round journal** (Review →
+  **Rounds**: one entry per game, grouped by event, opening its game;
+  schema v19, in the portable backup). Facts only; nothing is graded.
+  Your name is matched exactly as the games index matches it, and the
+  page names the spelling to add. (Phase 75)
+- **Played against you (`/repertoire`).** Every repertoire position with
+  how many of _your_ games reached it, beside what share of a named pack
+  did — two populations, two columns, never one number — most met first,
+  or **Never reached**: none of your games and under 0.5% of the pack,
+  deepest first, the drilling that goes to waste. _Review repertoire_ is
+  ordered by the same counts and says so ("reached in 7 of your 40
+  games"); it had accepted that ordering since it was written and nothing
+  supplied it. (Phase 75)
+- **Search finds studies, hand-ins and structures.** A pasted position is
+  now found in study chapters — every node, variations included, the
+  sideline nobody could find again — and in team hand-ins, and each hit
+  opens where it was found: the chapter at the move, the assignment in
+  its team, the game at the ply. A second group, **Same pawns**, lists the
+  chapters, hand-ins and repertoire positions that hold the pawn skeleton
+  without the position; _Known position?_ shows the same. (Phase 75)
+
 ## 1.2.6 — 2026-09-20
 
 Kingfisher 1.2.6 brings the Team hub to the Mac application, and with it

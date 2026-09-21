@@ -74,9 +74,11 @@ starting point:
 - **Position setup** (_Set up_) — place pieces by click or drag, choose side
   to move, castling rights, en passant and move counters, load a FEN, and
   see **Known position?** — where that exact position already is in your
-  work (games with the ply, chapters, repertoire, training, endgames,
-  opening files, preparation, decisions) and how many games the chosen
-  reference has for it. Only legal positions can be applied; a castling
+  work (games with the ply, study chapters at the move — variations
+  included — team hand-ins, repertoire, training, endgames, opening files,
+  preparation, decisions), **Same pawns** — the chapters, hand-ins and
+  repertoire positions that hold the same pawn skeleton without the
+  position — and how many games the chosen reference has for it. Only legal positions can be applied; a castling
   right without the king and rook in place is refused.
 - **`?fen=` in the address** puts that position on any board route.
 
@@ -114,8 +116,9 @@ read-only source material.
 `Engine`, `Companion`, `Explorer`, `Theory Book`, `Opening Report`, `Book
 Moves`, `Database`, `Repertoire`, `Position Health`, `Transpositions`,
 `Theory Radar`, `Calculation`, `Candidates`, `Features`, `Tablebase`, `Play
-it out`, `Play From Here`, `Report`, `Notes`, and the `Move Tree`. Each is
-described in §6; a tool that cannot help says why instead of disappearing.
+it out`, `Play From Here`, `Report`, `After the round`, `Notes`, and the
+`Move Tree`. Each is described in §6; a tool that cannot help says why
+instead of disappearing.
 
 ## 3. Study, prepare, improve, data — the other routes
 
@@ -155,7 +158,11 @@ along a line are _expected_ and do not inflate coverage; transpositions
 share one entry. The rail lists positions by depth; the _Coverage_ panel
 counts positions with an answer, main moves, alternatives, candidates,
 ruled-out moves, expected replies and unresolved continuations in your own
-games; **Coverage gaps** against your local games and **Coverage against
+games; **Coverage gaps** against your local games, **Played against you** — every
+position with how many of _your_ games (your colour, by your profile
+aliases) reached it beside what share of a named pack did, most met first,
+or the other way round: **Never reached** in your games and under 0.5% of
+the pack, deepest first — and **Coverage against
 reference** against the Starter pack or an installed pack, with **Train
 these gaps** (one click enrols every gap in a set named for the repertoire
 and opens Training on it); _Review repertoire_ (§5); _Export PGN_;
@@ -232,8 +239,9 @@ _Waiting / Reviewed / Training_ stages and category filters; the
 calculation, missed tactic, candidate generation, piece placement, trade
 decision, pawn break, king safety, opening knowledge, time management,
 endgame technique, evaluation error, plan selection — plus your own) and
-every count opens the positions behind it; **Patterns**; _Mark for review_
-from any board; _Hidden / Visible_ evidence toggle; a game review that
+every count opens the positions behind it; **Patterns**; **Rounds** — the
+round journal: one learning point per game you played, in your words,
+grouped by event, each opening its game; _Mark for review_ from any board; _Hidden / Visible_ evidence toggle; a game review that
 walks a whole game and attaches strategic transitions (a passed pawn
 created, a file opened, a king shield stripped) as facts.
 
@@ -403,6 +411,16 @@ The profile described under Players.
 - **Calculation** — a scratch calculation tree with the evidence hidden
   (`Calculate here`), a blindfold, and submission into the decision
   journal.
+- **After the round** — the evening-of-the-game page, from the game on the
+  board (Analysis, Games, Review): which side you played (from your
+  profile's aliases, or your say-so); where the game left your repertoire
+  and _who_ left it; what the clock says — timed moves, the three longest
+  thinks, the last reading, the first move under a third of the control
+  (the `40/5400+30:1800+30` form is read); the engine's evidence from the
+  background queue, with _Queue this game_ when there is none and _Send
+  positions to review_ (the same suggester Review uses) when there is;
+  and **one thing for tomorrow**, filed in the round journal (Review →
+  Rounds). Facts only; the page never grades a move.
 - **Notes** — free text on the current move.
 - **Play From Here** — play the position out against the engine.
 - **Companion** — pairing, status, the engine fleet, tablebase folder.
@@ -414,9 +432,11 @@ The profile described under Players.
 
 _Review repertoire_ builds a session of prompts from a repertoire — modes
 _my move_, _opponent reply_, _full branch_, _critical_ — due only or all,
-capped, one prompt per position however many move orders reach it, enrolled
-as recall cards in the one training queue (a second run duplicates nothing),
-and opens Training on that set.
+capped, one prompt per position however many move orders reach it, ordered
+by what is actually reached — "reached in 7 of your 40 games", the pack's
+share — with every reason on the prompt, enrolled as recall cards in the
+one training queue (a second run duplicates nothing), and opens Training on
+that set.
 
 ## 7. Games from online accounts
 
@@ -434,9 +454,12 @@ and missing accounts are reported as such.
 - **⌘K** — one box for openings (by name, code or moves), players, your
   studies, chapters, games, repertoires, training items, model games and
   tags, every page and every settings section, a pasted **FEN** (with where
-  that position appears in your work and _Open in Analysis / Explorer /
-  Search databases / Add to Study / Add to Repertoire / Create training_),
-  and a typed **move sequence**.
+  that position appears in your work — study chapters at the move,
+  variations included, team hand-ins, games at the ply, and the rest —
+  each hit opening where it was found; a second group, **Same pawns**, for
+  the work that holds the pawn skeleton without the position; and _Open in
+  Analysis / Explorer / Search databases / Add to Study / Add to Repertoire
+  / Create training_), and a typed **move sequence**.
 - **Commands** (the full list): Back up my work; Open the tour; New
   analysis; Import PGN or FEN; Copy PGN; Copy PGN from this move; Copy FEN;
   Copy the current line (SAN / UCI); Save this analysis to a study; Search

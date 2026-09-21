@@ -686,8 +686,9 @@ with a unique `(chapterId, kind, targetId)` index; v7 adds `analysisQueue` and
 the structural indexes on positions; v10 preparation sessions, opening files,
 endgame positions and pinned lines; v11 `linkedAccounts`; v12 the opening
 classification indexes; v13 source sets; v14 player identities; v15 reference
-packs and their chunks; v16 opening books; v17 the auto-backup store; and
-v18 the team hub's teams and assignments.
+packs and their chunks; v16 opening books; v17 the auto-backup store; v18
+the team hub's teams and assignments; and v19 the round journal, one entry
+per game by fingerprint.
 Records are validated on the way out, because a record written by an older
 build is plausible and malformed data must not reach the board.
 
