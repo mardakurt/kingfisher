@@ -95,14 +95,24 @@ A4   npm test                            270 files, 3197 passed, 0 skipped
      test:no-skips                        OK
 A5   docs:check                          344/344
 A6   git diff --check                    clean
-A7   test:e2e                            (see below)
+A7   test:e2e                            318 passed (18.8 m), 0 failed, 0 flaky
      build                               exit 0, 34/34 pages
      benchmark                           client JS 4,079.6 kB across 114 files
 ```
 
-Each new browser spec was run alone first (after-round 2 passed,
-repertoire-reach 1 passed, position-search 1 passed); the full suite's
-result is recorded in the commit that adds this line.
+Each new browser spec was run alone first (after-round 2, repertoire-reach
+1, position-search 1, all passed). The first full run failed one test,
+`team.spec.ts`, deterministically: the header's action row was painted
+unfolded for ~115 ms after "ready" on a route that now mounts under a
+Suspense boundary (probed: unfolded at 26 ms, folded at 141 ms). Fixed by
+not painting the row until its fold is measured (`2003784`); the second
+full run then failed six specs on `/repertoire`, where the frame already
+knew its room, folded on the first render, and the folded actions —
+never drawn — never got a width, so "measured" never held; fixed by
+measuring over the drawn buttons only (`e7c7aa3`). The same run also lost
+`soak.spec.ts` to `ENOENT` on its own trace files, caused by a probe I ran
+concurrently — my error, not the product's. The third run, clean, is the
+number above.
 
 ## 6. Remaining concerns
 
