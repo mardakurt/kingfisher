@@ -52,6 +52,9 @@ const thread = (page: Page) => page.locator('[data-team-thread]');
  * Members… and New team behind "More actions"; the test must not care which.
  */
 async function routeAction(page: Page, name: string) {
+  // The row is invisible until the fold is measured; deciding which path to
+  // take before that would pick the pre-fold layout.
+  await page.locator('[data-header-actions][data-header-measured]').waitFor();
   const inRow = page.locator('[data-header-actions]').getByRole('button', { name, exact: true });
   if (await inRow.isVisible()) {
     await inRow.click();

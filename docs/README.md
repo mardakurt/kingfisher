@@ -92,6 +92,10 @@ with [`AGENTS.md`](../AGENTS.md).
   dataset and asset, with licence and provenance.
 - [`../companion/README.md`](../companion/README.md) — the companion process:
   what it does and its trust boundary.
+- [`product/market-research.md`](product/market-research.md) — the chess study
+  market from first-hand sources: what people complain about, what they ask
+  for and do not have, where Kingfisher stands on each, and the plan to close
+  the gap with ChessBase and then lead.
 - [`design/team-preparation.md`](design/team-preparation.md) — first-hand research,
   coach/second workflows, implemented improvements and staged implementation plan.
 - [`design/team-hub.md`](design/team-hub.md) — the Team hub: the research
@@ -205,6 +209,9 @@ with [`AGENTS.md`](../AGENTS.md).
 
 ## Historical
 
+- [`reports/phase-75-handover.md`](reports/phase-75-handover.md) — closing the
+  gap: After the round and the round journal, Played against you, search across
+  all of a player's own work; the market research and the parity queue.
 - [`reports/phase-74-handover.md`](reports/phase-74-handover.md) — the
   reset control renamed to say where the board goes, and the Team hub:
   the research, the cloud-account answer, the local-first packet design,

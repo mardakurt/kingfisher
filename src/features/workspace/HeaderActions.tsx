@@ -94,8 +94,26 @@ export function HeaderActions({
   if (actions.length === 0) return null;
   const byId = new Map(actions.map((action) => [action.id, action]));
 
+  /*
+    Nothing is painted until the fold is known. Before the frame has measured
+    the room and this row has measured its buttons, `fit` shows everything,
+    and that row — every action, unfolded — was reaching the screen for about
+    a hundred milliseconds on a route that mounts after hydration (Phase 75:
+    Team, once it read its search params under a Suspense boundary). The
+    buttons keep their layout, so they can still be measured; they are only
+    invisible until the numbers are in.
+  */
+  const measured =
+    Number.isFinite(available) && available >= 0 && ids.every((id) => widths[id] !== undefined);
+
   return (
-    <div ref={row} className="flex shrink-0 items-center gap-1.5" data-header-actions>
+    <div
+      ref={row}
+      className="flex shrink-0 items-center gap-1.5"
+      style={measured ? undefined : { visibility: 'hidden' }}
+      data-header-actions
+      {...(measured ? { 'data-header-measured': '' } : {})}
+    >
       {fit.shown.map((id) => {
         const action = byId.get(id)!;
         const text = fit.compact && action.shortLabel ? action.shortLabel : action.label;
