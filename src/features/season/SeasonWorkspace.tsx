@@ -3,50 +3,36 @@
 /**
  * `/season` — the season reader's workspace.
  *
- * Reads the URL parameter via `useSearchParams`, fetches the player's
- * games (one big query), builds the season report, and renders the
- * picker at the top and the five sections below.
+ * Receives the URL predicate from the server page, fetches the player's games
+ * (one complete paged query), builds the season report, and renders the picker
+ * at the top and the five sections below.
  *
  * No invented score, no rating chart, no "you've improved" headline.
  * The reader counts; the player reads. See `docs/design/season.md`.
  */
 
 import { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
 
 import { WorkspaceFrame } from '@/features/workspace/WorkspaceFrame';
 import { NavButton } from '@/features/shell/NavButton';
 import { Panel, PanelBody } from '@/components/ui/Panel';
 import { useProfile } from '@/features/persistence/queries';
 import { buildSeason } from '@/season/season';
-import { parseNamedSet, namedSetUrl } from '@/season/named-set';
+import { namedSetUrl, type SeasonNamedSet } from '@/season/named-set';
 import { useSeasonLog } from '@/stores/season-log-store';
 import { hashReport } from '@/features/season/hash-report';
 import { SeasonPicker } from './SeasonPicker';
 import { SeasonSections } from './SeasonSections';
 import { useSeasonGames } from './use-season-games';
 
-export function SeasonWorkspace() {
-  const params = useSearchParams();
-  const predicate = useMemo(
-    () =>
-      parseNamedSet({
-        set: params?.get('set') ?? undefined,
-        event: params?.get('event') ?? undefined,
-        site: params?.get('site') ?? undefined,
-        opening: params?.get('opening') ?? undefined,
-        mixed: params?.get('mixed') ?? undefined,
-      }),
-    [params],
-  );
+export function SeasonWorkspace({ predicate }: { readonly predicate: SeasonNamedSet | null }) {
   const profile = useProfile();
   const aliases = useMemo(() => profile.data?.aliases ?? [], [profile.data?.aliases]);
   const games = useSeasonGames();
   const [now] = useState(() => Date.now());
 
   // Default to "Last 90 days" when no predicate is in the URL.
-  const url = useMemo(() => (params ? `?${params.toString()}` : ''), [params]);
-  const urlForLog = useMemo(() => `/season${url}`.replace(/\?$/, ''), [url]);
+  const urlForLog = predicate ? namedSetUrl(predicate) : '/season';
 
   const seasonResult = useMemo(() => {
     if (!games.data) return null;

@@ -54,14 +54,14 @@ const present = (value: string | undefined): string | undefined => {
 
 /** Parse the picker URL parameter into a named-set predicate, or null. */
 export function parseNamedSet(params: {
-  readonly set?: string | string[];
-  readonly event?: string | string[];
-  readonly site?: string | string[];
-  readonly opening?: string | string[];
-  readonly mixed?: string | string[];
+  readonly set?: string | readonly string[];
+  readonly event?: string | readonly string[];
+  readonly site?: string | readonly string[];
+  readonly opening?: string | readonly string[];
+  readonly mixed?: string | readonly string[];
 }): SeasonNamedSet | null {
-  const first = <T>(value: T | T[] | undefined): T | undefined =>
-    Array.isArray(value) ? value[0] : value;
+  const first = (value: string | readonly string[] | undefined): string | undefined =>
+    typeof value === 'string' ? value : value?.[0];
   const set = first(params.set);
   const event = first(params.event);
   const site = first(params.site);
