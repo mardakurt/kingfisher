@@ -30,6 +30,7 @@ import {
   Library,
   Notebook,
   Opening,
+  Pencil,
   Players,
   Recall,
   Repertoire,
@@ -161,6 +162,14 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     href: '/games',
     icon: Library,
     hint: 'Import and review your own games.',
+    group: 'data',
+  },
+  {
+    id: 'scoresheet',
+    label: 'Scoresheet',
+    href: '/scoresheet',
+    icon: Pencil,
+    hint: 'Your over-the-board game, from the sheet to the board.',
     group: 'data',
   },
   {

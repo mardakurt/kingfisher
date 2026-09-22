@@ -311,6 +311,9 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'notes',
     'play',
   ],
+  // The sheet being entered: what a player wants beside it is the tree, the
+  // engine once the moves are in, and the evening's tools.
+  scoresheet: ['after-round', 'engine', 'notes', 'explorer', 'repertoire', 'tablebase'],
   preparation: [
     'document',
     'engine',

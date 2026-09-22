@@ -8,6 +8,16 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
+- **Scoresheet (`/scoresheet`).** The over-the-board game, from the sheet
+  to the board: every cell typed as it was written (German, French and
+  Spanish piece letters, `0-0`, `ed`, `e8Q`, a missing `x`) resolved
+  against the rules, a cell nobody can read filled from the moves after it,
+  and **Check these moves** naming every doubtful move with its
+  alternatives on the board. A photo can be read by the assistant endpoint
+  you configured — your endpoint, your key, none ships — and everything it
+  returns is checked against the rules and flagged where it was unsure.
+  Saves to My games, or straight into After the round.
+  (`docs/design/scoresheet.md`, Phase 76)
 - **Import ChessBase (`/databases`).** The database every club player
   and coach already has — a `.cbh` and its siblings, or the `.cbv` archive
   ChessBase exports — read in the browser and stored in _My games_ or a

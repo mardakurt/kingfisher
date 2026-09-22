@@ -75,6 +75,7 @@ const ROUTES = [
   '/repertoire',
   '/preparation',
   '/endgame',
+  '/scoresheet',
   '/training',
   '/review',
   '/openings',

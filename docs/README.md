@@ -98,6 +98,10 @@ with [`AGENTS.md`](../AGENTS.md).
   the gap with ChessBase and then lead.
 - [`design/team-preparation.md`](design/team-preparation.md) — first-hand research,
   coach/second workflows, implemented improvements and staged implementation plan.
+- [`design/scoresheet.md`](design/scoresheet.md) — getting the
+  over-the-board game in: what the research says about handwriting
+  recognition, the decisions (the rules do the work, the photo goes to the
+  user's own endpoint, a gap is first-class), and the model.
 - [`design/team-hub.md`](design/team-hub.md) — the Team hub: the research
   on how seconds and coaches actually hand work around, the decisions
   (local-first, packet file, immutable handovers, verified PGN, derived

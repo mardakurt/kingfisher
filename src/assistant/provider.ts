@@ -25,6 +25,12 @@ export interface AssistantConfig {
 export interface AssistantRequest {
   readonly system: string;
   readonly user: string;
+  /**
+   * Images as data URLs, sent as the content parts OpenAI-compatible
+   * endpoints take. Only the scoresheet reader sends any; an endpoint whose
+   * model cannot see answers with an error, which is reported as such.
+   */
+  readonly images?: readonly string[];
   readonly signal?: AbortSignal;
 }
 
@@ -61,7 +67,14 @@ export class OpenAiCompatibleProvider implements ChessAssistantProvider {
     return `${this.config.model} at ${hostOf(this.config.baseUrl)}`;
   }
 
-  async ask({ system, user, signal }: AssistantRequest): Promise<string> {
+  async ask({ system, user, images, signal }: AssistantRequest): Promise<string> {
+    const userContent =
+      images && images.length
+        ? [
+            { type: 'text', text: user },
+            ...images.map((url) => ({ type: 'image_url', image_url: { url } })),
+          ]
+        : user;
     const url = `${this.config.baseUrl.replace(/\/+$/, '')}/chat/completions`;
 
     let response: Response;
@@ -79,7 +92,7 @@ export class OpenAiCompatibleProvider implements ChessAssistantProvider {
           temperature: 0.2,
           messages: [
             { role: 'system', content: system },
-            { role: 'user', content: user },
+            { role: 'user', content: userContent },
           ],
         }),
         // A deadline as well as the caller's signal. A local runner that is

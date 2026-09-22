@@ -25,7 +25,11 @@ native-companion prerequisite on the AI assistant panel. The engine toolbar
 also wraps controls to keep the engine selector readable in a narrow panel.
 
 **Published revision check (Phase 76, Mac-facing — not yet released).**
-_Import ChessBase_ on the Databases route: a new dialog, a worker, a store
+The _Scoresheet_ route (`/scoresheet`): a new entry in the rail, a new
+workspace, and the photo chooser, which on macOS is the shell's own file
+dialog and, on a phone-width window, the camera. Reading a photo uses the
+assistant endpoint the user configured; nothing about it is desktop-specific.
+And _Import ChessBase_ on the Databases route: a new dialog, a worker, a store
 and the reader under `src/database/chessbase/`, all in the web application
 the Mac shell serves; the file chooser is the browser's own, and the
 companion collection destination uses the existing `createDatabase` route.

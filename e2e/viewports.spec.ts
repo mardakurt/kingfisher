@@ -43,6 +43,7 @@ const ROUTES = [
   '/review',
   '/model-game',
   '/endgame',
+  '/scoresheet',
   '/opening-files',
   '/team',
 ] as const;

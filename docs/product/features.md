@@ -278,6 +278,24 @@ analysis of chosen games, paused, resumed and yielding to interactive
 analysis), Kingfisher's own opening classification beside the PGN's tag, and
 delete.
 
+### Scoresheet (`/scoresheet`)
+
+The over-the-board game, from the sheet to the board. Type each cell as it
+was written — `Nf3`, `Sf3`, `Cf3`, `0-0`, `ed`, `e8Q`, a missing `x` — and
+the rules resolve it: one reading is the move, several is a move with the
+alternatives kept, none stops there and says so. A cell nobody can read is
+`?`: the moves after it are fitted against every legal move at the gap, and
+the one that fits fills it (or the candidates are offered, and it says how
+many). **Check these moves** lists every doubtful move with why, shows the
+alternatives on the board, and replaces one when you choose it. With an
+assistant endpoint configured (Settings → Assistant, your own endpoint and
+key — none ships), _Read the sheet_ sends a photo and resolves what comes
+back the same way, flagging everything the model was unsure of; without one,
+the photo sits beside the board while you type. Saves to _My games_, or
+saves and opens _After the round_. Kingfisher does not read handwriting; it
+checks a reading against the rules and says where it could not.
+`docs/design/scoresheet.md`.
+
 ### Databases (`/databases`)
 
 Collections (the browser's IndexedDB collection, any SQLite collection
