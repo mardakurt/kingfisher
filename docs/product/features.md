@@ -282,6 +282,18 @@ analysis of chosen games, paused, resumed and yielding to interactive
 analysis), Kingfisher's own opening classification beside the PGN's tag, and
 delete.
 
+### Writing the engine's evidence into a game
+
+_After the round_ → Engine, once the background queue has analysed the game.
+Every move the engine disagreed with becomes a variation from the position
+before it, carrying the engine's own line and one comment: the score before,
+the score after, the depth, and which engine. Nothing else — no "blunder",
+no "!?", no NAG, because those are labels pinned to a number. The threshold
+(3, 10 or 20 points of win chance) is yours, the panel states what a run
+would write before it writes it, and one undo takes the whole write back.
+Positions the queue never reached produce nothing, which is different from
+the engine having found nothing.
+
 ### Search (`/search`)
 
 One box over everything you have made or imported: a FEN, a line of moves,

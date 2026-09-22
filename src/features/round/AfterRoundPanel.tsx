@@ -42,6 +42,13 @@ import { gameIdentity, ownColor } from '@/round/identity';
 import { useAnalysis } from '@/stores/analysis-store';
 import { useUi } from '@/stores/ui-store';
 
+import {
+  COST_THRESHOLDS,
+  describePlan,
+  planAnnotations,
+  type CostThreshold,
+} from '@/review/annotate';
+
 import { invalidateJournal, useJournalEntry } from './queries';
 
 const colorName = (color: Color) => (color === 'w' ? 'White' : 'Black');
@@ -111,6 +118,37 @@ export function AfterRoundPanel() {
     setNote(seedText);
   }
   const [busy, setBusy] = useState(false);
+  const [threshold, setThreshold] = useState<CostThreshold>('noticeable');
+  const annotateWithEvidence = useAnalysis((state) => state.annotateWithEvidence);
+  const plans = useMemo(
+    () => planAnnotations({ tree, evidence: evidence.data ?? [], threshold }),
+    [tree, evidence.data, threshold],
+  );
+
+  /**
+   * Write the plan into the game on the board.
+   *
+   * Into the board's tree rather than the stored game: the player sees what
+   * was written, can undo it, and decides whether to keep it — annotations
+   * appearing in a stored game a week later, with nobody having watched them
+   * arrive, is how a database fills with edits nobody made on purpose.
+   */
+  const annotate = () => {
+    const result = annotateWithEvidence(plans);
+    notify({
+      tone: result.written > 0 ? 'success' : 'info',
+      message:
+        result.written > 0
+          ? `${result.written} variation${result.written === 1 ? '' : 's'} written into the game.`
+          : 'Nothing was written.',
+      detail: result.refused.length
+        ? `${result.refused.length} line(s) the rules refused were skipped: ${result.refused
+            .slice(0, 3)
+            .map((entry) => `${entry.label} (${entry.reason})`)
+            .join('; ')}`
+        : `Undo puts the game back as it was. Threshold: ${Math.round(COST_THRESHOLDS[threshold] * 100)} points of win chance.`,
+    });
+  };
 
   const identity = gameIdentity(tree.headers, color);
 
@@ -393,6 +431,36 @@ export function AfterRoundPanel() {
                         Open Review
                       </Button>
                     ) : null}
+                  </div>
+                  {/*
+                    The evidence, written into the game itself: every move the
+                    engine disagreed with becomes a variation with its two
+                    scores and its depth. No verdict — the vocabulary is the
+                    part of Tactical Analysis worth leaving behind.
+                  */}
+                  <div className="mt-2 border-t border-line-subtle pt-2" data-after-round-annotate>
+                    <label className="block text-[10px] text-tertiary">
+                      Write moves that cost
+                      <select
+                        aria-label="How much a move must cost to be written down"
+                        value={threshold}
+                        onChange={(event) => setThreshold(event.target.value as CostThreshold)}
+                        className="ml-1 h-6 rounded-[3px] border border-line bg-surface-inset px-1 text-[11px] text-primary"
+                      >
+                        <option value="everything">3 points of win chance or more</option>
+                        <option value="noticeable">10 points or more</option>
+                        <option value="serious">20 points or more</option>
+                      </select>
+                    </label>
+                    <p className="mt-1">{describePlan(plans, threshold)}</p>
+                    <Button
+                      size="sm"
+                      className="mt-2"
+                      disabled={busy || plans.length === 0}
+                      onClick={() => annotate()}
+                    >
+                      Write the evidence into the game
+                    </Button>
                   </div>
                 </div>
               )}

@@ -46,6 +46,8 @@ import {
 import type { CriticalCategory, GameTree, NodeId } from '@/chess/tree/types';
 import type { Color, Fen, MoveIntent } from '@/chess/types';
 import type { AnalysisDocument } from '@/persistence/types';
+import type { AnnotationPlan } from '@/review/annotate';
+import { writeAnnotations, type WriteResult } from '@/review/write-annotations';
 
 interface Snapshot {
   readonly tree: GameTree;
@@ -172,6 +174,15 @@ interface AnalysisState {
   attachEvaluation(nodeId: NodeId, evaluation: Evaluation): void;
   setCritical(nodeId: NodeId, category: CriticalCategory | null): void;
   setHeaderValue(key: string, value: string): void;
+  /**
+   * Write an evidence plan into the tree as variations, in one commit.
+   *
+   * One commit because a person thinks of "write the evidence" as one act and
+   * expects one undo to take it back; thirty separate edits would need thirty.
+   * The document is untouched — this is an edit to the game on the board, not
+   * a different game.
+   */
+  annotateWithEvidence(plans: readonly AnnotationPlan[]): WriteResult;
 
   // Session
   newGame(fen?: Fen): void;
@@ -445,6 +456,13 @@ export const useAnalysis = create<AnalysisState>((set, get) => ({
         nodes: { ...state.tree.nodes, [nodeId]: { ...node, meta } },
       }),
     );
+  },
+
+  annotateWithEvidence: (plans) => {
+    const state = get();
+    const result = writeAnnotations(state.tree, plans);
+    if (result.written > 0) set(commit(state, result.tree, state.currentId));
+    return result;
   },
 
   setHeaderValue: (key, value) => {

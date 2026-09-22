@@ -8,6 +8,16 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
+- **The evidence, written into the game (_After the round_ → Engine).**
+  Once the background pass has analysed a game, every move the engine
+  disagreed with can be written into the tree as a variation: its own
+  line, and one comment carrying the score before, the score after, the
+  depth and which engine said so. No adjective, no glyph, no NAG — a NAG
+  is the label in one character, and "blunder" is a verdict about the
+  player rather than a fact about the position. You choose how much a
+  move must cost before it is written (3, 10 or 20 points of win chance),
+  the panel says what a run would write before it writes it, and one undo
+  takes the whole write back. (Phase 76)
 - **Tags on studies and chapters, and Search as a page (`/search`).**
   File a study under as many subjects as it belongs to — tags, not
   folders, because a study about the Najdorf, for one opponent, from one

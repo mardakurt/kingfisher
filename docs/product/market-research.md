@@ -241,7 +241,8 @@ See `features.md`.
 5. **Whole-game auto-annotation as facts.** Tactical Analysis's useful
    part: every critical moment written into the tree as a variation with
    its evidence line, never as prose. The queue and the suggester already
-   compute it; this writes it down.
+   compute it; this writes it down. _Done in Phase 76_ — `src/review/annotate.ts`,
+   with the threshold in the player's hands and one undo for the whole write.
 6. **Publishing.** A chapter or a report as a PDF and as a self-contained
    HTML file; a study shared as a link once a delivery exists.
 7. **Similar games and structure search as a page**, over packs too.

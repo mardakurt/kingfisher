@@ -1072,6 +1072,19 @@ and the integrity scanner offers to drop the dead pointer.
 
 ---
 
+## Writing the engine's evidence into a game
+
+`review/annotate.ts` reads the stored evidence the background queue wrote
+(`engineEvidence`, one record per analysed position) and produces a plan: for
+each main-line move where the engine's first choice differed and the mover's
+win chance fell by at least a chosen threshold, the engine's line, the two
+scores and a comment. `review/write-annotations.ts` plays that line through
+the rules — a line the position refuses is skipped and counted, never forced
+— and the analysis store applies the whole plan in **one commit**, so one
+undo takes the write back. Nothing here runs an engine, and nothing labels a
+move: the comment is the evidence, and a NAG would be the label in one
+character.
+
 ## Studying your own thinking
 
 The Review workspace inverts the direction every other route runs in. Everywhere

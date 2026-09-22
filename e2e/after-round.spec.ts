@@ -147,6 +147,30 @@ test('After the round reads the game and files one learning point', async ({ pag
 
   // The background pass finishes and the page offers the review hand-off.
   await expect(engine).toContainText(/position(s)? evaluated/, { timeout: 120_000 });
+
+  /*
+    The evidence, written into the game. Every move the engine disagreed with
+    becomes a variation carrying the two scores and the depth — and nothing
+    else: the vocabulary of Tactical Analysis is the part left behind.
+  */
+  const annotate = after.locator('[data-after-round-annotate]');
+  await expect(annotate).toContainText(/move(s)? to write|Nothing to write/);
+  await annotate
+    .getByLabel('How much a move must cost to be written down')
+    .selectOption('everything');
+  await expect(annotate).toContainText(/\d+ moves? to write, the largest at/);
+  const tree = page.locator('[data-move-tree]');
+  await expect(tree).not.toContainText('at depth');
+  await annotate.getByRole('button', { name: 'Write the evidence into the game' }).click();
+  await expect(page.getByText(/variations? written into the game\./)).toBeVisible();
+  // The engine's own move is in the game as a variation beside the move that
+  // was played, carrying the two scores, the depth and which engine said so.
+  await expect(tree).toContainText('2.Nf3');
+  await expect(tree).toContainText(/at depth \d+: .* before 2\. Bc4, .* after\./);
+  await expect(tree).toContainText('This was its first choice.');
+  // And no verdict: the vocabulary is the part left behind.
+  await expect(tree).not.toContainText(/blunder|mistake|brilliant|inaccuracy|\?\?|!!/);
+
   await engine.getByRole('button', { name: 'Send positions to review' }).click();
   await expect(page.getByText(/position(s)? sent to the review queue\./)).toBeVisible();
   await expect(engine).toContainText('in the review queue');
