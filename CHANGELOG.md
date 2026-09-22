@@ -8,6 +8,16 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
+- **The position page (`/position?fen=…`).** One URL for everything Kingfisher
+  knows about a position: your games from it with results and clock facts, the
+  studies and hand-ins holding it, the repertoire's chosen move, each reference
+  population in its own column, stored engine evidence and the same-pawn-structure
+  work. Position-keyed, never move-sequence-keyed — transpositions meet at the
+  same address and counters never split identity. Reachable from every board via a
+  labelled control; one click in the common workspace frame, one hit from the
+  palette. Concealed workspaces (Review before reveal, Training, blindfold)
+  suppress the control so the button's presence cannot leak the existence of
+  evidence. (`docs/design/position-page.md`, Phase 77)
 - **The surprise finder (`/preparation`).** What this opponent might play
   that your repertoire has no answer to, and that the source you chose
   plays in under 5% of its games there. Three populations joined and none

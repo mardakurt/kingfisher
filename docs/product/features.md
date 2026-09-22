@@ -348,6 +348,25 @@ reloaded and walked back through. Reference packs and the explorer are not
 searched here, and it says so: they answer about a population, this answers
 about you.
 
+### Position page (`/position?fen=…`)
+
+One URL for everything Kingfisher knows about a position. Five sections in
+one reading order: your games from this position (with results, exact ply and
+recorded clocks, profile matches explicit), your work (studies and hand-ins at
+the matching node, repertoire decisions, training cards, opening files and
+sheets), reference populations (each in its own column — offline sources
+answer automatically, online sources are an explicit action, a failure occupies
+only that source's column), stored engine evidence (pinned and queued
+searches, with engine, depth, date and PV; no "best" badge), and same pawn
+structure (clearly labelled as not the same position). Reachable from every
+board via a labelled control beside the move navigation, one hit from the
+command palette as "Open position page", one URL parameter from search. The
+FEN lives in `?fen=`, so a position page can be linked, reloaded and walked
+back through; canonical `positionKey` keeps transpositions at one address.
+Concealed workspaces (Review before reveal, Training, blindfold) suppress
+the control entirely — the button being there would already tell a player
+the position has evidence, before they had decided to look.
+
 ### Coverage (a dock tool, wherever the Explorer is)
 
 What every source you have holds and does not hold, for the position on the

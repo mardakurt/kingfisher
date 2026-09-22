@@ -48,6 +48,8 @@ export interface PositionActionHandlers {
   readonly handInToTeam: () => void;
   readonly copyFen: () => void;
   readonly clearMoves: () => void;
+  /** Open the un-silo: games, studies, hand-ins, repertoire decisions, references and engine evidence in one place. */
+  readonly openPositionPage?: () => void;
 }
 
 /**
@@ -81,6 +83,9 @@ export function positionActionSections(
         { id: 'calculate', label: 'Calculate here', shortcut: '⇧C', run: handlers.calculate },
         { id: 'play-from-here', label: 'Play from this position', run: handlers.playFromHere },
         { id: 'report', label: 'Open Position Report', run: handlers.report },
+        ...(handlers.openPositionPage && !onRoute('/position')
+          ? [{ id: 'position-page', label: 'Open position page', run: handlers.openPositionPage }]
+          : []),
         { id: 'setup', label: 'Set up position…', run: handlers.setup },
         {
           id: 'model-games',

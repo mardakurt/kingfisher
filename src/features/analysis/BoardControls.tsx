@@ -1,12 +1,20 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
+
 import { ChevronLeft, ChevronRight, Flip, Reset, SkipEnd, SkipStart } from '@/components/icons';
-import { IconButton } from '@/components/ui/Button';
+import { Button, IconButton } from '@/components/ui/Button';
+import { positionPageAvailable } from '@/features/position/open-position-page';
+import { positionPageUrl } from '@/position/knowledge';
 import { useAnalysis } from '@/stores/analysis-store';
 import { useUi } from '@/stores/ui-store';
 
 /** Move navigation, kept directly under the board where the eye already is. */
-export function BoardControls() {
+export function BoardControls({
+  showPositionPage = true,
+}: {
+  readonly showPositionPage?: boolean;
+}) {
   const toStart = useAnalysis((state) => state.toStart);
   const back = useAnalysis((state) => state.back);
   const forward = useAnalysis((state) => state.forward);
@@ -14,6 +22,7 @@ export function BoardControls() {
   const flip = useAnalysis((state) => state.flip);
   const clearMoves = useAnalysis((state) => state.clearMoves);
   const notify = useUi((state) => state.notify);
+  const router = useRouter();
 
   const atStart = useAnalysis((state) => state.currentId === state.tree.rootId);
   const atEnd = useAnalysis(
@@ -22,6 +31,28 @@ export function BoardControls() {
   const hasMoves = useAnalysis(
     (state) => (state.tree.nodes[state.tree.rootId]?.children.length ?? 0) > 0,
   );
+
+  /*
+   * The un-silo is reachable from every unconcealed board. The capability
+   * check is the one the menu and palette share, so the button cannot leak
+   * evidence where the workspace promised none. A concealing workspace
+   * suppresses the control at render time: the button being there would
+   * already tell a player a position has evidence, before they had decided
+   * to look.
+   */
+  const openPositionPage = () => {
+    if (typeof document !== 'undefined' && !positionPageAvailable()) {
+      notify({
+        tone: 'info',
+        message: 'Reveal this exercise before opening its position evidence.',
+      });
+      return;
+    }
+    const fen = useAnalysis.getState().tree.nodes[useAnalysis.getState().currentId]?.fen;
+    if (!fen) return;
+    const href = positionPageUrl(fen);
+    if (href) router.push(href);
+  };
 
   return (
     <div className="flex items-center gap-0.5">
@@ -41,6 +72,11 @@ export function BoardControls() {
       <IconButton label="Flip board (F)" onClick={flip}>
         <Flip />
       </IconButton>
+      {showPositionPage ? (
+        <Button onClick={openPositionPage} data-position-page-control>
+          Open position page
+        </Button>
+      ) : null}
       {/*
         Reset the move tree, where it can be found. Since Phase 51 the command
         existed in three menus and the owner could not find any of them; a

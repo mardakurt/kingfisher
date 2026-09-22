@@ -20,6 +20,8 @@ import { desktop } from '@/desktop/bridge';
 import { showTool } from '@/features/workspace/select-tool';
 import { NAV_SECTIONS } from '@/features/shell/navigation';
 import { SETTINGS_INDEX, SETTINGS_SECTIONS } from '@/features/shell/settings-index';
+import { positionPageAvailable } from '@/features/position/open-position-page';
+import { positionPageUrl } from '@/position/knowledge';
 
 export interface Command {
   readonly id: string;
@@ -223,6 +225,28 @@ export function useCommands(): readonly Command[] {
           const fen = analysis().tree.nodes[analysis().currentId]?.fen;
           if (!fen) return;
           router.push(`/openings?fen=${encodeURIComponent(fen)}`);
+        },
+      },
+      {
+        /*
+         * The position page is the un-silo: one URL for your games, your
+         * authored work, each reference population in its own column, stored
+         * engine evidence and same-pawn-structure work. Concealed boards
+         * (Review before reveal, Training) refuse it explicitly — the
+         * command is filtered out of the palette when conceal is active so
+         * the entry's presence cannot itself leak that a position has
+         * evidence. The same capability check gates the board's control and
+         * the position menu, so the three cannot disagree.
+         */
+        id: 'open-position-page',
+        title: 'Open position page',
+        group: 'Position',
+        keywords: 'un-silo evidence games studies repertoire references structure page',
+        run: () => {
+          const fen = analysis().tree.nodes[analysis().currentId]?.fen;
+          if (!fen) return;
+          const href = positionPageUrl(fen);
+          if (href) router.push(href);
         },
       },
       {
@@ -627,6 +651,14 @@ export function useCommands(): readonly Command[] {
       });
     }
 
-    return commands;
+    /*
+     * A concealed workspace suppresses the position page entirely — both the
+     * board's control and the menu's entry check the same capability, so the
+     * palette must do the same. `positionPageAvailable` reads the DOM, which
+     * is fine: the palette is browser-only and the check is one ownership.
+     */
+    return typeof window === 'undefined' || positionPageAvailable()
+      ? commands
+      : commands.filter((command) => command.id !== 'open-position-page');
   }, [pathname, router]);
 }

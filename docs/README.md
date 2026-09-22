@@ -108,6 +108,10 @@ with [`AGENTS.md`](../AGENTS.md).
 - [`design/organising-work.md`](design/organising-work.md) — tags rather
   than folders, and search as a page: the decisions, the model and the
   record.
+- [`design/position-page.md`](design/position-page.md) — the un-silo: one
+  URL for everything Kingfisher knows about a position, position-keyed
+  rather than move-sequence-keyed, with concealed workspaces excluded
+  from the entry point.
 - [`design/scoresheet.md`](design/scoresheet.md) — getting the
   over-the-board game in: what the research says about handwriting
   recognition, the decisions (the rules do the work, the photo goes to the

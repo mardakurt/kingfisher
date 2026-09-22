@@ -37,8 +37,16 @@ export async function openPositionHit(hit: PositionHit, navigate: Navigate): Pro
     return;
   }
   if (hit.kind === 'team') {
+    /*
+     * The hit's id encodes both the assignment and the hand-in (the team
+     * repository is the only one whose hits cover a thread, not a single
+     * document). The ply names the matched node; the hand-in is what the
+     * Team workspace has to open before going to that node.
+     */
+    const [, assignmentId, handoverId] = hit.id.split(':');
+    const handover = assignmentId && handoverId ? `&handover=${encodeURIComponent(handoverId)}` : '';
     navigate(
-      `/team?team=${encodeURIComponent(hit.parentId ?? '')}&assignment=${encodeURIComponent(hit.targetId)}${at}`,
+      `/team?team=${encodeURIComponent(hit.parentId ?? '')}&assignment=${encodeURIComponent(hit.targetId)}${handover}${at}`,
     );
     return;
   }

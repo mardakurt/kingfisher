@@ -15,7 +15,7 @@
  * your device (`docs/design/team-hub.md`).
  */
 
-import { useEffect, useMemo, useRef, useState, type DragEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -75,6 +75,8 @@ export function TeamWorkspace() {
   const params = useSearchParams();
   const paramTeam = params.get('team');
   const paramAssignment = params.get('assignment');
+  const paramHandover = params.get('handover');
+  const paramPly = params.get('ply');
   const [seenParams, setSeenParams] = useState<string | null>(null);
   // A chosen team that was deleted, or one a packet has not created yet, falls back to the first.
   const chosenExists = Boolean(
@@ -110,6 +112,51 @@ export function TeamWorkspace() {
   useEffect(() => {
     rememberSelection(teamId, selectedId);
   }, [teamId, selectedId]);
+
+  /*
+   * A position hit from the position page carries ?handover=&ply= — the hand-in
+   * to open and the matched ply inside it. Without this effect, the position
+   * hit would arrive at the assignment's thread and the board would stay on
+   * whatever it was last; the player has to know which thread holds the
+   * matched position and click it manually, which defeats the un-silo.
+   * The ply is read once per (handover, ply) pair; revisiting the route with
+   * the same params leaves the board alone.
+   */
+  const openHandover = useCallback(
+    (handover: Handover) => {
+      if (!handover.pgn || !assignment) return;
+      const parsed = parseHandoverPgn(handover.pgn);
+      if (!parsed.ok) {
+        notify({
+          tone: 'error',
+          message: 'This handover does not play.',
+          detail: parsed.reason,
+        });
+        return;
+      }
+      openDocument({
+        tree: parsed.tree,
+        document: { kind: 'untitled', title: boardTitle(assignment, handover) },
+      });
+    },
+    [assignment, notify, openDocument],
+  );
+  const appliedDeepLink = useRef<string | null>(null);
+  useEffect(() => {
+    if (!paramHandover || !assignment || !paramPly) return;
+    const key = `${assignment.id}|${paramHandover}|${paramPly}`;
+    if (appliedDeepLink.current === key) return;
+    const handover = assignment.handovers.find((entry) => entry.id === paramHandover);
+    if (!handover) return;
+    const ply = Number(paramPly);
+    if (!Number.isFinite(ply)) return;
+    const parsed = handover.pgn ? parseHandoverPgn(handover.pgn) : null;
+    if (!parsed?.ok) return;
+    appliedDeepLink.current = key;
+    openHandover(handover);
+    const node = Object.values(parsed.tree.nodes).find((entry) => entry.ply === ply);
+    if (node) useAnalysis.getState().goTo(node.id);
+  }, [assignment, openHandover, paramHandover, paramPly]);
 
   const select = (id: string) => {
     setSelectedId(id);

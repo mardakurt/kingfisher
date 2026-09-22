@@ -24,6 +24,9 @@ validation, scheduled backup preference serialization, and an incorrect
 native-companion prerequisite on the AI assistant panel. The engine toolbar
 also wraps controls to keep the engine selector readable in a narrow panel.
 
+**Published revision check (Phase 77, Mac-facing — not yet released).**
+The position page (`/position?fen=…`): one URL for everything Kingfisher knows about a position, joined from existing repositories, with the board control, palette entry and position menu all reaching it through the same `positionPageAvailable()` capability check. Concealed workspaces (Review before reveal, Training, blindfold) suppress the control entirely. No new authored store; the existing position-keyed indexes are the source of truth. The header and the round-brief dialog from Phase 76 also gain a fix in this revision: the header's measurement is invalidated when route actions change so a route that gains an action late keeps a row that has been measured with that action present, and the brief's "Save as HTML" is now exercised by a browser spec covering the diagram path.
+
 **Published revision check (Phase 76, Mac-facing — not yet released).**
 The surprise finder in Preparation. Dynamic ECO in the move list and board orientation from the profile. The
 `/similar` route. Publishing a study, whose Save-as-HTML uses the browser's own download and

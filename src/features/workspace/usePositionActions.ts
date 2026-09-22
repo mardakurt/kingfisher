@@ -20,6 +20,7 @@ import { useUi } from '@/stores/ui-store';
 import { useResearchHistory } from '@/stores/research-history-store';
 import { showTool } from '@/features/workspace/select-tool';
 import { useCalculation } from '@/features/calculation/calculation-store';
+import { positionPageUrl } from '@/position/knowledge';
 
 import { positionActionSections, type PositionActionHandlers } from './position-actions';
 
@@ -66,6 +67,18 @@ export function usePositionActions(options: UsePositionActionsOptions) {
     setup: () => ui.setPositionSetupOpen(true),
     playFromHere: () => showTool(pathname, 'play'),
     report: () => showTool(pathname, 'report'),
+    /*
+     * The un-silo is reachable from every board. Concealed routes
+     * (Review before reveal, Training) refuse it explicitly via the same
+     * capability check the menu's board-area control uses.
+     */
+    openPositionPage: () => {
+      const href = positionPageUrl(options.fen);
+      if (href) {
+        depart();
+        router.push(href);
+      }
+    },
     findModelGames: () => showTool(pathname, 'model-games'),
     searchStructure: () => showTool(pathname, 'features'),
     addToRepertoire: () => ui.setAddToRepertoireOpen(true),

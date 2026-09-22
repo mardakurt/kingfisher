@@ -125,7 +125,7 @@ test.describe('the workspace survives its providers', () => {
     );
     await page.goto('/games');
     await waitForApp(page);
-    await expect(page.getByRole('heading', { name: 'Games' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Games', exact: true })).toBeVisible();
     // The stored-game count is a local fact and must not depend on a remote one.
     await expect(page.getByText(/stored/)).toBeVisible();
   });
@@ -164,7 +164,7 @@ test.describe('the workspace survives its providers', () => {
     await page.route(/pgn-import\.worker/, (route) => route.abort());
     await page.goto('/games');
     await waitForApp(page);
-    await expect(page.getByRole('heading', { name: 'Games' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Games', exact: true })).toBeVisible();
   });
 });
 

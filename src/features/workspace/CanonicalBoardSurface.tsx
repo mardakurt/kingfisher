@@ -368,7 +368,12 @@ export function CanonicalBoardSurface({
       ) : null}
       {showContext && caps.allowContextActions ? (
         <div className="mx-auto mt-2 flex w-full max-w-[860px] shrink-0 items-center gap-3 border-t border-line-subtle pt-1.5">
-          <BoardControls />
+          {/*
+            A concealing workspace (Review before reveal, Calculation,
+            Training) withholds evidence; the position page is exactly that
+            evidence and the button must not even be drawn.
+          */}
+          <BoardControls showPositionPage={caps.showEvaluation} />
           <PositionSummary />
         </div>
       ) : null}
