@@ -121,6 +121,29 @@ describe('buildRoundBrief', () => {
     expect(section.provenance).toContain('2024 onwards');
   });
 
+  it('says what was missing when the dossier is there but holds nothing for that colour', () => {
+    const empty = dossier();
+    const none = buildRoundBrief(
+      input({
+        dossier: {
+          ...empty,
+          games: 0,
+          black: { ...empty.black, games: 0, firstMoves: [], openings: [] },
+        },
+      }),
+    ).sections[0]!;
+    expect(none.lines).toEqual([]);
+    expect(none.missing).toContain('No games of theirs are on this machine');
+
+    const onlyWhite = buildRoundBrief(
+      input({ dossier: { ...empty, black: { ...empty.black, firstMoves: [], openings: [] } } }),
+    ).sections[0]!;
+    expect(onlyWhite.lines).toEqual([]);
+    expect(onlyWhite.missing).toBe(
+      'None of their 40 games on this machine has them playing Black, so there is nothing to describe.',
+    );
+  });
+
   it('says which input was missing rather than dropping the section', () => {
     const brief = buildRoundBrief(input());
     for (const section of brief.sections) {

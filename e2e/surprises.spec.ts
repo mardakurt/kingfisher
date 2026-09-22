@@ -93,10 +93,21 @@ test('the round brief is one self-contained page that names its populations', as
   await creating.getByRole('button', { name: 'Create session', exact: true }).click();
 
   await expect(page.getByLabel('Preparation session')).toHaveValue(/prep-/, { timeout: 30_000 });
-  // The action appears once the session itself has loaded, not when its id is set.
-  const action = page.getByRole('button', { name: /Round brief/ });
-  await expect(action).toBeVisible({ timeout: 30_000 });
-  await action.click();
+  // The action appears once the session itself has loaded, not when its id is
+  // set — and, since the header also carries Position, the fold may put it
+  // behind "More actions" at this width. The test must not care which.
+  const header = page.locator('[data-header-actions][data-header-measured]');
+  const inRow = header.getByRole('button', { name: /Round brief/ });
+  const more = page.getByRole('button', { name: 'More actions' });
+  await expect(inRow.or(more).first()).toBeVisible({ timeout: 30_000 });
+  await expect(async () => {
+    if (await inRow.isVisible()) {
+      await inRow.click();
+    } else {
+      await more.click();
+      await page.getByRole('menuitem', { name: /Round brief/ }).click({ timeout: 2_000 });
+    }
+  }).toPass({ timeout: 30_000 });
   const dialog = page.getByRole('dialog', { name: 'Round brief' });
   await expect(dialog).toBeVisible();
   const summary = dialog.getByTestId('brief');

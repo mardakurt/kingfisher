@@ -8,6 +8,10 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
+- **Fixed: the round brief's first section could say nothing.** With no
+  games of the opponent's on this machine — or none with the colour they will
+  have — _What they play_ printed its title and a dash. It now says which
+  input was missing, as every other section of the brief already did.
 - **Recurring facts in Review → Improvement.** Four questions now join the
   selected period's games to evidence Kingfisher already stores: which moves
   crossed a visible engine-loss threshold, which pawn structures occurred in

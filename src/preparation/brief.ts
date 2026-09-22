@@ -73,20 +73,27 @@ export function buildRoundBrief(input: BriefInput): RoundBrief {
   const sections: BriefSection[] = [];
 
   const side = input.dossier?.[theirColor];
+  const theirSide = theirColor === 'white' ? 'White' : 'Black';
+  const playLines = side
+    ? [...side.firstMoves.slice(0, LIMIT).map(choice), ...side.openings.slice(0, LIMIT).map(choice)]
+    : [];
   sections.push({
-    title: `What they play with ${theirColor === 'white' ? 'White' : 'Black'}`,
+    title: `What they play with ${theirSide}`,
     provenance: input.dossier
       ? `${input.dossier.games} of their games on this machine; "recently" means ${input.dossier.recentFromYear} onwards`
       : 'their games on this machine',
-    lines: side
-      ? [
-          ...side.firstMoves.slice(0, LIMIT).map(choice),
-          ...side.openings.slice(0, LIMIT).map(choice),
-        ]
-      : [],
-    ...(side
+    lines: playLines,
+    // A dossier with no games in it is still a dossier: the section must say
+    // what was missing whenever it has no lines, not only when no dossier was
+    // passed.
+    ...(playLines.length > 0
       ? {}
-      : { missing: 'No games of theirs are on this machine, so there is nothing to describe.' }),
+      : {
+          missing:
+            input.dossier && input.dossier.games > 0
+              ? `None of their ${input.dossier.games} games on this machine has them playing ${theirSide}, so there is nothing to describe.`
+              : 'No games of theirs are on this machine, so there is nothing to describe.',
+        }),
   });
 
   sections.push({
