@@ -230,10 +230,13 @@ function LongestPositionsSection({
                 href={`/position?fen=${encodeURIComponent(row.fen)}`}
                 className="text-sm font-semibold text-accent hover:underline"
               >
-                Position after move {row.firstSeenMoveNumber}–{row.lastSeenMoveNumber}
+                {row.firstSeenMoveNumber === row.lastSeenMoveNumber
+                  ? `Position at move ${row.firstSeenMoveNumber}`
+                  : `Position at moves ${row.firstSeenMoveNumber}–${row.lastSeenMoveNumber}`}
               </Link>
               <span className="text-xs text-secondary">
-                {formatThink(row.totalSeconds)} across {row.games.length} game(s)
+                {formatThink(row.totalSeconds)} across {row.gameCount}{' '}
+                {row.gameCount === 1 ? 'game' : 'games'}
               </span>
             </div>
             <ul className="mt-1 text-xs text-secondary">

@@ -68,7 +68,10 @@ export interface PerMoveNumberRow {
 export interface LongestPositionRow {
   readonly positionKey: string;
   readonly fen: string;
+  /** One entry per think: a position repeated inside a game appears twice. */
   readonly games: readonly LongestPositionGame[];
+  /** Distinct games behind `games` — the denominator the row states. */
+  readonly gameCount: number;
   readonly totalSeconds: number;
   readonly firstSeenMoveNumber: number;
   readonly lastSeenMoveNumber: number;
@@ -284,6 +287,7 @@ const longestPositions = (
         positionKey: move.positionKey,
         fen: move.fen,
         games: [...existing.games, gameRow],
+        gameCount: new Set([...existing.games, gameRow].map((g) => g.gameId)).size,
         totalSeconds: existing.totalSeconds + move.seconds,
         firstSeenMoveNumber: Math.min(existing.firstSeenMoveNumber, move.moveNumber),
         lastSeenMoveNumber: Math.max(existing.lastSeenMoveNumber, move.moveNumber),
@@ -293,6 +297,7 @@ const longestPositions = (
         positionKey: move.positionKey,
         fen: move.fen,
         games: [gameRow],
+        gameCount: 1,
         totalSeconds: move.seconds,
         firstSeenMoveNumber: move.moveNumber,
         lastSeenMoveNumber: move.moveNumber,

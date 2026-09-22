@@ -373,8 +373,36 @@ describe('property 4: position-keyed transpositions meet at one row', () => {
     if ('error' in result) throw new Error('baseline failed');
     const positions = result.report.sections[0]!.longestPositions;
     // Sanity: at least one position key should appear with two games.
-    const multi = positions.find((row) => row.games.length >= 2);
+    const multi = positions.find((row) => row.gameCount >= 2);
     expect(multi).toBeDefined();
+  });
+
+  it('a position repeated inside one game counts that game once', () => {
+    const PGN_REPEAT = `[Event "Repetition"]
+[Site "https://lichess.org"]
+[Date "2026.06.12"]
+[White "Player"]
+[Black "Opponent R"]
+[Result "1/2-1/2"]
+[TimeControl "600+0"]
+
+1. Nf3 {[%clk 0:09:00]} Nf6 {[%clk 0:10:00]} 2. Ng1 {[%clk 0:08:50]} Ng8 {[%clk 0:10:00]}
+3. Nf3 {[%clk 0:07:00]} Nf6 {[%clk 0:10:00]} 4. Ng1 {[%clk 0:06:55]} Ng8 {[%clk 0:10:00]}
+1/2-1/2`;
+    const result = buildSeason({
+      games: [game({ id: 'rep', pgn: PGN_REPEAT })],
+      aliases: ALIASES,
+      predicate: { kind: 'event' as const, value: 'Repetition' },
+      now: NOW,
+    });
+    if ('error' in result) throw new Error('baseline failed');
+    const start = result.report.sections[0]!.longestPositions.find(
+      (row) => row.firstSeenMoveNumber === 1,
+    );
+    // Moves 1 and 3 are played from the same position: two thinks, one game.
+    expect(start?.games.map((g) => g.moveNumber)).toEqual([1, 3]);
+    expect(start?.totalSeconds).toBe(60 + 110);
+    expect(start?.gameCount).toBe(1);
   });
 
   it('mutation: a position-key collision split into two rows breaks the contract', () => {
