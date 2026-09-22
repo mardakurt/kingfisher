@@ -228,6 +228,15 @@ export function useCommands(): readonly Command[] {
         },
       },
       {
+        id: 'open-daily',
+        title: "Open today's session",
+        group: 'Improve',
+        keywords: 'daily rehearsal routine fifteen minutes practice review repertoire endgame',
+        run: () => {
+          router.push('/daily');
+        },
+      },
+      {
         /*
          * The position page is the un-silo: one URL for your games, your
          * authored work, each reference population in its own column, stored

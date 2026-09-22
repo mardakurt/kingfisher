@@ -25,6 +25,7 @@ import {
   Board,
   Clock,
   Database,
+  Daily,
   Dossier,
   Endgame,
   Library,
@@ -156,6 +157,14 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     href: '/training',
     icon: Recall,
     hint: 'Calculation and recall from your own positions.',
+    group: 'improve',
+  },
+  {
+    id: 'daily',
+    label: 'Daily',
+    href: '/daily',
+    icon: Daily,
+    hint: 'Fifteen minutes built from your own repertoire, review queue and endgame library.',
     group: 'improve',
   },
   {

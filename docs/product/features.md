@@ -348,6 +348,20 @@ reloaded and walked back through. Reference packs and the explorer are not
 searched here, and it says so: they answer about a population, this answers
 about you.
 
+### Daily (`/daily`)
+
+Fifteen minutes built only from the player's own work, in four slices in
+a fixed order. **Repertoire** reads training items in `repertoire-recall`
+mode whose schedule is due now. **Critical positions** reads review items
+whose schedule is due now, and uses them as calculation prompts with
+concealment in effect. **Endgame** picks one position, tablebase-eligible
+only (`pieceCount ≤ 7`), deterministically seeded by day so a new day
+yields a new position. **Brief rehearsal** uses the most recent round
+brief's first three sheet cards; the brief itself is read-only. Grading
+reuses the existing SM-2 scheduler on the same record; the schedule is
+the audit trail. The header says "X minutes · N positions · M rehearsed"
+and nothing else — no streak, no rating gain, no invented score.
+
 ### Position page (`/position?fen=…`)
 
 One URL for everything Kingfisher knows about a position. Five sections in

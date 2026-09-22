@@ -44,7 +44,8 @@ export async function openPositionHit(hit: PositionHit, navigate: Navigate): Pro
      * Team workspace has to open before going to that node.
      */
     const [, assignmentId, handoverId] = hit.id.split(':');
-    const handover = assignmentId && handoverId ? `&handover=${encodeURIComponent(handoverId)}` : '';
+    const handover =
+      assignmentId && handoverId ? `&handover=${encodeURIComponent(handoverId)}` : '';
     navigate(
       `/team?team=${encodeURIComponent(hit.parentId ?? '')}&assignment=${encodeURIComponent(hit.targetId)}${handover}${at}`,
     );

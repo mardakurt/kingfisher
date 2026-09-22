@@ -8,6 +8,16 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
+- **The daily session (`/daily`).** Fifteen minutes built only from the
+  player's own work, in four slices in a fixed order: due repertoire
+  cards (training items in `repertoire-recall` mode), due critical
+  positions (review items), one seeded endgame from the player's saved
+  library (tablebase-eligible only), and the most recent round brief's
+  first three sheet cards. Grading reuses the existing SM-2 scheduler
+  on the same record the player already trusts in `/review` — no
+  separate "daily session" store. The headline says "X rehearsed of Y"
+  because that is the only honest count: no streak, no rating-gain, no
+  invented score. (`docs/design/daily-session.md`, Phase 78)
 - **The position page (`/position?fen=…`).** One URL for everything Kingfisher
   knows about a position: your games from it with results and clock facts, the
   studies and hand-ins holding it, the repertoire's chosen move, each reference

@@ -24,6 +24,9 @@ validation, scheduled backup preference serialization, and an incorrect
 native-companion prerequisite on the AI assistant panel. The engine toolbar
 also wraps controls to keep the engine selector readable in a narrow panel.
 
+**Published revision check (Phase 78, Mac-facing — not yet released).**
+The daily session (`/daily`): fifteen minutes built only from the player's own repertoire-recall training cards, due review items, tablebase-eligible endgame positions and the most recent round brief, in four slices in a fixed order. Grading reuses the existing SM-2 schedule; no streak, no invented score, no cloud reminder. The session is rebuilt from the four stores every time it mounts, and the headline says "X rehearsed of Y" — the only honest count. Pure reader (`src/daily/session.ts`) with 22 tests; a deliberate mutation of the `isDue` filter turns seven of them red. A browser spec is in place; the seed-then-route pattern needs a small follow-up (the page's queries re-fire after the seed but the spec's selectors were scoped before the data settled).
+
 **Published revision check (Phase 77, Mac-facing — not yet released).**
 The position page (`/position?fen=…`): one URL for everything Kingfisher knows about a position, joined from existing repositories, with the board control, palette entry and position menu all reaching it through the same `positionPageAvailable()` capability check. Concealed workspaces (Review before reveal, Training, blindfold) suppress the control entirely. No new authored store; the existing position-keyed indexes are the source of truth. The header and the round-brief dialog from Phase 76 also gain a fix in this revision: the header's measurement is invalidated when route actions change so a route that gains an action late keeps a row that has been measured with that action present, and the brief's "Save as HTML" is now exercised by a browser spec covering the diagram path.
 

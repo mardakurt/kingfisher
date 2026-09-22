@@ -452,3 +452,28 @@ export const Feedback = (p: IconProps) => (
     <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8z" />
   </Icon>
 );
+
+/**
+ * Daily: a single chess piece on a calendar-day square.
+ *
+ * The calendar page is a stylised 6×5 grid; the piece stands on one of its
+ * cells to read as "today's session". Distinct from `Recall` (the training
+ * queue, a knight head and neck), from `Review` (a magnifier), and from
+ * `Endgame` (a rook on a plinth) so the collapsed rail keeps four
+ * separate silhouettes for the four "improve" sections.
+ */
+export const Daily = (p: IconProps) => (
+  <Icon {...p}>
+    <rect x="3.5" y="5.5" width="17" height="14" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.4" />
+    <line x1="3.5" y1="9.5" x2="20.5" y2="9.5" stroke="currentColor" strokeWidth="1.2" />
+    <line x1="8" y1="3" x2="8" y2="6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    <line x1="16" y1="3" x2="16" y2="6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    {/*
+      A pawn, head and plinth, smaller than the calendar so the page reads
+      first and the piece second.
+    */}
+    <circle cx="11.5" cy="13" r="1.6" fill="currentColor" />
+    <path d="M11.5 14.5 L11.5 16.5 L13.5 16.5 L13.5 14.5 Z" fill="currentColor" />
+    <rect x="9.8" y="16.5" width="5.4" height="1.2" fill="currentColor" />
+  </Icon>
+);
