@@ -81,6 +81,14 @@
   color: #1b2a35;
   padding: 0.1em 0.35em;
   border-radius: 3px;
+  /* A SHA-256 or a path is one unbroken word; at phone width it pushed the
+     install page 176 px past the viewport. Break it anywhere rather than
+     scroll the page sideways. */
+  overflow-wrap: anywhere;
+}
+
+.kf-docs a {
+  overflow-wrap: anywhere;
 }
 
 .kf-docs pre {

@@ -40,6 +40,11 @@ export function Button({
       type="button"
       className={cn(
         'inline-flex shrink-0 items-center rounded-[4px] whitespace-nowrap transition-colors duration-100',
+        // A button given a width by its caller or stretched by a column keeps
+        // its label on the centre line. `cn` does not merge conflicting
+        // utilities, so a caller that wants a start-aligned row says so with
+        // its own justify-* and the default steps aside.
+        !/(?:^|\s)justify-/.test(className ?? '') && 'justify-center',
         'disabled:pointer-events-none disabled:opacity-40',
         SIZES[size],
         VARIANTS[variant],

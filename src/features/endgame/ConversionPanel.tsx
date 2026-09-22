@@ -35,6 +35,13 @@ const pieceCount = (fen: string): number =>
  * decides whether the player is still winning. Keeping those two roles apart
  * is the whole reason this is a separate surface from Analysis.
  */
+const strengthName = (id: OpponentStrength): string =>
+  OPPONENT_STRENGTH_LABEL[id].split(' — ')[0] ?? OPPONENT_STRENGTH_LABEL[id];
+const strengthDetail = (id: OpponentStrength): string => {
+  const detail = OPPONENT_STRENGTH_LABEL[id].split(' — ').slice(1).join(' — ');
+  return detail ? `${detail[0]!.toUpperCase()}${detail.slice(1)}.` : '';
+};
+
 export function ConversionPanel({
   fen,
   title,
@@ -223,14 +230,21 @@ export function ConversionPanel({
                   {(Object.keys(OPPONENT_STRENGTH_LABEL) as readonly OpponentStrength[]).map(
                     (id) => (
                       <option key={id} value={id}>
-                        {OPPONENT_STRENGTH_LABEL[id]}
+                        {strengthName(id)}
                       </option>
                     ),
                   )}
                 </select>
+                {/* The long half of the label lives here: a dock is narrow, and a
+                    native select cuts its text off mid-sentence. */}
+                <span className="mt-1 block text-2xs text-tertiary" data-strength-detail>
+                  {strengthDetail(strength)}
+                </span>
               </label>
               {error ? <p className="text-xs text-negative">{error}</p> : null}
-              <Button onClick={() => void begin()}>Play it out</Button>
+              <Button variant="accent" onClick={() => void begin()}>
+                Play it out
+              </Button>
             </div>
           )}
         </PanelBody>

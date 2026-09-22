@@ -8,6 +8,13 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
+- **Fixed: button labels that sat off-centre, and pages that scrolled
+  sideways on a phone.** _New team_ on an empty Team page and _Play it out_ in
+  the endgame lab had their labels pinned to the left of a widened button; the
+  install and security pages were up to 120 px wider than a phone because a
+  hash and a URL would not wrap. The endgame lab's opponent choice also no
+  longer cuts its description off mid-sentence. A browser check now measures
+  every route at desk and phone width.
 - **Fixed: the round brief's first section could say nothing.** With no
   games of the opponent's on this machine — or none with the colour they will
   have — _What they play_ printed its title and a dash. It now says which
