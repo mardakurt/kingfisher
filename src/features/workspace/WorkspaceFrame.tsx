@@ -381,7 +381,17 @@ function FrameHeader({
     if (!element) return;
     const titleBlock = element.querySelector<HTMLElement>('[data-header-title]');
     const trailing = element.querySelector<HTMLElement>('[data-header-trailing]');
-    if (!titleBlock || !trailing) {
+    /*
+      A route that supplies its own `toolbar` has no title block, and there is
+      no title floor to protect — the toolbar sizes itself. Refusing to
+      measure in that case left `available` at -1 for ever, and with a
+      negative number `HeaderActions` never counts itself measured and paints
+      the whole row invisible: Preparation's Favourite and My games have been
+      present, laid out and unseeable since the fold was introduced. Only the
+      trailing block is actually required, because it is what the room is
+      measured against.
+    */
+    if (!trailing) {
       setAvailable(-1);
       return;
     }
@@ -390,11 +400,15 @@ function FrameHeader({
     const paddingRight = Number.parseFloat(style.paddingRight) || 0;
     const inner = element.clientWidth - paddingLeft - paddingRight;
     const contentLeft = element.getBoundingClientRect().left + paddingLeft;
-    const titleLeft = titleBlock.getBoundingClientRect().left - contentLeft;
+    const titleLeft = titleBlock
+      ? titleBlock.getBoundingClientRect().left - contentLeft
+      : /* No title block: the leading content is the toolbar, and what is
+           left is measured from where the trailing block begins. */
+        trailing.getBoundingClientRect().left - contentLeft;
     // The name clips itself, so the block's own scrollWidth is only the room
     // it was given; the h1 knows the text. Only the name is protected.
-    const name = titleBlock.querySelector<HTMLElement>('h1');
-    const titleNeed = Math.min(TITLE_FLOOR, name?.scrollWidth ?? 0);
+    const name = titleBlock?.querySelector<HTMLElement>('h1');
+    const titleNeed = titleBlock ? Math.min(TITLE_FLOOR, name?.scrollWidth ?? 0) : 0;
     const row = element.querySelector<HTMLElement>('[data-header-actions]');
     const others = trailing.offsetWidth - (row?.offsetWidth ?? 0);
     const next = Math.floor(inner - titleLeft - titleNeed - others - 12);
@@ -408,6 +422,23 @@ function FrameHeader({
     observer.observe(element);
     return () => observer.disconnect();
   }, [measure]);
+
+  /*
+    And again whenever the route's actions change.
+
+    The header is full width, so its own box never resizes and the observer
+    above never fires; the room was therefore measured once, while the action
+    row was absent, and a route that gains an action later (Preparation gains
+    three the moment a session is chosen) kept a number computed without it.
+    With `available` too small, `HeaderActions` never counts itself measured
+    and paints the whole row `visibility: hidden` — present, laid out,
+    clickable by nothing. Phase 75 fixed the same class of fault from the
+    other side; this is the side where the actions arrive late.
+  */
+  const actionIds = routeActions?.map((action) => action.id).join('|') ?? '';
+  useLayoutEffect(() => {
+    measure();
+  }, [actionIds, measure]);
 
   const fen = useAnalysis((state) => state.tree.nodes[state.currentId]?.fen ?? START_FEN);
   const documentTitle = useAnalysis((state) => state.document.title);

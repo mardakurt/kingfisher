@@ -72,3 +72,55 @@ test('a surprise is their move, your gap and the source’s silence, each counte
   await expect(row).toContainText(/none of [\d,]+ in Kingfisher Starter Reference/);
   await expect(row).not.toContainText('0.0%');
 });
+
+/**
+ * The round brief: one page, assembled from what is already on the machine,
+ * with every section naming its population and every empty one saying which
+ * input was missing.
+ */
+test('the round brief is one self-contained page that names its populations', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/preparation');
+  await ready(page);
+
+  // Created through the product's own control, which is also how a person
+  // makes one — and avoids racing a write against the reload.
+  await page.getByRole('button', { name: 'New session', exact: true }).click();
+  const creating = page.getByRole('dialog');
+  await creating.getByLabel('Title').fill('Round 3');
+  await creating.getByLabel('Opponent').fill('Rival, R');
+  await creating.getByLabel('Event').fill('Club Open');
+  await creating.getByRole('button', { name: 'Create session', exact: true }).click();
+
+  await expect(page.getByLabel('Preparation session')).toHaveValue(/prep-/, { timeout: 30_000 });
+  // The action appears once the session itself has loaded, not when its id is set.
+  const action = page.getByRole('button', { name: /Round brief/ });
+  await expect(action).toBeVisible({ timeout: 30_000 });
+  await action.click();
+  const dialog = page.getByRole('dialog', { name: 'Round brief' });
+  await expect(dialog).toBeVisible();
+  const summary = dialog.getByTestId('brief');
+  await expect(summary).toContainText('Round 3 · vs Rival, R · Club Open');
+  await expect(summary).toContainText('Playing White');
+  // With nothing prepared yet, every section says which input it lacked.
+  await expect(summary).toContainText('What they play with Black');
+  await expect(summary).toContainText('there is nothing to describe');
+  await expect(summary).toContainText('After the round writes one line per game here');
+
+  const download = await Promise.all([
+    page.waitForEvent('download'),
+    dialog.getByRole('button', { name: 'Save as HTML', exact: true }).click(),
+  ]).then(([event]) => event);
+  const stream = await download.createReadStream();
+  const html = await new Promise<string>((resolve, reject) => {
+    let text = '';
+    stream.setEncoding('utf8');
+    stream.on('data', (chunk) => (text += chunk));
+    stream.on('end', () => resolve(text));
+    stream.on('error', reject);
+  });
+  expect(html).toContain('Round 3 · vs Rival, R');
+  expect(html).toContain('names the population it came from');
+  expect(html).not.toMatch(/<script|<link|<img/i);
+  expect(html).not.toMatch(/(?:src|href)\s*=\s*"[^"]*:\/\//i);
+});

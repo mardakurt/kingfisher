@@ -37,12 +37,36 @@ const published = (chapters = [chapter()], options = {}) =>
   publishHtml({ study, chapters, options: { now: Date.UTC(2026, 8, 22), ...options } });
 
 describe('publishHtml', () => {
-  it('is one file: no script, no stylesheet, no external image', () => {
-    const html = published();
+  it('is one file: no script, no stylesheet, no external image — diagrams included', () => {
+    const base = chapter();
+    const path = mainlinePath(base.tree);
+    const marked = path[3]!;
+    const withDiagram: ChapterRecord = {
+      ...base,
+      tree: {
+        ...base.tree,
+        nodes: {
+          ...base.tree.nodes,
+          [marked]: {
+            ...base.tree.nodes[marked]!,
+            meta: { ...base.tree.nodes[marked]!.meta, critical: 'opening' },
+          },
+        },
+      },
+    };
+    // With the diagrams on, because that is when an SVG enters the document
+    // and is the case an "is it self-contained?" check has to cover.
+    const html = published([withDiagram], { diagrams: true });
+    expect(html).toContain('<svg');
     expect(html).not.toMatch(/<script/i);
     expect(html).not.toMatch(/<link/i);
     expect(html).not.toMatch(/<img/i);
-    expect(html).not.toMatch(/https?:\/\//);
+    /*
+      Nothing the browser would fetch. An SVG's `xmlns` is an XML namespace
+      name spelled as a URL and never resolved; `src` and `href` are the
+      attributes that would actually reach the network.
+    */
+    expect(html).not.toMatch(/(?:src|href)\s*=\s*"[^"]*:\/\//i);
     expect(html.startsWith('<!doctype html>')).toBe(true);
   });
 

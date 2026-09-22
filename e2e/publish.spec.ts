@@ -76,9 +76,11 @@ test('a study is published as one self-contained file', async ({ page }) => {
   expect(html).toContain('1.e4');
   expect(html).toContain('2.Nf3');
   expect(html).toContain('Published from Kingfisher');
-  // Self-contained: nothing to fetch, nothing to run.
+  // Self-contained: nothing to fetch, nothing to run. An SVG's `xmlns` is a
+  // namespace name spelled as a URL and never resolved, so the check is on
+  // the attributes that would actually reach the network.
   expect(html).not.toMatch(/<script/i);
   expect(html).not.toMatch(/<link/i);
   expect(html).not.toMatch(/<img/i);
-  expect(html).not.toMatch(/https?:\/\//);
+  expect(html).not.toMatch(/(?:src|href)\s*=\s*"[^"]*:\/\//i);
 });

@@ -28,6 +28,7 @@ import {
   type PreparationEdge,
   type PreparationPriority,
 } from '@/preparation';
+import { buildDossier } from '@/preparation/dossier';
 import { useAnalysis } from '@/stores/analysis-store';
 import { useReferenceSources } from '@/reference/use-references';
 import { WorkspaceFrame } from '@/features/workspace/WorkspaceFrame';
@@ -37,6 +38,9 @@ import { positionKey } from '@/chess/fen';
 import { playerKey } from '@/persistence/schema/migrations';
 import { Dialog } from '@/components/ui/Dialog';
 import { useUi } from '@/stores/ui-store';
+import type { RoundBrief } from '@/preparation/brief';
+
+import { BriefDialog } from './BriefDialog';
 import { DossierPanel } from './DossierPanel';
 import { SurprisesPanel } from './SurprisesPanel';
 import { GameDaySheet } from './GameDaySheet';
@@ -161,6 +165,36 @@ export function PreparationWorkspace({ initialPlayer = '' }: { readonly initialP
       ? 'b'
       : 'w';
 
+  /**
+   * The round brief, printed.
+   *
+   * Assembled from what is already on this screen — the dossier, the
+   * surprises, the gaps — plus the journal, and rendered as the same kind of
+   * self-contained page a published study is, because it is read in a playing
+   * hall. `docs/design/surprise-finder.md`, `src/preparation/brief.ts`.
+   */
+  const openBrief = async () => {
+    if (!session) return;
+    const repositories = await getRepositories();
+    const journal = await repositories.journal.list();
+    const { buildRoundBrief } = await import('@/preparation/brief');
+    setBrief(
+      buildRoundBrief({
+        session,
+        ...(preparation.data
+          ? {
+              dossier: buildDossier(submitted, preparation.data.games, {
+                recentFromYear: new Date().getFullYear() - 2,
+              }),
+            }
+          : {}),
+        gaps: comparison.gaps,
+        journal,
+      }),
+    );
+  };
+
+  const [brief, setBrief] = useState<RoundBrief | null>(null);
   const syncedPosition = useRef<string | null>(null);
 
   /* The sparring partner plays from exactly the tree on screen. */
@@ -546,6 +580,18 @@ export function PreparationWorkspace({ initialPlayer = '' }: { readonly initialP
               },
             ]
           : []),
+        ...(session
+          ? [
+              {
+                id: 'brief',
+                label: 'Round brief…',
+                shortLabel: 'Brief',
+                title:
+                  'One page for the round: what they play, the surprises, where your repertoire stops, and your own last lessons',
+                onClick: () => void openBrief(),
+              },
+            ]
+          : []),
         ...(profile.data?.aliases.length
           ? [
               {
@@ -634,6 +680,9 @@ export function PreparationWorkspace({ initialPlayer = '' }: { readonly initialP
         ...(session && node ? { onAddToPreparation: () => void addToSheet(node.fen, line) } : {}),
       }}
     >
+      {brief && session ? (
+        <BriefDialog brief={brief} orientation={session.myColor} onClose={() => setBrief(null)} />
+      ) : null}
       {sheetOpen && session ? (
         <Dialog
           open
