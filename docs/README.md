@@ -98,6 +98,9 @@ with [`AGENTS.md`](../AGENTS.md).
   the gap with ChessBase and then lead.
 - [`design/team-preparation.md`](design/team-preparation.md) — first-hand research,
   coach/second workflows, implemented improvements and staged implementation plan.
+- [`design/surprise-finder.md`](design/surprise-finder.md) — the join of
+  your repertoire, one opponent's games and a named population: what counts
+  as a surprise, what is deliberately not claimed, and the record.
 - [`design/windows.md`](design/windows.md) — the Windows audit: what is
   already portable, what is macOS by construction, what a port would have to
   do, and why no Windows claim may be made until a build has been run

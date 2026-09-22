@@ -271,11 +271,12 @@ See `features.md`.
 
 ### Later — leading
 
-Overnight tree deepening with a morning report; the surprise finder
-(repertoire × opponent × where the population leaves theory); a remote
-companion on your own machine; academy export with an explicit audience;
-the structured tournament brief; rehearsal with spaced repetition on the
-game-day sheet. Each is designed in `docs/design/` before it is built.
+Overnight tree deepening with a morning report; ~~the surprise finder
+(repertoire × opponent × where the population leaves theory)~~ — **done in
+Phase 76**, `docs/design/surprise-finder.md`; a remote companion on your own
+machine; academy export with an explicit audience; the structured tournament
+brief; rehearsal with spaced repetition on the game-day sheet. Each is
+designed in `docs/design/` before it is built.
 
 ## Sources
 

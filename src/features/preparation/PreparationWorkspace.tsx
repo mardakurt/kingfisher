@@ -38,6 +38,7 @@ import { playerKey } from '@/persistence/schema/migrations';
 import { Dialog } from '@/components/ui/Dialog';
 import { useUi } from '@/stores/ui-store';
 import { DossierPanel } from './DossierPanel';
+import { SurprisesPanel } from './SurprisesPanel';
 import { GameDaySheet } from './GameDaySheet';
 import { OpponentSearch } from './OpponentSearch';
 import { collectOpponentGames, type OpponentGames, type OpponentQuery } from './opponent-games';
@@ -450,6 +451,26 @@ export function PreparationWorkspace({ initialPlayer = '' }: { readonly initialP
                 {edge.san} · {edge.games} games · no prepared reply — prepare one
               </button>
             ))}
+          </section>
+        ) : null}
+        {/*
+          The surprise finder: their games × your repertoire × one named
+          source. It sits beside the dossier because that is where their games
+          already are. docs/design/surprise-finder.md
+        */}
+        {submitted && preparation.data && effectiveRepertoireId ? (
+          <section className="border-t border-line-subtle">
+            <h2 className="px-3 pt-3 text-[10px] uppercase tracking-wide text-tertiary">
+              Surprises
+            </h2>
+            <SurprisesPanel
+              repertoire={repertoire.data?.positions ?? []}
+              opponent={preparation.data.tree}
+              opponentName={submitted}
+              onOpen={(surprise) =>
+                prepareReply(surprise.fen, `After ${submitted} plays ${surprise.san}`)
+              }
+            />
           </section>
         ) : null}
         {submitted && preparation.data ? (

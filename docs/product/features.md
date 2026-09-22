@@ -186,6 +186,16 @@ chose, each with its line and your reason, readable offline), favourites,
 _My games_, a **Sparring** tool that plays the opponent's own replies at
 you, and the opening tree as the context panel.
 
+### Surprises (in Preparation)
+
+What this opponent has played that your repertoire has no answer to and that
+your chosen reference plays rarely. Three populations, never merged: their
+games with their own count, the source's share with its own denominator and
+its name, and your repertoire deciding what "unprepared" means. Nothing
+predicts a move. A move everybody plays is a gap and the Repertoire
+comparison lists it; a source with no games at the position has said nothing
+and the row says so rather than showing 0%.
+
 ### Players (`/players`)
 
 The player library: everyone with games in the installed packs (11,746

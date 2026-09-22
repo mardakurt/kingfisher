@@ -8,6 +8,15 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
+- **The surprise finder (`/preparation`).** What this opponent might play
+  that your repertoire has no answer to, and that the source you chose
+  plays in under 5% of its games there. Three populations joined and none
+  merged: their count with their denominator, the source's share with its
+  own and its name, and your repertoire deciding what counts as
+  unprepared. Nothing predicts a move. A move everybody plays is a gap,
+  not a surprise, and the panel says which panel lists it. A source with
+  no games at a position has said nothing, and the row says so rather than
+  printing a share of zero. (`docs/design/surprise-finder.md`, Phase 76)
 - **The companion is asked to stop, not only signalled.** The shell sent
   `SIGTERM` and nothing else; Windows does not deliver it, so the
   companion's own shutdown — the one that stops every engine — would never

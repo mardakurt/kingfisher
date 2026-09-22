@@ -496,15 +496,14 @@ export function StudiesWorkspace() {
           ) : null}
         </>
       }
+      /*
+        Priority order, and the first entry is the one the header keeps
+        longest. Creating a study is what this route is for; publishing one
+        is what you do afterwards, so it folds first. Putting Publish first
+        pushed New study into the overflow menu at ordinary widths and broke
+        eight browser specs that had every right to expect it in the row.
+      */
       routeActions={[
-        {
-          id: 'publish',
-          label: 'Publish…',
-          shortLabel: 'Publish',
-          icon: <Export />,
-          disabled: !study.data || study.data.chapters.length === 0,
-          onClick: () => setPublishing(true),
-        },
         {
           id: 'create',
           label: 'New study',
@@ -512,6 +511,14 @@ export function StudiesWorkspace() {
           icon: <Plus />,
           variant: 'accent',
           onClick: () => setPrompt({ kind: 'create-study' }),
+        },
+        {
+          id: 'publish',
+          label: 'Publish…',
+          shortLabel: 'Publish',
+          icon: <Export />,
+          disabled: !study.data || study.data.chapters.length === 0,
+          onClick: () => setPublishing(true),
         },
       ]}
       rail={{ label: 'Study', width: 260, content: railContent }}
