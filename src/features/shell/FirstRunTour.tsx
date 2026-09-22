@@ -82,6 +82,8 @@ function sectionTourDetail(id: string): string {
       return 'Spaced repetition over positions you have studied. The schedule learns from how you answered last time.';
     case 'daily':
       return 'Fifteen minutes built only from your own repertoire, critical positions and endgame library — graded by the same four buttons, audited by the same schedule.';
+    case 'season':
+      return 'One named set of your games, read through clock use, time trouble, costly positions and slow openings. Every section names its denominator, and different playing sources stay separate.';
     case 'endgame':
       return 'Saved endgames, tablebase lookups when Syzygy is installed, and the engine beside the position.';
     case 'repertoire':
