@@ -112,6 +112,11 @@ with [`AGENTS.md`](../AGENTS.md).
   URL for everything Kingfisher knows about a position, position-keyed
   rather than move-sequence-keyed, with concealed workspaces excluded
   from the entry point.
+- [`design/daily-session.md`](design/daily-session.md) — the rehearsal
+  the brief's other half needs: fifteen minutes built only from the
+  player's own repertoire, critical positions, endgames and game-day
+  sheet, with the existing schedule as the audit trail and no invented
+  score.
 - [`design/scoresheet.md`](design/scoresheet.md) — getting the
   over-the-board game in: what the research says about handwriting
   recognition, the decisions (the rules do the work, the photo goes to the
