@@ -121,7 +121,7 @@ test('all major routes are reachable and mobile navigation stays usable', async 
   await expect(page.getByRole('navigation', { name: 'Primary mobile navigation' })).toBeVisible();
   await page
     .getByRole('navigation', { name: 'Primary mobile navigation' })
-    .getByRole('link', { name: 'Games' })
+    .getByRole('link', { name: 'Games', exact: true })
     .click();
   await expect(page).toHaveURL(/\/games$/);
   await page.getByRole('button', { name: 'More' }).click();
@@ -169,7 +169,7 @@ test('analysis, games, repertoire and explorer share a working position', async 
 
   await page
     .getByRole('navigation', { name: 'Sections' })
-    .getByRole('link', { name: 'Games' })
+    .getByRole('link', { name: 'Games', exact: true })
     .click();
   await page.getByRole('button', { name: 'Import', exact: true }).click();
   await page

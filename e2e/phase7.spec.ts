@@ -263,7 +263,7 @@ test('study references, saved filters and storage facts are usable', async ({ pa
 
   await page
     .getByRole('navigation', { name: 'Sections' })
-    .getByRole('link', { name: 'Games' })
+    .getByRole('link', { name: 'Games', exact: true })
     .click();
   await page.getByRole('button', { name: 'Filters' }).click();
   await page.getByLabel('Min Elo').fill('2400');
@@ -344,7 +344,7 @@ test('background analysis pauses for interactive work and persists resumable pro
   await expect(page.getByRole('button', { name: 'Stop analysis (E)' })).toBeVisible();
   await page
     .getByRole('navigation', { name: 'Sections' })
-    .getByRole('link', { name: 'Games' })
+    .getByRole('link', { name: 'Games', exact: true })
     .click();
   await openQueue(page);
   await expect(
@@ -361,7 +361,7 @@ test('background analysis pauses for interactive work and persists resumable pro
   await page.getByRole('button', { name: 'Stop analysis (E)' }).click();
   await page
     .getByRole('navigation', { name: 'Sections' })
-    .getByRole('link', { name: 'Games' })
+    .getByRole('link', { name: 'Games', exact: true })
     .click();
   await openQueue(page);
   await expect(page.getByText(/completed ·/).first()).toBeVisible({ timeout: 30_000 });
