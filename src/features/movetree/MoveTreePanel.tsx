@@ -1,5 +1,7 @@
 'use client';
 
+import { useQuery } from '@tanstack/react-query';
+
 import { Panel, PanelHeader } from '@/components/ui/Panel';
 import { MoveTree } from '@/features/movetree/MoveTree';
 import { useChessWorkspace } from '@/features/workspace/ChessWorkspaceContext';
@@ -25,6 +27,24 @@ export function MoveTreePanel({
   readonly className?: string;
 }) {
   const { tree, currentId } = useChessWorkspace();
+  /*
+    Dynamic ECO. The index is a lazily loaded dataset, so this is a query
+    rather than a synchronous read; with no index the list is exactly what it
+    was before, which is the right behaviour for an annotation that is nice
+    to have and never load-bearing.
+  */
+  const marks = useQuery({
+    queryKey: ['eco-marks', tree.rootId, Object.keys(tree.nodes).length],
+    staleTime: 60_000,
+    retry: false,
+    queryFn: async () => {
+      const { loadOpeningIndex } = await import('@/theory/openings');
+      const { ecoMarks, ecoMarksByNode } = await import('@/theory/tree-eco');
+      const { mainlinePath } = await import('@/chess/tree/tree');
+      const index = await loadOpeningIndex();
+      return ecoMarksByNode(ecoMarks(index, tree, mainlinePath(tree)));
+    },
+  });
   const goTo = useAnalysis((state) => state.goTo);
   const setMoveMenu = useUi((state) => state.setMoveMenu);
   const setCommentingNodeId = useUi((state) => state.setCommentingNodeId);
@@ -50,6 +70,7 @@ export function MoveTreePanel({
             setMoveMenu({ nodeId, x: event.clientX, y: event.clientY })
           }
           onEditComment={setCommentingNodeId}
+          {...(marks.data ? { ecoMarks: marks.data } : {})}
         />
       </div>
     </Panel>

@@ -23,6 +23,8 @@ import { getRepositories } from '@/persistence/repositories';
 import type { GameId } from '@/persistence/types';
 import { useAnalysis } from '@/stores/analysis-store';
 
+import { ownColor } from '@/round/identity';
+
 import { viewerSide } from './viewer-side';
 
 export interface OpenStoredGameOptions {
@@ -81,12 +83,24 @@ export async function openStoredGame(
     document kind stays `database-game` (the game *is* stored), but the
     workspace now opens with the right orientation, so a Lichess blitz
     does not have to be flipped by hand after every click.
+
+    Phase 76: and the same for a club player, who has no linked account and
+    whose name is in their profile. The profile's aliases are matched the way
+    the games index matches them — case and whitespace only, never a guess
+    about which "M. Carlsen" is which — so the board flips for an
+    over-the-board game whose scoresheet spells the name as the profile does,
+    and does not flip when it does not. An account match is preferred when
+    both could answer: it is a handle, which is exact by construction.
   */
   let orientation: 'w' | 'b' | undefined;
   try {
     const accounts = await repositories.linkedAccounts.list();
     const side = viewerSide(full.tree, accounts);
-    orientation = side ?? undefined;
+    if (side) orientation = side;
+    else {
+      const profile = await repositories.profile.get();
+      orientation = ownColor(full.tree.headers, profile.aliases) ?? undefined;
+    }
   } catch {
     orientation = undefined;
   }

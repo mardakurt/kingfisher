@@ -8,6 +8,16 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
+- **Dynamic ECO in the move list, and the board flipped from your
+  profile.** The opening code now follows the line rather than labelling
+  the whole game from its headers: a small code appears at each move where
+  the named opening changes, and every move between two of them inherits
+  the name above it — which is Kingfisher's classification rule, shown
+  rather than restated. And a stored game now opens from your side when
+  your profile's name is one of the players, not only when a linked online
+  account matches: the same exact matching the games index uses (case and
+  whitespace, never an initial), so an over-the-board game flips and an
+  ambiguous one does not. (Phase 76)
 - **Similar games (`/similar`).** The position on the board, looked for in
   your own games, in every companion collection and in every installed
   reference pack — each answering for itself, with its own count, never

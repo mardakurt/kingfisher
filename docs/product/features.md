@@ -274,6 +274,8 @@ stalemate, the fifty-move rule or the starting result being gone.
 
 ### Games (`/games`)
 
+Opening a stored game flips the board to your side when a linked account or
+your profile names one of the players (exact spelling, never an initial).
 Your game database: import PGN (a 20,000-game file parses in a Worker,
 stays responsive, can be backgrounded and cancelled), search by player,
 event, opening, year, result, filter and sort with pages that continue each
@@ -281,6 +283,15 @@ other, open a game on the board, the analysis queue (background engine
 analysis of chosen games, paused, resumed and yielding to interactive
 analysis), Kingfisher's own opening classification beside the PGN's tag, and
 delete.
+
+### The move list
+
+Moves, variations, comments and glyphs, with the evaluation beside a
+main-line move — and the **opening code where it changes**: a chip at each
+move whose classification differs from the one above it, so the name follows
+the line instead of labelling the game once. A move with no chip inherits the
+name above it. No chip at all means the dataset names nothing on this line,
+which is a different statement from a blank label.
 
 ### Similar games (`/similar`)
 

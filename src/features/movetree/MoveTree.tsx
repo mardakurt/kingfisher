@@ -3,6 +3,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
 import { nagInfo, nagSymbol } from '@/chess/annotations';
+import type { EcoMark } from '@/theory/tree-eco';
 import { formatScore } from '@/chess/evaluation';
 import type { GameTree, MoveNode, NodeId } from '@/chess/tree/types';
 import { moveNumberOfPly } from '@/chess/tree/types';
@@ -28,6 +29,14 @@ interface MoveTreeProps {
   readonly onContextMenu?: (nodeId: NodeId, event: React.MouseEvent) => void;
   readonly onEditComment?: (nodeId: NodeId) => void;
   readonly showEvaluations?: boolean;
+  /**
+   * The moves at which the opening's name changed, by node.
+   *
+   * "Dynamic ECO": the code follows the line rather than labelling the whole
+   * game from its headers. A move with no mark inherits the name above it,
+   * which is the classification rule made visible rather than restated.
+   */
+  readonly ecoMarks?: ReadonlyMap<NodeId, EcoMark>;
 }
 
 /**
@@ -45,6 +54,7 @@ export function MoveTree({
   onContextMenu,
   onEditComment,
   showEvaluations = true,
+  ecoMarks,
 }: MoveTreeProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -84,6 +94,7 @@ export function MoveTree({
           onContextMenu={onContextMenu}
           onEditComment={onEditComment}
           showEvaluations={showEvaluations}
+          {...(ecoMarks ? { ecoMarks } : {})}
         />
       ) : (
         <div className="[overflow-wrap:anywhere]">
@@ -117,6 +128,7 @@ function VirtualMoveTree({
   onContextMenu,
   onEditComment,
   showEvaluations,
+  ecoMarks,
 }: MoveTreeProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const [sizes, setSizes] = useState<ReadonlyMap<NodeId, number>>(() => new Map());
@@ -194,6 +206,7 @@ function VirtualMoveTree({
               onContextMenu={onContextMenu}
               onEditComment={onEditComment}
               showEvaluation={Boolean(showEvaluations) && row.depth === 0}
+              {...(ecoMarks?.get(row.id) ? { eco: ecoMarks.get(row.id) } : {})}
             />
           );
         })}
@@ -213,6 +226,7 @@ function VirtualRow({
   onContextMenu,
   onEditComment,
   showEvaluation,
+  eco,
 }: {
   readonly row: MoveTreeRow;
   readonly index: number;
@@ -224,6 +238,7 @@ function VirtualRow({
   readonly onContextMenu?: (nodeId: NodeId, event: React.MouseEvent) => void;
   readonly onEditComment?: (nodeId: NodeId) => void;
   readonly showEvaluation: boolean;
+  readonly eco?: EcoMark;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -258,6 +273,15 @@ function VirtualRow({
       {row.startsVariation ? (
         <span className="mr-1 text-[9px] uppercase tracking-wide text-tertiary">
           Variation {row.depth}
+        </span>
+      ) : null}
+      {eco ? (
+        <span
+          className="mr-1 rounded-[3px] border border-line px-1 text-[9px] text-tertiary"
+          data-eco-mark={eco.eco}
+          title={[eco.name, eco.variation].filter(Boolean).join(' — ')}
+        >
+          {eco.eco}
         </span>
       ) : null}
       {row.node.preComment ? <CommentToken text={row.node.preComment} /> : null}

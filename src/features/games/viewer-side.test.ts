@@ -84,3 +84,17 @@ describe('viewerSide', () => {
     expect(viewerSide(tree, accounts)).toBe('b');
   });
 });
+
+describe('the profile, when there is no linked account', () => {
+  it('is what the open path falls back to, under the games index’s own matching', async () => {
+    const { ownColor } = await import('@/round/identity');
+    const headers = { White: 'Kurt, Metin Arda', Black: 'Rival, R' };
+    // Case and whitespace only — the rule the games index uses.
+    expect(ownColor(headers, ['kurt, metin arda'])).toBe('w');
+    expect(ownColor(headers, ['  Kurt,   Metin Arda '])).toBe('w');
+    expect(ownColor(headers, ['Rival, R'])).toBe('b');
+    // And never a guess: an initial is a different spelling, not a match.
+    expect(ownColor(headers, ['Kurt, M'])).toBeNull();
+    expect(ownColor(headers, [])).toBeNull();
+  });
+});
