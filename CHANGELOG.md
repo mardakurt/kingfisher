@@ -8,6 +8,14 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
+- **Publish a study (`/studies` → Publish…).** One file with the boards
+  drawn inside it as SVG and the figurines in Unicode: no stylesheet, no
+  script, no image, no network — it opens on a machine that has never run
+  Kingfisher. Choose the chapters, whether to draw a diagram at each
+  position you marked critical, and a byline; then save it as HTML or
+  print it, which is how it becomes a PDF (the operating system's own,
+  from the same bytes). The dialog says when the chapter on the board has
+  edits that are not in the file yet. (Phase 76)
 - **The evidence, written into the game (_After the round_ → Engine).**
   Once the background pass has analysed a game, every move the engine
   disagreed with can be written into the tree as a variation: its own

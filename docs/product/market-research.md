@@ -244,7 +244,10 @@ See `features.md`.
    compute it; this writes it down. _Done in Phase 76_ — `src/review/annotate.ts`,
    with the threshold in the player's hands and one undo for the whole write.
 6. **Publishing.** A chapter or a report as a PDF and as a self-contained
-   HTML file; a study shared as a link once a delivery exists.
+   HTML file; a study shared as a link once a delivery exists. _Done in
+   Phase 76_ for the file and the PDF (`src/publish/`). A shared link still
+   needs a delivery, and Kingfisher has no account and no server to put one
+   behind; the packet file and this HTML are what it has instead.
 7. **Similar games and structure search as a page**, over packs too.
 8. **Duplicate review, dynamic ECO in the tree, board orientation from the
    profile** — the small ChessMind items, cheap and daily.

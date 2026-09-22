@@ -25,7 +25,9 @@ native-companion prerequisite on the AI assistant panel. The engine toolbar
 also wraps controls to keep the engine selector readable in a narrow panel.
 
 **Published revision check (Phase 76, Mac-facing — not yet released).**
-Writing the engine's evidence into a game, in the _After the round_ dock
+Publishing a study, whose Save-as-HTML uses the browser's own download and
+whose Print… opens the shell's print dialog — both the platform's, neither
+added to the bridge. Writing the engine's evidence into a game, in the _After the round_ dock
 tool. Tags on studies and chapters (**schema v20** — a Mac profile upgrades its
 IndexedDB on first launch of the new build, as every schema change does) and
 the new `/search` route in the rail. The _Coverage_ dock tool and the explorer's corrected empty state (a Mac user

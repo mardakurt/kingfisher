@@ -40,6 +40,7 @@ import {
 import { formatTags, matchesTags, parseTagInput } from '@/persistence/tags';
 import { cn } from '@/lib/cn';
 
+import { PublishDialog } from './PublishDialog';
 import { TagFilter } from './TagFilter';
 import type { ChapterRecord, StudyId, StudyRecord } from '@/persistence/types';
 import { useAnalysis } from '@/stores/analysis-store';
@@ -99,6 +100,7 @@ export function StudiesWorkspace() {
   const all = useMemo(() => studies.data ?? [], [studies.data]);
   const [studyTags, setStudyTags] = useState<readonly string[]>([]);
   const [chapterTags, setChapterTags] = useState<readonly string[]>([]);
+  const [publishing, setPublishing] = useState(false);
   /*
     Filtering the list the picker reads, not a second list beside it: a
     selected study that the filter excludes falls out of the picker, and the
@@ -496,6 +498,14 @@ export function StudiesWorkspace() {
       }
       routeActions={[
         {
+          id: 'publish',
+          label: 'Publish…',
+          shortLabel: 'Publish',
+          icon: <Export />,
+          disabled: !study.data || study.data.chapters.length === 0,
+          onClick: () => setPublishing(true),
+        },
+        {
           id: 'create',
           label: 'New study',
           shortLabel: 'New',
@@ -558,6 +568,10 @@ export function StudiesWorkspace() {
           }}
         />
       )}
+
+      {publishing && study.data ? (
+        <PublishDialog study={study.data} onClose={() => setPublishing(false)} />
+      ) : null}
 
       {prompt?.kind === 'rename-study' && (
         <PromptDialog

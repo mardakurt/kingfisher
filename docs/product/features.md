@@ -282,6 +282,17 @@ analysis of chosen games, paused, resumed and yielding to interactive
 analysis), Kingfisher's own opening classification beside the PGN's tag, and
 delete.
 
+### Publishing a study
+
+_Studies_ → **Publish…**: the chapters you choose become one self-contained
+HTML file — moves, comments, variations and the author's glyphs, with a
+diagram at every position marked critical, drawn as inline SVG. No
+stylesheet, no script, no image, no link: it reads on a machine with no
+Kingfisher, no fonts and no network. _Print…_ renders the same bytes, so the
+operating system's "Save as PDF" produces the document you were looking at.
+The dialog says when the chapter open on the board has unsaved edits, because
+the file is made from what is stored.
+
 ### Writing the engine's evidence into a game
 
 _After the round_ → Engine, once the background queue has analysed the game.

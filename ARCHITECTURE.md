@@ -1072,6 +1072,17 @@ and the integrity scanner offers to drop the dead pointer.
 
 ---
 
+## Publishing
+
+`publish/chapter-html.ts` renders a study's chapters into one HTML document
+and is pure: moves, comments, variations, the author's glyphs, and a diagram
+(inline SVG, from `position-report/print.ts`'s `boardSvg`) at every position
+marked critical. The document has no `<script>`, `<link>` or `<img>` and no
+absolute URL, which is asserted rather than intended — a file somebody is
+emailed opens where nothing else is available. `publish/publish.ts` sends the
+same bytes to a download or to a hidden print iframe, so the PDF the
+operating system writes is the file that was reviewed.
+
 ## Writing the engine's evidence into a game
 
 `review/annotate.ts` reads the stored evidence the background queue wrote
