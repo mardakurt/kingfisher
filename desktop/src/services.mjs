@@ -229,6 +229,34 @@ export class Service {
     if (!child || this.#gone) return { stopped: true, escalated: false };
     const exited = this.#exited ?? Promise.resolve({ code: null, signal: null });
 
+    /*
+      Ask over the channel first, and only then signal.
+
+      `SIGTERM` is what a POSIX shell sends to let the companion run its own
+      shutdown — `engines.stopAll()`, which is the whole reason the contract
+      exists, because engines are spawned detached and outlive a parent
+      nobody told to stop. Windows has no SIGTERM: Node's `kill('SIGTERM')`
+      terminates the process outright, so on Windows the handler would never
+      run and a quit would strand every engine the session had started.
+
+      A message over the IPC channel the fork already has is the same request
+      in a form both platforms deliver, and it reaches the same handler. The
+      signals stay as the escalation, for a companion that does not answer.
+    */
+    let asked = false;
+    try {
+      asked = child.connected === true && child.send?.({ type: 'shutdown' }) !== false;
+    } catch {
+      asked = false;
+    }
+    if (asked) {
+      const answered = await Promise.race([
+        exited.then(() => true),
+        new Promise((resolve) => setTimeout(() => resolve(false), graceMs)),
+      ]);
+      if (answered) return { stopped: true, escalated: false };
+    }
+
     child.kill('SIGTERM');
     const graceful = await Promise.race([
       exited.then(() => true),

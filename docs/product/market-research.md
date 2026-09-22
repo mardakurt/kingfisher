@@ -262,7 +262,12 @@ See `features.md`.
    metadata-key groups across collections, shows the differing annotations,
    and never resolves a group for you.
 9. **Windows.** The shell is Electron; the companion builds there; what is
-   missing is the harness and the signing.
+   missing is the harness and the signing. _Audited in Phase 76_ —
+   `docs/design/windows.md`. One real defect was found and fixed (the
+   shell's shutdown relied on a signal Windows does not deliver, which
+   would have stranded every engine on quit); the rest is a machine, a
+   certificate and a second updater. **No Windows build has been produced
+   or run, and no Windows claim is made.**
 
 ### Later — leading
 

@@ -213,10 +213,13 @@ returns `null` in a browser. Five rules hold, and each has cost something:
   session, no query. A desktop feature needing a second copy of any of them is
   a bug in the arrangement, not a feature of it.
 - **The shell owns the companion's lifetime, and the shutdown is a contract.**
-  `SIGTERM` first so the companion ends its own engines, escalation if it will
-  not go, and an IPC channel it watches so a shell that is _killed_ still takes
-  them with it — engines are spawned detached, which is exactly what lets them
-  outlive a parent nobody told to stop.
+  A `{type: 'shutdown'}` message over the IPC channel first, so the companion
+  ends its own engines on any platform — Windows has no `SIGTERM`, and a shell
+  that only signalled would strand every engine there — then `SIGTERM`,
+  then escalation if it will not go, and the same channel watched from the
+  other end so a shell that is _killed_ still takes them with it. Engines are
+  spawned detached, which is exactly what lets them outlive a parent nobody
+  told to stop. `docs/design/windows.md`.
 - **The origin is a property of the profile, not of the launch.** The shell
   serves the application over loopback, and a browser partitions IndexedDB and
   `localStorage` by origin — which includes the port. A shell that took a fresh

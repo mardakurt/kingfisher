@@ -8,6 +8,13 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
+- **The companion is asked to stop, not only signalled.** The shell sent
+  `SIGTERM` and nothing else; Windows does not deliver it, so the
+  companion's own shutdown — the one that stops every engine — would never
+  have run there, and engines are spawned detached precisely so that they
+  outlive a parent nobody told to stop. The shell now asks over the IPC
+  channel it already had and signals only if that goes unanswered. No
+  change on macOS, where both paths reach the same handler. (Phase 76)
 - **Dynamic ECO in the move list, and the board flipped from your
   profile.** The opening code now follows the line rather than labelling
   the whole game from its headers: a small code appears at each move where

@@ -1202,4 +1202,16 @@ process.on('SIGTERM', shutdown);
 */
 if (typeof process.send === 'function') {
   process.on('disconnect', shutdown);
+  /*
+    And an explicit request, which is what the shell sends first.
+
+    On Windows there is no SIGTERM to catch: the shell's `kill('SIGTERM')`
+    terminates this process without running anything, so every engine it
+    spawned — detached, in its own group — would be left behind. A message
+    reaches this handler on both platforms, and the signals remain the
+    escalation for a companion that does not answer.
+  */
+  process.on('message', (message) => {
+    if (message && typeof message === 'object' && message.type === 'shutdown') shutdown();
+  });
 }

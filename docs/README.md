@@ -98,6 +98,10 @@ with [`AGENTS.md`](../AGENTS.md).
   the gap with ChessBase and then lead.
 - [`design/team-preparation.md`](design/team-preparation.md) — first-hand research,
   coach/second workflows, implemented improvements and staged implementation plan.
+- [`design/windows.md`](design/windows.md) — the Windows audit: what is
+  already portable, what is macOS by construction, what a port would have to
+  do, and why no Windows claim may be made until a build has been run
+  (Phase 76).
 - [`design/organising-work.md`](design/organising-work.md) — tags rather
   than folders, and search as a page: the decisions, the model and the
   record.

@@ -54,6 +54,27 @@ setInterval(() => {}, 1000);
 setTimeout(() => process.exit(0), 60_000);
 `;
 
+/**
+ * One that answers the *message* and ignores the signal.
+ *
+ * This is Windows in a test: there, `kill('SIGTERM')` terminates a process
+ * without running its handler, so a shell that only signals never gets the
+ * companion's own shutdown — and the engines it spawned detached are left
+ * behind. A service that shuts down on the message and not on the signal
+ * fails unless the shell asks over the channel first.
+ */
+const MESSAGE_ONLY = `
+import { createServer } from 'node:http';
+const server = createServer((_req, res) => { res.writeHead(200); res.end('ok'); });
+server.listen(Number(process.env.PORT), '127.0.0.1');
+process.on('SIGTERM', () => {});
+process.on('message', (message) => {
+  if (message && message.type === 'shutdown') server.close(() => process.exit(0));
+});
+setInterval(() => {}, 1000);
+setTimeout(() => process.exit(0), 60_000);
+`;
+
 /** One that fails on boot, the way a missing file or a taken port does. */
 const BROKEN = `
 console.error('could not open the collection');
@@ -85,6 +106,24 @@ describe('a desktop service', () => {
 
     const result = await service.stop();
     expect(result).toEqual({ stopped: true, escalated: false });
+    expect(alive(pid)).toBe(false);
+  });
+
+  it('asks over the channel before it signals, so a shutdown handler runs on any platform', async () => {
+    const port = await freePort();
+    const service = new Service({
+      name: 'message only',
+      entry: script('message-only.mjs', MESSAGE_ONLY),
+      healthUrl: `http://127.0.0.1:${port}/`,
+      env: { PORT: String(port) },
+    });
+    await service.start();
+    const { pid } = service;
+    expect(alive(pid)).toBe(true);
+
+    // Stopped without escalating: the request reached the handler, which is
+    // the only path that exists on Windows.
+    expect(await service.stop({ graceMs: 4_000 })).toEqual({ stopped: true, escalated: false });
     expect(alive(pid)).toBe(false);
   });
 
