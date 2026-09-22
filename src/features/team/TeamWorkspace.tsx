@@ -372,11 +372,21 @@ export function TeamWorkspace() {
       title="No team yet."
       description="Create one, or receive a packet from your coach, your second or your student."
       action={
-        <div className="flex flex-col gap-1.5">
-          <Button variant="accent" onClick={() => setDialog('new-team')} data-team-new>
+        <div className="flex w-full flex-col items-center gap-1.5">
+          <Button
+            variant="accent"
+            onClick={() => setDialog('new-team')}
+            data-team-new
+            className="w-full max-w-[200px]"
+          >
             New team
           </Button>
-          <Button onClick={() => fileInput.current?.click()}>Receive packet…</Button>
+          <Button
+            onClick={() => fileInput.current?.click()}
+            className="w-full max-w-[200px]"
+          >
+            Receive packet…
+          </Button>
         </div>
       }
     />
