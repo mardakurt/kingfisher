@@ -381,10 +381,7 @@ export function TeamWorkspace() {
           >
             New team
           </Button>
-          <Button
-            onClick={() => fileInput.current?.click()}
-            className="w-full max-w-[200px]"
-          >
+          <Button onClick={() => fileInput.current?.click()} className="w-full max-w-[200px]">
             Receive packet…
           </Button>
         </div>

@@ -464,10 +464,35 @@ export const Feedback = (p: IconProps) => (
  */
 export const Daily = (p: IconProps) => (
   <Icon {...p}>
-    <rect x="3.5" y="5.5" width="17" height="14" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.4" />
+    <rect
+      x="3.5"
+      y="5.5"
+      width="17"
+      height="14"
+      rx="1.5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.4"
+    />
     <line x1="3.5" y1="9.5" x2="20.5" y2="9.5" stroke="currentColor" strokeWidth="1.2" />
-    <line x1="8" y1="3" x2="8" y2="6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-    <line x1="16" y1="3" x2="16" y2="6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    <line
+      x1="8"
+      y1="3"
+      x2="8"
+      y2="6"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+    />
+    <line
+      x1="16"
+      y1="3"
+      x2="16"
+      y2="6"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+    />
     {/*
       A pawn, head and plinth, smaller than the calendar so the page reads
       first and the piece second.

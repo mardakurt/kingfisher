@@ -27,11 +27,13 @@ import { useQueryClient } from '@tanstack/react-query';
 
 import { useTrainingItems, useProfile } from '@/features/persistence/queries';
 import { useReviewItems } from '@/features/review/queries';
+import { useEndgamePositions, usePreparationSessions } from '@/features/preparation/queries';
 import {
-  useEndgamePositions,
-  usePreparationSessions,
-} from '@/features/preparation/queries';
-import { buildDailySession, type DailySession, type SessionCard, type SliceId } from '@/daily/session';
+  buildDailySession,
+  type DailySession,
+  type SessionCard,
+  type SliceId,
+} from '@/daily/session';
 import { Button } from '@/components/ui/Button';
 import { Panel, PanelBody, PanelHeader } from '@/components/ui/Panel';
 import { WorkspaceFrame } from '@/features/workspace/WorkspaceFrame';
@@ -99,64 +101,61 @@ export function DailyWorkspace() {
     }
   }, [session]);
 
-  const grade = useCallback(async (card: SessionCard, choice: ReviewGrade) => {
-    if (card.kind !== 'repertoire' && card.kind !== 'critical') {
-      // Endgame and brief cards have no schedule to update; the rehearsal
-      // is logged in the player's own attempt, never against the source.
-      setGraded((current) => {
-        const next2 = new Set(current);
-        next2.add(card.id);
-        return next2;
-      });
-      notify({
-        tone: 'info',
-        message: 'Rehearsed. Endgame and brief cards do not reschedule themselves.',
-      });
-      return;
-    }
-    try {
-      const repositories = await getRepositories();
-      const next = scheduleGrade(card.schedule, choice, Date.now());
-      if (card.kind === 'repertoire') {
-        const current = training.data?.find((item) => item.id === card.id);
-        if (!current) throw new Error('That card no longer exists.');
-        await repositories.training.update({ ...current, schedule: next });
-      } else {
-        await repositories.review.scheduleReviewItem(
-          card.id,
-          card.schedule.reviewCount,
-          next,
-        );
+  const grade = useCallback(
+    async (card: SessionCard, choice: ReviewGrade) => {
+      if (card.kind !== 'repertoire' && card.kind !== 'critical') {
+        // Endgame and brief cards have no schedule to update; the rehearsal
+        // is logged in the player's own attempt, never against the source.
+        setGraded((current) => {
+          const next2 = new Set(current);
+          next2.add(card.id);
+          return next2;
+        });
+        notify({
+          tone: 'info',
+          message: 'Rehearsed. Endgame and brief cards do not reschedule themselves.',
+        });
+        return;
       }
-      setGraded((current) => {
-        const next2 = new Set(current);
-        next2.add(card.id);
-        return next2;
-      });
-      void client.invalidateQueries({ queryKey: ['persistence', 'training'] });
-      void client.invalidateQueries({ queryKey: ['persistence', 'review'] });
-    } catch (error) {
-      notify({
-        tone: 'error',
-        message: 'The schedule did not update.',
-        detail: error instanceof Error ? error.message : undefined,
-      });
-    }
-  }, [client, notify, training.data]);
+      try {
+        const repositories = await getRepositories();
+        const next = scheduleGrade(card.schedule, choice, Date.now());
+        if (card.kind === 'repertoire') {
+          const current = training.data?.find((item) => item.id === card.id);
+          if (!current) throw new Error('That card no longer exists.');
+          await repositories.training.update({ ...current, schedule: next });
+        } else {
+          await repositories.review.scheduleReviewItem(card.id, card.schedule.reviewCount, next);
+        }
+        setGraded((current) => {
+          const next2 = new Set(current);
+          next2.add(card.id);
+          return next2;
+        });
+        void client.invalidateQueries({ queryKey: ['persistence', 'training'] });
+        void client.invalidateQueries({ queryKey: ['persistence', 'review'] });
+      } catch (error) {
+        notify({
+          tone: 'error',
+          message: 'The schedule did not update.',
+          detail: error instanceof Error ? error.message : undefined,
+        });
+      }
+    },
+    [client, notify, training.data],
+  );
 
   if (!session) {
     return (
-      <WorkspaceFrame
-        workspace="daily"
-        title="Daily session"
-        subtitle="Loading your work…"
-      >
+      <WorkspaceFrame workspace="daily" title="Daily session" subtitle="Loading your work…">
         <div data-daily="true" data-daily-count="0" data-daily-rehearsed="0">
           <Panel>
             <PanelHeader>
               <h2 className="text-sm font-semibold text-primary">Daily session</h2>
             </PanelHeader>
-            <PanelBody>Reading your repertoire, review queue and saved endgame positions…</PanelBody>
+            <PanelBody>
+              Reading your repertoire, review queue and saved endgame positions…
+            </PanelBody>
           </Panel>
         </div>
       </WorkspaceFrame>
@@ -185,11 +184,7 @@ export function DailyWorkspace() {
   };
 
   return (
-    <WorkspaceFrame
-      workspace="daily"
-      title="Daily session"
-      subtitle={header}
-    >
+    <WorkspaceFrame workspace="daily" title="Daily session" subtitle={header}>
       <div
         className="flex flex-col gap-4"
         data-daily="true"

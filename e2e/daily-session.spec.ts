@@ -123,9 +123,7 @@ test('the daily session shows four slices in order and grades cards', async ({ p
   await expect(page.getByText('Recall your move after 1. e4 e5 2. Nf3')).toBeVisible();
   await expect(page.getByText('Spend the next thirty seconds here.')).toBeVisible();
   await expect(page.getByText('K vs k')).toBeVisible();
-  await expect(
-    page.getByText('The opening the player wants to remember.'),
-  ).toBeVisible();
+  await expect(page.getByText('The opening the player wants to remember.')).toBeVisible();
 
   // The rehearsal counter starts at zero.
   await expect(page.locator('[data-daily-rehearsed="0"]')).toBeVisible();

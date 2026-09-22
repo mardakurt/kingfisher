@@ -5,16 +5,16 @@ ahead of `origin/master`'s old `9c39de0`. Read, in this order:
 
 1. **The previous handover**: `docs/reports/phase-75-handover.md`, then
    `git log --oneline -30` to see Phases 76–78 (preparation/surprise finder
-   + brief HTML, position page, daily session) and the small Phase 78 follow-up
-   that centred the team page's empty-state buttons. Verify with
-   `git rev-parse HEAD origin/master` and `git status` before editing.
-3. **The market research**: `docs/product/market-research.md` in full —
+   - brief HTML, position page, daily session) and the small Phase 78 follow-up
+     that centred the team page's empty-state buttons. Verify with
+     `git rev-parse HEAD origin/master` and `git status` before editing.
+2. **The market research**: `docs/product/market-research.md` in full —
    §3 (what people complain about, with sources), §4 (the 20-row table — the
    brief), §5 (the strategy in three lines), §6 "Later — leading" (the open
    list). Update §4's "Kingfisher" column to reflect what Phase 77 and
    Phase 78 add before you plan anything. The table is the brief, and it must
    stay true.
-4. **The two designs already written**: `docs/design/position-page.md` and
+3. **The two designs already written**: `docs/design/position-page.md` and
    `docs/design/daily-session.md`. Then the recent reader
    (`src/daily/session.ts`, 22 unit tests) and the workspace
    (`src/features/daily/DailyWorkspace.tsx`).
@@ -32,7 +32,7 @@ turned into a feature.
 §6 "Later — leading" names five. Two are partly in: the surprise finder is
 Phase 76, the daily session is Phase 78 (reader + workspace + route; the
 e2e spec in `e2e/daily-session.spec.ts` needs a seed-then-route wait fix on
-follow-up — *not in this session's scope*, leave it alone). The other three
+follow-up — _not in this session's scope_, leave it alone). The other three
 are open, and the original prompt asked for them before Phase 78:
 
 - **The season** — `After the round` reads one game; a season reader reads
