@@ -782,6 +782,46 @@ mustExist('ARCHITECTURE.md');
   );
 }
 
+// 19. No source file is one git ignores. An unanchored `coverage` rule hid
+// `src/features/coverage/` for three phases: every gate on the machine that
+// wrote the file passed, and every clean checkout — Vercel's included —
+// failed with "Module not found". A clean checkout passes this trivially;
+// the machine holding the ignored file is the one it fails on.
+{
+  const result = spawnSync(
+    'git',
+    [
+      'ls-files',
+      '--others',
+      '--ignored',
+      '--exclude-standard',
+      '--',
+      'src',
+      'e2e',
+      'scripts',
+      'companion/src',
+      'desktop/src',
+    ],
+    { cwd: REPO_ROOT, encoding: 'utf8' },
+  );
+  const hidden =
+    result.status === 0
+      ? result.stdout
+          .trim()
+          .split('\n')
+          .filter((file) => /\.(?:[cm]?[jt]sx?|css|json)$/.test(file))
+      : [];
+  record(
+    'source:no-ignored-files',
+    result.status === 0 && hidden.length === 0,
+    result.status !== 0
+      ? 'git ls-files failed'
+      : hidden.length === 0
+        ? 'no source file is hidden by .gitignore'
+        : `ignored by git, so absent from every clean checkout: ${hidden.slice(0, 5).join(', ')}`,
+  );
+}
+
 // Reporting ----------------------------------------------------------------
 
 if (asJson) {
