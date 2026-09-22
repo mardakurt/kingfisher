@@ -1,5 +1,10 @@
 # Continue Kingfisher from master — the season, the mistakes, the overnight tree
 
+> **Status (2026-09-22): done.** The season (Phase 79) and recurring facts
+> (Phase 80) shipped and are live at `9c7e1b7`. The session close, the
+> remaining browser failure and what comes next are in
+> `docs/reports/phase-80-handover.md` §6. A new session starts from there.
+
 You are picking up Kingfisher at commit `e8ca15d` on `master`, sixteen commits
 ahead of `origin/master`'s old `9c39de0`. Read, in this order:
 

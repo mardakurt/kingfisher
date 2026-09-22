@@ -24,6 +24,17 @@ validation, scheduled backup preference serialization, and an incorrect
 native-companion prerequisite on the AI assistant panel. The engine toolbar
 also wraps controls to keep the engine selector readable in a narrow panel.
 
+**Published revision check (Phase 80 close, Mac-facing — not yet released).**
+Three fixes in shared application code: the season's longest-position rows
+count a game once however often the position recurred in it; the round brief's
+_What they play_ section says which input was missing instead of printing a
+bare dash; and the Coverage dock tool (Phase 76) is committed at last — an
+unanchored `coverage` ignore rule had kept it out of every clean checkout. A
+Mac build made from a clean checkout of any commit between 6ac73ee and
+0435d55 would have failed to build for the same reason; no Mac build was made
+in that range. The public Mac 1.2.6 build contains none of this; section B
+remains due before the next Mac release.
+
 **Published revision check (Phase 80, Mac-facing — not yet released).**
 Review → Improvement now reads four recurring facts from existing stores:
 stored before/after engine scores at a visible threshold, pawn skeletons in at
