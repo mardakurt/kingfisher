@@ -36,6 +36,7 @@ import {
   Repertoire,
   Review,
   Search,
+  Similar,
   Target,
   Team,
 } from '@/components/icons';
@@ -179,6 +180,14 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     href: '/scoresheet',
     icon: Pencil,
     hint: 'Your over-the-board game, from the sheet to the board.',
+    group: 'data',
+  },
+  {
+    id: 'similar',
+    label: 'Similar games',
+    href: '/similar',
+    icon: Similar,
+    hint: 'The position on the board, looked for in every source you have.',
     group: 'data',
   },
   {

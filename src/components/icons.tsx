@@ -277,6 +277,23 @@ export const Team = (p: IconProps) => (
     <path d="M12 6v3.5M6.6 15.9l2.9-2M17.4 15.9l-2.9-2" />
   </Icon>
 );
+/**
+ * Similar games: two boards, one behind the other.
+ *
+ * The section asks "where else has this position been", and the thing it is
+ * about is one position appearing twice — so two squares, offset, sharing
+ * the same four-square grid. Deliberately not a magnifier (Search has it)
+ * and not a bullseye (Target is Preparation): at 21 px the rail reads as a
+ * column of silhouettes, and two of anything must not be one of something
+ * else.
+ */
+export const Similar = (p: IconProps) => (
+  <Icon {...p}>
+    <rect x="3" y="3" width="12" height="12" rx="1.5" />
+    <path d="M9 9h6M12 6v6" />
+    <rect x="9" y="9" width="12" height="12" rx="1.5" />
+  </Icon>
+);
 export const Target = (p: IconProps) => (
   <Icon {...p}>
     <circle cx="12" cy="12" r="8" />

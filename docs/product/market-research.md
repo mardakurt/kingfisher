@@ -249,6 +249,11 @@ See `features.md`.
    needs a delivery, and Kingfisher has no account and no server to put one
    behind; the packet file and this HTML are what it has instead.
 7. **Similar games and structure search as a page**, over packs too.
+   _Done in Phase 76_ (`/similar`). Packs answer the exact position, which
+   is what they indexed, and say in words that they cannot answer a
+   structural query — the build reduced games to positions and kept no
+   skeletons. Indexing structures in a pack is a pack-format change and
+   belongs with the "Later" list, not here.
 8. **Duplicate review, dynamic ECO in the tree, board orientation from the
    profile** — the small ChessMind items, cheap and daily.
 9. **Windows.** The shell is Electron; the companion builds there; what is

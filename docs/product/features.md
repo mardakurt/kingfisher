@@ -282,6 +282,17 @@ analysis of chosen games, paused, resumed and yielding to interactive
 analysis), Kingfisher's own opening classification beside the PGN's tag, and
 delete.
 
+### Similar games (`/similar`)
+
+The position on the board, searched across your games, your companion
+collections and every installed reference pack. Same pawns, same features,
+same position, or only the facts you tick — each mode states what it means
+before it is used. Results are grouped by source with a source's own count;
+populations are never added together. A pack answers "the same position"
+because that is what it indexed, and says in words that it cannot answer
+"the same pawns" — the structures were never stored — rather than returning
+an empty list that would read as an absence of games.
+
 ### Publishing a study
 
 _Studies_ → **Publish…**: the chapters you choose become one self-contained

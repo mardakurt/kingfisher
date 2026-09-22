@@ -66,6 +66,8 @@ function sectionTourDetail(id: string): string {
       return 'One box over everything you have made or imported: a position, a line of moves, or a name. It says which way it read what you typed, and finds a position wherever it is — a study, a game, your repertoire, a hand-in.';
     case 'scoresheet':
       return 'Your over-the-board game, from the sheet to the board. Type each cell as it was written and the rules resolve it; a cell nobody can read is filled from the moves after it, and everything doubtful is listed to check.';
+    case 'similar':
+      return 'The position on the board, looked for in your games, your companion collections and every installed reference pack. Each source answers for itself, and a pack says plainly when it was never asked to index what you are asking for.';
     case 'recent':
       return 'Continue where you left off. Recent keeps your last studies, repertoires and opened games in one place; pinned work stays at the top.';
     case 'analysis':

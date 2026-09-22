@@ -8,6 +8,16 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
+- **Similar games (`/similar`).** The position on the board, looked for in
+  your own games, in every companion collection and in every installed
+  reference pack — each answering for itself, with its own count, never
+  added together. Four ways to count as similar (same pawns, same
+  features, same position, chosen facts), each one saying what it means.
+  And where a source was never asked to index what you are asking for, it
+  says so: a pack stores positions and their counts, not structures, so it
+  can answer "the same position" and cannot answer "the same pawns" — a
+  sentence rather than an empty list that would read as "no such games".
+  (Phase 76)
 - **Publish a study (`/studies` → Publish…).** One file with the boards
   drawn inside it as SVG and the figurines in Unicode: no stylesheet, no
   script, no image, no network — it opens on a machine that has never run
