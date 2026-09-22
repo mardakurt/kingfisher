@@ -24,6 +24,15 @@ validation, scheduled backup preference serialization, and an incorrect
 native-companion prerequisite on the AI assistant panel. The engine toolbar
 also wraps controls to keep the engine selector readable in a narrow panel.
 
+**Published revision check (Phase 79, Mac-facing — not yet released).**
+The season reader (`/season`) joins one named set of the player's games into
+five clock and opening sections with explicit denominators. The URL carries
+the selected last-N-days, event, site or ECO set. Multi-source comparison is
+an explicit toggle and still renders OTB, Lichess and Chess.com separately.
+The slowest-opening row opens Preparation with the exact player, colour and
+ECO. This is shared Next.js application code, so the public Mac 1.2.6 build
+does not contain it; section B remains due before the next Mac release.
+
 **Published revision check (Phase 78, Mac-facing — not yet released).**
 The daily session (`/daily`): fifteen minutes built only from the player's own repertoire-recall training cards, due review items, tablebase-eligible endgame positions and the most recent round brief, in four slices in a fixed order. Grading reuses the existing SM-2 schedule; no streak, no invented score, no cloud reminder. The session is rebuilt from the four stores every time it mounts, and the headline says "X rehearsed of Y" — the only honest count. Pure reader (`src/daily/session.ts`) with 22 tests; a deliberate mutation of the `isDue` filter turns seven of them red. A browser spec is in place; the seed-then-route pattern needs a small follow-up (the page's queries re-fire after the seed but the spec's selectors were scoped before the data settled).
 

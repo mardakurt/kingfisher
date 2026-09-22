@@ -8,6 +8,13 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
+- **The season (`/season`).** Pick the last 30/90/180/365 days, an event,
+  a site or an ECO from games that exist on this machine. Five sections read
+  clock use by phase and move number, the positions that cost the most time,
+  time trouble at moves 30/35/40 and the openings where the move-15 clock was
+  lowest. Every section states its denominator. Enabling all sources compares
+  OTB, Lichess and Chess.com in separate blocks; their populations are never
+  merged. (`docs/design/season.md`, Phase 79)
 - **The daily session (`/daily`).** Fifteen minutes built only from the
   player's own work, in four slices in a fixed order: due repertoire
   cards (training items in `repertoire-recall` mode), due critical

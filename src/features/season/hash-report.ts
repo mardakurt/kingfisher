@@ -38,7 +38,10 @@ const foldPhase = (h: number, row: PhaseRow): number =>
 
 const foldPerMove = (h: number, row: PerMoveNumberRow): number =>
   fold(
-    fold(fold(fold(h, String(row.moveNumber)), String(row.averageSeconds)), String(row.gamesCounted)),
+    fold(
+      fold(fold(h, String(row.moveNumber)), String(row.averageSeconds)),
+      String(row.gamesCounted),
+    ),
     row.anyInTimeTrouble ? '1' : '0',
   );
 
@@ -46,7 +49,10 @@ const foldLongest = (h: number, row: LongestPositionRow): number => {
   let out = fold(fold(h, row.positionKey), String(row.totalSeconds));
   for (const g of row.games) {
     out = fold(
-      fold(fold(fold(out, g.gameId), String(g.moveNumber)), String(g.seconds)),
+      fold(
+        fold(fold(fold(out, g.gameId), String(g.moveNumber)), String(g.seconds)),
+        g.evaluationChange ?? '?',
+      ),
       g.result ?? '?',
     );
   }
@@ -62,18 +68,30 @@ const foldOpening = (h: number, row: SlowOpeningRow): number => {
   out = fold(out, String(row.wins));
   out = fold(out, String(row.losses));
   out = fold(out, String(row.draws));
+  out = fold(out, row.color);
+  out = fold(out, row.fen);
   return out;
 };
 
-const foldSection = (h: number, section: SeasonSection): number => {
-  let out = fold(h, section.source.sourceLabel);
-  for (const r of section.phases) out = foldPhase(out, r);
-  for (const r of section.perMoveNumber) out = foldPerMove(out, r);
-  for (const r of section.longestPositions) out = foldLongest(out, r);
-  for (const r of section.timeTrouble) out = foldTrouble(out, r);
-  for (const r of section.slowestOpenings) out = foldOpening(out, r);
-  return out;
+const hashRows = <T>(
+  source: string,
+  rows: readonly T[],
+  foldRow: (h: number, row: T) => number,
+) => {
+  let out = fold(FNV_OFFSET, source);
+  for (const row of rows) out = foldRow(out, row);
+  return out.toString(16);
 };
 
+/** Five hashes per source bucket, in the same order as the rendered sections. */
 export const hashReport = (report: SeasonReport): readonly string[] =>
-  report.sections.map((section) => foldSection(FNV_OFFSET, section).toString(16));
+  report.sections.flatMap((section: SeasonSection) => {
+    const source = `${section.source.sourceLabel}:${section.totalGames}:${section.gamesWithClock}`;
+    return [
+      hashRows(source, section.phases, foldPhase),
+      hashRows(source, section.perMoveNumber, foldPerMove),
+      hashRows(source, section.longestPositions, foldLongest),
+      hashRows(source, section.timeTrouble, foldTrouble),
+      hashRows(source, section.slowestOpenings, foldOpening),
+    ];
+  });

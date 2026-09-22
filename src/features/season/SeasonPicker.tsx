@@ -90,7 +90,11 @@ export function SeasonPicker({ games, predicate }: SeasonPickerProps) {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
-        <div role="tablist" aria-label="Named-set kind" className="flex gap-1 rounded-md border border-line-subtle bg-surface-1 p-1">
+        <div
+          role="tablist"
+          aria-label="Named-set kind"
+          className="flex gap-1 rounded-md border border-line-subtle bg-surface-1 p-1"
+        >
           {(Object.keys(KIND_LABEL) as SeasonKind[]).map((k) => (
             <button
               key={k}
@@ -146,7 +150,7 @@ export function SeasonPicker({ games, predicate }: SeasonPickerProps) {
               checked={Boolean(predicate.allowMixed)}
               onChange={setAllowMixed}
             />
-            <span>All sources</span>
+            <span>All sources, shown separately</span>
           </label>
         )}
       </div>

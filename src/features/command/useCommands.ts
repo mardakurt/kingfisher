@@ -237,6 +237,15 @@ export function useCommands(): readonly Command[] {
         },
       },
       {
+        id: 'open-season',
+        title: 'Open season',
+        group: 'Improve',
+        keywords: 'season games clock time trouble openings review period',
+        run: () => {
+          router.push('/season');
+        },
+      },
+      {
         /*
          * The position page is the un-silo: one URL for your games, your
          * authored work, each reference population in its own column, stored

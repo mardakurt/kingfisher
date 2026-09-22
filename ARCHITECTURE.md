@@ -849,6 +849,12 @@ Four stores, split by what the state _is_, not by which component uses it.
 | `ui-store`          | Palette / dialog visibility, active panel, notices                                         | No           |
 | `preferences-store` | Themes, board and piece sets, engine defaults                                              | localStorage |
 
+The season reader keeps one small `season-log-store` in `localStorage`: the
+canonical named-set URL, five section hashes per source, and the dates each
+current hash first appeared. It contains no chess work and no computed counts;
+the report always rebuilds from `GameRecord[]`. The log can therefore answer
+when the current reading changed without becoming a second game database.
+
 Two rules hold this together:
 
 - **The tree and the cursor live in one store.** They are not independent — a

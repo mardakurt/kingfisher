@@ -25,6 +25,8 @@ export interface SeasonLogEntry {
   readonly label: string;
   /** Hashes of each section, in the order the reader renders them. */
   readonly sectionHashes: readonly string[];
+  /** When each current section hash first appeared for this named set. */
+  readonly sectionFirstSeenAt: readonly number[];
   readonly firstSeenAt: number;
   readonly lastSeenAt: number;
 }
@@ -58,7 +60,17 @@ export const useSeasonLog = create<SeasonLogState>()(
             return {
               entries: state.entries.map((entry) =>
                 entry.url === url
-                  ? { ...entry, lastSeenAt: at, sectionHashes, label }
+                  ? {
+                      ...entry,
+                      lastSeenAt: at,
+                      sectionHashes,
+                      sectionFirstSeenAt: sectionHashes.map((hash, index) =>
+                        entry.sectionHashes[index] === hash
+                          ? (entry.sectionFirstSeenAt[index] ?? entry.firstSeenAt)
+                          : at,
+                      ),
+                      label,
+                    }
                   : entry,
               ),
             };
@@ -67,6 +79,7 @@ export const useSeasonLog = create<SeasonLogState>()(
             url,
             label,
             sectionHashes,
+            sectionFirstSeenAt: sectionHashes.map(() => at),
             firstSeenAt: at,
             lastSeenAt: at,
           };
@@ -79,8 +92,19 @@ export const useSeasonLog = create<SeasonLogState>()(
     }),
     {
       name: 'kingfisher.season-log',
-      version: 1,
+      version: 2,
       storage: createJSONStorage(() => localStorage),
+      migrate: (persisted) => {
+        const state = persisted as { entries?: readonly SeasonLogEntry[] };
+        return {
+          ...state,
+          entries: (state.entries ?? []).map((entry) => ({
+            ...entry,
+            sectionFirstSeenAt:
+              entry.sectionFirstSeenAt ?? entry.sectionHashes.map(() => entry.firstSeenAt),
+          })),
+        } as unknown as SeasonLogState;
+      },
     },
   ),
 );

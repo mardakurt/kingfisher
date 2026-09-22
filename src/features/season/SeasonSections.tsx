@@ -32,15 +32,16 @@ interface SeasonSectionsProps {
 }
 
 export function SeasonSections({ report, url }: SeasonSectionsProps) {
-  const firstSeenAt = useSeasonLog((state) => state.firstSeen(url)?.firstSeenAt);
+  const logEntry = useSeasonLog((state) => state.firstSeen(url));
   return (
     <div className="flex flex-col gap-3" data-season-sections="true">
       {report.sections.map((section, index) => (
         <SectionBlock
           key={`${section.source.source}-${index}`}
           section={section}
-          firstSeenAt={section.source.source === 'mixed' ? firstSeenAt : undefined}
-          totalSections={report.sections.length}
+          auditLines={Array.from({ length: 5 }, (_, sectionIndex) =>
+            auditLine(logEntry, index * 5 + sectionIndex),
+          )}
         />
       ))}
     </div>
@@ -49,15 +50,13 @@ export function SeasonSections({ report, url }: SeasonSectionsProps) {
 
 interface SectionBlockProps {
   readonly section: SeasonSection;
-  readonly firstSeenAt: number | undefined;
-  readonly totalSections: number;
+  readonly auditLines: readonly string[];
 }
 
-function SectionBlock({ section, firstSeenAt, totalSections }: SectionBlockProps) {
+function SectionBlock({ section, auditLines }: SectionBlockProps) {
   const gamesCount = section.source.games.length;
   const gamesLabel = gamesCount === 1 ? '1 game' : `${gamesCount} games`;
-  const sourceLabel =
-    section.source.source === 'mixed' ? 'All sources' : section.source.sourceLabel;
+  const sourceLabel = section.source.sourceLabel;
 
   return (
     <Panel>
@@ -65,31 +64,76 @@ function SectionBlock({ section, firstSeenAt, totalSections }: SectionBlockProps
         <div className="flex items-baseline justify-between gap-2">
           <h2 className="text-sm font-semibold text-primary">
             {sourceLabel} · {gamesLabel} this season
-            {totalSections > 1 ? '' : ''}
           </h2>
-          <span className="text-xs text-secondary">{firstSeenLine(firstSeenAt)}</span>
         </div>
       </PanelHeader>
       <PanelBody className="flex flex-col gap-4">
-        <PhaseSection section={section} />
-        <PerMoveSection section={section} />
-        <LongestPositionsSection section={section} />
-        <TimeTroubleSection section={section} />
-        <SlowestOpeningsSection section={section} />
+        <PhaseSection section={section} audit={auditLines[0] ?? 'First season for this set'} />
+        <PerMoveSection section={section} audit={auditLines[1] ?? 'First season for this set'} />
+        <LongestPositionsSection
+          section={section}
+          audit={auditLines[2] ?? 'First season for this set'}
+        />
+        <TimeTroubleSection
+          section={section}
+          audit={auditLines[3] ?? 'First season for this set'}
+        />
+        <SlowestOpeningsSection
+          section={section}
+          audit={auditLines[4] ?? 'First season for this set'}
+        />
       </PanelBody>
     </Panel>
   );
 }
 
-function firstSeenLine(timestamp: number | undefined): string {
+function auditLine(
+  entry: ReturnType<typeof useSeasonLog.getState>['entries'][number] | null,
+  index: number,
+): string {
+  if (!entry || entry.firstSeenAt === entry.lastSeenAt) return 'First season for this set';
+  const timestamp = entry.sectionFirstSeenAt[index];
   if (timestamp === undefined) return 'First season for this set';
-  return `First seen ${new Date(timestamp).toLocaleDateString()}`;
+  return `This reading dates from ${new Date(timestamp).toLocaleDateString()}`;
 }
 
-function PhaseSection({ section }: { readonly section: SeasonSection }) {
+function SectionHeading({
+  children,
+  audit,
+}: {
+  readonly children: string;
+  readonly audit: string;
+}) {
+  return (
+    <div className="mb-1 flex flex-wrap items-baseline justify-between gap-2">
+      <h3 className="text-sm font-semibold text-primary">{children}</h3>
+      <span className="text-xs text-secondary">{audit}</span>
+    </div>
+  );
+}
+
+function ClockDenominator({ section }: { readonly section: SeasonSection }) {
+  const missing = section.totalGames - section.gamesWithClock;
+  return (
+    <p className="mb-1.5 text-xs text-secondary">
+      Clock data in {section.gamesWithClock} of {section.totalGames}{' '}
+      {section.totalGames === 1 ? 'game' : 'games'} in this named set
+      {missing > 0 ? ` · ${missing} without clocks` : ''}.
+    </p>
+  );
+}
+
+function PhaseSection({
+  section,
+  audit,
+}: {
+  readonly section: SeasonSection;
+  readonly audit: string;
+}) {
   return (
     <section>
-      <h3 className="mb-1 text-sm font-semibold text-primary">Per phase</h3>
+      <SectionHeading audit={audit}>Per phase</SectionHeading>
+      <ClockDenominator section={section} />
       <table className="w-full text-sm">
         <thead>
           <tr className="text-left text-xs uppercase text-secondary">
@@ -114,7 +158,13 @@ function PhaseSection({ section }: { readonly section: SeasonSection }) {
   );
 }
 
-function PerMoveSection({ section }: { readonly section: SeasonSection }) {
+function PerMoveSection({
+  section,
+  audit,
+}: {
+  readonly section: SeasonSection;
+  readonly audit: string;
+}) {
   const maxAvg = useMemo(
     () => Math.max(1, ...section.perMoveNumber.map((row) => row.averageSeconds)),
     [section.perMoveNumber],
@@ -122,7 +172,8 @@ function PerMoveSection({ section }: { readonly section: SeasonSection }) {
   if (section.perMoveNumber.length === 0) return null;
   return (
     <section>
-      <h3 className="mb-1 text-sm font-semibold text-primary">Per move number</h3>
+      <SectionHeading audit={audit}>Per move number</SectionHeading>
+      <ClockDenominator section={section} />
       <p className="mb-2 text-xs text-secondary">
         Bars highlighted: at least one game was under the time-trouble threshold on this move.
       </p>
@@ -148,21 +199,32 @@ function PerMoveSection({ section }: { readonly section: SeasonSection }) {
   );
 }
 
-function LongestPositionsSection({ section }: { readonly section: SeasonSection }) {
+function LongestPositionsSection({
+  section,
+  audit,
+}: {
+  readonly section: SeasonSection;
+  readonly audit: string;
+}) {
   if (section.longestPositions.length === 0) {
     return (
       <section>
-        <h3 className="mb-1 text-sm font-semibold text-primary">Positions you spent longest on</h3>
+        <SectionHeading audit={audit}>Positions you spent longest on</SectionHeading>
+        <ClockDenominator section={section} />
         <p className="text-sm text-secondary">No clocks to read in the named set.</p>
       </section>
     );
   }
   return (
     <section>
-      <h3 className="mb-1 text-sm font-semibold text-primary">Positions you spent longest on</h3>
+      <SectionHeading audit={audit}>Positions you spent longest on</SectionHeading>
+      <ClockDenominator section={section} />
       <ul className="flex flex-col gap-2">
         {section.longestPositions.map((row) => (
-          <li key={row.positionKey} className="rounded-md border border-line-subtle bg-surface-1 p-2">
+          <li
+            key={row.positionKey}
+            className="rounded-md border border-line-subtle bg-surface-1 p-2"
+          >
             <div className="flex items-baseline justify-between gap-2">
               <Link
                 href={`/position?fen=${encodeURIComponent(row.fen)}`}
@@ -179,6 +241,7 @@ function LongestPositionsSection({ section }: { readonly section: SeasonSection 
                 <li key={`${g.gameId}-${g.moveNumber}`} className="flex justify-between gap-2">
                   <span>
                     Move {g.moveNumber} · played {g.followUpSan}
+                    {g.evaluationChange ? ` · ${g.evaluationChange}` : ''}
                   </span>
                   <span className="tabular-nums">
                     {formatThink(g.seconds)} · {g.result ?? '?'}
@@ -193,16 +256,23 @@ function LongestPositionsSection({ section }: { readonly section: SeasonSection 
   );
 }
 
-function TimeTroubleSection({ section }: { readonly section: SeasonSection }) {
+function TimeTroubleSection({
+  section,
+  audit,
+}: {
+  readonly section: SeasonSection;
+  readonly audit: string;
+}) {
   return (
     <section>
-      <h3 className="mb-1 text-sm font-semibold text-primary">Time trouble per move</h3>
+      <SectionHeading audit={audit}>Time trouble per move</SectionHeading>
+      <ClockDenominator section={section} />
       <table className="w-full text-sm">
         <thead>
           <tr className="text-left text-xs uppercase text-secondary">
             <th className="py-1">Move</th>
             <th className="py-1 text-right">In trouble</th>
-            <th className="py-1 text-right">Total games reaching this move</th>
+            <th className="py-1 text-right">Games in this set with clocks</th>
           </tr>
         </thead>
         <tbody>
@@ -219,11 +289,18 @@ function TimeTroubleSection({ section }: { readonly section: SeasonSection }) {
   );
 }
 
-function SlowestOpeningsSection({ section }: { readonly section: SeasonSection }) {
+function SlowestOpeningsSection({
+  section,
+  audit,
+}: {
+  readonly section: SeasonSection;
+  readonly audit: string;
+}) {
   if (section.slowestOpenings.length === 0) {
     return (
       <section>
-        <h3 className="mb-1 text-sm font-semibold text-primary">Slowest openings</h3>
+        <SectionHeading audit={audit}>Slowest openings</SectionHeading>
+        <ClockDenominator section={section} />
         <p className="text-sm text-secondary">
           Not enough clock data after move 15 to rank openings. Try a longer named set.
         </p>
@@ -232,7 +309,8 @@ function SlowestOpeningsSection({ section }: { readonly section: SeasonSection }
   }
   return (
     <section>
-      <h3 className="mb-1 text-sm font-semibold text-primary">Slowest openings</h3>
+      <SectionHeading audit={audit}>Slowest openings</SectionHeading>
+      <ClockDenominator section={section} />
       <table className="w-full text-sm">
         <thead>
           <tr className="text-left text-xs uppercase text-secondary">
@@ -245,8 +323,17 @@ function SlowestOpeningsSection({ section }: { readonly section: SeasonSection }
         <tbody>
           {section.slowestOpenings.map((row) => (
             <tr key={row.opening} className="border-t border-line-subtle">
-              <td className="py-1">{row.opening}</td>
-              <td className="py-1 text-right tabular-nums">{formatThink(row.averageRemainingSeconds)}</td>
+              <td className="py-1">
+                <Link
+                  href={`/preparation?player=${encodeURIComponent(row.player)}&side=${row.color}&eco=${encodeURIComponent(row.opening)}`}
+                  className="text-accent hover:underline"
+                >
+                  {row.opening} · {row.color === 'w' ? 'White' : 'Black'}
+                </Link>
+              </td>
+              <td className="py-1 text-right tabular-nums">
+                {formatThink(row.averageRemainingSeconds)}
+              </td>
               <td className="py-1 text-right tabular-nums">
                 {row.wins} / {row.losses} / {row.draws}
               </td>

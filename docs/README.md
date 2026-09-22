@@ -117,6 +117,9 @@ with [`AGENTS.md`](../AGENTS.md).
   player's own repertoire, critical positions, endgames and game-day
   sheet, with the existing schedule as the audit trail and no invented
   score.
+- [`design/season.md`](design/season.md) — one named set of the player's
+  games read as clock use, time trouble, costly positions and slow openings,
+  with every source and denominator kept explicit.
 - [`design/scoresheet.md`](design/scoresheet.md) — getting the
   over-the-board game in: what the research says about handwriting
   recognition, the decisions (the rules do the work, the photo goes to the

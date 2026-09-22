@@ -362,6 +362,17 @@ reuses the existing SM-2 scheduler on the same record; the schedule is
 the audit trail. The header says "X minutes · N positions · M rehearsed"
 and nothing else — no streak, no rating gain, no invented score.
 
+### Season (`/season`)
+
+A named set of the player's games: last 30/90/180/365 days, one event, one
+site or one ECO. Five sections read think time by phase and move number, the
+positions that consumed the most time, time trouble at moves 30/35/40 and the
+openings where the clock after move 15 was lowest. Every section states how
+many games supplied clock data. The longest-position rows open the position
+page; slow-opening rows open the player's Preparation dossier for that colour
+and ECO. A set spanning OTB, Lichess and Chess.com is refused until the player
+enables comparison, and comparison still keeps each source in its own block.
+
 ### Position page (`/position?fen=…`)
 
 One URL for everything Kingfisher knows about a position. Five sections in

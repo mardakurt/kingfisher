@@ -63,7 +63,15 @@ interface PreparationData extends OpponentGames {
   readonly tree: OpeningTree;
 }
 
-export function PreparationWorkspace({ initialPlayer = '' }: { readonly initialPlayer?: string }) {
+export function PreparationWorkspace({
+  initialPlayer = '',
+  initialSide = 'any',
+  initialEco = '',
+}: {
+  readonly initialPlayer?: string;
+  readonly initialSide?: 'any' | 'w' | 'b';
+  readonly initialEco?: string;
+}) {
   const router = useRouter();
   const openDocument = useAnalysis((state) => state.openDocument);
   const profile = useProfile();
@@ -72,11 +80,11 @@ export function PreparationWorkspace({ initialPlayer = '' }: { readonly initialP
   const [submitted, setSubmitted] = useState(initialPlayer);
   /** The catalog row behind the name, when it was chosen from the library. */
   const [chosen, setChosen] = useState<CatalogPlayer | null>(null);
-  const [side, setSide] = useState<'any' | 'w' | 'b'>('any');
+  const [side, setSide] = useState<'any' | 'w' | 'b'>(initialSide);
   const [fromYear, setFromYear] = useState('');
   const [toYear, setToYear] = useState('');
   const [minRating, setMinRating] = useState('');
-  const [eco, setEco] = useState('');
+  const [eco, setEco] = useState(initialEco);
   const [result, setResult] = useState<GameResult | 'any'>('any');
   const [recentN, setRecentN] = useState('200');
   const [currentKey, setCurrentKey] = useState('');

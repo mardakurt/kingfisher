@@ -49,7 +49,10 @@ interface PgnInput {
 const game = (input: PgnInput): GameRecord => {
   const parsed = parsePgn(input.pgn);
   const tree = parsed.games[0]?.tree;
-  if (!tree) throw new Error(`PGN parse failed for ${input.id}: ${parsed.issues.map((i) => i.message).join('; ')}`);
+  if (!tree)
+    throw new Error(
+      `PGN parse failed for ${input.id}: ${parsed.issues.map((i) => i.message).join('; ')}`,
+    );
   const treeHeaders = tree.headers ?? {};
   const headers: Record<string, string> = {
     Event: input.headers?.Event ?? treeHeaders.Event ?? 'Club Open',
@@ -72,9 +75,10 @@ const game = (input: PgnInput): GameRecord => {
     result: headers.Result! as GameResult,
     whiteKey: playerKey(white),
     blackKey: playerKey(black),
-    playerKeys: playerKey(white) === playerKey(black)
-      ? [playerKey(white)]
-      : [playerKey(white), playerKey(black)],
+    playerKeys:
+      playerKey(white) === playerKey(black)
+        ? [playerKey(white)]
+        : [playerKey(white), playerKey(black)],
     importedAt: NOW,
     event: headers.Event,
     site: headers.Site,
@@ -141,10 +145,7 @@ const PGN_OTB = `[Event "Club Open OTB"]
 const ALIASES = ['Player'];
 
 const fixtureSet = () => ({
-  games: [
-    game({ id: 'g1', pgn: PGN_FAST }),
-    game({ id: 'g3', pgn: PGN_OTB }),
-  ],
+  games: [game({ id: 'g1', pgn: PGN_FAST }), game({ id: 'g3', pgn: PGN_OTB })],
 });
 
 /**
@@ -153,9 +154,8 @@ const fixtureSet = () => ({
  * for the mixed-source refusal. The OTB game lives under a different
  * event ("Club Open OTB") and a different site.
  */
-const lichessOnlyGames = () => fixtureSet().games.filter(
-  (g) => (g.site ?? '').startsWith('https://lichess.org'),
-);
+const lichessOnlyGames = () =>
+  fixtureSet().games.filter((g) => (g.site ?? '').startsWith('https://lichess.org'));
 
 const defaultInputs = () => ({
   games: lichessOnlyGames(),
@@ -209,15 +209,19 @@ describe('property 1: missing clocks do not zero into the phase totals', () => {
     };
     const beforeResult = buildSeason(inputs);
     if ('error' in beforeResult) throw new Error('baseline failed');
-    const beforeTotal = beforeResult.report.sections[0]!.phases
-      .reduce((sum, row) => sum + row.totalSeconds, 0);
+    const beforeTotal = beforeResult.report.sections[0]!.phases.reduce(
+      (sum, row) => sum + row.totalSeconds,
+      0,
+    );
     const mutated = inputs.games.map((g) =>
       g.id === 'g1' ? { ...g, tree: stripClocks(g.tree) } : g,
     );
     const afterResult = buildSeason({ ...inputs, games: mutated });
     if ('error' in afterResult) throw new Error('mutated failed');
-    const afterTotal = afterResult.report.sections[0]!.phases
-      .reduce((sum, row) => sum + row.totalSeconds, 0);
+    const afterTotal = afterResult.report.sections[0]!.phases.reduce(
+      (sum, row) => sum + row.totalSeconds,
+      0,
+    );
     expect(afterTotal).toBeLessThan(beforeTotal);
   });
 });
@@ -227,7 +231,7 @@ describe('property 1: missing clocks do not zero into the phase totals', () => {
 /* ------------------------------------------------------------------ */
 
 describe('property 2: phase thresholds reorder the rows', () => {
-  it('lowering openingPlies shifts moves out of opening into middlegame', () => {
+  it('lowering the opening move threshold shifts moves into middlegame', () => {
     const inputs = defaultInputs();
     const beforeResult = buildSeason(inputs);
     if ('error' in beforeResult) throw new Error('baseline failed');
@@ -239,7 +243,7 @@ describe('property 2: phase thresholds reorder the rows', () => {
     );
     const afterResult = buildSeason({
       ...inputs,
-      defaults: { openingPlies: 2 },
+      defaults: { openingMoveNumber: 2 },
     });
     if ('error' in afterResult) throw new Error('mutated failed');
     const afterOpening = afterResult.report.sections[0]!.phases.find(
@@ -260,6 +264,20 @@ describe('property 2: phase thresholds reorder the rows', () => {
       0,
     );
     expect(afterTotal).toBe(beforeTotal);
+  });
+
+  it('keeps move 12 in opening and starts endgame at move 30', () => {
+    const result = buildSeason({
+      games: [syntheticGameWithTrouble()],
+      aliases: ALIASES,
+      predicate: { kind: 'event', value: 'Online Blitz' },
+      now: NOW,
+    });
+    if ('error' in result) throw new Error(result.error);
+    const rows = Object.fromEntries(
+      result.report.sections[0]!.phases.map((row) => [row.phase, row.moves]),
+    );
+    expect(rows).toEqual({ opening: 12, middlegame: 17, endgame: 9 });
   });
 });
 
@@ -346,10 +364,7 @@ describe('property 4: position-keyed transpositions meet at one row', () => {
 1-0`;
 
     const inputs = {
-      games: [
-        game({ id: 'ta', pgn: PGN_TRANSPOSE_A }),
-        game({ id: 'tb', pgn: PGN_TRANSPOSE_B }),
-      ],
+      games: [game({ id: 'ta', pgn: PGN_TRANSPOSE_A }), game({ id: 'tb', pgn: PGN_TRANSPOSE_B })],
       aliases: ALIASES,
       predicate: { kind: 'event' as const, value: 'Online Blitz' },
       now: NOW,
@@ -369,10 +384,7 @@ describe('property 4: position-keyed transpositions meet at one row', () => {
     // section must therefore NOT contain two rows whose keys differ but
     // whose FENs collide.
     const inputs = {
-      games: [
-        game({ id: 'ta', pgn: PGN_FAST }),
-        game({ id: 'tb', pgn: PGN_OTB }),
-      ],
+      games: [game({ id: 'ta', pgn: PGN_FAST }), game({ id: 'tb', pgn: PGN_OTB })],
       aliases: ALIASES,
       predicate: { kind: 'event' as const, value: 'Online Blitz' },
       now: NOW,
@@ -403,16 +415,11 @@ describe('property 5: denominators agree across sections', () => {
     const section = result.report.sections[0]!;
     // The slowest-openings section counts by game; its denominator is the
     // number of games with a clock and an ECO.
-    const slowestTotal = section.slowestOpenings.reduce(
-      (sum, row) => sum + row.games,
-      0,
-    );
+    const slowestTotal = section.slowestOpenings.reduce((sum, row) => sum + row.games, 0);
     // The phases total equals the count of moves across the named set;
     // every section agrees on the same `games.length` (after the no-clock
     // filter) implicitly.
-    const gamesWithClock = inputs.games.filter((g) =>
-      g.tree.nodes ? g.tree : g,
-    ).length;
+    const gamesWithClock = inputs.games.filter((g) => (g.tree.nodes ? g.tree : g)).length;
     expect(slowestTotal).toBeLessThanOrEqual(gamesWithClock);
     // The timeTrouble section's per-move totalGames comes from games that
     // reached that move; rows where no game reached the move carry the
@@ -493,7 +500,7 @@ describe('property 6: OTB and Lichess games are never merged', () => {
     }
   });
 
-  it('allowMixed produces one section with source = "mixed"', () => {
+  it('allowMixed compares source buckets without merging their populations', () => {
     const PGN_LICHESS_FOR_MIX = `[Event "Mixed-Event-Test"]
 [Site "https://lichess.org"]
 [Date "2026.06.10"]
@@ -544,9 +551,12 @@ describe('property 6: OTB and Lichess games are never merged', () => {
     const result = buildSeason(inputs);
     expect('error' in result).toBe(false);
     if ('error' in result) return;
-    expect(result.report.sections).toHaveLength(1);
-    expect(result.report.sections[0]!.source.source).toBe('mixed');
-    expect(result.report.sections[0]!.source.sourceLabel).toBe('All sources');
+    expect(result.report.sections).toHaveLength(2);
+    expect(result.report.sections.map((section) => section.source.source).sort()).toEqual([
+      'lichess',
+      'otb',
+    ]);
+    expect(result.report.sections.every((section) => section.source.games.length === 1)).toBe(true);
   });
 });
 
@@ -571,14 +581,19 @@ describe('named-set predicate parsing and URL', () => {
     });
     expect(parseNamedSet({ set: '999' })).toBeNull();
     expect(parseNamedSet({})).toBeNull();
+    expect(parseNamedSet({ set: '90', mixed: '1' })).toEqual({
+      kind: 'last',
+      value: '90',
+      allowMixed: true,
+    });
 
     expect(namedSetUrl({ kind: 'last', value: '90' })).toBe('/season?set=90');
-    expect(
-      namedSetUrl({ kind: 'event', value: 'Club Open', allowMixed: true }),
-    ).toBe('/season?event=Club%20Open&mixed=1');
-    expect(
-      namedSetUrl({ kind: 'opening', value: 'C50', allowMixed: true }),
-    ).toBe('/season?opening=C50&mixed=1');
+    expect(namedSetUrl({ kind: 'event', value: 'Club Open', allowMixed: true })).toBe(
+      '/season?event=Club%20Open&mixed=1',
+    );
+    expect(namedSetUrl({ kind: 'opening', value: 'C50', allowMixed: true })).toBe(
+      '/season?opening=C50&mixed=1',
+    );
   });
 
   it('describeNamedSet is human-readable', () => {
@@ -604,11 +619,7 @@ describe('gamesForPlayer filters by aliases through nameKey', () => {
 describe('applyNamedSet refusal paths', () => {
   it('an empty event returns the readable error', () => {
     const inputs = fixtureSet();
-    const result = applyNamedSet(
-      inputs.games,
-      { kind: 'event', value: 'No Such Tournament' },
-      NOW,
-    );
+    const result = applyNamedSet(inputs.games, { kind: 'event', value: 'No Such Tournament' }, NOW);
     expect('error' in result).toBe(true);
     if ('error' in result) {
       expect(result.error).toMatch(/No games match/);
@@ -617,11 +628,7 @@ describe('applyNamedSet refusal paths', () => {
 
   it('a mixed-source event without allowMixed refuses', () => {
     const inputs = fixtureSet();
-    const result = applyNamedSet(
-      inputs.games,
-      { kind: 'event', value: 'Online Blitz' },
-      NOW,
-    );
+    const result = applyNamedSet(inputs.games, { kind: 'event', value: 'Online Blitz' }, NOW);
     // The default fixture has Lichess only here; we exercise the
     // refusal path by passing a mixed-source set explicitly via a
     // shared event name. Construct one inline.
@@ -675,10 +682,10 @@ describe('options are sorted and de-duplicated', () => {
 
 describe('defaults are sensible', () => {
   it('DEFAULT_SEASON_DEFAULTS matches the design', () => {
-    expect(DEFAULT_SEASON_DEFAULTS.openingPlies).toBe(12);
-    expect(DEFAULT_SEASON_DEFAULTS.endgamePlies).toBe(30);
+    expect(DEFAULT_SEASON_DEFAULTS.openingMoveNumber).toBe(12);
+    expect(DEFAULT_SEASON_DEFAULTS.endgameMoveNumber).toBe(30);
     expect(DEFAULT_SEASON_DEFAULTS.timeTroubleSeconds).toBe(30);
-    expect(DEFAULT_SEASON_DEFAULTS.slowOpeningPlies).toBe(30);
+    expect(DEFAULT_SEASON_DEFAULTS.slowOpeningMoveNumber).toBe(15);
     expect(DEFAULT_SEASON_DEFAULTS.longestPositionsTopN).toBe(5);
   });
 });
@@ -694,7 +701,7 @@ describe('defaults are sensible', () => {
  */
 function stripClocks(tree: GameTree): GameTree {
   const next: GameTree = { ...tree, nodes: { ...tree.nodes } };
-  const mutated: Record<string, typeof next.nodes[string]> = { ...next.nodes };
+  const mutated: Record<string, (typeof next.nodes)[string]> = { ...next.nodes };
   for (const id of Object.keys(mutated)) {
     const node = mutated[id];
     if (!node) continue;

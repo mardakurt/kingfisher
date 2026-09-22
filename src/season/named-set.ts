@@ -58,6 +58,7 @@ export function parseNamedSet(params: {
   readonly event?: string | string[];
   readonly site?: string | string[];
   readonly opening?: string | string[];
+  readonly mixed?: string | string[];
 }): SeasonNamedSet | null {
   const first = <T>(value: T | T[] | undefined): T | undefined =>
     Array.isArray(value) ? value[0] : value;
@@ -65,10 +66,12 @@ export function parseNamedSet(params: {
   const event = first(params.event);
   const site = first(params.site);
   const opening = first(params.opening);
-  if (set && isSeasonLastDays(set)) return { kind: 'last', value: set };
-  if (event) return { kind: 'event', value: event };
-  if (site) return { kind: 'site', value: site };
-  if (opening) return { kind: 'opening', value: opening };
+  const allowMixed = first(params.mixed) === '1';
+  const mixed = allowMixed ? { allowMixed: true as const } : {};
+  if (set && isSeasonLastDays(set)) return { kind: 'last', value: set, ...mixed };
+  if (event) return { kind: 'event', value: event, ...mixed };
+  if (site) return { kind: 'site', value: site, ...mixed };
+  if (opening) return { kind: 'opening', value: opening, ...mixed };
   return null;
 }
 
@@ -79,7 +82,8 @@ const siteSource = (site: string | undefined): SeasonSource => {
   if (!trimmed) return 'other';
   if (trimmed.startsWith('https://lichess.org') || trimmed === 'lichess') return 'lichess';
   if (trimmed.startsWith('https://www.chess.com') || trimmed === 'chess.com') return 'chesscom';
-  if (trimmed === 'otb' || trimmed === 'over the board' || trimmed === 'over-the-board') return 'otb';
+  if (trimmed === 'otb' || trimmed === 'over the board' || trimmed === 'over-the-board')
+    return 'otb';
   return 'other';
 };
 
@@ -99,15 +103,12 @@ export function gamesForPlayer(
   if (aliases.length === 0) return [];
   const keys = new Set(aliases.map(nameKey).filter(Boolean));
   if (keys.size === 0) return [];
-  return games.filter(
-    (game) =>
-      keys.has(nameKey(game.white)) || keys.has(nameKey(game.black)),
-  );
+  return games.filter((game) => keys.has(nameKey(game.white)) || keys.has(nameKey(game.black)));
 }
 
 export interface SeasonSourceBucket {
   readonly predicate: SeasonNamedSet;
-  readonly source: SeasonSource | 'mixed';
+  readonly source: SeasonSource;
   readonly sourceLabel: string;
   readonly games: readonly GameRecord[];
 }
@@ -116,9 +117,10 @@ export interface SeasonSourceBucket {
  * Apply a named-set predicate to a list of games that has already been
  * filtered to the player's games.
  *
- * The function refuses to return a set that mixes OTB, Lichess and Chess.com
- * sources unless the predicate says `allowMixed`. A mixed set is rendered
- * as three rows in the workspace, each with its own denominator.
+ * The function refuses to return a set spanning OTB, Lichess and Chess.com
+ * sources unless the predicate says `allowMixed`. Opting in compares the
+ * sources as separate buckets with separate denominators; it never combines
+ * their populations into one figure.
  */
 export function applyNamedSet(
   games: readonly GameRecord[],
@@ -139,20 +141,13 @@ export function applyNamedSet(
     }
   }
   const sources = sourcesOf(matching);
-  let buckets: readonly SeasonSourceBucket[];
-  if (predicate.allowMixed) {
-    buckets = [bucketize(matching, predicate, 'mixed')];
-  } else if (sources.size === 1) {
-    buckets = [bucketize(matching, predicate, [...sources][0] as SeasonSource)];
-  } else {
-    buckets = [...sources].sort().map((source) =>
-      bucketize(
-        matching.filter((game) => siteSource(game.site) === source),
-        predicate,
-        source,
-      ),
-    );
-  }
+  const buckets = [...sources].sort().map((source) =>
+    bucketize(
+      matching.filter((game) => siteSource(game.site) === source),
+      predicate,
+      source,
+    ),
+  );
   return { sets: buckets };
 }
 
@@ -166,14 +161,11 @@ const SOURCE_LABEL: Record<SeasonSource, string> = {
 const bucketize = (
   games: readonly GameRecord[],
   predicate: SeasonNamedSet,
-  source: SeasonSource | 'mixed',
+  source: SeasonSource,
 ): SeasonSourceBucket => ({
   predicate,
   source,
-  sourceLabel:
-    source === 'mixed'
-      ? 'All sources'
-      : SOURCE_LABEL[source] ?? 'Other',
+  sourceLabel: SOURCE_LABEL[source] ?? 'Other',
   games,
 });
 
@@ -238,15 +230,21 @@ export function namedSetUrl(predicate: SeasonNamedSet): string {
 
 /** A fact the picker reads from the games index: a unique event string. */
 export const eventOptions = (games: readonly GameSummary[]): readonly string[] =>
-  uniqueSorted(games.map((game) => present(game.event)).filter((value): value is string => Boolean(value)));
+  uniqueSorted(
+    games.map((game) => present(game.event)).filter((value): value is string => Boolean(value)),
+  );
 
 /** A fact the picker reads from the games index: a unique site string. */
 export const siteOptions = (games: readonly GameSummary[]): readonly string[] =>
-  uniqueSorted(games.map((game) => present(game.site)).filter((value): value is string => Boolean(value)));
+  uniqueSorted(
+    games.map((game) => present(game.site)).filter((value): value is string => Boolean(value)),
+  );
 
 /** A fact the picker reads from the games index: a unique ECO opening. */
 export const openingOptions = (games: readonly GameSummary[]): readonly string[] =>
-  uniqueSorted(games.map((game) => present(game.eco)).filter((value): value is string => Boolean(value)));
+  uniqueSorted(
+    games.map((game) => present(game.eco)).filter((value): value is string => Boolean(value)),
+  );
 
 const uniqueSorted = (values: readonly string[]): readonly string[] =>
   [...new Set(values)].sort((a, b) => a.localeCompare(b));

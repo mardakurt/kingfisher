@@ -16,6 +16,7 @@
 import { clockSummary } from '@/round/clock';
 import { nameKey } from '@/round/identity';
 import { positionKey } from '@/chess/fen';
+import { formatScore } from '@/chess/evaluation';
 import { mainlinePath } from '@/chess/tree/tree';
 import type { MoveNode } from '@/chess/tree/types';
 import { parseTimeControlTag, type TimeControlMetadata } from '@/chess/clock';
@@ -23,26 +24,26 @@ import type { GameRecord } from '@/persistence/types';
 import { applyNamedSet, type SeasonNamedSet, type SeasonSourceBucket } from './named-set';
 
 export interface SeasonDefaults {
-  /** Opening ends at this ply (inclusive). Default 12 — move 6 for both sides. */
-  readonly openingPlies: number;
-  /** Endgame starts at this ply (inclusive). Default 30 — move 15. */
-  readonly endgamePlies: number;
+  /** Opening ends at this move number (inclusive). Default 12. */
+  readonly openingMoveNumber: number;
+  /** Endgame starts at this move number (inclusive). Default 30. */
+  readonly endgameMoveNumber: number;
   /** Under this many seconds on the move's clock, the move is "in time trouble". Default 30. */
   readonly timeTroubleSeconds: number;
   /**
-   * Slowest openings are ranked by the average clock remaining at this ply.
-   * Default 30 — move 15.
+   * Slowest openings are ranked by the average clock remaining after this
+   * move number. Default 15.
    */
-  readonly slowOpeningPlies: number;
+  readonly slowOpeningMoveNumber: number;
   /** Top N positions by total think time. Default 5. */
   readonly longestPositionsTopN: number;
 }
 
 export const DEFAULT_SEASON_DEFAULTS: SeasonDefaults = {
-  openingPlies: 12,
-  endgamePlies: 30,
+  openingMoveNumber: 12,
+  endgameMoveNumber: 30,
   timeTroubleSeconds: 30,
-  slowOpeningPlies: 30,
+  slowOpeningMoveNumber: 15,
   longestPositionsTopN: 5,
 };
 
@@ -78,6 +79,8 @@ export interface LongestPositionGame {
   readonly moveNumber: number;
   readonly seconds: number;
   readonly followUpSan: string;
+  /** Stored evaluation before and after the move, when the game carries both. */
+  readonly evaluationChange: string | null;
   readonly result: string | null;
 }
 
@@ -89,6 +92,9 @@ export interface TimeTroubleRow {
 
 export interface SlowOpeningRow {
   readonly opening: string;
+  readonly fen: string;
+  readonly player: string;
+  readonly color: 'w' | 'b';
   readonly averageRemainingSeconds: number;
   readonly games: number;
   readonly wins: number;
@@ -98,6 +104,8 @@ export interface SlowOpeningRow {
 
 export interface SeasonSection {
   readonly source: SeasonSourceBucket;
+  readonly totalGames: number;
+  readonly gamesWithClock: number;
   readonly phases: readonly PhaseRow[];
   readonly perMoveNumber: readonly PerMoveNumberRow[];
   readonly longestPositions: readonly LongestPositionRow[];
@@ -118,13 +126,13 @@ interface MoveWithSeconds {
   readonly fen: string;
   readonly positionKey: string;
   readonly san: string;
+  readonly evaluationChange: string | null;
   readonly result: string | null;
 }
 
 const phaseOf = (moveNumber: number, defaults: SeasonDefaults): Phase => {
-  const ply = (moveNumber - 1) * 2 + 1;
-  if (ply <= defaults.openingPlies) return 'opening';
-  if (ply <= defaults.endgamePlies) return 'middlegame';
+  if (moveNumber <= defaults.openingMoveNumber) return 'opening';
+  if (moveNumber < defaults.endgameMoveNumber) return 'middlegame';
   return 'endgame';
 };
 
@@ -140,9 +148,7 @@ const movesForGame = (game: GameRecord, color: 'w' | 'b'): readonly MoveWithSeco
   const tree = game.tree;
   const summary = clockSummary(tree);
   if (!summary.available) return [];
-  const control: TimeControlMetadata | null = parseTimeControlTag(
-    tree.headers.TimeControl,
-  );
+  const control: TimeControlMetadata | null = parseTimeControlTag(tree.headers.TimeControl);
   const path = mainlinePath(tree).slice(1);
   const priorRemaining: Record<'w' | 'b', number | null> = {
     w: control?.initialSeconds ?? null,
@@ -162,14 +168,20 @@ const movesForGame = (game: GameRecord, color: 'w' | 'b'): readonly MoveWithSeco
       typeof node.meta.clockSeconds === 'number' ? node.meta.clockSeconds : null;
     if (remainingAfter !== null) priorRemaining[side] = remainingAfter;
     if (seconds === null) continue;
+    const before = node.parentId ? tree.nodes[node.parentId] : undefined;
+    if (!before) continue;
     out.push({
       gameId: game.id,
       moveNumber,
       seconds,
       remainingAfter,
-      fen: node.fen ?? '',
-      positionKey: node.fen ? positionKey(node.fen) : '',
+      fen: before.fen,
+      positionKey: positionKey(before.fen),
       san: node.move.san,
+      evaluationChange:
+        before.evaluation && node.evaluation
+          ? `${formatScore(before.evaluation.score)} → ${formatScore(node.evaluation.score)}`
+          : null,
       result: game.result ?? null,
     });
   }
@@ -236,10 +248,7 @@ const perMoveNumber = (
     };
     bucket.seconds += move.seconds;
     bucket.games.add(move.gameId);
-    if (
-      move.remainingAfter !== null &&
-      move.remainingAfter < defaults.timeTroubleSeconds
-    ) {
+    if (move.remainingAfter !== null && move.remainingAfter < defaults.timeTroubleSeconds) {
       bucket.trouble = true;
     }
     byMove.set(move.moveNumber, bucket);
@@ -267,6 +276,7 @@ const longestPositions = (
       moveNumber: move.moveNumber,
       seconds: move.seconds,
       followUpSan: move.san,
+      evaluationChange: move.evaluationChange,
       result: move.result,
     };
     if (existing) {
@@ -290,7 +300,9 @@ const longestPositions = (
     }
   }
   return [...byKey.values()]
-    .sort((a, b) => b.totalSeconds - a.totalSeconds || a.firstSeenMoveNumber - b.firstSeenMoveNumber)
+    .sort(
+      (a, b) => b.totalSeconds - a.totalSeconds || a.firstSeenMoveNumber - b.firstSeenMoveNumber,
+    )
     .slice(0, topN)
     .map((row) => ({ ...row, totalSeconds: Math.round(row.totalSeconds) }));
 };
@@ -301,26 +313,17 @@ const timeTrouble = (
   defaults: SeasonDefaults,
 ): readonly TimeTroubleRow[] => {
   const targets = [30, 35, 40] as const;
-  const gamesAtMove = new Map<number, Set<string>>();
   const gamesInTroubleAtMove = new Map<number, Set<string>>();
   for (const move of moves) {
-    const movesSet = gamesAtMove.get(move.moveNumber) ?? new Set();
-    movesSet.add(move.gameId);
-    gamesAtMove.set(move.moveNumber, movesSet);
-    if (
-      move.remainingAfter !== null &&
-      move.remainingAfter < defaults.timeTroubleSeconds
-    ) {
+    if (move.remainingAfter !== null && move.remainingAfter < defaults.timeTroubleSeconds) {
       const troubleSet = gamesInTroubleAtMove.get(move.moveNumber) ?? new Set();
       troubleSet.add(move.gameId);
       gamesInTroubleAtMove.set(move.moveNumber, troubleSet);
     }
   }
   return targets.map((moveNumber) => {
-    const total = gamesAtMove.get(moveNumber)?.size ?? 0;
     const inTrouble = gamesInTroubleAtMove.get(moveNumber)?.size ?? 0;
-    const games = total > 0 ? total : gamesWithClock;
-    return { moveNumber, gamesInTrouble: inTrouble, totalGames: games };
+    return { moveNumber, gamesInTrouble: inTrouble, totalGames: gamesWithClock };
   });
 };
 
@@ -330,22 +333,36 @@ const slowestOpenings = (
   playerColorFor: (game: GameRecord) => 'w' | 'b' | null,
   defaults: SeasonDefaults,
 ): readonly SlowOpeningRow[] => {
-  type Bucket = { remaining: number; games: Set<string> };
+  type Bucket = {
+    remaining: number;
+    games: Set<string>;
+    fen: string;
+    player: string;
+    color: 'w' | 'b';
+  };
   const buckets = new Map<string, Bucket>();
   for (const move of moves) {
-    if (move.moveNumber * 2 - 1 > defaults.slowOpeningPlies) continue;
+    if (move.moveNumber !== defaults.slowOpeningMoveNumber) continue;
     if (move.remainingAfter === null) continue;
     const game = games.find((g) => g.id === move.gameId);
     if (!game) continue;
-    if (!playerColorFor(game)) continue;
+    const color = playerColorFor(game);
+    if (!color) continue;
     const opening = (game.eco ?? '').trim() || '?';
-    const bucket = buckets.get(opening) ?? { remaining: 0, games: new Set() };
+    const key = `${opening}|${color}`;
+    const bucket = buckets.get(key) ?? {
+      remaining: 0,
+      games: new Set(),
+      fen: move.fen,
+      player: color === 'w' ? game.white : game.black,
+      color,
+    };
     bucket.remaining += move.remainingAfter;
     bucket.games.add(move.gameId);
-    buckets.set(opening, bucket);
+    buckets.set(key, bucket);
   }
   const result: SlowOpeningRow[] = [];
-  for (const [opening, bucket] of buckets) {
+  for (const [key, bucket] of buckets) {
     if (bucket.games.size === 0) continue;
     let wins = 0;
     let losses = 0;
@@ -356,11 +373,19 @@ const slowestOpenings = (
       if (!color) continue;
       const r = (game.result ?? '').trim();
       if (r === '1/2-1/2') draws += 1;
-      else if (r === '1-0') wins += color === 'w' ? 1 : 0;
-      else if (r === '0-1') losses += color === 'w' ? 0 : 1;
+      else if (r === '1-0') {
+        if (color === 'w') wins += 1;
+        else losses += 1;
+      } else if (r === '0-1') {
+        if (color === 'b') wins += 1;
+        else losses += 1;
+      }
     }
     result.push({
-      opening,
+      opening: key.split('|')[0] ?? '?',
+      fen: bucket.fen,
+      player: bucket.player,
+      color: bucket.color,
       averageRemainingSeconds: Math.round(bucket.remaining / bucket.games.size),
       games: bucket.games.size,
       wins,
@@ -384,9 +409,7 @@ export function buildSeason(input: {
   readonly now: number;
   readonly defaults?: Partial<SeasonDefaults>;
 }): { readonly report: SeasonReport } | { readonly error: string } {
-  const playerGames = input.games.filter(
-    (game) => playerColor(game, input.aliases) !== null,
-  );
+  const playerGames = input.games.filter((game) => playerColor(game, input.aliases) !== null);
   const bucketed = applyNamedSet(playerGames, input.predicate, input.now);
   if ('error' in bucketed) return bucketed;
   const defaults: SeasonDefaults = { ...DEFAULT_SEASON_DEFAULTS, ...input.defaults };
@@ -397,11 +420,11 @@ export function buildSeason(input: {
       if (!color) continue;
       allMoves.push(...movesForGame(game, color));
     }
-    const gamesWithClock = bucket.games.filter(
-      (game) => clockSummary(game.tree).available,
-    ).length;
+    const gamesWithClock = bucket.games.filter((game) => clockSummary(game.tree).available).length;
     return {
       source: bucket,
+      totalGames: bucket.games.length,
+      gamesWithClock,
       phases: phaseRows(allMoves, defaults),
       perMoveNumber: perMoveNumber(allMoves, defaults),
       longestPositions: longestPositions(allMoves, defaults.longestPositionsTopN),

@@ -11,9 +11,8 @@
  * The reader counts; the player reads. See `docs/design/season.md`.
  */
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
 
 import { WorkspaceFrame } from '@/features/workspace/WorkspaceFrame';
 import { NavButton } from '@/features/shell/NavButton';
@@ -36,35 +35,18 @@ export function SeasonWorkspace() {
         event: params?.get('event') ?? undefined,
         site: params?.get('site') ?? undefined,
         opening: params?.get('opening') ?? undefined,
+        mixed: params?.get('mixed') ?? undefined,
       }),
     [params],
   );
   const profile = useProfile();
-  const aliases = useMemo(
-    () => profile.data?.aliases ?? [],
-    [profile.data?.aliases],
-  );
+  const aliases = useMemo(() => profile.data?.aliases ?? [], [profile.data?.aliases]);
   const games = useSeasonGames();
+  const [now] = useState(() => Date.now());
 
   // Default to "Last 90 days" when no predicate is in the URL.
-  const url = useMemo(
-    () => (params ? `?${params.toString()}` : ''),
-    [params],
-  );
-  const urlForLog = useMemo(
-    () => `/season${url}`.replace(/\?$/, ''),
-    [url],
-  );
-
-  const summaryQuery = useQuery({
-    queryKey: ['persistence', 'season-summaries'],
-    queryFn: async () => {
-      const page = await (await import('@/persistence/repositories')).getRepositories();
-      return page.games.search({});
-    },
-    staleTime: 30_000,
-    retry: false,
-  });
+  const url = useMemo(() => (params ? `?${params.toString()}` : ''), [params]);
+  const urlForLog = useMemo(() => `/season${url}`.replace(/\?$/, ''), [url]);
 
   const seasonResult = useMemo(() => {
     if (!games.data) return null;
@@ -72,9 +54,9 @@ export function SeasonWorkspace() {
       games: games.data,
       aliases,
       predicate: predicate ?? { kind: 'last', value: '90' },
-      now: Date.now(),
+      now,
     });
-  }, [games.data, aliases, predicate]);
+  }, [games.data, aliases, now, predicate]);
 
   const record = useSeasonLog((state) => state.record);
   useEffect(() => {
@@ -98,15 +80,15 @@ export function SeasonWorkspace() {
           <Panel>
             <PanelBody>
               <p className="text-sm text-secondary">
-                Pick a named set above — last 90 days, an event, a site, or an opening. The
-                default when no predicate is in the URL is <strong>Last 90 days</strong>;
-                press a chip or change the dropdown to see another.
+                Pick a named set above — last 90 days, an event, a site, or an opening. The default
+                when no predicate is in the URL is <strong>Last 90 days</strong>; press a chip or
+                change the dropdown to see another.
               </p>
             </PanelBody>
           </Panel>
         ) : null}
         <SeasonPicker
-          games={summaryQuery.data?.games ?? []}
+          games={games.data ?? []}
           predicate={predicate ?? { kind: 'last', value: '90' }}
         />
         {games.isPending ? (
@@ -118,7 +100,9 @@ export function SeasonWorkspace() {
         ) : games.error ? (
           <Panel>
             <PanelBody>
-              <p className="text-sm text-danger">Failed to read your games: {String(games.error)}</p>
+              <p className="text-sm text-danger">
+                Failed to read your games: {String(games.error)}
+              </p>
             </PanelBody>
           </Panel>
         ) : seasonResult && 'error' in seasonResult ? (
