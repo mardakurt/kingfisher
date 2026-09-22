@@ -28,6 +28,12 @@ export interface StudyRecord {
   readonly id: StudyId;
   readonly title: string;
   readonly description?: string;
+  /**
+   * What the person filed this under. Typed, never inferred; absent on
+   * records written before schema v20 and read as none.
+   * `docs/design/organising-work.md`.
+   */
+  readonly tags?: readonly string[];
   readonly createdAt: number;
   readonly updatedAt: number;
 }
@@ -37,6 +43,8 @@ export interface ChapterRecord {
   readonly studyId: StudyId;
   readonly title: string;
   readonly order: number;
+  /** As on the study: typed, never inferred, absent before schema v20. */
+  readonly tags?: readonly string[];
   readonly tree: GameTree;
   readonly createdAt: number;
   readonly updatedAt: number;
@@ -76,11 +84,13 @@ export interface StudyWithChapters {
 export interface CreateStudyInput {
   readonly title: string;
   readonly description?: string;
+  readonly tags?: readonly string[];
 }
 
 export interface StudyUpdate {
   readonly title?: string;
   readonly description?: string;
+  readonly tags?: readonly string[];
 }
 
 export interface CreateChapterInput {
@@ -103,6 +113,8 @@ export interface StudyRepository {
    */
   saveChapter(chapter: ChapterRecord): Promise<ChapterRecord>;
   renameChapter(id: ChapterId, title: string): Promise<ChapterRecord>;
+  /** Replace a chapter's tags. Normalised here, so every writer agrees. */
+  tagChapter(id: ChapterId, tags: readonly string[]): Promise<ChapterRecord>;
   deleteChapter(id: ChapterId): Promise<void>;
   reorderChapters(studyId: StudyId, orderedIds: readonly ChapterId[]): Promise<void>;
   duplicateChapter(id: ChapterId): Promise<ChapterRecord>;

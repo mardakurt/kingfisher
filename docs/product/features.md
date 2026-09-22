@@ -141,6 +141,10 @@ _New line_.
 
 ### Studies (`/studies`)
 
+Tags file studies and chapters under as many subjects as they belong to
+(typed, never inferred); the rail filters by them and narrows as you add
+more.
+
 Notebooks of chapters. Create, rename, delete, duplicate and reorder
 chapters; every chapter is a full annotated tree with autosave, a write
 revision (a second tab's stale write is refused and offered as _Reload
@@ -277,6 +281,17 @@ other, open a game on the board, the analysis queue (background engine
 analysis of chosen games, paused, resumed and yielding to interactive
 analysis), Kingfisher's own opening classification beside the PGN's tag, and
 delete.
+
+### Search (`/search`)
+
+One box over everything you have made or imported: a FEN, a line of moves,
+or a name. The page says which way it read what you typed, groups the
+results by kind with a count each, adds the same-pawns group for a
+position, and opens every hit where it was found — the same openers the
+command palette uses. The query lives in `?q=`, so a search can be linked,
+reloaded and walked back through. Reference packs and the explorer are not
+searched here, and it says so: they answer about a population, this answers
+about you.
 
 ### Coverage (a dock tool, wherever the Explorer is)
 

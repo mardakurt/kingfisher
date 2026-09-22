@@ -788,13 +788,31 @@ async function reclaimSupersededChunks(store: ReferencePackStore): Promise<void>
   }
 }
 
+/**
+ * The bundled pack, installed — with one retry.
+ *
+ * This is the pack that ships inside the application, and the reason the
+ * explorer can promise never to be blank. Its install is still a sequence of
+ * local reads that can fail: a storage quota that was full a moment ago, a
+ * chunk request the service worker lost during an update, a tab suspended
+ * mid-install. When it failed there was no second attempt — the profile spent
+ * the rest of its session with an explorer that had no source at all and a
+ * recorded error nobody was looking at. A single retry costs a few local
+ * reads and removes that outcome; a second failure is left recorded, and the
+ * explorer now says so where the person is looking.
+ */
+async function installBundled(): Promise<boolean> {
+  if (await startInstall(BUNDLED_PACK_ID)) return true;
+  return startInstall(BUNDLED_PACK_ID);
+}
+
 export function initialiseReferences(): Promise<void> {
   started ??= (async () => {
     const store = await referencePackStore();
     await refresh(store);
     const bundled = installed.find((pack) => pack.id === BUNDLED_PACK_ID);
     if (bundled?.state !== 'ready') {
-      await startInstall(BUNDLED_PACK_ID);
+      await installBundled();
       await reclaimSupersededChunks(store);
       return;
     }
@@ -811,7 +829,7 @@ export function initialiseReferences(): Promise<void> {
     if (!catalog) return;
     try {
       const shipped = await fetchManifest(catalog.manifestUrl);
-      if (shipped.version !== bundled.manifest.version) await startInstall(BUNDLED_PACK_ID);
+      if (shipped.version !== bundled.manifest.version) await installBundled();
     } catch {
       // A build whose own asset cannot be read has bigger problems than a
       // stale reference, and the installed pack still answers.

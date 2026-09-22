@@ -1,4 +1,5 @@
 import { stableId } from '../ids';
+import { normalizeTags } from '../tags';
 import { STORE_NAMES } from '../schema/migrations';
 import type {
   ChapterId,
@@ -44,6 +45,7 @@ export class LocalStudyRepository implements StudyRepository {
       id: stableId('study'),
       title,
       ...(input.description?.trim() ? { description: input.description.trim() } : {}),
+      ...(normalizeTags(input.tags).length ? { tags: normalizeTags(input.tags) } : {}),
       createdAt: now,
       updatedAt: now,
     };
@@ -61,6 +63,16 @@ export class LocalStudyRepository implements StudyRepository {
         ? update.description.trim()
           ? { description: update.description.trim() }
           : { description: undefined }
+        : {}),
+      /*
+        An empty list removes the key rather than storing `[]`: a multi-entry
+        index ignores an empty array anyway, and "untagged" should look the
+        same whether a study never had tags or had them taken away.
+      */
+      ...(update.tags !== undefined
+        ? normalizeTags(update.tags).length
+          ? { tags: normalizeTags(update.tags) }
+          : { tags: undefined }
         : {}),
       updatedAt: Date.now(),
     };
@@ -168,6 +180,20 @@ export class LocalStudyRepository implements StudyRepository {
     const chapter = await this.getChapter(id);
     if (!chapter) throw new Error('That chapter no longer exists.');
     return this.saveChapter({ ...chapter, title: requiredTitle(title, 'Chapter') });
+  }
+
+  async tagChapter(id: ChapterId, tags: readonly string[]): Promise<ChapterRecord> {
+    const current = await this.getChapter(id);
+    if (!current) throw new Error('That chapter no longer exists.');
+    const normalized = normalizeTags(tags);
+    const next: ChapterRecord = {
+      ...current,
+      ...(normalized.length ? { tags: normalized } : { tags: undefined }),
+      updatedAt: Date.now(),
+      revision: current.revision + 1,
+    };
+    await this.database.put(STORE_NAMES.chapters, next);
+    return next;
   }
 
   async deleteChapter(id: ChapterId): Promise<void> {

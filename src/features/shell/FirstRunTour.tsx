@@ -62,6 +62,10 @@ export const sectionTourDetailForTest = (id: string): string => sectionTourDetai
 
 function sectionTourDetail(id: string): string {
   switch (id) {
+    case 'search':
+      return 'One box over everything you have made or imported: a position, a line of moves, or a name. It says which way it read what you typed, and finds a position wherever it is — a study, a game, your repertoire, a hand-in.';
+    case 'scoresheet':
+      return 'Your over-the-board game, from the sheet to the board. Type each cell as it was written and the rules resolve it; a cell nobody can read is filled from the moves after it, and everything doubtful is listed to check.';
     case 'recent':
       return 'Continue where you left off. Recent keeps your last studies, repertoires and opened games in one place; pinned work stays at the top.';
     case 'analysis':

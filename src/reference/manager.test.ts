@@ -151,6 +151,57 @@ describe('bringing the bundled reference up on start-up', () => {
     expect((await packReader(BUNDLED_PACK_ID)?.game('g1'))?.white).toBe('First');
   });
 
+  it('retries once when the first install of the built-in pack fails', async () => {
+    const generation = bundled('1', 'First');
+    const inner = serve(() => generation);
+    let failures = 0;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        // Fail every request of the first attempt, then serve normally. A
+        // profile whose first install fails must not spend its session
+        // without the one source that ships inside the application.
+        if (failures < 1 && String(input).endsWith('manifest.json')) {
+          failures += 1;
+          throw new Error('the network went away');
+        }
+        return inner(input);
+      }),
+    );
+
+    await initialiseReferences();
+
+    const source = referenceSnapshot().sources.find((entry) => entry.id === BUNDLED_PACK_ID);
+    expect(source?.state).toBe('ready');
+    expect(referenceSnapshot().errors[BUNDLED_PACK_ID]).toBeUndefined();
+  });
+
+  it('tries exactly twice when the built-in pack cannot be installed at all', async () => {
+    // A profile that has nothing: the store this suite shares is emptied so
+    // the start-up path is the one a fresh browser takes.
+    const store = await referencePackStore();
+    for (const pack of await store.list()) await store.remove(pack.id);
+    resetReferenceManagerForTests();
+    resetReferencePackStoreForTests();
+    let attempts = 0;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        if (String(input).endsWith('manifest.json')) attempts += 1;
+        throw new Error('the network went away');
+      }),
+    );
+
+    await initialiseReferences();
+
+    // Two attempts, and the reason kept for the panel that shows it. Not a
+    // loop: a pack that cannot be installed should say so, not retry for ever.
+    expect(attempts).toBe(2);
+    expect(referenceSnapshot().errors[BUNDLED_PACK_ID]).toContain(
+      'The pack description could not be reached',
+    );
+  });
+
   it('replaces an older generation with the one this build ships', async () => {
     let generation = bundled('1', 'First');
     vi.stubGlobal(

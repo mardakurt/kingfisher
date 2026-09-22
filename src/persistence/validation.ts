@@ -45,10 +45,15 @@ export function isGameTree(value: unknown): value is GameTree {
   return object(root) && root.parentId === null && text(root.fen) && Array.isArray(root.children);
 }
 
+/** Tags are optional and, when present, a list of strings. */
+const tagList = (value: unknown): boolean =>
+  value === undefined || (Array.isArray(value) && value.every((entry) => text(entry)));
+
 export const isStudyRecord = (value: unknown): value is StudyRecord =>
   object(value) &&
   text(value.id) &&
   text(value.title) &&
+  tagList(value.tags) &&
   finite(value.createdAt) &&
   finite(value.updatedAt);
 
@@ -57,6 +62,7 @@ export const isChapterRecord = (value: unknown): value is ChapterRecord =>
   text(value.id) &&
   text(value.studyId) &&
   text(value.title) &&
+  tagList(value.tags) &&
   finite(value.order) &&
   finite(value.createdAt) &&
   finite(value.updatedAt) &&

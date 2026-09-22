@@ -1,5 +1,5 @@
 export const DATABASE_NAME = 'kingfisher';
-export const DATABASE_VERSION = 19;
+export const DATABASE_VERSION = 20;
 
 export const STORE_NAMES = {
   studies: 'studies',
@@ -501,6 +501,22 @@ export const MIGRATIONS: readonly Migration[] = [
         { name: 'fingerprint', keyPath: 'fingerprint', unique: true },
         { name: 'updatedAt', keyPath: 'updatedAt' },
       ]);
+    },
+  },
+  {
+    version: 20,
+    description: 'Tags on studies and chapters, so work can be filed by subject.',
+    apply(target) {
+      /*
+       * A multi-entry index, because a record carries several tags and the
+       * question is always "everything tagged X" — an index lookup rather
+       * than a scan of every study. Records written before this version have
+       * no `tags` key at all and are simply absent from the index, which is
+       * what "untagged" means; nothing is backfilled, because a tag nobody
+       * typed is not a tag (docs/design/organising-work.md).
+       */
+      target.addIndex(STORE_NAMES.studies, { name: 'tags', keyPath: 'tags', multiEntry: true });
+      target.addIndex(STORE_NAMES.chapters, { name: 'tags', keyPath: 'tags', multiEntry: true });
     },
   },
 ];

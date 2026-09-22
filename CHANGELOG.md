@@ -8,6 +8,22 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
+- **Tags on studies and chapters, and Search as a page (`/search`).**
+  File a study under as many subjects as it belongs to — tags, not
+  folders, because a study about the Najdorf, for one opponent, from one
+  tournament has three answers and a folder forces two of them away. The
+  Studies rail filters by tag and narrows as you add them. Search is now
+  a page as well as the palette: one box that takes a FEN, a line like
+  `1.e4 c5 2.Nf3`, or a name, says which way it read what you typed, and
+  keeps the query in the URL so a search can be linked and reloaded. It
+  searches your own work and says that reference packs and the explorer
+  are not in it. Schema v20; tags travel in the backup.
+  (`docs/design/organising-work.md`, Phase 76)
+- **The built-in reference installs again if its first attempt fails**, and
+  the explorer says where it stands instead of offering an empty source
+  list. A profile whose first install of the bundled pack failed used to
+  spend the rest of its session with no source at all and an error message
+  nobody was looking at. (Phase 76)
 - **Coverage (dock, every route with the explorer), and an explorer that
   no longer claims more than it knows.** A reference pack aggregates
   positions only to the depth its build kept — the bundled one stops at

@@ -38,7 +38,10 @@ import { usePreferences } from '@/stores/preferences-store';
 import { useUi } from '@/stores/ui-store';
 
 import { buildMoveEvidence, summariseEvidence, trendOf, type MoveEvidence } from './evidence';
+import { BUNDLED_PACK_ID } from '@/reference/catalog';
 import { describeCoverage, plyOfFen } from '@/reference/coverage';
+import { useReferenceSources } from '@/reference/use-references';
+import { startInstall } from '@/reference/manager';
 import { useSourcesFor } from '@/reference/sources';
 import { useOpeningClassification } from '@/theory/useOpeningClassification';
 import { VariationBriefPanel } from '@/features/openings/VariationBriefPanel';
@@ -111,6 +114,7 @@ export function ExplorerPanel() {
 
   const providers = useDatabaseProviders();
   const sources = useSourcesFor('explorer');
+  const catalog = useReferenceSources();
   const provider = providers.find((entry) => entry.id === prefs.explorerSourceId) ?? providers[0];
   /*
     The source to offer when the chosen one cannot answer: the first installed
@@ -178,6 +182,14 @@ export function ExplorerPanel() {
     ? `${stale ? 'Last classified opening: ' : ''}${[family, descent].filter(Boolean).join(' → ')}`
     : family;
 
+  /*
+    The one source that ships with the application. Until it is installed the
+    picker has nothing to offer, and an empty picker with no explanation is
+    the blank explorer §83 forbids — so its state is said out loud.
+  */
+  const bundled = catalog.sources.find((entry) => entry.id === BUNDLED_PACK_ID);
+  const bundledMissing = catalog.loaded && bundled?.state !== 'ready';
+  const bundledError = catalog.errors[BUNDLED_PACK_ID];
   const coverageSource = sources.find((entry) => entry.id === prefs.explorerSourceId);
   const coverage = coverageSource ? describeCoverage(coverageSource, plyOfFen(node.fen)) : null;
   const evidence = useMemo(() => {
@@ -331,6 +343,26 @@ export function ExplorerPanel() {
           value={provider?.id ?? ''}
           onChange={(id) => prefs.set('explorerSourceId', id)}
         />
+        {bundledMissing ? (
+          <p
+            className="mt-1 rounded-[4px] border border-caution/40 bg-caution/10 px-2 py-1 text-[10.5px] text-secondary"
+            role="status"
+            data-testid="bundled-reference-state"
+          >
+            {bundledError
+              ? `The built-in reference could not be installed: ${bundledError}`
+              : 'The built-in reference is still installing; it answers without a network once it is in.'}
+            {bundledError ? (
+              <button
+                type="button"
+                className="ml-1 underline"
+                onClick={() => void startInstall(BUNDLED_PACK_ID)}
+              >
+                Try again
+              </button>
+            ) : null}
+          </p>
+        ) : null}
         <p className="mt-1 text-[10px] text-tertiary">
           {provider?.description}
           {query.data ? ` · ${total.toLocaleString()} games here` : ''}

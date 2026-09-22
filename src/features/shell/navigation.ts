@@ -35,6 +35,7 @@ import {
   Recall,
   Repertoire,
   Review,
+  Search,
   Target,
   Team,
 } from '@/components/icons';
@@ -60,6 +61,14 @@ export const NAV_GROUPS: readonly { readonly id: NavGroupId; readonly label: str
 ];
 
 export const NAV_SECTIONS: readonly NavSection[] = [
+  {
+    id: 'search',
+    label: 'Search',
+    href: '/search',
+    icon: Search,
+    hint: 'Everything you have made or imported, by position, line or name.',
+    group: 'start',
+  },
   {
     id: 'recent',
     label: 'Recent',

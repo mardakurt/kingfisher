@@ -37,7 +37,10 @@ import {
   useStudies,
   useStudy,
 } from '@/features/persistence/queries';
+import { formatTags, matchesTags, parseTagInput } from '@/persistence/tags';
 import { cn } from '@/lib/cn';
+
+import { TagFilter } from './TagFilter';
 import type { ChapterRecord, StudyId, StudyRecord } from '@/persistence/types';
 import { useAnalysis } from '@/stores/analysis-store';
 import { useUi } from '@/stores/ui-store';
@@ -93,7 +96,18 @@ export function StudiesWorkspace() {
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
 
   const studies = useStudies();
-  const list = useMemo(() => studies.data ?? [], [studies.data]);
+  const all = useMemo(() => studies.data ?? [], [studies.data]);
+  const [studyTags, setStudyTags] = useState<readonly string[]>([]);
+  const [chapterTags, setChapterTags] = useState<readonly string[]>([]);
+  /*
+    Filtering the list the picker reads, not a second list beside it: a
+    selected study that the filter excludes falls out of the picker, and the
+    first study that survives is chosen — the same rule as a deleted study.
+  */
+  const list = useMemo(
+    () => all.filter((entry) => matchesTags(entry, studyTags)),
+    [all, studyTags],
+  );
 
   const studyId =
     chosenStudyId && list.some((entry) => entry.id === chosenStudyId)
@@ -101,7 +115,11 @@ export function StudiesWorkspace() {
       : (list[0]?.id ?? null);
 
   const study = useStudy(studyId);
-  const chapters = useMemo(() => study.data?.chapters ?? [], [study.data]);
+  const allChapters = useMemo(() => study.data?.chapters ?? [], [study.data]);
+  const chapters = useMemo(
+    () => allChapters.filter((entry) => matchesTags(entry, chapterTags)),
+    [allChapters, chapterTags],
+  );
 
   const chapterId =
     chosenChapterId && chapters.some((entry) => entry.id === chosenChapterId)
@@ -126,6 +144,18 @@ export function StudiesWorkspace() {
         description: input.description,
       }),
     (queryClient, input) => invalidateStudies(queryClient, input.id),
+  );
+
+  const tagStudy = useRepositoryMutation(
+    (repositories, input: { id: StudyId; tags: readonly string[] }) =>
+      repositories.studies.update(input.id, { tags: input.tags }),
+    (queryClient, input) => invalidateStudies(queryClient, input.id),
+  );
+
+  const tagChapter = useRepositoryMutation(
+    (repositories, input: { id: string; studyId: StudyId; tags: readonly string[] }) =>
+      repositories.studies.tagChapter(input.id, input.tags),
+    (queryClient, input) => invalidateStudies(queryClient, input.studyId),
   );
 
   const deleteStudy = useRepositoryMutation(
@@ -235,7 +265,12 @@ export function StudiesWorkspace() {
           }}
           className="h-8 min-w-0 flex-1 rounded-[4px] border border-line bg-surface-inset px-2 text-xs text-primary"
         >
-          {list.length === 0 ? <option value="">No studies yet</option> : null}
+          {list.length === 0 ? (
+            <option value="">
+              {/* "None yet" and "none match your filter" are different facts. */}
+              {all.length === 0 ? 'No studies yet' : 'No study has all of those tags'}
+            </option>
+          ) : null}
           {list.map((entry) => (
             <option key={entry.id} value={entry.id}>
               {entry.title}
@@ -254,6 +289,54 @@ export function StudiesWorkspace() {
           <Export />
         </IconButton>
       </div>
+      <TagFilter
+        label="Filter studies by tag"
+        records={all}
+        selected={studyTags}
+        onToggle={(tag) =>
+          setStudyTags((current) =>
+            current.includes(tag) ? current.filter((entry) => entry !== tag) : [...current, tag],
+          )
+        }
+        onClear={() => setStudyTags([])}
+      />
+      {study.data ? (
+        <div className="border-b border-line-subtle px-2 py-1.5">
+          <label className="block text-[10px] text-tertiary">
+            Tags for this study
+            <input
+              aria-label="Tags for this study"
+              defaultValue={formatTags(study.data.study.tags ?? [])}
+              key={`${study.data.study.id}:${formatTags(study.data.study.tags ?? [])}`}
+              placeholder="najdorf, opponent, to-review"
+              /* Enter as well as blur: somebody typing tags expects Enter to file them. */
+              onKeyDown={(event) => {
+                if (event.key !== 'Enter') return;
+                event.preventDefault();
+                event.currentTarget.blur();
+              }}
+              onBlur={(event) =>
+                tagStudy.mutate({
+                  id: study.data!.study.id,
+                  tags: parseTagInput(event.target.value),
+                })
+              }
+              className="mt-0.5 h-7 w-full rounded-[3px] border border-line bg-surface-inset px-1.5 text-[11px] text-primary"
+            />
+          </label>
+        </div>
+      ) : null}
+      <TagFilter
+        label="Filter chapters by tag"
+        records={allChapters}
+        selected={chapterTags}
+        onToggle={(tag) =>
+          setChapterTags((current) =>
+            current.includes(tag) ? current.filter((entry) => entry !== tag) : [...current, tag],
+          )
+        }
+        onClear={() => setChapterTags([])}
+      />
       <div className="flex items-center border-b border-line-subtle px-3 py-1.5">
         <h2 className="text-2xs font-medium tracking-[0.08em] text-tertiary uppercase">Chapters</h2>
         <IconButton
@@ -308,8 +391,35 @@ export function StudiesWorkspace() {
                   </span>
                   <span className="mt-0.5 block text-[10px] text-tertiary">
                     {plural(nodeCount(entry.tree), 'move')}
+                    {entry.tags?.length ? ` · ${entry.tags.join(' · ')}` : ''}
                   </span>
                 </button>
+                {entry.id === chapterId ? (
+                  <div className="border-t border-line-subtle px-2 py-1">
+                    <label className="block text-[10px] text-tertiary">
+                      Tags for this chapter
+                      <input
+                        aria-label="Tags for this chapter"
+                        defaultValue={formatTags(entry.tags ?? [])}
+                        key={`${entry.id}:${formatTags(entry.tags ?? [])}`}
+                        placeholder="to-review"
+                        onKeyDown={(event) => {
+                          if (event.key !== 'Enter') return;
+                          event.preventDefault();
+                          event.currentTarget.blur();
+                        }}
+                        onBlur={(event) =>
+                          tagChapter.mutate({
+                            id: entry.id,
+                            studyId: entry.studyId,
+                            tags: parseTagInput(event.target.value),
+                          })
+                        }
+                        className="mt-0.5 h-7 w-full rounded-[3px] border border-line bg-surface-inset px-1.5 text-[11px] text-primary"
+                      />
+                    </label>
+                  </div>
+                ) : null}
                 {entry.id === chapterId ? (
                   <div className="flex border-t border-line-subtle px-1 py-1">
                     <IconButton

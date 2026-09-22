@@ -98,6 +98,9 @@ with [`AGENTS.md`](../AGENTS.md).
   the gap with ChessBase and then lead.
 - [`design/team-preparation.md`](design/team-preparation.md) — first-hand research,
   coach/second workflows, implemented improvements and staged implementation plan.
+- [`design/organising-work.md`](design/organising-work.md) — tags rather
+  than folders, and search as a page: the decisions, the model and the
+  record.
 - [`design/scoresheet.md`](design/scoresheet.md) — getting the
   over-the-board game in: what the research says about handwriting
   recognition, the decisions (the rules do the work, the photo goes to the

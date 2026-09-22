@@ -6,19 +6,16 @@ import { useRouter } from 'next/navigation';
 import { Search } from '@/components/icons';
 import { useWorkspaceSearch } from '@/features/persistence/queries';
 import { cn } from '@/lib/cn';
-import { gameTitle } from '@/persistence/describe';
 import { getRepositories } from '@/persistence/repositories';
-import { playerKey } from '@/persistence/schema/migrations';
+import { openPositionHit, openWorkspaceHit } from '@/features/search/open-hit';
 import {
   canonicalise,
   searchByPosition,
   positionHitLabel,
   type PositionHit,
 } from '@/persistence/position-search';
-import { openStoredGame } from '@/features/games/open-game';
 import { useQuery } from '@tanstack/react-query';
 import type { WorkspaceSearchHit } from '@/persistence/search';
-import { useAnalysis } from '@/stores/analysis-store';
 import { useUi } from '@/stores/ui-store';
 import { searchLegends, searchPlayerRoster, type PlayerSearchHit } from '@/features/search/players';
 import { searchOpenings, type OpeningSearchHit } from '@/features/search/openings';
@@ -184,29 +181,7 @@ function PaletteDialog() {
 
   const positionCommands = useMemo<readonly Command[]>(() => {
     if (pastedPosition) {
-      const openHit = (hit: PositionHit) => {
-        const at = hit.ply !== undefined ? `&ply=${hit.ply}` : '';
-        if (hit.kind === 'game' || hit.kind === 'model-game') {
-          void openStoredGame(hit.targetId, hit.ply !== undefined ? { ply: hit.ply } : {})
-            .then(() => router.push('/analysis'))
-            .catch(() => router.push('/games'));
-        } else if (hit.kind === 'chapter') {
-          router.push(
-            `/studies?study=${encodeURIComponent(hit.parentId ?? '')}&chapter=${encodeURIComponent(hit.targetId)}${hit.nodeId ? `&node=${encodeURIComponent(hit.nodeId)}` : ''}`,
-          );
-        } else if (hit.kind === 'team') {
-          router.push(
-            `/team?team=${encodeURIComponent(hit.parentId ?? '')}&assignment=${encodeURIComponent(hit.targetId)}${at}`,
-          );
-        } else if (hit.kind === 'endgame') router.push('/endgame');
-        else if (hit.kind === 'opening-file') router.push('/opening-files');
-        else if (hit.kind === 'preparation') router.push('/preparation');
-        else if (hit.kind === 'repertoire')
-          router.push(`/repertoire?repertoire=${encodeURIComponent(hit.targetId)}`);
-        else if (hit.kind === 'decision' || hit.kind === 'critical-position') {
-          router.push('/review');
-        } else router.push('/training');
-      };
+      const openHit = (hit: PositionHit) => void openPositionHit(hit, (href) => router.push(href));
       return [
         ...(positions.data?.hits ?? []).map((hit) => ({
           id: `position:${hit.id}`,
@@ -261,59 +236,7 @@ function PaletteDialog() {
     () =>
       (entities.data ?? []).map((hit) =>
         commandForHit(hit, async (selectedHit) => {
-          const repositories = await getRepositories();
-          if (selectedHit.kind === 'game' || selectedHit.kind === 'model-game') {
-            const game = selectedHit.targetId
-              ? await repositories.games.get(selectedHit.targetId)
-              : null;
-            if (!game) throw new Error('That game is no longer in the database.');
-            useAnalysis.getState().openDocument({
-              tree: game.tree,
-              document: { kind: 'database-game', title: gameTitle(game), gameId: game.id },
-            });
-            router.push('/analysis');
-            return;
-          }
-          if (selectedHit.kind === 'chapter') {
-            const chapter = selectedHit.targetId
-              ? await repositories.studies.getChapter(selectedHit.targetId)
-              : null;
-            if (!chapter) throw new Error('That chapter is no longer available.');
-            const study = await repositories.studies.get(chapter.studyId);
-            useAnalysis.getState().openDocument({
-              tree: chapter.tree,
-              document: {
-                kind: 'study-chapter',
-                title: chapter.title,
-                studyId: chapter.studyId,
-                studyTitle: study?.study.title ?? 'Study',
-                chapterId: chapter.id,
-                revision: chapter.revision,
-              },
-            });
-            router.push('/analysis');
-            return;
-          }
-          if (selectedHit.kind === 'study') router.push('/studies');
-          else if (selectedHit.kind === 'repertoire') router.push('/repertoire');
-          else if (selectedHit.kind === 'player') {
-            // The profile, not a filtered explorer. `targetId` is already the
-            // canonical player key, which is what the profile route is keyed on.
-            router.push(
-              `/player/${encodeURIComponent(selectedHit.targetId ?? playerKey(selectedHit.title))}`,
-            );
-          } else if (
-            selectedHit.kind === 'decision' ||
-            selectedHit.kind === 'critical-position' ||
-            selectedHit.kind === 'theme'
-          )
-            router.push('/review');
-          else if (selectedHit.kind === 'training-set')
-            router.push(`/training?set=${encodeURIComponent(selectedHit.targetId ?? '')}`);
-          else if (selectedHit.kind === 'opening-file') router.push('/opening-files');
-          else if (selectedHit.kind === 'preparation') router.push('/preparation');
-          else if (selectedHit.kind === 'endgame') router.push('/endgame');
-          else router.push('/training');
+          await openWorkspaceHit(selectedHit, (href) => router.push(href));
         }),
       ),
     [entities.data, router],

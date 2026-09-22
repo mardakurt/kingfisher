@@ -586,4 +586,74 @@ describe('migrating a Phase 74 installation (team hub, v18) to current', () => {
 
     current.close();
   });
+
+  /*
+   * v19 → v20: tags on studies and chapters. A study written before the
+   * migration has no `tags` key, and must still be readable, still be absent
+   * from the tag index, and still be taggable afterwards — which is the whole
+   * contract, since nothing is backfilled.
+   */
+  it('v19 studies and chapters survive, stay untagged, and can be tagged', async () => {
+    const name = dbName();
+    const v19 = await openPersistenceDatabaseAt(19, name);
+    await v19.put(STORE_NAMES.studies, {
+      id: 's1',
+      title: 'Najdorf, from before tags',
+      createdAt: 1,
+      updatedAt: 1,
+    });
+    await v19.put(STORE_NAMES.chapters, {
+      id: 'c1',
+      studyId: 's1',
+      title: 'English Attack',
+      order: 0,
+      tree: chapterTree(),
+      createdAt: 1,
+      updatedAt: 1,
+      revision: 1,
+    });
+    v19.close();
+
+    const current = await openPersistenceDatabaseAt(DATABASE_VERSION, name);
+    const study = await current.get<Record<string, unknown>>(STORE_NAMES.studies, 's1');
+    expect(study?.title).toBe('Najdorf, from before tags');
+    expect(study?.tags).toBeUndefined();
+    expect(await current.getAllFromIndex(STORE_NAMES.studies, 'tags', 'najdorf')).toEqual([]);
+
+    await current.put(STORE_NAMES.studies, { ...study, tags: ['najdorf', 'opponent'] });
+    await current.put(STORE_NAMES.chapters, {
+      ...(await current.get<Record<string, unknown>>(STORE_NAMES.chapters, 'c1')),
+      tags: ['najdorf'],
+    });
+    expect(
+      (
+        await current.getAllFromIndex<Record<string, unknown>>(
+          STORE_NAMES.studies,
+          'tags',
+          'najdorf',
+        )
+      ).map((row) => row.id),
+    ).toEqual(['s1']);
+    // A multi-entry index lists the record under each of its tags.
+    expect(
+      (
+        await current.getAllFromIndex<Record<string, unknown>>(
+          STORE_NAMES.studies,
+          'tags',
+          'opponent',
+        )
+      ).map((row) => row.id),
+    ).toEqual(['s1']);
+    expect(
+      (
+        await current.getAllFromIndex<Record<string, unknown>>(
+          STORE_NAMES.chapters,
+          'tags',
+          'najdorf',
+        )
+      ).map((row) => row.id),
+    ).toEqual(['c1']);
+
+    current.close();
+  });
 });

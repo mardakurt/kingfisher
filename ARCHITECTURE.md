@@ -705,8 +705,9 @@ the structural indexes on positions; v10 preparation sessions, opening files,
 endgame positions and pinned lines; v11 `linkedAccounts`; v12 the opening
 classification indexes; v13 source sets; v14 player identities; v15 reference
 packs and their chunks; v16 opening books; v17 the auto-backup store; v18
-the team hub's teams and assignments; and v19 the round journal, one entry
-per game by fingerprint.
+the team hub's teams and assignments; v19 the round journal, one entry
+per game by fingerprint; and v20 the multi-entry `tags` index on studies and
+chapters.
 Records are validated on the way out, because a record written by an older
 build is plausible and malformed data must not reach the board.
 
@@ -719,6 +720,14 @@ and its side variation compared byte for byte, a v1 game's fields untouched
 beside the player keys the v2 backfill added, references and queue jobs still
 resolving through their indexes, and a position indexed before v9 absent from
 the structural indexes rather than fabricated into them.
+
+### Tags
+
+`studies` and `chapters` carry an optional `tags` array with a multi-entry
+index (schema v20). One normalisation, `persistence/tags.ts`, is used by the
+editor, the repository and every reader, so a tag cannot exist twice under
+different spellings. Nothing infers a tag. Filtering is "and" across selected
+tags. `docs/design/organising-work.md`.
 
 ### Revisions beyond chapters
 
