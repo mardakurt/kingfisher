@@ -32,7 +32,7 @@ Three pieces of §3 sit underneath this design, in order of how loud they are:
   exist; an invented streak is not a count.
 - The trainers that stop at move fifteen and what fails after that being
   calculation — the daily session is the only place a product can speak to
-  the *whole* fifteen-minute window, from repertoire through critical
+  the _whole_ fifteen-minute window, from repertoire through critical
   positions to endgames, without inventing a separate flow for each.
 - The dislike of labels (Chess.com-Brilliant, Chess.com-Wrong) — a session
   that grades itself with invented streaks and invented ratings will sit in
@@ -78,7 +78,7 @@ The session is composed of four slices, each one already a store:
 1. **Repertoire cards** — the `own` positions in `RepertoirePositionRecord`
    that are due under the same SM-2 schedule that `review/scheduling.ts`
    uses. There is no separate "repertoire review" schedule; the brief is
-   that *any* due position is one the player should be able to find a
+   that _any_ due position is one the player should be able to find a
    move in.
 2. **Critical positions as calculation prompts** — review items that are
    due under `dueReviews(...)`. The session uses them as calculation
@@ -106,7 +106,7 @@ A "rehearsed" status is recorded against each item only after the player
 made an attempt — a click on a candidate move, a typed move, or an
 explicit "Skip" with a reason. The session never counts an unattempted
 position as rehearsed, and the headline at the top of the workspace says
-so in plain English: *"4 due, 2 rehearsed"*, not *"4 due, 50% done"*.
+so in plain English: _"4 due, 2 rehearsed"_, not _"4 due, 50% done"_.
 
 The graded outcome is the player's own grade on the existing scale —
 the same four-button scale (`again` / `hard` / `good` / `easy`) that the
@@ -119,8 +119,8 @@ the player already trusts in `/review`.
 
 ### 2.4 Reachable in one click from the header, one hit from the palette
 
-The header's "Daily" tile shows today's session status — *"3 due, 1
-rehearsed"*, *"15 minutes, 4 positions"*, *"Today: 2 of 4"* — and is
+The header's "Daily" tile shows today's session status — _"3 due, 1
+rehearsed"_, _"15 minutes, 4 positions"_, _"Today: 2 of 4"_ — and is
 clickable. The palette command is "Open today's session" and lands on
 the same URL. The URL carries no state: the session is rebuilt from the
 stores every time, because what is due is what is due.
@@ -131,10 +131,10 @@ The session reads `Date.now()` for "today". The session grades with the
 player's own grade. The session records the rehearsal as one write per
 item to the existing `ReviewItemRecord.schedule` / `TrainingItemRecord.schedule`
 / `RepertoirePositionRecord.schedule`. There is no separate "daily session"
-store, because the rehearsal *is* a graded review and the existing
+store, because the rehearsal _is_ a graded review and the existing
 schedule is the audit trail. There is no "streak" because the player can
-miss a day and the schedule catches up; the headline just says *"Last
-rehearsed 3 days ago"*.
+miss a day and the schedule catches up; the headline just says _"Last
+rehearsed 3 days ago"_.
 
 ### 2.6 Out of scope by design
 
@@ -160,8 +160,8 @@ attribute on the root element exposes the session to the e2e spec.
 
 ### 3.2 The header
 
-The header carries a single piece of meta: *"15 minutes · 4 positions · 2
-rehearsed"*. The duration is computed from the slice counts (a repertoire
+The header carries a single piece of meta: _"15 minutes · 4 positions · 2
+rehearsed"_. The duration is computed from the slice counts (a repertoire
 card is one minute, a critical position is two, an endgame is two, a brief
 rehearsal is one per position; the minimum is two minutes). The position
 count is the total across slices. The rehearsed count is the count of
@@ -198,14 +198,14 @@ would be there, and a "Skip" affordance. The order is fixed:
 A slice may be empty. The empty state names the data the player would
 need to add to make the slice non-empty:
 
-- *"No repertoire cards due. Mark positions as your move in any
-  repertoire to start."*
-- *"No critical positions due. Tag a position as critical in any review
-  to start."*
-- *"No saved endgame positions. Save a position from the position
-  actions menu."*
-- *"No round brief to rehearse. Build one for an upcoming round in
-  /preparation."*
+- _"No repertoire cards due. Mark positions as your move in any
+  repertoire to start."_
+- _"No critical positions due. Tag a position as critical in any review
+  to start."_
+- _"No saved endgame positions. Save a position from the position
+  actions menu."_
+- _"No round brief to rehearse. Build one for an upcoming round in
+  /preparation."_
 
 ### 3.4 The grading buttons
 
@@ -250,12 +250,12 @@ The slice is `"null"` when no item is in flight. Reveal sets
 stores. The tests assert:
 
 - A `own` position in `RepertoirePositionRecord` whose schedule is due is
-  in the session; one whose schedule is *not* due is not.
+  in the session; one whose schedule is _not_ due is not.
 - A `ReviewItemRecord` whose schedule is due is in the critical-positions
   slice; one without a schedule (the default for new items) is **not**,
   because reviewing a position once and never returning is the player's
   deliberate choice and the schedule honours it (`scheduleAfterReview(…
-  'never')`).
+'never')`).
 - A saved `EndgamePositionRecord` whose `pieceCount ≤ 7` (the Syzygi
   cutoff) is eligible for the endgame slice; one with `pieceCount ≥ 8`
   is not, because the tablebase cannot answer it and the rehearsal would
@@ -291,7 +291,7 @@ Each grading click is one write: `scheduleAfterReview(schedule, grade,
 now)` followed by the repository update. The repositories are
 `ReviewItemRepository`, `TrainingItemRepository`,
 `RepertoireRepository` and the brief is read-only (a rehearsal against
-the brief grades the *position*, not the brief, so the brief itself is
+the brief grades the _position_, not the brief, so the brief itself is
 not updated). The audit trail a coach or the player can read later is
 exactly the schedule on each item, no separate "daily session history"
 store.
