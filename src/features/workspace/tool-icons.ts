@@ -51,6 +51,7 @@ export const WORKSPACE_TOOL_ICONS: Readonly<Record<WorkspaceModuleId, WorkspaceT
   sparring: Players,
   report: Dossier,
   'after-round': Review,
+  coverage: Info,
   notes: Pencil,
   'move-tree': Opening,
 };

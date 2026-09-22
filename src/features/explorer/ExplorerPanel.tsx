@@ -38,6 +38,7 @@ import { usePreferences } from '@/stores/preferences-store';
 import { useUi } from '@/stores/ui-store';
 
 import { buildMoveEvidence, summariseEvidence, trendOf, type MoveEvidence } from './evidence';
+import { describeCoverage, plyOfFen } from '@/reference/coverage';
 import { useSourcesFor } from '@/reference/sources';
 import { useOpeningClassification } from '@/theory/useOpeningClassification';
 import { VariationBriefPanel } from '@/features/openings/VariationBriefPanel';
@@ -177,6 +178,8 @@ export function ExplorerPanel() {
     ? `${stale ? 'Last classified opening: ' : ''}${[family, descent].filter(Boolean).join(' → ')}`
     : family;
 
+  const coverageSource = sources.find((entry) => entry.id === prefs.explorerSourceId);
+  const coverage = coverageSource ? describeCoverage(coverageSource, plyOfFen(node.fen)) : null;
   const evidence = useMemo(() => {
     if (!query.data) return [];
     return buildMoveEvidence({
@@ -480,9 +483,22 @@ export function ExplorerPanel() {
             description={describeFailure(query.error)}
           />
         ) : evidence.length === 0 ? (
+          /*
+            Which kind of nothing this is. A pack aggregates positions only to
+            the depth its build kept, and past that an empty answer is a fact
+            about the build, not about how often the position has been played
+            — a sentence that read as evidence for five phases. `coverage`
+            says so when the position is past the source's stated depth, and
+            nothing changes when it is not.
+          */
           <EmptyState
-            title="No games reach this position."
-            description={`${provider?.name} has nothing here. Try another source, or loosen the filters.`}
+            title={
+              coverage?.emptyMeaning ? 'Past this source’s depth.' : 'No games reach this position.'
+            }
+            description={
+              coverage?.emptyMeaning ??
+              `${provider?.name} has nothing here. Try another source, or loosen the filters.`
+            }
           />
         ) : (
           <>

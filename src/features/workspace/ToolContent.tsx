@@ -55,6 +55,11 @@ const TranspositionsPanel = lazyPanel(() =>
     default: module.TranspositionsPanel,
   })),
 );
+const CoveragePanel = lazyPanel(() =>
+  import('@/features/coverage/CoveragePanel').then((module) => ({
+    default: module.CoveragePanel,
+  })),
+);
 const AfterRoundPanel = lazyPanel(() =>
   import('@/features/round/AfterRoundPanel').then((module) => ({
     default: module.AfterRoundPanel,
@@ -159,6 +164,7 @@ export function ToolContent({
   if (tool === 'sparring') return <SparringPanel />;
   if (tool === 'report') return <PositionReportPanel />;
   if (tool === 'after-round') return <AfterRoundPanel />;
+  if (tool === 'coverage') return <CoveragePanel />;
   if (tool === 'companion') return <CompanionPanel />;
   if (tool === 'document') {
     return (

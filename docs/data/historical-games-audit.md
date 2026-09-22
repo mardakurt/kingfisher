@@ -118,6 +118,27 @@ So the honest statement of where this stands has three parts:
   corpus does either. That is the remaining limitation and it is narrower than
   the one Phase 17 recorded, but it is real.
 
+## Re-checked in Phase 76 (2026-09-22)
+
+The audit above was re-read against what Kingfisher now reads and what is
+published today. Nothing in the verdict changed, and one source was added to
+the rejected list:
+
+| Source                                           | Terms found                              | Verdict                                                                                                                                                                                                                                                                                                          |
+| ------------------------------------------------ | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [The Week in Chess](https://theweekinchess.com/) | © Mark Crowther; no redistribution grant | **Rejected** as a shipped corpus. Free weekly PGN and CBV downloads, no licence offered. Its archives were used _in this session_ only to derive and check the ChessBase reader (four metadata entries of one issue are in the repository, listed in `THIRD_PARTY_DATA.md`); no games from it are redistributed. |
+
+What did change is that Kingfisher can now **read** the ChessBase database a
+player already owns (Phase 76). That is the honest answer to "a large
+annotated master database": Kingfisher does not ship one and will not, and a
+player who has bought Mega Database can open it here. Their copy, their
+licence, their machine.
+
+The other half of the brief — "say what we have and do not" — is now in the
+product rather than only in this file: the Coverage tool states each source's
+population and depth at the position on the board, and the explorer no longer
+reports its own depth limit as an absence of games.
+
 ## What would change the answer
 
 In rough order of how tractable each looks.

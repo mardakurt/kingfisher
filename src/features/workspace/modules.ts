@@ -40,6 +40,7 @@ export type WorkspaceToolId =
   | 'sparring'
   | 'report'
   | 'after-round'
+  | 'coverage'
   | 'notes';
 
 export interface WorkspaceModuleDescriptor {
@@ -136,6 +137,12 @@ export const WORKSPACE_MODULES: Readonly<Record<WorkspaceToolId, WorkspaceModule
     regions: ['dock', 'lower'],
   },
   notes: { id: 'notes', label: 'Notes', home: 'dock', regions: ['dock', 'lower'] },
+  coverage: {
+    id: 'coverage',
+    label: 'Coverage',
+    home: 'dock',
+    regions: ['dock', 'lower'],
+  },
 };
 
 /**
@@ -180,6 +187,7 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
      */
     'companion',
     'explorer',
+    'coverage',
     'theory-book',
     'opening-report',
     'book',
@@ -202,6 +210,7 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'document',
     'engine',
     'explorer',
+    'coverage',
     'theory-book',
     'opening-report',
     'book',
@@ -220,6 +229,7 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'theory-book',
     'opening-report',
     'explorer',
+    'coverage',
     'book',
     'database',
     'transpositions',
@@ -234,6 +244,7 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'theory-book',
     'opening-report',
     'explorer',
+    'coverage',
     'book',
     'database',
     'transpositions',
@@ -255,6 +266,7 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'features',
     'notes',
     'explorer',
+    'coverage',
     'database',
   ],
   'opening-files': [
@@ -275,6 +287,7 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'document',
     'engine',
     'explorer',
+    'coverage',
     'theory-book',
     'opening-report',
     'repertoire',
@@ -301,6 +314,7 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
   games: [
     'engine',
     'explorer',
+    'coverage',
     'book',
     'database',
     'repertoire',
@@ -318,6 +332,7 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'document',
     'engine',
     'explorer',
+    'coverage',
     'book',
     'database',
     'theory-radar',
@@ -334,6 +349,7 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'document',
     'engine',
     'explorer',
+    'coverage',
     'database',
     'features',
     'tablebase',
@@ -344,6 +360,7 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'document',
     'engine',
     'explorer',
+    'coverage',
     'book',
     'database',
     'repertoire',

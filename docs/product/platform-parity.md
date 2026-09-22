@@ -25,7 +25,9 @@ native-companion prerequisite on the AI assistant panel. The engine toolbar
 also wraps controls to keep the engine selector readable in a narrow panel.
 
 **Published revision check (Phase 76, Mac-facing — not yet released).**
-The _Scoresheet_ route (`/scoresheet`): a new entry in the rail, a new
+The _Coverage_ dock tool and the explorer's corrected empty state (a Mac user
+reading the explorer at move 30 saw the same false sentence). The
+_Scoresheet_ route (`/scoresheet`): a new entry in the rail, a new
 workspace, and the photo chooser, which on macOS is the shell's own file
 dialog and, on a phone-width window, the camera. Reading a photo uses the
 assistant endpoint the user configured; nothing about it is desktop-specific.

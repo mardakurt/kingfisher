@@ -8,6 +8,18 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
+- **Coverage (dock, every route with the explorer), and an explorer that
+  no longer claims more than it knows.** A reference pack aggregates
+  positions only to the depth its build kept — the bundled one stops at
+  move 21 — and past that the explorer said "no games reach this
+  position", which reads as a fact about chess and is a fact about the
+  build. It now says which kind of nothing it is. _Coverage_ states, for
+  every source you have and for the position on the board, what it holds
+  (games, openable games, months, the source it was built from, its
+  depth), what it does not, and its licence — one row per source, never
+  merged. It also states plainly that Kingfisher ships no games before
+  2020 and no annotated master corpus, and why
+  (`docs/data/historical-games-audit.md`). (Phase 76)
 - **Scoresheet (`/scoresheet`).** The over-the-board game, from the sheet
   to the board: every cell typed as it was written (German, French and
   Spanish piece letters, `0-0`, `ed`, `e8Q`, a missing `x`) resolved

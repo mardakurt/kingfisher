@@ -278,6 +278,18 @@ analysis of chosen games, paused, resumed and yielding to interactive
 analysis), Kingfisher's own opening classification beside the PGN's tag, and
 delete.
 
+### Coverage (a dock tool, wherever the Explorer is)
+
+What every source you have holds and does not hold, for the position on the
+board, from each source's own manifest: games aggregated, how many can be
+opened in full, the months it was built from, its origin, and the depth past
+which it aggregated nothing. Sources are never merged. Past a source's depth
+the Explorer says so instead of "no games reach this position" — a pack that
+stopped at move 21 cannot be read as evidence that a move 30 position has
+never been played. The panel also states what Kingfisher does not ship: no
+games before 2020, and no annotated master corpus
+(`docs/data/historical-games-audit.md`).
+
 ### Scoresheet (`/scoresheet`)
 
 The over-the-board game, from the sheet to the board. Type each cell as it
