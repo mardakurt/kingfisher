@@ -20,6 +20,7 @@ import { Segmented } from '@/components/ui/Tabs';
 import {
   invalidateReview,
   invalidateTraining,
+  useProfile,
   useTrainingItems,
 } from '@/features/persistence/queries';
 import { getRepositories } from '@/persistence/repositories';
@@ -29,6 +30,7 @@ import { useUi } from '@/stores/ui-store';
 import { cn } from '@/lib/cn';
 
 import { useDecisions, useReviewItems, useTrainingSets } from './queries';
+import { RecurringFacts } from './RecurringFacts';
 import {
   PERIODS,
   countThemes,
@@ -49,6 +51,7 @@ export function ImprovementSummary({
   const decisions = useDecisions();
   const sets = useTrainingSets();
   const training = useTrainingItems();
+  const profile = useProfile();
   const [periodId, setPeriodId] = useState('30d');
   const [theme, setTheme] = useState<string | null>(null);
   const [now] = useState(() => Date.now());
@@ -140,6 +143,8 @@ export function ImprovementSummary({
             ))}
           </dl>
         </section>
+
+        <RecurringFacts aliases={profile.data?.aliases ?? []} from={from} to={now + 1} />
 
         <section className="border-t border-line-subtle pt-3">
           <h3 className="text-[10px] font-semibold uppercase tracking-wide text-tertiary">

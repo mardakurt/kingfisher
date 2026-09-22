@@ -8,6 +8,14 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
+- **Recurring facts in Review → Improvement.** Four questions now join the
+  selected period's games to evidence Kingfisher already stores: which moves
+  crossed a visible engine-loss threshold, which pawn structures occurred in
+  at least five games with a below-50% record, which player-authored endgame
+  categories had that record, and which prepared repertoire positions did.
+  Every row shows W/L/D and its unique games, opens the records behind it, and
+  groups positions canonically so transpositions meet. There is no new score,
+  diagnosis or style label. (`docs/design/recurring-mistakes.md`, Phase 80)
 - **The season (`/season`).** Pick the last 30/90/180/365 days, an event,
   a site or an ECO from games that exist on this machine. Five sections read
   clock use by phase and move number, the positions that cost the most time,

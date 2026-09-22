@@ -253,11 +253,18 @@ _Waiting / Reviewed / Training_ stages and category filters; the
 calculation, missed tactic, candidate generation, piece placement, trade
 decision, pawn break, king safety, opening knowledge, time management,
 endgame technique, evaluation error, plan selection — plus your own) and
-every count opens the positions behind it; **Patterns**; **Rounds** — the
-round journal: one learning point per game you played, in your words,
-grouped by event, each opening its game; _Mark for review_ from any board; _Hidden / Visible_ evidence toggle; a game review that
-walks a whole game and attaches strategic transitions (a passed pawn
-created, a file opened, a king shield stripped) as facts.
+every count opens the positions behind it. Above those authored themes,
+**Recurring facts** joins the selected period to stored before/after engine
+scores, deterministic pawn skeletons, player-authored endgame categories and
+position-keyed repertoires. Its four sections show unique-game W/L/D and the
+games behind every row; structures require five games, repertoire games must
+match the player's colour, and the engine threshold is visible and adjustable.
+These are records from named rules, not a diagnosis or a player score;
+**Patterns**; **Rounds** — the round journal: one learning point per game you
+played, in your words, grouped by event, each opening its game; _Mark for
+review_ from any board; _Hidden / Visible_ evidence toggle; a game review that
+walks a whole game and attaches strategic transitions (a passed pawn created,
+a file opened, a king shield stripped) as facts.
 
 ### Training (`/training`)
 

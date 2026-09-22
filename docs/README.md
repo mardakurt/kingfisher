@@ -118,8 +118,12 @@ with [`AGENTS.md`](../AGENTS.md).
   sheet, with the existing schedule as the audit trail and no invented
   score.
 - [`design/season.md`](design/season.md) — one named set of the player's
-  games read as clock use, time trouble, costly positions and slow openings,
-  with every source and denominator kept explicit.
+  games, read through five clock and opening sections with denominators and
+  source populations kept separate.
+- [`design/recurring-mistakes.md`](design/recurring-mistakes.md) — four
+  recurring facts in Review, joined from stored evidence, structures,
+  player-authored endgames and repertoire positions without a new score or
+  label.
 - [`design/scoresheet.md`](design/scoresheet.md) — getting the
   over-the-board game in: what the research says about handwriting
   recognition, the decisions (the rules do the work, the photo goes to the

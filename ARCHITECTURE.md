@@ -1141,6 +1141,18 @@ hand. Deriving a theme from an engine score would be inventing a diagnosis from
 a number that does not contain one, and every count in the improvement summary
 opens the positions behind it rather than standing as a statistic.
 
+**Recurring facts are joins, not another store.** `recurring/recurring.ts`
+reads the selected games and joins them to stored engine evidence, the same
+deterministic `PositionRecord` structure index the importer produces,
+player-authored endgame categories and position-keyed repertoire entries.
+Engine loss is signed from the player's colour and requires a comparable
+before/after pair from one job and engine. Pawn structures need five unique
+games; endgame and repertoire rows state small denominators rather than hiding
+them. A game counts once per row, W/L/D must sum to that denominator, and every
+row opens the records behind it. Canonical `positionKey` is the join wherever
+the question is about a position, so move-order transpositions cannot split a
+fact.
+
 See ADR 0025.
 
 ---

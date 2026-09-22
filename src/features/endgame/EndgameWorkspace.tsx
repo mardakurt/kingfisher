@@ -44,14 +44,18 @@ import { cn } from '@/lib/cn';
 
 const GOALS: readonly EndgameGoal[] = ['convert-win', 'hold-draw', 'find-best-move', 'study'];
 
-export function EndgameWorkspace() {
+export function EndgameWorkspace({
+  initialCategory = 'all',
+}: {
+  readonly initialCategory?: EndgameCategory | 'all';
+}) {
   const client = useQueryClient();
   const notify = useUi((state) => state.notify);
   const openSettingsAt = useUi((state) => state.openSettingsAt);
   const openDocument = useAnalysis((state) => state.openDocument);
   const node = useAnalysis((state) => state.tree.nodes[state.currentId]);
 
-  const [category, setCategory] = useState<EndgameCategory | 'all'>('all');
+  const [category, setCategory] = useState<EndgameCategory | 'all'>(initialCategory);
   const [saving, setSaving] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 

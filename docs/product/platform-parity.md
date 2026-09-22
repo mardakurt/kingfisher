@@ -24,6 +24,16 @@ validation, scheduled backup preference serialization, and an incorrect
 native-companion prerequisite on the AI assistant panel. The engine toolbar
 also wraps controls to keep the engine selector readable in a narrow panel.
 
+**Published revision check (Phase 80, Mac-facing — not yet released).**
+Review → Improvement now reads four recurring facts from existing stores:
+stored before/after engine scores at a visible threshold, pawn skeletons in at
+least five games, player-authored endgame categories and repertoire positions
+reached while playing that repertoire's colour. Every emitted row carries
+unique games and W/L/D, canonical positions join transpositions, and every game
+opens on the board. The endgame category deep link is shared application code
+too. The public Mac 1.2.6 build does not contain this work; section B remains
+due before the next Mac release.
+
 **Published revision check (Phase 79, Mac-facing — not yet released).**
 The season reader (`/season`) joins one named set of the player's games into
 five clock and opening sections with explicit denominators. The URL carries
