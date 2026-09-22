@@ -477,3 +477,23 @@ export const Daily = (p: IconProps) => (
     <rect x="9.8" y="16.5" width="5.4" height="1.2" fill="currentColor" />
   </Icon>
 );
+
+/**
+ * `Season` (a sparkline over a baseline) so the collapsed rail keeps four
+ * separate silhouettes for the four "improve" sections. The line is short
+ * and uneven to read as "real data", not a chevron.
+ */
+export const Season = (p: IconProps) => (
+  <Icon {...p}>
+    <line x1="3.5" y1="18" x2="20.5" y2="18" stroke="currentColor" strokeWidth="1.2" />
+    <polyline
+      points="4,15 7,12 10,14 13,9 16,11 20,6"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <circle cx="20" cy="6" r="1.4" fill="currentColor" />
+  </Icon>
+);

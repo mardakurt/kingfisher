@@ -37,6 +37,7 @@ import {
   Repertoire,
   Review,
   Search,
+  Season,
   Similar,
   Target,
   Team,
@@ -165,6 +166,14 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     href: '/daily',
     icon: Daily,
     hint: 'Fifteen minutes built from your own repertoire, review queue and endgame library.',
+    group: 'improve',
+  },
+  {
+    id: 'season',
+    label: 'Season',
+    href: '/season',
+    icon: Season,
+    hint: 'A named set of your games joined into one report — clock by phase, time trouble, slowest openings.',
     group: 'improve',
   },
   {
