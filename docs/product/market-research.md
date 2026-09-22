@@ -1,6 +1,7 @@
 # The chess study market: what people ask for and do not have
 
-_2026-09-21. Research for the stated goal — Kingfisher as the ChessBase of
+_2026-09-21, revised 2026-09-23 for ChessBase 26 and ChessBase for Mac
+(§2, §3.1, §4 rows 6 and 16, §5, §6). Research for the stated goal — Kingfisher as the ChessBase of
 its era: first close the gaps, then lead. Written from first-hand sources:
 user forums, product reviews, practitioners' blogs and the products' own
 documentation. Every claim below carries its source; the sources are
@@ -30,8 +31,10 @@ than chess.
 
 ## 2. The products, by category
 
-- **Database workstations.** ChessBase 18 (Windows; ~€650 first year with
-  Mega Database and a Premium account [Disco]); HIARCS Chess Explorer Pro
+- **Database workstations.** ChessBase 26 (Windows, released 2025-11-11
+  [CB26-Horizon]; a native **Mac** version announced 2026-09-21 for November
+  2026 [CB-Mac]); ChessBase 18 before it (~€650 first year with Mega Database
+  and a Premium account [Disco]); HIARCS Chess Explorer Pro
   (Mac/Windows, $79.95–$169.95, reads CBH, Rosetta 2 on Apple Silicon
   [Disco]); Scid vs PC and ChessX (free, "UI from two decades ago" [Disco],
   [ChessMind]); En Croissant (free, open source, "development pauses for
@@ -85,6 +88,15 @@ The incumbent's users are the clearest voices, because they pay the most.
 - **Data hygiene.** "Lackluster at finding and deleting duplicate games"
   (Vladimir); Elo below 600 becomes zero; Chess960 import from CBV fails
   (jenesuispasdave) [ChessMind].
+- **ChessBase 26, by its own reviewer.** The AI assistant's commentary is
+  "generic and generalized" and disagrees with the engine: a position the
+  AI calls slightly better, Stockfish calls +2. The new time-control filter
+  showed blitz games that had been filtered out, because games were
+  misclassified. Monte Carlo output "requires fine-tuning" to filter out
+  erroneous games [CB26-Review]. ChessBase's own answers to row 16 and row
+  13 are server-side: 7+ billion Lichess games through ChessBase's server, a
+  rented cloud engine, and 12M games online, all behind the Premium account
+  [CB26-Horizon].
 - **What its own reviewer flags.** The Error Report is slow; Beauty Search
   needs the new database format; natural-language auto-annotation "lacks
   nuance" [Watson], [ChessMind].
@@ -160,30 +172,42 @@ The incumbent's users are the clearest voices, because they pay the most.
 Ranked by how many independent sources ask for it. "Have" is Kingfisher
 in the shared source (after Phase 76; desktop publication is tracked separately); "ChessBase" is the incumbent.
 
-| #   | Ask                                                                     | Sources                                     | ChessBase         | Kingfisher                                                                                                                                                                                                                                                                                               |
-| --- | ----------------------------------------------------------------------- | ------------------------------------------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | Find a position (and a structure) across **all my own work**            | Solon, Disco, Lichess-Search, ChessMind     | databases only    | **yes** — `/position?fen=…` joins your games (with results and clocks), studies, hand-ins, repertoire decisions, training cards, opening files and sheets; each reference population in its own column; stored engine evidence; same pawns as a separate row; search as a page finds them too (Phase 77) |
-| 2   | Organise studies: folders, tags, search that works                      | Lichess-Folders, Lichess-Search, Solon      | database keys     | **yes** (Phase 76) — tags on studies and chapters with an "and" filter, and search as a page with the query in the URL                                                                                                                                                                                   |
-| 3   | Spaced repetition on **my own** lines, offline                          | Lichess-SR, Chessdriller, DarkSquares, 64Sq | no                | **yes** — Training queue, repertoire review, offline; a daily rehearsal (`/daily`) from due repertoire, due critical positions, one tablebase-eligible endgame, and the most recent brief's first three sheet cards (Phase 78)                                                                           |
-| 4   | Deviation detection from my games; "where I left the book, who left it" | DarkSquares, 64Squares, ChessAtlas          | partial           | **yes** — After the round, GameInsights, review queue signal                                                                                                                                                                                                                                             |
-| 5   | Which of my lines actually get played; personal win/frequency per line  | Solon, ChessMind (Nick), 64Squares, Weak    | no                | **yes** — Played against you; review ordered by it                                                                                                                                                                                                                                                       |
-| 6   | Native Mac, no Parallels, no Rosetta                                    | Chess.com-Mac, Disco, Solon                 | no                | **yes** — released arm64 Mac, signed and notarised; web; Windows shutdown fixed and audited, but no Windows build run                                                                                                                                                                                    |
-| 7   | Stable software that does not crash                                     | Lichess-CB18, Trustpilot-CB, Chessable      | no                | certified per release; seeded walks; zero-skip suites                                                                                                                                                                                                                                                    |
-| 8   | Honest evaluation: no "brilliant", no incomparable accuracy             | Chess.com-Brilliant, ChessMind (Dennis)     | labels            | **yes** — facts with denominators, by visible rule: Review's recurring engine, pawn-structure, saved-endgame and repertoire records open every backing game; no invented score, style, streak or rating-gain (Phase 80)                                                                                  |
-| 9   | Whole-game check with one button, feeding a to-do list                  | ChessMind (Vladimir), Chess.com forums      | Tactical Analysis | **yes** — queue, After the round and review queue; engine variations written into the tree with evidence and one undo                                                                                                                                                                                    |
-| 10  | Coach ↔ student: homework, hand-in, review, on one board                | Chessido, ChessNexus, Chessr                | worksheets        | **yes** — Team hub; no cloud delivery                                                                                                                                                                                                                                                                    |
-| 11  | Own data, exportable, no lock-in                                        | 64Squares, Solon, Trustpilot-CB             | proprietary CBH   | **yes** — PGN and portable JSON backup; direct read-only CBH/CBV import                                                                                                                                                                                                                                  |
-| 12  | Reads ChessBase files (CBH/CBV/CTG)                                     | Disco, Chess.com-Mac                        | native            | **yes** (Phase 76) — CBH and CBV read, never written; CTG (books) not read                                                                                                                                                                                                                               |
-| 13  | A large annotated master database                                       | Disco, Chess.com-Mac                        | Mega Database     | **partial** — named reference packs and Coverage with depth limits; no licensed annotated master corpus                                                                                                                                                                                                  |
-| 14  | Getting the OTB game in (scoresheet, DGT, camera)                       | OTB                                         | DGT               | **yes** (Phase 76) — Scoresheet: typed against the rules, gaps reconstructed, photo via your own endpoint                                                                                                                                                                                                |
-| 15  | Duplicate removal, dynamic ECO, auto-flip to my colour                  | ChessMind                                   | partial           | **yes** (Phase 76) — duplicates by fingerprint and by metadata key, reviewed never auto-deleted; ECO where it changes in the move list; orientation from a linked account or the profile                                                                                                                 |
-| 16  | Cloud engines / remote compute                                          | Watson (ducats)                             | yes               | no — companion is local only                                                                                                                                                                                                                                                                             |
-| 17  | Opponent profile without "style" invention                              | Lichess-Weak, Aimchess                      | Style Report      | **yes** — dossier of facts, falsifiable                                                                                                                                                                                                                                                                  |
-| 18  | Time management from my games                                           | Aimchess                                    | no                | **yes** — After the round clock section for one game; a season reader joins every game in a named set (OTB / Lichess / Chess.com never merged) with denominators on each section                                                                                                                         |
-| 19  | Publishing: print, web, PDF, share a link                               | Watson, ChessBase-Coaches                   | yes               | **yes** — chapter as self-contained HTML and browser print/PDF; report print; no hosted share link                                                                                                                                                                                                       |
-| 20  | Mobile                                                                  | 64Squares, Watson                           | app               | web at phone width; no native app                                                                                                                                                                                                                                                                        |
+| #   | Ask                                                                     | Sources                                     | ChessBase                    | Kingfisher                                                                                                                                                                                                                                                                                               |
+| --- | ----------------------------------------------------------------------- | ------------------------------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Find a position (and a structure) across **all my own work**            | Solon, Disco, Lichess-Search, ChessMind     | databases only               | **yes** — `/position?fen=…` joins your games (with results and clocks), studies, hand-ins, repertoire decisions, training cards, opening files and sheets; each reference population in its own column; stored engine evidence; same pawns as a separate row; search as a page finds them too (Phase 77) |
+| 2   | Organise studies: folders, tags, search that works                      | Lichess-Folders, Lichess-Search, Solon      | database keys                | **yes** (Phase 76) — tags on studies and chapters with an "and" filter, and search as a page with the query in the URL                                                                                                                                                                                   |
+| 3   | Spaced repetition on **my own** lines, offline                          | Lichess-SR, Chessdriller, DarkSquares, 64Sq | no                           | **yes** — Training queue, repertoire review, offline; a daily rehearsal (`/daily`) from due repertoire, due critical positions, one tablebase-eligible endgame, and the most recent brief's first three sheet cards (Phase 78)                                                                           |
+| 4   | Deviation detection from my games; "where I left the book, who left it" | DarkSquares, 64Squares, ChessAtlas          | partial                      | **yes** — After the round, GameInsights, review queue signal                                                                                                                                                                                                                                             |
+| 5   | Which of my lines actually get played; personal win/frequency per line  | Solon, ChessMind (Nick), 64Squares, Weak    | no                           | **yes** — Played against you; review ordered by it                                                                                                                                                                                                                                                       |
+| 6   | Native Mac, no Parallels, no Rosetta                                    | Chess.com-Mac, Disco, Solon                 | announced, Nov 2026 [CB-Mac] | **yes** — released arm64 Mac, signed and notarised; web; Windows shutdown fixed and audited, but no Windows build run                                                                                                                                                                                    |
+| 7   | Stable software that does not crash                                     | Lichess-CB18, Trustpilot-CB, Chessable      | no                           | certified per release; seeded walks; zero-skip suites                                                                                                                                                                                                                                                    |
+| 8   | Honest evaluation: no "brilliant", no incomparable accuracy             | Chess.com-Brilliant, ChessMind (Dennis)     | labels                       | **yes** — facts with denominators, by visible rule: Review's recurring engine, pawn-structure, saved-endgame and repertoire records open every backing game; no invented score, style, streak or rating-gain (Phase 80)                                                                                  |
+| 9   | Whole-game check with one button, feeding a to-do list                  | ChessMind (Vladimir), Chess.com forums      | Tactical Analysis            | **yes** — queue, After the round and review queue; engine variations written into the tree with evidence and one undo                                                                                                                                                                                    |
+| 10  | Coach ↔ student: homework, hand-in, review, on one board                | Chessido, ChessNexus, Chessr                | worksheets                   | **yes** — Team hub; no cloud delivery                                                                                                                                                                                                                                                                    |
+| 11  | Own data, exportable, no lock-in                                        | 64Squares, Solon, Trustpilot-CB             | proprietary CBH              | **yes** — PGN and portable JSON backup; direct read-only CBH/CBV import                                                                                                                                                                                                                                  |
+| 12  | Reads ChessBase files (CBH/CBV/CTG)                                     | Disco, Chess.com-Mac                        | native                       | **yes** (Phase 76) — CBH and CBV read, never written; CTG (books) not read                                                                                                                                                                                                                               |
+| 13  | A large annotated master database                                       | Disco, Chess.com-Mac                        | Mega Database                | **partial** — named reference packs and Coverage with depth limits; no licensed annotated master corpus                                                                                                                                                                                                  |
+| 14  | Getting the OTB game in (scoresheet, DGT, camera)                       | OTB                                         | DGT                          | **yes** (Phase 76) — Scoresheet: typed against the rules, gaps reconstructed, photo via your own endpoint                                                                                                                                                                                                |
+| 15  | Duplicate removal, dynamic ECO, auto-flip to my colour                  | ChessMind                                   | partial                      | **yes** (Phase 76) — duplicates by fingerprint and by metadata key, reviewed never auto-deleted; ECO where it changes in the move list; orientation from a linked account or the profile                                                                                                                 |
+| 16  | Cloud engines / remote compute                                          | Watson (ducats), CB26-Horizon               | yes (rented)                 | no — companion is local only; no cloud evaluation either                                                                                                                                                                                                                                                 |
+| 17  | Opponent profile without "style" invention                              | Lichess-Weak, Aimchess                      | Style Report                 | **yes** — dossier of facts, falsifiable                                                                                                                                                                                                                                                                  |
+| 18  | Time management from my games                                           | Aimchess                                    | no                           | **yes** — After the round clock section for one game; a season reader joins every game in a named set (OTB / Lichess / Chess.com never merged) with denominators on each section                                                                                                                         |
+| 19  | Publishing: print, web, PDF, share a link                               | Watson, ChessBase-Coaches                   | yes                          | **yes** — chapter as self-contained HTML and browser print/PDF; report print; no hosted share link                                                                                                                                                                                                       |
+| 20  | Mobile                                                                  | 64Squares, Watson                           | app                          | web at phone width; no native app                                                                                                                                                                                                                                                                        |
 
 ## 5. What this says about the strategy
+
+**Revised 2026-09-23.** ChessBase for Mac is announced for November 2026
+[CB-Mac]. From then on, "native on the Mac" is something both products
+can say, and Kingfisher's position has to rest on what ChessBase does not
+change by porting: one store keyed by position across all of a player's
+work, facts in place of labels (its own reviewer found its new AI
+commentary contradicting its engine [CB26-Review]), no account and no
+subscription, the web, and stability that is certified rather than
+claimed. The parity list also changed. CB26 moved preparation online
+(Lichess by account, Chess.com by API, time-control filters), and the
+things ChessBase users do every day, above all the **search mask**, are
+where Kingfisher is only partial (§6).
 
 **The complaints about ChessBase are not about missing chess.** They are
 about crashes, an interface nobody can learn, a platform half the players
@@ -269,6 +293,36 @@ See `features.md`.
    certificate and a second updater. **No Windows build has been produced
    or run, and no Windows claim is made.**
 
+### Next — parity after ChessBase 26 (2026-09-23)
+
+A code audit of twenty ChessBase capabilities against this repository
+(recorded in `docs/reports/phase-81-handover.md` when the phase closes)
+found each of these partial or absent. In order of how often a ChessBase
+user touches it:
+
+1. **The search mask over your games.** Header search lacks event, an Elo
+   ceiling, a date range and time control; comments inside games are not
+   searchable; material can be searched only by ticking the current board's
+   claim, not typed ("rook against bishop"); there is no piece-route search
+   (Nf3–d2–f1–g3); the endgame themes already indexed per position have no
+   page. §3.2 "almost impossible to search" and §3.1 "Find player" are both
+   this. CB26 added time-control filters and misclassified games doing it
+   [CB26-Review]. The classification must be a visible rule.
+2. **Questions inside a chapter.** A coach's homework is a position with a
+   question and the move the student should find (§3.6: "which questions a
+   student missed"). Chapters can link to training items but hold no
+   question of their own.
+3. **Merge games into one tree.** Preparation files are built by merging
+   the games that reached a line. Kingfisher can copy games between
+   collections but cannot combine them into one annotated tree.
+4. **Cloud evaluation, labelled.** A browser with a weak CPU gets depth from
+   the Lichess cloud evaluation, named as such and never mixed into local
+   evidence. It is not a rented engine, and it costs no account.
+5. **The opening report's missing half.** The first game, who plays it,
+   and popularity by year: available from My games and the Lichess
+   provider, per game. Packs keep one recent/all-time split, and adding a
+   per-year series is a pack-format change.
+
 ### Later — leading
 
 Overnight tree deepening with a morning report; ~~the surprise finder
@@ -279,6 +333,16 @@ brief; rehearsal with spaced repetition on the game-day sheet. Each is
 designed in `docs/design/` before it is built.
 
 ## Sources
+
+- [CB26-Horizon] "ChessBase'26: Expand your chess horizon!", ChessBase —
+  <https://en.chessbase.com/post/chessbase-26-expand-your-chess-horizon>
+- [CB26-Review] "Review: ChessBase´26 – The beginning of a new era", ChessBase —
+  <https://en.chessbase.com/post/review-chessbase-26-the-beginning-of-a-new-era>
+- [CB26-Guide] "ChessBase´26: A Players Guide", parts 1 and 2, ChessBase —
+  <https://en.chessbase.com/post/chessbase-2026-a-players-guide-1>,
+  <https://en.chessbase.com/post/chessbase-2026-a-players-guide-2>
+- [CB-Mac] "ChessBase – finally on Mac!", ChessBase, 2026-09-21 —
+  <https://en.chessbase.com/post/chessbase-finally-on-mac>
 
 - [Lichess-CB18] "Chessbase 18 disappointment", lichess.org forum —
   <https://lichess.org/forum/general-chess-discussion/chessbase-18-disappointment>
