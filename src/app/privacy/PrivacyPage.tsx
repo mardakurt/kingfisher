@@ -125,6 +125,12 @@ export function PrivacyPage(): JSX.Element {
               answer. Nothing about your studies, your repertoire, or your account on Kingfisher
               goes with it.
             </li>
+            <li>
+              you turn on <em>Lichess cloud</em> in the engine panel. While it is on, each position
+              you visit is sent to <code>lichess.org/api/cloud-eval</code> to ask for the analysis
+              Lichess has stored for it. It is off at the start of every session and stays off until
+              you turn it on.
+            </li>
           </ul>
         </li>
         <li>

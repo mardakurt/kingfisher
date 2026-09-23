@@ -41,7 +41,9 @@ import { useUi } from '@/stores/ui-store';
 import { MiniBoard } from '@/features/board/MiniBoard';
 import { useCompanionStatus } from '@/companion/useCompanion';
 
+import { CloudEvaluationSection } from './CloudEvaluation';
 import { EngineSelect } from './EngineSelect';
+import { scoreTone } from './score-chip';
 
 export function EnginePanel() {
   const { node, currentId, tree } = useAnalysisPosition();
@@ -372,6 +374,11 @@ export function EnginePanel() {
             ))}
           </ol>
         )}
+        {/*
+          Phase 84: stored analysis from lichess.org, asked for and labelled,
+          under the engine's own lines and never mixed into them.
+        */}
+        <CloudEvaluationSection fen={node.fen} ply={node.ply} />
         {analysis && !stale && preview ? (
           <PvPreview
             fen={node.fen}
@@ -654,24 +661,7 @@ function EngineLegendRow({
   );
 }
 
-/*
- * A chip in White's colour on a white panel is a number with no chip around
- * it; the evaluation edge is what makes it one, in either theme.
- */
-const WHITE_CHIP = 'bg-eval-white text-eval-black ring-1 ring-inset ring-eval-edge';
-const BLACK_CHIP = 'bg-eval-black text-eval-white ring-1 ring-inset ring-eval-edge';
-
-const scoreTone = (line: { score: { kind: string; cp?: number; moves?: number } }): string => {
-  if (line.score.kind === 'mate') {
-    return (line.score.moves ?? 0) > 0 ? WHITE_CHIP : BLACK_CHIP;
-  }
-  const cp = line.score.cp ?? 0;
-  if (cp > 40) return WHITE_CHIP;
-  if (cp < -40) return BLACK_CHIP;
-  return 'bg-surface-3 text-secondary';
-};
-
-const formatCount = (value: number): string => {
+export const formatCount = (value: number): string => {
   if (value >= 1e9) return `${(value / 1e9).toFixed(2)}B`;
   if (value >= 1e6) return `${(value / 1e6).toFixed(1)}M`;
   if (value >= 1e3) return `${(value / 1e3).toFixed(0)}k`;

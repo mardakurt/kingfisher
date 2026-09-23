@@ -95,7 +95,9 @@ product needs:
   resources): `lichess.org`, `explorer.lichess.org`,
   `tablebase.lichess.ovh`; **Chess.com** (`api.chess.com`) when you
   sync a Chess.com account. Each call is made because the user asked
-  for the answer. Sign-in uses OAuth with PKCE and requests no scopes;
+  for the answer. The engine panel's _Lichess cloud_ section, off at
+  the start of every session, sends each position you visit to
+  `lichess.org/api/cloud-eval` while you have it on, and nothing else. Sign-in uses OAuth with PKCE and requests no scopes;
   the token is kept in memory for the session, and in `localStorage`
   only while _Remember_ is on, and never leaves the device.
 - **The public data mirror** at
