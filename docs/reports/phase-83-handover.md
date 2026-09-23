@@ -71,7 +71,35 @@ e2e/workspace-tabs.spec  4 passed; --repeat-each=3 12 passed; failed before the
 npm run visual:baselines 43 passed; Darwin chrome baselines regenerated, inspected
 ```
 
-Not run: the Firefox/WebKit matrix, and any packaged-application gate.
+Not run: the Firefox/WebKit matrix.
+
+The Mac application, built from `bc11cb0` with `npm run desktop:dist`
+(development channel, build 762, `Kingfisher-1.2.6-dev-762-arm64.dmg`,
+signed with the Developer ID, not notarised):
+
+```text
+desktop:dist             exit 0; afterPack resources verified; fresh packaged
+                         boot verified (renderer, web, companion, engines,
+                         Sparkle 2.10.0)
+desktop:certify          9 of 10 steps: smoke, chrome, restart, engines,
+                         walk seed 46 (200 actions, 0 findings), walk seed 7
+                         with faults (120 actions, 0 findings), dmg, no-skips,
+                         unit suite (3489) passed; suspend failed 11/12
+desktop:suspend          after the harness fix below: 12/12 passed
+```
+
+The suspend failure was the harness, not the application. "The databases
+screen works after the wake" read the first 200 characters of the page body —
+which are the sidebar — and passed on the sidebar's own "Databases" link; the
+Library rename pushed that word past character 200. It now asserts the
+route's `h1` and the page's own content. Its neighbour, "the engine panel says
+something true about itself", only checks that the dock has text; it was left
+as it is and is worth tightening.
+
+A tour of the packaged window (renderer screenshots, since macOS screen
+capture is blocked on this machine): three tabs — Analysis, Preparation
+against Carlsen, Databases — each kept its own page, and the first still held
+1.d4 Nf6 2.c4 e6 when it was re-entered.
 
 Also found by the suite: at 1280x720 the new strip cost the board its 450 px
 floor (420 px). On screens under 860 px tall the strip is 28 px, the notation
@@ -81,8 +109,8 @@ whole instead of leaving its table no height.
 
 ## 4. What remains
 
-- The Linux visual baselines (CI artefact) and the Mac application, which was
-  not built or launched in this phase.
+- The Linux visual baselines (CI artefact). The Mac build here is a dev build;
+  a preview or stable release (`docs/deployment.md`) is still to be made.
 - The Mac menu does not yet bind ⌘T / ⌘W / ⌃Tab to the tab commands; they are
   in the palette.
 - A page's own unsubmitted form state (other than what it keeps in the

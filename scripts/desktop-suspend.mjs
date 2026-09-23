@@ -322,13 +322,23 @@ async function main() {
     document.querySelector('a[href="/databases"]')?.click();
   });
   await wait(2500);
-  const databases = await window.evaluate(() =>
-    document.body.innerText.replace(/\s+/g, ' ').slice(0, 200),
-  );
+  /*
+    The page, not the window: the first 200 characters of the body are the
+    sidebar, which names Databases whether or not the screen behind it works.
+    Until Phase 83 this check passed on the sidebar's own link; it asserts
+    the route's heading and the page's own content now.
+  */
+  const databases = await window.evaluate(() => {
+    const main = document.querySelector('main');
+    return {
+      heading: main?.querySelector('h1')?.textContent?.trim() ?? null,
+      text: (main?.innerText ?? '').replace(/\s+/g, ' ').slice(0, 400),
+    };
+  });
   check(
     'the databases screen works after the wake',
-    /reference|collection|source|database/i.test(databases),
-    databases.slice(0, 70),
+    databases.heading === 'Databases' && /All databases|Data sources/.test(databases.text),
+    `${databases.heading ?? 'no heading'} — ${databases.text.slice(0, 70)}`,
   );
 
   // No second copy of anything. A resumed application that re-ran its start-up
