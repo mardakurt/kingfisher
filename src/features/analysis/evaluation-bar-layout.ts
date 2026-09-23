@@ -53,16 +53,33 @@ export function leadingSide(score: Score | null): Color | null {
   return null;
 }
 
-/** `+12.50` is six characters; the bar has room for five. */
+/**
+ * The figure the bar itself prints.
+ *
+ * The bar is 24 px wide, and at the label's 10 px that is four characters of
+ * the platform face: `+9.4` measures 23 px, `-81.2` 26 px and was clipped
+ * to `-81.`, which reads as a different number. So one decimal below ten
+ * pawns, where the decimal is information, and whole pawns from ten, where
+ * no decimal changes the reading. The full figure is always the title and the
+ * accessible name (`label`); this is only what the strip has room for, and
+ * `barLabelSize` steps the type down for the few figures that are still
+ * longer (`-M12`, `+200`).
+ */
 export function compactScore(score: Score | null): string {
   if (!score) return '—';
   if (score.kind === 'mate') return formatScore(score);
-  if (Math.abs(score.cp) < 1000) return formatScore(score);
   const pawns = score.cp / 100;
-  // Past a hundred pawns the figure is an engine's way of saying "decided";
-  // no decimal it could show would change that reading.
-  if (Math.abs(pawns) >= 100) return `${pawns > 0 ? '+' : '-'}${Math.round(Math.abs(pawns))}`;
-  return `${pawns > 0 ? '+' : '-'}${Math.abs(pawns).toFixed(1)}`;
+  // `toFixed(1)` rounds 9.96 up to "10.0": the whole-pawn rule starts where
+  // the one-decimal figure would.
+  if (Math.abs(pawns) < 9.95) return formatScore(score);
+  return `${pawns > 0 ? '+' : '-'}${Math.round(Math.abs(pawns))}`;
+}
+
+/** The label's type size, in px, for a figure of this many characters. */
+export function barLabelSize(label: string): number {
+  if (label.length <= 3) return 10;
+  if (label.length === 4) return /^[+-]\d\.\d$/.test(label) ? 10 : 9;
+  return 8;
 }
 
 /**

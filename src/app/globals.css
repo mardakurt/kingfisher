@@ -124,8 +124,21 @@
   --caution: #e0b04a;
   --info: #6aa5f0;
 
+  /*
+   * The evaluation family: the bar beside the board, the graph under the
+   * notation and the score chips in the engine panel. White's colour and
+   * Black's colour are the two readings; the edge is what keeps the band of
+   * the side whose colour matches the page — Black's here, White's in the
+   * light theme — from dissolving into it. On a board theme with a frame the
+   * bar borrows the frame instead (`boardFrameVariables`), so the bar and the
+   * board read as one object.
+   */
   --eval-white: #eeeef0;
   --eval-black: #2c2c30;
+  --eval-edge: rgb(255 255 255 / 0.2);
+  --eval-midline: rgb(142 142 150 / 0.85);
+  --eval-track: #151517;
+  --shadow-board: 0 2px 14px rgb(0 0 0 / 0.32);
 
   --shape-green: #5fa96b;
   --shape-red: #c25b52;
@@ -184,8 +197,17 @@
   --caution: #946a0c;
   --info: #2c62b0;
 
+  /*
+   * White's band is white, and the page is white: the edge carries the bar.
+   * It is dark enough to draw the band's outline at a glance and light enough
+   * not to read as a second frame beside the board's.
+   */
   --eval-white: #ffffff;
   --eval-black: #2b2b30;
+  --eval-edge: rgb(29 29 34 / 0.5);
+  --eval-midline: rgb(118 118 126 / 0.9);
+  --eval-track: #d9dce4;
+  --shadow-board: 0 2px 14px rgb(20 24 40 / 0.16);
 
   --shape-green: #4a8f57;
   --shape-red: #b24a41;
@@ -234,6 +256,9 @@
 
   --color-eval-white: var(--eval-white);
   --color-eval-black: var(--eval-black);
+  --color-eval-edge: var(--eval-edge);
+  --color-eval-midline: var(--eval-midline);
+  --color-eval-track: var(--eval-track);
 
   --color-shape-green: var(--shape-green);
   --color-shape-red: var(--shape-red);

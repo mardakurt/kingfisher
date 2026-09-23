@@ -116,7 +116,7 @@ export function EvaluationGraph({ tree, currentId, onSelect, className }: Evalua
           preserveAspectRatio="none"
           role="img"
           aria-label={`Evaluation over ${columns.length} plies, ${evaluated} of them analysed`}
-          className="block h-12 w-full rounded-[5px] border border-line-subtle bg-surface-inset"
+          className="block h-12 w-full rounded-[5px] border border-line-subtle bg-eval-track"
         >
           {columns.map((column, index) => {
             if (column.advantage === null) return null;
@@ -131,7 +131,6 @@ export function EvaluationGraph({ tree, currentId, onSelect, className }: Evalua
                 width={0.84}
                 height={Math.max(magnitude, 0.6)}
                 className={column.advantage >= 0 ? 'fill-eval-white' : 'fill-eval-black'}
-                opacity={0.9}
               />
             );
           })}
@@ -141,7 +140,14 @@ export function EvaluationGraph({ tree, currentId, onSelect, className }: Evalua
             y1={HEIGHT / 2}
             x2={width}
             y2={HEIGHT / 2}
-            stroke="var(--line-strong)"
+            /*
+              These two strokes named `--line-strong` and `--line-subtle`,
+              which are Tailwind's colour names, not the stylesheet's
+              variables (`--border-strong`, `--border-subtle`): an undefined
+              variable is no stroke at all, and the graph drew neither its
+              equality line nor its ticks from the day it was written until Phase 84.
+            */
+            stroke="var(--eval-midline)"
             strokeWidth={1}
             vectorEffect="non-scaling-stroke"
           />
@@ -154,7 +160,8 @@ export function EvaluationGraph({ tree, currentId, onSelect, className }: Evalua
               y1={0}
               x2={(tick + 1) * 20}
               y2={HEIGHT}
-              stroke="var(--line-subtle)"
+              stroke="var(--eval-midline)"
+              strokeOpacity={0.3}
               strokeWidth={1}
               vectorEffect="non-scaling-stroke"
             />

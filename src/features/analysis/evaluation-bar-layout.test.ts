@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { cp, mate } from '@/chess/evaluation';
 
 import {
+  barLabelSize,
   compactScore,
   evaluationBarLayout,
   leadingSide,
@@ -125,25 +126,40 @@ describe('the evaluation bar says who is better', () => {
 });
 
 describe('the bar label fits the bar', () => {
-  it('keeps one decimal across the range, so five characters always suffice', () => {
+  it('keeps one decimal below ten pawns and whole pawns from ten', () => {
     expect(compactScore(cp(38))).toBe('+0.4');
     expect(compactScore(cp(-120))).toBe('-1.2');
-    expect(compactScore(cp(999))).toBe('+10.0');
-    expect(compactScore(cp(1250))).toBe('+12.5');
-    expect(compactScore(cp(-1000))).toBe('-10.0');
+    expect(compactScore(cp(994))).toBe('+9.9');
+    expect(compactScore(cp(999))).toBe('+10');
+    expect(compactScore(cp(1250))).toBe('+13');
+    expect(compactScore(cp(-8120))).toBe('-81');
+    expect(compactScore(cp(-1000))).toBe('-10');
+    expect(compactScore(cp(20000))).toBe('+200');
     expect(compactScore(cp(-99999))).toBe('-1000');
     expect(compactScore(mate(12))).toBe('M12');
     expect(compactScore(mate(-3))).toBe('-M3');
     expect(compactScore(null)).toBe('—');
-    for (const score of [cp(38), cp(-120), cp(1250), cp(-99999), mate(12), mate(-3)]) {
-      expect(compactScore(score).length).toBeLessThanOrEqual(5);
+  });
+
+  it('never needs more than four characters for a score an engine reports', () => {
+    // 200 pawns is the largest figure Stockfish prints (a tablebase win).
+    for (const score of [cp(38), cp(-120), cp(999), cp(-8120), cp(20000), mate(12), mate(-12)]) {
+      expect(compactScore(score).length).toBeLessThanOrEqual(4);
     }
+  });
+
+  it('steps the type down for the figures that are wider than the bar at 10 px', () => {
+    expect(barLabelSize('+9.4')).toBe(10);
+    expect(barLabelSize('+81')).toBe(10);
+    expect(barLabelSize('-M12')).toBe(9);
+    expect(barLabelSize('+200')).toBe(9);
+    expect(barLabelSize('-1000')).toBe(8);
   });
 
   it('the layout carries both the full figure and the bar figure', () => {
     const layout = evaluationBarLayout(cp(1250), 'w');
     expect(layout.label).toBe('+12.5');
-    expect(layout.barLabel).toBe('+12.5');
+    expect(layout.barLabel).toBe('+13');
   });
 });
 

@@ -654,15 +654,20 @@ function EngineLegendRow({
   );
 }
 
+/*
+ * A chip in White's colour on a white panel is a number with no chip around
+ * it; the evaluation edge is what makes it one, in either theme.
+ */
+const WHITE_CHIP = 'bg-eval-white text-eval-black ring-1 ring-inset ring-eval-edge';
+const BLACK_CHIP = 'bg-eval-black text-eval-white ring-1 ring-inset ring-eval-edge';
+
 const scoreTone = (line: { score: { kind: string; cp?: number; moves?: number } }): string => {
   if (line.score.kind === 'mate') {
-    return (line.score.moves ?? 0) > 0
-      ? 'bg-eval-white text-eval-black'
-      : 'bg-eval-black text-eval-white';
+    return (line.score.moves ?? 0) > 0 ? WHITE_CHIP : BLACK_CHIP;
   }
   const cp = line.score.cp ?? 0;
-  if (cp > 40) return 'bg-eval-white text-eval-black';
-  if (cp < -40) return 'bg-eval-black text-eval-white';
+  if (cp > 40) return WHITE_CHIP;
+  if (cp < -40) return BLACK_CHIP;
   return 'bg-surface-3 text-secondary';
 };
 

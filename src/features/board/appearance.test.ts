@@ -3,7 +3,12 @@ import path from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { BOARD_THEMES } from './themes';
+import {
+  BOARD_FRAME_WIDTH,
+  BOARD_THEMES,
+  boardFrameVariables,
+  boardThemeVariables,
+} from './themes';
 import { PIECE_SETS } from './piece-sets';
 
 /**
@@ -164,5 +169,30 @@ describe('piece sets', () => {
     }
     const names = PIECE_SETS.map((set) => set.name);
     expect(new Set(names).size).toBe(names.length);
+  });
+});
+
+describe('the frame, for what stands beside the board', () => {
+  it('gives the evaluation bar the frame colour and reach of a framed theme', () => {
+    const studio = BOARD_THEMES.find((theme) => theme.id === 'studio')!;
+    expect(studio.frame).toBeDefined();
+    expect(boardFrameVariables(studio)).toEqual({
+      '--board-frame-color': studio.frame,
+      '--board-frame-width': `${BOARD_FRAME_WIDTH}px`,
+      '--eval-ring': '2px',
+    });
+    expect(boardThemeVariables(studio)['--board-frame-ring']).toBe(
+      `0 0 0 ${BOARD_FRAME_WIDTH}px ${studio.frame}`,
+    );
+  });
+
+  it('falls back to the evaluation edge on a frameless theme', () => {
+    const green = BOARD_THEMES.find((theme) => theme.id === 'green')!;
+    expect(green.frame).toBeUndefined();
+    expect(boardFrameVariables(green)).toEqual({
+      '--board-frame-color': 'var(--eval-edge)',
+      '--board-frame-width': '0px',
+      '--eval-ring': '1px',
+    });
   });
 });

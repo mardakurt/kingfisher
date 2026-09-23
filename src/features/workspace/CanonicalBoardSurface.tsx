@@ -8,6 +8,7 @@ import { outcomeAt } from '@/chess/game';
 import type { EngineArrow } from '@/features/board/engine-arrows';
 import type { MoveIntent } from '@/chess/types';
 import { Chessboard } from '@/features/board/Chessboard';
+import { boardFrameVariables, boardTheme } from '@/features/board/themes';
 import { useEngineArrows } from '@/features/board/engine-arrows';
 import { BoardControls } from '@/features/analysis/BoardControls';
 import { EvaluationBar } from '@/features/analysis/EvaluationBar';
@@ -297,7 +298,10 @@ export function CanonicalBoardSurface({
         */}
         <div
           className={cn(...BOARD_GRID_CLASSNAMES, !evaluationBarVisible && 'grid-cols-1')}
-          style={boardGridStyle(frameSize, evaluationBarVisible)}
+          style={{
+            ...boardGridStyle(frameSize, evaluationBarVisible),
+            ...boardFrameVariables(boardTheme(prefs.boardTheme)),
+          }}
         >
           {evaluationBarVisible ? (
             <EvaluationBar

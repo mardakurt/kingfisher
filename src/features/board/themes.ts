@@ -299,6 +299,25 @@ export function grainPattern(seed: number, strength: number): string {
   return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
 }
 
+/** The width of a theme's frame, drawn as a ring outside the squares. */
+export const BOARD_FRAME_WIDTH = 5;
+
+/**
+ * The frame, for what stands beside the board.
+ *
+ * The evaluation bar is not inside the board's element, so it cannot read the
+ * board's own variables; the surface that lays the two out sets these on
+ * both. With a framed theme the bar takes the frame's colour, two pixels of it,
+ * and its outer edge lines up with the frame's; on a frameless theme it keeps
+ * the application's evaluation edge (`--eval-edge`), one pixel, lined up with
+ * the squares.
+ */
+export const boardFrameVariables = (theme: BoardTheme): Record<string, string> => ({
+  '--board-frame-color': theme.frame ?? 'var(--eval-edge)',
+  '--board-frame-width': theme.frame ? `${BOARD_FRAME_WIDTH}px` : '0px',
+  '--eval-ring': theme.frame ? '2px' : '1px',
+});
+
 export const boardThemeVariables = (theme: BoardTheme): Record<string, string> => ({
   '--square-light': theme.light,
   '--square-dark': theme.dark,
@@ -312,5 +331,7 @@ export const boardThemeVariables = (theme: BoardTheme): Record<string, string> =
   '--square-last-move': theme.lastMove,
   '--square-check': theme.check,
   '--square-legal': theme.legalMove,
-  '--board-frame-ring': theme.frame ? `0 0 0 5px ${theme.frame}` : '0 0 0 0 transparent',
+  '--board-frame-ring': theme.frame
+    ? `0 0 0 ${BOARD_FRAME_WIDTH}px ${theme.frame}`
+    : '0 0 0 0 transparent',
 });
