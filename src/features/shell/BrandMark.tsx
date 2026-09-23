@@ -1,28 +1,48 @@
 'use client';
 
+import { useId } from 'react';
+
 /**
  * The Kingfisher mark, for use inside the application.
  *
- * The same geometry as the app icon in `brand/kingfisher-mark.svg`, minus the
- * board tile and painted in one colour: an icon competes with a launcher full
- * of other icons and needs its own background, while a mark in a sidebar sits
- * on the application's own surface and should not bring a second one.
+ * The app icon itself — `brand/kingfisher-mark.svg`: the bird on the Studio
+ * board, four squares in the board's near-white and periwinkle inside its
+ * navy frame. Until Phase 84 the sidebar drew the bird alone in the accent
+ * while the icon, the landing and the disk image each drew something else;
+ * the Studio, the landing and the Mac application now show one mark.
  *
- * `currentColor` rather than a fixed value, so the mark follows the accent in
- * both themes and dims with its container when it is not the point of the row.
+ * The colours are the brand tokens (`--brand-*`), the same in both themes,
+ * because a mark is not a surface. The tile is drawn 24 px inside a 36 px
+ * box (a 16-unit margin on the 64-unit master): the box is what the window
+ * chrome harness measures against the macOS buttons, and the tile's edge
+ * sits where the bird's visible edge sat before.
+ * `src/ui/brand-assets.test.ts` holds the geometry to the master.
  */
 export function BrandMark({ className }: { readonly className?: string }) {
+  const clip = `kf-brand-tile-${useId().replace(/:/g, '')}`;
   return (
-    <svg viewBox="0 0 64 64" className={className} aria-hidden focusable="false">
-      <g transform="translate(1.8 4.6) scale(0.94)" fill="currentColor">
+    <svg viewBox="-16 -16 96 96" className={className} aria-hidden focusable="false">
+      <defs>
+        <clipPath id={clip}>
+          <rect width="64" height="64" rx="14" />
+        </clipPath>
+      </defs>
+      <g clipPath={`url(#${clip})`}>
+        <rect width="64" height="64" fill="var(--brand-frame)" />
+        <rect x="5" y="5" width="27" height="27" fill="var(--brand-square-light)" />
+        <rect x="32" y="5" width="27" height="27" fill="var(--brand-square-dark)" />
+        <rect x="5" y="32" width="27" height="27" fill="var(--brand-square-dark)" />
+        <rect x="32" y="32" width="27" height="27" fill="var(--brand-square-light)" />
+      </g>
+      <g transform="translate(1.8 4.6) scale(0.94)">
         <path
+          fill="var(--brand-frame)"
           d="M58 30L34.2 25.6L31.4 19.2L26.4 16.4L22.2 10.8L19.6 16.2L14.8 19.4
              C11.4 24.8 10.8 29.8 12.6 34.4C14.9 40.1 20 43.2 25.9 42.8
              C29.6 42.5 32 39.6 33.2 34.4Z"
         />
+        <circle cx="26.2" cy="25.6" r="2.25" fill="var(--brand-square-light)" />
       </g>
-      {/* The eye is a hole, so the mark reads on any surface it is placed on. */}
-      <circle cx="26.4" cy="28.7" r="2.1" fill="var(--surface-1)" />
     </svg>
   );
 }

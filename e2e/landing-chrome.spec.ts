@@ -113,7 +113,12 @@ test('every product image is a real file, sized as declared', async ({ page }) =
         alt: img.getAttribute('alt') ?? '',
       })),
     );
-  expect(images).toHaveLength(3);
+  // Each capture in both Studio themes (Phase 84): six files, three shown.
+  expect(images).toHaveLength(6);
+  await expect(
+    page.locator('.hero-product-img:visible, .research-img:visible, .engines-img:visible'),
+  ).toHaveCount(3);
+  await expect(page.locator('.kf-light-only:visible')).toHaveCount(3);
   for (const image of images) {
     expect(image.alt.length, image.src).toBeGreaterThan(40);
     const response = await page.request.get(image.src);
@@ -133,4 +138,31 @@ test('every product image is a real file, sized as declared', async ({ page }) =
     );
     expect(natural, image.src).toEqual({ w: image.width, h: image.height });
   }
+});
+
+test('the landing follows the Studio theme, and shows the dark captures in it', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem(
+      'kingfisher.preferences',
+      JSON.stringify({ state: { theme: 'dark' }, version: 7 }),
+    );
+  });
+  await page.goto('/');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await expect(page.locator('.kf-dark-only:visible')).toHaveCount(3);
+  await expect(page.locator('.kf-light-only:visible')).toHaveCount(0);
+  // The page is the Studio's dark canvas, not a colour of its own.
+  const colours = await page.evaluate(() => {
+    const root = getComputedStyle(document.documentElement);
+    const landing = getComputedStyle(document.querySelector('.kf-landing')!);
+    const probe = document.createElement('div');
+    probe.style.background = root.getPropertyValue('--surface-0');
+    document.body.append(probe);
+    const canvas = getComputedStyle(probe).backgroundColor;
+    probe.remove();
+    return { landing: landing.backgroundColor, canvas };
+  });
+  expect(colours.landing).toBe(colours.canvas);
 });

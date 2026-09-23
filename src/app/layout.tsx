@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 
 import { publicUrl } from '@/release/public-urls';
+import { PALETTE } from '@/ui/palette';
 import { AppProviders } from './providers';
 import { WebAnalytics } from './_analytics/WebAnalytics';
 import './globals.css';
@@ -100,7 +101,7 @@ export const metadata: Metadata = {
       'Chess analysis, opening explorer, personal chess database, repertoire and review. Stockfish 18 in the browser, native engines on macOS. Local-first. No account. No cookies.',
     images: [OG_IMAGE],
   },
-  appleWebApp: { capable: true, title: 'Kingfisher', statusBarStyle: 'black-translucent' },
+  appleWebApp: { capable: true, title: 'Kingfisher', statusBarStyle: 'default' },
   /*
     The icons are the file convention, not this object: `favicon.ico`
     (16, 32 and 48 px layers), `icon.svg`, `icon1.png` (96 px, the multiple
@@ -112,11 +113,11 @@ export const metadata: Metadata = {
     `manifest.webmanifest/route.ts`. Only the Windows tile needs saying out
     loud.
   */
-  other: { 'msapplication-TileColor': '#ffffff' },
+  other: { 'msapplication-TileColor': PALETTE.light.canvas },
 };
 
 export const viewport: Viewport = {
-  themeColor: '#ffffff',
+  themeColor: PALETTE.light.canvas,
   width: 'device-width',
   initialScale: 1,
 };

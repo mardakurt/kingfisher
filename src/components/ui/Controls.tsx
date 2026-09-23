@@ -228,7 +228,7 @@ export function Popover({
           role="dialog"
           aria-label={label}
           className={cn(
-            'absolute top-full z-50 mt-1.5 overflow-y-auto overscroll-contain rounded-[10px] border border-line bg-surface-1 shadow-[0_12px_32px_rgb(0_0_0/0.14),0_0_0_0.5px_rgb(0_0_0/0.06)] animate-rise',
+            'absolute top-full z-50 mt-1.5 overflow-y-auto overscroll-contain rounded-[10px] border border-line bg-surface-1 shadow-[var(--shadow-popover)] animate-rise',
             align === 'end' ? 'right-0' : 'left-0',
           )}
           style={{ width, maxHeight: room ?? undefined }}

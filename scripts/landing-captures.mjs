@@ -23,10 +23,11 @@
  * appear in it.
  *
  *   npm run dev                                   # on :3210
- *   node scripts/landing-captures.mjs <outdir>    # writes hero.png, research.png, engines.png
+ *   node scripts/landing-captures.mjs <outdir>    # writes hero, research and engines,
+ *                                                 # each as -light.png and -dark.png
  *   node scripts/landing-captures.mjs <outdir> --encode
- *       # also writes the three WebP files into public/landing/img/, named
- *       # by today's date, with cwebp — the names are what LandingPage.tsx
+ *       # also writes the six WebP files into public/landing/img/, named
+ *       # by today's date (the dark ones with -dark), with cwebp — the names are what LandingPage.tsx
  *       # references, so change them there in the same commit — and the
  *       # social card, og.png, 1200 × 630 from the hero (the size the
  *       # layout's Open Graph metadata declares), with sharp.
@@ -63,21 +64,26 @@ const browser = await chromium.launch({ channel: 'chrome' }).catch(() => chromiu
  * browser does for a site it has been given a reason to keep; it changes
  * nothing else in the capture.
  */
-async function freshPage() {
+async function freshPage(theme) {
   const context = await browser.newContext({
     viewport: { width: 1440, height: 900 },
     deviceScaleFactor: 2,
-    colorScheme: 'dark',
+    colorScheme: theme,
   });
   await context.grantPermissions(['persistent-storage'], { origin: BASE }).catch(() => {
     /* Not every channel knows the permission; the notice is then in the frame. */
   });
-  await context.addInitScript(() => {
+  /*
+    Light is what a fresh profile gets; dark is the one preference set, so
+    the landing — which follows the Studio's theme — can show each visitor
+    the Studio they will open (Phase 84).
+  */
+  await context.addInitScript((dark) => {
     window.localStorage.setItem(
       'kingfisher.preferences',
-      JSON.stringify({ state: {}, version: 6 }),
+      JSON.stringify(dark ? { state: { theme: 'dark' }, version: 7 } : { state: {}, version: 6 }),
     );
-  });
+  }, theme === 'dark');
   const page = await context.newPage();
   await page.goto(`${BASE}/analysis`);
   await page.locator(READY).waitFor({ timeout: 60_000 });
@@ -124,7 +130,18 @@ async function italianWithEngine(page) {
  * edge and the board keeps its pieces; the same rectangle for both sections,
  * so the two images sit in the page at the same scale.
  */
-async function panelWithBoard(page, file) {
+/*
+  Since Phase 82 the notation is the first section of the panel, above the
+  tools. A section image is about the tool, so the notation is folded for it
+  — the disclosure a player uses — and the tool gets the height.
+*/
+async function foldNotation(page) {
+  const toggle = page.locator('[data-notation-section] button[aria-expanded="true"]').first();
+  if (await toggle.isVisible().catch(() => false)) await toggle.click();
+  await page.waitForTimeout(400);
+}
+
+async function panelWithBoard(page, file, until) {
   const board = await page.locator('[data-chessboard]').boundingBox();
   const strip = await page.getByRole('tab', { name: 'Engine' }).boundingBox();
   if (!board || !strip) throw new Error('workspace not on screen');
@@ -132,18 +149,30 @@ async function panelWithBoard(page, file) {
   const y = Math.round(strip.y - 4);
   // Down to the board's own bottom edge; the row of controls under it and the
   // empty move tree of a fresh capture say nothing about the panel.
-  const bottom = Math.round(board.y + board.height + 6);
+  // A tool whose content runs further (the comparison table) is followed to
+  // its own end, short of the status bar.
+  const reach = until ? await until.boundingBox() : null;
+  const bottom = Math.round(
+    reach
+      ? Math.min(Math.max(board.y + board.height, reach.y + reach.height) + 6, 876)
+      : board.y + board.height + 6,
+  );
   await page.screenshot({
     path: path.join(outDir, file),
     clip: { x, y, width: 1440 - x, height: bottom - y },
   });
 }
 
-const hero = await freshPage();
-await italianWithEngine(hero);
-await hero.screenshot({ path: path.join(outDir, 'hero.png') });
-await panelWithBoard(hero, 'engines.png');
-await hero.context().close();
+const THEMES = ['light', 'dark'];
+
+for (const theme of THEMES) {
+  const hero = await freshPage(theme);
+  await italianWithEngine(hero);
+  await hero.screenshot({ path: path.join(outDir, `hero-${theme}.png`) });
+  await foldNotation(hero);
+  await panelWithBoard(hero, `engines-${theme}.png`);
+  await hero.context().close();
+}
 
 /*
   The comparison: the bundled reference against Recent Theory, the two-year
@@ -154,84 +183,90 @@ await hero.context().close();
   not "My games", which is empty on a fresh profile. The Najdorf is deep
   enough that the two disagree visibly about the move after 5...a6.
 */
-const research = await freshPage();
-await research.goto(`${BASE}/databases`);
-await research.locator(READY).waitFor({ timeout: 60_000 });
-await research.getByRole('button', { name: /Reference sources/ }).click();
-const recent = research.locator('[data-source-row="kingfisher-recent-theory"]');
-await recent.waitFor({ timeout: 60_000 });
-await recent.getByRole('button', { name: 'Install', exact: true }).click();
-// A pack that needs a large download asks first; a small one just starts.
-const confirm = research.getByRole('dialog').getByRole('button', { name: 'Install anyway' });
-if (await confirm.isVisible({ timeout: 2_000 }).catch(() => false)) await confirm.click();
-await recent.getByRole('button', { name: /^Remove /i }).waitFor({ timeout: 600_000 });
-await research.goto(`${BASE}/analysis`);
-await research.locator(READY).waitFor({ timeout: 60_000 });
-await research.addStyleTag({ content: 'nextjs-portal{display:none!important}' });
-/*
+for (const theme of THEMES) {
+  const research = await freshPage(theme);
+  await research.goto(`${BASE}/databases`);
+  await research.locator(READY).waitFor({ timeout: 60_000 });
+  await research.getByRole('button', { name: /Reference sources/ }).click();
+  const recent = research.locator('[data-source-row="kingfisher-recent-theory"]');
+  await recent.waitFor({ timeout: 60_000 });
+  await recent.getByRole('button', { name: 'Install', exact: true }).click();
+  // A pack that needs a large download asks first; a small one just starts.
+  const confirm = research.getByRole('dialog').getByRole('button', { name: 'Install anyway' });
+  if (await confirm.isVisible({ timeout: 2_000 }).catch(() => false)) await confirm.click();
+  await recent.getByRole('button', { name: /^Remove /i }).waitFor({ timeout: 600_000 });
+  await research.goto(`${BASE}/analysis`);
+  await research.locator(READY).waitFor({ timeout: 60_000 });
+  await research.addStyleTag({ content: 'nextjs-portal{display:none!important}' });
+  /*
   The dock is 380 px on a fresh profile, which is right for one source and
   too narrow for two columns side by side — the table scrolls sideways. A
   player comparing sources drags the dock wider, so the capture does the
   same, by the handle, the way they would.
 */
-const handle = research.getByRole('button', { name: 'Resize workspace tools' });
-const handleBox = await handle.boundingBox();
-if (!handleBox) throw new Error('dock handle not on screen');
-const grip = { x: handleBox.x + handleBox.width / 2, y: handleBox.y + handleBox.height / 2 };
-await research.mouse.move(grip.x, grip.y);
-await research.mouse.down();
-await research.mouse.move(grip.x - 160, grip.y, { steps: 8 });
-await research.mouse.up();
-await research.getByRole('button', { name: 'Import PGN or FEN' }).click();
-const dialog = research.getByRole('dialog', { name: 'Import a game or position' });
-await dialog.getByRole('textbox').fill('1.e4 c5 2.Nf3 d6 3.d4 cxd4 4.Nxd4 Nf6 5.Nc3 a6 *');
-await dialog.getByRole('button', { name: 'Import games' }).click();
-await dialog.waitFor({ state: 'hidden' });
-await research.keyboard.press('End');
-await research.getByRole('tab', { name: 'Explorer' }).click();
-await research.locator('[data-explorer-move]').first().waitFor({ timeout: 30_000 });
-await research.getByRole('button', { name: 'Compare sources' }).click();
-const comparison = research.locator('[data-source-comparison]');
-await comparison.waitFor();
-const wanted = ['kingfisher-starter', 'kingfisher-recent-theory'];
-for (const button of await comparison.locator('[data-comparison-source]').all()) {
-  const id = await button.getAttribute('data-comparison-source');
-  const pressed = (await button.getAttribute('aria-pressed')) === 'true';
-  if (pressed !== wanted.includes(id ?? '')) await button.click();
+  const handle = research.getByRole('button', { name: 'Resize workspace tools' });
+  const handleBox = await handle.boundingBox();
+  if (!handleBox) throw new Error('dock handle not on screen');
+  const grip = { x: handleBox.x + handleBox.width / 2, y: handleBox.y + handleBox.height / 2 };
+  await research.mouse.move(grip.x, grip.y);
+  await research.mouse.down();
+  await research.mouse.move(grip.x - 160, grip.y, { steps: 8 });
+  await research.mouse.up();
+  await research.getByRole('button', { name: 'Import PGN or FEN' }).click();
+  const dialog = research.getByRole('dialog', { name: 'Import a game or position' });
+  await dialog.getByRole('textbox').fill('1.e4 c5 2.Nf3 d6 3.d4 cxd4 4.Nxd4 Nf6 5.Nc3 a6 *');
+  await dialog.getByRole('button', { name: 'Import games' }).click();
+  await dialog.waitFor({ state: 'hidden' });
+  await research.keyboard.press('End');
+  await foldNotation(research);
+  await research.getByRole('tab', { name: 'Explorer' }).click();
+  await research.locator('[data-explorer-move]').first().waitFor({ timeout: 30_000 });
+  await research.getByRole('button', { name: 'Compare sources' }).click();
+  const comparison = research.locator('[data-source-comparison]');
+  await comparison.waitFor();
+  const wanted = ['kingfisher-starter', 'kingfisher-recent-theory'];
+  for (const button of await comparison.locator('[data-comparison-source]').all()) {
+    const id = await button.getAttribute('data-comparison-source');
+    const pressed = (await button.getAttribute('aria-pressed')) === 'true';
+    if (pressed !== wanted.includes(id ?? '')) await button.click();
+  }
+  for (const id of wanted) {
+    await comparison
+      .locator(`[data-comparison-column="${id}"]`)
+      .filter({ hasText: /games/ })
+      .waitFor({ timeout: 60_000 });
+  }
+  // The variation brief above the table is the Theory Book's business, and
+  // folded away it leaves the table where the eye lands.
+  const hideBrief = research.getByRole('button', { name: 'Hide', exact: true });
+  if (await hideBrief.isVisible().catch(() => false)) await hideBrief.click();
+  // The import confirmation has done its job.
+  for (const dismiss of await research.getByRole('button', { name: 'Dismiss' }).all())
+    await dismiss.click().catch(() => {});
+  // The comparison sits under the single-source table; scroll it to the top
+  // of the panel so the table above it is out of the frame, not half in it.
+  await comparison.evaluate((el) => el.scrollIntoView({ block: 'start' }));
+  await research.waitForTimeout(1_500);
+  await research.mouse.move(5, 5);
+  await panelWithBoard(research, `research-${theme}.png`, comparison);
+  await research.context().close();
 }
-for (const id of wanted) {
-  await comparison
-    .locator(`[data-comparison-column="${id}"]`)
-    .filter({ hasText: /games/ })
-    .waitFor({ timeout: 60_000 });
-}
-// The variation brief above the table is the Theory Book's business, and
-// folded away it leaves the table where the eye lands.
-const hideBrief = research.getByRole('button', { name: 'Hide', exact: true });
-if (await hideBrief.isVisible().catch(() => false)) await hideBrief.click();
-// The import confirmation has done its job.
-for (const dismiss of await research.getByRole('button', { name: 'Dismiss' }).all())
-  await dismiss.click().catch(() => {});
-// The comparison sits under the single-source table; scroll it to the top
-// of the panel so the table above it is out of the frame, not half in it.
-await comparison.evaluate((el) => el.scrollIntoView({ block: 'start' }));
-await research.waitForTimeout(1_500);
-await research.mouse.move(5, 5);
-await panelWithBoard(research, 'research.png');
-await research.context().close();
 await browser.close();
 
 for (const name of ['hero', 'engines', 'research'])
-  console.log(`wrote ${path.join(outDir, `${name}.png`)}`);
+  for (const theme of THEMES) console.log(`wrote ${path.join(outDir, `${name}-${theme}.png`)}`);
 
 if (encode) {
   const stamp = new Date().toISOString().slice(0, 10);
   const target = path.join(process.cwd(), 'public', 'landing', 'img');
-  const jobs = [
-    ['hero', `workspace-${stamp}.webp`, ['-resize', '2240', '0']],
-    ['research', `research-${stamp}.webp`, []],
-    ['engines', `engines-${stamp}.webp`, []],
-  ];
+  const jobs = THEMES.flatMap((theme) => {
+    const suffix = theme === 'light' ? '' : '-dark';
+    return [
+      [`hero-${theme}`, `workspace-${stamp}${suffix}.webp`, ['-resize', '2240', '0']],
+      [`research-${theme}`, `research-${stamp}${suffix}.webp`, []],
+      [`engines-${theme}`, `engines-${stamp}${suffix}.webp`, []],
+    ];
+  });
   for (const [name, file, resize] of jobs) {
     const out = path.join(target, file);
     execFileSync('cwebp', [
@@ -249,7 +284,7 @@ if (encode) {
   // just under the top edge, so the brand in the sidebar header stays in.
   const sharp = (await import('sharp')).default;
   const og = path.join(target, 'og.png');
-  await sharp(path.join(outDir, 'hero.png'))
+  await sharp(path.join(outDir, 'hero-light.png'))
     .resize({ width: 1200 })
     .extract({ left: 0, top: 48, width: 1200, height: 630 })
     .png({ compressionLevel: 9, palette: true })

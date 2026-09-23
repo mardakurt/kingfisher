@@ -13,9 +13,13 @@ does not: Finder itself places the Kingfisher.app icon and the
 Applications alias at the positions `desktop/electron-builder.yml`
 names under `dmg.contents`, and labels them. So the background carries
 
-  - a dark, almost-black surface that matches Kingfisher's in-app
-    surfaces;
-  - the wordmark at the top;
+  - the Studio's dark canvas, read from `src/ui/palette.json` — the same
+    value the application's dark theme paints (Phase 84; before it the
+    surface was a near-miss of its own). Dark rather than the light default
+    because Finder colours the icon labels by the system appearance, not by
+    the picture: white labels on a light background vanish in dark mode;
+  - the mark and the name, in sentence case like every label in the
+    application (Phase 82 retired the letter-spaced capitals);
   - a thin arrow that runs between the two icon positions, at their
     vertical centre;
   - one short caption, above the status-bar region, naming the action
@@ -31,6 +35,7 @@ Phase 46, then fixed. ICON_CENTRES below must agree with the yml.
 
 from __future__ import annotations
 
+import json
 import pathlib
 import sys
 
@@ -46,9 +51,18 @@ PROJECT_ICON = HERE.parent / "build" / "icon.png"
 ICON_CENTRES = ((210, 230), (510, 230))
 ICON_SIZE = 96
 
-BG = (26, 28, 32, 255)        # matches Kingfisher dialog surface
-FG = (244, 244, 246, 255)
-DIM = (154, 160, 166, 255)
+PALETTE = json.loads((HERE.parent.parent / "src" / "ui" / "palette.json").read_text())
+
+
+def rgba(value: str, alpha: int = 255) -> tuple[int, int, int, int]:
+    value = value.lstrip("#")
+    return (int(value[0:2], 16), int(value[2:4], 16), int(value[4:6], 16), alpha)
+
+
+BG = rgba(PALETTE["dark"]["canvas"])
+FG = rgba(PALETTE["dark"]["text"])
+DIM = rgba(PALETTE["dark"]["textSecondary"])
+ACCENT = rgba(PALETTE["dark"]["accent"])
 
 SIZES = [
     ("background.png", 720, 460),
@@ -75,9 +89,15 @@ def find_font(weight: str, size: int) -> ImageFont.FreeTypeFont:
         p = pathlib.Path(path_str)
         if p.exists():
             try:
-                return ImageFont.truetype(str(p), size=size)
+                font = ImageFont.truetype(str(p), size=size)
             except OSError:
                 continue
+            if weight != "regular":
+                try:
+                    font.set_variation_by_name(weight.capitalize())
+                except (OSError, ValueError):
+                    pass  # not a variable font; the regular cut is fine
+            return font
     return ImageFont.load_default()
 
 
@@ -88,7 +108,7 @@ def draw_arrow(draw: ImageDraw.ImageDraw, x1: int, x2: int, y: int, thickness: i
     whatever the font designer chose; drawing the line ourselves
     keeps the proportions exactly what the design intends.
     """
-    line_color = (244, 244, 246, 46)  # ~18% white
+    line_color = ACCENT
     draw.line([(x1, y), (x2, y)], fill=line_color, width=thickness)
     # Arrowhead: an isoceles triangle pointing right.
     head = max(thickness * 4, 12)
@@ -114,9 +134,27 @@ def draw(w: int, h: int) -> Image.Image:
         overlay_ctx.line([(0, y), (w, y)], fill=(244, 244, 246, a))
     im = Image.alpha_composite(im, overlay)
     draw_ctx = ImageDraw.Draw(im)
-    # 2. The wordmark.
-    title_font = find_font("regular", size=int(h * 0.058))
-    draw_ctx.text((w // 2, int(h * 0.10)), "KINGFISHER", font=title_font, fill=FG, anchor="ma")
+    # 2. The mark and the name, centred as one line.
+    title_font = find_font("semibold", size=int(h * 0.056))
+    mark_side = int(h * 0.075)
+    gap = int(h * 0.022)
+    text_w = draw_ctx.textlength("Kingfisher", font=title_font)
+    left = int((w - (mark_side + gap + text_w)) / 2)
+    top = int(h * 0.095)
+    # The icon sits on Apple's grid, an 824 px body in 1024 with a shadow
+    # around it; the title wants the body alone.
+    icon = Image.open(PROJECT_ICON).convert("RGBA")
+    inset = (icon.width - round(icon.width * 824 / 1024)) // 2
+    body = icon.crop((inset, inset, icon.width - inset, icon.height - inset))
+    mark = body.resize((mark_side, mark_side), Image.LANCZOS)
+    im.alpha_composite(mark, (left, top))
+    draw_ctx.text(
+        (left + mark_side + gap, top + mark_side // 2),
+        "Kingfisher",
+        font=title_font,
+        fill=FG,
+        anchor="lm",
+    )
     # 3. The arrow, between the icons Finder will draw. It starts a little
     #    clear of the left icon's edge and ends a little short of the right
     #    icon's, so neither icon sits on it.
@@ -135,7 +173,7 @@ def draw(w: int, h: int) -> Image.Image:
         (w // 2, int(h * 0.74)),
         "Drag Kingfisher to Applications",
         font=action_font,
-        fill=FG,
+        fill=DIM,
         anchor="ma",
     )
     return im

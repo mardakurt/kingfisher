@@ -34,7 +34,15 @@ describe('design token references', () => {
     const defined = new Set<string>();
     const read = new Map<string, Set<string>>();
     for (const file of sources(ROOT)) {
-      const text = fs.readFileSync(file, 'utf8');
+      const source = fs.readFileSync(file, 'utf8');
+      /*
+        `@theme inline` declares Tailwind's utilities; its properties are
+        inlined into them and never emitted, so a `var()` elsewhere cannot
+        read one. The body's font did, and read nothing.
+      */
+      const text = source.replace(/@theme inline \{[\s\S]*?\n\}/g, (theme) =>
+        theme.replace(/--[a-zA-Z0-9-]+\s*:/g, ''),
+      );
       for (const match of text.matchAll(/(--[a-zA-Z0-9-]+)\s*:/g)) defined.add(match[1]!);
       for (const match of text.matchAll(/['"`](--[a-zA-Z0-9-]+)['"`]/g)) defined.add(match[1]!);
       for (const match of text.matchAll(/variable:\s*['"](--[a-zA-Z0-9-]+)/g))

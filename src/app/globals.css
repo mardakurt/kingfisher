@@ -89,6 +89,30 @@
   --sidebar-brand-left-padding: 0.875rem;
   --panel-header: 36px;
   --focus-ring: 2px;
+
+  /*
+   * The faces, as real properties. `--font-sans` in `@theme inline` below
+   * is inlined into Tailwind's utilities and never emitted, so a stylesheet
+   * that read it — the body rule here did — read nothing
+   * and fell through to whatever the preflight inherited. The platform's own
+   * face first: San Francisco on a Mac, in the browser and in the shell
+   * alike, Segoe on Windows, Inter elsewhere.
+   */
+  --font-ui:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, 'Segoe UI', var(--font-inter),
+    ui-sans-serif, sans-serif;
+  --font-code: var(--font-mono-face), ui-monospace, 'SF Mono', 'JetBrains Mono', monospace;
+
+  /*
+   * The brand: the Studio board the app icon is drawn from. The same in both
+   * themes — it is the product's mark, not a surface — and equal to
+   * `src/ui/palette.json` (`board`), which `palette.test.ts` checks. The
+   * landing and the public pages draw their one ornament, the 2 × 2 tile,
+   * from these.
+   */
+  --brand-frame: #16224a;
+  --brand-square-light: #f1f3f9;
+  --brand-square-dark: #7f9bd3;
   --motion-quick: 90ms;
   --motion-standard: 140ms;
   --motion-deliberate: 180ms;
@@ -161,6 +185,11 @@
   --selection: #4b93f540;
   --shadow-panel: 0 1px 3px rgb(0 0 0 / 0.34);
   --shadow-sidebar: 0 0 0 1px rgb(255 255 255 / 0.06), 0 8px 24px rgb(0 0 0 / 0.28);
+  /* A menu or popover over the page; a window, as macOS shadows a key window. */
+  --shadow-popover: 0 12px 32px rgb(0 0 0 / 0.42), 0 0 0 0.5px rgb(255 255 255 / 0.08);
+  --shadow-window:
+    0 0 0 0.5px var(--border-strong), 0 24px 60px -24px rgb(0 0 0 / 0.7),
+    0 8px 20px -12px rgb(0 0 0 / 0.5);
 }
 
 [data-theme='light'] {
@@ -225,6 +254,10 @@
   --selection: #1f64d633;
   --shadow-panel: 0 1px 2px rgb(20 20 30 / 0.06);
   --shadow-sidebar: 0 0 0 1px rgb(0 0 0 / 0.05), 0 6px 18px rgb(20 20 40 / 0.06);
+  --shadow-popover: 0 12px 32px rgb(0 0 0 / 0.14), 0 0 0 0.5px rgb(0 0 0 / 0.06);
+  --shadow-window:
+    0 0 0 0.5px var(--border-strong), 0 24px 60px -28px rgb(20 24 40 / 0.35),
+    0 8px 20px -12px rgb(20 24 40 / 0.18);
 }
 
 @theme inline {
@@ -265,12 +298,9 @@
   --color-shape-blue: var(--shape-blue);
   --color-shape-yellow: var(--shape-yellow);
 
-  /* The platform's own face first: San Francisco on a Mac, in the browser and
-     in the shell alike, Segoe on Windows. Inter is the fallback elsewhere. */
-  --font-sans:
-    -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, 'Segoe UI', var(--font-inter),
-    ui-sans-serif, sans-serif;
-  --font-mono: var(--font-mono-face), ui-monospace, 'SF Mono', 'JetBrains Mono', monospace;
+  /* Utilities for the two faces; the stacks are `--font-ui` and `--font-code`. */
+  --font-sans: var(--font-ui);
+  --font-mono: var(--font-code);
 
   --text-2xs: 0.75rem;
   --text-2xs--line-height: 1.05rem;
@@ -300,7 +330,7 @@ body {
 body {
   background-color: var(--surface-0);
   color: var(--text-primary);
-  font-family: var(--font-sans);
+  font-family: var(--font-ui);
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
 }
@@ -670,10 +700,10 @@ body {
  *     focus.
  */
 .pwa-install-card {
-  border: 1px solid var(--color-line-subtle, currentColor);
+  border: 1px solid var(--border-subtle);
   border-radius: 8px;
   padding: 1rem 1.25rem;
-  background: var(--color-surface-1, transparent);
+  background: var(--surface-1);
 }
 
 .pwa-install-card h3 {
@@ -704,8 +734,8 @@ body {
   align-items: center;
   gap: 0.75rem;
   padding: 0.6rem 1rem;
-  background: var(--color-surface-1, #14181f);
-  border-bottom: 1px solid var(--color-line-subtle, currentColor);
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border-subtle);
   font-size: 0.8rem;
 }
 
@@ -730,8 +760,8 @@ body {
   align-items: center;
   gap: 0.75rem;
   padding: 0.6rem 1rem;
-  background: var(--color-surface-1, #14181f);
-  border-bottom: 1px solid var(--color-line-subtle, currentColor);
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border-subtle);
   font-size: 0.8rem;
 }
 

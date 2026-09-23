@@ -39,6 +39,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 import { isApplicationHost } from '@/proxy-host-rules';
+import { PALETTE } from '@/ui/palette';
 
 const ICON_192 = '/icon-192.png';
 const ICON_512 = '/icon-512.png';
@@ -53,8 +54,8 @@ const STUDIO_MANIFEST = {
   scope: '/',
   display: 'standalone',
   orientation: 'any',
-  background_color: '#ffffff',
-  theme_color: '#ffffff',
+  background_color: PALETTE.light.canvas,
+  theme_color: PALETTE.light.canvas,
   categories: ['productivity', 'education', 'games'],
   icons: [
     { src: ICON_192, sizes: '192x192', type: 'image/png', purpose: 'any' },
@@ -76,8 +77,10 @@ const MARKETING_MANIFEST = {
   scope: '/',
   display: 'browser',
   orientation: 'any',
-  background_color: '#0b0d11',
-  theme_color: '#0b0d11',
+  // The landing is drawn in the Studio's own palette since Phase 84; the
+  // navy it used to carry here was a second product's colour.
+  background_color: PALETTE.light.canvas,
+  theme_color: PALETTE.light.canvas,
   icons: [
     { src: ICON_192, sizes: '192x192', type: 'image/png', purpose: 'any' },
     { src: ICON_512, sizes: '512x512', type: 'image/png', purpose: 'any' },

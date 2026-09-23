@@ -1,60 +1,39 @@
 /*
-  Landing-only editorial palette. Studio preferences never change these bands.
+  The landing, drawn in the Studio's own design system.
 
-  The two colours that make it Kingfisher's are the bird's: the blue of its
-  back (`--accent`, the mark's own #39a8c9 darkened for paper and lightened
-  for ink) and the amber of its breast (`--amber`), which is also the Studio's
-  accent — the colour of the selected section's rail in the sidebar. The ink
-  is the Studio's own dark surface, so the application in the screenshots
-  and the page around them are one material.
+  Until Phase 84 this page carried an editorial palette of its own — navy
+  ink, cream paper, a Georgia headline, a teal bird and an amber rail — and a
+  visitor who pressed "Open Studio" left one product for another. Kingfisher
+  Studio is the product; the landing introduces it. So every colour, face,
+  radius and hairline here is a Studio token from `src/app/globals.css`, and
+  the page follows the Studio's theme through the same `data-theme` the root
+  layout sets before first paint: light for a first visit, dark for somebody
+  who chose dark in the Studio.
 
-  Two motifs recur and nothing else does: the mark's 2 × 2 tile, as the
-  bullet before every section label, and the board's grid, faint behind the
-  product. A page needs one signature it can afford to repeat, not five.
+  Studio's rules, applied to a page instead of a workstation:
+    - one accent, blue, for the primary action and for links — never for
+      decoration;
+    - regions divided by hairlines and by the sidebar's grey, not by boxes
+      of colour;
+    - the platform face, sentence case, no letter-spaced capitals;
+    - one ornament: the 2 × 2 Studio board tile the app icon is drawn from
+      (`--brand-*`), as the bullet before each section's label.
+
+  Nothing in this file may introduce a colour literal:
+  `src/ui/brand-assets.test.ts` holds it to the tokens.
 */
 .kf-landing {
-  --ink: #071827;
-  --paper: #f4efe5;
-  --bg: var(--paper);
-  --text: var(--ink);
-  --text-dim: #4b5962;
-  --text-mute: #596873;
-  --accent: #296780;
-  --accent-soft: #86bdd1;
-  --amber: #b8862b;
-  --tile-dark: #10151e;
-  --tile-light: #1a2331;
-  --line: #d5d1c8;
-  --line-strong: #8b9597;
-  --font: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-editorial: Georgia, 'Times New Roman', serif;
-  --font-mono: var(--font-mono-face), ui-monospace, 'SF Mono', Menlo, monospace;
-  --max: 1280px;
-  --gutter: clamp(24px, 5vw, 80px);
+  --max: 1200px;
+  --gutter: clamp(20px, 5vw, 64px);
   /* Below this width the section links fold into the menu. */
   --nav-collapse: 900px;
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--font);
+  --radius-button: 8px;
+  background: var(--surface-0);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
   font-size: 16px;
-  line-height: 1.65;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
-}
-
-.kf-landing .nav,
-.kf-landing .hero,
-.kf-landing .section-local,
-.kf-landing .site-footer {
-  --bg: var(--ink);
-  --text: var(--paper);
-  --text-dim: #bcc9ce;
-  --text-mute: #a0b1bb;
-  --accent: var(--accent-soft);
-  --amber: #e2ad42;
-  --line: #1f3446;
-  --line-strong: #4f6d80;
-  background: var(--bg);
-  color: var(--text);
 }
 
 .kf-landing *,
@@ -69,28 +48,33 @@
 
 .kf-landing :is(h1, h2, h3) {
   text-wrap: balance;
-  color: var(--text);
+  color: var(--text-primary);
 }
 
 .kf-landing a {
   color: var(--accent);
   text-decoration: none;
-  text-underline-offset: 5px;
+  text-underline-offset: 4px;
 }
 
 .kf-landing a:hover {
   text-decoration: underline;
 }
 
-.kf-landing a:focus-visible {
-  outline: 3px solid var(--accent);
-  outline-offset: 5px;
-  border-radius: 3px;
+.kf-landing a:focus-visible,
+.kf-landing summary:focus-visible {
+  outline: var(--focus-ring) solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 4px;
 }
 
 .kf-landing ::selection {
-  background: #86bdd1;
-  color: #0b1823;
+  background: var(--selection);
+}
+
+.kf-landing code {
+  font-family: var(--font-code);
+  font-size: 0.86em;
 }
 
 .kf-landing img,
@@ -104,7 +88,7 @@
 }
 
 .kf-landing [id] {
-  scroll-margin-top: 96px;
+  scroll-margin-top: 80px;
 }
 
 .kf-landing .skip {
@@ -112,34 +96,31 @@
   left: 24px;
   top: -100px;
   z-index: 100;
-  padding: 12px 20px;
-  background: var(--paper);
-  color: var(--ink);
+  padding: 10px 16px;
+  border-radius: var(--radius-control);
+  background: var(--accent);
+  color: var(--accent-contrast);
 }
 
 .kf-landing .skip:focus {
   top: 16px;
 }
 
-/*
-  One quiet navigation bar.
+/* ---------------------------------------------------------------------------
+  The bar: the Studio's toolbar, translucent over the page.
 
-  A three-column grid, `1fr auto 1fr`: the brand at the start of the first
-  column, the links in the middle one, the action at the end of the third.
-  The links are therefore centred on the page — the two outer columns are
-  equal whatever the wordmark and the button happen to measure — where a
-  flex row with `margin: auto` centred them between the brand and the button
-  and left them 26 px right of the hero underneath. The bar is translucent
-  ink with a blur so the page is read to scroll beneath it.
-*/
+  A three-column grid — brand, links, action — whose outer columns are equal,
+  so the links are centred on the page whatever the wordmark and the button
+  measure (`e2e/landing-chrome.spec.ts` asserts it at three widths).
+--------------------------------------------------------------------------- */
 .kf-landing .nav {
   position: sticky;
   top: 0;
   z-index: 50;
-  border-bottom: 1px solid var(--line);
-  background: color-mix(in srgb, var(--ink) 86%, transparent);
-  -webkit-backdrop-filter: blur(14px);
-  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--surface-0) 82%, transparent);
+  -webkit-backdrop-filter: saturate(1.6) blur(18px);
+  backdrop-filter: saturate(1.6) blur(18px);
 }
 
 .kf-landing .nav-inner {
@@ -147,23 +128,21 @@
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: 24px;
-  min-height: 72px;
-  /* The same box as every section: content `--max` wide, a gutter each side,
-     so the brand's left edge and the action's right edge sit on the column
-     lines the sections use. */
+  min-height: 60px;
+  /* The same box as every section, so the brand's left edge and the action's
+     right edge sit on the column lines the sections use. */
   max-width: calc(var(--max) + var(--gutter) * 2);
   margin: 0 auto;
-  padding: 12px var(--gutter);
+  padding: 10px var(--gutter);
 }
 
 .kf-landing .nav-brand {
   display: inline-flex;
   align-items: center;
-  gap: 11px;
+  gap: 10px;
   justify-self: start;
-  color: var(--text);
+  color: var(--text-primary);
   white-space: nowrap;
-  text-decoration: none;
 }
 
 .kf-landing .nav-brand:hover {
@@ -176,98 +155,82 @@
 }
 
 .kf-landing .nav-mark img {
-  border-radius: 7px;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
 }
 
 .kf-landing .nav-wordmark {
-  font-family: var(--font-editorial);
-  font-size: 24px;
-  letter-spacing: -0.6px;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .kf-landing .nav-links {
   display: flex;
-  gap: 28px;
+  gap: 4px;
   font-size: 13px;
   font-weight: 500;
-  letter-spacing: 0.005em;
 }
 
+/* The sidebar's rows, laid on their side: a filled rounded row on hover. */
 .kf-landing .nav-links a {
-  position: relative;
-  padding: 6px 0;
-  color: var(--text-dim);
-  transition: color 160ms ease;
-}
-
-/* The underline is the Studio's selected-section rail turned on its side:
-   amber, and it grows from the centre rather than fading in. */
-.kf-landing .nav-links a::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  right: 50%;
-  bottom: 0;
-  height: 2px;
-  border-radius: 1px;
-  background: var(--amber);
+  padding: 6px 12px;
+  border-radius: var(--radius-control);
+  color: var(--text-secondary);
   transition:
-    left 180ms ease,
-    right 180ms ease;
+    background-color var(--motion-standard) ease,
+    color var(--motion-standard) ease;
 }
 
 .kf-landing .nav-links a:is(:hover, :focus-visible) {
-  color: var(--text);
+  background: var(--surface-2);
+  color: var(--text-primary);
   text-decoration: none;
-}
-
-.kf-landing .nav-links a:is(:hover, :focus-visible)::after {
-  left: 0;
-  right: 0;
 }
 
 .kf-landing .nav-actions {
   display: flex;
   align-items: center;
   justify-self: end;
-  gap: 10px;
+  gap: 8px;
 }
 
-/* The folded menu: a disclosure, styled as a button, hidden while the
-   links have room. */
+/* The folded menu: a disclosure, hidden while the links have room. */
 .kf-landing .nav-menu {
   display: none;
   position: relative;
 }
 
 .kf-landing .nav-menu summary {
-  list-style: none;
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
-  border: 1px solid var(--line-strong);
-  border-radius: 5px;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface-1);
   cursor: pointer;
-  color: var(--text);
+  list-style: none;
 }
 
 .kf-landing .nav-menu summary::-webkit-details-marker {
   display: none;
 }
 
-.kf-landing .nav-menu summary:focus-visible {
-  outline: 3px solid var(--accent);
-  outline-offset: 3px;
+.kf-landing .nav-menu-bars,
+.kf-landing .nav-menu-bars::before,
+.kf-landing .nav-menu-bars::after {
+  display: block;
+  width: 16px;
+  height: 1.5px;
+  border-radius: 1px;
+  background: var(--text-primary);
+  transition: transform var(--motion-standard) ease;
 }
 
 .kf-landing .nav-menu-bars {
   position: relative;
-  display: block;
-  width: 18px;
-  height: 2px;
-  background: currentColor;
-  border-radius: 1px;
 }
 
 .kf-landing .nav-menu-bars::before,
@@ -275,19 +238,14 @@
   content: '';
   position: absolute;
   left: 0;
-  width: 18px;
-  height: 2px;
-  background: currentColor;
-  border-radius: 1px;
-  transition: transform 180ms ease;
 }
 
 .kf-landing .nav-menu-bars::before {
-  top: -6px;
+  top: -5px;
 }
 
 .kf-landing .nav-menu-bars::after {
-  top: 6px;
+  top: 5px;
 }
 
 .kf-landing .nav-menu[open] .nav-menu-bars {
@@ -295,91 +253,103 @@
 }
 
 .kf-landing .nav-menu[open] .nav-menu-bars::before {
-  transform: translateY(6px) rotate(45deg);
+  transform: translateY(5px) rotate(45deg);
 }
 
 .kf-landing .nav-menu[open] .nav-menu-bars::after {
-  transform: translateY(-6px) rotate(-45deg);
+  transform: translateY(-5px) rotate(-45deg);
 }
 
 .kf-landing .nav-menu-list {
   position: absolute;
   right: 0;
-  top: calc(100% + 10px);
+  top: calc(100% + 8px);
+  display: flex;
+  flex-direction: column;
   min-width: 200px;
-  display: grid;
-  padding: 8px;
-  border: 1px solid var(--line-strong);
-  border-radius: 6px;
-  background: var(--ink);
-  box-shadow: 0 24px 48px -24px #000000cc;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  background: var(--surface-1);
+  box-shadow: var(--shadow-popover);
 }
 
 .kf-landing .nav-menu-list a {
-  padding: 10px 12px;
-  border-radius: 4px;
-  color: var(--text);
-  font-size: 15px;
+  padding: 8px 12px;
+  border-radius: var(--radius-control);
+  color: var(--text-primary);
+  font-size: 14px;
 }
 
 .kf-landing .nav-menu-list a:is(:hover, :focus-visible) {
-  background: var(--line);
+  background: var(--surface-2);
   text-decoration: none;
 }
 
-.kf-landing .nav-cta,
-.kf-landing .btn {
+/* ---------------------------------------------------------------------------
+  Buttons: the Studio's controls at the size a page asks for.
+--------------------------------------------------------------------------- */
+.kf-landing .btn,
+.kf-landing .nav-cta {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 44px;
-  padding: 10px 20px;
+  gap: 8px;
   border: 1px solid transparent;
-  border-radius: 5px;
-  font-family: var(--font);
-  font-weight: 550;
-  font-size: 14px;
-  line-height: 1.4;
-  text-align: center;
+  border-radius: var(--radius-button);
+  font-weight: 600;
+  white-space: nowrap;
   text-decoration: none;
   transition:
-    background 160ms ease,
-    color 160ms ease,
-    border-color 160ms ease,
-    box-shadow 200ms ease,
-    transform 200ms ease;
+    background-color var(--motion-standard) ease,
+    border-color var(--motion-standard) ease,
+    color var(--motion-standard) ease;
 }
 
-.kf-landing .nav-cta,
-.kf-landing .btn-primary {
-  background: var(--accent-soft);
-  color: var(--ink);
+.kf-landing .btn {
+  min-height: 44px;
+  padding: 10px 20px;
+  font-size: 15px;
+}
+
+.kf-landing .nav-cta {
+  min-height: 34px;
+  padding: 6px 14px;
+  font-size: 13px;
+}
+
+.kf-landing :is(.btn-primary, .nav-cta) {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.kf-landing :is(.btn-primary, .nav-cta):hover {
+  background: var(--accent-hover);
+  text-decoration: none;
 }
 
 .kf-landing .btn-secondary {
-  border-color: var(--line-strong);
-  color: var(--text);
-  background: transparent;
+  border-color: var(--border);
+  background: var(--surface-1);
+  color: var(--text-primary);
 }
 
-.kf-landing .btn:hover,
-.kf-landing .nav-cta:hover {
+.kf-landing .btn-secondary:hover {
+  background: var(--surface-2);
   text-decoration: none;
-  background: var(--paper);
-  color: var(--ink);
-  transform: none;
 }
 
 .kf-landing .btn-block {
   width: 100%;
 }
 
-/* Hero / product capture */
+/* ---------------------------------------------------------------------------
+  Hero: the product, in a window, above the fold.
+--------------------------------------------------------------------------- */
 .kf-landing .hero {
   position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  padding: 88px var(--gutter) 0;
+  padding: 80px var(--gutter) 0;
+  background: linear-gradient(var(--surface-sidebar), var(--surface-0) 70%);
 }
 
 .kf-landing .hero-inner,
@@ -390,40 +360,39 @@
 
 .kf-landing .hero-copy {
   text-align: center;
-  max-width: 900px;
-  margin: 0 auto 44px;
+  max-width: 820px;
+  margin: 0 auto 48px;
 }
 
 .kf-landing .hero-title {
-  font-family: var(--font-editorial);
-  font-weight: 400;
-  font-size: clamp(48px, 6.4vw, 88px);
-  line-height: 1.02;
-  letter-spacing: -3px;
+  font-size: clamp(40px, 5.4vw, 68px);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.035em;
 }
 
 .kf-landing .hero-title-accent {
-  color: var(--accent);
-  font-style: italic;
+  color: var(--text-secondary);
+  font-weight: 600;
 }
 
 .kf-landing .hero-lede {
-  margin: 26px auto;
-  max-width: 720px;
-  font-size: 17px;
-  color: var(--text-dim);
-  line-height: 1.7;
+  margin: 22px auto 28px;
+  max-width: 640px;
+  font-size: 18px;
+  line-height: 1.55;
+  color: var(--text-secondary);
   text-wrap: balance;
 }
 
 .kf-landing .hero-cta-row {
   display: flex;
   justify-content: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .kf-landing .hero-cta-row .btn {
-  min-width: 200px;
+  min-width: 196px;
 }
 
 /*
@@ -437,13 +406,12 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 8px 22px;
+  gap: 8px 20px;
   font-size: 13px;
-  color: var(--text-dim);
+  color: var(--text-secondary);
 }
 
 .kf-landing .hero-return-link {
-  color: var(--amber);
   font-weight: 600;
 }
 
@@ -458,422 +426,355 @@
   width: 15px;
   height: 15px;
   margin: 0;
-  accent-color: var(--amber);
+  accent-color: var(--accent);
 }
 
 .kf-landing .hero-return-note {
-  color: var(--text-mute);
-}
-
-.kf-landing .hero-return-note code {
-  font-family: var(--font-mono);
-  font-size: 12px;
-}
-
-.kf-landing .hero-strip {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  padding: 36px 0 44px;
-  margin-top: 44px;
-  border-top: 1px solid var(--line);
-  text-align: center;
-}
-
-.kf-landing .hero-strip-item {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 0 20px;
-}
-
-.kf-landing .hero-strip-item ~ .hero-strip-item {
-  border-left: 1px solid var(--line);
-}
-
-.kf-landing .hero-strip-num {
-  font-family: var(--font-editorial);
-  font-size: clamp(28px, 3vw, 40px);
-  line-height: 1.15;
-  font-variant-numeric: lining-nums tabular-nums;
-}
-
-.kf-landing .hero-strip-label {
-  color: var(--text-dim);
-  font-size: 12px;
-  letter-spacing: 0.01em;
-}
-
-/* Editorial sections */
-.kf-landing .section {
-  max-width: calc(var(--max) + var(--gutter) * 2);
-  margin: 0 auto;
-  padding: 96px var(--gutter);
-}
-
-.kf-landing .section-eyebrow {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--accent);
-  margin-bottom: 18px;
-}
-
-.kf-landing .section-eyebrow::before {
-  flex-shrink: 0;
-}
-
-/* On paper the tile is drawn in ink and its own lighter square. */
-.kf-landing .section:not(.section-local) .section-eyebrow::before {
-  --tile-dark: var(--ink);
-  --tile-light: #2b3d4c;
-  box-shadow: none;
-}
-
-.kf-landing :is(.section-local, .download-head) .section-eyebrow,
-.kf-landing .local-statement .section-eyebrow {
-  justify-content: center;
-}
-
-.kf-landing .section-title {
-  font-family: var(--font-editorial);
-  font-size: clamp(34px, 3.6vw, 52px);
-  font-weight: 400;
-  line-height: 1.1;
-  letter-spacing: -1.5px;
-}
-
-.kf-landing .section-lede {
-  color: var(--text-dim);
-  font-size: 15px;
-  line-height: 1.8;
-  margin-top: 24px;
-}
-
-.kf-landing .section-head {
-  margin-bottom: 44px;
-  max-width: 760px;
-}
-
-.kf-landing .section-why {
-  padding-bottom: 24px;
-}
-
-.kf-landing .why-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 40px;
-  counter-reset: principle;
-}
-
-.kf-landing .why-item {
-  position: relative;
-  border-top: 1px solid var(--line-strong);
-  padding-top: 18px;
-  counter-increment: principle;
-}
-
-/* The Studio marks the selected section with a short amber rail; each
-   principle carries the same rail on its rule. */
-.kf-landing .why-item::after {
-  content: '';
-  position: absolute;
-  top: -1px;
-  left: 0;
-  width: 40px;
-  height: 3px;
-  border-radius: 0 0 2px 2px;
-  background: var(--amber);
-}
-
-.kf-landing .why-item::before {
-  content: '0' counter(principle);
-  display: block;
-  font-family: var(--font-mono);
-  color: var(--accent);
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  margin-bottom: 20px;
-}
-
-.kf-landing .why-item h3 {
-  font-family: var(--font-editorial);
-  font-size: 24px;
-  font-weight: 400;
-  line-height: 1.2;
-  letter-spacing: -0.4px;
-  margin-bottom: 14px;
-}
-
-.kf-landing .why-item p {
-  color: var(--text-dim);
-  font-size: 14px;
-}
-
-.kf-landing .research-layout,
-.kf-landing .engines-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
-  align-items: center;
-  gap: 64px;
-}
-
-.kf-landing .engines-layout {
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
-}
-
-.kf-landing .section-engines {
-  padding-top: 24px;
-}
-
-.kf-landing .research-list {
-  list-style: none;
-  padding: 0;
-  margin: 28px 0 0;
-}
-
-.kf-landing .research-list li {
-  border-top: 1px solid var(--line);
-  padding: 13px 0;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.kf-landing .research-list strong {
-  font-weight: 500;
-  font-size: 14px;
-}
-
-.kf-landing .research-list span {
-  color: var(--text-dim);
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-}
-
-.kf-landing .hero-product-frame,
-.kf-landing .research-frame,
-.kf-landing .engines-frame {
-  overflow: hidden;
-  border-radius: 10px;
-  border: 1px solid var(--line-strong);
-  background: var(--ink);
-  box-shadow: 0 24px 56px -28px #0b182366;
-}
-
-.kf-landing .hero-product-frame {
-  position: relative;
-  max-width: 1120px;
-  margin: 0 auto;
+  color: var(--text-tertiary);
 }
 
 /*
-  The board's grid, faint and behind the product: eight files across the
-  frame's width, fading out towards the edges so it is a ground and not a
-  pattern. This is the one decoration on the page; it is a chess board.
+  The capture sits in a window drawn the way the Mac application's is: the
+  Studio's own toolbar row, the sidebar grey, a hairline and the soft shadow
+  macOS gives a key window. The row carries the mark and the document title,
+  not three circles — this is a picture of Kingfisher, not of a Mac.
 */
-.kf-landing .hero-grid {
-  position: absolute;
-  z-index: -1;
-  inset: -72px -12% -40px;
-  pointer-events: none;
-  background-image:
-    linear-gradient(to right, #86bdd118 1px, transparent 1px),
-    linear-gradient(to bottom, #86bdd118 1px, transparent 1px);
-  background-size: 96px 96px;
-  background-position: center top;
-  -webkit-mask-image: radial-gradient(ellipse 70% 80% at 50% 40%, #000 30%, transparent 75%);
-  mask-image: radial-gradient(ellipse 70% 80% at 50% 40%, #000 30%, transparent 75%);
+.kf-landing .hero-product-frame {
+  position: relative;
+  max-width: var(--max);
+  margin: 0 auto;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--surface-0);
+  box-shadow: var(--shadow-window);
 }
 
-/* The window's one lit edge, so the frame reads as a surface rather than a
-   flat rectangle on the same dark ground. */
-.kf-landing .hero-product-frame {
-  box-shadow:
-    inset 0 1px 0 #ffffff14,
-    0 32px 72px -32px #00000099;
+.kf-landing .hero-grid {
+  display: none;
 }
 
 .kf-landing .hero-product-chrome {
   display: flex;
   align-items: center;
   gap: 10px;
-  height: 34px;
+  height: 36px;
   padding: 0 14px;
-  border-bottom: 1px solid var(--line);
-  font-size: 11px;
-  letter-spacing: 0.01em;
-  color: var(--text-mute);
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--surface-sidebar);
+  font-size: 12px;
 }
 
-/* The mark's own tile — two squares of the board — stands in for the
-   three window dots a mock-up would draw. It is the same 2 × 2 the eyebrows
-   carry. */
-.kf-landing .hero-product-tile,
-.kf-landing .section-eyebrow::before {
-  content: '';
-  display: inline-block;
-  width: 12px;
-  height: 12px;
+.kf-landing .hero-product-tile {
+  width: 14px;
+  height: 14px;
+  flex: none;
   border-radius: 3px;
   background: conic-gradient(
-    from 0deg at 50% 50%,
-    var(--tile-light) 0 25%,
-    var(--tile-dark) 0 50%,
-    var(--tile-light) 0 75%,
-    var(--tile-dark) 0
+    var(--brand-square-dark) 0 25%,
+    var(--brand-square-light) 0 50%,
+    var(--brand-square-dark) 0 75%,
+    var(--brand-square-light) 0
   );
-  box-shadow: inset 0 0 0 1px #ffffff14;
+  box-shadow: 0 0 0 2px var(--brand-frame);
 }
 
 .kf-landing .hero-product-title {
-  color: var(--text);
-  font-weight: 500;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .kf-landing .hero-product-crumb {
-  margin-left: auto;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kf-landing .hero-product-img {
+  width: 100%;
+}
+
+/* Each capture is taken in both Studio themes; the page shows its own. */
+:root[data-theme='dark'] .kf-landing .kf-light-only,
+:root:not([data-theme='dark']) .kf-landing .kf-dark-only {
+  display: none;
+}
+
+.kf-landing .hero-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 56px;
+  padding: 32px 0 40px;
+  border-top: 1px solid var(--border-subtle);
+  text-align: center;
+}
+
+.kf-landing .hero-strip-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 20px;
+}
+
+.kf-landing .hero-strip-item ~ .hero-strip-item {
+  border-left: 1px solid var(--border-subtle);
+}
+
+.kf-landing .hero-strip-num {
+  font-size: clamp(26px, 2.6vw, 34px);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
 }
 
-.kf-landing .hero-product-img,
+.kf-landing .hero-strip-label {
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+/* ---------------------------------------------------------------------------
+  Sections.
+--------------------------------------------------------------------------- */
+.kf-landing .section {
+  max-width: calc(var(--max) + var(--gutter) * 2);
+  margin: 0 auto;
+  padding: 88px var(--gutter);
+}
+
+/* The Studio's group label, with the board tile as its bullet. */
+.kf-landing .section-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 12px;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.kf-landing .section-eyebrow::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  flex: none;
+  border-radius: 2px;
+  background: conic-gradient(
+    var(--brand-square-dark) 0 25%,
+    var(--brand-square-light) 0 50%,
+    var(--brand-square-dark) 0 75%,
+    var(--brand-square-light) 0
+  );
+  box-shadow: 0 0 0 1.5px var(--brand-frame);
+}
+
+.kf-landing .section-title {
+  font-size: clamp(30px, 3.4vw, 44px);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+
+.kf-landing .section-lede {
+  margin-top: 18px;
+  max-width: 620px;
+  color: var(--text-secondary);
+  font-size: 17px;
+  line-height: 1.6;
+}
+
+.kf-landing .section-head {
+  margin-bottom: 40px;
+  max-width: 760px;
+}
+
+.kf-landing .section-why {
+  padding-bottom: 32px;
+}
+
+.kf-landing .why-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+
+/* Each principle is a Studio panel. */
+.kf-landing .why-item {
+  padding: 24px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-panel);
+  background: var(--surface-1);
+}
+
+.kf-landing .why-item h3 {
+  margin-bottom: 10px;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.kf-landing .why-item p {
+  color: var(--text-secondary);
+  font-size: 15px;
+}
+
+.kf-landing .research-layout,
+.kf-landing .engines-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  align-items: center;
+  gap: 64px;
+}
+
+.kf-landing .engines-layout {
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+}
+
+.kf-landing .section-engines {
+  padding-top: 32px;
+}
+
+.kf-landing .research-list {
+  list-style: none;
+  padding: 0;
+  margin: 28px 0 0;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.kf-landing .research-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.kf-landing .research-list strong {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.kf-landing .research-list span {
+  color: var(--text-tertiary);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The section images are panels cropped from the Studio: drawn as panels. */
+.kf-landing .research-frame,
+.kf-landing .engines-frame {
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--surface-0);
+  box-shadow: var(--shadow-window);
+}
+
 .kf-landing .research-img,
 .kf-landing .engines-img {
   width: 100%;
 }
 
 .kf-landing .section-local {
-  position: relative;
   max-width: none;
-  text-align: center;
-  padding-top: 80px;
-  padding-bottom: 80px;
-}
-
-/* The band between the paper sections is ruled the way the board is
-   ranked: a single amber line the width of the content, not the page. */
-.kf-landing .section-local::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 50%;
-  width: min(var(--max), calc(100% - var(--gutter) * 2));
-  height: 3px;
-  transform: translateX(-50%);
-  background: linear-gradient(
-    to right,
-    transparent,
-    var(--amber) 20%,
-    var(--amber) 80%,
-    transparent
-  );
-  opacity: 0.85;
+  background: var(--surface-sidebar);
+  border-block: 1px solid var(--border-subtle);
 }
 
 .kf-landing .local-statement {
-  max-width: 820px;
+  max-width: 760px;
   margin: 0 auto;
+  text-align: center;
+}
+
+.kf-landing .local-statement .section-eyebrow {
+  justify-content: center;
 }
 
 .kf-landing .local-statement .section-lede {
-  max-width: 600px;
-  margin: 24px auto 0;
-  text-wrap: balance;
+  margin-inline: auto;
 }
 
 .kf-landing .download-head {
-  text-align: center;
-  margin-bottom: 44px;
+  margin-bottom: 36px;
 }
 
 .kf-landing .download-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 24px;
-  max-width: 1080px;
-  margin: 0 auto;
+  gap: 20px;
 }
 
 .kf-landing .download-card {
-  border: 1px solid var(--line-strong);
-  border-radius: 6px;
-  padding: 32px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  background: linear-gradient(145deg, #fffaf2, var(--paper));
-  color: var(--text);
-  box-shadow: 0 16px 40px -28px #0b182355;
-  transition:
-    border-color 200ms ease,
-    box-shadow 200ms ease;
+  gap: 14px;
+  padding: 28px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  background: var(--surface-1);
+  transition: border-color var(--motion-standard) ease;
 }
 
-.kf-landing .section-download {
-  background: var(--bg);
+.kf-landing .download-card-primary {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
 }
 
 .kf-landing .download-card-top {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid var(--line);
-  padding-bottom: 20px;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .kf-landing .download-card-tag {
-  font-family: var(--font-editorial);
-  font-size: 26px;
+  color: var(--text-tertiary);
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .kf-landing .download-card-pill {
-  border-radius: 20px;
-  background: #e1e1dc;
-  color: #46545e;
-  padding: 3px 12px;
-  font-size: 11px;
-  letter-spacing: 0.04em;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .kf-landing .download-card-pill-ok {
-  color: #305e45;
-  background: #dbe8d8;
+  background: color-mix(in srgb, var(--positive) 14%, transparent);
+  color: var(--positive);
 }
 
 .kf-landing .download-card h3 {
-  font-family: var(--font-editorial);
-  font-weight: 400;
-  font-size: 28px;
-  line-height: 1.2;
-  letter-spacing: -0.6px;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .kf-landing .download-card p {
-  color: var(--text-dim);
-  font-size: 14px;
+  color: var(--text-secondary);
+  font-size: 15px;
 }
 
 .kf-landing .download-spec {
   list-style: none;
-  margin: 0 0 auto;
+  margin: 4px 0 6px;
   padding: 0;
-  display: grid;
-  gap: 8px;
-  font-size: 12px;
+  border-top: 1px solid var(--border-subtle);
 }
 
 .kf-landing .download-spec li {
   display: flex;
-  align-items: baseline;
   justify-content: space-between;
   gap: 16px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 13px;
 }
 
 .kf-landing .download-spec span {
-  color: var(--text-dim);
+  color: var(--text-tertiary);
 }
 
 .kf-landing .download-spec strong {
@@ -882,61 +783,35 @@
   overflow-wrap: anywhere;
 }
 
-.kf-landing .download-card .btn-primary {
-  color: var(--paper);
-  background: var(--ink);
-  border-color: var(--ink);
-}
-
-.kf-landing .download-card .btn-primary:hover {
-  background: var(--accent);
-  color: #fff;
-  border-color: var(--accent);
-}
-
-.kf-landing .download-card .btn-secondary {
-  color: var(--text);
-  border-color: var(--text);
-}
-
 .kf-landing .download-card .download-meta {
-  text-align: center;
-  font-size: 12px;
+  color: var(--text-tertiary);
+  font-size: 13px;
 }
 
-.kf-landing .download-meta a {
-  text-decoration: underline;
-}
-
-/* FAQ — native disclosure, no JS framework. */
 .kf-landing .section-faq {
-  padding-top: 80px;
-  padding-bottom: 80px;
+  padding-top: 32px;
 }
 
 .kf-landing .faq-list {
-  max-width: 820px;
-  margin: 0 auto;
-  border-top: 1px solid var(--line);
+  max-width: 860px;
+  border-top: 1px solid var(--border-subtle);
 }
 
+/* The notation panel's disclosure, at the size of a question. */
 .kf-landing .faq-item {
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .kf-landing .faq-item summary {
-  list-style: none;
-  cursor: pointer;
-  padding: 22px 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  font-family: var(--font-editorial);
-  font-size: 20px;
-  font-weight: 400;
-  letter-spacing: -0.3px;
-  color: var(--text);
+  gap: 20px;
+  padding: 18px 2px;
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
 }
 
 .kf-landing .faq-item summary::-webkit-details-marker {
@@ -947,65 +822,47 @@
   color: var(--accent);
 }
 
-.kf-landing .faq-item summary:focus-visible {
-  outline: 3px solid var(--accent);
-  outline-offset: 4px;
-  border-radius: 3px;
+.kf-landing .faq-icon {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 1;
+  transition: transform var(--motion-deliberate) ease;
 }
 
 .kf-landing .faq-item[open] .faq-icon {
   transform: rotate(45deg);
-  background: var(--ink);
-  border-color: var(--ink);
-  color: var(--paper);
-}
-
-.kf-landing .faq-icon {
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  border: 1px solid var(--line-strong);
-  border-radius: 50%;
-  font-family: var(--font);
-  font-size: 22px;
-  line-height: 1;
-  color: var(--text-dim);
-  transition:
-    transform 200ms ease,
-    background-color 200ms ease,
-    color 200ms ease;
-  flex-shrink: 0;
 }
 
 .kf-landing .faq-item p {
-  color: var(--text-dim);
+  max-width: 740px;
+  padding: 0 2px 20px;
+  color: var(--text-secondary);
   font-size: 15px;
-  line-height: 1.7;
-  padding: 0 0 24px;
-  max-width: 680px;
-  text-wrap: pretty;
 }
 
-.kf-landing .faq-item p a {
-  color: var(--accent);
-}
-
-/* Footer */
+/* ---------------------------------------------------------------------------
+  Footer: the sidebar's grey, a hairline above it.
+--------------------------------------------------------------------------- */
 .kf-landing .site-footer {
-  padding: 56px var(--gutter) 28px;
-}
-
-.kf-landing .footer-inner,
-.kf-landing .footer-fineprint {
-  max-width: var(--max);
-  margin: 0 auto;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--surface-sidebar);
 }
 
 .kf-landing .footer-inner {
   display: grid;
-  grid-template-columns: 1fr 2fr;
-  gap: 64px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr);
+  gap: 48px;
+  max-width: calc(var(--max) + var(--gutter) * 2);
+  margin: 0 auto;
+  padding: 56px var(--gutter) 36px;
 }
 
 .kf-landing .footer-brand-row {
@@ -1015,158 +872,65 @@
 }
 
 .kf-landing .footer-brand-row img {
-  border-radius: 6px;
-}
-
-.kf-landing .footer-brand .nav-wordmark {
-  font-size: 28px;
+  border-radius: 5px;
 }
 
 .kf-landing .footer-tag {
-  color: var(--text-dim);
-  font-size: 12px;
-  margin-top: 16px;
-  max-width: 240px;
-  line-height: 1.6;
+  margin-top: 12px;
+  max-width: 320px;
+  color: var(--text-secondary);
+  font-size: 14px;
 }
 
 .kf-landing .footer-cols {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 28px;
+  gap: 24px;
 }
 
 .kf-landing .footer-cols h4 {
-  font-size: 11px;
+  margin: 0 0 10px;
+  color: var(--text-tertiary);
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  margin-bottom: 14px;
-  color: var(--text);
 }
 
 .kf-landing .footer-cols ul {
   list-style: none;
-  padding: 0;
   margin: 0;
+  padding: 0;
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
 
 .kf-landing .footer-cols a {
-  color: var(--text-dim);
-  font-size: 13px;
+  color: var(--text-secondary);
+  font-size: 14px;
 }
 
 .kf-landing .footer-cols a:hover {
-  color: var(--text);
-  text-decoration: none;
+  color: var(--text-primary);
 }
 
 .kf-landing .footer-fineprint {
-  color: var(--text-mute);
+  max-width: calc(var(--max) + var(--gutter) * 2);
+  margin: 0 auto;
+  padding: 18px var(--gutter) 32px;
+  border-top: 1px solid var(--border-subtle);
+  color: var(--text-tertiary);
   font-size: 12px;
-  line-height: 1.6;
-  padding-top: 28px;
-  margin-top: 44px;
-  border-top: 1px solid var(--line);
 }
 
-.kf-landing .footer-fineprint a {
-  color: var(--text-dim);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-/* Small, CSS-only enhancements; content is visible without motion support. */
-.kf-landing .hero::before {
-  content: '';
-  position: absolute;
-  z-index: -1;
-  inset: -15%;
-  pointer-events: none;
-  background: radial-gradient(ellipse at 50% 30%, #29678055, transparent 60%);
-}
-
-.kf-landing :is(.nav-cta, .btn-primary) {
-  box-shadow:
-    inset 0 1px 0 #ffffff40,
-    0 6px 18px -10px #86bdd166;
-}
-
-.kf-landing :is(.footer-cols, .download-meta) a {
-  text-decoration: underline;
-  text-decoration-color: transparent;
-  transition:
-    color 180ms ease,
-    text-decoration-color 180ms ease;
-}
-
-.kf-landing :is(.footer-cols, .download-meta) a:is(:hover, :focus-visible) {
-  text-decoration: underline;
-  text-decoration-color: currentColor;
-}
-
-.kf-landing .download-meta a {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  font-weight: 600;
-}
-
-.kf-landing .download-meta a::after {
-  content: '';
-  width: 7px;
-  height: 7px;
-  border-top: 1px solid currentColor;
-  border-right: 1px solid currentColor;
-  transition: transform 200ms ease;
-}
-
-.kf-landing .download-card:focus-within {
-  border-color: var(--accent);
-  box-shadow: 0 20px 44px -26px #0b182355;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .kf-landing :is(.btn, .nav-cta):hover {
-    box-shadow:
-      inset 0 1px 0 #ffffff55,
-      0 10px 24px -12px #29678088;
-  }
-
-  .kf-landing .download-card:hover {
-    border-color: var(--accent);
-    box-shadow: 0 20px 44px -26px #0b182355;
-  }
-}
-
+/* ---------------------------------------------------------------------------
+  Motion: the Studio's short easing, and nothing when less is asked for.
+--------------------------------------------------------------------------- */
 @media (prefers-reduced-motion: no-preference) {
-  .kf-landing .hero::before {
-    animation: kf-hero-light 4s ease-out both;
-  }
-
-  .kf-landing .hero-cta-row {
-    animation: kf-arrive 650ms 100ms ease-out backwards;
+  .kf-landing .hero-copy {
+    animation: kf-arrive 520ms ease-out backwards;
   }
 
   .kf-landing .hero-product-frame {
-    animation: kf-arrive 700ms 220ms ease-out backwards;
-  }
-
-  @media (hover: hover) and (pointer: fine) {
-    .kf-landing :is(.btn, .nav-cta):hover {
-      transform: translateY(-2px);
-    }
-
-    .kf-landing .download-meta a:hover::after {
-      transform: translate(2px, -2px);
-    }
-  }
-
-  .kf-landing :is(.btn, .nav-cta):active {
-    transform: translateY(0);
+    animation: kf-arrive 620ms 120ms ease-out backwards;
   }
 
   /* Unsupported browsers keep the fully visible, untransformed layout. */
@@ -1174,7 +938,7 @@
     .kf-landing :is(.section-head, .research-frame, .engines-frame, .download-head) {
       animation: kf-arrive linear both;
       animation-timeline: view();
-      animation-range: entry 0% entry 85%;
+      animation-range: entry 0% entry 80%;
     }
   }
 }
@@ -1182,7 +946,7 @@
 @keyframes kf-arrive {
   from {
     opacity: 0;
-    transform: translateY(16px);
+    transform: translateY(12px);
   }
   to {
     opacity: 1;
@@ -1190,35 +954,18 @@
   }
 }
 
-@keyframes kf-hero-light {
-  from {
-    opacity: 0.4;
-    transform: scale(0.92);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-/* Mobile / responsive */
+/* ---------------------------------------------------------------------------
+  Narrower screens.
+--------------------------------------------------------------------------- */
 @media (max-width: 1000px) {
   .kf-landing .research-layout,
   .kf-landing .engines-layout {
-    gap: 32px;
-  }
-
-  .kf-landing .why-grid {
-    gap: 24px;
+    gap: 36px;
   }
 
   .kf-landing .footer-inner {
     grid-template-columns: 1fr;
-    gap: 36px;
-  }
-
-  .kf-landing .footer-cols {
-    grid-template-columns: 1fr 1fr 1fr;
+    gap: 32px;
   }
 }
 
@@ -1237,47 +984,23 @@
     grid-template-columns: 1fr auto;
     gap: 16px;
   }
+
+  .kf-landing .why-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 @media (max-width: 759px) {
-  .kf-landing .nav-inner {
-    min-height: 64px;
-    padding-top: 8px;
-    padding-bottom: 8px;
-  }
-
-  .kf-landing .nav-cta {
-    min-height: 40px;
-    padding: 8px 14px;
-    font-size: 13px;
-  }
-
-  .kf-landing .nav-menu summary {
-    width: 40px;
-    height: 40px;
-  }
-
-  .kf-landing .hero-return {
-    font-size: 12px;
-    gap: 6px 16px;
-  }
-
-  .kf-landing .nav-wordmark {
-    font-size: 22px;
-  }
-
   .kf-landing .hero {
     padding-top: 48px;
   }
 
   .kf-landing .hero-title {
-    font-size: clamp(40px, 9vw, 60px);
-    letter-spacing: -2px;
+    font-size: clamp(34px, 9vw, 48px);
   }
 
   .kf-landing .hero-lede {
-    font-size: 15px;
-    margin: 22px auto;
+    font-size: 16px;
   }
 
   .kf-landing .hero-lede-break {
@@ -1286,7 +1009,6 @@
 
   .kf-landing .hero-cta-row {
     flex-wrap: wrap;
-    gap: 10px;
   }
 
   .kf-landing .hero-cta-row .btn {
@@ -1300,48 +1022,29 @@
   }
 
   .kf-landing .hero-product-frame {
-    border-radius: 6px;
+    border-radius: 8px;
   }
 
   .kf-landing .hero-product-chrome {
-    height: 26px;
+    height: 28px;
     padding: 0 10px;
   }
 
   .kf-landing .hero-strip {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 24px 0;
+    margin-top: 32px;
     padding: 28px 0 32px;
-    margin-top: 28px;
-  }
-
-  .kf-landing .hero-strip-item {
-    padding: 0 12px;
   }
 
   .kf-landing .hero-strip-item:nth-of-type(2n + 1) {
     border-left: none;
   }
 
-  .kf-landing .hero-strip-item:nth-of-type(n + 3) {
-    border-top: 1px solid var(--line);
-    padding-top: 22px;
-  }
-
-  .kf-landing .hero-strip-label {
-    font-size: 11px;
-  }
-
   .kf-landing .section {
     padding: 56px var(--gutter);
   }
 
-  .kf-landing .section-title {
-    font-size: 32px;
-    letter-spacing: -1px;
-  }
-
-  .kf-landing .why-grid,
   .kf-landing .research-layout,
   .kf-landing .engines-layout,
   .kf-landing .download-grid {
@@ -1349,35 +1052,20 @@
     gap: 32px;
   }
 
-  .kf-landing .section-why,
-  .kf-landing .section-research {
-    padding-bottom: 16px;
-  }
-
   .kf-landing .engines-copy {
     grid-row: 1;
   }
 
-  .kf-landing .why-item::before {
-    margin-bottom: 14px;
-  }
-
   .kf-landing .download-card {
-    padding: 24px;
-  }
-
-  .kf-landing .download-card h3 {
-    font-size: 25px;
+    padding: 22px;
   }
 
   .kf-landing .footer-cols {
     grid-template-columns: 1fr 1fr;
-    gap: 28px 24px;
   }
 
   .kf-landing .faq-item summary {
-    font-size: 17px;
-    padding: 18px 0;
+    font-size: 16px;
   }
 }
 
