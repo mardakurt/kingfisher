@@ -8,6 +8,11 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
+- **Fixed: the Daily session could say "Loading your work…" for ever.** If
+  one of its four reads failed, it waited without end. It now names the read
+  that failed and offers to try again. The endgame library also refuses to
+  save a position it could not read back; one such record used to break
+  every list of the library.
 - **The search mask (Games → Filters).** Event and site, a date range, an
   Elo band for either or both players, and a time class computed by a rule
   printed beside it. **In the moves**: material as books write it (`R v B`),

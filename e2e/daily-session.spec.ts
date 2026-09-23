@@ -71,13 +71,16 @@ test('the daily session shows four slices in order and grades cards', async ({ p
     });
     await app.review.scheduleReviewItem(review.id, review.revision, dueSchedule);
 
+    // A legal position (the kings were once seeded on adjacent squares) with a
+    // goal the store accepts; the repository now refuses anything it could
+    // not read back, which is how this seed was found to be invalid.
     await app.endgames.create({
-      positionKey: '8/8/8/8/8/8/4K3/4k3 w - - 0 1',
-      fen: '8/8/8/8/8/8/4K3/4k3 w - - 0 1' as Fen,
+      positionKey: '8/8/8/8/8/4k3/4P3/4K3 w - -',
+      fen: '8/8/8/8/8/4k3/4P3/4K3 w - - 0 1' as Fen,
       sideToMove: 'w',
       title: 'K vs k',
       category: 'pawn',
-      goal: 'win' as never,
+      goal: 'hold-draw',
     });
 
     const created2 = await app.preparation.create({
@@ -136,4 +139,35 @@ test('the daily session shows four slices in order and grades cards', async ({ p
   await expect(page.locator('[data-daily-rehearsed="1"]')).toBeVisible();
 
   expect(consoleErrors).toEqual([]);
+});
+
+test('a record that cannot be read is named, not left loading for ever', async ({ page }) => {
+  await page.goto('/analysis');
+  await ready(page);
+  // Written past the repository, as an older build or a damaged profile could
+  // have left it: the store's reader refuses it.
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve, reject) => {
+        const open = indexedDB.open('kingfisher');
+        open.onerror = () => reject(open.error);
+        open.onsuccess = () => {
+          const db = open.result;
+          const tx = db.transaction('endgamePositions', 'readwrite');
+          tx.objectStore('endgamePositions').put({ id: 'eg-damaged', title: 'Damaged' });
+          tx.oncomplete = () => {
+            db.close();
+            resolve();
+          };
+          tx.onerror = () => reject(tx.error);
+        };
+      }),
+  );
+
+  await page.goto('/daily');
+  await ready(page);
+  await expect(page.locator('[data-daily-error]')).toBeVisible();
+  await expect(page.getByText('Your saved endgames could not be read.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible();
+  await expect(page.getByText('Loading your work…')).toHaveCount(0);
 });

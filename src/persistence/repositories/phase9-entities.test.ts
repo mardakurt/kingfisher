@@ -210,6 +210,34 @@ describe('the endgame library', () => {
     expect(matchesEndgameQuery(record, { tag: 'philidor' })).toBe(false);
   });
 
+  it('refuses to write a record it could not read back', async () => {
+    const repositories = createMemoryRepositories();
+    const good = await repositories.endgames.create({
+      positionKey: positionKey(ROOK_ENDING),
+      fen: ROOK_ENDING,
+      sideToMove: 'w',
+      title: 'Lucena',
+      category: 'rook',
+      goal: 'convert-win',
+    });
+    await expect(
+      repositories.endgames.create({
+        positionKey: positionKey(ROOK_ENDING),
+        fen: ROOK_ENDING,
+        sideToMove: 'w',
+        title: 'Bad goal',
+        category: 'rook',
+        goal: 'win' as never,
+      }),
+    ).rejects.toThrow(/endgame position/);
+    await expect(
+      repositories.endgames.update(good.id, good.revision, { category: 'nonsense' as never }),
+    ).rejects.toThrow(/endgame position/);
+    // Once such a row was stored, every list of the library threw — and the
+    // Daily session with it. Refused at the door, the library still reads.
+    expect((await repositories.endgames.list()).map((row) => row.title)).toEqual(['Lucena']);
+  });
+
   it('counts the library by category for its header', async () => {
     const repositories = createMemoryRepositories();
     for (const category of ['rook', 'rook', 'pawn'] as const) {

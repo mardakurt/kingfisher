@@ -104,6 +104,10 @@ export class LocalEndgameRepository implements EndgameRepository {
       updatedAt: now,
       revision: 0,
     };
+    // Checked on the way in with the rule the reader applies on the way out.
+    // A record this store would refuse to read must not be written: one such
+    // row made every list of the library throw, and the Daily session with it.
+    assertValid(record, isEndgamePositionRecord, 'endgame position');
     await this.database.put(STORE_NAMES.endgamePositions, record);
     return record;
   }
@@ -160,6 +164,7 @@ export class LocalEndgameRepository implements EndgameRepository {
           updatedAt: Date.now(),
           revision: current.revision + 1,
         };
+        assertValid(next, isEndgamePositionRecord, 'endgame position');
         await transaction.put(STORE_NAMES.endgamePositions, next);
         return next;
       },

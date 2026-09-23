@@ -35,7 +35,7 @@ import {
   type SliceId,
 } from '@/daily/session';
 import { Button } from '@/components/ui/Button';
-import { Panel, PanelBody, PanelHeader } from '@/components/ui/Panel';
+import { EmptyState, Panel, PanelBody, PanelHeader } from '@/components/ui/Panel';
 import { WorkspaceFrame } from '@/features/workspace/WorkspaceFrame';
 import { getRepositories } from '@/persistence/repositories';
 import type { ReviewGrade } from '@/persistence/domain';
@@ -144,6 +144,42 @@ export function DailyWorkspace() {
     },
     [client, notify, training.data],
   );
+
+  /*
+    Any of the four reads can fail — a blocked store, a record that no longer
+    validates. Without this the session stayed null and the page said
+    "Loading your work…" for ever, which is the one answer that gives a person
+    nothing to do. Name the read that failed and offer another attempt.
+  */
+  const failed = [
+    ['repertoire cards', training],
+    ['review queue', review],
+    ['saved endgames', endgames],
+    ['preparation sessions', sessions],
+  ].find(([, query]) => (query as { isError: boolean }).isError) as
+    [string, { error: unknown; refetch: () => unknown }] | undefined;
+  if (!session && failed) {
+    const [what, query] = failed;
+    return (
+      <WorkspaceFrame workspace="daily" title="Daily session" subtitle="Could not read your work">
+        <div data-daily="true" data-daily-count="0" data-daily-rehearsed="0" data-daily-error>
+          <EmptyState
+            title={`Your ${what} could not be read.`}
+            description={
+              query.error instanceof Error
+                ? query.error.message
+                : 'The browser refused access to its database.'
+            }
+            action={
+              <Button variant="subtle" onClick={() => void query.refetch()}>
+                Try again
+              </Button>
+            }
+          />
+        </div>
+      </WorkspaceFrame>
+    );
+  }
 
   if (!session) {
     return (
