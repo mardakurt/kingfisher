@@ -256,3 +256,90 @@ describe('what a page costs to count', () => {
     expect(page.hasMore).toBe(false);
   });
 });
+
+describe('the search mask header filters (Phase 81)', () => {
+  beforeEach(async () => {
+    await store({
+      White: 'Anand, V',
+      Black: 'Topalov, V',
+      Result: '1-0',
+      Event: 'World Championship 2010',
+      Site: 'Sofia BUL',
+      Date: '2010.05.11',
+      WhiteElo: '2787',
+      BlackElo: '2805',
+      TimeControl: '40/7200:20/3600:900+30',
+    });
+    await store({
+      White: 'Player, A',
+      Black: 'Player, B',
+      Result: '0-1',
+      Event: 'Rated Blitz game',
+      Site: 'https://lichess.org/abc',
+      Date: '2024.03.02',
+      WhiteElo: '2310',
+      BlackElo: '1850',
+      TimeControl: '180+2',
+    });
+    await store({
+      White: 'Old, Master',
+      Black: 'Young, Talent',
+      Result: '1/2-1/2',
+      Event: 'Club Championship',
+      Date: '2010.??.??',
+      TimeControl: '-',
+    });
+    await store({ White: 'No, Date', Black: 'No, Rating', Result: '*', Event: 'Club Blitz' });
+  });
+
+  const names = async (query: Parameters<typeof repositories.games.search>[0]) =>
+    (await repositories.games.search({ ...query, exactTotal: true })).games
+      .map((g) => g.white)
+      .sort();
+
+  it('finds an event or site by a remembered phrase, in any case', async () => {
+    expect(await names({ event: 'championship' })).toEqual(['Anand, V', 'Old, Master']);
+    expect(await names({ event: 'BLITZ' })).toEqual(['No, Date', 'Player, A']);
+    expect(await names({ site: 'lichess' })).toEqual(['Player, A']);
+  });
+
+  it('compares full dates as dates, a year-only date by its year, and skips a dateless game', async () => {
+    expect(await names({ fromDate: '2010-05-01', toDate: '2010-05-31' })).toEqual([
+      'Anand, V',
+      // "2010.??.??" knows only its year, which is inside the range.
+      'Old, Master',
+    ]);
+    expect(await names({ fromDate: '2010-06-01', toDate: '2010-12-31' })).toEqual(['Old, Master']);
+    expect(await names({ fromDate: '2011-01-01' })).toEqual(['Player, A']);
+    // The dateless game matches no range at all.
+    expect(await names({ toDate: '2099-12-31' })).not.toContain('No, Date');
+  });
+
+  it('reads a rating band for either player or for both', async () => {
+    expect(await names({ minRating: 2300, maxRating: 2400 })).toEqual(['Player, A']);
+    expect(await names({ minRating: 2300, maxRating: 2400, ratingScope: 'both' })).toEqual([]);
+    expect(await names({ minRating: 1800, ratingScope: 'both' })).toEqual([
+      'Anand, V',
+      'Player, A',
+    ]);
+    expect(await names({ maxRating: 1900 })).toEqual(['Player, A']);
+  });
+
+  it('keeps what minRating alone has always meant', async () => {
+    expect(await names({ minRating: 2800 })).toEqual(['Anand, V']);
+  });
+
+  it('filters by the time class the printed rule assigns', async () => {
+    expect(await names({ timeClass: 'blitz' })).toEqual(['Player, A']);
+    expect(await names({ timeClass: 'classical' })).toEqual(['Anand, V']);
+    expect(await names({ timeClass: 'none' })).toEqual(['Old, Master']);
+    expect(await names({ timeClass: 'unknown' })).toEqual(['No, Date']);
+  });
+
+  it('still applies every new predicate when an index answers another', async () => {
+    // The player index narrows; event, band and class must still be tested.
+    expect(await names({ player: 'Player, A', event: 'championship' })).toEqual([]);
+    expect(await names({ result: '1-0', timeClass: 'blitz' })).toEqual([]);
+    expect(await names({ fromDate: '2024-01-01', minRating: 2800 })).toEqual([]);
+  });
+});

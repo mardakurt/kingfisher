@@ -134,7 +134,7 @@ const observe = (db) =>
     searchByPlayer: db.search({ player: 'white 3', limit: 20 }),
     searchByText: db.search({ text: 'Candidates', limit: 20 }),
     searchByEco: db.search({ eco: 'B90', limit: 20 }),
-    searchByYear: db.search({ yearFrom: 2010, yearTo: 2020, limit: 20 }),
+    searchByYear: db.search({ fromYear: 2010, toYear: 2020, limit: 20 }),
     searchByRating: db.search({ minRating: 2450, limit: 20 }),
     players: db.players('', 30),
     playerPrefix: db.players('whi', 10),

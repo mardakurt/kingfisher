@@ -139,6 +139,44 @@ describe('GameDatabase', () => {
     expect(alpha.games.map((game) => game.fingerprint).sort()).toEqual(['game-1', 'game-2']);
     expect(database.search({ result: '0-1', exactTotal: true }).total).toBe(1);
     expect(database.search({ fromYear: 2025, minRating: 2400, exactTotal: true }).total).toBe(2);
+
+    // Phase 81 header filters, read the way the browser store reads them.
+    // Ratings: game-1 2500/2450, game-2 2400/2350, game-3 2300/2250.
+    const found = (query) =>
+      database
+        .search({ ...query, exactTotal: true })
+        .games.map((game) => game.fingerprint)
+        .sort();
+    expect(found({ minRating: 2340, maxRating: 2360 })).toEqual(['game-2']);
+    expect(found({ minRating: 2340, maxRating: 2360, ratingScope: 'both' })).toEqual([]);
+    expect(found({ minRating: 2300, ratingScope: 'both' })).toEqual(['game-1', 'game-2']);
+    expect(found({ event: 'test EVENT' })).toHaveLength(3);
+    expect(found({ event: 'Olympiad' })).toEqual([]);
+    expect(found({ site: 'loc' })).toHaveLength(3);
+    // game-1 is dated 2026.01.01, game-2 2025.01.01, game-3 2024.01.01.
+    expect(found({ fromDate: '2025-01-01', toDate: '2025-01-01' })).toEqual(['game-2']);
+    expect(found({ fromDate: '2025-01-02' })).toEqual(['game-1']);
+    expect(found({ toDate: '2024-12-31' })).toEqual(['game-3']);
+  });
+
+  it('refuses a filter it cannot answer instead of ignoring it', () => {
+    database.insertGames([
+      entry({
+        fingerprint: 'game-1',
+        white: 'Alpha',
+        black: 'Beta',
+        result: '1-0',
+        year: 2025,
+        rating: 2500,
+        uci: 'e2e4',
+        san: 'e4',
+      }),
+    ]);
+    // Ignored, this would list every game — and a delete-by-query would
+    // delete every game.
+    expect(() => database.search({ timeClass: 'blitz' })).toThrow(/time control/);
+    expect(() => database.search({ material: 'R v B' })).toThrow(/material/);
+    expect(() => database.search({ timeClass: 'blitz' })).toThrow(/Nothing was filtered/);
   });
 
   it('aggregates positions and returns model games and matching players', () => {

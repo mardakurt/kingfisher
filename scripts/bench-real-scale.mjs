@@ -337,7 +337,7 @@ export function benchmark(database, warm) {
   add('text rare', () => database.search({ text: 'reykjavik', limit: 50 }));
   add('text no match', () => database.search({ text: 'zzzznobody', limit: 50 }));
   add('eco filter', () => database.search({ eco: 'B90', limit: 50 }));
-  add('year filter', () => database.search({ yearFrom: 2024, yearTo: 2025, limit: 50 }));
+  add('year filter', () => database.search({ fromYear: 2024, toYear: 2025, limit: 50 }));
   add('rating filter', () => database.search({ minRating: 2600, limit: 50 }));
 
   const startKey = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -';

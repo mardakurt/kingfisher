@@ -782,6 +782,29 @@ The rule the ordering exists for: **page 2 continues page 1**. Sorting only the
 rows a cursor happened to hand back makes "the hundred most recent" mean "a
 hundred arbitrary games, displayed in date order", and makes pages overlap.
 
+**The search mask's header filters** (Phase 81: event and site substrings, a
+date range, an Elo band for either or both players, a time class) are
+predicates like any other, counted by `planQuery`, so an index that answers
+only the player still has them tested per record. A date range compares full
+PGN dates as dates, a year-only date by its year, and never assumes a dateless
+game is inside. The time class comes from `search/time-control.ts`, one pure
+function whose rule the filter prints. The companion's SQL implements the same
+header fields, and `gameWhere` **refuses any field it does not implement**.
+That matcher also chooses what a transfer copies and what a delete-by-query
+removes, so an ignored filter would have deleted more than the person was
+looking at.
+
+**Move-level questions read the moves; they are not indexed.** Material
+(`R v B`, held for two positions), a strategic theme, a piece's route
+(`N b1 d2 f1 g3`) and comment text are pure functions over a game's tree in
+`search/`. `features/games/deep-search.ts` pages the header-selected ids,
+reads contents a hundred at a time, reports read/selected after each batch
+and stops on an `AbortSignal`. No schema change and no derived store:
+`src/performance/move-search.test.ts` measures 0.1–1.8 s of question-asking per
+10,000 80-ply games and holds it under half the design's ten-second budget.
+If that stops being true, the next step is a per-game index, not a looser
+number.
+
 A `player` filter means one whole normalized name, matched identically by the
 index and by the per-record predicate. Partial names are what the free-text
 search is for; quietly merging two people who share a surname is a worse failure

@@ -127,9 +127,20 @@ export class SqliteGameCollection implements GameCollection {
   }
 }
 
-/** Only the filters the SQLite matcher actually implements. */
+/**
+ * The filters the SQLite matcher implements, and a refusal for the rest.
+ *
+ * This query chooses what a transfer copies. Dropping a filter the companion
+ * cannot answer — time control has no column there — would copy more games
+ * than the person selected, so it is refused by name instead.
+ */
 function sqliteQuery(query: GameSearchQuery | null): Record<string, unknown> | null {
   if (!query) return null;
+  if (query.timeClass) {
+    throw new Error(
+      'This collection is searched by its headers; time control needs the games in Kingfisher’s own store.',
+    );
+  }
   const built: Record<string, unknown> = {};
   if (query.text?.trim()) built.text = query.text.trim();
   if (query.player?.trim()) {
@@ -140,6 +151,12 @@ function sqliteQuery(query: GameSearchQuery | null): Record<string, unknown> | n
   if (query.fromYear) built.fromYear = query.fromYear;
   if (query.toYear) built.toYear = query.toYear;
   if (query.minRating) built.minRating = query.minRating;
+  if (query.maxRating) built.maxRating = query.maxRating;
+  if (query.ratingScope) built.ratingScope = query.ratingScope;
+  if (query.event?.trim()) built.event = query.event.trim();
+  if (query.site?.trim()) built.site = query.site.trim();
+  if (query.fromDate) built.fromDate = query.fromDate;
+  if (query.toDate) built.toDate = query.toDate;
   if (query.eco) built.eco = query.eco;
   if (query.opening) built.opening = query.opening;
   return Object.keys(built).length > 0 ? built : null;

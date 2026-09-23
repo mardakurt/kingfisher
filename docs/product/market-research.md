@@ -300,7 +300,8 @@ A code audit of twenty ChessBase capabilities against this repository
 found each of these partial or absent. In order of how often a ChessBase
 user touches it:
 
-1. **The search mask over your games.** Header search lacks event, an Elo
+1. **The search mask over your games.** _Done in Phase 81_ —
+   `docs/design/search-mask.md`. Header search lacked event, an Elo
    ceiling, a date range and time control; comments inside games are not
    searchable; material can be searched only by ticking the current board's
    claim, not typed ("rook against bishop"); there is no piece-route search

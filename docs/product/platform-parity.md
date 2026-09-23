@@ -24,6 +24,18 @@ validation, scheduled backup preference serialization, and an incorrect
 native-companion prerequisite on the AI assistant panel. The engine toolbar
 also wraps controls to keep the engine selector readable in a narrow panel.
 
+**Published revision check (Phase 81, Mac-facing — not yet released).**
+The Games search mask (header filters, time class, and the material, theme,
+route and comment searches), the default centring of button labels, the
+endgame lab's action and opponent description, and the docs pages' wrapping
+at phone width. The companion shipped inside the Mac bundle also changes: its
+game search implements the new header fields and refuses fields it cannot
+answer. No page sends the new fields to a companion yet: the Games mask
+searches the browser's own store, and a companion collection's list
+(`CollectionGames.tsx`) filters only by player, year and minimum Elo. So an
+installed 1.2.6 companion, which ignores unknown fields, is never asked a
+question it would get wrong. Section B remains due.
+
 **Published revision check (Phase 80 close, Mac-facing — not yet released).**
 Three fixes in shared application code: the season's longest-position rows
 count a game once however often the position recurred in it; the round brief's

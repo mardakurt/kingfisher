@@ -2,6 +2,7 @@ import { positionKey } from '@/chess/fen';
 import type { Fen, San } from '@/chess/types';
 import { aggregateLocalExplorer } from '@/database/local-aggregate';
 import type { ExplorerFilters, ExplorerResult } from '@/database/types';
+import { classifyTimeControl } from '@/search/time-control';
 
 import type { PersistenceDatabase, PersistenceTransaction } from '../indexeddb/database';
 import { boundKeys, onlyKey, type KeyRange } from '../indexeddb/key-range';
@@ -566,7 +567,11 @@ function planQuery(query: GameSearchQuery): QueryPlan {
     (query.result ? 1 : 0) +
     (query.fromYear || query.toYear ? 1 : 0) +
     (query.text?.trim() ? 1 : 0) +
-    (query.minRating ? 1 : 0) +
+    (query.minRating || query.maxRating ? 1 : 0) +
+    (query.event?.trim() ? 1 : 0) +
+    (query.site?.trim() ? 1 : 0) +
+    (query.fromDate || query.toDate ? 1 : 0) +
+    (query.timeClass ? 1 : 0) +
     (query.opening ? 1 : 0) +
     (query.eco ? 1 : 0);
 
@@ -643,12 +648,13 @@ function matchesSearch(game: GameSummary, query: GameSearchQuery): boolean {
   if (query.result && game.result !== query.result) return false;
   if (query.fromYear && (!game.year || game.year < query.fromYear)) return false;
   if (query.toYear && (!game.year || game.year > query.toYear)) return false;
-  if (query.minRating) {
-    const ratings = [game.whiteRating, game.blackRating].filter(
-      (rating): rating is number => rating !== undefined,
-    );
-    if (!ratings.length || Math.max(...ratings) < query.minRating) return false;
-  }
+  if (!matchesRating(game, query)) return false;
+  const event = query.event?.trim().toLowerCase();
+  if (event && !(game.event ?? '').toLowerCase().includes(event)) return false;
+  const site = query.site?.trim().toLowerCase();
+  if (site && !(game.site ?? '').toLowerCase().includes(site)) return false;
+  if ((query.fromDate || query.toDate) && !matchesDateRange(game, query)) return false;
+  if (query.timeClass && classifyTimeControl(game.timeControl) !== query.timeClass) return false;
   if (query.opening) {
     const needle = query.opening.toLowerCase();
     const names = [game.opening, game.classification?.name, game.classification?.variation].filter(
@@ -663,6 +669,42 @@ function matchesSearch(game: GameSummary, query: GameSearchQuery): boolean {
     );
     if (!codes.some((code) => code.toLowerCase().startsWith(needle))) return false;
   }
+  return true;
+}
+
+/**
+ * The rating band. `either` is what `minRating` has always meant — at least
+ * one player's known rating is inside the band — so a query from before the
+ * band existed answers exactly as it did. `both` needs both ratings known.
+ */
+function matchesRating(game: GameSummary, query: GameSearchQuery): boolean {
+  if (!query.minRating && !query.maxRating) return true;
+  const min = query.minRating ?? 0;
+  const max = query.maxRating ?? Number.POSITIVE_INFINITY;
+  const inside = (rating: number | undefined) =>
+    rating !== undefined && rating >= min && rating <= max;
+  if (query.ratingScope === 'both') return inside(game.whiteRating) && inside(game.blackRating);
+  return inside(game.whiteRating) || inside(game.blackRating);
+}
+
+/**
+ * A full date is compared as a date. A PGN date with unknown month or day
+ * (`2024.??.??`) — or a game that has only a year — is compared by its year,
+ * which counts when it falls between the range's years. A game with no date
+ * at all is never assumed to be inside a range.
+ */
+function matchesDateRange(game: GameSummary, query: GameSearchQuery): boolean {
+  const full = /^(\d{4})[.-](\d{2})[.-](\d{2})$/.exec(game.date ?? '');
+  if (full) {
+    const iso = `${full[1]}-${full[2]}-${full[3]}`;
+    if (query.fromDate && iso < query.fromDate) return false;
+    if (query.toDate && iso > query.toDate) return false;
+    return true;
+  }
+  const year = game.year ?? Number(/^(\d{4})/.exec(game.date ?? '')?.[1] ?? NaN);
+  if (!Number.isFinite(year)) return false;
+  if (query.fromDate && year < Number(query.fromDate.slice(0, 4))) return false;
+  if (query.toDate && year > Number(query.toDate.slice(0, 4))) return false;
   return true;
 }
 

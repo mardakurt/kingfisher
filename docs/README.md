@@ -120,6 +120,10 @@ with [`AGENTS.md`](../AGENTS.md).
 - [`design/season.md`](design/season.md) — one named set of the player's
   games, read through five clock and opening sections with denominators and
   source populations kept separate.
+- [`design/search-mask.md`](design/search-mask.md) — the Games search
+  mask: header filters with written rules, time control by a printed
+  formula, and material, theme, route and comment searches that read the
+  moves and say how many they read.
 - [`design/recurring-mistakes.md`](design/recurring-mistakes.md) — four
   recurring facts in Review, joined from stored evidence, structures,
   player-authored endgames and repertoire positions without a new score or

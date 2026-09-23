@@ -2054,7 +2054,59 @@ function ftsQuery(text) {
   return tokens.map((token) => `"${token}"*`).join(' AND ');
 }
 
+/*
+  Every field gameWhere honours, and the paging and sorting fields its callers
+  pass alongside. Anything else is refused by name. The same matcher chooses
+  what a list shows, what a transfer copies and what a delete-by-query removes,
+  so a filter it silently ignored would delete more games than the person was
+  looking at. (Phase 81: the browser's search mask grew fields this table
+  cannot answer, which is when "ignore what you do not know" stopped being
+  harmless.)
+*/
+const GAME_QUERY_FIELDS = new Set([
+  'text',
+  'player',
+  'playerColor',
+  'result',
+  'fromYear',
+  'toYear',
+  'minRating',
+  'maxRating',
+  'ratingScope',
+  'event',
+  'site',
+  'fromDate',
+  'toDate',
+  'eco',
+  'opening',
+  'sortBy',
+  'sortDirection',
+  'limit',
+  'offset',
+  'exactTotal',
+]);
+
+const UNSUPPORTED_REASON = {
+  timeClass: 'time control (this collection keeps no TimeControl column)',
+};
+
+export class UnsupportedQueryError extends Error {
+  constructor(fields) {
+    super(
+      `This collection cannot answer: ${fields
+        .map((field) => UNSUPPORTED_REASON[field] ?? field)
+        .join('; ')}. Nothing was filtered, copied or deleted.`,
+    );
+    this.name = 'UnsupportedQueryError';
+    this.fields = fields;
+  }
+}
+
 function gameWhere(query, options = {}) {
+  const refused = Object.keys(query ?? {}).filter(
+    (field) => query[field] !== undefined && !GAME_QUERY_FIELDS.has(field),
+  );
+  if (refused.length) throw new UnsupportedQueryError(refused);
   const where = [];
   const params = [];
   if (query.player) {
@@ -2099,9 +2151,47 @@ function gameWhere(query, options = {}) {
     where.push('year <= ?');
     params.push(query.toYear);
   }
-  if (query.minRating) {
+  if (query.ratingScope === 'both' && (query.minRating || query.maxRating)) {
+    // Both ratings known and inside the band.
+    where.push('white_rating BETWEEN ? AND ? AND black_rating BETWEEN ? AND ?');
+    const low = query.minRating || 0;
+    const high = query.maxRating || 99999;
+    params.push(low, high, low, high);
+  } else if (query.maxRating) {
+    // At least one known rating inside the band, as the browser store reads it.
+    where.push('(white_rating BETWEEN ? AND ? OR black_rating BETWEEN ? AND ?)');
+    const low = query.minRating || 0;
+    params.push(low, query.maxRating, low, query.maxRating);
+  } else if (query.minRating) {
     where.push('max_rating >= ?');
     params.push(query.minRating);
+  }
+  if (query.event) {
+    where.push('event LIKE ?');
+    params.push(`%${query.event}%`);
+  }
+  if (query.site) {
+    where.push('site LIKE ?');
+    params.push(`%${query.site}%`);
+  }
+  /*
+    A full PGN date (2010.05.11) is compared as a date; a partial one
+    (2010.??.??) or a bare year by its year; a game with neither matches no
+    range. The same rule as the browser store, so one collection moved to the
+    other answers the same question the same way.
+  */
+  const FULL_DATE = "date GLOB '[0-9][0-9][0-9][0-9].[0-9][0-9].[0-9][0-9]'";
+  if (query.fromDate) {
+    where.push(
+      `(CASE WHEN ${FULL_DATE} THEN replace(date, '.', '-') >= ? ELSE year IS NOT NULL AND year >= ? END)`,
+    );
+    params.push(query.fromDate, Number(String(query.fromDate).slice(0, 4)));
+  }
+  if (query.toDate) {
+    where.push(
+      `(CASE WHEN ${FULL_DATE} THEN replace(date, '.', '-') <= ? ELSE year IS NOT NULL AND year <= ? END)`,
+    );
+    params.push(query.toDate, Number(String(query.toDate).slice(0, 4)));
   }
   /*
     Both the declared tag and the computed classification, because a

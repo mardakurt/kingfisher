@@ -1,6 +1,7 @@
 import type { GameTree } from '@/chess/tree/types';
 import type { Fen, San, Uci } from '@/chess/types';
 import type { ExplorerFilters, ExplorerResult, GameResult } from '@/database/types';
+import type { TimeClass } from '@/search/time-control';
 
 import type { PersistenceDatabase } from './indexeddb/database';
 import type { ModelGameRepository, ProfileRepository } from './repositories/library-repository';
@@ -243,6 +244,27 @@ export interface GameSearchQuery {
   readonly fromYear?: number;
   readonly toYear?: number;
   readonly minRating?: number;
+  /** Rating ceiling; together with `minRating` a band. */
+  readonly maxRating?: number;
+  /**
+   * Whose rating the band applies to. `either` (the default, and what
+   * `minRating` has always meant): at least one player's rating is inside it.
+   * `both`: both ratings are known and inside it.
+   */
+  readonly ratingScope?: 'either' | 'both';
+  /** Case-insensitive substring of the Event tag. */
+  readonly event?: string;
+  /** Case-insensitive substring of the Site tag. */
+  readonly site?: string;
+  /**
+   * `YYYY-MM-DD`, inclusive. A game with a full date is compared by date; one
+   * with only a year counts when that year is inside the range; a game with
+   * no date matches no date range.
+   */
+  readonly fromDate?: string;
+  readonly toDate?: string;
+  /** By `classifyTimeControl` — the rule the filter prints. */
+  readonly timeClass?: TimeClass;
   readonly opening?: string;
   readonly eco?: string;
   readonly sortBy?: 'importedAt' | 'date' | 'white' | 'black' | 'rating' | 'opening';

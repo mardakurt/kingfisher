@@ -31,6 +31,22 @@ import type { GameSearchQuery, GameSummary } from '@/persistence/types';
 import { openingDisplay } from '@/theory/classify-games';
 
 import { openStoredGame } from './open-game';
+import {
+  compileMoves,
+  EMPTY_HEADER,
+  EMPTY_MOVES,
+  Field,
+  FIELD,
+  foundAtLabel,
+  headerMaskActive,
+  headerMaskFrom,
+  headerMaskQuery,
+  HeaderMaskFields,
+  MoveMaskFields,
+  useDeepSearch,
+  type HeaderMask,
+  type MoveMask,
+} from './SearchMask';
 import type { GameResult } from '@/database/types';
 import { useUi } from '@/stores/ui-store';
 import { NavButton } from '@/features/shell/NavButton';
@@ -83,7 +99,10 @@ export function GamesWorkspace() {
   const [playerColor, setPlayerColor] = useState<'any' | 'w' | 'b'>('any');
   const [result, setResult] = useState<GameResult | 'any'>('any');
   const [minRating, setMinRating] = useState('');
-  const [fromYear, setFromYear] = useState('');
+  const [header, setHeader] = useState<HeaderMask>(EMPTY_HEADER);
+  const [moves, setMoves] = useState<MoveMask>(EMPTY_MOVES);
+  const [movePage, setMovePage] = useState(0);
+  const deep = useDeepSearch();
   const [eco, setEco] = useState('');
   const [sortBy, setSortBy] = useState<SortField>('importedAt');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
@@ -102,15 +121,40 @@ export function GamesWorkspace() {
       ...(playerColor !== 'any' ? { playerColor } : {}),
       ...(result !== 'any' ? { result } : {}),
       ...(Number(minRating) > 0 ? { minRating: Number(minRating) } : {}),
-      ...(Number(fromYear) > 0 ? { fromYear: Number(fromYear) } : {}),
+      ...headerMaskQuery(header, minRating),
       ...(eco.trim() ? { eco: eco.trim() } : {}),
       sortBy,
       sortDirection,
       limit: PAGE_SIZE,
       offset: page * PAGE_SIZE,
     }),
-    [text, player, playerColor, result, minRating, fromYear, eco, sortBy, sortDirection, page],
+    [text, player, playerColor, result, minRating, header, eco, sortBy, sortDirection, page],
   );
+
+  const compiledMoves = useMemo(() => compileMoves(moves), [moves]);
+  // The header half of the query, without paging: what a move search reads.
+  const headerOnly = useMemo(() => {
+    const { limit: _limit, offset: _offset, ...rest } = query;
+    return rest;
+  }, [query]);
+  /*
+    A move search answers the filters it was started with. Changing any of
+    them makes its rows an answer to a different question, so they go rather
+    than stay on screen looking current.
+  */
+  const searchKey = JSON.stringify([headerOnly, moves]);
+  const [answeredKey, setAnsweredKey] = useState<string | null>(null);
+  const stale = answeredKey !== searchKey;
+  const stopDeep = deep.stop;
+  // A search still reading for filters that have since changed is stopped.
+  useEffect(() => {
+    if (stale) stopDeep();
+  }, [stale, stopDeep]);
+  const startMoveSearch = () => {
+    setAnsweredKey(searchKey);
+    setMovePage(0);
+    void deep.start(headerOnly, compiledMoves.query);
+  };
 
   const games = useGames(query);
   const total = useGameCount();
@@ -125,7 +169,15 @@ export function GamesWorkspace() {
     (client) => invalidateGames(client),
   );
 
-  const rows = games.data?.games ?? [];
+  const moveState = stale ? null : deep.state;
+  const moveRows = useMemo(() => moveState?.matches ?? [], [moveState]);
+  const foundAt = useMemo(
+    () => new Map(moveRows.map((match) => [match.game.id, match.hit.ply])),
+    [moveRows],
+  );
+  const rows = moveState
+    ? moveRows.slice(movePage * PAGE_SIZE, (movePage + 1) * PAGE_SIZE).map((match) => match.game)
+    : (games.data?.games ?? []);
   /*
     `total` is null when counting would have cost a full scan (ADR 0014), so
     the footer says what it knows: an exact count where there is one, and a
@@ -163,7 +215,9 @@ export function GamesWorkspace() {
   // The list holds summaries; the moves are fetched only when one is opened.
   const open = async (game: GameSummary, destination: '/analysis' | '/review' = '/analysis') => {
     try {
-      await openStoredGame(game.id);
+      // A move-search row opens at the moment it was found, not at move one.
+      const ply = foundAt.get(game.id);
+      await openStoredGame(game.id, ply === undefined ? {} : { ply });
       router.push(destination);
     } catch (error) {
       notify({
@@ -174,7 +228,10 @@ export function GamesWorkspace() {
   };
 
   const filtersActive =
-    Boolean(player || minRating || fromYear || eco) || playerColor !== 'any' || result !== 'any';
+    Boolean(player || minRating || eco) ||
+    playerColor !== 'any' ||
+    result !== 'any' ||
+    headerMaskActive(header);
 
   /*
     Recent filters are recorded from what the user actually searched with, not
@@ -198,7 +255,7 @@ export function GamesWorkspace() {
     setPlayerColor(values.playerColor ?? 'any');
     setResult(values.result ?? 'any');
     setMinRating(values.minRating?.toString() ?? '');
-    setFromYear(values.fromYear?.toString() ?? '');
+    setHeader(headerMaskFrom(values));
     setEco(values.eco ?? '');
     setSortBy(values.sortBy ?? 'importedAt');
     setSortDirection(values.sortDirection ?? 'desc');
@@ -249,11 +306,19 @@ export function GamesWorkspace() {
         <Button variant="accent" icon={<Import />} onClick={() => setImportOpen(true)}>
           <span className="hidden xs:inline">Import</span>
         </Button>
-        <Button onClick={() => openAnalysisQueue()}>Analysis queue</Button>
+        <Button onClick={() => openAnalysisQueue()} title="Analysis queue">
+          {/* A phone header has room for the search box or this label, not both. */}
+          <span className="sm:hidden">Queue</span>
+          <span className="hidden sm:inline">Analysis queue</span>
+        </Button>
       </header>
 
       {filtersOpen && (
-        <div className="flex shrink-0 flex-wrap items-end gap-2 border-b border-line-subtle bg-surface-1 px-2 py-2 sm:px-3">
+        /*
+          On a phone the mask would otherwise push every result below the fold;
+          it scrolls inside half the screen instead, and the rows stay in view.
+        */
+        <div className="flex max-h-[55vh] shrink-0 flex-wrap items-end gap-2 overflow-y-auto border-b border-line-subtle bg-surface-1 px-2 py-2 sm:max-h-none sm:overflow-visible sm:px-3">
           {savedFilters.length || recentFilters.length ? (
             <Field label="Saved / recent">
               <select
@@ -290,7 +355,7 @@ export function GamesWorkspace() {
               </select>
             </Field>
           ) : null}
-          <Field label="Player (exact name)">
+          <Field label="Player" wide>
             <input
               value={player}
               onChange={(event) => {
@@ -344,18 +409,13 @@ export function GamesWorkspace() {
               placeholder="2400"
             />
           </Field>
-          <Field label="From year">
-            <input
-              value={fromYear}
-              inputMode="numeric"
-              onChange={(event) => {
-                setFromYear(event.target.value.replace(/\D/g, '').slice(0, 4));
-                setPage(0);
-              }}
-              className={FIELD}
-              placeholder="2015"
-            />
-          </Field>
+          <HeaderMaskFields
+            mask={header}
+            onChange={(next) => {
+              setHeader(next);
+              setPage(0);
+            }}
+          />
           <Field label="ECO">
             <input
               value={eco}
@@ -374,7 +434,8 @@ export function GamesWorkspace() {
                 setPlayerColor('any');
                 setResult('any');
                 setMinRating('');
-                setFromYear('');
+                setHeader(EMPTY_HEADER);
+                setMoves(EMPTY_MOVES);
                 setEco('');
                 setPage(0);
               }}
@@ -409,6 +470,15 @@ export function GamesWorkspace() {
               Manage saved
             </Button>
           ) : null}
+          <MoveMaskFields
+            mask={moves}
+            onChange={setMoves}
+            compiled={compiledMoves}
+            state={moveState}
+            onSearch={startMoveSearch}
+            onStop={deep.stop}
+            onClear={deep.clear}
+          />
         </div>
       )}
 
@@ -455,7 +525,27 @@ export function GamesWorkspace() {
                 : 'This browser refused access to its database.'
             }
           />
-        ) : games.isPending ? (
+        ) : moveState?.status === 'failed' ? (
+          <EmptyState
+            title="The move search stopped with an error"
+            description={`${moveState.error ?? 'The games could not be read.'} Nothing was changed; the header filters still work.`}
+          />
+        ) : moveState && rows.length === 0 ? (
+          <EmptyState
+            title={
+              moveState.status === 'running'
+                ? 'Reading the moves…'
+                : moveState.status === 'stopped'
+                  ? 'Stopped before anything matched.'
+                  : 'No game contains it.'
+            }
+            description={
+              moveState.status === 'running'
+                ? `${moveState.read.toLocaleString()} of ${moveState.selected.toLocaleString()} games read so far.`
+                : `${moveState.read.toLocaleString()} of the ${moveState.selected.toLocaleString()} games the other filters selected were read.`
+            }
+          />
+        ) : games.isPending && !moveState ? (
           <p className="px-3 py-6 text-2xs text-tertiary">Reading the local database…</p>
         ) : rows.length === 0 ? (
           <EmptyState
@@ -480,6 +570,11 @@ export function GamesWorkspace() {
                 <th className="w-8 px-2 py-1.5" scope="col">
                   <span className="sr-only">Select</span>
                 </th>
+                {moveState ? (
+                  <th scope="col" className="w-[150px] px-2 py-1.5 text-left font-medium">
+                    Found
+                  </th>
+                ) : null}
                 {COLUMNS.map((column) => (
                   <th
                     key={column.id}
@@ -527,6 +622,17 @@ export function GamesWorkspace() {
                       className="accent-[var(--accent)]"
                     />
                   </td>
+                  {moveState ? (
+                    <td className="px-2 py-1 text-secondary" data-found-at>
+                      <button
+                        type="button"
+                        onClick={() => void open(game)}
+                        className="block w-full truncate text-left hover:underline"
+                      >
+                        {foundAtLabel(foundAt.get(game.id) ?? 0)}
+                      </button>
+                    </td>
+                  ) : null}
                   <td className="min-w-0 px-2 py-1">
                     <button
                       type="button"
@@ -589,6 +695,11 @@ export function GamesWorkspace() {
                     </span>
                     <span className="ml-auto shrink-0 tabular">{formatPgnDate(game.date)}</span>
                   </span>
+                  {moveState ? (
+                    <span className="mt-0.5 block text-[10.5px] text-secondary" data-found-at>
+                      Found {foundAtLabel(foundAt.get(game.id) ?? 0)}
+                    </span>
+                  ) : null}
                 </button>
               </li>
             ))}
@@ -597,15 +708,47 @@ export function GamesWorkspace() {
       </div>
 
       <footer className="flex h-8 shrink-0 items-center gap-3 border-t border-line-subtle bg-surface-1 px-2 text-[10.5px] text-tertiary sm:px-3">
-        <span className="tabular">
-          {filtered === null
-            ? `${visibleFrom.toLocaleString()}–${visibleTo.toLocaleString()} of ${stored.toLocaleString()} games`
-            : `${filtered.toLocaleString()} of ${stored.toLocaleString()} games`}
-          {filtered !== null && filtered > PAGE_SIZE
-            ? ` · ${visibleFrom.toLocaleString()}–${visibleTo.toLocaleString()}`
-            : ''}
-        </span>
-        {paged && (
+        {moveState ? (
+          <span className="tabular" data-move-search-status>
+            {moveState.status === 'running'
+              ? `Reading moves: ${moveState.read.toLocaleString()} of ${moveState.selected.toLocaleString()} games · ${moveRows.length.toLocaleString()} found so far`
+              : `${moveRows.length.toLocaleString()} of ${moveState.read.toLocaleString()} games read contain it`}
+            {moveState.status === 'stopped'
+              ? ` · stopped; ${(moveState.selected - moveState.read).toLocaleString()} not read`
+              : ''}
+          </span>
+        ) : (
+          <span className="tabular">
+            {filtered === null
+              ? `${visibleFrom.toLocaleString()}–${visibleTo.toLocaleString()} of ${stored.toLocaleString()} games`
+              : `${filtered.toLocaleString()} of ${stored.toLocaleString()} games`}
+            {filtered !== null && filtered > PAGE_SIZE
+              ? ` · ${visibleFrom.toLocaleString()}–${visibleTo.toLocaleString()}`
+              : ''}
+          </span>
+        )}
+        {moveState && moveRows.length > PAGE_SIZE ? (
+          <div className="ml-auto flex items-center gap-1">
+            <Button
+              size="sm"
+              onClick={() => setMovePage((value) => Math.max(0, value - 1))}
+              disabled={movePage === 0}
+            >
+              Previous
+            </Button>
+            <span className="px-1 tabular">
+              {movePage + 1}/{Math.ceil(moveRows.length / PAGE_SIZE)}
+            </span>
+            <Button
+              size="sm"
+              onClick={() => setMovePage((value) => value + 1)}
+              disabled={(movePage + 1) * PAGE_SIZE >= moveRows.length}
+            >
+              Next
+            </Button>
+          </div>
+        ) : null}
+        {paged && !moveState && (
           <div className="ml-auto flex items-center gap-1">
             <Button
               size="sm"
@@ -711,13 +854,3 @@ function OpeningCell({ game }: { readonly game: GameSummary }) {
     </span>
   );
 }
-
-const FIELD =
-  'h-7 w-full rounded-[4px] border border-line bg-surface-inset px-2 text-2xs text-primary outline-none placeholder:text-tertiary/70 focus:border-accent/60';
-
-const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
-  <label className="flex w-[104px] shrink-0 flex-col gap-1 text-[10px] uppercase tracking-wide text-tertiary">
-    {label}
-    {children}
-  </label>
-);

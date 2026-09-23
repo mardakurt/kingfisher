@@ -8,6 +8,13 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
+- **The search mask (Games → Filters).** Event and site, a date range, an
+  Elo band for either or both players, and a time class computed by a rule
+  printed beside it. **In the moves**: material as books write it (`R v B`),
+  a strategic theme with its definition, a piece's route (`N b1 d2 f1 g3`)
+  and comment text. A move search reads the games the other filters chose,
+  says how many it read, can be stopped, and opens each result at the move
+  it was found. (`docs/design/search-mask.md`, Phase 81)
 - **Fixed: button labels that sat off-centre, and pages that scrolled
   sideways on a phone.** _New team_ on an empty Team page and _Play it out_ in
   the endgame lab had their labels pinned to the left of a widened button; the

@@ -296,7 +296,13 @@ your profile names one of the players (exact spelling, never an initial).
 Your game database: import PGN (a 20,000-game file parses in a Worker,
 stays responsive, can be backgrounded and cancelled), search by player,
 event, opening, year, result, filter and sort with pages that continue each
-other, open a game on the board, the analysis queue (background engine
+other. **The search mask** (Filters) adds event and site, a date range, an
+Elo band for either or both players, and a time class computed by a printed
+rule. It can also search **in the moves**: material typed as books write it
+(`R v B`, held for two positions), one of sixteen strategic themes shown with
+its definition, a piece's route (`N b1 d2 f1 g3`) and comment text. A move
+search reads the games the other filters chose, says how many it read, can
+be stopped, and opens each result at the move where it was found, open a game on the board, the analysis queue (background engine
 analysis of chosen games, paused, resumed and yielding to interactive
 analysis), Kingfisher's own opening classification beside the PGN's tag, and
 delete.
