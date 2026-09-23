@@ -324,7 +324,7 @@ export function SparringPanel() {
                 <li
                   key={`${entry.ply}-${index}`}
                   className={cn(
-                    'rounded-[4px] border border-line-subtle px-2 py-1 text-[10.5px]',
+                    'rounded-[6px] border border-line-subtle px-2 py-1 text-[10.5px]',
                     entry.source === 'you' ? 'text-tertiary' : 'bg-surface-inset text-secondary',
                   )}
                 >
@@ -336,7 +336,7 @@ export function SparringPanel() {
                     <>
                       <span
                         className={cn(
-                          'mr-1.5 rounded-[3px] px-1 py-px text-[9px] font-semibold tracking-wide uppercase',
+                          'mr-1.5 rounded-[5px] px-1 py-px text-[9px] font-semibold ',
                           entry.source === 'book'
                             ? 'bg-accent/15 text-accent'
                             : 'bg-surface-3 text-tertiary',

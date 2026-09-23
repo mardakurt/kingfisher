@@ -1,8 +1,13 @@
 'use client';
 
-import { useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
+import {
+  useState,
+  useSyncExternalStore,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+} from 'react';
 
-import { Database } from '@/components/icons';
+import { ChevronDown, ChevronRight, Database } from '@/components/icons';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { IconButton } from '@/components/ui/Button';
 import { Menu, type MenuSection } from '@/components/ui/Menu';
@@ -103,6 +108,7 @@ export function WorkspaceToolDock({
   const setActiveModule = useWorkspaceLayout((state) => state.setActiveModule);
   const setDockWidth = useWorkspaceLayout((state) => state.setDockWidth);
   const setDockCollapsed = useWorkspaceLayout((state) => state.setDockCollapsed);
+  const moveModuleTo = useWorkspaceLayout((state) => state.moveModuleTo);
   const pinned =
     useWorkspaceLayout((state) => state.pinnedTools[workspace]) ?? DEFAULT_PINNED_TOOLS;
   const effectiveLock = useEffectiveLock(locked);
@@ -154,7 +160,19 @@ export function WorkspaceToolDock({
     );
   }
 
-  const tabs = dockModules.map((id) => ({
+  /*
+    Phase 82: on a desk-width screen the notation is not a tab. It is the
+    first section of the panel, always on screen above whichever tool is
+    chosen — the move list and the evidence about it read together, as in
+    any Mac chess application. On a phone the dock is one sheet and the
+    notation stays a tab in it.
+  */
+  const stackNotation = wide && withMoveTree && dockModules.includes('move-tree');
+  const toolModules = stackNotation ? dockModules.filter((id) => id !== 'move-tree') : dockModules;
+  const shownTool =
+    stackNotation && activeDock === 'move-tree' ? (toolModules[0] ?? null) : activeDock;
+
+  const tabs = toolModules.map((id) => ({
     id,
     label: moduleLabel(id, contextLabel),
     unavailable: id === 'move-tree' ? null : availability(id as WorkspaceToolId),
@@ -181,7 +199,19 @@ export function WorkspaceToolDock({
       ) : (
         <div className="mx-auto my-1 h-1 w-12 rounded-full bg-line-strong" aria-hidden />
       )}
-      <WorkspaceLayoutBar workspace={workspace} contextLabel={contextLabel} view={view} />
+      {stackNotation ? (
+        <NotationSection
+          workspace={workspace}
+          moveTreePanel={moveTreePanel}
+          onMove={(region) => moveModuleTo(workspace, device, 'move-tree', region)}
+        />
+      ) : null}
+      <WorkspaceLayoutBar
+        workspace={workspace}
+        contextLabel={contextLabel}
+        view={view}
+        activeTool={shownTool}
+      />
       <ModuleTabStrip
         tabs={tabs}
         /*
@@ -201,7 +231,7 @@ export function WorkspaceToolDock({
           ...foldedFromLower,
           ...(pinned as readonly WorkspaceModuleId[]),
         ]}
-        value={activeDock}
+        value={shownTool}
         onChange={select}
         actions={
           <button
@@ -216,18 +246,18 @@ export function WorkspaceToolDock({
       />
       <div className="min-h-0 flex-1 overflow-hidden">
         <RegionBody
-          module={activeDock}
+          module={shownTool}
           contextLabel={contextLabel}
           contextPanel={contextPanel}
           moveTreePanel={moveTreePanel}
           lock={effectiveLock}
           unavailable={
-            activeDock && activeDock !== 'move-tree'
-              ? availability(activeDock as WorkspaceToolId)
+            shownTool && shownTool !== 'move-tree'
+              ? availability(shownTool as WorkspaceToolId)
               : null
           }
           onClose={() => {
-            const first = dockModules[0];
+            const first = toolModules[0];
             if (first) select(first);
           }}
           onDiagnostics={() => openSettingsAt('diagnostics')}
@@ -347,12 +377,16 @@ function WorkspaceLayoutBar({
   workspace,
   contextLabel,
   view,
+  activeTool,
 }: {
   readonly workspace: string;
   readonly contextLabel: string;
   readonly view: ReturnType<typeof useWorkspaceArrangement>;
+  /** The tool the strip shows, which is not the notation when it is stacked. */
+  readonly activeTool: WorkspaceModuleId | null;
 }) {
-  const { device, arrangement, available, activeDock } = view;
+  const { device, arrangement, available } = view;
+  const activeDock = activeTool;
   const setPreset = useWorkspaceLayout((state) => state.setPreset);
   const moveModuleTo = useWorkspaceLayout((state) => state.moveModuleTo);
   const resetWorkspace = useWorkspaceLayout((state) => state.resetWorkspace);
@@ -448,7 +482,7 @@ function WorkspaceLayoutBar({
   const modified = Object.keys(arrangement.placement).length > 0 || arrangement.dockCollapsed;
 
   return (
-    <div className="flex h-8 shrink-0 items-center gap-2 border-b border-line-subtle px-2">
+    <div className="flex h-9 shrink-0 items-center gap-2 px-2.5 pt-1">
       <Menu
         sections={sections}
         trigger={({ toggle, open, id }) => (
@@ -458,7 +492,7 @@ function WorkspaceLayoutBar({
             onClick={toggle}
             aria-expanded={open}
             aria-haspopup="menu"
-            className="flex h-6 min-w-0 items-center gap-1.5 rounded-[4px] border border-line px-2 text-2xs text-secondary hover:bg-surface-2 hover:text-primary"
+            className="flex h-6 min-w-0 items-center gap-1.5 rounded-[6px] px-1.5 text-2xs text-secondary hover:bg-surface-2 hover:text-primary"
           >
             <span className="text-tertiary">Layout</span>
             <span className="truncate">{modified ? `${presetLabel} (modified)` : presetLabel}</span>
@@ -492,3 +526,117 @@ const REGION_NAMES: Record<WorkspaceRegion, string> = {
   lower: 'the lower panel',
   primary: 'the board column',
 };
+
+const NOTATION_FOLDED_KEY = 'kingfisher.notation-folded';
+const notationFoldedListeners = new Set<() => void>();
+
+function readNotationFolded(): boolean {
+  try {
+    return window.localStorage.getItem(NOTATION_FOLDED_KEY) === 'true';
+  } catch {
+    // Storage refused: the section is open, which is the default.
+    return false;
+  }
+}
+
+function writeNotationFolded(value: boolean): void {
+  try {
+    window.localStorage.setItem(NOTATION_FOLDED_KEY, String(value));
+  } catch {
+    // Not remembered, and so not folded: the one state storage can hold.
+  }
+  for (const listener of notationFoldedListeners) listener();
+}
+
+function subscribeNotationFolded(listener: () => void): () => void {
+  notationFoldedListeners.add(listener);
+  window.addEventListener('storage', listener);
+  return () => {
+    notationFoldedListeners.delete(listener);
+    window.removeEventListener('storage', listener);
+  };
+}
+
+/**
+ * The notation, as the first section of the side panel.
+ *
+ * A disclosure rather than a tab: folding it gives the tools below the whole
+ * height, and opening it again brings back the same list at the same move.
+ * Whether it is folded is remembered per browser — a view preference, not a
+ * workspace arrangement, so it is not carried in a saved layout or a backup.
+ */
+function NotationSection({
+  workspace,
+  moveTreePanel,
+  onMove,
+}: {
+  readonly workspace: string;
+  readonly moveTreePanel?: ReactNode;
+  readonly onMove: (region: WorkspaceRegion) => void;
+}) {
+  const folded = useSyncExternalStore(subscribeNotationFolded, readNotationFolded, () => false);
+  const toggle = () => writeNotationFolded(!folded);
+  const Chevron = folded ? ChevronRight : ChevronDown;
+
+  return (
+    <section
+      className={cn(
+        'flex min-h-0 flex-col border-b border-line-subtle',
+        folded ? 'shrink-0' : 'min-h-[180px] flex-[0_0_48%]',
+      )}
+      aria-label="Notation"
+      data-notation-section={workspace}
+      data-folded={folded ? 'true' : undefined}
+    >
+      <div className="flex h-9 shrink-0 items-center gap-1 px-2.5">
+        <button
+          type="button"
+          onClick={toggle}
+          aria-expanded={!folded}
+          className="-ml-1 flex h-7 min-w-0 flex-1 items-center gap-1.5 rounded-[6px] px-1 text-left text-xs font-semibold text-primary hover:bg-surface-2"
+        >
+          <Chevron className="h-3.5 w-3.5 shrink-0 text-tertiary" />
+          Notation
+        </button>
+        <Menu
+          align="end"
+          sections={[
+            {
+              id: 'move',
+              items: [
+                {
+                  id: 'move-lower',
+                  label: 'Move Notation to the lower panel',
+                  run: () => onMove('lower'),
+                },
+                {
+                  id: 'move-primary',
+                  label: 'Move Notation to the board column',
+                  run: () => onMove('primary'),
+                },
+              ],
+            },
+          ]}
+          trigger={({ toggle: open, open: isOpen, id }) => (
+            <button
+              type="button"
+              id={id}
+              onClick={open}
+              aria-expanded={isOpen}
+              aria-haspopup="menu"
+              aria-label="Move the notation"
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[6px] text-sm text-tertiary hover:bg-surface-2 hover:text-primary"
+            >
+              ⋯
+            </button>
+          )}
+        />
+      </div>
+      {folded ? null : (
+        <div className="min-h-0 flex-1 overflow-hidden">
+          <ErrorBoundary label="The move list">{moveTreePanel ?? null}</ErrorBoundary>
+        </div>
+      )}
+    </section>
+  );
+}

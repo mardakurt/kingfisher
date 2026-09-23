@@ -50,7 +50,7 @@ export default function NotFound() {
           href="https://kingfisherchess.app/"
           rel="noopener"
           prefetch={false}
-          className="rounded-[4px] border border-line bg-surface-2 px-3 py-1.5 text-xs text-primary transition-colors hover:bg-surface-3"
+          className="rounded-[6px] border border-line bg-surface-2 px-3 py-1.5 text-xs text-primary transition-colors hover:bg-surface-3"
         >
           Open the landing page
         </Link>

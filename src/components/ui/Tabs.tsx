@@ -78,7 +78,7 @@ export function Segmented<T extends string>({
   return (
     <div
       className={cn(
-        'inline-flex max-w-full overflow-x-auto rounded-[4px] border border-line bg-surface-2 p-0.5',
+        'inline-flex max-w-full overflow-x-auto rounded-[6px] border border-line bg-surface-2 p-0.5',
         className,
       )}
     >
@@ -89,7 +89,7 @@ export function Segmented<T extends string>({
           onClick={() => onChange(item.id)}
           aria-pressed={item.id === value}
           className={cn(
-            'shrink-0 rounded-[3px] px-2 py-0.5 text-2xs transition-colors',
+            'shrink-0 rounded-[5px] px-2 py-0.5 text-2xs transition-colors',
             item.id === value ? 'bg-surface-3 text-primary' : 'text-tertiary hover:text-secondary',
           )}
         >

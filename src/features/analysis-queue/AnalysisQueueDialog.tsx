@@ -227,14 +227,14 @@ function QueueForm({ onClose }: { readonly onClose: () => void }) {
       ) : jobs.length ? (
         <div className="space-y-2">
           {foregroundPriority ? (
-            <p className="rounded-[4px] border border-caution/40 bg-caution/10 px-3 py-2 text-xs text-secondary">
+            <p className="rounded-[6px] border border-caution/40 bg-caution/10 px-3 py-2 text-xs text-secondary">
               Background work is waiting while interactive analysis has priority.
             </p>
           ) : null}
           {jobs.map((job) => (
             <div
               key={job.id}
-              className="flex items-center gap-3 rounded-[4px] border border-line-subtle bg-surface-inset px-3 py-2"
+              className="flex items-center gap-3 rounded-[6px] border border-line-subtle bg-surface-inset px-3 py-2"
             >
               <div className="min-w-0 flex-1">
                 <p className="truncate text-xs text-primary">{job.gameLabel}</p>
@@ -265,7 +265,7 @@ const engineDefinitionLabel = (id: string) =>
   engineDefinitions().find((engine) => engine.id === id)?.name ?? id;
 
 const CONTROL =
-  'mt-1 h-8 w-full rounded-[4px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60';
+  'mt-1 h-8 w-full rounded-[6px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60';
 
 function Field({
   label,

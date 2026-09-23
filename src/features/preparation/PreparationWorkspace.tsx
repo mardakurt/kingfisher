@@ -438,7 +438,7 @@ export function PreparationWorkspace({
               aria-label="Compare repertoire"
               value={effectiveRepertoireId ?? ''}
               onChange={(event) => setRepertoireId(event.target.value)}
-              className="h-6 max-w-40 rounded-[3px] border border-line bg-surface-inset px-1.5 text-[10px] normal-case tracking-normal text-secondary"
+              className="h-6 max-w-40 rounded-[5px] border border-line bg-surface-inset px-1.5 text-[10px] normal-case tracking-normal text-secondary"
             >
               {matchingRepertoires.map((entry) => (
                 <option key={entry.id} value={entry.id}>
@@ -473,9 +473,7 @@ export function PreparationWorkspace({
         )}
         {node && effectiveRepertoireId ? (
           <section className="border-t border-line-subtle px-3 py-3">
-            <h2 className="text-[10px] uppercase tracking-wide text-tertiary">
-              Repertoire comparison
-            </h2>
+            <h2 className="text-[10px] text-tertiary">Repertoire comparison</h2>
             <p className="mt-1 text-[11.5px] text-secondary">
               {comparison.prepared.length} observed continuation
               {comparison.prepared.length === 1 ? '' : 's'} prepared · {comparison.gaps.length} gap
@@ -502,9 +500,7 @@ export function PreparationWorkspace({
         */}
         {submitted && preparation.data && effectiveRepertoireId ? (
           <section className="border-t border-line-subtle">
-            <h2 className="px-3 pt-3 text-[10px] uppercase tracking-wide text-tertiary">
-              Surprises
-            </h2>
+            <h2 className="px-3 pt-3 text-[10px] text-tertiary">Surprises</h2>
             <SurprisesPanel
               repertoire={repertoire.data?.positions ?? []}
               opponent={preparation.data.tree}
@@ -563,7 +559,7 @@ export function PreparationWorkspace({
                 const value = event.target.value;
                 if (value) search(value, null);
               }}
-              className="h-8 max-w-[18ch] rounded-[4px] border border-line bg-surface-inset px-1.5 text-2xs text-primary"
+              className="h-8 max-w-[18ch] rounded-[6px] border border-line bg-surface-inset px-1.5 text-2xs text-primary"
             >
               <option value="">Favourites…</option>
               {profile.data?.favoritePlayers?.map((entry) => (
@@ -736,14 +732,14 @@ function PriorityQueue({
 }) {
   return (
     <section className="border-t border-line-subtle px-3 py-3">
-      <h2 className="text-[10px] uppercase tracking-wide text-tertiary">Preparation priorities</h2>
+      <h2 className="text-[10px] text-tertiary">Preparation priorities</h2>
       <p className="mt-1 text-[10px] text-tertiary">
         Ordered by missing response, recent growth, then local frequency. No hidden score.
       </p>
       {priorities.slice(0, 8).map((priority) => (
         <article
           key={priority.edge.uci}
-          className="mt-2 rounded-[4px] border border-line-subtle bg-surface-2 px-2 py-2"
+          className="mt-2 rounded-[6px] border border-line-subtle bg-surface-2 px-2 py-2"
         >
           <div className="flex items-center gap-2 text-2xs">
             <strong className="text-primary">{priority.edge.san}</strong>
@@ -907,7 +903,7 @@ function ProfilePanel({
         </dl>
       </section>
       <section className="px-3 py-3">
-        <h3 className="text-[10px] uppercase tracking-wide text-tertiary">Common openings</h3>
+        <h3 className="text-[10px] text-tertiary">Common openings</h3>
         {profile.openings.slice(0, 10).map((opening) => (
           <div key={opening.name} className="mt-1.5 flex items-center gap-2 text-2xs">
             <span className="min-w-0 flex-1 truncate text-secondary">{opening.name}</span>
@@ -939,7 +935,7 @@ function MoveTable({
     <div className="overflow-x-auto">
       <table className="w-full min-w-[340px] border-collapse text-[10.5px]">
         <thead>
-          <tr className="border-b border-line-subtle text-left text-[9.5px] uppercase tracking-wide text-tertiary">
+          <tr className="border-b border-line-subtle text-left text-[9.5px] text-tertiary">
             <th className="px-3 py-1.5 font-medium">Move</th>
             <th className="px-2 py-1.5 text-right font-medium">Games</th>
             <th className="px-2 py-1.5 text-right font-medium">Freq</th>
@@ -964,7 +960,7 @@ function MoveTable({
               <td className="px-2 py-1.5 text-right tabular">{edge.games}</td>
               <td className="px-2 py-1.5 text-right tabular">{edge.frequency}%</td>
               <td className="px-2 py-1.5 text-right tabular">{edge.playerScore}%</td>
-              <td className="px-2 py-1.5 text-right tabular">{edge.averageElo ?? '—'}</td>
+              <td className="px-2 py-1.5 text-right tabular">{edge.averageElo ?? '—'}</td>{' '}
               <td className="px-2 py-1.5 text-right tabular">{edge.lastPlayed ?? '—'}</td>
               <td className="px-3 py-1.5">
                 {preparedKeys.has(edge.resultingKey) ? (
@@ -1000,5 +996,5 @@ const Field = ({
   </label>
 );
 const FIELD =
-  'mt-0.5 block h-7 w-[92px] rounded-[4px] border border-line bg-surface-inset px-2 text-2xs text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60';
+  'mt-0.5 block h-7 w-[92px] rounded-[6px] border border-line bg-surface-inset px-2 text-2xs text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60';
 const digits = (value: string, length: number) => value.replace(/\D/g, '').slice(0, length);

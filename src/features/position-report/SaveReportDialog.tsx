@@ -189,7 +189,7 @@ export function SaveReportDialog({ report, context, onClose }: SaveReportDialogP
             <select
               value={effectiveStudyId}
               onChange={(event) => setStudyId(event.target.value as StudyId)}
-              className="mt-1 h-8 w-full rounded-[4px] border border-line bg-surface-inset px-2 text-sm text-primary outline-none focus:border-accent/60"
+              className="mt-1 h-8 w-full rounded-[6px] border border-line bg-surface-inset px-2 text-sm text-primary outline-none focus:border-accent/60"
             >
               {list.map((study) => (
                 <option key={study.id} value={study.id}>
@@ -206,7 +206,7 @@ export function SaveReportDialog({ report, context, onClose }: SaveReportDialogP
                 value={newStudyTitle}
                 onChange={(event) => setNewStudyTitle(event.target.value)}
                 placeholder="Endgame research"
-                className="mt-1 h-8 w-full rounded-[4px] border border-line bg-surface-inset px-2 text-sm text-primary outline-none focus:border-accent/60"
+                className="mt-1 h-8 w-full rounded-[6px] border border-line bg-surface-inset px-2 text-sm text-primary outline-none focus:border-accent/60"
               />
             </label>
           ) : null}
@@ -215,7 +215,7 @@ export function SaveReportDialog({ report, context, onClose }: SaveReportDialogP
             <input
               value={chapterTitle}
               onChange={(event) => setChapterTitle(event.target.value)}
-              className="mt-1 h-8 w-full rounded-[4px] border border-line bg-surface-inset px-2 text-sm text-primary outline-none focus:border-accent/60"
+              className="mt-1 h-8 w-full rounded-[6px] border border-line bg-surface-inset px-2 text-sm text-primary outline-none focus:border-accent/60"
             />
           </label>
         </div>
@@ -236,7 +236,7 @@ function Choice({
   readonly hint: string;
 }) {
   return (
-    <label className="flex cursor-pointer items-start gap-2 rounded-[4px] border border-line p-2.5 hover:bg-surface-2">
+    <label className="flex cursor-pointer items-start gap-2 rounded-[6px] border border-line p-2.5 hover:bg-surface-2">
       <input
         type="radio"
         name="report-destination"

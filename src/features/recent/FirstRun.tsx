@@ -69,7 +69,7 @@ export function FirstRun({ onDismiss }: { readonly onDismiss: () => void }) {
 
   return (
     <section
-      className="rounded-[6px] border border-line bg-surface-2 p-4"
+      className="rounded-[8px] border border-line bg-surface-2 p-4"
       data-first-run
       aria-label="Getting started"
     >
@@ -85,9 +85,7 @@ export function FirstRun({ onDismiss }: { readonly onDismiss: () => void }) {
             <Ready ok={referenceState.ok} label="Opening Explorer" detail={referenceState.text} />
           </dl>
 
-          <p className="mt-4 text-[10px] font-semibold uppercase tracking-[0.08em] text-tertiary">
-            Optional
-          </p>
+          <p className="mt-4 text-[10px] font-semibold text-tertiary">Optional</p>
           <div className="mt-1.5 flex flex-wrap gap-1.5">
             <Optional icon={<Players />} onClick={() => openSettingsAt('accounts')}>
               Connect Lichess or Chess.com
@@ -106,7 +104,7 @@ export function FirstRun({ onDismiss }: { readonly onDismiss: () => void }) {
             </Button>
             <Link
               href="/openings"
-              className="inline-flex h-8 items-center gap-1.5 rounded-[5px] border border-line px-2.5 text-xs text-secondary transition-colors hover:border-line-strong hover:text-primary"
+              className="inline-flex h-8 items-center gap-1.5 rounded-[7px] border border-line px-2.5 text-xs text-secondary transition-colors hover:border-line-strong hover:text-primary"
             >
               <Opening className="h-4 w-4" />
               Browse the opening library
@@ -172,7 +170,7 @@ const Optional = ({
   <button
     type="button"
     onClick={onClick}
-    className="inline-flex h-8 items-center gap-1.5 rounded-[5px] border border-line px-2.5 text-xs text-secondary transition-colors hover:border-line-strong hover:text-primary"
+    className="inline-flex h-8 items-center gap-1.5 rounded-[7px] border border-line px-2.5 text-xs text-secondary transition-colors hover:border-line-strong hover:text-primary"
   >
     <span className="h-4 w-4 shrink-0 [&>svg]:h-4 [&>svg]:w-4">{icon}</span>
     {children}

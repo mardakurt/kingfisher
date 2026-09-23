@@ -260,7 +260,7 @@ function FileReferences({
     <div className="flex h-full min-h-0 flex-col">
       <PanelHeader>{file.name}</PanelHeader>
       <PanelBody className="px-3 py-3">
-        <h4 className="text-[9.5px] uppercase tracking-wide text-tertiary">Repertoires</h4>
+        <h4 className="text-[9.5px] text-tertiary">Repertoires</h4>
         {repertoires.length === 0 ? (
           <p className="mt-1 text-[10.5px] text-tertiary">No repertoires yet.</p>
         ) : (
@@ -287,13 +287,13 @@ function FileReferences({
           </ul>
         )}
 
-        <h4 className="mt-3 text-[9.5px] uppercase tracking-wide text-tertiary">Chapters</h4>
+        <h4 className="mt-3 text-[9.5px] text-tertiary">Chapters</h4>
         <p className="mt-1 text-[10.5px] text-tertiary">
           {file.chapterIds.length} linked of {studies.length} studies. Link a chapter from the study
           itself, so the reference is made where the work is.
         </p>
 
-        <h4 className="mt-3 text-[9.5px] uppercase tracking-wide text-tertiary">Model games</h4>
+        <h4 className="mt-3 text-[9.5px] text-tertiary">Model games</h4>
         <p className="mt-1 text-[10.5px] text-tertiary tabular">
           {file.modelGameLinkIds.length} linked
         </p>
@@ -306,7 +306,7 @@ function FileReferences({
             onChange={(event) => setNotes(event.target.value)}
             onBlur={() => onNotes(notes)}
             placeholder="What this file is for, and what you have concluded."
-            className="mt-1 w-full resize-y rounded-[4px] border border-line bg-surface-inset px-2 py-1.5 text-[11px] leading-relaxed text-primary outline-none focus:border-accent/60"
+            className="mt-1 w-full resize-y rounded-[6px] border border-line bg-surface-inset px-2 py-1.5 text-[11px] leading-relaxed text-primary outline-none focus:border-accent/60"
           />
         </label>
       </PanelBody>
@@ -342,7 +342,7 @@ function NewFileDialog({
             value={name}
             onChange={(event) => setName(event.target.value)}
             placeholder="Black vs 1.e4 — Najdorf"
-            className="h-8 rounded-[4px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
+            className="h-8 rounded-[6px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
           />
         </label>
         <div className="grid grid-cols-2 gap-3">
@@ -351,7 +351,7 @@ function NewFileDialog({
             <select
               value={color}
               onChange={(event) => setColor(event.target.value as 'w' | 'b')}
-              className="h-8 rounded-[4px] border border-line bg-surface-inset px-2 text-xs text-primary"
+              className="h-8 rounded-[6px] border border-line bg-surface-inset px-2 text-xs text-primary"
             >
               <option value="w">White</option>
               <option value="b">Black</option>
@@ -363,7 +363,7 @@ function NewFileDialog({
               value={eco}
               onChange={(event) => setEco(event.target.value)}
               placeholder="B90"
-              className="h-8 rounded-[4px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
+              className="h-8 rounded-[6px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
             />
           </label>
         </div>

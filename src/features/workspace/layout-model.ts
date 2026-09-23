@@ -107,7 +107,13 @@ export interface BoardPriorityShape {
    * look at. It is a policy limit, not a rendering one.
    */
   readonly maxBoard: number;
-  /** True when the notation panel is folded into the dock rather than shown. */
+  /**
+   * True when the notation lives in the dock rather than under the board.
+   *
+   * Every policy says yes since Phase 82: the notation sits at the top of the
+   * right-hand panel, above the tools, and the board column holds the board
+   * alone. The field stays so a later policy can say no.
+   */
   readonly moveTreeInDock: boolean;
 }
 
@@ -117,14 +123,14 @@ export const BOARD_PRIORITIES: Readonly<Record<BoardPriority, BoardPriorityShape
     lowerHeight: 220,
     shortLowerHeight: 160,
     maxBoard: 780,
-    moveTreeInDock: false,
+    moveTreeInDock: true,
   },
   large: {
     dockWidth: 380,
     lowerHeight: 170,
     shortLowerHeight: 120,
     maxBoard: 960,
-    moveTreeInDock: false,
+    moveTreeInDock: true,
   },
   maximum: {
     dockWidth: 340,
@@ -161,9 +167,9 @@ export const DEFAULT_ARRANGEMENT: WorkspaceArrangement = defaultArrangement();
 /**
  * Where the notation panel sits under a given policy.
  *
- * Maximum folds it into the dock, which is most of why Maximum is bigger than
- * Large: it removes a whole horizontal band from under the board rather than
- * merely making it shorter.
+ * In the dock, under every policy since Phase 82 — the Mac-document layout
+ * of a board on its own with the notation beside it. A person may still move
+ * it under the board, and that choice is stored and wins.
  */
 export const policyMoveTreeHome = (priority: BoardPriority): WorkspaceRegion =>
   BOARD_PRIORITIES[priority].moveTreeInDock ? 'dock' : 'lower';

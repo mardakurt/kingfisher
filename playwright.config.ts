@@ -83,7 +83,7 @@ export default defineConfig({
           localStorage: [
             {
               name: 'kingfisher.preferences',
-              value: JSON.stringify({ state: {}, version: 6 }),
+              value: JSON.stringify({ state: {}, version: 7 }),
             },
           ],
         },

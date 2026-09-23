@@ -23,6 +23,11 @@ import { BrandMark } from './BrandMark';
 import { TitleBarSafeCorner } from './TitleBarSafeArea';
 import { NAV_GROUPS, sectionsInGroup } from './navigation';
 
+const FOOTER_ROW =
+  'flex h-8 w-full items-center rounded-[7px] text-[13px] text-secondary transition-colors hover:bg-black/[0.04] hover:text-primary dark:hover:bg-white/[0.06]';
+const FOOTER_ICON =
+  'flex h-8 w-8 shrink-0 items-center justify-center rounded-[7px] text-secondary transition-colors hover:bg-black/[0.04] hover:text-primary dark:hover:bg-white/[0.06]';
+
 interface SidebarProps {
   readonly variant?: 'desktop' | 'drawer';
   readonly onClose?: () => void;
@@ -42,7 +47,7 @@ export function Sidebar({ variant = 'desktop', onClose }: SidebarProps) {
   return (
     <nav
       className={cn(
-        'shrink-0 flex-col border-r border-line-subtle bg-surface-1',
+        'shrink-0 flex-col border-r border-line-subtle bg-surface-sidebar',
         drawer
           ? 'flex h-full w-[min(86vw,300px)] shadow-2xl'
           : compact
@@ -56,7 +61,7 @@ export function Sidebar({ variant = 'desktop', onClose }: SidebarProps) {
     >
       <div
         className={cn(
-          'relative flex h-14 shrink-0 items-center border-b border-line-subtle',
+          'relative flex h-14 shrink-0 items-center',
           drawer || !compact ? 'gap-2.5' : 'justify-center',
         )}
         /*
@@ -105,12 +110,12 @@ export function Sidebar({ variant = 'desktop', onClose }: SidebarProps) {
           href="/analysis"
           aria-label="Back to Analysis"
           data-sidebar-home=""
-          className="flex items-center gap-2.5 rounded-[3px] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+          className="flex items-center gap-2.5 rounded-[5px] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
         >
           <BrandMark className="kf-titlebar-yield h-9 w-9 shrink-0 text-accent" />
           <span
             className={cn(
-              'text-[17px] font-semibold tracking-tight text-primary',
+              'text-[16px] font-semibold tracking-[-0.01em] text-primary',
               compact && 'hidden',
             )}
           >
@@ -132,7 +137,7 @@ export function Sidebar({ variant = 'desktop', onClose }: SidebarProps) {
         collapsed rail — a heading with no room for its own text is noise — and
         a rule takes their place, so the grouping survives the collapse.
       */}
-      <ul className="flex flex-col gap-0.5 overflow-y-auto p-2">
+      <ul className="flex flex-col overflow-y-auto px-2.5 pt-1 pb-2">
         {NAV_GROUPS.map((group, groupIndex) => {
           const sections = sectionsInGroup(group.id);
           if (sections.length === 0) return null;
@@ -140,14 +145,14 @@ export function Sidebar({ variant = 'desktop', onClose }: SidebarProps) {
           return (
             <li key={group.id}>
               {group.label && !compact ? (
-                <h2 className="mt-2 mb-0.5 px-3 text-[10px] font-semibold uppercase tracking-[0.1em] text-tertiary">
+                <h2 className="mt-2.5 mb-0.5 px-2.5 text-[11px] font-semibold text-tertiary">
                   {group.label}
                 </h2>
               ) : null}
               {group.label && compact && groupIndex > 0 ? (
-                <hr className="mx-3 my-2 border-line-subtle" aria-hidden />
+                <hr className="mx-2 my-2 border-line" aria-hidden />
               ) : null}
-              <ul className="flex flex-col gap-0.5">
+              <ul className="flex flex-col gap-px">
                 {sections.map((section) => {
                   const active = pathname.startsWith(section.href);
                   const Icon = section.icon;
@@ -163,30 +168,27 @@ export function Sidebar({ variant = 'desktop', onClose }: SidebarProps) {
                         data-nav-section={section.id}
                         className={cn(
                           /*
-                            40px rows. Thirteen sections plus four headings is
-                            684px of list at 44px, which scrolls on a 1440x900
-                            display — and a primary navigation that scrolls on
-                            the commonest large laptop is one where the last
-                            two sections are effectively hidden.
+                            30px rows, the height of a Mac source list. Nineteen
+                            sections and four headings then fit a 1440x900
+                            display without the list scrolling, which the 40px
+                            rows of Phase 53 no longer did once the list grew.
                           */
-                          'relative flex h-10 items-center rounded-[5px] text-sm font-medium transition-colors',
-                          compact ? 'justify-center px-1' : 'gap-3 px-3',
+                          'relative flex items-center rounded-[7px] text-[13px] transition-colors',
+                          compact ? 'h-10 justify-center px-1' : 'h-[30px] gap-2.5 px-2.5',
                           active
-                            ? 'bg-surface-3 text-primary'
-                            : 'text-secondary hover:bg-surface-2 hover:text-primary',
+                            ? 'bg-black/[0.075] font-medium text-primary dark:bg-white/[0.1]'
+                            : 'text-primary/85 hover:bg-black/[0.04] hover:text-primary dark:hover:bg-white/[0.06]',
                         )}
                       >
-                        {/* The selected section is carried by an accent rail as
-                            well as the raised surface, so it survives both
-                            themes and the collapsed rail where the label is gone. */}
-                        {active && (
-                          <span
-                            aria-hidden
-                            className="absolute inset-y-1.5 left-0 w-[3px] rounded-r-full bg-accent"
-                          />
-                        )}
+                        {/* Selection is a filled row, as in every Mac sidebar,
+                            and the icon takes the accent so the selected
+                            section still reads in the collapsed rail where the
+                            label is gone. */}
                         <Icon
-                          className={cn('h-[21px] w-[21px] shrink-0', active && 'text-accent')}
+                          className={cn(
+                            'h-[17px] w-[17px] shrink-0',
+                            active ? 'text-accent' : 'text-secondary',
+                          )}
                         />
                         <span className={cn('truncate', compact && 'hidden')}>{section.label}</span>
                       </Link>
@@ -204,91 +206,84 @@ export function Sidebar({ variant = 'desktop', onClose }: SidebarProps) {
           Preparation there was nothing to click. It belongs with navigation.
           The "What should we call you?" prompt and "Welcome back, X" greeting
           that used to live here are gone: the user does not want them. */}
-      <div className="mt-auto shrink-0 border-t border-line-subtle p-1.5">
-        {!drawer && (
-          <button
-            type="button"
-            onClick={() => setCollapsed(!collapsed)}
-            className={cn(
-              'mb-1 flex h-10 w-full items-center rounded-[4px] text-sm text-tertiary transition-colors hover:bg-surface-2 hover:text-primary',
-              compact ? 'justify-center' : 'gap-3 px-3',
-            )}
-            aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'}
-          >
-            {collapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
-            {!compact && <span>Collapse</span>}
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={toggleTheme}
-          className={cn(
-            'flex h-10 w-full items-center rounded-[4px] text-sm text-tertiary transition-colors hover:bg-surface-2 hover:text-primary',
-            compact ? 'justify-center' : 'gap-3 px-3',
-          )}
-        >
-          {theme === 'dark' ? (
-            <Moon className="h-5 w-5 shrink-0" />
-          ) : (
-            <Sun className="h-5 w-5 shrink-0" />
-          )}
-          {!compact && <span>{theme === 'dark' ? 'Dark theme' : 'Light theme'}</span>}
-        </button>
+      <div className="mt-auto shrink-0 border-t border-line-subtle px-2.5 py-2">
         <button
           type="button"
           onClick={() => {
             setSettingsOpen(true);
             onClose?.();
           }}
-          className={cn(
-            'flex h-10 w-full items-center rounded-[4px] text-sm text-tertiary transition-colors hover:bg-surface-2 hover:text-primary',
-            compact ? 'justify-center' : 'gap-3 px-3',
-          )}
+          className={cn(FOOTER_ROW, compact ? 'justify-center' : 'gap-2.5 px-2.5')}
         >
-          <Settings className="h-5 w-5 shrink-0" />
+          <Settings className="h-[17px] w-[17px] shrink-0" />
           <span className={cn('truncate', compact && 'hidden')}>Settings</span>
-          <kbd className={cn('ml-auto font-mono text-[10px]', compact && 'hidden')}>⌘,</kbd>
+          <kbd className={cn('ml-auto font-mono text-[10px] text-tertiary', compact && 'hidden')}>
+            ⌘,
+          </kbd>
         </button>
         {/*
-          Phase 40 (PART G + H): a visible Feedback button in
-          the bottom block of the sidebar, sitting next to
-          Settings. It opens the same in-app Feedback modal
-          that the Cmd+K commands use — one form, one
-          architecture. Compact sidebar: the label collapses
-          into a tooltip. Mobile: the drawer keeps the label.
+          Phase 82: the theme, feedback and collapse controls share one row of
+          icons, as the small controls at the foot of a Mac sidebar do. Each
+          keeps the accessible name it had as a labelled row. In the collapsed
+          rail they stack, because a 72px rail has room for one icon across.
         */}
-        <button
-          type="button"
-          onClick={() => {
-            openFeedback();
-            onClose?.();
-          }}
-          aria-label="Send feedback"
-          title={compact ? 'Send feedback' : undefined}
-          className={cn(
-            'flex h-10 w-full items-center rounded-[4px] text-sm text-tertiary transition-colors hover:bg-surface-2 hover:text-primary',
-            compact ? 'justify-center' : 'gap-3 px-3',
-          )}
-          data-feedback-button=""
+        <div
+          className={cn('mt-0.5 flex items-center', compact ? 'flex-col gap-0.5' : 'gap-0.5 px-1')}
         >
-          <Feedback className="h-5 w-5 shrink-0" />
-          <span className={cn('truncate', compact && 'hidden')}>Feedback</span>
-        </button>
+          <button
+            type="button"
+            onClick={toggleTheme}
+            aria-label={theme === 'dark' ? 'Dark theme' : 'Light theme'}
+            title={
+              theme === 'dark' ? 'Dark theme — switch to light' : 'Light theme — switch to dark'
+            }
+            className={FOOTER_ICON}
+          >
+            {theme === 'dark' ? (
+              <Moon className="h-[17px] w-[17px]" />
+            ) : (
+              <Sun className="h-[17px] w-[17px]" />
+            )}
+          </button>
+          {/* Phase 40: the same Feedback modal the command palette opens. */}
+          <button
+            type="button"
+            onClick={() => {
+              openFeedback();
+              onClose?.();
+            }}
+            aria-label="Send feedback"
+            title="Send feedback"
+            className={FOOTER_ICON}
+            data-feedback-button=""
+          >
+            <Feedback className="h-[17px] w-[17px]" />
+          </button>
+          {!drawer && (
+            <button
+              type="button"
+              onClick={() => setCollapsed(!collapsed)}
+              className={FOOTER_ICON}
+              aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'}
+              title={collapsed ? 'Expand navigation' : 'Collapse navigation'}
+            >
+              {collapsed ? (
+                <ChevronRight className="h-[17px] w-[17px]" />
+              ) : (
+                <ChevronLeft className="h-[17px] w-[17px]" />
+              )}
+            </button>
+          )}
+        </div>
         {/*
-          Phase 29 (PART AJ-AK): a quiet "Saved on this device"
-          status, with copy that does not overpromise. Hidden in
-          the collapsed sidebar; the title attribute carries the
-          detail for screen readers and the hover tooltip.
+          Phase 29: a quiet "Saved on this device" status, with copy that does
+          not overpromise. The title carries the detail.
         */}
-        {!compact ? (
-          <div className="mt-1 flex min-h-6 items-center px-3">
-            <StoragePersistenceStatus />
-          </div>
-        ) : (
-          <div className="mt-1 flex min-h-6 items-center justify-center">
-            <StoragePersistenceStatus compact />
-          </div>
-        )}
+        <div
+          className={cn('mt-0.5 flex min-h-6 items-center', compact ? 'justify-center' : 'px-2.5')}
+        >
+          <StoragePersistenceStatus compact={compact} />
+        </div>
       </div>
     </nav>
   );

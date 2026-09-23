@@ -283,7 +283,7 @@ export function WorkspaceFrame({
                   {...(board?.capabilities ? { capabilities: board.capabilities } : {})}
                   conceal={board?.conceal ?? false}
                   concealPieces={board?.concealPieces ?? false}
-                  className="min-h-[460px] flex-1 px-2 py-2 sm:px-3 wide:min-h-0"
+                  className="min-h-[460px] flex-1 px-2 py-2 sm:px-5 sm:py-4 wide:min-h-0"
                 />
               ))
             )}
@@ -469,7 +469,9 @@ function FrameHeader({
             <span className="shrink-0 text-accent [&>svg]:h-5 [&>svg]:w-5">{icon}</span>
           ) : null}
           <div className="min-w-0" data-header-title>
-            <h1 className="truncate text-sm font-semibold text-primary">{title}</h1>
+            <h1 className="truncate text-[15px] font-semibold tracking-[-0.01em] text-primary">
+              {title}
+            </h1>
             {subtitle ? (
               <p className="hidden truncate text-xs text-tertiary sm:block">{subtitle}</p>
             ) : null}
@@ -530,11 +532,11 @@ function FrameHeader({
           type="button"
           onClick={toggleCommandPalette}
           aria-label="Search commands"
-          className="flex h-9 shrink-0 items-center gap-2 rounded-[4px] border border-line bg-surface-2 px-3 text-xs text-tertiary transition-colors hover:border-line-strong hover:text-secondary"
+          className="flex h-8 shrink-0 items-center gap-2 rounded-[8px] bg-surface-2 px-3 text-xs text-tertiary transition-colors hover:bg-surface-3 hover:text-secondary"
         >
           <Search className="h-3.5 w-3.5" />
           <span className="hidden mid:inline">Search commands</span>
-          <kbd className="hidden rounded-[3px] border border-line bg-surface-1 px-1 font-mono text-[10px] mid:inline">
+          <kbd className="hidden rounded-[5px] bg-surface-1 px-1 font-mono text-[10px] mid:inline">
             ⌘K
           </kbd>
         </button>
@@ -584,7 +586,7 @@ function Rail({
           <ChevronRight />
         </IconButton>
         <span
-          className="mt-2 text-2xs font-medium tracking-[0.08em] text-tertiary uppercase [writing-mode:vertical-rl]"
+          className="mt-2 text-2xs font-semibold text-tertiary [writing-mode:vertical-rl]"
           aria-hidden
         >
           {rail.label}
@@ -604,7 +606,7 @@ function Rail({
     >
       {rail.headerless ? null : (
         <header className="density-pad-x flex h-8 shrink-0 items-center gap-2 border-b border-line-subtle px-2.5">
-          <span className="min-w-0 flex-1 truncate text-2xs font-medium tracking-[0.08em] text-tertiary uppercase">
+          <span className="min-w-0 flex-1 truncate text-2xs font-semibold text-tertiary">
             {rail.label}
           </span>
           {rail.actions}

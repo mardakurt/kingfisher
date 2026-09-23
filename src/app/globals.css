@@ -46,8 +46,8 @@
   --space-4: 16px;
   --space-5: 20px;
   --space-6: 24px;
-  --radius-control: 4px;
-  --radius-panel: 6px;
+  --radius-control: 6px;
+  --radius-panel: 10px;
   --radius-board: 3px;
   --icon-compact: 16px;
   --icon-standard: 20px;
@@ -56,7 +56,7 @@
   --control-standard: 36px;
   --control-navigation: 42px;
   --sidebar-collapsed: 72px;
-  --sidebar-expanded: 228px;
+  --sidebar-expanded: 244px;
 
   /*
     The macOS window buttons, and what Kingfisher owes them.
@@ -93,33 +93,39 @@
   --motion-standard: 140ms;
   --motion-deliberate: 180ms;
 
-  --surface-0: #071827;
-  --surface-1: #0a1e2f;
-  --surface-2: #0e2639;
-  --surface-3: #153047;
-  --surface-inset: #061521;
+  /*
+   * Dark: macOS's own dark neutrals rather than a tinted navy. Chrome and
+   * canvas are one surface, separated by hairlines; the sidebar is the one
+   * region with a tone of its own, as it is in every Mac application.
+   */
+  --surface-0: #1c1c1e;
+  --surface-1: #1c1c1e;
+  --surface-2: #2a2a2d;
+  --surface-3: #333336;
+  --surface-inset: #161618;
+  --surface-sidebar: #242427;
 
-  --border-subtle: #183247;
-  --border: #244158;
-  --border-strong: #36576d;
+  --border-subtle: #2b2b2f;
+  --border: #37373c;
+  --border-strong: #4a4a50;
 
-  --text-primary: #f0f2f2;
-  --text-secondary: #b9c3ca;
-  --text-tertiary: #8093a1;
-  --text-inverse: #0b0d11;
+  --text-primary: #f2f2f4;
+  --text-secondary: #b6b6bc;
+  --text-tertiary: #8e8e95;
+  --text-inverse: #111113;
 
-  --accent: #e2ad42;
-  --accent-hover: #efbd59;
-  --accent-muted: #8c64254d;
-  --accent-contrast: #161106;
+  --accent: #4b93f5;
+  --accent-hover: #68a6f8;
+  --accent-muted: #4b93f52e;
+  --accent-contrast: #07111f;
 
-  --positive: #6fae7a;
-  --negative: #cf6f68;
-  --caution: #d3a84c;
-  --info: #6d92c9;
+  --positive: #5fb772;
+  --negative: #ef6b62;
+  --caution: #e0b04a;
+  --info: #6aa5f0;
 
-  --eval-white: #e9ecf1;
-  --eval-black: #23282f;
+  --eval-white: #eeeef0;
+  --eval-black: #2c2c30;
 
   --shape-green: #5fa96b;
   --shape-red: #c25b52;
@@ -137,41 +143,49 @@
   --board-target: rgb(0 0 0 / 0.26);
   --board-check-core: rgb(207 111 104 / 0.92);
   --board-check-mid: rgb(207 111 104 / 0.5);
+  --board-frame: #0f1a33;
 
-  --selection: #c8a15a33;
+  --selection: #4b93f540;
   --shadow-panel: 0 1px 3px rgb(0 0 0 / 0.34);
+  --shadow-sidebar: 0 0 0 1px rgb(255 255 255 / 0.06), 0 8px 24px rgb(0 0 0 / 0.28);
 }
 
 [data-theme='light'] {
   color-scheme: light;
 
-  --surface-0: #f3f1ed;
-  --surface-1: #fbfaf8;
-  --surface-2: #ffffff;
-  --surface-3: #f0eeea;
-  --surface-inset: #edeae5;
+  /*
+   * Light, the default since Phase 82: a white workspace, a pale grey
+   * sidebar floating inside the window, hairline separators and one blue
+   * accent. The quiet of a native Mac document window, not a dashboard.
+   */
+  --surface-0: #ffffff;
+  --surface-1: #ffffff;
+  --surface-2: #f4f4f6;
+  --surface-3: #ebebef;
+  --surface-inset: #f4f4f6;
+  --surface-sidebar: #f2f2f5;
 
-  --border-subtle: #e6e2db;
-  --border: #dbd6cd;
-  --border-strong: #c6bfb3;
+  --border-subtle: #ececf0;
+  --border: #dedee4;
+  --border-strong: #c7c7cf;
 
-  --text-primary: #1b1d21;
-  --text-secondary: #555b68;
-  --text-tertiary: #767c88;
-  --text-inverse: #fbfaf8;
+  --text-primary: #1d1d1f;
+  --text-secondary: #545459;
+  --text-tertiary: #76767d;
+  --text-inverse: #ffffff;
 
-  --accent: #9a7423;
-  --accent-hover: #825f16;
-  --accent-muted: #c8a15a2a;
-  --accent-contrast: #fffdf7;
+  --accent: #1f64d6;
+  --accent-hover: #1854ba;
+  --accent-muted: #1f64d61f;
+  --accent-contrast: #ffffff;
 
-  --positive: #3f7d4d;
-  --negative: #a8443c;
-  --caution: #8d6b16;
-  --info: #35608f;
+  --positive: #2f8a47;
+  --negative: #c4392f;
+  --caution: #946a0c;
+  --info: #2c62b0;
 
   --eval-white: #ffffff;
-  --eval-black: #2b3037;
+  --eval-black: #2b2b30;
 
   --shape-green: #4a8f57;
   --shape-red: #b24a41;
@@ -184,9 +198,11 @@
   --board-target: rgb(20 22 26 / 0.25);
   --board-check-core: rgb(168 68 60 / 0.9);
   --board-check-mid: rgb(168 68 60 / 0.46);
+  --board-frame: #16224a;
 
-  --selection: #9a742326;
-  --shadow-panel: 0 1px 2px rgb(23 20 14 / 0.08);
+  --selection: #1f64d633;
+  --shadow-panel: 0 1px 2px rgb(20 20 30 / 0.06);
+  --shadow-sidebar: 0 0 0 1px rgb(0 0 0 / 0.05), 0 6px 18px rgb(20 20 40 / 0.06);
 }
 
 @theme inline {
@@ -195,6 +211,7 @@
   --color-surface-2: var(--surface-2);
   --color-surface-3: var(--surface-3);
   --color-surface-inset: var(--surface-inset);
+  --color-surface-sidebar: var(--surface-sidebar);
 
   --color-line-subtle: var(--border-subtle);
   --color-line: var(--border);
@@ -223,7 +240,11 @@
   --color-shape-blue: var(--shape-blue);
   --color-shape-yellow: var(--shape-yellow);
 
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* The platform's own face first: San Francisco on a Mac, in the browser and
+     in the shell alike, Segoe on Windows. Inter is the fallback elsewhere. */
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, 'Segoe UI', var(--font-inter),
+    ui-sans-serif, sans-serif;
   --font-mono: var(--font-mono-face), ui-monospace, 'SF Mono', 'JetBrains Mono', monospace;
 
   --text-2xs: 0.75rem;
@@ -255,7 +276,6 @@ body {
   background-color: var(--surface-0);
   color: var(--text-primary);
   font-family: var(--font-sans);
-  font-feature-settings: 'cv05', 'ss01';
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
 }

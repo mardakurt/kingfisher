@@ -100,7 +100,7 @@ async function studentMachine(browser: Browser) {
         {
           origin: 'http://localhost:3210',
           localStorage: [
-            { name: 'kingfisher.preferences', value: JSON.stringify({ state: {}, version: 6 }) },
+            { name: 'kingfisher.preferences', value: JSON.stringify({ state: {}, version: 7 }) },
           ],
         },
       ],

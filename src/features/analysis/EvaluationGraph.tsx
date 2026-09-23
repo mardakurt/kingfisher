@@ -84,7 +84,7 @@ export function EvaluationGraph({ tree, currentId, onSelect, className }: Evalua
       <figure
         data-evaluation-graph="empty"
         className={cn(
-          'flex min-w-0 items-center justify-center rounded-[3px] border border-dashed border-line-subtle bg-surface-inset px-3 py-2',
+          'flex min-w-0 items-center justify-center rounded-[5px] border border-dashed border-line-subtle bg-surface-inset px-3 py-2',
           className,
         )}
       >
@@ -104,9 +104,7 @@ export function EvaluationGraph({ tree, currentId, onSelect, className }: Evalua
   return (
     <figure data-evaluation-graph className={cn('min-w-0', className)}>
       <figcaption className="mb-0.5 flex items-baseline justify-between px-0.5">
-        <span className="text-[10px] font-medium tracking-[0.06em] text-tertiary uppercase">
-          Evaluation
-        </span>
+        <span className="text-[10px] font-semibold text-tertiary">Evaluation</span>
         <span className="text-[10px] text-tertiary tabular">
           {evaluatedMoves} of {columns.length} {columns.length === 1 ? 'ply' : 'plies'} analysed
           {moves ? ` · ${moves} ${moves === 1 ? 'move' : 'moves'}` : ''}
@@ -118,7 +116,7 @@ export function EvaluationGraph({ tree, currentId, onSelect, className }: Evalua
           preserveAspectRatio="none"
           role="img"
           aria-label={`Evaluation over ${columns.length} plies, ${evaluated} of them analysed`}
-          className="block h-12 w-full rounded-[3px] border border-line-subtle bg-surface-inset"
+          className="block h-12 w-full rounded-[5px] border border-line-subtle bg-surface-inset"
         >
           {columns.map((column, index) => {
             if (column.advantage === null) return null;

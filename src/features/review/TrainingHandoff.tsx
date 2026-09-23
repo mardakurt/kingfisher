@@ -74,9 +74,7 @@ export function TrainingHandoff({
 
   return (
     <div>
-      <h3 className="text-[10px] font-semibold uppercase tracking-wide text-tertiary">
-        Turn this into practice
-      </h3>
+      <h3 className="text-[10px] font-semibold text-tertiary">Turn this into practice</h3>
       <p className="mt-1 text-[10.5px] leading-relaxed text-tertiary">
         Creates a training position from this exact position. Choose a set to put it in, or leave it
         loose.
@@ -87,7 +85,7 @@ export function TrainingHandoff({
           value={choice}
           onChange={(event) => setChoice(event.target.value)}
           aria-label="Training set"
-          className="mt-1 h-7 w-full rounded-[4px] border border-line bg-surface-inset px-2 text-[11px] text-primary outline-none focus:border-accent/60"
+          className="mt-1 h-7 w-full rounded-[6px] border border-line bg-surface-inset px-2 text-[11px] text-primary outline-none focus:border-accent/60"
         >
           <option value="">No set</option>
           {(sets.data ?? []).map((set) => (
@@ -107,7 +105,7 @@ export function TrainingHandoff({
             onChange={(event) => setNewName(event.target.value)}
             placeholder="Trade decisions"
             aria-label="New set name"
-            className="mt-1 h-7 w-full rounded-[4px] border border-line bg-surface-inset px-2 text-[11px] text-primary outline-none focus:border-accent/60"
+            className="mt-1 h-7 w-full rounded-[6px] border border-line bg-surface-inset px-2 text-[11px] text-primary outline-none focus:border-accent/60"
           />
         </label>
       ) : null}

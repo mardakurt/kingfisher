@@ -74,9 +74,7 @@ export function UpdateCheckSection() {
 
   return (
     <section className="update-check-section">
-      <h3 className="text-[10px] font-semibold uppercase tracking-[0.08em] text-tertiary">
-        Application updates
-      </h3>
+      <h3 className="text-[10px] font-semibold text-tertiary">Application updates</h3>
       <div className="mt-1 space-y-2 border-y border-line-subtle py-3">
         <p className="text-xs text-primary">Kingfisher {APP_VERSION} for macOS</p>
         <VerdictLine verdict={verdict} />

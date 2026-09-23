@@ -142,7 +142,7 @@ function SaveToStudyForm() {
         <select
           value={effectiveStudyId}
           onChange={(event) => setStudyId(event.target.value)}
-          className="mt-1 h-8 w-full rounded-[4px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
+          className="mt-1 h-8 w-full rounded-[6px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
         >
           {list.map((study) => (
             <option key={study.id} value={study.id}>
@@ -161,7 +161,7 @@ function SaveToStudyForm() {
             value={newStudyTitle}
             onChange={(event) => setNewStudyTitle(event.target.value)}
             placeholder="Najdorf"
-            className="mt-1 h-8 w-full rounded-[4px] border border-line bg-surface-inset px-2.5 text-xs text-primary outline-none placeholder:text-tertiary/70 focus:border-accent/60"
+            className="mt-1 h-8 w-full rounded-[6px] border border-line bg-surface-inset px-2.5 text-xs text-primary outline-none placeholder:text-tertiary/70 focus:border-accent/60"
           />
         </label>
       )}
@@ -177,7 +177,7 @@ function SaveToStudyForm() {
               void submit();
             }
           }}
-          className="mt-1 h-8 w-full rounded-[4px] border border-line bg-surface-inset px-2.5 text-xs text-primary outline-none focus:border-accent/60"
+          className="mt-1 h-8 w-full rounded-[6px] border border-line bg-surface-inset px-2.5 text-xs text-primary outline-none focus:border-accent/60"
         />
       </label>
 

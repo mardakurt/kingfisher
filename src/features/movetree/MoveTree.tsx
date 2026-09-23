@@ -271,13 +271,11 @@ function VirtualRow({
       style={{ transform: `translateY(${top}px)`, paddingLeft: 4 + Math.min(row.depth, 12) * 10 }}
     >
       {row.startsVariation ? (
-        <span className="mr-1 text-[9px] uppercase tracking-wide text-tertiary">
-          Variation {row.depth}
-        </span>
+        <span className="mr-1 text-[9px] text-tertiary">Variation {row.depth}</span>
       ) : null}
       {eco ? (
         <span
-          className="mr-1 rounded-[3px] border border-line px-1 text-[9px] text-tertiary"
+          className="mr-1 rounded-[5px] border border-line px-1 text-[9px] text-tertiary"
           data-eco-mark={eco.eco}
           title={[eco.name, eco.variation].filter(Boolean).join(' — ')}
         >
@@ -447,7 +445,7 @@ function MoveToken({
         }}
         title={node.comment}
         className={cn(
-          'mr-1 rounded-[3px] px-1 py-px transition-colors',
+          'mr-1 rounded-[5px] px-1 py-px transition-colors',
           depth === 0 ? 'font-medium' : 'text-secondary',
           current ? 'bg-accent text-accent-contrast' : 'hover:bg-surface-3 hover:text-primary',
           /*
@@ -513,7 +511,7 @@ const CommentToken = ({ text, onEdit }: { text: string; onEdit?: (() => void) | 
       type="button"
       onClick={onEdit}
       title="Edit this comment"
-      className="mr-1 whitespace-pre-wrap rounded-[3px] text-left text-[11.5px] italic text-secondary transition-colors hover:bg-surface-3 hover:text-primary"
+      className="mr-1 whitespace-pre-wrap rounded-[5px] text-left text-[11.5px] italic text-secondary transition-colors hover:bg-surface-3 hover:text-primary"
     >
       {text}
     </button>

@@ -137,7 +137,7 @@ export function SurprisesPanel({
           <li key={`${surprise.positionKey}|${surprise.uci}`}>
             <button
               type="button"
-              className="w-full rounded-[4px] border border-line px-2 py-1.5 text-left hover:bg-surface-2"
+              className="w-full rounded-[6px] border border-line px-2 py-1.5 text-left hover:bg-surface-2"
               onClick={() => onOpen(surprise)}
             >
               <span className="block font-medium text-primary">

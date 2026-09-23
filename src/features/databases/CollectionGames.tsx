@@ -139,7 +139,7 @@ export function CollectionGames({ collection, onTransfer, onChanged }: Collectio
 
   return (
     <section className="border-b border-line-subtle py-5">
-      <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">Games</h3>
+      <h3 className="text-xs font-semibold text-tertiary">Games</h3>
 
       <div className="mt-3 grid gap-2 sm:grid-cols-3">
         <Field label="Player" value={player} onChange={setPlayer} placeholder="Exact name" />
@@ -147,7 +147,7 @@ export function CollectionGames({ collection, onTransfer, onChanged }: Collectio
         <Field label="Minimum Elo" value={minRating} onChange={setMinRating} placeholder="2500" />
       </div>
 
-      <div className="mt-3 max-h-56 overflow-auto rounded-[4px] border border-line-subtle">
+      <div className="mt-3 max-h-56 overflow-auto rounded-[6px] border border-line-subtle">
         {rows.map((game) => {
           const opening = openingDisplay(game);
           return (
@@ -289,7 +289,7 @@ function Field({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="mt-1 h-8 w-full rounded-[4px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
+        className="mt-1 h-8 w-full rounded-[6px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
       />
     </label>
   );

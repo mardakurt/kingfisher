@@ -88,7 +88,7 @@ export function Dialog({
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
         className={cn(
-          'max-h-[calc(100dvh-2rem)] max-w-full overflow-hidden rounded-[6px] border border-line-strong bg-surface-1 shadow-2xl animate-rise sm:max-w-[92vw]',
+          'max-h-[calc(100dvh-2rem)] max-w-full overflow-hidden rounded-[8px] border border-line-strong bg-surface-1 shadow-2xl animate-rise sm:max-w-[92vw]',
           width,
         )}
         onPointerDown={(event) => event.stopPropagation()}

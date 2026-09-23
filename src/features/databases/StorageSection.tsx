@@ -135,9 +135,7 @@ export function StorageSection({
   if (!sqliteKey) {
     return (
       <section className="border-b border-line-subtle py-5" data-testid="storage-section">
-        <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">
-          Position index
-        </h3>
+        <h3 className="text-xs font-semibold text-tertiary">Position index</h3>
         <p className="mt-1 text-xs text-tertiary">
           Compaction and the claim index apply to SQLite collections held by the companion. This
           collection lives in the browser, which stores positions differently.
@@ -154,9 +152,7 @@ export function StorageSection({
     <section className="border-b border-line-subtle py-5" data-testid="storage-section">
       <div className="flex flex-wrap items-start gap-3">
         <div className="min-w-0">
-          <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">
-            Position index
-          </h3>
+          <h3 className="text-xs font-semibold text-tertiary">Position index</h3>
           <div className="mt-2 flex flex-wrap gap-1.5">
             <StatusChip
               label={compact ? 'Compact schema' : 'Original schema'}

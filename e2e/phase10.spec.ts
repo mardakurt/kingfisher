@@ -52,7 +52,9 @@ test.describe('workspace composer', () => {
     await expect(dock(page).getByRole('tab', { name: 'Engine' })).toBeVisible();
     await expect(dock(page).getByRole('tab', { name: 'Explorer' })).toBeVisible();
     await expect(dock(page).getByRole('tab', { name: 'Notes' })).toBeVisible();
-    await expect(lower(page).getByRole('tab', { name: 'Move Tree' })).toBeVisible();
+    // Phase 82: the notation is the first section of the side panel, not a tab.
+    await expect(dock(page).getByRole('region', { name: 'Notation' })).toBeVisible();
+    await expect(lower(page)).toHaveCount(0);
   });
 
   test('§58 the board stays large in the default layout', async ({ page }) => {
@@ -172,7 +174,7 @@ test.describe('workspace composer', () => {
 
     // The lower panel folds into the dock below the desktop breakpoint.
     await expect(lower(page)).toHaveCount(0);
-    await expect(dock(page).getByRole('tab', { name: 'Move Tree' })).toBeVisible();
+    await expect(dock(page).getByRole('tab', { name: 'Notation' })).toBeVisible();
   });
 });
 

@@ -43,7 +43,7 @@ export function SourcePicker({
         aria-label="Evidence source"
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-7 w-full rounded-[3px] border border-line bg-surface-inset px-1.5 text-[11px] text-secondary outline-none focus:border-accent/60"
+        className="h-7 w-full rounded-[5px] border border-line bg-surface-inset px-1.5 text-[11px] text-secondary outline-none focus:border-accent/60"
       >
         {sources.map((source) => (
           <option key={source.id} value={source.id} disabled={!source.installed}>
@@ -94,7 +94,7 @@ export function SourceFallback({
 }) {
   return (
     <div
-      className="m-2.5 rounded-[4px] border border-caution/40 bg-caution/10 p-2.5"
+      className="m-2.5 rounded-[6px] border border-caution/40 bg-caution/10 p-2.5"
       data-source-fallback
     >
       <p className="text-[11px] text-primary">{failed} could not answer.</p>
@@ -103,7 +103,7 @@ export function SourceFallback({
         type="button"
         onClick={onUse}
         className={cn(
-          'mt-2 inline-flex h-7 items-center gap-1.5 rounded-[4px] border border-line-strong',
+          'mt-2 inline-flex h-7 items-center gap-1.5 rounded-[6px] border border-line-strong',
           'bg-surface-1 px-2 text-[11px] text-primary transition-colors hover:border-accent',
         )}
       >

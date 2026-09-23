@@ -200,7 +200,7 @@ export function RepertoireWorkspace() {
                 setSelectedId(event.target.value);
                 setSelectedPositionId(null);
               }}
-              className="h-8 w-full rounded-[4px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
+              className="h-8 w-full rounded-[6px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
             >
               {list.map((item) => (
                 <option key={item.id} value={item.id}>
@@ -446,7 +446,7 @@ export function RepertoireWorkspace() {
               autoFocus
               value={newTitle}
               onChange={(event) => setNewTitle(event.target.value)}
-              className="mt-1 h-8 w-full rounded-[4px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
+              className="mt-1 h-8 w-full rounded-[6px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
             />
           </label>
           <label className="mt-3 block text-2xs text-tertiary">
@@ -454,7 +454,7 @@ export function RepertoireWorkspace() {
             <select
               value={newColor}
               onChange={(event) => setNewColor(event.target.value as 'w' | 'b')}
-              className="mt-1 h-8 w-full rounded-[4px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
+              className="mt-1 h-8 w-full rounded-[6px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
             >
               <option value="w">White</option>
               <option value="b">Black</option>
@@ -596,7 +596,7 @@ function GapSummary({
   return (
     <section className="shrink-0 border-b border-line-subtle">
       <div className="flex h-8 items-center px-3">
-        <h2 className="text-[10px] uppercase tracking-wide text-tertiary">Coverage gaps</h2>
+        <h2 className="text-[10px] text-tertiary">Coverage gaps</h2>
         <span className="ml-auto text-[10px] text-tertiary tabular">
           {pending ? 'Checking…' : gaps.length}
         </span>
@@ -675,7 +675,7 @@ function PositionEvidence({
             <MoveEditor position={position} onChanged={onChanged} />
 
             <section className="border-b border-line-subtle px-3 py-3">
-              <h2 className="text-[10px] uppercase tracking-wide text-tertiary">Notes</h2>
+              <h2 className="text-[10px] text-tertiary">Notes</h2>
               <p className="mt-1 text-[11.5px] leading-relaxed text-secondary">
                 {position.note || 'No position note.'}
               </p>
@@ -686,7 +686,7 @@ function PositionEvidence({
 
             <section>
               <div className="flex h-8 items-center border-b border-line-subtle px-3">
-                <h2 className="text-[10px] uppercase tracking-wide text-tertiary">Moves</h2>
+                <h2 className="text-[10px] text-tertiary">Moves</h2>
                 <span className="ml-auto text-[10px] text-tertiary tabular">
                   {data ? `${data.totalGames.toLocaleString()} local games` : 'Local database'}
                 </span>
@@ -703,7 +703,7 @@ function PositionEvidence({
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[330px] border-collapse text-[10.5px]">
                     <thead>
-                      <tr className="border-b border-line-subtle text-left text-[9.5px] uppercase tracking-wide text-tertiary">
+                      <tr className="border-b border-line-subtle text-left text-[9.5px] text-tertiary">
                         <th className="px-3 py-1.5 font-medium">Move</th>
                         <th className="px-2 py-1.5 text-right font-medium">Games</th>
                         <th className="px-2 py-1.5 text-right font-medium">Score</th>
@@ -881,7 +881,7 @@ function MoveEditor({
         </div>
       ) : null}
       <div className="flex h-8 items-center px-3">
-        <h2 className="text-[10px] uppercase tracking-wide text-tertiary">Decisions here</h2>
+        <h2 className="text-[10px] text-tertiary">Decisions here</h2>
         <span className="ml-auto text-[10px] text-tertiary tabular">
           {position.sideToMove === 'w' ? 'White' : 'Black'} to move
         </span>
@@ -903,7 +903,7 @@ function MoveEditor({
                   onChange={(event) =>
                     void write(move.uci, { role: event.target.value as RepertoireRole })
                   }
-                  className="h-6 rounded-[3px] border border-line bg-surface-inset px-1.5 text-[10.5px] text-secondary outline-none focus:border-accent/60"
+                  className="h-6 rounded-[5px] border border-line bg-surface-inset px-1.5 text-[10.5px] text-secondary outline-none focus:border-accent/60"
                 >
                   {REPERTOIRE_ROLES.map((role) => (
                     <option key={role} value={role}>
@@ -946,7 +946,7 @@ function MoveEditor({
                   value={note}
                   onChange={(event) => setNote(event.target.value)}
                   placeholder="Why this move, and what to remember about it"
-                  className="h-7 min-w-0 flex-1 rounded-[3px] border border-line bg-surface-inset px-2 text-[11px] text-primary outline-none focus:border-accent/60"
+                  className="h-7 min-w-0 flex-1 rounded-[5px] border border-line bg-surface-inset px-2 text-[11px] text-primary outline-none focus:border-accent/60"
                 />
                 <Button variant="accent" type="submit" disabled={busy === move.uci}>
                   Save
@@ -990,7 +990,7 @@ function CoverageSummary({
   return (
     <section className="shrink-0 border-b border-line-subtle">
       <div className="flex h-8 items-center px-3">
-        <h2 className="text-[10px] uppercase tracking-wide text-tertiary">Coverage</h2>
+        <h2 className="text-[10px] text-tertiary">Coverage</h2>
         <span className="ml-auto text-[10px] text-tertiary tabular">
           max depth {metrics.maxDepth}
         </span>

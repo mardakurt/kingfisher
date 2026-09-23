@@ -306,7 +306,7 @@ export function ExplorerPanel() {
         */}
         <div className="mb-1.5 flex items-baseline gap-1.5">
           {opening?.eco ? (
-            <span className="shrink-0 rounded-[3px] bg-surface-3 px-1 font-mono text-[10px] text-accent">
+            <span className="shrink-0 rounded-[5px] bg-surface-3 px-1 font-mono text-[10px] text-accent">
               {opening.eco}
             </span>
           ) : null}
@@ -345,7 +345,7 @@ export function ExplorerPanel() {
         />
         {bundledMissing ? (
           <p
-            className="mt-1 rounded-[4px] border border-caution/40 bg-caution/10 px-2 py-1 text-[10.5px] text-secondary"
+            className="mt-1 rounded-[6px] border border-caution/40 bg-caution/10 px-2 py-1 text-[10.5px] text-secondary"
             role="status"
             data-testid="bundled-reference-state"
           >
@@ -374,13 +374,13 @@ export function ExplorerPanel() {
               onChange={(event) => setPlayer(event.target.value)}
               placeholder="Exact Lichess username"
               aria-label="Lichess player"
-              className="h-8 min-w-0 flex-1 rounded-[4px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
+              className="h-8 min-w-0 flex-1 rounded-[6px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
             />
             <select
               value={playerColor}
               onChange={(event) => setPlayerColor(event.target.value as 'w' | 'b')}
               aria-label="Player colour"
-              className="h-8 rounded-[4px] border border-line bg-surface-inset px-2 text-xs text-primary"
+              className="h-8 rounded-[6px] border border-line bg-surface-inset px-2 text-xs text-primary"
             >
               <option value="w">as White</option>
               <option value="b">as Black</option>
@@ -403,7 +403,7 @@ export function ExplorerPanel() {
                     Number(event.target.value.replace(/\D/g, '')) || null,
                   )
                 }
-                className="mt-0.5 block h-6 w-[70px] rounded-[3px] border border-line bg-surface-inset px-1.5 text-[10.5px] text-primary outline-none focus:border-accent/60"
+                className="mt-0.5 block h-6 w-[70px] rounded-[5px] border border-line bg-surface-inset px-1.5 text-[10.5px] text-primary outline-none focus:border-accent/60"
               />
             </label>
             <label className="text-[10px] text-tertiary">
@@ -417,7 +417,7 @@ export function ExplorerPanel() {
                     Number(event.target.value.replace(/\D/g, '').slice(0, 4)) || null,
                   )
                 }
-                className="mt-0.5 block h-6 w-[70px] rounded-[3px] border border-line bg-surface-inset px-1.5 text-[10.5px] text-primary outline-none focus:border-accent/60"
+                className="mt-0.5 block h-6 w-[70px] rounded-[5px] border border-line bg-surface-inset px-1.5 text-[10.5px] text-primary outline-none focus:border-accent/60"
               />
             </label>
             <Button
@@ -537,7 +537,7 @@ export function ExplorerPanel() {
             <div className="overflow-x-auto">
               <table className="w-full min-w-[650px] border-collapse text-[10.5px]">
                 <thead>
-                  <tr className="border-b border-line-subtle text-left text-[9.5px] uppercase tracking-wide text-tertiary">
+                  <tr className="border-b border-line-subtle text-left text-[9.5px] text-tertiary">
                     <th className="w-6 px-1.5 py-1.5" />
                     <th className="px-1.5 py-1.5 font-medium">Move</th>
                     <th className="px-1.5 py-1.5 text-right font-medium">Games</th>
@@ -599,7 +599,7 @@ export function ExplorerPanel() {
 
             {(query.data?.topGames?.length ?? 0) > 0 ? (
               <section className="border-t border-line-subtle">
-                <h3 className="px-2.5 py-2 text-[10px] font-semibold uppercase tracking-wide text-tertiary">
+                <h3 className="px-2.5 py-2 text-[10px] font-semibold text-tertiary">
                   {provider?.id === 'lichess-player' ? 'Recent games' : 'Model games'}
                 </h3>
                 <div className="divide-y divide-line-subtle">
@@ -826,13 +826,11 @@ function Comparison({ entries }: { readonly entries: readonly MoveEvidence[] }) 
 
   return (
     <section className="border-t border-line-subtle bg-surface-2/40 px-2.5 py-2">
-      <h3 className="text-[10px] uppercase tracking-wide text-tertiary">
-        Comparing {plural(entries.length, 'move')}
-      </h3>
+      <h3 className="text-[10px] text-tertiary">Comparing {plural(entries.length, 'move')}</h3>
       <div className="mt-1.5 overflow-x-auto">
         <table className="w-full border-collapse text-[10.5px]">
           <thead>
-            <tr className="text-left text-[9.5px] uppercase tracking-wide text-tertiary">
+            <tr className="text-left text-[9.5px] text-tertiary">
               <th className="py-1 pr-2 font-medium">Evidence</th>
               {byMove.map((move) => (
                 <th key={move.san} className="px-1.5 py-1 text-right font-medium text-primary">
@@ -891,7 +889,7 @@ function PositionContext({
 
   return (
     <section className="border-t border-line-subtle px-2.5 py-2">
-      <h3 className="text-[10px] uppercase tracking-wide text-tertiary">In your work</h3>
+      <h3 className="text-[10px] text-tertiary">In your work</h3>
       <dl className="mt-1 grid grid-cols-2 gap-x-3 text-[10.5px]">
         {rows
           .filter(([, value]) => value > 0)
@@ -909,6 +907,7 @@ function PositionContext({
           </p>
           {context.routes.slice(0, 3).map((route) => (
             <p key={route.join(' ')} className="mt-0.5 truncate text-[10px] text-secondary">
+              {' '}
               {route.join(' ')}
             </p>
           ))}

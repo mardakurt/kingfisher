@@ -92,7 +92,7 @@ export function RecurringFacts({
           aria-label="Engine loss threshold"
           value={thresholdCp}
           onChange={(event) => setThresholdCp(Number(event.target.value))}
-          className="ml-auto h-6 rounded-[3px] border border-line bg-surface-inset px-1.5 text-[11px] text-primary"
+          className="ml-auto h-6 rounded-[5px] border border-line bg-surface-inset px-1.5 text-[11px] text-primary"
         >
           {THRESHOLDS.map((value) => (
             <option key={value} value={value}>
@@ -143,10 +143,7 @@ function RecurringShell({
 }) {
   return (
     <section aria-labelledby="recurring-facts-title">
-      <h3
-        id="recurring-facts-title"
-        className="text-[10px] font-semibold uppercase tracking-wide text-tertiary"
-      >
+      <h3 id="recurring-facts-title" className="text-[10px] font-semibold text-tertiary">
         Recurring facts
       </h3>
       <p className="mt-1 text-[11px] leading-relaxed text-secondary">{headline}</p>
@@ -266,7 +263,7 @@ function RepertoireRow({
 }
 
 function FactCard({ children }: { readonly children: React.ReactNode }) {
-  return <div className="rounded-[4px] border border-line-subtle bg-surface-1 p-2">{children}</div>;
+  return <div className="rounded-[6px] border border-line-subtle bg-surface-1 p-2">{children}</div>;
 }
 
 function FactLink({
@@ -305,7 +302,7 @@ function RecordAndGames({
           <button
             key={game.gameId}
             type="button"
-            className="block h-5 w-full truncate rounded-[3px] px-1.5 text-left text-[9.5px] text-secondary hover:bg-surface-3 hover:text-primary"
+            className="block h-5 w-full truncate rounded-[5px] px-1.5 text-left text-[9.5px] text-secondary hover:bg-surface-3 hover:text-primary"
             title={`${game.label} · ${game.result}`}
             onClick={() => onOpenGame(game)}
           >

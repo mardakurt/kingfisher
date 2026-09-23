@@ -63,7 +63,7 @@ export function MyGamesOverlay({ fen, forceShow = false }: MyGamesOverlayProps) 
       data-personal-games={total}
     >
       <div className="flex items-baseline justify-between gap-2">
-        <h3 className="text-[10px] uppercase tracking-wide text-tertiary">My games</h3>
+        <h3 className="text-[10px] text-tertiary">My games</h3>
         <span className="text-[10px] tabular text-tertiary">
           {query.isPending ? '…' : plural(total, 'game')}
         </span>
@@ -76,7 +76,7 @@ export function MyGamesOverlay({ fen, forceShow = false }: MyGamesOverlayProps) 
         <div className="mt-1 overflow-x-auto">
           <table className="w-full border-collapse text-[10.5px]" data-my-games-table>
             <thead>
-              <tr className="text-left text-[9.5px] uppercase tracking-wide text-tertiary">
+              <tr className="text-left text-[9.5px] text-tertiary">
                 <th className="py-1 pr-2 font-medium">Move</th>
                 <th className="px-1.5 py-1 text-right font-medium">N</th>
                 <th className="px-1.5 py-1 text-right font-medium">Frequency</th>

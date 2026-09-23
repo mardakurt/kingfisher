@@ -130,7 +130,7 @@ function Material({ features }: { readonly features: PositionFeatures }) {
 
   return (
     <section className="border-b border-line-subtle px-3 py-2.5">
-      <h3 className="text-[10px] uppercase tracking-wide text-tertiary">Material</h3>
+      <h3 className="text-[10px] text-tertiary">Material</h3>
       <p className="mt-1 text-[11.5px] text-secondary">
         {parts.length === 0 ? (
           'Level.'
@@ -170,7 +170,7 @@ function Side({ title, side }: { readonly title: string; readonly side: ColorFea
 
   return (
     <div className="bg-surface-1 px-3 py-2.5">
-      <h3 className="text-[10px] uppercase tracking-wide text-tertiary">{title}</h3>
+      <h3 className="text-[10px] text-tertiary">{title}</h3>
       <dl className="mt-1.5 space-y-0.5 text-[10.5px]">
         {rows.map(([label, value]) => (
           <div key={label} className="flex gap-2">

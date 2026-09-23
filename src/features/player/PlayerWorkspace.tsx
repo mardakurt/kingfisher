@@ -182,7 +182,7 @@ export function PlayerWorkspace({ playerId }: { readonly playerId: string }) {
           </p>
         </div>
         <div className="ml-auto flex flex-wrap items-center gap-2">
-          <label className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-tertiary">
+          <label className="flex items-center gap-1.5 text-[10px] text-tertiary">
             Period
             <select
               value={period.id}
@@ -192,7 +192,7 @@ export function PlayerWorkspace({ playerId }: { readonly playerId: string }) {
                     (PERIODS[0] as PlayerPeriod),
                 )
               }
-              className="h-7 rounded-[4px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
+              className="h-7 rounded-[6px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
             >
               {PERIODS.map((entry) => (
                 <option key={entry.id} value={entry.id}>
@@ -228,7 +228,7 @@ export function PlayerWorkspace({ playerId }: { readonly playerId: string }) {
             onClick={() => setSection(entry.id)}
             aria-current={section === entry.id}
             className={cn(
-              'shrink-0 rounded-[4px] px-2.5 py-1.5 text-xs transition-colors',
+              'shrink-0 rounded-[6px] px-2.5 py-1.5 text-xs transition-colors',
               section === entry.id
                 ? 'bg-accent-muted font-medium text-primary'
                 : 'text-secondary hover:bg-surface-2 hover:text-primary',
@@ -345,7 +345,7 @@ export function PlayerWorkspace({ playerId }: { readonly playerId: string }) {
                   {aggregate.opponents.length.toLocaleString()} distinct opponents in these games.
                 </p>
                 <table className="mt-3 w-full text-xs">
-                  <thead className="border-b border-line-subtle text-left text-[10px] uppercase tracking-wide text-tertiary">
+                  <thead className="border-b border-line-subtle text-left text-[10px] text-tertiary">
                     <tr>
                       <th className="py-1.5">Opponent</th>
                       <th className="py-1.5 text-right">Games</th>
@@ -668,12 +668,12 @@ function ChangeTable({
 }) {
   return (
     <div>
-      <h3 className="text-[10px] font-semibold uppercase tracking-wide text-tertiary">{title}</h3>
+      <h3 className="text-[10px] font-semibold text-tertiary">{title}</h3>
       {rows.length === 0 ? (
         <p className="mt-2 text-xs text-tertiary">Not enough games in either window.</p>
       ) : (
         <table className="mt-2 w-full text-xs">
-          <thead className="border-b border-line-subtle text-left text-[10px] uppercase tracking-wide text-tertiary">
+          <thead className="border-b border-line-subtle text-left text-[10px] text-tertiary">
             <tr>
               <th className="py-1.5">Opening</th>
               <th className="py-1.5 text-right" title="Career share of this side's games">
@@ -749,7 +749,7 @@ function OpeningTable({
         <p className="mt-3 text-xs text-tertiary">No classified games with this colour.</p>
       ) : (
         <table className="mt-3 w-full text-xs">
-          <thead className="border-b border-line-subtle text-left text-[10px] uppercase tracking-wide text-tertiary">
+          <thead className="border-b border-line-subtle text-left text-[10px] text-tertiary">
             <tr>
               <th className="py-1.5">Opening</th>
               <th className="py-1.5 text-right" title="Games in the whole selected period">
@@ -827,9 +827,7 @@ function MiniList({
 }) {
   return (
     <div className="mt-3">
-      {title ? (
-        <h3 className="text-[10px] uppercase tracking-wide text-tertiary">{title}</h3>
-      ) : null}
+      {title ? <h3 className="text-[10px] text-tertiary">{title}</h3> : null}
       {rows.length === 0 ? (
         <p className="mt-1 text-xs text-tertiary">None.</p>
       ) : (
@@ -857,7 +855,7 @@ function Fact({
 }) {
   return (
     <div>
-      <p className="text-[10px] uppercase tracking-wide text-tertiary">{label}</p>
+      <p className="text-[10px] text-tertiary">{label}</p>
       <p className="mt-1 text-sm text-primary tabular">{value}</p>
       {note ? <p className="text-[10px] text-tertiary">{note}</p> : null}
     </div>
@@ -928,11 +926,11 @@ function RosterFacts({ playerKey }: { readonly playerKey: string }) {
 
   return (
     <section
-      className="mb-4 rounded-[5px] border border-line-subtle bg-surface-1 p-4"
+      className="mb-4 rounded-[7px] border border-line-subtle bg-surface-1 p-4"
       data-roster-facts
       data-roster-source={legend ? 'legend' : 'titled'}
     >
-      <h2 className="text-[10px] font-semibold uppercase tracking-[0.08em] text-tertiary">
+      <h2 className="text-[10px] font-semibold text-tertiary">
         {legend ? 'Historical roster' : 'Titled player'}
       </h2>
       <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">

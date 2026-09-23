@@ -100,9 +100,7 @@ export function ClassificationSection({
     <section className="border-b border-line-subtle py-5">
       <div className="flex flex-wrap items-start gap-3">
         <div className="min-w-0">
-          <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">
-            Opening classification
-          </h3>
+          <h3 className="text-xs font-semibold text-tertiary">Opening classification</h3>
           <p className="mt-1 max-w-xl text-xs leading-relaxed text-tertiary">
             {pending === null
               ? status.isError

@@ -349,7 +349,7 @@ export function CanonicalBoardSurface({
                 aria-hidden
                 data-board-blindfold
               >
-                <span className="rounded-[4px] bg-surface-2/90 px-2 py-1 text-[10px] text-tertiary">
+                <span className="rounded-[6px] bg-surface-2/90 px-2 py-1 text-[10px] text-tertiary">
                   Pieces hidden
                 </span>
               </div>
@@ -359,7 +359,7 @@ export function CanonicalBoardSurface({
       </div>
       {capture ? (
         <p
-          className="mx-auto mt-1.5 w-full max-w-[860px] shrink-0 rounded-[4px] border border-accent/40 bg-accent/10 px-2.5 py-1 text-center text-[10.5px] text-primary"
+          className="mx-auto mt-1.5 w-full max-w-[860px] shrink-0 rounded-[6px] border border-accent/40 bg-accent/10 px-2.5 py-1 text-center text-[10.5px] text-primary"
           data-board-capture
           role="status"
         >
@@ -367,7 +367,7 @@ export function CanonicalBoardSurface({
         </p>
       ) : null}
       {showContext && caps.allowContextActions ? (
-        <div className="mx-auto mt-2 flex w-full max-w-[860px] shrink-0 items-center gap-3 border-t border-line-subtle pt-1.5">
+        <div className="mx-auto mt-2 flex w-full max-w-[860px] shrink-0 items-center gap-3 pt-1">
           {/*
             A concealing workspace (Review before reveal, Calculation,
             Training) withholds evidence; the position page is exactly that

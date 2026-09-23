@@ -82,7 +82,7 @@ function CommentForm({ nodeId }: { readonly nodeId: string }) {
           }
         }}
         placeholder="What is the idea? What did you miss? What should you remember?"
-        className="h-40 w-full resize-none rounded-[4px] border border-line bg-surface-inset px-3 py-2 text-xs leading-relaxed text-primary outline-none placeholder:text-tertiary/70 focus:border-accent/60"
+        className="h-40 w-full resize-none rounded-[6px] border border-line bg-surface-inset px-3 py-2 text-xs leading-relaxed text-primary outline-none placeholder:text-tertiary/70 focus:border-accent/60"
       />
       <p className="mt-1.5 text-[10.5px] text-tertiary">⌘↵ to save. Line breaks are preserved.</p>
     </Dialog>

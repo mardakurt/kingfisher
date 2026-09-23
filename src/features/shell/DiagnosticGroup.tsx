@@ -15,9 +15,7 @@ import { cn } from '@/lib/cn';
 export function DiagnosticGroup({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section>
-      <h3 className="text-[10px] font-semibold uppercase tracking-[0.08em] text-tertiary">
-        {title}
-      </h3>
+      <h3 className="text-[10px] font-semibold text-tertiary">{title}</h3>
       <div className="mt-1 border-y border-line-subtle">{children}</div>
     </section>
   );
@@ -40,12 +38,7 @@ export function DiagnosticLine({
         <p className="text-xs text-primary">{name}</p>
         <p className="mt-0.5 text-[10px] text-tertiary">{detail}</p>
       </div>
-      <span
-        className={cn(
-          'self-center text-[10px] uppercase tracking-wide',
-          ok ? 'text-positive' : 'text-caution',
-        )}
-      >
+      <span className={cn('self-center text-[10px] ', ok ? 'text-positive' : 'text-caution')}>
         {status}
       </span>
     </div>

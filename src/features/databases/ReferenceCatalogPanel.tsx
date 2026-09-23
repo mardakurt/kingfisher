@@ -167,7 +167,7 @@ export function ReferenceCatalogPanel() {
               value={url}
               onChange={(event) => setUrl(event.target.value)}
               placeholder="https://example.org/kingfisher-pack/manifest.json"
-              className="h-8 flex-1 rounded-[4px] border border-line bg-surface-1 px-2 text-xs text-primary placeholder:text-tertiary focus:border-accent focus:outline-none"
+              className="h-8 flex-1 rounded-[6px] border border-line bg-surface-1 px-2 text-xs text-primary placeholder:text-tertiary focus:border-accent focus:outline-none"
             />
             <Button type="submit" disabled={installing}>
               {installing ? 'Installing…' : 'Install'}
@@ -199,7 +199,7 @@ export function ReferenceCatalogPanel() {
                     <StateBadgePill source={source} />
                     {source.inFlightCount && source.inFlightCount > 0 ? (
                       <span
-                        className="inline-flex items-center gap-1 rounded-[3px] border border-line px-1.5 py-0.5 text-[10px] text-tertiary"
+                        className="inline-flex items-center gap-1 rounded-[5px] border border-line px-1.5 py-0.5 text-[10px] text-tertiary"
                         data-streaming-pill
                         aria-label={`${source.inFlightCount} chunks downloading`}
                       >
@@ -364,7 +364,7 @@ export function ReferenceCatalogPanel() {
                       }
                       aria-expanded={open}
                       onClick={() => setExpanded(open ? null : source.id)}
-                      className="rounded-[4px] p-1 text-tertiary transition-colors hover:bg-surface-2 hover:text-primary"
+                      className="rounded-[6px] p-1 text-tertiary transition-colors hover:bg-surface-2 hover:text-primary"
                     >
                       {open ? (
                         <ChevronUp className="h-4 w-4" />
@@ -379,7 +379,7 @@ export function ReferenceCatalogPanel() {
                       aria-label={`Move ${source.name} up`}
                       disabled={index === 0}
                       onClick={() => actions.promote(source.id, order)}
-                      className="rounded-[3px] px-1 text-[11px] text-tertiary transition-colors hover:bg-surface-2 hover:text-primary disabled:opacity-30"
+                      className="rounded-[5px] px-1 text-[11px] text-tertiary transition-colors hover:bg-surface-2 hover:text-primary disabled:opacity-30"
                     >
                       ↑
                     </button>
@@ -388,7 +388,7 @@ export function ReferenceCatalogPanel() {
                       aria-label={`Move ${source.name} down`}
                       disabled={index === sources.length - 1}
                       onClick={() => actions.demote(source.id, order)}
-                      className="rounded-[3px] px-1 text-[11px] text-tertiary transition-colors hover:bg-surface-2 hover:text-primary disabled:opacity-30"
+                      className="rounded-[5px] px-1 text-[11px] text-tertiary transition-colors hover:bg-surface-2 hover:text-primary disabled:opacity-30"
                     >
                       ↓
                     </button>
@@ -464,7 +464,7 @@ export function ReferenceCatalogPanel() {
 }
 
 const Badge = ({ kind }: { readonly kind: SourceKind }) => (
-  <span className="rounded-[3px] border border-line px-1.5 py-0.5 text-[10px] text-tertiary">
+  <span className="rounded-[5px] border border-line px-1.5 py-0.5 text-[10px] text-tertiary">
     {KIND_LABELS[kind]}
   </span>
 );
@@ -481,7 +481,7 @@ const StateBadgePill = ({ source }: { readonly source: ReferenceSource }) => {
   const badge = badgeForSource(source);
   return (
     <span
-      className={`rounded-[3px] border px-1.5 py-0.5 text-[10px] ${STATE_TONE_CLASS[badge.tone]}`}
+      className={`rounded-[5px] border px-1.5 py-0.5 text-[10px] ${STATE_TONE_CLASS[badge.tone]}`}
       title={`Source state: ${badge.label}`}
     >
       {badge.label}
@@ -587,9 +587,7 @@ function Details({
   return (
     <div className="mt-3 space-y-3 border-t border-line-subtle pt-3">
       <div>
-        <h4 className="text-[10px] font-semibold uppercase tracking-[0.08em] text-tertiary">
-          Use this source for
-        </h4>
+        <h4 className="text-[10px] font-semibold text-tertiary">Use this source for</h4>
         <ul className="mt-1.5 grid grid-cols-2 gap-x-4 gap-y-1">
           {source.capabilities.map((capability) => (
             <li key={capability} className="flex items-center gap-2">
@@ -609,9 +607,7 @@ function Details({
 
       {source.license ? (
         <div>
-          <h4 className="text-[10px] font-semibold uppercase tracking-[0.08em] text-tertiary">
-            Licence and provenance
-          </h4>
+          <h4 className="text-[10px] font-semibold text-tertiary">Licence and provenance</h4>
           <p className="mt-1 text-xs text-secondary">
             <a
               href={source.license.url}

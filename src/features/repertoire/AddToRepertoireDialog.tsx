@@ -131,7 +131,7 @@ function AddToRepertoireForm() {
         <select
           value={selected}
           onChange={(event) => setChoice(event.target.value)}
-          className="mt-1 h-8 w-full rounded-[4px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
+          className="mt-1 h-8 w-full rounded-[6px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
         >
           {list.map((repertoire) => (
             <option key={repertoire.id} value={repertoire.id}>
@@ -151,7 +151,7 @@ function AddToRepertoireForm() {
               value={newTitle}
               onChange={(event) => setNewTitle(event.target.value)}
               placeholder="1.e4 main repertoire"
-              className="mt-1 h-8 w-full rounded-[4px] border border-line bg-surface-inset px-2.5 text-xs text-primary outline-none placeholder:text-tertiary/70 focus:border-accent/60"
+              className="mt-1 h-8 w-full rounded-[6px] border border-line bg-surface-inset px-2.5 text-xs text-primary outline-none placeholder:text-tertiary/70 focus:border-accent/60"
             />
           </label>
           <div className="text-2xs text-tertiary">
@@ -200,13 +200,13 @@ function AddToRepertoireForm() {
           value={note}
           onChange={(event) => setNote(event.target.value)}
           placeholder="Why this move, and what to remember about it"
-          className="mt-1 h-8 w-full rounded-[4px] border border-line bg-surface-inset px-2.5 text-xs text-primary outline-none placeholder:text-tertiary/70 focus:border-accent/60"
+          className="mt-1 h-8 w-full rounded-[6px] border border-line bg-surface-inset px-2.5 text-xs text-primary outline-none placeholder:text-tertiary/70 focus:border-accent/60"
         />
       </label>
 
       {/* What will actually be stored, before it is stored. */}
-      <div className="mt-3 rounded-[4px] border border-line-subtle bg-surface-inset p-2">
-        <p className="mb-1 text-[10px] uppercase tracking-wide text-tertiary">
+      <div className="mt-3 rounded-[6px] border border-line-subtle bg-surface-inset p-2">
+        <p className="mb-1 text-[10px] text-tertiary">
           To be recorded — {ownCount} {color === 'w' ? 'White' : 'Black'} decision
           {ownCount === 1 ? '' : 's'}, {staged.length - ownCount} expected repl
           {staged.length - ownCount === 1 ? 'y' : 'ies'}

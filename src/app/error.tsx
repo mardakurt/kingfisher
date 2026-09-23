@@ -41,20 +41,20 @@ export default function AppError({
         <button
           type="button"
           onClick={reset}
-          className="rounded-[4px] bg-accent px-3 py-1.5 text-xs font-medium text-accent-contrast transition-colors hover:bg-accent-hover"
+          className="rounded-[6px] bg-accent px-3 py-1.5 text-xs font-medium text-accent-contrast transition-colors hover:bg-accent-hover"
         >
           Try again
         </button>
         <button
           type="button"
           onClick={restoreWorkspace}
-          className="rounded-[4px] border border-line bg-surface-2 px-3 py-1.5 text-xs text-primary transition-colors hover:bg-surface-3"
+          className="rounded-[6px] border border-line bg-surface-2 px-3 py-1.5 text-xs text-primary transition-colors hover:bg-surface-3"
         >
           Restore default workspace
         </button>
         <a
           href="/analysis"
-          className="rounded-[4px] border border-line bg-surface-2 px-3 py-1.5 text-xs text-primary transition-colors hover:bg-surface-3"
+          className="rounded-[6px] border border-line bg-surface-2 px-3 py-1.5 text-xs text-primary transition-colors hover:bg-surface-3"
         >
           Start a new analysis
         </a>

@@ -64,9 +64,7 @@ export function DossierPanel({
   if (dossier.games === 0) {
     return (
       <section className="border-t border-line-subtle px-3 py-3">
-        <h3 className="text-[10px] font-semibold uppercase tracking-wide text-tertiary">
-          Opponent dossier
-        </h3>
+        <h3 className="text-[10px] font-semibold text-tertiary">Opponent dossier</h3>
         <p className="mt-1 text-[10.5px] leading-relaxed text-tertiary">
           No games by this player in the selected set. Widen the filters or import more games.
         </p>
@@ -78,9 +76,7 @@ export function DossierPanel({
 
   return (
     <section className="border-t border-line-subtle px-3 py-3">
-      <h3 className="text-[10px] font-semibold uppercase tracking-wide text-tertiary">
-        Opponent dossier
-      </h3>
+      <h3 className="text-[10px] font-semibold text-tertiary">Opponent dossier</h3>
       {/* The sample, before anything derived from it. */}
       <p className="mt-1 text-[10px] leading-relaxed text-tertiary tabular">
         {dossier.games} games · {side.games} as {color === 'w' ? 'White' : 'Black'}
@@ -112,14 +108,14 @@ export function DossierPanel({
             {periods.historicalWindow.to}, {periods.recentTotal} from {periods.recentWindow.from}.
           </p>
           {periods.thin ? (
-            <p className="mt-1 rounded-[4px] bg-surface-2 px-2 py-1.5 text-[10px] leading-relaxed text-caution">
+            <p className="mt-1 rounded-[6px] bg-surface-2 px-2 py-1.5 text-[10px] leading-relaxed text-caution">
               Too few games in one window for these shares to mean much. Read the counts, not the
               percentages.
             </p>
           ) : null}
           <table className="mt-2 w-full text-[10.5px] tabular">
             <thead>
-              <tr className="text-[9.5px] uppercase tracking-wide text-tertiary">
+              <tr className="text-[9.5px] text-tertiary">
                 <th className="pb-1 text-left font-medium">Opening</th>
                 <th className="pb-1 text-right font-medium">≤{periods.historicalWindow.to}</th>
                 <th className="pb-1 text-right font-medium">{periods.recentWindow.from}+</th>
@@ -175,7 +171,7 @@ export function DossierPanel({
             <button
               key={print.id}
               type="button"
-              className="flex items-baseline gap-2 rounded-[4px] px-1.5 py-1 text-left transition-colors hover:bg-surface-2 focus-visible:bg-surface-2"
+              className="flex items-baseline gap-2 rounded-[6px] px-1.5 py-1 text-left transition-colors hover:bg-surface-2 focus-visible:bg-surface-2"
               onClick={() => onOpenGames?.(print.gameIds, print.label)}
             >
               <span className="min-w-0 flex-1 truncate text-[11px] text-primary">
@@ -207,14 +203,14 @@ function ChoiceList({
   if (choices.length === 0) {
     return (
       <div>
-        <h4 className="text-[9.5px] uppercase tracking-wide text-tertiary">{title}</h4>
+        <h4 className="text-[9.5px] text-tertiary">{title}</h4>
         <p className="mt-1 text-[10px] text-tertiary">Not recorded in these games.</p>
       </div>
     );
   }
   return (
     <div>
-      <h4 className="text-[9.5px] uppercase tracking-wide text-tertiary">{title}</h4>
+      <h4 className="text-[9.5px] text-tertiary">{title}</h4>
       <ul className="mt-1 flex flex-col gap-0.5">
         {choices.map((choice) => (
           <li key={choice.label} className="flex items-baseline gap-2">
@@ -261,7 +257,7 @@ function RecentFormSection({ form }: { readonly form: RecentForm }) {
         <span className="text-negative tabular">{form.losses}L</span>
       </p>
       {/* The strip — each game is one tile, the colour carries the outcome. */}
-      <div className="mt-2 flex flex-wrap gap-px overflow-hidden rounded-[3px]">
+      <div className="mt-2 flex flex-wrap gap-px overflow-hidden rounded-[5px]">
         {form.games.map((game) => (
           <span
             key={game.id}

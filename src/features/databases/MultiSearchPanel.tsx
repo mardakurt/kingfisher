@@ -268,7 +268,7 @@ function SearchField({
 }) {
   return (
     <label
-      className={`flex shrink-0 flex-col gap-1 text-[10px] uppercase tracking-wide text-tertiary ${
+      className={`flex shrink-0 flex-col gap-1 text-[11px] font-semibold text-tertiary ${
         wide ? 'w-48' : 'w-24'
       }`}
     >
@@ -277,7 +277,7 @@ function SearchField({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="h-8 w-full rounded-[4px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none placeholder:text-tertiary/70 focus:border-accent/60"
+        className="h-8 w-full rounded-[6px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none placeholder:text-tertiary/70 focus:border-accent/60"
       />
     </label>
   );

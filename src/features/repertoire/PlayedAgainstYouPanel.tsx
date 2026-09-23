@@ -55,12 +55,12 @@ export function PlayedAgainstYouPanel({
   return (
     <section className="shrink-0 border-b border-line-subtle" data-played-against-you>
       <div className="flex h-8 items-center gap-2 px-3">
-        <h2 className="text-[10px] uppercase tracking-wide text-tertiary">Played against you</h2>
+        <h2 className="text-[10px] text-tertiary">Played against you</h2>
         <select
           aria-label="Reference population"
           value={sourceId}
           onChange={(event) => setSourceId(event.target.value as SourceId)}
-          className="ml-auto h-6 rounded-[3px] border border-line bg-surface-inset px-1.5 text-[10px] text-primary outline-none focus:border-accent/60"
+          className="ml-auto h-6 rounded-[5px] border border-line bg-surface-inset px-1.5 text-[10px] text-primary outline-none focus:border-accent/60"
         >
           {SOURCES.map((entry) => (
             <option key={entry.id} value={entry.id}>
@@ -117,7 +117,7 @@ export function PlayedAgainstYouPanel({
         </p>
       ) : (
         <ol className="max-h-56 overflow-y-auto border-t border-line-subtle">
-          <li className="grid grid-cols-[1fr_auto_auto] gap-x-3 px-3 py-1 text-[9.5px] uppercase tracking-wide text-tertiary">
+          <li className="grid grid-cols-[1fr_auto_auto] gap-x-3 px-3 py-1 text-[9.5px] text-tertiary">
             <span>Position</span>
             <span className="text-right">Yours</span>
             <span className="text-right">{sourceName}</span>

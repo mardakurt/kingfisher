@@ -10,6 +10,7 @@
  * as they were, even where a later name reads better.
  */
 export type BoardThemeId =
+  | 'studio'
   | 'slate'
   | 'walnut'
   | 'ink'

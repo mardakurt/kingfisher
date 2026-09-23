@@ -492,7 +492,7 @@ export function Chessboard({
           ref={boardRef}
           className={cn(
             SQUARE_GRID_CLASS,
-            'absolute inset-0 rounded-[3px] shadow-[0_2px_18px_rgba(0,0,0,0.28)] ring-1 ring-black/25',
+            'absolute inset-0 rounded-[2px] shadow-[var(--board-frame-ring),0_2px_14px_rgba(0,0,0,0.18)] ring-1 ring-black/20',
           )}
           style={{
             /*

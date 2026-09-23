@@ -69,13 +69,11 @@ export function ReferenceCoveragePanel({
   return (
     <section className="shrink-0 border-b border-line-subtle">
       <div className="flex h-8 items-center gap-2 px-3">
-        <h2 className="text-[10px] uppercase tracking-wide text-tertiary">
-          Coverage against reference
-        </h2>
+        <h2 className="text-[10px] text-tertiary">Coverage against reference</h2>
         <select
           value={sourceId}
           onChange={(event) => setSourceId(event.target.value as SourceId)}
-          className="ml-auto h-6 rounded-[3px] border border-line bg-surface-inset px-1.5 text-[10px] text-primary outline-none focus:border-accent/60"
+          className="ml-auto h-6 rounded-[5px] border border-line bg-surface-inset px-1.5 text-[10px] text-primary outline-none focus:border-accent/60"
         >
           {SOURCES.map((entry) => (
             <option key={entry.id} value={entry.id}>

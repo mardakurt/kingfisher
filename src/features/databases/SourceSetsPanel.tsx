@@ -74,9 +74,7 @@ export function SourceSetsPanel({ collections, checked, onApply }: SourceSetsPan
   return (
     <section className="border-t border-line-subtle">
       <div className="flex items-center gap-2 px-4 py-3">
-        <h2 className="text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">
-          Source sets
-        </h2>
+        <h2 className="text-xs font-semibold text-tertiary">Source sets</h2>
         <Button
           size="sm"
           icon={<Plus />}
@@ -103,7 +101,7 @@ export function SourceSetsPanel({ collections, checked, onApply }: SourceSetsPan
                 type="button"
                 onClick={() => onApply(present)}
                 disabled={present.length === 0}
-                className="min-w-0 flex-1 rounded-[4px] px-2 py-1.5 text-left hover:bg-surface-2 disabled:opacity-50"
+                className="min-w-0 flex-1 rounded-[6px] px-2 py-1.5 text-left hover:bg-surface-2 disabled:opacity-50"
               >
                 <span className="block truncate text-xs text-primary">{set.name}</span>
                 <span className="block truncate text-[10px] text-tertiary tabular">

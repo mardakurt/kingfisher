@@ -88,7 +88,7 @@ test('scheduled and manual backups persist portable preferences with the schedul
     .poll(async () => (await backups(page)).filter((b) => b.reason === 'scheduled').length)
     .toBeGreaterThan(0);
   const scheduled = (await backups(page)).find((b) => b.reason === 'scheduled')!;
-  expect(JSON.parse(scheduled.payload).backup.preferences.boardTheme).toBe('midnight');
+  expect(JSON.parse(scheduled.payload).backup.preferences.boardTheme).toBe('studio');
   expect(JSON.parse(scheduled.payload).backup.preferences).not.toHaveProperty('assistantApiKey');
   await page.getByRole('button', { name: /open the database settings/ }).click();
   await expect(page.getByRole('tab', { name: 'Database', exact: true })).toHaveAttribute(

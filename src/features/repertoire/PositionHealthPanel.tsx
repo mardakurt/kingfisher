@@ -147,7 +147,7 @@ export function PositionHealthPanel() {
 function Row({ label, children }: { readonly label: string; readonly children: React.ReactNode }) {
   return (
     <div className="px-3 py-2.5">
-      <dt className="text-2xs font-medium uppercase tracking-[0.08em] text-tertiary">{label}</dt>
+      <dt className="text-2xs font-semibold text-tertiary">{label}</dt>
       <dd className="mt-1">{children}</dd>
     </div>
   );

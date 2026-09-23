@@ -188,9 +188,7 @@ export function StructureSearchPanel({ fen }: { readonly fen: string }) {
 
   return (
     <section className="border-t border-line-subtle px-3 py-3">
-      <h3 className="text-[10px] font-semibold uppercase tracking-wide text-tertiary">
-        Search structures
-      </h3>
+      <h3 className="text-[10px] font-semibold text-tertiary">Search structures</h3>
       <p className="mt-1 text-[10px] leading-relaxed text-tertiary">
         Exact, indexed facts. Same pawns ignores every piece and whose turn it is.
       </p>
@@ -223,7 +221,7 @@ export function StructureSearchPanel({ fen }: { readonly fen: string }) {
             aria-label="Structure result order"
             value={sort}
             onChange={(event) => setSort(event.target.value as StructureSearchSort)}
-            className="mt-1 h-7 w-full rounded-[4px] border border-line bg-surface-inset px-2 text-[11px] text-primary"
+            className="mt-1 h-7 w-full rounded-[6px] border border-line bg-surface-inset px-2 text-[11px] text-primary"
           >
             {SORTS.map((entry) => (
               <option key={entry.id} value={entry.id}>

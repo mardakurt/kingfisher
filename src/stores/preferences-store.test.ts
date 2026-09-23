@@ -147,8 +147,39 @@ describe('preferences store', () => {
     expect(state.theme).toBe('light');
     expect(state.autoBackupRetention).toBe(9);
     const persisted = JSON.parse(localStorage.getItem('kingfisher.preferences') ?? '{}');
-    expect(persisted.version).toBe(6);
+    expect(persisted.version).toBe(7);
     expect(persisted.state).not.toHaveProperty('tourShowOnLaunch');
+  });
+
+  it('moves a version-6 profile to the light theme and the Studio board, once', async () => {
+    /*
+      Phase 82 redrew Kingfisher light. A version-6 profile holds 'dark' and
+      'midnight' whether or not anybody chose them, so they are moved once; a
+      board somebody picked on purpose is left alone.
+    */
+    localStorage.setItem(
+      'kingfisher.preferences',
+      JSON.stringify({ state: { theme: 'dark', boardTheme: 'midnight' }, version: 6 }),
+    );
+    await usePreferences.persist.rehydrate();
+    expect(usePreferences.getState().theme).toBe('light');
+    expect(usePreferences.getState().boardTheme).toBe('studio');
+
+    localStorage.setItem(
+      'kingfisher.preferences',
+      JSON.stringify({ state: { theme: 'dark', boardTheme: 'walnut' }, version: 6 }),
+    );
+    await usePreferences.persist.rehydrate();
+    expect(usePreferences.getState().boardTheme).toBe('walnut');
+
+    // A dark theme chosen after the move is a choice, and survives a reload.
+    localStorage.setItem(
+      'kingfisher.preferences',
+      JSON.stringify({ state: { theme: 'dark', boardTheme: 'midnight' }, version: 7 }),
+    );
+    await usePreferences.persist.rehydrate();
+    expect(usePreferences.getState().theme).toBe('dark');
+    expect(usePreferences.getState().boardTheme).toBe('midnight');
   });
 });
 

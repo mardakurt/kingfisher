@@ -103,7 +103,7 @@ test('a backup survives a profile that no longer exists', async ({ page }) => {
     And a preference, because preferences travel in the same file and are the
     part a user notices immediately if they do not come back.
 
-    `walnut` rather than the default `midnight`: a test that asserts a default
+    `walnut` rather than the default `studio`: a test that asserts a default
     value came back is a test that passes on a backup containing no preferences
     at all. Written into the persisted store and then reloaded, so the running
     application really holds it before the export reads it — writing it after

@@ -160,8 +160,8 @@ export const WORKSPACE_MODULES: Readonly<Record<WorkspaceToolId, WorkspaceModule
  */
 export const MOVE_TREE_MODULE = {
   id: 'move-tree' as const,
-  label: 'Move Tree',
-  home: 'lower' as WorkspaceRegion,
+  label: 'Notation',
+  home: 'dock' as WorkspaceRegion,
   regions: ['primary', 'dock', 'lower'] as readonly WorkspaceRegion[],
 };
 

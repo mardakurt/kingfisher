@@ -133,7 +133,7 @@ export function ImprovementSummary({
         <section>
           <dl className="grid grid-cols-2 gap-x-3 gap-y-2">
             {report.figures.map((figure) => (
-              <div key={figure.id} className="rounded-[4px] border border-line-subtle p-2">
+              <div key={figure.id} className="rounded-[6px] border border-line-subtle p-2">
                 <dt className="text-[10px] leading-tight text-tertiary">{figure.label}</dt>
                 <dd className="mt-0.5 text-lg leading-none text-primary tabular">{figure.value}</dd>
                 {figure.detail ? (
@@ -147,9 +147,7 @@ export function ImprovementSummary({
         <RecurringFacts aliases={profile.data?.aliases ?? []} from={from} to={now + 1} />
 
         <section className="border-t border-line-subtle pt-3">
-          <h3 className="text-[10px] font-semibold uppercase tracking-wide text-tertiary">
-            Themes you assigned
-          </h3>
+          <h3 className="text-[10px] font-semibold text-tertiary">Themes you assigned</h3>
           {report.themes.length === 0 ? (
             <p className="mt-1.5 text-[11px] leading-relaxed text-tertiary">
               Nothing tagged in this period. Reviewing a position and saying what it was about is
@@ -169,7 +167,7 @@ export function ImprovementSummary({
                       onClick={() => setTheme(theme === entry.theme ? null : entry.theme)}
                       aria-pressed={theme === entry.theme}
                       className={cn(
-                        'flex w-full items-baseline gap-2 rounded-[4px] px-2 py-1 text-left text-xs transition-colors',
+                        'flex w-full items-baseline gap-2 rounded-[6px] px-2 py-1 text-left text-xs transition-colors',
                         theme === entry.theme
                           ? 'bg-accent-muted text-primary'
                           : 'text-secondary hover:bg-surface-2 hover:text-primary',
@@ -188,7 +186,7 @@ export function ImprovementSummary({
         {theme ? (
           <section className="border-t border-line-subtle pt-3">
             <div className="flex items-baseline gap-2">
-              <h3 className="text-[10px] font-semibold uppercase tracking-wide text-tertiary">
+              <h3 className="text-[10px] font-semibold text-tertiary">
                 {themeLabel(theme)} · {drilled.length}
               </h3>
               <Button variant="ghost" className="ml-auto" onClick={() => void createSet()}>
@@ -229,12 +227,12 @@ export function ImprovementSummary({
 
         {trends.length > 0 ? (
           <section className="border-t border-line-subtle pt-3">
-            <h3 className="text-[10px] font-semibold uppercase tracking-wide text-tertiary">
+            <h3 className="text-[10px] font-semibold text-tertiary">
               Last 30 days vs the 30 before
             </h3>
             <table className="mt-1.5 w-full text-[11px]">
               <thead>
-                <tr className="text-[10px] uppercase tracking-wide text-tertiary">
+                <tr className="text-[10px] text-tertiary">
                   <th className="py-1 text-left font-medium">Theme</th>
                   <th className="py-1 text-right font-medium">Recent</th>
                   <th className="py-1 text-right font-medium">Before</th>

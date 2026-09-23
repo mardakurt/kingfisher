@@ -157,7 +157,7 @@ function ImportForm() {
   if (minimized && busy) {
     return (
       <aside
-        className="fixed right-3 bottom-10 z-50 w-[340px] max-w-[calc(100vw-1.5rem)] rounded-[6px] border border-line-strong bg-surface-1 p-3 shadow-2xl"
+        className="fixed right-3 bottom-10 z-50 w-[340px] max-w-[calc(100vw-1.5rem)] rounded-[8px] border border-line-strong bg-surface-1 p-3 shadow-2xl"
         aria-live="polite"
       >
         <p className="text-xs font-medium text-primary">Import continues in the background</p>
@@ -200,7 +200,7 @@ function ImportForm() {
         </>
       }
     >
-      <label className="mb-2 flex items-center justify-between gap-3 rounded-[4px] border border-line bg-surface-1 px-3 py-2 text-xs text-secondary">
+      <label className="mb-2 flex items-center justify-between gap-3 rounded-[6px] border border-line bg-surface-1 px-3 py-2 text-xs text-secondary">
         <span className="min-w-0 truncate">
           {file ? `${file.name} · ${(file.size / 1_000_000).toFixed(1)} MB` : 'Choose a PGN file'}
         </span>
@@ -208,7 +208,7 @@ function ImportForm() {
           type="file"
           accept=".pgn,application/x-chess-pgn,text/plain"
           disabled={busy}
-          className="max-w-[230px] text-2xs file:mr-2 file:rounded-[3px] file:border file:border-line file:bg-surface-2 file:px-2 file:py-1 file:text-primary"
+          className="max-w-[230px] text-2xs file:mr-2 file:rounded-[5px] file:border file:border-line file:bg-surface-2 file:px-2 file:py-1 file:text-primary"
           onChange={(event) => {
             const selected = event.target.files?.[0] ?? null;
             setFile(selected);
@@ -242,11 +242,11 @@ function ImportForm() {
         placeholder={
           '[Event "…"]\n\n1. e4 e5 2. Nf3 Nc6 …\n\nor\n\nrnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
         }
-        className="h-56 w-full resize-none rounded-[4px] border border-line bg-surface-inset px-3 py-2 font-mono text-[11.5px] leading-relaxed text-primary outline-none placeholder:text-tertiary/70 focus:border-accent/60 read-only:opacity-60"
+        className="h-56 w-full resize-none rounded-[6px] border border-line bg-surface-inset px-3 py-2 font-mono text-[11.5px] leading-relaxed text-primary outline-none placeholder:text-tertiary/70 focus:border-accent/60 read-only:opacity-60"
       />
 
       {storageWarning ? (
-        <p className="mt-2 rounded-[4px] border border-caution/40 bg-caution/10 px-3 py-2 text-2xs text-secondary">
+        <p className="mt-2 rounded-[6px] border border-caution/40 bg-caution/10 px-3 py-2 text-2xs text-secondary">
           {storageWarning}
         </p>
       ) : null}

@@ -349,6 +349,6 @@ function defaultPrompt(mode: TrainingMode): string {
 }
 
 const FIELD =
-  'mt-1 h-8 w-full rounded-[4px] border border-line bg-surface-inset px-2.5 text-xs text-primary outline-none placeholder:text-tertiary/70 focus:border-accent/60';
+  'mt-1 h-8 w-full rounded-[6px] border border-line bg-surface-inset px-2.5 text-xs text-primary outline-none placeholder:text-tertiary/70 focus:border-accent/60';
 const AREA =
-  'mt-1 min-h-20 w-full resize-y rounded-[4px] border border-line bg-surface-inset px-2.5 py-2 text-xs leading-relaxed text-primary outline-none focus:border-accent/60';
+  'mt-1 min-h-20 w-full resize-y rounded-[6px] border border-line bg-surface-inset px-2.5 py-2 text-xs leading-relaxed text-primary outline-none focus:border-accent/60';

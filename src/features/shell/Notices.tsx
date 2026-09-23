@@ -18,7 +18,7 @@ export function Notices() {
           key={notice.id}
           role="status"
           className={cn(
-            'pointer-events-auto flex items-start gap-2 rounded-[5px] border bg-surface-2 px-3 py-2 shadow-lg animate-rise',
+            'pointer-events-auto flex items-start gap-2 rounded-[7px] border bg-surface-2 px-3 py-2 shadow-lg animate-rise',
             notice.tone === 'error' ? 'border-negative/45' : 'border-line',
           )}
         >

@@ -51,13 +51,13 @@ interface Props {
 const TEXT: Record<Density, { body: string; label: string; note: string; title: string }> = {
   compact: {
     body: 'text-[10.5px] leading-relaxed',
-    label: 'text-[10px] uppercase tracking-wide text-tertiary',
+    label: 'text-[10px] text-tertiary',
     note: 'text-[9.5px] leading-relaxed text-tertiary',
     title: 'text-[11px] text-primary',
   },
   comfortable: {
     body: 'text-xs leading-relaxed',
-    label: 'text-[11px] uppercase tracking-wide text-tertiary',
+    label: 'text-[11px] text-tertiary',
     note: 'text-[11px] leading-relaxed text-tertiary',
     title: 'text-sm text-primary',
   },

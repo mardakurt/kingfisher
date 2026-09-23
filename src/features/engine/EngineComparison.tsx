@@ -74,9 +74,7 @@ export function EngineComparison() {
   return (
     <div className="flex h-full min-h-0 flex-col">
       <header className="flex h-8 shrink-0 items-center gap-1.5 border-b border-line-subtle px-2.5">
-        <h2 className="text-2xs font-medium uppercase tracking-[0.08em] text-tertiary">
-          Two engines
-        </h2>
+        <h2 className="text-2xs font-semibold text-tertiary">Two engines</h2>
         <div className="ml-auto flex items-center gap-1">
           {running ? (
             <Button size="sm" icon={<Stop />} onClick={() => stop()}>
@@ -143,7 +141,7 @@ export function EngineComparison() {
         ) : (
           <table className="w-full border-collapse text-[10.5px]">
             <thead>
-              <tr className="border-b border-line-subtle text-left text-[9.5px] uppercase tracking-wide text-tertiary">
+              <tr className="border-b border-line-subtle text-left text-[9.5px] text-tertiary">
                 <th className="px-2.5 py-1.5 font-medium">Move</th>
                 {readings.map((reading) => (
                   <th key={reading.engineId} className="px-2 py-1.5 text-right font-medium">

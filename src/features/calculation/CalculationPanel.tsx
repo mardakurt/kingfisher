@@ -43,7 +43,7 @@ import { branchAt, candidatesOf, countMoves, lines, maxDepth, movesAlong } from 
 import { plural } from '@/lib/plural';
 
 const FIELD =
-  'mt-1 w-full rounded-[4px] border border-line bg-surface-inset px-2.5 py-1.5 text-xs text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60';
+  'mt-1 w-full rounded-[6px] border border-line bg-surface-inset px-2.5 py-1.5 text-xs text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60';
 
 const VISIBILITIES: readonly { id: BoardVisibility; label: string }[] = [
   { id: 'full', label: 'Board' },
@@ -187,7 +187,7 @@ export function CalculationPanel({
       </PanelHeader>
       <PanelBody className="px-3 py-3">
         {!state.revealed ? (
-          <p className="rounded-[4px] border border-line-subtle bg-surface-2 px-2.5 py-2 text-2xs leading-relaxed text-secondary">
+          <p className="rounded-[6px] border border-line-subtle bg-surface-2 px-2.5 py-2 text-2xs leading-relaxed text-secondary">
             Engine, explorer, database, tablebase and repertoire are hidden while you calculate.
             Nothing is running.
           </p>
@@ -243,7 +243,7 @@ export function CalculationPanel({
           </div>
 
           <div className="min-w-[180px] flex-1">
-            <h4 className="text-[9.5px] uppercase tracking-wide text-tertiary">Your lines</h4>
+            <h4 className="text-[9.5px] text-tertiary">Your lines</h4>
             {state.hideMoves ? (
               <p className="mt-1 text-[10.5px] text-tertiary">
                 Lines hidden. {plural(summary.moves, 'move')} entered.
@@ -296,9 +296,7 @@ export function CalculationPanel({
         </div>
 
         <fieldset className="mt-3">
-          <legend className="text-[9.5px] uppercase tracking-wide text-tertiary">
-            The move you would play
-          </legend>
+          <legend className="text-[9.5px] text-tertiary">The move you would play</legend>
           <div className="mt-1 flex flex-wrap gap-1">
             {summary.candidates.length === 0 ? (
               <span className="text-[10.5px] text-tertiary">Enter a candidate first.</span>
@@ -312,7 +310,7 @@ export function CalculationPanel({
                   useCalculation.getState().choose(candidate.uci as Uci, candidate.san as San)
                 }
                 className={cn(
-                  'rounded-[4px] border px-2 py-0.5 font-mono text-[11px]',
+                  'rounded-[6px] border px-2 py-0.5 font-mono text-[11px]',
                   state.chosenUci === candidate.uci
                     ? 'border-accent bg-accent-muted text-primary'
                     : 'border-line text-secondary hover:border-accent/50',
@@ -325,9 +323,7 @@ export function CalculationPanel({
         </fieldset>
 
         <fieldset className="mt-3">
-          <legend className="text-[9.5px] uppercase tracking-wide text-tertiary">
-            Your evaluation
-          </legend>
+          <legend className="text-[9.5px] text-tertiary">Your evaluation</legend>
           <div className="mt-1 flex flex-col gap-0.5">
             {BANDS.map((band) => (
               <label key={band.id} className="flex items-center gap-1.5 text-[11px] text-primary">
@@ -369,7 +365,7 @@ export function CalculationPanel({
 
         {state.revealed ? (
           <>
-            <p className="mt-3 rounded-[4px] border border-line-subtle bg-surface-2 px-2.5 py-2 text-2xs leading-relaxed text-secondary">
+            <p className="mt-3 rounded-[6px] border border-line-subtle bg-surface-2 px-2.5 py-2 text-2xs leading-relaxed text-secondary">
               Recorded and frozen. The evidence tools are usable now; what you wrote above cannot be
               edited, which is what makes it worth reading in a month.
               {savedId ? ' Saved to the decision journal.' : ''}

@@ -15,7 +15,7 @@ export function FocusModeBar() {
   const setFocusMode = useWorkspaceLayout((state) => state.setFocusMode);
   return (
     <footer className="flex h-7 shrink-0 items-center gap-2 border-t border-line-subtle bg-surface-1 px-2 sm:px-3">
-      <span className="text-[10px] uppercase tracking-[0.1em] text-accent">Focus</span>
+      <span className="text-[10px] text-accent">Focus</span>
       <span className="text-[10px] text-tertiary">
         Navigation hidden. The command palette still works.
       </span>

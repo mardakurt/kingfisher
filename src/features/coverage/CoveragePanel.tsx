@@ -50,7 +50,7 @@ export function CoveragePanel() {
               key={source.id}
               data-testid={`coverage-${source.id}`}
               className={cn(
-                'rounded-[4px] border p-2',
+                'rounded-[6px] border p-2',
                 coverage.depth === 'beyond-depth' ? 'border-caution/50' : 'border-line',
               )}
             >

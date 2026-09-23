@@ -182,7 +182,7 @@ export function PositionReportPanel() {
                     {section.entries.map((entry, index) => (
                       <li
                         key={`${section.id}-${index}`}
-                        className="rounded-[3px] border border-line-subtle px-2 py-1"
+                        className="rounded-[5px] border border-line-subtle px-2 py-1"
                       >
                         <span className="text-[11px] text-primary">{entry.primary}</span>
                         {entry.secondary ? (

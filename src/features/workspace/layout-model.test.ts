@@ -156,10 +156,11 @@ describe('board priority', () => {
     }
   });
 
-  it('folds the notation into the dock only at Maximum', () => {
+  it('puts the notation in the dock under every policy', () => {
+    // Phase 82: the board column holds the board; the notation is beside it.
     expect(policyMoveTreeHome('maximum')).toBe('dock');
-    expect(policyMoveTreeHome('large')).toBe('lower');
-    expect(policyMoveTreeHome('balanced')).toBe('lower');
+    expect(policyMoveTreeHome('large')).toBe('dock');
+    expect(policyMoveTreeHome('balanced')).toBe('dock');
   });
 
   it('records no dimensions of its own, so the policy can keep governing', () => {
@@ -191,7 +192,7 @@ describe('resolveArrangement', () => {
     expect(maximum.dockWidth).toBeLessThan(balanced.dockWidth);
     expect(maximum.lowerHeight).toBeLessThan(balanced.lowerHeight);
     expect(maximum.moveTreeRegion).toBe('dock');
-    expect(balanced.moveTreeRegion).toBe('lower');
+    expect(balanced.moveTreeRegion).toBe('dock');
   });
 
   it('gives the board more at every step from Balanced to Maximum', () => {

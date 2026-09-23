@@ -265,7 +265,7 @@ export function StudiesWorkspace() {
             setChosenStudyId(event.target.value as StudyId);
             setChosenChapterId(null);
           }}
-          className="h-8 min-w-0 flex-1 rounded-[4px] border border-line bg-surface-inset px-2 text-xs text-primary"
+          className="h-8 min-w-0 flex-1 rounded-[6px] border border-line bg-surface-inset px-2 text-xs text-primary"
         >
           {list.length === 0 ? (
             <option value="">
@@ -323,7 +323,7 @@ export function StudiesWorkspace() {
                   tags: parseTagInput(event.target.value),
                 })
               }
-              className="mt-0.5 h-7 w-full rounded-[3px] border border-line bg-surface-inset px-1.5 text-[11px] text-primary"
+              className="mt-0.5 h-7 w-full rounded-[5px] border border-line bg-surface-inset px-1.5 text-[11px] text-primary"
             />
           </label>
         </div>
@@ -340,7 +340,7 @@ export function StudiesWorkspace() {
         onClear={() => setChapterTags([])}
       />
       <div className="flex items-center border-b border-line-subtle px-3 py-1.5">
-        <h2 className="text-2xs font-medium tracking-[0.08em] text-tertiary uppercase">Chapters</h2>
+        <h2 className="text-2xs font-semibold text-tertiary">Chapters</h2>
         <IconButton
           label="New chapter"
           className="ml-auto"
@@ -377,7 +377,7 @@ export function StudiesWorkspace() {
               <li
                 key={entry.id}
                 className={cn(
-                  'rounded-[4px] border',
+                  'rounded-[6px] border',
                   entry.id === chapterId
                     ? 'border-accent/70 bg-accent-muted'
                     : 'border-transparent hover:bg-surface-2',
@@ -417,7 +417,7 @@ export function StudiesWorkspace() {
                             tags: parseTagInput(event.target.value),
                           })
                         }
-                        className="mt-0.5 h-7 w-full rounded-[3px] border border-line bg-surface-inset px-1.5 text-[11px] text-primary"
+                        className="mt-0.5 h-7 w-full rounded-[5px] border border-line bg-surface-inset px-1.5 text-[11px] text-primary"
                       />
                     </label>
                   </div>

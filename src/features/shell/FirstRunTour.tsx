@@ -172,7 +172,7 @@ export function FirstRunTour() {
     >
       <div className="flex flex-col gap-4 px-1 py-1">
         <div className="flex items-center gap-3">
-          <span className="flex h-9 w-9 items-center justify-center rounded-[6px] bg-surface-2 text-accent">
+          <span className="flex h-9 w-9 items-center justify-center rounded-[8px] bg-surface-2 text-accent">
             {step.icon}
           </span>
           <div>

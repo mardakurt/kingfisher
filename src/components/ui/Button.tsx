@@ -39,7 +39,7 @@ export function Button({
     <button
       type="button"
       className={cn(
-        'inline-flex shrink-0 items-center rounded-[4px] whitespace-nowrap transition-colors duration-100',
+        'inline-flex shrink-0 items-center rounded-[6px] whitespace-nowrap transition-colors duration-100',
         // A button given a width by its caller or stretched by a column keeps
         // its label on the centre line. `cn` does not merge conflicting
         // utilities, so a caller that wants a start-aligned row says so with
@@ -80,7 +80,7 @@ export function IconButton({
       aria-label={label}
       aria-pressed={active}
       className={cn(
-        'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[4px] transition-colors duration-100',
+        'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[6px] transition-colors duration-100',
         'text-secondary hover:bg-surface-3 hover:text-primary',
         'disabled:pointer-events-none disabled:opacity-35',
         active && 'bg-accent-muted text-accent',

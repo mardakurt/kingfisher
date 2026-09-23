@@ -217,7 +217,7 @@ export function TransferDialog({ request, collections, onClose, onChanged }: Tra
               value={destinationId}
               onChange={(event) => setDestinationId(event.target.value)}
               aria-label="Destination collection"
-              className="h-8 w-full rounded-[4px] border border-line bg-surface-inset px-2 text-sm text-primary outline-none focus:border-accent/60"
+              className="h-8 w-full rounded-[6px] border border-line bg-surface-inset px-2 text-sm text-primary outline-none focus:border-accent/60"
             >
               {candidates.map((entry) => (
                 <option key={entry.id} value={entry.id}>
@@ -231,10 +231,8 @@ export function TransferDialog({ request, collections, onClose, onChanged }: Tra
       </dl>
 
       {request.kind === 'merge' ? (
-        <section className="mt-4 rounded-[4px] border border-line bg-surface-1 p-3">
-          <h3 className="text-[10px] font-semibold uppercase tracking-wide text-tertiary">
-            What this merge would do
-          </h3>
+        <section className="mt-4 rounded-[6px] border border-line bg-surface-1 p-3">
+          <h3 className="text-[10px] font-semibold text-tertiary">What this merge would do</h3>
           {preview.isPending ? (
             <p className="mt-2 text-xs text-tertiary">Counting the overlap exactly…</p>
           ) : preview.isError ? (
@@ -263,7 +261,7 @@ export function TransferDialog({ request, collections, onClose, onChanged }: Tra
       ) : null}
 
       {request.kind === 'move' ? (
-        <p className="mt-4 rounded-[4px] border border-caution/40 bg-caution/10 p-3 text-xs leading-relaxed text-secondary">
+        <p className="mt-4 rounded-[6px] border border-caution/40 bg-caution/10 p-3 text-xs leading-relaxed text-secondary">
           Games are removed from {request.source.name} one page at a time, and only after the
           destination has been asked whether it holds them. If it does not, they stay where they are
           and the result says so.

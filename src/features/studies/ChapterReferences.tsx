@@ -114,14 +114,12 @@ export function ChapterReferences({ chapter }: { readonly chapter: ChapterRecord
             if (!rows.length) return null;
             return (
               <section key={kind}>
-                <h3 className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-tertiary">
-                  {GROUP[kind]}
-                </h3>
+                <h3 className="mb-1 text-[10px] font-semibold text-tertiary">{GROUP[kind]}</h3>
                 <ul className="space-y-1">
                   {rows.map((entry) => (
                     <li
                       key={entry.reference.id}
-                      className="flex items-center gap-2 rounded-[4px] border border-line-subtle bg-surface-inset p-2"
+                      className="flex items-center gap-2 rounded-[6px] border border-line-subtle bg-surface-inset p-2"
                     >
                       <button
                         type="button"
@@ -155,9 +153,7 @@ export function ChapterReferences({ chapter }: { readonly chapter: ChapterRecord
         )}
 
         <section className="border-t border-line-subtle pt-3">
-          <h3 className="text-[10px] font-semibold uppercase tracking-wide text-tertiary">
-            Link current position
-          </h3>
+          <h3 className="text-[10px] font-semibold text-tertiary">Link current position</h3>
           <div className="mt-2 space-y-1.5">
             {(repertoireHere.data ?? []).map((position) => (
               <Button

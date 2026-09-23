@@ -30,7 +30,7 @@ import {
 import { runDeepSearch, type DeepSearchState } from './deep-search';
 
 export const FIELD =
-  'h-7 w-full rounded-[4px] border border-line bg-surface-inset px-2 text-2xs text-primary outline-none placeholder:text-tertiary/70 focus:border-accent/60';
+  'h-7 w-full rounded-[6px] border border-line bg-surface-inset px-2 text-2xs text-primary outline-none placeholder:text-tertiary/70 focus:border-accent/60';
 
 export const Field = ({
   label,
@@ -42,7 +42,7 @@ export const Field = ({
   readonly wide?: boolean | 'date';
 }) => (
   <label
-    className={`flex ${wide === 'date' ? 'w-[132px]' : wide ? 'w-[180px]' : 'w-[104px]'} shrink-0 flex-col gap-1 text-[10px] uppercase tracking-wide text-tertiary`}
+    className={`flex ${wide === 'date' ? 'w-[132px]' : wide ? 'w-[180px]' : 'w-[104px]'} shrink-0 flex-col gap-1 text-[10px] text-tertiary`}
   >
     {label}
     {children}
@@ -287,7 +287,7 @@ export function MoveMaskFields({
       data-search-moves
     >
       <legend className="sr-only">In the moves</legend>
-      <p className="w-full text-[10px] uppercase tracking-wide text-tertiary">
+      <p className="w-full text-[10px] text-tertiary">
         In the moves{' '}
         <span className="normal-case tracking-normal">
           — these read each selected game’s moves, so they run when you ask.

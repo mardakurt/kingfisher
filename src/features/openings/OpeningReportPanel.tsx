@@ -283,9 +283,7 @@ export function OpeningReportPanel() {
           )}
           {report.sections.map((section) => (
             <section key={section.id} data-report-section={section.id}>
-              <h3 className="text-xs font-semibold tracking-wide text-secondary uppercase">
-                {section.title}
-              </h3>
+              <h3 className="text-xs font-semibold text-secondary">{section.title}</h3>
               {/*
                 The provenance line, always, when there is one. It is the
                 difference between a citation and a rumour, and drawing it here

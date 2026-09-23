@@ -102,7 +102,7 @@ export function CalculationBoard({
           )}
           aria-hidden
         >
-          <span className="rounded-[4px] bg-surface-2/90 px-2 py-1 text-[10px] text-tertiary">
+          <span className="rounded-[6px] bg-surface-2/90 px-2 py-1 text-[10px] text-tertiary">
             {visibility === 'blank' ? 'Blank board' : 'Pieces hidden'}
           </span>
         </div>

@@ -42,7 +42,7 @@ export function WhoAmI({
           aria-label="I am"
           value={memberId}
           onChange={(event) => setMemberId(event.target.value)}
-          className="h-7 min-w-0 flex-1 rounded-[3px] border border-line bg-surface-inset px-1.5 text-[11px] text-primary outline-none focus:border-accent/60"
+          className="h-7 min-w-0 flex-1 rounded-[5px] border border-line bg-surface-inset px-1.5 text-[11px] text-primary outline-none focus:border-accent/60"
           data-team-who-select
         >
           {team.members.map((member) => (

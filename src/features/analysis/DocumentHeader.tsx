@@ -57,19 +57,19 @@ export function DocumentHeader() {
               exactly where the board is smallest.
             */
             <span
-              className="shrink-0 rounded-[3px] bg-accent/15 px-1 text-[10px] font-medium text-accent"
+              className="shrink-0 rounded-[5px] bg-accent/15 px-1 text-[10px] font-medium text-accent"
               data-viewer-side={document.viewerSide}
             >
               You played {document.viewerSide === 'w' ? 'White' : 'Black'}
             </span>
           ) : null}
           {document.kind === 'database-game' || document.kind === 'reference-game' ? (
-            <span className="hidden shrink-0 rounded-[3px] bg-surface-3 px-1 text-[10px] text-tertiary wide:inline">
+            <span className="hidden shrink-0 rounded-[5px] bg-surface-3 px-1 text-[10px] text-tertiary wide:inline">
               read-only source
             </span>
           ) : null}
         </div>
-        {context && <span className="block truncate text-[10px] text-tertiary">{context}</span>}
+        {context && <span className="block truncate text-[11px] text-tertiary">{context}</span>}
       </div>
 
       <SaveIndicator state={saveState} error={saveError} kind={document.kind} />
@@ -126,8 +126,8 @@ function DocumentTitle({ document }: { readonly document: AnalysisDocument }) {
     return (
       <span
         className={cn(
-          'min-w-0 truncate text-xs text-primary',
-          editable && 'cursor-text rounded-[3px] hover:bg-surface-2',
+          'min-w-0 truncate text-[15px] font-semibold tracking-[-0.01em] text-primary',
+          editable && 'cursor-text rounded-[5px] hover:bg-surface-2',
         )}
         role={editable ? 'button' : undefined}
         tabIndex={editable ? 0 : undefined}
@@ -190,7 +190,7 @@ function DocumentTitle({ document }: { readonly document: AnalysisDocument }) {
             cancel();
           }
         }}
-        className="block w-full min-w-0 max-w-full rounded-[3px] border border-accent/60 bg-surface-2 px-1 text-xs text-primary outline-none focus:border-accent"
+        className="block w-full min-w-0 max-w-full rounded-[5px] border border-accent/60 bg-surface-2 px-1 text-[15px] font-semibold text-primary outline-none focus:border-accent"
       />
     </span>
   );

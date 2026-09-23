@@ -83,7 +83,7 @@ export function CandidateComparison() {
           nothing else.
         </p>
         {!supported ? (
-          <p className="mt-1.5 rounded-[4px] bg-surface-2 px-2 py-1.5 text-[10px] leading-relaxed text-caution">
+          <p className="mt-1.5 rounded-[6px] bg-surface-2 px-2 py-1.5 text-[10px] leading-relaxed text-caution">
             This engine does not report support for restricted search. The comparison will run as an
             ordinary MultiPV search, so a candidate it ranks low may not appear.
           </p>
@@ -103,7 +103,7 @@ export function CandidateComparison() {
                   )
                 }
                 className={cn(
-                  'rounded-[4px] border px-1.5 py-0.5 font-mono text-[10.5px]',
+                  'rounded-[6px] border px-1.5 py-0.5 font-mono text-[10.5px]',
                   active
                     ? 'border-accent bg-accent-muted text-primary'
                     : 'border-line text-tertiary hover:border-accent/50',
@@ -125,7 +125,7 @@ export function CandidateComparison() {
         </div>
 
         {ignored ? (
-          <p className="mt-2 rounded-[4px] bg-surface-2 px-2 py-1.5 text-[10px] leading-relaxed text-caution">
+          <p className="mt-2 rounded-[6px] bg-surface-2 px-2 py-1.5 text-[10px] leading-relaxed text-caution">
             This engine answered with a move outside the ones selected, so it ignored the
             restriction. Read the lines below as an ordinary search of the position, not as a
             comparison of the moves you chose.

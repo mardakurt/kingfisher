@@ -92,9 +92,7 @@ export function ThemePicker({
 
   return (
     <div>
-      <h3 className="text-[10px] font-semibold uppercase tracking-wide text-tertiary">
-        What was this about?
-      </h3>
+      <h3 className="text-[10px] font-semibold text-tertiary">What was this about?</h3>
       <p className="mt-1 text-[10.5px] leading-relaxed text-tertiary">
         Your own reading, not the engine&rsquo;s. These are what the improvement summary counts.
       </p>
@@ -129,7 +127,7 @@ export function ThemePicker({
           }}
           placeholder="Add your own theme"
           aria-label="Add your own theme"
-          className="h-7 min-w-0 flex-1 rounded-[4px] border border-line bg-surface-inset px-2 text-[11px] text-primary outline-none focus:border-accent/60"
+          className="h-7 min-w-0 flex-1 rounded-[6px] border border-line bg-surface-inset px-2 text-[11px] text-primary outline-none focus:border-accent/60"
         />
         <Button onClick={() => void addCustom()} disabled={!adding.trim() || busy}>
           Add

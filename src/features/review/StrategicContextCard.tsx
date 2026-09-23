@@ -37,9 +37,7 @@ export function StrategicContextCard({
       className="border-t border-line-subtle bg-surface-2/40 px-3 py-2"
       data-strategic-context
     >
-      <h4 className="text-[10px] font-semibold uppercase tracking-wide text-tertiary">
-        Strategic context
-      </h4>
+      <h4 className="text-[10px] font-semibold text-tertiary">Strategic context</h4>
       <ul className="mt-1 space-y-1">
         {transitions.map((transition) => (
           <li

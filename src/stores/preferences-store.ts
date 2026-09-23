@@ -179,8 +179,8 @@ interface PreferencesActions {
 }
 
 export const DEFAULT_PREFERENCES: Preferences = {
-  theme: 'dark',
-  boardTheme: 'midnight',
+  theme: 'light',
+  boardTheme: 'studio',
   pieceSet: DEFAULT_PIECE_SET_ID,
   coordinateStyle: 'inside',
   animationSpeed: 'normal',
@@ -272,7 +272,7 @@ export const usePreferences = create<Preferences & PreferencesActions>()(
     }),
     {
       name: 'kingfisher.preferences',
-      version: 6,
+      version: 7,
       storage: createJSONStorage(() => localStorage),
       /**
        * Phase 3 replaced two booleans with named scales. Migrating rather than
@@ -324,6 +324,18 @@ export const usePreferences = create<Preferences & PreferencesActions>()(
         if (version < 6) {
           const { tourShowOnLaunch: _tourShowOnLaunch, ...rest } = state;
           state = rest;
+        }
+
+        /*
+          Phase 82 redrew Kingfisher as a light, quiet Mac-style workspace with
+          the Studio board. As with Walnut in version 5, a profile that never
+          chose the dark theme or the Midnight board cannot be told from one
+          that did, so the move is made once; anyone who preferred them picks
+          them again in Settings, and is never moved again.
+        */
+        if (version < 7) {
+          if (state.theme === 'dark') state = { ...state, theme: 'light' };
+          if (state.boardTheme === 'midnight') state = { ...state, boardTheme: 'studio' };
         }
 
         return state as unknown as Preferences;

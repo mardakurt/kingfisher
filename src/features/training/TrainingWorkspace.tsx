@@ -479,7 +479,7 @@ function TrainingAuthoringEditor({
   return (
     <section className="border-b border-line-subtle px-3 py-3">
       <div className="flex items-center">
-        <p className="text-[10px] uppercase tracking-wide text-tertiary">Authoring</p>
+        <p className="text-[10px] text-tertiary">Authoring</p>
         <Button className="ml-auto" onClick={() => setEditing((value) => !value)}>
           {editing ? 'Close editor' : 'Edit'}
         </Button>
@@ -497,7 +497,7 @@ function TrainingAuthoringEditor({
             <input
               value={prompt}
               onChange={(event) => setPrompt(event.target.value)}
-              className="mt-1 h-8 w-full rounded-[4px] border border-line bg-surface-inset px-2 text-xs text-primary"
+              className="mt-1 h-8 w-full rounded-[6px] border border-line bg-surface-inset px-2 text-xs text-primary"
             />
           </label>
           <label className="block text-2xs text-tertiary">
@@ -505,7 +505,7 @@ function TrainingAuthoringEditor({
             <textarea
               value={explanation}
               onChange={(event) => setExplanation(event.target.value)}
-              className="mt-1 h-16 w-full rounded-[4px] border border-line bg-surface-inset px-2 py-1 text-xs text-primary"
+              className="mt-1 h-16 w-full rounded-[6px] border border-line bg-surface-inset px-2 py-1 text-xs text-primary"
             />
           </label>
           <label className="block text-2xs text-tertiary">
@@ -514,7 +514,7 @@ function TrainingAuthoringEditor({
               value={tags}
               onChange={(event) => setTags(event.target.value)}
               placeholder="opening, calculation"
-              className="mt-1 h-8 w-full rounded-[4px] border border-line bg-surface-inset px-2 text-xs text-primary"
+              className="mt-1 h-8 w-full rounded-[6px] border border-line bg-surface-inset px-2 text-xs text-primary"
             />
           </label>
           <Button variant="accent" type="submit" disabled={!prompt.trim()}>
@@ -586,14 +586,14 @@ function ReviewDetails({
   return (
     <div className="divide-y divide-line-subtle text-[11.5px]">
       <section className="px-3 py-3">
-        <p className="text-[10px] uppercase tracking-wide text-tertiary">Task</p>
+        <p className="text-[10px] text-tertiary">Task</p>
         <p className="mt-1 text-secondary">{MODE_LABEL[item.mode]}</p>
         {item.source ? (
           <p className="mt-1 text-2xs text-tertiary">Source: {item.source.label}</p>
         ) : null}
       </section>
       <section className="px-3 py-3">
-        <p className="text-[10px] uppercase tracking-wide text-tertiary">Answer</p>
+        <p className="text-[10px] text-tertiary">Answer</p>
         {!revealed ? (
           <p className="mt-1 text-tertiary">Hidden until you answer or reveal it.</p>
         ) : (

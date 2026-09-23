@@ -136,7 +136,7 @@ function PhaseSection({
       <ClockDenominator section={section} />
       <table className="w-full text-sm">
         <thead>
-          <tr className="text-left text-xs uppercase text-secondary">
+          <tr className="text-left text-xs text-secondary">
             <th className="py-1">Phase</th>
             <th className="py-1 text-right">Total thinking</th>
             <th className="py-1 text-right">Moves</th>
@@ -272,7 +272,7 @@ function TimeTroubleSection({
       <ClockDenominator section={section} />
       <table className="w-full text-sm">
         <thead>
-          <tr className="text-left text-xs uppercase text-secondary">
+          <tr className="text-left text-xs text-secondary">
             <th className="py-1">Move</th>
             <th className="py-1 text-right">In trouble</th>
             <th className="py-1 text-right">Games in this set with clocks</th>
@@ -316,7 +316,7 @@ function SlowestOpeningsSection({
       <ClockDenominator section={section} />
       <table className="w-full text-sm">
         <thead>
-          <tr className="text-left text-xs uppercase text-secondary">
+          <tr className="text-left text-xs text-secondary">
             <th className="py-1">Opening (ECO)</th>
             <th className="py-1 text-right">Average remaining after move 15</th>
             <th className="py-1 text-right">W / L / D</th>

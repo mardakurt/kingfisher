@@ -141,9 +141,7 @@ export function DuplicatesPanel({ selected, onChanged }: DuplicatesPanelProps) {
 
       {exact.length > 0 ? (
         <section className="mt-5">
-          <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">
-            Exact duplicates
-          </h3>
+          <h3 className="text-xs font-semibold text-tertiary">Exact duplicates</h3>
           <p className="mt-1 text-xs text-tertiary">
             Identical down to the movetext and every comment. Keeping one loses nothing.
           </p>
@@ -161,7 +159,7 @@ export function DuplicatesPanel({ selected, onChanged }: DuplicatesPanelProps) {
 
       {annotated.length > 0 ? (
         <section className="mt-6">
-          <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-caution">
+          <h3 className="text-xs font-semibold text-caution">
             Duplicate game, different local annotations
           </h3>
           <p className="mt-1 max-w-2xl text-xs leading-relaxed text-tertiary">
@@ -217,7 +215,7 @@ function GroupRow({
   return (
     <li
       className={cn(
-        'rounded-[4px] border p-3',
+        'rounded-[6px] border p-3',
         group.kind === 'exact' ? 'border-line bg-surface-1' : 'border-caution/40 bg-caution/5',
       )}
     >

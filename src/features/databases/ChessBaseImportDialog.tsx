@@ -142,7 +142,7 @@ export function ChessBaseImportDialog({ open, onClose }: { open: boolean; onClos
       }
     >
       <div className="space-y-3 p-4 text-xs text-secondary">
-        <label className="flex items-center justify-between gap-3 rounded-[4px] border border-line bg-surface-1 px-3 py-2">
+        <label className="flex items-center justify-between gap-3 rounded-[6px] border border-line bg-surface-1 px-3 py-2">
           <span className="min-w-0 truncate text-secondary">
             {choice
               ? `${choice.name} · ${choice.kind === 'archive' ? '.cbv archive' : 'database files'}`
@@ -154,7 +154,7 @@ export function ChessBaseImportDialog({ open, onClose }: { open: boolean; onClos
             accept={ACCEPT}
             multiple
             disabled={job.running || inspecting}
-            className="max-w-[230px] text-2xs file:mr-2 file:rounded-[3px] file:border file:border-line file:bg-surface-2 file:px-2 file:py-1 file:text-primary"
+            className="max-w-[230px] text-2xs file:mr-2 file:rounded-[5px] file:border file:border-line file:bg-surface-2 file:px-2 file:py-1 file:text-primary"
             onChange={(event) => void choose([...(event.target.files ?? [])])}
           />
         </label>

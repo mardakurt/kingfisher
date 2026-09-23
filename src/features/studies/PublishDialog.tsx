@@ -93,7 +93,7 @@ export function PublishDialog({
     >
       <div className="space-y-3 p-4 text-xs text-secondary" data-testid="publish">
         <fieldset>
-          <legend className="text-[10px] uppercase tracking-wide text-tertiary">Chapters</legend>
+          <legend className="text-[10px] text-tertiary">Chapters</legend>
           <ul className="mt-1 max-h-40 space-y-0.5 overflow-y-auto">
             {study.chapters.map((chapter) => (
               <li key={chapter.id}>
@@ -139,7 +139,7 @@ export function PublishDialog({
         {pending ? (
           <p
             role="status"
-            className="rounded-[4px] border border-caution/50 bg-caution/10 p-2 text-caution"
+            className="rounded-[6px] border border-caution/50 bg-caution/10 p-2 text-caution"
             data-testid="publish-unsaved"
           >
             “{openChapter?.title}” has edits that are still being saved. The file is made from what

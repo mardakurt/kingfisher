@@ -148,7 +148,7 @@ export function EngineManager() {
           instruction that could not succeed. See `companion/reach.ts`.
         */
         <div
-          className="rounded-[4px] border border-line bg-surface-2 p-3 text-xs text-tertiary"
+          className="rounded-[6px] border border-line bg-surface-2 p-3 text-xs text-tertiary"
           data-engine-manager-unpaired={reach}
         >
           <p className="text-secondary">
@@ -283,7 +283,7 @@ function NotOfferedHere({ platform }: { readonly platform: string }) {
         : platform;
   return (
     <div
-      className="rounded-[4px] border border-line bg-surface-2 p-3 text-[11px] leading-relaxed text-tertiary"
+      className="rounded-[6px] border border-line bg-surface-2 p-3 text-[11px] leading-relaxed text-tertiary"
       data-engines-not-offered
     >
       <p className="text-secondary">
@@ -429,7 +429,7 @@ function EngineRow({
 }) {
   const level = TRUST_LEVELS[trust];
   return (
-    <div className="rounded-[5px] border border-line bg-surface-2 p-2.5" data-engine-row={id}>
+    <div className="rounded-[7px] border border-line bg-surface-2 p-2.5" data-engine-row={id}>
       <div className="flex items-start gap-2.5">
         <Toggle
           label={`Show ${name} in the engine selector`}
@@ -442,7 +442,7 @@ function EngineRow({
             {version ? <span className="text-[10px] text-tertiary">{version}</span> : null}
             <span
               className={cn(
-                'rounded-[3px] px-1.5 py-0.5 text-[10px]',
+                'rounded-[5px] px-1.5 py-0.5 text-[10px]',
                 state === 'Ready'
                   ? 'bg-accent-muted text-accent'
                   : 'border border-line text-tertiary',
@@ -467,7 +467,7 @@ function EngineRow({
                 <span
                   key={key}
                   className={cn(
-                    'rounded-[3px] border px-1',
+                    'rounded-[5px] border px-1',
                     capabilities[key]
                       ? 'border-line-strong text-secondary'
                       : 'border-line text-tertiary line-through',
@@ -494,7 +494,7 @@ function EngineRow({
             aria-label={expanded ? `Hide details of ${name}` : `Show details of ${name}`}
             aria-expanded={expanded}
             onClick={onExpand}
-            className="rounded-[4px] p-1 text-tertiary transition-colors hover:bg-surface-3 hover:text-primary"
+            className="rounded-[6px] p-1 text-tertiary transition-colors hover:bg-surface-3 hover:text-primary"
           >
             {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </button>
@@ -504,9 +504,7 @@ function EngineRow({
       {expanded ? (
         <div className="mt-2.5 space-y-2.5 border-t border-line-subtle pt-2.5">
           <div>
-            <h4 className="text-[10px] font-semibold uppercase tracking-[0.08em] text-tertiary">
-              {level.label}
-            </h4>
+            <h4 className="text-[10px] font-semibold text-tertiary">{level.label}</h4>
             <p className="mt-1 text-[11px] text-secondary">{level.summary}</p>
             <ul className="mt-1.5 space-y-0.5">
               {level.guarantees.map((line) => (
@@ -526,7 +524,7 @@ function EngineRow({
 
           {checks ? (
             <div>
-              <h4 className="text-[10px] font-semibold uppercase tracking-[0.08em] text-tertiary">
+              <h4 className="text-[10px] font-semibold text-tertiary">
                 Checks run against this binary
               </h4>
               <ul className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5">

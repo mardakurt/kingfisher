@@ -400,7 +400,7 @@ export function TeamWorkspace() {
               setSelectedId(null);
               clearFilters();
             }}
-            className="h-6 min-w-0 flex-1 rounded-[3px] border border-line bg-surface-inset px-1.5 text-[11px] text-primary outline-none focus:border-accent/60"
+            className="h-6 min-w-0 flex-1 rounded-[5px] border border-line bg-surface-inset px-1.5 text-[11px] text-primary outline-none focus:border-accent/60"
           >
             {teams.data?.map((entry) => (
               <option key={entry.id} value={entry.id}>
@@ -501,7 +501,7 @@ export function TeamWorkspace() {
           const fresh = rows.filter(isNew).length;
           return (
             <section key={column} data-team-column={column}>
-              <h3 className="px-3 pb-1 pt-2.5 text-[9.5px] uppercase tracking-wide text-tertiary">
+              <h3 className="px-3 pb-1 pt-2.5 text-[9.5px] text-tertiary">
                 {COLUMN_LABEL[column]} · {rows.length}
                 {fresh > 0 ? <span className="text-accent"> · {fresh} new</span> : null}
               </h3>

@@ -8,10 +8,10 @@
  */
 export const UI_TOKENS = {
   spacing: { 1: 4, 2: 8, 3: 12, 4: 16, 5: 20, 6: 24 },
-  radius: { control: 4, panel: 6, board: 3 },
+  radius: { control: 6, panel: 10, board: 3 },
   icon: { compact: 16, standard: 20, navigation: 21, feature: 24, display: 32 },
   control: { compact: 28, standard: 36, navigation: 42 },
-  sidebar: { collapsed: 72, expanded: 228 },
+  sidebar: { collapsed: 72, expanded: 244 },
   panelHeader: { comfortable: 36, compact: 32 },
   motion: { quick: 90, standard: 140, deliberate: 180 },
 } as const;

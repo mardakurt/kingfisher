@@ -42,7 +42,7 @@ async function withPreference(page: Page, key: string, value: unknown, route = '
   await page.evaluate(
     ({ key, value, storeKey }) => {
       const raw = window.localStorage.getItem(storeKey);
-      const parsed = raw ? JSON.parse(raw) : { state: {}, version: 6 };
+      const parsed = raw ? JSON.parse(raw) : { state: {}, version: 7 };
       parsed.state = { ...parsed.state, [key]: value };
       window.localStorage.setItem(storeKey, JSON.stringify(parsed));
     },
@@ -72,7 +72,7 @@ async function withPreferences(page: Page, values: Record<string, unknown>, rout
   await page.evaluate(
     ({ values, storeKey }) => {
       const raw = window.localStorage.getItem(storeKey);
-      const parsed = raw ? JSON.parse(raw) : { state: {}, version: 6 };
+      const parsed = raw ? JSON.parse(raw) : { state: {}, version: 7 };
       parsed.state = { ...parsed.state, ...values };
       window.localStorage.setItem(storeKey, JSON.stringify(parsed));
     },
@@ -643,7 +643,7 @@ test.describe('every setting', () => {
       await page.evaluate(
         ({ storeKey, key, value }) => {
           const raw = window.localStorage.getItem(storeKey);
-          const parsed = raw ? JSON.parse(raw) : { state: {}, version: 6 };
+          const parsed = raw ? JSON.parse(raw) : { state: {}, version: 7 };
           parsed.state = { ...parsed.state, [key]: value };
           window.localStorage.setItem(storeKey, JSON.stringify(parsed));
         },

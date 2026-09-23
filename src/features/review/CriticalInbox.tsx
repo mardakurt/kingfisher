@@ -229,7 +229,7 @@ export function CriticalInbox({
                         ) : null}
                         {stale ? (
                           <span
-                            className="ml-1.5 inline-flex items-center rounded-[3px] border border-caution/40 bg-caution/10 px-1 py-px text-[9.5px] uppercase tracking-wide text-caution"
+                            className="ml-1.5 inline-flex items-center rounded-[5px] border border-caution/40 bg-caution/10 px-1 py-px text-[9.5px] text-caution"
                             data-stale-tag={waiting}
                             aria-label={`Waiting ${waiting} days`}
                           >

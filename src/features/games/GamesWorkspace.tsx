@@ -293,7 +293,7 @@ export function GamesWorkspace() {
           }}
           placeholder="Search players, events, openings…"
           aria-label="Search games"
-          className="ml-1 h-7 min-w-0 flex-1 rounded-[4px] border border-line bg-surface-inset px-2 text-2xs text-primary outline-none placeholder:text-tertiary/70 focus:border-accent/60"
+          className="ml-1 h-7 min-w-0 flex-1 rounded-[6px] border border-line bg-surface-inset px-2 text-2xs text-primary outline-none placeholder:text-tertiary/70 focus:border-accent/60"
         />
 
         <IconButton
@@ -566,7 +566,7 @@ export function GamesWorkspace() {
         ) : dense ? (
           <table className="w-full border-collapse text-[11.5px]">
             <thead className="sticky top-0 z-10 bg-surface-1">
-              <tr className="text-[10px] uppercase tracking-wide text-tertiary">
+              <tr className="text-[10px] text-tertiary">
                 <th className="w-8 px-2 py-1.5" scope="col">
                   <span className="sr-only">Select</span>
                 </th>
@@ -592,7 +592,7 @@ export function GamesWorkspace() {
                       <button
                         type="button"
                         onClick={() => sort(column.id as SortField)}
-                        className="inline-flex items-center gap-1 uppercase transition-colors hover:text-secondary"
+                        className="inline-flex items-center gap-1 transition-colors hover:text-secondary"
                       >
                         {column.label}
                         {sortBy === column.id && (
@@ -847,7 +847,7 @@ function OpeningCell({ game }: { readonly game: GameSummary }) {
         </span>
       ) : null}
       {display.source === 'file' ? (
-        <span aria-hidden className="shrink-0 text-[9px] uppercase text-tertiary/60">
+        <span aria-hidden className="shrink-0 text-[9px] text-tertiary/60">
           file
         </span>
       ) : null}

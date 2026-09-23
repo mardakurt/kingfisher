@@ -46,9 +46,32 @@ export interface BoardTheme {
    * costs about a kilobyte, and carries no licence obligations.
    */
   readonly grain?: number;
+  /**
+   * A frame drawn around the board, outside its squares. Absent means none.
+   *
+   * Drawn as a ring outside the grid rather than a border inside it, so the
+   * squares keep exactly the box the pointer mapping measures.
+   */
+  readonly frame?: string;
 }
 
 export const BOARD_THEMES: readonly BoardTheme[] = [
+  {
+    id: 'studio',
+    name: 'Studio',
+    description: 'White and periwinkle in a navy frame. The default since Phase 82.',
+    light: '#f1f3f9',
+    dark: '#7f9bd3',
+    pieceLight: '#fdfdfb',
+    pieceDark: '#14161c',
+    coordinateOnLight: '#6c86bd',
+    coordinateOnDark: '#f1f3f9',
+    selected: 'rgb(247 204 84 / 0.55)',
+    lastMove: 'rgb(247 214 104 / 0.42)',
+    check: 'rgb(206 70 62 / 0.86)',
+    legalMove: 'rgb(18 26 52 / 0.24)',
+    frame: '#16224a',
+  },
   {
     id: 'slate',
     name: 'Slate',
@@ -289,4 +312,5 @@ export const boardThemeVariables = (theme: BoardTheme): Record<string, string> =
   '--square-last-move': theme.lastMove,
   '--square-check': theme.check,
   '--square-legal': theme.legalMove,
+  '--board-frame-ring': theme.frame ? `0 0 0 5px ${theme.frame}` : '0 0 0 0 transparent',
 });

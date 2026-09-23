@@ -78,7 +78,7 @@ export function BookPanel() {
             </p>
             <table className="w-full text-[10.5px]">
               <thead>
-                <tr className="border-b border-line-subtle text-left text-[9.5px] uppercase tracking-wide text-tertiary">
+                <tr className="border-b border-line-subtle text-left text-[9.5px] text-tertiary">
                   <th className="px-2.5 py-1.5 font-medium">Move</th>
                   <th className="px-1.5 py-1.5 text-right font-medium">Weight</th>
                   <th className="px-1.5 py-1.5 text-right font-medium">Share</th>

@@ -91,7 +91,7 @@ export function PromptDialog({
               void submit();
             }
           }}
-          className="mt-1 h-8 w-full rounded-[4px] border border-line bg-surface-inset px-2.5 text-xs text-primary outline-none placeholder:text-tertiary/70 focus:border-accent/60"
+          className="mt-1 h-8 w-full rounded-[6px] border border-line bg-surface-inset px-2.5 text-xs text-primary outline-none placeholder:text-tertiary/70 focus:border-accent/60"
         />
       </label>
 
@@ -107,7 +107,7 @@ export function PromptDialog({
                 void submit();
               }
             }}
-            className="mt-1 h-20 w-full resize-none rounded-[4px] border border-line bg-surface-inset px-2.5 py-2 text-xs leading-relaxed text-primary outline-none placeholder:text-tertiary/70 focus:border-accent/60"
+            className="mt-1 h-20 w-full resize-none rounded-[6px] border border-line bg-surface-inset px-2.5 py-2 text-xs leading-relaxed text-primary outline-none placeholder:text-tertiary/70 focus:border-accent/60"
           />
         </label>
       )}

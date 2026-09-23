@@ -123,9 +123,7 @@ export function PlayerIdentityPanel({
             <li key={alias} className="flex items-center gap-2 text-xs">
               <span className="min-w-0 flex-1 truncate text-primary">{alias}</span>
               {alias === identity?.name || !identity?.stored ? (
-                <span className="shrink-0 text-[10px] uppercase tracking-wide text-tertiary">
-                  primary
-                </span>
+                <span className="shrink-0 text-[10px] text-tertiary">primary</span>
               ) : (
                 <IconButton
                   label={`Unlink ${alias}`}
@@ -185,13 +183,13 @@ function Field({
   readonly placeholder: string;
 }) {
   return (
-    <label className="flex flex-col gap-1 text-[10px] uppercase tracking-wide text-tertiary">
+    <label className="flex flex-col gap-1 text-[10px] text-tertiary">
       {label}
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="h-8 w-full rounded-[4px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none placeholder:text-tertiary/70 focus:border-accent/60"
+        className="h-8 w-full rounded-[6px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none placeholder:text-tertiary/70 focus:border-accent/60"
       />
     </label>
   );

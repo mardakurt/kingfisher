@@ -189,7 +189,7 @@ export function ModuleTabStrip({
         and `overflow-hidden` here cut it to one item (the Phase 72 audit's
         own regression, caught by the owner: "More shows only one option").
       */
-      className="flex shrink-0 flex-nowrap items-stretch overflow-x-clip overflow-y-visible border-b border-line-subtle"
+      className="flex h-10 shrink-0 flex-nowrap items-center gap-0.5 overflow-x-clip overflow-y-visible border-b border-line-subtle px-1.5"
       data-tab-strip
       data-tab-strip-compact={compact ? 'true' : undefined}
     >
@@ -206,10 +206,10 @@ export function ModuleTabStrip({
             title={tab.unavailable ?? tab.label}
             onClick={() => onChange(tab.id)}
             className={cn(
-              'relative flex h-8 shrink-0 items-center gap-1 px-2 text-xs font-medium whitespace-nowrap transition-colors',
+              'relative flex h-7 shrink-0 items-center gap-1.5 rounded-[6px] px-2.5 text-xs font-medium whitespace-nowrap transition-colors',
               selected
-                ? 'bg-surface-2 text-primary'
-                : 'text-tertiary hover:bg-surface-2/50 hover:text-secondary',
+                ? 'bg-surface-3 text-primary'
+                : 'text-secondary hover:bg-surface-2 hover:text-primary',
             )}
           >
             {compact ? null : <Icon className="h-3.5 w-3.5 shrink-0" />}
@@ -218,7 +218,6 @@ export function ModuleTabStrip({
             {tab.unavailable ? (
               <span aria-hidden className="size-1 rounded-full bg-tertiary/50" />
             ) : null}
-            {selected ? <span className="absolute inset-x-0 bottom-0 h-px bg-accent" /> : null}
           </button>
         );
       })}
@@ -228,10 +227,7 @@ export function ModuleTabStrip({
           next to the tabs; `ml-auto` here once left a blank band the user
           read as "empty space where something is missing".
         */
-        <div
-          data-tab-strip-more-box
-          className="ml-2 flex shrink-0 items-stretch border-l border-line-subtle"
-        >
+        <div data-tab-strip-more-box className="ml-1 flex shrink-0 items-center">
           <Menu
             align="end"
             sections={sections}
@@ -243,7 +239,7 @@ export function ModuleTabStrip({
                 aria-expanded={open}
                 aria-haspopup="menu"
                 data-tab-strip-more
-                className="flex h-8 shrink-0 items-center gap-1 px-2 text-xs font-medium whitespace-nowrap text-tertiary hover:bg-surface-2/50 hover:text-secondary"
+                className="flex h-7 shrink-0 items-center gap-1 rounded-[6px] px-2 text-xs font-medium whitespace-nowrap text-secondary hover:bg-surface-2 hover:text-primary"
               >
                 More
                 <span aria-hidden className="text-[9px]">
@@ -258,7 +254,10 @@ export function ModuleTabStrip({
       {actions ? (
         <div
           data-tab-strip-actions
-          className={cn('flex shrink-0 items-stretch', overflow.length === 0 && 'ml-auto')}
+          className={cn(
+            '-mr-1.5 flex shrink-0 items-stretch self-stretch',
+            overflow.length === 0 && 'ml-auto',
+          )}
         >
           {actions}
         </div>

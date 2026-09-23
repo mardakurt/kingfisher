@@ -202,7 +202,7 @@ function DatabasePositionPanel() {
           <select
             value={provider?.id ?? ''}
             onChange={(event) => prefs.set('explorerSourceId', event.target.value)}
-            className="mt-1 h-9 w-full rounded-[4px] border border-line bg-surface-inset px-2 text-sm text-primary"
+            className="mt-1 h-9 w-full rounded-[6px] border border-line bg-surface-inset px-2 text-sm text-primary"
           >
             {providers.map((entry) => (
               <option key={entry.id} value={entry.id}>
@@ -222,7 +222,7 @@ function DatabasePositionPanel() {
         </div>
         <Link
           href="/databases"
-          className="mt-4 inline-flex h-9 items-center rounded-[4px] border border-line px-3 text-sm text-secondary hover:bg-surface-2 hover:text-primary"
+          className="mt-4 inline-flex h-9 items-center rounded-[6px] border border-line px-3 text-sm text-secondary hover:bg-surface-2 hover:text-primary"
         >
           Manage data sources
         </Link>

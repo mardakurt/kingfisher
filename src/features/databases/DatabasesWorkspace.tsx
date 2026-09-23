@@ -190,9 +190,7 @@ export function DatabasesWorkspace() {
       <div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[300px_minmax(0,1fr)_300px] lg:overflow-hidden">
         <section className="flex min-h-0 flex-col border-b border-line-subtle bg-surface-1 lg:border-r lg:border-b-0">
           <div className="flex shrink-0 items-center gap-2 border-b border-line-subtle px-4 py-3">
-            <h2 className="text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">
-              Collections
-            </h2>
+            <h2 className="text-xs font-semibold text-tertiary">Collections</h2>
             {checked.size > 0 ? (
               <button
                 type="button"
@@ -301,9 +299,7 @@ export function DatabasesWorkspace() {
 
         <aside className="min-h-0 overflow-auto border-t border-line-subtle bg-surface-1 lg:border-t-0 lg:border-l">
           <div className="border-b border-line-subtle px-4 py-3">
-            <h2 className="text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">
-              Data sources
-            </h2>
+            <h2 className="text-xs font-semibold text-tertiary">Data sources</h2>
           </div>
           <ProviderHealthList />
           <div className="border-t border-line-subtle px-4 py-3">
@@ -403,7 +399,7 @@ function StorageSummary({
 
   return (
     <section className="border-t border-line-subtle px-4 py-3">
-      <h3 className="text-[10px] font-semibold uppercase tracking-wide text-tertiary">Storage</h3>
+      <h3 className="text-[10px] font-semibold text-tertiary">Storage</h3>
       <p className="mt-2 text-xs text-primary">Browser estimate: {estimate}</p>
       {ratio !== null ? (
         <div
@@ -464,7 +460,7 @@ function TabButton({
       title={hint}
       aria-current={active}
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-[4px] px-2.5 py-1.5 text-xs transition-colors',
+        'inline-flex items-center gap-1.5 rounded-[6px] px-2.5 py-1.5 text-xs transition-colors',
         'disabled:opacity-40',
         active
           ? 'bg-accent-muted font-medium text-primary'
@@ -534,9 +530,7 @@ function ProviderHealthRow({ provider }: { readonly provider: ChessDatabaseProvi
           <span className="block text-[11px] leading-snug text-secondary">
             {provider.description}
           </span>
-          <span className="mt-0.5 block text-[10px] uppercase tracking-wide text-tertiary">
-            {LABELS[state]}
-          </span>
+          <span className="mt-0.5 block text-[10px] text-tertiary">{LABELS[state]}</span>
         </div>
       </div>
       {/*

@@ -57,7 +57,7 @@ export function TranspositionRoutes({
 
   return (
     <section className="border-t border-line-subtle px-3 py-2.5">
-      <h4 className="text-[9.5px] uppercase tracking-wide text-tertiary">Reached through</h4>
+      <h4 className="text-[9.5px] text-tertiary">Reached through</h4>
       <ol className="mt-1 flex flex-col gap-0.5">
         {view.routes.routes.map((route) => (
           <li key={route.moves.map((move) => move.toKey).join('|')}>

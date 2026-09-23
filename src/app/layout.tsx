@@ -112,28 +112,32 @@ export const metadata: Metadata = {
     `manifest.webmanifest/route.ts`. Only the Windows tile needs saying out
     loud.
   */
-  other: { 'msapplication-TileColor': '#0b0d11' },
+  other: { 'msapplication-TileColor': '#ffffff' },
 };
 
 export const viewport: Viewport = {
-  themeColor: '#0b0d11',
+  themeColor: '#ffffff',
   width: 'device-width',
   initialScale: 1,
 };
 
 /**
  * Applies the stored theme before first paint. Without this the app renders one
- * frame in the default theme and then swaps, which is very visible on a
- * dark-first interface.
+ * frame in the default theme and then swaps, which is very visible when the
+ * stored theme is the other one.
  */
 const THEME_BOOTSTRAP = `
 (function () {
   try {
     var raw = localStorage.getItem('kingfisher.preferences');
-    var theme = raw ? (JSON.parse(raw).state || {}).theme : null;
-    document.documentElement.dataset.theme = theme === 'light' ? 'light' : 'dark';
+    var stored = raw ? JSON.parse(raw) : null;
+    var theme = stored ? (stored.state || {}).theme : null;
+    /* A profile older than version 7 is moved to light by the store's
+       migration; paint what it will become, not what it was. */
+    var migrated = stored && (stored.version || 0) < 7;
+    document.documentElement.dataset.theme = theme === 'dark' && !migrated ? 'dark' : 'light';
   } catch (error) {
-    document.documentElement.dataset.theme = 'dark';
+    document.documentElement.dataset.theme = 'light';
   }
 })();
 `;
@@ -178,7 +182,7 @@ const WINDOW_CHROME_BOOTSTRAP = `
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="dark" suppressHydrationWarning>
+    <html lang="en" data-theme="light" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }} />
         <script dangerouslySetInnerHTML={{ __html: WINDOW_CHROME_BOOTSTRAP }} />

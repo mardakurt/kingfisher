@@ -59,7 +59,7 @@ export function ProfileGreeting() {
     return (
       <div
         data-profile-greeting="prompt"
-        className="m-1.5 rounded-[5px] border border-line-subtle bg-surface-2 p-2"
+        className="m-1.5 rounded-[7px] border border-line-subtle bg-surface-2 p-2"
       >
         <p className="text-2xs leading-relaxed text-tertiary">
           What should we call you? A name is what makes this your workspace — your studies,
@@ -78,7 +78,7 @@ export function ProfileGreeting() {
           placeholder="Your name"
           aria-label="Your name"
           className={cn(
-            'mt-2 h-8 w-full rounded-[4px] border border-line bg-surface-inset px-2.5 text-xs text-primary outline-none',
+            'mt-2 h-8 w-full rounded-[6px] border border-line bg-surface-inset px-2.5 text-xs text-primary outline-none',
             'placeholder:text-tertiary/60 focus:border-accent/60',
           )}
         />
@@ -89,7 +89,7 @@ export function ProfileGreeting() {
             onClick={() => void save()}
             disabled={busy || !draft.trim()}
             className={cn(
-              'rounded-[4px] bg-accent px-3 py-1 text-xs font-medium text-accent-fg transition-opacity',
+              'rounded-[6px] bg-accent px-3 py-1 text-xs font-medium text-accent-fg transition-opacity',
               (busy || !draft.trim()) && 'cursor-not-allowed opacity-50',
             )}
           >
@@ -104,7 +104,7 @@ export function ProfileGreeting() {
     return (
       <div
         data-profile-greeting="set"
-        className="m-1.5 flex items-center gap-2 rounded-[5px] px-2 py-1.5 text-2xs text-secondary"
+        className="m-1.5 flex items-center gap-2 rounded-[7px] px-2 py-1.5 text-2xs text-secondary"
       >
         <span className="truncate">
           <span className="text-tertiary">Welcome back, </span>
@@ -114,7 +114,7 @@ export function ProfileGreeting() {
           type="button"
           onClick={() => openSettingsAt('profile')}
           aria-label="Change your name in Settings"
-          className="ml-auto rounded-[4px] px-1.5 py-0.5 text-tertiary transition-colors hover:bg-surface-2 hover:text-primary"
+          className="ml-auto rounded-[6px] px-1.5 py-0.5 text-tertiary transition-colors hover:bg-surface-2 hover:text-primary"
         >
           Edit
         </button>

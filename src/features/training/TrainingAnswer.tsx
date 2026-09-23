@@ -189,7 +189,7 @@ function MoveAnswer({
       {played.map((move) => (
         <span
           key={move.uci}
-          className="flex items-center gap-1 rounded-[3px] border border-line bg-surface-2 px-1.5 py-0.5 text-2xs text-primary"
+          className="flex items-center gap-1 rounded-[5px] border border-line bg-surface-2 px-1.5 py-0.5 text-2xs text-primary"
         >
           {move.san}
           {!locked && collecting ? (
@@ -295,7 +295,7 @@ function PlanAnswer({
         disabled={locked}
         onChange={(event) => onChange(event.target.value)}
         placeholder="Trade the light-squared bishops, then push c5."
-        className="mt-2 min-h-16 w-full resize-y rounded-[4px] border border-line bg-surface-inset px-2.5 py-2 text-xs leading-relaxed text-primary outline-none focus:border-accent/60 disabled:opacity-70"
+        className="mt-2 min-h-16 w-full resize-y rounded-[6px] border border-line bg-surface-inset px-2.5 py-2 text-xs leading-relaxed text-primary outline-none focus:border-accent/60 disabled:opacity-70"
       />
       {!locked ? (
         <div className="mt-1.5 flex justify-end">

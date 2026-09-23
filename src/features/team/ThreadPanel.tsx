@@ -143,7 +143,7 @@ export function ThreadPanel({
         <p className="mt-1">
           <span
             className={cn(
-              'inline-block rounded-[3px] px-1.5 py-0.5 text-[10px] font-medium',
+              'inline-block rounded-[5px] px-1.5 py-0.5 text-[10px] font-medium',
               status === 'accepted' && 'bg-positive/15 text-positive',
               status === 'handed-in' && 'bg-accent/15 text-accent',
               status === 'returned' && 'bg-caution/15 text-caution',
@@ -155,7 +155,7 @@ export function ThreadPanel({
           </span>
         </p>
         {assignment.opponent ? (
-          <div className="mt-2 flex flex-wrap items-center gap-2 rounded-[4px] border border-line-subtle bg-surface-2 px-2.5 py-1.5">
+          <div className="mt-2 flex flex-wrap items-center gap-2 rounded-[6px] border border-line-subtle bg-surface-2 px-2.5 py-1.5">
             <span className="text-[11px] text-primary">
               vs {assignment.opponent}
               {assignment.myColor
@@ -198,7 +198,7 @@ export function ThreadPanel({
             </p>
           </div>
         ) : null}
-        <h4 className="mt-4 text-[9.5px] uppercase tracking-wide text-tertiary">Thread</h4>
+        <h4 className="mt-4 text-[9.5px] text-tertiary">Thread</h4>
         {assignment.handovers.length === 0 ? (
           <p className="mt-1 text-[10.5px] text-tertiary">Nothing handed over yet.</p>
         ) : (
@@ -206,7 +206,7 @@ export function ThreadPanel({
             {threadOrder(assignment.handovers).map((handover) => (
               <li
                 key={handover.id}
-                className="rounded-[4px] border border-line-subtle bg-surface-2 px-2.5 py-2"
+                className="rounded-[6px] border border-line-subtle bg-surface-2 px-2.5 py-2"
                 data-team-handover={handover.kind}
               >
                 <p className="text-[10.5px] text-secondary">
@@ -265,7 +265,7 @@ export function ThreadPanel({
                 : 'What you found, and where you were unsure.'
             }
             aria-label="Note"
-            className="mt-1.5 w-full resize-y rounded-[4px] border border-line bg-surface-inset px-2 py-1.5 text-[11px] leading-relaxed text-primary outline-none focus:border-accent/60"
+            className="mt-1.5 w-full resize-y rounded-[6px] border border-line bg-surface-inset px-2 py-1.5 text-[11px] leading-relaxed text-primary outline-none focus:border-accent/60"
           />
           {iReview ? (
             <>

@@ -77,7 +77,7 @@ export function ShortcutsDialog() {
         <div
           role="alertdialog"
           aria-label="Shortcut conflict"
-          className="mb-3 rounded-[5px] border border-negative/40 bg-negative/10 p-3"
+          className="mb-3 rounded-[7px] border border-negative/40 bg-negative/10 p-3"
         >
           <p className="text-xs text-primary">
             {formatBinding(pending.binding)} is already assigned to{' '}
@@ -106,9 +106,7 @@ export function ShortcutsDialog() {
       <div className="grid grid-cols-2 gap-x-8 gap-y-5">
         {GROUPS.map((group) => (
           <section key={group}>
-            <h3 className="mb-1.5 text-2xs font-medium uppercase tracking-[0.08em] text-tertiary">
-              {group}
-            </h3>
+            <h3 className="mb-1.5 text-2xs font-semibold text-tertiary">{group}</h3>
             <dl className="flex flex-col gap-1">
               {SHORTCUTS.filter((shortcut) => shortcut.group === group).map((shortcut) => {
                 const editable = !shortcut.mouse && !shortcut.fixed;
@@ -142,7 +140,7 @@ export function ShortcutsDialog() {
                             commit(shortcut.id, bindingFromEvent(event));
                           }}
                           className={cn(
-                            'rounded-[3px] border px-1.5 py-0.5 font-mono text-[10px]',
+                            'rounded-[5px] border px-1.5 py-0.5 font-mono text-[10px]',
                             capturing === shortcut.id
                               ? 'border-accent bg-accent/15 text-primary'
                               : 'border-line bg-surface-2 text-tertiary hover:border-line-strong hover:text-primary',
@@ -161,7 +159,7 @@ export function ShortcutsDialog() {
                               : formatBinding(binding)}
                         </button>
                       ) : (
-                        <kbd className="rounded-[3px] border border-line bg-surface-2 px-1.5 py-0.5 font-mono text-[10px] text-tertiary">
+                        <kbd className="rounded-[5px] border border-line bg-surface-2 px-1.5 py-0.5 font-mono text-[10px] text-tertiary">
                           {shortcut.mouse ? shortcut.defaultBinding : formatBinding(binding)}
                         </kbd>
                       )}
@@ -184,15 +182,13 @@ export function ShortcutsDialog() {
         ))}
 
         <section className="col-span-2 border-t border-line-subtle pt-4">
-          <h3 className="mb-1.5 text-2xs font-medium uppercase tracking-[0.08em] text-tertiary">
-            Board annotation
-          </h3>
+          <h3 className="mb-1.5 text-2xs font-semibold text-tertiary">Board annotation</h3>
           <dl className="grid grid-cols-2 gap-x-8 gap-y-1">
             {ANNOTATION_HINTS.map((hint) => (
               <div key={hint.keys} className="flex items-baseline justify-between gap-3">
                 <dt className="text-xs text-secondary">{hint.label}</dt>
                 <dd>
-                  <kbd className="rounded-[3px] border border-line bg-surface-2 px-1.5 py-0.5 font-mono text-[10px] text-tertiary">
+                  <kbd className="rounded-[5px] border border-line bg-surface-2 px-1.5 py-0.5 font-mono text-[10px] text-tertiary">
                     {hint.keys}
                   </kbd>
                 </dd>

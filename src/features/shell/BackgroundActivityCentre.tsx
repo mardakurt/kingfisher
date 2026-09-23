@@ -149,7 +149,7 @@ export function BackgroundActivityCentre() {
           aria-haspopup="menu"
           data-background-activity
           className={cn(
-            'flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[3px] px-1.5 text-[10.5px] transition-colors hover:bg-surface-2',
+            'flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[5px] px-1.5 text-[10.5px] transition-colors hover:bg-surface-2',
             failing ? 'text-negative' : 'text-secondary',
           )}
         >

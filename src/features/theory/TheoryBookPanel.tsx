@@ -97,7 +97,7 @@ export function TheoryBookPanel() {
     <button
       type="button"
       onClick={toStart}
-      className="rounded-[3px] px-1 py-1 text-xs text-secondary hover:bg-surface-2"
+      className="rounded-[5px] px-1 py-1 text-xs text-secondary hover:bg-surface-2"
     >
       All openings
     </button>
@@ -227,7 +227,7 @@ export function TheoryBookPanel() {
                 type="button"
                 onClick={() => openLine(crumb.moves)}
                 className={cn(
-                  'rounded-[3px] px-1 py-0.5 text-xs hover:bg-surface-2',
+                  'rounded-[5px] px-1 py-0.5 text-xs hover:bg-surface-2',
                   index === crumbs.length - 1 ? 'font-semibold text-primary' : 'text-secondary',
                 )}
               >
@@ -341,7 +341,7 @@ function BranchList({
 
   return (
     <section className="mt-3 border-t border-line-subtle pt-2">
-      <h3 className="text-[10px] font-semibold uppercase tracking-[0.08em] text-tertiary">
+      <h3 className="text-[10px] font-semibold text-tertiary">
         {nodes.length === 0 ? title : `${title} (${nodes.length})`}
       </h3>
       {nodes.length === 0 ? (

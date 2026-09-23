@@ -29,7 +29,7 @@ export const PanelHeader = ({ children, actions, className }: PanelHeaderProps) 
       className,
     )}
   >
-    <div className="flex min-w-0 items-center gap-2 text-2xs font-medium uppercase tracking-[0.08em] text-tertiary">
+    <div className="flex min-w-0 items-center gap-2 text-2xs font-semibold text-tertiary">
       {children}
     </div>
     {actions && <div className="flex shrink-0 items-center gap-0.5">{actions}</div>}

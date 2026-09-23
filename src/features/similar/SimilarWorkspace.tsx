@@ -218,7 +218,7 @@ export function SimilarWorkspace() {
 
         {submitted !== null ? (
           <section className="mb-3" data-testid="similar-mine">
-            <h2 className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-tertiary">
+            <h2 className="mb-1 text-[10px] font-semibold text-tertiary">
               My games · {mine.data?.length ?? 0}
             </h2>
             {(mine.data?.length ?? 0) === 0 ? (
@@ -231,7 +231,7 @@ export function SimilarWorkspace() {
                   <li key={`${row.game.id}:${row.position.ply}`}>
                     <button
                       type="button"
-                      className="w-full rounded-[4px] border border-line px-2 py-1.5 text-left hover:bg-surface-2"
+                      className="w-full rounded-[6px] border border-line px-2 py-1.5 text-left hover:bg-surface-2"
                       onClick={() => void openMine(row)}
                     >
                       <span className="block truncate text-primary">{gameTitle(row.game)}</span>
@@ -251,7 +251,7 @@ export function SimilarWorkspace() {
 
         {(collections.data ?? []).map((collection) => (
           <section key={collection.key} className="mb-3">
-            <h2 className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-tertiary">
+            <h2 className="mb-1 text-[10px] font-semibold text-tertiary">
               {collection.name} · {collection.results.length}
             </h2>
             {collection.results.length === 0 ? (
@@ -260,7 +260,7 @@ export function SimilarWorkspace() {
               <ul className="space-y-1">
                 {collection.results.map((row) => (
                   <li key={`${collection.key}:${row.game.id}:${row.position.ply}`}>
-                    <span className="block rounded-[4px] border border-line px-2 py-1.5">
+                    <span className="block rounded-[6px] border border-line px-2 py-1.5">
                       <span className="block truncate text-primary">{gameTitle(row.game)}</span>
                       <span className="block truncate text-2xs text-tertiary">
                         move {Math.floor(row.position.ply / 2) + 1} · in {collection.name}
@@ -279,14 +279,14 @@ export function SimilarWorkspace() {
             className="mb-3"
             data-testid={`similar-pack-${answer.packId}`}
           >
-            <h2 className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-tertiary">
+            <h2 className="mb-1 text-[10px] font-semibold text-tertiary">
               {answer.packName} ·{' '}
               {answer.unanswerable ? 'cannot answer this' : answer.matches.length}
             </h2>
             {answer.unanswerable ? (
               <p
                 className={cn(
-                  'rounded-[4px] border border-caution/40 bg-caution/10 p-2 text-caution',
+                  'rounded-[6px] border border-caution/40 bg-caution/10 p-2 text-caution',
                 )}
               >
                 {answer.unanswerable}
@@ -299,7 +299,7 @@ export function SimilarWorkspace() {
                   <li key={`${answer.packId}:${match.game.id}`}>
                     <button
                       type="button"
-                      className="w-full rounded-[4px] border border-line px-2 py-1.5 text-left hover:bg-surface-2"
+                      className="w-full rounded-[6px] border border-line px-2 py-1.5 text-left hover:bg-surface-2"
                       onClick={() =>
                         void openPackGame(
                           answer,

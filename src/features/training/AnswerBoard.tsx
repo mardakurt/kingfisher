@@ -136,7 +136,7 @@ export function AnswerBoard({ fen, moves, onChange, multiple, orientation }: Ans
               moves.map((move, index) => (
                 <span
                   key={move.uci}
-                  className="flex items-center gap-1 rounded-[3px] border border-line bg-surface-2 px-1.5 py-0.5 text-2xs text-primary"
+                  className="flex items-center gap-1 rounded-[5px] border border-line bg-surface-2 px-1.5 py-0.5 text-2xs text-primary"
                 >
                   {multiple ? <span className="text-tertiary tabular">{index + 1}</span> : null}
                   {move.san}
@@ -162,7 +162,7 @@ export function AnswerBoard({ fen, moves, onChange, multiple, orientation }: Ans
                   disabled={index === 0}
                   onClick={() => onChange(swap(moves, index, index - 1))}
                   className={cn(
-                    'rounded-[3px] border border-line px-1.5 py-0.5 text-[10px]',
+                    'rounded-[5px] border border-line px-1.5 py-0.5 text-[10px]',
                     index === 0 ? 'text-tertiary/40' : 'text-tertiary hover:text-secondary',
                   )}
                 >
@@ -186,7 +186,7 @@ export function AnswerBoard({ fen, moves, onChange, multiple, orientation }: Ans
                 value={raw}
                 onChange={(event) => setRaw(event.target.value)}
                 placeholder="Nf3, e4 or g1f3"
-                className="h-7 min-w-0 flex-1 rounded-[3px] border border-line bg-surface-inset px-2 text-[11px] text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60"
+                className="h-7 min-w-0 flex-1 rounded-[5px] border border-line bg-surface-inset px-2 text-[11px] text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60"
               />
               <Button onClick={addRaw} disabled={!raw.trim()}>
                 Add

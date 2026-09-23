@@ -82,7 +82,7 @@ export function RoundsJournal() {
     <div className="h-full overflow-y-auto" data-rounds-journal>
       {groupByEvent(entries).map((group) => (
         <section key={group.event} className="border-b border-line-subtle px-3 py-2.5">
-          <h3 className="text-[10px] uppercase tracking-wide text-tertiary">{group.event}</h3>
+          <h3 className="text-[10px] text-tertiary">{group.event}</h3>
           <ul className="mt-1.5 space-y-2.5">
             {group.entries.map((entry) => (
               <li key={entry.id} data-rounds-entry={entry.fingerprint}>

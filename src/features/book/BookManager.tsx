@@ -94,7 +94,7 @@ export function BookManager() {
         {list.map((book, index) => (
           <li
             key={book.id}
-            className="flex items-start gap-2.5 rounded-[4px] border border-line bg-surface-inset p-2.5"
+            className="flex items-start gap-2.5 rounded-[6px] border border-line bg-surface-inset p-2.5"
             data-book-row={book.id}
           >
             <Toggle
@@ -116,7 +116,7 @@ export function BookManager() {
                 aria-label={`Consult ${book.name} earlier`}
                 disabled={index === 0}
                 onClick={() => move(book.id, -1)}
-                className="rounded-[3px] p-1 text-tertiary hover:bg-surface-2 hover:text-primary disabled:opacity-30"
+                className="rounded-[5px] p-1 text-tertiary hover:bg-surface-2 hover:text-primary disabled:opacity-30"
               >
                 <ArrowUp className="h-3.5 w-3.5" />
               </button>
@@ -125,7 +125,7 @@ export function BookManager() {
                 aria-label={`Consult ${book.name} later`}
                 disabled={index === list.length - 1}
                 onClick={() => move(book.id, 1)}
-                className="rounded-[3px] p-1 text-tertiary hover:bg-surface-2 hover:text-primary disabled:opacity-30"
+                className="rounded-[5px] p-1 text-tertiary hover:bg-surface-2 hover:text-primary disabled:opacity-30"
               >
                 <ArrowDown className="h-3.5 w-3.5" />
               </button>
@@ -168,7 +168,7 @@ export function BookManager() {
         </p>
       </div>
 
-      <div className="rounded-[4px] border border-line bg-surface-2 p-2.5">
+      <div className="rounded-[6px] border border-line bg-surface-2 p-2.5">
         <p className="flex items-start gap-1.5 text-[10.5px] text-secondary">
           <Warning className="mt-[1px] h-3.5 w-3.5 shrink-0 text-caution" />
           <span>

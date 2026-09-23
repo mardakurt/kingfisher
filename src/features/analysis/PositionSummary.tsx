@@ -80,7 +80,7 @@ export function PositionSummary() {
           data-opening-classification={opening.eco}
           title={`${opening.ply < node.ply ? 'Last classified opening: ' : ''}${openingLabel(opening)} — classified by Kingfisher from the position, at move ${moveNumberOfPly(opening.ply)}`}
         >
-          <span className="rounded-[3px] border border-line bg-surface-2 px-1 text-[10px] font-semibold text-secondary tabular">
+          <span className="rounded-[5px] border border-line bg-surface-2 px-1 text-[10px] font-semibold text-secondary tabular">
             {opening.eco}
           </span>
           <span className="truncate text-secondary">

@@ -421,7 +421,7 @@ function createWindow() {
     minWidth: 900,
     minHeight: 600,
     show: false,
-    backgroundColor: '#0b0d11',
+    backgroundColor: '#ffffff',
     titleBarStyle: mac ? 'hidden' : 'default',
     ...(mac ? { trafficLightPosition: { ...MAC_TRAFFIC_LIGHT_POSITION } } : {}),
     webPreferences: {

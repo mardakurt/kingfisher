@@ -119,7 +119,7 @@ export function JournalAnalytics({
             aria-label="Analytics period"
             value={periodId}
             onChange={(event) => setPeriodId(event.target.value)}
-            className="h-6 rounded-[3px] border border-line bg-surface-inset px-1.5 text-[10.5px] text-primary"
+            className="h-6 rounded-[5px] border border-line bg-surface-inset px-1.5 text-[10.5px] text-primary"
           >
             {PERIODS.map((entry) => (
               <option key={entry.id} value={entry.id}>
@@ -151,7 +151,7 @@ export function JournalAnalytics({
                       type="button"
                       disabled={bucket.count === 0}
                       onClick={() => open(bucket.decisionIds)}
-                      className="flex w-full items-center gap-2 rounded-[4px] px-1 py-0.5 text-left transition-colors hover:bg-surface-2 disabled:opacity-50 disabled:hover:bg-transparent"
+                      className="flex w-full items-center gap-2 rounded-[6px] px-1 py-0.5 text-left transition-colors hover:bg-surface-2 disabled:opacity-50 disabled:hover:bg-transparent"
                     >
                       <span className="w-[11ch] shrink-0 text-[10.5px] text-secondary">
                         {bucket.label}
@@ -199,7 +199,7 @@ export function JournalAnalytics({
               type="button"
               disabled={coverage.hitIds.length === 0}
               onClick={() => open(coverage.hitIds)}
-              className="flex-1 rounded-[4px] border border-line-subtle px-2 py-1 text-left text-[10.5px] text-tertiary hover:border-accent/50 disabled:opacity-50"
+              className="flex-1 rounded-[6px] border border-line-subtle px-2 py-1 text-left text-[10.5px] text-tertiary hover:border-accent/50 disabled:opacity-50"
             >
               On the list · <span className="tabular">{coverage.hitIds.length}</span>
             </button>
@@ -207,7 +207,7 @@ export function JournalAnalytics({
               type="button"
               disabled={coverage.missedIds.length === 0}
               onClick={() => open(coverage.missedIds)}
-              className="flex-1 rounded-[4px] border border-line-subtle px-2 py-1 text-left text-[10.5px] text-tertiary hover:border-accent/50 disabled:opacity-50"
+              className="flex-1 rounded-[6px] border border-line-subtle px-2 py-1 text-left text-[10.5px] text-tertiary hover:border-accent/50 disabled:opacity-50"
             >
               Not on the list · <span className="tabular">{coverage.missedIds.length}</span>
             </button>
@@ -244,7 +244,7 @@ export function JournalAnalytics({
                     type="button"
                     onClick={() => open(entry.decisionIds)}
                     className={cn(
-                      'flex w-full items-baseline gap-2 rounded-[4px] px-1 py-0.5 text-left',
+                      'flex w-full items-baseline gap-2 rounded-[6px] px-1 py-0.5 text-left',
                       'transition-colors hover:bg-surface-2',
                     )}
                   >

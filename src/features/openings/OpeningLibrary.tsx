@@ -81,7 +81,7 @@ export function OpeningLibrary() {
               }}
               placeholder="Najdorf · B90 · 1.e4 c5 2.Nf3 · a FEN"
               aria-label="Search openings"
-              className="h-9 w-full rounded-[5px] border border-line bg-surface-2 pl-8 pr-2.5 text-sm text-primary placeholder:text-tertiary focus:border-accent focus:outline-none"
+              className="h-9 w-full rounded-[7px] border border-line bg-surface-2 pl-8 pr-2.5 text-sm text-primary placeholder:text-tertiary focus:border-accent focus:outline-none"
             />
           </label>
           {query.trim().length === 0 ? (
@@ -91,7 +91,7 @@ export function OpeningLibrary() {
                   key={family}
                   type="button"
                   onClick={() => setQuery(family)}
-                  className="rounded-[4px] border border-line px-1.5 py-0.5 text-[11px] text-tertiary transition-colors hover:border-line-strong hover:text-secondary"
+                  className="rounded-[6px] border border-line px-1.5 py-0.5 text-[11px] text-tertiary transition-colors hover:border-line-strong hover:text-secondary"
                 >
                   {family.replace(' Defense', '').replace(' Opening', '')}
                 </button>
@@ -236,7 +236,7 @@ function OpeningDetail({ entry }: { readonly entry: OpeningEntry }) {
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-baseline gap-2">
-            <span className="rounded-[3px] bg-surface-3 px-1.5 py-0.5 font-mono text-xs text-accent">
+            <span className="rounded-[5px] bg-surface-3 px-1.5 py-0.5 font-mono text-xs text-accent">
               {entry.eco}
             </span>
             <h2 className="text-lg font-semibold text-primary">{entry.name}</h2>
@@ -306,7 +306,7 @@ function OpeningDetail({ entry }: { readonly entry: OpeningEntry }) {
               {percent(explorer.data?.black ?? 0, total)} black
             </p>
             <table className="w-full text-xs">
-              <thead className="border-b border-line-subtle text-left text-[10px] uppercase tracking-wide text-tertiary">
+              <thead className="border-b border-line-subtle text-left text-[10px] text-tertiary">
                 <tr>
                   <th className="py-1.5">Move</th>
                   <th className="py-1.5 text-right">Games</th>
@@ -419,9 +419,7 @@ const Section = ({
   readonly children: React.ReactNode;
 }) => (
   <section className="mt-5 border-t border-line-subtle pt-3">
-    <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-tertiary">
-      {title}
-    </h3>
+    <h3 className="mb-2 text-[10px] font-semibold text-tertiary">{title}</h3>
     {children}
   </section>
 );

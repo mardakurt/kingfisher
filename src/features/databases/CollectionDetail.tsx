@@ -247,9 +247,7 @@ export function CollectionDetail({ collection, onTransfer, onChanged }: Collecti
       </dl>
 
       <section className="border-b border-line-subtle py-5">
-        <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">
-          Move games
-        </h3>
+        <h3 className="text-xs font-semibold text-tertiary">Move games</h3>
         <div className="mt-3 flex flex-wrap gap-2">
           <Button icon={<Copy />} onClick={() => onTransfer({ kind: 'copy', source: collection })}>
             Copy to…
@@ -305,9 +303,7 @@ export function CollectionDetail({ collection, onTransfer, onChanged }: Collecti
       <section className="border-b border-line-subtle py-5">
         <div className="flex flex-wrap items-start gap-3">
           <div className="min-w-0">
-            <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">
-              Indexes and integrity
-            </h3>
+            <h3 className="text-xs font-semibold text-tertiary">Indexes and integrity</h3>
             <p className="mt-1 text-xs text-tertiary">
               {integrityLine(integrity.data, integrity.isFetching, integrity.isError)}
             </p>
@@ -332,9 +328,7 @@ export function CollectionDetail({ collection, onTransfer, onChanged }: Collecti
       </section>
 
       <section className="py-5">
-        <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">
-          Collection
-        </h3>
+        <h3 className="text-xs font-semibold text-tertiary">Collection</h3>
         <div className="mt-3 flex flex-wrap gap-2">
           <Button icon={<Pencil />} disabled={!sqliteKey} onClick={() => setRenaming(true)}>
             Rename

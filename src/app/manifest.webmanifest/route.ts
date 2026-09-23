@@ -53,8 +53,8 @@ const STUDIO_MANIFEST = {
   scope: '/',
   display: 'standalone',
   orientation: 'any',
-  background_color: '#0b0d11',
-  theme_color: '#0b0d11',
+  background_color: '#ffffff',
+  theme_color: '#ffffff',
   categories: ['productivity', 'education', 'games'],
   icons: [
     { src: ICON_192, sizes: '192x192', type: 'image/png', purpose: 'any' },

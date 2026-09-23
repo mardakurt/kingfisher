@@ -88,13 +88,11 @@ export function GameInsightsPanel() {
           <>
             <section className="border-b border-line-subtle px-3 py-3">
               <div className="flex items-center gap-2">
-                <span className="text-[10px] uppercase tracking-wide text-tertiary">
-                  Compare repertoire
-                </span>
+                <span className="text-[10px] text-tertiary">Compare repertoire</span>
                 <select
                   value={effectiveId ?? ''}
                   onChange={(event) => setSelectedId(event.target.value)}
-                  className="ml-auto h-6 max-w-44 rounded-[3px] border border-line bg-surface-inset px-1.5 text-[10.5px] text-secondary"
+                  className="ml-auto h-6 max-w-44 rounded-[5px] border border-line bg-surface-inset px-1.5 text-[10.5px] text-secondary"
                 >
                   {matching.map((entry) => (
                     <option key={entry.id} value={entry.id}>
@@ -139,7 +137,7 @@ export function GameInsightsPanel() {
               ) : null}
             </section>
             <section className="px-3 py-3">
-              <h3 className="text-[10px] uppercase tracking-wide text-tertiary">Factual markers</h3>
+              <h3 className="text-[10px] text-tertiary">Factual markers</h3>
               <dl className="mt-2 grid grid-cols-2 gap-y-1 text-2xs">
                 <dt className="text-tertiary">Repeated positions</dt>
                 <dd className="text-right text-secondary tabular">{insights.repeated}</dd>

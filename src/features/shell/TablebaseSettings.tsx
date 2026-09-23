@@ -154,7 +154,7 @@ export function TablebaseSettings() {
           </dl>
 
           {helper && !helper.built ? (
-            <p className="mt-2 rounded-[4px] border border-line bg-surface-inset px-2.5 py-2 text-[10.5px] leading-relaxed text-secondary">
+            <p className="mt-2 rounded-[6px] border border-line bg-surface-inset px-2.5 py-2 text-[10.5px] leading-relaxed text-secondary">
               The probe helper has not been built on this machine. Run{' '}
               <span className="font-mono">npm run tablebase:install</span> — it fetches
               Fathom&rsquo;s MIT-licensed decoder and compiles it. A machine with no C compiler

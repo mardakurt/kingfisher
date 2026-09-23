@@ -103,7 +103,7 @@ function ModelGameForm() {
               {MODEL_GAME_TAGS.map((tag) => (
                 <label
                   key={tag.id}
-                  className="flex items-center gap-2 rounded-[4px] border border-line px-2 py-1.5 text-2xs text-secondary"
+                  className="flex items-center gap-2 rounded-[6px] border border-line px-2 py-1.5 text-2xs text-secondary"
                 >
                   <input
                     type="checkbox"
@@ -186,6 +186,6 @@ function ModelGameForm() {
 }
 
 const FIELD =
-  'mt-1 h-8 w-full rounded-[4px] border border-line bg-surface-inset px-2.5 text-xs text-primary outline-none focus:border-accent/60';
+  'mt-1 h-8 w-full rounded-[6px] border border-line bg-surface-inset px-2.5 text-xs text-primary outline-none focus:border-accent/60';
 const AREA =
-  'mt-1 min-h-20 w-full resize-y rounded-[4px] border border-line bg-surface-inset px-2.5 py-2 text-xs leading-relaxed text-primary outline-none focus:border-accent/60';
+  'mt-1 min-h-20 w-full resize-y rounded-[6px] border border-line bg-surface-inset px-2.5 py-2 text-xs leading-relaxed text-primary outline-none focus:border-accent/60';

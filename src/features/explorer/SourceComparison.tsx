@@ -102,7 +102,7 @@ export function SourceComparison({
       data-source-comparison
     >
       <div className="flex flex-wrap items-center gap-1.5">
-        <h3 className="text-[10px] uppercase tracking-wide text-tertiary">Compare sources</h3>
+        <h3 className="text-[10px] text-tertiary">Compare sources</h3>
         <span className="ml-auto text-[10px] text-tertiary">
           {ids.length}/{MAX_COLUMNS}
         </span>
@@ -118,7 +118,7 @@ export function SourceComparison({
             aria-pressed={ids.includes(source.id)}
             disabled={!ids.includes(source.id) && ids.length >= MAX_COLUMNS}
             className={cn(
-              'rounded-[3px] border px-1.5 py-0.5 text-[10px]',
+              'rounded-[5px] border px-1.5 py-0.5 text-[10px]',
               ids.includes(source.id)
                 ? 'border-accent/60 bg-accent/10 text-primary'
                 : 'border-line text-tertiary hover:text-secondary disabled:opacity-40',
@@ -139,7 +139,7 @@ export function SourceComparison({
           <div className="mt-2 overflow-x-auto">
             <table className="w-full border-collapse text-[10.5px]" data-comparison-table>
               <thead>
-                <tr className="text-left text-[9.5px] uppercase tracking-wide text-tertiary">
+                <tr className="text-left text-[9.5px] text-tertiary">
                   <th className="py-1 pr-2 font-medium">Move</th>
                   {comparison.columns.map((column) => (
                     <th
@@ -204,7 +204,7 @@ export function SourceComparison({
             <button
               type="button"
               onClick={() => setShowScore(!showScore)}
-              className="rounded-[3px] border border-line px-1.5 py-0.5 text-[10px] text-tertiary hover:text-secondary"
+              className="rounded-[5px] border border-line px-1.5 py-0.5 text-[10px] text-tertiary hover:text-secondary"
             >
               {showScore ? 'Showing score' : 'Showing share'}
             </button>

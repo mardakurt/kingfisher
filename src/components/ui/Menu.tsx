@@ -78,7 +78,7 @@ function MenuList({ sections, onClose, labelledBy, autoFocus = true }: MenuListP
         so a long menu scrolls on a laptop in split screen instead of running
         off the bottom with its last items unreachable.
       */
-      className="max-h-[min(70dvh,32rem)] min-w-[200px] overflow-y-auto overscroll-contain rounded-[5px] border border-line-strong bg-surface-1 py-1 shadow-2xl"
+      className="max-h-[min(70dvh,32rem)] min-w-[200px] overflow-y-auto overscroll-contain rounded-[7px] border border-line-strong bg-surface-1 py-1 shadow-2xl"
     >
       {sections.map((section, index) => (
         <div key={section.id}>

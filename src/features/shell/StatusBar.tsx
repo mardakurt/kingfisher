@@ -147,7 +147,7 @@ export function StatusBar() {
               : `Backed up ${backupDays} day${backupDays === 1 ? '' : 's'} ago. Click to manage backups.`
         }
         className={cn(
-          'ml-1 hidden shrink-0 items-center gap-1 whitespace-nowrap rounded-[3px] px-1.5 py-0.5 transition-colors sm:inline-flex',
+          'ml-1 hidden shrink-0 items-center gap-1 whitespace-nowrap rounded-[5px] px-1.5 py-0.5 transition-colors sm:inline-flex',
           'hover:bg-surface-2',
           /*
            * Phase 57: a positive accent on "today" — the previous
@@ -205,7 +205,7 @@ export function StatusBar() {
           aria-live="polite"
           data-copy-fen
           className={cn(
-            'inline-flex items-center gap-1 rounded-[3px] px-1.5 py-0.5 transition-colors',
+            'inline-flex items-center gap-1 rounded-[5px] px-1.5 py-0.5 transition-colors',
             'text-tertiary hover:bg-surface-2 hover:text-secondary',
             copied && 'text-positive',
           )}
@@ -223,7 +223,7 @@ export function StatusBar() {
           data-fen-tooltip
           aria-hidden={!showFen && !copied}
           className={cn(
-            'pointer-events-none absolute bottom-full right-0 z-30 mb-1 max-w-[60ch] truncate rounded-[3px] border border-line bg-surface-3 px-1.5 py-1 font-mono text-[10px] text-secondary shadow-md transition-opacity',
+            'pointer-events-none absolute bottom-full right-0 z-30 mb-1 max-w-[60ch] truncate rounded-[5px] border border-line bg-surface-3 px-1.5 py-1 font-mono text-[10px] text-secondary shadow-md transition-opacity',
             showFen || copied ? 'opacity-100' : 'opacity-0',
           )}
         >

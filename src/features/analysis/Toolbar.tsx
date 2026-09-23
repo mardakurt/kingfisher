@@ -15,7 +15,7 @@
  */
 
 import { Copy, Export, Import, Plus } from '@/components/icons';
-import { Button } from '@/components/ui/Button';
+import { IconButton } from '@/components/ui/Button';
 import { Menu, type MenuSection } from '@/components/ui/Menu';
 import { START_FEN } from '@/chess/fen';
 import type { CriticalCategory } from '@/chess/tree/types';
@@ -146,41 +146,36 @@ export function Toolbar() {
     Measured with `e2e/workspace-header-labels.spec.ts`.
   */
   return (
-    <div className="flex min-w-0 flex-1 items-center gap-1.5" data-analysis-toolbar>
-      <Button aria-label="New analysis" icon={<Plus />} onClick={() => newGame(START_FEN)}>
-        <span className="hidden wide:inline">New</span>
-      </Button>
-      <Button aria-label="Import PGN or FEN" icon={<Import />} onClick={() => setImportOpen(true)}>
-        <span className="hidden wide:inline">Import</span>
-      </Button>
+    <div className="flex min-w-0 flex-1 items-center gap-1" data-analysis-toolbar>
+      {/* The document first, as a Mac document window names itself; the
+          three actions on it follow as icons, their names on hover and for
+          assistive technology. */}
+      <div className="hidden min-w-0 flex-1 overflow-hidden md:block">
+        <DocumentHeader />
+      </div>
+
+      <IconButton label="New analysis" onClick={() => newGame(START_FEN)}>
+        <Plus />
+      </IconButton>
+      <IconButton label="Import PGN or FEN" onClick={() => setImportOpen(true)}>
+        <Import />
+      </IconButton>
 
       <Menu
         sections={sections}
         trigger={({ open, toggle, id }) => (
-          <Button
+          <IconButton
             id={id}
-            /* The label is hidden below `sm`, so the button needs a name of
-               its own or it reaches a screen reader as an unnamed control. */
-            aria-label="Document actions"
+            label="Document actions"
             aria-haspopup="menu"
             aria-expanded={open}
             active={open}
-            icon={<Export />}
             onClick={toggle}
           >
-            <span className="hidden wide:inline">Export</span>
-          </Button>
+            <Export />
+          </IconButton>
         )}
       />
-
-      <span className="mx-1 hidden h-4 w-px bg-line-subtle sm:block" />
-
-      {/* `overflow-hidden`: when the budget is still short, the title is
-          clipped inside its own box rather than painted over the controls
-          to its right. */}
-      <div className="hidden min-w-0 flex-1 overflow-hidden md:block">
-        <DocumentHeader />
-      </div>
     </div>
   );
 }

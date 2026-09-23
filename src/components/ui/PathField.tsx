@@ -99,7 +99,7 @@ export function PathField({
           disabled={disabled}
           spellCheck={false}
           autoComplete="off"
-          className="h-8 min-w-0 flex-1 rounded-[4px] border border-line bg-surface-inset px-2.5 font-mono text-[11px] text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60 disabled:opacity-40"
+          className="h-8 min-w-0 flex-1 rounded-[6px] border border-line bg-surface-inset px-2.5 font-mono text-[11px] text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60 disabled:opacity-40"
         />
         {bridge ? (
           <Button

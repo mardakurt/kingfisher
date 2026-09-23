@@ -64,7 +64,7 @@ export function ScheduleReview({ item }: { readonly item: ReviewItemRecord }) {
   return (
     <section className="border-t border-line-subtle px-3 py-2.5">
       <div className="flex items-baseline gap-2">
-        <h4 className="text-[9.5px] uppercase tracking-wide text-tertiary">Review again</h4>
+        <h4 className="text-[9.5px] text-tertiary">Review again</h4>
         <span className="text-[10px] text-secondary">{describeNextReview(item.schedule, now)}</span>
       </div>
       <p className="mt-1 text-[10px] leading-relaxed text-tertiary">
@@ -80,7 +80,7 @@ export function ScheduleReview({ item }: { readonly item: ReviewItemRecord }) {
             disabled={saving !== null}
             onClick={() => void choose(choice.id)}
             className={cn(
-              'rounded-[4px] border px-1.5 py-0.5 text-[10.5px] transition-colors',
+              'rounded-[6px] border px-1.5 py-0.5 text-[10.5px] transition-colors',
               'border-line text-secondary hover:border-accent/50 hover:text-primary',
               'disabled:opacity-50',
             )}

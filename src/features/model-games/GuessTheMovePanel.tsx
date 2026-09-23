@@ -174,7 +174,7 @@ export function GuessTheMovePanel() {
                 key={kind}
                 type="button"
                 onClick={() => void markMoment(kind)}
-                className="rounded-[4px] border border-line px-1.5 py-0.5 text-[10px] text-tertiary hover:border-accent/50 hover:text-primary"
+                className="rounded-[6px] border border-line px-1.5 py-0.5 text-[10px] text-tertiary hover:border-accent/50 hover:text-primary"
               >
                 {KEY_MOMENT_LABEL[kind]}
               </button>

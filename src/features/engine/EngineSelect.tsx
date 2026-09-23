@@ -58,7 +58,7 @@ export function EngineSelect({
       }}
       data-engine-select={slot}
       className={cn(
-        'h-6 min-w-0 max-w-full truncate rounded-[3px] border border-line bg-surface-inset px-1.5 text-[10.5px] text-secondary outline-none focus:border-accent/60',
+        'h-6 min-w-0 max-w-full truncate rounded-[5px] border border-line bg-surface-inset px-1.5 text-[10.5px] text-secondary outline-none focus:border-accent/60',
         className,
       )}
     >

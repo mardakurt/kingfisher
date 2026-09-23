@@ -441,7 +441,7 @@ function FeedbackBody(props: {
   return (
     <div className="flex flex-col gap-3 text-sm">
       <fieldset>
-        <legend className="text-xs uppercase tracking-wide text-tertiary">Category</legend>
+        <legend className="text-xs text-tertiary">Category</legend>
         <div id={categoryId} className={cn('mt-2 grid grid-cols-1 gap-1 sm:grid-cols-2')}>
           {FEEDBACK_CATEGORIES.map((value) => (
             <label
@@ -465,7 +465,7 @@ function FeedbackBody(props: {
         </div>
       </fieldset>
       <label className="flex flex-col gap-1">
-        <span className="text-xs uppercase tracking-wide text-tertiary">Message</span>
+        <span className="text-xs text-tertiary">Message</span>
         <textarea
           id={messageId}
           value={message}

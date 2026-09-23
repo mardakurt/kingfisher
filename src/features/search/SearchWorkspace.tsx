@@ -157,7 +157,7 @@ export function SearchWorkspace() {
             spellCheck={false}
             onChange={(event) => submit(event.target.value)}
             placeholder="A FEN, a line like 1.e4 c5 2.Nf3, or a name"
-            className="h-9 w-full rounded-[4px] border border-line bg-surface-inset px-2 text-sm text-primary outline-none focus:border-accent/60"
+            className="h-9 w-full rounded-[6px] border border-line bg-surface-inset px-2 text-sm text-primary outline-none focus:border-accent/60"
           />
         </form>
         <p className="mt-1 text-2xs text-tertiary" data-testid="search-reading">
@@ -193,7 +193,7 @@ export function SearchWorkspace() {
         {[...positionGroups, ...wordGroups.map(() => null)].length && reading.kind === 'position'
           ? positionGroups.map((group) => (
               <section key={group.label} className="mb-3" data-testid={`group-${group.label}`}>
-                <h2 className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-tertiary">
+                <h2 className="mb-1 text-[10px] font-semibold text-tertiary">
                   {group.label} · {group.hits.length}
                 </h2>
                 <ul className="space-y-1">
@@ -201,7 +201,7 @@ export function SearchWorkspace() {
                     <li key={hit.id}>
                       <button
                         type="button"
-                        className="w-full rounded-[4px] border border-line px-2 py-1.5 text-left hover:bg-surface-2"
+                        className="w-full rounded-[6px] border border-line px-2 py-1.5 text-left hover:bg-surface-2"
                         onClick={() => void openPositionHit(hit, navigate).catch(failed)}
                       >
                         <span className="block truncate text-primary">{hit.title}</span>
@@ -220,7 +220,7 @@ export function SearchWorkspace() {
 
         {reading.kind === 'position' && structureGroups.length ? (
           <section className="mb-3" data-testid="group-structure">
-            <h2 className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-tertiary">
+            <h2 className="mb-1 text-[10px] font-semibold text-tertiary">
               Same pawns, elsewhere in your work ·{' '}
               {structureGroups.reduce((sum, group) => sum + group.hits.length, 0)}
             </h2>
@@ -230,7 +230,7 @@ export function SearchWorkspace() {
                   <li key={hit.id}>
                     <button
                       type="button"
-                      className="w-full rounded-[4px] border border-line px-2 py-1.5 text-left hover:bg-surface-2"
+                      className="w-full rounded-[6px] border border-line px-2 py-1.5 text-left hover:bg-surface-2"
                       onClick={() => void openPositionHit(hit, navigate).catch(failed)}
                     >
                       <span className="block truncate text-primary">{hit.title}</span>
@@ -249,7 +249,7 @@ export function SearchWorkspace() {
         {reading.kind === 'words'
           ? wordGroups.map((group) => (
               <section key={group.label} className="mb-3" data-testid={`group-${group.label}`}>
-                <h2 className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-tertiary">
+                <h2 className="mb-1 text-[10px] font-semibold text-tertiary">
                   {group.label} · {group.hits.length}
                 </h2>
                 <ul className="space-y-1">
@@ -258,7 +258,7 @@ export function SearchWorkspace() {
                       <button
                         type="button"
                         className={cn(
-                          'w-full rounded-[4px] border border-line px-2 py-1.5 text-left hover:bg-surface-2',
+                          'w-full rounded-[6px] border border-line px-2 py-1.5 text-left hover:bg-surface-2',
                         )}
                         onClick={() => void openWorkspaceHit(hit, navigate).catch(failed)}
                       >

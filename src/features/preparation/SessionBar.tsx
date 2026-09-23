@@ -50,7 +50,7 @@ export function SessionBar({
           aria-label="Preparation session"
           value={active?.id ?? ''}
           onChange={(event) => onSelect(event.target.value || null)}
-          className="h-6 max-w-[22ch] rounded-[3px] border border-line bg-surface-inset px-1.5 text-[11px] text-primary outline-none focus:border-accent/60"
+          className="h-6 max-w-[22ch] rounded-[5px] border border-line bg-surface-inset px-1.5 text-[11px] text-primary outline-none focus:border-accent/60"
         >
           <option value="">No session</option>
           {sessions.map((session) => (
@@ -208,7 +208,7 @@ function NewSessionDialog({
 }
 
 const INPUT =
-  'h-8 w-full rounded-[4px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none placeholder:text-tertiary/70 focus:border-accent/60';
+  'h-8 w-full rounded-[6px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none placeholder:text-tertiary/70 focus:border-accent/60';
 
 const Field = ({
   label,

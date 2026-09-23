@@ -49,7 +49,7 @@ import { ScheduleReview } from './ScheduleReview';
 import { draftEstimate, hasAnswers, useReviewSession } from './review-session-store';
 
 const FIELD =
-  'mt-1 w-full rounded-[4px] border border-line bg-surface-inset px-2.5 py-1.5 text-xs text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60';
+  'mt-1 w-full rounded-[6px] border border-line bg-surface-inset px-2.5 py-1.5 text-xs text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60';
 
 export function DecisionJournal({
   decision,
@@ -226,9 +226,7 @@ export function DecisionJournal({
         </p>
 
         <section>
-          <h3 className="text-[10px] font-semibold uppercase tracking-wide text-tertiary">
-            Candidate moves
-          </h3>
+          <h3 className="text-[10px] font-semibold text-tertiary">Candidate moves</h3>
           <p className="mt-1 text-[10.5px] leading-relaxed text-tertiary">
             Play each move you considered on the board. The first one is your choice; the board
             stays on this position while it records.
@@ -268,7 +266,7 @@ export function DecisionJournal({
               {answers.candidates.map((candidate) => (
                 <li
                   key={candidate.uci}
-                  className="rounded-[4px] border border-line-subtle bg-surface-inset p-2"
+                  className="rounded-[6px] border border-line-subtle bg-surface-inset p-2"
                 >
                   <div className="flex items-center gap-2">
                     <button
@@ -281,7 +279,7 @@ export function DecisionJournal({
                       }
                       aria-pressed={answers.chosenUci === candidate.uci}
                       className={cn(
-                        'rounded-[3px] border px-1.5 py-0.5 text-[11px] tabular',
+                        'rounded-[5px] border px-1.5 py-0.5 text-[11px] tabular',
                         answers.chosenUci === candidate.uci
                           ? 'border-accent bg-accent-muted text-primary'
                           : 'border-line text-secondary hover:text-primary',
@@ -330,9 +328,7 @@ export function DecisionJournal({
         </section>
 
         <section>
-          <h3 className="text-[10px] font-semibold uppercase tracking-wide text-tertiary">
-            Your assessment
-          </h3>
+          <h3 className="text-[10px] font-semibold text-tertiary">Your assessment</h3>
           <div className="mt-2 space-y-1.5" role="radiogroup" aria-label="Evaluation estimate">
             {BANDS.map((band) => (
               <button
@@ -342,7 +338,7 @@ export function DecisionJournal({
                 aria-checked={answers.band === band.id}
                 onClick={() => setAnswers({ band: answers.band === band.id ? undefined : band.id })}
                 className={cn(
-                  'w-full rounded-[4px] border px-2.5 py-1.5 text-left text-xs transition-colors',
+                  'w-full rounded-[6px] border px-2.5 py-1.5 text-left text-xs transition-colors',
                   answers.band === band.id
                     ? 'border-accent bg-accent-muted text-primary'
                     : 'border-line-subtle text-secondary hover:border-line hover:text-primary',
@@ -366,9 +362,7 @@ export function DecisionJournal({
         </section>
 
         <section>
-          <h3 className="text-[10px] font-semibold uppercase tracking-wide text-tertiary">
-            Your plan
-          </h3>
+          <h3 className="text-[10px] font-semibold text-tertiary">Your plan</h3>
           <textarea
             value={answers.plan}
             onChange={(event) => setAnswers({ plan: event.target.value })}
@@ -379,9 +373,7 @@ export function DecisionJournal({
         </section>
 
         <section>
-          <h3 className="text-[10px] font-semibold uppercase tracking-wide text-tertiary">
-            What you calculated
-          </h3>
+          <h3 className="text-[10px] font-semibold text-tertiary">What you calculated</h3>
           <textarea
             value={answers.calculationNotes}
             onChange={(event) => setAnswers({ calculationNotes: event.target.value })}
@@ -508,9 +500,7 @@ function RevealedJournal({
       </PanelHeader>
       <PanelBody className="space-y-4 overflow-y-auto p-3">
         <section>
-          <h3 className="text-[10px] font-semibold uppercase tracking-wide text-tertiary">
-            What you wrote
-          </h3>
+          <h3 className="text-[10px] font-semibold text-tertiary">What you wrote</h3>
           <dl className="mt-1.5 space-y-1 text-xs">
             {decision.chosenSan ? (
               <div className="flex gap-2">
@@ -551,9 +541,7 @@ function RevealedJournal({
         </section>
 
         <section className="border-t border-line-subtle pt-3">
-          <h3 className="text-[10px] font-semibold uppercase tracking-wide text-tertiary">
-            Compared with the engine
-          </h3>
+          <h3 className="text-[10px] font-semibold text-tertiary">Compared with the engine</h3>
           {lines.length === 0 ? (
             <p className="mt-1.5 text-[11px] leading-relaxed text-tertiary">
               No engine evidence for this position yet. Start the engine in the dock, or queue the
@@ -571,7 +559,7 @@ function RevealedJournal({
               ) : null}
               <table className="mt-2 w-full text-[11px]">
                 <thead>
-                  <tr className="text-[10px] uppercase tracking-wide text-tertiary">
+                  <tr className="text-[10px] text-tertiary">
                     <th className="py-1 text-left font-medium">You considered</th>
                     <th className="py-1 text-right font-medium">Engine rank</th>
                     <th className="py-1 text-right font-medium">Score</th>
