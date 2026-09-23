@@ -50,6 +50,7 @@ import { playerKey } from '@/persistence/schema/migrations';
 import type { GameSearchQuery, GameSummary } from '@/persistence/types';
 import { openingDisplay } from '@/theory/classify-games';
 
+import { mergeSelectedGames } from './merge-selected';
 import { openStoredGame } from './open-game';
 import {
   compileMoves,
@@ -512,6 +513,33 @@ export function GamesWorkspace() {
           <Button variant="accent" onClick={() => openAnalysisQueue([...selected])}>
             Add to analysis queue
           </Button>
+          {selected.size >= 2 ? (
+            /*
+              Phase 84: ChessBase's select-and-Enter. The games are laid over
+              each other in the order this list shows them, so the first row
+              is the main line; the result opens as a new analysis and nothing
+              stored changes.
+            */
+            <Button
+              onClick={() => {
+                const ids = rows.filter((row) => selected.has(row.id)).map((row) => row.id);
+                void mergeSelectedGames(ids)
+                  .then(({ message, result }) => {
+                    notify({ tone: result.skipped.length ? 'info' : 'success', message });
+                    router.push('/analysis');
+                  })
+                  .catch((error: unknown) =>
+                    notify({
+                      tone: 'error',
+                      message: 'The games could not be merged.',
+                      detail: error instanceof Error ? error.message : String(error),
+                    }),
+                  );
+              }}
+            >
+              Merge into one tree
+            </Button>
+          ) : null}
           {selected.size === 1 ? (
             /*
               One game, because Review is a walk through a single game's
