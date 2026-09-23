@@ -270,7 +270,11 @@ test('the evaluation bar says the same side is better after the board is flipped
       };
     });
   const toRgb = (hex: string) => {
-    const n = parseInt(hex.replace('#', ''), 16);
+    /* The stylesheet pipeline shortens `#ffffff` to `#fff`, so both forms
+       reach here; a three-digit colour is each digit doubled. */
+    const digits = hex.replace('#', '');
+    const full = digits.length === 3 ? [...digits].map((d) => d + d).join('') : digits;
+    const n = parseInt(full, 16);
     return `rgb(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255})`;
   };
   // White at the bottom: White's (large) band is the bottom fill, coloured white.

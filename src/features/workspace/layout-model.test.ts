@@ -156,11 +156,15 @@ describe('board priority', () => {
     }
   });
 
-  it('puts the notation in the dock under every policy', () => {
-    // Phase 82: the board column holds the board; the notation is beside it.
-    expect(policyMoveTreeHome('maximum')).toBe('dock');
-    expect(policyMoveTreeHome('large')).toBe('dock');
-    expect(policyMoveTreeHome('balanced')).toBe('dock');
+  it('puts the notation beside the board on a tall screen, and under it on a laptop', () => {
+    // Phase 82: on a tall screen the board column holds the board alone.
+    for (const priority of ['balanced', 'large', 'maximum'] as const) {
+      expect(policyMoveTreeHome(priority, false)).toBe('dock');
+    }
+    // A short screen keeps the notation under the board, except at Maximum.
+    expect(policyMoveTreeHome('maximum', true)).toBe('dock');
+    expect(policyMoveTreeHome('large', true)).toBe('lower');
+    expect(policyMoveTreeHome('balanced', true)).toBe('lower');
   });
 
   it('records no dimensions of its own, so the policy can keep governing', () => {
@@ -186,13 +190,14 @@ describe('resolveArrangement', () => {
   };
 
   it('lets the policy size a workspace whose only stored fact is a selected tab', () => {
-    const balanced = resolveArrangement(tabSelected, 'balanced');
-    const maximum = resolveArrangement(tabSelected, 'maximum');
+    const balanced = resolveArrangement(tabSelected, 'balanced', true);
+    const maximum = resolveArrangement(tabSelected, 'maximum', true);
 
     expect(maximum.dockWidth).toBeLessThan(balanced.dockWidth);
     expect(maximum.lowerHeight).toBeLessThan(balanced.lowerHeight);
     expect(maximum.moveTreeRegion).toBe('dock');
-    expect(balanced.moveTreeRegion).toBe('dock');
+    expect(balanced.moveTreeRegion).toBe('lower');
+    expect(resolveArrangement(tabSelected, 'balanced', false).moveTreeRegion).toBe('dock');
   });
 
   it('gives the board more at every step from Balanced to Maximum', () => {

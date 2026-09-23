@@ -108,11 +108,10 @@ export interface BoardPriorityShape {
    */
   readonly maxBoard: number;
   /**
-   * True when the notation lives in the dock rather than under the board.
+   * True when the notation lives in the dock even on a short screen.
    *
-   * Every policy says yes since Phase 82: the notation sits at the top of the
-   * right-hand panel, above the tools, and the board column holds the board
-   * alone. The field stays so a later policy can say no.
+   * On a screen 860px tall or more every policy puts it in the dock (Phase
+   * 82); see `policyMoveTreeHome`. This decides the laptop case.
    */
   readonly moveTreeInDock: boolean;
 }
@@ -123,14 +122,14 @@ export const BOARD_PRIORITIES: Readonly<Record<BoardPriority, BoardPriorityShape
     lowerHeight: 220,
     shortLowerHeight: 160,
     maxBoard: 780,
-    moveTreeInDock: true,
+    moveTreeInDock: false,
   },
   large: {
     dockWidth: 380,
     lowerHeight: 170,
     shortLowerHeight: 120,
     maxBoard: 960,
-    moveTreeInDock: true,
+    moveTreeInDock: false,
   },
   maximum: {
     dockWidth: 340,
@@ -165,14 +164,21 @@ export function defaultArrangement(): WorkspaceArrangement {
 export const DEFAULT_ARRANGEMENT: WorkspaceArrangement = defaultArrangement();
 
 /**
- * Where the notation panel sits under a given policy.
+ * Where the notation panel sits under a given policy, on a given screen.
  *
- * In the dock, under every policy since Phase 82 — the Mac-document layout
- * of a board on its own with the notation beside it. A person may still move
- * it under the board, and that choice is stored and wins.
+ * Since Phase 82, beside the board in the dock — the Mac-document layout of
+ * a board on its own with the notation next to it — on any screen at least
+ * 860px tall. On a shorter one (1366x768, 1280x720) half a dock is too
+ * little height for the explorer's table under the notation, so Balanced
+ * and Large keep it under the board as they always did, and only Maximum
+ * folds it into the dock, which is most of why Maximum is bigger there. A
+ * person may move it anywhere; that choice is stored and wins.
  */
-export const policyMoveTreeHome = (priority: BoardPriority): WorkspaceRegion =>
-  BOARD_PRIORITIES[priority].moveTreeInDock ? 'dock' : 'lower';
+export const policyMoveTreeHome = (
+  priority: BoardPriority,
+  shortScreen = false,
+): WorkspaceRegion =>
+  !shortScreen || BOARD_PRIORITIES[priority].moveTreeInDock ? 'dock' : 'lower';
 
 /**
  * Apply the board policy to a stored arrangement.
@@ -194,7 +200,7 @@ export function resolveArrangement(
     dockWidth: arrangement.dockWidth ?? shape.dockWidth,
     lowerHeight:
       arrangement.lowerHeight ?? (shortScreen ? shape.shortLowerHeight : shape.lowerHeight),
-    moveTreeRegion: arrangement.placement['move-tree'] ?? policyMoveTreeHome(priority),
+    moveTreeRegion: arrangement.placement['move-tree'] ?? policyMoveTreeHome(priority, shortScreen),
   };
 }
 

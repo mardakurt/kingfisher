@@ -56,10 +56,8 @@ import {
   ChevronRight,
   PanelLeft,
   PanelRight,
-  Moon,
   Search,
   Settings,
-  Sun,
   Target,
 } from '@/components/icons';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -71,7 +69,6 @@ import { NavButton } from '@/features/shell/NavButton';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { cn } from '@/lib/cn';
 import { useAnalysis } from '@/stores/analysis-store';
-import { usePreferences } from '@/stores/preferences-store';
 import { useUi } from '@/stores/ui-store';
 import { useWorkspaceLayout } from '@/stores/workspace-layout-store';
 
@@ -283,7 +280,19 @@ export function WorkspaceFrame({
                   {...(board?.capabilities ? { capabilities: board.capabilities } : {})}
                   conceal={board?.conceal ?? false}
                   concealPieces={board?.concealPieces ?? false}
-                  className="min-h-[460px] flex-1 px-2 py-2 sm:px-5 sm:py-4 wide:min-h-0"
+                  /*
+                    Air around the board — but only where it costs the board
+                    nothing it needs. On a short screen the padding stays
+                    tight, because 1280x720 is height-bound and every pixel
+                    of margin comes out of the board; and Maximum stays tight
+                    everywhere, because the board as large as it will go is
+                    what that policy promises.
+                  */
+                  className={cn(
+                    'min-h-[460px] flex-1 px-2 py-2 sm:px-3 wide:min-h-0',
+                    view.priority !== 'maximum' &&
+                      '[@media(min-height:860px)]:sm:px-5 [@media(min-height:860px)]:sm:py-4',
+                  )}
                 />
               ))
             )}
@@ -445,8 +454,6 @@ function FrameHeader({
   const setSettingsOpen = useUi((state) => state.setSettingsOpen);
   const setPositionSetupOpen = useUi((state) => state.setPositionSetupOpen);
   const toggleCommandPalette = useUi((state) => state.toggleCommandPalette);
-  const theme = usePreferences((state) => state.theme);
-  const toggleTheme = usePreferences((state) => state.toggleTheme);
   const positionActions = usePositionActions({
     ...(position ?? {}),
     fen,
@@ -540,12 +547,9 @@ function FrameHeader({
             ⌘K
           </kbd>
         </button>
-        <IconButton
-          label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
-          onClick={toggleTheme}
-        >
-          {theme === 'dark' ? <Sun /> : <Moon />}
-        </IconButton>
+        {/* Phase 82: the theme switch lives at the foot of the sidebar (and
+            in the phone's navigation drawer), where a Mac application keeps
+            such a control; a second copy here cost the route its actions. */}
         <IconButton label="Settings (⌘,)" onClick={() => setSettingsOpen(true)}>
           <Settings />
         </IconButton>

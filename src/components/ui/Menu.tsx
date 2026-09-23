@@ -10,7 +10,15 @@
  * once and are correct in both places.
  */
 
-import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import {
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from 'react';
 
 import { cn } from '@/lib/cn';
 
@@ -78,7 +86,7 @@ function MenuList({ sections, onClose, labelledBy, autoFocus = true }: MenuListP
         so a long menu scrolls on a laptop in split screen instead of running
         off the bottom with its last items unreachable.
       */
-      className="max-h-[min(70dvh,32rem)] min-w-[200px] overflow-y-auto overscroll-contain rounded-[7px] border border-line-strong bg-surface-1 py-1 shadow-2xl"
+      className="max-h-[min(70dvh,32rem,var(--menu-room,100dvh))] min-w-[200px] overflow-y-auto overscroll-contain rounded-[7px] border border-line-strong bg-surface-1 py-1 shadow-2xl"
     >
       {sections.map((section, index) => (
         <div key={section.id}>
@@ -117,6 +125,21 @@ function MenuList({ sections, onClose, labelledBy, autoFocus = true }: MenuListP
   );
 }
 
+/** The box a menu inside `element` can draw in: the viewport, cut by every clipping ancestor. */
+function clippingBounds(element: HTMLElement | null): { top: number; bottom: number } {
+  let top = 0;
+  let bottom = window.innerHeight;
+  for (let node = element?.parentElement ?? null; node; node = node.parentElement) {
+    const style = getComputedStyle(node);
+    if (/(hidden|clip|auto|scroll)/.test(style.overflowY)) {
+      const rect = node.getBoundingClientRect();
+      top = Math.max(top, rect.top);
+      bottom = Math.min(bottom, rect.bottom);
+    }
+  }
+  return { top, bottom };
+}
+
 interface MenuProps {
   readonly trigger: (props: { open: boolean; toggle: () => void; id: string }) => ReactNode;
   readonly sections: readonly MenuSection[];
@@ -130,16 +153,24 @@ export function Menu({ trigger, sections, align = 'start' }: MenuProps) {
   const wrapper = useRef<HTMLDivElement>(null);
   const panel = useRef<HTMLDivElement>(null);
 
-  // Open upwards when there is more room there. A menu anchored under a
-  // toolbar has plenty of space below on a desktop and almost none in a short
-  // window, and the difference should not decide whether it can be used.
+  // Open upwards when there is more room there, and never taller than the
+  // room on the side it opens to. The room is measured against the nearest
+  // ancestor that clips — not the window — because a menu in a panel that
+  // hides its overflow is cut at the panel's edge: Phase 82 put the tool tabs
+  // in the middle of the side panel, and More opened upwards into a region
+  // the panel clipped, under the header, with its items unclickable.
+  const [room, setRoom] = useState<number | null>(null);
   useLayoutEffect(() => {
     if (!open) return;
     const trigger = wrapper.current?.getBoundingClientRect();
     const box = panel.current?.getBoundingClientRect();
     if (!trigger || !box) return;
-    const below = window.innerHeight - trigger.bottom;
-    setAbove(box.height > below - 8 && trigger.top > below);
+    const bounds = clippingBounds(wrapper.current);
+    const below = bounds.bottom - trigger.bottom;
+    const aboveRoom = trigger.top - bounds.top;
+    const up = box.height > below - 8 && aboveRoom > below;
+    setAbove(up);
+    setRoom(Math.max(120, Math.floor((up ? aboveRoom : below) - 8)));
   }, [open, sections]);
 
   useEffect(() => {
@@ -162,6 +193,7 @@ export function Menu({ trigger, sections, align = 'start' }: MenuProps) {
             above ? 'bottom-full mb-1' : 'top-full mt-1',
             align === 'end' ? 'right-0' : 'left-0',
           )}
+          style={room === null ? undefined : ({ '--menu-room': `${room}px` } as CSSProperties)}
         >
           <MenuList sections={sections} onClose={() => setOpen(false)} labelledBy={id} />
         </div>

@@ -111,7 +111,12 @@ export function useWorkspaceArrangement(
         between Maximum and Large.
       */
       ...(withMoveTree
-        ? [{ id: MOVE_TREE_MODULE.id as WorkspaceModuleId, home: policyMoveTreeHome(priority) }]
+        ? [
+            {
+              id: MOVE_TREE_MODULE.id as WorkspaceModuleId,
+              home: policyMoveTreeHome(priority, shortScreen),
+            },
+          ]
         : []),
     ];
     /*
@@ -140,7 +145,8 @@ export function useWorkspaceArrangement(
       activeLower: activeInRegion(arrangement, lowerModules, 'lower'),
       moveTreeInPrimary:
         !withMoveTree ||
-        regionOf(arrangement, MOVE_TREE_MODULE.id, policyMoveTreeHome(priority)) === 'primary',
+        regionOf(arrangement, MOVE_TREE_MODULE.id, policyMoveTreeHome(priority, shortScreen)) ===
+          'primary',
     };
-  }, [arrangement, device, priority, wide, withMoveTree, workspace]);
+  }, [arrangement, device, priority, shortScreen, wide, withMoveTree, workspace]);
 }

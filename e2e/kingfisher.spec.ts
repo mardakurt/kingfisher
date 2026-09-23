@@ -426,7 +426,8 @@ test('authenticated Lichess explorer contract and appearance preferences work wi
 
   await page.goto('/analysis');
   await waitForApp(page);
-  await expect(page.getByRole('button', { name: 'Dark theme' })).toBeVisible();
+  // Light is the default theme since Phase 82; the sidebar names the current one.
+  await expect(page.getByRole('button', { name: 'Light theme' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Settings ⌘,' })).toBeVisible();
   await page.getByRole('button', { name: 'Settings ⌘,' }).click();
   let settings = page.getByRole('dialog', { name: 'Settings' });

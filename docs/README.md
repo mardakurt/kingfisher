@@ -247,6 +247,11 @@ with [`AGENTS.md`](../AGENTS.md).
 
 ## Historical
 
+- [`reports/phase-82-handover.md`](reports/phase-82-handover.md) — the quiet
+  workstation: a light Mac-document redesign after the owner's brief, the
+  notation beside the board on tall screens, and what the redesign found.
+- [`reports/phase-81-handover.md`](reports/phase-81-handover.md) — research
+  after ChessBase 26, a UI sweep, and the games search mask.
 - [`reports/phase-75-handover.md`](reports/phase-75-handover.md) — closing the
   gap: After the round and the round journal, Played against you, search across
   all of a player's own work; the market research and the parity queue.

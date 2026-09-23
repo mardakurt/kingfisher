@@ -96,6 +96,7 @@ export function WorkspaceToolDock({
   readonly narrow?: boolean;
 }) {
   const wide = useMediaQuery('(min-width: 1100px)');
+  const tall = useMediaQuery('(min-height: 860px)');
   const view = useWorkspaceArrangement(workspace, { withMoveTree });
   const { device, dockModules, activeDock, foldedFromLower } = view;
   const chosenWidth = useWorkspaceLayout(
@@ -164,10 +165,13 @@ export function WorkspaceToolDock({
     Phase 82: on a desk-width screen the notation is not a tab. It is the
     first section of the panel, always on screen above whichever tool is
     chosen — the move list and the evidence about it read together, as in
-    any Mac chess application. On a phone the dock is one sheet and the
-    notation stays a tab in it.
+    any Mac chess application. Only on a screen at least 860px tall: below
+    that (1366x768, 1280x720) half a dock is too short for the explorer's
+    table or a repertoire's decisions, so the notation is the first tab
+    instead and every tool keeps the full height. On a phone the dock is one
+    sheet and the notation is a tab in it.
   */
-  const stackNotation = wide && withMoveTree && dockModules.includes('move-tree');
+  const stackNotation = wide && tall && withMoveTree && dockModules.includes('move-tree');
   const toolModules = stackNotation ? dockModules.filter((id) => id !== 'move-tree') : dockModules;
   const shownTool =
     stackNotation && activeDock === 'move-tree' ? (toolModules[0] ?? null) : activeDock;
@@ -229,6 +233,14 @@ export function WorkspaceToolDock({
             Tree, on a phone — outranks a pinned tool: it is the notation.
           */
           ...foldedFromLower,
+          /*
+            Phase 82: the notation's home is the dock, so on a phone it is no
+            longer "folded from the lower panel" — but it is still the
+            notation, and it keeps the place in the row it had there.
+          */
+          ...(!stackNotation && toolModules.includes('move-tree')
+            ? (['move-tree'] as WorkspaceModuleId[])
+            : []),
           ...(pinned as readonly WorkspaceModuleId[]),
         ]}
         value={shownTool}
@@ -582,7 +594,7 @@ function NotationSection({
     <section
       className={cn(
         'flex min-h-0 flex-col border-b border-line-subtle',
-        folded ? 'shrink-0' : 'min-h-[180px] flex-[0_0_48%]',
+        folded ? 'shrink-0' : 'min-h-[160px] flex-[0_0_38%]',
       )}
       aria-label="Notation"
       data-notation-section={workspace}

@@ -52,9 +52,15 @@ test.describe('workspace composer', () => {
     await expect(dock(page).getByRole('tab', { name: 'Engine' })).toBeVisible();
     await expect(dock(page).getByRole('tab', { name: 'Explorer' })).toBeVisible();
     await expect(dock(page).getByRole('tab', { name: 'Notes' })).toBeVisible();
-    // Phase 82: the notation is the first section of the side panel, not a tab.
+    // On a laptop-height screen the notation stays under the board, as a tab.
+    await expect(lower(page).getByRole('tab', { name: 'Notation' })).toBeVisible();
+
+    // Phase 82: on a tall screen it is the first section of the side panel,
+    // beside the board, and nothing is under the board at all.
+    await page.setViewportSize({ width: 1440, height: 900 });
     await expect(dock(page).getByRole('region', { name: 'Notation' })).toBeVisible();
     await expect(lower(page)).toHaveCount(0);
+    await expect(dock(page).getByRole('tab', { name: 'Explorer' })).toBeVisible();
   });
 
   test('§58 the board stays large in the default layout', async ({ page }) => {

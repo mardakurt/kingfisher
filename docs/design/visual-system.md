@@ -31,7 +31,7 @@ The typed catalogue is `src/ui/tokens.ts`; matching CSS custom properties live
 in `src/app/globals.css`. Spacing uses a 4px base. Controls are 28/36/42px,
 controls use 6px radii and panels 10px, and the board 2px inside its frame.
 Sidebar rows are 30px with 17px icons. The expanded/collapsed sidebar widths
-are 244/72px. Focus is a 2px accent outline. Motion is limited to 90, 140 and
+are 228/72px. Focus is a 2px accent outline. Motion is limited to 90, 140 and
 180ms.
 
 Surface levels mean one thing everywhere: `surface-0` is the application
