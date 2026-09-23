@@ -125,9 +125,9 @@ test.describe('the workspace survives its providers', () => {
     );
     await page.goto('/games');
     await waitForApp(page);
-    await expect(page.getByRole('heading', { name: 'Games', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Library', exact: true })).toBeVisible();
     // The stored-game count is a local fact and must not depend on a remote one.
-    await expect(page.getByText(/stored/)).toBeVisible();
+    await expect(page.getByText(/in My games/)).toBeVisible();
   });
 
   test('a companion that disconnects does not break the databases screen', async ({ page }) => {
@@ -135,7 +135,7 @@ test.describe('the workspace survives its providers', () => {
     await page.goto('/databases');
     await waitForApp(page);
 
-    await expect(page.getByRole('heading', { name: 'Databases' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Databases', exact: true })).toBeVisible();
     /*
       The browser's own collection is always there. A database manager that
       refuses to open because a helper process is not running would be exactly
@@ -152,7 +152,7 @@ test.describe('the workspace survives its providers', () => {
     );
     await page.goto('/databases');
     await waitForApp(page);
-    await expect(page.getByRole('heading', { name: 'Databases' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Databases', exact: true })).toBeVisible();
   });
 
   test('a worker that will not start still leaves games importable', async ({ page }) => {
@@ -164,7 +164,7 @@ test.describe('the workspace survives its providers', () => {
     await page.route(/pgn-import\.worker/, (route) => route.abort());
     await page.goto('/games');
     await waitForApp(page);
-    await expect(page.getByRole('heading', { name: 'Games', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Library', exact: true })).toBeVisible();
   });
 });
 

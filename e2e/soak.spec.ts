@@ -250,7 +250,7 @@ async function cycle(page: Page, index: number) {
   await selectTool(page, page.getByRole('complementary', { name: 'Workspace tools' }), 'Notes');
 
   await navigate(page, 'Studies');
-  await navigate(page, 'Games');
+  await navigate(page, 'Library');
   await navigate(page, 'Training');
 
   /*
@@ -353,9 +353,12 @@ async function cycle(page: Page, index: number) {
   await expect(page.getByRole('heading', { name: 'My games' })).toBeVisible();
   // Ticking a collection enables the cross-collection tools; both are mounted
   // and unmounted, which is where a federated query would be left running.
+  // Collections are ticked on the grid of all of them (Phase 83).
+  await page.getByRole('button', { name: 'All databases', exact: true }).click();
   await page.getByLabel('Include My games').check();
   await page.getByRole('button', { name: /Search 1 selected/ }).click();
   await page.getByRole('button', { name: 'Duplicates' }).click();
+  await page.getByRole('button', { name: 'All databases', exact: true }).click();
   await page.getByLabel('Include My games').uncheck();
 
   /*
@@ -365,7 +368,7 @@ async function cycle(page: Page, index: number) {
     comment on `navigate` describes. The route has no sidebar entry, so the
     games filter's own button is the client-side way in.
   */
-  await navigate(page, 'Games');
+  await navigate(page, 'Library');
   await page.getByRole('button', { name: 'Filters' }).click();
   await page.getByLabel('Player').fill('soak subject');
   await page.getByRole('button', { name: 'Player profile' }).click();
@@ -769,7 +772,7 @@ test('the same research chain, walked repeatedly, stays correct and stays bounde
 
     // 10. Preparation, 11. the game database, 12. a study, 13. the endgame lab.
     await navigate(page, 'Preparation');
-    await navigate(page, 'Games');
+    await navigate(page, 'Library');
     await navigate(page, 'Databases');
     await navigate(page, 'Studies');
     await navigate(page, 'Endgame');

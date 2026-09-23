@@ -127,14 +127,14 @@ export const BOARD_PRIORITIES: Readonly<Record<BoardPriority, BoardPriorityShape
   large: {
     dockWidth: 380,
     lowerHeight: 170,
-    shortLowerHeight: 120,
+    shortLowerHeight: 104,
     maxBoard: 960,
     moveTreeInDock: false,
   },
   maximum: {
     dockWidth: 340,
     lowerHeight: 140,
-    shortLowerHeight: 120,
+    shortLowerHeight: 104,
     maxBoard: 1200,
     moveTreeInDock: true,
   },

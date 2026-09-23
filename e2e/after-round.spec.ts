@@ -91,7 +91,7 @@ test('After the round reads the game and files one learning point', async ({ pag
   await importGame(page);
 
   // Open the game on the board from the list.
-  await page.getByRole('button', { name: 'Rival, R' }).first().click();
+  await page.locator('[data-library-row]').filter({ hasText: 'Rival, R' }).first().dblclick();
   await page.waitForURL(/\/analysis/);
   await selectTool(page, dock(page), 'After the round');
 
@@ -200,7 +200,7 @@ test('After the round reads the game and files one learning point', async ({ pag
 
 test('After the round asks which side you played when the profile cannot say', async ({ page }) => {
   await importGame(page);
-  await page.getByRole('button', { name: 'Rival, R' }).first().click();
+  await page.locator('[data-library-row]').filter({ hasText: 'Rival, R' }).first().dblclick();
   await page.waitForURL(/\/analysis/);
   await selectTool(page, dock(page), 'After the round');
   const after = panel(page);

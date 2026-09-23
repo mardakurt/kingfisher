@@ -72,6 +72,35 @@ Theory Book and Notes visible, the long tail under More. A person can still
 move the notation under the board from its ⋯ menu, and that choice is stored.
 On a phone the panel is one sheet and the notation is a tab in it.
 
+## Pages, headers and shared controls (Phase 83)
+
+Every page has the same two rows at the top: a 56px header (`PageHeader`, or
+`WorkspaceFrame`'s header on a board route) with the page's name, a quiet line
+of what it holds and its actions, and under it the **working tabs** — see
+`docs/design/workspace-tabs.md`. Below that, a page's own toolbar row: a
+search field on the left, its choices on the right.
+
+The controls those toolbars share live in `src/components/ui/Controls.tsx`, one
+definition each: `SearchField` (rounded, filled, with a clear button),
+`Segmented` (choices in a track, the chosen one filled with the accent),
+`FilterChip` (an applied filter, named and removable), `Popover` and
+`PopoverSection`, and `ScoreRing` (wins, draws and losses as one ring, the
+arcs the counts in proportion). The Library, Preparation and Databases are
+built from them, so they cannot drift into three dialects.
+
+- **Library** (`/games`): search and Filters over a dense striped table; a
+  single click previews the game (board, notation, open/review/analyse) in the
+  right-hand column, a double click or Return opens it; the Filters panel docks
+  in the same column and every filter in force is a chip under the search.
+- **Preparation**: a report, not a board — the player card with the score
+  ring, then Openings (the tree, the board preview, the repertoire comparison,
+  surprises and priorities), Games, Style (measured, never graded; see
+  `src/preparation/style.ts`), Dossier and Sheet. "Open on the board" and
+  "Prepare" take a position to Analysis.
+- **Databases**: every collection as a tile in "All databases"; a click opens
+  its detail, the corner checkbox selects it for cross-collection search and
+  duplicates, and the provider health stays in the right-hand column.
+
 ## Board and themes
 
 The default board is **Studio**: near-white and periwinkle squares in a

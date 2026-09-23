@@ -35,6 +35,19 @@ import { invalidateStudies } from './queries';
  * not the mount.
  */
 let launch: boolean | null = null;
+
+/**
+ * Settles once this page load's draft restore has finished — restored, held,
+ * or found nothing. Workspace tabs wait on it before capturing the board: a
+ * switch made in the moment between a reload and the restore landing would
+ * otherwise file an empty board as the tab's work, and the restore would then
+ * put that tab's moves on another tab's board.
+ */
+let settleRestore: () => void = () => undefined;
+const restoreSettled = new Promise<void>((resolve) => {
+  settleRestore = resolve;
+});
+export const workspaceRestored = (): Promise<void> => restoreSettled;
 const sessionStore = () => (typeof window === 'undefined' ? null : window.sessionStorage);
 const freshLaunch = (): boolean => {
   launch ??= beginSession(sessionStore());
@@ -128,7 +141,9 @@ export function useWorkspacePersistence(): void {
           detail: describe(error),
         });
       }
-    })();
+    })().finally(() => {
+      if (active) settleRestore();
+    });
 
     return () => {
       active = false;
@@ -230,7 +245,14 @@ export function useWorkspacePersistence(): void {
       if (next === watched) return;
       watched = next;
 
-      const openDocument = documentKey(state);
+      /*
+        Every open is a new document, even one with the same title: two
+        untitled analyses serialise identically, and a workspace tab switch
+        (or New tab) that swapped one for the other left the stored draft
+        describing the board before it — which a reload then put back. The
+        generation is bumped by every open and by nothing else.
+      */
+      const openDocument = `${documentKey(state)}#${state.generation}`;
       if (openDocument !== lastDocument.current) {
         lastDocument.current = openDocument;
         draftStale.current = true;
@@ -477,7 +499,7 @@ const documentKey = (state: ReturnType<typeof useAnalysis.getState>): string =>
   JSON.stringify(state.document);
 
 const signature = (state: ReturnType<typeof useAnalysis.getState>): string =>
-  `${state.revision}|${state.savedRevision}|${state.saving ? 1 : 0}|${documentKey(state)}`;
+  `${state.revision}|${state.savedRevision}|${state.saving ? 1 : 0}|${state.generation}|${documentKey(state)}`;
 
 const describe = (error: unknown): string =>
   error instanceof Error ? error.message : 'The browser rejected the write.';

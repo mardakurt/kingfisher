@@ -86,7 +86,7 @@ export const isGameRecord = (value: unknown): value is GameRecord =>
 
 export const isDraftRecord = (value: unknown): value is DraftRecord =>
   object(value) &&
-  value.id === 'active' &&
+  (value.id === 'active' || (text(value.id) && /^tab:.+/.test(value.id))) &&
   object(value.document) &&
   text(value.document.kind) &&
   text(value.currentId) &&

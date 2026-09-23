@@ -390,8 +390,15 @@ export type AnalysisDocument =
       readonly viewerSide?: 'w' | 'b';
     };
 
+/**
+ * A workspace tab's board work, kept while the tab is not the active one.
+ * See `docs/design/workspace-tabs.md`.
+ */
+export type TabDraftId = `tab:${string}`;
+
 export interface DraftRecord {
-  readonly id: 'active';
+  /** `active` is what is on the board; `tab:<id>` is an inactive tab's work. */
+  readonly id: 'active' | TabDraftId;
   readonly document: AnalysisDocument;
   readonly tree: GameTree;
   readonly currentId: string;
@@ -413,6 +420,10 @@ export interface DraftRepository {
   get(): Promise<DraftRecord | null>;
   save(draft: DraftRecord): Promise<void>;
   clear(): Promise<void>;
+  /** Every inactive tab's work, in no particular order. */
+  listTabs(): Promise<DraftRecord[]>;
+  getTab(id: TabDraftId): Promise<DraftRecord | null>;
+  deleteTab(id: TabDraftId): Promise<void>;
 }
 
 export interface AppRepositories {

@@ -95,7 +95,7 @@ test('all major routes are reachable and mobile navigation stays usable', async 
 
   const routes = [
     ['Openings', '/openings'],
-    ['Games', '/games'],
+    ['Library', '/games'],
     ['Preparation', '/preparation'],
     ['Databases', '/databases'],
     ['Repertoire', '/repertoire'],
@@ -121,7 +121,7 @@ test('all major routes are reachable and mobile navigation stays usable', async 
   await expect(page.getByRole('navigation', { name: 'Primary mobile navigation' })).toBeVisible();
   await page
     .getByRole('navigation', { name: 'Primary mobile navigation' })
-    .getByRole('link', { name: 'Games', exact: true })
+    .getByRole('link', { name: 'Library', exact: true })
     .click();
   await expect(page).toHaveURL(/\/games$/);
   await page.getByRole('button', { name: 'More' }).click();
@@ -169,7 +169,7 @@ test('analysis, games, repertoire and explorer share a working position', async 
 
   await page
     .getByRole('navigation', { name: 'Sections' })
-    .getByRole('link', { name: 'Games', exact: true })
+    .getByRole('link', { name: 'Library', exact: true })
     .click();
   await page.getByRole('button', { name: 'Import', exact: true }).click();
   await page
@@ -178,7 +178,7 @@ test('analysis, games, repertoire and explorer share a working position', async 
     .fill(SAMPLE_PGN);
   await page.getByRole('button', { name: 'Import games' }).click();
   await expect(page.getByRole('dialog', { name: 'Import a game or position' })).toBeHidden();
-  await page.getByRole('textbox', { name: 'Search games' }).fill('Alpha');
+  await page.getByRole('searchbox', { name: 'Search games' }).fill('Alpha');
   await expect(page.getByRole('button', { name: 'Alpha' })).toBeVisible();
   await page.getByRole('button', { name: 'Alpha' }).click();
   await expect(page).toHaveURL(/\/analysis$/);

@@ -355,6 +355,46 @@ describe('draft repository', () => {
     await repositories.drafts.clear();
     expect(await repositories.drafts.get()).toBeNull();
   });
+
+  it('keeps each tab’s work beside the active draft, and clearing one leaves the rest', async () => {
+    const tree = line(['e4', 'c5']).tree;
+    const draft = (id: 'active' | `tab:${string}`, title: string) => ({
+      id,
+      document: { kind: 'untitled' as const, title },
+      tree,
+      currentId: tree.rootId,
+      orientation: 'w' as const,
+      updatedAt: 1,
+    });
+    await repositories.drafts.save(draft('active', 'on the board'));
+    await repositories.drafts.save(draft('tab:one', 'Sicilian'));
+    await repositories.drafts.save(draft('tab:two', 'French'));
+
+    expect((await repositories.drafts.get())?.document.title).toBe('on the board');
+    const tabs = await repositories.drafts.listTabs();
+    expect(tabs.map((entry) => entry.id).sort()).toEqual(['tab:one', 'tab:two']);
+    expect((await repositories.drafts.getTab('tab:one'))?.document.title).toBe('Sicilian');
+
+    await repositories.drafts.deleteTab('tab:one');
+    await repositories.drafts.clear();
+    expect(await repositories.drafts.getTab('tab:one')).toBeNull();
+    expect(await repositories.drafts.get()).toBeNull();
+    expect((await repositories.drafts.listTabs()).map((entry) => entry.id)).toEqual(['tab:two']);
+  });
+
+  it('refuses a draft id that is neither the board nor a tab', async () => {
+    const tree = line(['e4']).tree;
+    await expect(
+      repositories.drafts.save({
+        id: 'elsewhere' as never,
+        document: { kind: 'untitled', title: 'x' },
+        tree,
+        currentId: tree.rootId,
+        orientation: 'w',
+        updatedAt: 1,
+      }),
+    ).rejects.toThrow(/corrupted|unsupported/i);
+  });
 });
 
 describe('game repository', () => {

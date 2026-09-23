@@ -15,6 +15,7 @@
  * the honest description of what continuing actually is.
  */
 
+import { WorkspaceTabStrip } from '@/features/tabs/WorkspaceTabStrip';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -307,6 +308,7 @@ export function RecentWorkspace() {
           })}
         </nav>
       </header>
+      <WorkspaceTabStrip />
 
       <div className="grid min-h-0 flex-1 gap-5 p-5 md:grid-cols-2 xl:grid-cols-3">
         {pinned.length > 0 && (

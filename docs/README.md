@@ -247,6 +247,8 @@ with [`AGENTS.md`](../AGENTS.md).
 
 ## Historical
 
+- [`reports/phase-83-handover.md`](reports/phase-83-handover.md) — working
+  tabs, the Library, the preparation report and the Databases grid.
 - [`reports/phase-82-handover.md`](reports/phase-82-handover.md) — the quiet
   workstation: a light Mac-document redesign after the owner's brief, the
   notation beside the board on tall screens, and what the redesign found.

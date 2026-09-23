@@ -105,8 +105,10 @@ test('a tournament preparation session carries an opponent through to a game-day
   await expect(page.getByText('I have Black')).toBeVisible();
   await expect(page.getByText('Game-day sheet')).toBeVisible();
 
-  const dock = page.getByRole('complementary', { name: 'Workspace tools' });
-  await selectTool(page, dock, 'Opening tree');
+  // Phase 83: the dossier is a tab of the preparation report.
+  const dock = page.locator('[data-preparation-report]');
+  const reportTabs = page.getByRole('tablist', { name: 'Report' });
+  await reportTabs.getByRole('tab', { name: 'Dossier' }).click();
 
   // The dossier states the evidence before anything derived from it.
   await expect(dock.getByText(/3 games · 3 as White/)).toBeVisible();
@@ -119,7 +121,8 @@ test('a tournament preparation session carries an opponent through to a game-day
   await dock.getByRole('button', { name: 'Move orders' }).click();
   await expect(dock.getByText('1.Nf3 before d4')).toBeVisible();
 
-  // The highest-priority gap, with its reason printed.
+  // The highest-priority gap, with its reason printed, beside the tree.
+  await reportTabs.getByRole('tab', { name: 'Openings' }).click();
   await expect(dock.getByText(/no prepared answer/i).first()).toBeVisible();
 
   // Carry a position onto the sheet.

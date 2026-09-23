@@ -1,14 +1,17 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 
 import { createTree } from '@/chess/tree/tree';
 import type { Fen, San } from '@/chess/types';
-import { Database } from '@/components/icons';
+import { Filter, Target } from '@/components/icons';
+import { Popover, PopoverSection, Segmented } from '@/components/ui/Controls';
 import { Button } from '@/components/ui/Button';
-import { EmptyState, Panel, PanelBody, PanelHeader } from '@/components/ui/Panel';
+import { EmptyState } from '@/components/ui/Panel';
+import type { GameRecord } from '@/persistence/types';
+import { useTabTitle } from '@/features/tabs/WorkspaceTabStrip';
 import {
   useProfile,
   useRepertoire,
@@ -25,8 +28,6 @@ import {
   compareWithRepertoire,
   type OpeningTree,
   type PlayerProfile,
-  type PreparationEdge,
-  type PreparationPriority,
 } from '@/preparation';
 import { buildDossier } from '@/preparation/dossier';
 import { useAnalysis } from '@/stores/analysis-store';
@@ -41,10 +42,9 @@ import { useUi } from '@/stores/ui-store';
 import type { RoundBrief } from '@/preparation/brief';
 
 import { BriefDialog } from './BriefDialog';
-import { DossierPanel } from './DossierPanel';
-import { SurprisesPanel } from './SurprisesPanel';
 import { GameDaySheet } from './GameDaySheet';
-import { OpponentSearch } from './OpponentSearch';
+import { OpponentSearch, type OpponentChoice } from './OpponentSearch';
+import { PreparationReport } from './PreparationReport';
 import { collectOpponentGames, type OpponentGames, type OpponentQuery } from './opponent-games';
 import { SessionBar } from './SessionBar';
 import { sheetToMarkdown, sheetToPgn, sheetToPrintableHtml } from './sheet-export';
@@ -203,7 +203,6 @@ export function PreparationWorkspace({
   };
 
   const [brief, setBrief] = useState<RoundBrief | null>(null);
-  const syncedPosition = useRef<string | null>(null);
 
   /* The sparring partner plays from exactly the tree on screen. */
   const setSparringOpponent = useSparringOpponent((state) => state.setOpponent);
@@ -221,21 +220,6 @@ export function PreparationWorkspace({
     });
     return () => setSparringOpponent(null);
   }, [preparation.data, setSparringOpponent, submitted]);
-
-  useEffect(() => {
-    if (!node) return;
-    const key = `${submitted}:${effectiveKey}`;
-    if (syncedPosition.current === key) return;
-    syncedPosition.current = key;
-    openDocument({
-      tree: createTree(node.fen, { Event: `Preparation · ${submitted}`, Result: '*' }),
-      document: {
-        kind: 'untitled',
-        title: submitted ? `Preparation · ${submitted}` : 'Opponent preparation',
-      },
-      orientation: side === 'b' ? 'b' : 'w',
-    });
-  }, [effectiveKey, node, openDocument, side, submitted]);
 
   /**
    * Take an observed continuation to the board so a reply can be prepared.
@@ -407,143 +391,133 @@ export function PreparationWorkspace({
     setLine([]);
   };
 
-  const profilePanel = !submitted ? (
-    <EmptyState
-      title="Search an opponent."
-      description="Start typing a name: the player library offers everyone the installed reference sources hold games for, and your own imported games are searched as well."
+  useTabTitle(submitted ? `Preparation against ${submitted}` : null);
+
+  const openGame = (game: GameRecord) => {
+    openDocument({
+      tree: game.tree,
+      document: {
+        kind: 'untitled',
+        title: `${game.white} – ${game.black}${game.year ? `, ${game.year}` : ''}`,
+      },
+      orientation: side === 'b' ? 'w' : 'b',
+    });
+    router.push('/analysis');
+  };
+
+  const report = !submitted ? (
+    <PreparationWelcome
+      favourites={profile.data?.favoritePlayers ?? []}
+      hasAliases={(profile.data?.aliases.length ?? 0) > 0}
+      onChoose={(name) => search(name, null)}
+      onMine={() => search(profile.data?.aliases[0] ?? '', null)}
     />
   ) : preparation.isPending ? (
-    <p className="px-3 py-5 text-2xs text-tertiary">Reading games from every source…</p>
+    <div className="flex flex-1 items-center justify-center text-xs text-tertiary">
+      Reading {submitted}’s games from every source…
+    </div>
   ) : preparation.isError ? (
-    <EmptyState title="Preparation failed." description={preparation.error.message} />
-  ) : preparation.data?.profile.games === 0 ? (
-    <EmptyState
-      title="No games found."
-      description={`Neither your own games nor the installed reference sources hold a game under “${submitted}”. Check the spelling, pick a suggestion, or import games.`}
-    />
+    <div className="flex flex-1 items-center justify-center">
+      <EmptyState title="Preparation failed." description={preparation.error.message} />
+    </div>
+  ) : !preparation.data || preparation.data.profile.games === 0 || !node ? (
+    <div className="flex flex-1 items-center justify-center">
+      <EmptyState
+        title="No games found."
+        description={`Neither your own games nor the installed reference sources hold a game under “${submitted}”. Check the spelling, pick a suggestion, or import games.`}
+      />
+    </div>
   ) : (
-    <ProfilePanel
-      profile={preparation.data!.profile}
-      total={preparation.data!.localTotal}
-      sources={preparation.data!.sources}
+    <PreparationReport
+      name={submitted}
+      profile={preparation.data.profile}
+      games={preparation.data.games}
+      aliases={preparation.data.aliases}
+      sources={preparation.data.sources}
+      localTotal={preparation.data.localTotal}
+      tree={preparation.data.tree}
+      node={node}
+      line={line}
+      canGoBack={history.length > 0}
+      orientation={side === 'b' ? 'w' : side === 'w' ? 'b' : 'w'}
+      opponentColor={opponentColor}
+      comparison={comparison}
+      priorities={priorities}
+      repertoire={repertoire.data?.positions ?? []}
+      hasRepertoire={Boolean(effectiveRepertoireId)}
+      repertoirePicker={
+        matchingRepertoires.length > 1 ? (
+          <select
+            aria-label="Compare repertoire"
+            value={effectiveRepertoireId ?? ''}
+            onChange={(event) => setRepertoireId(event.target.value)}
+            className="h-6 max-w-40 rounded-[6px] border border-line bg-surface-1 px-1.5 text-[11px] text-secondary"
+          >
+            {matchingRepertoires.map((entry) => (
+              <option key={entry.id} value={entry.id}>
+                {entry.title}
+              </option>
+            ))}
+          </select>
+        ) : null
+      }
+      sheet={
+        session ? (
+          <div className="overflow-hidden rounded-[10px] border border-line-subtle">
+            <GameDaySheet
+              session={session}
+              onOpen={(card) => {
+                openDocument({
+                  tree: createTree(card.fen, { Event: session.title, Result: '*' }),
+                  document: { kind: 'untitled', title: session.title },
+                  orientation: session.myColor,
+                });
+                router.push('/analysis');
+              }}
+              onEdit={(cardId, change) => void editCard(cardId, change)}
+              onRemove={(cardId) => void removeCard(cardId)}
+              onMove={(cardId, toIndex) => void moveCard(cardId, toIndex)}
+              onPrint={() => printSheet(session)}
+            />
+          </div>
+        ) : undefined
+      }
+      onSelectMove={(key, san) => {
+        setHistory((items) => [...items, effectiveKey]);
+        setCurrentKey(key);
+        setLine((moves) => [...moves, san]);
+      }}
+      onBack={() => {
+        const previous = history.at(-1);
+        if (previous === undefined) return;
+        setHistory((items) => items.slice(0, -1));
+        setCurrentKey(previous);
+        setLine((moves) => moves.slice(0, -1));
+      }}
+      onPrepare={(edge) => prepareReply(edge.resultingFen, `After ${submitted} plays ${edge.san}`)}
+      onOpenPosition={() =>
+        prepareReply(
+          node.fen,
+          line.length ? `Preparation · ${submitted}` : `Preparation · ${submitted}`,
+        )
+      }
+      onOpenSurprise={(surprise) =>
+        prepareReply(surprise.fen, `After ${submitted} plays ${surprise.san}`)
+      }
+      onOpenGame={openGame}
+      {...(session
+        ? {
+            onAddToSheet: () =>
+              void addToSheet(node.fen, line, `${node.games} games here in the selected set`),
+          }
+        : {})}
     />
   );
-
-  const openingTree = (
-    <Panel className="h-full">
-      <PanelHeader
-        actions={
-          matchingRepertoires.length ? (
-            <select
-              aria-label="Compare repertoire"
-              value={effectiveRepertoireId ?? ''}
-              onChange={(event) => setRepertoireId(event.target.value)}
-              className="h-6 max-w-40 rounded-[5px] border border-line bg-surface-inset px-1.5 text-[10px] normal-case tracking-normal text-secondary"
-            >
-              {matchingRepertoires.map((entry) => (
-                <option key={entry.id} value={entry.id}>
-                  {entry.title}
-                </option>
-              ))}
-            </select>
-          ) : null
-        }
-      >
-        Opening tree
-      </PanelHeader>
-      <PanelBody>
-        {node ? (
-          <MoveTable
-            node={node}
-            preparedKeys={new Set(comparison.prepared.map((edge) => edge.resultingKey))}
-            onSelect={(key, san) => {
-              setHistory((items) => [...items, effectiveKey]);
-              setCurrentKey(key);
-              if (san) setLine((moves) => [...moves, san]);
-            }}
-            onPrepare={(edge) =>
-              prepareReply(edge.resultingFen, `After ${submitted} plays ${edge.san}`)
-            }
-          />
-        ) : (
-          <EmptyState
-            title="No opening tree yet."
-            description="Search an opponent to build one from their games."
-          />
-        )}
-        {node && effectiveRepertoireId ? (
-          <section className="border-t border-line-subtle px-3 py-3">
-            <h2 className="text-[10px] text-tertiary">Repertoire comparison</h2>
-            <p className="mt-1 text-[11.5px] text-secondary">
-              {comparison.prepared.length} observed continuation
-              {comparison.prepared.length === 1 ? '' : 's'} prepared · {comparison.gaps.length} gap
-              {comparison.gaps.length === 1 ? '' : 's'}
-            </p>
-            {comparison.gaps.slice(0, 5).map((edge) => (
-              <button
-                key={edge.uci}
-                type="button"
-                onClick={() =>
-                  prepareReply(edge.resultingFen, `After ${submitted} plays ${edge.san}`)
-                }
-                className="mt-1 block w-full text-left text-2xs text-tertiary hover:text-accent"
-              >
-                {edge.san} · {edge.games} games · no prepared reply — prepare one
-              </button>
-            ))}
-          </section>
-        ) : null}
-        {/*
-          The surprise finder: their games × your repertoire × one named
-          source. It sits beside the dossier because that is where their games
-          already are. docs/design/surprise-finder.md
-        */}
-        {submitted && preparation.data && effectiveRepertoireId ? (
-          <section className="border-t border-line-subtle">
-            <h2 className="px-3 pt-3 text-[10px] text-tertiary">Surprises</h2>
-            <SurprisesPanel
-              repertoire={repertoire.data?.positions ?? []}
-              opponent={preparation.data.tree}
-              opponentName={submitted}
-              onOpen={(surprise) =>
-                prepareReply(surprise.fen, `After ${submitted} plays ${surprise.san}`)
-              }
-            />
-          </section>
-        ) : null}
-        {submitted && preparation.data ? (
-          <DossierPanel name={submitted} games={preparation.data.games} color={opponentColor} />
-        ) : null}
-        {node ? (
-          <PriorityQueue
-            priorities={priorities}
-            onPrepare={(edge) =>
-              prepareReply(edge.resultingFen, `After ${submitted} plays ${edge.san}`)
-            }
-          />
-        ) : null}
-      </PanelBody>
-    </Panel>
-  );
-
   return (
     <WorkspaceFrame
       workspace="preparation"
-      title="Preparation"
-      icon={<Database />}
-      toolbar={
-        <div className="flex min-w-0 flex-1 items-center gap-2">
-          <Database className="hidden h-5 w-5 shrink-0 text-accent sm:block" />
-          <h1 className="hidden shrink-0 text-sm font-semibold text-primary md:block">
-            Preparation
-          </h1>
-          <OpponentSearch
-            value={player}
-            onChange={setPlayer}
-            onSubmit={(choice) => search(choice.name, choice.player)}
-          />
-        </div>
-      }
+      title={submitted ? `Preparation against ${submitted}` : 'Preparation'}
+      icon={<Target />}
       actions={
         <>
           {/*
@@ -559,7 +533,7 @@ export function PreparationWorkspace({
                 const value = event.target.value;
                 if (value) search(value, null);
               }}
-              className="h-8 max-w-[18ch] rounded-[6px] border border-line bg-surface-inset px-1.5 text-2xs text-primary"
+              className="h-8 max-w-[18ch] rounded-[7px] border border-line bg-surface-1 px-1.5 text-xs text-primary"
             >
               <option value="">Favourites…</option>
               {profile.data?.favoritePlayers?.map((entry) => (
@@ -609,15 +583,10 @@ export function PreparationWorkspace({
       ]}
       banner={
         <>
-          <SessionBar
-            sessions={sessions}
-            active={session}
-            onSelect={setSessionId}
-            onCreate={(input) => void createSession(input)}
-            onOpenSheet={() => setSheetOpen(true)}
-            sheetCount={session?.sheet.length ?? 0}
-          />
-          <FilterBar
+          <PreparationToolbar
+            player={player}
+            setPlayer={setPlayer}
+            onSearch={(choice) => search(choice.name, choice.player)}
             side={side}
             setSide={setSide}
             fromYear={fromYear}
@@ -633,51 +602,17 @@ export function PreparationWorkspace({
             recentN={recentN}
             setRecentN={setRecentN}
           />
+          <SessionBar
+            sessions={sessions}
+            active={session}
+            onSelect={setSessionId}
+            onCreate={(input) => void createSession(input)}
+            onOpenSheet={() => setSheetOpen(true)}
+            sheetCount={session?.sheet.length ?? 0}
+          />
         </>
       }
-      rail={{ label: 'Player profile', width: 260, content: profilePanel }}
-      board={{ mode: 'interactive', showEvaluationArtifacts: true }}
-      empty={
-        node ? undefined : (
-          <EmptyState
-            title="No opening tree yet."
-            description="Search an opponent to see what they play, from your games and the installed reference sources."
-          />
-        )
-      }
-      belowBoard={
-        node ? (
-          <div className="mx-auto flex w-full max-w-[860px] shrink-0 items-center gap-2 border-t border-line-subtle px-3 py-1.5">
-            <Button
-              disabled={history.length === 0}
-              onClick={() => {
-                const previous = history.at(-1);
-                if (!previous) return;
-                setHistory((items) => items.slice(0, -1));
-                setCurrentKey(previous);
-                setLine((moves) => moves.slice(0, -1));
-              }}
-            >
-              Back
-            </Button>
-            <span className="ml-2 text-2xs text-tertiary tabular">
-              {node.games} observed games at this position
-            </span>
-            {session ? (
-              <Button
-                className="ml-auto"
-                onClick={() =>
-                  void addToSheet(node.fen, line, `${node.games} games here in the selected set`)
-                }
-              >
-                Add to sheet
-              </Button>
-            ) : null}
-          </div>
-        ) : undefined
-      }
-      contextLabel="Opening tree"
-      contextPanel={openingTree}
+      takeover={report}
       position={{
         label: submitted ? `Preparation · ${submitted}` : 'Preparation',
         hasSession: session !== null,
@@ -723,54 +658,25 @@ export function PreparationWorkspace({
   );
 }
 
-function PriorityQueue({
-  priorities,
-  onPrepare,
-}: {
-  readonly priorities: readonly PreparationPriority[];
-  readonly onPrepare: (edge: PreparationEdge) => void;
-}) {
-  return (
-    <section className="border-t border-line-subtle px-3 py-3">
-      <h2 className="text-[10px] text-tertiary">Preparation priorities</h2>
-      <p className="mt-1 text-[10px] text-tertiary">
-        Ordered by missing response, recent growth, then local frequency. No hidden score.
-      </p>
-      {priorities.slice(0, 8).map((priority) => (
-        <article
-          key={priority.edge.uci}
-          className="mt-2 rounded-[6px] border border-line-subtle bg-surface-2 px-2 py-2"
-        >
-          <div className="flex items-center gap-2 text-2xs">
-            <strong className="text-primary">{priority.edge.san}</strong>
-            <span className="text-tertiary tabular">
-              Local {priority.edge.frequency}% · recent {priority.edge.recentFrequency}%
-            </span>
-            <span className="ml-auto text-tertiary">
-              {priority.prepared ? 'Prepared' : 'No response'}
-            </span>
-          </div>
-          <p className="mt-1 text-[10.5px] text-secondary">{priority.reasons.join(' ')}</p>
-          <div className="mt-1 flex items-center gap-2 text-[10px] text-tertiary">
-            <span>{priority.edge.games} opponent games</span>
-            <span>{priority.modelGames} model games</span>
-            <span>{priority.trainingItems} training</span>
-            {priority.lastReviewedAt ? (
-              <span>Reviewed {new Date(priority.lastReviewedAt).toLocaleDateString()}</span>
-            ) : null}
-            {!priority.prepared ? (
-              <Button className="ml-auto" onClick={() => onPrepare(priority.edge)}>
-                Add response
-              </Button>
-            ) : null}
-          </div>
-        </article>
-      ))}
-    </section>
-  );
-}
+const YEAR_SPANS: readonly { id: string; label: string; years: number | null }[] = [
+  { id: 'all', label: 'All years', years: null },
+  { id: '1', label: 'Last 12 months', years: 1 },
+  { id: '3', label: 'Last 3 years', years: 3 },
+  { id: '5', label: 'Last 5 years', years: 5 },
+  { id: '10', label: 'Last 10 years', years: 10 },
+];
 
-function FilterBar(props: {
+/**
+ * The row under the header: who, when, which colour, and the finer filters.
+ *
+ * The span and the colour are the two choices made on every visit, so they
+ * are one click each; the rest sit behind Filters, with the count of those
+ * in force on the button so nothing narrows the report unseen.
+ */
+function PreparationToolbar(props: {
+  readonly player: string;
+  readonly setPlayer: (value: string) => void;
+  readonly onSearch: (choice: OpponentChoice) => void;
   readonly side: 'any' | 'w' | 'b';
   readonly setSide: (value: 'any' | 'w' | 'b') => void;
   readonly fromYear: string;
@@ -786,215 +692,189 @@ function FilterBar(props: {
   readonly recentN: string;
   readonly setRecentN: (value: string) => void;
 }) {
+  const thisYear = new Date().getFullYear();
+  const span =
+    props.toYear === ''
+      ? (YEAR_SPANS.find((entry) =>
+          entry.years === null
+            ? props.fromYear === ''
+            : props.fromYear === String(thisYear - entry.years + 1),
+        )?.id ?? 'custom')
+      : 'custom';
+  const active = [
+    props.minRating,
+    props.eco,
+    props.result !== 'any' ? props.result : '',
+    props.recentN !== '200' ? props.recentN : '',
+    span === 'custom' ? 'years' : '',
+  ].filter(Boolean).length;
+
   return (
-    <div className="flex shrink-0 flex-wrap items-end gap-2 border-b border-line-subtle bg-surface-1 px-2 py-2 sm:px-3">
-      <Field label="Opponent side">
+    <div
+      className="flex shrink-0 flex-wrap items-center gap-2 border-b border-line-subtle px-3 py-2 sm:px-4"
+      data-preparation-toolbar
+    >
+      <div className="flex min-w-[260px] max-w-[560px] flex-1">
+        <OpponentSearch value={props.player} onChange={props.setPlayer} onSubmit={props.onSearch} />
+      </div>
+      <div className="ml-auto flex flex-wrap items-center gap-2">
         <select
-          value={props.side}
-          onChange={(e) => props.setSide(e.target.value as 'any' | 'w' | 'b')}
-          className={FIELD}
+          aria-label="Years"
+          value={span}
+          onChange={(event) => {
+            const chosen = YEAR_SPANS.find((entry) => entry.id === event.target.value);
+            if (!chosen) return;
+            props.setToYear('');
+            props.setFromYear(chosen.years === null ? '' : String(thisYear - chosen.years + 1));
+          }}
+          className="h-8 rounded-[7px] border border-line bg-surface-1 px-2 text-xs text-primary"
         >
-          <option value="any">Either</option>
-          <option value="w">White</option>
-          <option value="b">Black</option>
-        </select>
-      </Field>
-      <Field label="From">
-        <input
-          value={props.fromYear}
-          onChange={(e) => props.setFromYear(digits(e.target.value, 4))}
-          className={FIELD}
-          placeholder="2015"
-        />
-      </Field>
-      <Field label="To">
-        <input
-          value={props.toYear}
-          onChange={(e) => props.setToYear(digits(e.target.value, 4))}
-          className={FIELD}
-          placeholder="2026"
-        />
-      </Field>
-      <Field label="Min Elo">
-        <input
-          value={props.minRating}
-          onChange={(e) => props.setMinRating(digits(e.target.value, 4))}
-          className={FIELD}
-          placeholder="2200"
-        />
-      </Field>
-      <Field label="ECO">
-        <input
-          value={props.eco}
-          onChange={(e) => props.setEco(e.target.value.toUpperCase().slice(0, 3))}
-          className={FIELD}
-          placeholder="B90"
-        />
-      </Field>
-      <Field label="Result">
-        <select
-          value={props.result}
-          onChange={(e) => props.setResult(e.target.value as GameResult | 'any')}
-          className={FIELD}
-        >
-          {RESULTS.map((entry) => (
+          {YEAR_SPANS.map((entry) => (
             <option key={entry.id} value={entry.id}>
               {entry.label}
             </option>
           ))}
+          {span === 'custom' ? <option value="custom">Custom years</option> : null}
         </select>
-      </Field>
-      <Field label="Recent N">
-        <input
-          value={props.recentN}
-          onChange={(e) => props.setRecentN(digits(e.target.value, 4))}
-          className={FIELD}
+        <Segmented
+          label="Opponent's colour"
+          value={props.side === 'any' ? 'any' : props.side}
+          onChange={(value) => props.setSide(value)}
+          options={[
+            { id: 'any', label: 'All' },
+            { id: 'w', label: 'White', title: 'Games where the opponent had White' },
+            { id: 'b', label: 'Black', title: 'Games where the opponent had Black' },
+          ]}
         />
-      </Field>
+        <Popover
+          align="end"
+          width={300}
+          label="Preparation filters"
+          trigger={({ open, toggle, id }) => (
+            <Button
+              id={id}
+              aria-expanded={open}
+              aria-haspopup="dialog"
+              active={open || active > 0}
+              icon={<Filter />}
+              onClick={toggle}
+            >
+              Filters{active ? ` ${active}` : ''}
+            </Button>
+          )}
+        >
+          <PopoverSection title="Years" hint="Leave either end open.">
+            <div className="flex items-center gap-2">
+              <input
+                aria-label="From year"
+                value={props.fromYear}
+                onChange={(e) => props.setFromYear(digits(e.target.value, 4))}
+                placeholder="From"
+                className={FIELD}
+              />
+              <span className="text-tertiary">–</span>
+              <input
+                aria-label="To year"
+                value={props.toYear}
+                onChange={(e) => props.setToYear(digits(e.target.value, 4))}
+                placeholder="To"
+                className={FIELD}
+              />
+            </div>
+          </PopoverSection>
+          <PopoverSection
+            title="Opponent rating"
+            hint="Games where the opponent was rated at least this."
+          >
+            <input
+              aria-label="Min Elo"
+              value={props.minRating}
+              onChange={(e) => props.setMinRating(digits(e.target.value, 4))}
+              placeholder="2200"
+              className={FIELD}
+            />
+          </PopoverSection>
+          <PopoverSection title="Opening" hint="An ECO code or its first letters: B, B9, B90.">
+            <input
+              aria-label="ECO"
+              value={props.eco}
+              onChange={(e) => props.setEco(e.target.value.toUpperCase().slice(0, 3))}
+              placeholder="B90"
+              className={FIELD}
+            />
+          </PopoverSection>
+          <PopoverSection title="Result">
+            <Segmented
+              label="Result"
+              size="sm"
+              value={props.result}
+              onChange={props.setResult}
+              options={RESULTS.map((entry) => ({
+                id: entry.id,
+                label: entry.id === 'any' ? 'Any' : entry.label,
+              }))}
+            />
+          </PopoverSection>
+          <PopoverSection
+            title="Most recent games"
+            hint="The report reads at most this many, newest first."
+          >
+            <input
+              aria-label="Recent N"
+              value={props.recentN}
+              onChange={(e) => props.setRecentN(digits(e.target.value, 4))}
+              className={FIELD}
+            />
+          </PopoverSection>
+        </Popover>
+      </div>
     </div>
   );
 }
 
-function ProfilePanel({
-  profile,
-  total,
-  sources,
+/** Before anyone is chosen: what the page is for, and the names already at hand. */
+function PreparationWelcome({
+  favourites,
+  hasAliases,
+  onChoose,
+  onMine,
 }: {
-  readonly profile: PlayerProfile;
-  readonly total: number | null;
-  readonly sources: readonly { id: string; name: string; games: number }[];
+  readonly favourites: readonly { readonly key: string; readonly name: string }[];
+  readonly hasAliases: boolean;
+  readonly onChoose: (name: string) => void;
+  readonly onMine: () => void;
 }) {
   return (
-    <div className="divide-y divide-line-subtle">
-      <section className="px-3 py-3">
-        <h2 className="text-sm font-medium text-primary">{profile.name}</h2>
-        {/*
-          Each source with its own count, never a merged figure presented as
-          one population: a game from the starter reference and a game the
-          user imported are different evidence about the same person.
-        */}
-        <ul className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-tertiary tabular">
-          {sources.map((source) => (
-            <li key={source.id}>
-              {source.games} from {source.name}
-            </li>
-          ))}
-        </ul>
-        <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-2xs">
-          <dt className="text-tertiary">Games analysed</dt>
-          <dd className="text-right text-secondary tabular">
-            {profile.games}
-            {total !== null && total > profile.games ? ` (${total} in My games)` : ''}
-          </dd>
-          <dt className="text-tertiary">Average rating</dt>
-          <dd className="text-right text-secondary tabular">{profile.averageRating ?? '—'}</dd>
-          <dt className="text-tertiary">Date range</dt>
-          <dd className="text-right text-secondary tabular">
-            {profile.firstYear && profile.lastYear
-              ? `${profile.firstYear}–${profile.lastYear}`
-              : '—'}
-          </dd>
-          <dt className="text-tertiary">White / Black</dt>
-          <dd className="text-right text-secondary tabular">
-            {profile.asWhite} / {profile.asBlack}
-          </dd>
-          <dt className="text-tertiary">Score</dt>
-          <dd className="text-right text-secondary tabular">{profile.score}%</dd>
-        </dl>
-      </section>
-      <section className="px-3 py-3">
-        <h3 className="text-[10px] text-tertiary">Common openings</h3>
-        {profile.openings.slice(0, 10).map((opening) => (
-          <div key={opening.name} className="mt-1.5 flex items-center gap-2 text-2xs">
-            <span className="min-w-0 flex-1 truncate text-secondary">{opening.name}</span>
-            <span className="text-tertiary tabular">{opening.games}</span>
-            {opening.recentGames ? (
-              <span className="text-tertiary tabular">recent {opening.recentGames}</span>
+    <div className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto px-6 py-10">
+      <div className="max-w-[440px] text-center">
+        <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-surface-2 text-secondary">
+          <Target className="h-6 w-6" />
+        </span>
+        <h2 className="mt-3 text-base font-semibold text-primary">Prepare for an opponent</h2>
+        <p className="mt-1 text-xs leading-relaxed text-secondary">
+          Search a name above. The report reads their games from every installed reference source
+          and your own collections — what they open with, how they score, and where your repertoire
+          has no answer yet.
+        </p>
+        {favourites.length || hasAliases ? (
+          <div className="mt-4 flex flex-wrap justify-center gap-1.5">
+            {hasAliases ? (
+              <Button variant="subtle" onClick={onMine}>
+                My games
+              </Button>
             ) : null}
+            {favourites.slice(0, 8).map((entry) => (
+              <Button key={entry.key} variant="subtle" onClick={() => onChoose(entry.name)}>
+                {entry.name}
+              </Button>
+            ))}
           </div>
-        ))}
-      </section>
+        ) : null}
+      </div>
     </div>
   );
 }
 
-function MoveTable({
-  node,
-  preparedKeys,
-  onSelect,
-  onPrepare,
-}: {
-  readonly node: NonNullable<OpeningTree['nodes'] extends ReadonlyMap<string, infer T> ? T : never>;
-  readonly preparedKeys: ReadonlySet<string>;
-  readonly onSelect: (key: string, san?: San) => void;
-  readonly onPrepare: (edge: PreparationEdge) => void;
-}) {
-  return (
-    /* Six columns in a 390px pane: the table scrolls inside itself rather than
-       losing its last column or widening the document. */
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[340px] border-collapse text-[10.5px]">
-        <thead>
-          <tr className="border-b border-line-subtle text-left text-[9.5px] text-tertiary">
-            <th className="px-3 py-1.5 font-medium">Move</th>
-            <th className="px-2 py-1.5 text-right font-medium">Games</th>
-            <th className="px-2 py-1.5 text-right font-medium">Freq</th>
-            <th className="px-2 py-1.5 text-right font-medium">Score</th>
-            <th className="px-2 py-1.5 text-right font-medium">Avg Elo</th>
-            <th className="px-2 py-1.5 text-right font-medium">Last</th>
-            <th className="px-3 py-1.5 font-medium">Reply</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-line-subtle">
-          {node.edges.map((edge) => (
-            <tr key={edge.uci} className="text-secondary">
-              <td className="px-3 py-1.5">
-                <button
-                  type="button"
-                  className="font-medium text-primary hover:text-accent"
-                  onClick={() => onSelect(edge.resultingKey, edge.san)}
-                >
-                  {edge.san}
-                </button>
-              </td>
-              <td className="px-2 py-1.5 text-right tabular">{edge.games}</td>
-              <td className="px-2 py-1.5 text-right tabular">{edge.frequency}%</td>
-              <td className="px-2 py-1.5 text-right tabular">{edge.playerScore}%</td>
-              <td className="px-2 py-1.5 text-right tabular">{edge.averageElo ?? '—'}</td>{' '}
-              <td className="px-2 py-1.5 text-right tabular">{edge.lastPlayed ?? '—'}</td>
-              <td className="px-3 py-1.5">
-                {preparedKeys.has(edge.resultingKey) ? (
-                  'Prepared'
-                ) : (
-                  <button
-                    type="button"
-                    className="text-tertiary hover:text-accent"
-                    onClick={() => onPrepare(edge)}
-                  >
-                    Prepare
-                  </button>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-const Field = ({
-  label,
-  children,
-}: {
-  readonly label: string;
-  readonly children: React.ReactNode;
-}) => (
-  <label className="text-[10px] text-tertiary">
-    {label}
-    {children}
-  </label>
-);
 const FIELD =
-  'mt-0.5 block h-7 w-[92px] rounded-[6px] border border-line bg-surface-inset px-2 text-2xs text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60';
+  'h-7 w-full rounded-[6px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60';
 const digits = (value: string, length: number) => value.replace(/\D/g, '').slice(0, length);

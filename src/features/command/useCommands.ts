@@ -19,6 +19,8 @@ import { useUi } from '@/stores/ui-store';
 import { desktop } from '@/desktop/bridge';
 import { showTool } from '@/features/workspace/select-tool';
 import { NAV_SECTIONS } from '@/features/shell/navigation';
+import { newTab, requestCloseTab, stepTab } from '@/features/tabs/tab-actions';
+import { useTabs } from '@/features/tabs/tab-store';
 import { SETTINGS_INDEX, SETTINGS_SECTIONS } from '@/features/shell/settings-index';
 import { positionPageAvailable } from '@/features/position/open-position-page';
 import { positionPageUrl } from '@/position/knowledge';
@@ -106,6 +108,41 @@ export function useCommands(): readonly Command[] {
         group: 'Help',
         keywords: 'tour guide onboarding walkthrough help sections',
         run: () => ui().setTourOpen(true),
+      },
+      {
+        id: 'tab-new',
+        title: 'New tab',
+        group: 'Tabs',
+        keywords: 'open workspace tab window',
+        run: () => newTab(router),
+      },
+      {
+        id: 'tab-duplicate',
+        title: 'Duplicate tab',
+        group: 'Tabs',
+        keywords: 'copy clone workspace tab',
+        run: () => newTab(router, { duplicate: true }),
+      },
+      {
+        id: 'tab-close',
+        title: 'Close tab',
+        group: 'Tabs',
+        keywords: 'close workspace tab',
+        run: () => requestCloseTab(useTabs.getState().activeId, router),
+      },
+      {
+        id: 'tab-next',
+        title: 'Next tab',
+        group: 'Tabs',
+        keywords: 'switch workspace tab right',
+        run: () => stepTab(1, router),
+      },
+      {
+        id: 'tab-previous',
+        title: 'Previous tab',
+        group: 'Tabs',
+        keywords: 'switch workspace tab left',
+        run: () => stepTab(-1, router),
       },
       {
         id: 'new-analysis',

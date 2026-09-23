@@ -23,7 +23,10 @@ import { useEnCroissantImport } from '@/stores/en-croissant-import-store';
 import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { Import, Plus, Search, Settings } from '@/components/icons';
+import { Database, Dossier, Import, Library, Plus, Search, Settings } from '@/components/icons';
+import { SearchField } from '@/components/ui/Controls';
+import { PageHeader } from '@/features/shell/PageHeader';
+import type { CollectionFacts } from '@/database/collections/types';
 import { Button } from '@/components/ui/Button';
 import { PromptDialog } from '@/components/ui/PromptDialog';
 import { companionClient } from '@/companion/session';
@@ -33,14 +36,13 @@ import { getRepositories } from '@/persistence/repositories';
 import { STORE_NAMES } from '@/persistence/schema/migrations';
 import type { ChessDatabaseProvider, ProviderHealth, ProviderHealthState } from '@/database/types';
 import { useDatabaseProviders } from '@/database/use-database-providers';
-import { NavButton } from '@/features/shell/NavButton';
 import { cn } from '@/lib/cn';
 import type { GameSearchQuery } from '@/persistence/types';
 import { usePreferences } from '@/stores/preferences-store';
 import { useUi } from '@/stores/ui-store';
 
 import { CollectionDetail } from './CollectionDetail';
-import { CollectionList, formatBytes } from './CollectionList';
+import { formatBytes } from './CollectionList';
 import { DuplicatesPanel } from './DuplicatesPanel';
 import { MultiSearchPanel } from './MultiSearchPanel';
 import { ReferenceCatalogPanel } from './ReferenceCatalogPanel';
@@ -84,6 +86,9 @@ export function DatabasesWorkspace() {
   const [focusedId, setFocusedId] = useState<string | null>(null);
   const [checked, setChecked] = useState<ReadonlySet<string>>(new Set());
   const [tab, setTab] = useState<CentreTab>('collection');
+  /** Whether a collection is open, rather than the grid of all of them. */
+  const [drilled, setDrilled] = useState(false);
+  const [filter, setFilter] = useState('');
   const [transfer, setTransfer] = useState<TransferRequest | null>(null);
   const [creating, setCreating] = useState<null | { query?: GameSearchQuery; sourceId?: string }>(
     null,
@@ -98,6 +103,9 @@ export function DatabasesWorkspace() {
   const list = useMemo(() => collections.data ?? [], [collections.data]);
   const focused = list.find((entry) => entry.id === focusedId) ?? list[0] ?? null;
   const selected = list.filter((entry) => checked.has(entry.id));
+  const shown = filter.trim()
+    ? list.filter((entry) => entry.name.toLowerCase().includes(filter.trim().toLowerCase()))
+    : list;
 
   const refresh = async () => {
     await queryClient.invalidateQueries({ queryKey: ['collections'] });
@@ -154,90 +162,64 @@ export function DatabasesWorkspace() {
       {enCroissantOpen ? (
         <EnCroissantImportDialog open onClose={() => setEnCroissantOpen(false)} />
       ) : null}
-      <header
-        data-titlebar-drag=""
-        className="flex min-h-14 shrink-0 flex-wrap items-center gap-3 border-b border-line-subtle bg-surface-1 px-3 md:px-5"
+      <PageHeader
+        title="Databases"
+        subtitle="Collections, reference sources, transfers, cross-database search and duplicates."
+        icon={<Database />}
+        actions={
+          <Button icon={<Settings />} onClick={() => setSettingsOpen(true)}>
+            Connections
+          </Button>
+        }
+      />
+
+      <div
+        className="flex shrink-0 flex-wrap items-center gap-2 px-3 pt-2.5 pb-2 sm:px-4"
+        data-databases-toolbar
       >
-        <NavButton />
-        <div className="min-w-0">
-          <h1 className="text-sm font-semibold text-primary">Databases</h1>
-          <p className="hidden text-xs text-tertiary sm:block">
-            Collections, transfers, cross-database search and duplicates.
-          </p>
+        <SearchField
+          value={filter}
+          onChange={setFilter}
+          placeholder="Search databases"
+          aria-label="Search databases"
+          className="max-w-[320px] min-w-[200px] flex-1"
+        />
+        <div className="ml-auto flex flex-wrap items-center gap-1.5">
+          <Button size="sm" icon={<Plus />} onClick={() => setCreating({})}>
+            New collection
+          </Button>
+          <Button size="sm" icon={<Import />} onClick={() => setImportOpen(true)}>
+            Import PGN
+          </Button>
+          <Button size="sm" onClick={() => setChessBaseOpen(true)}>
+            {chessBaseRunning ? 'ChessBase import running…' : 'Import ChessBase'}
+          </Button>
+          <Button size="sm" onClick={() => setEnCroissantOpen(true)}>
+            {enCroissantRunning ? 'En Croissant import running…' : 'Import En Croissant'}
+          </Button>
         </div>
-        <Button
-          variant="subtle"
-          icon={<Plus />}
-          className="ml-auto"
-          onClick={() => setCreating({})}
-        >
-          New collection
-        </Button>
-        <Button variant="subtle" icon={<Import />} onClick={() => setImportOpen(true)}>
-          Import PGN
-        </Button>
-        <Button onClick={() => setChessBaseOpen(true)}>
-          {chessBaseRunning ? 'ChessBase import running…' : 'Import ChessBase'}
-        </Button>
-        <Button onClick={() => setEnCroissantOpen(true)}>
-          {enCroissantRunning ? 'En Croissant import running…' : 'Import En Croissant'}
-        </Button>
-        <Button icon={<Settings />} onClick={() => setSettingsOpen(true)}>
-          Connections
-        </Button>
-      </header>
+      </div>
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[300px_minmax(0,1fr)_300px] lg:overflow-hidden">
-        <section className="flex min-h-0 flex-col border-b border-line-subtle bg-surface-1 lg:border-r lg:border-b-0">
-          <div className="flex shrink-0 items-center gap-2 border-b border-line-subtle px-4 py-3">
-            <h2 className="text-xs font-semibold text-tertiary">Collections</h2>
-            {checked.size > 0 ? (
-              <button
-                type="button"
-                onClick={() => setChecked(new Set())}
-                className="ml-auto text-[10px] text-tertiary underline-offset-2 hover:text-secondary hover:underline"
-              >
-                Clear {checked.size} selected
-              </button>
-            ) : null}
-          </div>
-          <div className="min-h-0 flex-1 overflow-auto">
-            <CollectionList
-              collections={list}
-              focusedId={focused?.id ?? null}
-              checked={checked}
-              onFocus={(id) => {
-                setFocusedId(id);
-                setTab('collection');
-              }}
-              onToggle={(id) =>
-                setChecked((current) => {
-                  const next = new Set(current);
-                  if (next.has(id)) next.delete(id);
-                  else next.add(id);
-                  return next;
-                })
-              }
-            />
-            <SourceSetsPanel
-              collections={list}
-              checked={checked}
-              onApply={(ids) => {
-                setChecked(new Set(ids));
-                setTab('search');
-              }}
-            />
-          </div>
-        </section>
-
+      <div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto border-t border-line-subtle lg:grid-cols-[minmax(0,1fr)_300px] lg:overflow-hidden">
         <main className="flex min-h-[460px] min-w-0 flex-col lg:min-h-0">
           <nav
-            className="flex shrink-0 gap-1 border-b border-line-subtle bg-surface-1 px-3 py-1.5"
+            className="flex shrink-0 flex-wrap gap-1 border-b border-line-subtle px-3 py-1.5 sm:px-4"
             aria-label="Database tools"
           >
-            <TabButton active={tab === 'collection'} onClick={() => setTab('collection')}>
-              {focused ? focused.name : 'Collection'}
+            <TabButton
+              active={tab === 'collection' && !drilled}
+              onClick={() => {
+                setTab('collection');
+                setDrilled(false);
+              }}
+            >
+              All databases
             </TabButton>
+            {drilled && focused ? (
+              <TabButton active={tab === 'collection'} onClick={() => setTab('collection')}>
+                {focused.name}
+              </TabButton>
+            ) : null}
             <TabButton
               active={tab === 'search'}
               onClick={() => setTab('search')}
@@ -282,6 +264,37 @@ export function DatabasesWorkspace() {
               />
             ) : tab === 'duplicates' ? (
               <DuplicatesPanel selected={selected} onChanged={() => void refresh()} />
+            ) : !drilled ? (
+              <DatabaseGrid
+                collections={shown}
+                total={list.length}
+                focusedId={focused?.id ?? null}
+                checked={checked}
+                onOpen={(id) => {
+                  setFocusedId(id);
+                  setDrilled(true);
+                }}
+                onToggle={(id) =>
+                  setChecked((current) => {
+                    const next = new Set(current);
+                    if (next.has(id)) next.delete(id);
+                    else next.add(id);
+                    return next;
+                  })
+                }
+                onClearChecked={() => setChecked(new Set())}
+                onReferenceSources={() => setTab('sources')}
+                sets={
+                  <SourceSetsPanel
+                    collections={list}
+                    checked={checked}
+                    onApply={(ids) => {
+                      setChecked(new Set(ids));
+                      setTab('search');
+                    }}
+                  />
+                }
+              />
             ) : focused ? (
               <CollectionDetail
                 collection={focused}
@@ -587,5 +600,153 @@ function StatusDot({ state, className }: { state: ProviderHealthState; className
         className,
       )}
     />
+  );
+}
+
+/**
+ * Every collection as a tile, the way a Mac shows a folder of documents.
+ *
+ * A tile names the collection and says how many games it holds and where
+ * they live; a click opens it. The checkbox in its corner is the multi-select
+ * the cross-collection search and duplicate finder work from — visible, not a
+ * modifier-click nobody would discover.
+ */
+function DatabaseGrid({
+  collections,
+  total,
+  focusedId,
+  checked,
+  onOpen,
+  onToggle,
+  onClearChecked,
+  onReferenceSources,
+  sets,
+}: {
+  readonly collections: readonly CollectionFacts[];
+  readonly total: number;
+  readonly focusedId: string | null;
+  readonly checked: ReadonlySet<string>;
+  readonly onOpen: (id: string) => void;
+  readonly onToggle: (id: string) => void;
+  readonly onClearChecked: () => void;
+  readonly onReferenceSources: () => void;
+  readonly sets: React.ReactNode;
+}) {
+  return (
+    <div className="px-5 py-5 md:px-7" data-database-grid>
+      <div className="flex items-baseline gap-2">
+        <h2 className="text-[15px] font-semibold text-primary">All databases</h2>
+        <span className="text-xs text-tertiary tabular">{total}</span>
+        {checked.size > 0 ? (
+          <button
+            type="button"
+            onClick={onClearChecked}
+            className="ml-auto text-[11px] text-tertiary underline-offset-2 hover:text-secondary hover:underline"
+          >
+            Clear {checked.size} selected
+          </button>
+        ) : null}
+      </div>
+      <ul
+        className="mt-4 grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-3"
+        aria-label="Collections"
+      >
+        {collections.map((collection) => {
+          const isChecked = checked.has(collection.id);
+          return (
+            <li key={collection.id} className="group relative">
+              <button
+                type="button"
+                onClick={() => onOpen(collection.id)}
+                aria-current={collection.id === focusedId}
+                className={cn(
+                  'flex w-full flex-col items-center gap-2 rounded-[12px] px-2 pt-4 pb-3 text-center transition-colors',
+                  isChecked ? 'bg-accent-muted' : 'hover:bg-surface-2',
+                )}
+              >
+                <span
+                  aria-hidden
+                  className={cn(
+                    'flex size-16 items-center justify-center rounded-[16px] shadow-[0_1px_2px_rgb(0_0_0/0.12),inset_0_0_0_0.5px_rgb(0_0_0/0.08)]',
+                    collection.kind === 'sqlite'
+                      ? 'bg-gradient-to-b from-[#6f7785] to-[#4b525d] text-white'
+                      : 'bg-gradient-to-b from-[#4f8ff0] to-[#2563d4] text-white',
+                  )}
+                >
+                  {collection.kind === 'sqlite' ? (
+                    <Database className="h-7 w-7" />
+                  ) : (
+                    <Library className="h-7 w-7" />
+                  )}
+                </span>
+                <span className="line-clamp-2 text-[12.5px] leading-tight font-medium text-primary">
+                  {collection.name}
+                </span>
+                <span className="-mt-1 text-[11px] text-tertiary tabular">
+                  {collection.games === null
+                    ? 'count unavailable'
+                    : plural(collection.games, 'game')}
+                  {' · '}
+                  {collection.kind === 'sqlite' ? 'SQLite' : 'this browser'}
+                </span>
+              </button>
+              <label
+                className={cn(
+                  'absolute top-1.5 left-1.5 flex size-6 cursor-pointer items-center justify-center rounded-[6px] transition-opacity',
+                  isChecked
+                    ? 'opacity-100'
+                    : 'opacity-0 group-hover:opacity-100 focus-within:opacity-100',
+                )}
+                title={`Include ${collection.name} in multi-collection search and duplicate detection`}
+              >
+                <input
+                  type="checkbox"
+                  checked={isChecked}
+                  onChange={() => onToggle(collection.id)}
+                  aria-label={`Include ${collection.name}`}
+                  className="accent-[var(--accent)]"
+                />
+              </label>
+              {collection.reference ? (
+                <span
+                  className="absolute top-2 right-2 rounded-[4px] bg-accent px-1 text-[9px] font-semibold text-accent-contrast"
+                  title="The explorer's default source"
+                >
+                  Ref
+                </span>
+              ) : null}
+            </li>
+          );
+        })}
+        <li>
+          <button
+            type="button"
+            aria-label="Open the reference catalogue: packs and live services"
+            onClick={onReferenceSources}
+            className="flex w-full flex-col items-center gap-2 rounded-[12px] px-2 pt-4 pb-3 text-center transition-colors hover:bg-surface-2"
+          >
+            <span
+              aria-hidden
+              className="flex size-16 items-center justify-center rounded-[16px] bg-gradient-to-b from-[#f5c451] to-[#e0a21c] text-white shadow-[0_1px_2px_rgb(0_0_0/0.12)]"
+            >
+              <Dossier className="h-7 w-7" />
+            </span>
+            <span className="text-[12.5px] leading-tight font-medium text-primary">
+              Reference sources
+            </span>
+            <span className="-mt-1 text-[11px] text-tertiary">Packs and live services</span>
+          </button>
+        </li>
+      </ul>
+      {collections.length === 0 && total > 0 ? (
+        <p className="mt-4 text-xs text-tertiary">No collection matches the search.</p>
+      ) : null}
+      {total === 0 ? (
+        <p className="mt-4 text-xs text-tertiary">
+          No collections. Import a PGN to start one, or pair the companion for SQLite collections.
+        </p>
+      ) : null}
+      <div className="mt-6 max-w-[520px]">{sets}</div>
+    </div>
   );
 }

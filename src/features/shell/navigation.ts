@@ -186,10 +186,10 @@ export const NAV_SECTIONS: readonly NavSection[] = [
   },
   {
     id: 'games',
-    label: 'Games',
+    label: 'Library',
     href: '/games',
     icon: Library,
-    hint: 'Import and review your own games.',
+    hint: 'Every game you keep: search, filter, preview, and open on the board.',
     group: 'data',
   },
   {

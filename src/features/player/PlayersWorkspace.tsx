@@ -15,6 +15,7 @@
  * before 2020 is none — and the row says so instead of showing an empty page.
  */
 
+import { WorkspaceTabStrip } from '@/features/tabs/WorkspaceTabStrip';
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 
@@ -109,6 +110,7 @@ export function PlayersWorkspace() {
           </p>
         </div>
       </header>
+      <WorkspaceTabStrip />
 
       <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-line-subtle bg-surface-1 px-3 py-2 md:px-5">
         <label className="relative flex min-w-[240px] flex-1 items-center">

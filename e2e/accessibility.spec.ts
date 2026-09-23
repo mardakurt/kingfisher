@@ -298,7 +298,7 @@ test.describe('major workflows without a mouse', () => {
 
     await page.keyboard.press('ControlOrMeta+k');
     await expect(page.getByRole('dialog').first()).toBeVisible();
-    await page.keyboard.type('games');
+    await page.keyboard.type('library');
     await page.keyboard.press('Enter');
 
     await expect(page).toHaveURL(/\/games/, { timeout: 15_000 });

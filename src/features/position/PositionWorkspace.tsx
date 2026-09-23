@@ -1,5 +1,6 @@
 'use client';
 
+import { WorkspaceTabStrip } from '@/features/tabs/WorkspaceTabStrip';
 import { useMemo, useState, useSyncExternalStore } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -66,6 +67,7 @@ export function PositionWorkspace() {
           Refresh
         </Button>
       </header>
+      <WorkspaceTabStrip />
       {!identity ? (
         <div className="p-6" role="alert">
           This position cannot be read. Open the page from a board, or supply a valid standard-chess

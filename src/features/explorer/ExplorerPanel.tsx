@@ -246,7 +246,13 @@ export function ExplorerPanel() {
   const showRecent = window.years > 0 || carriedSince !== undefined;
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    /*
+      The panel scrolls as a whole when it is short. The source and filter
+      blocks above the table do not shrink, and in a laptop-height dock they
+      left the move table itself no height at all — rows existed, laid out
+      under the status bar, and nothing could be scrolled to reach them.
+    */
+    <div className="flex h-full min-h-0 flex-col overflow-y-auto">
       <PanelHeader
         actions={
           <>
@@ -482,7 +488,7 @@ export function ExplorerPanel() {
         />
       ) : null}
 
-      <PanelBody>
+      <PanelBody className="min-h-[240px]">
         {/* A paused fetch is `status: 'pending'`, so treating pending as
             "loading" renders a message that never resolves. The client asks
             for `networkMode: 'always'` precisely so this cannot happen, but a

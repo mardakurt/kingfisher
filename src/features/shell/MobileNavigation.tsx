@@ -10,7 +10,7 @@ import { useUi } from '@/stores/ui-store';
 const ITEMS = [
   { href: '/analysis', label: 'Analysis', icon: Board },
   { href: '/openings', label: 'Openings', icon: Opening },
-  { href: '/games', label: 'Games', icon: Library },
+  { href: '/games', label: 'Library', icon: Library },
 ] as const;
 
 export function MobileNavigation() {

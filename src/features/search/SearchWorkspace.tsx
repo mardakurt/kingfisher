@@ -14,6 +14,7 @@
  * explorer, not the web, and it says so.
  */
 
+import { WorkspaceTabStrip } from '@/features/tabs/WorkspaceTabStrip';
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -142,6 +143,7 @@ export function SearchWorkspace() {
           </p>
         </div>
       </header>
+      <WorkspaceTabStrip />
 
       <div className="shrink-0 border-b border-line-subtle p-2">
         <form

@@ -76,6 +76,7 @@ import type { BoardCapabilities, BoardSurfaceMode } from './board-capabilities';
 import { CanonicalBoardSurface } from './CanonicalBoardSurface';
 import { useWorkspaceArrangement } from './use-arrangement';
 import { usePositionActions, type UsePositionActionsOptions } from './usePositionActions';
+import { WorkspaceTabStrip } from '@/features/tabs/WorkspaceTabStrip';
 import { WorkspaceLowerPanel } from './WorkspaceLowerPanel';
 import { WorkspaceToolDock, type WorkspaceLock } from './WorkspaceToolDock';
 
@@ -245,6 +246,7 @@ export function WorkspaceFrame({
           ) : undefined
         }
       />
+      <WorkspaceTabStrip />
       {banner}
       {takeover ?? (
         <div
@@ -289,7 +291,7 @@ export function WorkspaceFrame({
                     what that policy promises.
                   */
                   className={cn(
-                    'min-h-[460px] flex-1 px-2 py-2 sm:px-3 wide:min-h-0',
+                    'min-h-[460px] flex-1 px-2 py-2 sm:px-3 wide:min-h-0 [@media(max-height:859px)]:py-1',
                     view.priority !== 'maximum' &&
                       '[@media(min-height:860px)]:sm:px-5 [@media(min-height:860px)]:sm:py-4',
                   )}
@@ -463,7 +465,7 @@ function FrameHeader({
   return (
     <header
       ref={header}
-      className="flex min-h-14 min-w-0 shrink-0 items-center gap-1.5 border-b border-line-subtle bg-surface-1 px-2 sm:px-4"
+      className="flex min-h-14 min-w-0 shrink-0 items-center gap-1.5 bg-surface-1 px-2 sm:px-4"
       data-workspace-header
       data-titlebar-drag=""
     >

@@ -13,6 +13,7 @@
  * count — populations are never merged.
  */
 
+import { WorkspaceTabStrip } from '@/features/tabs/WorkspaceTabStrip';
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
@@ -192,6 +193,7 @@ export function SimilarWorkspace() {
           Search
         </Button>
       </header>
+      <WorkspaceTabStrip />
 
       <div className="shrink-0 border-b border-line-subtle p-2">
         <Segmented items={MODES} value={mode} onChange={setMode} />

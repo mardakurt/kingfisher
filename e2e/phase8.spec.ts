@@ -595,9 +595,9 @@ test('a frequent opponent move with no answer leaves the queue once it is prepar
   await page.getByLabel('Player name').fill('Opponent, O');
   await page.getByRole('button', { name: 'Prepare' }).click();
 
-  const dock = page.getByRole('complementary', { name: 'Workspace tools' });
-  await selectTool(page, dock, 'Opening tree');
-  const queue = dock.getByRole('article').filter({ hasText: 'e4' }).first();
+  // Phase 83: the priority queue is part of the preparation report's Openings tab.
+  const priorities = page.locator('[data-preparation-priorities]');
+  const queue = priorities.getByRole('article').filter({ hasText: 'e4' }).first();
   await expect(queue.getByText('No response')).toBeVisible();
   await expect(queue.getByText(/no prepared answer/i)).toBeVisible();
   // Every priority states the facts it was ordered by, never a blended score.
@@ -621,8 +621,7 @@ test('a frequent opponent move with no answer leaves the queue once it is prepar
   await ready(page);
   await page.getByLabel('Player name').fill('Opponent, O');
   await page.getByRole('button', { name: 'Prepare' }).click();
-  await selectTool(page, dock, 'Opening tree');
-  const answered = dock.getByRole('article').filter({ hasText: 'e4' }).first();
+  const answered = priorities.getByRole('article').filter({ hasText: 'e4' }).first();
   await expect(answered.getByText('Prepared')).toBeVisible();
   await expect(answered.getByText('No response')).toHaveCount(0);
 });

@@ -20,6 +20,7 @@
  * to the position, with the filters already right.
  */
 
+import { WorkspaceTabStrip } from '@/features/tabs/WorkspaceTabStrip';
 import { useState } from 'react';
 import { Fragment } from 'react';
 import { LEGENDS_BY_KEY, legendYears } from '@/reference/legends';
@@ -216,6 +217,7 @@ export function PlayerWorkspace({ playerId }: { readonly playerId: string }) {
           </Button>
         </div>
       </header>
+      <WorkspaceTabStrip />
 
       <nav
         className="flex shrink-0 gap-1 overflow-x-auto border-b border-line-subtle bg-surface-1 px-3 py-1.5"
