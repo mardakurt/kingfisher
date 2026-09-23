@@ -134,6 +134,20 @@ export const BRIDGE_CONTRACTS: readonly BridgeContract[] = [
     caller: 'desktop/useDesktop.ts',
   },
   {
+    method: 'setAppearance',
+    purpose:
+      'Phase 84: the Studio theme, so the shell sets the native appearance (sheets, menus, ' +
+      'Sparkle) and the window background to match, and starts the next launch in it.',
+    caller: 'desktop/useDesktop.ts',
+  },
+  {
+    method: 'onMenuCommand',
+    purpose:
+      'Phase 84: the Mac menu naming one of the application’s own commands — New Tab, Close Tab, ' +
+      'Toggle Sidebar, the Go menu — which the renderer runs from the palette’s own list.',
+    caller: 'features/command/useMenuCommands.ts',
+  },
+  {
     method: 'onFullscreenChange',
     purpose:
       'Whether the window is full screen, so the room kept for the macOS window buttons can ' +

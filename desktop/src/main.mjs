@@ -19,7 +19,7 @@
  * a measured decision and not a default.
  */
 
-import { app, BrowserWindow, dialog, ipcMain, Menu, screen, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, screen, shell } from 'electron';
 import { randomBytes } from 'node:crypto';
 import { RevivalBudget } from './revival.mjs';
 import { createRequire } from 'node:module';
@@ -29,7 +29,15 @@ import { fileURLToPath } from 'node:url';
 
 import { readBuildIdentity } from './build-identity.mjs';
 import { log, logFile, openLog, redactInLog } from './log.mjs';
-import { buildTemplate } from './menu.mjs';
+import {
+  WINDOW_BACKGROUND,
+  applyAppearance,
+  normaliseTheme,
+  readAppearance,
+  writeAppearance,
+} from './appearance.mjs';
+import { buildDockTemplate, buildTemplate } from './menu.mjs';
+import { MENU_COMMAND_CHANNEL, MENU_COMMANDS } from './menu-commands.mjs';
 import { isLichessAuthorizeUrl, openLichessSignIn } from './oauth-window.mjs';
 import {
   attachBoundsPersistence,
@@ -153,6 +161,12 @@ const state = {
    * also rebuilds the menu and forwards the verdict to the renderer.
    */
   updateStatus: { value: { status: 'idle' } },
+  /**
+   * The Studio theme the renderer last reported (Phase 84), remembered
+   * beside the profile so the next launch paints it before the page loads.
+   * See appearance.mjs.
+   */
+  appearance: 'light',
 };
 
 /**
@@ -413,6 +427,14 @@ function createWindow() {
     y: undefined,
     ...defaultSize,
   };
+  /*
+    The theme the last session ended in, applied before the window exists:
+    the native appearance (menus, sheets, Sparkle) and the colour the window
+    shows until the page paints. A dark profile opened on a white flash
+    before Phase 84.
+  */
+  state.appearance = readAppearance(app.getPath('userData'));
+  applyAppearance(state.appearance, { nativeTheme, window: null });
   const window = new BrowserWindow({
     width: startupBounds.width,
     height: startupBounds.height,
@@ -421,7 +443,7 @@ function createWindow() {
     minWidth: 900,
     minHeight: 600,
     show: false,
-    backgroundColor: '#ffffff',
+    backgroundColor: WINDOW_BACKGROUND[state.appearance],
     titleBarStyle: mac ? 'hidden' : 'default',
     ...(mac ? { trafficLightPosition: { ...MAC_TRAFFIC_LIGHT_POSITION } } : {}),
     webPreferences: {
@@ -636,6 +658,15 @@ async function chooseAndOpen(kind) {
   return { canceled: false, paths: result.filePaths };
 }
 
+function sendMenuCommand(id) {
+  const window = state.window;
+  if (!window || window.isDestroyed()) return;
+  // A command for a window that is minimised or behind another application
+  // is a command the person cannot see happen.
+  if (window.isMinimized()) window.restore();
+  window.webContents.send(MENU_COMMAND_CHANNEL, id);
+}
+
 function rebuildMenu() {
   Menu.setApplicationMenu(
     Menu.buildFromTemplate(
@@ -665,6 +696,21 @@ function rebuildMenu() {
         appName: PRODUCT_NAME,
         updateStatus: updateStatus.value,
         packaged: app.isPackaged,
+        // The application's own commands, run by the renderer. menu-commands.mjs.
+        onMenuCommand: (id) => sendMenuCommand(id),
+        onNavigate: (direction) => {
+          const history = state.window?.webContents.navigationHistory;
+          if (!history) return;
+          if (direction === 'back' && history.canGoBack()) history.goBack();
+          if (direction === 'forward' && history.canGoForward()) history.goForward();
+        },
+        appearance: state.appearance,
+        // The theme is the renderer's preference; the menu asks it to change,
+        // and the change comes back as `kingfisher:appearance` like any other.
+        onSetAppearance: (theme) =>
+          sendMenuCommand(
+            theme === 'dark' ? MENU_COMMANDS.appearanceDark : MENU_COMMANDS.appearanceLight,
+          ),
       }),
     ),
   );
@@ -797,6 +843,21 @@ function registerIpc() {
     if (event.sender !== state.window?.webContents) return;
     state.documentsWanted = true;
     flushPending();
+  });
+
+  /*
+    The renderer's theme, whenever it changes (and once on attach). The shell
+    follows it: native appearance, window background, the Appearance radio
+    items, and the record the next launch starts from. See appearance.mjs.
+  */
+  ipcMain.on('kingfisher:appearance', (event, theme) => {
+    const window = state.window;
+    if (!window || window.isDestroyed() || event.sender !== window.webContents) return;
+    const applied = applyAppearance(normaliseTheme(theme), { nativeTheme, window });
+    if (!applied || applied === state.appearance) return;
+    state.appearance = applied;
+    writeAppearance(app.getPath('userData'), applied);
+    rebuildMenu();
   });
 
   // The renderer asking whether the window is full screen right now. See the
@@ -1014,6 +1075,18 @@ if (!app.requestSingleInstanceLock()) {
       copyright: 'Copyright © 2026 Kingfisher.',
     });
     registerIpc();
+    if (process.platform === 'darwin') {
+      app.dock?.setMenu(
+        Menu.buildFromTemplate(
+          buildDockTemplate({
+            onMenuCommand: (id) => {
+              state.window?.show();
+              sendMenuCommand(id);
+            },
+          }),
+        ),
+      );
+    }
     /*
       The update engine. Sparkle is loaded from the bundle and started with
       the save barrier it must clear before a relaunch; in a developer

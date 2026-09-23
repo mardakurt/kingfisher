@@ -30,6 +30,7 @@
 import { argv, exit } from 'node:process';
 
 import { launchKingfisher, waitForReady } from './desktop-lib/launch.mjs';
+import { GO_SECTIONS } from '../desktop/src/menu-commands.mjs';
 
 const args = { packaged: argv.includes('--packaged') };
 const results = [];
@@ -139,11 +140,13 @@ async function main() {
         minimized: main?.isMinimized() ?? null,
         zoom: main?.webContents.getZoomFactor() ?? null,
         urls: wins.map((w) => w.webContents.getURL()),
+        canGoBack: main?.webContents.navigationHistory.canGoBack() ?? false,
+        canGoForward: main?.webContents.navigationHistory.canGoForward() ?? false,
       };
     });
   const rendererState = async () => {
     const p = app.windows().find((w) => !w.isClosed() && /127\.0\.0\.1/.test(w.url()));
-    if (!p) return { dialog: null, text: 0 };
+    if (!p) return { dialog: null, text: 0, tabs: 0 };
     page = p;
     return p.evaluate(() => {
       const dialog = document.querySelector('[role="dialog"]');
@@ -155,6 +158,14 @@ async function main() {
           : null,
         text: document.body.innerText.length,
         route: location.pathname,
+        // Phase 84: what the tab, sidebar and appearance items change.
+        tabs: document.querySelectorAll('[data-workspace-tabs] [role="tab"]').length,
+        activeTab:
+          document
+            .querySelector('[data-workspace-tabs] [role="tab"][aria-selected="true"]')
+            ?.getAttribute('data-tab') ?? null,
+        sidebar: document.querySelector('nav[data-sidebar]')?.getAttribute('data-sidebar') ?? null,
+        theme: document.documentElement.dataset.theme ?? null,
       };
     });
   };
@@ -187,6 +198,36 @@ async function main() {
     'Report an Issue…': async (_b, _a, rec) =>
       rec.external.some((u) => /github\.com\/.*issues/.test(u)),
     'Clear Menu': async () => true,
+    // Phase 84: the application's own commands, run by the renderer.
+    'New Tab': async (before, after) => after.renderer.tabs === before.renderer.tabs + 1,
+    'Duplicate Tab': async (before, after) => after.renderer.tabs === before.renderer.tabs + 1,
+    'Close Tab': async (before, after) =>
+      before.renderer.tabs <= 1
+        ? after.renderer.tabs === 1
+        : after.renderer.tabs === before.renderer.tabs - 1 || after.renderer.dialog !== null,
+    'New Analysis': async (_b, after) => after.renderer.route === '/analysis',
+    'Import Game or Position…': async (_b, after) => after.renderer.dialog !== null,
+    'Toggle Sidebar': async (before, after) => after.renderer.sidebar !== before.renderer.sidebar,
+    'Command Palette…': async (_b, after) => after.renderer.dialog !== null,
+    'Keyboard Shortcuts': async (_b, after) => after.renderer.dialog !== null,
+    Light: async (_b, after, _rec, main) =>
+      after.renderer.theme === 'light' && main.themeSource === 'light',
+    Dark: async (_b, after, _rec, main) =>
+      after.renderer.theme === 'dark' && main.themeSource === 'dark',
+    Back: async (before, after) =>
+      !before.window.canGoBack || after.renderer.route !== before.renderer.route,
+    Forward: async (before, after) =>
+      !before.window.canGoForward || after.renderer.route !== before.renderer.route,
+    'Show Next Tab': async (before, after) =>
+      before.renderer.tabs < 2 || after.renderer.activeTab !== before.renderer.activeTab,
+    'Show Previous Tab': async (before, after) =>
+      before.renderer.tabs < 2 || after.renderer.activeTab !== before.renderer.activeTab,
+    ...Object.fromEntries(
+      GO_SECTIONS.map(({ label, command }) => [
+        label,
+        async (_b, after) => after.renderer.route === `/${command.replace(/^goto-/, '')}`,
+      ]),
+    ),
   };
   const updateItem = (label) => /Check for Updates|Update/.test(label ?? '');
 
@@ -228,6 +269,11 @@ async function main() {
     }
     await focus();
     await sleep(200);
+    // Moving between tabs needs a second tab to move to.
+    if (/^Show (Next|Previous) Tab$/.test(leaf.label ?? '') && (await rendererState()).tabs < 2) {
+      await clickMenu('File › New Tab');
+      await sleep(900);
+    }
     const before = { window: await windowState(), renderer: await rendererState() };
     await recorded();
     const clicked = await clickMenu(leaf.path);
@@ -306,11 +352,18 @@ async function main() {
         ok = false;
         detail = 'no expectation written for this item — it may be a no-op';
       } else {
-        ok = ok && (await expectation(before, after, rec));
+        const main = await app.evaluate(({ nativeTheme }) => ({
+          themeSource: nativeTheme.themeSource,
+        }));
+        ok = ok && (await expectation(before, after, rec, main));
         detail = [
           rec.openDialogs.length ? `chooser "${rec.openDialogs[0]}"` : '',
           rec.external.length ? `opened ${rec.external[0]}` : '',
           after.renderer.dialog ? `dialog "${after.renderer.dialog}"` : '',
+          after.renderer.route !== before.renderer.route ? `route ${after.renderer.route}` : '',
+          after.renderer.tabs !== before.renderer.tabs
+            ? `tabs ${before.renderer.tabs} → ${after.renderer.tabs}`
+            : '',
         ]
           .filter(Boolean)
           .join(', ');
@@ -340,6 +393,8 @@ async function main() {
     ['kingfisher-desktop › Check for Updates…', 'CmdOrCtrl+Shift+U'],
     ['File › Open PGN…', 'CmdOrCtrl+O'],
     ['File › Open Database…', 'CmdOrCtrl+Shift+O'],
+    ['File › New Tab', 'CmdOrCtrl+T'],
+    ['File › Close Tab', 'Cmd+W'],
   ];
   for (const [path, accelerator] of documented) {
     const key = [...declared.keys()].find(
@@ -354,7 +409,8 @@ async function main() {
     );
   }
   const roleShortcuts = {
-    close: 'CommandOrControl+W',
+    // ⌘W is Close Tab since Phase 84; the window is ⇧⌘W.
+    close: 'Shift+Cmd+W',
     minimize: 'CommandOrControl+M',
     togglefullscreen: 'Control+Command+F',
     hide: 'Command+H',

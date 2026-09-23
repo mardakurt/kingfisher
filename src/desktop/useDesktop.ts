@@ -184,6 +184,24 @@ export function useDesktopIntegration(): void {
   }, []);
 
   /**
+   * The Studio theme, told to the shell (Phase 84).
+   *
+   * Once on mount and on every change after it. The shell sets the window's
+   * native appearance and background from it, so the open panel, an error
+   * sheet or Sparkle's update window is drawn in the theme the person chose
+   * in Kingfisher rather than in the Mac's, and the next launch paints the
+   * right colour before the page loads.
+   */
+  useEffect(() => {
+    const setAppearance = desktop()?.setAppearance;
+    if (typeof setAppearance !== 'function') return;
+    setAppearance(usePreferences.getState().theme);
+    return usePreferences.subscribe((state, previous) => {
+      if (state.theme !== previous.theme) setAppearance(state.theme);
+    });
+  }, []);
+
+  /**
    * The window-button reservation, restated from React.
    *
    * `layout.tsx` writes `--mac-titlebar-safe-*` and `data-titlebar` on the

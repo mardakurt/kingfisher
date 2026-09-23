@@ -14,6 +14,8 @@
  * surface.
  */
 
+import { GO_SECTIONS, MENU_COMMANDS } from './menu-commands.mjs';
+
 const isMac = process.platform === 'darwin';
 
 export function buildTemplate({
@@ -36,8 +38,19 @@ export function buildTemplate({
    * had said "dev only" while every packaged build shipped the item.
    */
   packaged = false,
+  /**
+   * Phase 84: the application's own commands (tabs, the sidebar, the
+   * palette, the Go menu), sent to the renderer by id. See menu-commands.mjs.
+   */
+  onMenuCommand = () => {},
+  /** Back and forward through the window's own history. */
+  onNavigate = () => {},
+  /** The theme the renderer last reported, for the Appearance radio items. */
+  appearance = 'light',
+  onSetAppearance = () => {},
 } = {}) {
   const mac = platform === 'darwin';
+  const command = (id) => () => onMenuCommand(id);
   const recentItems = recent.map((entry) => ({
     label: entry.name,
     // `sublabel` is macOS-only and ignored elsewhere; it is what makes two
@@ -96,6 +109,13 @@ export function buildTemplate({
     {
       label: 'File',
       submenu: [
+        { label: 'New Tab', accelerator: 'CmdOrCtrl+T', click: command(MENU_COMMANDS.newTab) },
+        {
+          label: 'New Analysis',
+          accelerator: 'CmdOrCtrl+N',
+          click: command(MENU_COMMANDS.newAnalysis),
+        },
+        { type: 'separator' },
         { label: 'Open PGN…', accelerator: 'CmdOrCtrl+O', click: () => onOpenPgn() },
         {
           label: 'Open Database…',
@@ -113,12 +133,24 @@ export function buildTemplate({
                 ]
               : [{ label: 'No Recent Documents', enabled: false }],
         },
+        {
+          label: 'Import Game or Position…',
+          accelerator: 'Shift+CmdOrCtrl+I',
+          click: command(MENU_COMMANDS.importGame),
+        },
         { type: 'separator' },
         ...(mac
           ? [
               { label: 'Check for Updates…', click: () => onCheckForUpdates() },
               { type: 'separator' },
-              { role: 'close' },
+              /*
+                ⌘W closes the tab, as in every Mac application with tabs;
+                the window is ⇧⌘W. Before Phase 84 ⌘W was the `close`
+                role and took the window, and every tab, with it. The last
+                tab stays: the renderer's command keeps one tab open.
+              */
+              { label: 'Close Tab', accelerator: 'Cmd+W', click: command(MENU_COMMANDS.closeTab) },
+              { role: 'close', label: 'Close Window', accelerator: 'Shift+Cmd+W' },
             ]
           : [
               {
@@ -147,6 +179,43 @@ export function buildTemplate({
     {
       label: 'View',
       submenu: [
+        {
+          label: 'Toggle Sidebar',
+          accelerator: mac ? 'Ctrl+Cmd+S' : 'Ctrl+Shift+S',
+          click: command(MENU_COMMANDS.toggleSidebar),
+        },
+        /*
+          ⌘K is the renderer's own binding, and a person can rebind it in
+          Settings. The menu shows it and does not take it
+          (`registerAccelerator: false`), so the key still reaches the page
+          and a rebinding is not overruled by the menu.
+        */
+        {
+          label: 'Command Palette…',
+          accelerator: 'CmdOrCtrl+K',
+          registerAccelerator: false,
+          click: command(MENU_COMMANDS.palette),
+        },
+        { label: 'Keyboard Shortcuts', click: command(MENU_COMMANDS.shortcuts) },
+        { type: 'separator' },
+        {
+          label: 'Appearance',
+          submenu: [
+            {
+              label: 'Light',
+              type: 'radio',
+              checked: appearance !== 'dark',
+              click: () => onSetAppearance('light'),
+            },
+            {
+              label: 'Dark',
+              type: 'radio',
+              checked: appearance === 'dark',
+              click: () => onSetAppearance('dark'),
+            },
+          ],
+        },
+        { type: 'separator' },
         { role: 'reload' },
         { role: 'forceReload' },
         { type: 'separator' },
@@ -159,10 +228,55 @@ export function buildTemplate({
       ],
     },
     {
+      label: 'Go',
+      submenu: [
+        { label: 'Back', accelerator: 'CmdOrCtrl+[', click: () => onNavigate('back') },
+        { label: 'Forward', accelerator: 'CmdOrCtrl+]', click: () => onNavigate('forward') },
+        { type: 'separator' },
+        ...GO_SECTIONS.map((section) => ({
+          label: section.label,
+          click: command(section.command),
+        })),
+      ],
+    },
+    {
       label: 'Window',
-      submenu: mac
-        ? [{ role: 'minimize' }, { role: 'zoom' }, { type: 'separator' }, { role: 'front' }]
-        : [{ role: 'minimize' }, { role: 'close' }],
+      submenu: [
+        { role: 'minimize' },
+        ...(mac ? [{ role: 'zoom' }] : []),
+        { type: 'separator' },
+        {
+          label: 'Show Previous Tab',
+          accelerator: 'Ctrl+Shift+Tab',
+          click: command(MENU_COMMANDS.previousTab),
+        },
+        { label: 'Show Next Tab', accelerator: 'Ctrl+Tab', click: command(MENU_COMMANDS.nextTab) },
+        /*
+          Safari's second pair, ⇧⌘[ and ⇧⌘]. Hidden so the menu lists each
+          command once; `acceleratorWorksWhenHidden` keeps the keys live.
+        */
+        ...(mac
+          ? [
+              {
+                label: 'Show Previous Tab',
+                accelerator: 'Shift+Cmd+[',
+                visible: false,
+                acceleratorWorksWhenHidden: true,
+                click: command(MENU_COMMANDS.previousTab),
+              },
+              {
+                label: 'Show Next Tab',
+                accelerator: 'Shift+Cmd+]',
+                visible: false,
+                acceleratorWorksWhenHidden: true,
+                click: command(MENU_COMMANDS.nextTab),
+              },
+            ]
+          : []),
+        { label: 'Duplicate Tab', click: command(MENU_COMMANDS.duplicateTab) },
+        { type: 'separator' },
+        ...(mac ? [{ role: 'front' }] : [{ role: 'close' }]),
+      ],
     },
     {
       label: 'Help',
@@ -179,6 +293,18 @@ export function buildTemplate({
         { label: 'Diagnostics…', click: () => onDiagnostics() },
       ],
     },
+  ];
+}
+
+/**
+ * The Dock menu (macOS): the two things a person starts from the Dock with
+ * the window elsewhere — a new tab and a new analysis — by the same commands
+ * as the File menu. The window comes forward to show them.
+ */
+export function buildDockTemplate({ onMenuCommand = () => {} } = {}) {
+  return [
+    { label: 'New Tab', click: () => onMenuCommand(MENU_COMMANDS.newTab) },
+    { label: 'New Analysis', click: () => onMenuCommand(MENU_COMMANDS.newAnalysis) },
   ];
 }
 
