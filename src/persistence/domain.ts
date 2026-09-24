@@ -1482,3 +1482,35 @@ export interface DeepAnalysisJobRecord {
   readonly updatedAt: number;
   readonly revision: number;
 }
+
+/* ---------- evaluations received as a file (Phase 85) ---------- */
+
+/**
+ * One engine evaluation another Kingfisher exported and this one imported
+ * (`src/evidence/exchange.ts`): the position, the engine's own numbers and
+ * line, and where it came from — the file, the name the exporter gave, and
+ * when it was exported and imported. Shown beside the local engine,
+ * labelled; never written into a game or the evaluation bar.
+ */
+export interface ImportedEvaluationRecord {
+  readonly id: string;
+  readonly positionKey: string;
+  readonly fen: string;
+  readonly engine: string;
+  readonly depth: number;
+  readonly nodes: number;
+  readonly timeMs: number;
+  readonly score: Score;
+  readonly pv: readonly Uci[];
+  readonly alternatives?: readonly StoredEngineLine[];
+  readonly analysedAt: number;
+  readonly source: {
+    readonly file: string;
+    readonly from: string | null;
+    readonly exportedAt: number;
+    readonly importedAt: number;
+  };
+  readonly createdAt: number;
+  readonly updatedAt: number;
+  readonly revision: number;
+}

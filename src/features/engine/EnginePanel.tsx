@@ -42,6 +42,7 @@ import { MiniBoard } from '@/features/board/MiniBoard';
 import { useCompanionStatus } from '@/companion/useCompanion';
 
 import { CloudEvaluationSection } from './CloudEvaluation';
+import { SharedEvaluationsSection } from './SharedEvaluations';
 import { DeepenSection } from './DeepenSection';
 import { PlayoutSection } from './PlayoutSection';
 import { EngineSelect } from './EngineSelect';
@@ -381,6 +382,7 @@ export function EnginePanel() {
           under the engine's own lines and never mixed into them.
         */}
         <CloudEvaluationSection fen={node.fen} ply={node.ply} />
+        <SharedEvaluationsSection fen={node.fen} ply={node.ply} />
         {/*
           Deep analysis: a tree grown by its own engine session, reported as
           evidence and written into the game only when asked.

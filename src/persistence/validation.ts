@@ -1,3 +1,4 @@
+import { isOk } from '@/chess/result';
 import { parseFen } from '@/chess/fen';
 import type { GameTree } from '@/chess/tree/types';
 
@@ -5,6 +6,7 @@ import type {
   JournalEntryRecord,
   QuestionSessionRecord,
   DeepAnalysisJobRecord,
+  ImportedEvaluationRecord,
   ModelGameLinkRecord,
   RepertoirePositionRecord,
   RepertoireRecord,
@@ -597,6 +599,40 @@ export const isDeepAnalysisJobRecord = (value: unknown): value is DeepAnalysisJo
   finite(value.startedAt) &&
   (value.finishedAt === undefined || finite(value.finishedAt)) &&
   (value.seenAt === undefined || finite(value.seenAt)) &&
+  finite(value.createdAt) &&
+  finite(value.updatedAt) &&
+  finite(value.revision);
+
+const isStoredScore = (value: unknown): boolean =>
+  object(value) &&
+  ((value.kind === 'cp' && finite(value.cp)) || (value.kind === 'mate' && finite(value.moves)));
+
+const isUciList = (value: unknown): boolean =>
+  array(value) && value.every((move) => typeof move === 'string' && /^[a-h][1-8][a-h][1-8][qrbn]?$/.test(move));
+
+export const isImportedEvaluationRecord = (value: unknown): value is ImportedEvaluationRecord =>
+  object(value) &&
+  text(value.id) &&
+  text(value.positionKey) &&
+  text(value.fen) &&
+  isOk(parseFen(value.fen)) &&
+  text(value.engine) &&
+  finite(value.depth) &&
+  finite(value.nodes) &&
+  finite(value.timeMs) &&
+  isStoredScore(value.score) &&
+  isUciList(value.pv) &&
+  (value.alternatives === undefined ||
+    (array(value.alternatives) &&
+      value.alternatives.every(
+        (line) => object(line) && isStoredScore(line.score) && isUciList(line.pv),
+      ))) &&
+  finite(value.analysedAt) &&
+  object(value.source) &&
+  text(value.source.file) &&
+  (value.source.from === null || text(value.source.from)) &&
+  finite(value.source.exportedAt) &&
+  finite(value.source.importedAt) &&
   finite(value.createdAt) &&
   finite(value.updatedAt) &&
   finite(value.revision);

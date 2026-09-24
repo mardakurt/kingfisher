@@ -49,6 +49,8 @@ export const STORE_NAMES = {
   questionSessions: 'questionSessions',
   /* Phase 85: a deep analysis saved as it runs, so it survives the page. */
   deepAnalysisJobs: 'deepAnalysisJobs',
+  /* Phase 85: engine evaluations received from another Kingfisher as a file. */
+  importedEvaluations: 'importedEvaluations',
 } as const;
 
 export type StoreName = (typeof STORE_NAMES)[keyof typeof STORE_NAMES];
@@ -526,7 +528,7 @@ export const MIGRATIONS: readonly Migration[] = [
   {
     version: 21,
     description:
-      "Record each sitting of a chapter's questions, and keep a deep analysis as it runs.",
+      "Record each sitting of a chapter's questions, keep a deep analysis as it runs, and keep evaluations received as a file.",
     apply(target) {
       /*
        * Read by chapter — "how did the student do on this chapter?" — and
@@ -545,6 +547,10 @@ export const MIGRATIONS: readonly Migration[] = [
       target.createStore(STORE_NAMES.deepAnalysisJobs, { keyPath: 'id' }, [
         { name: 'status', keyPath: 'status' },
         { name: 'updatedAt', keyPath: 'updatedAt' },
+      ]);
+      /* An evaluation received as a file is asked for by the position it is about. */
+      target.createStore(STORE_NAMES.importedEvaluations, { keyPath: 'id' }, [
+        { name: 'positionKey', keyPath: 'positionKey' },
       ]);
     },
   },

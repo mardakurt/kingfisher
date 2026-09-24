@@ -42,6 +42,7 @@ import {
   isJournalEntryRecord,
   isQuestionSessionRecord,
   isDeepAnalysisJobRecord,
+  isImportedEvaluationRecord,
   isPreparationSessionRecord,
   isOpeningFileRecord,
   isEndgamePositionRecord,
@@ -83,6 +84,7 @@ export const PORTABLE_STORES = [
   STORE_NAMES.journal,
   STORE_NAMES.questionSessions,
   STORE_NAMES.deepAnalysisJobs,
+  STORE_NAMES.importedEvaluations,
 ] as const;
 
 export const LATER_AUTHORED_STORES = new Set<StoreName>([
@@ -97,6 +99,7 @@ export const LATER_AUTHORED_STORES = new Set<StoreName>([
   STORE_NAMES.journal,
   STORE_NAMES.questionSessions,
   STORE_NAMES.deepAnalysisJobs,
+  STORE_NAMES.importedEvaluations,
 ]);
 
 export const GAME_STORES = [
@@ -432,6 +435,7 @@ function validateRecord(store: StoreName, value: unknown, index: number): void {
     if (store === STORE_NAMES.journal) return isJournalEntryRecord(value);
     if (store === STORE_NAMES.questionSessions) return isQuestionSessionRecord(value);
     if (store === STORE_NAMES.deepAnalysisJobs) return isDeepAnalysisJobRecord(value);
+    if (store === STORE_NAMES.importedEvaluations) return isImportedEvaluationRecord(value);
     if (store === STORE_NAMES.games) return isGameSummary(value);
     if (store === STORE_NAMES.gameContent) {
       return (
