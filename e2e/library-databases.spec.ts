@@ -70,3 +70,48 @@ test('lists, filters, previews and opens the games of a companion database', asy
   await expect(page).toHaveURL(/\/analysis/);
   await expect(page.getByText(`(${name})`).first()).toBeVisible();
 });
+
+test('searches the moves of a companion database, not only its headers', async ({ page }) => {
+  test.setTimeout(180_000);
+  await page.goto('/analysis');
+  await page.locator(READY).waitFor();
+  await page.getByRole('button', { name: 'Settings ⌘,' }).click();
+  const settings = page.getByRole('dialog', { name: 'Settings' });
+  await settings.getByRole('tab', { name: 'Companion' }).click();
+  await settings.getByLabel('Pairing address').fill('http://127.0.0.1:4338#token=phase8-e2e-token');
+  await settings.getByRole('button', { name: 'Pair', exact: true }).click();
+  await expect(settings.getByText(/Paired with/)).toBeVisible();
+  const name = `Move search E2E ${Date.now()}`;
+  await settings.getByPlaceholder('New collection name').fill(name);
+  await settings.getByRole('button', { name: 'Create', exact: true }).click();
+  await expect(settings.getByText(name).first()).toBeVisible();
+  // The Najdorf's knight goes b8-d7 in the first game only; the second is a Slav.
+  await settings
+    .getByPlaceholder('Paste a PGN collection…')
+    .fill(
+      `${PGNS}\n\n[Event "Library DB 3"]\n[White "Route, Walker"]\n[Black "Knight, Tourist"]\n[Date "2025.03.01"]\n[Result "0-1"]\n\n1. e4 c5 2. Nf3 d6 3. d4 cxd4 4. Nxd4 Nf6 5. Nc3 a6 6. Be2 e5 7. Nb3 Nbd7 0-1`,
+    );
+  await settings.getByRole('button', { name: 'Import', exact: true }).click();
+  await expect(settings.getByText(/3 games/).first()).toBeVisible({ timeout: 30_000 });
+  await settings.getByRole('button', { name: 'Close' }).click();
+
+  await page.goto('/games');
+  await page.locator(READY).waitFor();
+  const picker = page.getByRole('combobox', { name: 'Database' });
+  const value = await picker.locator('option', { hasText: name }).getAttribute('value');
+  await picker.selectOption(value!);
+  await expect(page.locator('[data-library-list]')).toContainText('Route, Walker');
+
+  await page.getByRole('button', { name: 'Filters' }).click();
+  const filters = page.locator('[data-library-filters]');
+  await expect(filters.locator('[data-move-search-source]')).toContainText(
+    `Reads the moves of ${name}’s games through the companion`,
+  );
+  await filters.getByLabel('Route', { exact: true }).fill('N b8 d7');
+  await page.getByRole('button', { name: 'Search the moves' }).click();
+  const status = page.locator('[data-move-search-status]');
+  await expect(status).toHaveText('1 of 3 games read contain it', { timeout: 30_000 });
+  await expect(page.locator('[data-library-list]')).toContainText('Route, Walker');
+  await expect(page.locator('[data-library-list]')).not.toContainText('Sicilian, Keeper');
+  await expect(page.locator('[data-found-at]')).toHaveText(['after Black’s move 7']);
+});

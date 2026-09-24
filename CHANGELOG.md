@@ -8,6 +8,30 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
+- **Where a game leaves the reference.** In the Explorer, _This game against
+  …_ reads the game on the board against the source you chose and stops at
+  the first move none of its games played: how many games reached the
+  position before it, what they played, and those games. _Write it into the
+  game_ adds that as a comment and the most played move as a variation. It is
+  never called a novelty — it is a fact about that source. (Phase 84)
+- **Deep analysis.** The engine panel's _Deepen from here…_ grows a tree of
+  the lines worth playing on its own engine session and reports where the
+  engine changed its mind on the way; _Add to the analysis_ writes the tree
+  into the game with its evaluations, one undo. It runs while the window is
+  open. (Phase 84)
+- **Move search in a companion database.** The Library's search in the
+  moves — material, theme, route, comment — now reads a SQLite database
+  behind the companion too, not only My games. (Phase 84)
+- **Merges open in their own tab.** Merging games (from the Library, or the
+  Explorer's model games) no longer replaces the analysis on the board.
+  (Phase 84)
+- **Fixed: preparation counts.** The report said "200 games" beside "300
+  from" a source; each source now counts its share of the games the report
+  reads, and says how many more it found. (Phase 84)
+- **The Explorer's move table comes first.** On a laptop screen the table was
+  below the fold behind the source description and the variation brief; the
+  description is one line and the brief sits under the table. (Phase 84)
+
 ## 1.3.0 — 2026-09-24
 
 - **Fixed: a move played just before a reload could be lost.** In a study

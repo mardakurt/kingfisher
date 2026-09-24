@@ -507,6 +507,27 @@ describe('what this module is not responsible for', () => {
     expect(JSON.stringify(exported)).not.toContain('pawn_skeleton_id');
     close();
   });
+
+  it('leaves the position rows out of a page when asked, and nothing else', () => {
+    // The Library's move search reads only the PGN (Phase 84).
+    const { migrated, close } = bothSchemas();
+    const full = migrated.exportPage(null, 5, null);
+    const lean = migrated.exportPage(null, 5, null, { positions: false });
+    expect(full.games[0].positions.length).toBeGreaterThan(0);
+    expect(lean.games.map((game) => game.positions)).toEqual(full.games.map(() => []));
+    expect(lean.games.map((game) => [game.summary, game.pgn, game.plyCount])).toEqual(
+      full.games.map((game) => [game.summary, game.pgn, game.plyCount]),
+    );
+    expect(lean.nextAfter).toBe(full.nextAfter);
+    // 'line' keeps exactly what a main line needs: ply, FEN and move.
+    const line = migrated.exportPage(null, 5, null, { positions: 'line' });
+    expect(line.games.map((game) => game.positions)).toEqual(
+      full.games.map((game) =>
+        game.positions.map(({ ply, fen, moveUci }) => ({ ply, moveUci, fen })),
+      ),
+    );
+    close();
+  });
 });
 
 describe('the continuations the opening report replays', () => {

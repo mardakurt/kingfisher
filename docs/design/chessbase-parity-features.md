@@ -96,3 +96,67 @@ worksheet in `src/publish/chapter-html.ts`.
   solutions on the last page.
 - **Not done:** points and timers per question, and delivery to a student's
   machine (the Team hub's packet is the delivery that exists).
+
+## Where the game leaves the source
+
+`src/theory/departure.ts`, in the Explorer (`DepartureSection`). ChessBase's
+Find Novelty and Novelty Annotation, as a fact about a named population.
+
+- Asked of the game on the board, against the source and filters the
+  explorer is showing; the main line is read one position at a time and the
+  walk stops at the first move no game in the source played, so an online
+  source gets as few requests as the game allows. It can be stopped.
+- The answer names the source, how many of its games reached the position
+  before the move, what they played, and the games themselves (they open in a
+  new tab). It never says "novelty": a population is not all of chess.
+- Three answers are kept apart from a departure because each would be false as
+  one: a pack past the depth it aggregated, a move missing from a list as long
+  as the one asked for (it may be further down), and a game that never left.
+- _Write it into the game_: a comment on the departing move and the source's
+  most played move as a variation with its count, one undo, no glyph.
+- **Not done:** marking every game of a collection in one pass (ChessBase's
+  batch novelty annotation); it is one game at a time.
+
+## Deep analysis
+
+`src/engine/deepen.ts` and `deepen-graft.ts`, in the engine panel
+(`DeepenSection`). ChessBase's Deep Analysis, reported as evidence.
+
+- A tree grown breadth first on its own engine session: each position is
+  searched with MultiPV; the moves kept are the best and any within 0.5 of it
+  for the side to move (one to three), to a chosen depth in plies and a
+  position budget (at most 400). The panel's own search stops while it runs.
+- The report prints the start's own search beside the tree's backed-up
+  (minimax) score and the line the tree prefers, and every position whose own
+  search disagreed with the line that led to it — the move expected, the move
+  preferred, the score and depth.
+- _Add to the analysis_ writes the moves as variations, each searched
+  position's evaluation with its engine, depth, nodes and time (a deeper
+  stored one is kept), and one comment where the engine changed its mind; one
+  undo. The main line is never reordered.
+- **Not done:** surviving a reload or a sleeping machine — it runs while the
+  window is open, and the form says so; remote engines on other machines.
+
+## Move search over a companion database
+
+`runPagedDeepSearch` (`src/features/games/deep-search.ts`) and
+`companionMoveSearch` (`library-source.ts`).
+
+- The Library's material, theme, route and comment search now reads a SQLite
+  database behind the companion as well as My games. The companion selects by
+  header with its own matcher and serves games a page at a time with their
+  PGN (`/db/export-page`); each is replayed by the PGN parser and asked the
+  same `scanGame` question.
+- The count comes first so progress has a denominator; an unreadable game is
+  neither read nor selected; a stop keeps what was found.
+- **Not done:** an index. The read is linear — measured in the Phase 84
+  handover — and the page says a large file takes a while.
+
+## Results open in their own tab
+
+`openInNewTab` (`src/features/tabs/tab-actions.ts`).
+
+- A merged file, a merge of the explorer's model games, a predecessor game and
+  a deep-analysis tree whose start is not in the game open in a new working
+  tab. The Library's merge first opened over the board, and an unsaved
+  untitled analysis there was replaced.

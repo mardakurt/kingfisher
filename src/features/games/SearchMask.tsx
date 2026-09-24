@@ -28,6 +28,7 @@ import {
 } from '@/search/time-control';
 
 import { runDeepSearch, type DeepSearchState } from './deep-search';
+import { companionMoveSearch, LOCAL_SOURCE, type LibrarySource } from './library-source';
 
 export const FIELD =
   'h-7 w-full rounded-[6px] border border-line bg-surface-inset px-2 text-2xs text-primary outline-none placeholder:text-tertiary/70 focus:border-accent/60';
@@ -409,21 +410,40 @@ export function useDeepSearch() {
   }, []);
 
   const start = useCallback(
-    async (header: Omit<GameSearchQuery, 'limit' | 'offset' | 'exactTotal'>, deep: DeepQuery) => {
+    async (
+      header: Omit<GameSearchQuery, 'limit' | 'offset' | 'exactTotal'>,
+      deep: DeepQuery,
+      source: LibrarySource = LOCAL_SOURCE,
+    ) => {
       controller.current?.abort();
       const next = new AbortController();
       controller.current = next;
       setState({ status: 'running', read: 0, selected: 0, matches: [] });
+      // A superseded search must not paint over the one that replaced it.
+      const onProgress = (progress: DeepSearchState) => {
+        if (controller.current === next) setState(progress);
+      };
+      if (source.kind === 'companion') {
+        try {
+          await companionMoveSearch({ source, header, deep, signal: next.signal, onProgress });
+        } catch (error) {
+          onProgress({
+            status: 'failed',
+            read: 0,
+            selected: 0,
+            matches: [],
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        return;
+      }
       const repositories = await getRepositories();
       await runDeepSearch({
         games: repositories.games,
         header,
         deep,
         signal: next.signal,
-        // A superseded search must not paint over the one that replaced it.
-        onProgress: (progress) => {
-          if (controller.current === next) setState(progress);
-        },
+        onProgress,
       });
     },
     [],

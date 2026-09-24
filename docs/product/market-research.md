@@ -3,7 +3,8 @@
 _2026-09-21, revised 2026-09-23 for ChessBase 26 and ChessBase for Mac
 (§2, §3.1, §4 rows 6 and 16, §5, §6), and 2026-09-24 for Phase 84 (§4 row
 16, §6; the workflow-by-workflow comparison is now
-`chessbase-parity-audit.md`). Research for the stated goal — Kingfisher as the ChessBase of
+`chessbase-parity-audit.md`), and again for the Phase 84 continuation (§3.8,
+§4 row 16). Research for the stated goal — Kingfisher as the ChessBase of
 its era: first close the gaps, then lead. Written from first-hand sources:
 user forums, product reviews, practitioners' blogs and the products' own
 documentation. Every claim below carries its source; the sources are
@@ -168,6 +169,42 @@ The incumbent's users are the clearest voices, because they pay the most.
   [OTB]. Every one of them ends at a PGN file — which is where the study
   tool's job begins and where ChessBase's DGT integration is its only
   real answer.
+
+### 3.8 How serious players say they actually prepare
+
+Added for the Phase 84 continuation. What practitioners describe, as against
+what the products advertise; confirmed statements are separated from what is
+only inferred.
+
+- **Professionals: little is confirmed about tools.** The best-documented
+  team, Carlsen's, is described by its coordinator in terms of people and
+  logistics — four grandmasters, secure communication, a supercomputer
+  ("Sesse") following games — not of software; the interview "reveals minimal
+  technical detail about databases, file systems, or player memorization"
+  [Nielsen]. Anything more specific about how elite players use ChessBase is
+  inference, and this document does not rely on it.
+- **What is confirmed about the professional workflow** comes from ChessBase
+  itself: the reference database behind every report, Find Novelty against
+  it, merging games into a preparation file with Enter, training annotations
+  for pupils, and the CB26 Opening Report (main lines and responses, history
+  and pioneers, a popularity chart, Elo-segmented statistics, strategic
+  traits, instructive games, tactics from the opening) [CB-Novelty],
+  [CB-Merge-Help], [CB-Training-Help], [CB26-OpeningReport]. A GM reviewer's
+  use of the report is "a fast, informed first impression before more
+  in-depth analysis" [CB26-Rogozenco].
+- **Club and tournament players prepare in about two hours and on a
+  budget of attention**: the opponent's recent, longer-time-control games
+  (OpeningTree, the Lichess player tab), a decision tree, a short review, then
+  stop — "turn off the laptop" before the game; the tedious parts are reading
+  many online variations and managing databases [Ikeda], [Dixit], [Solon-OE].
+- **Engines: the request is two engines, side by side, on the player's own
+  hardware** — Leela for how to play the position, Stockfish for whether it
+  holds — which Lichess declines to host and answers with an external-engine
+  bridge [Lichess-Leela].
+- **Open-source users ask for the professional basics**: saved reports and
+  analysis, several reference databases, puzzles from one's own games, colour
+  in variations and comments, human-aware analysis (Maia) — En Croissant's
+  most active requests [EnCroissant-Issues].
 
 ## 4. What people ask for and do not have — ranked
 
@@ -347,6 +384,31 @@ brief; rehearsal with spaced repetition on the game-day sheet. Each is
 designed in `docs/design/` before it is built.
 
 ## Sources
+
+- [Nielsen] "Inside Team Carlsen: Q&A with Peter Heine Nielsen", ChessBase —
+  <https://en.chessbase.com/post/carlsen-karjakin-interview-with-peter-heine-nielsen>
+- [CB-Novelty] "Find novelty/compare", ChessBase help —
+  <https://help.chessbase.com/CBase/15/Eng/find_novelty.htm>; "ChessBase for
+  Coaches: Finding Novelties" —
+  <https://en.chessbase.com/post/chessbase-for-coaches-finding-novelties>
+- [CB-Merge-Help] "Merging games", ChessBase help —
+  <http://help.chessbase.com/Cbase/15/Eng/merge_games.htm>
+- [CB-Training-Help] "Annotating in ChessBase: creating training positions" —
+  <https://en.chessbase.com/post/annotating-in-chessbase-creating-training-positions>
+- [CB26-OpeningReport] "The Complete Guide to the ChessBase 26 Opening Report" —
+  <https://en.chessbase.com/post/matthias-wuellenweber-the-complete-guide-to-the-chessbase-26-opening-report>
+- [CB26-Rogozenco] "How a GM uses the new ChessBase 26 opening report" —
+  <https://en.chessbase.com/post/dorian-rogozenco-how-a-gm-uses-the-new-chessbase-26-opening-report>
+- [Ikeda] Junta Ikeda, "10 things to remember when preparing" —
+  <https://juntaikeda.substack.com/p/10-things-to-remember-when-preparing>
+- [Dixit] Nikhil Dixit, "How to prepare against your opponent in less than 2 hours" —
+  <https://nikhilchess.substack.com/p/how-to-prepare-against-your-opponant>
+- [Solon-OE] Nate Solon, "How to use the opening explorer" —
+  <https://zwischenzug.substack.com/p/how-to-use-the-opening-explorer>
+- [Lichess-Leela] "Feature request: Leela as an engine on analysis boards and studies" —
+  <https://github.com/ornicar/lila/issues/5897>
+- [EnCroissant-Issues] En Croissant issues, sorted by reactions —
+  <https://github.com/franciscoBSalgueiro/en-croissant/issues>
 
 - [CB26-Horizon] "ChessBase'26: Expand your chess horizon!", ChessBase —
   <https://en.chessbase.com/post/chessbase-26-expand-your-chess-horizon>

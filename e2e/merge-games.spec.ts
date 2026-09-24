@@ -72,3 +72,68 @@ test('merges selected games into one tree and opens it as a new analysis', async
   });
   expect(count).toBe(4);
 });
+
+test('a merge opens in its own tab and keeps the analysis already on the board', async ({
+  page,
+}) => {
+  await page.goto('/analysis');
+  await ready(page);
+  await page.evaluate(
+    async (games) => {
+      const app = (
+        globalThis as typeof globalThis & {
+          __kingfisher: AppRepositories & { importGames: typeof importGames };
+        }
+      ).__kingfisher;
+      await app.games.clear();
+      for (const pgn of games) await app.importGames(pgn, app.games);
+    },
+    GAMES.slice(0, 2),
+  );
+
+  // Unsaved work on the board: 1.d4, played by hand.
+  const board = page.getByRole('grid', { name: 'Chessboard' }).first();
+  await board.getByRole('gridcell', { name: /^d2,/ }).click();
+  await board.getByRole('gridcell', { name: /^d4,/ }).click();
+  const notation = page.locator('[data-move-tree]').first();
+  await expect(notation).toContainText('d4');
+
+  const tabs = page.getByRole('tablist', { name: 'Workspace tabs' }).getByRole('tab');
+  await expect(tabs).toHaveCount(1);
+  await page
+    .getByRole('navigation', { name: 'Sections' })
+    .getByRole('link', { name: 'Library', exact: true })
+    .click();
+  const list = page.locator('[data-library-list]');
+  for (const white of ['Spanish, Player', 'Berlin, Player']) {
+    await list
+      .getByRole('checkbox', { name: new RegExp(`^Select ${white}`) })
+      .first()
+      .check();
+  }
+  await page.getByRole('button', { name: 'Merge into one tree' }).click();
+
+  await expect(tabs).toHaveCount(2);
+  await expect(tabs.nth(1)).toHaveAttribute('aria-selected', 'true');
+  await expect(notation).toContainText('Bb5');
+  await tabs.nth(0).click();
+  await expect(notation).toContainText('d4');
+  await expect(notation).not.toContainText('Bb5');
+});
+
+test('the explorer merges the model games of the built-in reference', async ({ page }) => {
+  await page.goto(
+    `/analysis?fen=${encodeURIComponent('rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2')}`,
+  );
+  await ready(page);
+  await page.getByRole('tab', { name: 'Explorer', exact: true }).click();
+  const merge = page.getByRole('button', { name: 'Merge into one tree' });
+  await expect(merge).toBeVisible({ timeout: 30_000 });
+  await merge.click();
+  const tabs = page.getByRole('tablist', { name: 'Workspace tabs' }).getByRole('tab');
+  await expect(tabs).toHaveCount(2);
+  await expect(
+    page.getByText(/games merged from Kingfisher Starter Reference/).first(),
+  ).toBeVisible();
+  await expect(page.locator('[data-move-tree]').first()).toContainText('e4');
+});

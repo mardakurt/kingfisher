@@ -215,6 +215,36 @@ export function newTab(navigate: Navigate, options: { duplicate?: boolean } = {}
 }
 
 /**
+ * Open something new on the board in a tab of its own.
+ *
+ * For results a person asked for — a merged file, a game from a list — that
+ * should not replace the work already on the board. `apply` puts the new
+ * document in the store once the active tab's work has been written to its
+ * own draft. Resolves to false, having said why, when no tab could be opened.
+ */
+export function openInNewTab(navigate: Navigate, apply: () => void): Promise<boolean> {
+  let opened = false;
+  return guarded('A new tab could not be opened.', async () => {
+    const tabs = useTabs.getState();
+    if (tabs.tabs.length >= MAX_TABS) {
+      useUi.getState().notify({
+        tone: 'info',
+        message: 'Twelve tabs are open, the most Kingfisher shows. Close one and try again.',
+      });
+      return;
+    }
+    await captureActive();
+    const id = stableId('tab');
+    useTabs.getState().open({ id, href: NEW_TAB_HREF, title: 'Analysis board' });
+    useTabs.getState().publish(null);
+    apply();
+    navigate.push(NEW_TAB_HREF);
+    await writeBoardDraft(selectDirty(useAnalysis.getState()));
+    opened = true;
+  }).then(() => opened);
+}
+
+/**
  * Close a tab, asking first when that would discard work.
  *
  * `confirmed` is passed by the dialog the question opens; nothing else sets it.

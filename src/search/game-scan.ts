@@ -41,9 +41,34 @@ export interface ScanHit {
 export const hasDeepFilters = (query: DeepQuery): boolean =>
   Boolean(query.material || query.theme || query.route || query.comment?.trim());
 
+/**
+ * One position of a main line, as the scan reads it. A tree's `MoveNode` is
+ * one; so is a row a store kept when it indexed the game, which is how a
+ * companion database is searched without replaying its PGN.
+ */
+export interface LinePosition {
+  readonly id: string;
+  readonly fen: string;
+  readonly ply: number;
+  readonly move?: { readonly uci: string } | null;
+}
+
 export function scanGame(tree: GameTree, query: DeepQuery): ScanHit | null {
   const path = mainlinePath(tree);
   const nodes = path.map((id) => tree.nodes[id]!).filter(Boolean);
+  return scanLine(nodes, query, Object.values(tree.nodes));
+}
+
+/**
+ * The scan over a main line. `commented` is every node whose comments a
+ * comment query reads — the whole tree for a game, variations included; a
+ * line built from index rows has none, so a comment query needs the tree.
+ */
+export function scanLine(
+  nodes: readonly LinePosition[],
+  query: DeepQuery,
+  commented: readonly Pick<MoveNode, 'ply' | 'comment' | 'preComment'>[] = [],
+): ScanHit | null {
   const moments: number[] = [];
 
   if (query.material) {
@@ -80,7 +105,7 @@ export function scanGame(tree: GameTree, query: DeepQuery): ScanHit | null {
   const needle = query.comment?.trim().toLowerCase();
   if (needle) {
     let at: number | null = null;
-    for (const node of Object.values(tree.nodes)) {
+    for (const node of commented) {
       const text = `${node.preComment ?? ''} ${node.comment ?? ''}`.toLowerCase();
       if (text.includes(needle) && (at === null || node.ply < at)) at = node.ply;
     }
@@ -96,7 +121,10 @@ export function scanGame(tree: GameTree, query: DeepQuery): ScanHit | null {
 }
 
 /** First ply whose position satisfies `test` and still does one ply later, or ends the game. */
-function firstHeld(nodes: readonly MoveNode[], test: (node: MoveNode) => boolean): number | null {
+function firstHeld(
+  nodes: readonly LinePosition[],
+  test: (node: LinePosition) => boolean,
+): number | null {
   let previous = false;
   for (let index = 0; index < nodes.length; index += 1) {
     const now = test(nodes[index]!);
