@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { parsePgn } from '@/chess/pgn';
+import { setQuestion } from '@/chess/tree/questions';
 import { mainlinePath } from '@/chess/tree/tree';
 import type { ChapterRecord, StudyRecord } from '@/persistence/types';
 
@@ -146,5 +147,31 @@ describe('publishHtml', () => {
     expect(html.indexOf('First')).toBeLessThan(html.indexOf('Second'));
     expect(html).toContain('Tags: najdorf');
     expect(html).toContain('2 chapters');
+  });
+
+  it('prints a worksheet: the questions as positions, the game withheld, solutions last', () => {
+    const base = chapter();
+    const path = mainlinePath(base.tree);
+    let tree = setQuestion(base.tree, path[3]!, 'Develop with a threat.');
+    tree = setQuestion(tree, path[5]!, '');
+    const html = published(
+      [
+        { ...base, tree },
+        chapter({ id: 'chapter-2' as ChapterRecord['id'], title: 'No questions' }),
+      ],
+      { worksheet: true },
+    );
+    expect(html).toContain('Worksheet · 2 questions');
+    expect(html).toContain('<strong>1.</strong> White to play. Develop with a threat.');
+    expect(html).toContain('<strong>2.</strong> White to play. Find the move.');
+    expect(html.match(/<svg/g)).toHaveLength(2);
+    // The chapter's moves and comments are not printed before the solutions.
+    const [questions, solutions] = html.split('<section class="solutions">');
+    expect(questions).not.toContain('A first word.');
+    expect(questions).not.toContain('No questions');
+    // Nf3 is marked $1 and its sibling Bc4 is not: one answer; Bb5 is the other.
+    expect(solutions).toContain('<li value="1"><span class="m">2. Nf3</span>');
+    expect(solutions).toContain('<li value="2"><span class="m">3. Bb5</span>');
+    expect(html).not.toMatch(/<script|<link|<img/);
   });
 });

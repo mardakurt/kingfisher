@@ -68,6 +68,33 @@ test('a chapter asks its questions, and the missed ones go to Training', async (
   await ready(page);
   await expect(page.locator('[data-question-marker]')).toHaveCount(2);
 
+  // The same questions, handed out on paper: a worksheet with solutions last.
+  await page.getByRole('button', { name: 'Publish…', exact: true }).click();
+  const publish = page.getByRole('dialog', { name: 'Publish study' });
+  await expect(publish.getByText('(2 questions)')).toBeVisible();
+  await publish.getByRole('checkbox', { name: /As a worksheet/ }).check();
+  const download = await Promise.all([
+    page.waitForEvent('download'),
+    publish.getByRole('button', { name: 'Save as HTML', exact: true }).click(),
+  ]).then(([event]) => event);
+  const sheet = await new Promise<string>((resolve, reject) => {
+    void download.createReadStream().then((stream) => {
+      let text = '';
+      stream.setEncoding('utf8');
+      stream.on('data', (chunk) => (text += chunk));
+      stream.on('end', () => resolve(text));
+      stream.on('error', reject);
+    });
+  });
+  expect(sheet).toContain('Worksheet · 2 questions');
+  expect(sheet).toContain('White to play. Develop with a threat.');
+  expect(sheet).toContain('Black to play. Defend the pawn.');
+  expect(sheet.split('Solutions')[1]).toContain('2… Nc6');
+  await publish
+    .getByRole('button', { name: /Close|Cancel/ })
+    .first()
+    .click();
+
   await solveButton(page);
   const dialog = page.getByRole('dialog', { name: 'Questions in Open game basics' });
   await expect(dialog.locator('[data-question-prompt]')).toHaveText('Develop with a threat.');

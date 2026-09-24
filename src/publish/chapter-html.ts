@@ -17,6 +17,7 @@
  */
 
 import { nagSymbol } from '@/chess/annotations';
+import { chapterQuestions, type ChapterQuestion } from '@/chess/tree/questions';
 import { boardSvg } from '@/features/position-report/print';
 import type { GameTree, MoveNode, NodeId } from '@/chess/tree/types';
 import type { ChapterRecord, StudyRecord } from '@/persistence/types';
@@ -29,6 +30,12 @@ export interface PublishOptions {
   readonly byline?: string;
   /** Fixed for a deterministic document in tests. */
   readonly now?: number;
+  /**
+   * Phase 84: a worksheet — each chapter's questions as positions to solve,
+   * the game itself withheld, and every solution on the last page, as a coach
+   * hands it out. Chapters without questions are left out.
+   */
+  readonly worksheet?: boolean;
 }
 
 export const escapeHtml = (value: string): string =>
@@ -168,6 +175,23 @@ const STYLE = `
            font-size: 8.5pt; color: #555; }
 `;
 
+const questionLabel = (question: ChapterQuestion) =>
+  `${moveNumber(question.ply)}${isWhiteMove(question.ply) ? '.' : '…'} ${question.solutionSan.join(' or ')}`;
+
+/** A chapter's questions, numbered from `first`, as figures to solve. */
+function worksheetSection(chapter: ChapterRecord, first: number): string {
+  return chapterQuestions(chapter.tree)
+    .map((question, index) => {
+      const side = isWhiteMove(question.ply) ? 'White' : 'Black';
+      return (
+        `<figure class="q"><figcaption><strong>${first + index}.</strong> ${side} to play. ` +
+        `${escapeHtml(question.prompt)}</figcaption>` +
+        `${boardSvg(question.fen, isWhiteMove(question.ply) ? 'w' : 'b')}</figure>`
+      );
+    })
+    .join('');
+}
+
 export interface PublishInput {
   readonly study: StudyRecord;
   readonly chapters: readonly ChapterRecord[];
@@ -184,6 +208,7 @@ export interface PublishInput {
  */
 export function publishHtml({ study, chapters, options = {} }: PublishInput): string {
   const stamp = new Date(options.now ?? Date.now());
+  if (options.worksheet) return worksheetHtml({ study, chapters, options }, stamp);
   const body = chapters
     .map((chapter) => {
       const { html, diagrams } = chapterBody(chapter, options);
@@ -216,5 +241,48 @@ ${body}
 <footer>Published from Kingfisher. Comments and variations are the author's own;
 any engine figure quoted in them is a measurement taken at the moment it was
 written, not a standing fact.</footer>
+</body></html>`;
+}
+
+/** The worksheet: questions first, solutions on their own last page. */
+function worksheetHtml({ study, chapters, options = {} }: PublishInput, stamp: Date): string {
+  let number = 1;
+  const sections: string[] = [];
+  const solutions: string[] = [];
+  for (const chapter of chapters) {
+    const questions = chapterQuestions(chapter.tree);
+    if (questions.length === 0) continue;
+    sections.push(
+      `<section><h2>${escapeHtml(chapter.title)}</h2><div class="sheet">${worksheetSection(chapter, number)}</div></section>`,
+    );
+    for (const question of questions) {
+      solutions.push(
+        `<li value="${number}"><span class="m">${escapeHtml(questionLabel(question))}</span>` +
+          `${question.explanation ? ` <span class="c">${escapeHtml(question.explanation)}</span>` : ''}</li>`,
+      );
+      number += 1;
+    }
+  }
+  const count = number - 1;
+  return `<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${escapeHtml(study.title)} — worksheet</title>
+<style>${STYLE}
+  .sheet { display: grid; grid-template-columns: repeat(auto-fill, minmax(62mm, 1fr)); gap: 8mm 6mm; }
+  .q figcaption { text-align: left; margin: 0 0 4px; font-size: 10pt; color: #111; }
+  .solutions { break-before: page; page-break-before: always; }
+  .solutions li { margin: 3px 0; }
+</style></head>
+<body>
+<header>
+  <h1>${escapeHtml(study.title)}</h1>
+  ${options.byline ? `<p class="byline">${escapeHtml(options.byline)}</p>` : ''}
+  <p class="byline">Worksheet · ${count} question${count === 1 ? '' : 's'} · ${escapeHtml(stamp.toISOString().slice(0, 10))}</p>
+</header>
+${sections.join('') || '<p><em>None of these chapters has a question.</em></p>'}
+<section class="solutions"><h2>Solutions</h2><ol>${solutions.join('')}</ol></section>
+<footer>Published from Kingfisher. Each answer is the move the author marked;
+another move the author marked good is accepted too.</footer>
 </body></html>`;
 }

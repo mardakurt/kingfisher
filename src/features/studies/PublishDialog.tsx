@@ -6,6 +6,7 @@
  * The preview is the document itself, so what is checked is what is sent.
  */
 
+import { chapterQuestions } from '@/chess/tree/questions';
 import { useMemo, useState } from 'react';
 
 import { Button } from '@/components/ui/Button';
@@ -28,20 +29,30 @@ export function PublishDialog({
     study.chapters.map((chapter) => chapter.id),
   );
   const [diagrams, setDiagrams] = useState(true);
+  const [worksheet, setWorksheet] = useState(false);
   const [byline, setByline] = useState('');
 
   const chapters = useMemo(
     () => study.chapters.filter((chapter) => chosen.includes(chapter.id)),
     [chosen, study.chapters],
   );
+  /* Phase 84: the chapters' questions, for the worksheet. */
+  const questions = useMemo(
+    () => chapters.reduce((sum, chapter) => sum + chapterQuestions(chapter.tree).length, 0),
+    [chapters],
+  );
   const html = useMemo(
     () =>
       publishHtml({
         study: study.study,
         chapters,
-        options: { diagrams, ...(byline.trim() ? { byline: byline.trim() } : {}) },
+        options: {
+          diagrams,
+          ...(worksheet && questions > 0 ? { worksheet: true } : {}),
+          ...(byline.trim() ? { byline: byline.trim() } : {}),
+        },
       }),
-    [byline, chapters, diagrams, study.study],
+    [byline, chapters, diagrams, questions, study.study, worksheet],
   );
 
   /*
@@ -124,6 +135,22 @@ export function PublishDialog({
           Draw a diagram at every position marked critical
           <span className="text-tertiary">
             ({marked} marked in {chapters.length === 1 ? 'this chapter' : 'these chapters'})
+          </span>
+        </label>
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={worksheet && questions > 0}
+            disabled={questions === 0}
+            onChange={(event) => setWorksheet(event.target.checked)}
+          />
+          As a worksheet: the questions as positions, solutions on the last page
+          <span className="text-tertiary">
+            (
+            {questions === 0
+              ? 'no questions in these chapters'
+              : `${questions} ${questions === 1 ? 'question' : 'questions'}`}
+            )
           </span>
         </label>
         <label className="block">
