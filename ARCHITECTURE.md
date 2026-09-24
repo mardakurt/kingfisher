@@ -587,6 +587,22 @@ Four rules hold here and are the ones to keep:
   _Diagnostics → Restart companion_ covers the exhausted case by hand.
   Found by killing both from the fault-injecting walk in Phase 46.
 
+- **The menu names the application's commands; the renderer runs them.**
+  Since Phase 84 the Mac menu carries the commands a Mac user looks for —
+  New Tab ⌘T, Close Tab ⌘W (the window is ⇧⌘W), Show Next/Previous Tab,
+  Toggle Sidebar ⌃⌘S, Command Palette ⌘K, View → Appearance, a Go menu —
+  and a Dock menu. None is implemented in the shell: an item sends the
+  command palette's own id over `kingfisher:menu-command`
+  (`desktop/src/menu-commands.mjs`) and `useMenuCommands` runs that command,
+  so there is one implementation of each. `menu-commands.test.mjs` reads the
+  renderer's commands and fails on an id that names nothing.
+- **The window follows the Studio's theme.** The renderer reports its theme
+  (`setAppearance`); the shell sets `nativeTheme.themeSource` — so sheets,
+  menus and Sparkle's windows are drawn in the application's appearance, not
+  the Mac's — and the window background to the Studio canvas, and records the
+  choice beside the profile so the next launch paints it before the page
+  (`desktop/src/appearance.mjs`, its colours held to `src/ui/palette.json`).
+
 ### What a packaged bundle is
 
 `Resources/app.asar` holds the shell (`desktop/src/`). Under
@@ -710,6 +726,16 @@ per game by fingerprint; and v20 the multi-entry `tags` index on studies and
 chapters.
 Records are validated on the way out, because a record written by an older
 build is plausible and malformed data must not reach the board.
+
+**A reload inside the autosave debounce.** Autosave writes 900 ms after a
+change, and an IndexedDB write does not outlive the page. Since Phase 84 a
+`pagehide` with unsaved work also writes the draft synchronously to
+`localStorage` (`src/persistence/unload-draft.ts`); the next load takes it
+once, prefers it when it is newer than the stored draft, and — for a chapter
+whose revision is still the one it was edited from — puts it back as the work
+in progress rather than as a recovery offer. Before it, a move played just
+before a reload was lost while the header said "Saved"
+(`e2e/study-reload.spec.ts`).
 
 Every one of those versions now has a **historical migration fixture**: a real
 IndexedDB database opened at that version, seeded the way a session at that

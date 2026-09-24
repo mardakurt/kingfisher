@@ -1,7 +1,9 @@
 # The chess study market: what people ask for and do not have
 
 _2026-09-21, revised 2026-09-23 for ChessBase 26 and ChessBase for Mac
-(§2, §3.1, §4 rows 6 and 16, §5, §6). Research for the stated goal — Kingfisher as the ChessBase of
+(§2, §3.1, §4 rows 6 and 16, §5, §6), and 2026-09-24 for Phase 84 (§4 row
+16, §6; the workflow-by-workflow comparison is now
+`chessbase-parity-audit.md`). Research for the stated goal — Kingfisher as the ChessBase of
 its era: first close the gaps, then lead. Written from first-hand sources:
 user forums, product reviews, practitioners' blogs and the products' own
 documentation. Every claim below carries its source; the sources are
@@ -189,7 +191,7 @@ in the shared source (after Phase 76; desktop publication is tracked separately)
 | 13  | A large annotated master database                                       | Disco, Chess.com-Mac                        | Mega Database                | **partial** — named reference packs and Coverage with depth limits; no licensed annotated master corpus                                                                                                                                                                                                  |
 | 14  | Getting the OTB game in (scoresheet, DGT, camera)                       | OTB                                         | DGT                          | **yes** (Phase 76) — Scoresheet: typed against the rules, gaps reconstructed, photo via your own endpoint                                                                                                                                                                                                |
 | 15  | Duplicate removal, dynamic ECO, auto-flip to my colour                  | ChessMind                                   | partial                      | **yes** (Phase 76) — duplicates by fingerprint and by metadata key, reviewed never auto-deleted; ECO where it changes in the move list; orientation from a linked account or the profile                                                                                                                 |
-| 16  | Cloud engines / remote compute                                          | Watson (ducats), CB26-Horizon               | yes (rented)                 | no — companion is local only; no cloud evaluation either                                                                                                                                                                                                                                                 |
+| 16  | Cloud engines / remote compute                                          | Watson (ducats), CB26-Horizon               | yes (rented)                 | **partial** (Phase 84) — the Lichess cloud evaluation, asked for per session and labelled as stored analysis; no rented or remote engine                                                                                                                                                                 |
 | 17  | Opponent profile without "style" invention                              | Lichess-Weak, Aimchess                      | Style Report                 | **yes** — dossier of facts, falsifiable                                                                                                                                                                                                                                                                  |
 | 18  | Time management from my games                                           | Aimchess                                    | no                           | **yes** — After the round clock section for one game; a season reader joins every game in a named set (OTB / Lichess / Chess.com never merged) with denominators on each section                                                                                                                         |
 | 19  | Publishing: print, web, PDF, share a link                               | Watson, ChessBase-Coaches                   | yes                          | **yes** — chapter as self-contained HTML and browser print/PDF; report print; no hosted share link                                                                                                                                                                                                       |
@@ -312,17 +314,28 @@ user touches it:
 2. **Questions inside a chapter.** A coach's homework is a position with a
    question and the move the student should find (§3.6: "which questions a
    student missed"). Chapters can link to training items but hold no
-   question of their own.
+   question of their own. _Done in Phase 84_ — `src/chess/tree/questions.ts`;
+   the missed ones go to Training, and _Publish → As a worksheet_ prints them
+   with the solutions last.
 3. **Merge games into one tree.** Preparation files are built by merging
    the games that reached a line. Kingfisher can copy games between
-   collections but cannot combine them into one annotated tree.
+   collections but cannot combine them into one annotated tree. _Done in
+   Phase 84_ — `src/chess/tree/merge.ts`, from the Library's selection.
 4. **Cloud evaluation, labelled.** A browser with a weak CPU gets depth from
    the Lichess cloud evaluation, named as such and never mixed into local
-   evidence. It is not a rented engine, and it costs no account.
+   evidence. It is not a rented engine, and it costs no account. _Done in
+   Phase 84_ — `src/engine/cloud-eval.ts`, in the engine panel.
 5. **The opening report's missing half.** The first game, who plays it,
    and popularity by year: available from My games and the Lichess
    provider, per game. Packs keep one recent/all-time split, and adding a
-   per-year series is a pack-format change.
+   per-year series is a pack-format change. _Done in Phase 84 for the
+   player's collections_ — the position page's History; the packs still
+   cannot answer it.
+
+Phase 84 also added the repertoire scan (`src/repertoire/scan.ts`) and the
+Library over any collection (`src/features/games/library-source.ts`), both
+from the ChessBase comparison in `chessbase-parity-audit.md`, which lists
+what remains before Kingfisher is at ChessBase's level for a professional.
 
 ### Later — leading
 

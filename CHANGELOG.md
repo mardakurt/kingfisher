@@ -8,6 +8,37 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
+- **Fixed: a move played just before a reload could be lost.** In a study
+  chapter, a reload within about a second of a move brought the chapter back
+  without it, while the header said "Saved". The move now survives, and the
+  header says "Edited" until it is written. (Phase 84)
+- **Questions inside a study chapter.** Right-click a move → _Ask this move as
+  a question…_; _Solve N questions_ asks them one by one, says which you found
+  and which you missed, and sends the missed ones to Training. _Publish → As a
+  worksheet_ prints them with the solutions on the last page. (Phase 84)
+- **Merge games into one tree.** Select games in the Library → _Merge into
+  one tree_: shared moves once, every departure a variation labelled with its
+  game. (Phase 84)
+- **Scan games against a repertoire.** Repertoire → _Scan games_ reads any
+  collection and lists the games that reach your lines and where each leaves
+  them — a new move against you, another idea for your side, or past your
+  preparation. (Phase 84)
+- **The Library shows any database**, not only My games: pick a companion
+  database in the toolbar, filter it, preview a game and open it. (Phase 84)
+- **Lichess cloud evaluation, when you ask.** The engine panel can show the
+  analysis lichess.org has stored for the position — often depth 40 or more —
+  labelled as stored analysis and never mixed into your own engine's. Off at
+  the start of every session. (Phase 84)
+- **A position's history.** The position page shows the first and latest
+  game through it, games per year and who plays it, from your collections.
+  (Phase 84)
+- **One Kingfisher.** The landing page, the install and policy pages, the app
+  icon and the disk image are drawn from the Studio's own design, in light
+  and dark; the evaluation bar is clearly visible in the light theme; the Mac
+  application follows your Light/Dark choice in its own windows and sheets and
+  has menus for tabs (⌘T, ⌘W, ⌃Tab), the sidebar, appearance and navigation.
+  (Phase 84)
+
 - **Fixed: the Daily session could say "Loading your work…" for ever.** If
   one of its four reads failed, it waited without end. It now names the read
   that failed and offers to try again. The endgame library also refuses to

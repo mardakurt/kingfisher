@@ -42,6 +42,38 @@ surface, `surface-inset` is an input or recessed work area, and
 `surface-sidebar` is the source list's own grey. Borders follow
 subtle/default/strong.
 
+**One identity, one source (Phase 84).** The Studio's stylesheet is the
+source of every colour Kingfisher shows:
+
+- The landing (`src/app/landing/landing.css`) and the public pages
+  (`src/app/_docs/docs.css`) are drawn from the same tokens and follow the
+  Studio's theme through the `data-theme` the root layout sets before first
+  paint. Until Phase 84 they carried an editorial palette of their own
+  (navy ink, cream paper, Georgia, a teal bird, amber). They may not
+  introduce a colour literal: `src/ui/brand-assets.test.ts` refuses one.
+- What cannot read CSS — the Mac window before its page paints, the web
+  manifest, the icon and disk-image generators — reads
+  `src/ui/palette.json`, which `src/ui/palette.test.ts` holds equal to the
+  stylesheet.
+- The mark is the bird on the Studio board: near-white and periwinkle squares
+  in the board's navy frame (`--brand-frame`, `--brand-square-*`, the same in
+  both themes). `brand/kingfisher-mark.svg` is the master; its SVG copies are
+  written by `scripts/render-brand-icons.py`, the Mac icon sits on Apple's
+  824-in-1024 grid, and the sidebar's `BrandMark` draws the same geometry.
+- The faces are real properties, `--font-ui` and `--font-code`: a variable in
+  `@theme inline` is never emitted, and `src/ui/token-references.test.ts`
+  fails on any `var()` that nothing defines — it found the body's font, the
+  update banners and the evaluation graph reading nothing.
+
+**The evaluation family.** The bar beside the board, the graph and the
+engine panel's score chips share `--eval-white`, `--eval-black`,
+`--eval-edge`, `--eval-midline` and `--eval-track`. In the light theme
+White's band is the page's white, so the bar borrows the board's frame — a
+ring in the frame colour whose outer edge lines up with the frame's — and on a
+frameless board a one-pixel evaluation edge; the chips carry the same edge.
+The bar prints at most four characters (whole pawns from ten), because four is
+what 24 px holds.
+
 Light is the default theme. Profiles from before Phase 82 were moved to it,
 and from the Midnight board to Studio, once (preferences version 7); a choice
 made after that is kept.
