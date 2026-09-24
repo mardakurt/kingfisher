@@ -28,7 +28,7 @@ export interface OpeningSearchHit {
   readonly moves: readonly string[];
 }
 
-interface IndexedOpening extends Rankable {
+export interface IndexedOpening extends Rankable {
   readonly id: string;
   readonly eco: string;
   readonly name: string;
@@ -162,7 +162,19 @@ export async function searchOpenings(
   limit = 8,
 ): Promise<readonly OpeningSearchHit[]> {
   if (query.trim().length < 2) return [];
-  const entries = await (cache ??= buildIndex());
+  return searchOpeningsIn(await openingIndex(), query, limit);
+}
+
+/** The catalogue, indexed once and shared by every query. */
+export const openingIndex = (): Promise<readonly IndexedOpening[]> => (cache ??= buildIndex());
+
+/** `searchOpenings` over an index already built: the part a keystroke waits for. */
+export function searchOpeningsIn(
+  entries: readonly IndexedOpening[],
+  query: string,
+  limit = 8,
+): readonly OpeningSearchHit[] {
+  if (query.trim().length < 2) return [];
   const ranked: readonly RankedHit<IndexedOpening>[] = rank(entries, expandOpeningQuery(query));
   /*
     One hit per name. The dataset names several positions the same way — a

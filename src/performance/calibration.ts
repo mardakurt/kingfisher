@@ -54,5 +54,28 @@ export function medianMs(runs: number, measure: () => void): number {
   return samples[Math.floor(runs / 2)]!;
 }
 
+/**
+ * How many units `measure` costs: each run times the workload and then the
+ * measured code back to back, and the median of those per-run ratios is the
+ * answer. Interleaving matters: a runner's speed drifts within one job (the
+ * unit alone was measured between 2.2 and 3.8 ms in one Phase 85 run), and a
+ * ratio of two timings taken moments apart cancels the drift that a unit
+ * taken once, earlier, does not.
+ */
+export function medianUnits(runs: number, measure: () => void): number {
+  for (let i = 0; i < 3; i += 1) sink += workload();
+  const ratios: number[] = [];
+  for (let run = 0; run < runs; run += 1) {
+    let started = performance.now();
+    sink += workload();
+    const unit = performance.now() - started;
+    started = performance.now();
+    measure();
+    ratios.push((performance.now() - started) / unit);
+  }
+  ratios.sort((a, b) => a - b);
+  return ratios[Math.floor(runs / 2)]!;
+}
+
 /** Keeps the workload's result alive so the JIT cannot discard it. */
 export const calibrationSink = (): number => sink;

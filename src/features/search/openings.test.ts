@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { calibrationUnitMs } from '@/performance/calibration';
+import { medianUnits } from '@/performance/calibration';
 
-import { expandOpeningQuery, searchOpenings } from './openings';
+import { expandOpeningQuery, openingIndex, searchOpenings, searchOpeningsIn } from './openings';
 
 const first = async (query: string) => (await searchOpenings(query, 1))[0]?.label;
 
@@ -132,7 +132,7 @@ describe('searchOpenings', () => {
   */
   it('answers in the time a keystroke allows', async () => {
     await searchOpenings('warm');
-    const unit = calibrationUnitMs();
+    const entries = await openingIndex();
     for (const query of ['Sicilian', 'Berlin', "King's Indian", 'Sveshnikov', 'QGD']) {
       const samples: number[] = [];
       for (let run = 0; run < 7; run += 1) {
@@ -142,12 +142,13 @@ describe('searchOpenings', () => {
       }
       samples.sort((a, b) => a - b);
       const median = samples[3]!;
+      // searchOpenings is asynchronous only to await its index, which is
+      // built by now; the ranking it runs is timed synchronously here.
+      const units = medianUnits(7, () => void searchOpeningsIn(entries, query));
       // eslint-disable-next-line no-console -- the measurement is what a reader of the log wants
-      console.info(
-        `${query}: ${median.toFixed(1)} ms (median of 7); ${(median / unit).toFixed(2)} units (unit ${unit.toFixed(2)} ms)`,
-      );
+      console.info(`${query}: ${median.toFixed(1)} ms (median of 7); ${units.toFixed(2)} units`);
       expect(median, query).toBeLessThan(60);
-      expect(median / unit, query).toBeLessThan(100);
+      expect(units, query).toBeLessThan(100);
     }
   });
 });

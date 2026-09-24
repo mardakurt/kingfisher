@@ -21,7 +21,7 @@ import { scanGame, type DeepQuery } from '@/search/game-scan';
 import { parseMaterialQuery } from '@/search/material-query';
 import { parseRoute } from '@/search/route';
 
-import { calibrationUnitMs, medianMs } from './calibration';
+import { medianMs, medianUnits } from './calibration';
 
 // Generating a legal game costs far more than scanning it; sixty give a stable
 // per-game figure without making the unit suite wait for the fixture.
@@ -95,15 +95,17 @@ describe('move-level search cost', () => {
     it(`asks ${name} of a realistic game in well under a millisecond`, () => {
       // Warm the JIT on every game, then measure.
       for (const game of games) scanGame(game, query);
-      const unit = calibrationUnitMs();
       const perGame =
         medianMs(RUNS, () => {
           for (const game of games) scanGame(game, query);
         }) / games.length;
-      const units = perGame / unit;
+      const units =
+        medianUnits(RUNS, () => {
+          for (const game of games) scanGame(game, query);
+        }) / games.length;
       // eslint-disable-next-line no-console -- the measurement is what a reader of the log wants
       console.info(
-        `${name}: ${perGame.toFixed(3)} ms/game (median of ${RUNS}) → ${((perGame * 10_000) / 1000).toFixed(2)} s per 10,000 games; ${units.toFixed(4)} units/game (unit ${unit.toFixed(2)} ms)`,
+        `${name}: ${perGame.toFixed(3)} ms/game (median of ${RUNS}) → ${((perGame * 10_000) / 1000).toFixed(2)} s per 10,000 games; ${units.toFixed(4)} units/game`,
       );
       expect(perGame).toBeLessThan(DESIGN_TARGET_MS_PER_GAME);
       expect(units).toBeLessThan(BUDGET_UNITS_PER_GAME[name]!);
