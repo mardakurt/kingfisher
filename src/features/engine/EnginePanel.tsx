@@ -43,6 +43,7 @@ import { useCompanionStatus } from '@/companion/useCompanion';
 
 import { CloudEvaluationSection } from './CloudEvaluation';
 import { DeepenSection } from './DeepenSection';
+import { PlayoutSection } from './PlayoutSection';
 import { EngineSelect } from './EngineSelect';
 import { scoreTone } from './score-chip';
 
@@ -385,6 +386,7 @@ export function EnginePanel() {
           evidence and written into the game only when asked.
         */}
         {outcome ? null : <DeepenSection fen={node.fen} />}
+        {outcome ? null : <PlayoutSection fen={node.fen} />}
         {analysis && !stale && preview ? (
           <PvPreview
             fen={node.fen}
