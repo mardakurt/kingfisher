@@ -22,6 +22,8 @@ import { LocalSourceSetRepository } from './source-set-repository';
 import { LocalPlayerIdentityRepository } from './player-identity-repository';
 import { LocalTeamRepository } from './team-repository';
 import { LocalJournalRepository } from './journal-repository';
+import { LocalQuestionSessionRepository } from './question-session-repository';
+import { LocalDeepAnalysisRepository } from './deep-analysis-repository';
 
 const fromDatabase = (database: PersistenceDatabase): AppRepositories => ({
   studies: new LocalStudyRepository(database),
@@ -44,6 +46,8 @@ const fromDatabase = (database: PersistenceDatabase): AppRepositories => ({
   playerIdentities: new LocalPlayerIdentityRepository(database),
   team: new LocalTeamRepository(database),
   journal: new LocalJournalRepository(database),
+  questionSessions: new LocalQuestionSessionRepository(database),
+  deepAnalysis: new LocalDeepAnalysisRepository(database),
   raw: database,
   close: () => database.close(),
 });

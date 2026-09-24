@@ -15,6 +15,8 @@ import type { PreparationRepository } from './repositories/preparation-repositor
 import type { OpeningFileRepository } from './repositories/opening-file-repository';
 import type { TeamRepository } from './repositories/team-repository';
 import type { JournalRepository } from './repositories/journal-repository';
+import type { QuestionSessionRepository } from './repositories/question-session-repository';
+import type { DeepAnalysisRepository } from './repositories/deep-analysis-repository';
 import type { EndgameRepository } from './repositories/endgame-repository';
 import type { PinnedLineRepository } from './repositories/pinned-line-repository';
 import type { LinkedAccountRepository } from './repositories/linked-account-repository';
@@ -451,6 +453,8 @@ export interface AppRepositories {
   readonly openingFiles: OpeningFileRepository;
   readonly team: TeamRepository;
   readonly journal: JournalRepository;
+  readonly questionSessions: QuestionSessionRepository;
+  readonly deepAnalysis: DeepAnalysisRepository;
   readonly endgames: EndgameRepository;
   readonly pinnedLines: PinnedLineRepository;
   readonly linkedAccounts: LinkedAccountRepository;

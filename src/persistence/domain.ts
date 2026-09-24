@@ -1401,3 +1401,84 @@ export class StaleJournalWriteError extends Error {
     super('This journal entry changed in another Kingfisher tab.');
   }
 }
+
+/* ---------- solving a chapter's questions (Phase 85) ---------- */
+
+/** What happened to one question: found, missed, shown on request, or out of time. */
+export type QuestionOutcome = 'found' | 'missed' | 'revealed' | 'timed-out';
+
+export interface QuestionAnswerRecord {
+  /** The answer move's node in the chapter, as `ChapterQuestion.nodeId`. */
+  readonly nodeId: string;
+  /** The prompt as it was asked, so the record reads right after the chapter changes. */
+  readonly prompt: string;
+  /** The answer as the author set it, in SAN, for the same reason. */
+  readonly solutionSan: string;
+  readonly outcome: QuestionOutcome;
+  /** How long the answer took, in whole seconds. */
+  readonly seconds: number;
+  /** The author's time limit, when the question had one. */
+  readonly timeLimitSeconds?: number;
+  /** What the author said it was worth, and what was earned: all of it or nothing. */
+  readonly points?: number;
+  readonly earned?: number;
+}
+
+/**
+ * One sitting of a chapter's questions: every answer, in the order asked.
+ *
+ * ChessBase's training annotation keeps a score per attempt; so does this,
+ * and only what happened is stored — no grade, no rating. A sitting is
+ * written when the last question is answered; one abandoned half way is not
+ * a sitting.
+ */
+export interface QuestionSessionRecord {
+  readonly id: string;
+  readonly chapterId: string;
+  /** The chapter's title when it was solved. */
+  readonly chapterTitle: string;
+  readonly startedAt: number;
+  readonly finishedAt: number;
+  readonly answers: readonly QuestionAnswerRecord[];
+  readonly createdAt: number;
+  readonly updatedAt: number;
+  readonly revision: number;
+}
+
+/* ---------- a deep analysis that outlives the page (Phase 85) ---------- */
+
+/**
+ * One deep analysis, saved after every position it searches, so a reload, a
+ * sleep or a quit costs at most the search in flight (`src/engine/deepen.ts`,
+ * `pendingFrontier`). `root` is the tree as `deepen` builds it — a plain
+ * JSON value of positions, moves and the searches' own numbers. A run is
+ * `running` while it is being worked on or waiting to be resumed, and ends
+ * `done`, `stopped` (asked to) or `failed`. `seenAt` is set once its report
+ * has been shown, so a run that finished while nobody was looking is
+ * announced once, the next time Kingfisher opens.
+ */
+export interface DeepAnalysisJobRecord {
+  readonly id: string;
+  readonly startFen: string;
+  readonly engineId: string;
+  readonly engineName: string;
+  readonly options: {
+    readonly breadth: number;
+    readonly marginCp: number;
+    readonly maxPlies: number;
+    readonly budget: number;
+    readonly msPerPosition: number;
+  };
+  readonly status: 'running' | 'done' | 'stopped' | 'failed';
+  readonly searched: number;
+  readonly root: unknown;
+  /** How many times the run was picked up again after the page that ran it went away. */
+  readonly resumed: number;
+  readonly error?: string;
+  readonly startedAt: number;
+  readonly finishedAt?: number;
+  readonly seenAt?: number;
+  readonly createdAt: number;
+  readonly updatedAt: number;
+  readonly revision: number;
+}

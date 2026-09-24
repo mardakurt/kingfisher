@@ -3,6 +3,8 @@ import type { GameTree } from '@/chess/tree/types';
 
 import type {
   JournalEntryRecord,
+  QuestionSessionRecord,
+  DeepAnalysisJobRecord,
   ModelGameLinkRecord,
   RepertoirePositionRecord,
   RepertoireRecord,
@@ -525,6 +527,76 @@ export const isAssignmentRecord = (value: unknown): value is AssignmentRecord =>
   (value.archived === undefined || typeof value.archived === 'boolean') &&
   array(value.handovers) &&
   value.handovers.every(isHandover) &&
+  finite(value.createdAt) &&
+  finite(value.updatedAt) &&
+  finite(value.revision);
+
+const QUESTION_OUTCOMES = new Set(['found', 'missed', 'revealed', 'timed-out']);
+const optionalWhole = (value: unknown): boolean =>
+  value === undefined || (Number.isInteger(value) && (value as number) >= 0);
+
+const isQuestionAnswer = (value: unknown): boolean =>
+  object(value) &&
+  text(value.nodeId) &&
+  text(value.prompt) &&
+  text(value.solutionSan) &&
+  typeof value.outcome === 'string' &&
+  QUESTION_OUTCOMES.has(value.outcome) &&
+  finite(value.seconds) &&
+  value.seconds >= 0 &&
+  optionalWhole(value.timeLimitSeconds) &&
+  optionalWhole(value.points) &&
+  optionalWhole(value.earned) &&
+  // Earned is all of the points or none of them, and only where points were set.
+  (value.earned === undefined ||
+    (value.points !== undefined && (value.earned === 0 || value.earned === value.points)));
+
+export const isQuestionSessionRecord = (value: unknown): value is QuestionSessionRecord =>
+  object(value) &&
+  text(value.id) &&
+  text(value.chapterId) &&
+  text(value.chapterTitle) &&
+  finite(value.startedAt) &&
+  finite(value.finishedAt) &&
+  array(value.answers) &&
+  value.answers.length > 0 &&
+  value.answers.every(isQuestionAnswer) &&
+  finite(value.createdAt) &&
+  finite(value.updatedAt) &&
+  finite(value.revision);
+
+const DEEP_STATUSES = new Set(['running', 'done', 'stopped', 'failed']);
+
+/** A saved deep-analysis tree: positions and children all the way down, nothing else trusted. */
+const isDeepNode = (value: unknown, depth = 0): boolean =>
+  depth < 256 &&
+  object(value) &&
+  text(value.fen) &&
+  finite(value.depthFromRoot) &&
+  array(value.children) &&
+  value.children.every((child) => isDeepNode(child, depth + 1));
+
+export const isDeepAnalysisJobRecord = (value: unknown): value is DeepAnalysisJobRecord =>
+  object(value) &&
+  text(value.id) &&
+  text(value.startFen) &&
+  text(value.engineId) &&
+  text(value.engineName) &&
+  object(value.options) &&
+  finite(value.options.breadth) &&
+  finite(value.options.marginCp) &&
+  finite(value.options.maxPlies) &&
+  finite(value.options.budget) &&
+  finite(value.options.msPerPosition) &&
+  typeof value.status === 'string' &&
+  DEEP_STATUSES.has(value.status) &&
+  finite(value.searched) &&
+  isDeepNode(value.root) &&
+  finite(value.resumed) &&
+  optionalText(value.error) &&
+  finite(value.startedAt) &&
+  (value.finishedAt === undefined || finite(value.finishedAt)) &&
+  (value.seenAt === undefined || finite(value.seenAt)) &&
   finite(value.createdAt) &&
   finite(value.updatedAt) &&
   finite(value.revision);

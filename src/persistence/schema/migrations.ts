@@ -1,5 +1,5 @@
 export const DATABASE_NAME = 'kingfisher';
-export const DATABASE_VERSION = 20;
+export const DATABASE_VERSION = 21;
 
 export const STORE_NAMES = {
   studies: 'studies',
@@ -45,6 +45,10 @@ export const STORE_NAMES = {
   teams: 'teams',
   assignments: 'assignments',
   journal: 'journal',
+  /* Phase 85: every sitting of a chapter's questions, with its answers. */
+  questionSessions: 'questionSessions',
+  /* Phase 85: a deep analysis saved as it runs, so it survives the page. */
+  deepAnalysisJobs: 'deepAnalysisJobs',
 } as const;
 
 export type StoreName = (typeof STORE_NAMES)[keyof typeof STORE_NAMES];
@@ -517,6 +521,31 @@ export const MIGRATIONS: readonly Migration[] = [
        */
       target.addIndex(STORE_NAMES.studies, { name: 'tags', keyPath: 'tags', multiEntry: true });
       target.addIndex(STORE_NAMES.chapters, { name: 'tags', keyPath: 'tags', multiEntry: true });
+    },
+  },
+  {
+    version: 21,
+    description:
+      "Record each sitting of a chapter's questions, and keep a deep analysis as it runs.",
+    apply(target) {
+      /*
+       * Read by chapter — "how did the student do on this chapter?" — and
+       * newest first, so both are indexes. Nothing existing is touched: a
+       * sitting is only ever written by solving, from this version on.
+       */
+      target.createStore(STORE_NAMES.questionSessions, { keyPath: 'id' }, [
+        { name: 'chapterId', keyPath: 'chapterId' },
+        { name: 'finishedAt', keyPath: 'finishedAt' },
+      ]);
+      /*
+       * A deep analysis is looked up by whether it still needs resuming or
+       * announcing, and newest first; `status` and `updatedAt` are the two
+       * questions asked of the store.
+       */
+      target.createStore(STORE_NAMES.deepAnalysisJobs, { keyPath: 'id' }, [
+        { name: 'status', keyPath: 'status' },
+        { name: 'updatedAt', keyPath: 'updatedAt' },
+      ]);
     },
   },
 ];

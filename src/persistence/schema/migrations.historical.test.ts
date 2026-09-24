@@ -656,4 +656,74 @@ describe('migrating a Phase 74 installation (team hub, v18) to current', () => {
 
     current.close();
   });
+
+  /*
+   * v20 → v21: a store for sittings of a chapter's questions. It is created
+   * empty and indexed by chapter; a chapter carrying questions from v20 is
+   * untouched, points and time limit and all.
+   */
+  it('v20 chapters survive; sittings are filed by chapter; deep analyses are kept by status', async () => {
+    const name = dbName();
+    const v20 = await openPersistenceDatabaseAt(20, name);
+    await v20.put(STORE_NAMES.chapters, {
+      id: 'c1',
+      studyId: 's1',
+      title: 'Homework',
+      order: 0,
+      tree: chapterTree(),
+      tags: ['homework'],
+      createdAt: 1,
+      updatedAt: 1,
+      revision: 4,
+    });
+    v20.close();
+
+    const current = await openPersistenceDatabaseAt(DATABASE_VERSION, name);
+    const chapter = await current.get<Record<string, unknown>>(STORE_NAMES.chapters, 'c1');
+    expect(chapter?.revision).toBe(4);
+    expect(chapter?.tags).toEqual(['homework']);
+    expect(await current.getAll(STORE_NAMES.questionSessions)).toEqual([]);
+    // The deep-analysis store arrives empty and is asked by status.
+    expect(await current.getAll(STORE_NAMES.deepAnalysisJobs)).toEqual([]);
+    await current.put(STORE_NAMES.deepAnalysisJobs, { id: 'd1', status: 'running', updatedAt: 1 });
+    await current.put(STORE_NAMES.deepAnalysisJobs, { id: 'd2', status: 'done', updatedAt: 2 });
+    expect(
+      (
+        await current.getAllFromIndex<Record<string, unknown>>(
+          STORE_NAMES.deepAnalysisJobs,
+          'status',
+          'running',
+        )
+      ).map((row) => row.id),
+    ).toEqual(['d1']);
+
+    const sitting = (id: string, chapterId: string, finishedAt: number) => ({
+      id,
+      chapterId,
+      chapterTitle: 'Homework',
+      startedAt: 1,
+      finishedAt,
+      answers: [
+        { nodeId: 'n1', prompt: 'Find the move.', solutionSan: 'e4', outcome: 'found', seconds: 4 },
+      ],
+      createdAt: finishedAt,
+      updatedAt: finishedAt,
+      revision: 0,
+    });
+    await current.put(STORE_NAMES.questionSessions, sitting('q1', 'c1', 10));
+    await current.put(STORE_NAMES.questionSessions, sitting('q2', 'c2', 20));
+    await current.put(STORE_NAMES.questionSessions, sitting('q3', 'c1', 30));
+    expect(
+      (
+        await current.getAllFromIndex<Record<string, unknown>>(
+          STORE_NAMES.questionSessions,
+          'chapterId',
+          'c1',
+        )
+      )
+        .map((row) => row.id)
+        .sort(),
+    ).toEqual(['q1', 'q3']);
+    current.close();
+  });
 });

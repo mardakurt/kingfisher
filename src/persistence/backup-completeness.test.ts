@@ -6,6 +6,7 @@ import {
   createWorkspaceBackup,
   GAME_STORES,
   NON_PORTABLE_STORES,
+  LATER_AUTHORED_STORES,
   PORTABLE_STORES,
   restoreWorkspaceBackup,
 } from './backup';
@@ -102,6 +103,64 @@ const authored: Partial<Record<StoreName, Record<string, unknown>>> = {
     result: '1-0',
     learningPoint: 'Spend the time at move 20, not move 35.',
   },
+  questionSessions: {
+    ...common,
+    chapterId: 'c1',
+    chapterTitle: 'Rook endings, homework',
+    startedAt: 1,
+    finishedAt: 2,
+    answers: [
+      {
+        nodeId: 'n7',
+        prompt: 'Find the move.',
+        solutionSan: 'Rb8',
+        outcome: 'timed-out',
+        seconds: 60,
+        timeLimitSeconds: 60,
+        points: 3,
+        earned: 0,
+      },
+      {
+        nodeId: 'n9',
+        prompt: 'Cut the king off.',
+        solutionSan: 'Re1',
+        outcome: 'found',
+        seconds: 12,
+      },
+    ],
+  },
+  deepAnalysisJobs: {
+    ...common,
+    startFen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+    engineId: 'stockfish-18-lite',
+    engineName: 'Stockfish 18',
+    options: { breadth: 2, marginCp: 50, maxPlies: 6, budget: 63, msPerPosition: 3000 },
+    status: 'running',
+    searched: 1,
+    resumed: 0,
+    startedAt: 1,
+    root: {
+      fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+      depthFromRoot: 0,
+      visited: true,
+      evaluation: {
+        score: { kind: 'cp', cp: 30 },
+        depth: 20,
+        nodes: 1,
+        timeMs: 1,
+        bestMove: 'e2e4',
+      },
+      children: [
+        {
+          fen: 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1',
+          depthFromRoot: 1,
+          move: { uci: 'e2e4', san: 'e4' },
+          lineScore: { kind: 'cp', cp: 30 },
+          children: [],
+        },
+      ],
+    },
+  },
   playerIdentities: {
     ...common,
     name: 'A player',
@@ -111,6 +170,17 @@ const authored: Partial<Record<StoreName, Record<string, unknown>>> = {
 };
 
 describe('the whole authored workspace is portable', () => {
+  /*
+    A store added after the first backup format (LATER_AUTHORED_STORES) with
+    no sample here would be portable by assertion only: nothing would
+    round-trip one of its records. Phase 85 added a store and found this list
+    did not insist on it. (The first stores are round-tripped in backup.test.ts.)
+  */
+  it('has a sample record for every store added after the first backup format', () => {
+    for (const store of LATER_AUTHORED_STORES)
+      expect(Object.keys(authored), store).toContain(store);
+  });
+
   it.each(Object.entries(authored))(
     'round-trips %s through JSON into an empty profile',
     async (store, record) => {
