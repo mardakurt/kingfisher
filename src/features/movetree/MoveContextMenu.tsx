@@ -10,12 +10,15 @@
  * anything.
  */
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 
 import { nagInfo, qualityNags } from '@/chess/annotations';
 import { isOnMainline, siblings, variationHeadId } from '@/chess/tree/tree';
 import { ArrowDown, ArrowUp, Copy, Pencil, Scissors, Search, Trash } from '@/components/icons';
 import { ContextMenu, type MenuSection } from '@/components/ui/Menu';
+import { PromptDialog } from '@/components/ui/PromptDialog';
+import { DEFAULT_QUESTION_PROMPT } from '@/chess/tree/questions';
+import type { NodeId } from '@/chess/tree/types';
 import { serializeMovetext, serializePgnFrom } from '@/chess/pgn';
 import { nodePath } from '@/chess/tree/tree';
 import { useAnalysis } from '@/stores/analysis-store';
@@ -37,6 +40,9 @@ export function MoveContextMenu() {
   const truncate = useAnalysis((state) => state.truncate);
   const toggleNag = useAnalysis((state) => state.toggleNag);
   const clearShapes = useAnalysis((state) => state.clearShapes);
+  const setQuestion = useAnalysis((state) => state.setQuestion);
+  /** The move being made a question, while its prompt is asked for. */
+  const [asking, setAsking] = useState<NodeId | null>(null);
 
   const nodeId = target?.nodeId ?? null;
   const node = nodeId ? tree.nodes[nodeId] : undefined;
@@ -85,6 +91,21 @@ export function MoveContextMenu() {
               );
             },
           },
+          /*
+            Phase 84: a chapter's homework. The marked move is the answer; the
+            question is asked at the position before it (questions.ts).
+          */
+          node.meta.question === undefined
+            ? {
+                id: 'question',
+                label: 'Ask this move as a question…',
+                run: () => setAsking(nodeId),
+              }
+            : {
+                id: 'question',
+                label: 'Remove the question',
+                run: () => setQuestion(nodeId, null),
+              },
           ...qualityNags.map((nag) => ({
             id: `nag-${nag.code}`,
             label: `${nag.symbol}  ${nag.label}${node.nags.includes(nag.code) ? ' ✓' : ''}`,
@@ -216,14 +237,42 @@ export function MoveContextMenu() {
     promote,
     promoteToMain,
     setCommentingNodeId,
+    setQuestion,
     toggleNag,
     tree,
     truncate,
   ]);
 
-  if (!target || !node) return null;
+  const askingNode = asking ? tree.nodes[asking] : undefined;
 
   return (
-    <ContextMenu x={target.x} y={target.y} sections={sections} onClose={() => setMoveMenu(null)} />
+    <>
+      {target && node ? (
+        <ContextMenu
+          x={target.x}
+          y={target.y}
+          sections={sections}
+          onClose={() => setMoveMenu(null)}
+        />
+      ) : null}
+      {/* Mounted per question: the dialog keeps its busy state while it lives. */}
+      {askingNode ? (
+        <PromptDialog
+          key={asking}
+          open
+          title={`Ask ${askingNode?.move?.san ?? 'this move'} as a question`}
+          description="When the chapter is solved, the board stops before this move and asks for it. The move is the answer; a sibling you marked ! or !! is accepted too."
+          label="Question"
+          initialValue={DEFAULT_QUESTION_PROMPT}
+          confirmLabel="Ask it"
+          onCancel={() => setAsking(null)}
+          onSubmit={(prompt) => {
+            if (asking) setQuestion(asking, prompt === DEFAULT_QUESTION_PROMPT ? '' : prompt);
+            setAsking(null);
+            notify({ tone: 'success', message: 'Question added. Solve it from the chapter.' });
+          }}
+        />
+      ) : null}
+    </>
   );
 }

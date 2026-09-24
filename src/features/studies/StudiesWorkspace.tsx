@@ -41,6 +41,8 @@ import { formatTags, matchesTags, parseTagInput } from '@/persistence/tags';
 import { cn } from '@/lib/cn';
 
 import { PublishDialog } from './PublishDialog';
+import { SolveQuestionsDialog } from './SolveQuestionsDialog';
+import { chapterQuestions } from '@/chess/tree/questions';
 import { TagFilter } from './TagFilter';
 import type { ChapterRecord, StudyId, StudyRecord } from '@/persistence/types';
 import { useAnalysis } from '@/stores/analysis-store';
@@ -101,6 +103,7 @@ export function StudiesWorkspace() {
   const [studyTags, setStudyTags] = useState<readonly string[]>([]);
   const [chapterTags, setChapterTags] = useState<readonly string[]>([]);
   const [publishing, setPublishing] = useState(false);
+  const [solving, setSolving] = useState(false);
   /*
     Filtering the list the picker reads, not a second list beside it: a
     selected study that the filter excludes falls out of the picker, and the
@@ -129,6 +132,19 @@ export function StudiesWorkspace() {
       : (chapters[0]?.id ?? null);
 
   const chapter = chapters.find((candidate) => candidate.id === chapterId) ?? null;
+  /*
+    Phase 84: the chapter's questions, read from the tree on the board — the
+    chapter as it is now, edits included, not as it was last saved.
+  */
+  const boardTree = useAnalysis((state) => state.tree);
+  const boardDocument = useAnalysis((state) => state.document);
+  const questions = useMemo(
+    () =>
+      chapter && boardDocument.kind === 'study-chapter' && boardDocument.chapterId === chapter.id
+        ? chapterQuestions(boardTree)
+        : [],
+    [boardDocument, boardTree, chapter],
+  );
 
   const createStudy = useRepositoryMutation(
     (repositories, input: { title: string; description: string }) =>
@@ -525,6 +541,15 @@ export function StudiesWorkspace() {
           onClick: () => setPrompt({ kind: 'create-study' }),
         },
         {
+          id: 'solve',
+          label: questions.length
+            ? `Solve ${plural(questions.length, 'question')}`
+            : 'Solve questions',
+          shortLabel: 'Solve',
+          disabled: questions.length === 0,
+          onClick: () => setSolving(true),
+        },
+        {
           id: 'publish',
           label: 'Publish…',
           shortLabel: 'Publish',
@@ -590,6 +615,14 @@ export function StudiesWorkspace() {
 
       {publishing && study.data ? (
         <PublishDialog study={study.data} onClose={() => setPublishing(false)} />
+      ) : null}
+      {solving && chapter && questions.length > 0 ? (
+        <SolveQuestionsDialog
+          questions={questions}
+          chapterId={chapter.id}
+          chapterTitle={chapter.title}
+          onClose={() => setSolving(false)}
+        />
       ) : null}
 
       {prompt?.kind === 'rename-study' && (

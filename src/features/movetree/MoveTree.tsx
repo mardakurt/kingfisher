@@ -429,6 +429,16 @@ function MoveToken({
 
   return (
     <Fragment>
+      {node.meta.question !== undefined && (
+        /* Phase 84: this move is a chapter question — asked at the position before it. */
+        <span
+          className="mr-1 inline-flex h-4 select-none items-center rounded-[4px] bg-accent-muted px-1 align-[1px] text-[10px] font-semibold text-accent"
+          title={`Question: ${node.meta.question || 'Find the move.'}`}
+          data-question-marker
+        >
+          Q
+        </span>
+      )}
       {(isWhite || forceNumber) && (
         <span className="mr-0.5 select-none text-tertiary tabular">
           {number}

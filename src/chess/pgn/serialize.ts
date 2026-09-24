@@ -210,6 +210,7 @@ function writeMove(
         ...(node.meta.elapsedSeconds !== undefined
           ? { elapsedSeconds: node.meta.elapsedSeconds }
           : {}),
+        ...(node.meta.question !== undefined ? { question: node.meta.question } : {}),
       })
     : '';
 
