@@ -247,6 +247,23 @@ export function ExplorerPanel() {
     computed, stored, shipped and never displayed.
   */
   const carriedSince = evidence.find((entry) => entry.recentFrom === 'source')?.recentSince;
+  /*
+    The prose about the variation, directly under the move table. It sat above
+    the table until Phase 84, on the reasoning that "what is this variation"
+    comes before "how did it score"; measured at 1440×900 with the notation
+    open, that put the table's first row at y = 887 — under the fold, in the
+    panel whose whole job is the table. The opening's name is still the first
+    line of the panel; the brief is one scroll away and the numbers are not.
+  */
+  const brief = opening ? (
+    <VariationBriefPanel
+      lineage={lineage.length > 0 ? lineage : [opening.name]}
+      definingLine={classification?.line ?? null}
+      behind={stale}
+    />
+  ) : null;
+  const tableShown =
+    query.fetchStatus !== 'paused' && !query.isPending && !query.isError && evidence.length > 0;
   const showRecent = window.years > 0 || carriedSince !== undefined;
 
   return (
@@ -373,9 +390,20 @@ export function ExplorerPanel() {
             ) : null}
           </p>
         ) : null}
-        <p className="mt-1 text-[10px] text-tertiary">
+        {/*
+          The count first and the description on one line, its whole text on
+          hover. Four lines of provenance prose above the table pushed the
+          move table itself below the fold of a 900 px screen, and the table
+          is what the explorer is for; the source's full description is also
+          in Settings → Data and on the Databases page.
+        */}
+        <p
+          className="mt-1 line-clamp-1 text-[10px] text-tertiary"
+          title={provider?.description}
+          data-explorer-source-line
+        >
+          {query.data ? `${total.toLocaleString()} games here · ` : ''}
           {provider?.description}
-          {query.data ? ` · ${total.toLocaleString()} games here` : ''}
         </p>
         {provider?.capabilities.playerFilter ? (
           <div className="mt-2 flex gap-1.5">
@@ -488,19 +516,6 @@ export function ExplorerPanel() {
         </div>
       ) : null}
 
-      {/*
-        The explanation sits directly under the identity it explains and above
-        the numbers, because "what is this variation" is a question a reader
-        has before "how did it score", not after.
-      */}
-      {opening ? (
-        <VariationBriefPanel
-          lineage={lineage.length > 0 ? lineage : [opening.name]}
-          definingLine={classification?.line ?? null}
-          behind={stale}
-        />
-      ) : null}
-
       <PanelBody className="min-h-[240px]">
         {/* A paused fetch is `status: 'pending'`, so treating pending as
             "loading" renders a message that never resolves. The client asks
@@ -598,6 +613,8 @@ export function ExplorerPanel() {
                 </tbody>
               </table>
             </div>
+
+            {brief}
 
             {compared.length >= 2 ? <Comparison entries={compared} /> : null}
 
@@ -741,6 +758,8 @@ export function ExplorerPanel() {
             <PositionContext context={context.data} />
           </>
         )}
+
+        {tableShown ? null : brief}
 
         {/*
           Outside the "has games" branch, deliberately.
