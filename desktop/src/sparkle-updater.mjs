@@ -167,15 +167,17 @@ function dispatch(name, json) {
  *
  * Not starting is a normal outcome, reported rather than thrown: a checkout
  * (`electron .`, inside Electron.app) is refused here before Sparkle is
- * asked, and off macOS there is no framework at all.
+ * asked, and off macOS there is no framework at all. `platform` is an input,
+ * as `packaged` is, so each refusal can be asserted on any runner.
  */
 export function start({
   feedURL = null,
   resolve = resolveSparkle,
   packaged = app.isPackaged,
+  platform = process.platform,
 } = {}) {
   if (state.bridge) return describe();
-  if (process.platform !== 'darwin') {
+  if (platform !== 'darwin') {
     state.unavailableReason = 'Updates are delivered through Sparkle, which is macOS only.';
     return describe();
   }
