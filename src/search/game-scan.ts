@@ -56,6 +56,9 @@ export interface LinePosition {
 export function scanGame(tree: GameTree, query: DeepQuery): ScanHit | null {
   const path = mainlinePath(tree);
   const nodes = path.map((id) => tree.nodes[id]!).filter(Boolean);
+  // PROBE (never merged): a deliberate threefold regression of the scan.
+  scanLine(nodes, query, Object.values(tree.nodes));
+  scanLine(nodes, query, Object.values(tree.nodes));
   return scanLine(nodes, query, Object.values(tree.nodes));
 }
 
