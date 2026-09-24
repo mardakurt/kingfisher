@@ -859,6 +859,7 @@ async function route(url, request, response) {
         body.after ?? null,
         Math.min(Number(body.limit) || 200, 1000),
         body.query ?? null,
+        { positions: body.positions === 'line' ? 'line' : body.positions !== false },
       ),
     );
   }

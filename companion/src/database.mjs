@@ -1429,7 +1429,16 @@ export class GameDatabase {
    * Paged by id, and optionally narrowed by the same matcher the game list
    * uses, so "copy these search results" copies exactly what was on screen.
    */
-  exportPage(after = null, limit = 200, query = null) {
+  /*
+    `options.positions` chooses what comes with each game. A copy needs every
+    row (the default); a move search reads the main line only — `'line'`
+    returns each row's ply, FEN and move and nothing else — or, for a comment
+    query, the PGN alone (`false`). The full rows are several times the size
+    of the game itself.
+  */
+  exportPage(after = null, limit = 200, query = null, options = {}) {
+    const withPositions = options.positions !== false;
+    const lineOnly = options.positions === 'line';
     const parts = [];
     const params = [];
     if (query && Object.keys(query).length > 0) {
@@ -1456,14 +1465,22 @@ export class GameDatabase {
               ${this.#sql.structureClaims} AS structureClaims
          FROM positions p ${this.#sql.join} WHERE p.game_id = ? ORDER BY p.ply`,
     );
+    const linePositions = this.#db.prepare(
+      `SELECT p.ply, p.move_uci AS moveUci, ${this.#sql.fen} AS fen
+         FROM positions p ${this.#sql.join} WHERE p.game_id = ? ORDER BY p.ply`,
+    );
     const games = rows.map((row) => ({
       summary: toSummary(row),
       plyCount: row.ply_count ?? null,
       pgn: content.get(row.id)?.pgn ?? null,
-      positions: positions.all(row.id).map((position) => ({
-        ...position,
-        structureClaims: parseClaims(position.structure_claims ?? position.structureClaims),
-      })),
+      positions: lineOnly
+        ? linePositions.all(row.id)
+        : withPositions
+          ? positions.all(row.id).map((position) => ({
+            ...position,
+              structureClaims: parseClaims(position.structure_claims ?? position.structureClaims),
+            }))
+          : [],
     }));
     return { games, nextAfter: String(rows[rows.length - 1].id) };
   }

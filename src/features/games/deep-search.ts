@@ -10,7 +10,13 @@
  */
 
 import type { GameRecord, GameRepository, GameSearchQuery, GameSummary } from '@/persistence/types';
-import { scanGame, type DeepQuery, type ScanHit } from '@/search/game-scan';
+import {
+  scanGame,
+  scanLine,
+  type DeepQuery,
+  type LinePosition,
+  type ScanHit,
+} from '@/search/game-scan';
 
 export interface DeepMatch {
   readonly game: GameSummary;
@@ -89,7 +95,15 @@ export async function runDeepSearch(input: {
 
 /** One page of games with their moves, from a store that serves them in pages. */
 export interface MovePage {
-  readonly games: readonly { readonly summary: GameSummary; readonly pgn: string | null }[];
+  readonly games: readonly {
+    readonly summary: GameSummary;
+    readonly pgn: string | null;
+    /**
+     * The main line as the store indexed it, when it is complete: read
+     * instead of replaying the PGN, which costs two hundred times the scan.
+     */
+    readonly line?: readonly LinePosition[] | null;
+  }[];
   /** Where the next page starts; null when this was the last. */
   readonly nextAfter: string | null;
 }
@@ -135,7 +149,14 @@ export async function runPagedDeepSearch(input: {
     do {
       if (signal?.aborted) return report('stopped');
       const page: MovePage = await input.page(after, signal);
-      for (const { summary, pgn } of page.games) {
+      for (const { summary, pgn, line } of page.games) {
+        // A comment is only in the PGN; everything else is in the indexed line.
+        if (line && !deep.comment?.trim()) {
+          const hit = scanLine(line, deep);
+          if (hit) matches.push({ game: summary, hit });
+          read += 1;
+          continue;
+        }
         const tree = pgn ? input.parse(pgn) : null;
         if (!tree) {
           unreadable += 1;

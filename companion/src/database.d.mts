@@ -48,6 +48,7 @@ export declare class GameDatabase {
     after: string | null,
     limit: number,
     query: unknown,
+    options?: { readonly positions?: boolean | 'line' },
   ): { games: readonly ExportedGame[]; nextAfter: string | null };
   haveFingerprints(fingerprints: readonly string[]): { present: readonly string[] };
   duplicateKeys(

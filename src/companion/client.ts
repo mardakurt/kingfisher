@@ -516,8 +516,17 @@ export class CompanionClient {
     after: string | null,
     limit: number,
     query?: unknown,
+    options: { readonly positions?: boolean | 'line' } = {},
   ): Promise<{ games: readonly CompanionExportedGame[]; nextAfter: string | null }> {
-    return this.request('/db/export-page', { key, after, limit, query: query ?? null });
+    return this.request('/db/export-page', {
+      key,
+      after,
+      limit,
+      query: query ?? null,
+      ...(options.positions !== undefined && options.positions !== true
+        ? { positions: options.positions }
+        : {}),
+    });
   }
 
   /** Which of these fingerprints the collection already holds. */
