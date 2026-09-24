@@ -63,6 +63,33 @@ export interface RankedHit<T> {
 
 const EMPTY = '';
 
+/** What a query compares against, derived once per item rather than once per keystroke. */
+interface Prepared {
+  readonly haystack: string;
+  readonly aliases: readonly string[];
+  readonly words: ReadonlySet<string>;
+}
+
+/*
+  An index hands the same item objects to every query — the opening catalogue
+  is several thousand of them — and normalising each one's text afresh on every
+  keystroke was most of a search's cost. Keyed weakly, so an item nobody holds
+  any more takes its preparation with it.
+*/
+const PREPARED = new WeakMap<Rankable, Prepared>();
+
+function prepare(item: Rankable): Prepared {
+  const known = PREPARED.get(item);
+  if (known) return known;
+  const haystack = normalize(item.text);
+  const aliases = (item.aliases ?? []).map(normalize).filter((a) => a !== EMPTY);
+  const words = new Set(wordsOf(haystack));
+  for (const alias of aliases) for (const word of wordsOf(alias)) words.add(word);
+  const prepared = { haystack, aliases, words };
+  PREPARED.set(item, prepared);
+  return prepared;
+}
+
 export function rank<T extends Rankable>(
   items: readonly T[],
   rawQuery: string,
@@ -73,15 +100,20 @@ export function rank<T extends Rankable>(
   const nowSeconds = Date.now() / 1000;
   const scored: RankedHit<T>[] = [];
 
+  const tokens = needle.split(/\s+/).filter((token) => token.length > 0);
+  const queryWords = new Set(tokens.flatMap(wordsOf));
+
   for (const item of items) {
-    const haystack = normalize(item.text);
+    const { haystack, aliases, words } = prepare(item);
     if (haystack === EMPTY) continue;
 
-    const aliases = (item.aliases ?? []).map(normalize).filter((a) => a !== EMPTY);
     const score = scoreText(
       haystack,
       aliases,
+      words,
       needle,
+      tokens,
+      queryWords,
       item.lastOpenedAt,
       nowSeconds,
       item.weight,
@@ -102,14 +134,15 @@ function stableTiebreak<T extends Rankable>(a: RankedHit<T>, b: RankedHit<T>): n
 function scoreText(
   text: string,
   aliases: readonly string[],
+  words: ReadonlySet<string>,
   needle: string,
+  tokens: readonly string[],
+  queryWords: ReadonlySet<string>,
   lastOpenedAt: number | undefined,
   nowSeconds: number,
   weight = 0,
   qualifiers: readonly string[] = [],
 ): number {
-  const tokens = needle.split(/\s+/).filter((token) => token.length > 0);
-  const queryWords = new Set(tokens.flatMap(wordsOf));
   const penalty = qualifiers.filter((q) => !queryWords.has(normalize(q))).length * 15;
   const bonus =
     recencyBonus(lastOpenedAt, nowSeconds) + Math.max(-40, Math.min(40, weight)) - penalty;
@@ -119,8 +152,6 @@ function scoreText(
   }
 
   let score = 0;
-  const words = new Set(wordsOf(text));
-  for (const alias of aliases) for (const word of wordsOf(alias)) words.add(word);
   const whole = tokens.filter((token) => words.has(token)).length;
   const starts = [text, ...aliases].some((candidate) => candidate.startsWith(needle));
   // Whole words that also begin a name: "Slav" is the Slav before the Semi-Slav.

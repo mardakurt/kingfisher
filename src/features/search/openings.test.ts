@@ -120,12 +120,27 @@ describe('searchOpenings', () => {
     expect(await first("Queen's Gambit Accepted")).toBe("Queen's Gambit Accepted");
   });
 
+  /*
+    60 ms a query is what a keystroke allows before the list visibly lags.
+    Each query is timed as the median of seven runs after a warm-up, so one
+    collection or one descheduled slice on a shared runner cannot decide it.
+    Measured: about 10 ms a query on an M-series Mac and about 25 ms on a
+    GitHub runner, so a threefold regression still fails on the runner.
+  */
   it('answers in the time a keystroke allows', async () => {
     await searchOpenings('warm');
-    const started = performance.now();
     for (const query of ['Sicilian', 'Berlin', "King's Indian", 'Sveshnikov', 'QGD']) {
-      await searchOpenings(query);
+      const samples: number[] = [];
+      for (let run = 0; run < 7; run += 1) {
+        const started = performance.now();
+        await searchOpenings(query);
+        samples.push(performance.now() - started);
+      }
+      samples.sort((a, b) => a - b);
+      const median = samples[3]!;
+      // eslint-disable-next-line no-console -- the measurement is what a reader of the log wants
+      console.info(`${query}: ${median.toFixed(1)} ms (median of 7)`);
+      expect(median, query).toBeLessThan(60);
     }
-    expect((performance.now() - started) / 5).toBeLessThan(60);
   });
 });
