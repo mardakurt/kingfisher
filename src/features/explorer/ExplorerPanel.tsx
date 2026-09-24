@@ -48,6 +48,8 @@ import { VariationBriefPanel } from '@/features/openings/VariationBriefPanel';
 import { openReferenceGame } from '@/features/games/open-reference-game';
 import { canOpenGames, openOnlineGame } from '@/features/games/open-online-game';
 import { packReader } from '@/reference/manager';
+import { mergeReferenceGames, openMerged } from '@/features/games/merge-games';
+import { useRouter } from 'next/navigation';
 
 import { SourceFallback, SourcePicker } from './SourcePicker';
 import { SourceComparison } from './SourceComparison';
@@ -98,6 +100,7 @@ export function ExplorerPanel() {
   const prefs = usePreferences();
   const play = useAnalysis((state) => state.play);
   const notify = useUi((state) => state.notify);
+  const router = useRouter();
   const setAddToRepertoireOpen = useUi((state) => state.setAddToRepertoireOpen);
   const setTrainingCaptureOpen = useUi((state) => state.setTrainingCaptureOpen);
   const analysis = useEngine((state) => state.primary.analysis);
@@ -605,9 +608,50 @@ export function ExplorerPanel() {
 
             {(query.data?.topGames?.length ?? 0) > 0 ? (
               <section className="border-t border-line-subtle">
-                <h3 className="px-2.5 py-2 text-[10px] font-semibold text-tertiary">
-                  {provider?.id === 'lichess-player' ? 'Recent games' : 'Model games'}
-                </h3>
+                <div className="flex items-center gap-2 px-2.5 py-2">
+                  <h3 className="text-[10px] font-semibold text-tertiary">
+                    {provider?.id === 'lichess-player' ? 'Recent games' : 'Model games'}
+                  </h3>
+                  {/*
+                    The listed games, folded into one tree: the first as the
+                    main line, each other where it leaves it. Offered for an
+                    installed pack only, whose games are on this machine; a
+                    remote source would mean one request per game.
+                  */}
+                  {provider &&
+                  packReader(provider.id) &&
+                  (query.data?.topGames?.length ?? 0) >= 2 ? (
+                    <button
+                      type="button"
+                      className="ml-auto text-[10px] text-accent underline-offset-2 hover:underline"
+                      onClick={async () => {
+                        const games = query.data?.topGames?.slice(0, 8) ?? [];
+                        try {
+                          const merged = await mergeReferenceGames(
+                            provider.id,
+                            provider.name,
+                            games,
+                          );
+                          if (await openMerged(router, merged)) {
+                            notify({
+                              tone: 'success',
+                              message: 'Model games merged into one analysis, in a new tab.',
+                              detail: merged.sentence,
+                            });
+                          }
+                        } catch (error) {
+                          notify({
+                            tone: 'error',
+                            message: 'The games could not be merged.',
+                            detail: error instanceof Error ? error.message : undefined,
+                          });
+                        }
+                      }}
+                    >
+                      Merge into one tree
+                    </button>
+                  ) : null}
+                </div>
                 <div className="divide-y divide-line-subtle">
                   {query.data?.topGames?.slice(0, 8).map((game) => {
                     const content = (

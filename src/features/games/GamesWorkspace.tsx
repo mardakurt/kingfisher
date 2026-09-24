@@ -51,6 +51,7 @@ import type { GameSearchQuery, GameSummary } from '@/persistence/types';
 import { openingDisplay } from '@/theory/classify-games';
 
 import { openStoredGame } from './open-game';
+import { MERGE_LIMIT, mergeStoredGames, openMerged } from './merge-games';
 import {
   compileMoves,
   EMPTY_HEADER,
@@ -512,6 +513,46 @@ export function GamesWorkspace() {
           <Button variant="accent" onClick={() => openAnalysisQueue([...selected])}>
             Add to analysis queue
           </Button>
+          {selected.size >= 2 ? (
+            /*
+              ChessBase's preparation-file workflow: the selected games folded
+              into one tree, the first in the list as the main line. The list's
+              order, not the order of the clicks, because the list is what the
+              person is looking at when they decide which game leads.
+            */
+            <Button
+              disabled={selected.size > MERGE_LIMIT}
+              title={
+                selected.size > MERGE_LIMIT
+                  ? `Merge at most ${MERGE_LIMIT} games at a time.`
+                  : 'One tree: the first game in the list as the main line, the others as variations where they leave it.'
+              }
+              onClick={async () => {
+                const ordered = [
+                  ...rows.filter((row) => selected.has(row.id)).map((row) => row.id),
+                  ...[...selected].filter((id) => !rows.some((row) => row.id === id)),
+                ];
+                try {
+                  const merged = await mergeStoredGames(ordered);
+                  if (await openMerged(router, merged)) {
+                    notify({
+                      tone: 'success',
+                      message: 'Games merged into one analysis, in a new tab.',
+                      detail: merged.sentence,
+                    });
+                  }
+                } catch (error) {
+                  notify({
+                    tone: 'error',
+                    message: 'The games could not be merged.',
+                    detail: error instanceof Error ? error.message : undefined,
+                  });
+                }
+              }}
+            >
+              Merge into one tree
+            </Button>
+          ) : null}
           {selected.size === 1 ? (
             /*
               One game, because Review is a walk through a single game's
