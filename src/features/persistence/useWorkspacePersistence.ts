@@ -320,7 +320,15 @@ export function useWorkspacePersistence(): void {
     */
     const flushOnHide = () => {
       const state = useAnalysis.getState();
-      if (selectDirty(state) || draftStale.current) {
+      /*
+        Only work that is really unsaved, and never from a session holding a
+        draft it has not touched: a fresh launch keeps the last session's draft
+        without showing it, and an unload draft of its empty board, taken on
+        the next load as "newer", replaced the held work. `e2e/launch-board`
+        caught it.
+      */
+      const holding = heldDraft.current && state.revision === 0;
+      if (selectDirty(state) && !holding) {
         writeUnloadDraft(localStore(), {
           id: 'active',
           document: state.document,

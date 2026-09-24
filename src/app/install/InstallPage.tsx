@@ -36,7 +36,7 @@ export function InstallPage({
       <h2 id="what-you-need">What you need</h2>
       <ul>
         <li>
-          A Mac with <strong>Apple Silicon</strong> (M1 or later), running{}
+          A Mac with <strong>Apple Silicon</strong> (M1 or later), running{' '}
           <strong>{describeMinimumMacOS(download)}</strong> or later.
         </li>
         <li>

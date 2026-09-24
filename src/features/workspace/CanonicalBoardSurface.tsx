@@ -19,7 +19,7 @@ import { cn } from '@/lib/cn';
 import { useAnalysis } from '@/stores/analysis-store';
 import { resolveAnimationMs, usePreferences } from '@/stores/preferences-store';
 
-import { BOARD_PRIORITIES } from './layout-model';
+import { BOARD_PRIORITIES, resolveBoardPriority } from './layout-model';
 import { useUi } from '@/stores/ui-store';
 import { useEngine } from '@/stores/engine-store';
 
@@ -87,7 +87,9 @@ export function CanonicalBoardSurface({
     a 1280x720 one was never reached at all — the board there was 307px,
     limited by a notation panel and padding taken out of the column first.
   */
-  const boardCap = usePreferences((state) => BOARD_PRIORITIES[state.boardPriority].maxBoard);
+  const boardCap = usePreferences(
+    (state) => BOARD_PRIORITIES[resolveBoardPriority(state.boardPriority)].maxBoard,
+  );
 
   const caps = useMemo(
     () => resolveBoardCapabilities({ mode, overrides, conceal, concealPieces }),

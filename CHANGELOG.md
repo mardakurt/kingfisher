@@ -8,6 +8,8 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
+## 1.3.0 — 2026-09-24
+
 - **Fixed: a move played just before a reload could be lost.** In a study
   chapter, a reload within about a second of a move brought the chapter back
   without it, while the header said "Saved". The move now survives, and the
@@ -38,6 +40,20 @@ Phase numbers below this header will be moved into a dated `## <version>` sectio
   application follows your Light/Dark choice in its own windows and sheets and
   has menus for tabs (⌘T, ⌘W, ⌃Tab), the sidebar, appearance and navigation.
   (Phase 84)
+- **Working tabs.** A strip of tabs under every page header: each tab keeps
+  its page and its board work, closing one with unsaved work asks first, and
+  tabs can be reordered, duplicated or closed from the strip or the palette.
+  (`docs/design/workspace-tabs.md`, Phase 83)
+- **The Library, a preparation report and a Databases grid.** _Games_ is now
+  the Library: search with filters as removable chips and a preview of each
+  game beside the list. Preparation reads as a report — the player card, the
+  opening tree with frequencies, games, measured style, the dossier and the
+  sheet. Databases shows every collection as a tile. (Phase 83)
+- **A new look.** Kingfisher is drawn as a quiet Mac document window: a white
+  workspace, a grey sidebar in sentence-case groups, the platform's own
+  typeface, one blue accent, the new Studio board, and the notation beside the
+  board on a tall screen. Nothing was removed. (`docs/design/visual-system.md`,
+  Phase 82)
 
 - **Fixed: the Daily session could say "Loading your work…" for ever.** If
   one of its four reads failed, it waited without end. It now names the read

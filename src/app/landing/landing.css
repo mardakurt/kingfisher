@@ -479,8 +479,10 @@
 }
 
 .kf-landing .hero-product-title {
+  flex: none;
   font-weight: 600;
   color: var(--text-primary);
+  white-space: nowrap;
 }
 
 .kf-landing .hero-product-crumb {
