@@ -53,21 +53,22 @@ export interface MovesFailure {
 
 export type MovesResult = DecodedMoves | MovesFailure;
 
-const OPCODE_NULL = 0;
-const OPCODE_TWO_BYTES = 235;
-const OPCODE_IGNORE = 236;
-const OPCODE_START = 254;
-const OPCODE_END = 255;
+export const OPCODE_NULL = 0;
+export const OPCODE_TWO_BYTES = 235;
+export const OPCODE_IGNORE = 236;
+export const OPCODE_START = 254;
+export const OPCODE_END = 255;
 
-type Slotted = 'k' | 'q' | 'r' | 'b' | 'n' | 'p';
+export type Slotted = 'k' | 'q' | 'r' | 'b' | 'n' | 'p';
 
-interface OpcodeRange {
+export interface OpcodeRange {
   readonly piece: Slotted;
   readonly opcode: number;
   readonly slot: number;
 }
 
-const RANGES: readonly OpcodeRange[] = [
+/** The first opcode of each piece kind and slot; `encode.ts` reads the same table. */
+export const RANGES: readonly OpcodeRange[] = [
   { piece: 'k', opcode: 1, slot: 0 },
   { piece: 'q', opcode: 11, slot: 0 },
   { piece: 'r', opcode: 39, slot: 0 },
@@ -108,7 +109,7 @@ const OPCODES: readonly (OpcodeMeaning | null)[] = (() => {
 })();
 
 /** (dx, dy) for king offsets 0–7 and knight offsets 0–7. */
-const KING_STEPS: readonly (readonly [number, number])[] = [
+export const KING_STEPS: readonly (readonly [number, number])[] = [
   [0, 1],
   [1, 1],
   [1, 0],
@@ -118,7 +119,7 @@ const KING_STEPS: readonly (readonly [number, number])[] = [
   [-1, 0],
   [-1, 1],
 ];
-const KNIGHT_STEPS: readonly (readonly [number, number])[] = [
+export const KNIGHT_STEPS: readonly (readonly [number, number])[] = [
   [2, 1],
   [1, 2],
   [-1, 2],
@@ -130,7 +131,7 @@ const KNIGHT_STEPS: readonly (readonly [number, number])[] = [
 ];
 
 const SLOTS: Readonly<Record<Slotted, number>> = { k: 1, q: 3, r: 3, b: 3, n: 3, p: 8 };
-const PROMOTIONS: readonly PromotionPiece[] = ['q', 'r', 'b', 'n'];
+export const PROMOTIONS: readonly PromotionPiece[] = ['q', 'r', 'b', 'n'];
 
 /** ChessBase square index: a1 = 0, a2 = 1 … a8 = 7, b1 = 8 … h8 = 63. */
 const sqi = (file: number, rank: number): number => file * 8 + rank;
@@ -148,7 +149,7 @@ const squareIndexOf = (square: string): number =>
  * life. Kept as a flat array and copied on every move so a variation can be
  * abandoned by dropping a reference.
  */
-class Slots {
+export class Slots {
   private constructor(private readonly at: Int8Array) {}
 
   static fromPosition(position: Position): Slots {
@@ -181,7 +182,7 @@ class Slots {
     return this.at[Slots.base(color, piece) + slot] ?? -1;
   }
 
-  private slotOf(color: Color, piece: Slotted, square: number): number {
+  slotOf(color: Color, piece: Slotted, square: number): number {
     const base = Slots.base(color, piece);
     for (let slot = 0; slot < SLOTS[piece]; slot += 1)
       if (this.at[base + slot] === square) return slot;
@@ -323,7 +324,7 @@ function twoByteIntent(value: number, position: Position): Intent | { readonly e
   return { from, to, promotion };
 }
 
-const START_BYTES = 28;
+export const START_BYTES = 28;
 
 /** The explicit start position stored before the moves of a game that does not begin at move one. */
 function readSetup(

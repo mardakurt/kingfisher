@@ -11,6 +11,7 @@ import { useMemo, useState } from 'react';
 
 import { Button } from '@/components/ui/Button';
 import { Dialog } from '@/components/ui/Dialog';
+import { chessBaseArchive, downloadArchive } from '@/database/chessbase/export';
 import { publishHtml } from '@/publish/chapter-html';
 import { downloadHtml, printHtml, publishFilename } from '@/publish/publish';
 import type { StudyWithChapters } from '@/persistence/types';
@@ -95,6 +96,26 @@ export function PublishDialog({
             }}
           >
             Save as HTML
+          </Button>
+          <Button
+            disabled={chapters.length === 0}
+            title="Each chapter as a game in a new ChessBase database (.cbh and its files, in a ZIP)"
+            onClick={() => {
+              const archive = chessBaseArchive(
+                study.study.title,
+                chapters.map((chapter) => ({
+                  ...chapter.tree,
+                  headers: {
+                    ...chapter.tree.headers,
+                    Event: chapter.tree.headers.Event || chapter.title || study.study.title,
+                  },
+                })),
+              );
+              downloadArchive(archive);
+              notify({ tone: 'success', message: archive.summary });
+            }}
+          >
+            Save as ChessBase
           </Button>
           <Button variant="accent" disabled={chapters.length === 0} onClick={() => printHtml(html)}>
             Print… (or save as PDF)

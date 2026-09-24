@@ -18,6 +18,8 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { PromptDialog } from '@/components/ui/PromptDialog';
 import { companionClient } from '@/companion/session';
 import type { CompanionAggregateIntegrity } from '@/companion/client';
+import { parsePgn } from '@/chess/pgn';
+import { chessBaseArchive, downloadArchive } from '@/database/chessbase/export';
 import { openCollection, providerIdForCollection } from '@/database/collections/registry';
 import type { CollectionFacts } from '@/database/collections/types';
 import { getRepositories } from '@/persistence/repositories';
@@ -119,6 +121,36 @@ export function CollectionDetail({ collection, onTransfer, onChanged }: Collecti
       anchor.click();
       URL.revokeObjectURL(url);
       notify({ tone: 'success', message: `Exported ${games.toLocaleString()} games as PGN.` });
+    },
+    onError: (error) =>
+      notify({ tone: 'error', message: error instanceof Error ? error.message : 'Export failed.' }),
+  });
+
+  /*
+    The same games as a new ChessBase database, for a person who hands work to
+    a ChessBase user. Nothing existing is written to (AGENTS.md); what the
+    format cannot hold is said in the notice rather than dropped silently.
+  */
+  const exportChessBase = useMutation({
+    mutationFn: async () => {
+      const source = await openCollection(collection.id);
+      if (!source) throw new Error('That collection is not available.');
+      const trees = [];
+      let after: string | null = null;
+      for (;;) {
+        const page: Awaited<ReturnType<typeof source.read>> = await source.read(null, after, 200);
+        for (const game of page.games) {
+          const parsed = parsePgn(game.pgn).games[0];
+          if (parsed) trees.push(parsed.tree);
+        }
+        if (page.nextAfter === null) break;
+        after = page.nextAfter;
+      }
+      return chessBaseArchive(collection.name, trees);
+    },
+    onSuccess: (archive) => {
+      downloadArchive(archive);
+      notify({ tone: 'success', message: archive.summary });
     },
     onError: (error) =>
       notify({ tone: 'error', message: error instanceof Error ? error.message : 'Export failed.' }),
@@ -273,6 +305,14 @@ export function CollectionDetail({ collection, onTransfer, onChanged }: Collecti
             onClick={() => exportPgn.mutate()}
           >
             {exportPgn.isPending ? 'Exporting…' : 'Export PGN'}
+          </Button>
+          <Button
+            icon={<Export />}
+            disabled={exportChessBase.isPending || !collection.games}
+            onClick={() => exportChessBase.mutate()}
+            title="A new ChessBase database (.cbh and its files, in a ZIP)"
+          >
+            {exportChessBase.isPending ? 'Writing…' : 'Export ChessBase'}
           </Button>
         </div>
         <p className="mt-2 text-[10px] leading-relaxed text-tertiary">
