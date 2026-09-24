@@ -47,7 +47,7 @@ import { useMediaQuery } from '@/hooks/use-media-query';
 import { cn } from '@/lib/cn';
 import { formatPgnDate, gameTitle } from '@/persistence/describe';
 import { playerKey } from '@/persistence/schema/migrations';
-import type { GameSearchQuery, GameSummary } from '@/persistence/types';
+import type { GameId, GameSearchQuery, GameSummary } from '@/persistence/types';
 import { openingDisplay } from '@/theory/classify-games';
 
 import {
@@ -59,6 +59,7 @@ import {
   sourceTree,
   type LibrarySource,
 } from './library-source';
+import { BatchDepartureDialog } from './BatchDepartureDialog';
 import { mergeSelectedGames } from './merge-selected';
 import { openInNewTab } from '@/features/tabs/tab-actions';
 import { useAnalysis } from '@/stores/analysis-store';
@@ -150,6 +151,8 @@ export function GamesWorkspace() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
   const [confirmation, setConfirmation] = useState<'selected' | 'all' | null>(null);
+  /** The games whose departures are being found (Phase 85), in the list's order. */
+  const [departureIds, setDepartureIds] = useState<readonly GameId[] | null>(null);
   const [page, setPage] = useState(0);
   /** The row whose game the preview shows. */
   const [previewId, setPreviewId] = useState<string | null>(null);
@@ -620,6 +623,20 @@ export function GamesWorkspace() {
               Merge into one tree
             </Button>
           ) : null}
+          {/*
+            Phase 85: ChessBase's Novelty Annotation over a selection, as
+            facts about a named population (BatchDepartureDialog).
+          */}
+          <Button
+            onClick={() =>
+              setDepartureIds([
+                ...rows.filter((row) => selected.has(row.id)).map((row) => row.id),
+                ...[...selected].filter((id) => !rows.some((row) => row.id === id)),
+              ] as GameId[])
+            }
+          >
+            Where they leave the source…
+          </Button>
           {selected.size === 1 ? (
             /*
               One game, because Review is a walk through a single game's
@@ -645,6 +662,10 @@ export function GamesWorkspace() {
           </Button>
         </div>
       )}
+
+      {departureIds ? (
+        <BatchDepartureDialog ids={departureIds} onClose={() => setDepartureIds(null)} />
+      ) : null}
 
       <div className="relative flex min-h-0 flex-1 border-t border-line-subtle">
         <div className="min-h-0 min-w-0 flex-1 overflow-auto" data-library-list>
