@@ -41,6 +41,7 @@ import { useUi } from '@/stores/ui-store';
 import { MiniBoard } from '@/features/board/MiniBoard';
 import { useCompanionStatus } from '@/companion/useCompanion';
 
+import { CloudEvalSection } from './CloudEvalSection';
 import { EngineSelect } from './EngineSelect';
 
 export function EnginePanel() {
@@ -383,6 +384,9 @@ export function EnginePanel() {
             onClose={() => setPreview(null)}
           />
         ) : null}
+        {outcome ? null : (
+          <CloudEvalSection fen={node.fen} onInsert={(moves) => insert(moves, moves.length - 1)} />
+        )}
       </PanelBody>
 
       {analysis && !stale && analysis.nodes > 0 && (

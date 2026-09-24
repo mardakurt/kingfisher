@@ -311,6 +311,24 @@ const RUNTIME: Record<string, (page: Page) => Promise<void>> = {
     await expect(picker).toHaveValue('kingfisher-starter');
   },
 
+  engineCloudEval: async (page) => {
+    // Lichess is stubbed: the effect is whether the panel asks, not what it hears.
+    let asked = 0;
+    await page.route('https://lichess.org/api/cloud-eval**', async (route) => {
+      asked += 1;
+      await route.fulfill({ status: 404, contentType: 'application/json', body: '{}' });
+    });
+    const section = page.getByRole('region', { name: 'Lichess cloud evaluation' });
+    await withPreference(page, 'engineCloudEval', false);
+    await expect(section).toHaveAttribute('data-cloud-eval', 'off');
+    await page.waitForTimeout(800);
+    expect(asked).toBe(0);
+    await withPreference(page, 'engineCloudEval', true);
+    await expect(section).toHaveAttribute('data-cloud-eval', 'none');
+    expect(asked).toBeGreaterThan(0);
+    await page.unroute('https://lichess.org/api/cloud-eval**');
+  },
+
   showVariationBrief: async (page) => {
     await withPreference(page, 'showVariationBrief', true, '/openings');
     // The brief is prose about the variation; with it off, the panel is not there.

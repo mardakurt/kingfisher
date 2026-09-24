@@ -125,6 +125,11 @@ export function PrivacyPage(): JSX.Element {
               answer. Nothing about your studies, your repertoire, or your account on Kingfisher
               goes with it.
             </li>
+            <li>
+              you tick <em>Lichess cloud evaluation</em> in the engine panel. It is off until you
+              do; while it is on, each position the panel shows is sent to Lichess to look up a
+              stored evaluation, and nothing else goes with it.
+            </li>
           </ul>
         </li>
         <li>

@@ -377,6 +377,18 @@ export const SETTING_CONTRACTS: readonly SettingContract[] = [
     verifiedBy: 'e2e/variation-brief.spec.ts',
   },
   {
+    key: 'engineCloudEval',
+    label: 'Lichess cloud evaluation',
+    surface: 'in-place',
+    control: 'features/engine/CloudEvalSection.tsx',
+    consumer: 'features/engine/CloudEvalSection.tsx',
+    effect:
+      "The engine panel shows Lichess's stored evaluation of the position, under its own name, or says it has none; off, nothing is sent to Lichess.",
+    indexedAs: null,
+    previewable: true,
+    verifiedBy: 'e2e/cloud-eval.spec.ts',
+  },
+  {
     key: 'companionUrl',
     label: 'Companion address',
     surface: 'settings',
