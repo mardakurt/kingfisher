@@ -235,6 +235,18 @@ export function StudiesWorkspace() {
   useEffect(() => {
     if (!chapter || loadedChapter.current === chapter.id) return;
     loadedChapter.current = chapter.id;
+    /*
+      The board already holds this chapter — put back by the draft restore
+      after a reload, or still being edited when the page was left — and what
+      it holds is newer than the stored record. Opening the record over it
+      threw away the moves of the last second before a reload (Phase 84).
+    */
+    const onBoard = useAnalysis.getState().document;
+    if (onBoard.kind === 'study-chapter' && onBoard.chapterId === chapter.id) {
+      if (paramNode && chapter.id === paramChapter && chapter.tree.nodes[paramNode])
+        goTo(paramNode);
+      return;
+    }
     open(chapter);
     // The node a search hit named, when the chapter is the one it named.
     if (paramNode && chapter.id === paramChapter && chapter.tree.nodes[paramNode]) goTo(paramNode);
