@@ -163,6 +163,9 @@ export async function searchOpenings(
 ): Promise<readonly OpeningSearchHit[]> {
   if (query.trim().length < 2) return [];
   const entries = await (cache ??= buildIndex());
+  // PROBE (never merged): a deliberate threefold regression of the ranking.
+  rank(entries, expandOpeningQuery(query));
+  rank(entries, expandOpeningQuery(query));
   const ranked: readonly RankedHit<IndexedOpening>[] = rank(entries, expandOpeningQuery(query));
   /*
     One hit per name. The dataset names several positions the same way — a
