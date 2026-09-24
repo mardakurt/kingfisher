@@ -22,6 +22,7 @@ import { formatScore } from '@/chess/evaluation';
 import { moveIntent } from '@/chess/moves';
 import { positionKey, START_FEN } from '@/chess/fen';
 import type { DatabaseMove } from '@/database/types';
+import { useCompanionStatus } from '@/companion/useCompanion';
 import { useDatabaseProviders } from '@/database/use-database-providers';
 import { Button, IconButton } from '@/components/ui/Button';
 import { EmptyState, PanelBody, PanelHeader } from '@/components/ui/Panel';
@@ -55,6 +56,7 @@ import { useRouter } from 'next/navigation';
 import { DepartureSection } from './DepartureSection';
 import { SourceFallback, SourcePicker } from './SourcePicker';
 import { SourceComparison } from './SourceComparison';
+import { resolveExplorerSource } from './resolve-source';
 import { useExplorer, useExplorerPrefetch } from './useExplorer';
 import { usePositionContext } from './usePositionContext';
 import { plural } from '@/lib/plural';
@@ -120,7 +122,24 @@ export function ExplorerPanel() {
   const providers = useDatabaseProviders();
   const sources = useSourcesFor('explorer');
   const catalog = useReferenceSources();
-  const provider = providers.find((entry) => entry.id === prefs.explorerSourceId) ?? providers[0];
+  const companionStatus = useCompanionStatus();
+  /*
+    The chosen source is waited for while it could still register, never
+    replaced by whichever source happened to register first (resolve-source.ts).
+    A companion collection the status already lists is still arriving: it is
+    registered one effect after the status lands.
+  */
+  const resolved = resolveExplorerSource(providers, prefs.explorerSourceId, {
+    references: !catalog.loaded,
+    companion:
+      (companionStatus.isPending && companionStatus.fetchStatus === 'fetching') ||
+      (companionStatus.data?.databases.some(
+        (entry) => `sqlite:${entry.key}` === prefs.explorerSourceId,
+      ) ??
+        false),
+  });
+  const provider = resolved.kind === 'ready' ? resolved.provider : undefined;
+  const waitingForSource = resolved.kind === 'waiting';
   /*
     The source to offer when the chosen one cannot answer: the first installed
     one that works without a network. On a fresh profile that is the bundled
@@ -368,7 +387,7 @@ export function ExplorerPanel() {
 
         <SourcePicker
           sources={sources}
-          value={provider?.id ?? ''}
+          value={provider?.id ?? (resolved.kind === 'waiting' ? resolved.preferredId : '')}
           onChange={(id) => prefs.set('explorerSourceId', id)}
         />
         {bundledMissing ? (
@@ -535,6 +554,10 @@ export function ExplorerPanel() {
             title="This source is not being queried."
             description={`The browser is reporting no network connection, so the request to ${provider?.name} is on hold.`}
           />
+        ) : waitingForSource ? (
+          <p className="px-3 py-5 text-2xs text-tertiary" data-testid="explorer-loading-sources">
+            Loading sources…
+          </p>
         ) : query.isPending ? (
           <p className="px-3 py-5 text-2xs text-tertiary">Reading {provider?.name}…</p>
         ) : query.isError && fallback ? (

@@ -45,6 +45,13 @@ export function SourcePicker({
         onChange={(event) => onChange(event.target.value)}
         className="h-7 w-full rounded-[5px] border border-line bg-surface-inset px-1.5 text-[11px] text-secondary outline-none focus:border-accent/60"
       >
+        {/* A value no option carries would make the browser show the first
+            option instead — a source nobody chose. Said as what it is. */}
+        {selected ? null : (
+          <option value={value} disabled>
+            {value ? 'Loading sources…' : 'No source'}
+          </option>
+        )}
         {sources.map((source) => (
           <option key={source.id} value={source.id} disabled={!source.installed}>
             {source.name} — {KIND_LABEL[source.kind]}
