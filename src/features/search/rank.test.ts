@@ -97,4 +97,23 @@ describe('rank', () => {
     // than fuzzy and is what the ranker should return.
     expect(ranked[0]?.why).toBe('prefix');
   });
+
+  /*
+    The edit distance behind the fuzzy band, pinned by its scores: 90 less 25
+    an edit, a transposition counting one, and a word too far refused. The
+    distance is computed with rolling rows reused across calls, so the same
+    table is asked in both orders and after a longer word has used the rows.
+  */
+  it('scores typos by their edits, a transposition as one, and refuses more than allowed', () => {
+    const one = (text: string, query: string) => rank([{ text }], query)[0]?.score ?? 0;
+    expect(one('Najdorf Variation', 'najdrof')).toBe(65); // transposition: one edit
+    expect(one('Najdorf Variation', 'najdorff')).toBe(65); // insertion
+    expect(one('Najdorf Variation', 'najdof')).toBe(65); // deletion
+    expect(one('Sveshnikov Variation', 'sveshnkiov')).toBe(65); // eight letters or more allow two
+    expect(one('Sveshnikov Variation', 'svashnkiov')).toBe(40);
+    expect(one('Sveshnikov Variation', 'svashnkiox')).toBe(0);
+    expect(one('Berlin Defense', 'bxrlxn')).toBe(0); // six letters allow one
+    expect(one('Rubinstein Variation', 'najdrof')).toBe(0);
+    expect(one('Najdorf Variation', 'najdrof')).toBe(65);
+  });
 });

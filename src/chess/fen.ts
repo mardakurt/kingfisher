@@ -110,47 +110,71 @@ export function parseFen(input: string): Result<FenParts> {
   });
 }
 
+/**
+ * The pieces of a position, read from the placement field alone.
+ *
+ * For a position Kingfisher already accepted — a node of a game tree, a row
+ * its own import indexed — when the only question is where the pieces stand.
+ * A search reads every position of every game, and re-validating castling
+ * rights, the en passant square and the counters of positions that were
+ * validated when they were made was more than half of what it cost. Anything
+ * from outside goes through `parseFen`.
+ */
+export function readPlacement(fen: string): Result<readonly (Piece | null)[]> {
+  const space = fen.indexOf(' ');
+  return parsePlacement(space === -1 ? fen : fen.slice(0, space));
+}
+
+/*
+  One pass over the characters, by code: every position of every game a
+  search reads comes through here, so the field is not split into ranks and
+  no string is made per square. The errors are the ones the rank-by-rank
+  reading gave, in the same order.
+*/
 function parsePlacement(placement: string): Result<(Piece | null)[]> {
-  const ranks = placement.split('/');
-  if (ranks.length !== 8) {
-    return fail('invalid-fen', `Board must have 8 ranks, found ${ranks.length}.`, {
+  let ranks = 1;
+  for (let i = 0; i < placement.length; i += 1) if (placement.charCodeAt(i) === 47) ranks += 1;
+  if (ranks !== 8) {
+    return fail('invalid-fen', `Board must have 8 ranks, found ${ranks}.`, {
       input: placement,
     });
   }
 
   const board: (Piece | null)[] = new Array<Piece | null>(64).fill(null);
+  // FEN lists rank 8 first; our indices count rank 1 first.
+  let rankIndex = 7;
+  let file = 0;
 
-  for (let i = 0; i < 8; i += 1) {
-    // FEN lists rank 8 first; our indices count rank 1 first.
-    const rankIndex = 7 - i;
-    const row = ranks[i] as string;
-    let file = 0;
-
-    for (const char of row) {
-      if (char >= '1' && char <= '8') {
-        file += Number(char);
-        continue;
-      }
-      const piece = PIECE_LETTERS[char];
-      if (!piece) {
-        return fail('invalid-fen', `Unknown piece character "${char}" in rank ${rankIndex + 1}.`, {
+  for (let i = 0; i <= placement.length; i += 1) {
+    const code = i === placement.length ? 47 : placement.charCodeAt(i);
+    if (code === 47) {
+      if (file !== 8) {
+        return fail('invalid-fen', `Rank ${rankIndex + 1} describes ${file} squares, expected 8.`, {
           input: placement,
         });
       }
-      if (file > 7) {
-        return fail('invalid-fen', `Rank ${rankIndex + 1} describes more than 8 squares.`, {
-          input: placement,
-        });
-      }
-      board[rankIndex * 8 + file] = piece;
-      file += 1;
+      rankIndex -= 1;
+      file = 0;
+      continue;
     }
-
-    if (file !== 8) {
-      return fail('invalid-fen', `Rank ${rankIndex + 1} describes ${file} squares, expected 8.`, {
+    if (code >= 49 && code <= 56) {
+      file += code - 48;
+      continue;
+    }
+    const char = placement[i] as string;
+    const piece = PIECE_LETTERS[char];
+    if (!piece) {
+      return fail('invalid-fen', `Unknown piece character "${char}" in rank ${rankIndex + 1}.`, {
         input: placement,
       });
     }
+    if (file > 7) {
+      return fail('invalid-fen', `Rank ${rankIndex + 1} describes more than 8 squares.`, {
+        input: placement,
+      });
+    }
+    board[rankIndex * 8 + file] = piece;
+    file += 1;
   }
 
   return ok(board);
