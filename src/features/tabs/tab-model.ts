@@ -121,6 +121,21 @@ export function adoptOrphans(
 }
 
 /** Anything read back from storage, made into a valid state or nothing. */
+/**
+ * Section names a stored tab may still carry after the section was renamed:
+ * Phase 83 renamed Games to Library, and a tab saved before it kept saying
+ * "Games" until it was visited. A tab whose title is a retired name for its
+ * own route is given the current one when it is read back.
+ */
+const RETIRED_SECTION_TITLES: Readonly<Record<string, readonly string[]>> = {
+  '/games': ['Games', 'My games'],
+};
+
+function storedTitle(href: string, title: unknown): string {
+  if (typeof title !== 'string') return sectionTitle(href);
+  return RETIRED_SECTION_TITLES[pathOf(href)]?.includes(title) ? sectionTitle(href) : title;
+}
+
 export function sanitizeTabs(value: unknown): TabsState | null {
   if (typeof value !== 'object' || value === null) return null;
   const raw = value as { tabs?: unknown; activeId?: unknown };
@@ -133,7 +148,7 @@ export function sanitizeTabs(value: unknown): TabsState | null {
     if (typeof id !== 'string' || id.length === 0 || seen.has(id)) continue;
     if (typeof href !== 'string' || !href.startsWith('/')) continue;
     seen.add(id);
-    tabs.push({ id, href, title: typeof title === 'string' ? title : sectionTitle(href) });
+    tabs.push({ id, href, title: storedTitle(href, title) });
     if (tabs.length === MAX_TABS) break;
   }
   if (tabs.length === 0) return null;
