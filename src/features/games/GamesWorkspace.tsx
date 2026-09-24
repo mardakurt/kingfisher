@@ -13,9 +13,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
+import { listCollections } from '@/database/collections/registry';
 
 import { mainlinePath } from '@/chess/tree/tree';
-import { getRepositories } from '@/persistence/repositories';
 
 import {
   Board,
@@ -50,6 +50,15 @@ import { playerKey } from '@/persistence/schema/migrations';
 import type { GameSearchQuery, GameSummary } from '@/persistence/types';
 import { openingDisplay } from '@/theory/classify-games';
 
+import {
+  librarySource,
+  LOCAL_SOURCE,
+  openSourceGame,
+  queryForSource,
+  searchSource,
+  sourceTree,
+  type LibrarySource,
+} from './library-source';
 import { mergeSelectedGames } from './merge-selected';
 import { openStoredGame } from './open-game';
 import {
@@ -124,6 +133,7 @@ export function GamesWorkspace() {
   const dense = useMediaQuery('(min-width: 720px)');
 
   const [text, setText] = useState('');
+  const [sourceId, setSourceId] = useState<string>(LOCAL_SOURCE.id);
   const [player, setPlayer] = useState('');
   const [playerColor, setPlayerColor] = useState<'any' | 'w' | 'b'>('any');
   const [result, setResult] = useState<GameResult | 'any'>('any');
@@ -156,10 +166,12 @@ export function GamesWorkspace() {
     const params = new URLSearchParams(window.location.search);
     const q = params.get('q');
     const who = params.get('player');
+    const db = params.get('db');
     // The address is outside React and unknown to the server render, so it is
     // read once here; setting state from it is the synchronisation itself.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (q) setText(q);
+    if (db) setSourceId(db);
     if (who) setPlayer(who);
   }, []);
   useEffect(() => {
@@ -169,6 +181,8 @@ export function GamesWorkspace() {
       else params.delete('q');
       if (player.trim()) params.set('player', player.trim());
       else params.delete('player');
+      if (sourceId !== LOCAL_SOURCE.id) params.set('db', sourceId);
+      else params.delete('db');
       const search = params.toString();
       const next = `${window.location.pathname}${search ? `?${search}` : ''}`;
       if (next !== `${window.location.pathname}${window.location.search}`) {
@@ -176,7 +190,22 @@ export function GamesWorkspace() {
       }
     }, 400);
     return () => window.clearTimeout(timer);
-  }, [text, player]);
+  }, [text, player, sourceId]);
+
+  /*
+    Phase 84: the database the list shows. My games is the browser's own; a
+    companion database is read through the companion with the same query, and
+    what it cannot filter by is said, not silently ignored (library-source.ts).
+  */
+  const collections = useQuery({
+    queryKey: ['collections', 'library'],
+    retry: false,
+    queryFn: () => listCollections(),
+  });
+  const sourceFacts = collections.data?.find((entry) => entry.id === sourceId);
+  const source: LibrarySource =
+    sourceId === LOCAL_SOURCE.id ? LOCAL_SOURCE : librarySource(sourceId, sourceFacts?.name);
+  const local = source.kind === 'local';
 
   const query = useMemo<GameSearchQuery>(
     () => ({
@@ -220,7 +249,16 @@ export function GamesWorkspace() {
     void deep.start(headerOnly, compiledMoves.query);
   };
 
-  const games = useGames(query);
+  const localGames = useGames(query);
+  const sourceGames = useQuery({
+    queryKey: ['library', 'source', source.id, query],
+    enabled: !local,
+    retry: false,
+    placeholderData: (previous) => previous,
+    queryFn: () => searchSource(source, query),
+  });
+  const games = local ? localGames : sourceGames;
+  const dropped = queryForSource(query, source).dropped;
   const total = useGameCount();
 
   const deleteGames = useRepositoryMutation(
@@ -249,7 +287,7 @@ export function GamesWorkspace() {
   */
   const filtered = games.data?.total ?? null;
   const hasMore = games.data?.hasMore ?? false;
-  const stored = total.data ?? 0;
+  const stored = local ? (total.data ?? 0) : (sourceFacts?.games ?? games.data?.total ?? 0);
   const pageCount = filtered === null ? null : Math.max(1, Math.ceil(filtered / PAGE_SIZE));
   const visibleFrom = rows.length === 0 ? 0 : page * PAGE_SIZE + 1;
   const visibleTo = page * PAGE_SIZE + rows.length;
@@ -281,7 +319,8 @@ export function GamesWorkspace() {
     try {
       // A move-search row opens at the moment it was found, not at move one.
       const ply = foundAt.get(game.id);
-      await openStoredGame(game.id, ply === undefined ? {} : { ply });
+      if (local) await openStoredGame(game.id, ply === undefined ? {} : { ply });
+      else await openSourceGame(source, game);
       router.push(destination);
     } catch (error) {
       notify({
@@ -443,7 +482,7 @@ export function GamesWorkspace() {
     <div className="flex min-h-0 flex-1 flex-col">
       <PageHeader
         title="Library"
-        subtitle={`${stored.toLocaleString()} ${stored === 1 ? 'game' : 'games'} in My games`}
+        subtitle={`${stored.toLocaleString()} ${stored === 1 ? 'game' : 'games'} in ${source.name}`}
         icon={<LibraryIcon />}
         actions={
           <>
@@ -472,13 +511,33 @@ export function GamesWorkspace() {
           aria-label="Search games"
           className="max-w-[520px] min-w-[220px] flex-1"
         />
-        <span
-          className="hidden h-8 items-center gap-1.5 rounded-[8px] px-2.5 text-xs text-secondary sm:inline-flex"
-          title="The Library searches the games stored in this browser. Reference packs and companion databases are searched from Databases."
-        >
-          <Database className="h-3.5 w-3.5 text-tertiary" />
-          My games
-        </span>
+        <label className="inline-flex h-8 items-center gap-1.5 rounded-[8px] bg-surface-2 pr-1 pl-2.5 text-xs text-secondary">
+          <Database className="h-3.5 w-3.5 shrink-0 text-tertiary" />
+          <span className="sr-only">Database</span>
+          <select
+            aria-label="Database"
+            value={source.id}
+            onChange={(event) => {
+              setSourceId(event.target.value);
+              setSelected(new Set());
+              setPreviewId(null);
+              setPage(0);
+            }}
+            className="h-7 max-w-[220px] bg-transparent pr-1 text-xs text-primary outline-none"
+            data-library-database
+          >
+            <option value={LOCAL_SOURCE.id}>My games</option>
+            {(collections.data ?? [])
+              .filter((entry) => entry.kind === 'sqlite')
+              .map((entry) => (
+                <option key={entry.id} value={entry.id}>
+                  {entry.name}
+                  {entry.games !== null ? ` · ${entry.games.toLocaleString()}` : ''}
+                </option>
+              ))}
+            {!local && !sourceFacts ? <option value={source.id}>{source.name}</option> : null}
+          </select>
+        </label>
         <Button
           active={filtersOpen || filtersActive}
           aria-expanded={filtersOpen}
@@ -506,7 +565,13 @@ export function GamesWorkspace() {
         </div>
       ) : null}
 
-      {selected.size > 0 && (
+      {dropped.length ? (
+        <p className="shrink-0 px-3 pb-2 text-[11px] text-caution sm:px-4" data-library-dropped>
+          Not applied in {source.name}: {dropped.join(', ')}. The list below ignores{' '}
+          {dropped.length === 1 ? 'it' : 'them'}.
+        </p>
+      ) : null}
+      {local && selected.size > 0 && (
         <div className="flex shrink-0 items-center gap-2 border-b border-line-subtle bg-surface-2 px-2 py-1.5 sm:px-3">
           <span className="text-2xs text-secondary tabular">{selected.size} selected</span>
           <Button onClick={() => setSelected(new Set())}>Clear selection</Button>
@@ -699,6 +764,8 @@ export function GamesWorkspace() {
                     >
                       <td className="px-2 py-[5px]" onClick={(event) => event.stopPropagation()}>
                         <input
+                          disabled={!local}
+                          title={local ? undefined : 'Selecting games works in My games'}
                           type="checkbox"
                           checked={selected.has(game.id)}
                           onChange={() => toggle(game.id)}
@@ -784,6 +851,7 @@ export function GamesWorkspace() {
               {rows.map((game) => (
                 <li key={game.id} className="flex items-center gap-2 px-2 py-2">
                   <input
+                    disabled={!local}
                     type="checkbox"
                     checked={selected.has(game.id)}
                     onChange={() => toggle(game.id)}
@@ -874,15 +942,22 @@ export function GamesWorkspace() {
                   setPage(0);
                 }}
                 moves={
-                  <MoveMaskFields
-                    mask={moves}
-                    onChange={setMoves}
-                    compiled={compiledMoves}
-                    state={moveState}
-                    onSearch={startMoveSearch}
-                    onStop={deep.stop}
-                    onClear={deep.clear}
-                  />
+                  !local ? (
+                    <p className="text-[11px] text-tertiary">
+                      The move search reads the games in My games; {source.name} is searched by its
+                      headers.
+                    </p>
+                  ) : (
+                    <MoveMaskFields
+                      mask={moves}
+                      onChange={setMoves}
+                      compiled={compiledMoves}
+                      state={moveState}
+                      onSearch={startMoveSearch}
+                      onStop={deep.stop}
+                      onClear={deep.clear}
+                    />
+                  )
                 }
                 active={filtersActive}
                 onClear={clearFilters}
@@ -895,10 +970,11 @@ export function GamesWorkspace() {
               />
             ) : (
               <GamePreview
+                source={source}
                 game={previewing}
                 onOpen={(game) => void open(game)}
                 onReview={(game) => void open(game, '/review')}
-                onQueue={(game) => openAnalysisQueue([game.id])}
+                onQueue={local ? (game) => openAnalysisQueue([game.id]) : undefined}
               />
             )}
           </aside>
@@ -964,7 +1040,7 @@ export function GamesWorkspace() {
             </Button>
           </div>
         )}
-        {stored > 0 && (
+        {local && stored > 0 && (
           <Button
             variant="danger"
             size="sm"
@@ -1239,20 +1315,23 @@ function FilterPanel(props: {
  * notation to step through — without leaving the list.
  */
 function GamePreview({
+  source,
   game,
   onOpen,
   onReview,
   onQueue,
 }: {
+  readonly source: LibrarySource;
   readonly game: GameSummary | null;
   readonly onOpen: (game: GameSummary) => void;
   readonly onReview: (game: GameSummary) => void;
-  readonly onQueue: (game: GameSummary) => void;
+  /** Absent for a database the analysis queue does not read. */
+  readonly onQueue: ((game: GameSummary) => void) | undefined;
 }) {
   const full = useQuery({
-    queryKey: ['library', 'preview', game?.id ?? null],
+    queryKey: ['library', 'preview', source.id, game?.id ?? null],
     enabled: Boolean(game),
-    queryFn: async () => (game ? (await getRepositories()).games.get(game.id) : null),
+    queryFn: async () => (game ? { tree: await sourceTree(source, game.id) } : null),
   });
   const line = useMemo(() => {
     const tree = full.data?.tree;
@@ -1359,7 +1438,7 @@ function GamePreview({
           Open
         </Button>
         <Button onClick={() => onReview(game)}>Review</Button>
-        <Button onClick={() => onQueue(game)}>Analyse</Button>
+        {onQueue ? <Button onClick={() => onQueue(game)}>Analyse</Button> : null}
       </div>
     </div>
   );
