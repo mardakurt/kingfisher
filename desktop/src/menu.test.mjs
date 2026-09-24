@@ -9,7 +9,8 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
-import { buildTemplate } from './menu.mjs';
+import { GO_SECTIONS, MENU_COMMANDS } from './menu-commands.mjs';
+import { buildDockTemplate, buildTemplate } from './menu.mjs';
 
 const leaves = (items, trail = []) =>
   items.flatMap((item) =>
@@ -166,5 +167,92 @@ describe('the application menu', () => {
       expect.arrayContaining(['About Kingfisher', 'Hide Kingfisher', 'Quit Kingfisher']),
     );
     expect(JSON.stringify(template)).not.toContain('kingfisher-desktop');
+  });
+
+  describe("the application's own commands (Phase 84)", () => {
+    const find = (template, trail) =>
+      trail.reduce((items, label, index) => {
+        const item = items.find((candidate) => candidate.label === label);
+        expect(item, trail.slice(0, index + 1).join(' → ')).toBeDefined();
+        return index === trail.length - 1 ? item : item.submenu;
+      }, template);
+
+    it('closes a tab with ⌘W and the window with ⇧⌘W', () => {
+      const onMenuCommand = vi.fn();
+      const template = buildTemplate({ platform: 'darwin', onMenuCommand });
+      const closeTab = find(template, ['File', 'Close Tab']);
+      expect(closeTab.accelerator).toBe('Cmd+W');
+      expect(closeTab.role).toBeUndefined();
+      closeTab.click();
+      expect(onMenuCommand).toHaveBeenCalledWith(MENU_COMMANDS.closeTab);
+      const closeWindow = find(template, ['File', 'Close Window']);
+      expect(closeWindow).toMatchObject({ role: 'close', accelerator: 'Shift+Cmd+W' });
+      // No other item may claim ⌘W, or the window would still close first.
+      const claims = leaves(template).filter((item) => item.accelerator === 'Cmd+W');
+      expect(claims).toHaveLength(1);
+    });
+
+    it.each([
+      [['File', 'New Tab'], 'CmdOrCtrl+T', MENU_COMMANDS.newTab],
+      [['File', 'New Analysis'], 'CmdOrCtrl+N', MENU_COMMANDS.newAnalysis],
+      [['File', 'Import Game or Position…'], 'Shift+CmdOrCtrl+I', MENU_COMMANDS.importGame],
+      [['View', 'Toggle Sidebar'], 'Ctrl+Cmd+S', MENU_COMMANDS.toggleSidebar],
+      [['Window', 'Show Next Tab'], 'Ctrl+Tab', MENU_COMMANDS.nextTab],
+      [['Window', 'Show Previous Tab'], 'Ctrl+Shift+Tab', MENU_COMMANDS.previousTab],
+    ])('%s is %s and runs the renderer command', (trail, accelerator, id) => {
+      const onMenuCommand = vi.fn();
+      const item = find(buildTemplate({ platform: 'darwin', onMenuCommand }), trail);
+      expect(item.accelerator).toBe(accelerator);
+      item.click();
+      expect(onMenuCommand).toHaveBeenCalledWith(id);
+    });
+
+    it('shows ⌘K for the palette without taking the key from the page', () => {
+      const palette = find(buildTemplate({ platform: 'darwin' }), ['View', 'Command Palette…']);
+      expect(palette.accelerator).toBe('CmdOrCtrl+K');
+      expect(palette.registerAccelerator).toBe(false);
+    });
+
+    it("keeps Safari's ⇧⌘[ and ⇧⌘] live without listing the commands twice", () => {
+      const window = find(buildTemplate({ platform: 'darwin' }), ['Window']).submenu;
+      const hidden = window.filter((item) => item.visible === false);
+      expect(hidden.map((item) => item.accelerator)).toEqual(['Shift+Cmd+[', 'Shift+Cmd+]']);
+      expect(hidden.every((item) => item.acceleratorWorksWhenHidden === true)).toBe(true);
+    });
+
+    it('checks the theme the renderer reported, and sets the one chosen', () => {
+      const onSetAppearance = vi.fn();
+      const appearance = find(
+        buildTemplate({ platform: 'darwin', appearance: 'dark', onSetAppearance }),
+        ['View', 'Appearance'],
+      ).submenu;
+      expect(appearance.map((item) => [item.label, item.type, item.checked])).toEqual([
+        ['Light', 'radio', false],
+        ['Dark', 'radio', true],
+      ]);
+      appearance[0].click();
+      expect(onSetAppearance).toHaveBeenCalledWith('light');
+    });
+
+    it("goes back, forward and to the sidebar's main sections", () => {
+      const onNavigate = vi.fn();
+      const onMenuCommand = vi.fn();
+      const go = find(buildTemplate({ platform: 'darwin', onNavigate, onMenuCommand }), [
+        'Go',
+      ]).submenu;
+      go.find((item) => item.label === 'Back').click();
+      go.find((item) => item.label === 'Forward').click();
+      expect(onNavigate.mock.calls).toEqual([['back'], ['forward']]);
+      for (const section of GO_SECTIONS) go.find((item) => item.label === section.label).click();
+      expect(onMenuCommand.mock.calls.map(([id]) => id)).toEqual(GO_SECTIONS.map((s) => s.command));
+    });
+  });
+
+  it("offers a new tab and a new analysis from the Dock, by the File menu's commands", () => {
+    const onMenuCommand = vi.fn();
+    const dock = buildDockTemplate({ onMenuCommand });
+    expect(dock.map((item) => item.label)).toEqual(['New Tab', 'New Analysis']);
+    for (const item of dock) item.click();
+    expect(onMenuCommand.mock.calls).toEqual([[MENU_COMMANDS.newTab], [MENU_COMMANDS.newAnalysis]]);
   });
 });

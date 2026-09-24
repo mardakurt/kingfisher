@@ -32,16 +32,21 @@
  * "is my last edit on disk".
  */
 
+import { selectSaveState, useAnalysis } from '@/stores/analysis-store';
+
 import { useWriteTracker } from './use-write-tracker';
 
-const dotClassFor = (status: 'saved' | 'saving' | 'failed'): string => {
-  if (status === 'saving') return 'bg-tertiary';
+type Status = 'saved' | 'saving' | 'failed' | 'edited';
+
+const dotClassFor = (status: Status): string => {
+  if (status === 'saving' || status === 'edited') return 'bg-tertiary';
   if (status === 'failed') return 'bg-negative';
   return 'bg-positive';
 };
 
-const labelFor = (status: 'saved' | 'saving' | 'failed', failureLabel: string | null): string => {
+const labelFor = (status: Status, failureLabel: string | null): string => {
   if (status === 'saving') return 'Saving…';
+  if (status === 'edited') return 'Edited';
   if (status === 'failed') {
     if (failureLabel) return `Save failed: ${failureLabel}`;
     return 'Save failed';
@@ -49,7 +54,10 @@ const labelFor = (status: 'saved' | 'saving' | 'failed', failureLabel: string | 
   return 'Saved';
 };
 
-const detailFor = (status: 'saved' | 'saving' | 'failed', failureLabel: string | null): string => {
+const detailFor = (status: Status, failureLabel: string | null): string => {
+  if (status === 'edited') {
+    return 'Your last change will be written to local storage in a moment.';
+  }
   if (status === 'saving') {
     return 'Your last change is being written to local storage.';
   }
@@ -62,7 +70,18 @@ const detailFor = (status: 'saved' | 'saving' | 'failed', failureLabel: string |
 };
 
 export function StudySaveStatus(): React.ReactElement {
-  const { status, failureLabel } = useWriteTracker();
+  const tracked = useWriteTracker();
+  /*
+    Phase 84: the tracker sees writes in flight, not changes waiting for one.
+    In the 900 ms autosave debounce it said "Saved — your last change is on
+    local storage" about a move that was not; a change not yet written is
+    "Edited", as a Mac document window says it.
+  */
+  const pending = useAnalysis(
+    (state) => state.document.kind === 'study-chapter' && selectSaveState(state) === 'unsaved',
+  );
+  const status: Status = tracked.status === 'saved' && pending ? 'edited' : tracked.status;
+  const failureLabel = tracked.failureLabel;
 
   return (
     <span

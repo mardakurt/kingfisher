@@ -340,7 +340,8 @@ function applyCommentData(
     data.shapes.length > 0 ||
     data.score !== undefined ||
     data.clockSeconds !== undefined ||
-    data.elapsedSeconds !== undefined;
+    data.elapsedSeconds !== undefined ||
+    data.question !== undefined;
   const text = data.text || (understood ? '' : raw.trim());
   const merged = [node.comment, text].filter(Boolean).join(' ').trim();
 
@@ -359,6 +360,7 @@ function applyCommentData(
           ...node.meta,
           ...(data.clockSeconds !== undefined ? { clockSeconds: data.clockSeconds } : {}),
           ...(data.elapsedSeconds !== undefined ? { elapsedSeconds: data.elapsedSeconds } : {}),
+          ...(data.question !== undefined ? { question: data.question } : {}),
         },
       },
     },

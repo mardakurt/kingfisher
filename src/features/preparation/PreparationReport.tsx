@@ -45,7 +45,7 @@ export interface PreparationReportProps {
   readonly profile: PlayerProfile;
   readonly games: readonly GameRecord[];
   readonly aliases: readonly string[];
-  readonly sources: readonly { id: string; name: string; games: number; found: number }[];
+  readonly sources: readonly { id: string; name: string; games: number }[];
   readonly localTotal: number | null;
   readonly tree: OpeningTree;
   readonly node: TreeNode;
@@ -170,11 +170,8 @@ function PlayerCard({
           */}
           <ul className="mt-0.5 flex flex-wrap gap-x-3 text-[11px] text-tertiary tabular">
             {sources.map((source) => (
-              <li key={source.id} data-report-source={source.id}>
+              <li key={source.id}>
                 {source.games.toLocaleString()} from {source.name}
-                {source.found > source.games
-                  ? ` (the newest of ${source.found.toLocaleString()} found; Filters → Most recent games reads more)`
-                  : ''}
               </li>
             ))}
             {localTotal !== null && localTotal > profile.games ? (

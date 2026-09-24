@@ -278,15 +278,32 @@ async function main() {
     the observable form of it here is that the dock is not showing an
     evaluation attributed to a search that is no longer running.
   */
+  /*
+    Phase 84: the check this replaced asserted only that the dock had text,
+    which a panel showing the previous position's lines as current would
+    pass. It now holds the panel to the board: the panel exists; any line it
+    shows undimmed was analysed for the position on the board (the panel's
+    `data-engine-panel-fen` against the board's own FEN); and it says
+    "Analysing…" only while a search can really be running.
+  */
   const engine = await window.evaluate(() => {
-    const dock = document.querySelector('[data-workspace-dock]');
-    const text = (dock instanceof HTMLElement ? dock.innerText : '').replace(/\s+/g, ' ');
-    return { text, claimsRunning: /stopping|searching|depth \d+/i.test(text) };
+    const panel = document.querySelector('[data-engine-panel-fen]');
+    const analysed = panel?.getAttribute('data-engine-panel-fen') ?? null;
+    const board = document.querySelector('[data-fen-tooltip]')?.textContent?.trim() ?? null;
+    const lines = document.querySelectorAll('[data-engine-line]').length;
+    const dimmed = document.querySelectorAll('ol.opacity-50 [data-engine-line]').length;
+    const warming = Boolean(document.querySelector('[data-engine-panel-warming]'));
+    const running = Boolean(document.querySelector('[aria-label="Stop analysis (E)"]'));
+    return { present: Boolean(panel), analysed, board, lines, dimmed, warming, running };
   });
+  const current = engine.lines - engine.dimmed;
   check(
     'the engine panel says something true about itself',
-    engine.text.length > 0,
-    engine.text.slice(0, 90),
+    engine.present &&
+      (current === 0 || (engine.board !== null && engine.analysed === engine.board)) &&
+      (!engine.warming || engine.running),
+    `${current} current line(s) for ${engine.analysed === engine.board ? 'the board’s position' : 'another position'}` +
+      `${engine.warming ? ', analysing' : ''}${engine.running ? ', search running' : ''}`,
   );
 
   // The renderer can still reach the server the shell owns.

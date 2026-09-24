@@ -15,6 +15,7 @@ import {
   policyMoveTreeHome,
   regionOf,
   resolveArrangement,
+  resolveBoardPriority,
   type BoardPriority,
   type ResolvedArrangement,
   type WorkspaceModuleId,
@@ -82,7 +83,8 @@ export function useWorkspaceArrangement(
   const device = useDeviceClass();
   const wide = device === 'desktop';
   const shortScreen = useShortScreen();
-  const priority = usePreferences((state) => state.boardPriority);
+  const storedPriority = usePreferences((state) => state.boardPriority);
+  const priority = resolveBoardPriority(storedPriority);
   const stored = useWorkspaceLayout((state) => state.arrangements[`${device}:${workspace}`]);
   /*
     A stored arrangement wins only where it actually says something. It records

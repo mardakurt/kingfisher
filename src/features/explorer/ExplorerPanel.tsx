@@ -48,10 +48,7 @@ import { VariationBriefPanel } from '@/features/openings/VariationBriefPanel';
 import { openReferenceGame } from '@/features/games/open-reference-game';
 import { canOpenGames, openOnlineGame } from '@/features/games/open-online-game';
 import { packReader } from '@/reference/manager';
-import { mergeReferenceGames, openMerged } from '@/features/games/merge-games';
-import { useRouter } from 'next/navigation';
 
-import { DepartureSection } from './DepartureSection';
 import { SourceFallback, SourcePicker } from './SourcePicker';
 import { SourceComparison } from './SourceComparison';
 import { useExplorer, useExplorerPrefetch } from './useExplorer';
@@ -101,7 +98,6 @@ export function ExplorerPanel() {
   const prefs = usePreferences();
   const play = useAnalysis((state) => state.play);
   const notify = useUi((state) => state.notify);
-  const router = useRouter();
   const setAddToRepertoireOpen = useUi((state) => state.setAddToRepertoireOpen);
   const setTrainingCaptureOpen = useUi((state) => state.setTrainingCaptureOpen);
   const analysis = useEngine((state) => state.primary.analysis);
@@ -247,23 +243,6 @@ export function ExplorerPanel() {
     computed, stored, shipped and never displayed.
   */
   const carriedSince = evidence.find((entry) => entry.recentFrom === 'source')?.recentSince;
-  /*
-    The prose about the variation, directly under the move table. It sat above
-    the table until Phase 84, on the reasoning that "what is this variation"
-    comes before "how did it score"; measured at 1440×900 with the notation
-    open, that put the table's first row at y = 887 — under the fold, in the
-    panel whose whole job is the table. The opening's name is still the first
-    line of the panel; the brief is one scroll away and the numbers are not.
-  */
-  const brief = opening ? (
-    <VariationBriefPanel
-      lineage={lineage.length > 0 ? lineage : [opening.name]}
-      definingLine={classification?.line ?? null}
-      behind={stale}
-    />
-  ) : null;
-  const tableShown =
-    query.fetchStatus !== 'paused' && !query.isPending && !query.isError && evidence.length > 0;
   const showRecent = window.years > 0 || carriedSince !== undefined;
 
   return (
@@ -390,20 +369,9 @@ export function ExplorerPanel() {
             ) : null}
           </p>
         ) : null}
-        {/*
-          The count first and the description on one line, its whole text on
-          hover. Four lines of provenance prose above the table pushed the
-          move table itself below the fold of a 900 px screen, and the table
-          is what the explorer is for; the source's full description is also
-          in Settings → Data and on the Databases page.
-        */}
-        <p
-          className="mt-1 line-clamp-1 text-[10px] text-tertiary"
-          title={provider?.description}
-          data-explorer-source-line
-        >
-          {query.data ? `${total.toLocaleString()} games here · ` : ''}
+        <p className="mt-1 text-[10px] text-tertiary">
           {provider?.description}
+          {query.data ? ` · ${total.toLocaleString()} games here` : ''}
         </p>
         {provider?.capabilities.playerFilter ? (
           <div className="mt-2 flex gap-1.5">
@@ -426,15 +394,6 @@ export function ExplorerPanel() {
           </div>
         ) : null}
       </div>
-
-      {provider ? (
-        <DepartureSection
-          provider={provider}
-          filters={filters}
-          tree={tree}
-          depthLimit={coverageSource?.maxPositionPly ?? null}
-        />
-      ) : null}
 
       {filtersOpen ? (
         <div className="shrink-0 space-y-1.5 border-b border-line-subtle bg-surface-2 px-2.5 py-2">
@@ -514,6 +473,19 @@ export function ExplorerPanel() {
             </p>
           ) : null}
         </div>
+      ) : null}
+
+      {/*
+        The explanation sits directly under the identity it explains and above
+        the numbers, because "what is this variation" is a question a reader
+        has before "how did it score", not after.
+      */}
+      {opening ? (
+        <VariationBriefPanel
+          lineage={lineage.length > 0 ? lineage : [opening.name]}
+          definingLine={classification?.line ?? null}
+          behind={stale}
+        />
       ) : null}
 
       <PanelBody className="min-h-[240px]">
@@ -614,8 +586,6 @@ export function ExplorerPanel() {
               </table>
             </div>
 
-            {brief}
-
             {compared.length >= 2 ? <Comparison entries={compared} /> : null}
 
             {comparing ? (
@@ -635,50 +605,9 @@ export function ExplorerPanel() {
 
             {(query.data?.topGames?.length ?? 0) > 0 ? (
               <section className="border-t border-line-subtle">
-                <div className="flex items-center gap-2 px-2.5 py-2">
-                  <h3 className="text-[10px] font-semibold text-tertiary">
-                    {provider?.id === 'lichess-player' ? 'Recent games' : 'Model games'}
-                  </h3>
-                  {/*
-                    The listed games, folded into one tree: the first as the
-                    main line, each other where it leaves it. Offered for an
-                    installed pack only, whose games are on this machine; a
-                    remote source would mean one request per game.
-                  */}
-                  {provider &&
-                  packReader(provider.id) &&
-                  (query.data?.topGames?.length ?? 0) >= 2 ? (
-                    <button
-                      type="button"
-                      className="ml-auto text-[10px] text-accent underline-offset-2 hover:underline"
-                      onClick={async () => {
-                        const games = query.data?.topGames?.slice(0, 8) ?? [];
-                        try {
-                          const merged = await mergeReferenceGames(
-                            provider.id,
-                            provider.name,
-                            games,
-                          );
-                          if (await openMerged(router, merged)) {
-                            notify({
-                              tone: 'success',
-                              message: 'Model games merged into one analysis, in a new tab.',
-                              detail: merged.sentence,
-                            });
-                          }
-                        } catch (error) {
-                          notify({
-                            tone: 'error',
-                            message: 'The games could not be merged.',
-                            detail: error instanceof Error ? error.message : undefined,
-                          });
-                        }
-                      }}
-                    >
-                      Merge into one tree
-                    </button>
-                  ) : null}
-                </div>
+                <h3 className="px-2.5 py-2 text-[10px] font-semibold text-tertiary">
+                  {provider?.id === 'lichess-player' ? 'Recent games' : 'Model games'}
+                </h3>
                 <div className="divide-y divide-line-subtle">
                   {query.data?.topGames?.slice(0, 8).map((game) => {
                     const content = (
@@ -758,8 +687,6 @@ export function ExplorerPanel() {
             <PositionContext context={context.data} />
           </>
         )}
-
-        {tableShown ? null : brief}
 
         {/*
           Outside the "has games" branch, deliberately.

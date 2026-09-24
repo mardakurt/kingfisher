@@ -64,6 +64,12 @@ export interface NodeMeta {
   readonly critical?: CriticalCategory;
   /** Epoch milliseconds when the node was created. */
   readonly createdAt?: number;
+  /**
+   * This move is a question: "find the move" at the position before it, with
+   * the author's prompt ('' for the default). A study chapter's homework
+   * (Phase 84, `questions.ts`); written to PGN as `[%kfquestion …]`.
+   */
+  readonly question?: string;
 }
 
 export interface MoveNode {

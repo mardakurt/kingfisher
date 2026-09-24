@@ -70,13 +70,6 @@ export interface Preferences {
    */
   engineLineLength: number;
   /**
-   * Look up the Lichess cloud evaluation of each position the engine panel
-   * shows. Off by default, because turning it on sends the board's position
-   * to Lichess; the result is a stored evaluation shown under its own name
-   * and never mixed into this machine's engine (`src/engine/cloud-eval.ts`).
-   */
-  engineCloudEval: boolean;
-  /**
    * How much of a workspace the board is entitled to.
    *
    * A policy, not a pixel count — see `BOARD_PRIORITIES`. It sizes the chrome
@@ -219,7 +212,6 @@ export const DEFAULT_PREFERENCES: Preferences = {
   hiddenEngineIds: [],
   openingsMode: 'library',
   showVariationBrief: true,
-  engineCloudEval: false,
   sourceSettings: {},
   sourcePriority: [],
   enginePreset: 'standard',

@@ -35,6 +35,7 @@ import { useAnalysis } from '@/stores/analysis-store';
 import { useUi } from '@/stores/ui-store';
 import { WorkspaceFrame } from '@/features/workspace/WorkspaceFrame';
 import { RepertoireReviewDialog } from './RepertoireReviewDialog';
+import { RepertoireScanDialog } from './RepertoireScanDialog';
 import { PlayedAgainstYouPanel } from './PlayedAgainstYouPanel';
 import { ReferenceCoveragePanel } from './ReferenceCoveragePanel';
 import { plural } from '@/lib/plural';
@@ -69,6 +70,7 @@ export function RepertoireWorkspace() {
   const [creating, setCreating] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
 
   const list = repertoires.data ?? [];
   const effectiveId = selectedId ?? list[0]?.id ?? null;
@@ -293,6 +295,12 @@ export function RepertoireWorkspace() {
                 onClick: () => setReviewOpen(true),
               },
               {
+                id: 'scan',
+                label: 'Scan games against this repertoire',
+                shortLabel: 'Scan games',
+                onClick: () => setScanOpen(true),
+              },
+              {
                 id: 'export',
                 label: 'Export PGN',
                 shortLabel: 'PGN',
@@ -400,6 +408,9 @@ export function RepertoireWorkspace() {
         </div>
       }
     >
+      {scanOpen && repertoire.data ? (
+        <RepertoireScanDialog repertoire={repertoire.data} onClose={() => setScanOpen(false)} />
+      ) : null}
       {reviewOpen && repertoire.data ? (
         <RepertoireReviewDialog repertoire={repertoire.data} onClose={() => setReviewOpen(false)} />
       ) : null}

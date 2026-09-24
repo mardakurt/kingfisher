@@ -24,6 +24,17 @@ validation, scheduled backup preference serialization, and an incorrect
 native-companion prerequisite on the AI assistant panel. The engine toolbar
 also wraps controls to keep the engine selector readable in a narrow panel.
 
+**Published revision check (Phase 84, Mac-facing — released as 1.3.0).**
+Phase 84 changed the shell as well as shared code: the window follows the
+Studio theme (`desktop/src/appearance.mjs`), the menus carry the
+application's commands over `kingfisher:menu-command`, the Dock has a menu,
+the icon and the disk image are redrawn, and the preload gains
+`setAppearance` and `onMenuCommand`. Shared code adds the six parity
+features, the framed evaluation bar, the Studio-drawn landing and public
+pages, and the reload fix for study chapters. 1.3.0 carries everything from
+Phases 76–84 listed below; the entries below it were written while each was
+still unreleased.
+
 **Published revision check (Phase 81, Mac-facing — not yet released).**
 The Games search mask (header filters, time class, and the material, theme,
 route and comment searches), the default centring of button labels, the

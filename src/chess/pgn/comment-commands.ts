@@ -21,6 +21,8 @@ export interface CommentData {
   readonly score?: Score;
   readonly clockSeconds?: number;
   readonly elapsedSeconds?: number;
+  /** A study question on this move: its prompt, '' for the default. */
+  readonly question?: string;
 }
 
 const BRUSH_BY_LETTER: Readonly<Record<string, Brush>> = {
@@ -44,6 +46,7 @@ export function parseComment(raw: string): CommentData {
   let score: Score | undefined;
   let clockSeconds: number | undefined;
   let elapsedSeconds: number | undefined;
+  let question: string | undefined;
 
   const text = raw
     .replace(COMMAND, (_match, key: string, value: string) => {
@@ -69,6 +72,9 @@ export function parseComment(raw: string): CommentData {
           if (parsed !== null) elapsedSeconds = parsed;
           return '';
         }
+        case 'kfquestion':
+          question = value.trim();
+          return '';
         default:
           // Unknown commands are dropped from display but not treated as errors.
           return '';
@@ -83,6 +89,7 @@ export function parseComment(raw: string): CommentData {
     ...(score ? { score } : {}),
     ...(clockSeconds !== undefined ? { clockSeconds } : {}),
     ...(elapsedSeconds !== undefined ? { elapsedSeconds } : {}),
+    ...(question !== undefined ? { question } : {}),
   };
 }
 
@@ -174,6 +181,10 @@ export function formatComment(data: CommentData): string {
   if (data.score) parts.push(`[%eval ${formatEval(data.score)}]`);
   if (data.clockSeconds !== undefined) parts.push(`[%clk ${formatClock(data.clockSeconds)}]`);
   if (data.elapsedSeconds !== undefined) parts.push(`[%emt ${formatClock(data.elapsedSeconds)}]`);
+  // A `]` would end the command and `}` the comment: neither belongs in a prompt.
+  if (data.question !== undefined) {
+    parts.push(`[%kfquestion ${data.question.replace(/[\]}]/g, '').trim()}]`);
+  }
 
   return parts.join(' ');
 }

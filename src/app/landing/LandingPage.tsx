@@ -33,6 +33,22 @@ import './landing.css';
  * product images are made by `scripts/landing-captures.mjs` from the
  * application itself.
  */
+/**
+ * The product captures, made by `scripts/landing-captures.mjs --encode` from
+ * the application itself: the date they were taken, and each image's size in
+ * pixels (the light and dark captures of one image are the same size).
+ */
+const CAPTURES = '/landing/img';
+const CAPTURED = '2026-09-23';
+const RESEARCH_SIZE = { width: 1718, height: 1414 };
+const ENGINES_SIZE = { width: 1558, height: 1302 };
+const HERO_ALT =
+  'The Kingfisher analysis workspace: the board after 1. e4 e5 2. Nf3 Nc6 3. Bc4 with Stockfish 18 running, its best move drawn as an arrow on the board beside the evaluation bar, the notation and the engine lines in the panel beside it, and the workspace sections — Analysis, Openings, Studies, Repertoire, Preparation, Players, Opening Files, Review, Training, Library, Databases — in the sidebar';
+const RESEARCH_ALT =
+  "The Explorer on the Najdorf after 5...a6, comparing the Kingfisher Starter Reference with the Recent Theory Reference: the same candidate moves, each source's own game count and frequency in its own column, and no combined figure";
+const ENGINES_ALT =
+  'The engine panel with Stockfish 18 Lite running in the browser on the Italian Game: five ranked lines with their evaluations, the depth reached, and the best move drawn as an arrow on the board beside it';
+
 const studioPathOf = (url: string): string => {
   try {
     const parsed = new URL(url);
@@ -292,15 +308,30 @@ export function LandingPage(): JSX.Element {
               <span className="hero-product-title">Kingfisher {macosDownload.version}</span>
               <span className="hero-product-crumb">Analysis · Stockfish 18 · Italian Game</span>
             </div>
+            {/*
+              Two captures of the same moment, one per Studio theme; the page
+              shows the one that matches the theme it is drawn in, so the
+              window in the hero is the window the visitor will open.
+            */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/landing/img/workspace-2026-09-19.webp"
-              alt="The Kingfisher analysis workspace: the board after 1. e4 e5 2. Nf3 Nc6 3. Bc4 with Stockfish 18 running, its best move drawn as an arrow on the board, five engine lines beside it and the workspace sections — Analysis, Openings, Studies, Repertoire, Preparation, Players, Opening Files, Review, Training, Endgame, Games — in the sidebar"
+              src={`${CAPTURES}/workspace-${CAPTURED}.webp`}
+              alt={HERO_ALT}
               width="2240"
               height="1400"
               fetchPriority="high"
               decoding="async"
-              className="hero-product-img"
+              className="hero-product-img kf-light-only"
+            />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={`${CAPTURES}/workspace-${CAPTURED}-dark.webp`}
+              alt={HERO_ALT}
+              width="2240"
+              height="1400"
+              loading="lazy"
+              decoding="async"
+              className="hero-product-img kf-dark-only"
             />
           </figure>
 
@@ -393,16 +424,19 @@ export function LandingPage(): JSX.Element {
               </ul>
             </div>
             <div className="research-frame">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/landing/img/research-2026-09-19.webp"
-                alt="The Explorer on the Najdorf after 5...a6, comparing the Kingfisher Starter Reference (7,649 games here) with the Recent Theory Reference (1,703 games here): the same candidate moves, each source's own frequency in its own column, and no combined figure"
-                width="1718"
-                height="1138"
-                loading="lazy"
-                decoding="async"
-                className="research-img"
-              />
+              {(['light', 'dark'] as const).map((theme) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  key={theme}
+                  src={`${CAPTURES}/research-${CAPTURED}${theme === 'dark' ? '-dark' : ''}.webp`}
+                  alt={RESEARCH_ALT}
+                  width={RESEARCH_SIZE.width}
+                  height={RESEARCH_SIZE.height}
+                  loading="lazy"
+                  decoding="async"
+                  className={`research-img kf-${theme}-only`}
+                />
+              ))}
             </div>
           </div>
         </section>
@@ -410,16 +444,19 @@ export function LandingPage(): JSX.Element {
         <section id="engines" className="section section-engines">
           <div className="engines-layout">
             <div className="engines-frame">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/landing/img/engines-2026-09-19.webp"
-                alt="The engine panel with Stockfish 18 Lite running in the browser on the Italian Game: five ranked lines with their evaluations, the depth reached, and the best move drawn as an arrow on the board beside it"
-                width="1558"
-                height="1138"
-                loading="lazy"
-                decoding="async"
-                className="engines-img"
-              />
+              {(['light', 'dark'] as const).map((theme) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  key={theme}
+                  src={`${CAPTURES}/engines-${CAPTURED}${theme === 'dark' ? '-dark' : ''}.webp`}
+                  alt={ENGINES_ALT}
+                  width={ENGINES_SIZE.width}
+                  height={ENGINES_SIZE.height}
+                  loading="lazy"
+                  decoding="async"
+                  className={`engines-img kf-${theme}-only`}
+                />
+              ))}
             </div>
             <div className="engines-copy">
               <p className="section-eyebrow">Engines</p>

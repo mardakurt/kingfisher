@@ -143,6 +143,20 @@ export const BOARD_PRIORITIES: Readonly<Record<BoardPriority, BoardPriorityShape
 export const DEFAULT_BOARD_PRIORITY: BoardPriority = 'large';
 
 /**
+ * Turn persisted input into a policy the current build can render.
+ *
+ * TypeScript protects calls made by this build, but localStorage can contain
+ * a value written by a newer build, a hand edit or an interrupted write. The
+ * workspace must still open in that case; an unknown policy means the current
+ * default rather than an undefined entry in `BOARD_PRIORITIES`.
+ */
+export function resolveBoardPriority(value: unknown): BoardPriority {
+  return typeof value === 'string' && value in BOARD_PRIORITIES
+    ? (value as BoardPriority)
+    : DEFAULT_BOARD_PRIORITY;
+}
+
+/**
  * The arrangement a workspace has before anybody rearranges it.
  *
  * Derived rather than constant, so changing the board policy changes what an
@@ -178,7 +192,9 @@ export const policyMoveTreeHome = (
   priority: BoardPriority,
   shortScreen = false,
 ): WorkspaceRegion =>
-  !shortScreen || BOARD_PRIORITIES[priority].moveTreeInDock ? 'dock' : 'lower';
+  !shortScreen || BOARD_PRIORITIES[resolveBoardPriority(priority)].moveTreeInDock
+    ? 'dock'
+    : 'lower';
 
 /**
  * Apply the board policy to a stored arrangement.
@@ -194,13 +210,15 @@ export function resolveArrangement(
   priority: BoardPriority = DEFAULT_BOARD_PRIORITY,
   shortScreen = false,
 ): ResolvedArrangement {
-  const shape = BOARD_PRIORITIES[priority];
+  const safePriority = resolveBoardPriority(priority);
+  const shape = BOARD_PRIORITIES[safePriority];
   return {
     ...arrangement,
     dockWidth: arrangement.dockWidth ?? shape.dockWidth,
     lowerHeight:
       arrangement.lowerHeight ?? (shortScreen ? shape.shortLowerHeight : shape.lowerHeight),
-    moveTreeRegion: arrangement.placement['move-tree'] ?? policyMoveTreeHome(priority, shortScreen),
+    moveTreeRegion:
+      arrangement.placement['move-tree'] ?? policyMoveTreeHome(safePriority, shortScreen),
   };
 }
 

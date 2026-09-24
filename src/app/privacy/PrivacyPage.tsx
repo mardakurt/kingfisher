@@ -126,9 +126,10 @@ export function PrivacyPage(): JSX.Element {
               goes with it.
             </li>
             <li>
-              you tick <em>Lichess cloud evaluation</em> in the engine panel. It is off until you
-              do; while it is on, each position the panel shows is sent to Lichess to look up a
-              stored evaluation, and nothing else goes with it.
+              you turn on <em>Lichess cloud</em> in the engine panel. While it is on, each position
+              you visit is sent to <code>lichess.org/api/cloud-eval</code> to ask for the analysis
+              Lichess has stored for it. It is off at the start of every session and stays off until
+              you turn it on.
             </li>
           </ul>
         </li>

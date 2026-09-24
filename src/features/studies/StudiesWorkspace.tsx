@@ -41,6 +41,8 @@ import { formatTags, matchesTags, parseTagInput } from '@/persistence/tags';
 import { cn } from '@/lib/cn';
 
 import { PublishDialog } from './PublishDialog';
+import { SolveQuestionsDialog } from './SolveQuestionsDialog';
+import { chapterQuestions } from '@/chess/tree/questions';
 import { TagFilter } from './TagFilter';
 import type { ChapterRecord, StudyId, StudyRecord } from '@/persistence/types';
 import { useAnalysis } from '@/stores/analysis-store';
@@ -101,6 +103,7 @@ export function StudiesWorkspace() {
   const [studyTags, setStudyTags] = useState<readonly string[]>([]);
   const [chapterTags, setChapterTags] = useState<readonly string[]>([]);
   const [publishing, setPublishing] = useState(false);
+  const [solving, setSolving] = useState(false);
   /*
     Filtering the list the picker reads, not a second list beside it: a
     selected study that the filter excludes falls out of the picker, and the
@@ -129,6 +132,19 @@ export function StudiesWorkspace() {
       : (chapters[0]?.id ?? null);
 
   const chapter = chapters.find((candidate) => candidate.id === chapterId) ?? null;
+  /*
+    Phase 84: the chapter's questions, read from the tree on the board — the
+    chapter as it is now, edits included, not as it was last saved.
+  */
+  const boardTree = useAnalysis((state) => state.tree);
+  const boardDocument = useAnalysis((state) => state.document);
+  const questions = useMemo(
+    () =>
+      chapter && boardDocument.kind === 'study-chapter' && boardDocument.chapterId === chapter.id
+        ? chapterQuestions(boardTree)
+        : [],
+    [boardDocument, boardTree, chapter],
+  );
 
   const createStudy = useRepositoryMutation(
     (repositories, input: { title: string; description: string }) =>
@@ -236,22 +252,15 @@ export function StudiesWorkspace() {
     if (!chapter || loadedChapter.current === chapter.id) return;
     loadedChapter.current = chapter.id;
     /*
-      The chapter may already be on the board — edited in Analysis a moment
-      ago, with the edit still inside autosave's debounce. Opening the stored
-      record over it discarded that edit for good: comment on a move, click
-      Studies within a second, and the comment was gone from the board and
-      from storage (found in Phase 84). The board's copy is the newer one
-      unless the stored record has moved past the revision it was loaded
-      at, which only another tab can do; that case is still opened, and the
-      autosave conflict path is what reports it.
+      The board already holds this chapter — put back by the draft restore
+      after a reload, or still being edited when the page was left — and what
+      it holds is newer than the stored record. Opening the record over it
+      threw away the moves of the last second before a reload (Phase 84).
     */
-    const live = useAnalysis.getState();
-    if (
-      live.document.kind === 'study-chapter' &&
-      live.document.chapterId === chapter.id &&
-      live.document.revision >= chapter.revision
-    ) {
-      if (paramNode && chapter.id === paramChapter && live.tree.nodes[paramNode]) goTo(paramNode);
+    const onBoard = useAnalysis.getState().document;
+    if (onBoard.kind === 'study-chapter' && onBoard.chapterId === chapter.id) {
+      if (paramNode && chapter.id === paramChapter && chapter.tree.nodes[paramNode])
+        goTo(paramNode);
       return;
     }
     open(chapter);
@@ -532,6 +541,15 @@ export function StudiesWorkspace() {
           onClick: () => setPrompt({ kind: 'create-study' }),
         },
         {
+          id: 'solve',
+          label: questions.length
+            ? `Solve ${plural(questions.length, 'question')}`
+            : 'Solve questions',
+          shortLabel: 'Solve',
+          disabled: questions.length === 0,
+          onClick: () => setSolving(true),
+        },
+        {
           id: 'publish',
           label: 'Publish…',
           shortLabel: 'Publish',
@@ -597,6 +615,14 @@ export function StudiesWorkspace() {
 
       {publishing && study.data ? (
         <PublishDialog study={study.data} onClose={() => setPublishing(false)} />
+      ) : null}
+      {solving && chapter && questions.length > 0 ? (
+        <SolveQuestionsDialog
+          questions={questions}
+          chapterId={chapter.id}
+          chapterTitle={chapter.title}
+          onClose={() => setSolving(false)}
+        />
       ) : null}
 
       {prompt?.kind === 'rename-study' && (

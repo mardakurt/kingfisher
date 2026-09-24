@@ -9,6 +9,7 @@ import { formatScore } from '@/chess/evaluation';
 import { Button } from '@/components/ui/Button';
 import { MiniBoard } from '@/features/board/MiniBoard';
 import { NavButton } from '@/features/shell/NavButton';
+import { PositionHistorySection } from './PositionHistory';
 import { useProfile } from '@/features/persistence/queries';
 import { openStoredGame } from '@/features/games/open-game';
 import { openPositionHit } from '@/features/search/open-hit';
@@ -118,6 +119,11 @@ export function PositionWorkspace() {
                   <PositionGames identity={identity} aliases={profile.data?.aliases ?? []} />
                 )}
               </section>
+              <PositionHistorySection
+                identity={identity}
+                className={sectionClass}
+                headingClass={headingClass}
+              />
               <OwnWork identity={identity} />
               <section className={sectionClass}>
                 <h2 className={headingClass}>Reference populations</h2>

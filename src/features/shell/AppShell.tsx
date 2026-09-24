@@ -12,6 +12,7 @@ import { FirstRunTour } from '@/features/shell/FirstRunTour';
 import { useCompanionSync } from '@/companion/useCompanion';
 import { useBrowserEngineDiscovery } from '@/engine/use-engines';
 import { useDesktopIntegration } from '@/desktop/useDesktop';
+import { useMenuCommands } from '@/features/command/useMenuCommands';
 import { PostUpdateNotice } from '@/desktop/post-update-notice';
 import { useAutoBackup } from '@/features/shell/useAutoBackup';
 import { useReferenceSources } from '@/reference/use-references';
@@ -105,6 +106,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   useBrowserEngineDiscovery();
   // A no-op in a browser; see src/desktop/bridge.ts.
   useDesktopIntegration();
+  useMenuCommands();
   /*
    * Auto-backup runs on app launch, behind the rest of the boot. The
    * status-bar indicator reads the resulting lastBackupAt; this hook is

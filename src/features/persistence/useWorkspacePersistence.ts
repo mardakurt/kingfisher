@@ -17,6 +17,7 @@ import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { autosaveDelay } from '@/persistence/autosave';
+import { newerDraft, takeUnloadDraft, writeUnloadDraft } from '@/persistence/unload-draft';
 import { beginSession, releaseHeldDraft, shouldHoldDraft } from '@/persistence/session-launch';
 import { ensurePersistenceForAuthoredWork } from '@/persistence/storage-persistence';
 import { getRepositories } from '@/persistence/repositories';
@@ -49,6 +50,21 @@ const restoreSettled = new Promise<void>((resolve) => {
 });
 export const workspaceRestored = (): Promise<void> => restoreSettled;
 const sessionStore = () => (typeof window === 'undefined' ? null : window.sessionStorage);
+/**
+ * The unload draft, taken once per page load. The restore effect runs twice
+ * under StrictMode; the first pass is abandoned mid-flight, and a draft it
+ * had taken (and removed from storage) was then missing for the second.
+ */
+let unloadTaken: { readonly draft: DraftRecord | null } | null = null;
+const takeUnloadOnce = (): DraftRecord | null =>
+  (unloadTaken ??= { draft: takeUnloadDraft(localStore()) }).draft;
+const localStore = () => {
+  try {
+    return typeof window === 'undefined' ? null : window.localStorage;
+  } catch {
+    return null;
+  }
+};
 const freshLaunch = (): boolean => {
   launch ??= beginSession(sessionStore());
   return launch;
@@ -121,7 +137,17 @@ export function useWorkspacePersistence(): void {
     void (async () => {
       try {
         const repositories = await getRepositories();
-        const draft = await repositories.drafts.get();
+        /*
+          The draft a page wrote as it went away (unload-draft.ts), when it is
+          newer than the stored one: the work of the last moments before a
+          reload, which the IndexedDB write did not live to store. Stored
+          straight away, so the one slot holds it however this load goes on.
+        */
+        const unload = takeUnloadOnce();
+        const stored = await repositories.drafts.get();
+        const draft = newerDraft(unload, stored);
+        const continuation = Boolean(unload) && draft === unload;
+        if (continuation && draft) await repositories.drafts.save(draft);
         if (!active || !draft) return;
 
         // Checked here rather than on mount: storage takes a moment to open,
@@ -132,7 +158,7 @@ export function useWorkspacePersistence(): void {
           heldDraft.current = true;
           return;
         }
-        await restoreDraft(repositories, draft);
+        await restoreDraft(repositories, draft, { continuation });
       } catch (error) {
         if (!active) return;
         useUi.getState().notify({
@@ -281,8 +307,42 @@ export function useWorkspacePersistence(): void {
     const flush = () => {
       if (document.visibilityState === 'hidden') void save();
     };
+    /*
+      `pagehide` saves whatever the visibility says. A reload or a navigation
+      away fires it while the page is still "visible", and the check above
+      made this handler a no-op exactly then: a move played in a study chapter
+      and followed by a reload inside the 900 ms debounce was lost, while the
+      header said "Saved" (found in Phase 84 by e2e/chapter-questions.spec.ts;
+      pinned by e2e/study-reload.spec.ts). An IndexedDB write started here is
+      not guaranteed to finish before the page goes — it is started as early
+      as anything can start it, and the draft written with it is what the
+      reload restores.
+    */
+    const flushOnHide = () => {
+      const state = useAnalysis.getState();
+      /*
+        Only work that is really unsaved, and never from a session holding a
+        draft it has not touched: a fresh launch keeps the last session's draft
+        without showing it, and an unload draft of its empty board, taken on
+        the next load as "newer", replaced the held work. `e2e/launch-board`
+        caught it.
+      */
+      const holding = heldDraft.current && state.revision === 0;
+      if (selectDirty(state) && !holding) {
+        writeUnloadDraft(localStore(), {
+          id: 'active',
+          document: state.document,
+          tree: state.tree,
+          currentId: state.currentId,
+          orientation: state.orientation,
+          updatedAt: Date.now(),
+          unsaved: state.document.kind === 'study-chapter' && selectDirty(state),
+        });
+      }
+      void save();
+    };
     document.addEventListener('visibilitychange', flush);
-    window.addEventListener('pagehide', flush);
+    window.addEventListener('pagehide', flushOnHide);
 
     /*
       Another tab wrote the chapter this one is showing.
@@ -317,7 +377,7 @@ export function useWorkspacePersistence(): void {
       unsubscribe();
       unsubscribeTabs();
       document.removeEventListener('visibilitychange', flush);
-      window.removeEventListener('pagehide', flush);
+      window.removeEventListener('pagehide', flushOnHide);
     };
     // The query client is a stable per-application instance; listing it would
     // suggest this autosave session can be torn down and rebuilt, which is the
@@ -419,12 +479,38 @@ async function writeWorkspace(
  * silently *applied* would be just as wrong: the user has to be told which
  * version they are looking at.
  */
-async function restoreDraft(repositories: AppRepositories, draft: DraftRecord): Promise<void> {
+async function restoreDraft(
+  repositories: AppRepositories,
+  draft: DraftRecord,
+  options: { readonly continuation?: boolean } = {},
+): Promise<void> {
   const analysis = useAnalysis.getState();
 
   if (draft.document.kind === 'study-chapter') {
     const chapter = await repositories.studies.getChapter(draft.document.chapterId);
     if (chapter) {
+      /*
+        A draft this session wrote as the page went away, on a chapter nobody
+        has written since (the revision it was edited from is still the
+        chapter's): it is the same document a moment later, not a rival
+        version, so it is put back as the work in progress — dirty, so
+        autosave writes it to the chapter — rather than offered as a recovery.
+      */
+      if (
+        options.continuation &&
+        draft.unsaved &&
+        draft.document.revision === chapter.revision &&
+        !sameTree(draft.tree, chapter.tree)
+      ) {
+        analysis.openDocument({
+          tree: draft.tree,
+          document: { ...draft.document, title: chapter.title, revision: chapter.revision },
+          currentId: draft.tree.nodes[draft.currentId] ? draft.currentId : draft.tree.rootId,
+          orientation: draft.orientation,
+          clean: false,
+        });
+        return;
+      }
       if (draft.unsaved && !sameTree(draft.tree, chapter.tree)) {
         analysis.openDocument({
           tree: chapter.tree,

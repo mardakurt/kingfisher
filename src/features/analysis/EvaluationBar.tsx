@@ -4,7 +4,7 @@ import { cn } from '@/lib/cn';
 import type { Score } from '@/chess/evaluation';
 import type { Color, GameOutcome } from '@/chess/types';
 
-import { describeOutcome, evaluationBarLayout } from './evaluation-bar-layout';
+import { barLabelSize, describeOutcome, evaluationBarLayout } from './evaluation-bar-layout';
 
 interface EvaluationBarProps {
   readonly score: Score | null;
@@ -85,10 +85,25 @@ export function EvaluationBar({
       data-catching-up={catchingUp && !outcome ? 'true' : undefined}
       data-outcome={outcome?.kind}
       className={cn(
-        'relative flex h-full shrink-0 flex-col overflow-hidden rounded-[2px] border border-line-strong/70 transition-opacity',
+        'relative flex shrink-0 flex-col overflow-hidden rounded-[2px] bg-eval-black transition-opacity',
         dimmed && 'opacity-60',
       )}
-      style={{ width: EVALUATION_BAR_WIDTH }}
+      style={{
+        width: EVALUATION_BAR_WIDTH,
+        /*
+         * Framed like the board beside it. The ring is the board's frame
+         * colour (`boardFrameVariables`, set by the surface), drawn outside
+         * the bar so the label keeps all of its width, and the block margin
+         * puts the ring's outer edge where the board frame's outer edge is:
+         * bar and board are one object, not a strip that happens to stand
+         * next to a board. On a frameless theme — or anywhere without a
+         * board — the ring is the evaluation edge, one pixel, which is what
+         * keeps White's band visible on the white page of the light theme.
+         */
+        boxShadow:
+          '0 0 0 var(--eval-ring, 1px) var(--board-frame-color, var(--eval-edge)), var(--shadow-board)',
+        marginBlock: 'calc(var(--eval-ring, 1px) - var(--board-frame-width, 0px))',
+      }}
       title={reading}
       aria-label={outcome ? reading : score ? `Evaluation ${layout.label}` : 'No evaluation'}
     >
@@ -116,15 +131,16 @@ export function EvaluationBar({
         style={{ height: `${layout.bottomShare * 100}%`, bottom: 0 }}
       />
       {/* Equality, so a fill just above or below the middle can be read as such. */}
-      <div className="absolute inset-x-0 top-1/2 h-px bg-black/30" aria-hidden />
+      <div className="absolute inset-x-0 top-1/2 h-px bg-eval-midline" aria-hidden />
 
       <span
         data-evaluation-bar-label
         className={cn(
-          'absolute inset-x-0 text-center text-[10px] font-medium leading-none tabular',
+          'absolute inset-x-0 text-center font-semibold leading-none tracking-tight tabular',
           layout.labelAt === 'bottom' ? 'bottom-1' : 'top-1',
           layout.labelOn === 'w' ? 'text-eval-black' : 'text-eval-white',
         )}
+        style={{ fontSize: barLabelSize(layout.barLabel) }}
       >
         {layout.barLabel}
       </span>

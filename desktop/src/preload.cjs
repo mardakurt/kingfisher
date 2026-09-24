@@ -224,6 +224,26 @@ contextBridge.exposeInMainWorld('kingfisher', {
     ipcRenderer.send('kingfisher:documents-wanted');
     return off;
   },
+  /**
+   * Phase 84: the Studio theme, told to the shell whenever it changes, so the
+   * native parts of the window — sheets, menus, Sparkle's windows, the
+   * background before the page paints — follow it. Two values and nothing
+   * else cross; the shell refuses any other.
+   */
+  setAppearance: (theme) => {
+    if (theme === 'light' || theme === 'dark') ipcRenderer.send('kingfisher:appearance', theme);
+  },
+  /**
+   * Phase 84: a menu item naming one of the application's own commands (New
+   * Tab, Close Tab, the Go menu…). The id is the command palette's; the
+   * renderer runs its own command. Channel: `MENU_COMMAND_CHANNEL` in
+   * menu-commands.mjs, which a CommonJS preload cannot import —
+   * `menu-commands.test.mjs` checks the two agree.
+   */
+  onMenuCommand: (listener) =>
+    on('kingfisher:menu-command', (id) => {
+      if (typeof id === 'string' && id.length <= 64) listener(id);
+    }),
   onShowDiagnostics: (listener) => on('kingfisher:show-diagnostics', listener),
   onShowSettings: (listener) => on('kingfisher:show-settings', listener),
 

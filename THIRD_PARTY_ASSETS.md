@@ -205,39 +205,44 @@ edit and one command.
 
 ## Landing page product captures
 
-The three product images on the landing and the social card are captures of
-the real Kingfisher interface, made by `scripts/landing-captures.mjs` against
-the development server on a fresh profile (tour off, durable storage not
-granted, nothing linked, nothing imported except the position the capture
-plays). Nothing is drawn or retouched; the only thing hidden is Next's
-development badge. The displayed piece and board artwork retains the
-attribution recorded above. Each capture is recorded here with the checkout
-it was made from; replace all of them together, with the script, when the
-workspace changes.
+The landing's product images and the social card are captures of the real
+Kingfisher interface, made by `scripts/landing-captures.mjs` against the
+development server on a fresh profile (tour off, nothing linked, nothing
+imported except the position the capture plays). Each image is taken twice,
+once in each Studio theme (the dark file carries `-dark`), and the landing
+shows the one that matches the theme it is drawn in. Nothing is drawn or
+retouched; the only thing hidden is Next's development badge. The capture
+browser could not be granted durable storage, so the sidebar's true "Storage
+is not protected" line is in the hero. The displayed piece and board artwork
+retains the attribution recorded above. Replace all of them together, with
+the script, when the workspace changes.
 
-`public/landing/img/workspace-2026-09-19.webp` — the hero. The analysis
-workspace of the Phase 72 checkout (after `9d614d8`, Kingfisher 1.2.1, with
-the one-row tool tab strip), re-taken on 2026-09-19 at 1440 × 900 at 2× and
-encoded at 2240 × 1400 (WebP q82); it replaces the same-named Phase 71
-capture, which showed the tab strip's second line.
+`public/landing/img/workspace-2026-09-23.webp` and `…-dark.webp` — the hero.
+The analysis workspace of the Phase 84 working tree (after `024dd1a`, the
+Studio design of Phases 82–84 with the framed evaluation bar), taken on
+2026-09-23 at 1440 × 900 at 2× and encoded at 2240 × 1400 (WebP q82).
 Stockfish 18 Lite WASM Multithreaded was started on the position after
 `1. e4 e5 2. Nf3 Nc6 3. Bc4` with MultiPV 5 and the capture waited for the
 engine's arrow, then eight seconds; the panel shows the depth it had reached.
 
-`public/landing/img/engines-2026-09-19.webp` — the Engines section. The same
-search, cropped to the engine panel and the right half of the board
-(1558 × 1138, WebP q82).
+`public/landing/img/engines-2026-09-23.webp` and `…-dark.webp` — the Engines
+section. The same search with the Notation section folded, cropped to the
+engine panel and the right half of the board (1558 × 1302, WebP q82).
 
-`public/landing/img/research-2026-09-19.webp` — the Research section. The
-Explorer's source comparison on the Najdorf after `5...a6`, with the bundled
-Kingfisher Starter Reference against the Recent Theory Reference (installed
-by the script from its public manifest, 34 MB), each in its own column with
-its own game count; the variation brief folded away and the dock widened by
-its handle so both columns fit (1718 × 1138, WebP q82).
+`public/landing/img/research-2026-09-23.webp` and `…-dark.webp` — the Research
+section. The Explorer's source comparison on the Najdorf after `5...a6`, with
+the bundled Kingfisher Starter Reference against the Recent Theory Reference
+(installed by the script from its public manifest, 34 MB), each in its own
+column with its own game count; the Notation section folded, the variation
+brief folded away and the dock widened by its handle so both columns fit,
+cropped down to the end of the comparison table (1718 × 1414, WebP q82).
 
-`public/landing/img/og.png` — the social card, 1200 × 630, the hero scaled
-to 1200 wide and cropped from 48 px below its top edge (PNG, palette). It is
-the size `src/app/layout.tsx` declares for Open Graph.
+`public/landing/img/og.png` — the social card, 1200 × 630, the light hero
+scaled to 1200 wide and cropped from 48 px below its top edge (PNG, palette).
+It is the size `src/app/layout.tsx` declares for Open Graph.
+
+The Phase 72 captures of 2026-09-19 (`workspace-`, `engines-`,
+`research-2026-09-19.webp`) showed the navy design Phase 82 retired.
 
 The captures these replaced (`workspace-2026-09.webp`, `engine-analysis-v2.webp`,
 `research-explorer.webp`, the 1440 × 900 `og.png`) showed the toolbar removed

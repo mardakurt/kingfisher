@@ -37,8 +37,8 @@ with [`AGENTS.md`](../AGENTS.md).
 - [`product/public-claims.md`](product/public-claims.md) — every public
   claim, where it appears, what backs it, and what must not be claimed.
   **Read before changing a landing-page or README sentence.**
-- [`release/1.2.6.md`](release/1.2.6.md) — release notes for the current
-  public release. [`release/1.2.5.md`](release/1.2.5.md), [`release/1.2.4.md`](release/1.2.4.md), [`release/1.2.3.md`](release/1.2.3.md), [`release/1.2.2.md`](release/1.2.2.md), [`release/1.2.1.md`](release/1.2.1.md), [`release/1.2.0.md`](release/1.2.0.md), [`release/1.1.9.md`](release/1.1.9.md), [`release/1.1.8.md`](release/1.1.8.md), [`release/1.1.7.md`](release/1.1.7.md), [`release/1.1.6.md`](release/1.1.6.md), [`release/1.1.5.md`](release/1.1.5.md), [`release/1.1.4.md`](release/1.1.4.md), [`release/1.1.3.md`](release/1.1.3.md),
+- [`release/1.3.0.md`](release/1.3.0.md) — release notes for the current
+  release. [`release/1.2.6.md`](release/1.2.6.md), [`release/1.2.5.md`](release/1.2.5.md), [`release/1.2.4.md`](release/1.2.4.md), [`release/1.2.3.md`](release/1.2.3.md), [`release/1.2.2.md`](release/1.2.2.md), [`release/1.2.1.md`](release/1.2.1.md), [`release/1.2.0.md`](release/1.2.0.md), [`release/1.1.9.md`](release/1.1.9.md), [`release/1.1.8.md`](release/1.1.8.md), [`release/1.1.7.md`](release/1.1.7.md), [`release/1.1.6.md`](release/1.1.6.md), [`release/1.1.5.md`](release/1.1.5.md), [`release/1.1.4.md`](release/1.1.4.md), [`release/1.1.3.md`](release/1.1.3.md),
   [`release/1.1.2.md`](release/1.1.2.md), [`release/1.1.1.md`](release/1.1.1.md),
   [`release/1.1.0.md`](release/1.1.0.md) and [`release/1.0.0.md`](release/1.0.0.md)
   are the previous ones.
@@ -92,6 +92,10 @@ with [`AGENTS.md`](../AGENTS.md).
   dataset and asset, with licence and provenance.
 - [`../companion/README.md`](../companion/README.md) — the companion process:
   what it does and its trust boundary.
+- [`product/chessbase-parity-audit.md`](product/chessbase-parity-audit.md) —
+  Kingfisher against ChessBase 26 and ChessBase for Mac, workflow by workflow,
+  with sources, what Phase 84 closed, and the verdict (ALMOST) with the gaps
+  that stand between it and YES.
 - [`product/market-research.md`](product/market-research.md) — the chess study
   market from first-hand sources: what people complain about, what they ask
   for and do not have, where Kingfisher stands on each, and the plan to close
@@ -128,6 +132,10 @@ with [`AGENTS.md`](../AGENTS.md).
   recurring facts in Review, joined from stored evidence, structures,
   player-authored endgames and repertoire positions without a new score or
   label.
+- [`design/chessbase-parity-features.md`](design/chessbase-parity-features.md)
+  — the Phase 84 parity features (merging games, the repertoire scan, the
+  Lichess cloud evaluation, position history, the Library over any database,
+  questions inside a chapter): what each does, its rule, and what it does not.
 - [`design/scoresheet.md`](design/scoresheet.md) — getting the
   over-the-board game in: what the research says about handwriting
   recognition, the decisions (the rules do the work, the photo goes to the

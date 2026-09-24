@@ -12,6 +12,7 @@
  * computed by selectors, never stored, so there is one source of truth.
  */
 
+import { setQuestion } from '@/chess/tree/questions';
 import { create } from 'zustand';
 
 import type { Shape } from '@/chess/annotations';
@@ -168,6 +169,8 @@ interface AnalysisState {
   demote(nodeId: NodeId): void;
   promoteToMain(nodeId: NodeId): void;
   comment(nodeId: NodeId, text: string): void;
+  /** Mark a move as a chapter question (prompt, '' for the default), or unmark it with null. */
+  setQuestion(nodeId: NodeId, prompt: string | null): void;
   toggleNag(nodeId: NodeId, code: number): void;
   toggleShape(nodeId: NodeId, shape: Shape): void;
   clearShapes(nodeId: NodeId): void;
@@ -183,12 +186,6 @@ interface AnalysisState {
    * a different game.
    */
   annotateWithEvidence(plans: readonly AnnotationPlan[]): WriteResult;
-  /**
-   * One edit computed from the whole tree, as one undo step — for writers
-   * like the reference-departure note that touch several nodes at once.
-   * Returns false, and changes nothing, when the edit returns the same tree.
-   */
-  applyEdit(edit: (tree: GameTree) => GameTree): boolean;
 
   // Session
   newGame(fen?: Fen): void;
@@ -392,6 +389,13 @@ export const useAnalysis = create<AnalysisState>((set, get) => ({
     set(commit(state, setComment(state.tree, nodeId, text)));
   },
 
+  setQuestion: (nodeId, prompt) => {
+    const state = get();
+    const tree = setQuestion(state.tree, nodeId, prompt);
+    if (tree === state.tree) return;
+    set(commit(state, tree));
+  },
+
   toggleNag: (nodeId, code) => {
     const state = get();
     const node = state.tree.nodes[nodeId];
@@ -469,14 +473,6 @@ export const useAnalysis = create<AnalysisState>((set, get) => ({
     const result = writeAnnotations(state.tree, plans);
     if (result.written > 0) set(commit(state, result.tree, state.currentId));
     return result;
-  },
-
-  applyEdit: (edit) => {
-    const state = get();
-    const next = edit(state.tree);
-    if (next === state.tree) return false;
-    set(commit(state, next, state.currentId));
-    return true;
   },
 
   setHeaderValue: (key, value) => {

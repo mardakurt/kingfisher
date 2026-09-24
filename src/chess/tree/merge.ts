@@ -1,311 +1,215 @@
 /**
  * Merging games into one tree.
  *
- * A preparation file is built by merging the games that reached a line:
- * ChessBase selects them in a list and folds them into one notation, the
- * first game as the main line and every other one as a variation where it
- * leaves what is already there. A HIARCS user asked for the same thing in the
- * same words — "merge selected games into a single move tree" — because it is
- * how a player turns forty games of an opponent's Najdorf into something that
- * can be read in one sitting.
+ * How a preparation file is built: the games that reached a line, laid over
+ * each other so the moves they share are played once and every departure is a
+ * variation. ChessBase does it by selecting games and pressing Enter; the
+ * first game becomes the main line and the others hang off it where they
+ * leave it. This is that operation, and it is pure: it reads the source trees
+ * and returns a new one.
  *
- * Three things here go further than a plain merge, and each follows from a
- * rule of this codebase rather than from a wish list:
+ * What it keeps, and why:
  *
- * - **Every game says where it left the tree.** The move at which a game
- *   first adds something new carries the game's name as a pre-comment, so a
- *   branch in the merged file is never anonymous: it is "Carlsen – Caruana,
- *   2024, ½–½", and a reader can tell a top game's idea from a blitz game's.
- * - **Transpositions are named, not duplicated silently.** Two move orders
- *   reaching one position are the same position (`positionKey`). When a
- *   game's new branch arrives at a position the tree already holds on a
- *   different path, the branch is kept — it is the game — and its first such
- *   move says which line it transposes to.
- * - **Nothing is dropped without a reason.** A game that starts from another
- *   position cannot share a root and is refused, by name. A game already
- *   entirely contained in the tree is reported as such rather than counted
- *   as "merged".
+ * - Every move of every source tree, variations included. A game's own
+ *   annotation is work somebody did.
+ * - The annotations of a move the first time it is seen. When a later game
+ *   plays a move already in the tree, the move is not added again; its
+ *   comment is kept only if the move had none, its NAGs are joined, and its
+ *   stored evaluation is kept only if the move had none. Nothing is averaged
+ *   and nothing is overwritten.
+ * - Which game each branch came from: the last move of every merged game's
+ *   main line carries the game's label as a comment, so a branch in the
+ *   merged tree can always be traced to the game that played it.
  *
- * Annotations: a node that exists in the tree keeps its own comment, glyphs
- * and arrows; a node a game adds brings that game's. So the first game's
- * notes win where games overlap, which is ChessBase's rule and the only one
- * that never rewrites a comment someone else wrote.
+ * What it does not do is join transpositions. A tree is a set of move orders,
+ * and two move orders reaching one position are two paths in it. The result
+ * counts the positions reached by more than one path (by `positionKey`, the
+ * project's position identity), so the caller can say so; the position page
+ * and the explorer are where transpositions are joined.
  *
- * The merge builds its node map in place and freezes it at the end. Going
- * through `addMove` once per move copies the whole map every time, which is
- * quadratic, and a merge of a few hundred games is exactly what this is for.
+ * The tree starts from the position most of the games start from; a game
+ * that starts elsewhere cannot share it and is returned as skipped, with the
+ * reason.
  */
 
-import { positionKey } from '../fen';
+import { START_FEN, positionKey } from '../fen';
+import type { Evaluation } from '../evaluation';
+import { addMove, createTree, mainlinePath, mustGetNode } from './tree';
 import type { GameTree, MoveNode, NodeId } from './types';
-import { moveNumberOfPly } from './types';
 
 export interface MergeSource {
   readonly tree: GameTree;
-  /** How the game is named in the merged tree, e.g. "Anand – Carlsen, Chennai 2013". */
+  /** How the merged tree names this game, e.g. `Carlsen – Caruana, Wijk 2024 · 1-0`. */
   readonly label: string;
-}
-
-export type MergeOutcome =
-  /** The game added at least one move. */
-  | { readonly kind: 'branched'; readonly nodeId: NodeId; readonly move: string }
-  /** Every move of the game was already in the tree. */
-  | { readonly kind: 'contained' }
-  /** It could not share a root with the first game. */
-  | { readonly kind: 'refused'; readonly reason: string };
-
-export interface MergedGame {
-  readonly label: string;
-  readonly outcome: MergeOutcome;
-  /** Set when the game's new branch reached a position the tree already held. */
-  readonly transposesTo?: string;
-}
-
-export interface MergeReport {
-  readonly games: readonly MergedGame[];
-  /** Moves added to the first game's tree by the others. */
-  readonly addedMoves: number;
 }
 
 export interface MergeResult {
   readonly tree: GameTree;
-  readonly report: MergeReport;
+  /** The games laid into the tree, in order. */
+  readonly merged: readonly string[];
+  /** Games whose whole main line was already in the tree when their turn came. */
+  readonly contained: readonly string[];
+  readonly skipped: readonly { readonly label: string; readonly reason: string }[];
+  /** Positions the tree reaches by more than one move order. */
+  readonly transpositions: number;
 }
 
-/** `9.h3` or `9...Na5` — how a move is referred to in prose. */
-export function moveLabel(node: MoveNode): string {
-  const san = node.move?.san ?? '';
-  return `${moveNumberOfPly(node.ply)}${node.ply % 2 === 1 ? '.' : '...'}${san}`;
+export interface MergeOptions {
+  /** Headers of the merged tree; `Event` defaults to "N games merged". */
+  readonly headers?: Readonly<Record<string, string>>;
+  /** Label each merged game's last main-line move (default true). */
+  readonly labelGames?: boolean;
 }
 
-/**
- * Fold `sources` into one tree.
- *
- * The first source is the base: its moves are the main line and its start
- * position is the tree's. Headers name the merge, not any one game. Throws
- * only for an empty list; everything else is reported per game.
- */
-export function mergeGames(sources: readonly MergeSource[]): MergeResult {
-  const base = sources[0];
-  if (!base) throw new Error('Nothing to merge.');
+const joinNags = (a: readonly number[], b: readonly number[]): number[] => [
+  ...a,
+  ...b.filter((nag) => !a.includes(nag)),
+];
 
-  const nodes: Record<NodeId, MoveNode> = { ...base.tree.nodes };
-  let nextId = base.tree.nextId;
-  const rootKey = positionKey(base.tree.nodes[base.tree.rootId]?.fen ?? base.tree.startFen);
+const appendComment = (existing: string | undefined, text: string): string =>
+  existing && existing.trim() ? `${existing.trim()} ${text}` : text;
+
+export function mergeGames(
+  sources: readonly MergeSource[],
+  options: MergeOptions = {},
+): MergeResult {
+  const skipped: { label: string; reason: string }[] = [];
+  const merged: string[] = [];
+  const contained: string[] = [];
+  if (sources.length === 0) {
+    return {
+      tree: createTree(START_FEN),
+      merged,
+      contained,
+      skipped,
+      transpositions: 0,
+    };
+  }
 
   /*
-    Where each position first appears, for naming transpositions. Built from
-    the base and extended as games add nodes, so a later game can transpose
-    into an earlier game's branch as well as into the main line.
+    The tree starts where most of the games start. Taking the first game's
+    start instead let one endgame at the top of a list — the Library shows the
+    newest first — decide that three opening games "started elsewhere".
+    A tie goes to the earliest game.
   */
-  const firstAt = new Map<string, NodeId>();
-  const index = (id: NodeId) => {
-    const node = nodes[id];
-    if (!node) return;
-    const key = positionKey(node.fen);
-    if (!firstAt.has(key)) firstAt.set(key, id);
-  };
-  for (const id of Object.keys(nodes)) index(id);
+  const starts = new Map<string, { count: number; fen: GameTree['startFen'] }>();
+  for (const source of sources) {
+    const key = positionKey(source.tree.startFen);
+    const entry = starts.get(key);
+    starts.set(key, { count: (entry?.count ?? 0) + 1, fen: entry?.fen ?? source.tree.startFen });
+  }
+  const [startKey, start] = [...starts].reduce((best, candidate) =>
+    candidate[1].count > best[1].count ? candidate : best,
+  );
+  let tree = createTree(start.fen);
+  const labelGames = options.labelGames ?? true;
 
-  const report: MergedGame[] = [{ label: base.label, outcome: baseOutcome(base.tree) }];
-  let addedMoves = 0;
-
-  for (const source of sources.slice(1)) {
-    const tree = source.tree;
-    const root = tree.nodes[tree.rootId];
-    if (!root || positionKey(root.fen) !== rootKey) {
-      report.push({
+  for (const source of sources) {
+    if (positionKey(source.tree.startFen) !== startKey) {
+      skipped.push({
         label: source.label,
-        outcome: {
-          kind: 'refused',
-          reason: 'It starts from a different position, so it cannot share this tree’s root.',
-        },
+        reason: 'It starts from a different position, so it cannot share this tree.',
       });
       continue;
     }
 
-    let branch: { nodeId: NodeId; move: string } | null = null;
-    let transposesTo: string | undefined;
-    const mainline = new Set(lineIds(tree));
-
-    /*
-      Depth-first over the game's own tree, so its variations come along too.
-      `into` is the node in the merged tree that corresponds to `from`.
-    */
-    const stack: { from: NodeId; into: NodeId }[] = [{ from: tree.rootId, into: base.tree.rootId }];
+    let added = 0;
+    /** Where each of the source's nodes landed in the merged tree. */
+    const landed = new Map<NodeId, NodeId>([[source.tree.rootId, tree.rootId]]);
+    // Depth first, children in order: a source's main line is laid before its
+    // variations, so the first game's main line is the merged main line.
+    const stack: NodeId[] = [source.tree.rootId];
     while (stack.length > 0) {
-      const { from, into } = stack.pop()!;
-      const current = tree.nodes[from];
-      if (!current) continue;
-      /*
-        Children are attached in their own order — a game's main move before
-        its alternatives — and only the descent is reversed onto the stack.
-      */
-      const descend: { from: NodeId; into: NodeId }[] = [];
-      for (const childId of current.children) {
-        const child = tree.nodes[childId];
-        const parent = nodes[into];
-        if (!child?.move || !parent) continue;
-        const existing = parent.children.find((id) => nodes[id]?.move?.uci === child.move?.uci);
-        if (existing) {
-          descend.push({ from: childId, into: existing });
-          continue;
-        }
-
-        const id = `n${nextId}`;
-        nextId += 1;
-        addedMoves += 1;
-        const onGameMainline = mainline.has(childId);
-        const opensBranch = onGameMainline && branch === null;
-
-        const key = positionKey(child.fen);
-        const earlier = firstAt.get(key);
-        /*
-          A position met again on the same path is a repetition, not a
-          transposition, and naming it would send the reader backwards.
-        */
-        const transposition =
-          onGameMainline &&
-          transposesTo === undefined &&
-          earlier &&
-          nodes[earlier] &&
-          !isAncestor(nodes, earlier, into)
-            ? moveLabel(nodes[earlier]!)
-            : undefined;
-        if (transposition) transposesTo = transposition;
-
-        const notes = [child.comment, transposition ? `Transposes to ${transposition}.` : undefined]
-          .filter((part): part is string => Boolean(part && part.trim()))
-          .join(' ');
-        const preNotes = [opensBranch ? source.label : undefined, child.preComment]
-          .filter((part): part is string => Boolean(part && part.trim()))
-          .join(' — ');
-
-        const node: MoveNode = {
-          id,
-          parentId: into,
-          children: [],
-          move: child.move,
-          fen: child.fen,
-          ply: parent.ply + 1,
-          nags: [...child.nags],
-          shapes: [...child.shapes],
+      const id = stack.pop()!;
+      const node = mustGetNode(source.tree, id);
+      const parentTarget = landed.get(id)!;
+      for (const childId of node.children) {
+        const child = mustGetNode(source.tree, childId);
+        if (!child.move) continue;
+        const result = addMove(tree, parentTarget, child.move, {
+          nags: child.nags,
+          shapes: child.shapes,
           meta: child.meta,
-          ...(notes ? { comment: notes } : {}),
-          ...(preNotes ? { preComment: preNotes } : {}),
-          ...(child.evaluation ? { evaluation: child.evaluation } : {}),
-        };
-        nodes[id] = node;
-        nodes[into] = { ...parent, children: [...parent.children, id] };
-        index(id);
-        if (opensBranch) branch = { nodeId: id, move: moveLabel(node) };
-        descend.push({ from: childId, into: id });
+          ...(child.comment !== undefined ? { comment: child.comment } : {}),
+          ...(child.preComment !== undefined ? { preComment: child.preComment } : {}),
+          ...(child.evaluation !== undefined ? { evaluation: child.evaluation } : {}),
+        });
+        tree = result.existed ? keepFirst(result.tree, result.nodeId, child) : result.tree;
+        if (!result.existed) added += 1;
+        landed.set(childId, result.nodeId);
       }
-      stack.push(...descend.reverse());
+      for (let index = node.children.length - 1; index >= 0; index -= 1) {
+        stack.push(node.children[index]!);
+      }
     }
 
-    report.push({
-      label: source.label,
-      outcome: branch ? { kind: 'branched', ...branch } : { kind: 'contained' },
-      ...(transposesTo ? { transposesTo } : {}),
-    });
+    if (added === 0 && merged.length > 0) contained.push(source.label);
+    merged.push(source.label);
+
+    if (labelGames) {
+      const line = mainlinePath(source.tree);
+      const last = landed.get(line[line.length - 1]!);
+      if (last && last !== tree.rootId) {
+        const target = mustGetNode(tree, last);
+        // Plain text: the serialiser writes the braces, and a brace inside a
+        // PGN comment would end it early.
+        const label = source.label.replace(/[{}]/g, '');
+        if (!target.comment?.includes(label)) {
+          tree = replace(tree, { ...target, comment: appendComment(target.comment, label) });
+        }
+      }
+    }
   }
 
-  const merged = report.filter((entry) => entry.outcome.kind !== 'refused').length;
-  const headers: Record<string, string> = {
-    Event: `Merged: ${merged} ${merged === 1 ? 'game' : 'games'}`,
-    Result: '*',
-  };
-  for (const key of ['FEN', 'SetUp'] as const) {
-    const value = base.tree.headers[key];
-    if (value) headers[key] = value;
-  }
-
-  /*
-    The file's table of contents, as the comment before the first move: which
-    games are in it and where each one starts. ChessBase's merge leaves the
-    reader to find the branches; this says where they are, and it travels
-    with the file through PGN.
-  */
-  const root = nodes[base.tree.rootId];
-  if (root) {
-    const contents = contentsOf({ games: report, addedMoves });
-    nodes[base.tree.rootId] = {
-      ...root,
-      comment: [root.comment, contents].filter(Boolean).join(' '),
-    };
-  }
-
-  return {
-    tree: {
-      rootId: base.tree.rootId,
-      nodes: Object.freeze(nodes),
-      startFen: base.tree.startFen,
-      headers,
-      nextId,
+  const count = merged.length;
+  tree = {
+    ...tree,
+    headers: {
+      Event: `${count} ${count === 1 ? 'game' : 'games'} merged`,
+      Site: '?',
+      Date: '????.??.??',
+      Round: '-',
+      White: '?',
+      Black: '?',
+      Result: '*',
+      ...(options.headers ?? {}),
     },
-    report: { games: report, addedMoves },
   };
+
+  return { tree, merged, contained, skipped, transpositions: countTranspositions(tree) };
 }
 
-function isAncestor(
-  nodes: Readonly<Record<NodeId, MoveNode>>,
-  candidate: NodeId,
-  from: NodeId,
-): boolean {
-  let id: NodeId | null = from;
-  while (id) {
-    if (id === candidate) return true;
-    id = nodes[id]?.parentId ?? null;
-  }
-  return false;
-}
-
-function lineIds(tree: GameTree): NodeId[] {
-  const out: NodeId[] = [];
-  let id: NodeId | undefined = tree.nodes[tree.rootId]?.children[0];
-  while (id) {
-    out.push(id);
-    id = tree.nodes[id]?.children[0];
-  }
-  return out;
-}
-
-function baseOutcome(tree: GameTree): MergeOutcome {
-  const first = tree.nodes[tree.rootId]?.children[0];
-  const node = first ? tree.nodes[first] : undefined;
-  return node
-    ? { kind: 'branched', nodeId: node.id, move: moveLabel(node) }
-    : { kind: 'contained' };
-}
-
-/**
- * `Merged from 3 games: A – B (main line); C – D from 2...Nc6; E – F: already
- * contained.` Refused games are named too, so the file says what it is not.
- */
-export function contentsOf(report: MergeReport): string {
-  const entries = report.games.map((entry, index) => {
-    if (entry.outcome.kind === 'refused')
-      return `${entry.label}: not merged, another starting position`;
-    if (entry.outcome.kind === 'contained') return `${entry.label}: already contained`;
-    const where = index === 0 ? 'main line' : `from ${entry.outcome.move}`;
-    const transposes = entry.transposesTo ? `, transposing to ${entry.transposesTo}` : '';
-    return `${entry.label} (${where}${transposes})`;
+/** A move already in the tree keeps its annotations; the newcomer fills gaps. */
+function keepFirst(tree: GameTree, id: NodeId, incoming: MoveNode): GameTree {
+  const existing = mustGetNode(tree, id);
+  const nags = joinNags(existing.nags, incoming.nags);
+  const comment = existing.comment?.trim() ? existing.comment : incoming.comment;
+  const evaluation: Evaluation | undefined = existing.evaluation ?? incoming.evaluation;
+  const unchanged =
+    nags.length === existing.nags.length &&
+    comment === existing.comment &&
+    evaluation === existing.evaluation;
+  if (unchanged) return tree;
+  return replace(tree, {
+    ...existing,
+    nags,
+    ...(comment !== undefined ? { comment } : {}),
+    ...(evaluation !== undefined ? { evaluation } : {}),
   });
-  const merged = report.games.filter((entry) => entry.outcome.kind !== 'refused').length;
-  return `Merged from ${merged} ${merged === 1 ? 'game' : 'games'}: ${entries.join('; ')}.`;
 }
 
-/** One sentence for a notification: what the merge did, with its refusals. */
-export function describeMerge(report: MergeReport): string {
-  const merged = report.games.filter((entry) => entry.outcome.kind !== 'refused').length;
-  const contained = report.games.filter((entry) => entry.outcome.kind === 'contained').length;
-  const refused = report.games.filter((entry) => entry.outcome.kind === 'refused').length;
-  const parts = [
-    `${merged} ${merged === 1 ? 'game' : 'games'} in one tree`,
-    `${report.addedMoves} ${report.addedMoves === 1 ? 'move' : 'moves'} added to the first game`,
-  ];
-  if (contained > 0) parts.push(`${contained} already contained`);
-  if (refused > 0) parts.push(`${refused} refused: a different starting position`);
-  return `${parts.join('; ')}.`;
+function replace(tree: GameTree, node: MoveNode): GameTree {
+  return { ...tree, nodes: { ...tree.nodes, [node.id]: node } };
+}
+
+/** How many positions the tree reaches by two or more different paths. */
+export function countTranspositions(tree: GameTree): number {
+  const seen = new Map<string, number>();
+  for (const node of Object.values(tree.nodes)) {
+    const key = positionKey(node.fen);
+    seen.set(key, (seen.get(key) ?? 0) + 1);
+  }
+  let count = 0;
+  for (const paths of seen.values()) if (paths > 1) count += 1;
+  return count;
 }

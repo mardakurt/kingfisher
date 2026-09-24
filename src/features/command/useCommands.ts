@@ -149,7 +149,14 @@ export function useCommands(): readonly Command[] {
         title: 'New analysis',
         group: 'Game',
         keywords: 'reset clear board',
-        run: () => analysis().newGame(START_FEN),
+        /*
+          The new analysis is shown, not only made: from the Library (or the
+          Mac's ⌘N anywhere) it replaced a board nobody could see.
+        */
+        run: () => {
+          analysis().newGame(START_FEN);
+          if (pathname !== '/analysis') router.push('/analysis');
+        },
       },
       {
         id: 'import-pgn',

@@ -18,7 +18,7 @@ import re
 import pathlib
 import xml.etree.ElementTree as ET
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageChops, ImageDraw
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 MASTER = ROOT / "brand" / "kingfisher-mark.svg"
@@ -35,7 +35,12 @@ SS = 4  # supersampling factor
 #     system's mask (which can crop a circular or rounded square from the icon)
 #     never clips the kingfisher mark. The 60% target follows the Web App
 #     Manifest "maskable" specification's 80% safe-area recommendation, then
-#     tightens to 60% so the bird still reads at very small sizes.
+#     tightens to 60% so the bird still reads at very small sizes. The
+#     frame colour fills the whole canvas, because the mask is the
+#     operating system's to choose and a transparent margin shows through it.
+#   - "macos"     — Apple's icon grid: the rounded body is 824 of 1024 px,
+#     centred, with the platform's own corner radius and a soft shadow under
+#     it. A full-bleed tile sat larger than every other icon in the Dock.
 TARGETS = [
     ("public/icon-192.png", 192, "fullbleed"),
     ("public/icon-512.png", 512, "fullbleed"),
@@ -49,7 +54,7 @@ TARGETS = [
     # The desktop application icon. electron-builder derives every macOS,
     # Windows and Linux size from this one, so it is the largest the packagers
     # ask for rather than a size anything displays directly.
-    ("desktop/build/icon.png", 1024, "fullbleed"),
+    ("desktop/build/icon.png", 1024, "macos"),
 ]
 
 NS = {"svg": "http://www.w3.org/2000/svg"}
@@ -106,7 +111,13 @@ def flatten_path(d, steps=24):
     return points
 
 
+MACOS_BODY = 824 / 1024
+MACOS_RADIUS = 0.2237  # of the body's side, Apple's continuous-corner approximation
+
+
 def render(size, kind="fullbleed"):
+    if kind == "macos":
+        return render_macos(size)
     tree = ET.parse(MASTER)
     root = tree.getroot()
     view = [float(v) for v in root.get("viewBox").split()]
@@ -121,6 +132,9 @@ def render(size, kind="fullbleed"):
         scale = size * SS / span
     canvas = Image.new("RGBA", (size * SS, size * SS), (0, 0, 0, 0))
     draw = ImageDraw.Draw(canvas)
+    if kind == "maskable":
+        frame = root.find("svg:g", NS).find("svg:rect", NS).get("fill")
+        draw.rectangle([0, 0, canvas.size[0], canvas.size[1]], fill=frame)
 
     def at(x, y, tx=0.0, ty=0.0, sc=1.0):
         if kind == "maskable":
@@ -150,7 +164,11 @@ def render(size, kind="fullbleed"):
         radius=0 if kind == "square" else 14 * scale,
         fill=255,
     )
-    canvas.paste(tile, (0, 0), mask)
+    # Composited, not pasted: a paste replaces the pixels under the mask with
+    # the tile's, transparent margin and all, and the maskable icon's frame
+    # colour went with them.
+    tile.putalpha(ImageChops.multiply(tile.getchannel("A"), mask))
+    canvas.alpha_composite(tile)
 
     # Foreground: the bird, then the eye punched back out in the tile colour.
     group = root.findall("svg:g", NS)[1]
@@ -169,7 +187,43 @@ def render(size, kind="fullbleed"):
     return canvas.resize((size, size), Image.LANCZOS)
 
 
+# The master is also served as an SVG, in two places: the favicon Next links
+# from `src/app/`, and the image the landing and the public pages draw. They
+# are copies of the master, written here, so they cannot keep an old colour
+# (`src/ui/brand-assets.test.ts` checks that they are byte-identical).
+SVG_COPIES = [
+    "src/app/icon.svg",
+    "public/landing/img/kingfisher-mark.svg",
+    "marketing/assets/img/kingfisher-mark.svg",
+]
+
+
+def render_macos(size):
+    """The square render, rounded and shadowed on Apple's 1024 grid."""
+    from PIL import ImageFilter
+
+    body = round(size * MACOS_BODY)
+    inset = (size - body) // 2
+    tile = render(body, "square")
+    mask = Image.new("L", (body * SS, body * SS), 0)
+    ImageDraw.Draw(mask).rounded_rectangle(
+        [0, 0, body * SS - 1, body * SS - 1], radius=MACOS_RADIUS * body * SS, fill=255
+    )
+    mask = mask.resize((body, body), Image.LANCZOS)
+    shadow = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    shade = Image.new("RGBA", (body, body), (0, 0, 0, 90))
+    shadow.paste(shade, (inset, inset + round(size * 0.012)), mask)
+    shadow = shadow.filter(ImageFilter.GaussianBlur(size * 0.014))
+    canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    canvas.alpha_composite(shadow)
+    canvas.paste(tile, (inset, inset), mask)
+    return canvas
+
+
 def main():
+    for relative in SVG_COPIES:
+        (ROOT / relative).write_bytes(MASTER.read_bytes())
+        print(f"{relative:32} svg      {(ROOT / relative).stat().st_size:>7} B")
     for target in TARGETS:
         relative, size, kind = target
         out = ROOT / relative

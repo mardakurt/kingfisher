@@ -130,4 +130,20 @@ describe('workspace tabs', () => {
       'Preparation against Karpov',
     );
   });
+
+  it('renames a tab that still carries a retired section name for its own route', () => {
+    const state = sanitizeTabs({
+      tabs: [
+        { id: 'a', href: '/games?q=Tal', title: 'Games' },
+        { id: 'b', href: '/analysis', title: 'Games' },
+        { id: 'c', href: '/games', title: 'Preparation against Tal' },
+      ],
+      activeId: 'a',
+    });
+    expect(state?.tabs.map((tab) => tab.title)).toEqual([
+      'Library',
+      'Games',
+      'Preparation against Tal',
+    ]);
+  });
 });

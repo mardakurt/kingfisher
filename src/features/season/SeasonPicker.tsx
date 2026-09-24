@@ -16,6 +16,7 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo } from 'react';
 
+import { Segmented } from '@/components/ui/Controls';
 import { Toggle } from '@/components/ui/Toggle';
 import {
   describeNamedSet,
@@ -90,28 +91,15 @@ export function SeasonPicker({ games, predicate }: SeasonPickerProps) {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
-        <div
-          role="tablist"
-          aria-label="Named-set kind"
-          className="flex gap-1 rounded-md border border-line-subtle bg-surface-1 p-1"
-        >
-          {(Object.keys(KIND_LABEL) as SeasonKind[]).map((k) => (
-            <button
-              key={k}
-              type="button"
-              role="tab"
-              aria-selected={k === kind}
-              onClick={() => setKind(k)}
-              className="rounded px-3 py-1 text-sm transition-colors"
-              style={{
-                background: k === kind ? 'var(--accent)' : 'transparent',
-                color: k === kind ? 'var(--accent-foreground)' : 'var(--text-secondary)',
-              }}
-            >
-              {KIND_LABEL[k]}
-            </button>
-          ))}
-        </div>
+        <Segmented
+          label="Named-set kind"
+          options={(Object.keys(KIND_LABEL) as SeasonKind[]).map((k) => ({
+            id: k,
+            label: KIND_LABEL[k],
+          }))}
+          value={kind}
+          onChange={setKind}
+        />
         {kind === 'last' ? (
           <select
             aria-label="Days"

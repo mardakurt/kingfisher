@@ -136,6 +136,16 @@ export interface DesktopBridge {
   onShowDiagnostics(listener: () => void): () => void;
   onShowSettings(listener: () => void): () => void;
   /**
+   * Tell the shell the Studio theme, so the window's native parts follow it
+   * (Phase 84; absent from an older shell).
+   */
+  readonly setAppearance?: (theme: 'light' | 'dark') => void;
+  /**
+   * A menu item asking for one of the application's own commands, by the
+   * palette's id (Phase 84; absent from an older shell).
+   */
+  readonly onMenuCommand?: (listener: (id: string) => void) => () => void;
+  /**
    * Whether the window is full screen, from the process that knows.
    *
    * Delivered on every change and once on attach. In full screen macOS takes

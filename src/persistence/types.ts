@@ -326,6 +326,15 @@ export interface GameRepository {
   /** How many stored games reach a canonical position. */
   countAtPosition(key: string): Promise<number>;
   /**
+   * The summaries of the stored games that reach a position, for a history of
+   * it — when it was first played, by whom, how often by year. Bounded:
+   * `total` is every game that reaches it, `games` at most `limit` of them.
+   */
+  summariesAtPosition(
+    key: string,
+    limit?: number,
+  ): Promise<{ readonly games: readonly GameSummary[]; readonly total: number }>;
+  /**
    * Distinct move orders that reach a position in the stored games.
    *
    * Read from what was actually played, never generated: a list of plausible

@@ -16,6 +16,7 @@ import {
   policyMoveTreeHome,
   regionOf,
   resolveArrangement,
+  resolveBoardPriority,
   sanitizeArrangement,
   type BoardPriority,
   type WorkspaceArrangement,
@@ -129,6 +130,16 @@ describe('size clamps', () => {
 });
 
 describe('board priority', () => {
+  it('falls back safely when persisted storage names an unknown policy', () => {
+    const unknown = 'a-policy-from-a-newer-build' as BoardPriority;
+
+    expect(resolveBoardPriority(unknown)).toBe('large');
+    expect(resolveArrangement(DEFAULT_ARRANGEMENT, unknown)).toEqual(
+      resolveArrangement(DEFAULT_ARRANGEMENT, 'large'),
+    );
+    expect(policyMoveTreeHome(unknown, true)).toBe(policyMoveTreeHome('large', true));
+  });
+
   it('offers three policies, ordered by how much the board gets', () => {
     const order = ['balanced', 'large', 'maximum'] as const;
     for (let index = 1; index < order.length; index += 1) {

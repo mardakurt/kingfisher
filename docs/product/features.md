@@ -39,7 +39,9 @@ starting point:
 - **The evaluation bar** beside the board — winning chances from the engine's
   score (the logistic curve, not linear centipawns), a checkmate fills the
   winner's band and a draw sits at the middle, and between moves the bar
-  keeps the last reading dimmed rather than dropping to 50 %.
+  keeps the last reading dimmed rather than dropping to 50 %. Framed in the
+  board's own frame colour, so White's band reads on the light theme's white
+  page; the figure is at most four characters (whole pawns from ten).
 - **The evaluation graph** under the board (off by default) — a column per
   move for stored evaluations.
 - **The position summary** under the board — side to move, move number,
@@ -153,6 +155,15 @@ PGN_, and the **References** panel: typed links from a chapter to model
 games, repertoire positions and training items, created from what is at the
 current position.
 
+**Questions** (Phase 84): any move can be asked as a question from its
+context menu (_Ask this move as a question…_, with a prompt); the move is the
+answer, asked at the position before it, and a sibling marked `!` or `!!` is
+accepted too. The notation shows a **Q**. _Solve N questions_ asks them in
+order with Training's answering control and ends with what was found and
+missed; the misses go to Training, linked to the chapter. _Publish → As a
+worksheet_ prints the questions as positions with the solutions last.
+Questions survive PGN export and import (`[%kfquestion …]`).
+
 ### Repertoire (`/repertoire`)
 
 Position-keyed repertoires (White or Black): _Add to repertoire_ files the
@@ -174,6 +185,13 @@ and opens Training on it); _Review repertoire_ (§5); _Export PGN_;
 played from it in local games). The dock adds Repertoire Health, Theory
 Book, Opening Report, Explorer, Book Moves, Database, Transpositions, Theory
 Radar, Engine, Model Games, Features, Notes and Play From Here.
+
+**Scan games** (Phase 84): any collection — My games or a companion SQLite
+file — read game by game against the repertoire, by position; each game that
+left it deep enough is reported with the move it left by, in three sections
+(new moves against your line, other choices for your side, past your
+preparation), grouped by position, deepest first, each game opening on the
+board at that move.
 
 ### Preparation (`/preparation`)
 
@@ -307,6 +325,13 @@ analysis of chosen games, paused, resumed and yielding to interactive
 analysis), Kingfisher's own opening classification beside the PGN's tag, and
 delete.
 
+**Any database** (Phase 84): the toolbar's database picker shows a
+companion SQLite collection in the same list, with the Library's filters (a
+filter the database cannot apply is named), a preview of its moves, and
+_Open_ as a new analysis. **Merge into one tree**: select two or more games
+and they become one analysis — shared moves once, each departure a
+variation labelled with its game, the first row the main line.
+
 ### The move list
 
 Moves, variations, comments and glyphs, with the evaluation beside a
@@ -405,6 +430,11 @@ Concealed workspaces (Review before reveal, Training, blindfold) suppress
 the control entirely — the button being there would already tell a player
 the position has evidence, before they had decided to look.
 
+**History in your collections** (Phase 84): the first and most recent dated
+game through the position, games per year with White's score, and the
+players who reach it most — from the games stored in this browser, which is
+said, with why the reference packs cannot answer.
+
 ### Coverage (a dock tool, wherever the Explorer is)
 
 What every source you have holds and does not hold, for the position on the
@@ -494,7 +524,10 @@ The profile described under Players.
   position says so and offers no search. Every result carries session,
   position and engine identity; a stale result never lands on a new
   position; an engine that fails to acknowledge a stop is failed, not
-  reused.
+  reused. **Lichess cloud** (Phase 84): off until asked for in the session,
+  then the analysis lichess.org has stored for the position (depth, nodes,
+  up to three lines), labelled as stored analysis and kept out of the tree,
+  the bar and the arrows.
 - **Candidates** — restrict the search to moves you name (`searchmoves`),
   offered only for engines measured to honour it, and the result says
   whether it was honoured.
@@ -713,11 +746,19 @@ Sparkle (EdDSA-signed appcast, a save barrier before relaunch, the profile
 adopted after the update, one quiet information-only look at launch, no
 telemetry); Diagnostics in the menu; the window's traffic-light reservation
 handled in one place; full-screen; Developer ID signing, Hardened Runtime
-and notarisation, verified byte for byte against the published DMG.
+and notarisation, verified byte for byte against the published DMG. Since
+Phase 84 the window follows the Studio theme (native sheets, menus and
+Sparkle's windows included, and the colour before the page paints), and the
+menus carry the application's commands: New Tab ⌘T, Close Tab ⌘W (the window
+⇧⌘W), Show Next/Previous Tab ⌃Tab/⌃⇧Tab and ⇧⌘]/⇧⌘[, Duplicate Tab, New
+Analysis ⌘N, Import ⇧⌘I, Toggle Sidebar ⌃⌘S, Command Palette ⌘K, Keyboard
+Shortcuts, View → Appearance, a Go menu (Back ⌘[, Forward ⌘], the main
+sections) and a Dock menu.
 
 ## 12. The public web surface
 
-The landing at `/`, the application at `/analysis` (and `/studio`, which
+The landing at `/` — drawn in the Studio's own tokens and theme since Phase
+84, with captures of the current Studio in both themes — the application at `/analysis` (and `/studio`, which
 redirects), `/install`, `/privacy`, `/security`, `/data-licences`, `/terms`,
 a PWA manifest, `robots.txt` and a sitemap, `security.txt`, in-app feedback
 that never sends your studies, and web analytics disclosed on the privacy

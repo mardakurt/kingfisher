@@ -31,35 +31,7 @@ import { packGamePgn } from '@/reference/provider';
 export interface OpponentSource {
   readonly id: string;
   readonly name: string;
-  /** Games from this source in the report — after the newest-first limit. */
   readonly games: number;
-  /** Games this source had for the query before the limit was applied. */
-  readonly found: number;
-}
-
-/**
- * Each source's share of the games the report actually reads.
- *
- * The sources are read first and the newest `limit` games kept afterwards, so
- * a source's own count is how many it *offered*. Printing that beside a
- * report built from fewer — "200 games" over "300 from Kingfisher Starter
- * Reference" — was the sentence the preparation page printed for Carlsen
- * until Phase 84. Both numbers are true; they are now both said, each as
- * what it is.
- */
-export function sourceShares(
-  kept: readonly { readonly fingerprint: string }[],
-  origin: ReadonlyMap<string, string>,
-  offered: readonly { readonly id: string; readonly name: string; readonly found: number }[],
-): OpponentSource[] {
-  const counts = new Map<string, number>();
-  for (const game of kept) {
-    const id = origin.get(game.fingerprint);
-    if (id) counts.set(id, (counts.get(id) ?? 0) + 1);
-  }
-  return offered
-    .map((source) => ({ ...source, games: counts.get(source.id) ?? 0 }))
-    .filter((source) => source.found > 0);
 }
 
 export interface OpponentGames {
@@ -126,8 +98,7 @@ export function acceptsGame(game: GameRecord, query: OpponentQuery, keys: Readon
 export async function collectOpponentGames(query: OpponentQuery): Promise<OpponentGames> {
   const aliases = opponentAliases(query);
   const keys = new Set(aliases.map(playerKey).filter(Boolean));
-  const offered: { id: string; name: string; found: number }[] = [];
-  const origin = new Map<string, string>();
+  const sources: OpponentSource[] = [];
   const seen = new Set<string>();
   const games: GameRecord[] = [];
 
@@ -150,10 +121,9 @@ export async function collectOpponentGames(query: OpponentQuery): Promise<Oppone
   for (const game of local) {
     if (seen.has(game.fingerprint)) continue;
     seen.add(game.fingerprint);
-    origin.set(game.fingerprint, 'local');
     games.push(game);
   }
-  if (local.length > 0) offered.push({ id: 'local', name: 'My games', found: local.length });
+  if (local.length > 0) sources.push({ id: 'local', name: 'My games', games: local.length });
 
   /*
     Then every installed reference source, by every spelling. A pack files a
@@ -175,22 +145,20 @@ export async function collectOpponentGames(query: OpponentQuery): Promise<Oppone
       if (seen.has(record.fingerprint)) continue;
       if (!acceptsGame(record, query, keys)) continue;
       seen.add(record.fingerprint);
-      origin.set(record.fingerprint, reader.manifest.id);
       games.push(record);
       added += 1;
     }
     if (added > 0) {
-      offered.push({ id: reader.manifest.id, name: reader.manifest.name, found: added });
+      sources.push({ id: reader.manifest.id, name: reader.manifest.name, games: added });
     }
   }
 
   games.sort((a, b) => (b.year ?? 0) - (a.year ?? 0) || (b.date ?? '').localeCompare(a.date ?? ''));
 
-  const kept = games.slice(0, query.limit);
   return {
-    games: kept,
+    games: games.slice(0, query.limit),
     aliases,
-    sources: sourceShares(kept, origin, offered),
+    sources,
     localTotal: summaries.total,
   };
 }
