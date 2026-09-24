@@ -152,7 +152,10 @@ describe('publishHtml', () => {
   it('prints a worksheet: the questions as positions, the game withheld, solutions last', () => {
     const base = chapter();
     const path = mainlinePath(base.tree);
-    let tree = setQuestion(base.tree, path[3]!, 'Develop with a threat.');
+    let tree = setQuestion(base.tree, path[3]!, 'Develop with a threat.', {
+      points: 2,
+      seconds: 30,
+    });
     tree = setQuestion(tree, path[5]!, '');
     const html = published(
       [
@@ -162,8 +165,11 @@ describe('publishHtml', () => {
       { worksheet: true },
     );
     expect(html).toContain('Worksheet · 2 questions');
-    expect(html).toContain('<strong>1.</strong> White to play. Develop with a threat.');
-    expect(html).toContain('<strong>2.</strong> White to play. Find the move.');
+    expect(html).toContain(
+      '<strong>1.</strong> White to play. Develop with a threat. <em>(2 points · 30 s)</em>',
+    );
+    // No points and no clock set: none printed.
+    expect(html).toContain('<strong>2.</strong> White to play. Find the move.</figcaption>');
     expect(html.match(/<svg/g)).toHaveLength(2);
     // The chapter's moves and comments are not printed before the solutions.
     const [questions, solutions] = html.split('<section class="solutions">');

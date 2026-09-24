@@ -70,6 +70,14 @@ export interface NodeMeta {
    * (Phase 84, `questions.ts`); written to PGN as `[%kfquestion …]`.
    */
   readonly question?: string;
+  /**
+   * What finding the question is worth, and how long the student has for it
+   * — ChessBase's training annotation carries both. Absent means the author
+   * set none: no score is invented and no clock runs. Written to PGN as
+   * `[%kfqpoints …]` and `[%kfqtime …]` (seconds).
+   */
+  readonly questionPoints?: number;
+  readonly questionSeconds?: number;
 }
 
 export interface MoveNode {

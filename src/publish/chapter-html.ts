@@ -183,9 +183,16 @@ function worksheetSection(chapter: ChapterRecord, first: number): string {
   return chapterQuestions(chapter.tree)
     .map((question, index) => {
       const side = isWhiteMove(question.ply) ? 'White' : 'Black';
+      // Phase 85: the author's points and time limit, where set, as ChessBase prints them.
+      const terms = [
+        question.points !== undefined
+          ? `${question.points} ${question.points === 1 ? 'point' : 'points'}`
+          : null,
+        question.timeLimitSeconds !== undefined ? `${question.timeLimitSeconds} s` : null,
+      ].filter(Boolean);
       return (
         `<figure class="q"><figcaption><strong>${first + index}.</strong> ${side} to play. ` +
-        `${escapeHtml(question.prompt)}</figcaption>` +
+        `${escapeHtml(question.prompt)}${terms.length ? ` <em>(${terms.join(' · ')})</em>` : ''}</figcaption>` +
         `${boardSvg(question.fen, isWhiteMove(question.ply) ? 'w' : 'b')}</figure>`
       );
     })

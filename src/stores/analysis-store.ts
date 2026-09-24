@@ -12,7 +12,7 @@
  * computed by selectors, never stored, so there is one source of truth.
  */
 
-import { setQuestion } from '@/chess/tree/questions';
+import { setQuestion, type QuestionSettings } from '@/chess/tree/questions';
 import { create } from 'zustand';
 
 import type { Shape } from '@/chess/annotations';
@@ -170,7 +170,7 @@ interface AnalysisState {
   promoteToMain(nodeId: NodeId): void;
   comment(nodeId: NodeId, text: string): void;
   /** Mark a move as a chapter question (prompt, '' for the default), or unmark it with null. */
-  setQuestion(nodeId: NodeId, prompt: string | null): void;
+  setQuestion(nodeId: NodeId, prompt: string | null, settings?: QuestionSettings): void;
   toggleNag(nodeId: NodeId, code: number): void;
   toggleShape(nodeId: NodeId, shape: Shape): void;
   clearShapes(nodeId: NodeId): void;
@@ -395,9 +395,9 @@ export const useAnalysis = create<AnalysisState>((set, get) => ({
     set(commit(state, setComment(state.tree, nodeId, text)));
   },
 
-  setQuestion: (nodeId, prompt) => {
+  setQuestion: (nodeId, prompt, settings) => {
     const state = get();
-    const tree = setQuestion(state.tree, nodeId, prompt);
+    const tree = setQuestion(state.tree, nodeId, prompt, settings);
     if (tree === state.tree) return;
     set(commit(state, tree));
   },

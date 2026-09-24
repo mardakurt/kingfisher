@@ -34,6 +34,10 @@ export interface ChapterQuestion {
   /** What the author wrote after the move, shown once it is answered. */
   readonly explanation?: string;
   readonly mainline: boolean;
+  /** What the author says finding it is worth; absent when none was set. */
+  readonly points?: number;
+  /** The author's time limit, in seconds; absent when the question is untimed. */
+  readonly timeLimitSeconds?: number;
 }
 
 export function chapterQuestions(tree: GameTree): ChapterQuestion[] {
@@ -58,6 +62,10 @@ export function chapterQuestions(tree: GameTree): ChapterQuestion[] {
       solutionSan: answers.map((answer) => answer.move!.san),
       ...(node.comment?.trim() ? { explanation: node.comment.trim() } : {}),
       mainline: isOnMainline(tree, node.id),
+      ...(node.meta.questionPoints !== undefined ? { points: node.meta.questionPoints } : {}),
+      ...(node.meta.questionSeconds !== undefined
+        ? { timeLimitSeconds: node.meta.questionSeconds }
+        : {}),
     });
   }
   return questions.sort(
@@ -66,12 +74,49 @@ export function chapterQuestions(tree: GameTree): ChapterQuestion[] {
   );
 }
 
-/** Mark a move as a question (with a prompt, '' for the default), or unmark it. */
-export function setQuestion(tree: GameTree, nodeId: NodeId, prompt: string | null): GameTree {
+export interface QuestionSettings {
+  /** Points for finding it: a whole number of at least one, or absent. */
+  readonly points?: number;
+  /** A time limit in seconds, or absent for an untimed question. */
+  readonly seconds?: number;
+}
+
+const wholeOrNothing = (value: number | undefined): number | undefined =>
+  value !== undefined && Number.isInteger(value) && value >= 1 ? value : undefined;
+
+/**
+ * Mark a move as a question (with a prompt, '' for the default, and optional
+ * points and time limit), or unmark it — which removes its points and time
+ * too, since they belong to the question and to nothing else.
+ */
+export function setQuestion(
+  tree: GameTree,
+  nodeId: NodeId,
+  prompt: string | null,
+  settings: QuestionSettings = {},
+): GameTree {
   const node = tree.nodes[nodeId];
   if (!node?.move) return tree;
-  if (prompt !== null) return setMeta(tree, nodeId, { question: prompt.trim() });
-  // `setMeta` merges, which cannot remove a key.
-  const { question: _removed, ...meta } = node.meta;
-  return { ...tree, nodes: { ...tree.nodes, [nodeId]: { ...node, meta } } };
+  // `setMeta` merges, which cannot remove a key; the question's keys are rebuilt whole.
+  const {
+    question: _question,
+    questionPoints: _points,
+    questionSeconds: _seconds,
+    ...rest
+  } = node.meta;
+  if (prompt === null)
+    return { ...tree, nodes: { ...tree.nodes, [nodeId]: { ...node, meta: rest } } };
+  const points = wholeOrNothing(settings.points);
+  const seconds = wholeOrNothing(settings.seconds);
+  const meta = {
+    ...rest,
+    question: prompt.trim(),
+    ...(points !== undefined ? { questionPoints: points } : {}),
+    ...(seconds !== undefined ? { questionSeconds: seconds } : {}),
+  };
+  return setMeta(
+    { ...tree, nodes: { ...tree.nodes, [nodeId]: { ...node, meta: rest } } },
+    nodeId,
+    meta,
+  );
 }

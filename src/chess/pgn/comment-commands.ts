@@ -23,6 +23,8 @@ export interface CommentData {
   readonly elapsedSeconds?: number;
   /** A study question on this move: its prompt, '' for the default. */
   readonly question?: string;
+  readonly questionPoints?: number;
+  readonly questionSeconds?: number;
 }
 
 const BRUSH_BY_LETTER: Readonly<Record<string, Brush>> = {
@@ -47,6 +49,8 @@ export function parseComment(raw: string): CommentData {
   let clockSeconds: number | undefined;
   let elapsedSeconds: number | undefined;
   let question: string | undefined;
+  let questionPoints: number | undefined;
+  let questionSeconds: number | undefined;
 
   const text = raw
     .replace(COMMAND, (_match, key: string, value: string) => {
@@ -75,6 +79,16 @@ export function parseComment(raw: string): CommentData {
         case 'kfquestion':
           question = value.trim();
           return '';
+        case 'kfqpoints': {
+          const parsed = positiveInteger(value);
+          if (parsed !== null) questionPoints = parsed;
+          return '';
+        }
+        case 'kfqtime': {
+          const parsed = positiveInteger(value);
+          if (parsed !== null) questionSeconds = parsed;
+          return '';
+        }
         default:
           // Unknown commands are dropped from display but not treated as errors.
           return '';
@@ -90,6 +104,8 @@ export function parseComment(raw: string): CommentData {
     ...(clockSeconds !== undefined ? { clockSeconds } : {}),
     ...(elapsedSeconds !== undefined ? { elapsedSeconds } : {}),
     ...(question !== undefined ? { question } : {}),
+    ...(questionPoints !== undefined ? { questionPoints } : {}),
+    ...(questionSeconds !== undefined ? { questionSeconds } : {}),
   };
 }
 
@@ -150,6 +166,14 @@ export function parseClock(value: string): number | null {
   return parts[0] ?? null;
 }
 
+/** A whole number of at least one, or null: points and time limits are never zero or fractional. */
+function positiveInteger(value: string): number | null {
+  const trimmed = value.trim();
+  if (!/^\d+$/.test(trimmed)) return null;
+  const parsed = Number(trimmed);
+  return parsed >= 1 && parsed <= 100_000 ? parsed : null;
+}
+
 export function formatClock(seconds: number): string {
   const total = Math.max(0, Math.round(seconds));
   const h = Math.floor(total / 3600);
@@ -185,6 +209,8 @@ export function formatComment(data: CommentData): string {
   if (data.question !== undefined) {
     parts.push(`[%kfquestion ${data.question.replace(/[\]}]/g, '').trim()}]`);
   }
+  if (data.questionPoints !== undefined) parts.push(`[%kfqpoints ${data.questionPoints}]`);
+  if (data.questionSeconds !== undefined) parts.push(`[%kfqtime ${data.questionSeconds}]`);
 
   return parts.join(' ');
 }

@@ -16,8 +16,8 @@ import { nagInfo, qualityNags } from '@/chess/annotations';
 import { isOnMainline, siblings, variationHeadId } from '@/chess/tree/tree';
 import { ArrowDown, ArrowUp, Copy, Pencil, Scissors, Search, Trash } from '@/components/icons';
 import { ContextMenu, type MenuSection } from '@/components/ui/Menu';
-import { PromptDialog } from '@/components/ui/PromptDialog';
 import { DEFAULT_QUESTION_PROMPT } from '@/chess/tree/questions';
+import { QuestionDialog } from './QuestionDialog';
 import type { NodeId } from '@/chess/tree/types';
 import { serializeMovetext, serializePgnFrom } from '@/chess/pgn';
 import { nodePath } from '@/chess/tree/tree';
@@ -103,9 +103,18 @@ export function MoveContextMenu() {
               }
             : {
                 id: 'question',
-                label: 'Remove the question',
-                run: () => setQuestion(nodeId, null),
+                label: 'Edit the question…',
+                run: () => setAsking(nodeId),
               },
+          ...(node.meta.question === undefined
+            ? []
+            : [
+                {
+                  id: 'question-remove',
+                  label: 'Remove the question',
+                  run: () => setQuestion(nodeId, null),
+                },
+              ]),
           ...qualityNags.map((nag) => ({
             id: `nag-${nag.code}`,
             label: `${nag.symbol}  ${nag.label}${node.nags.includes(nag.code) ? ' ✓' : ''}`,
@@ -257,19 +266,27 @@ export function MoveContextMenu() {
       ) : null}
       {/* Mounted per question: the dialog keeps its busy state while it lives. */}
       {askingNode ? (
-        <PromptDialog
+        <QuestionDialog
           key={asking}
-          open
-          title={`Ask ${askingNode?.move?.san ?? 'this move'} as a question`}
-          description="When the chapter is solved, the board stops before this move and asks for it. The move is the answer; a sibling you marked ! or !! is accepted too."
-          label="Question"
-          initialValue={DEFAULT_QUESTION_PROMPT}
-          confirmLabel="Ask it"
+          san={askingNode.move?.san ?? 'this move'}
+          initialPrompt={askingNode.meta.question ?? ''}
+          {...(askingNode.meta.questionPoints !== undefined
+            ? { initialPoints: askingNode.meta.questionPoints }
+            : {})}
+          {...(askingNode.meta.questionSeconds !== undefined
+            ? { initialSeconds: askingNode.meta.questionSeconds }
+            : {})}
+          editing={askingNode.meta.question !== undefined}
           onCancel={() => setAsking(null)}
-          onSubmit={(prompt) => {
-            if (asking) setQuestion(asking, prompt === DEFAULT_QUESTION_PROMPT ? '' : prompt);
+          onSubmit={(prompt, settings) => {
+            const editing = askingNode.meta.question !== undefined;
+            if (asking)
+              setQuestion(asking, prompt === DEFAULT_QUESTION_PROMPT ? '' : prompt, settings);
             setAsking(null);
-            notify({ tone: 'success', message: 'Question added. Solve it from the chapter.' });
+            notify({
+              tone: 'success',
+              message: editing ? 'Question saved.' : 'Question added. Solve it from the chapter.',
+            });
           }}
         />
       ) : null}

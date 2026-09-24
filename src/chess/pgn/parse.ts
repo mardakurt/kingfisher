@@ -341,7 +341,9 @@ function applyCommentData(
     data.score !== undefined ||
     data.clockSeconds !== undefined ||
     data.elapsedSeconds !== undefined ||
-    data.question !== undefined;
+    data.question !== undefined ||
+    data.questionPoints !== undefined ||
+    data.questionSeconds !== undefined;
   const text = data.text || (understood ? '' : raw.trim());
   const merged = [node.comment, text].filter(Boolean).join(' ').trim();
 
@@ -361,6 +363,8 @@ function applyCommentData(
           ...(data.clockSeconds !== undefined ? { clockSeconds: data.clockSeconds } : {}),
           ...(data.elapsedSeconds !== undefined ? { elapsedSeconds: data.elapsedSeconds } : {}),
           ...(data.question !== undefined ? { question: data.question } : {}),
+          ...(data.questionPoints !== undefined ? { questionPoints: data.questionPoints } : {}),
+          ...(data.questionSeconds !== undefined ? { questionSeconds: data.questionSeconds } : {}),
         },
       },
     },

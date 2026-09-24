@@ -211,6 +211,12 @@ function writeMove(
           ? { elapsedSeconds: node.meta.elapsedSeconds }
           : {}),
         ...(node.meta.question !== undefined ? { question: node.meta.question } : {}),
+        ...(node.meta.question !== undefined && node.meta.questionPoints !== undefined
+          ? { questionPoints: node.meta.questionPoints }
+          : {}),
+        ...(node.meta.question !== undefined && node.meta.questionSeconds !== undefined
+          ? { questionSeconds: node.meta.questionSeconds }
+          : {}),
       })
     : '';
 
