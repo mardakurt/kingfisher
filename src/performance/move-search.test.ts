@@ -21,6 +21,8 @@ import { scanGame, type DeepQuery } from '@/search/game-scan';
 import { parseMaterialQuery } from '@/search/material-query';
 import { parseRoute } from '@/search/route';
 
+import { calibrationUnitMs, medianMs } from './calibration';
+
 // Generating a legal game costs far more than scanning it; sixty give a stable
 // per-game figure without making the unit suite wait for the fixture.
 const GAMES = 60;
@@ -58,31 +60,26 @@ const unwrap = <T>(
 };
 
 /*
-  The budget, per game. The design's target is 10,000 games in ten seconds
-  for a whole move search — 1 ms a game — and the scan is allowed half of it,
-  the rest being the storage reads the browser or the companion adds. Stated
-  per game, it does not depend on how many games the fixture holds.
+  Two budgets, both per game.
 
-  Measured as the median of RUNS passes after a warm-up, so one garbage
-  collection or one descheduled slice on a shared runner cannot decide the
-  result. The margin is the point: the slowest query (theme) takes about
-  0.15 ms a game on an M-series Mac and about 0.3 ms on a GitHub runner, so a
-  genuine threefold regression fails on either machine while scheduling noise
-  does not.
+  The design's target is 10,000 games in ten seconds for a whole move search
+  — 1 ms a game — and no query may exceed it on any machine. That is the
+  backstop, in milliseconds.
+
+  The regression budget is in units of this machine's speed
+  (`calibration.ts`): a shared runner's speed varies by about two times from
+  run to run, so only a budget that cancels the machine out can pass on every
+  run and still fail a genuine threefold regression. Each figure is the median
+  of RUNS passes after a warm-up.
 */
-const BUDGET_MS_PER_GAME = 0.5;
+const DESIGN_TARGET_MS_PER_GAME = 1;
 const RUNS = 7;
-
-function medianPerGame(games: readonly GameTree[], query: DeepQuery): number {
-  const samples: number[] = [];
-  for (let run = 0; run < RUNS; run += 1) {
-    const started = performance.now();
-    for (const game of games) scanGame(game, query);
-    samples.push((performance.now() - started) / games.length);
-  }
-  samples.sort((a, b) => a - b);
-  return samples[Math.floor(RUNS / 2)]!;
-}
+const BUDGET_UNITS_PER_GAME: Record<string, number> = {
+  material: 1,
+  route: 1,
+  theme: 1,
+  comment: 1,
+};
 
 describe('move-level search cost', () => {
   const games = Array.from({ length: GAMES }, (_, index) => randomGame(index + 1));
@@ -98,12 +95,18 @@ describe('move-level search cost', () => {
     it(`asks ${name} of a realistic game in well under a millisecond`, () => {
       // Warm the JIT on every game, then measure.
       for (const game of games) scanGame(game, query);
-      const perGame = medianPerGame(games, query);
+      const unit = calibrationUnitMs();
+      const perGame =
+        medianMs(RUNS, () => {
+          for (const game of games) scanGame(game, query);
+        }) / games.length;
+      const units = perGame / unit;
       // eslint-disable-next-line no-console -- the measurement is what a reader of the log wants
       console.info(
-        `${name}: ${perGame.toFixed(3)} ms/game (median of ${RUNS}) → ${((perGame * 10_000) / 1000).toFixed(2)} s per 10,000 games`,
+        `${name}: ${perGame.toFixed(3)} ms/game (median of ${RUNS}) → ${((perGame * 10_000) / 1000).toFixed(2)} s per 10,000 games; ${units.toFixed(4)} units/game (unit ${unit.toFixed(2)} ms)`,
       );
-      expect(perGame).toBeLessThan(BUDGET_MS_PER_GAME);
+      expect(perGame).toBeLessThan(DESIGN_TARGET_MS_PER_GAME);
+      expect(units).toBeLessThan(BUDGET_UNITS_PER_GAME[name]!);
     });
   }
 });

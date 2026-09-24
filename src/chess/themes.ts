@@ -23,7 +23,7 @@
 import { fileOf, rankOf, squareColor } from './board';
 import { parseFen, type FenParts } from './fen';
 import { isOk } from './result';
-import type { Color, PieceType, Square } from './types';
+import type { Color, Piece, PieceType, Square } from './types';
 
 /** Bump when any definition below changes, so stored matches stay honest. */
 export const THEME_VERSION = 't1';
@@ -42,7 +42,8 @@ export interface StrategicTheme {
 // --- A small board view the definitions are written against -----------------
 
 export interface BoardView {
-  readonly parts: FenParts;
+  /** The pieces, indexed by `squareIndex`; all a definition may read. */
+  readonly board: readonly (Piece | null)[];
   /** Squares occupied by each piece type and colour. */
   pieces(color: Color, type: PieceType): readonly Square[];
   count(color: Color, type: PieceType): number;
@@ -56,29 +57,33 @@ const SQUARE_NAMES: readonly Square[] = Array.from(
   (_, index) => `${'abcdefgh'[index % 8]}${Math.floor(index / 8) + 1}` as Square,
 );
 
+const TYPE_SLOT: Readonly<Record<PieceType, number>> = { p: 0, n: 1, b: 2, r: 3, q: 4, k: 5 };
+const slotOf = (color: Color, type: PieceType): number => (color === 'w' ? 0 : 6) + TYPE_SLOT[type];
+
 const NONE: readonly Square[] = [];
 
 /**
  * One pass over the board, each piece filed under its colour and type. A
  * search asks several definitions of every position of every game, so the
- * view is built once and each question is a lookup.
+ * view is built once and each question is a lookup. Takes `FenParts` or any
+ * other holder of a board — `readPlacement`'s answer, for a search.
  */
-export function boardView(parts: FenParts): BoardView {
-  const byPiece = new Map<string, Square[]>();
+export function boardView({ board }: { readonly board: readonly (Piece | null)[] }): BoardView {
+  const slots: (Square[] | undefined)[] = new Array(12);
   for (let index = 0; index < 64; index += 1) {
-    const piece = parts.board[index];
+    const piece = board[index];
     if (!piece) continue;
-    const key = piece.color + piece.type;
-    const squares = byPiece.get(key);
+    const slot = slotOf(piece.color, piece.type);
+    const squares = slots[slot];
     if (squares) squares.push(SQUARE_NAMES[index]!);
-    else byPiece.set(key, [SQUARE_NAMES[index]!]);
+    else slots[slot] = [SQUARE_NAMES[index]!];
   }
 
   const pieces = (color: Color, type: PieceType): readonly Square[] =>
-    byPiece.get(color + type) ?? NONE;
+    slots[slotOf(color, type)] ?? NONE;
 
   return {
-    parts,
+    board,
     pieces,
     count: (color, type) => pieces(color, type).length,
     pawnSquares: (color) => pieces(color, 'p'),

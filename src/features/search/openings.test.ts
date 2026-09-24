@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import { calibrationUnitMs } from '@/performance/calibration';
+
 import { expandOpeningQuery, searchOpenings } from './openings';
 
 const first = async (query: string) => (await searchOpenings(query, 1))[0]?.label;
@@ -121,14 +123,16 @@ describe('searchOpenings', () => {
   });
 
   /*
-    60 ms a query is what a keystroke allows before the list visibly lags.
-    Each query is timed as the median of seven runs after a warm-up, so one
-    collection or one descheduled slice on a shared runner cannot decide it.
-    Measured: about 10 ms a query on an M-series Mac and about 25 ms on a
-    GitHub runner, so a threefold regression still fails on the runner.
+    60 ms a query is what a keystroke allows before the list visibly lags, and
+    no query may take longer on any machine. The regression budget is in units
+    of this machine's speed (`src/performance/calibration.ts`), because a
+    shared runner's speed varies by about two times from run to run and only a
+    budget that cancels it out can fail a threefold regression every time.
+    Each query is the median of seven runs after a warm-up.
   */
   it('answers in the time a keystroke allows', async () => {
     await searchOpenings('warm');
+    const unit = calibrationUnitMs();
     for (const query of ['Sicilian', 'Berlin', "King's Indian", 'Sveshnikov', 'QGD']) {
       const samples: number[] = [];
       for (let run = 0; run < 7; run += 1) {
@@ -139,8 +143,11 @@ describe('searchOpenings', () => {
       samples.sort((a, b) => a - b);
       const median = samples[3]!;
       // eslint-disable-next-line no-console -- the measurement is what a reader of the log wants
-      console.info(`${query}: ${median.toFixed(1)} ms (median of 7)`);
+      console.info(
+        `${query}: ${median.toFixed(1)} ms (median of 7); ${(median / unit).toFixed(2)} units (unit ${unit.toFixed(2)} ms)`,
+      );
       expect(median, query).toBeLessThan(60);
+      expect(median / unit, query).toBeLessThan(100);
     }
   });
 });

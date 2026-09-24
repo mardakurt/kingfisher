@@ -68,6 +68,7 @@ interface Prepared {
   readonly haystack: string;
   readonly aliases: readonly string[];
   readonly words: ReadonlySet<string>;
+  readonly qualifiers: readonly string[];
 }
 
 /*
@@ -85,7 +86,8 @@ function prepare(item: Rankable): Prepared {
   const aliases = (item.aliases ?? []).map(normalize).filter((a) => a !== EMPTY);
   const words = new Set(wordsOf(haystack));
   for (const alias of aliases) for (const word of wordsOf(alias)) words.add(word);
-  const prepared = { haystack, aliases, words };
+  const qualifiers = (item.qualifiers ?? []).map(normalize);
+  const prepared = { haystack, aliases, words, qualifiers };
   PREPARED.set(item, prepared);
   return prepared;
 }
@@ -104,7 +106,7 @@ export function rank<T extends Rankable>(
   const queryWords = new Set(tokens.flatMap(wordsOf));
 
   for (const item of items) {
-    const { haystack, aliases, words } = prepare(item);
+    const { haystack, aliases, words, qualifiers } = prepare(item);
     if (haystack === EMPTY) continue;
 
     const score = scoreText(
@@ -117,10 +119,10 @@ export function rank<T extends Rankable>(
       item.lastOpenedAt,
       nowSeconds,
       item.weight,
-      item.qualifiers,
+      qualifiers,
     );
     if (score <= 0) continue;
-    scored.push({ item, score, why: explain(haystack, aliases, needle) });
+    scored.push({ item, score, why: explain(haystack, aliases, words, needle, tokens) });
   }
 
   scored.sort((a, b) => b.score - a.score || stableTiebreak(a, b));
@@ -143,7 +145,7 @@ function scoreText(
   weight = 0,
   qualifiers: readonly string[] = [],
 ): number {
-  const penalty = qualifiers.filter((q) => !queryWords.has(normalize(q))).length * 15;
+  const penalty = qualifiers.filter((q) => !queryWords.has(q)).length * 15;
   const bonus =
     recencyBonus(lastOpenedAt, nowSeconds) + Math.max(-40, Math.min(40, weight)) - penalty;
 
@@ -202,10 +204,14 @@ function recencyBonus(lastOpenedAt: number | undefined, nowSeconds: number): num
   return 0;
 }
 
-function explain(text: string, aliases: readonly string[], needle: string): string {
+function explain(
+  text: string,
+  aliases: readonly string[],
+  words: ReadonlySet<string>,
+  needle: string,
+  tokens: readonly string[],
+): string {
   if (text === needle || aliases.includes(needle)) return 'exact';
-  const tokens = needle.split(/\s+/).filter((t) => t.length > 0);
-  const words = new Set([text, ...aliases].flatMap(wordsOf));
   if (tokens.length > 0 && tokens.every((t) => words.has(t))) return 'whole words';
   if (text.startsWith(needle) || aliases.some((candidate) => candidate.startsWith(needle)))
     return 'prefix';
@@ -256,27 +262,39 @@ function wordsOf(value: string): readonly string[] {
  */
 function levenshtein(a: string, b: string, limit: number): number {
   if (Math.abs(a.length - b.length) > limit) return limit + 1;
-  const rows: number[][] = [];
-  rows[0] = Array.from({ length: b.length + 1 }, (_, j) => j);
+  const width = b.length + 1;
+  // Three rolling rows (two back, for a transposition), reused across calls:
+  // a query is compared with every word of every entry that did not match.
+  if (ROWS.length < width * 3) ROWS = new Int32Array(width * 3 * 2);
+  let before = 0; // row i - 2
+  let previous = width; // row i - 1
+  let current = width * 2; // row i
+  for (let j = 0; j < width; j += 1) ROWS[previous + j] = j;
   for (let i = 1; i <= a.length; i += 1) {
-    const row = new Array<number>(b.length + 1);
-    row[0] = i;
+    ROWS[current] = i;
     let rowMin = i;
+    const ai = a.charCodeAt(i - 1);
     for (let j = 1; j <= b.length; j += 1) {
-      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      const bj = b.charCodeAt(j - 1);
+      const cost = ai === bj ? 0 : 1;
       let value = Math.min(
-        (rows[i - 1]?.[j] ?? 0) + 1,
-        (row[j - 1] ?? 0) + 1,
-        (rows[i - 1]?.[j - 1] ?? 0) + cost,
+        ROWS[previous + j]! + 1,
+        ROWS[current + j - 1]! + 1,
+        ROWS[previous + j - 1]! + cost,
       );
-      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) {
-        value = Math.min(value, (rows[i - 2]?.[j - 2] ?? 0) + 1);
+      if (i > 1 && j > 1 && ai === b.charCodeAt(j - 2) && a.charCodeAt(i - 2) === bj) {
+        value = Math.min(value, ROWS[before + j - 2]! + 1);
       }
-      row[j] = value;
+      ROWS[current + j] = value;
       if (value < rowMin) rowMin = value;
     }
-    rows[i] = row;
     if (rowMin > limit) return limit + 1;
+    const spare = before;
+    before = previous;
+    previous = current;
+    current = spare;
   }
-  return rows[a.length]?.[b.length] ?? 0;
+  return ROWS[previous + b.length]!;
 }
+
+let ROWS = new Int32Array(96);
