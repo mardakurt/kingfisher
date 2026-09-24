@@ -37,6 +37,7 @@ import { PwaUpdateBanner } from '@/pwa/PwaUpdateBanner';
 import { ChessWorkspaceProvider } from '@/features/workspace/ChessWorkspaceContext';
 import { AnalysisQueueProvider } from '@/features/analysis-queue/AnalysisQueueProvider';
 import { useEnginePositionGuard } from '@/features/analysis/useEnginePositionGuard';
+import { useDeepAnalysisResume } from '@/features/engine/useDeepAnalysisResume';
 
 // These feature surfaces are large and uncommon at startup. Conditional
 // mounting matters as much as the dynamic import: a closed dialog must not
@@ -104,6 +105,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   useWorkspacePersistence();
   useCompanionSync();
   useBrowserEngineDiscovery();
+  // Phase 85: a deep analysis the last page left running is picked up again.
+  useDeepAnalysisResume();
   // A no-op in a browser; see src/desktop/bridge.ts.
   useDesktopIntegration();
   useMenuCommands();

@@ -234,6 +234,16 @@ contextBridge.exposeInMainWorld('kingfisher', {
     if (theme === 'light' || theme === 'dark') ipcRenderer.send('kingfisher:appearance', theme);
   },
   /**
+   * Phase 85: work that must go on with the window closed (a deep analysis).
+   * While it is reported, closing the window hides it; see background-work.mjs.
+   */
+  backgroundWork: (active, label) => {
+    ipcRenderer.send('kingfisher:background-work', {
+      active: active === true,
+      label: typeof label === 'string' ? label.slice(0, 80) : '',
+    });
+  },
+  /**
    * Phase 84: a menu item naming one of the application's own commands (New
    * Tab, Close Tab, the Go menu…). The id is the command palette's; the
    * renderer runs its own command. Channel: `MENU_COMMAND_CHANNEL` in

@@ -186,6 +186,9 @@ export function DeepenSection({ fen }: { readonly fen: Fen }) {
       {job.status === 'running' && job.startFen ? (
         <p className="mt-1 truncate text-secondary" data-deepen-progress>
           {job.searched} of up to {job.options?.budget} positions
+          {job.resumed > 0
+            ? ` · resumed ${job.resumed === 1 ? 'once' : `${job.resumed} times`}`
+            : ''}
           {job.current.length > 0 ? ` · ${lineText(job.startFen, job.current)}` : ''}
         </p>
       ) : null}
@@ -259,6 +262,12 @@ function DeepenReport({ onBoard }: { readonly onBoard: Fen }) {
         {result.stopped ? 'Stopped after' : 'Finished:'} {result.searched}{' '}
         {result.searched === 1 ? 'position' : 'positions'} searched by {job.engineName},{' '}
         {summary.moves} {summary.moves === 1 ? 'move' : 'moves'} in the tree.
+        {job.resumed > 0
+          ? ` Picked up again ${job.resumed === 1 ? 'once' : `${job.resumed} times`} after the page running it went away.`
+          : ''}
+        {job.finishedUnseen && job.finishedAt
+          ? ` It finished at ${new Date(job.finishedAt).toLocaleString()}, while Kingfisher was not showing it.`
+          : ''}
       </p>
       {own ? (
         <p className="text-secondary tabular" data-deepen-own>

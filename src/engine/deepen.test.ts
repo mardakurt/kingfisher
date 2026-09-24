@@ -10,6 +10,7 @@ import {
   changedMinds,
   countMoves,
   deepen,
+  pendingFrontier,
   positionsFor,
   principalLine,
   type DeepenSearch,
@@ -212,5 +213,81 @@ describe('graftDeepening', () => {
     expect(again.added).toBe(0);
     const e5Again = Object.values(again.tree.nodes).find((node) => node.move?.san === 'e5')!;
     expect(e5Again.comment).toBe(e5.comment);
+  });
+});
+
+/*
+  Phase 85: a run survives a reload, a sleep or a quit because it can be
+  resumed from its checkpoint. The proof is that interrupting a run anywhere,
+  saving the tree as JSON and resuming it gives exactly the tree, and asks the
+  engine exactly the positions, an uninterrupted run does.
+*/
+describe('resuming a deep analysis', () => {
+  const OPTIONS = { breadth: 2, marginCp: 50, maxPlies: 3, budget: 50 };
+  const strip = (value: unknown) => JSON.parse(JSON.stringify(value));
+
+  it('resumed from any checkpoint, gives the tree an uninterrupted run gives', async () => {
+    const whole = engine(SCRIPT);
+    const reference = await deepen(START_FEN as Fen, OPTIONS, whole.evaluate);
+    expect(reference.searched).toBeGreaterThan(3);
+
+    for (let stopAt = 1; stopAt < reference.searched; stopAt += 1) {
+      const first = engine(SCRIPT);
+      const controller = new AbortController();
+      let saved: unknown = null;
+      await deepen(
+        START_FEN as Fen,
+        OPTIONS,
+        first.evaluate,
+        controller.signal,
+        undefined,
+        undefined,
+        (checkpoint) => {
+          saved = strip(checkpoint);
+          if (checkpoint.searched === stopAt) controller.abort();
+        },
+      );
+      const second = engine(SCRIPT);
+      const resumed = await deepen(
+        START_FEN as Fen,
+        OPTIONS,
+        second.evaluate,
+        undefined,
+        undefined,
+        saved as { root: never; searched: number },
+      );
+      expect(strip(resumed.root), `stopped after ${stopAt}`).toEqual(strip(reference.root));
+      expect(resumed.searched).toBe(reference.searched);
+      // Nothing searched twice, nothing skipped.
+      expect([...first.asked.slice(0, stopAt), ...second.asked]).toEqual(whole.asked);
+    }
+  });
+
+  it('keeps an interrupted search on the frontier, and refuses another start position', async () => {
+    const { evaluate } = engine(SCRIPT);
+    const controller = new AbortController();
+    const result = await deepen(
+      START_FEN as Fen,
+      OPTIONS,
+      async (fen, signal) => {
+        if (fen !== START_FEN) {
+          controller.abort();
+          throw new DOMException('Stopped.', 'AbortError');
+        }
+        void signal;
+        return evaluate(fen);
+      },
+      controller.signal,
+    );
+    expect(result.stopped).toBe(true);
+    const pending = pendingFrontier(strip(result.root));
+    // The first child's search was in flight when it stopped: it is still pending.
+    expect(pending[0]!.move?.uci).toBe('e2e4');
+    await expect(
+      deepen(after('e2e4'), OPTIONS, evaluate, undefined, undefined, {
+        root: strip(result.root),
+        searched: result.searched,
+      }),
+    ).rejects.toThrow(/another position/);
   });
 });

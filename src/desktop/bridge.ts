@@ -230,6 +230,12 @@ export interface DesktopBridge {
   onUpdateInstalled(
     listener: (payload: { version: string; previousVersion: string | null }) => void,
   ): () => void;
+  /**
+   * Phase 85: work that must go on with the window closed. Optional: a shell
+   * built before it has no such channel, and the work then simply stops with
+   * the window, as it always did.
+   */
+  backgroundWork?(active: boolean, label?: string): void;
 }
 
 declare global {
@@ -265,4 +271,13 @@ export const isDesktop = (): boolean => desktop() !== null;
  */
 export function windowChrome(): WindowChrome | null {
   return desktop()?.windowChrome ?? null;
+}
+
+/**
+ * Tell the shell that work which must survive a closed window has started or
+ * ended (Phase 85): while it goes on, the Mac window hides instead of
+ * closing. Nothing in a browser, where a closed tab ends the page by design.
+ */
+export function setBackgroundWork(active: boolean, label?: string): void {
+  desktop()?.backgroundWork?.(active, label);
 }

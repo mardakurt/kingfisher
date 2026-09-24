@@ -19,7 +19,17 @@
  * a measured decision and not a default.
  */
 
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, screen, shell } from 'electron';
+import {
+  app,
+  BrowserWindow,
+  dialog,
+  ipcMain,
+  Menu,
+  nativeTheme,
+  powerSaveBlocker,
+  screen,
+  shell,
+} from 'electron';
 import { randomBytes } from 'node:crypto';
 import { RevivalBudget } from './revival.mjs';
 import { createRequire } from 'node:module';
@@ -27,6 +37,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { createBackgroundWork } from './background-work.mjs';
 import { readBuildIdentity } from './build-identity.mjs';
 import { log, logFile, openLog, redactInLog } from './log.mjs';
 import {
@@ -136,6 +147,9 @@ const mark = (stage) => {
   if (process.env.KINGFISHER_STARTUP_TRACE) process.stderr.write(`[startup] ${stage} ${at} ms\n`);
   return at;
 };
+
+/** Work the page reports must go on with the window closed (Phase 85). */
+const backgroundWork = createBackgroundWork({ powerSaveBlocker, log });
 
 /** Everything the shell owns for one run. Assembled in `start()`. */
 const state = {
@@ -546,6 +560,18 @@ function createWindow() {
     );
   });
 
+  /*
+    Phase 85: while the page reports work that must go on (a deep analysis),
+    closing the window hides it — the page, its engine and the run keep going,
+    and the Dock icon brings the window back. Quit still quits.
+  */
+  window.on('close', (event) => {
+    if (!backgroundWork.shouldHide(state.quitting)) return;
+    event.preventDefault();
+    window.hide();
+    log('window', `hidden, not closed: ${backgroundWork.label()} is running`);
+  });
+
   window.on('closed', () => {
     state.window = null;
   });
@@ -850,6 +876,12 @@ function registerIpc() {
     follows it: native appearance, window background, the Appearance radio
     items, and the record the next launch starts from. See appearance.mjs.
   */
+  ipcMain.on('kingfisher:background-work', (event, payload) => {
+    const window = state.window;
+    if (!window || window.isDestroyed() || event.sender !== window.webContents) return;
+    backgroundWork.set(payload);
+  });
+
   ipcMain.on('kingfisher:appearance', (event, theme) => {
     const window = state.window;
     if (!window || window.isDestroyed() || event.sender !== window.webContents) return;
@@ -1167,6 +1199,11 @@ if (!app.requestSingleInstanceLock()) {
     }
 
     app.on('activate', () => {
+      // A window hidden while background work went on comes back as it was.
+      if (state.window && !state.window.isDestroyed() && !state.window.isVisible()) {
+        state.window.show();
+        return;
+      }
       if (BrowserWindow.getAllWindows().length === 0) createWindow();
     });
   });

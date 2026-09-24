@@ -141,6 +141,13 @@ export const BRIDGE_CONTRACTS: readonly BridgeContract[] = [
     caller: 'desktop/useDesktop.ts',
   },
   {
+    method: 'backgroundWork',
+    purpose:
+      'Phase 85: a deep analysis is running, so closing the Mac window hides it instead and the ' +
+      'run goes on; called through setBackgroundWork, which features/engine/deepen-store.ts calls.',
+    caller: 'desktop/bridge.ts',
+  },
+  {
     method: 'onMenuCommand',
     purpose:
       'Phase 84: the Mac menu naming one of the application’s own commands — New Tab, Close Tab, ' +

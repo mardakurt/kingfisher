@@ -67,6 +67,13 @@ export interface DeepNode {
   readonly lineScore?: Score;
   /** The reply the parent's line expected after this move. */
   readonly predicted?: Uci;
+  /**
+   * Set once the position has been taken off the frontier — searched, or
+   * passed over at the depth limit. What makes a saved tree resumable: the
+   * positions still to search are exactly the unvisited ones, in the
+   * breadth-first order the frontier would have held them.
+   */
+  visited?: true;
   /** Set once this position has been searched itself. */
   evaluation?: {
     readonly score: Score;
@@ -101,17 +108,52 @@ export function scoreValue(score: Score): number {
   return score.moves >= 0 ? base : -base;
 }
 
+/** Where a stopped run left off: its tree and how many positions it searched. */
+export interface DeepenCheckpoint {
+  readonly root: DeepNode;
+  readonly searched: number;
+}
+
+/** The positions still to search in a saved tree, in the order the run would have reached them. */
+export function pendingFrontier(root: DeepNode): DeepNode[] {
+  const pending: DeepNode[] = [];
+  const level: DeepNode[] = [root];
+  while (level.length > 0) {
+    const node = level.shift()!;
+    if (!node.visited) pending.push(node);
+    level.push(...node.children);
+  }
+  return pending;
+}
+
 export async function deepen(
   start: Fen,
   options: DeepenOptions,
   evaluate: (fen: Fen, signal?: AbortSignal) => Promise<DeepenSearch>,
   signal?: AbortSignal,
   onProgress?: (searched: number, path: readonly DeepNode[]) => void,
+  /**
+   * Resume a run from its checkpoint instead of starting fresh; called back
+   * after every position, so a reload, a sleep or a quit costs at most the
+   * search in flight.
+   */
+  resume?: DeepenCheckpoint,
+  onCheckpoint?: (checkpoint: DeepenCheckpoint) => void,
 ): Promise<DeepenResult> {
-  const root: DeepNode = { fen: start, depthFromRoot: 0, children: [] };
-  const frontier: DeepNode[] = [root];
+  if (resume && resume.root.fen !== start) {
+    throw new Error('The saved deep analysis started from another position.');
+  }
+  const root: DeepNode = resume?.root ?? { fen: start, depthFromRoot: 0, children: [] };
+  const frontier: DeepNode[] = resume ? pendingFrontier(root) : [root];
   // For the progress line: the moves from the start to the node searched.
   const parents = new Map<DeepNode, DeepNode>();
+  const link = (node: DeepNode) => {
+    for (const child of node.children) {
+      parents.set(child, node);
+      link(child);
+    }
+  };
+  link(root);
   const pathOf = (node: DeepNode): DeepNode[] => {
     const out: DeepNode[] = [];
     for (let at: DeepNode | undefined = node; at && at !== root; at = parents.get(at)) {
@@ -119,24 +161,34 @@ export async function deepen(
     }
     return out;
   };
-  let searched = 0;
+  let searched = resume?.searched ?? 0;
 
   while (frontier.length > 0 && searched < options.budget) {
     if (signal?.aborted) return { root, searched, stopped: true };
-    const node = frontier.shift()!;
-    if (node.depthFromRoot >= options.maxPlies) continue;
+    const node = frontier[0]!;
+    if (node.depthFromRoot >= options.maxPlies) {
+      frontier.shift();
+      node.visited = true;
+      continue;
+    }
 
     let search: DeepenSearch;
     try {
       search = await evaluate(node.fen, signal);
     } catch (error) {
+      // The node stays on the frontier, unvisited: a resumed run searches it again.
       if (signal?.aborted) return { root, searched, stopped: true };
       throw error;
     }
+    frontier.shift();
+    node.visited = true;
     searched += 1;
     const lines = search.lines.filter((line) => line.moves.length > 0);
     const top = lines[0];
-    if (!top) continue;
+    if (!top) {
+      onCheckpoint?.({ root, searched });
+      continue;
+    }
     node.evaluation = {
       score: top.score,
       depth: top.depth || search.depth,
@@ -167,6 +219,7 @@ export async function deepen(
       parents.set(child, node);
       frontier.push(child);
     }
+    onCheckpoint?.({ root, searched });
   }
   return { root, searched, stopped: false };
 }
