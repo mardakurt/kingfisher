@@ -235,6 +235,25 @@ export function StudiesWorkspace() {
   useEffect(() => {
     if (!chapter || loadedChapter.current === chapter.id) return;
     loadedChapter.current = chapter.id;
+    /*
+      The chapter may already be on the board — edited in Analysis a moment
+      ago, with the edit still inside autosave's debounce. Opening the stored
+      record over it discarded that edit for good: comment on a move, click
+      Studies within a second, and the comment was gone from the board and
+      from storage (found in Phase 84). The board's copy is the newer one
+      unless the stored record has moved past the revision it was loaded
+      at, which only another tab can do; that case is still opened, and the
+      autosave conflict path is what reports it.
+    */
+    const live = useAnalysis.getState();
+    if (
+      live.document.kind === 'study-chapter' &&
+      live.document.chapterId === chapter.id &&
+      live.document.revision >= chapter.revision
+    ) {
+      if (paramNode && chapter.id === paramChapter && live.tree.nodes[paramNode]) goTo(paramNode);
+      return;
+    }
     open(chapter);
     // The node a search hit named, when the chapter is the one it named.
     if (paramNode && chapter.id === paramChapter && chapter.tree.nodes[paramNode]) goTo(paramNode);
