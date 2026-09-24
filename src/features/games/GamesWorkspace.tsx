@@ -60,6 +60,8 @@ import {
   type LibrarySource,
 } from './library-source';
 import { mergeSelectedGames } from './merge-selected';
+import { openInNewTab } from '@/features/tabs/tab-actions';
+import { useAnalysis } from '@/stores/analysis-store';
 import { openStoredGame } from './open-game';
 import {
   compileMoves,
@@ -587,11 +589,24 @@ export function GamesWorkspace() {
             */
             <Button
               onClick={() => {
-                const ids = rows.filter((row) => selected.has(row.id)).map((row) => row.id);
-                void mergeSelectedGames(ids)
+                // The list's order for the rows on this page, then any
+                // selected on another page, which were dropped before.
+                const ids = [
+                  ...rows.filter((row) => selected.has(row.id)).map((row) => row.id),
+                  ...[...selected].filter((id) => !rows.some((row) => row.id === id)),
+                ];
+                let opened = false;
+                void mergeSelectedGames(ids, (input) =>
+                  openInNewTab(router, () => useAnalysis.getState().openDocument(input)).then(
+                    (done) => {
+                      opened = done;
+                    },
+                  ),
+                )
                   .then(({ message, result }) => {
-                    notify({ tone: result.skipped.length ? 'info' : 'success', message });
-                    router.push('/analysis');
+                    if (opened) {
+                      notify({ tone: result.skipped.length ? 'info' : 'success', message });
+                    }
                   })
                   .catch((error: unknown) =>
                     notify({

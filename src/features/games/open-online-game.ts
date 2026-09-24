@@ -26,7 +26,7 @@
 import { parsePgn } from '@/chess/pgn';
 import { DatabaseError, type ChessDatabaseProvider } from '@/database/types';
 import { getRepositories } from '@/persistence/repositories';
-import { useAnalysis } from '@/stores/analysis-store';
+import { useAnalysis, type OpenDocumentInput } from '@/stores/analysis-store';
 
 import { viewerSide } from './viewer-side';
 
@@ -46,6 +46,9 @@ export async function openOnlineGame(
   gameId: string,
   title: string,
   signal?: AbortSignal,
+  /** Where the game goes: the board by default, or a new tab. */
+  open: (input: OpenDocumentInput) => unknown = (input) =>
+    useAnalysis.getState().openDocument(input),
 ): Promise<void> {
   if (typeof provider.game !== 'function') {
     throw new OnlineGameUnavailableError(`${provider.name} does not serve whole games.`);
@@ -92,7 +95,7 @@ export async function openOnlineGame(
     viewer = undefined;
   }
 
-  useAnalysis.getState().openDocument({
+  await open({
     tree: parsed.tree,
     ...(viewer ? { orientation: viewer } : {}),
     document: {
