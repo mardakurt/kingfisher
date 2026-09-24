@@ -186,7 +186,14 @@ Then fix what is red — properly:
    visual spec must pass on CI.
 4. **Firefox and WebKit.** Run `KF_E2E_MATRIX=1 npm run test:e2e` (or
    `test:e2e:matrix`) once and fix or file every failure.
-5. **Push master and watch CI to green.** Do not write that CI is green while
+5. **The live-site specs.** `e2e/prod-phase60.spec.ts` loads
+   kingfisherchess.app; in the Phase 84 container it failed only because a
+   TLS proxy stood between Chromium and the site. On the Mac it must pass;
+   if it does not, it is a real finding about the deployed site.
+6. **The Vercel deployment.** `npm run deploy:status` (or the Vercel
+   dashboard) — the merged master must build and deploy on Vercel from a
+   clean checkout (Phase 80 found a source file only one machine had).
+7. **Push master and watch CI to green.** Do not write that CI is green while
    it is still running (`CLAUDE.md`). Link the run.
 
 ---
@@ -236,7 +243,11 @@ publish anything. When they say yes, follow
 file that names the public DMG), then run
 `npm run desktop:public:verify -- --landing --full` and
 `npm run desktop:update:real` (Sparkle and the 1.1.7 `electron-updater`
-path). Until that has happened, correct `docs/release/1.3.0.md`'s "Released"
+path), and update every place that states the current version and DMG:
+`AGENTS.md` ("The current marketing version is ...", "macOS stable DMG"),
+`README.md`, `docs/release/install-macos.md`, `public-claims.md`, so
+`docs:check` passes against the new descriptor. Until that has happened,
+correct `docs/release/1.3.0.md`'s "Released"
 line so it is not false. If the release includes this phase's work, it is a
 new version with its own notes — never replace the bytes of a published asset.
 
@@ -291,6 +302,15 @@ Close it on three fronts:
    in `docs/data/historical-games-audit.md` and ask the owner; never ship a
    source that audit rejects.
 
+4. **Kept current.** Mega Database is updated weekly. Make the pack build a
+   scheduled, reproducible pipeline (a GitHub Actions workflow or a
+   documented local command) that rebuilds the broadcast-based packs from
+   each new upstream month, verifies the upstream digests, publishes to the
+   data mirror with a new manifest version, and lets an installed
+   Kingfisher see and install the update (the pack manager already verifies
+   chunks). **Acceptance:** one real update cycle run end to end, and the
+   installed app picking up the new version.
+
 The corpus blocker is closed when a serious player can answer every ChessBase
 reference-database question — top games, novelties, popularity, pioneers, Elo
 classes, annotated model games — from either a population Kingfisher ships or
@@ -313,6 +333,11 @@ is a night for ten million games; ChessBase answers in seconds with an index.
   the replayed answer.
 - Move the linear fallback into companion worker threads so the browser is
   not the bottleneck.
+- **The rest of the database at the same scale.** Header search (player,
+  event, dates, Elo band), the explorer over a companion collection, the
+  position page, the preparation report and duplicate finding were measured
+  to 500,000 games in earlier phases. Measure each at 10,000,000 (or the
+  largest real database available) and fix what does not answer in seconds.
 - **Acceptance, on real data on the Mac:** a material, a theme and a route
   query each answer in **≤ 10 s over 1,000,000 games** and **≤ 60 s over
   10,000,000** (or state the measured numbers and keep D2 open), with the same
@@ -340,9 +365,21 @@ is a night for ten million games; ChessBase answers in seconds with an index.
   position with fixed short limits, reported as "N playouts at X ms: W/D/L"
   with the engine named — never as an evaluation. **Acceptance:** unit tests
   with a scripted engine; an e2e with the browser Stockfish.
-- Leave the Lichess cloud evaluation as it is (stored analysis, labelled).
-  A rented cloud engine is not required for YES; say so explicitly in the
-  verdict if you agree.
+- **Cloud engine.** ChessBase rents engine time on its servers. Kingfisher's
+  answer is the remote engine above (the player's own hardware, including a
+  rented cloud machine the player runs a companion on) plus the labelled
+  Lichess cloud evaluation. Prove that path with a real cloud VM running the
+  companion and a native engine, analysing for the Mac over the internet
+  with the pairing token and TLS. A hosted Kingfisher engine service would
+  need a server, accounts and billing — ask the owner; it is a product
+  decision, not a gap to close silently.
+- **Shared analysis (ChessBase's Let's Check).** ChessBase pools engine
+  evaluations from all its users on a server. Kingfisher has none and sends
+  nothing without being asked. Offer the owner two honest options and build
+  the one they choose: (a) import and export of stored engine evidence
+  between Kingfisher users as a file (the Team packet already travels this
+  way), or (b) a server-side pool, with the privacy policy, opt-in and
+  provenance per evaluation.
 
 ### D4 — Windows
 
@@ -372,7 +409,34 @@ verdict cannot honestly be an unqualified YES — say that, do not hide it.
   source.
 - **Cloud databases / sharing**: decide with the owner whether a hosted share
   (a study or a file by link) is in scope; Kingfisher has no server today and
-  that is a product decision, not an oversight.
+  that is a product decision, not an oversight. If yes, build it with the
+  privacy policy, `/privacy`, `public-claims.md` and `docs:check` updated.
+- **Handing work to ChessBase users.** Kingfisher reads CBH/CBV and never
+  writes to an existing file (AGENTS.md). Writing a **new** CBH file from a
+  study or a collection is allowed by that rule: the encoder that reproduces
+  ChessBase's bytes for 421 games already exists for the reader's tests. Ship
+  it as an export, verified by reading the result back with Kingfisher's
+  reader and, if the owner has ChessBase, by opening it there.
+- **Everything else Phase 84 left** (`docs/reports/phase-84-handover.md` §6),
+  and the open items of the Phase 82 and 83 handovers that still hold on the
+  merged master (check each: the landing product image, a page's
+  unsubmitted form state across a tab switch).
+
+### What ChessBase does that Kingfisher refuses by design
+
+Some ChessBase features break rules in `AGENTS.md`, not for lack of code: the
+Style Report's adjectives and the Error Report's "Blunder Elo" (a grade with
+no population behind it — `src/preparation/style.ts`), Identify Player
+(de-anonymising online accounts — `market-research.md` §3.5), AI commentary
+presented as analysis (its own reviewer found it contradicting the engine),
+"main line" and "best" labels from one database, and a combined figure across
+populations. **Do not build these to reach YES**, and do not count their
+absence against the verdict: the verdict asks whether a serious player can do
+the work, and Kingfisher answers each of those questions with facts (the
+dossier, the style measurements, the deviation and departure reports, the
+engine). If the owner wants any of them, they must change `AGENTS.md` first,
+in writing; then build it honestly labelled. The ChessBase shop, Magazine and
+twenty years of courses are an ecosystem, not a feature, and are out of scope.
 
 ---
 
@@ -418,11 +482,17 @@ re-run. "Partially" is NO.
 | 7   | Windows build runs the desktop harnesses                                                                             | harness output from a Windows machine                |
 | 8   | Master green on CI (unit, e2e, visual) and every packaged Mac gate green on one build                                | CI run links, `desktop:certify` output               |
 | 9   | The six Part E workflows done end to end without a blocker                                                           | evidence folder                                      |
+| 10  | Header search, explorer, position page, preparation and duplicates answer in seconds at 10M games                    | benchmark output on real data                        |
+| 11  | Reference packs update on a schedule and an installed app picks the update up                                        | one real update cycle, logs                          |
+| 12  | A remote engine on a cloud VM analyses for the Mac over the internet                                                 | run log with host and engine identity                |
+| 13  | Batch departure, Opening Report parity, question points/timers, explorer first moment, CBH export all shipped        | tests + e2e per item                                 |
 
 If a row is blocked by something only the owner can supply (a licence, a
 Windows machine, a certificate, a second machine, a database they own), **ask
 for it early**, record the answer, and if it does not come the verdict is NO
-with that row named. Do not redefine a row to make it pass. Do not count a
+with that row named. Shared analysis (Let's Check) and hosted sharing are
+owner decisions: record the decision, and if the owner puts them in scope,
+add a row for each. Do not redefine a row to make it pass. Do not count a
 feature as present because a button exists.
 
 Then answer, separately: **in which specific areas does Kingfisher
@@ -461,4 +531,4 @@ meaningfully surpass ChessBase?** — only with evidence.
 5. `docs/reports/phase-85-handover.md` with the Part F table filled in, the
    final report (market, ChessBase strengths, gaps, what was built, beyond
    ChessBase, remaining weaknesses), and the verdict **YES** or **NO** —
-   YES only if all nine rows are met.
+   YES only if every row is met.
