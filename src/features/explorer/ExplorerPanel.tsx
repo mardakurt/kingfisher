@@ -51,6 +51,7 @@ import { packReader } from '@/reference/manager';
 import { mergeReferenceGames, openMerged } from '@/features/games/merge-games';
 import { useRouter } from 'next/navigation';
 
+import { DepartureSection } from './DepartureSection';
 import { SourceFallback, SourcePicker } from './SourcePicker';
 import { SourceComparison } from './SourceComparison';
 import { useExplorer, useExplorerPrefetch } from './useExplorer';
@@ -397,6 +398,15 @@ export function ExplorerPanel() {
           </div>
         ) : null}
       </div>
+
+      {provider ? (
+        <DepartureSection
+          provider={provider}
+          filters={filters}
+          tree={tree}
+          depthLimit={coverageSource?.maxPositionPly ?? null}
+        />
+      ) : null}
 
       {filtersOpen ? (
         <div className="shrink-0 space-y-1.5 border-b border-line-subtle bg-surface-2 px-2.5 py-2">

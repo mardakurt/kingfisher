@@ -183,6 +183,12 @@ interface AnalysisState {
    * a different game.
    */
   annotateWithEvidence(plans: readonly AnnotationPlan[]): WriteResult;
+  /**
+   * One edit computed from the whole tree, as one undo step — for writers
+   * like the reference-departure note that touch several nodes at once.
+   * Returns false, and changes nothing, when the edit returns the same tree.
+   */
+  applyEdit(edit: (tree: GameTree) => GameTree): boolean;
 
   // Session
   newGame(fen?: Fen): void;
@@ -463,6 +469,14 @@ export const useAnalysis = create<AnalysisState>((set, get) => ({
     const result = writeAnnotations(state.tree, plans);
     if (result.written > 0) set(commit(state, result.tree, state.currentId));
     return result;
+  },
+
+  applyEdit: (edit) => {
+    const state = get();
+    const next = edit(state.tree);
+    if (next === state.tree) return false;
+    set(commit(state, next, state.currentId));
+    return true;
   },
 
   setHeaderValue: (key, value) => {
