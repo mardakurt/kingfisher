@@ -1477,7 +1477,7 @@ export class GameDatabase {
         ? linePositions.all(row.id)
         : withPositions
           ? positions.all(row.id).map((position) => ({
-            ...position,
+              ...position,
               structureClaims: parseClaims(position.structure_claims ?? position.structureClaims),
             }))
           : [],
