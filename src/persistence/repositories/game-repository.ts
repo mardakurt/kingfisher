@@ -339,6 +339,24 @@ export class LocalGameRepository implements GameRepository {
     return new Set(records.map((record) => record.gameId)).size;
   }
 
+  async summariesAtPosition(
+    key: string,
+    limit = 20_000,
+  ): Promise<{ readonly games: readonly GameSummary[]; readonly total: number }> {
+    const records = await this.database.getAllFromIndex<PositionRecord>(
+      STORE_NAMES.positions,
+      'positionKey',
+      key,
+    );
+    const ids = [...new Set(records.map((record) => record.gameId))];
+    const games: GameSummary[] = [];
+    // Summaries in bounded transactions: a popular position is thousands of games.
+    for (let start = 0; start < Math.min(ids.length, limit); start += 1_000) {
+      games.push(...(await this.summaries(ids.slice(start, Math.min(start + 1_000, limit)))));
+    }
+    return { games, total: ids.length };
+  }
+
   /**
    * The move orders that actually reached this position in stored games.
    *
