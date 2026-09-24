@@ -12,7 +12,7 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { EmptyState } from '@/components/ui/Panel';
-import { useDatabaseProviders } from '@/database/use-database-providers';
+import { useExplorerSource } from '@/features/explorer/useExplorerSource';
 import type { DatabaseMove } from '@/database/types';
 import type { RepertoirePositionRecord } from '@/persistence/domain';
 import type { OpeningTree } from '@/preparation';
@@ -39,8 +39,8 @@ export function SurprisesPanel({
   readonly onOpen: (surprise: Surprise) => void;
 }) {
   const sourceId = usePreferences((state) => state.explorerSourceId);
-  const providers = useDatabaseProviders();
-  const provider = providers.find((entry) => entry.id === sourceId) ?? providers[0];
+  const resolved = useExplorerSource(sourceId);
+  const provider = resolved.kind === 'ready' ? resolved.provider : undefined;
 
   /*
     One lookup per position the opponent actually reached, not per repertoire

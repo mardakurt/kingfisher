@@ -9,11 +9,11 @@ import { positionKey } from '@/chess/fen';
 import { Plus } from '@/components/icons';
 import { Button } from '@/components/ui/Button';
 import { EmptyState, PanelBody, PanelHeader } from '@/components/ui/Panel';
-import { databaseProviderById } from '@/database/registry';
 import { useDatabaseProviders } from '@/database/use-database-providers';
 import type { ProviderHealth } from '@/database/types';
 import { EnginePanelHost } from '@/features/engine/EnginePanelHost';
 import { ExplorerPanel } from '@/features/explorer/ExplorerPanel';
+import { useExplorerSource } from '@/features/explorer/useExplorerSource';
 import { NotesPanel } from '@/features/notes/NotesPanel';
 import { useProfile, useRepertoiresAtPosition } from '@/features/persistence/queries';
 import { useAnalysisPosition } from '@/features/analysis/useAnalysisPosition';
@@ -182,7 +182,8 @@ export function ToolContent({
 function DatabasePositionPanel() {
   const prefs = usePreferences();
   const providers = useDatabaseProviders();
-  const provider = databaseProviderById(prefs.explorerSourceId) ?? providers[0];
+  const resolved = useExplorerSource(prefs.explorerSourceId);
+  const provider = resolved.kind === 'ready' ? resolved.provider : undefined;
   const health = useQuery<ProviderHealth>({
     queryKey: ['provider-health', provider?.id ?? 'none'],
     enabled: Boolean(provider),

@@ -27,7 +27,7 @@ import { MiniBoard } from '@/features/board/MiniBoard';
 import { openReferenceGame } from '@/features/games/open-reference-game';
 import { useExplorer } from '@/features/explorer/useExplorer';
 import { useRepertoiresAtPosition } from '@/features/persistence/queries';
-import { useDatabaseProviders } from '@/database/use-database-providers';
+import { useExplorerSource } from '@/features/explorer/useExplorerSource';
 import { cn } from '@/lib/cn';
 import { VariationBriefPanel } from './VariationBriefPanel';
 import {
@@ -174,15 +174,14 @@ const NO_ORDERS: readonly (readonly string[])[] = [];
 function OpeningDetail({ entry }: { readonly entry: OpeningEntry }) {
   const router = useRouter();
   const prefs = usePreferences();
-  const providers = useDatabaseProviders();
   const notify = useUi((state) => state.notify);
   const loadPgn = useAnalysis((state) => state.loadPgn);
   const toEnd = useAnalysis((state) => state.toEnd);
   const setDocument = useAnalysis((state) => state.setDocument);
 
   const fen = useMemo(() => fenAfter(entry.moves) ?? asFen(''), [entry.moves]);
-  const provider =
-    providers.find((candidate) => candidate.id === prefs.explorerSourceId) ?? providers[0];
+  const resolved = useExplorerSource(prefs.explorerSourceId);
+  const provider = resolved.kind === 'ready' ? resolved.provider : undefined;
   const explorer = useExplorer(provider?.id ?? '', fen as Fen, {});
   const repertoires = useRepertoiresAtPosition(entry.key);
 

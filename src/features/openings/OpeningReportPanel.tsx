@@ -35,6 +35,7 @@
  * is a different statement from one that was looked for and found nothing.
  */
 
+import { useExplorerSource } from '@/features/explorer/useExplorerSource';
 import { useEffect, useMemo, useState } from 'react';
 
 import { PanelBody, PanelHeader } from '@/components/ui/Panel';
@@ -150,10 +151,15 @@ export function OpeningReportPanel() {
     collections and only one of them supplied these games: "106 games from
     Plans" is a citation, "106 games" is a rumour.
   */
-  const preferred = databaseProviderById(explorerSourceId);
-  const continuationSource = preferred?.continuations
-    ? preferred
-    : providers.find((provider) => Boolean(provider.continuations));
+  const resolvedSource = useExplorerSource(explorerSourceId);
+  const preferred = resolvedSource.kind === 'ready' ? resolvedSource.provider : undefined;
+  // While the chosen source could still register, nothing answers in its place.
+  const continuationSource =
+    resolvedSource.kind === 'waiting'
+      ? undefined
+      : preferred?.continuations
+        ? preferred
+        : providers.find((provider) => Boolean(provider.continuations));
   const continuations = useQuery({
     queryKey: ['opening-report-continuations', continuationSource?.id ?? null, fen],
     enabled: Boolean(continuationSource) && fen.length > 0,
