@@ -14,7 +14,7 @@
  * of them had.
  */
 
-import { parseFen } from '@/chess/fen';
+import { readPlacement } from '@/chess/fen';
 import { isOk } from '@/chess/result';
 import { boardView, themeById } from '@/chess/themes';
 import { mainlinePath } from '@/chess/tree/tree';
@@ -82,8 +82,8 @@ export function scanLine(
     const theme = themeById(query.theme);
     if (!theme) return null;
     const at = firstHeld(nodes, (node) => {
-      const parts = parseFen(node.fen);
-      return isOk(parts) && theme.matches(boardView(parts.value));
+      const board = readPlacement(node.fen);
+      return isOk(board) && theme.matches(boardView({ board: board.value }));
     });
     if (at === null) return null;
     moments.push(at);

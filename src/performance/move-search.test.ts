@@ -21,6 +21,8 @@ import { scanGame, type DeepQuery } from '@/search/game-scan';
 import { parseMaterialQuery } from '@/search/material-query';
 import { parseRoute } from '@/search/route';
 
+import { medianMs, medianUnits } from './calibration';
+
 // Generating a legal game costs far more than scanning it; sixty give a stable
 // per-game figure without making the unit suite wait for the fixture.
 const GAMES = 60;
@@ -58,34 +60,33 @@ const unwrap = <T>(
 };
 
 /*
-  The budget, per game. The design's target is 10,000 games in ten seconds
-  for a whole move search — 1 ms a game — and the scan is allowed half of it,
-  the rest being the storage reads the browser or the companion adds. Stated
-  per game, it does not depend on how many games the fixture holds.
+  Two budgets, both per game.
 
-  Measured as the median of RUNS passes after a warm-up, so one garbage
-  collection or one descheduled slice on a shared runner cannot decide the
-  result. The margin is the point: the slowest query (theme) takes about
-  0.15 ms a game on an M-series Mac and about 0.3 ms on a GitHub runner, so a
-  genuine threefold regression fails on either machine while scheduling noise
-  does not.
+  The design's target is 10,000 games in ten seconds for a whole move search
+  — 1 ms a game — and no query may exceed it on any machine. That is the
+  backstop, in milliseconds.
+
+  The regression budget is in units of this machine's speed
+  (`calibration.ts`), because a shared runner's speed varies by about two
+  times from run to run and only a budget that cancels it out can pass on
+  every run and still fail a genuine threefold regression. Measured in Phase
+  85 (units a game, the four queries summed; theme alone in brackets):
+
+    this code, M-series Mac            0.108  (0.072)
+    this code, GitHub runner, 2 runs   0.108–0.145  (0.052–0.084)
+    the scan run three times, 2 runs   0.300–0.327  (0.192–0.222)
+
+  The budgets sit between: 0.21 for the four together and 0.13 for theme,
+  the query that failed CI before Phase 85.
 */
-const BUDGET_MS_PER_GAME = 0.5;
+const DESIGN_TARGET_MS_PER_GAME = 1;
 const RUNS = 7;
-
-function medianPerGame(games: readonly GameTree[], query: DeepQuery): number {
-  const samples: number[] = [];
-  for (let run = 0; run < RUNS; run += 1) {
-    const started = performance.now();
-    for (const game of games) scanGame(game, query);
-    samples.push((performance.now() - started) / games.length);
-  }
-  samples.sort((a, b) => a - b);
-  return samples[Math.floor(RUNS / 2)]!;
-}
+const BUDGET_UNITS_ALL_QUERIES = 0.21;
+const BUDGET_UNITS_THEME = 0.13;
 
 describe('move-level search cost', () => {
   const games = Array.from({ length: GAMES }, (_, index) => randomGame(index + 1));
+  const units = new Map<string, number>();
 
   const queries: Record<string, DeepQuery> = {
     material: { material: { query: unwrap(parseMaterialQuery('R v B'), 'query') } },
@@ -98,12 +99,31 @@ describe('move-level search cost', () => {
     it(`asks ${name} of a realistic game in well under a millisecond`, () => {
       // Warm the JIT on every game, then measure.
       for (const game of games) scanGame(game, query);
-      const perGame = medianPerGame(games, query);
+      const perGame =
+        medianMs(RUNS, () => {
+          for (const game of games) scanGame(game, query);
+        }) / games.length;
+      const perGameUnits =
+        medianUnits(RUNS, () => {
+          for (const game of games) scanGame(game, query);
+        }) / games.length;
+      units.set(name, perGameUnits);
       // eslint-disable-next-line no-console -- the measurement is what a reader of the log wants
       console.info(
-        `${name}: ${perGame.toFixed(3)} ms/game (median of ${RUNS}) → ${((perGame * 10_000) / 1000).toFixed(2)} s per 10,000 games`,
+        `${name}: ${perGame.toFixed(3)} ms/game (median of ${RUNS}) → ${((perGame * 10_000) / 1000).toFixed(2)} s per 10,000 games; ${perGameUnits.toFixed(4)} units/game`,
       );
-      expect(perGame).toBeLessThan(BUDGET_MS_PER_GAME);
+      expect(perGame).toBeLessThan(DESIGN_TARGET_MS_PER_GAME);
     });
   }
+
+  it('stays inside its regression budget, in units of this machine', () => {
+    expect(units.size).toBe(Object.keys(queries).length);
+    const total = [...units.values()].reduce((sum, value) => sum + value, 0);
+    // eslint-disable-next-line no-console -- the measurement is what a reader of the log wants
+    console.info(
+      `all queries: ${total.toFixed(4)} units/game; theme ${units.get('theme')!.toFixed(4)}`,
+    );
+    expect(total).toBeLessThan(BUDGET_UNITS_ALL_QUERIES);
+    expect(units.get('theme')!).toBeLessThan(BUDGET_UNITS_THEME);
+  });
 });

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { expandOpeningQuery, searchOpenings } from './openings';
+import { medianUnits } from '@/performance/calibration';
+
+import { expandOpeningQuery, openingIndex, searchOpenings, searchOpeningsIn } from './openings';
 
 const first = async (query: string) => (await searchOpenings(query, 1))[0]?.label;
 
@@ -121,14 +123,22 @@ describe('searchOpenings', () => {
   });
 
   /*
-    60 ms a query is what a keystroke allows before the list visibly lags.
-    Each query is timed as the median of seven runs after a warm-up, so one
-    collection or one descheduled slice on a shared runner cannot decide it.
-    Measured: about 10 ms a query on an M-series Mac and about 25 ms on a
-    GitHub runner, so a threefold regression still fails on the runner.
+    60 ms a query is what a keystroke allows before the list visibly lags, and
+    no query may take longer on any machine. The regression budget is in units
+    of this machine's speed (`src/performance/calibration.ts`), because a
+    shared runner's speed varies by about two times from run to run. Measured
+    in Phase 85, the five queries' units summed:
+
+      this code, M-series Mac               7.0
+      this code, GitHub runner, 2 runs      8.1–8.5
+      the ranking run three times, 2 runs   20.7–22.6
+
+    and the budget, 13, sits between.
   */
   it('answers in the time a keystroke allows', async () => {
     await searchOpenings('warm');
+    const entries = await openingIndex();
+    let total = 0;
     for (const query of ['Sicilian', 'Berlin', "King's Indian", 'Sveshnikov', 'QGD']) {
       const samples: number[] = [];
       for (let run = 0; run < 7; run += 1) {
@@ -138,9 +148,14 @@ describe('searchOpenings', () => {
       }
       samples.sort((a, b) => a - b);
       const median = samples[3]!;
+      const units = medianUnits(7, () => void searchOpeningsIn(entries, query));
+      total += units;
       // eslint-disable-next-line no-console -- the measurement is what a reader of the log wants
-      console.info(`${query}: ${median.toFixed(1)} ms (median of 7)`);
+      console.info(`${query}: ${median.toFixed(1)} ms (median of 7); ${units.toFixed(2)} units`);
       expect(median, query).toBeLessThan(60);
     }
+    // eslint-disable-next-line no-console -- the measurement is what a reader of the log wants
+    console.info(`five queries: ${total.toFixed(2)} units`);
+    expect(total).toBeLessThan(13);
   });
 });
