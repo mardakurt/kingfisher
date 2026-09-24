@@ -23,7 +23,7 @@
 import { fileOf, rankOf, squareColor } from './board';
 import { parseFen, type FenParts } from './fen';
 import { isOk } from './result';
-import type { Color, Piece, PieceType, Square } from './types';
+import type { Color, PieceType, Square } from './types';
 
 /** Bump when any definition below changes, so stored matches stay honest. */
 export const THEME_VERSION = 't1';
@@ -51,23 +51,31 @@ export interface BoardView {
   kingSquare(color: Color): Square | null;
 }
 
+const SQUARE_NAMES: readonly Square[] = Array.from(
+  { length: 64 },
+  (_, index) => `${'abcdefgh'[index % 8]}${Math.floor(index / 8) + 1}` as Square,
+);
+
+const NONE: readonly Square[] = [];
+
+/**
+ * One pass over the board, each piece filed under its colour and type. A
+ * search asks several definitions of every position of every game, so the
+ * view is built once and each question is a lookup.
+ */
 export function boardView(parts: FenParts): BoardView {
-  const located: { square: Square; piece: Piece }[] = [];
+  const byPiece = new Map<string, Square[]>();
   for (let index = 0; index < 64; index += 1) {
     const piece = parts.board[index];
     if (!piece) continue;
-    const file = index % 8;
-    const rank = Math.floor(index / 8);
-    located.push({
-      square: `${'abcdefgh'[file]}${rank + 1}` as Square,
-      piece,
-    });
+    const key = piece.color + piece.type;
+    const squares = byPiece.get(key);
+    if (squares) squares.push(SQUARE_NAMES[index]!);
+    else byPiece.set(key, [SQUARE_NAMES[index]!]);
   }
 
-  const pieces = (color: Color, type: PieceType) =>
-    located
-      .filter((entry) => entry.piece.color === color && entry.piece.type === type)
-      .map((entry) => entry.square);
+  const pieces = (color: Color, type: PieceType): readonly Square[] =>
+    byPiece.get(color + type) ?? NONE;
 
   return {
     parts,

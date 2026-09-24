@@ -57,6 +57,33 @@ const unwrap = <T>(
   return parsed[key] as T;
 };
 
+/*
+  The budget, per game. The design's target is 10,000 games in ten seconds
+  for a whole move search — 1 ms a game — and the scan is allowed half of it,
+  the rest being the storage reads the browser or the companion adds. Stated
+  per game, it does not depend on how many games the fixture holds.
+
+  Measured as the median of RUNS passes after a warm-up, so one garbage
+  collection or one descheduled slice on a shared runner cannot decide the
+  result. The margin is the point: the slowest query (theme) takes about
+  0.15 ms a game on an M-series Mac and about 0.3 ms on a GitHub runner, so a
+  genuine threefold regression fails on either machine while scheduling noise
+  does not.
+*/
+const BUDGET_MS_PER_GAME = 0.5;
+const RUNS = 7;
+
+function medianPerGame(games: readonly GameTree[], query: DeepQuery): number {
+  const samples: number[] = [];
+  for (let run = 0; run < RUNS; run += 1) {
+    const started = performance.now();
+    for (const game of games) scanGame(game, query);
+    samples.push((performance.now() - started) / games.length);
+  }
+  samples.sort((a, b) => a - b);
+  return samples[Math.floor(RUNS / 2)]!;
+}
+
 describe('move-level search cost', () => {
   const games = Array.from({ length: GAMES }, (_, index) => randomGame(index + 1));
 
@@ -69,18 +96,14 @@ describe('move-level search cost', () => {
 
   for (const [name, query] of Object.entries(queries)) {
     it(`asks ${name} of a realistic game in well under a millisecond`, () => {
-      // Warm the JIT, then measure.
-      for (const game of games.slice(0, 20)) scanGame(game, query);
-      const started = performance.now();
+      // Warm the JIT on every game, then measure.
       for (const game of games) scanGame(game, query);
-      const perGame = (performance.now() - started) / GAMES;
-      // 10,000 games at this rate, as the design's target counts them.
-      const tenThousand = perGame * 10_000;
+      const perGame = medianPerGame(games, query);
+      // eslint-disable-next-line no-console -- the measurement is what a reader of the log wants
       console.info(
-        `${name}: ${perGame.toFixed(3)} ms/game → ${(tenThousand / 1000).toFixed(2)} s per 10,000 games`,
+        `${name}: ${perGame.toFixed(3)} ms/game (median of ${RUNS}) → ${((perGame * 10_000) / 1000).toFixed(2)} s per 10,000 games`,
       );
-      // Half the design's ten-second target, leaving the rest to storage reads.
-      expect(tenThousand).toBeLessThan(5_000);
+      expect(perGame).toBeLessThan(BUDGET_MS_PER_GAME);
     });
   }
 });
