@@ -62,17 +62,17 @@ another way), **stronger**, **weaker** or **missing**.
 
 ### 2.1 Opening preparation
 
-| Question                                 | ChessBase                                      | Kingfisher                                                                                                                                | Verdict                                                       |
-| ---------------------------------------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| What do strong players play here?        | Reference search on Mega                       | Explorer over named populations, each in its own column (Starter, Elite OTB, Recent Theory, High-Rated Online, Lichess, your collections) | **different** — never merged; weaker in corpus size (§4)      |
-| What does my opponent play?              | Player preparation, Collect Openings           | Preparation report: tree with frequencies, surprises, priorities, dossier, sheet                                                          | **match**                                                     |
-| What do I play, and how do I score?      | Player statistics                              | Personal Results, "Played against you", Season, Review's recurring facts                                                                  | **stronger** — facts with denominators, no invented grade     |
-| When was this first played, and by whom? | Opening Report pioneers, popularity graph      | **Phase 84**: position page → History (first and latest game, games per year, who plays it) from dated collections                        | **weaker** — dated only for your collections; packs keep none |
-| Recent trends                            | Popularity over time                           | Theory Radar (three date windows per source), History                                                                                     | **match** within the data held                                |
-| Model games                              | Top games, instructive games                   | Model Games tool, similar games by structure, curated model games                                                                         | **match**                                                     |
-| Engine recommendation                    | Engine, Let's Check, Engine Cloud, Monte Carlo | Stockfish in the browser, native engines, two engines, **Phase 84**: labelled Lichess cloud evaluation                                    | **match**; no Monte Carlo                                     |
-| Repertoire coverage and weak branches    | Repertoire database, manual                    | Coverage (evidence-backed gaps), Position Health, never-reached lines                                                                     | **stronger**                                                  |
-| Possible novelties                       | TN marking against the reference               | Surprise finder, deviation detection, "where the population leaves theory"                                                                | **different**                                                 |
+| Question                                 | ChessBase                                      | Kingfisher                                                                                                                                                                             | Verdict                                                       |
+| ---------------------------------------- | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| What do strong players play here?        | Reference search on Mega                       | Explorer over named populations, each in its own column (Starter, Elite OTB, Recent Theory, High-Rated Online, Lichess, your collections)                                              | **different** — never merged; weaker in corpus size (§4)      |
+| What does my opponent play?              | Player preparation, Collect Openings           | Preparation report: tree with frequencies, surprises, priorities, dossier, sheet                                                                                                       | **match**                                                     |
+| What do I play, and how do I score?      | Player statistics                              | Personal Results, "Played against you", Season, Review's recurring facts                                                                                                               | **stronger** — facts with denominators, no invented grade     |
+| When was this first played, and by whom? | Opening Report pioneers, popularity graph      | **Phase 84**: position page → History (first and latest game, games per year, who plays it) from dated collections                                                                     | **weaker** — dated only for your collections; packs keep none |
+| Recent trends                            | Popularity over time                           | Theory Radar (three date windows per source), History                                                                                                                                  | **match** within the data held                                |
+| Model games                              | Top games, instructive games                   | Model Games tool, similar games by structure, curated model games                                                                                                                      | **match**                                                     |
+| Engine recommendation                    | Engine, Let's Check, Engine Cloud, Monte Carlo | Stockfish in the browser, native engines, two engines, **Phase 84**: labelled Lichess cloud evaluation and Deep analysis (a tree grown by the engine, with where it changed its mind)  | **match**; no Monte Carlo, no remote engines                  |
+| Repertoire coverage and weak branches    | Repertoire database, manual                    | Coverage (evidence-backed gaps), Position Health, never-reached lines                                                                                                                  | **stronger**                                                  |
+| Possible novelties                       | TN marking against the reference               | Surprise finder, deviation detection; **Phase 84**: Explorer → _This game against <source>_ — where the game leaves a named population, the games that got there, written in as a fact | **match** — one game at a time, no batch pass                 |
 
 ### 2.2 Opponent preparation
 
@@ -110,17 +110,17 @@ and review, where ChessBase's repertoire is a database of games.
 
 ### 2.5 Database research
 
-| Search                          | ChessBase                         | Kingfisher                                                                                                                    | Verdict                                     |
-| ------------------------------- | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
-| Header search                   | Search mask                       | Library search mask: event, site, dates, Elo band, time class by a printed rule                                               | **match**                                   |
-| Position                        | Position search, search booster   | Exact position across every store; same pawn skeleton; the companion's claim index                                            | **match**                                   |
-| Material                        | Material search                   | Material as books write it (`R v B`)                                                                                          | **match**                                   |
-| Manoeuvre                       | Manoeuvre search                  | Piece-route search (`N b1 d2 f1 g3`)                                                                                          | **match**                                   |
-| Annotations                     | Annotation search                 | Comment text search                                                                                                           | **match**                                   |
-| Across databases                | Any database in the list          | **Phase 84**: the Library shows any collection (the browser's or a companion SQLite file); Databases searches several at once | **match**                                   |
-| Merge games into one tree       | Select games, Enter               | **Phase 84**: Library → select → Merge into one tree                                                                          | **match**; transpositions counted and named |
-| Duplicates                      | Find Double Games (rebuilt in 26) | By fingerprint and by metadata key, reviewed, never auto-deleted                                                              | **match**                                   |
-| Move search in a companion file | Search booster over the database  | The move-level mask reads My games only; a companion file answers header and position queries                                 | **weaker**                                  |
+| Search                          | ChessBase                         | Kingfisher                                                                                                                    | Verdict                                                                       |
+| ------------------------------- | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Header search                   | Search mask                       | Library search mask: event, site, dates, Elo band, time class by a printed rule                                               | **match**                                                                     |
+| Position                        | Position search, search booster   | Exact position across every store; same pawn skeleton; the companion's claim index                                            | **match**                                                                     |
+| Material                        | Material search                   | Material as books write it (`R v B`)                                                                                          | **match**                                                                     |
+| Manoeuvre                       | Manoeuvre search                  | Piece-route search (`N b1 d2 f1 g3`)                                                                                          | **match**                                                                     |
+| Annotations                     | Annotation search                 | Comment text search                                                                                                           | **match**                                                                     |
+| Across databases                | Any database in the list          | **Phase 84**: the Library shows any collection (the browser's or a companion SQLite file); Databases searches several at once | **match**                                                                     |
+| Merge games into one tree       | Select games, Enter               | **Phase 84**: Library → select → Merge into one tree                                                                          | **match**; transpositions counted and named                                   |
+| Duplicates                      | Find Double Games (rebuilt in 26) | By fingerprint and by metadata key, reviewed, never auto-deleted                                                              | **match**                                                                     |
+| Move search in a companion file | Search booster over the database  | **Phase 84**: the move-level mask reads a companion file too, page by page through the companion (no index)                   | **match** in answers; **weaker** in speed (measured in the Phase 84 handover) |
 
 ### 2.6 One position, all the evidence
 
@@ -155,6 +155,16 @@ player's own knowledge, **match** for a coach's worksheet.
 | Library limited to My games             | Any collection in the Library, with the filters a source cannot apply named                          | `src/features/games/library-source.ts`, `e2e/library-databases.spec.ts` |
 | Questions inside a chapter              | Marked moves, solved with Training's control, misses to Training; a printed worksheet                | `src/chess/tree/questions.ts`, `e2e/chapter-questions.spec.ts`          |
 
+Continued in the same phase (`docs/reports/phase-84-handover.md`):
+
+| Gap                                 | Change                                                                                                 | Where                                                                |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------- |
+| Find Novelty / Novelty Annotation   | Where the game on the board leaves the explorer's source, the games that got there, written in as fact | `src/theory/departure.ts`, `e2e/departure.spec.ts`                   |
+| Deep Analysis                       | A tree grown by the engine; the start's search beside the tree's; where the engine changed its mind    | `src/engine/deepen.ts`, `e2e/deep-analysis.spec.ts`                  |
+| Move search inside a companion file | The Library's material, theme, route and comment search over a companion database                      | `src/features/games/deep-search.ts`, `e2e/library-databases.spec.ts` |
+| Merging over unsaved work           | Merges, predecessor games and deep-analysis trees open in their own tab                                | `src/features/tabs/tab-actions.ts`, `e2e/merge-games.spec.ts`        |
+| Preparation counts                  | Each source's count is its share of the games the report reads                                         | `src/features/preparation/opponent-games.ts`                         |
+
 Found and fixed on the way: a move played in a study chapter and followed by
 a reload inside the autosave debounce was lost while the header said
 "Saved" (`e2e/study-reload.spec.ts`).
@@ -181,19 +191,22 @@ files without writing them.
    performance and typical-move sections come from per-game data Kingfisher's
    packs do not keep; history by year is available here only for dated
    collections the player imports.
-3. **Engine tooling for professionals**: Deep Analysis (overnight tree
-   deepening), Monte Carlo, remote engines to 128 cores, a rented cloud
-   engine. Kingfisher runs local engines and reads the Lichess cloud.
-4. **Move-level search inside a large external database**: ChessBase's
-   search booster; Kingfisher's material, theme and route search reads the
-   browser's own games.
+3. **Engine tooling for professionals**: Monte Carlo, remote engines to 128
+   cores, a rented cloud engine, and a Deep Analysis that survives the night
+   on its own. Kingfisher runs local engines, reads the Lichess cloud, and
+   (Phase 84) grows a deep-analysis tree while its window is open.
+4. **Speed of move-level search inside a large external database**:
+   ChessBase's search booster is an index; Kingfisher's search of a
+   companion file (Phase 84) reads every selected game.
 5. **Publishing into its ecosystem** (ChessBase Magazine, the shop,
    cloud databases shared between users).
 6. **Twenty years of incumbency**: users, courses, shop content.
 
 ## 5. Verdict
 
-**ALMOST.**
+**ALMOST.** Asked for a plain YES or NO, the answer is **NO**, for the
+reasons below; `docs/reports/phase-84-handover.md` §5 gives it with the
+evidence from the rest of the phase.
 
 Kingfisher can now do, for the player it is built for, every everyday
 ChessBase workflow this audit found — prepare an opening and an opponent,
@@ -210,11 +223,12 @@ What would have to be true for **YES**, in order:
    years and ratings kept in the packs (a pack-format change), so the
    Opening Report's history and Elo-class sections can be answered from a
    population and not only from the player's imports.
-2. **Move-level search inside companion databases** — material, theme and
-   route queries run by the companion over its SQLite files, with an index,
-   so a ten-million-game file answers as the browser's collection does.
-3. **Overnight tree deepening** with a morning report (already designed as a
-   "Later" item) and remote engines on the player's own machines.
+2. **An index for move-level search inside companion databases** — the
+   answers exist since the Phase 84 continuation; the speed on a
+   ten-million-game file does not.
+3. **Deep analysis that survives a night on its own** (the tree exists since
+   the Phase 84 continuation; a run that persists across a reload or a sleep
+   does not) and remote engines on the player's own machines.
 4. **A Windows build**, run and certified (`docs/design/windows.md`); until
    then half of ChessBase's users cannot switch.
 

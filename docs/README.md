@@ -255,6 +255,10 @@ with [`AGENTS.md`](../AGENTS.md).
 
 ## Historical
 
+- [`reports/phase-84-handover.md`](reports/phase-84-handover.md) — ChessBase
+  parity: the six workflows master built, and the continuation — where a game
+  leaves the reference, deep analysis, move search in companion databases,
+  merges in their own tab — with the evidence and the verdict.
 - [`reports/phase-83-handover.md`](reports/phase-83-handover.md) — working
   tabs, the Library, the preparation report and the Databases grid.
 - [`reports/phase-82-handover.md`](reports/phase-82-handover.md) — the quiet

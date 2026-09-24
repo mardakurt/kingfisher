@@ -328,9 +328,10 @@ delete.
 **Any database** (Phase 84): the toolbar's database picker shows a
 companion SQLite collection in the same list, with the Library's filters (a
 filter the database cannot apply is named), a preview of its moves, and
-_Open_ as a new analysis. **Merge into one tree**: select two or more games
-and they become one analysis — shared moves once, each departure a
-variation labelled with its game, the first row the main line.
+_Open_ as a new analysis, and the move search reads its games too, page by
+page through the companion. **Merge into one tree**: select two or more
+games and they become one analysis, in a new tab — shared moves once, each
+departure a variation labelled with its game, the first row the main line.
 
 ### The move list
 
@@ -527,7 +528,14 @@ The profile described under Players.
   reused. **Lichess cloud** (Phase 84): off until asked for in the session,
   then the analysis lichess.org has stored for the position (depth, nodes,
   up to three lines), labelled as stored analysis and kept out of the tree,
-  the bar and the arrows.
+  the bar and the arrows. **Deep analysis** (Phase 84): _Deepen from here…_
+  grows a tree on its own engine session — one to three moves a position
+  (the best and any within 0.5 of it), four to twelve plies, one to thirty
+  seconds each, at most 400 positions — and reports the start's own search
+  beside the tree's backed-up score and line, and every position whose own
+  search disagreed with the line that led to it. _Add to the analysis_ writes
+  it as variations with each search's evaluation and one comment where the
+  engine changed its mind, as one undo.
 - **Candidates** — restrict the search to moves you name (`searchmoves`),
   offered only for engines measured to honour it, and the result says
   whether it was honoured.
@@ -566,6 +574,14 @@ The profile described under Players.
   count and licence, deliberately without a combined figure. A source that
   cannot answer says why (sign in, rate-limited, offline, unsupported)
   rather than loading forever, and the bundled reference is offered.
+  **This game against the source** (Phase 84): where the game on the board
+  leaves the chosen population — the move, how many of its games reached the
+  position before it and what they played, and those games (opened in a new
+  tab) — never called a novelty; a pack past its depth, a list that may be
+  cut and a game that never left are each said as themselves. _Write it into
+  the game_ adds the fact and the source's most played move, one undo. An
+  installed pack's model games can be **merged into one tree**, in a new
+  tab. The move table comes first; the variation brief is under it.
 - **Book Moves** — what a Polyglot `.bin` file weights at a position (your
   own books, added under Settings → Engine → Books, plus a book derived from
   the installed reference), never merged with the explorer.
