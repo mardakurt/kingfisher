@@ -248,7 +248,7 @@ export function GamesWorkspace() {
   const startMoveSearch = () => {
     setAnsweredKey(searchKey);
     setMovePage(0);
-    void deep.start(headerOnly, compiledMoves.query);
+    void deep.start(headerOnly, compiledMoves.query, source);
   };
 
   const localGames = useGames(query);
@@ -957,12 +957,18 @@ export function GamesWorkspace() {
                   setPage(0);
                 }}
                 moves={
-                  !local ? (
-                    <p className="text-[11px] text-tertiary">
-                      The move search reads the games in My games; {source.name} is searched by its
-                      headers.
-                    </p>
-                  ) : (
+                  <>
+                    {!local ? (
+                      /*
+                        A companion database is read for its moves too: the
+                        companion selects by header and serves the games a
+                        page at a time, and each is asked the question here.
+                      */
+                      <p className="mb-1 text-[11px] text-tertiary" data-move-search-source>
+                        Reads the moves of {source.name}’s games through the companion, a page at a
+                        time; a large file takes a while, and it can be stopped.
+                      </p>
+                    ) : null}
                     <MoveMaskFields
                       mask={moves}
                       onChange={setMoves}
@@ -972,7 +978,7 @@ export function GamesWorkspace() {
                       onStop={deep.stop}
                       onClear={deep.clear}
                     />
-                  )
+                  </>
                 }
                 active={filtersActive}
                 onClear={clearFilters}

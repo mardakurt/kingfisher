@@ -3,10 +3,15 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { parsePgn } from '@/chess/pgn';
 import { normalizeGame } from '@/persistence/import-game';
 import { createMemoryRepositories } from '@/persistence/repositories';
-import type { AppRepositories } from '@/persistence/types';
+import type { AppRepositories, GameSummary } from '@/persistence/types';
 import { parseMaterialQuery } from '@/search/material-query';
 
-import { runDeepSearch, type DeepSearchState } from './deep-search';
+import {
+  runDeepSearch,
+  runPagedDeepSearch,
+  type DeepSearchState,
+  type MovePage,
+} from './deep-search';
 
 let repositories: AppRepositories;
 
@@ -77,5 +82,81 @@ describe('runDeepSearch', () => {
       deep: rookAgainstBishop(),
     });
     expect(state).toMatchObject({ status: 'failed', error: 'storage refused', matches: [] });
+  });
+});
+
+describe('runPagedDeepSearch', () => {
+  const summary = (id: string) => ({ id }) as unknown as GameSummary;
+  const PAGES: Record<string, MovePage> = {
+    start: {
+      games: [
+        { summary: summary('g1'), pgn: `${RV_B}\n\n1. Rxd8+ Kf7 *` },
+        { summary: summary('g2'), pgn: '1. e4 e5 *' },
+      ],
+      nextAfter: '2',
+    },
+    '2': {
+      games: [
+        { summary: summary('g3'), pgn: null },
+        { summary: summary('g4'), pgn: `${RV_B}\n\n1. Rxd8+ Kf7 *` },
+      ],
+      nextAfter: '4',
+    },
+    '4': { games: [], nextAfter: null },
+  };
+  const parse = (pgn: string) => parsePgn(pgn).games[0]?.tree ?? null;
+
+  it('reads every page, asks each game the question, and keeps the denominator honest', async () => {
+    const seen: (string | null)[] = [];
+    const states: DeepSearchState[] = [];
+    const result = await runPagedDeepSearch({
+      selected: 4,
+      page: async (after) => {
+        seen.push(after);
+        return PAGES[after ?? 'start']!;
+      },
+      parse,
+      deep: rookAgainstBishop(),
+      onProgress: (state) => states.push(state),
+    });
+    expect(seen).toEqual([null, '2', '4']);
+    expect(result.status).toBe('done');
+    // A game with no readable moves is neither read nor selected.
+    expect(result).toMatchObject({ read: 3, selected: 3 });
+    expect(result.matches.map((match) => match.game.id)).toEqual(['g1', 'g4']);
+    expect(states.at(-1)).toEqual(result);
+  });
+
+  it('stops between pages and says it was stopped', async () => {
+    const controller = new AbortController();
+    const result = await runPagedDeepSearch({
+      selected: 4,
+      page: async (after) => {
+        controller.abort();
+        return PAGES[after ?? 'start']!;
+      },
+      parse,
+      deep: rookAgainstBishop(),
+      signal: controller.signal,
+    });
+    expect(result).toMatchObject({ status: 'stopped', read: 2 });
+  });
+
+  it('reports a failed page as a failure, with what it found so far', async () => {
+    const result = await runPagedDeepSearch({
+      selected: 4,
+      page: async (after) => {
+        if (after) throw new Error('The companion stopped answering.');
+        return PAGES.start!;
+      },
+      parse,
+      deep: rookAgainstBishop(),
+    });
+    expect(result).toMatchObject({
+      status: 'failed',
+      error: 'The companion stopped answering.',
+      read: 2,
+    });
+    expect(result.matches).toHaveLength(1);
   });
 });

@@ -25,6 +25,9 @@ import type { GameSearchQuery, GameSearchResult, GameSummary } from '@/persisten
 import { gameTitle } from '@/persistence/describe';
 import { useAnalysis } from '@/stores/analysis-store';
 
+import type { DeepQuery } from '@/search/game-scan';
+
+import { runPagedDeepSearch, type DeepSearchState } from './deep-search';
 import { openStoredGame } from './open-game';
 
 export type LibrarySource =
@@ -114,3 +117,52 @@ export async function openSourceGame(
     document: { kind: 'untitled', title: `${gameTitle(game)} (${source.name})` },
   });
 }
+
+/**
+ * The move-level search over a companion database: the companion selects
+ * the games by their headers with its own matcher, serves them a page at a
+ * time with their PGN, and each is asked the question here, as a game in the
+ * browser is. The count of selected games comes first, so progress has a
+ * denominator; a filter the companion cannot apply is dropped as it is for
+ * the list, and the page already says so.
+ */
+export async function companionMoveSearch(input: {
+  readonly source: Extract<LibrarySource, { kind: 'companion' }>;
+  readonly header: Omit<GameSearchQuery, 'limit' | 'offset' | 'exactTotal'>;
+  readonly deep: DeepQuery;
+  readonly signal?: AbortSignal;
+  readonly onProgress?: (state: DeepSearchState) => void;
+}): Promise<DeepSearchState> {
+  const client = companionClient();
+  if (!client) throw new Error('The companion is not connected, so that database cannot be read.');
+  const { query } = queryForSource(input.header as GameSearchQuery, input.source);
+  const { sortBy: _sortBy, sortDirection: _sortDirection, ...filters } = query;
+  const counted = await client.searchGames<GameSearchResult>(input.source.key, {
+    ...filters,
+    limit: 1,
+    exactTotal: true,
+  });
+  return runPagedDeepSearch({
+    selected: counted.total ?? 0,
+    page: async (after) => {
+      const page = await client.exportPage(input.source.key, after, MOVE_PAGE, filters);
+      return {
+        games: page.games.map((game) => ({
+          summary: game.summary as unknown as GameSummary,
+          pgn: game.pgn ?? null,
+        })),
+        nextAfter: page.games.length > 0 ? page.nextAfter : null,
+      };
+    },
+    parse: (pgn) => {
+      const parsed = parseSingleGame(pgn);
+      return parsed.ok ? parsed.value.tree : null;
+    },
+    deep: input.deep,
+    ...(input.signal ? { signal: input.signal } : {}),
+    ...(input.onProgress ? { onProgress: input.onProgress } : {}),
+  });
+}
+
+/** Games per page when a companion database is read for its moves. */
+const MOVE_PAGE = 250;
