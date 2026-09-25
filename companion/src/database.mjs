@@ -1628,11 +1628,20 @@ export class GameDatabase {
     const clause = where.length ? `WHERE ${where.join(' AND ')}` : '';
     const started = performance.now();
     const selected = this.#db.prepare(`SELECT COUNT(*) AS n FROM games ${clause}`).get(...params).n;
-    const unindexed = this.#db
-      .prepare(
-        `SELECT COUNT(*) AS n FROM games ${clause ? `${clause} AND` : 'WHERE'} NOT EXISTS (SELECT 1 FROM game_lines l WHERE l.game_id = games.id)`,
-      )
-      .get(...params).n;
+    /*
+      Unfiltered, the slices read the line index alone and the games without
+      one are simply the rest (a line row cannot outlive its game: the key
+      cascades). Measured on 1,048,440 games: the NOT EXISTS count was a
+      million probes into a 33 GB file, and the join through `games` read that
+      table's pages too — cold, eighteen times slower than the index alone.
+    */
+    const unindexed = where.length
+      ? this.#db
+          .prepare(
+            `SELECT COUNT(*) AS n FROM games ${clause} AND NOT EXISTS (SELECT 1 FROM game_lines l WHERE l.game_id = games.id)`,
+          )
+          .get(...params).n
+      : null;
     const bounds = this.#db.prepare('SELECT MIN(id) AS lo, MAX(id) AS hi FROM games').get();
     const slices = Math.max(
       1,
@@ -1667,10 +1676,11 @@ export class GameDatabase {
     const summaries = new Map();
     const read = this.#db.prepare('SELECT * FROM games WHERE id = ?');
     for (const [id] of shown) summaries.set(id, toSummary(read.get(id)));
+    const scanned = results.reduce((sum, result) => sum + result.scanned, 0);
     return {
       selected,
-      scanned: results.reduce((sum, result) => sum + result.scanned, 0),
-      unindexed,
+      scanned,
+      unindexed: unindexed ?? Math.max(0, selected - scanned),
       unanswerable: results.flatMap((result) => result.unanswerable).length,
       total: hits.length,
       hits: shown.map(([id, ply]) => ({ game: summaries.get(id), ply })),

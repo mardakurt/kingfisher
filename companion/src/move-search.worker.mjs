@@ -37,13 +37,18 @@ if (deep.route) {
 }
 
 const db = new DatabaseSync(file, { readOnly: true });
-const filter = where.length ? `AND ${where.join(' AND ')}` : '';
-const rows = db
-  .prepare(
-    `SELECT l.game_id AS id, l.data AS data FROM games JOIN game_lines l ON l.game_id = games.id
-      WHERE games.id > ? AND games.id <= ? ${filter}`,
-  )
-  .iterate(from, to, ...params);
+// Unfiltered, the line index alone: a rowid range over one table, not a join
+// through `games`, whose pages a header-less question never needs (database.mjs).
+const rows = where.length
+  ? db
+      .prepare(
+        `SELECT l.game_id AS id, l.data AS data FROM games JOIN game_lines l ON l.game_id = games.id
+          WHERE games.id > ? AND games.id <= ? AND ${where.join(' AND ')}`,
+      )
+      .iterate(from, to, ...params)
+  : db
+      .prepare('SELECT game_id AS id, data FROM game_lines WHERE game_id > ? AND game_id <= ?')
+      .iterate(from, to);
 
 const hits = [];
 let scanned = 0;
