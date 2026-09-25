@@ -220,6 +220,34 @@ export const PACK_DEFINITIONS = {
     shards: { explorer: 24, game: 16, players: 4, playergames: 4 },
   },
 
+  /**
+   * Phase 85: the six-month pack, rebuilt every month by
+   * `npm run data:monthly` (and `.github/workflows/data-monthly.yml`).
+   *
+   * The same population and thresholds as `recent-v2`, under the id its
+   * catalog row has always had. v2 was published with v1's id
+   * (`kingfisher-recent-theory`) while the catalog lists it as
+   * `kingfisher-recent-theory-narrow`, and the installer refuses a
+   * manifest that names another pack — so v2 could not be installed by
+   * anybody. From v3 the pack and its row agree. The version comes from the
+   * channel (`--version`), never from this file.
+   */
+  'recent-6m': {
+    id: 'kingfisher-recent-theory-narrow',
+    name: 'Recent Theory Reference (6 months)',
+    description:
+      'The last six months of rating- and title-filtered Lichess broadcast ' +
+      'games, rebuilt every month, kept at a low frequency threshold so that ' +
+      'recent and rare continuations survive.',
+    version: '0',
+    output: `${externalPacks}/kingfisher-recent-theory-narrow`,
+    source: LICHESS_BROADCAST,
+    transformation: TRANSFORMATION,
+    files: (digests) => broadcastMonths(digests).slice(0, 6),
+    limits: null,
+    shards: null,
+  },
+
   elite: {
     id: 'kingfisher-elite-otb',
     name: 'Elite OTB Reference',
@@ -327,3 +355,7 @@ export const PACK_DEFINITIONS = {
     shards: { explorer: 96, game: 48, players: 8, playergames: 8 },
   },
 };
+
+// The six-month pack is v2's population and thresholds, not a second copy of them.
+PACK_DEFINITIONS['recent-6m'].limits = { ...PACK_DEFINITIONS['recent-v2'].limits };
+PACK_DEFINITIONS['recent-6m'].shards = { ...PACK_DEFINITIONS['recent-v2'].shards };

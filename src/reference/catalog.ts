@@ -41,6 +41,12 @@ export interface CatalogPack {
    * Theory, Oct 2025–Sep 2026" without having to fetch a manifest.
    */
   readonly window?: PackWindowSummary;
+  /**
+   * Phase 85: a pack rebuilt on a schedule names its channel file on the
+   * mirror, which says which version is current. `manifestUrl` is then only
+   * the fallback when the channel cannot be read.
+   */
+  readonly channelUrl?: string;
 }
 
 /** One-line summary of a pack's filters, suitable for a catalog row. */
@@ -208,7 +214,11 @@ export const CATALOG_PACKS: readonly CatalogPack[] = [
       'The last six months only, kept at a lower frequency threshold so ' +
       'that recent and rare continuations survive. A narrower window than ' +
       'the v1 pack; smaller download, faster cadence, same provenance.',
-    manifestUrl: `${packRelease('reference-recent-v2')}manifest.json`,
+    // Phase 85: v2 was published under v1's id and could not be installed from
+    // this row; v3 is the first build of the monthly cycle, under this row's id,
+    // and the channel names whichever month's build is current.
+    manifestUrl: `${packRelease('reference-recent-v3')}manifest.json`,
+    channelUrl: `${packRelease('channels')}recent-theory-6m.json`,
     bundled: false,
     capabilities: [
       'explorer',

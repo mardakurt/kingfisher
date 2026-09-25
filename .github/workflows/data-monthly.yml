@@ -1,0 +1,86 @@
+name: Monthly data
+
+# Phase 85. The owner chose "monthly, automatic": when Lichess publishes a new
+# broadcast month, the six-month Recent Theory pack is rebuilt over the newest
+# six months and published to the data mirror as the next version, and the
+# channel file that installed Kingfishers read is advanced to it.
+#
+# `scripts/data-monthly.mjs` decides (a month newer than the live pack's newest
+# must be listed upstream) and does nothing otherwise, so the second run each
+# month is a no-op when the first one already published. Nothing here can
+# replace or delete a published version directory: `publish-data.mjs` refuses.
+on:
+  schedule:
+    # Lichess lists a month's archive in the first days of the next.
+    - cron: '17 6 4 * *'
+    - cron: '17 6 11 * *'
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the build (otherwise build and stop)
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: data-monthly
+  cancel-in-progress: false
+
+jobs:
+  monthly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    env:
+      KINGFISHER_DATA_STAGE: ${{ runner.temp }}/kingfisher-data
+      KINGFISHER_DATA_REMOTE: git@github.com:mardakurt/kingfisher-data.git
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+
+      - name: Plan
+        id: plan
+        run: |
+          set +e
+          node scripts/data-monthly.mjs
+          code=$?
+          set -e
+          if [ "$code" = 2 ]; then echo 'due=true' >> "$GITHUB_OUTPUT";
+          elif [ "$code" = 0 ]; then echo 'due=false' >> "$GITHUB_OUTPUT";
+          else exit "$code"; fi
+
+      - name: Build only
+        if: steps.plan.outputs.due == 'true' && github.event_name == 'workflow_dispatch' && !inputs.publish
+        run: node scripts/data-monthly.mjs --build
+
+      - name: Check out the data mirror
+        if: steps.plan.outputs.due == 'true' && (github.event_name == 'schedule' || inputs.publish)
+        env:
+          DEPLOY_KEY: ${{ secrets.DATA_MIRROR_DEPLOY_KEY }}
+        run: |
+          if [ -z "$DEPLOY_KEY" ]; then
+            echo '::error::DATA_MIRROR_DEPLOY_KEY is not set; the build cannot be published.'
+            exit 1
+          fi
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/data_mirror
+          chmod 600 ~/.ssh/data_mirror
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+          echo "GIT_SSH_COMMAND=ssh -i ~/.ssh/data_mirror -o IdentitiesOnly=yes" >> "$GITHUB_ENV"
+          GIT_SSH_COMMAND="ssh -i ~/.ssh/data_mirror -o IdentitiesOnly=yes" \
+            git clone --depth 1 "$KINGFISHER_DATA_REMOTE" "$KINGFISHER_DATA_STAGE"
+          git -C "$KINGFISHER_DATA_STAGE" config user.name 'kingfisher-data-monthly'
+          git -C "$KINGFISHER_DATA_STAGE" config user.email 'data-monthly@kingfisherchess.app'
+
+      - name: Build and publish
+        if: steps.plan.outputs.due == 'true' && (github.event_name == 'schedule' || inputs.publish)
+        run: node scripts/data-monthly.mjs --publish
+
+      - name: The channel names the new version
+        if: steps.plan.outputs.due == 'true' && (github.event_name == 'schedule' || inputs.publish)
+        run: cat "$KINGFISHER_DATA_STAGE/channels/recent-theory-6m.json"

@@ -58,6 +58,48 @@ let installed: readonly InstalledPack[] = [];
 let remoteVersions: Readonly<Record<string, string>> = {};
 
 /**
+ * Phase 85: where a pack's channel says its current manifest is.
+ *
+ * A published version directory never changes, so a catalog row that names
+ * `reference-recent-v2/manifest.json` can never learn that v3 exists. A pack
+ * rebuilt every month therefore also has a channel file on the mirror — one
+ * small JSON naming the current version and its manifest — and both the
+ * update check and the install read it. A channel that is missing,
+ * unreachable, malformed or names another pack is ignored and the row's own
+ * manifest is used: a channel can only point at something newer, never make
+ * an installed pack disappear.
+ */
+async function channelManifestUrl(catalog: CatalogPack): Promise<string | null> {
+  if (!catalog.channelUrl) return null;
+  try {
+    const response = await fetch(catalog.channelUrl, { cache: 'no-store' });
+    if (!response.ok) return null;
+    const channel = (await response.json()) as {
+      format?: unknown;
+      id?: unknown;
+      version?: unknown;
+      manifest?: unknown;
+    };
+    if (
+      channel.format !== 'kingfisher-channel/1' ||
+      channel.id !== catalog.id ||
+      typeof channel.manifest !== 'string' ||
+      !/^[a-z0-9-]+\/manifest\.json$/.test(channel.manifest)
+    ) {
+      return null;
+    }
+    // The channel lives in `channels/`; the manifest path is from the mirror's root.
+    return new URL(`../${channel.manifest}`, catalog.channelUrl).toString();
+  } catch {
+    return null;
+  }
+}
+
+/** The manifest to install or compare against: the channel's, or the row's own. */
+const currentManifestUrl = async (catalog: CatalogPack): Promise<string> =>
+  (await channelManifestUrl(catalog)) ?? catalog.manifestUrl;
+
+/**
  * Packs the user has chosen to use online (Phase 29, PART AN-AU).
  *
  * Each entry is a (manifest, baseUrl) pair. The corresponding
@@ -336,15 +378,16 @@ export async function startInstall(id: string): Promise<boolean> {
 
   try {
     let manifest: PackManifest;
+    const manifestUrl = await currentManifestUrl(catalog);
     try {
-      manifest = await fetchManifest(catalog.manifestUrl, { signal: controller.signal });
+      manifest = await fetchManifest(manifestUrl, { signal: controller.signal });
       if (manifest.id !== id)
         throw new Error('The downloaded pack identity does not match this catalog entry.');
     } catch (error) {
       if (controller.signal.aborted) return false;
       throw error;
     }
-    await installPack(manifest, catalog.manifestUrl, store, {
+    await installPack(manifest, manifestUrl, store, {
       signal: controller.signal,
       onProgress: (progress) => setProgress(id, progress),
     });
@@ -430,7 +473,7 @@ export async function checkForPackUpdates(): Promise<void> {
     const catalog = customPacks.get(pack.id) ?? catalogPack(pack.id) ?? fromManifest(pack);
     if (!catalog.manifestUrl) continue;
     try {
-      const manifest = await fetchManifest(catalog.manifestUrl);
+      const manifest = await fetchManifest(await currentManifestUrl(catalog));
       if (manifest.id !== catalog.id)
         throw new Error('Update manifest identifies a different pack.');
       versions[catalog.id] = manifest.version;

@@ -24,6 +24,13 @@
  *
  * Add `--apply` to push to the remote; without it the script
  * only stages the change locally.
+ *
+ * Phase 85: `--channel <name>` also writes `channels/<name>.json`,
+ * the one mutable file on the mirror — which version of a pack is
+ * current, and where its manifest is. An installed Kingfisher reads
+ * it to find a newer version than the one it has
+ * (`src/reference/manager.ts`). It only ever moves forward, and only
+ * ever names a directory this same publish added.
  */
 
 import { spawnSync } from 'node:child_process';
@@ -39,6 +46,8 @@ import {
 } from 'node:fs';
 import { join, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { channelFor, monthOf } from './reference/monthly.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const STAGE = process.env.KINGFISHER_DATA_STAGE || '/tmp/kingfisher-data-stage';
@@ -64,6 +73,12 @@ const from = arg('from');
  * advertises.
  */
 const dirOverride = arg('dir');
+/** Phase 85: the channel file to advance to this version. */
+const channel = arg('channel');
+if (channel !== null && !/^[a-z][a-z0-9-]{0,63}$/.test(channel)) {
+  console.error(`Invalid channel name: ${channel}`);
+  process.exit(1);
+}
 
 if (!packId || !version || !from) {
   console.error(
@@ -109,6 +124,14 @@ if (!existsSync(manifestSrc)) {
   process.exit(1);
 }
 
+const manifest = JSON.parse(readFileSync(manifestSrc, 'utf8'));
+if (manifest.id !== packId || String(manifest.version) !== String(version)) {
+  console.error(
+    `The pack says it is ${manifest.id} v${manifest.version}; this publish names ${packId} v${version}.`,
+  );
+  process.exit(1);
+}
+
 if (existsSync(target)) {
   console.error(`Target ${targetName} already exists. Reference pack versions are immutable;`);
   console.error(`either choose a new version number or remove the directory by hand if it`);
@@ -123,6 +146,28 @@ if (APPLY) {
   mkdirSync(target, { recursive: true });
   for (const entry of readdirSync(from)) {
     cpSync(join(from, entry), join(target, entry), { recursive: true });
+  }
+}
+
+let channelPath = null;
+if (channel) {
+  channelPath = join('channels', `${channel}.json`);
+  const absolute = join(STAGE, channelPath);
+  const previous = existsSync(absolute) ? JSON.parse(readFileSync(absolute, 'utf8')) : null;
+  const next = channelFor({
+    id: packId,
+    version,
+    directory: targetName,
+    months: (manifest.provenance?.upstream ?? [])
+      .map((entry) => monthOf(entry.file))
+      .filter(Boolean),
+    builtAt: manifest.builtAt,
+    previous,
+  });
+  console.log(`  ~ ${channelPath} → v${version}${previous ? ` (from v${previous.version})` : ''}`);
+  if (APPLY) {
+    mkdirSync(join(STAGE, 'channels'), { recursive: true });
+    writeFileSync(absolute, `${JSON.stringify(next, null, 2)}\n`);
   }
 }
 
@@ -147,7 +192,11 @@ if (!APPLY) {
   process.exit(0);
 }
 
-const add = spawnSync('git', ['-C', STAGE, 'add', '--', targetName], { stdio: 'inherit' });
+const add = spawnSync(
+  'git',
+  ['-C', STAGE, 'add', '--', targetName, ...(channelPath ? [channelPath] : [])],
+  { stdio: 'inherit' },
+);
 if (add.status !== 0) {
   console.error('git add failed.');
   process.exit(1);

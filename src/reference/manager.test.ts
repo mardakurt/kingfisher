@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { chunkFile, chunkId, PACK_FORMAT, type PackManifest } from './pack';
 import { BUNDLED_PACK_ID } from './catalog';
 import {
+  checkForPackUpdates,
   initialiseReferences,
   packReader,
   referenceSnapshot,
@@ -26,7 +27,7 @@ import { referencePackStore, resetReferencePackStoreForTests } from './store';
 
 const digest = (bytes: Uint8Array) => createHash('sha256').update(bytes).digest('hex');
 
-function bundled(version: string, white: string) {
+function bundled(version: string, white: string, id: string = BUNDLED_PACK_ID) {
   const bodies = new Map<string, Uint8Array>([
     [
       chunkFile('explorer', 0),
@@ -78,7 +79,7 @@ function bundled(version: string, white: string) {
 
   const manifest: PackManifest = {
     format: PACK_FORMAT,
-    id: BUNDLED_PACK_ID,
+    id,
     name: 'Kingfisher Starter Reference',
     description: 'Test fixture standing in for the bundled pack.',
     version,
@@ -294,5 +295,81 @@ describe('a cleanup failure is recorded, not raised', () => {
 
     // And it said so, rather than failing silently.
     expect(referenceSnapshot().errors[BUNDLED_PACK_ID]).toMatch(/connection is closing/i);
+  });
+});
+
+describe('a pack rebuilt every month follows its channel', () => {
+  const ID = 'kingfisher-recent-theory-narrow';
+  const MIRROR = 'https://mardakurt.github.io/kingfisher-data/';
+
+  /** The mirror: immutable version directories, and one channel file that moves. */
+  function mirror(state: {
+    channel: unknown;
+    versions: Record<string, ReturnType<typeof bundled>>;
+  }) {
+    return vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url === `${MIRROR}channels/recent-theory-6m.json`) {
+        return state.channel === null
+          ? new Response('missing', { status: 404 })
+          : new Response(JSON.stringify(state.channel));
+      }
+      const match = /reference-recent-v(\d+)\/(.+)$/.exec(url);
+      const pack = match ? state.versions[match[1]!] : undefined;
+      if (!match || !pack) return new Response('missing', { status: 404 });
+      if (match[2] === 'manifest.json') return new Response(JSON.stringify(pack.manifest));
+      const body = pack.bodies.get(match[2]!);
+      return body ? new Response(body as BodyInit) : new Response('missing', { status: 404 });
+    });
+  }
+  const channel = (version: string, id = ID) => ({
+    format: 'kingfisher-channel/1',
+    id,
+    version,
+    manifest: `reference-recent-v${version}/manifest.json`,
+  });
+  const installedVersion = async () =>
+    (await (await referencePackStore()).list()).find((pack) => pack.id === ID)?.manifest.version;
+
+  it('installs the version the channel names, and offers the next one when the channel moves', async () => {
+    const state = {
+      channel: channel('4') as unknown,
+      versions: { '3': bundled('3', 'Three', ID), '4': bundled('4', 'Four', ID) } as Record<
+        string,
+        ReturnType<typeof bundled>
+      >,
+    };
+    vi.stubGlobal('fetch', mirror(state));
+
+    expect(await startInstall(ID)).toBe(true);
+    expect(await installedVersion()).toBe('4');
+
+    state.versions['5'] = bundled('5', 'Five', ID);
+    await checkForPackUpdates();
+    expect(referenceSnapshot().sources.find((source) => source.id === ID)?.state).toBe('ready');
+    state.channel = channel('5');
+    await checkForPackUpdates();
+    const row = referenceSnapshot().sources.find((source) => source.id === ID)!;
+    expect(row.state).toBe('update-available');
+
+    expect(await startInstall(ID)).toBe(true);
+    expect(await installedVersion()).toBe('5');
+  });
+
+  it('falls back to the row’s own manifest when the channel is missing or names another pack', async () => {
+    const state = {
+      channel: null as unknown,
+      versions: { '3': bundled('3', 'Three', ID), '9': bundled('9', 'Nine', ID) } as Record<
+        string,
+        ReturnType<typeof bundled>
+      >,
+    };
+    vi.stubGlobal('fetch', mirror(state));
+    expect(await startInstall(ID)).toBe(true);
+    expect(await installedVersion()).toBe('3');
+
+    state.channel = channel('9', 'kingfisher-elite-otb');
+    await checkForPackUpdates();
+    expect(referenceSnapshot().sources.find((source) => source.id === ID)?.state).toBe('ready');
   });
 });

@@ -70,6 +70,8 @@ function parseArgs(argv) {
     // pipeline without waiting for the whole build.
     else if (flag === '--files') args.files = Number(argv[++index]);
     else if (flag === '--months') args.months = Number(argv[++index]);
+    // Phase 85: the monthly cycle numbers its builds from the live channel.
+    else if (flag === '--version') args.version = String(argv[++index]);
     else throw new Error(`Unknown option ${flag}`);
   }
   return args;
@@ -85,6 +87,10 @@ async function main() {
     throw new Error(
       `Unknown pack "${args.pack}". Known: ${Object.keys(PACK_DEFINITIONS).join(', ')}`,
     );
+  }
+  if (args.version) {
+    if (!/^\d+$/.test(args.version)) throw new Error(`--version must be a number: ${args.version}`);
+    definition.version = args.version;
   }
   const outDir = args.out ? path.resolve(args.out) : path.join(ROOT, definition.output);
   const work = path.join(CACHE, `work-${definition.id}`);
