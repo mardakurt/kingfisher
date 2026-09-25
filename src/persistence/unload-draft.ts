@@ -69,3 +69,31 @@ export function newerDraft(
   if (!stored) return unload;
   return unload.updatedAt >= stored.updatedAt ? unload : stored;
 }
+
+/**
+ * Whether the draft a load restores is the work the last page left as it
+ * went away.
+ *
+ * `pagehide` writes the unload draft and also starts the ordinary IndexedDB
+ * save, whose draft is stamped a few milliseconds later. When that write
+ * lands before the page goes, the stored draft is the newer of the two — and
+ * it is the same work: same document, same moves. Treating only the unload
+ * draft itself as the continuation made that case look like a rival version,
+ * so the load opened the stored chapter and offered the moves as a recovery:
+ * one reload in five lost the two moves `e2e/study-reload.spec.ts` plays
+ * (Phase 85's full run found it).
+ */
+export function continuesUnload(unload: DraftRecord | null, chosen: DraftRecord | null): boolean {
+  if (!unload || !chosen) return false;
+  if (chosen === unload) return true;
+  const a = unload.document as { kind: string; chapterId?: string; revision?: number };
+  const b = chosen.document as { kind: string; chapterId?: string; revision?: number };
+  if (a.kind !== b.kind || a.chapterId !== b.chapterId || a.revision !== b.revision) return false;
+  const left = Object.keys(unload.tree.nodes);
+  if (left.length !== Object.keys(chosen.tree.nodes).length) return false;
+  return left.every((id) => {
+    const one = unload.tree.nodes[id];
+    const other = chosen.tree.nodes[id];
+    return Boolean(other) && one?.move?.san === other?.move?.san && one?.comment === other?.comment;
+  });
+}

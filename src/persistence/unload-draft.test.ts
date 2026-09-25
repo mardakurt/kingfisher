@@ -4,7 +4,13 @@ import { START_FEN } from '@/chess/fen';
 import { createTree } from '@/chess/tree/tree';
 
 import type { DraftRecord } from './types';
-import { UNLOAD_DRAFT_KEY, newerDraft, takeUnloadDraft, writeUnloadDraft } from './unload-draft';
+import {
+  UNLOAD_DRAFT_KEY,
+  continuesUnload,
+  newerDraft,
+  takeUnloadDraft,
+  writeUnloadDraft,
+} from './unload-draft';
 
 function memoryStorage(limit = Infinity) {
   const values = new Map<string, string>();
@@ -56,5 +62,42 @@ describe('the draft written as the page goes', () => {
     expect(newerDraft(draft(5), draft(9))?.updatedAt).toBe(9);
     expect(newerDraft(null, draft(9))?.updatedAt).toBe(9);
     expect(newerDraft(draft(1), null)?.updatedAt).toBe(1);
+  });
+});
+
+describe('the load that follows a page going away', () => {
+  const chapter = (updatedAt: number, sans: readonly string[], revision = 3): DraftRecord => {
+    const tree = createTree(START_FEN);
+    const nodes: Record<string, unknown> = { ...tree.nodes };
+    sans.forEach((san, index) => {
+      nodes[`n${index}`] = { id: `n${index}`, move: { san }, children: [] };
+    });
+    return {
+      ...draft(updatedAt),
+      document: {
+        kind: 'study-chapter',
+        studyId: 's',
+        chapterId: 'c',
+        revision,
+        title: 'C',
+      } as DraftRecord['document'],
+      tree: { ...tree, nodes: nodes as DraftRecord['tree']['nodes'] },
+      unsaved: true,
+    };
+  };
+
+  it('continues the work when the stored draft is the same work written a moment later', () => {
+    const unload = chapter(100, ['e4', 'e5']);
+    const stored = chapter(104, ['e4', 'e5']);
+    // The race: the save pagehide started landed, and is newer.
+    expect(newerDraft(unload, stored)).toBe(stored);
+    expect(continuesUnload(unload, stored)).toBe(true);
+  });
+
+  it('is not a continuation when the stored draft is different work', () => {
+    const unload = chapter(100, ['e4', 'e5']);
+    expect(continuesUnload(unload, chapter(104, ['d4']))).toBe(false);
+    expect(continuesUnload(unload, chapter(104, ['e4', 'e5'], 4))).toBe(false);
+    expect(continuesUnload(null, unload)).toBe(false);
   });
 });

@@ -10,6 +10,7 @@
  * board.
  */
 
+import { workspaceRestored } from '@/features/persistence/useWorkspacePersistence';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
@@ -250,22 +251,39 @@ export function StudiesWorkspace() {
   const loadedChapter = useRef<string | null>(null);
   useEffect(() => {
     if (!chapter || loadedChapter.current === chapter.id) return;
-    loadedChapter.current = chapter.id;
+    let cancelled = false;
     /*
-      The board already holds this chapter — put back by the draft restore
-      after a reload, or still being edited when the page was left — and what
-      it holds is newer than the stored record. Opening the record over it
-      threw away the moves of the last second before a reload (Phase 84).
+      After the draft restore has settled, never before it. The restore puts
+      back a reload's last moves only while nothing has changed the board
+      since load; when this page's chapter query answered first, it opened the
+      stored chapter, the restore stood down, and the moves of the last second
+      before the reload were gone — one reload in four or five
+      (e2e/study-reload.spec.ts, Phase 85). The tab switcher waits for the
+      same promise for the same reason.
     */
-    const onBoard = useAnalysis.getState().document;
-    if (onBoard.kind === 'study-chapter' && onBoard.chapterId === chapter.id) {
+    void workspaceRestored().then(() => {
+      if (cancelled || loadedChapter.current === chapter.id) return;
+      loadedChapter.current = chapter.id;
+      /*
+        The board already holds this chapter — put back by the draft restore
+        after a reload, or still being edited when the page was left — and what
+        it holds is newer than the stored record. Opening the record over it
+        threw away the moves of the last second before a reload (Phase 84).
+      */
+      const onBoard = useAnalysis.getState().document;
+      if (onBoard.kind === 'study-chapter' && onBoard.chapterId === chapter.id) {
+        if (paramNode && chapter.id === paramChapter && chapter.tree.nodes[paramNode])
+          goTo(paramNode);
+        return;
+      }
+      open(chapter);
+      // The node a search hit named, when the chapter is the one it named.
       if (paramNode && chapter.id === paramChapter && chapter.tree.nodes[paramNode])
         goTo(paramNode);
-      return;
-    }
-    open(chapter);
-    // The node a search hit named, when the chapter is the one it named.
-    if (paramNode && chapter.id === paramChapter && chapter.tree.nodes[paramNode]) goTo(paramNode);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [chapter, open, paramNode, paramChapter, goTo]);
 
   const exportStudy = async () => {

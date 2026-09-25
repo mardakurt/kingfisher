@@ -17,7 +17,12 @@ import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { autosaveDelay } from '@/persistence/autosave';
-import { newerDraft, takeUnloadDraft, writeUnloadDraft } from '@/persistence/unload-draft';
+import {
+  continuesUnload,
+  newerDraft,
+  takeUnloadDraft,
+  writeUnloadDraft,
+} from '@/persistence/unload-draft';
 import { beginSession, releaseHeldDraft, shouldHoldDraft } from '@/persistence/session-launch';
 import { ensurePersistenceForAuthoredWork } from '@/persistence/storage-persistence';
 import { getRepositories } from '@/persistence/repositories';
@@ -146,7 +151,8 @@ export function useWorkspacePersistence(): void {
         const unload = takeUnloadOnce();
         const stored = await repositories.drafts.get();
         const draft = newerDraft(unload, stored);
-        const continuation = Boolean(unload) && draft === unload;
+        // The stored draft may be the same work, written by the save pagehide started.
+        const continuation = continuesUnload(unload, draft);
         if (continuation && draft) await repositories.drafts.save(draft);
         if (!active || !draft) return;
 
