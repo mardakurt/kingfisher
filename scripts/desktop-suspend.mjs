@@ -104,6 +104,35 @@ function packagedBinary() {
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const deepAnalysisJob = (window) =>
+  window.evaluate(
+    () =>
+      new Promise((resolve) => {
+        const request = indexedDB.open('kingfisher');
+        request.onsuccess = () => {
+          const database = request.result;
+          if (![...database.objectStoreNames].includes('deepAnalysisJobs')) {
+            database.close();
+            return resolve(null);
+          }
+          const query = database
+            .transaction('deepAnalysisJobs', 'readonly')
+            .objectStore('deepAnalysisJobs')
+            .getAll();
+          query.onsuccess = () => {
+            const rows = query.result ?? [];
+            database.close();
+            resolve(rows[0] ?? null);
+          };
+          query.onerror = () => {
+            database.close();
+            resolve(null);
+          };
+        };
+        request.onerror = () => resolve(null);
+      }),
+  );
+
 /** The board, the move list and the engine, as the renderer sees them. */
 async function surface(window) {
   return window.evaluate(() => {
@@ -207,6 +236,26 @@ async function main() {
   if (await analyse.count()) await analyse.first().click();
   await wait(5000);
 
+  await window.getByRole('tab', { name: 'Engine', exact: true }).click();
+  const deep = window.getByRole('region', { name: 'Deep analysis' });
+  await deep.getByRole('button', { name: 'Deepen from here…' }).click();
+  const deepForm = deep.locator('[data-deepen-form]');
+  await deepForm.getByLabel('Moves per position').selectOption('2');
+  await deepForm.getByLabel('Plies').selectOption('4');
+  await deepForm.getByLabel('Seconds each').selectOption('1');
+  await deepForm.getByRole('button', { name: 'Start' }).click();
+  let deepBefore = null;
+  for (let attempt = 0; attempt < 120; attempt += 1) {
+    deepBefore = await deepAnalysisJob(window);
+    if (deepBefore?.status === 'running' && deepBefore.searched >= 2) break;
+    await wait(250);
+  }
+  check(
+    'deep analysis is running from a saved checkpoint before sleep',
+    deepBefore?.status === 'running' && deepBefore.searched >= 2,
+    deepBefore ? `${deepBefore.searched} positions searched` : 'no saved job',
+  );
+
   const before = await surface(window);
   const family = descendants(shellPid);
   check(
@@ -304,6 +353,28 @@ async function main() {
       (!engine.warming || engine.running),
     `${current} current line(s) for ${engine.analysed === engine.board ? 'the board’s position' : 'another position'}` +
       `${engine.warming ? ', analysing' : ''}${engine.running ? ', search running' : ''}`,
+  );
+
+  let deepAfter = null;
+  for (let attempt = 0; attempt < 120; attempt += 1) {
+    deepAfter = await deepAnalysisJob(window);
+    if (
+      deepAfter?.status === 'done' ||
+      (deepBefore && deepAfter?.searched > deepBefore.searched)
+    )
+      break;
+    await wait(250);
+  }
+  check(
+    'deep analysis continues from its checkpoint after wake',
+    Boolean(
+      deepBefore &&
+        deepAfter &&
+        (deepAfter.status === 'done' || deepAfter.searched > deepBefore.searched),
+    ),
+    deepAfter
+      ? `${deepBefore?.searched ?? 0} → ${deepAfter.searched} positions (${deepAfter.status})`
+      : 'no saved job after wake',
   );
 
   // The renderer can still reach the server the shell owns.

@@ -65,6 +65,62 @@ function packagedBinary() {
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const DEEP_FEN = 'r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3';
+
+/** The persisted job is the contract across a real quit; UI state is not. */
+const deepAnalysisJob = (window) =>
+  window.evaluate(
+    () =>
+      new Promise((resolve) => {
+        const request = indexedDB.open('kingfisher');
+        request.onsuccess = () => {
+          const database = request.result;
+          if (![...database.objectStoreNames].includes('deepAnalysisJobs')) {
+            database.close();
+            return resolve(null);
+          }
+          const query = database
+            .transaction('deepAnalysisJobs', 'readonly')
+            .objectStore('deepAnalysisJobs')
+            .getAll();
+          query.onsuccess = () => {
+            const rows = query.result ?? [];
+            database.close();
+            resolve(rows[0] ?? null);
+          };
+          query.onerror = () => {
+            database.close();
+            resolve(null);
+          };
+        };
+        request.onerror = () => resolve(null);
+      }),
+  );
+
+async function startDeepAnalysis(window) {
+  await window.goto(`${new URL(window.url()).origin}/analysis?fen=${encodeURIComponent(DEEP_FEN)}`);
+  await window.waitForFunction(
+    () => document.documentElement.dataset.kingfisherReady === 'true',
+    null,
+    { timeout: 120_000 },
+  );
+  await window.getByRole('tab', { name: 'Engine', exact: true }).click();
+  const section = window.getByRole('region', { name: 'Deep analysis' });
+  await section.getByRole('button', { name: 'Deepen from here…' }).click();
+  const form = section.locator('[data-deepen-form]');
+  await form.getByLabel('Moves per position').selectOption('2');
+  await form.getByLabel('Plies').selectOption('4');
+  await form.getByLabel('Seconds each').selectOption('1');
+  await form.getByRole('button', { name: 'Start' }).click();
+  await section.locator('[data-deepen-progress]').waitFor({ timeout: 60_000 });
+  for (let attempt = 0; attempt < 120; attempt += 1) {
+    const row = await deepAnalysisJob(window);
+    if (row?.status === 'running' && row.searched >= 3) return row;
+    await wait(250);
+  }
+  throw new Error('Deep analysis did not save three searched positions before restart.');
+}
+
 /** How many studies this origin's database holds. */
 const studyCount = (window) =>
   window.evaluate(
@@ -152,6 +208,13 @@ async function main() {
       `${wrote} in IndexedDB at ${firstOrigin}`,
     );
 
+    const deepBefore = await startDeepAnalysis(window);
+    check(
+      'a running deep analysis is checkpointed before quit',
+      deepBefore?.status === 'running' && deepBefore.searched >= 3,
+      deepBefore ? `${deepBefore.searched} positions searched` : 'no saved job',
+    );
+
     await app.close();
     await wait(2000);
 
@@ -167,6 +230,20 @@ async function main() {
 
     const kept = await studyCount(window);
     check('the study is still there', kept === 1, `${kept} in IndexedDB at ${secondOrigin}`);
+
+    let deepAfter = null;
+    for (let attempt = 0; attempt < 480; attempt += 1) {
+      deepAfter = await deepAnalysisJob(window);
+      if (deepAfter?.status === 'done') break;
+      await wait(250);
+    }
+    check(
+      'the deep analysis resumes after quit and finishes from its checkpoint',
+      deepAfter?.status === 'done' && deepAfter.resumed >= 1 && deepAfter.searched >= deepBefore.searched,
+      deepAfter
+        ? `${deepAfter.searched} searched, resumed ${deepAfter.resumed} time(s)`
+        : 'no saved job after relaunch',
+    );
 
     /*
       Driven rather than dispatched. `element.click()` inside `page.evaluate`
