@@ -43,6 +43,7 @@ import { useUi } from '@/stores/ui-store';
 
 import { CollectionDetail } from './CollectionDetail';
 import { formatBytes } from './CollectionList';
+import { LargeFileImportDialog } from './LargeFileImportDialog';
 import { DuplicatesPanel } from './DuplicatesPanel';
 import { MultiSearchPanel } from './MultiSearchPanel';
 import { ReferenceCatalogPanel } from './ReferenceCatalogPanel';
@@ -75,6 +76,7 @@ export function DatabasesWorkspace() {
   const queryClient = useQueryClient();
   const [enCroissantOpen, setEnCroissantOpen] = useState(false);
   const [chessBaseOpen, setChessBaseOpen] = useState(false);
+  const [largeOpen, setLargeOpen] = useState(false);
   const chessBaseRunning = useChessBaseImport((state) => state.running);
   const enCroissantRunning = useEnCroissantImport((state) => state.running);
   const setImportOpen = useUi((state) => state.setImportOpen);
@@ -156,6 +158,7 @@ export function DatabasesWorkspace() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
+      {largeOpen ? <LargeFileImportDialog onClose={() => setLargeOpen(false)} /> : null}
       {chessBaseOpen ? (
         <ChessBaseImportDialog open onClose={() => setChessBaseOpen(false)} />
       ) : null}
@@ -196,6 +199,9 @@ export function DatabasesWorkspace() {
           </Button>
           <Button size="sm" onClick={() => setEnCroissantOpen(true)}>
             {enCroissantRunning ? 'En Croissant import running…' : 'Import En Croissant'}
+          </Button>
+          <Button size="sm" onClick={() => setLargeOpen(true)}>
+            Import a large file…
           </Button>
         </div>
       </div>

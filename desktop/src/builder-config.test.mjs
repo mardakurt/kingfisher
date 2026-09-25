@@ -58,6 +58,8 @@ describe('electron-builder.yml', () => {
       'kingfisher/web',
       'kingfisher/web/node_modules',
       'kingfisher/companion/src',
+      // Phase 85: the import kit the companion's large-file imports load.
+      'kingfisher/companion/generated',
       'kingfisher/scripts/engine-catalogue.mjs',
       'kingfisher/scripts/engine-digests.json',
       'kingfisher/public/engine',
@@ -73,6 +75,8 @@ describe('electron-builder.yml', () => {
       'web/node_modules',
       'resources/engine',
       'resources/tablebase',
+      // Built by `desktop:build:web` (scripts/build-companion-kit.mjs).
+      '../companion/generated',
     ]);
     for (const entry of config.extraResources) {
       if (produced.has(entry.from)) continue;

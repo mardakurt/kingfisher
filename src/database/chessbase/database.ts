@@ -15,7 +15,7 @@
  */
 
 import { decodeAnnotations, type NodeAnnotations } from './annotations';
-import { u32le } from './bytes';
+import { u24be, u32be, u32le } from './bytes';
 import {
   playerName,
   readAnnotators,
@@ -24,9 +24,15 @@ import {
   readTeams,
   readTournaments,
 } from './entities';
-import { headerCount, readHeader } from './headers';
+import { HEADER_RECORD_BYTES, parseHeaderRecord } from './headers';
 import { decodeMoves, type MoveNode } from './moves';
-import type { ChessBaseFiles, ChessBaseHeader, ChessBaseInspection } from './types';
+import {
+  sourceOf,
+  type ByteSource,
+  type ChessBaseFiles,
+  type ChessBaseHeader,
+  type ChessBaseInspection,
+} from './types';
 
 export const REQUIRED_FILES = ['cbh', 'cbg'] as const;
 export const KNOWN_FILES = ['cbh', 'cbg', 'cba', 'cbp', 'cbt', 'cbc', 'cbs', 'cbe', 'cbj'] as const;
@@ -61,10 +67,10 @@ export function databaseName(fileNames: readonly string[]): string | null {
 }
 
 export class ChessBaseDatabase {
-  private readonly cbh: Uint8Array;
-  private readonly cbg: Uint8Array;
-  private readonly cba: Uint8Array | undefined;
-  private readonly cbj: Uint8Array | undefined;
+  private readonly cbh: ByteSource;
+  private readonly cbg: ByteSource;
+  private readonly cba: ByteSource | undefined;
+  private readonly cbj: ByteSource | undefined;
   private readonly players;
   private readonly tournaments;
   private readonly annotators;
@@ -79,23 +85,50 @@ export class ChessBaseDatabase {
     const cbg = files.get('cbg');
     if (!cbh || !cbg)
       throw new Error('A ChessBase database needs at least its .cbh and .cbg files.');
-    this.cbh = cbh;
-    this.cbg = cbg;
-    this.cba = files.get('cba');
-    this.cbj = files.get('cbj');
-    this.players = readPlayers(files.get('cbp'));
-    this.tournaments = readTournaments(files.get('cbt'));
-    this.annotators = readAnnotators(files.get('cbc'));
-    this.sources = readSources(files.get('cbs'));
-    this.teams = readTeams(files.get('cbe'));
+    this.cbh = sourceOf(cbh);
+    this.cbg = sourceOf(cbg);
+    const optional = (extension: string) => {
+      const file = files.get(extension);
+      return file ? sourceOf(file) : undefined;
+    };
+    this.cba = optional('cba');
+    this.cbj = optional('cbj');
+    // The entity files are small beside the games (Mega's players are tens of megabytes): read whole.
+    const whole = (extension: string) => {
+      const file = optional(extension);
+      return file ? file.read(0, file.size) : undefined;
+    };
+    this.players = readPlayers(whole('cbp'));
+    this.tournaments = readTournaments(whole('cbt'));
+    this.annotators = readAnnotators(whole('cbc'));
+    this.sources = readSources(whole('cbs'));
+    this.teams = readTeams(whole('cbe'));
   }
 
   get count(): number {
-    return headerCount(this.cbh);
+    return Math.max(0, Math.floor(this.cbh.size / HEADER_RECORD_BYTES) - 1);
   }
 
   header(id: number): ChessBaseHeader | null {
-    return readHeader(this.cbh, id);
+    if (id < 1 || id > this.count) return null;
+    return parseHeaderRecord(this.cbh.read(id * HEADER_RECORD_BYTES, HEADER_RECORD_BYTES), id);
+  }
+
+  /** Headers `from`…`to`, read in one piece. */
+  headers(from: number, to: number): (ChessBaseHeader | null)[] {
+    const first = Math.max(1, from);
+    const last = Math.min(this.count, to);
+    if (last < first) return [];
+    const block = this.cbh.read(
+      first * HEADER_RECORD_BYTES,
+      (last - first + 1) * HEADER_RECORD_BYTES,
+    );
+    const out: (ChessBaseHeader | null)[] = [];
+    for (let id = first; id <= last; id += 1) {
+      const at = (id - first) * HEADER_RECORD_BYTES;
+      out.push(parseHeaderRecord(block.subarray(at, at + HEADER_RECORD_BYTES), id));
+    }
+    return out;
   }
 
   inspect(): ChessBaseInspection {
@@ -104,8 +137,11 @@ export class ChessBaseDatabase {
     let deleted = 0;
     let firstDate: string | null = null;
     let lastDate: string | null = null;
-    for (let id = 1; id <= this.count; id += 1) {
-      const header = readHeader(this.cbh, id);
+    const headers: (ChessBaseHeader | null)[] = [];
+    for (let from = 1; from <= this.count; from += 20_000) {
+      headers.push(...this.headers(from, from + 19_999));
+    }
+    for (const header of headers) {
       if (!header) continue;
       if (header.text) texts += 1;
       else if (header.deleted) deleted += 1;
@@ -118,7 +154,7 @@ export class ChessBaseDatabase {
       }
     }
     let sizeBytes = 0;
-    for (const bytes of this.files.values()) sizeBytes += bytes.length;
+    for (const bytes of this.files.values()) sizeBytes += sourceOf(bytes).size;
     return {
       supported: true,
       name: this.name,
@@ -138,13 +174,14 @@ export class ChessBaseDatabase {
   /** Team ids for a game, from the extended header when the database has one. */
   private teamsOf(id: number): { white: string; black: string } {
     const none = { white: '', black: '' };
-    if (!this.cbj || this.cbj.length < 32) return none;
-    const recordSize = u32le(this.cbj, 4);
+    if (!this.cbj || this.cbj.size < 32) return none;
+    const recordSize = u32le(this.cbj.read(0, 8), 4);
     if (recordSize < 8) return none;
     const at = 32 + (id - 1) * recordSize;
-    if (at + 8 > this.cbj.length) return none;
-    const whiteId = u32le(this.cbj, at) | 0;
-    const blackId = u32le(this.cbj, at + 4) | 0;
+    if (at + 8 > this.cbj.size) return none;
+    const record = this.cbj.read(at, 8);
+    const whiteId = u32le(record, 0) | 0;
+    const blackId = u32le(record, 4) | 0;
     return {
       white: whiteId >= 0 ? (this.teams.records[whiteId]?.name ?? '') : '',
       black: blackId >= 0 ? (this.teams.records[blackId]?.name ?? '') : '',
@@ -152,16 +189,21 @@ export class ChessBaseDatabase {
   }
 
   game(id: number): ChessBaseGameResult {
-    const header = readHeader(this.cbh, id);
+    const header = this.header(id);
     if (!header) return { id, header: null, reason: 'no such game' };
     if (header.text) return { id, header, reason: 'a guiding text, not a game' };
     if (header.chess960)
       return { id, header, reason: 'a Chess960 game, which Kingfisher does not play' };
-    const moves = decodeMoves(this.cbg, header.movesOffset);
+    // The game's record alone: its four-byte head says how long it is.
+    const head = this.cbg.read(header.movesOffset, 4);
+    const moves =
+      head.length < 4
+        ? ({ ok: false, reason: 'movetext offset is outside the file' } as const)
+        : decodeMoves(this.cbg.read(header.movesOffset, u24be(head, 1)), 0);
     if (!moves.ok) return { id, header, reason: moves.reason };
     const issues = [...moves.issues];
     const annotations = this.cba
-      ? decodeAnnotations(this.cba, header.annotationsOffset)
+      ? this.annotationsOf(header.annotationsOffset)
       : {
           byNode: new Map<number, NodeAnnotations>(),
           skipped: new Map<number, number>(),
@@ -220,6 +262,19 @@ export class ChessBaseDatabase {
       [opening, movetext, header.result].filter(Boolean).join(' ') +
       '\n';
     return { id, header, pgn, issues };
+  }
+
+  /** One game's annotation block, read at its offset (0 means none). */
+  private annotationsOf(offset: number) {
+    if (!this.cba || offset <= 0) return decodeAnnotations(new Uint8Array(0), 0);
+    const head = this.cba.read(offset, 14);
+    if (head.length < 14) return decodeAnnotations(new Uint8Array(0), 1);
+    const size = u32be(head, 10);
+    // The decoder takes a file and an offset; the block is placed at offset 1.
+    const block = this.cba.read(offset, Math.max(14, Math.min(size, 16_000_000)));
+    const padded = new Uint8Array(block.length + 1);
+    padded.set(block, 1);
+    return decodeAnnotations(padded, 1);
   }
 
   *games(from = 1, to = this.count): IterableIterator<ChessBaseGameResult> {

@@ -23,6 +23,7 @@ export const REQUIRED_DESKTOP_RESOURCES = Object.freeze(
     { path: 'web/public/engine/stockfish/stockfish-18-lite.js', kind: 'file' },
     { path: 'web/public/engine/stockfish/stockfish-18-lite.wasm', kind: 'file' },
     { path: 'companion/src/server.mjs', kind: 'file' },
+    { path: 'companion/generated/import-kit.mjs', kind: 'file' },
     { path: 'scripts/engine-catalogue.mjs', kind: 'file' },
     { path: 'scripts/engine-digests.json', kind: 'file' },
   ].map(Object.freeze),

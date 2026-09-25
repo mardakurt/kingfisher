@@ -39,7 +39,12 @@ export function headerCount(cbh: Uint8Array): number {
 export function readHeader(cbh: Uint8Array, id: number): ChessBaseHeader | null {
   const at = id * HEADER_RECORD_BYTES;
   if (id < 1 || at + HEADER_RECORD_BYTES > cbh.length) return null;
-  const record = cbh.subarray(at, at + HEADER_RECORD_BYTES);
+  return parseHeaderRecord(cbh.subarray(at, at + HEADER_RECORD_BYTES), id);
+}
+
+/** One 46-byte record, however it was read. */
+export function parseHeaderRecord(record: Uint8Array, id: number): ChessBaseHeader | null {
+  if (id < 1 || record.length < HEADER_RECORD_BYTES) return null;
   const flags = u8(record, 0);
   const text = (flags & 0x02) !== 0;
   const deleted = (flags & 0x80) !== 0;

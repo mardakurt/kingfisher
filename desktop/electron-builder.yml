@@ -96,6 +96,12 @@ extraResources:
       - '**/*'
       - '!**/*.test.mjs'
       - '!__fixtures__/**'
+  # Phase 85: the application's import path, bundled for the companion's own
+  # large-file imports (scripts/build-companion-kit.mjs, run by build-desktop-web).
+  - from: ../companion/generated
+    to: kingfisher/companion/generated
+    filter:
+      - 'import-kit.mjs'
   - from: ../scripts/engine-catalogue.mjs
     to: kingfisher/scripts/engine-catalogue.mjs
   - from: ../scripts/engine-digests.json

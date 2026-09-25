@@ -65,7 +65,26 @@ export interface ChessBaseTeam extends ChessBaseNamed {
 }
 
 /** The files a database is made of, by lower-case extension without the dot. */
-export type ChessBaseFiles = ReadonlyMap<string, Uint8Array>;
+/**
+ * A file read at the offsets asked for (Phase 85). A database the size of
+ * Mega is several gigabytes; the companion reads it from disk a record at a
+ * time rather than holding it, and an in-memory file is only the simplest
+ * kind of source.
+ */
+export interface ByteSource {
+  readonly size: number;
+  read(offset: number, length: number): Uint8Array;
+}
+
+export type ChessBaseFiles = ReadonlyMap<string, Uint8Array | ByteSource>;
+
+export const sourceOf = (input: Uint8Array | ByteSource): ByteSource =>
+  input instanceof Uint8Array
+    ? {
+        size: input.length,
+        read: (offset, length) => input.subarray(offset, Math.min(input.length, offset + length)),
+      }
+    : input;
 
 export interface ChessBaseInspection {
   readonly supported: boolean;

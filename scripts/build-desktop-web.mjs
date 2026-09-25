@@ -392,3 +392,15 @@ for (const part of ['server.js', '.next/static', 'public']) {
   console.log(`  ${mark} ${part}${bytes}`);
 }
 console.log(`  total ${(size(OUT) / 1e6).toFixed(1)} MB`);
+
+/*
+  Phase 85: the companion's import kit — the application's own import path,
+  bundled for the large-file imports the companion runs itself. Staged by
+  `electron-builder.yml` and required by `desktop/src/required-resources.mjs`,
+  so a package without it fails before it is signed.
+*/
+{
+  const { buildCompanionKit } = await import('./build-companion-kit.mjs');
+  const kit = await buildCompanionKit();
+  console.log(`Companion import kit: ${path.relative(ROOT, kit)} (${(size(kit) / 1e6).toFixed(1)} MB)`);
+}
