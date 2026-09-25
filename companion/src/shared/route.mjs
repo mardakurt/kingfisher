@@ -1,3 +1,4 @@
+// GENERATED from src/search/route.ts by `npm run companion:shared`. Do not edit.
 /**
  * A piece's route: `N f3 d2 f1 g3`, as ChessBase's manoeuvre search asks it.
  *
@@ -13,19 +14,19 @@
  * calls this for every move of every game it reads.
  */
 
-import type { Color } from '@/chess/types';
+                                           
 
-export type RoutePiece = 'k' | 'q' | 'r' | 'b' | 'n' | 'p';
+                                                           
 
-export interface Route {
-  readonly piece: RoutePiece;
-  readonly squares: readonly string[];
-  /** Normalised for display: `N f3–d2–f1–g3`. */
-  readonly label: string;
-}
+                        
+                             
+                                      
+                                                 
+                         
+ 
 
-export type RouteParse =
-  { readonly ok: true; readonly route: Route } | { readonly ok: false; readonly error: string };
+                        
+                                                                                                
 
 /**
  * One move of the line. Either the position before it (`fenBefore`), from
@@ -34,18 +35,18 @@ export type RouteParse =
  * whether the target square was occupied, given directly. Both describe the
  * same move; `findRoute` reads whichever it is handed.
  */
-export type RouteMove = {
-  readonly ply: number;
-  readonly uci: string;
-} & (
-  | { readonly fenBefore: string }
-  | {
-      readonly mover: { readonly color: Color; readonly type: RoutePiece } | null;
-      readonly targetOccupied: boolean;
-    }
-);
+                         
+                       
+                       
+     
+                                  
+     
+                                                                                  
+                                       
+     
+  
 
-export function parseRoute(text: string): RouteParse {
+export function parseRoute(text        )             {
   const trimmed = text.trim();
   if (!trimmed) return { ok: false, error: 'Type a piece and its squares, e.g. "N f3 d2 f1".' };
   // "b1" is a square, not a bishop: a piece letter is never followed by a rank.
@@ -75,18 +76,18 @@ export function parseRoute(text: string): RouteParse {
       return { ok: false, error: `${squares[index]} follows itself; a move goes somewhere.` };
     }
   }
-  const piece = letter.toLowerCase() as RoutePiece;
+  const piece = letter.toLowerCase()              ;
   return {
     ok: true,
     route: { piece, squares, label: `${letter.toUpperCase()} ${squares.join('–')}` },
   };
 }
 
-interface Trail {
-  square: string;
-  /** Index in the route of the square the piece now stands on. */
-  reached: number;
-}
+                 
+                 
+                                                                  
+                  
+ 
 
 /**
  * The ply at which the route is completed, or null.
@@ -95,11 +96,11 @@ interface Trail {
  * can walk the route.
  */
 export function findRoute(
-  moves: readonly RouteMove[],
-  route: Route,
-  colour?: Color,
-): number | null {
-  let trails: Trail[] = [];
+  moves                      ,
+  route       ,
+  colour        ,
+)                {
+  let trails          = [];
   const last = route.squares.length - 1;
   for (const move of moves) {
     const from = move.uci.slice(0, 2);
@@ -111,20 +112,20 @@ export function findRoute(
       'fenBefore' in move ? pieceOn(move.fenBefore, to) !== null : move.targetOccupied;
 
     // Squares this move empties of a piece that is not the mover.
-    const removed = new Set<string>([to]);
+    const removed = new Set        ([to]);
     if (mover.type === 'p' && from[0] !== to[0] && !targetOccupied) {
       removed.add(`${to[0]}${from[1]}`); // en passant
     }
     // Castling: the rook travels too.
-    let rookFrom: string | null = null;
-    let rookTo: string | null = null;
+    let rookFrom                = null;
+    let rookTo                = null;
     if (mover.type === 'k' && Math.abs(file(from) - file(to)) === 2) {
       const rank = from[1];
       rookFrom = `${file(to) > file(from) ? 'h' : 'a'}${rank}`;
       rookTo = `${file(to) > file(from) ? 'f' : 'd'}${rank}`;
     }
 
-    const next: Trail[] = [];
+    const next          = [];
     for (const trail of trails) {
       if (trail.square === from) {
         // The followed piece moved: onward along the route, or the trail ends.
@@ -167,19 +168,19 @@ export function findRoute(
   return null;
 }
 
-const file = (square: string): number => square.charCodeAt(0) - 97;
+const file = (square        )         => square.charCodeAt(0) - 97;
 
 /** The piece on a square, read from the FEN's placement field. */
 export function pieceOn(
-  fen: string,
-  square: string,
-): { readonly color: Color; readonly type: RoutePiece } | null {
+  fen        ,
+  square        ,
+)                                                              {
   const targetFile = file(square);
   const targetRank = Number(square[1]);
   let rank = 8;
   let column = 0;
   for (let index = 0; index < fen.length; index += 1) {
-    const char = fen[index]!;
+    const char = fen[index] ;
     if (char === ' ') break;
     if (char === '/') {
       rank -= 1;
@@ -192,7 +193,7 @@ export function pieceOn(
     }
     if (rank === targetRank && column === targetFile) {
       const lower = char.toLowerCase();
-      return { color: char === lower ? 'b' : 'w', type: lower as RoutePiece };
+      return { color: char === lower ? 'b' : 'w', type: lower               };
     }
     column += 1;
   }

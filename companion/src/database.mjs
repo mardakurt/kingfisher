@@ -16,7 +16,9 @@
  * interface can sit on top of either.
  */
 
+import { availableParallelism } from 'node:os';
 import { DatabaseSync } from 'node:sqlite';
+import { Worker } from 'node:worker_threads';
 
 import {
   CLAIM_INDEX_INDEXES,
@@ -76,6 +78,34 @@ CREATE TABLE IF NOT EXISTS games (
 CREATE TABLE IF NOT EXISTS game_content (
   game_id       INTEGER PRIMARY KEY REFERENCES games(id) ON DELETE CASCADE,
   pgn           TEXT NOT NULL
+);
+
+/*
+  Phase 85: each game's main line in compact form, for the move search —
+  material runs, moves with their movers, first plies of the themes
+  (src/search/line-index.ts). Built by the browser at import; a game without
+  a row is searched the old way, and gets a row as it is.
+*/
+/*
+  Phase 85: where a collection's games came from — each file imported by the
+  companion, its size, how many games it gave, and the licence the person
+  named. Provenance travels with the collection.
+*/
+CREATE TABLE IF NOT EXISTS collection_sources (
+  id            INTEGER PRIMARY KEY,
+  file          TEXT NOT NULL,
+  kind          TEXT NOT NULL,
+  bytes         INTEGER NOT NULL,
+  games         INTEGER NOT NULL,
+  licence       TEXT,
+  note          TEXT,
+  imported_at   INTEGER NOT NULL,
+  stopped       INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS game_lines (
+  game_id       INTEGER PRIMARY KEY REFERENCES games(id) ON DELETE CASCADE,
+  data          BLOB NOT NULL
 );
 
 /*
@@ -303,6 +333,15 @@ const REBUILD_AFFECTED = `
   DELETE FROM affected_positions;
 `;
 
+/** A line index as it crosses the HTTP boundary (base64), checked for its version byte. */
+function lineBytes(value) {
+  if (typeof value !== 'string' || value.length === 0 || value.length > 65_536) return null;
+  const bytes = Buffer.from(value, 'base64');
+  return bytes.length >= 11 && bytes[0] === 1 ? bytes : null;
+}
+
+const MOVE_SEARCH_WORKER = new URL('./move-search.worker.mjs', import.meta.url);
+
 export class GameDatabase {
   #db;
   #file;
@@ -319,6 +358,8 @@ export class GameDatabase {
   #totals = null;
   /** Whether a completed build said the claim index can be trusted. */
   #claimIndexReady = false;
+  /** Phase 85: inside `beginBulk` … `endBulk`, the per-row maintenance is deferred. */
+  #bulk = false;
 
   constructor(file) {
     this.#file = file;
@@ -766,6 +807,78 @@ export class GameDatabase {
     return this.#db.prepare('SELECT COUNT(*) AS n FROM games').get().n;
   }
 
+  /**
+   * Phase 85: a large import, fast. Maintaining the position indexes and the
+   * aggregate trigger row by row made an import write-bound at under a
+   * hundred games a second; a million-game archive was a four-hour job. So a
+   * bulk load drops them, writes the rows in id order, and `endBulk` builds
+   * the indexes once and rebuilds the aggregates from the rows — the same
+   * derived tables `rebuildAggregates` produces for a repair, so a bulk-loaded
+   * collection and a game-by-game one are the same collection
+   * (`bulk-import.test.mjs`). Only for an import that owns the file: nothing
+   * else may read the collection until `endBulk` returns.
+   */
+  beginBulk() {
+    if (this.#bulk) return;
+    this.#db.exec(`
+      DROP TRIGGER IF EXISTS positions_aggregate_insert;
+      DROP INDEX IF EXISTS positions_key;
+      DROP INDEX IF EXISTS positions_game;
+      DROP INDEX IF EXISTS positions_pawn_skeleton_id;
+      DROP INDEX IF EXISTS positions_structure_signature_id;
+      DROP INDEX IF EXISTS positions_structure_claims_id;
+      DROP INDEX IF EXISTS positions_pawn_skeleton;
+      DROP INDEX IF EXISTS positions_structure_signature;
+      DROP INDEX IF EXISTS positions_rank;
+      DROP INDEX IF EXISTS positions_recent;
+      PRAGMA synchronous = OFF;
+      PRAGMA cache_size = -262144;
+    `);
+    this.#bulk = true;
+  }
+
+  endBulk() {
+    if (!this.#bulk) return;
+    this.#bulk = false;
+    this.#db.exec('PRAGMA synchronous = NORMAL;');
+    // Every CREATE in the schema is IF NOT EXISTS: this restores exactly what was dropped.
+    this.#db.exec(SCHEMA);
+    this.#ensurePositionIndexes();
+    if (this.#claimIndexReady) this.#db.exec(CLAIM_INDEX_INDEXES);
+    this.rebuildAggregates();
+    this.checkpoint();
+  }
+
+  /** Phase 85: record where imported games came from. */
+  recordSource(source) {
+    this.#db
+      .prepare(
+        `INSERT INTO collection_sources (file, kind, bytes, games, licence, note, imported_at, stopped)
+         VALUES (?,?,?,?,?,?,?,?)`,
+      )
+      .run(
+        String(source.file),
+        String(source.kind),
+        Number(source.bytes) || 0,
+        Number(source.games) || 0,
+        source.licence ?? null,
+        source.note ?? null,
+        Number(source.importedAt) || Date.now(),
+        source.stopped ? 1 : 0,
+      );
+  }
+
+  /** Every file this collection was imported from, oldest first. */
+  sources() {
+    return this.#db
+      .prepare(
+        `SELECT file, kind, bytes, games, licence, note, imported_at AS importedAt, stopped
+           FROM collection_sources ORDER BY id`,
+      )
+      .all()
+      .map((row) => ({ ...row, stopped: row.stopped === 1 }));
+  }
+
   /** Rebuild the derived rows transactionally, for migration and repair. */
   rebuildAggregates() {
     this.#db.exec('BEGIN');
@@ -812,6 +925,9 @@ export class GameDatabase {
     `);
     const insertContent = this.#db.prepare(
       'INSERT OR REPLACE INTO game_content (game_id, pgn) VALUES (?,?)',
+    );
+    const insertLine = this.#db.prepare(
+      'INSERT OR REPLACE INTO game_lines (game_id, data) VALUES (?,?)',
     );
     const insertPosition = this.#sql.compact
       ? this.#db.prepare(`
@@ -903,6 +1019,8 @@ export class GameDatabase {
         );
         const id = findId.get(game.fingerprint).id;
         insertContent.run(id, entry.pgn ?? '');
+        const line = lineBytes(entry.line);
+        if (line) insertLine.run(id, line);
         bumpPlayer.run(game.whiteKey, game.white);
         bumpPlayer.run(game.blackKey, game.black);
         insertFts?.run(
@@ -965,6 +1083,8 @@ export class GameDatabase {
         }
         imported += 1;
       }
+      // A bulk load starts from an empty cache and rebuilds everything at the end.
+      if (this.#bulk) touchedPositions.clear();
       for (const key of touchedPositions) {
         clearFilterCache.run(key);
         clearFilterTotal.run(key);
@@ -1436,6 +1556,98 @@ export class GameDatabase {
     query, the PGN alone (`false`). The full rows are several times the size
     of the game itself.
   */
+  /**
+   * Phase 85: store line indexes the browser built for games imported before
+   * the index existed. Games that are not here are ignored.
+   */
+  storeLines(lines) {
+    const insert = this.#db.prepare(
+      'INSERT OR REPLACE INTO game_lines (game_id, data) SELECT ?, ? WHERE EXISTS (SELECT 1 FROM games WHERE id = ?)',
+    );
+    let stored = 0;
+    this.#db.exec('BEGIN');
+    try {
+      for (const entry of Array.isArray(lines) ? lines : []) {
+        const bytes = lineBytes(entry?.data);
+        const id = Number(entry?.id);
+        if (!bytes || !Number.isInteger(id)) continue;
+        stored += Number(insert.run(id, bytes, id).changes);
+      }
+      this.#db.exec('COMMIT');
+    } catch (error) {
+      this.#db.exec('ROLLBACK');
+      throw error;
+    }
+    return { stored };
+  }
+
+  /**
+   * Phase 85: the move search — material, theme, route — over the compact
+   * line index, in parallel slices of the id range, each a worker thread
+   * with its own read-only connection. The question is sent as text and
+   * parsed here with the application's own parsers; the answers are
+   * `scanLine`'s (src/search/line-index.test.ts). Returns the hits with
+   * their summaries, how many games were selected and scanned, and how many
+   * have no line index yet — those the caller searches the old way.
+   */
+  async moveSearch(query = {}, deep = {}, options = {}) {
+    const built = gameWhere(query ?? {}, { fts: this.#ftsAvailable });
+    const where = built.where;
+    const params = built.params;
+    const clause = where.length ? `WHERE ${where.join(' AND ')}` : '';
+    const started = performance.now();
+    const selected = this.#db.prepare(`SELECT COUNT(*) AS n FROM games ${clause}`).get(...params).n;
+    const unindexed = this.#db
+      .prepare(
+        `SELECT COUNT(*) AS n FROM games ${clause ? `${clause} AND` : 'WHERE'} NOT EXISTS (SELECT 1 FROM game_lines l WHERE l.game_id = games.id)`,
+      )
+      .get(...params).n;
+    const bounds = this.#db.prepare('SELECT MIN(id) AS lo, MAX(id) AS hi FROM games').get();
+    const slices = Math.max(
+      1,
+      Math.min(
+        options.workers ?? availableParallelism(),
+        16,
+        Math.ceil((bounds.hi ?? 0) / 20_000) || 1,
+      ),
+    );
+    const lo = (bounds.lo ?? 1) - 1;
+    const hi = bounds.hi ?? 0;
+    const step = Math.ceil((hi - lo) / slices);
+    const results = await Promise.all(
+      Array.from({ length: slices }, (_, index) => {
+        const from = lo + index * step;
+        const to = Math.min(hi, from + step);
+        return new Promise((resolve, reject) => {
+          const worker = new Worker(MOVE_SEARCH_WORKER, {
+            workerData: { file: this.#file, from, to, where, params, deep },
+          });
+          worker.once('message', resolve);
+          worker.once('error', reject);
+          worker.once('exit', (code) => {
+            if (code !== 0) reject(new Error(`a move-search slice stopped with code ${code}`));
+          });
+        });
+      }),
+    );
+    const hits = results.flatMap((result) => result.hits).sort((a, b) => a[0] - b[0]);
+    const limit = Math.max(1, Math.min(Number(options.limit) || 5_000, 50_000));
+    const shown = hits.slice(0, limit);
+    const summaries = new Map();
+    const read = this.#db.prepare('SELECT * FROM games WHERE id = ?');
+    for (const [id] of shown) summaries.set(id, toSummary(read.get(id)));
+    return {
+      selected,
+      scanned: results.reduce((sum, result) => sum + result.scanned, 0),
+      unindexed,
+      unanswerable: results.flatMap((result) => result.unanswerable).length,
+      total: hits.length,
+      hits: shown.map(([id, ply]) => ({ game: summaries.get(id), ply })),
+      slices,
+      elapsedMs: Math.round(performance.now() - started),
+    };
+  }
+
   exportPage(after = null, limit = 200, query = null, options = {}) {
     const withPositions = options.positions !== false;
     const lineOnly = options.positions === 'line';
@@ -1449,6 +1661,16 @@ export class GameDatabase {
     if (after !== null && after !== undefined && String(after).length > 0) {
       parts.push('id > ?');
       params.push(Number(after));
+    }
+    // Phase 85: the games the line index cannot answer, and a comment query's text prefilter.
+    if (options.unindexedOnly) {
+      parts.push('NOT EXISTS (SELECT 1 FROM game_lines l WHERE l.game_id = games.id)');
+    }
+    if (typeof options.pgnContains === 'string' && options.pgnContains.trim()) {
+      parts.push(
+        'EXISTS (SELECT 1 FROM game_content c WHERE c.game_id = games.id AND instr(lower(c.pgn), ?) > 0)',
+      );
+      params.push(options.pgnContains.trim().toLowerCase());
     }
     const clause = parts.length ? `WHERE ${parts.join(' AND ')}` : '';
     const rows = this.#db

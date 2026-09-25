@@ -96,3 +96,4 @@ tmp/
 desktop/vendor/
 desktop/native/sparkle/build/
 __pycache__/
+companion/generated/

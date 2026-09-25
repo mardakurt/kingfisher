@@ -7,6 +7,7 @@
  * if it needs one — which only the browser's collection does.
  */
 
+import { lineIndexForRows } from '@/search/line-index-encode';
 import { asFen, asSan, asUci } from '@/chess/types';
 import type { CompanionClient, CompanionExportedGame } from '@/companion/client';
 import type { GameSearchQuery, GameSummary, PositionRecord } from '@/persistence/types';
@@ -101,6 +102,8 @@ export class SqliteGameCollection implements GameCollection {
       },
       pgn: game.pgn,
       positions: game.positions,
+      // Phase 85: the line index, rebuilt from the rows a transfer carries.
+      line: lineIndexForRows(game.positions as never),
     }));
     const result = await this.client.importGames(this.key, payload);
     return {

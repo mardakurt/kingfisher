@@ -25,6 +25,9 @@ const config = [
       'scripts/**',
       // Build scripts, print to a terminal, same as scripts/ above.
       'desktop/scripts/**',
+      // Generated from src/search (scripts/companion-shared.mjs); the source is linted.
+      'companion/src/shared/**',
+      'companion/generated/**',
       'test-results/**',
       'playwright-report/**',
       // The shell's own install and the bundles it packs, none of it ours.

@@ -47,6 +47,8 @@ import { performance } from 'node:perf_hooks';
 import { argv, exit } from 'node:process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
+import { Worker } from 'node:worker_threads';
+
 import { GameDatabase } from '../companion/src/database.mjs';
 
 import { closeApp, loadApp } from './load-app.mjs';
@@ -69,7 +71,18 @@ const PARSE_BATCH = 500;
 const PROGRESS_EVERY = 25_000;
 
 function parseArgs(list) {
-  const args = { games: Infinity, keep: false, out: null, queryOnly: null, warm: 40, floor: 4e9 };
+  const args = {
+    games: Infinity,
+    keep: false,
+    out: null,
+    queryOnly: null,
+    warm: 40,
+    floor: 4e9,
+    archives: [],
+    positions: true,
+    workers: 1,
+    bulk: false,
+  };
   for (let i = 0; i < list.length; i += 1) {
     const flag = list[i];
     if (flag === '--games') args.games = Number(list[++i]);
@@ -78,6 +91,11 @@ function parseArgs(list) {
     else if (flag === '--query-only') args.queryOnly = list[++i];
     else if (flag === '--warm') args.warm = Number(list[++i]);
     else if (flag === '--floor-gb') args.floor = Number(list[++i]) * 1e9;
+    // Phase 85: any archive (a Lichess standard month, CC0), and a search-only build.
+    else if (flag === '--archive') args.archives.push(list[++i]);
+    else if (flag === '--no-positions') args.positions = false;
+    else if (flag === '--workers') args.workers = Number(list[++i]);
+    else if (flag === '--bulk') args.bulk = true;
   }
   return args;
 }
@@ -173,14 +191,15 @@ function archives() {
     .map((file) => path.join(CACHE, file));
 }
 
-export async function build(database, limit, databaseFile, floorBytes) {
+export async function build(database, limit, databaseFile, floorBytes, options = {}) {
   const { parsePgn } = await loadApp(['/src/chess/pgn/index.ts']);
   const { normalizeGame, indexGame } = await loadApp(['/src/persistence/prepare-game.ts']);
   const { classifyTree } = await loadApp(['/src/theory/classify-games.ts']);
   const { loadOpeningIndex } = await loadApp(['/src/theory/openings.ts']);
+  const { lineIndexForTree } = await loadApp(['/src/search/line-index-encode.ts']);
   const openings = await loadOpeningIndex();
 
-  const files = archives();
+  const files = options.archives?.length ? options.archives : archives();
   if (files.length === 0) {
     console.error(`No broadcast archives in ${CACHE}.`);
     console.error('Run `node scripts/build-reference-pack.mjs --pack starter` to populate it.');
@@ -198,8 +217,8 @@ export async function build(database, limit, databaseFile, floorBytes) {
     duplicates: 0,
     positions: 0,
     files: files.length,
-    firstMonth: path.basename(files[0]).slice(21, 28),
-    lastMonth: path.basename(files[files.length - 1]).slice(21, 28),
+    firstMonth: /\d{4}-\d{2}/.exec(path.basename(files[0]))?.[0] ?? '?',
+    lastMonth: /\d{4}-\d{2}/.exec(path.basename(files[files.length - 1]))?.[0] ?? '?',
     peakRssBytes: 0,
   };
 
@@ -260,7 +279,9 @@ export async function build(database, limit, databaseFile, floorBytes) {
             importedAt: record.importedAt,
           },
           pgn: record.normalizedPgn,
-          positions,
+          // A search-only build keeps no explorer positions (--no-positions).
+          positions: options.positions === false ? [] : positions,
+          line: lineIndexForTree(record.tree),
         });
         stats.positions += positions.length;
       } catch {
@@ -314,6 +335,94 @@ export async function build(database, limit, databaseFile, floorBytes) {
   return stats;
 }
 
+/**
+ * Phase 85: the same import with the preparation spread over worker threads
+ * (`real-scale.worker.mjs`); this thread only writes. Each worker takes every
+ * n-th game, so the archive's order is kept within a share, and a batch is
+ * written only when the writer has room, so memory stays bounded.
+ */
+export async function buildParallel(database, limit, databaseFile, floorBytes, options) {
+  const files = options.archives;
+  const shares = options.workers;
+  const stats = {
+    read: 0,
+    accepted: database.count(),
+    previouslyStored: database.count(),
+    rejected: 0,
+    duplicates: 0,
+    positions: 0,
+    files: files.length,
+    firstMonth: /\d{4}-\d{2}/.exec(path.basename(files[0]))?.[0] ?? '?',
+    lastMonth: /\d{4}-\d{2}/.exec(path.basename(files[files.length - 1]))?.[0] ?? '?',
+    peakRssBytes: 0,
+    workers: shares,
+  };
+  const started = performance.now();
+  let lastReport = 0;
+  const workers = Array.from(
+    { length: shares },
+    (_, share) =>
+      new Worker(new URL('./real-scale.worker.mjs', import.meta.url), {
+        workerData: {
+          files,
+          share,
+          shares,
+          limit: Number.isFinite(limit) ? Math.ceil(limit / shares) : Infinity,
+          positions: options.positions !== false,
+        },
+      }),
+  );
+  await new Promise((resolve, reject) => {
+    let finished = 0;
+    for (const worker of workers) {
+      worker.on('error', reject);
+      worker.on('message', (message) => {
+        if (message.kind === 'done') {
+          stats.read = Math.max(stats.read, message.read);
+          finished += 1;
+          if (finished === workers.length) resolve();
+          return;
+        }
+        stats.rejected += message.rejected;
+        if (message.prepared.length) {
+          const result = database.insertGames(message.prepared);
+          stats.accepted += result.imported;
+          stats.duplicates += result.duplicates;
+          for (const entry of message.prepared) stats.positions += entry.positions.length;
+        }
+        const rss = process.memoryUsage().rss;
+        if (rss > stats.peakRssBytes) stats.peakRssBytes = rss;
+        if (stats.accepted - lastReport >= 25_000) {
+          lastReport = stats.accepted;
+          database.checkpoint();
+          const seconds = (performance.now() - started) / 1000;
+          const free = freeBytes(databaseFile);
+          console.log(
+            `  ${n(stats.accepted).padStart(9)} stored  ${n(stats.positions).padStart(11)} positions  ` +
+              `${Math.round(stats.accepted / seconds).toLocaleString()}/s  rss ${mb(rss)}  free ${gb(free)}`,
+          );
+          if (free < floorBytes) {
+            stats.stoppedForDisk = true;
+            console.log(`\n  Stopping: free space fell below ${gb(floorBytes)}.`);
+            for (const other of workers) void other.terminate();
+            resolve();
+            return;
+          }
+        }
+        if (stats.accepted >= limit) {
+          for (const other of workers) void other.terminate();
+          resolve();
+          return;
+        }
+        worker.postMessage('ack');
+      });
+    }
+  });
+  stats.read = Math.max(stats.read, stats.accepted + stats.rejected + stats.duplicates);
+  stats.elapsedMs = performance.now() - started;
+  return stats;
+}
+
 /** The queries a professional actually runs, against whatever is in the file. */
 export function benchmark(database, warm) {
   const rows = [];
@@ -353,6 +462,106 @@ export function benchmark(database, warm) {
   return rows;
 }
 
+/**
+ * Phase 85: the move search over the companion's line index, at this scale —
+ * material, theme and route, each cold and then warm — and, on a sample, the
+ * same answer from the linear read the index replaces.
+ */
+export async function moveSearchBenchmark(database, warm = 3) {
+  const { THEMES_VERSION_NUMBER } = await loadApp(['/src/search/line-index-encode.ts']);
+  const questions = [
+    ['material R v B', { material: { text: 'R v B' } }],
+    ['theme opposite bishops', { theme: 'opposite-coloured-bishops' }],
+    ['route N g1 f3 d4 f5', { route: { text: 'N g1 f3 d4 f5' } }],
+    ['material + route', { material: { text: 'Q v Q' }, route: { text: 'N g1 f3' } }],
+  ];
+  const rows = [];
+  for (const [label, text] of questions) {
+    const deep = { themesVersion: THEMES_VERSION_NUMBER, ...text };
+    const samples = [];
+    let result = null;
+    for (let run = 0; run <= warm; run += 1) {
+      const started = performance.now();
+      result = await database.moveSearch({}, deep, { limit: 100 });
+      samples.push(performance.now() - started);
+    }
+    const [cold, ...rest] = samples;
+    rest.sort((a, b) => a - b);
+    const row = {
+      label,
+      cold,
+      median: rest[Math.floor(rest.length / 2)] ?? cold,
+      hits: result.total,
+      scanned: result.scanned,
+      unindexed: result.unindexed,
+      slices: result.slices,
+    };
+    console.log(
+      `${label.padEnd(30)} cold ${(cold / 1000).toFixed(2).padStart(7)} s  median ${(row.median / 1000).toFixed(2).padStart(7)} s  ` +
+        `${n(row.hits)} hits of ${n(row.scanned)} scanned (${row.slices} slices, ${n(row.unindexed)} unindexed)`,
+    );
+    rows.push(row);
+  }
+  return rows;
+}
+
+/**
+ * The linear read the index replaces, on the first `sample` games: every
+ * game's PGN replayed by the rules code and asked with `scanGame`. The hits
+ * must be the index's hits on the same games.
+ */
+export async function equivalenceSample(database, sample) {
+  const { THEMES_VERSION_NUMBER } = await loadApp(['/src/search/line-index-encode.ts']);
+  const { parsePgn } = await loadApp(['/src/chess/pgn/index.ts']);
+  const { scanGame } = await loadApp(['/src/search/game-scan.ts']);
+  const { parseMaterialQuery } = await loadApp(['/src/search/material-query.ts']);
+  const { parseRoute } = await loadApp(['/src/search/route.ts']);
+  const questions = [
+    [{ material: { text: 'R v B' } }, { material: { query: parseMaterialQuery('R v B').query } }],
+    [{ theme: 'opposite-coloured-bishops' }, { theme: 'opposite-coloured-bishops' }],
+    [{ route: { text: 'N g1 f3 d4 f5' } }, { route: { route: parseRoute('N g1 f3 d4 f5').route } }],
+  ];
+  const out = [];
+  for (const [text, deep] of questions) {
+    const linear = new Map();
+    const readIds = new Set();
+    const started = performance.now();
+    let after = null;
+    let read = 0;
+    do {
+      const page = database.exportPage(after, 500, null, { positions: false });
+      for (const game of page.games) {
+        if (read >= sample) break;
+        const tree = parsePgn(game.pgn).games[0]?.tree;
+        read += 1;
+        readIds.add(String(game.summary.id));
+        const hit = tree ? scanGame(tree, deep) : null;
+        if (hit) linear.set(String(game.summary.id), hit.ply);
+      }
+      after = page.nextAfter;
+      if (read >= sample) break;
+    } while (after);
+    const linearMs = performance.now() - started;
+    const indexed = await database.moveSearch(
+      {},
+      { themesVersion: THEMES_VERSION_NUMBER, ...text },
+      { limit: 50_000 },
+    );
+    const fromIndex = new Map(
+      indexed.hits
+        .filter((hit) => readIds.has(String(hit.game.id)))
+        .map((hit) => [String(hit.game.id), hit.ply]),
+    );
+    let same = fromIndex.size === linear.size;
+    for (const [id, ply] of linear) if (fromIndex.get(id) !== ply) same = false;
+    console.log(
+      `equivalence ${JSON.stringify(text).padEnd(34)} ${n(read)} games: linear ${n(linear.size)} hits in ${(linearMs / 1000).toFixed(1)} s, index ${n(fromIndex.size)} hits — ${same ? 'identical' : 'DIFFERENT'}`,
+    );
+    out.push({ text, read, linearHits: linear.size, indexHits: fromIndex.size, linearMs, same });
+  }
+  return out;
+}
+
 async function main() {
   const args = parseArgs(argv.slice(2));
 
@@ -365,6 +574,8 @@ async function main() {
     console.log(`games on disk: ${n(database.count())}`);
     console.log(`file size:     ${gb(statSync(args.queryOnly).size)}\n`);
     benchmark(database, args.warm);
+    console.log('\n--- move search (line index) -------------------------------------');
+    await moveSearchBenchmark(database);
     database.close();
     return;
   }
@@ -375,8 +586,26 @@ async function main() {
   console.log(`database: ${file}\n`);
 
   const database = new GameDatabase(file);
-  const stats = await build(database, args.games, file, args.floor);
+  if (args.bulk) database.beginBulk();
+  const stats =
+    args.workers > 1 && args.archives.length > 0
+      ? await buildParallel(database, args.games, file, args.floor, {
+          archives: args.archives,
+          positions: args.positions,
+          workers: args.workers,
+        })
+      : await build(database, args.games, file, args.floor, {
+          archives: args.archives,
+          positions: args.positions,
+        });
 
+  if (args.bulk) {
+    const indexing = performance.now();
+    database.endBulk();
+    stats.indexMs = performance.now() - indexing;
+    stats.elapsedMs += stats.indexMs;
+    console.log(`\nindexes and aggregates built in ${(stats.indexMs / 60000).toFixed(1)} min`);
+  }
   database.checkpoint();
   const size = statSync(file).size;
   const seconds = stats.elapsedMs / 1000;
@@ -395,10 +624,13 @@ async function main() {
 
   console.log('\n--- queries -----------------------------------------------------');
   console.log('all times in milliseconds\n');
-  const queries = benchmark(database, args.warm);
+  const queries = args.positions ? benchmark(database, args.warm) : [];
+  console.log('\n--- move search (line index) -------------------------------------');
+  const moveSearch = await moveSearchBenchmark(database);
+  const equivalence = await equivalenceSample(database, 30_000);
   writeFileSync(
     path.join(directory, 'result.json'),
-    JSON.stringify({ stats, size, queries }, null, 2),
+    JSON.stringify({ stats, size, queries, moveSearch, equivalence }, null, 2),
   );
 
   database.close();

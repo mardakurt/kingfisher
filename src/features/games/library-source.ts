@@ -19,17 +19,21 @@
 
 import { parseSingleGame } from '@/chess/pgn';
 import type { GameTree } from '@/chess/tree/types';
+import type { CompanionMoveQuery, CompanionMoveSearchResult } from '@/companion/client';
 import { companionClient } from '@/companion/session';
 import { getRepositories } from '@/persistence/repositories';
 import type { GameSearchQuery, GameSearchResult, GameSummary } from '@/persistence/types';
 import { gameTitle } from '@/persistence/describe';
 import { useAnalysis } from '@/stores/analysis-store';
 
-import { Position } from '@/chess/position';
-import type { Fen } from '@/chess/types';
-import type { DeepQuery, LinePosition } from '@/search/game-scan';
+import type { DeepQuery } from '@/search/game-scan';
+import {
+  lineFromRows,
+  lineIndexForRows,
+  THEMES_VERSION_NUMBER,
+} from '@/search/line-index-encode';
 
-import { runPagedDeepSearch, type DeepSearchState } from './deep-search';
+import { runPagedDeepSearch, type DeepMatch, type DeepSearchState } from './deep-search';
 import { openStoredGame } from './open-game';
 
 export type LibrarySource =
@@ -139,29 +143,76 @@ export async function companionMoveSearch(input: {
   if (!client) throw new Error('The companion is not connected, so that database cannot be read.');
   const { query } = queryForSource(input.header as GameSearchQuery, input.source);
   const { sortBy: _sortBy, sortDirection: _sortDirection, ...filters } = query;
-  const counted = await client.searchGames<GameSearchResult>(input.source.key, {
-    ...filters,
-    limit: 1,
-    exactTotal: true,
+  const key = input.source.key;
+  const comment = input.deep.comment?.trim() ?? '';
+
+  /*
+    Phase 85: material, theme and route are answered by the companion itself,
+    over the compact line index it keeps per game, on worker threads — the
+    same answers (src/search/line-index.test.ts), in seconds at a million
+    games. What the index cannot answer is read the old way below: a comment
+    (only the PGN has it), a game imported before the index existed, and any
+    game if the companion predates the index.
+  */
+  let fast: CompanionMoveSearchResult | null = null;
+  if (!comment) {
+    try {
+      fast = await client.moveSearch(key, filters, indexedQuestion(input.deep));
+    } catch {
+      fast = null;
+    }
+  }
+  const indexed = fast && fast.unanswerable === 0 ? fast : null;
+  const found: DeepMatch[] = (indexed?.hits ?? []).map((hit) => ({
+    game: hit.game as unknown as GameSummary,
+    hit: { ply: hit.ply, nodeId: '' },
+  }));
+  if (indexed && indexed.unindexed === 0) {
+    const state: DeepSearchState = {
+      status: 'done',
+      read: indexed.scanned,
+      selected: indexed.selected,
+      matches: found,
+    };
+    input.onProgress?.(state);
+    return state;
+  }
+
+  const counted = indexed
+    ? { total: indexed.unindexed }
+    : await client.searchGames<GameSearchResult>(key, { ...filters, limit: 1, exactTotal: true });
+  const alreadyRead = indexed?.scanned ?? 0;
+  const forward = (state: DeepSearchState): DeepSearchState => ({
+    ...state,
+    read: state.read + alreadyRead,
+    selected: state.selected + alreadyRead,
+    matches: [...found, ...state.matches],
   });
-  return runPagedDeepSearch({
+  const slow = await runPagedDeepSearch({
     selected: counted.total ?? 0,
     page: async (after) => {
-      /*
-        The rows the companion indexed at import are the main line already
-        replayed by the rules code, and reading them is two hundred times
-        cheaper than replaying the PGN again. A comment is only in the PGN,
-        so a comment query asks for the PGN alone.
-      */
-      const needsText = Boolean(input.deep.comment?.trim());
-      const page = await client.exportPage(input.source.key, after, MOVE_PAGE, filters, {
-        positions: needsText ? false : 'line',
+      // The main line the companion indexed at import is two hundred times
+      // cheaper than the PGN; a comment is only in the PGN, and the text
+      // itself narrows which PGNs are worth reading.
+      const page = await client.exportPage(key, after, MOVE_PAGE, filters, {
+        positions: comment ? false : 'line',
+        ...(indexed ? { unindexedOnly: true } : {}),
+        ...(comment ? { pgnContains: comment } : {}),
       });
+      if (!comment) {
+        // Each game read the old way gets its line index, so the next search does not have to.
+        const lines = page.games.flatMap((game) => {
+          const data = lineIndexForRows(game.positions as never);
+          const id = (game.summary as { id?: unknown }).id;
+          return data && typeof id === 'string' ? [{ id, data }] : [];
+        });
+        if (lines.length) void client.storeLines(key, lines).catch(() => undefined);
+      }
       return {
         games: page.games.map((game) => ({
           summary: game.summary as unknown as GameSummary,
           pgn: game.pgn ?? null,
-          line: needsText ? null : lineFromRows(game.positions),
+          line: comment ? null : lineFromRows(game.positions),
         })),
         nextAfter: page.games.length > 0 ? page.nextAfter : null,
       };
@@ -172,47 +223,41 @@ export async function companionMoveSearch(input: {
     },
     deep: input.deep,
     ...(input.signal ? { signal: input.signal } : {}),
-    ...(input.onProgress ? { onProgress: input.onProgress } : {}),
+    ...(input.onProgress
+      ? { onProgress: (state: DeepSearchState) => input.onProgress!(forward(state)) }
+      : {}),
   });
+  const final = forward(slow);
+  // A comment prefilter skips games whose PGN lacks the text: they are read, and did not match.
+  return comment ? { ...final, read: final.selected, selected: final.selected } : final;
+}
+
+/** The question as text, for the companion to parse with the application's own parsers. */
+function indexedQuestion(deep: DeepQuery): CompanionMoveQuery {
+  return {
+    themesVersion: THEMES_VERSION_NUMBER,
+    ...(deep.material
+      ? {
+          material: {
+            text: deep.material.query.label,
+            ...(deep.material.colour ? { colour: deep.material.colour } : {}),
+          },
+        }
+      : {}),
+    ...(deep.theme ? { theme: deep.theme } : {}),
+    ...(deep.route
+      ? {
+          route: {
+            text: deep.route.route.label,
+            ...(deep.route.colour ? { colour: deep.route.colour } : {}),
+          },
+        }
+      : {}),
+  };
 }
 
 /** Games per page when a companion database is read for its moves. */
 const MOVE_PAGE = 500;
 
-interface IndexedRow {
-  readonly ply?: unknown;
-  readonly fen?: unknown;
-  readonly moveUci?: unknown;
-}
-
-/**
- * A game's main line from the rows its store indexed, or null when the rows
- * are not the whole line.
- *
- * The index keeps one row per position and move, so a repetition is stored
- * once and the rows then skip plies; a skipped ply would make a two-position
- * material test or a route read the wrong sequence. Only consecutive plies are
- * trusted, and anything else falls back to replaying the PGN. The position
- * after the last move is played here, once, by the rules code.
- */
-export function lineFromRows(rows: readonly IndexedRow[] | undefined): LinePosition[] | null {
-  if (!rows || rows.length === 0) return null;
-  const sorted = [...rows].sort((a, b) => Number(a.ply) - Number(b.ply));
-  const first = Number(sorted[0]!.ply);
-  const line: LinePosition[] = [];
-  for (let index = 0; index < sorted.length; index += 1) {
-    const row = sorted[index]!;
-    if (Number(row.ply) !== first + index) return null;
-    if (typeof row.fen !== 'string' || typeof row.moveUci !== 'string') return null;
-    if (index === 0) line.push({ id: 'p0', fen: row.fen, ply: first - 1 });
-    const next = sorted[index + 1];
-    let after: string | null = typeof next?.fen === 'string' ? next.fen : null;
-    if (!next) {
-      const played = Position.fromTrustedFen(row.fen as Fen).playUci(row.moveUci);
-      after = played.ok ? played.value.after : null;
-    }
-    if (!after) return null;
-    line.push({ id: `p${index + 1}`, fen: after, ply: first + index, move: { uci: row.moveUci } });
-  }
-  return line;
-}
+// Phase 85: moved beside the line index it now also feeds.
+export { lineFromRows };

@@ -1,3 +1,4 @@
+// GENERATED from src/search/material-query.ts by `npm run companion:shared`. Do not edit.
 /**
  * Material, typed the way books and ChessBase write it: `R v B`, `Q v RR`,
  * `RB v R`, `RPP v R`.
@@ -15,41 +16,41 @@
  * rather than running the full, validating FEN parser.
  */
 
-import type { Color } from '@/chess/types';
+                                           
 
-type Counted = 'q' | 'r' | 'b' | 'n' | 'p';
+                                           
 
-export interface MaterialSide {
-  readonly q: number;
-  readonly r: number;
-  readonly b: number;
-  readonly n: number;
-  readonly p: number;
-}
+                               
+                     
+                     
+                     
+                     
+                     
+ 
 
-export interface MaterialQuery {
-  readonly first: MaterialSide;
-  readonly second: MaterialSide;
-  /** Whether pawns take part in the comparison. */
-  readonly pawns: boolean;
-  /** The text as normalised, for display: `RPP v R`. */
-  readonly label: string;
-}
+                                
+                               
+                                
+                                                   
+                          
+                                                        
+                         
+ 
 
-export type MaterialParse =
-  | { readonly ok: true; readonly query: MaterialQuery }
-  | { readonly ok: false; readonly error: string };
+                           
+                                                        
+                                                   
 
 const SEPARATOR = /\s*(?:\bversus\b|\bvs\.?|\bv\b|\bagainst\b)\s*/i;
 
-export function parseMaterialQuery(text: string): MaterialParse {
+export function parseMaterialQuery(text        )                {
   const trimmed = text.trim();
   if (!trimmed) return { ok: false, error: 'Type the material, e.g. "R v B".' };
   const parts = trimmed.split(SEPARATOR);
   if (parts.length !== 2) {
     return { ok: false, error: 'Write two sides with "v" between them, e.g. "R v B".' };
   }
-  const sides: MaterialSide[] = [];
+  const sides                 = [];
   let pawns = false;
   for (const raw of parts) {
     const letters = raw.replace(/\s+/g, '').toUpperCase();
@@ -57,7 +58,7 @@ export function parseMaterialQuery(text: string): MaterialParse {
     const side = { q: 0, r: 0, b: 0, n: 0, p: 0 };
     for (const letter of letters) {
       if (letter === 'K') continue;
-      const type = letter.toLowerCase() as Counted;
+      const type = letter.toLowerCase()           ;
       if (!(type in side)) {
         return {
           ok: false,
@@ -69,7 +70,7 @@ export function parseMaterialQuery(text: string): MaterialParse {
     }
     sides.push(side);
   }
-  const [first, second] = sides as [MaterialSide, MaterialSide];
+  const [first, second] = sides                                ;
   return {
     ok: true,
     query: { first, second, pawns, label: `${sideLabel(first)} v ${sideLabel(second)}` },
@@ -77,7 +78,7 @@ export function parseMaterialQuery(text: string): MaterialParse {
 }
 
 /** Counts per colour from the placement field of a FEN. */
-export function materialOf(fen: string): Record<Color, MaterialSide> {
+export function materialOf(fen        )                              {
   const white = { q: 0, r: 0, b: 0, n: 0, p: 0 };
   const black = { q: 0, r: 0, b: 0, n: 0, p: 0 };
   const end = fen.indexOf(' ');
@@ -97,24 +98,24 @@ export function materialOf(fen: string): Record<Color, MaterialSide> {
  * `colour` fixes which side holds the query's first group; without it,
  * either assignment counts.
  */
-export function materialMatches(fen: string, query: MaterialQuery, colour?: Color): boolean {
+export function materialMatches(fen        , query               , colour        )          {
   return materialMatchesCounts(materialOf(fen), query, colour);
 }
 
 /** The same test on material already counted — what a compact line index keeps. */
 export function materialMatchesCounts(
-  material: Readonly<Record<Color, MaterialSide>>,
-  query: MaterialQuery,
-  colour?: Color,
-): boolean {
-  const as = (holder: Color) =>
+  material                                       ,
+  query               ,
+  colour        ,
+)          {
+  const as = (holder       ) =>
     sameSide(material[holder], query.first, query.pawns) &&
     sameSide(material[holder === 'w' ? 'b' : 'w'], query.second, query.pawns);
   if (colour) return as(colour);
   return as('w') || as('b');
 }
 
-function bump(side: { q: number; r: number; b: number; n: number; p: number }, code: number) {
+function bump(side                                                           , code        ) {
   switch (code) {
     case 113:
       side.q += 1;
@@ -136,14 +137,14 @@ function bump(side: { q: number; r: number; b: number; n: number; p: number }, c
   }
 }
 
-const sameSide = (have: MaterialSide, want: MaterialSide, pawns: boolean): boolean =>
+const sameSide = (have              , want              , pawns         )          =>
   have.q === want.q &&
   have.r === want.r &&
   have.b === want.b &&
   have.n === want.n &&
   (!pawns || have.p === want.p);
 
-function sideLabel(side: MaterialSide): string {
+function sideLabel(side              )         {
   const text =
     'Q'.repeat(side.q) +
     'R'.repeat(side.r) +

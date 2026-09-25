@@ -28,3 +28,7 @@ engines/
 companion/data/
 *.tsbuildinfo
 *.prettier-cache
+
+# Generated from src/search by `npm run companion:shared`; checked by companion/src/shared.test.mjs
+companion/src/shared/
+companion/generated/

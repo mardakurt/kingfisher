@@ -48,8 +48,39 @@ export declare class GameDatabase {
     after: string | null,
     limit: number,
     query: unknown,
-    options?: { readonly positions?: boolean | 'line' },
+    options?: {
+      readonly positions?: boolean | 'line';
+      readonly unindexedOnly?: boolean;
+      readonly pgnContains?: string;
+    },
   ): { games: readonly ExportedGame[]; nextAfter: string | null };
+  sources(): readonly {
+    file: string;
+    kind: string;
+    bytes: number;
+    games: number;
+    licence: string | null;
+    note: string | null;
+    importedAt: number;
+    stopped: boolean;
+  }[];
+  beginBulk(): void;
+  endBulk(): void;
+  storeLines(lines: readonly { id: number | string; data: string }[]): { stored: number };
+  moveSearch(
+    query: unknown,
+    deep: unknown,
+    options?: { readonly limit?: number; readonly workers?: number },
+  ): Promise<{
+    selected: number;
+    scanned: number;
+    unindexed: number;
+    unanswerable: number;
+    total: number;
+    hits: readonly { game: Record<string, unknown>; ply: number }[];
+    slices: number;
+    elapsedMs: number;
+  }>;
   haveFingerprints(fingerprints: readonly string[]): { present: readonly string[] };
   duplicateKeys(
     after: string | null,

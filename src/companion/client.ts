@@ -516,7 +516,13 @@ export class CompanionClient {
     after: string | null,
     limit: number,
     query?: unknown,
-    options: { readonly positions?: boolean | 'line' } = {},
+    options: {
+      readonly positions?: boolean | 'line';
+      /** Only games the line index does not hold yet (Phase 85). */
+      readonly unindexedOnly?: boolean;
+      /** Only games whose PGN contains this text: a comment query's prefilter. */
+      readonly pgnContains?: string;
+    } = {},
   ): Promise<{ games: readonly CompanionExportedGame[]; nextAfter: string | null }> {
     return this.request('/db/export-page', {
       key,
@@ -526,7 +532,61 @@ export class CompanionClient {
       ...(options.positions !== undefined && options.positions !== true
         ? { positions: options.positions }
         : {}),
+      ...(options.unindexedOnly ? { unindexedOnly: true } : {}),
+      ...(options.pgnContains ? { pgnContains: options.pgnContains } : {}),
     });
+  }
+
+  /**
+   * Phase 85: the move search run by the companion over its line index. Old
+   * companions answer 404; the caller then searches the old way.
+   */
+  moveSearch(
+    key: string,
+    query: unknown,
+    deep: CompanionMoveQuery,
+    limit = 5_000,
+  ): Promise<CompanionMoveSearchResult> {
+    return this.request(
+      '/db/move-search',
+      { key, query, deep, limit },
+      undefined,
+      MAINTENANCE_TIMEOUT_MS,
+    );
+  }
+
+  /** Phase 85: a large file imported by the companion itself, from a path chosen in a dialog. */
+  importFile(
+    key: string,
+    path: string,
+    options: {
+      readonly licence?: string;
+      readonly note?: string;
+      readonly keepPositions?: boolean;
+    } = {},
+  ): Promise<{ jobId: string }> {
+    return this.request('/db/import-file', { key, path, ...options });
+  }
+
+  importFileStatus(jobId: string): Promise<CompanionFileImport> {
+    return this.request('/db/import-file-status', { jobId });
+  }
+
+  cancelImportFile(jobId: string): Promise<{ ok: boolean }> {
+    return this.request('/db/import-file-cancel', { jobId });
+  }
+
+  /** Where a collection's games came from (Phase 85). */
+  collectionSources(key: string): Promise<{ sources: readonly CompanionCollectionSource[] }> {
+    return this.request('/db/sources', { key });
+  }
+
+  /** Phase 85: line indexes built here for games the companion holds without one. */
+  storeLines(
+    key: string,
+    lines: readonly { readonly id: string; readonly data: string }[],
+  ): Promise<{ stored: number }> {
+    return this.request('/db/store-lines', { key, lines });
   }
 
   /** Which of these fingerprints the collection already holds. */
@@ -669,4 +729,51 @@ export class CompanionClient {
   gameContent(key: string, id: string): Promise<{ pgn: string | null }> {
     return this.request('/db/content', { key, id });
   }
+}
+
+/** The move search's question, as text the companion parses with the application's parsers. */
+export interface CompanionMoveQuery {
+  readonly themesVersion: number;
+  readonly material?: { readonly text: string; readonly colour?: 'w' | 'b' };
+  readonly theme?: string;
+  readonly route?: { readonly text: string; readonly colour?: 'w' | 'b' };
+}
+
+export interface CompanionMoveSearchResult {
+  readonly selected: number;
+  readonly scanned: number;
+  readonly unindexed: number;
+  readonly unanswerable: number;
+  readonly total: number;
+  readonly hits: readonly { readonly game: Record<string, unknown>; readonly ply: number }[];
+  readonly slices: number;
+  readonly elapsedMs: number;
+}
+
+export interface CompanionFileImport {
+  readonly phase: 'starting' | 'importing' | 'indexing' | 'done' | 'stopped' | 'failed';
+  readonly kind?: 'pgn' | 'chessbase';
+  readonly file?: string;
+  readonly bytes?: number;
+  readonly read?: number;
+  readonly imported?: number;
+  readonly duplicates?: number;
+  readonly rejected?: number;
+  readonly failures?: readonly { readonly id: number; readonly reason: string }[];
+  readonly peakRssBytes?: number;
+  readonly elapsedMs?: number;
+  readonly indexMs?: number;
+  readonly workers?: number;
+  readonly error?: string;
+}
+
+export interface CompanionCollectionSource {
+  readonly file: string;
+  readonly kind: string;
+  readonly bytes: number;
+  readonly games: number;
+  readonly licence: string | null;
+  readonly note: string | null;
+  readonly importedAt: number;
+  readonly stopped: boolean;
 }

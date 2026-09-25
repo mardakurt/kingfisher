@@ -6,6 +6,7 @@
  * carry resource *keys*, never filesystem paths.
  */
 
+import { ImportFileError, ImportJobs } from './import-jobs.mjs';
 import { createServer } from 'node:http';
 import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync, statSync } from 'node:fs';
 import path from 'node:path';
@@ -36,6 +37,8 @@ import {
   tokenMatches,
 } from './security.mjs';
 
+/** Phase 85: file imports the companion runs itself. */
+const importJobs = new ImportJobs();
 const ROOT = path.resolve(fileURLToPath(new URL('../..', import.meta.url)));
 const DATA_DIR = process.env.KINGFISHER_COMPANION_DATA_DIR
   ? path.resolve(process.env.KINGFISHER_COMPANION_DATA_DIR)
@@ -859,9 +862,104 @@ async function route(url, request, response) {
         body.after ?? null,
         Math.min(Number(body.limit) || 200, 1000),
         body.query ?? null,
-        { positions: body.positions === 'line' ? 'line' : body.positions !== false },
+        {
+          positions: body.positions === 'line' ? 'line' : body.positions !== false,
+          unindexedOnly: body.unindexedOnly === true,
+          ...(typeof body.pgnContains === 'string' ? { pgnContains: body.pgnContains } : {}),
+        },
       ),
     );
+  }
+
+  /*
+    Phase 85: the move search over the compact line index, run here in worker
+    threads (database.mjs `moveSearch`), and the line indexes the browser
+    builds for games imported before the index existed.
+  */
+  if (pathname === '/db/move-search' && request.method === 'POST') {
+    const body = await readBody(request);
+    const deep = body.deep ?? {};
+    const clean = {
+      themesVersion: Number(deep.themesVersion) || 0,
+      ...(deep.material && typeof deep.material.text === 'string'
+        ? {
+            material: {
+              text: deep.material.text.slice(0, 64),
+              ...(deep.material.colour === 'w' || deep.material.colour === 'b'
+                ? { colour: deep.material.colour }
+                : {}),
+            },
+          }
+        : {}),
+      ...(typeof deep.theme === 'string' ? { theme: deep.theme.slice(0, 64) } : {}),
+      ...(deep.route && typeof deep.route.text === 'string'
+        ? {
+            route: {
+              text: deep.route.text.slice(0, 64),
+              ...(deep.route.colour === 'w' || deep.route.colour === 'b'
+                ? { colour: deep.route.colour }
+                : {}),
+            },
+          }
+        : {}),
+    };
+    try {
+      return json(
+        response,
+        200,
+        await database(String(body.key)).moveSearch(body.query ?? {}, clean, {
+          limit: body.limit,
+        }),
+      );
+    } catch (error) {
+      if (error?.name === 'UnsupportedQueryError') throw error;
+      return json(response, 400, { error: error instanceof Error ? error.message : String(error) });
+    }
+  }
+
+  /*
+    Phase 85: a large file imported by the companion itself — a PGN, a
+    .pgn.zst archive or a ChessBase .cbh — from the path the person chose in
+    the Mac's dialog, streamed and prepared on worker threads
+    (import-jobs.mjs). The source is only read.
+  */
+  if (pathname === '/db/import-file' && request.method === 'POST') {
+    const body = await readBody(request);
+    const key = String(body.key);
+    try {
+      const jobId = importJobs.start(key, writable(key), {
+        file: body.path,
+        keepPositions: body.keepPositions !== false,
+        ...(typeof body.licence === 'string' ? { licence: body.licence } : {}),
+        ...(typeof body.note === 'string' ? { note: body.note } : {}),
+      });
+      return json(response, 200, { jobId });
+    } catch (error) {
+      if (error instanceof ImportFileError) return json(response, 400, { error: error.message });
+      throw error;
+    }
+  }
+
+  if (pathname === '/db/import-file-status' && request.method === 'POST') {
+    const body = await readBody(request);
+    const status = importJobs.status(body.jobId);
+    return status ? json(response, 200, status) : json(response, 404, { error: 'No such import.' });
+  }
+
+  if (pathname === '/db/import-file-cancel' && request.method === 'POST') {
+    const body = await readBody(request);
+    importJobs.cancel(body.jobId);
+    return json(response, 200, { ok: true });
+  }
+
+  if (pathname === '/db/sources' && request.method === 'POST') {
+    const body = await readBody(request);
+    return json(response, 200, { sources: database(String(body.key)).sources() });
+  }
+
+  if (pathname === '/db/store-lines' && request.method === 'POST') {
+    const body = await readBody(request);
+    return json(response, 200, writable(String(body.key)).storeLines(body.lines ?? []));
   }
 
   if (pathname === '/db/have-fingerprints' && request.method === 'POST') {

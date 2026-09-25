@@ -16,6 +16,7 @@
 import { parsePgn } from '@/chess/pgn';
 import { serializePgn } from '@/chess/pgn';
 import { indexGame, normalizeGame, openingIndexOrNull } from '@/persistence/import-game';
+import { lineIndexForTree } from '@/search/line-index-encode';
 import { classifyTree } from '@/theory/classify-games';
 import type { PreparedSqliteGame } from '@/persistence/pgn-import-protocol';
 import { runPgnWorker } from '@/persistence/pgn-worker-client';
@@ -122,6 +123,8 @@ export async function importPgnIntoSqlite(
       },
       // The normalised PGN, so the row can be reopened exactly as imported.
       pgn: serializePgn(record.tree),
+      // Phase 85: the main line in compact form, for the companion's move search.
+      line: lineIndexForTree(record.tree),
       positions: positions.map((position) => ({
         positionKey: position.positionKey,
         ply: position.ply,
