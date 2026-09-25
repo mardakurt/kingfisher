@@ -90,6 +90,14 @@ const LICHESS_BROADCAST_LICENSE: PackLicense = {
 export const packRelease = (tag: string): string =>
   `https://mardakurt.github.io/kingfisher-data/${tag}/`;
 
+/**
+ * Phase 85: the second mirror, for packs that would take the first past
+ * GitHub Pages' one-gigabyte site limit (Elite OTB v3 with its history is
+ * 427 MB). Same rules: versioned directories, never replaced.
+ */
+export const largePackRelease = (tag: string): string =>
+  `https://mardakurt.github.io/kingfisher-data-packs/${tag}/`;
+
 export const CATALOG_PACKS: readonly CatalogPack[] = [
   {
     id: 'kingfisher-starter',
@@ -139,7 +147,9 @@ export const CATALOG_PACKS: readonly CatalogPack[] = [
       'Rating- and title-filtered Lichess broadcast games since 2020, with ' +
       'per-position statistics, player indexes and selected full scores. ' +
       'Broadcast coverage is not a complete census of over-the-board chess.',
-    manifestUrl: `${packRelease('reference-elite-v2')}manifest.json`,
+    // Phase 85: v3 is v2's population through 2026-08 with each position's
+    // dated, rated history, on the second mirror (see `largePackRelease`).
+    manifestUrl: `${largePackRelease('reference-elite-v3')}manifest.json`,
     bundled: false,
     capabilities: [
       'explorer',
@@ -150,14 +160,15 @@ export const CATALOG_PACKS: readonly CatalogPack[] = [
       'model-games',
       'preparation',
     ],
-    approximateBytes: 339_326_787,
+    approximateBytes: 426_701_086,
     maxPositionPly: 40,
     license: LICHESS_BROADCAST_LICENSE,
     origin:
-      'Built from the whole Lichess broadcast archive, 2020 to the present: ' +
-      '407,538 games, all with full scores, 5,438,808 ' +
-      'positions and 33,607 players. Published in the public, ' +
-      'data-only mardakurt/kingfisher-data repository.',
+      'Built from the whole Lichess broadcast archive, 2020-01 through 2026-08: ' +
+      '425,022 games, all with full scores, 5,669,429 ' +
+      'positions and 34,261 players, and each position’s games by year and ' +
+      'Elo class with its earliest games. Published in the public, data-only ' +
+      'mardakurt/kingfisher-data-packs repository.',
   },
   {
     id: 'kingfisher-recent-theory',

@@ -92,7 +92,8 @@ async function main() {
     if (!/^\d+$/.test(args.version)) throw new Error(`--version must be a number: ${args.version}`);
     definition.version = args.version;
   }
-  const outDir = args.out ? path.resolve(args.out) : path.join(ROOT, definition.output);
+  // `resolve`, not `join`: the external pack directories are absolute paths.
+  const outDir = args.out ? path.resolve(args.out) : path.resolve(ROOT, definition.output);
   const work = path.join(CACHE, `work-${definition.id}`);
   // Each verified upstream file has its own fingerprinted scan directory.
   // Completed scans survive interruption and are reused on subsequent builds.
