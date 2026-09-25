@@ -7,7 +7,9 @@
  * the engine, the depth and who exported them.
  */
 
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 import { expect, test, type Page } from '@playwright/test';
 
@@ -43,7 +45,9 @@ test('evaluations exported by one profile appear, labelled, in another that impo
     shared.getByRole('button', { name: 'Save file' }).click(),
   ]).then(([event]) => event);
   expect(download.suggestedFilename()).toMatch(/^kingfisher-evaluations-\d{4}-\d\d-\d\d\.json$/);
-  const path = await download.path();
+  // Kept outside the context: closing it deletes its downloads.
+  const path = join(mkdtempSync(join(tmpdir(), 'kf-evals-')), download.suggestedFilename());
+  await download.saveAs(path);
   const file = JSON.parse(readFileSync(path, 'utf8')) as {
     from: string;
     evaluations: { engine: string; depth: number }[];
