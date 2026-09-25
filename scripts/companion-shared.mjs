@@ -33,10 +33,12 @@ export function generate(name) {
       );
     }
   }
-  const stripped = stripTypeScriptTypes(source, { mode: 'strip' }).replace(
-    /from '\.\/([\w-]+)'/g,
-    "from './$1.mjs'",
-  );
+  const stripped = stripTypeScriptTypes(source, { mode: 'strip' })
+    .replace(/from '\.\/([\w-]+)'/g, "from './$1.mjs'")
+    // Node preserves the width of removed types with spaces (and occasionally
+    // en spaces). Keep the generated modules diff-clean without changing any
+    // executable text.
+    .replace(/[\t \u2002]+$/gm, '');
   return (
     `// GENERATED from src/search/${name}.ts by \`npm run companion:shared\`. Do not edit.\n` +
     stripped

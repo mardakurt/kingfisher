@@ -294,6 +294,9 @@ const REBUILD_DERIVED = `
   DELETE FROM position_filter_cache_keys;
 `;
 
+/** A bulk load commits once per this many games (Phase 85). */
+const BULK_COMMIT_GAMES = 25_000;
+
 const AFFECTED_POSITIONS_TABLE = `
   CREATE TEMP TABLE IF NOT EXISTS affected_positions (
     position_key TEXT PRIMARY KEY
@@ -360,6 +363,7 @@ export class GameDatabase {
   #claimIndexReady = false;
   /** Phase 85: inside `beginBulk` … `endBulk`, the per-row maintenance is deferred. */
   #bulk = false;
+  #bulkPending = 0;
 
   constructor(file) {
     this.#file = file;
@@ -465,7 +469,10 @@ export class GameDatabase {
     const hit = slot.cache.get(text);
     if (hit !== undefined) return hit;
     const id = slot.statement.get(text).id;
-    if (slot.cache.size < 250_000) slot.cache.set(text, id);
+    // A bulk load meets millions of distinct skeletons; a miss past the cache is
+    // an index probe on a growing text B-tree, which is what slowed a
+    // million-game load from 590 to 290 games a second (Phase 85).
+    if (slot.cache.size < (this.#bulk ? 6_000_000 : 250_000)) slot.cache.set(text, id);
     /*
       A claim set that is new *to this process* has its claims indexed here.
 
@@ -832,15 +839,29 @@ export class GameDatabase {
       DROP INDEX IF EXISTS positions_rank;
       DROP INDEX IF EXISTS positions_recent;
       PRAGMA synchronous = OFF;
-      PRAGMA cache_size = -262144;
+      PRAGMA cache_size = -1048576;
+      PRAGMA wal_autocheckpoint = 262144;
+      BEGIN;
     `);
+    this.#bulkPending = 0;
+    // A profile of a million-game load spent 72% of the writer's time in
+    // SQLite's automatic checkpoint, copying the log into the file every
+    // thousand pages: the same interior and intern-index pages, over and over.
+    // Checkpointing every gigabyte instead copies each page once per interval,
+    // and one transaction per 25,000 games instead of one per worker message
+    // (300 games) stops the same hot index pages being appended to the log
+    // thousands of times. A crash mid-load costs at most the games since the
+    // last of those commits; `endBulk` commits the rest.
     this.#bulk = true;
   }
 
   endBulk() {
     if (!this.#bulk) return;
     this.#bulk = false;
-    this.#db.exec('PRAGMA synchronous = NORMAL;');
+    if (this.#db.isTransaction) this.#db.exec('COMMIT');
+    this.#db.exec(
+      'PRAGMA synchronous = NORMAL; PRAGMA cache_size = -262144; PRAGMA wal_autocheckpoint = 1000;',
+    );
     // Every CREATE in the schema is IF NOT EXISTS: this restores exactly what was dropped.
     this.#db.exec(SCHEMA);
     this.#ensurePositionIndexes();
@@ -974,7 +995,10 @@ export class GameDatabase {
     let imported = 0;
     let duplicates = 0;
     const touchedPositions = new Set();
-    this.#db.exec('BEGIN');
+    // In a bulk load the batch is a savepoint inside the load's own long
+    // transaction (see `beginBulk`); otherwise it is its own transaction.
+    const inBulk = this.#bulk;
+    this.#db.exec(inBulk ? 'SAVEPOINT insert_batch' : 'BEGIN');
     try {
       for (const entry of batch) {
         const game = entry.game;
@@ -1090,10 +1114,17 @@ export class GameDatabase {
         clearFilterTotal.run(key);
         clearFilterKey.run(key);
       }
-      this.#db.exec('COMMIT');
+      this.#db.exec(inBulk ? 'RELEASE insert_batch' : 'COMMIT');
     } catch (error) {
-      this.#db.exec('ROLLBACK');
+      this.#db.exec(inBulk ? 'ROLLBACK TO insert_batch; RELEASE insert_batch' : 'ROLLBACK');
       throw error;
+    }
+    if (inBulk) {
+      this.#bulkPending += imported;
+      if (this.#bulkPending >= BULK_COMMIT_GAMES) {
+        this.#db.exec('COMMIT; BEGIN');
+        this.#bulkPending = 0;
+      }
     }
     return { imported, duplicates };
   }

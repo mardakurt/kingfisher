@@ -29,40 +29,40 @@
  * rather than as a second implementation.
  */
 
-                                           
+
 
 import { materialMatchesCounts,                                       } from './material-query.mjs';
 import { findRoute,                                             } from './route.mjs';
 
 export const LINE_INDEX_VERSION = 1;
 
-                              
-                                                                         
-                         
-                           
-                           
- 
 
-                              
-                        
-                      
-                              
-                                                                              
-                                   
- 
 
-                                 
-                                                                                
-                            
-                                                       
-                             
-                                        
-                                         
-                                                                             
-                                 
-                                                                            
-                                               
- 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 const PIECES                                 = [null, 'p', 'n', 'b', 'r', 'q', 'k'];
 const SIDE_KEYS = ['q', 'r', 'b', 'n', 'p']         ;
@@ -194,19 +194,19 @@ export function decodeLineIndex(bytes            )                        {
   return { themesVersion, firstPly, positions, runs, moves, themes };
 }
 
-                               
-                                                                                 
-                          
-                                                                      
-                                                                                               
-                                 
- 
 
-                           
-                                                  
-                             
-                                                                        
-                                      
+
+
+
+
+
+
+
+
+
+
+
+
 
 /**
  * The same answer `scanLine` gives the same line: the ply at which every

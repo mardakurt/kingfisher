@@ -16,30 +16,30 @@
  * rather than running the full, validating FEN parser.
  */
 
-                                           
 
-                                           
 
-                               
-                     
-                     
-                     
-                     
-                     
- 
 
-                                
-                               
-                                
-                                                   
-                          
-                                                        
-                         
- 
 
-                           
-                                                        
-                                                   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 const SEPARATOR = /\s*(?:\bversus\b|\bvs\.?|\bv\b|\bagainst\b)\s*/i;
 

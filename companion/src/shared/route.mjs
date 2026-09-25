@@ -14,19 +14,19 @@
  * calls this for every move of every game it reads.
  */
 
-                                           
 
-                                                           
 
-                        
-                             
-                                      
-                                                 
-                         
- 
 
-                        
-                                                                                                
+
+
+
+
+
+
+
+
+
+
 
 /**
  * One move of the line. Either the position before it (`fenBefore`), from
@@ -35,16 +35,16 @@
  * whether the target square was occupied, given directly. Both describe the
  * same move; `findRoute` reads whichever it is handed.
  */
-                         
-                       
-                       
-     
-                                  
-     
-                                                                                  
-                                       
-     
-  
+
+
+
+
+
+
+
+
+
+
 
 export function parseRoute(text        )             {
   const trimmed = text.trim();
@@ -83,11 +83,11 @@ export function parseRoute(text        )             {
   };
 }
 
-                 
-                 
-                                                                  
-                  
- 
+
+
+
+
+
 
 /**
  * The ply at which the route is completed, or null.
