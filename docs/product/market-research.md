@@ -228,7 +228,7 @@ in the shared source (after Phase 76; desktop publication is tracked separately)
 | 13  | A large annotated master database                                       | Disco, Chess.com-Mac                        | Mega Database                | **partial** — named reference packs and Coverage with depth limits; no licensed annotated master corpus                                                                                                                                                                                                  |
 | 14  | Getting the OTB game in (scoresheet, DGT, camera)                       | OTB                                         | DGT                          | **yes** (Phase 76) — Scoresheet: typed against the rules, gaps reconstructed, photo via your own endpoint                                                                                                                                                                                                |
 | 15  | Duplicate removal, dynamic ECO, auto-flip to my colour                  | ChessMind                                   | partial                      | **yes** (Phase 76) — duplicates by fingerprint and by metadata key, reviewed never auto-deleted; ECO where it changes in the move list; orientation from a linked account or the profile                                                                                                                 |
-| 16  | Cloud engines / remote compute                                          | Watson (ducats), CB26-Horizon               | yes (rented)                 | **partial** (Phase 84) — the Lichess cloud evaluation, asked for per session and labelled as stored analysis; no rented or remote engine                                                                                                                                                                 |
+| 16  | Cloud engines / remote compute                                          | Watson (ducats), CB26-Horizon               | yes (rented)                 | **partial** (Phase 85) — labelled Lichess cloud evaluation, persistent native deep analysis, Monte Carlo and evidence exchanged as files; no engine on another machine and no rented service                                                                                                                                                                 |
 | 17  | Opponent profile without "style" invention                              | Lichess-Weak, Aimchess                      | Style Report                 | **yes** — dossier of facts, falsifiable                                                                                                                                                                                                                                                                  |
 | 18  | Time management from my games                                           | Aimchess                                    | no                           | **yes** — After the round clock section for one game; a season reader joins every game in a named set (OTB / Lichess / Chess.com never merged) with denominators on each section                                                                                                                         |
 | 19  | Publishing: print, web, PDF, share a link                               | Watson, ChessBase-Coaches                   | yes                          | **yes** — chapter as self-contained HTML and browser print/PDF; report print; no hosted share link                                                                                                                                                                                                       |
@@ -374,9 +374,19 @@ Library over any collection (`src/features/games/library-source.ts`), both
 from the ChessBase comparison in `chessbase-parity-audit.md`, which lists
 what remains before Kingfisher is at ChessBase's level for a professional.
 
+**Phase 85 continuation.** The search booster gap is now a compact companion
+line index; pack history supplies year and Elo-class facts to the Opening
+Report; large PGN/compressed-PGN/ChessBase files stream through the companion;
+deep analysis persists across reload and relaunch; Monte Carlo and file-based
+evaluation exchange are present. The data gap is narrower, not gone: one
+public-domain annotated book is fourteen games, not Mega Database. Remote
+engines, a cloud VM round trip and a certified Windows build still require
+machines the owner did not have for this phase.
+
 ### Later — leading
 
-Overnight tree deepening with a morning report; ~~the surprise finder
+~~Overnight tree deepening with a morning report~~ — **done in Phase 85**;
+~~the surprise finder
 (repertoire × opponent × where the population leaves theory)~~ — **done in
 Phase 76**, `docs/design/surprise-finder.md`; a remote companion on your own
 machine; academy export with an explicit audience; the structured tournament

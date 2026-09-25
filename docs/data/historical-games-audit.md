@@ -1,4 +1,4 @@
-# Historical games: what was audited, and why nothing was shipped
+# Historical games: what was audited, and why no database was shipped
 
 Kingfisher's reference packs are built from the Lichess broadcast archive,
 which begins in 2020. That is a good elite database and a hopeless history of
@@ -52,8 +52,8 @@ permission.
 
 ## Decision
 
-**No `Kingfisher Classics` pack was built, and no historical games were
-shipped.** No source audited both (a) contains historical master games and
+**No `Kingfisher Classics` database pack was built.** No source audited both
+(a) contains a historical master-game corpus and
 (b) grants redistribution on terms compatible with the rest of Kingfisher's
 data.
 
@@ -109,7 +109,9 @@ check written is not a check passed.
 
 So the honest statement of where this stands has three parts:
 
-- Kingfisher **ships** no games before 2020 and, on this audit, cannot.
+- Before Phase 85 Kingfisher **shipped** no games before 2020. It now ships
+  fourteen games transcribed from one public-domain book, described below;
+  it still ships no historical database corpus.
 - Kingfisher **can research** master games back to roughly 1952 through the
   Lichess Masters explorer, once a user connects their Lichess account. That
   covers Fischer–Spassky 1972.

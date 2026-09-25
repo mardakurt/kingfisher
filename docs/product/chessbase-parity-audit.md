@@ -1,6 +1,6 @@
 # Kingfisher and ChessBase: a parity audit by workflow
 
-_Phase 84, 2026-09-24. Question asked: can a serious player answer, in
+_Phase 84, 2026-09-24; continued in Phase 85 on 2026-09-25. Question asked: can a serious player answer, in
 Kingfisher, the study, preparation, database and analysis questions they
 would answer in ChessBase? Not "does Kingfisher have a database search", but
 "can the same work be done, and is it done as well or better". Written from
@@ -231,6 +231,31 @@ What would have to be true for **YES**, in order:
    does not) and remote engines on the player's own machines.
 4. **A Windows build**, run and certified (`docs/design/windows.md`); until
    then half of ChessBase's users cannot switch.
+
+## 6. Phase 85 continuation
+
+Phase 85 closes several code gaps behind the list above:
+
+- reference packs can carry per-position years, Elo classes and earliest
+  games, and the Opening Report labels every figure with that one population;
+- large PGN, compressed PGN and ChessBase files stream through the companion,
+  preserving annotations and user-supplied provenance;
+- a compact line index answers material, theme and route search in companion
+  workers, with replay-equivalence tests and a comment-text fallback;
+- deep analysis persists after every searched position and resumes after reload
+  or relaunch; Monte Carlo playouts are reported as labelled W/D/L;
+- stored engine evidence can be exchanged as a file without a hosted pool;
+- collection-wide departure, question points/timers and writing a new
+  ChessBase database are shipped.
+
+The Phase 84 **NO** above remains the honest final answer until Phase 85's
+acceptance table is all green. A public-domain annotated book adds fourteen
+checked games, not a professional corpus. No second machine, cloud VM, Windows
+machine/certificate or owned million-game ChessBase database was available, so
+the required remote-engine, Windows and owned-corpus runs cannot be claimed.
+The real Lichess million-game and packaged-Mac measurements belong in
+`docs/reports/phase-85-handover.md`; code existence is not substituted for
+those runs.
 
 ## Sources
 

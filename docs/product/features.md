@@ -1,6 +1,6 @@
 # Every feature of Kingfisher
 
-The complete inventory of what Kingfisher does, as of 1.2.5 and the Team hub (2026-09-20),
+The complete inventory of what Kingfisher does, as of the 1.3.0/Phase 85 source (2026-09-25),
 written from the code rather than from memory: the routes in
 `src/features/shell/navigation.ts`, the tools in
 `src/features/workspace/modules.ts`, the commands in
@@ -155,14 +155,16 @@ PGN_, and the **References** panel: typed links from a chapter to model
 games, repertoire positions and training items, created from what is at the
 current position.
 
-**Questions** (Phase 84): any move can be asked as a question from its
-context menu (_Ask this move as a question…_, with a prompt); the move is the
+**Questions** (Phase 84–85): any move can be asked as a question from its
+context menu (_Ask this move as a question…_, with a prompt, optional points
+and an optional time limit); the move is the
 answer, asked at the position before it, and a sibling marked `!` or `!!` is
 accepted too. The notation shows a **Q**. _Solve N questions_ asks them in
 order with Training's answering control and ends with what was found and
 missed; the misses go to Training, linked to the chapter. _Publish → As a
 worksheet_ prints the questions as positions with the solutions last.
-Questions survive PGN export and import (`[%kfquestion …]`).
+Questions survive PGN export and import (`[%kfquestion …]`). Every completed
+sitting records the answers, score and elapsed time.
 
 ### Repertoire (`/repertoire`)
 
@@ -325,11 +327,12 @@ analysis of chosen games, paused, resumed and yielding to interactive
 analysis), Kingfisher's own opening classification beside the PGN's tag, and
 delete.
 
-**Any database** (Phase 84): the toolbar's database picker shows a
+**Any database** (Phase 84–85): the toolbar's database picker shows a
 companion SQLite collection in the same list, with the Library's filters (a
 filter the database cannot apply is named), a preview of its moves, and
 _Open_ as a new analysis, and the move search reads its games too, page by
-page through the companion. **Merge into one tree**: select two or more
+through the companion's compact line index for material, theme and route
+questions; comment text keeps a paged fallback. **Merge into one tree**: select two or more
 games and they become one analysis, in a new tab — shared moves once, each
 departure a variation labelled with its game, the first row the main line.
 
@@ -476,6 +479,12 @@ comments, symbols, squares, arrows and clocks — into _My games_ or a new
 companion collection, every game tagged with its source, annotator and
 file; what the PGN cannot hold is counted, never dropped silently; the
 files are never written),
+**Import a large file** (PGN, `.pgn.gz`, `.pgn.zst` or ChessBase `.cbh`): the
+companion streams the chosen path on worker threads into an empty SQLite
+collection, keeps comments, variations and symbols, and records the source
+file, size, licence and note without loading the database into the browser,
+**Annotated classics** (the fourteen games and notes from Capablanca's
+public-domain _Chess Fundamentals_, digest-checked and added only when asked),
 **Copy to… / Move to… / Merge into…** with pages, progress and cancel (a
 move never deletes what the destination has not confirmed), _Import PGN_ /
 _Export PGN_ per collection, **Duplicates** (byte-identical copies removable;
@@ -536,6 +545,12 @@ The profile described under Players.
   search disagreed with the line that led to it. _Add to the analysis_ writes
   it as variations with each search's evaluation and one comment where the
   engine changed its mind, as one undo.
+  The job is saved after every searched position, resumes after a reload or
+  app relaunch, and keeps the Mac application alive without its window until
+  the native-engine run finishes. **Playouts** report exactly “N playouts at
+  X ms: W/D/L” with the engine named. **From files** exports local stored
+  evaluations and imports another Kingfisher's as separately labelled
+  evidence with position and engine provenance.
 - **Candidates** — restrict the search to moves you name (`searchmoves`),
   offered only for engines measured to honour it, and the result says
   whether it was honoured.

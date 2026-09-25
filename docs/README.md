@@ -255,6 +255,9 @@ with [`AGENTS.md`](../AGENTS.md).
 
 ## Historical
 
+- [`reports/phase-85-handover.md`](reports/phase-85-handover.md) — the
+  evidence-led ChessBase verdict: million-game import/search, dated and rated
+  packs, persistent deep analysis, the Mac gates, and every acceptance row.
 - [`reports/phase-84-handover.md`](reports/phase-84-handover.md) — ChessBase
   parity: the six workflows master built, and the continuation — where a game
   leaves the reference, deep analysis, move search in companion databases,

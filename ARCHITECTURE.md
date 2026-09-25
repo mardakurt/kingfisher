@@ -301,6 +301,21 @@ position report and preparation all talk to `ChessDatabaseProvider`, so the
 bundled reference works everywhere a database does without a single surface
 learning what a pack is.
 
+Phase 85 adds two optional facts without changing that provider boundary.
+Pack manifests may name digest-verified history shards (year counts, Elo-class
+results and earliest games); readers that do not need history still read the
+ordinary explorer chunks. Companion collections may hold a compact `game_lines`
+index built from the same main-line scan as browser search. Material, theme and
+piece-route queries execute against those bytes in companion workers, while
+comment text and old rows retain the replay fallback.
+
+Large-file import also belongs to the companion. A generated import kit bundles
+the application's PGN normalisation, opening classification, canonical position
+index and line-index encoder; workers stream PGN/gzip/zstd or one ChessBase
+record at a time and the database remains the sole writer. The source path is
+read-only and only its basename, size and user-supplied licence/note become
+collection provenance.
+
 Its declared capabilities are deliberately narrow. A pack stores per-position
 aggregates, so it _cannot_ answer "rated 2600+ only" or "since 2024" — see ADR
 0023 — and it says `ratingFilter: false`, `dateFilter: false`,

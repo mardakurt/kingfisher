@@ -8,6 +8,29 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
+- **Large databases stay out of the browser.** _Databases → Import a large
+  file…_ streams PGN, compressed PGN and a ChessBase database through the
+  companion, preserves annotations and source/licence facts, and builds a
+  compact move-search index while it imports. Material, theme and route
+  searches run against that index; comment search keeps its text fallback.
+  (Phase 85)
+- **Reference packs now carry dated and rated history.** The Opening Report can
+  show a population's popularity by year, results by Elo class and earliest
+  games, always under that population's own name. A monthly workflow rebuilds
+  the rolling six-month pack and advances a verified update channel. (Phase 85)
+- **Engine evidence can travel as a file.** Exported evaluations keep engine,
+  depth, nodes, time, position and author provenance; imported evidence lives
+  beside local analysis and is never silently re-exported or merged into it.
+  (Phase 85)
+- **Fourteen annotated Capablanca games.** The public-domain _Chess
+  Fundamentals_ games and notes are reproducibly transcribed from Project
+  Gutenberg, digest-checked, and installed only when requested from
+  _Databases → Annotated classics_. (Phase 85)
+- **Professional analysis gaps closed locally.** Deep analysis survives reload,
+  sleep and quit; Monte Carlo reports labelled playout W/D/L; collection-wide
+  departure, question points and timers, and new ChessBase export are shipped.
+  (Phase 85)
+
 - **Where a game leaves the reference.** In the Explorer, _This game against
   …_ reads the game on the board against the source you chose and stops at
   the first move none of its games played: how many games reached the
@@ -32,7 +55,7 @@ Phase numbers below this header will be moved into a dated `## <version>` sectio
   below the fold behind the source description and the variation brief; the
   description is one line and the brief sits under the table. (Phase 84)
 
-## 1.3.0 — 2026-09-24
+## 1.3.0 — prepared, not published
 
 - **Fixed: a move played just before a reload could be lost.** In a study
   chapter, a reload within about a second of a move brought the chapter back

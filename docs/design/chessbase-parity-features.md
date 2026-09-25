@@ -114,8 +114,9 @@ Find Novelty and Novelty Annotation, as a fact about a named population.
   as the one asked for (it may be further down), and a game that never left.
 - _Write it into the game_: a comment on the departing move and the source's
   most played move as a variation with its count, one undo, no glyph.
-- **Not done:** marking every game of a collection in one pass (ChessBase's
-  batch novelty annotation); it is one game at a time.
+- **Phase 85:** _Where these games leave the source…_ runs the same factual
+  walk over a selected collection with progress and stop, and writes a report;
+  it still never turns absence from one population into a universal novelty.
 
 ## Deep analysis
 
@@ -134,8 +135,10 @@ Find Novelty and Novelty Annotation, as a fact about a named population.
   position's evaluation with its engine, depth, nodes and time (a deeper
   stored one is kept), and one comment where the engine changed its mind; one
   undo. The main line is never reordered.
-- **Not done:** surviving a reload or a sleeping machine — it runs while the
-  window is open, and the form says so; remote engines on other machines.
+- **Phase 85:** the frontier, tree, options and evidence are persisted after
+  every searched position. Reload and relaunch resume it; in the Mac app a
+  close hides the window while its native engine continues. Remote engines on
+  other machines remain a separate, unimplemented capability.
 
 ## Move search over a companion database
 
@@ -149,8 +152,27 @@ Find Novelty and Novelty Annotation, as a fact about a named population.
   same `scanGame` question.
 - The count comes first so progress has a denominator; an unreadable game is
   neither read nor selected; a stop keeps what was found.
-- **Not done:** an index. The read is linear — measured in the Phase 84
-  handover — and the page says a large file takes a while.
+- **Phase 85:** imported games carry a compact line index. The companion scans
+  indexed material runs, theme claims and piece trajectories in worker slices;
+  comment text and pre-index games keep the exact linear fallback. Equivalence
+  tests compare index answers with replayed games.
+
+## Phase 85 corpus, report and evidence additions
+
+- Reference-pack history is an optional, digest-verified chunk family. It
+  stores per-position counts by year and 200-point Elo class plus earliest
+  game references. The Opening Report renders each pack separately and a test
+  rejects figures labelled with another population.
+- Large-file import is owned by the companion. It streams PGN, gzip, seekable
+  zstd and ChessBase records, uses the application's parser/indexer bundle,
+  writes only the destination collection, and records user-supplied licence
+  provenance.
+- Shared analysis follows the owner's file-exchange decision. Imported engine
+  evidence is validated, stored separately and never re-exported as local
+  work. No hosted pool or account service was added.
+- The rolling six-month pack has a scheduled publisher and a monotonic channel
+  document. An installed client checks that channel and still verifies every
+  manifest and chunk before adoption.
 
 ## Results open in their own tab
 
