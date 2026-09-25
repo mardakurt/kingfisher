@@ -1,0 +1,33 @@
+{
+  "format": "kingfisher-annotated-sets",
+  "version": 1,
+  "sets": [
+    {
+      "id": "capablanca-chess-fundamentals-1921",
+      "title": "Chess Fundamentals",
+      "author": "J. R. Capablanca",
+      "year": 1921,
+      "edition": "Project Gutenberg eBook #33870, released 2010-10-18",
+      "source": "https://www.gutenberg.org/cache/epub/33870/pg33870.txt",
+      "sourceSha256": "86f8bbe769853ddac506c65f6b4fb2e78cb5f00761e6bee06c4d7a415b042639",
+      "rights": "Public domain: published 1921; the author died in 1942. The game scores are facts; the notes are the author’s, out of copyright. Transcribed from the Project Gutenberg e-text, with Project Gutenberg’s licence and trademark text removed as its licence requires of a redistribution that does not use its name as a mark.",
+      "file": "capablanca-chess-fundamentals-1921.pgn",
+      "sha256": "05053d9a5d7b77a315c24f83e8df2486dd06e87524dc50846e92c7cb5d8a83a7",
+      "games": 14,
+      "notes": 210,
+      "players": [
+        "A. Burn",
+        "A. K. Rubinstein",
+        "D. Janowski",
+        "Dr. E. Lasker",
+        "E. A. Snosko-Borovski",
+        "F. J. Marshall",
+        "J. Mieses",
+        "J. R. Capablanca",
+        "J. S. Morrison",
+        "O. Chajes",
+        "R. Teichmann"
+      ]
+    }
+  ]
+}

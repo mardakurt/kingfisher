@@ -41,6 +41,7 @@ import type { GameSearchQuery } from '@/persistence/types';
 import { usePreferences } from '@/stores/preferences-store';
 import { useUi } from '@/stores/ui-store';
 
+import { AnnotatedSetsPanel } from './AnnotatedSetsPanel';
 import { CollectionDetail } from './CollectionDetail';
 import { formatBytes } from './CollectionList';
 import { LargeFileImportDialog } from './LargeFileImportDialog';
@@ -338,6 +339,7 @@ export function DatabasesWorkspace() {
                   : 'Not paired or checking.'}
             </p>
           </div>
+          <AnnotatedSetsPanel />
           <StorageSummary sqlite={companion.data?.databases ?? []} />
         </aside>
       </div>

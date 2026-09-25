@@ -38,12 +38,21 @@ export function DataLicencesPage(): JSX.Element {
               </a>
             </td>
           </tr>
+          <tr>
+            <td>
+              Annotated classics: Capablanca, <em>Chess Fundamentals</em> (1921)
+            </td>
+            <td>14 games with the author&apos;s notes, added to your games only when you ask</td>
+            <td>Public domain</td>
+          </tr>
         </tbody>
       </table>
       <p>
         The bundled pack ships as static assets in the application; the opening classification is
         replayed through Kingfisher&apos;s own rules code and the result is a generated TypeScript
-        file. Both are described in <code>THIRD_PARTY_DATA.md</code>.
+        file. The annotated games are transcribed from a public-domain book by{' '}
+        <code>npm run annotated:build</code>, every move resolved against the same rules code. All
+        three are described in <code>THIRD_PARTY_DATA.md</code>.
       </p>
 
       <h2 id="installed">Installed on demand</h2>

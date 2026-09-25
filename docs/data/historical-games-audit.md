@@ -139,6 +139,24 @@ product rather than only in this file: the Coverage tool states each source's
 population and depth at the position on the board, and the explorer no longer
 reports its own depth limit as an absence of games.
 
+## Phase 85 (2026-09-25): the second route, taken once
+
+Item 2 below — transcription from a public-domain book — has now been done for
+one book: the fourteen annotated games of Capablanca's _Chess Fundamentals_
+(1921), from the Project Gutenberg e-text. The book is out of copyright (1921;
+the author died in 1942) and the provenance of every game is its game number
+in that book, carried in the PGN's `Source` tag. The row is in
+`THIRD_PARTY_DATA.md`; the transcription is reproducible with
+`npm run annotated:build` and checked with `npm run annotated:check`.
+
+How much this changes the verdict above: little, and deliberately. Fourteen
+games is a book, not a corpus, and the decision that Kingfisher ships no
+historical game **database** stands. What changed is that the method now
+exists and is checked: a descriptive-notation resolver that refuses a move the
+printed score does not settle, found and fixed a rules-boundary defect on the
+way (an en passant capture was not flagged as a capture), and needs only a
+recorded digest and a book to add the next set.
+
 ## What would change the answer
 
 In rough order of how tractable each looks.

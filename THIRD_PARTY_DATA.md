@@ -254,17 +254,36 @@ can check without a computer, which is the property that makes them worth
 committing. Four- and five-piece tables are 900 MB and are not shipped; a user
 who wants them points Kingfisher at a folder.
 
-## Historical master games — audited, none shipped
+## Historical master games — one public-domain book, transcribed
 
-No source was found that both contains historical over-the-board master games
-and grants redistribution on terms compatible with the rest of this file.
-Lumbra's Gigabase is CC BY-NC-SA with unstated provenance; PGN Mentor and
-Caissabase state no licence at all. The full audit, the legal reasoning about
-game scores and database rights, and what would change the answer are in
+No historical game **database** was found that grants redistribution on terms
+compatible with the rest of this file: Lumbra's Gigabase is CC BY-NC-SA with
+unstated provenance; PGN Mentor and Caissabase state no licence at all. The
+full audit is in
 [`docs/data/historical-games-audit.md`](docs/data/historical-games-audit.md).
 
-Kingfisher therefore ships no historical games, and no browse set offers a
-player it has none for.
+What Kingfisher ships instead (Phase 85) is the route that audit names:
+games transcribed from a book that is itself in the public domain, with a
+provenance for every game.
+
+|                   |                                                                                                                                                                                   |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Work              | J. R. Capablanca, _Chess Fundamentals_ (1921) — the fourteen illustrative games, with the author's notes                                                                          |
+| Source            | Project Gutenberg eBook #33870 (released 2010-10-18), <https://www.gutenberg.org/cache/epub/33870/pg33870.txt>, SHA-256 `86f8bbe7…b042639` recorded in the build script           |
+| Status            | Public domain: published 1921, the author died in 1942. Out of copyright in the United States and wherever the term is life plus 70 years or less                                 |
+| File              | `public/data/annotated/capablanca-chess-fundamentals-1921.pgn`, described with its digest by `public/data/annotated/catalog.json`                                                 |
+| How it was made   | `npm run annotated:build` (`scripts/build-annotated-sets.mjs`, `src/annotated/descriptive-book.ts`); `npm run annotated:check` confirms the committed file is what the book gives |
+| In the product    | _Databases → Annotated classics → Add to my games_: nothing is added until asked, and the file is checked against its digest first                                                |
+| Provenance in PGN | `Annotator`, `Source` (book, year, game number, edition), `SourceTitle`, `SourceDate`, `SourceHeading`, `Transcription` tags on every game                                        |
+
+The moves are resolved, not translated: every descriptive move is tested
+against the legal moves of the position (`src/chess/descriptive.ts`), a move
+the text alone does not settle is settled only when exactly one reading lets
+the rest of the printed score stay legal, and a game that does not settle is
+refused whole. The notes are the author's words; the e-text's page numbers,
+illustration markers and italics marks are removed, and nothing is added.
+None of Project Gutenberg's licence text is redistributed; the e-text is named
+as the source.
 
 ---
 
