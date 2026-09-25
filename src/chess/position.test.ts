@@ -69,6 +69,8 @@ describe('Position', () => {
     );
     const move = unwrap(position.playSan('dxc6'));
     expect(move.flags.enPassant).toBe(true);
+    // chess.js calls it `e`, not a capture; Kingfisher's flags say what it is.
+    expect(move.flags.capture).toBe(true);
     expect(position.after(move).pieceAt('c5')).toBeNull();
     expect(position.after(move).pieceAt('c6')).toEqual({ color: 'w', type: 'p' });
   });

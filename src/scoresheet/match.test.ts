@@ -63,6 +63,15 @@ describe('matchToken', () => {
     }
   });
 
+  it('reads an en passant capture written short', () => {
+    const position = after('e4 a6 e5 d5');
+    for (const token of ['exd6', 'ed', 'ed6', 'e5d6']) {
+      const result = matchToken(position, token);
+      expect(result.candidates[0]!.move.san, token).toBe('exd6');
+      expect(result.certain, token).toBe(true);
+    }
+  });
+
   it('reads castling and promotion', () => {
     const castle = after('e4 e5 Nf3 Nc6 Bc4 Bc5');
     expect(matchToken(castle, '0-0').candidates[0]!.move.san).toBe('O-O');

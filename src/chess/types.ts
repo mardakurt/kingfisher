@@ -67,6 +67,7 @@ export const NO_CASTLING: CastlingRights = {
  * like "was this a capture?".
  */
 export interface MoveFlags {
+  /** True for every capture, en passant included. */
   readonly capture: boolean;
   readonly enPassant: boolean;
   readonly promotion: boolean;

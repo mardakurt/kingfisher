@@ -314,7 +314,10 @@ export class Position {
 
 function toChessMove(move: LibMove): ChessMove {
   const flags: MoveFlags = {
-    capture: move.isCapture(),
+    // chess.js flags an en passant capture `e`, not `c`, so its `isCapture()`
+    // is false for one; a capture is a capture (Phase 85: a scoresheet's `ed`
+    // and a book's `P x P e.p.` both went unmatched).
+    capture: move.isCapture() || move.isEnPassant(),
     enPassant: move.isEnPassant(),
     promotion: move.isPromotion(),
     kingsideCastle: move.isKingsideCastle(),
