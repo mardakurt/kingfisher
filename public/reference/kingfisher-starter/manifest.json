@@ -3,8 +3,8 @@
   "id": "kingfisher-starter",
   "name": "Kingfisher Starter Reference",
   "description": "Recent elite broadcast games, including online events, bundled with Kingfisher so the opening explorer, player search and model games work before anything is installed or imported.",
-  "version": "4",
-  "builtAt": "2026-09-14",
+  "version": "5",
+  "builtAt": "2026-09-25",
   "license": {
     "id": "CC-BY-SA-4.0",
     "name": "Creative Commons Attribution-ShareAlike 4.0 International",
@@ -14,7 +14,7 @@
   "provenance": {
     "source": "Lichess broadcast archive",
     "url": "https://database.lichess.org/#broadcasts",
-    "retrieved": "2026-09-14",
+    "retrieved": "2026-09-25",
     "transformation": "Games were parsed, filtered by rating and length, deduplicated, replayed through Kingfisher's own rules code, and reduced to per-position move aggregates, a player table and full game scores. No move was altered.",
     "upstream": [
       {
@@ -287,7 +287,7 @@
       "2022-10",
       "2022-09"
     ],
-    "buildImplementation": "719bdb2be1e8f97fd6aedabd85db1b55eef97cfd657703e4278068c2e893d5b5"
+    "buildImplementation": "e3cf4e1aa09f4043b840df15cbc057e3f0eb48d61d99a27461ad3e9a8b198627"
   },
   "maxPositionPly": 40,
   "recentSince": 2025,
@@ -1235,6 +1235,596 @@
       "entries": 677
     }
   ],
-  "rawBytes": 69600828,
+  "history": {
+    "maxPly": 30,
+    "bands": [
+      0,
+      2000,
+      2200,
+      2400,
+      2600
+    ],
+    "shards": 64,
+    "chunks": [
+      {
+        "id": "history-000",
+        "kind": "history",
+        "shard": 0,
+        "file": "history-000.kfp.gz",
+        "bytes": 257671,
+        "sha256": "66cf51e63c6183a2d2bae178004d52c5ccacaadb93ca51b19358bfcc71ec1a0c",
+        "entries": 4155
+      },
+      {
+        "id": "history-001",
+        "kind": "history",
+        "shard": 1,
+        "file": "history-001.kfp.gz",
+        "bytes": 258257,
+        "sha256": "42b0ac5fa887192aae3b2e6fcd368551eb2fcb845a30d7475f73564dda250b90",
+        "entries": 4160
+      },
+      {
+        "id": "history-002",
+        "kind": "history",
+        "shard": 2,
+        "file": "history-002.kfp.gz",
+        "bytes": 260387,
+        "sha256": "f1ac55478148f86fccadb34229cf9969f4f9d91eeaa0a7528f2b552c48bc1f54",
+        "entries": 4204
+      },
+      {
+        "id": "history-003",
+        "kind": "history",
+        "shard": 3,
+        "file": "history-003.kfp.gz",
+        "bytes": 268254,
+        "sha256": "ee8722ac3dbde709705d9df9b354a79502a8458b97f059c88c0ceebea4bda576",
+        "entries": 4293
+      },
+      {
+        "id": "history-004",
+        "kind": "history",
+        "shard": 4,
+        "file": "history-004.kfp.gz",
+        "bytes": 267836,
+        "sha256": "d0dd37bc58ee5691c864237663853e34b15dfcee4120f72843b5eea0f7c65f02",
+        "entries": 4304
+      },
+      {
+        "id": "history-005",
+        "kind": "history",
+        "shard": 5,
+        "file": "history-005.kfp.gz",
+        "bytes": 270201,
+        "sha256": "b961006e29f794c5a5b61c825478ac1e7fcf768c9c0903e697cf2d352ace915c",
+        "entries": 4358
+      },
+      {
+        "id": "history-006",
+        "kind": "history",
+        "shard": 6,
+        "file": "history-006.kfp.gz",
+        "bytes": 264419,
+        "sha256": "594862935757c78df36adca728734ab77fcc1caa9aee9dc1fd682185bcdf6537",
+        "entries": 4267
+      },
+      {
+        "id": "history-007",
+        "kind": "history",
+        "shard": 7,
+        "file": "history-007.kfp.gz",
+        "bytes": 266465,
+        "sha256": "206bf10631d672673538c221d6762959da372655c17b2059eb605c513fdf1e18",
+        "entries": 4305
+      },
+      {
+        "id": "history-008",
+        "kind": "history",
+        "shard": 8,
+        "file": "history-008.kfp.gz",
+        "bytes": 262594,
+        "sha256": "6805e132f02d14c9d2f95ac726add3f07e9b8d8768e42ed7af5d91eaa9390c6e",
+        "entries": 4239
+      },
+      {
+        "id": "history-009",
+        "kind": "history",
+        "shard": 9,
+        "file": "history-009.kfp.gz",
+        "bytes": 265242,
+        "sha256": "f50d39034e145169751806880f9334c980857b17806265810e067a76d1819c8a",
+        "entries": 4281
+      },
+      {
+        "id": "history-010",
+        "kind": "history",
+        "shard": 10,
+        "file": "history-010.kfp.gz",
+        "bytes": 259994,
+        "sha256": "c7d7b742fe4413527843be1dab99a605816141b2e7b75c42f171764bc080b7ca",
+        "entries": 4191
+      },
+      {
+        "id": "history-011",
+        "kind": "history",
+        "shard": 11,
+        "file": "history-011.kfp.gz",
+        "bytes": 267067,
+        "sha256": "6e3478491e726c2ffac4def01ff2ffe28611355274fc8f63d843a7d70e878adc",
+        "entries": 4302
+      },
+      {
+        "id": "history-012",
+        "kind": "history",
+        "shard": 12,
+        "file": "history-012.kfp.gz",
+        "bytes": 263798,
+        "sha256": "6d714c3c456223cfff0b4d71ac1c92effe8ace37da8eae21d8cf58c03cf68320",
+        "entries": 4237
+      },
+      {
+        "id": "history-013",
+        "kind": "history",
+        "shard": 13,
+        "file": "history-013.kfp.gz",
+        "bytes": 264652,
+        "sha256": "c97dfad762852afbbd592ec9744f0c27614310c1433be73cfc0a0577b2aaca09",
+        "entries": 4215
+      },
+      {
+        "id": "history-014",
+        "kind": "history",
+        "shard": 14,
+        "file": "history-014.kfp.gz",
+        "bytes": 257780,
+        "sha256": "9da117d8860bed8b6afc8d6835e348f689eea833e774cdb62167b83c6a89eb32",
+        "entries": 4180
+      },
+      {
+        "id": "history-015",
+        "kind": "history",
+        "shard": 15,
+        "file": "history-015.kfp.gz",
+        "bytes": 272008,
+        "sha256": "fc21f76b8da16ca962c21331274b5ee0cc37501f17b15da32085aa44a0d97629",
+        "entries": 4370
+      },
+      {
+        "id": "history-016",
+        "kind": "history",
+        "shard": 16,
+        "file": "history-016.kfp.gz",
+        "bytes": 272139,
+        "sha256": "d9a3df3043db933e856b209811debfb139bfb9c30211d8829c306ec820cd2d5b",
+        "entries": 4395
+      },
+      {
+        "id": "history-017",
+        "kind": "history",
+        "shard": 17,
+        "file": "history-017.kfp.gz",
+        "bytes": 274944,
+        "sha256": "234e88f0fc349b329acd6e035a2c40f5470e89d35f3e2310dd34b9e689c23246",
+        "entries": 4417
+      },
+      {
+        "id": "history-018",
+        "kind": "history",
+        "shard": 18,
+        "file": "history-018.kfp.gz",
+        "bytes": 259327,
+        "sha256": "700dfc2a6896c5621b104945b0cce95f64988565b0ef3c6fd3ad5adf04690858",
+        "entries": 4186
+      },
+      {
+        "id": "history-019",
+        "kind": "history",
+        "shard": 19,
+        "file": "history-019.kfp.gz",
+        "bytes": 271250,
+        "sha256": "7b06bc58c27ab7eca43e190bb68372a2bf53813f4dae5e82564ec2eaf812ba81",
+        "entries": 4374
+      },
+      {
+        "id": "history-020",
+        "kind": "history",
+        "shard": 20,
+        "file": "history-020.kfp.gz",
+        "bytes": 264553,
+        "sha256": "8d09683793dbde525f585deaae323c5e5ff16dab101d8f77dd379eebe88777f7",
+        "entries": 4247
+      },
+      {
+        "id": "history-021",
+        "kind": "history",
+        "shard": 21,
+        "file": "history-021.kfp.gz",
+        "bytes": 268444,
+        "sha256": "73bc3b95e3b1100f9ad1f8a787d3cbaa1a21fc45255058e4c1fe1e3675a77945",
+        "entries": 4314
+      },
+      {
+        "id": "history-022",
+        "kind": "history",
+        "shard": 22,
+        "file": "history-022.kfp.gz",
+        "bytes": 262964,
+        "sha256": "b81de2f2cf085da194dd921220f036e6a53020265a8ed856dad9b31c3908fd1b",
+        "entries": 4266
+      },
+      {
+        "id": "history-023",
+        "kind": "history",
+        "shard": 23,
+        "file": "history-023.kfp.gz",
+        "bytes": 267016,
+        "sha256": "a5a90a43659e81a0dfde38a9976f63bcb1b337507d7c11d923fa5d34d810615f",
+        "entries": 4336
+      },
+      {
+        "id": "history-024",
+        "kind": "history",
+        "shard": 24,
+        "file": "history-024.kfp.gz",
+        "bytes": 266146,
+        "sha256": "66f6333c71f2d11e36960249f32ec2a84477225a678307f094f7321d3e1fd625",
+        "entries": 4291
+      },
+      {
+        "id": "history-025",
+        "kind": "history",
+        "shard": 25,
+        "file": "history-025.kfp.gz",
+        "bytes": 270779,
+        "sha256": "3ca77df1eb3084a0ed8a68949417f329bb8c302d070eb282557920e273e1a383",
+        "entries": 4338
+      },
+      {
+        "id": "history-026",
+        "kind": "history",
+        "shard": 26,
+        "file": "history-026.kfp.gz",
+        "bytes": 266332,
+        "sha256": "a4080f8da58afcc9e815a5b3879015fbdd53999ec00072b7f88f4ebdcb4ae645",
+        "entries": 4284
+      },
+      {
+        "id": "history-027",
+        "kind": "history",
+        "shard": 27,
+        "file": "history-027.kfp.gz",
+        "bytes": 268405,
+        "sha256": "f13b8a304254a990a999c8b788dd4e9923bfd12c6cdf4b2c03990f2964eef097",
+        "entries": 4332
+      },
+      {
+        "id": "history-028",
+        "kind": "history",
+        "shard": 28,
+        "file": "history-028.kfp.gz",
+        "bytes": 266111,
+        "sha256": "862bb517284d2aec2c0a11cd552bd08fc81e42714d0b7873e928d7c978ed345d",
+        "entries": 4267
+      },
+      {
+        "id": "history-029",
+        "kind": "history",
+        "shard": 29,
+        "file": "history-029.kfp.gz",
+        "bytes": 267218,
+        "sha256": "b158754ec47b741957c32330fa16238521e55077d10398473e94f4e0757cdf68",
+        "entries": 4300
+      },
+      {
+        "id": "history-030",
+        "kind": "history",
+        "shard": 30,
+        "file": "history-030.kfp.gz",
+        "bytes": 261836,
+        "sha256": "ce136d122fc7996b86d112a69118d112bc05aa7b16e5aab1f4cff911bb11bd02",
+        "entries": 4194
+      },
+      {
+        "id": "history-031",
+        "kind": "history",
+        "shard": 31,
+        "file": "history-031.kfp.gz",
+        "bytes": 275269,
+        "sha256": "2ad88310a870e9b0db2a164fcc5a4ccc3c9448d8ca481309cb2ae3228df27fff",
+        "entries": 4469
+      },
+      {
+        "id": "history-032",
+        "kind": "history",
+        "shard": 32,
+        "file": "history-032.kfp.gz",
+        "bytes": 259501,
+        "sha256": "7833119afc9d5d408193efb0226351668d68f5436b2c4f56372d9a0e34bd7ca3",
+        "entries": 4189
+      },
+      {
+        "id": "history-033",
+        "kind": "history",
+        "shard": 33,
+        "file": "history-033.kfp.gz",
+        "bytes": 259809,
+        "sha256": "3c22ab893937d337553c990ed0549188d6cbe5b71a2843b784196a644adc2b29",
+        "entries": 4220
+      },
+      {
+        "id": "history-034",
+        "kind": "history",
+        "shard": 34,
+        "file": "history-034.kfp.gz",
+        "bytes": 257816,
+        "sha256": "a914da4e984e014ca440d1ce706568bcb26c6939b544f4655c2c2f3a68903343",
+        "entries": 4186
+      },
+      {
+        "id": "history-035",
+        "kind": "history",
+        "shard": 35,
+        "file": "history-035.kfp.gz",
+        "bytes": 263864,
+        "sha256": "c26f098e4321a780bc9f52372a781da465625d581d827b61d286caa1e697995d",
+        "entries": 4291
+      },
+      {
+        "id": "history-036",
+        "kind": "history",
+        "shard": 36,
+        "file": "history-036.kfp.gz",
+        "bytes": 264018,
+        "sha256": "e75067a42903ac7ceb95db2df65137319ae0575705e0e9bc17c7ef29f9dccf70",
+        "entries": 4229
+      },
+      {
+        "id": "history-037",
+        "kind": "history",
+        "shard": 37,
+        "file": "history-037.kfp.gz",
+        "bytes": 272370,
+        "sha256": "d1a85929a0ccdacc6ab8dcb3b1342a931e35e397d2c0b54e7b526ec44bf46d4a",
+        "entries": 4346
+      },
+      {
+        "id": "history-038",
+        "kind": "history",
+        "shard": 38,
+        "file": "history-038.kfp.gz",
+        "bytes": 266144,
+        "sha256": "1c5c607b80243dedb7fa698ff8dd7b8d425acebee2e3c5de4e295e4ffb0ee797",
+        "entries": 4305
+      },
+      {
+        "id": "history-039",
+        "kind": "history",
+        "shard": 39,
+        "file": "history-039.kfp.gz",
+        "bytes": 266257,
+        "sha256": "60a9d1740c156093afdc4d070facf372d3b52311c7226730460f5b375c656113",
+        "entries": 4268
+      },
+      {
+        "id": "history-040",
+        "kind": "history",
+        "shard": 40,
+        "file": "history-040.kfp.gz",
+        "bytes": 266640,
+        "sha256": "4ca3baa5e12ff68d18718134a77fa31a9ce9aa8e84b0c95dcc3d14811ab45be0",
+        "entries": 4304
+      },
+      {
+        "id": "history-041",
+        "kind": "history",
+        "shard": 41,
+        "file": "history-041.kfp.gz",
+        "bytes": 267901,
+        "sha256": "b2d13c7c012958b5a4892e2d99eb09fd6cebd990fb2ce336525bb381dceee71b",
+        "entries": 4326
+      },
+      {
+        "id": "history-042",
+        "kind": "history",
+        "shard": 42,
+        "file": "history-042.kfp.gz",
+        "bytes": 259662,
+        "sha256": "f534ef03a5d4e0122b26d37860a7c38e6682d35d53fc6ebd76f571ebf3852aa5",
+        "entries": 4175
+      },
+      {
+        "id": "history-043",
+        "kind": "history",
+        "shard": 43,
+        "file": "history-043.kfp.gz",
+        "bytes": 270534,
+        "sha256": "078ecbf4b90b2949d44c1326098a78f2afabdd8a8a7c91fdc5b3830530229da1",
+        "entries": 4381
+      },
+      {
+        "id": "history-044",
+        "kind": "history",
+        "shard": 44,
+        "file": "history-044.kfp.gz",
+        "bytes": 261125,
+        "sha256": "fcf33b4239bc5b068b647bdf44cc7dd630c8a17ccf6c1d52fde8c5fa4069226f",
+        "entries": 4214
+      },
+      {
+        "id": "history-045",
+        "kind": "history",
+        "shard": 45,
+        "file": "history-045.kfp.gz",
+        "bytes": 264145,
+        "sha256": "197427a58e105c97b0d66242b848b3b881ddd16e258a6ab2d3a93d65f59b00bf",
+        "entries": 4262
+      },
+      {
+        "id": "history-046",
+        "kind": "history",
+        "shard": 46,
+        "file": "history-046.kfp.gz",
+        "bytes": 261541,
+        "sha256": "f6350bddc4959bdaf1fe45a9819db1536fee2450f871f0257cc1e075a8cc50f6",
+        "entries": 4225
+      },
+      {
+        "id": "history-047",
+        "kind": "history",
+        "shard": 47,
+        "file": "history-047.kfp.gz",
+        "bytes": 279542,
+        "sha256": "efc95e6f74dfb0cd24b0f4b0c8c0ac5278367eca90758fa53009d4cc042eae2b",
+        "entries": 4518
+      },
+      {
+        "id": "history-048",
+        "kind": "history",
+        "shard": 48,
+        "file": "history-048.kfp.gz",
+        "bytes": 262706,
+        "sha256": "b6cf93f2f574f28ea9464fdb3eb10ab609f0f78292949ea9be44ab268ffefc04",
+        "entries": 4226
+      },
+      {
+        "id": "history-049",
+        "kind": "history",
+        "shard": 49,
+        "file": "history-049.kfp.gz",
+        "bytes": 271515,
+        "sha256": "b6e7c8bccf13bc53ae255312d8f3252e4fff7f4c2d2dcfae9c90fcfa7ff1c601",
+        "entries": 4368
+      },
+      {
+        "id": "history-050",
+        "kind": "history",
+        "shard": 50,
+        "file": "history-050.kfp.gz",
+        "bytes": 262536,
+        "sha256": "6ae3ced069b5ec4eea402c7a7e0f3b563fa0ca9e4e60e30caff957b355f937e8",
+        "entries": 4251
+      },
+      {
+        "id": "history-051",
+        "kind": "history",
+        "shard": 51,
+        "file": "history-051.kfp.gz",
+        "bytes": 268456,
+        "sha256": "da183d75ed78003b6d26a6fe3c187e72aa9b998884129b90b372d529ef4989e8",
+        "entries": 4324
+      },
+      {
+        "id": "history-052",
+        "kind": "history",
+        "shard": 52,
+        "file": "history-052.kfp.gz",
+        "bytes": 264173,
+        "sha256": "d916a9fafd582fe407d787efc806ac8e4a96d32de6a2ba8fb565814b1379a3c3",
+        "entries": 4252
+      },
+      {
+        "id": "history-053",
+        "kind": "history",
+        "shard": 53,
+        "file": "history-053.kfp.gz",
+        "bytes": 269154,
+        "sha256": "ce357f99ad3e6af5b8d5994abe4dc2281f9a6c40988e4b7685077dfd3ab2d757",
+        "entries": 4332
+      },
+      {
+        "id": "history-054",
+        "kind": "history",
+        "shard": 54,
+        "file": "history-054.kfp.gz",
+        "bytes": 268786,
+        "sha256": "b104e858af7d0e668c7b52026a31d1b9a60771cf0709ba033bde1986106f5e46",
+        "entries": 4360
+      },
+      {
+        "id": "history-055",
+        "kind": "history",
+        "shard": 55,
+        "file": "history-055.kfp.gz",
+        "bytes": 267579,
+        "sha256": "fa83b45e1b65808fe2a9a291c8c43a194168176a3dfd90d7d45de1723464176b",
+        "entries": 4287
+      },
+      {
+        "id": "history-056",
+        "kind": "history",
+        "shard": 56,
+        "file": "history-056.kfp.gz",
+        "bytes": 265390,
+        "sha256": "1337cac7fb941cbd1356a2771c740c3a0f4cb9664ea08948e1666a2c946f396a",
+        "entries": 4296
+      },
+      {
+        "id": "history-057",
+        "kind": "history",
+        "shard": 57,
+        "file": "history-057.kfp.gz",
+        "bytes": 263487,
+        "sha256": "ca611c4fc2f7646b0f7869e4da9bc0c27243ce35fcf12f579e0f45824d19a674",
+        "entries": 4252
+      },
+      {
+        "id": "history-058",
+        "kind": "history",
+        "shard": 58,
+        "file": "history-058.kfp.gz",
+        "bytes": 258088,
+        "sha256": "7bd7909fd0780f322d9f1dc52f40bc22b8cfff9e3e9ad0955a528ade87c074b6",
+        "entries": 4151
+      },
+      {
+        "id": "history-059",
+        "kind": "history",
+        "shard": 59,
+        "file": "history-059.kfp.gz",
+        "bytes": 268812,
+        "sha256": "06305dcbef504243ad93a843bfd11ce71b87abd4b7dc1f9c4542cbbfc4946880",
+        "entries": 4376
+      },
+      {
+        "id": "history-060",
+        "kind": "history",
+        "shard": 60,
+        "file": "history-060.kfp.gz",
+        "bytes": 267978,
+        "sha256": "f8187144a4f3bb977a71f77cbcd9afaf638d82169d815df91b8b7e976f6db51b",
+        "entries": 4334
+      },
+      {
+        "id": "history-061",
+        "kind": "history",
+        "shard": 61,
+        "file": "history-061.kfp.gz",
+        "bytes": 267973,
+        "sha256": "09af967656ea0beab7306f70188edb8e0f654f2c1dfe0f3db84267cfd6091297",
+        "entries": 4313
+      },
+      {
+        "id": "history-062",
+        "kind": "history",
+        "shard": 62,
+        "file": "history-062.kfp.gz",
+        "bytes": 266636,
+        "sha256": "b7aad46739ba361a6d76990d555c5a4003b2c629273e3d27704334a25a1a8cff",
+        "entries": 4299
+      },
+      {
+        "id": "history-063",
+        "kind": "history",
+        "shard": 63,
+        "file": "history-063.kfp.gz",
+        "bytes": 264622,
+        "sha256": "dc0b2c1d4f1e98595f05f071ab2cb9fc571de82c4ee3f4dac35000b242df9c0b",
+        "entries": 4307
+      }
+    ],
+    "compressedBytes": 17008118
+  },
+  "rawBytes": 119816432,
   "compressedBytes": 24290847
 }

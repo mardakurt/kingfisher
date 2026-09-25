@@ -51,7 +51,7 @@ export const PACK_DEFINITIONS = {
       'Recent elite broadcast games, including online events, bundled with Kingfisher so the ' +
       'opening explorer, player search and model games work before anything ' +
       'is installed or imported.',
-    version: '4',
+    version: '5',
     output: 'public/reference/kingfisher-starter',
     source: LICHESS_BROADCAST,
     transformation: TRANSFORMATION,
@@ -67,7 +67,16 @@ export const PACK_DEFINITIONS = {
       which is the "without crowding the disk" constraint the request
       carried. Measured in docs/data/reference-packs.md.
     */
-    files: (digests) => broadcastMonths(digests).slice(0, 48),
+    /*
+      Version 5 (Phase 85) is version 4's window — the 48 months ending in
+      2026-08 — with each position's dated, rated history added. The window is
+      pinned so that the counts every page and document quotes do not move
+      with the calendar; widening it is its own version.
+    */
+    files: (digests) =>
+      broadcastMonths(digests)
+        .filter((file) => file <= 'lichess_db_broadcast_2026-08.pgn.zst')
+        .slice(0, 48),
     limits: {
       minRating: 2200,
       /*
@@ -255,11 +264,15 @@ export const PACK_DEFINITIONS = {
       'Rating- and title-filtered Lichess broadcast games since 2020, excluding ' +
       'explicit bot, engine and online event labels. Broadcast metadata is ' +
       'not proof of complete over-the-board coverage.',
-    version: '2',
+    version: '3',
     output: `${externalPacks}/kingfisher-elite-otb`,
     source: LICHESS_BROADCAST,
     transformation: TRANSFORMATION,
-    files: (digests) => broadcastMonths(digests),
+    // Version 3 (Phase 85): every broadcast month through 2026-08 — the archive
+    // begins in 2020, so this is as far as it goes — with each position's
+    // dated, rated history. Pinned so a rebuild is the same pack.
+    files: (digests) =>
+      broadcastMonths(digests).filter((file) => file <= 'lichess_db_broadcast_2026-08.pgn.zst'),
     limits: {
       minRating: 2000,
       openRating: 2000,
@@ -353,6 +366,58 @@ export const PACK_DEFINITIONS = {
       recentYears: 1,
     },
     shards: { explorer: 96, game: 48, players: 8, playergames: 8 },
+  },
+
+  /**
+   * Phase 85 (D1.3): a large freely licensed population at the time controls
+   * preparation is about. The High-Rated Online pack is 97% blitz because
+   * that is what 2400+ online play is; this one keeps only rapid and
+   * classical, and opens the floor to 2200 so the population is large —
+   * about 160,000 games a month (docs/data/high-rated-online.md's sample:
+   * 2,233 of 1,294,431 games), so seven months is a million-game pack.
+   *
+   * Full scores are kept only from 2400 (`openRating`), so the pack's weight
+   * is its aggregates and the mirror's one-gigabyte Pages limit holds.
+   */
+  'rapid-classical': {
+    id: 'kingfisher-high-rated-rapid',
+    name: 'High-Rated Rapid & Classical Online Reference',
+    description:
+      'Lichess rated rapid and classical games where both players are 2200 or ' +
+      'better, over the newest seven months. Blitz, bullet and correspondence ' +
+      'are excluded: this is the online population that plays at a pace ' +
+      'where preparation shows.',
+    version: '1',
+    output: `${externalPacks}/kingfisher-high-rated-rapid`,
+    source: LICHESS_STANDARD,
+    transformation:
+      'Games were streamed from the published archive, filtered by speed and ' +
+      "rating on their headers, deduplicated, replayed through Kingfisher's " +
+      'own rules code, and reduced to per-position move aggregates, a player ' +
+      'table and full game scores (2400+ games only). No move was altered.',
+    files: (digests, months = 7) =>
+      standardMonths(digests)
+        .filter((file) => file <= 'lichess_db_standard_rated_2026-08.pgn.zst')
+        .slice(0, Math.max(1, months)),
+    limits: {
+      minRating: 2200,
+      openRating: 2400,
+      maxRating: 4000,
+      speeds: ['classical', 'rapid'],
+      excludeOnline: false,
+      titles: [],
+      openTitles: [],
+      minPlies: 12,
+      maxPly: 41,
+      minGames: 3,
+      deepFromPly: 20,
+      deepMinGames: 2,
+      maxMoves: 256,
+      topGames: 6,
+      gamesPerPlayer: 60,
+      recentYears: 1,
+    },
+    shards: { explorer: 128, game: 32, players: 8, playergames: 8 },
   },
 };
 

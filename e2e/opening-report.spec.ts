@@ -262,3 +262,36 @@ test('the report checks branches against the chosen saved repertoire', async ({ 
   );
   await expect(section(page, 'repertoire')).toContainText('no response');
 });
+
+/*
+  Phase 85 (D1.2): the built-in pack carries each position's history, so the
+  report answers ChessBase's popularity, Elo-class and first-game questions
+  from a population — and names it on every section.
+*/
+test('popularity by year, Elo classes and first games come from the built-in pack, named', async ({
+  page,
+}) => {
+  await openReport(page);
+  await play(page, 'e2', 'e4');
+
+  const popularity = section(page, 'popularity:kingfisher-starter');
+  await expect(popularity).toContainText('Popularity by year — Kingfisher Starter Reference', {
+    timeout: 30_000,
+  });
+  await expect(popularity.locator('[data-report-provenance]')).toContainText(
+    'One population; nothing combined.',
+  );
+  // The archive begins in 2020, though a relayed game can carry an older date
+  // (one 1708 game reaches 1.e4): the rows are the population's own.
+  const recent = popularity.locator('li', { hasText: /^202[0-6]/ });
+  await expect(recent.first()).toContainText(/share of Kingfisher Starter Reference/);
+  expect(await recent.count()).toBeGreaterThanOrEqual(5);
+
+  const elo = section(page, 'elo:kingfisher-starter');
+  await expect(elo).toContainText('Results by Elo class — Kingfisher Starter Reference');
+  await expect(elo.locator('li').first()).toContainText(/White won \d+(\.\d)?%/);
+
+  const first = section(page, 'pioneers:kingfisher-starter');
+  await expect(first).toContainText('First games — Kingfisher Starter Reference');
+  await expect(first.locator('li').first()).toContainText('earliest in this population');
+});

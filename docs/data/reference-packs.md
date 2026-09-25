@@ -105,6 +105,18 @@ counted games. 343 games in the 2022–2023 archives were rejected for illegal
 moves — relays of that period carry more broken PGN than recent ones — and
 are recorded as such in `build-report.json` rather than repaired.
 
+Starter version 5 (2026-09-26, Phase 85) is version 4's population — the
+same 48 archives, pinned to end at 2026-08, and the same 206,451 games,
+38,749 openable scores, 300,413 positions and 13,738 players — with each
+position's **history** added through ply 30: its games by year, by rating band
+(under 2000, 2000–2199, 2200–2399, 2400–2599, 2600 and above, by the lower
+rating the game states) and its five earliest games. The explorer chunks are
+byte-identical to version 4; the history is 17.0 MB more of gzip in its own
+chunks (41.3 MB in all). It is what the Opening Report's popularity, Elo-class
+and first-game sections read, each labelled with the pack
+(`e2e/opening-report.spec.ts`). The rows are the archive's own: a relayed game
+dated 1708 reaches 1.e4 and is shown under 1708.
+
 Explorer depth is measured in **plies**, never ambiguously as “moves”. All
 four packs index the outgoing move at ply 40, which is 20 full moves.
 

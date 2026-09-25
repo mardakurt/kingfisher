@@ -1,10 +1,10 @@
 {
   "packId": "kingfisher-starter",
-  "packVersion": "4",
+  "packVersion": "5",
   "source": "Lichess broadcast archive",
   "license": "CC-BY-SA-4.0",
   "buildCommit": null,
-  "buildDate": "2026-09-14T16:31:16.979Z",
+  "buildDate": "2026-09-25T22:06:36.627Z",
   "window": {
     "lastYear": 2026,
     "archiveMonths": [
@@ -68,8 +68,15 @@
     "maxPly": 41,
     "maxRating": 2900,
     "openRating": 2500,
-    "titles": ["GM", "IM", "WGM"],
-    "openTitles": ["GM", "IM"],
+    "titles": [
+      "GM",
+      "IM",
+      "WGM"
+    ],
+    "openTitles": [
+      "GM",
+      "IM"
+    ],
     "excludeOnline": true
   },
   "inputGames": 1068626,
@@ -96,8 +103,8 @@
   "players": 13738,
   "openableGames": 38749,
   "fullGames": 38749,
-  "compressedBytes": 24290847,
-  "rawBytes": 69600828,
+  "compressedBytes": 41298965,
+  "rawBytes": 119816432,
   "chunks": 104,
   "maxPly": 40,
   "retainedBySpeed": {}
