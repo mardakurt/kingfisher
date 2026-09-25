@@ -15,6 +15,7 @@
  * before 2020 is none — and the row says so instead of showing an empty page.
  */
 
+import { useTabField } from '@/features/tabs/tab-fields';
 import { WorkspaceTabStrip } from '@/features/tabs/WorkspaceTabStrip';
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
@@ -62,7 +63,7 @@ const EMPTY: readonly CatalogPlayer[] = [];
 export function PlayersWorkspace() {
   const catalog = usePlayerCatalog();
   const references = useReferenceSources();
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useTabField('query', '');
   const [filter, setFilter] = useState<PlayerFilter>('all');
   const [selected, setSelected] = useState<readonly string[]>([]);
 

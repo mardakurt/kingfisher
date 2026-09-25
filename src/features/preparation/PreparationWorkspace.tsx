@@ -1,5 +1,6 @@
 'use client';
 
+import { useTabField } from '@/features/tabs/tab-fields';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
@@ -76,14 +77,14 @@ export function PreparationWorkspace({
   const openDocument = useAnalysis((state) => state.openDocument);
   const profile = useProfile();
   const repertoires = useRepertoires().data ?? [];
-  const [player, setPlayer] = useState(initialPlayer);
+  const [player, setPlayer] = useTabField('player', initialPlayer);
   const [submitted, setSubmitted] = useState(initialPlayer);
   /** The catalog row behind the name, when it was chosen from the library. */
   const [chosen, setChosen] = useState<CatalogPlayer | null>(null);
   const [side, setSide] = useState<'any' | 'w' | 'b'>(initialSide);
-  const [fromYear, setFromYear] = useState('');
-  const [toYear, setToYear] = useState('');
-  const [minRating, setMinRating] = useState('');
+  const [fromYear, setFromYear] = useTabField('fromYear', '');
+  const [toYear, setToYear] = useTabField('toYear', '');
+  const [minRating, setMinRating] = useTabField('minRating', '');
   const [eco, setEco] = useState(initialEco);
   const [result, setResult] = useState<GameResult | 'any'>('any');
   const [recentN, setRecentN] = useState('200');

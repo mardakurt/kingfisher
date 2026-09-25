@@ -65,6 +65,36 @@ async function seed(page: Page) {
 }
 
 test.describe('workspace tabs', () => {
+  test('a half-typed search is where it was left when its tab is entered again', async ({
+    page,
+  }) => {
+    await page.goto('/players');
+    await ready(page);
+    const search = page
+      .getByRole('searchbox', { name: 'Search players' })
+      .or(page.getByRole('textbox', { name: 'Search players' }));
+    await search.fill('Capabl');
+
+    await page.getByRole('button', { name: 'New tab' }).click();
+    await expect(tabs(page)).toHaveCount(2);
+    await page
+      .getByRole('navigation', { name: 'Sections' })
+      .getByRole('link', { name: 'Players', exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/players/);
+    // The other tab's text is the other tab's: this one starts empty.
+    await expect(search).toHaveValue('');
+
+    await tabs(page).nth(0).click();
+    await expect(page).toHaveURL(/\/players/);
+    await expect(search).toHaveValue('Capabl');
+
+    // And a reload of the window keeps it, as it keeps the tabs.
+    await page.reload();
+    await ready(page);
+    await expect(search).toHaveValue('Capabl');
+  });
+
   test('each tab keeps its own board and place, across a switch and a reload', async ({ page }) => {
     await page.goto('/analysis');
     await ready(page);

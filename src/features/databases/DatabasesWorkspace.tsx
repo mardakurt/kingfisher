@@ -17,6 +17,7 @@
  * has already taught everybody.
  */
 
+import { useTabField } from '@/features/tabs/tab-fields';
 import dynamic from 'next/dynamic';
 import { useChessBaseImport } from '@/stores/chessbase-import-store';
 import { useEnCroissantImport } from '@/stores/en-croissant-import-store';
@@ -91,7 +92,7 @@ export function DatabasesWorkspace() {
   const [tab, setTab] = useState<CentreTab>('collection');
   /** Whether a collection is open, rather than the grid of all of them. */
   const [drilled, setDrilled] = useState(false);
-  const [filter, setFilter] = useState('');
+  const [filter, setFilter] = useTabField('filter', '');
   const [transfer, setTransfer] = useState<TransferRequest | null>(null);
   const [creating, setCreating] = useState<null | { query?: GameSearchQuery; sourceId?: string }>(
     null,

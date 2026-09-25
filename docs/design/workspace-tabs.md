@@ -74,6 +74,17 @@ that holds unsaved chapter edits asks first.
 - It does not keep a separate engine per tab. The engine follows the board, as
   it always has; a search running in a tab that is left is stopped by the
   existing position guard.
-- It does not preserve every page's scroll position or unsubmitted form. What
-  a page keeps in its address survives a switch; the Library keeps its search
-  and filters there for that reason.
+- It does not preserve every page's scroll position. What a page keeps in its
+  address survives a switch; the Library keeps its search and filters there
+  for that reason.
+
+## Unsubmitted fields (Phase 85)
+
+A half-typed search is kept per tab: `useTabField` (`src/features/tabs/tab-fields.ts`)
+is `useState` filed under the active tab, the route and its query, in
+`sessionStorage` for the window's life, and forgotten with its tab. The
+preparation form (player, years, rating), the Players search, the Opening
+Library search and the Databases filter use it. Before it, the page stayed
+mounted across a same-route navigation, so a second tab opened on Players
+showed the first tab's text, and a switch back lost it on any other route.
+`e2e/workspace-tabs.spec.ts` covers both, and a reload.

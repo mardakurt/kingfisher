@@ -15,6 +15,7 @@
  * invention, and this application does neither.
  */
 
+import { useTabField } from '@/features/tabs/tab-fields';
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
@@ -53,7 +54,7 @@ import { plural } from '@/lib/plural';
 const FAMILIES = OPENING_FAMILIES.slice(0, 18);
 
 export function OpeningLibrary() {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useTabField('query', '');
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
   const catalog = useQuery({
