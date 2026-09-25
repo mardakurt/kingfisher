@@ -140,7 +140,10 @@ describe('a companion using another companion’s engines', () => {
     const paired = await api(CLIENT_HTTP, '/engine/remote/add', { code: local });
     expect(paired.status).toBe(200);
     const status = await api(CLIENT_HTTP, '/status');
-    const remote = status.body.engines.find((engine) => engine.remote);
+    // The host may also have real engines installed; this test's is the scripted one.
+    const remote = status.body.engines.find(
+      (engine) => engine.remote && engine.id.endsWith(':scripted'),
+    );
     expect(remote.name).toMatch(/^Scripted · on /);
     expect(remote.id).toMatch(/^remote:[a-z0-9]+:scripted$/);
 

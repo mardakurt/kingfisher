@@ -68,15 +68,8 @@
     "maxPly": 41,
     "maxRating": 2900,
     "openRating": 2500,
-    "titles": [
-      "GM",
-      "IM",
-      "WGM"
-    ],
-    "openTitles": [
-      "GM",
-      "IM"
-    ],
+    "titles": ["GM", "IM", "WGM"],
+    "openTitles": ["GM", "IM"],
     "excludeOnline": true
   },
   "inputGames": 1068626,
