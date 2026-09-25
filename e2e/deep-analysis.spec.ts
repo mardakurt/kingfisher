@@ -25,6 +25,13 @@ test('the engine deepens a position into a tree and writes it into the game on r
   const section = page.getByRole('region', { name: 'Deep analysis' });
   await section.getByRole('button', { name: 'Deepen from here…' }).click();
   const form = section.locator('[data-deepen-form]');
+  // The form can start the overnight run the feature is for (Phase 85).
+  await form.getByLabel('Moves per position').selectOption('3');
+  await form.getByLabel('Plies').selectOption('12');
+  await form.getByLabel('Seconds each').selectOption('30');
+  await expect(section.locator('[data-deepen-estimate]')).toContainText(
+    'Up to 1000 positions, about 8.3 hours.',
+  );
   await form.getByLabel('Moves per position').selectOption('2');
   await form.getByLabel('Plies').selectOption('4');
   await form.getByLabel('Seconds each').selectOption('1');

@@ -40,9 +40,14 @@ import { useDeepen } from './deepen-store';
 
 const BREADTHS = [1, 2, 3] as const;
 const PLIES = [4, 6, 8, 10, 12] as const;
-const SECONDS = [1, 3, 10, 30] as const;
+const SECONDS = [1, 3, 10, 30, 60] as const;
 /** The most positions one run searches; past this, deepen from a later position. */
-const MAX_BUDGET = 400;
+/*
+  Phase 85: an overnight run. At 400 positions the longest run the form could
+  start was 400 × 30 s, three hours and twenty minutes — not the night the
+  feature is for. A thousand positions at 30 s is eight hours and twenty.
+*/
+const MAX_BUDGET = 1000;
 
 const SELECT =
   'h-6 rounded-[5px] border border-line bg-surface-inset px-1 text-[10.5px] text-primary';
@@ -89,6 +94,10 @@ export function DeepenSection({ fen }: { readonly fen: Fen }) {
 
   const budget = Math.min(MAX_BUDGET, positionsFor(breadth, plies));
   const minutes = Math.ceil((budget * seconds) / 60);
+  const duration =
+    minutes > 90
+      ? `about ${(minutes / 60).toFixed(1)} hours`
+      : `about ${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`;
 
   return (
     <section
@@ -160,9 +169,10 @@ export function DeepenSection({ fen }: { readonly fen: Fen }) {
             </label>
           </div>
           <p className="text-tertiary" data-deepen-estimate>
-            Up to {budget} positions, about {minutes} {minutes === 1 ? 'minute' : 'minutes'}. A move
-            is kept when it is within 0.5 of the best for the side to move. The engine panel’s own
-            search stops while this runs; it runs while this window is open and the machine awake.
+            Up to {budget} positions, {duration}. A move is kept when it is within 0.5 of the best
+            for the side to move. The engine panel’s own search stops while this runs. The run is
+            saved as it goes: a reload, a sleep or a quit picks it up where it stopped, and on the
+            Mac it goes on with the window closed.
           </p>
           <Button
             size="sm"
