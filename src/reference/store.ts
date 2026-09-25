@@ -20,7 +20,7 @@ import type { PersistenceDatabase } from '@/persistence/indexeddb/database';
 import { getRepositories } from '@/persistence/repositories';
 import { STORE_NAMES } from '@/persistence/schema/migrations';
 
-import type { PackManifest } from './pack';
+import { allChunks, type PackManifest } from './pack';
 import type { ChunkSource } from './reader';
 import { withPackLock } from './lock';
 
@@ -66,7 +66,7 @@ export class ReferencePackStore implements ChunkSource {
   }
 
   async read(manifest: PackManifest, chunk: string): Promise<Uint8Array | null> {
-    const descriptor = manifest.chunks.find((entry) => entry.id === chunk);
+    const descriptor = allChunks(manifest).find((entry) => entry.id === chunk);
     if (!descriptor) return null;
     // Immutable, content-addressed chunks let old and new manifests coexist.
     // The fallback reads pre-Phase-15 installations without a schema rewrite.

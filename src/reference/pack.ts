@@ -21,7 +21,7 @@
 
 export const PACK_FORMAT = 'kingfisher-pack/1';
 
-export type PackChunkKind = 'explorer' | 'game' | 'players' | 'playergames';
+export type PackChunkKind = 'explorer' | 'game' | 'players' | 'playergames' | 'history';
 
 export interface PackLicense {
   readonly id: string;
@@ -84,12 +84,41 @@ export interface PackManifest {
   /** Games from this calendar year onwards are counted in the `recent` totals. */
   readonly recentSince: number;
   /** How many shards each kind was split into. */
-  readonly shards: Readonly<Record<PackChunkKind, number>>;
+  readonly shards: Readonly<Record<Exclude<PackChunkKind, 'history'>, number>>;
   readonly chunks: readonly PackChunk[];
+  /**
+   * Phase 85: each position's games by year and by rating band, and its
+   * earliest games — what the Opening Report's popularity, Elo classes and
+   * pioneers are read from. A section of its own rather than more `chunks`,
+   * because an application before 1.3.1 refuses a manifest listing a chunk
+   * kind it does not know; this way an older Kingfisher installs the same
+   * pack and simply does not read its history.
+   */
+  readonly history?: PackHistory;
   /** Total decompressed bytes, so an installer can show a real size. */
   readonly rawBytes: number;
   readonly compressedBytes: number;
 }
+
+export interface PackHistory {
+  /** Positions up to this ply carry a history. */
+  readonly maxPly: number;
+  /**
+   * Lower bounds of the rating bands, ascending; a game is filed under the
+   * band of the lower of the two ratings it states. Games stating none are
+   * in no band.
+   */
+  readonly bands: readonly number[];
+  readonly shards: number;
+  readonly chunks: readonly PackChunk[];
+  readonly compressedBytes: number;
+}
+
+/** Every chunk a pack carries: the main set and its history. */
+export const allChunks = (manifest: PackManifest): readonly PackChunk[] => [
+  ...manifest.chunks,
+  ...(manifest.history?.chunks ?? []),
+];
 
 /**
  * A summary of how a pack was assembled. Lives on the manifest so every install
@@ -366,4 +395,67 @@ export function decodePlayerGamesLine(line: string): PackPlayerGames | null {
   if (split < 1) return null;
   const games = line.slice(split + 1);
   return { key: line.slice(0, split), games: games.length > 0 ? games.split(',') : [] };
+}
+
+/* ------------------------------------------------------------------- history */
+
+/** Games, and how they ended, for one year or one rating band. */
+export interface PackTally {
+  readonly games: number;
+  readonly white: number;
+  readonly draws: number;
+  readonly black: number;
+}
+
+export interface PackPositionHistory {
+  readonly key: string;
+  /** Year → tally, for the games that recorded a year. */
+  readonly byYear: ReadonlyMap<number, PackTally>;
+  /** Band lower bound → tally; see `PackHistory.bands`. */
+  readonly byBand: ReadonlyMap<number, PackTally>;
+  /** The earliest games that reached the position: year and id, oldest first. */
+  readonly first: readonly { readonly year: number; readonly id: string }[];
+}
+
+const tallies = (map: ReadonlyMap<number, PackTally>): string =>
+  [...map.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([at, t]) => `${at}=${t.games},${t.white},${t.draws},${t.black}`)
+    .join(';');
+
+const readTallies = (text: string): Map<number, PackTally> => {
+  const out = new Map<number, PackTally>();
+  if (!text) return out;
+  for (const part of text.split(';')) {
+    const [at, counts] = part.split('=');
+    const [games, white, draws, black] = (counts ?? '').split(',').map(Number);
+    if (!at || ![games, white, draws, black].every((value) => Number.isFinite(value))) continue;
+    out.set(Number(at), { games: games!, white: white!, draws: draws!, black: black! });
+  }
+  return out;
+};
+
+export function encodeHistoryLine(entry: PackPositionHistory): string {
+  return [
+    entry.key,
+    tallies(entry.byYear),
+    tallies(entry.byBand),
+    entry.first.map((game) => `${game.year},${game.id}`).join(';'),
+  ].join('|');
+}
+
+export function decodeHistoryLine(line: string): PackPositionHistory | null {
+  const [key, years = '', bands = '', first = ''] = line.split('|');
+  if (!key) return null;
+  return {
+    key,
+    byYear: readTallies(years),
+    byBand: readTallies(bands),
+    first: first
+      ? first.split(';').flatMap((part) => {
+          const [year, id] = part.split(',');
+          return id ? [{ year: Number(year) || 0, id }] : [];
+        })
+      : [],
+  };
 }

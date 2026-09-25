@@ -302,4 +302,59 @@ describe('header-first rejection', () => {
       rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  /*
+    Phase 85: a position's history — by year, by rating band (the lower
+    rating a game states) and its earliest games — is counted from the same
+    rows as its moves, so the two cannot disagree.
+  */
+  it('counts a position’s games by year and rating band, and names its earliest games', async () => {
+    const pack = await import('../../src/reference/pack.ts');
+    const dir = mkdtempSync(path.join(tmpdir(), 'kingfisher-history-'));
+    try {
+      const key = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -';
+      const row = (result, year, id, strength) =>
+        [key, 'e4', 'e2e4', result, strength, year, 0, id, strength, 1].join('\t');
+      writeFileSync(
+        path.join(dir, 'rows.txt'),
+        [
+          row('1-0', 2021, 'g3', 2100),
+          row('1/2-1/2', 2020, 'g2', 2500),
+          row('0-1', 2020, 'g1', 0),
+          row('1-0', 0, 'g4', 2650),
+          row('1-0', 2020, 'g2', 2500), // a relay of g2: counted once
+        ].join('\n') + '\n',
+      );
+      const limits = { maxPly: 40, minGames: 1, maxMoves: 10, topGames: 5 };
+      const { lines, history } = await reduceExplorer(
+        path.join(dir, 'rows.txt'),
+        limits,
+        2021,
+        pack,
+        true,
+      );
+      expect(lines).toHaveLength(1);
+      expect(history).toHaveLength(1);
+      const decoded = pack.decodeHistoryLine(history[0]);
+      expect(Object.fromEntries(decoded.byYear)).toEqual({
+        2020: { games: 2, white: 0, draws: 1, black: 1 },
+        2021: { games: 1, white: 1, draws: 0, black: 0 },
+      });
+      expect(Object.fromEntries(decoded.byBand)).toEqual({
+        2000: { games: 1, white: 1, draws: 0, black: 0 },
+        2400: { games: 1, white: 0, draws: 1, black: 0 },
+        2600: { games: 1, white: 1, draws: 0, black: 0 },
+      });
+      expect(decoded.first).toEqual([
+        { year: 2020, id: 'g1' },
+        { year: 2020, id: 'g2' },
+        { year: 2021, id: 'g3' },
+      ]);
+      // Every game in the history is a game in the moves: the totals agree.
+      const moves = pack.decodeExplorerLine(lines[0]).moves;
+      expect(moves[0].games).toBe(4);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });

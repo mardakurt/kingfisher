@@ -25,6 +25,9 @@ import {
   type PackManifest,
   type PackPlayer,
   type PackPosition,
+  allChunks,
+  decodeHistoryLine,
+  type PackPositionHistory,
 } from './pack';
 
 /** Where chunk bytes come from. Installed packs and static ones differ only here. */
@@ -98,7 +101,7 @@ export class PackReader {
     const pending = (async () => {
       const bytes = await this.source.read(this.manifest, id);
       const map = new Map<string, string>();
-      const descriptor = this.manifest.chunks.find((chunk) => chunk.id === id);
+      const descriptor = allChunks(this.manifest).find((chunk) => chunk.id === id);
       if (!bytes || !descriptor)
         throw new Error(`Reference chunk ${id} is missing. Verify or reinstall this pack.`);
       if (bytes.byteLength !== descriptor.bytes || (await digestOf(bytes)) !== descriptor.sha256) {
@@ -125,7 +128,21 @@ export class PackReader {
   }
 
   private shardCount(kind: PackChunkKind): number {
+    if (kind === 'history') return this.manifest.history?.shards ?? 1;
     return this.manifest.shards[kind] ?? 1;
+  }
+
+  /** Whether this pack carries position histories (Phase 85). */
+  get hasHistory(): boolean {
+    return Boolean(this.manifest.history);
+  }
+
+  /** A position's games by year and rating band, and its earliest games; null when not carried. */
+  async history(key: string): Promise<PackPositionHistory | null> {
+    if (!this.manifest.history) return null;
+    const rows = await this.rows('history', shardOf(key, this.shardCount('history')));
+    const line = rows.get(key);
+    return line ? decodeHistoryLine(line) : null;
   }
 
   async position(key: string): Promise<PackPosition | null> {

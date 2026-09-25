@@ -45,16 +45,17 @@ import { nodePath } from '@/chess/tree/tree';
 import type { Fen } from '@/chess/types';
 import { useChessWorkspace } from '@/features/workspace/ChessWorkspaceContext';
 import { usePreferences } from '@/stores/preferences-store';
-import { useQuery } from '@tanstack/react-query';
+import { useQueries, useQuery } from '@tanstack/react-query';
 
 import { databaseProviderById } from '@/database/registry';
 import { useDatabaseProviders } from '@/database/use-database-providers';
 import { useExplorerSources } from '@/features/explorer/useExplorer';
+import { packReader } from '@/reference/manager';
 import { useReferenceSources } from '@/reference/use-references';
 import type { BranchPopulation } from '@/theory/critical-branches';
 import { loadTheoryBook, type TheoryBook } from '@/theory/theory-book';
 
-import { buildOpeningReport } from './opening-report';
+import { buildOpeningReport, type PopulationHistory } from './opening-report';
 
 /**
  * How each source is used in the report.
@@ -190,6 +191,46 @@ export function OpeningReportPanel() {
   const continuationName = continuationSource?.name ?? '';
 
   /*
+    Phase 85: each installed pack's history at this position — its games by
+    year and Elo class, and its earliest games — read from the pack itself.
+    One population per section (opening-report.ts); a pack built before
+    histories existed simply has none, and the report says so.
+  */
+  const historyKey = fen ? positionKey(fen) : '';
+  const historyQueries = useQueries({
+    queries: sources.map((source) => ({
+      queryKey: ['pack-history', source.id, historyKey],
+      enabled: historyKey.length > 0,
+      staleTime: Number.POSITIVE_INFINITY,
+      queryFn: async (): Promise<PopulationHistory> => {
+        const reader = packReader(source.id);
+        const bands = reader?.manifest.history?.bands ?? [];
+        if (!reader?.hasHistory) return { id: source.id, name: source.name, history: null, bands };
+        const history = await reader.history(historyKey);
+        const games = history ? await reader.games(history.first.map((entry) => entry.id)) : [];
+        return {
+          id: source.id,
+          name: source.name,
+          history,
+          bands,
+          pioneers: games.map((game) => ({
+            year: game.year,
+            id: game.id,
+            white: game.white,
+            black: game.black,
+            event: game.event,
+            result: game.result,
+          })),
+        };
+      },
+    })),
+  });
+  const histories = historyQueries.flatMap((query) => (query.data ? [query.data] : []));
+  const historyAnswered = histories
+    .map((entry) => `${entry.id}:${entry.history ? entry.history.first.length : 'none'}`)
+    .join('|');
+
+  /*
     Memoised on the answers themselves.
 
     `populations` is a fresh array on every render, so it cannot be a dependency
@@ -234,6 +275,7 @@ export function OpeningReportPanel() {
         ...(continuations.data
           ? { continuations: continuations.data, continuationSource: continuationName }
           : {}),
+        histories,
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
@@ -245,6 +287,8 @@ export function OpeningReportPanel() {
       continuationName,
       repertoire.data,
       repertoirePosition,
+      historyAnswered,
+      historyKey,
     ],
   );
 

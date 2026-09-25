@@ -157,14 +157,15 @@ async function main() {
     counts.games += ids.size;
   }
 
-  const emit = (kind, shard, lines) => {
+  const historyChunks = [];
+  const emit = (kind, shard, lines, into = chunks) => {
     const raw = Buffer.from(lines.length > 0 ? lines.join('\n') + '\n' : '', 'utf8');
     const gz = gzipSync(raw, { level: 9 });
     const file = pack.chunkFile(kind, shard);
     writeFileSync(path.join(outDir, file), gz);
     rawBytes += raw.length;
     compressedBytes += gz.length;
-    chunks.push({
+    into.push({
       id: pack.chunkId(kind, shard),
       kind,
       shard,
@@ -176,15 +177,18 @@ async function main() {
   };
 
   const recentSince = scanned.maxYear - (definition.limits.recentYears - 1);
+  const historyLines = [];
   for (let shard = 0; shard < shards.explorer; shard += 1) {
-    const lines = await reduceExplorer(
+    const { lines, history } = await reduceExplorer(
       shardInputs('explorer', shard),
       definition.limits,
       recentSince,
       pack,
+      true,
     );
     counts.positions += lines.length;
     emit('explorer', shard, lines);
+    historyLines.push(history);
   }
   for (let shard = 0; shard < shards.game; shard += 1) {
     const lines = await reduceGames(shardInputs('game', shard));
@@ -211,6 +215,8 @@ async function main() {
     emit('playergames', shard, playerGames[shard]);
   }
 
+  // The history, sharded like the explorer so one key reads one chunk of each.
+  historyLines.forEach((lines, shard) => emit('history', shard, lines, historyChunks));
   const manifest = {
     format: pack.PACK_FORMAT,
     id: definition.id,
@@ -246,8 +252,15 @@ async function main() {
     recentSince,
     shards,
     chunks,
+    history: {
+      maxPly: HISTORY_MAX_PLY,
+      bands: HISTORY_BANDS,
+      shards: shards.explorer,
+      chunks: historyChunks,
+      compressedBytes: historyChunks.reduce((sum, chunk) => sum + chunk.bytes, 0),
+    },
     rawBytes,
-    compressedBytes,
+    compressedBytes: chunks.reduce((sum, chunk) => sum + chunk.bytes, 0),
   };
   writeFileSync(path.join(outDir, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
 
@@ -501,8 +514,9 @@ async function* rows(file) {
  * worth keeping depends on how many games reached it across the whole archive,
  * which no single file knows.
  */
-export async function reduceExplorer(file, limits, recentSince, pack) {
+export async function reduceExplorer(file, limits, recentSince, pack, withHistory = false) {
   const positions = new Map();
+  const history = [];
   for await (const row of rows(file)) {
     const [key, san, uci, result, rating, year, ply, gameId, strength, openable] = row.split('\t');
     const depth = Number(ply);
@@ -517,6 +531,30 @@ export async function reduceExplorer(file, limits, recentSince, pack) {
     if (depth < entry.ply) entry.ply = depth;
     if (entry.seen.has(gameId)) continue;
     entry.seen.add(gameId);
+    /*
+      Phase 85: the position's history — its games by year and by rating band
+      (the lower rating the game states), and its earliest games — for the
+      Opening Report's popularity, Elo classes and pioneers. Read from the same
+      rows as the moves, so the two can never count different games.
+    */
+    if (withHistory && depth <= HISTORY_MAX_PLY) {
+      entry.history ??= { byYear: new Map(), byBand: new Map(), first: [] };
+      const yearNumber = Number(year);
+      const tally = (map, at) => {
+        const counts = map.get(at) ?? [0, 0, 0, 0];
+        counts[0] += 1;
+        counts[result === '1-0' ? 1 : result === '1/2-1/2' ? 2 : 3] += 1;
+        map.set(at, counts);
+      };
+      if (yearNumber > 0) {
+        tally(entry.history.byYear, yearNumber);
+        entry.history.first.push([yearNumber, gameId]);
+        entry.history.first.sort((a, b) => a[0] - b[0] || a[1].localeCompare(b[1]));
+        entry.history.first.length = Math.min(entry.history.first.length, HISTORY_FIRST);
+      }
+      const band = bandOf(Number(strength) || 0);
+      if (band !== null) tally(entry.history.byBand, band);
+    }
     let move = entry.moves.get(uci);
     if (!move) {
       move = {
@@ -596,9 +634,41 @@ export async function reduceExplorer(file, limits, recentSince, pack) {
       limits.topGames,
     );
     lines.push(pack.encodeExplorerLine({ key, moves, games }));
+    if (entry.history) {
+      const tallies = (map) =>
+        new Map(
+          [...map.entries()].map(([at, [games, white, draws, black]]) => [
+            at,
+            { games, white, draws, black },
+          ]),
+        );
+      history.push(
+        pack.encodeHistoryLine({
+          key,
+          byYear: tallies(entry.history.byYear),
+          byBand: tallies(entry.history.byBand),
+          first: entry.history.first.map(([at, id]) => ({ year: at, id })),
+        }),
+      );
+    }
   }
   lines.sort();
-  return lines;
+  history.sort();
+  return withHistory ? { lines, history } : lines;
+}
+
+/** Positions up to this ply carry a history; deeper ones are rarely an opening report's. */
+export const HISTORY_MAX_PLY = 30;
+/** How many of a position's earliest games a history names. */
+const HISTORY_FIRST = 5;
+/** Lower bounds of the rating bands a history counts by — ChessBase's Elo classes, in 200s. */
+export const HISTORY_BANDS = [0, 2000, 2200, 2400, 2600];
+
+function bandOf(rating) {
+  if (!(rating > 0)) return null;
+  let band = HISTORY_BANDS[0];
+  for (const bound of HISTORY_BANDS) if (rating >= bound) band = bound;
+  return band;
 }
 
 /**

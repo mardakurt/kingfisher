@@ -56,6 +56,7 @@ import {
 import type { TheoryBookMatch, TheoryBookNode } from '@/theory/theory-book';
 import { THEORY_BOOK_PROVENANCE } from '@/theory/theory-book';
 import type { ResolvedBrief } from '@/theory/variation-briefs';
+import type { PackPositionHistory, PackTally } from '@/reference/pack';
 
 export interface OpeningReport {
   readonly fen: string;
@@ -101,6 +102,30 @@ export interface OpeningReportInput {
     readonly source: string;
   }[];
   readonly now?: number;
+  /**
+   * Phase 85: each population's history at this position — games by year,
+   * by rating band, and its earliest games — from packs that carry one. One
+   * entry per population; a population's history is never added to another's.
+   */
+  readonly histories?: readonly PopulationHistory[];
+}
+
+export interface PopulationHistory {
+  readonly id: string;
+  readonly name: string;
+  /** Undefined while loading, null when this population carries no history here. */
+  readonly history: PackPositionHistory | null | undefined;
+  /** Lower bounds of the pack's rating bands. */
+  readonly bands: readonly number[];
+  /** The earliest games, as the pack describes them, when it carries their scores. */
+  readonly pioneers?: readonly {
+    readonly year: number;
+    readonly id: string;
+    readonly white?: string;
+    readonly black?: string;
+    readonly event?: string;
+    readonly result?: string;
+  }[];
 }
 
 const count = (value: number): string => value.toLocaleString('en-GB');
@@ -482,6 +507,97 @@ function modelGamesSection(input: OpeningReportInput): ReportSection {
  * supplied and came back with nothing stays, carrying the reason, because
  * "we looked and found none" is a finding.
  */
+const scores = (tally: PackTally): string => {
+  const share = (part: number) => percent(tally.games > 0 ? part / tally.games : 0);
+  return `${count(tally.games)} ${tally.games === 1 ? 'game' : 'games'} · White won ${share(tally.white)}, drawn ${share(tally.draws)}, Black won ${share(tally.black)}`;
+};
+
+/**
+ * Popularity by year, results by Elo class and the first games, one set of
+ * sections per population and never a figure across two: ChessBase's report
+ * answers these from Mega Database; here each answer names the population
+ * that gave it.
+ */
+function historySections(input: OpeningReportInput): ReportSection[] {
+  const out: ReportSection[] = [];
+  for (const population of input.histories ?? []) {
+    if (population.history === undefined) continue;
+    const history = population.history;
+    const total = history
+      ? [...history.byYear.values()].reduce((sum, tally) => sum + tally.games, 0)
+      : 0;
+    out.push({
+      id: `popularity:${population.id}`,
+      title: `Popularity by year — ${population.name}`,
+      provenance: history
+        ? `${population.name}: the ${count(total)} dated games that reached this position, by year. One population; nothing combined.`
+        : null,
+      entries: history
+        ? [...history.byYear.entries()]
+            .sort((a, b) => a[0] - b[0])
+            .map(([year, tally]) => ({
+              primary: String(year),
+              secondary: scores(tally),
+              criterion: `share of ${population.name}'s dated games here: ${percent(total > 0 ? tally.games / total : 0)}`,
+            }))
+        : [],
+      emptyReason: history
+        ? null
+        : `${population.name} carries no history for this position (too few games, or deeper than its history reaches).`,
+    });
+    const bands = [...population.bands].sort((a, b) => a - b);
+    const bandName = (bound: number) => {
+      const next = bands.find((value) => value > bound);
+      if (bound === 0) return next ? `under ${next}` : 'any rating';
+      return next ? `${bound}–${next - 1}` : `${bound} and above`;
+    };
+    out.push({
+      id: `elo:${population.id}`,
+      title: `Results by Elo class — ${population.name}`,
+      provenance: history
+        ? `${population.name}: games filed by the lower rating the game states; games stating none are in no class.`
+        : null,
+      entries: history
+        ? [...history.byBand.entries()]
+            .sort((a, b) => a[0] - b[0])
+            .map(([band, tally]) => ({
+              primary: bandName(band),
+              secondary: scores(tally),
+              criterion: 'Elo class',
+            }))
+        : [],
+      emptyReason: history
+        ? null
+        : `${population.name} carries no rating history for this position.`,
+    });
+    const pioneers = population.pioneers ?? [];
+    out.push({
+      id: `pioneers:${population.id}`,
+      title: `First games — ${population.name}`,
+      provenance:
+        history && history.first.length > 0
+          ? `The earliest games in ${population.name} to reach this position: the first in this population, not in chess.`
+          : null,
+      entries: (history?.first ?? []).map((first) => {
+        const game = pioneers.find((entry) => entry.id === first.id);
+        return {
+          primary: String(first.year),
+          secondary:
+            game?.white && game.black
+              ? `${game.white} – ${game.black}${game.result ? ` ${game.result}` : ''}${game.event ? `, ${game.event}` : ''}`
+              : `game ${first.id} (its score is not carried by this pack)`,
+          criterion: 'earliest in this population',
+        };
+      }),
+      emptyReason:
+        history && history.first.length > 0
+          ? null
+          : `${population.name} records no dated game at this position.`,
+    });
+  }
+  return out;
+}
+
 const applicable = (input: OpeningReportInput, section: ReportSection): boolean => {
   switch (section.id) {
     case 'repertoire':
@@ -515,6 +631,7 @@ export function buildOpeningReport(input: OpeningReportInput): OpeningReport {
     advancesSection(plans, input.continuationSource),
     repertoireSection(input, branches),
     modelGamesSection(input),
+    ...historySections(input),
   ].filter((section) => applicable(input, section));
 
   return {

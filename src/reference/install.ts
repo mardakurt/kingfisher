@@ -13,12 +13,20 @@
  * nothing reads from and which the next attempt resumes rather than restarts.
  */
 
-import { PACK_FORMAT, chunkId, chunkFile, type PackManifest, type PackChunkKind } from './pack';
+import {
+  PACK_FORMAT,
+  allChunks,
+  chunkId,
+  chunkFile,
+  type PackManifest,
+  type PackChunkKind,
+} from './pack';
 import { digestOf, gunzip } from './reader';
 import type { InstalledPack, ReferencePackStore } from './store';
 import { withPackLock } from './lock';
 
-const KINDS: readonly PackChunkKind[] = ['explorer', 'game', 'players', 'playergames'];
+type MainKind = Exclude<PackChunkKind, 'history'>;
+const KINDS: readonly MainKind[] = ['explorer', 'game', 'players', 'playergames'];
 const integer = (value: unknown, min = 0): value is number =>
   Number.isSafeInteger(value) && (value as number) >= min;
 const object = (value: unknown): value is Record<string, unknown> =>
@@ -154,9 +162,9 @@ export function parseManifest(value: unknown): PackManifest {
   }
   for (const chunk of manifest.chunks) {
     if (
-      !KINDS.includes(chunk.kind) ||
+      !KINDS.includes(chunk.kind as MainKind) ||
       !integer(chunk.shard) ||
-      chunk.shard >= manifest.shards[chunk.kind as PackChunkKind] ||
+      chunk.shard >= manifest.shards[chunk.kind as MainKind] ||
       chunk.id !== chunkId(chunk.kind, chunk.shard) ||
       chunk.file !== chunkFile(chunk.kind, chunk.shard) ||
       seen.has(chunk.id) ||
@@ -172,6 +180,42 @@ export function parseManifest(value: unknown): PackManifest {
     manifest.compressedBytes !== manifest.chunks.reduce((sum, chunk) => sum + chunk.bytes, 0)
   )
     fail();
+  // Phase 85: the optional history section, checked as strictly as the main set.
+  const history = (manifest as { history?: unknown }).history;
+  if (history !== undefined) {
+    const h = history as Record<string, unknown>;
+    if (
+      !integer(h.maxPly) ||
+      !integer(h.shards, 1) ||
+      (h.shards as number) > 4096 ||
+      !Array.isArray(h.bands) ||
+      !h.bands.every((band) => integer(band)) ||
+      !Array.isArray(h.chunks) ||
+      h.chunks.length !== h.shards
+    )
+      fail();
+    for (const chunk of h.chunks as PackManifest['chunks']) {
+      if (
+        chunk.kind !== 'history' ||
+        !integer(chunk.shard) ||
+        chunk.shard >= (h.shards as number) ||
+        chunk.id !== chunkId('history', chunk.shard) ||
+        chunk.file !== chunkFile('history', chunk.shard) ||
+        seen.has(chunk.id) ||
+        !integer(chunk.bytes, 1) ||
+        chunk.bytes > MAX_CHUNK_BYTES ||
+        !integer(chunk.entries) ||
+        typeof chunk.sha256 !== 'string'
+      )
+        fail();
+      seen.add(chunk.id);
+    }
+    if (
+      h.compressedBytes !==
+      (h.chunks as PackManifest['chunks']).reduce((sum, c) => sum + c.bytes, 0)
+    )
+      fail();
+  }
   if (
     manifest.maxPositionPly !== undefined &&
     (!Number.isInteger(manifest.maxPositionPly) || manifest.maxPositionPly < 0)
@@ -264,7 +308,8 @@ async function installUnlocked(
 ): Promise<InstalledPack> {
   options.signal?.throwIfAborted();
   const request = options.fetcher ?? fetch;
-  const total = manifest.chunks.reduce((sum, chunk) => sum + chunk.bytes, 0);
+  const every = allChunks(manifest);
+  const total = every.reduce((sum, chunk) => sum + chunk.bytes, 0);
   let chunksReused = 0;
   let bytesReused = 0;
   const report = (phase: InstallPhase, done: number, bytes: number) =>
@@ -272,7 +317,7 @@ async function installUnlocked(
       packId: manifest.id,
       phase,
       chunksDone: done,
-      chunksTotal: manifest.chunks.length,
+      chunksTotal: every.length,
       bytesDone: bytes,
       bytesTotal: total,
       chunksReused,
@@ -298,7 +343,7 @@ async function installUnlocked(
 
   let done = 0;
   let bytes = 0;
-  for (const chunk of manifest.chunks) {
+  for (const chunk of every) {
     options.signal?.throwIfAborted();
 
     {
@@ -432,7 +477,7 @@ export async function verifyPack(
   signal?: AbortSignal,
 ): Promise<readonly string[]> {
   const damaged: string[] = [];
-  for (const chunk of pack.manifest.chunks) {
+  for (const chunk of allChunks(pack.manifest)) {
     signal?.throwIfAborted();
     const bytes = await store.read(pack.manifest, chunk.id);
     if (!bytes) {

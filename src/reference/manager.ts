@@ -28,6 +28,7 @@ import {
 } from './install';
 import { withPackLock } from './lock';
 import type { PackManifest } from './pack';
+import { allChunks } from './pack';
 import { PackReader } from './reader';
 import { ReferencePackProvider } from './provider';
 import { TieredStreamingCache } from './tiered-streaming-cache';
@@ -780,7 +781,7 @@ async function reclaimSupersededChunks(store: ReferencePackStore): Promise<void>
     if (pack.state !== 'ready') continue;
     try {
       await withPackLock(pack.id, () =>
-        store.pruneChunks(pack.id, new Set(pack.manifest.chunks.map((chunk) => chunk.sha256))),
+        store.pruneChunks(pack.id, new Set(allChunks(pack.manifest).map((chunk) => chunk.sha256))),
       );
     } catch {
       // Reclaiming storage is never worth failing a start-up over.
