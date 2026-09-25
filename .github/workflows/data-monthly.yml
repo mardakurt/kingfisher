@@ -32,10 +32,12 @@ jobs:
   monthly:
     runs-on: ubuntu-latest
     timeout-minutes: 240
-    env:
-      KINGFISHER_DATA_STAGE: ${{ runner.temp }}/kingfisher-data
-      KINGFISHER_DATA_REMOTE: git@github.com:mardakurt/kingfisher-data.git
     steps:
+      # `runner` is not available to a job's own `env`, so the paths are set here.
+      - name: Environment
+        run: |
+          echo "KINGFISHER_DATA_STAGE=$RUNNER_TEMP/kingfisher-data" >> "$GITHUB_ENV"
+          echo "KINGFISHER_DATA_REMOTE=git@github.com:mardakurt/kingfisher-data.git" >> "$GITHUB_ENV"
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
