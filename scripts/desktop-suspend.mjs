@@ -358,10 +358,7 @@ async function main() {
   let deepAfter = null;
   for (let attempt = 0; attempt < 120; attempt += 1) {
     deepAfter = await deepAnalysisJob(window);
-    if (
-      deepAfter?.status === 'done' ||
-      (deepBefore && deepAfter?.searched > deepBefore.searched)
-    )
+    if (deepAfter?.status === 'done' || (deepBefore && deepAfter?.searched > deepBefore.searched))
       break;
     await wait(250);
   }
@@ -369,8 +366,8 @@ async function main() {
     'deep analysis continues from its checkpoint after wake',
     Boolean(
       deepBefore &&
-        deepAfter &&
-        (deepAfter.status === 'done' || deepAfter.searched > deepBefore.searched),
+      deepAfter &&
+      (deepAfter.status === 'done' || deepAfter.searched > deepBefore.searched),
     ),
     deepAfter
       ? `${deepBefore?.searched ?? 0} → ${deepAfter.searched} positions (${deepAfter.status})`

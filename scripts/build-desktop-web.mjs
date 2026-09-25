@@ -402,5 +402,7 @@ console.log(`  total ${(size(OUT) / 1e6).toFixed(1)} MB`);
 {
   const { buildCompanionKit } = await import('./build-companion-kit.mjs');
   const kit = await buildCompanionKit();
-  console.log(`Companion import kit: ${path.relative(ROOT, kit)} (${(size(kit) / 1e6).toFixed(1)} MB)`);
+  console.log(
+    `Companion import kit: ${path.relative(ROOT, kit)} (${(size(kit) / 1e6).toFixed(1)} MB)`,
+  );
 }

@@ -608,7 +608,8 @@ const isStoredScore = (value: unknown): boolean =>
   ((value.kind === 'cp' && finite(value.cp)) || (value.kind === 'mate' && finite(value.moves)));
 
 const isUciList = (value: unknown): boolean =>
-  array(value) && value.every((move) => typeof move === 'string' && /^[a-h][1-8][a-h][1-8][qrbn]?$/.test(move));
+  array(value) &&
+  value.every((move) => typeof move === 'string' && /^[a-h][1-8][a-h][1-8][qrbn]?$/.test(move));
 
 export const isImportedEvaluationRecord = (value: unknown): value is ImportedEvaluationRecord =>
   object(value) &&

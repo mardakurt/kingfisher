@@ -7,12 +7,12 @@ _Status: in progress. A checked row has running evidence; a crossed row is not c
 The canonical checkout is `~/Desktop/Projects/chess&poker/chess/studying hub`.
 At the start of Phase 85 the owner answered:
 
-| Question | Answer |
-| --- | --- |
-| Owned ChessBase database of at least one million games; Windows PC/certificate; second machine or cloud VM | None available for this phase |
-| Publish 1.3.0 | Only after every packaged gate is green |
-| Shared analysis / hosted sharing | File exchange only; no server or hosted share |
-| Phase 84 integration | Merge locally; retain remote branches |
+| Question                                                                                                   | Answer                                        |
+| ---------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| Owned ChessBase database of at least one million games; Windows PC/certificate; second machine or cloud VM | None available for this phase                 |
+| Publish 1.3.0                                                                                              | Only after every packaged gate is green       |
+| Shared analysis / hosted sharing                                                                           | File exchange only; no server or hosted share |
+| Phase 84 integration                                                                                       | Merge locally; retain remote branches         |
 
 These answers make an unqualified YES impossible in this phase: the two-machine,
 cloud-VM and Windows acceptance runs cannot be performed, and no owned Mega
@@ -43,22 +43,22 @@ still names 1.2.6 and GitHub has no `v1.3.0` release.
 
 YES requires every row. “Partial” is recorded as a cross.
 
-| # | Criterion | Status | Evidence / blocker |
-| --- | --- | --- | --- |
-| 1 | A ≥1M-game owned or shipped database answers explorer, novelty, preparation and report questions | ⏳ | Real Lichess 2014-07 import is running through the product import path; no owned Mega Database was supplied. |
-| 2 | Opening Report: popularity by year, pioneers and Elo classes from one labelled population | ⏳ | Unit/pipeline tests pass; real v3 pack build and browser proof remain. |
-| 3 | Material/theme/route ≤10 s at 1M and ≤60 s at 10M, or owner accepts measurements | ⏳ | Million-game benchmark is running; 10M does not fit the available 60–67 GB once positions are indexed. |
-| 4 | Deep analysis survives reload, suspend and quit and runs overnight | ❌ | Persistence and browser reload pass; restart/suspend harnesses are now extended. The required eight-hour packaged run has not happened. |
-| 5 | Remote engine on a second machine with disconnect handling | ❌ | No second machine was supplied; remote-engine code is not claimed. |
-| 6 | Labelled Monte Carlo playouts | ✅ | Scripted-engine unit tests and browser-Stockfish E2E exist on `master`; final full-suite rerun remains part of the phase gate. |
-| 7 | Windows build runs desktop harnesses | ❌ | No Windows machine or signing certificate was supplied. A CI package is not a harness run. |
-| 8 | Master green on CI/visual and every packaged Mac gate green on one build | ⏳ | CI and Linux visual were green at `d0ec3ca`; the continuation still needs merge, CI, browser certification and packaged certification. |
-| 9 | Six serious-user workflows complete in browser and packaged app | ❌ | Targeted E2E exists; the recorded end-to-end evidence folder is not complete. |
-| 10 | Header, explorer, position, preparation and duplicate queries answer in seconds at 10M | ❌ | Real 10M indexed database unavailable within this Mac's free disk. |
-| 11 | Scheduled pack update and installed app adopts one real update | ⏳ | Workflow and client channel code pass unit tests; v3 must be built/published because the catalog currently names an artifact not yet live. |
-| 12 | Cloud VM analyses for the Mac over the internet | ❌ | No cloud VM was supplied and no hosted engine service was authorized. |
-| 13 | Batch departure, Opening Report parity, question points/timers, explorer first moment and new CBH export | ✅ | Each feature and its targeted unit/E2E regression is present; final suite rerun remains part of row 8. |
-| 14 | Stored engine evidence exports/imports with provenance | ✅ | Exchange validation, separate persistence and browser E2E are present; imported evidence is not re-exported as local work. |
+| #   | Criterion                                                                                                | Status | Evidence / blocker                                                                                                                         |
+| --- | -------------------------------------------------------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | A ≥1M-game owned or shipped database answers explorer, novelty, preparation and report questions         | ⏳     | Real Lichess 2014-07 import is running through the product import path; no owned Mega Database was supplied.                               |
+| 2   | Opening Report: popularity by year, pioneers and Elo classes from one labelled population                | ⏳     | Unit/pipeline tests pass; real v3 pack build and browser proof remain.                                                                     |
+| 3   | Material/theme/route ≤10 s at 1M and ≤60 s at 10M, or owner accepts measurements                         | ⏳     | Million-game benchmark is running; 10M does not fit the available 60–67 GB once positions are indexed.                                     |
+| 4   | Deep analysis survives reload, suspend and quit and runs overnight                                       | ❌     | Persistence and browser reload pass; restart/suspend harnesses are now extended. The required eight-hour packaged run has not happened.    |
+| 5   | Remote engine on a second machine with disconnect handling                                               | ❌     | No second machine was supplied; remote-engine code is not claimed.                                                                         |
+| 6   | Labelled Monte Carlo playouts                                                                            | ✅     | Scripted-engine unit tests and browser-Stockfish E2E exist on `master`; final full-suite rerun remains part of the phase gate.             |
+| 7   | Windows build runs desktop harnesses                                                                     | ❌     | No Windows machine or signing certificate was supplied. A CI package is not a harness run.                                                 |
+| 8   | Master green on CI/visual and every packaged Mac gate green on one build                                 | ⏳     | CI and Linux visual were green at `d0ec3ca`; the continuation still needs merge, CI, browser certification and packaged certification.     |
+| 9   | Six serious-user workflows complete in browser and packaged app                                          | ❌     | Targeted E2E exists; the recorded end-to-end evidence folder is not complete.                                                              |
+| 10  | Header, explorer, position, preparation and duplicate queries answer in seconds at 10M                   | ❌     | Real 10M indexed database unavailable within this Mac's free disk.                                                                         |
+| 11  | Scheduled pack update and installed app adopts one real update                                           | ⏳     | Workflow and client channel code pass unit tests; v3 must be built/published because the catalog currently names an artifact not yet live. |
+| 12  | Cloud VM analyses for the Mac over the internet                                                          | ❌     | No cloud VM was supplied and no hosted engine service was authorized.                                                                      |
+| 13  | Batch departure, Opening Report parity, question points/timers, explorer first moment and new CBH export | ✅     | Each feature and its targeted unit/E2E regression is present; final suite rerun remains part of row 8.                                     |
+| 14  | Stored engine evidence exports/imports with provenance                                                   | ✅     | Exchange validation, separate persistence and browser E2E are present; imported evidence is not re-exported as local work.                 |
 
 ## 3. Evidence already complete
 

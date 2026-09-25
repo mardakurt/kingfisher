@@ -239,7 +239,9 @@ async function main() {
     }
     check(
       'the deep analysis resumes after quit and finishes from its checkpoint',
-      deepAfter?.status === 'done' && deepAfter.resumed >= 1 && deepAfter.searched >= deepBefore.searched,
+      deepAfter?.status === 'done' &&
+        deepAfter.resumed >= 1 &&
+        deepAfter.searched >= deepBefore.searched,
       deepAfter
         ? `${deepAfter.searched} searched, resumed ${deepAfter.resumed} time(s)`
         : 'no saved job after relaunch',

@@ -27,11 +27,7 @@ import { gameTitle } from '@/persistence/describe';
 import { useAnalysis } from '@/stores/analysis-store';
 
 import type { DeepQuery } from '@/search/game-scan';
-import {
-  lineFromRows,
-  lineIndexForRows,
-  THEMES_VERSION_NUMBER,
-} from '@/search/line-index-encode';
+import { lineFromRows, lineIndexForRows, THEMES_VERSION_NUMBER } from '@/search/line-index-encode';
 
 import { runPagedDeepSearch, type DeepMatch, type DeepSearchState } from './deep-search';
 import { openStoredGame } from './open-game';
