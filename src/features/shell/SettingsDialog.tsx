@@ -1081,6 +1081,7 @@ function CompanionSection() {
       )}
 
       {connected ? <CustomEngines /> : null}
+      {connected ? <RemoteEngineHosts /> : null}
       {connected ? <SqliteDatabases /> : null}
       {connected ? <TablebaseSettings /> : null}
     </div>
@@ -1419,6 +1420,117 @@ function CustomEngines() {
           disabled={!enginePath.trim() || busy === 'register'}
         >
           {busy === 'register' ? 'Testing…' : 'Add'}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Engine hosts on the player's other machines (Phase 85,
+ * `docs/design/remote-engines.md`). The pairing code printed by
+ * `npm run companion:engine-host` on the other machine is the trust step: it
+ * carries the key the encrypted channel is made with. The host's engines then
+ * appear with the others, each named with the machine it runs on.
+ */
+function RemoteEngineHosts() {
+  const status = useCompanionStatus();
+  const notify = useUi((state) => state.notify);
+  const [code, setCode] = useState('');
+  const [busy, setBusy] = useState<string | null>(null);
+  const hosts = useQuery({
+    queryKey: ['companion', 'remote-hosts'],
+    queryFn: async () => (await companionClient()?.remoteHosts())?.hosts ?? [],
+    refetchInterval: 10_000,
+  });
+
+  const pair = async () => {
+    const client = companionClient();
+    if (!client || !code.trim()) return;
+    setBusy('pair');
+    try {
+      const paired = await client.pairRemoteHost(code.trim());
+      setCode('');
+      await Promise.all([hosts.refetch(), status.refetch()]);
+      notify({
+        tone: 'success',
+        message: `Paired with ${paired.label}: ${paired.engines.length} engine${paired.engines.length === 1 ? '' : 's'}.`,
+      });
+    } catch (error) {
+      notify({
+        tone: 'error',
+        message: 'The engine host could not be paired.',
+        detail: error instanceof Error ? error.message : String(error),
+      });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const remove = async (id: string) => {
+    const client = companionClient();
+    if (!client) return;
+    setBusy(`remove:${id}`);
+    try {
+      await client.removeRemoteHost(id);
+      await Promise.all([hosts.refetch(), status.refetch()]);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <div className="rounded-[6px] border border-line bg-surface-inset p-3" data-remote-hosts>
+      <h3 className="text-xs text-primary">Remote engine hosts</h3>
+      <p className="mt-1 text-2xs leading-relaxed text-tertiary">
+        Engines on another of your machines — a desktop in the next room, or a cloud machine you run
+        a companion on. Start it there with <code>npm run companion:engine-host</code> and paste the
+        pairing code it prints. The code is the key the connection is encrypted with; nothing but
+        its engines is reachable, and a lost connection ends its searches rather than resuming them.
+      </p>
+      {(hosts.data ?? []).length > 0 ? (
+        <ul className="mt-2 flex flex-col gap-1">
+          {(hosts.data ?? []).map((host) => (
+            <li
+              key={host.id}
+              className="flex items-center justify-between gap-2 rounded-[6px] border border-line-subtle px-2 py-1 text-[10.5px]"
+            >
+              <span className="truncate text-secondary">
+                {host.label ?? 'Engine host'}
+                <span className="text-tertiary">
+                  {' · '}
+                  {host.connected
+                    ? `${host.engines} engine${host.engines === 1 ? '' : 's'}`
+                    : `not connected${host.error ? `: ${host.error}` : ''}`}
+                </span>
+              </span>
+              <Button
+                variant="danger"
+                disabled={busy === `remove:${host.id}`}
+                onClick={() => void remove(host.id)}
+              >
+                Remove
+              </Button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      <div className="mt-2 flex items-end gap-1.5">
+        <input
+          aria-label="Engine host pairing code"
+          placeholder="kingfisher-engines://…"
+          className="h-8 min-w-0 flex-1 rounded-[6px] border border-line bg-surface-2 px-2 text-[11px] text-primary"
+          value={code}
+          onChange={(event) => setCode(event.target.value)}
+        />
+        <Button
+          variant="accent"
+          className="h-8"
+          size="sm"
+          onClick={() => void pair()}
+          disabled={!code.trim() || busy === 'pair'}
+        >
+          {busy === 'pair' ? 'Pairing…' : 'Pair'}
         </Button>
       </div>
     </div>

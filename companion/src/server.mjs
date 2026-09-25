@@ -7,7 +7,9 @@
  */
 
 import { ImportFileError, ImportJobs } from './import-jobs.mjs';
+import { randomUUID } from 'node:crypto';
 import { createServer } from 'node:http';
+import { networkInterfaces } from 'node:os';
 import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -23,6 +25,13 @@ import {
   readGames as readEnCroissantGames,
 } from './en-croissant.mjs';
 import { EngineHost } from './engines.mjs';
+import {
+  RemoteEngineHost,
+  newPairingKey,
+  pairingCode,
+  parsePairingCode,
+  serveEngines,
+} from './remote-engines.mjs';
 import { ManagedEngines } from './managed-engines.mjs';
 import { probeLocalTablebase, scanTablebaseDirectory } from './tablebase.mjs';
 import { TablebaseHelper } from './tbprobe-helper.mjs';
@@ -47,6 +56,8 @@ const MANIFEST = path.join(ROOT, 'public', 'engine', 'manifest.json');
 const IMPORTS = path.join(DATA_DIR, 'databases.json');
 const CUSTOM_ENGINES = path.join(DATA_DIR, 'custom-engines.json');
 const MANAGED_ENGINES = path.join(DATA_DIR, 'managed-engines.json');
+/** Phase 85: engine hosts on the player's other machines, with their pairing codes. */
+const REMOTE_HOSTS = path.join(DATA_DIR, 'remote-engine-hosts.json');
 /*
   Where managed native engines are downloaded to.
 
@@ -185,6 +196,75 @@ const managed = new ManagedEngines({
   registry: engineRegistry,
 });
 const open = new Map();
+
+/*
+  Phase 85: engines on the player's other machines (docs/design/remote-engines.md).
+  An engine key or session id of the form `remote:<host>:<id>` belongs to a
+  paired engine host; everything else is this machine's.
+*/
+const remoteHosts = new Map();
+const REMOTE = /^remote:([a-z0-9]+):(.+)$/;
+
+function saveRemoteHosts() {
+  mkdirSync(DATA_DIR, { recursive: true });
+  writeFileSync(
+    REMOTE_HOSTS,
+    JSON.stringify(
+      [...remoteHosts.entries()].map(([id, entry]) => ({
+        id,
+        code: entry.code,
+        label: entry.host.label,
+      })),
+      null,
+      2,
+    ),
+    { mode: 0o600 },
+  );
+}
+
+async function pairRemoteHost(code, id = randomUUID().replace(/-/g, '').slice(0, 12)) {
+  const { host, port, key } = parsePairingCode(code);
+  const remote = new RemoteEngineHost({ host, port, key });
+  remoteHosts.set(id, { code, host: remote });
+  await remote.connect();
+  return { id, remote };
+}
+
+function loadRemoteHosts() {
+  if (!existsSync(REMOTE_HOSTS)) return;
+  try {
+    for (const entry of JSON.parse(readFileSync(REMOTE_HOSTS, 'utf8'))) {
+      // Connected in the background: an unreachable host is listed with its reason, not fatal.
+      void pairRemoteHost(entry.code, entry.id).catch((error) => {
+        const known = remoteHosts.get(entry.id);
+        if (known) known.host.error = error.message;
+      });
+    }
+  } catch {
+    // A corrupt file is not a reason to refuse to start.
+  }
+}
+
+const remoteEngineRows = () =>
+  [...remoteHosts.entries()].flatMap(([id, entry]) =>
+    entry.host.connected
+      ? entry.host.engines.map((engine) => ({
+          id: `remote:${id}:${engine.key}`,
+          name: `${engine.name} · on ${entry.host.label}`,
+          ...(engine.version ? { version: engine.version } : {}),
+          custom: false,
+          remote: { host: entry.host.label, hostId: id },
+        }))
+      : [],
+  );
+
+function remoteFor(value) {
+  const match = REMOTE.exec(String(value));
+  if (!match) return null;
+  const entry = remoteHosts.get(match[1]);
+  if (!entry) throw new Error('That engine host is not paired.');
+  return { id: match[1], remote: entry.host, rest: match[2] };
+}
 
 /** Engines the installer wrote. Only these can ever be spawned. */
 function loadEngines() {
@@ -412,7 +492,8 @@ async function route(url, request, response) {
             what it can do, which is not the same as it being able to do it.
           */
           ...(capabilities ? { capabilities } : {}),
-        })),
+        }))
+        .concat(remoteEngineRows()),
       databases: databaseRegistry.list().map(({ key, name, path: file }) => ({
         key,
         name,
@@ -524,21 +605,69 @@ async function route(url, request, response) {
     return json(response, 200, { deleted: true });
   }
 
+  if (pathname === '/engine/remote' && request.method === 'GET') {
+    return json(response, 200, {
+      hosts: [...remoteHosts.entries()].map(([id, entry]) => ({
+        id,
+        label: entry.host.label,
+        connected: entry.host.connected,
+        engines: entry.host.engines.length,
+        error: entry.host.connected ? null : entry.host.error,
+      })),
+    });
+  }
+
+  if (pathname === '/engine/remote/add' && request.method === 'POST') {
+    const body = await readBody(request);
+    try {
+      const { id, remote } = await pairRemoteHost(String(body.code ?? ''));
+      saveRemoteHosts();
+      return json(response, 200, { id, label: remote.label, engines: remote.engines });
+    } catch (error) {
+      for (const [id, entry] of remoteHosts)
+        if (!entry.host.connected && entry.code === body.code) remoteHosts.delete(id);
+      return json(response, 400, { error: error instanceof Error ? error.message : String(error) });
+    }
+  }
+
+  if (pathname === '/engine/remote/remove' && request.method === 'POST') {
+    const body = await readBody(request);
+    const entry = remoteHosts.get(String(body.id));
+    if (!entry) return json(response, 404, { error: 'That engine host is not paired.' });
+    entry.host.close();
+    remoteHosts.delete(String(body.id));
+    saveRemoteHosts();
+    return json(response, 200, { removed: true });
+  }
+
   if (pathname === '/engine/start' && request.method === 'POST') {
     const body = await readBody(request);
+    const remote = remoteFor(body.engine);
+    if (remote) {
+      const session = await remote.remote.start(remote.rest);
+      const engine = remote.remote.engines.find((e) => e.key === remote.rest);
+      return json(response, 200, {
+        session: `remote:${remote.id}:${session}`,
+        engine: `${engine?.name ?? remote.rest} · on ${remote.remote.label}`,
+      });
+    }
     const started = engines.start(String(body.engine));
     return json(response, 200, { session: started.id, engine: started.engine.name });
   }
 
   if (pathname === '/engine/send' && request.method === 'POST') {
     const body = await readBody(request);
-    engines.send(String(body.session), String(body.line));
+    const remote = remoteFor(body.session);
+    if (remote) remote.remote.send(remote.rest, String(body.line));
+    else engines.send(String(body.session), String(body.line));
     return json(response, 200, { ok: true });
   }
 
   if (pathname === '/engine/stop' && request.method === 'POST') {
     const body = await readBody(request);
-    engines.stop(String(body.session));
+    const remote = remoteFor(body.session);
+    if (remote) remote.remote.stop(remote.rest);
+    else engines.stop(String(body.session));
     return json(response, 200, { ok: true });
   }
 
@@ -555,14 +684,31 @@ async function route(url, request, response) {
       A single GET naming a dead session killed the companion outright.
     */
     let unsubscribe;
+    /*
+      Subscribing replays the session's backlog at once, before the headers
+      below are written. Written straight through, that replay sent implicit
+      headers and the explicit `writeHead` then failed, ending the response:
+      any stream opened on a session that already had output — an EventSource
+      reconnecting, a second viewer — closed at once (Phase 85, found by the
+      remote-engine test). The replay is held until the headers are out.
+    */
+    const held = [];
+    let open = false;
+    let ended = false;
+    const write = (chunk) => (open ? response.write(chunk) : held.push(chunk));
     try {
-      unsubscribe = engines.subscribe(id, (line) => {
+      const remote = remoteFor(id);
+      const source = remote
+        ? { subscribe: (_id, listener) => remote.remote.subscribe(remote.rest, listener) }
+        : engines;
+      unsubscribe = source.subscribe(id, (line) => {
         if (line === null) {
-          response.write('event: end\ndata: {}\n\n');
-          response.end();
+          write('event: end\ndata: {}\n\n');
+          ended = true;
+          if (open) response.end();
           return;
         }
-        response.write(`data: ${JSON.stringify(line)}\n\n`);
+        write(`data: ${JSON.stringify(line)}\n\n`);
       });
     } catch (error) {
       return json(response, 404, {
@@ -575,6 +721,13 @@ async function route(url, request, response) {
       connection: 'keep-alive',
     });
     response.write(': connected\n\n');
+    open = true;
+    for (const chunk of held.splice(0)) response.write(chunk);
+    if (ended) {
+      response.end();
+      unsubscribe();
+      return undefined;
+    }
     // Proxies and browsers drop an idle event stream; a comment keeps it warm.
     const beat = setInterval(() => response.write(': beat\n\n'), 15_000);
     request.on('close', () => {
@@ -1248,6 +1401,7 @@ const integrityOf = (target) => {
 loadEngines();
 managed.load();
 loadCustomEngines();
+loadRemoteHosts();
 loadDatabases();
 loadTablebaseDirectory();
 // Started eagerly when a directory is already configured, so the first probe
@@ -1275,8 +1429,51 @@ server.listen(PORT, HOST, () => {
   );
 });
 
+/*
+  Phase 85: `--serve-engines` also offers this machine's engines to paired
+  companions on the network, over TLS keyed by the pairing code it prints.
+  Only engines: nothing else of the companion is reachable that way.
+*/
+let engineService = null;
+if (process.argv.includes('--serve-engines')) {
+  const keyFile = process.env.KINGFISHER_ENGINE_HOST_KEY;
+  let key;
+  if (keyFile && existsSync(keyFile))
+    key = Buffer.from(readFileSync(keyFile, 'utf8').trim(), 'base64url');
+  else {
+    key = newPairingKey();
+    if (keyFile) writeFileSync(keyFile, key.toString('base64url'), { mode: 0o600 });
+  }
+  const port = Number(process.env.KINGFISHER_ENGINE_HOST_PORT ?? 4339);
+  void serveEngines({ engines, registry: engineRegistry, key, port }).then((served) => {
+    engineService = served;
+    const addresses = Object.values(networkInterfaces())
+      .flat()
+      .filter((entry) => entry && entry.family === 'IPv4' && !entry.internal)
+      .map((entry) => entry.address);
+    process.stdout.write(
+      [
+        '',
+        `  Serving this machine's engines on port ${served.port} (TLS, pairing key).`,
+        '  On the other machine, paste one of these into Settings -> Engines -> Remote engine hosts:',
+        '',
+        ...(addresses.length ? addresses : ['<this machine’s address>']).map(
+          (address) => `  ${pairingCode(address, served.port, key)}`,
+        ),
+        '',
+        keyFile
+          ? `  The key is kept in ${keyFile}.`
+          : '  The key is new every run; set KINGFISHER_ENGINE_HOST_KEY to a file to keep it.',
+        '',
+      ].join('\n'),
+    );
+  });
+}
+
 const shutdown = () => {
   void maintenance.close();
+  void engineService?.close();
+  for (const entry of remoteHosts.values()) entry.host.close();
   engines.stopAll();
   void tablebase.stop();
   for (const db of open.values()) db.close();

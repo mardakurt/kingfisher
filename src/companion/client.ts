@@ -18,6 +18,15 @@ import type { EnCroissantInspection, EnCroissantPage } from '@/database/encroiss
 
 import { withTimeout } from '@/database/retry';
 
+/** A paired engine host, as the companion reports it. */
+export interface RemoteEngineHostRow {
+  readonly id: string;
+  readonly label: string | null;
+  readonly connected: boolean;
+  readonly engines: number;
+  readonly error: string | null;
+}
+
 export interface CompanionConfig {
   readonly url: string;
   readonly token: string;
@@ -30,6 +39,8 @@ export interface CompanionEngineEntry {
   readonly license?: string;
   /** Registered by path through Settings, rather than installed from the catalogue. */
   readonly custom: boolean;
+  /** Phase 85: an engine on a paired engine host, not this machine. */
+  readonly remote?: { readonly host: string; readonly hostId: string };
   readonly author?: string;
   /**
    * What the companion measured when it installed this engine.
@@ -353,6 +364,21 @@ export class CompanionClient {
 
   unregisterEngine(engine: string): Promise<{ deleted: boolean }> {
     return this.request('/engine/unregister', { engine });
+  }
+
+  /** Phase 85: engine hosts on the player's other machines (docs/design/remote-engines.md). */
+  remoteHosts(): Promise<{ hosts: readonly RemoteEngineHostRow[] }> {
+    return this.request('/engine/remote');
+  }
+
+  pairRemoteHost(
+    code: string,
+  ): Promise<{ id: string; label: string; engines: readonly unknown[] }> {
+    return this.request('/engine/remote/add', { code });
+  }
+
+  removeRemoteHost(id: string): Promise<{ removed: boolean }> {
+    return this.request('/engine/remote/remove', { id });
   }
 
   send(session: string, line: string): Promise<unknown> {
