@@ -307,9 +307,19 @@ The reference data is published by pushing a versioned directory
 to the `kingfisher-data` repository. The catalog in
 `src/reference/catalog.ts` names the exact path:
 
-- `reference-elite-v2/manifest.json` (Elite OTB, v2)
 - `reference-recent-v1/manifest.json` (Recent Theory, v1)
+- `reference-recent-v3/manifest.json` (Recent Theory, six months, v3 — rebuilt
+  monthly by `.github/workflows/data-monthly.yml`, which advances
+  `channels/recent-theory-6m.json`)
 - `reference-online-v1/manifest.json` (High-Rated Online, v1)
+
+and, because GitHub Pages limits a site to one gigabyte, the large packs on a
+second mirror, `mardakurt/kingfisher-data-packs`:
+
+- `reference-elite-v3/manifest.json` (Elite OTB, v3, with history)
+
+Publish with `npm run publish:data`, naming the second mirror with
+`KINGFISHER_DATA_STAGE` and `KINGFISHER_DATA_REMOTE` when the pack is large.
 
 The manifest is the source of truth. Every chunk file's SHA-256
 must match the digest in the manifest. The application will not

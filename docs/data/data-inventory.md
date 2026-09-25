@@ -58,14 +58,16 @@ normalisation is allowed; chess move reconstruction is not.
 - **Population:** rating ≥ 2000 (open: 2000), ceiling 2900,
   GM/IM/WGM/WIM/FM titles, exclude online events, minimum 10 plies
 - **Counts (live at the time of inventory):**
-  - games: 407,538
-  - openable: 407,538
-  - positions: 5,438,808
-  - players: 33,607
+  - games: 425,022 (v3, 2026-09-26; v2 held 407,538)
+  - openable: 425,022
+  - positions: 5,669,429
+  - players: 34,261
+- **History (v3):** each position's games by year and Elo class, and its five earliest games, to ply 30
 - **Shards:** 96 explorer / 48 game / 8 players / 8 playergames
 - **Distribution:** GitHub Pages data mirror; installed on demand
 - **Update mechanism:** new version published to the data mirror as
-  `reference-elite-v<N>/`; installable from the Databases workspace
+  `reference-elite-v<N>/` (v3 on the second mirror, `kingfisher-data-packs`);
+  installable from the Databases workspace
 
 ### Recent Theory (v1)
 
@@ -251,8 +253,8 @@ are kept for context.
 
 | Pack              | Version | Built      | Window    | Games   | Positions | Players | Compressed |
 | ----------------- | ------- | ---------- | --------- | ------- | --------- | ------- | ---------- |
-| Starter (bundled) | 4       | 2026-09-14 | 2022→2026 | 206,451 | 300,413   | 13,738  | 24.3 MB    |
-| Elite OTB         | 2       | 2026-09-05 | 2020→2026 | 407,538 | 5,438,808 | 33,607  | 323.6 MB   |
+| Starter (bundled) | 5       | 2026-09-26 | 2022→2026 | 206,451 | 300,413   | 13,738  | 41.3 MB    |
+| Elite OTB         | 3       | 2026-09-26 | 2020→2026 | 425,022 | 5,669,429 | 34,261  | 426.7 MB   |
 | Recent Theory     | 1       | 2026-09-05 | last 24m  | 44,200  | 918,069   | 2,567   | 32.3 MB    |
 | High-Rated Online | 1       | 2026-09-05 | last 3m   | 305,169 | 315,668   | 12,315  | 81.7 MB    |
 

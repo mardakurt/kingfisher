@@ -66,19 +66,19 @@ Three are drawn from the same over-the-board broadcast archive and differ by a
 threshold; the fourth is a different population entirely, and is kept apart for
 exactly that reason.
 
-|                     | `kingfisher-starter`                             | `kingfisher-recent-theory` (v1) | `kingfisher-recent-theory` (v2, 6 months) | `kingfisher-elite-otb`    | `kingfisher-high-rated-online` |
-| ------------------- | ------------------------------------------------ | ------------------------------- | ----------------------------------------- | ------------------------- | ------------------------------ |
-| Distribution        | Committed to this repository, ships with the app | Installed on demand             | Installed on demand                       | Installed on demand       | Installed on demand            |
-| Population          | Broadcast, over the board                        | Broadcast, over the board       | Broadcast, over the board                 | Broadcast, over the board | Lichess rated, online, 2400+   |
-| Upstream            | The 48 most recent monthly broadcast archives    | The 24 most recent              | The 6 most recent                         | All 79, from 2020         | One monthly standard archive   |
-| Window              | 2022-09 → most recent                            | 2024-09 → most recent           | 2026-03 → 2026-08                         | 2020-01 → most recent     | one month                      |
-| Licence             | CC-BY-SA-4.0                                     | CC-BY-SA-4.0                    | CC-BY-SA-4.0                              | CC-BY-SA-4.0              | CC0-1.0                        |
-| Games counted       | 206,451                                          | 44,200                          | 11,280                                    | 407,538                   | 305,169                        |
-| Full game scores    | 38,749 (rated 2500+, or GM/IM v GM/IM unrated)   | 18,151 (rated 2500+)            | 4,600 (rated 2500+)                       | 407,538 — every game      | 305,169 — every game           |
-| Position aggregates | 300,413                                          | 918,069                         | 250,498                                   | 5,438,808                 | 315,668                        |
-| Deepest query ply   | 40 (20 full moves)                               | 40 (20 full moves)              | 40 (20 full moves)                        | 40 (20 full moves)        | 40 (20 full moves)             |
-| Player identities   | 13,738                                           | 2,567                           | 1,577                                     | 33,607                    | 12,315                         |
-| Size                | 24.3 MB in 104 chunks                            | 33.9 MB in 80 chunks            | 8.7 MB in 48 chunks                       | 339.4 MB in 160 chunks    | 85.8 MB in 160 chunks          |
+|                     | `kingfisher-starter`                             | `kingfisher-recent-theory` (v1) | `kingfisher-recent-theory-narrow` (v3, 6 months) | `kingfisher-elite-otb` (v3)               | `kingfisher-high-rated-online` |
+| ------------------- | ------------------------------------------------ | ------------------------------- | ------------------------------------------------ | ----------------------------------------- | ------------------------------ |
+| Distribution        | Committed to this repository, ships with the app | Installed on demand             | Installed on demand                              | Installed on demand                       | Installed on demand            |
+| Population          | Broadcast, over the board                        | Broadcast, over the board       | Broadcast, over the board                        | Broadcast, over the board                 | Lichess rated, online, 2400+   |
+| Upstream            | The 48 most recent monthly broadcast archives    | The 24 most recent              | The 6 most recent, rebuilt monthly               | All 80, from 2020                         | One monthly standard archive   |
+| Window              | 2022-09 → most recent                            | 2024-09 → most recent           | 2026-03 → 2026-08                                | 2020-01 → 2026-08                         | one month                      |
+| Licence             | CC-BY-SA-4.0                                     | CC-BY-SA-4.0                    | CC-BY-SA-4.0                                     | CC-BY-SA-4.0                              | CC0-1.0                        |
+| Games counted       | 206,451                                          | 44,200                          | 11,277                                           | 425,022                                   | 305,169                        |
+| Full game scores    | 38,749 (rated 2500+, or GM/IM v GM/IM unrated)   | 18,151 (rated 2500+)            | 4,600 (rated 2500+)                              | 425,022 — every game                      | 305,169 — every game           |
+| Position aggregates | 300,413                                          | 918,069                         | 250,498                                          | 5,669,429                                 | 315,668                        |
+| Deepest query ply   | 40 (20 full moves)                               | 40 (20 full moves)              | 40 (20 full moves)                               | 40 (20 full moves)                        | 40 (20 full moves)             |
+| Player identities   | 13,738                                           | 2,567                           | 1,577                                            | 34,261                                    | 12,315                         |
+| Size                | 24.3 MB in 104 chunks                            | 33.9 MB in 80 chunks            | 13.5 MB in 72 chunks (history included)          | 426.7 MB in 256 chunks (history included) | 85.8 MB in 160 chunks          |
 
 Separate thresholds for statistics and for stored games, because the two cost
 very different amounts: a game's contribution to the statistics is a handful of
@@ -302,64 +302,47 @@ explorer reading one stops working on a train — and a source that every fresh
 profile uses would have been the one source no test of installation, failure or
 removal ever exercised.
 
-## Where the packs are published — and the fact that they are not
+## Where the packs are published
 
-**Nothing optional is published. Every Install button for a pack that is not
-bundled fails.** Verified 8 September 2026:
+_Rewritten in Phase 85; until then this section said, correctly for its date
+(8 September 2026), that nothing optional was published._
 
-```
-$ curl -s -o /dev/null -w '%{http_code}\n' \
-    https://mardakurt.github.io/kingfisher-data/reference-elite-v2/manifest.json
-404
-$ curl -s -o /dev/null -w '%{http_code}\n' https://github.com/mardakurt/kingfisher-data
-404
-```
-
-The `mardakurt/kingfisher-data` repository does not exist, so its Pages site
-does not either, and all three catalog entries — Elite OTB, Recent Theory and
-High-Rated Online — point at addresses that answer 404. The packs themselves
-are built and verified (see the matrix below); they have never been uploaded.
-
-This is the single largest thing standing between Kingfisher and a useful first
-week for somebody who is not the maintainer. Three of the four reference sources
-in the product are visible, described, sized, licensed — and unobtainable.
-Publishing them is an owner action: it needs a public repository created under
-the owner's account and about 460 MB pushed to it. No amount of application work
-substitutes for it.
-
-Until then the application is at least **honest about it**. A 404 no longer
-tells a chess player to check their connection and try again — both halves of
-which were wrong, since their connection is fine and no retry can publish a
-pack. It says the source is not published at the address this version looks for,
-and that Diagnostics records the address that was tried.
-`src/reference/install.test.ts` holds that copy in place.
-
-### What publishing looks like when it happens
-
-The intended arrangement, which the catalog already encodes:
+Every optional pack is published, on one of two public, data-only GitHub
+Pages mirrors. GitHub Pages limits a site to one gigabyte, and a published
+version directory is never removed, so the large packs have a mirror of their
+own:
 
 ```
-https://mardakurt.github.io/kingfisher-data/reference-elite-v2/manifest.json
-https://mardakurt.github.io/kingfisher-data/reference-recent-v1/manifest.json
-https://mardakurt.github.io/kingfisher-data/reference-online-v1/manifest.json
+https://mardakurt.github.io/kingfisher-data/reference-recent-v1/manifest.json      Recent Theory (24 months)
+https://mardakurt.github.io/kingfisher-data/reference-recent-v3/manifest.json      Recent Theory (6 months), monthly
+https://mardakurt.github.io/kingfisher-data/reference-online-v1/manifest.json      High-Rated Online
+https://mardakurt.github.io/kingfisher-data/channels/recent-theory-6m.json         the monthly pack's channel
+https://mardakurt.github.io/kingfisher-data-packs/reference-elite-v3/manifest.json Elite OTB, with history
 ```
 
-**Pages rather than release assets**, which is not a matter of taste. A release
-download is a redirect to an object store that answers without an
-`Access-Control-Allow-Origin` header, so a browser cannot read it at all; the
-Pages mirror answers with `access-control-allow-origin: *`. Release assets
-remain useful as an archival or manual download and nothing else.
+`reference-elite-v2/` and `reference-recent-v2/` stay where they were for
+installations that have them. `reference-recent-v2` carries v1's pack id and
+could never be installed from its catalog row; v3 is the first build under the
+row's own id.
 
-**A separate repository**, so that anonymous installation does not require
-making the Kingfisher application source public. That repository contains
-manifests, chunks, checksums and licence text — no application code.
+Every chunk of `reference-elite-v3` (256 chunks, 426.7 MB) and
+`reference-recent-v3` (72 chunks, 13.5 MB) was fetched back from Pages after
+publication and hashed against its manifest: none differed
+(`~/KingfisherWork/verify-published.mjs`, Phase 85).
 
-Version directories are not replaced in place: `reference-elite-v3` will be a
-new directory, so a build that shipped against v2 keeps working.
+### The monthly cycle
 
-The catalog also accepts any compatible manifest URL a user pastes in, and its
-verification path is identical — which is what makes the certification below
-possible without a publisher.
+`.github/workflows/data-monthly.yml` runs `npm run data:monthly -- --publish`
+on the 4th and 11th of each month. `scripts/reference/monthly.mjs` decides
+from the publisher's own digest list: a rebuild happens only when a month newer
+than the live pack's newest is listed, over the newest six. The build is
+published as the next version directory and `channels/recent-theory-6m.json` is
+advanced to it; the channel only moves forward. An installed Kingfisher reads
+the channel for its update check and its install (`src/reference/manager.ts`),
+and falls back to the row's own manifest when the channel is missing,
+malformed or names another pack. The first real run (dispatched by hand,
+2026-09-26) read the live channel at v3 and found nothing newer than 2026-08
+to build.
 
 ## Certification matrix
 

@@ -194,28 +194,34 @@ and is a release gate.
 | **Opening book**      | Derived from the reference: how often strong players chose each move.                                                                                                                                                                                                                                                                                                                                  |
 | **Board and pieces**  | Twelve board themes and thirteen piece sets, all with licences recorded.                                                                                                                                                                                                                                                                                                                               |
 
-And what it does _not_ ship: any game played before 2020. The open archive
-Kingfisher builds from begins there, and no collection of classic games with
-clear redistribution terms was found. Morphy is in the player catalog with no
-games behind him, and the page says so. See
-[`THIRD_PARTY_DATA.md`](THIRD_PARTY_DATA.md).
+Historical games: the open archive Kingfisher builds its packs from begins
+in 2020, and no historical game **database** with clear redistribution terms
+was found. What it does offer is one public-domain book, transcribed:
+Capablanca's _Chess Fundamentals_ (1921), fourteen annotated games with the
+author's notes, added to your games from _Databases → Annotated classics_ only
+when you ask. Morphy is in the player catalog with no games behind him, and
+the page says so. See [`THIRD_PARTY_DATA.md`](THIRD_PARTY_DATA.md).
 
 ### Optional
 
 - **Connect Lichess** — OAuth with PKCE, no token to paste, no scopes requested.
 - **Connect Chess.com** — a username; the API is public.
 - **Install a reference pack** — resumable, and verified chunk by chunk against
-  the manifest's own digests. Three exist, all indexing through twenty full
-  moves, and **none of them is published yet**: their catalog rows point at a
-  data repository that has not been created, so pressing Install answers 404
-  and says so. They are built and integrity-checked here; what is missing is a
-  publisher, not code. See
-  [`docs/data/reference-packs.md`](docs/data/reference-packs.md).
-  - **Elite OTB**, the whole broadcast archive since 2020: 407,538 games,
-    every one openable, 5,438,808 position aggregates, 339 MB.
+  the manifest's own digests. All index through twenty full moves and are
+  published on two public, data-only mirrors
+  ([`kingfisher-data`](https://github.com/mardakurt/kingfisher-data) and, for
+  the large ones, [`kingfisher-data-packs`](https://github.com/mardakurt/kingfisher-data-packs)).
+  See [`docs/data/reference-packs.md`](docs/data/reference-packs.md).
+  - **Elite OTB** (v3), the whole broadcast archive 2020-01 → 2026-08: 425,022
+    games, every one openable, 5,669,429 positions, and each position's games
+    by year and Elo class with its earliest games; 427 MB.
   - **Recent Theory**, the last two years at a lower frequency threshold so
     rare and recent continuations survive: 44,200 games, 918,069 positions,
     34 MB.
+  - **Recent Theory (6 months)** (v3), rebuilt every month by a scheduled
+    workflow when Lichess publishes a new month; an installed Kingfisher finds
+    the new version through the pack's update channel. 11,277 games, 250,498
+    positions, 13.5 MB.
   - **High-Rated Online**, Lichess games where both players are 2400 or
     better: 305,169 games, 315,668 positions, 86 MB. Overwhelmingly blitz —
     295,695 of them — and one month of it. It answers what strong players are
