@@ -16,6 +16,7 @@
  * cannot give them.
  */
 
+import { EvidenceAvailability } from './EvidenceAvailability';
 import { useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -109,6 +110,7 @@ export function EndgameWorkspace({
 
   const railContent = (
     <div className="flex h-full min-h-0 flex-col">
+      <EvidenceAvailability pieces={node ? countPieces(node.fen) : null} />
       <div className="shrink-0 border-b border-line-subtle px-2 py-1.5">
         <label className="text-[10px] text-tertiary">
           <span className="sr-only">Category</span>
@@ -148,20 +150,17 @@ export function EndgameWorkspace({
               Tablebases themselves.
             */}
             <p className="mt-3 text-2xs leading-relaxed text-tertiary">
-              <strong className="font-medium text-secondary">Want tablebase lookups?</strong> The
-              companion reads Syzygy files locally and tells you whether a side is still winning,
-              drawn, or lost at the current position. Install them from{' '}
+              Positions of up to seven pieces are also answered by a tablebase — see{' '}
+              <em>What can answer here</em> above. To answer them offline and keep them on this
+              machine, add Syzygy files in{' '}
               <button
                 type="button"
                 onClick={() => openSettingsAt('companion')}
                 className="cursor-pointer underline decoration-dotted underline-offset-2 hover:text-secondary"
               >
                 Settings → Companion
-              </button>{' '}
-              — pick a folder of <code>.rtbw</code> and <code>.rtbz</code> files under{' '}
-              <em>Tablebases</em> and the companion takes care of the rest. The Explorer in Analysis
-              also benefits: positions are evaluated through the tablebase when one is available,
-              and the chess engine otherwise.
+              </button>
+              .
             </p>
           </EmptyState>
         ) : (
