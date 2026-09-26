@@ -509,6 +509,21 @@ const WORKFLOWS = {
         );
         return `${await text(status)} — ${((Date.now() - started) / 1000).toFixed(1)} s`;
       });
+      await step('an opponent prepared from the million (blue13, 2,693 games)', async () => {
+        // Typed, not chosen: a Lichess account is in no roster, only in the collection.
+        await go('/preparation');
+        await page.getByLabel('Player name').fill('blue13');
+        await page
+          .locator('[data-opponent-search]')
+          .getByRole('button', { name: 'Prepare' })
+          .click();
+        await expectVisible(page.locator('[data-player-card]'), 120_000);
+        await expectVisible(
+          page.locator('[data-player-card]').getByText(/Lichess 2014-07/),
+          120_000,
+        );
+        return text(page.locator('[data-player-card]'));
+      });
       await step('the explorer over the million, beside the built-in population', async () => {
         await go(`/analysis?fen=${encodeURIComponent(NAJDORF)}`);
         await tool('Explorer');

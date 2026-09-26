@@ -1,15 +1,303 @@
 {
   "target": "browser",
   "origin": "http://localhost:3210",
-  "at": "2026-09-26T01:12:30.732Z",
+  "at": "2026-09-26T09:25:14.732Z",
   "results": [
+    {
+      "workflow": 1,
+      "title": "Opening preparation (Najdorf, 6.Be3)",
+      "step": "search an opening",
+      "ok": true,
+      "ms": 563,
+      "note": "Opening Library search \"Najdorf\"",
+      "screenshot": "1-01.jpg"
+    },
+    {
+      "workflow": 1,
+      "title": "Opening preparation (Najdorf, 6.Be3)",
+      "step": "statistics from the built-in population",
+      "ok": true,
+      "ms": 2719,
+      "note": "7,649 games here · Recent elite broadcast games, including online events. Ships with Kingfisher, works offline, and is what the opening explorer, player search and model games read before anything is imported.",
+      "screenshot": "1-02.jpg"
+    },
+    {
+      "workflow": 1,
+      "title": "Opening preparation (Najdorf, 6.Be3)",
+      "step": "a second population installed (Recent Theory, 6 months)",
+      "ok": true,
+      "ms": 14362,
+      "note": "Recent Theory Reference (6 months) Installed Installed The last six months only, kept at a lower frequency threshold so that recent and rare continuations survive. A narrower window than the v1 pack; smaller download, faster cadence, same provenance. 2026 · 11,277 games · 4,600 openable · 1,577 players · 250,498 positions · through 40 plies (20 full moves) · Works offline · 13.5 MB Remove ↑ ↓",
+      "screenshot": "1-03.jpg"
+    },
+    {
+      "workflow": 1,
+      "title": "Opening preparation (Najdorf, 6.Be3)",
+      "step": "two populations side by side, never combined",
+      "ok": true,
+      "ms": 3506,
+      "note": "Compare sources 2/4 Kingfisher Starter Reference Recent Theory Reference (6 months) Lichess Masters Lichess Rated Games Lichess by player My games Move Kingfisher Starter Reference 7,649 games Recent Theory Reference (6 months) 417 games Be3 20.9% 21.3% Be2 13.0% 17.7% Bg5 17.3% 16.3% h3 12.7% 7.0% Bd3 6.5% 7.2% f3 5.0% 5.3% Bc4 4.8% 3.4% f4 2.9% 4.6% Nb3 2.8% 4.6% a4 2.3% 3.8% g3 3.7% 3.4% Rg1 3.",
+      "screenshot": "1-04.jpg"
+    },
+    {
+      "workflow": 1,
+      "title": "Opening preparation (Najdorf, 6.Be3)",
+      "step": "named variations (Theory Book)",
+      "ok": true,
+      "ms": 1048,
+      "note": "Notation ⋯ No moves yet. Play on the board, paste a PGN, or take a move from the explorer. Layout Analysis ▾ 22 tools Engine Explorer Theory Book Notes More ▾ 17 more tools › Theory Book 3,810 named p",
+      "screenshot": "1-05.jpg"
+    },
+    {
+      "workflow": 1,
+      "title": "Opening preparation (Najdorf, 6.Be3)",
+      "step": "model games merged into one tree (new tab)",
+      "ok": true,
+      "ms": 609,
+      "note": "tabs 1 → 2",
+      "screenshot": "1-06.jpg"
+    },
+    {
+      "workflow": 1,
+      "title": "Opening preparation (Najdorf, 6.Be3)",
+      "step": "deep analysis of the critical position",
+      "ok": true,
+      "ms": 15908,
+      "note": "Deep analysis Discard Finished: 15 positions searched by Stockfish 18 Lite WASM Multithreaded, 30 moves in the tree. The start’s own search: +0.4 at depth 18. The tree’s backed-up score: +0.5, along 6",
+      "screenshot": "1-07.jpg"
+    },
+    {
+      "workflow": 1,
+      "title": "Opening preparation (Najdorf, 6.Be3)",
+      "step": "lines added to the repertoire",
+      "ok": true,
+      "ms": 1312,
+      "note": "saved and listed on /repertoire",
+      "screenshot": "1-08.jpg"
+    },
+    {
+      "workflow": 1,
+      "title": "Opening preparation (Najdorf, 6.Be3)",
+      "step": "a note on the position",
+      "ok": true,
+      "ms": 1844,
+      "note": "note written",
+      "screenshot": "1-09.jpg"
+    },
+    {
+      "workflow": 2,
+      "title": "Opponent preparation (Carlsen, Magnus — Starter reference)",
+      "step": "the player, found in a large population",
+      "ok": true,
+      "ms": 2975,
+      "note": "CM Carlsen, Magnus 200 games · 2025–2026 · average Elo 2841 140 from Kingfisher Starter Reference (the newest of 300 found; Filters → Most recent games reads more) 60 from Recent Theory Reference (6 months) 67% Score Wins 104 Draws 59 Losses 37 As White 69.9% · 103 As Black 63.4% · 97 Average length 49 moves",
+      "screenshot": "2-01.jpg"
+    },
+    {
+      "workflow": 2,
+      "title": "Opponent preparation (Carlsen, Magnus — Starter reference)",
+      "step": "opening tendencies",
+      "ok": true,
+      "ms": 1531,
+      "note": "Preparation against Carlsen, Magnus Favourite Position Set up Search commands ⌘K Analysis board Preparation against Carlsen, Magnus Prepare All years Last 12 months Last 3 years Last 5 years Last 10 years All White Black Filters Session No session Create a session to collect a game-day sheet. New se",
+      "screenshot": "2-02.jpg"
+    },
+    {
+      "workflow": 2,
+      "title": "Opponent preparation (Carlsen, Magnus — Starter reference)",
+      "step": "games",
+      "ok": true,
+      "ms": 76,
+      "note": "200 rows shown",
+      "screenshot": "2-03.jpg"
+    },
+    {
+      "workflow": 2,
+      "title": "Opponent preparation (Carlsen, Magnus — Starter reference)",
+      "step": "recurring position (position page)",
+      "ok": true,
+      "ms": 305,
+      "note": "Position page Your work and the evidence, in one place. Refresh Analysis board Position White to play A read-only position. Your analysis tree stays where you left it. rnbqkb1r/1p2pppp/p2p1n2/8/3NP3/2",
+      "screenshot": "2-04.jpg"
+    },
+    {
+      "workflow": 2,
+      "title": "Opponent preparation (Carlsen, Magnus — Starter reference)",
+      "step": "a session, a candidate line on the game-day sheet",
+      "ok": true,
+      "ms": 5687,
+      "note": "Game-day sheet 1 Print / export 1.e4 93 games here in the selected set from explorer Edit note",
+      "screenshot": "2-05.jpg"
+    },
+    {
+      "workflow": 3,
+      "title": "Game analysis (a 25-move Najdorf)",
+      "step": "import a game",
+      "ok": true,
+      "ms": 1247,
+      "note": "Student, A – Rival, B, 25 moves",
+      "screenshot": "3-01.jpg"
+    },
+    {
+      "workflow": 3,
+      "title": "Game analysis (a 25-move Najdorf)",
+      "step": "engine on the critical position",
+      "ok": true,
+      "ms": 5086,
+      "note": "Notation ⋯ 1.e4c52.Nf3d63.d4cxd44.Nxd4Nf65.Nc3a66.Be3e57.Nb3Be68.f3Nbd79.Qd2b510.a4b411.Nd5Bxd512.exd5Nb613.Bxb6Qxb614.a5Qb715.Bc4Be716.O-OO-O17.Qd3Rfc818.Rfe1Nd719.Nd2Nc520.Qe3Bg521.f4exf422.Qf2Bf623",
+      "screenshot": "3-02.jpg"
+    },
+    {
+      "workflow": 3,
+      "title": "Game analysis (a 25-move Najdorf)",
+      "step": "where it leaves the reference",
+      "ok": true,
+      "ms": 911,
+      "note": "The game is still in Kingfisher Starter Reference at 10...b4, and the source records nothing past it. That can be where it stops recording rather than where the game left it.",
+      "screenshot": "3-03.jpg"
+    },
+    {
+      "workflow": 3,
+      "title": "Game analysis (a 25-move Najdorf)",
+      "step": "annotate a variation",
+      "ok": true,
+      "ms": 644,
+      "note": "comment on 11.Nd5",
+      "screenshot": "3-04.jpg"
+    },
+    {
+      "workflow": 3,
+      "title": "Game analysis (a 25-move Najdorf)",
+      "step": "whole-game check (analysis queue)",
+      "ok": true,
+      "ms": 1121,
+      "note": "queued",
+      "screenshot": "3-05.jpg"
+    },
+    {
+      "workflow": 4,
+      "title": "Professional research on 1,048,440 real games (Lichess 2014-07, CC0, through the companion)",
+      "step": "the million-game collection, paired",
+      "ok": true,
+      "ms": 2156,
+      "note": "paired; Lichess 2014-07 (CC0) 1,048,440 games · SQLite",
+      "screenshot": "4-01.jpg"
+    },
+    {
+      "workflow": 4,
+      "title": "Professional research on 1,048,440 real games (Lichess 2014-07, CC0, through the companion)",
+      "step": "the Library over it, headers searched",
+      "ok": true,
+      "ms": 862,
+      "note": "search \"Sicilian\" answered in 0.5 s",
+      "screenshot": "4-02.jpg"
+    },
+    {
+      "workflow": 4,
+      "title": "Professional research on 1,048,440 real games (Lichess 2014-07, CC0, through the companion)",
+      "step": "a move search across the million: opposite-coloured bishops",
+      "ok": true,
+      "ms": 10562,
+      "note": "163,840 of 1,048,440 games read contain it; the first 5,000 are listed — 10.5 s",
+      "screenshot": "4-03.jpg"
+    },
+    {
+      "workflow": 4,
+      "title": "Professional research on 1,048,440 real games (Lichess 2014-07, CC0, through the companion)",
+      "step": "an opponent prepared from the million (blue13, 2,693 games)",
+      "ok": true,
+      "ms": 2191,
+      "note": "B blue13 200 games · average Elo 1885 200 from Lichess 2014-07 (CC0) 62% Score Wins 121 Draws 5 Losses 74 As White 60.4% · 120 As Black 63.8% · 80 Average length 33 moves",
+      "screenshot": "4-04.jpg"
+    },
+    {
+      "workflow": 4,
+      "title": "Professional research on 1,048,440 real games (Lichess 2014-07, CC0, through the companion)",
+      "step": "the explorer over the million, beside the built-in population",
+      "ok": true,
+      "ms": 3468,
+      "note": "3,161 games here · 1,048,440 games in SQLite, through the companion. | compared with Starter",
+      "screenshot": "4-05.jpg"
+    },
+    {
+      "workflow": 4,
+      "title": "Professional research on 1,048,440 real games (Lichess 2014-07, CC0, through the companion)",
+      "step": "engines on the critical position",
+      "ok": true,
+      "ms": 36056,
+      "note": "Notation ⋯ No moves yet. Play on the board, paste a PGN, or take a move from the explorer. Layout Analysis ▾ 22 tools Engine Explorer Theory Book Notes More ▾ 1",
+      "screenshot": "4-06.jpg"
+    },
+    {
+      "workflow": 4,
+      "title": "Professional research on 1,048,440 real games (Lichess 2014-07, CC0, through the companion)",
+      "step": "historical games: Capablanca, annotated, from a public-domain book",
+      "ok": true,
+      "ms": 971,
+      "note": "Lasker – Capablanca, St. Petersburg 1914, with the author’s notes",
+      "screenshot": "4-07.jpg"
+    },
+    {
+      "workflow": 4,
+      "title": "Professional research on 1,048,440 real games (Lichess 2014-07, CC0, through the companion)",
+      "step": "organised in a study, in its own tab, without losing the board",
+      "ok": true,
+      "ms": 618,
+      "note": "tabs 2 → 3; the Lasker – Capablanca tab still holds the game and its notes",
+      "screenshot": "4-08.jpg"
+    },
+    {
+      "workflow": 5,
+      "title": "Coaching (a chapter with questions, a worksheet, a student, Training)",
+      "step": "a chapter with questions, points and a time limit",
+      "ok": true,
+      "ms": 2679,
+      "note": "2 questions",
+      "screenshot": "5-01.jpg"
+    },
+    {
+      "workflow": 5,
+      "title": "Coaching (a chapter with questions, a worksheet, a student, Training)",
+      "step": "the worksheet published",
+      "ok": true,
+      "ms": 375,
+      "note": "worksheet saved (5-worksheet.html)",
+      "screenshot": "5-02.jpg"
+    },
+    {
+      "workflow": 5,
+      "title": "Coaching (a chapter with questions, a worksheet, a student, Training)",
+      "step": "solved as a student",
+      "ok": true,
+      "ms": 463,
+      "note": "You found 1 of 2. 2 of 4 points. 2. Nf3 Develop with a threat. 0:00 2/2 found 2... Nc6 Defend the pawn. 0:00 0/2 missed",
+      "screenshot": "5-03.jpg"
+    },
+    {
+      "workflow": 5,
+      "title": "Coaching (a chapter with questions, a worksheet, a student, Training)",
+      "step": "the miss sent to Training",
+      "ok": true,
+      "ms": 59,
+      "note": "added",
+      "screenshot": "5-04.jpg"
+    },
+    {
+      "workflow": 5,
+      "title": "Coaching (a chapter with questions, a worksheet, a student, Training)",
+      "step": "reviewed in Training",
+      "ok": true,
+      "ms": 327,
+      "note": "the missed question is a Training item",
+      "screenshot": "5-05.jpg"
+    },
     {
       "workflow": 6,
       "title": "Edge cases",
       "step": "a 20,000-node tree",
       "ok": true,
-      "ms": 39008,
-      "note": "imported in 36.5 s; End of line in 0.1 s; a move played at the end",
+      "ms": 31666,
+      "note": "imported in 30.1 s; End of line in 0.1 s; a move played at the end",
       "screenshot": "6-01.jpg"
     },
     {
@@ -17,8 +305,8 @@
       "title": "Edge cases",
       "step": "offline: the built-in population still answers",
       "ok": true,
-      "ms": 1254,
-      "note": "no internet (local server): 7,649 games here · Recent elite broadcast games, including online events. Ships with Kingfisher, works offline, and is what the opening explorer, player search and model games read before anything is imported.",
+      "ms": 809,
+      "note": "no internet (local server): 3,161 games here · 1,048,440 games in SQLite, through the companion.",
       "screenshot": "6-02.jpg"
     },
     {
@@ -26,7 +314,7 @@
       "title": "Edge cases",
       "step": "the companion killed in the middle of a query",
       "ok": true,
-      "ms": 10521,
+      "ms": 36819,
       "note": "after the kill the page is alive; status: \"The move search stopped with an error after 0 of 0 games; this is not a result\"",
       "screenshot": "6-03.jpg"
     },
@@ -35,7 +323,7 @@
       "title": "Edge cases",
       "step": "a reload inside the autosave window keeps the move",
       "ok": true,
-      "ms": 3354,
+      "ms": 1202,
       "note": "both moves back after a reload 0.1 s after them",
       "screenshot": "6-04.jpg"
     }
