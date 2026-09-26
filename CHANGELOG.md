@@ -8,6 +8,26 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
+_Nothing yet since 1.3.0._
+
+## 1.3.0 — 2026-09-26
+
+- **Fixed: a move played a moment before a reload in a study could be lost.**
+  The studies page could open the stored chapter before the draft restore had
+  put the last moves back; it now waits for the restore. (Phase 85)
+- **Fixed: ⌘Q did nothing while a deep analysis was running.** The window was
+  hidden instead of closed, which cancelled the quit. Quitting now quits, and
+  the run resumes on the next launch. (Phase 85)
+- **Fixed: relay dates written day first became years such as 1508.** Every
+  broadcast pack is rebuilt with dates read as dates (Starter 6, Elite OTB 4,
+  Recent Theory 6 months 4). (Phase 85)
+- **Fixed: a Library move search that failed could read as "none found".** It
+  now says the search stopped with an error. (Phase 85)
+- **Remote engines on your own machines**, over an encrypted link keyed by a
+  pairing code (_Settings → Engines → Remote engine hosts_). (Phase 85)
+- **A 783,262-game High-Rated Rapid & Classical online reference**, and Elite
+  OTB with each position's history by year and Elo class. (Phase 85)
+
 - **Large databases stay out of the browser.** _Databases → Import a large
   file…_ streams PGN, compressed PGN and a ChessBase database through the
   companion, preserves annotations and source/licence facts, and builds a
@@ -54,9 +74,6 @@ Phase numbers below this header will be moved into a dated `## <version>` sectio
 - **The Explorer's move table comes first.** On a laptop screen the table was
   below the fold behind the source description and the variation brief; the
   description is one line and the brief sits under the table. (Phase 84)
-
-## 1.3.0 — prepared, not published
-
 - **Fixed: a move played just before a reload could be lost.** In a study
   chapter, a reload within about a second of a move brought the chapter back
   without it, while the header said "Saved". The move now survives, and the
