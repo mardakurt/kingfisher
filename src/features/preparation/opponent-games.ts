@@ -27,6 +27,8 @@ import type { GameRecord, GameSearchQuery } from '@/persistence/types';
 import { readyPackReaders } from '@/reference/manager';
 import { nameOrders, type CatalogPlayer } from '@/reference/players';
 import { packGamePgn } from '@/reference/provider';
+import { companionClient } from '@/companion/session';
+import type { CompanionDatabaseEntry } from '@/companion/client';
 
 export interface OpponentSource {
   readonly id: string;
@@ -184,6 +186,28 @@ export async function collectOpponentGames(query: OpponentQuery): Promise<Oppone
     }
   }
 
+  /*
+    Phase 85: every database the companion holds — a million-game Lichess
+    month, a player's own ChessBase file — is searched the same way, each as
+    its own source with its own count. The companion finds the player's
+    newest games by the key it filed them under; each game's PGN then goes
+    through the parser and `normalizeGame` like a pack game, and the
+    filters the companion might read differently (a rating, an ECO prefix, a
+    result) are applied here, by `acceptsGame`, as for every other source.
+  */
+  for (const database of await companionDatabases()) {
+    const added = await companionGames(database, aliases, query, async (record) => {
+      if (seen.has(record.fingerprint)) return false;
+      if (!acceptsGame(record, query, keys)) return false;
+      seen.add(record.fingerprint);
+      origin.set(record.fingerprint, `sqlite:${database.key}`);
+      games.push(record);
+      return true;
+    });
+    if (added > 0)
+      offered.push({ id: `sqlite:${database.key}`, name: database.name, found: added });
+  }
+
   games.sort((a, b) => (b.year ?? 0) - (a.year ?? 0) || (b.date ?? '').localeCompare(a.date ?? ''));
 
   const kept = games.slice(0, query.limit);
@@ -193,4 +217,68 @@ export async function collectOpponentGames(query: OpponentQuery): Promise<Oppone
     sources: sourceShares(kept, origin, offered),
     localTotal: summaries.total,
   };
+}
+
+/** The companion's databases, or none when there is no companion to ask. */
+async function companionDatabases(): Promise<readonly CompanionDatabaseEntry[]> {
+  const client = companionClient();
+  if (!client) return [];
+  try {
+    return (await client.status()).databases;
+  } catch {
+    // A companion that does not answer holds no games for this report.
+    return [];
+  }
+}
+
+/** Games a database fetches at once while one report is built. */
+const COMPANION_CONCURRENCY = 8;
+
+/**
+ * One companion database's games for the player: the newest `query.limit`
+ * under the first spelling the database knows, offered to `take` one at a
+ * time. Returns how many `take` kept.
+ */
+async function companionGames(
+  database: CompanionDatabaseEntry,
+  aliases: readonly string[],
+  query: OpponentQuery,
+  take: (record: GameRecord) => Promise<boolean>,
+): Promise<number> {
+  const client = companionClient();
+  if (!client) return 0;
+  let ids: string[] = [];
+  for (const alias of aliases) {
+    const key = playerKey(alias);
+    if (!key) continue;
+    try {
+      const found = await client.searchGames<{ games: readonly { id: string }[] }>(database.key, {
+        player: key,
+        ...(query.side ? { playerColor: query.side } : {}),
+        ...(query.fromYear ? { fromYear: query.fromYear } : {}),
+        ...(query.toYear ? { toYear: query.toYear } : {}),
+        sortBy: 'date',
+        sortDirection: 'desc',
+        limit: query.limit,
+      });
+      ids = found.games.map((game) => game.id);
+    } catch {
+      return 0;
+    }
+    if (ids.length > 0) break;
+  }
+  let added = 0;
+  for (let start = 0; start < ids.length; start += COMPANION_CONCURRENCY) {
+    const batch = ids.slice(start, start + COMPANION_CONCURRENCY);
+    const contents = await Promise.all(
+      batch.map((id) => client.gameContent(database.key, id).catch(() => ({ pgn: null }))),
+    );
+    for (const { pgn } of contents) {
+      if (!pgn) continue;
+      const parsed = parsePgn(pgn).games[0];
+      if (!parsed) continue;
+      if (await take(normalizeGame(parsed.tree))) added += 1;
+    }
+  }
+  return added;
 }
