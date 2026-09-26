@@ -11,6 +11,8 @@
  */
 import { create } from 'zustand';
 
+import { lossReport, tallyIssue, type LossReport } from '@/database/chessbase/preservation';
+
 import type { ImportWorkerMessage, ImportWorkerRequest } from '@/database/chessbase/import.worker';
 import type { ChessBaseInspection } from '@/database/chessbase/types';
 import { openCollection } from '@/database/collections/registry';
@@ -38,6 +40,13 @@ interface ImportState {
   failures: readonly string[];
   /** Distinct issues with counts, e.g. "annotation type 0x22 has no place in a PGN ×48". */
   issues: readonly string[];
+  /**
+   * What the import left behind, by what it was: games affected and items in
+   * all (Phase 86). The loss report is built from it (`lossReport()`).
+   */
+  leftBehind: ReadonlyMap<string, { readonly games: number; readonly items: number }>;
+  /** The JSON loss report for this import (`src/database/chessbase/preservation.ts`). */
+  lossReport(): LossReport;
   message: string;
   cancel(): void;
   /**
@@ -127,14 +136,30 @@ export async function inspectSource(
   return { worker, inspection: reply.inspection };
 }
 
-function summariseIssues(counts: Map<string, number>): string[] {
+function summariseIssues(counts: Map<string, { games: number; items: number }>): string[] {
   return [...counts.entries()]
-    .sort((a, b) => b[1] - a[1])
+    .sort((a, b) => b[1].games - a[1].games)
     .slice(0, 12)
-    .map(([issue, n]) => `${issue} ×${n}`);
+    .map(
+      ([issue, n]) =>
+        `${issue} — in ${n.games} ${n.games === 1 ? 'game' : 'games'}, ${n.items} in all`,
+    );
 }
 
 export const useChessBaseImport = create<ImportState>((set, get) => ({
+  leftBehind: new Map(),
+  lossReport: () => {
+    const state = get();
+    return lossReport({
+      source: state.name,
+      examined: state.examined,
+      imported: state.imported,
+      duplicates: state.duplicates,
+      refused: state.rejected,
+      tally: state.leftBehind,
+      refusedGames: state.failures,
+    });
+  },
   running: false,
   name: '',
   destination: null,
@@ -152,8 +177,9 @@ export const useChessBaseImport = create<ImportState>((set, get) => ({
     controller = new AbortController();
     const signal = controller.signal;
     let worker: Worker | null = null;
-    const issueCounts = new Map<string, number>();
+    const issueCounts = new Map<string, { games: number; items: number }>();
     set({
+      leftBehind: issueCounts,
       running: true,
       name: collectionName,
       destination: null,
@@ -185,11 +211,8 @@ export const useChessBaseImport = create<ImportState>((set, get) => ({
       for (let from = 1; from <= count && !signal.aborted; from += PAGE) {
         const reply = await ask(worker, { type: 'page', from, to: from + PAGE - 1 }, signal);
         if (reply.type !== 'page') throw new Error('The import worker lost its place.');
-        for (const issue of reply.issues) {
-          // Counts vary per game ("3 annotation(s)…"); fold them into one line each.
-          const key = issue.replace(/^\d+ /, '');
-          issueCounts.set(key, (issueCounts.get(key) ?? 0) + 1);
-        }
+        // Counts vary per game ("3 annotation(s)…"): games and items are both kept.
+        for (const issue of reply.issues) tallyIssue(issueCounts, issue);
         const outcome = reply.games.length
           ? await collection.write(reply.games)
           : { written: 0, duplicates: 0 };
@@ -203,6 +226,7 @@ export const useChessBaseImport = create<ImportState>((set, get) => ({
             ...reply.failures.map((failure) => `Game ${failure.id}: ${failure.reason}`),
           ].slice(0, 20),
           issues: summariseIssues(issueCounts),
+          leftBehind: new Map(issueCounts),
         }));
       }
       set({

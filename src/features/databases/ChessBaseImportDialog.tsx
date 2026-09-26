@@ -258,6 +258,29 @@ export function ChessBaseImportDialog({ open, onClose }: { open: boolean; onClos
                 </ul>
               </details>
             ) : null}
+            {job.examined > 0 ? (
+              <button
+                type="button"
+                className="text-xs text-accent underline"
+                data-chessbase-loss-report
+                onClick={() => {
+                  const report = job.lossReport();
+                  const blob = new Blob([`${JSON.stringify(report, null, 2)}\n`], {
+                    type: 'application/json',
+                  });
+                  const url = URL.createObjectURL(blob);
+                  const anchor = document.createElement('a');
+                  anchor.href = url;
+                  anchor.download = `${report.source || 'chessbase'}-loss-report.json`;
+                  document.body.appendChild(anchor);
+                  anchor.click();
+                  anchor.remove();
+                  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+                }}
+              >
+                Download the loss report (JSON)
+              </button>
+            ) : null}
             {job.failures.length ? (
               <details>
                 <summary>Skipped games (first 20)</summary>

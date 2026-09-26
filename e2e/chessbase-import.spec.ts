@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { isNavigationAbortNoise } from './tools';
 
@@ -50,6 +51,23 @@ test('a ChessBase database is read in the browser into My games, provenance kept
   const progress = dialog.getByTestId('chessbase-progress');
   await expect(progress).toContainText('Import complete.', { timeout: 60_000 });
   await expect(progress).toContainText('23 / 23 examined · 23 imported · 0 duplicates · 0 skipped');
+
+  // The loss report: machine-readable, and the same counts (Phase 86, P0.4).
+  const download = page.waitForEvent('download');
+  await progress.locator('[data-chessbase-loss-report]').click();
+  const file = await download;
+  const report = JSON.parse(readFileSync((await file.path())!, 'utf8')) as {
+    kind: string;
+    examined: number;
+    imported: number;
+    refused: number;
+    leftBehind: { what: string; games: number; items: number }[];
+    matrix: { field: string }[];
+  };
+  expect(report.kind).toBe('kingfisher-chessbase-import-loss-report');
+  expect(report).toMatchObject({ examined: 23, imported: 23, refused: 0 });
+  expect(report.matrix.map((row) => row.field)).toContain('Main line');
+  for (const entry of report.leftBehind) expect(entry.items).toBeGreaterThanOrEqual(entry.games);
 
   // The same files again: nothing is added twice.
   await dialog.getByLabel('ChessBase files').setInputFiles(FILES);
