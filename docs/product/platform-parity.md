@@ -24,6 +24,18 @@ validation, scheduled backup preference serialization, and an incorrect
 native-companion prerequisite on the AI assistant panel. The engine toolbar
 also wraps controls to keep the engine selector readable in a narrow panel.
 
+**Published revision check (Phase 86, Mac-facing — not yet released).**
+`master` is ahead of the public Mac 1.3.1 (`d04b206`) in shared application
+code the Mac embeds: the font stacks now take effect (`48cc382` — since
+`8737815` every page, and 1.3.0 and 1.3.1, drew the FEN and shortcut keys in
+the system sans rather than JetBrains Mono, because the stacks referred to
+faces defined on `<body>` from `:root`); Inter is no longer preloaded
+(`4561a64`); Firefox's restored button state (`bb7419b`); and in the bundled
+companion, the common text search at 10M (`876ff13`) and a bulk-load
+checkpoint that commits first (`b3a57d1`, reachable only from the benchmark
+scripts). Nothing under `desktop/` changed. The website serves them; a Mac
+user receives them with the next release (section B).
+
 **Published revision check (Phase 85, 1.3.1 — 2026-09-26, afternoon).**
 Two changes in shared application code, both visible on the Mac: the
 Library's move search says how many games contain the pattern, not how many

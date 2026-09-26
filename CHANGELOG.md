@@ -15,10 +15,15 @@ Phase numbers below this header will be moved into a dated `## <version>` sectio
   a second** (it took 50 seconds): the companion reads its newest-first
   index instead of sorting every match. Desktop users receive it with the
   next Mac release. (Phase 85, after 1.3.1)
-- **Pages no longer download two fonts they do not show.** Kingfisher uses
+- **Fixed: notation was not set in its monospaced face.** Since the Mac
+  redesign the font settings were invalid on every page, so a FEN, a PGN and
+  the shortcut keys were drawn in the system's sans-serif face. They are in
+  JetBrains Mono again; the rest of the interface keeps your system's face.
+  (Phase 86)
+- **Pages no longer download a font they do not show.** Kingfisher uses
   your system's own face on a Mac and on Windows, yet every page still
-  fetched Inter and JetBrains Mono ahead of time, about 90 KB before the
-  page. Firefox reported both as fetched and unused. (Phase 86)
+  fetched Inter ahead of time, which Firefox reported as fetched and unused.
+  (Phase 86)
 
 ## 1.3.1 — 2026-09-26
 
