@@ -285,7 +285,25 @@ const clean = (value: string): string => value.replace(/[\t\n\r]/g, ' ').trim();
  * `1508.20.25` whose digits make a real day-first date is read as that date.
  * Month and day that cannot be known are `??`, as PGN writes them.
  */
+/*
+  The zero dates of spreadsheet and database software — what a relay writes
+  when its date cell was empty. 1899.12.30 (OLE / Delphi / Excel on Windows)
+  appeared on 37 games of the 2023 Malopolska championship; they are no date.
+*/
+const SENTINEL_DATES = new Set([
+  '1899.12.30',
+  '1899.12.31',
+  '1900.01.00',
+  '1900.01.01',
+  '1970.01.01',
+]);
+
 export function packDate(value: string): string {
+  const read = readPackDate(value);
+  return SENTINEL_DATES.has(read) ? '' : read;
+}
+
+function readPackDate(value: string): string {
   const text = value.trim();
   const valid = (y: number, m: number, d: number) =>
     y >= 1000 && m >= 1 && m <= 12 && d >= 1 && d <= 31;

@@ -131,6 +131,9 @@ describe('the game line codec', () => {
     expect(packDate('2025')).toBe('2025.??.??');
     expect(packDate('20251340')).toBe('');
     expect(packDate('????.??.??')).toBe('');
+    // A spreadsheet's zero date is an empty cell, not the nineteenth century.
+    expect(packDate('1899.12.30')).toBe('');
+    expect(packDate('30.12.1899')).toBe('');
     expect(packDate('2024.??.??')).toBe('2024.??.??');
   });
 });

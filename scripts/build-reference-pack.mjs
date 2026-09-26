@@ -351,9 +351,14 @@ const SCAN_LIMITS = [
 
 /** Run the scan worker over every archive, at most `limit` at a time. */
 function scan(archives, work, shards, limits, limit) {
-  const implementation = ['scan.worker.mjs', 'pgn-stream.mjs', 'zstd-frames.mjs']
-    .map((name) => readFileSync(new URL(`./reference/${name}`, import.meta.url), 'utf8'))
-    .join('\n');
+  const implementation = [
+    ...['scan.worker.mjs', 'pgn-stream.mjs', 'zstd-frames.mjs'].map((name) =>
+      readFileSync(new URL(`./reference/${name}`, import.meta.url), 'utf8'),
+    ),
+    // The scan calls `packDate` and `shardOf` from here; a change to either is a
+    // change to every scanned row (Phase 85: a date fix left cached scans stale).
+    readFileSync(new URL('../src/reference/pack.ts', import.meta.url), 'utf8'),
+  ].join('\n');
   const chessRoot = path.join(ROOT, 'src/chess');
   const rules = readdirSync(chessRoot, { recursive: true })
     .filter((file) => file.endsWith('.ts') && !file.endsWith('.test.ts'))
