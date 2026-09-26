@@ -18,7 +18,7 @@
  */
 
 import { spawn } from 'node:child_process';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { argv } from 'node:process';
@@ -759,7 +759,19 @@ const WORKFLOWS = {
 
 async function openTarget() {
   if (target === 'packaged') {
-    session = await launchKingfisher({ packaged: true, timeout: 180_000 });
+    // The packaged companion reads `<userData>/companion/databases.json`, the
+    // file _Databases → Attach_ writes; seeding it is attaching the collection.
+    let profile = null;
+    if (collection) {
+      profile = mkdtempSync(path.join(tmpdir(), 'kingfisher-part-e-profile-'));
+      const data = companionData(collection);
+      mkdirSync(path.join(profile, 'companion'), { recursive: true });
+      writeFileSync(
+        path.join(profile, 'companion', 'databases.json'),
+        readFileSync(path.join(data, 'databases.json')),
+      );
+    }
+    session = await launchKingfisher({ packaged: true, timeout: 180_000, profile });
     page = session.window;
     await page.setViewportSize?.({ width: 1440, height: 900 }).catch(() => undefined);
     origin = new URL(page.url()).origin;
