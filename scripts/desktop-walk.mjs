@@ -1083,9 +1083,19 @@ class Walk {
     try {
       detail = (await chosen.run()) ?? '';
     } catch (e) {
-      error = String(e?.message ?? e)
-        .split('\n')[0]
-        .slice(0, 300);
+      const lines = String(e?.message ?? e).split('\n');
+      // The first line says a click timed out; Playwright's call log, below
+      // it, says why — "intercepts pointer events", "not stable", "outside of
+      // the viewport". Keep the last distinct reasons.
+      const reasons = [
+        ...new Set(
+          lines
+            .slice(1)
+            .map((line) => line.trim().replace(/^- /, ''))
+            .filter((line) => line && !/^Call log|^waiting for|retrying click/i.test(line)),
+        ),
+      ].slice(-2);
+      error = `${lines[0]}${reasons.length ? ` (${reasons.join('; ')})` : ''}`.slice(0, 400);
     }
     const entry = {
       step: this.stepIndex,
