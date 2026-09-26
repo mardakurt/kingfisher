@@ -12,6 +12,9 @@ _Nothing yet since 1.3.0._
 
 ## 1.3.0 — 2026-09-26
 
+- **The icon's board fills its rounded square.** The Dock icon, the favicon
+  and the site's mark drew the board inside a dark border; the squares now
+  run to the edge. (Phase 85)
 - **Fixed: a move played a moment before a reload in a study could be lost.**
   The studies page could open the stored chapter before the draft restore had
   put the last moves back; it now waits for the restore. (Phase 85)
