@@ -1,10 +1,10 @@
 {
   "packId": "kingfisher-starter",
-  "packVersion": "5",
+  "packVersion": "6",
   "source": "Lichess broadcast archive",
   "license": "CC-BY-SA-4.0",
   "buildCommit": null,
-  "buildDate": "2026-09-25T22:06:36.627Z",
+  "buildDate": "2026-09-26T00:32:51.148Z",
   "window": {
     "lastYear": 2026,
     "archiveMonths": [
@@ -96,8 +96,8 @@
   "players": 13738,
   "openableGames": 38749,
   "fullGames": 38749,
-  "compressedBytes": 41298965,
-  "rawBytes": 119816432,
+  "compressedBytes": 41299147,
+  "rawBytes": 119816640,
   "chunks": 104,
   "maxPly": 40,
   "retainedBySpeed": {}
