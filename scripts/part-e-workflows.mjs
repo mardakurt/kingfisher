@@ -18,7 +18,15 @@
  */
 
 import { spawn } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { argv } from 'node:process';
@@ -547,13 +555,21 @@ const WORKFLOWS = {
           .getByRole('link', { name: 'Studies', exact: true })
           .click();
         await ready();
-        await page.getByRole('button', { name: 'Start a study' }).first().click();
+        // "Start a study" is the empty page's button; once a study exists it is "New study".
+        await page
+          .getByRole('button', { name: /^(Start a study|New study)$/ })
+          .first()
+          .click();
         const created = page.getByRole('dialog', { name: 'New study' });
         await created.getByLabel('Title').fill('Najdorf research (workflow)');
         await created.getByRole('button', { name: 'Create study', exact: true }).click();
-        await tabs.first().click();
+        // The historical game opened in a tab of its own; go back to it.
+        await tabs
+          .filter({ hasText: /Lasker/ })
+          .first()
+          .click();
         await expectVisible(page.getByText(/The object of this move is to bring/));
-        return `tabs ${before} → ${await tabs.count()}; the first still holds Lasker – Capablanca`;
+        return `tabs ${before} → ${await tabs.count()}; the Lasker – Capablanca tab still holds the game and its notes`;
       });
     },
   },
@@ -649,7 +665,11 @@ const WORKFLOWS = {
       });
       await step('a reload inside the autosave window keeps the move', async () => {
         await go('/studies');
-        await page.getByRole('button', { name: 'Start a study' }).first().click();
+        // "Start a study" is the empty page's button; once a study exists it is "New study".
+        await page
+          .getByRole('button', { name: /^(Start a study|New study)$/ })
+          .first()
+          .click();
         const created = page.getByRole('dialog', { name: 'New study' });
         await created.getByLabel('Title').fill('Reload (workflow)');
         await created.getByRole('button', { name: 'Create study', exact: true }).click();
@@ -677,7 +697,11 @@ const WORKFLOWS = {
     async run() {
       await step('a chapter with questions, points and a time limit', async () => {
         await go('/studies');
-        await page.getByRole('button', { name: 'Start a study' }).first().click();
+        // "Start a study" is the empty page's button; once a study exists it is "New study".
+        await page
+          .getByRole('button', { name: /^(Start a study|New study)$/ })
+          .first()
+          .click();
         const created = page.getByRole('dialog', { name: 'New study' });
         await created.getByLabel('Title').fill('Homework (workflow)');
         await created.getByRole('button', { name: 'Create study', exact: true }).click();
@@ -716,12 +740,33 @@ const WORKFLOWS = {
         await page.getByRole('button', { name: 'Publish…', exact: true }).click();
         const publish = page.getByRole('dialog', { name: 'Publish study' });
         await publish.getByRole('checkbox', { name: /As a worksheet/ }).check();
-        const download = await Promise.all([
-          page.waitForEvent('download'),
-          publish.getByRole('button', { name: 'Save as HTML', exact: true }).click(),
-        ]).then(([event]) => event);
         const file = path.join(OUT, '5-worksheet.html');
-        await download.saveAs(file);
+        if (target === 'packaged') {
+          /*
+            In the Mac application a download is the shell's: Electron puts up
+            the system Save panel, which this harness cannot drive. The panel's
+            answer is supplied at that boundary — a will-download hook, added
+            from here, that names the file — and the bytes are checked on disk.
+          */
+          await session.app.evaluate(({ session: electronSession }, target) => {
+            electronSession.defaultSession.once('will-download', (_event, item) => {
+              item.setSavePath(target);
+            });
+          }, file);
+          await publish.getByRole('button', { name: 'Save as HTML', exact: true }).click();
+          for (let waited = 0; waited < 30_000; waited += 250) {
+            if (existsSync(file) && statSync(file).size > 0) break;
+            await wait(250);
+          }
+          if (!existsSync(file) || statSync(file).size === 0)
+            throw new Error('the worksheet was not written');
+        } else {
+          const download = await Promise.all([
+            page.waitForEvent('download'),
+            publish.getByRole('button', { name: 'Save as HTML', exact: true }).click(),
+          ]).then(([event]) => event);
+          await download.saveAs(file);
+        }
         await publish
           .getByRole('button', { name: /Close|Cancel/ })
           .first()
