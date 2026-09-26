@@ -776,7 +776,18 @@ export class GameDatabase {
    * entire point.
    */
   checkpoint() {
-    this.#db.exec('PRAGMA wal_checkpoint(TRUNCATE)');
+    // A bulk load holds a write transaction open between its commits, and a
+    // TRUNCATE checkpoint cannot run inside one ("database table is locked").
+    // Commit what the load has written, checkpoint, and carry on loading.
+    if (this.#bulk) {
+      this.#db.exec('COMMIT');
+      this.#bulkPending = 0;
+    }
+    try {
+      this.#db.exec('PRAGMA wal_checkpoint(TRUNCATE)');
+    } finally {
+      if (this.#bulk) this.#db.exec('BEGIN');
+    }
   }
 
   /**

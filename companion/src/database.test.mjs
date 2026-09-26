@@ -55,6 +55,22 @@ describe('GameDatabase', () => {
     rmSync(directory, { recursive: true, force: true });
   });
 
+  it('checkpoints during a bulk load without losing the games it holds', () => {
+    // A bulk load keeps a write transaction open, and a TRUNCATE checkpoint
+    // cannot run inside one: the real-scale import stopped at its first
+    // progress checkpoint with "database table is locked".
+    database.beginBulk();
+    const game = { white: 'Alpha', black: 'Beta', result: '1-0', year: 2025, rating: 2400 };
+    const first = entry({ ...game, fingerprint: 'bulk-1', uci: 'e2e4', san: 'e4' });
+    expect(database.insertGames([first])).toEqual({ imported: 1, duplicates: 0 });
+    expect(() => database.checkpoint()).not.toThrow();
+    const second = entry({ ...game, fingerprint: 'bulk-2', uci: 'd2d4', san: 'd4' });
+    expect(database.insertGames([second])).toEqual({ imported: 1, duplicates: 0 });
+    database.endBulk();
+    expect(database.count()).toBe(2);
+    expect(database.explore(POSITION).totalGames).toBe(2);
+  });
+
   it('imports summaries and content atomically and rejects duplicate fingerprints', () => {
     const game = entry({
       fingerprint: 'game-1',
