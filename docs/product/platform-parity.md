@@ -24,6 +24,18 @@ validation, scheduled backup preference serialization, and an incorrect
 native-companion prerequisite on the AI assistant panel. The engine toolbar
 also wraps controls to keep the engine selector readable in a narrow panel.
 
+**Published revision check (Phase 85, 1.3.1 — 2026-09-26, afternoon).**
+Two changes in shared application code, both visible on the Mac: the
+Library's move search says how many games contain the pattern, not how many
+the companion sent (1.3.0 said "5,000 of 1,048,440" where 163,840 do), and
+Preparation reads every companion database as its own source. Nothing under
+`desktop/` changed. Section B was run for it: the public Mac is **1.3.1,
+build 856, `d04b206`**, built from the `v1.3.1` tag's revision, signed,
+notarised and stapled (trust GREEN), `desktop:certify` 10/10, menus 74/74,
+engine-chaos 18/18, walks 46 × 1000 and 7 × 300 faults (0 findings each),
+soak:leaks 3/3, `desktop:upgrade` 7/7 from 1.3.0 (build 846), the
+thirty-minute soak (0 findings), and Part E in the bundle, 36 of 36.
+
 **Published revision check (Phase 85, 1.3.0 — 2026-09-26).**
 Phase 85 changed the shell and the companion as well as shared code: the
 companion imports large PGN, compressed PGN and ChessBase files itself,
