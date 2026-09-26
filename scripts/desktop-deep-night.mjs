@@ -185,6 +185,17 @@ async function main() {
   await ready(window);
   await window.getByRole('tab', { name: 'Engine', exact: true }).click();
   const section2 = window.getByRole('region', { name: 'Deep analysis' });
+  /*
+    The finished run's report is restored after the page loads (resumeDeepen,
+    asynchronously). Read before it arrived, the 2026-09-26 run recorded the
+    empty row — "Deepen from here…" — as its report. Wait for the report
+    itself, and do not pass without one.
+  */
+  const reportShown = await section2
+    .locator('[data-deepen-report]')
+    .waitFor({ timeout: 60_000 })
+    .then(() => true)
+    .catch(() => false);
   const report = await section2.innerText().catch(() => '');
   await section2
     .screenshot({ path: path.join(out, 'deep-night-report.png') })
@@ -192,12 +203,13 @@ async function main() {
   await window.screenshot({ path: path.join(out, 'deep-night-window.png') });
   const final = await job(window);
   const passed =
+    reportShown &&
     final?.status === 'done' &&
     suspended &&
     relaunched &&
     resumedSeen &&
     (final?.resumed ?? 0) >= 1;
-  log('report', { report, job: final, suspended, relaunched, resumedSeen, passed });
+  log('report', { report, reportShown, job: final, suspended, relaunched, resumedSeen, passed });
   writeFileSync(
     path.join(out, 'result.json'),
     JSON.stringify({ final, suspended, relaunched, passed }, null, 2),

@@ -1,0 +1,21 @@
+report shown: true
+Deep analysis
+Discard
+
+Finished: 1000 positions searched by Stockfish 18, 2680 moves in the tree. Picked up again once after the page running it went away.
+
+The start’s own search: +0.3 at depth 30.
+
+The tree’s backed-up score: +0.2, along 3...Nf6 4.O-O Nxe4 5.Re1 Nd6 6.Nxe5 Nxe5 7.Rxe5+.
+
+Where a position’s own search disagreed with the line that led to it:
+
+after 3...Nf6 4.O-O Nxe4 5.Re1 Nd6 6.Ba4 f6: expected Nc3, prefers d4 (+0.5, depth 28)
+after 3...Nf6 4.O-O Nxe4 5.d4 a6: expected Ba4, prefers Bxc6 (+0.3, depth 30)
+after 3...Nf6 4.O-O Nxe4 5.d4 a6 6.Bxc6 bxc6: expected Nxe5, prefers Qe2 (+1.0, depth 30)
+after 3...Nf6 4.O-O Nxe4 5.d4 a6 6.Bd3 d5: expected dxe5, prefers Nxe5 (-0.2, depth 29)
+after 3...Nf6 4.O-O Nxe4 5.Qe2: expected Nf6, prefers Nd6 (-0.2, depth 30)
+after 3...Nf6 4.O-O Nxe4 5.Qe2 Nd6 6.a4 Qe7: expected Re1, prefers Nc3 (0.0, depth 32)
+after 3...Nf6 4.O-O Nxe4 5.Qe2 Nf6 6.Bxc6 dxc6: expected Nxe5, prefers Qxe5+ (-0.0, depth 31)
+after 3...Nf6 4.O-O Bc5: expected Nxe5, prefers c3 (+0.5, depth 29)
+Add to the analysis at its start

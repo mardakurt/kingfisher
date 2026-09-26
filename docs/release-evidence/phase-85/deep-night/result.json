@@ -1,0 +1,14 @@
+{
+  "final": {
+    "status": "done",
+    "searched": 1000,
+    "resumed": 1,
+    "engine": "Stockfish 18",
+    "startedAt": 1790390262940,
+    "finishedAt": 1790420314863,
+    "error": null
+  },
+  "suspended": true,
+  "relaunched": true,
+  "passed": true
+}
