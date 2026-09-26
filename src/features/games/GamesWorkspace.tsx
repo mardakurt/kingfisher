@@ -1028,7 +1028,11 @@ export function GamesWorkspace() {
           <span className="tabular" data-move-search-status>
             {moveState.status === 'running'
               ? `Reading moves: ${moveState.read.toLocaleString()} of ${moveState.selected.toLocaleString()} games · ${moveRows.length.toLocaleString()} found so far`
-              : `${moveRows.length.toLocaleString()} of ${moveState.read.toLocaleString()} games read contain it`}
+              : moveState.status === 'failed'
+                ? // Not an answer: "0 of 0 games read contain it" after the companion
+                  // went away mid-search read as "none do" (Phase 85, Part E).
+                  `The move search stopped with an error after ${moveState.read.toLocaleString()} of ${moveState.selected.toLocaleString()} games; this is not a result`
+                : `${moveRows.length.toLocaleString()} of ${moveState.read.toLocaleString()} games read contain it`}
             {moveState.status === 'stopped'
               ? ` · stopped; ${(moveState.selected - moveState.read).toLocaleString()} not read`
               : ''}
