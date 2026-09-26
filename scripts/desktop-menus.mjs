@@ -27,6 +27,7 @@
  *   npm run desktop:menus -- --packaged
  */
 
+import { execFileSync } from 'node:child_process';
 import { argv, exit } from 'node:process';
 
 import { launchKingfisher, waitForReady } from './desktop-lib/launch.mjs';
@@ -336,16 +337,34 @@ async function main() {
     }
 
     if (updateItem(leaf.label)) {
-      ok =
-        ok &&
-        after.window.count === before.window.count + 1 &&
-        after.window.urls.some((u) => /update\.html/.test(u));
-      detail = `${after.window.count} windows`;
-      await app.evaluate(({ BrowserWindow }) => {
-        for (const w of BrowserWindow.getAllWindows())
-          if (/update\.html/.test(w.webContents.getURL())) w.close();
-      });
-      await sleep(400);
+      /*
+        Since 1.1.8 "Check for Updates…" is Sparkle's own window, not the
+        `update.html` BrowserWindow this harness used to count (it still
+        expected one and failed both update items). What the item must do is
+        start a check that reaches a verdict; the verdict is read from the
+        shell, and Sparkle's modal "up to date" alert is dismissed with its
+        default button so the final quit is not held by it (see desktop-walk).
+      */
+      let verdict = null;
+      for (let attempt = 0; attempt < 45; attempt += 1) {
+        verdict = await page.evaluate(() => window.kingfisher.updateStatus()).catch(() => null);
+        if (verdict && !/^(idle|checking)$/.test(verdict.status ?? '')) break;
+        await sleep(1000);
+      }
+      ok = ok && Boolean(verdict?.status) && !/^(idle|checking)$/.test(verdict.status);
+      detail = `Sparkle verdict: ${verdict?.status ?? 'none'}${verdict?.reason ? ` — ${verdict.reason}` : ''}`;
+      if (verdict?.status === 'up-to-date') {
+        const pid = app.process().pid;
+        execFileSync('osascript', [
+          '-e',
+          `tell application "System Events" to set frontmost of (first process whose unix id is ${pid}) to true`,
+          '-e',
+          'delay 0.4',
+          '-e',
+          'tell application "System Events" to key code 36',
+        ]);
+        await sleep(700);
+      }
     } else {
       const expectation = expectations[leaf.label];
       if (!expectation) {
