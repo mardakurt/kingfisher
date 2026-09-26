@@ -24,7 +24,24 @@ validation, scheduled backup preference serialization, and an incorrect
 native-companion prerequisite on the AI assistant panel. The engine toolbar
 also wraps controls to keep the engine selector readable in a narrow panel.
 
-**Published revision check (Phase 84, Mac-facing — released as 1.3.0).**
+**Published revision check (Phase 85, 1.3.0 — 2026-09-26).**
+Phase 85 changed the shell and the companion as well as shared code: the
+companion imports large PGN, compressed PGN and ChessBase files itself,
+answers the move search from a line index, and lends its engines to another
+companion (`--serve-engines`, `docs/design/remote-engines.md`); the shell
+keeps a deep analysis running with the window closed and quits on ⌘Q while
+one runs (`desktop/src/main.mjs`, `background-work.mjs`); the icon's board
+fills its rounded square. Section B of `docs/operations/after-a-fix.md` was
+run for it: the public Mac is **1.3.0, build 846, `52cfcee`**, built from the
+`v1.3.0` tag's revision, signed, notarised and stapled (app and disk image;
+`desktop:trust:verify` GREEN), `desktop:certify` 10/10 gates, and on the same
+bundle `desktop:menus` 74/74, `desktop:engine-chaos` 18/18, the seeded walks
+(46 × 1000 and 7 × 300 with faults, 0 findings each), `desktop:soak:leaks`
+3/3, `desktop:upgrade` 7/7 from 1.2.6 (build 714) and the thirty-minute
+`desktop:soak`. The eight-hour deep analysis ran on the packaged application
+(`desktop:deep-night`); its log is cited in `docs/reports/phase-85-handover.md`.
+
+**Published revision check (Phase 84, Mac-facing — released in 1.3.0).**
 Phase 84 changed the shell as well as shared code: the window follows the
 Studio theme (`desktop/src/appearance.mjs`), the menus carry the
 application's commands over `kingfisher:menu-command`, the Dock has a menu,
