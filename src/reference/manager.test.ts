@@ -359,14 +359,14 @@ describe('a pack rebuilt every month follows its channel', () => {
   it('falls back to the row’s own manifest when the channel is missing or names another pack', async () => {
     const state = {
       channel: null as unknown,
-      versions: { '3': bundled('3', 'Three', ID), '9': bundled('9', 'Nine', ID) } as Record<
+      versions: { '4': bundled('4', 'Four', ID), '9': bundled('9', 'Nine', ID) } as Record<
         string,
         ReturnType<typeof bundled>
       >,
     };
     vi.stubGlobal('fetch', mirror(state));
     expect(await startInstall(ID)).toBe(true);
-    expect(await installedVersion()).toBe('3');
+    expect(await installedVersion()).toBe('4');
 
     state.channel = channel('9', 'kingfisher-elite-otb');
     await checkForPackUpdates();

@@ -1,0 +1,43 @@
+{
+  "target": "browser",
+  "origin": "http://localhost:3210",
+  "at": "2026-09-26T01:12:30.732Z",
+  "results": [
+    {
+      "workflow": 6,
+      "title": "Edge cases",
+      "step": "a 20,000-node tree",
+      "ok": true,
+      "ms": 39008,
+      "note": "imported in 36.5 s; End of line in 0.1 s; a move played at the end",
+      "screenshot": "6-01.jpg"
+    },
+    {
+      "workflow": 6,
+      "title": "Edge cases",
+      "step": "offline: the built-in population still answers",
+      "ok": true,
+      "ms": 1254,
+      "note": "no internet (local server): 7,649 games here · Recent elite broadcast games, including online events. Ships with Kingfisher, works offline, and is what the opening explorer, player search and model games read before anything is imported.",
+      "screenshot": "6-02.jpg"
+    },
+    {
+      "workflow": 6,
+      "title": "Edge cases",
+      "step": "the companion killed in the middle of a query",
+      "ok": true,
+      "ms": 10521,
+      "note": "after the kill the page is alive; status: \"The move search stopped with an error after 0 of 0 games; this is not a result\"",
+      "screenshot": "6-03.jpg"
+    },
+    {
+      "workflow": 6,
+      "title": "Edge cases",
+      "step": "a reload inside the autosave window keeps the move",
+      "ok": true,
+      "ms": 3354,
+      "note": "both moves back after a reload 0.1 s after them",
+      "screenshot": "6-04.jpg"
+    }
+  ]
+}

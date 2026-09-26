@@ -130,7 +130,7 @@ export const CATALOG_PACKS: readonly CatalogPack[] = [
      * this same list, so the trade-off is one row away rather than one
      * document away.
      */
-    approximateBytes: 24_290_847,
+    approximateBytes: 24_290_884,
     maxPositionPly: 40,
     license: LICHESS_BROADCAST_LICENSE,
     origin:

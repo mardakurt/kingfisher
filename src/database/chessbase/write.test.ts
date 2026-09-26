@@ -83,7 +83,9 @@ describe.each([
     expect(exact).toBe(expected - Object.keys(NOT_REPRODUCIBLE[name] ?? {}).length);
   });
 
-  it('writes a database the reader reads back game for game', () => {
+  // A real database written and read back: 2.3 s alone, and past the 5 s
+  // default when the machine is busy (Phase 85's full suite beside a pack build).
+  it('writes a database the reader reads back game for game', { timeout: 30_000 }, () => {
     const written = writeChessBase(games.map(({ pgn }) => treeOf(pgn)));
     expect(written.report.written).toBe(expected);
     expect(written.report.refused).toEqual([]);
