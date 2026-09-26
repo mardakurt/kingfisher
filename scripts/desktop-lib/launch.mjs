@@ -226,13 +226,19 @@ export async function launchKingfisher({
     async close({ keepProfile = false } = {}) {
       const before = descendants(child.pid);
       const closing = Date.now();
-      await quitKingfisher(app);
+      const quit = await quitKingfisher(app);
       await Promise.race([exited, new Promise((resolve) => setTimeout(resolve, 15_000))]);
       // Give the operating system a moment to reap before looking for survivors.
       await new Promise((resolve) => setTimeout(resolve, 1_500));
       const survivors = before.filter((p) => alive(p.pid));
       if (profile === null && !keepProfile) rmSync(userData, { recursive: true, force: true });
-      return { closeMs: Date.now() - closing, descendants: before.length, survivors };
+      return {
+        closeMs: Date.now() - closing,
+        descendants: before.length,
+        survivors,
+        // True when the application did not quit when asked and had to be killed.
+        forced: quit.forced,
+      };
     },
   };
 }
@@ -249,16 +255,37 @@ export async function launchKingfisher({
  */
 export async function quitKingfisher(app, { timeout = 15_000 } = {}) {
   const child = app.process();
-  const gone =
-    child.exitCode !== null || child.signalCode !== null
-      ? Promise.resolve()
-      : new Promise((resolve) => child.once('exit', resolve));
-  await app.evaluate(({ app: shell }) => shell.quit()).catch(() => undefined);
-  const quit = await Promise.race([
-    gone.then(() => true),
-    new Promise((resolve) => setTimeout(() => resolve(false), timeout)),
-  ]);
-  if (!quit) await app.close().catch(() => undefined);
+  const exited = () => child.exitCode !== null || child.signalCode !== null;
+  const gone = exited() ? Promise.resolve() : new Promise((resolve) => child.once('exit', resolve));
+  const within = (promise, ms) =>
+    Promise.race([
+      promise.then(() => true),
+      new Promise((resolve) => setTimeout(() => resolve(false), ms)),
+    ]);
+  // Every stage is bounded: a harness that hangs reports nothing at all.
+  await within(
+    app.evaluate(({ app: shell }) => shell.quit()).catch(() => undefined),
+    10_000,
+  );
+  if (await within(gone, timeout)) return { forced: false };
+  await within(
+    app.close().catch(() => undefined),
+    timeout,
+  );
+  if (await within(gone, 5_000)) return { forced: false, closedBy: 'playwright' };
+  try {
+    process.kill(child.pid, 'SIGTERM');
+  } catch {
+    /* gone */
+  }
+  if (!(await within(gone, 10_000))) {
+    try {
+      process.kill(child.pid, 'SIGKILL');
+    } catch {
+      /* gone */
+    }
+  }
+  return { forced: true };
 }
 
 /** Wait until the application has mounted, as the renderer itself reports it. */

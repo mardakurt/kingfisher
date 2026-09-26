@@ -416,8 +416,17 @@ class Walk {
     const newPageErrors = this.pageErrors.filter((e) => e.step === this.stepIndex);
     for (const e of newPageErrors) fail('renderer-uncaught', e.message.slice(0, 500));
 
-    // 8. Something is on the page.
-    const text = await page.evaluate(() => document.body.innerText.length);
+    // 8. Something is on the page. An action can leave a navigation in flight
+    // (no body yet); that is a moment, not a blank page, so it is waited out
+    // and measured when the document is there.
+    let text = await page.evaluate(() => document.body?.innerText.length ?? -1);
+    if (text < 0) {
+      await page.waitForLoadState('domcontentloaded', { timeout: 30_000 }).catch(() => undefined);
+      await page
+        .waitForFunction(() => Boolean(document.body), null, { timeout: 30_000 })
+        .catch(() => undefined);
+      text = await page.evaluate(() => document.body?.innerText.length ?? 0);
+    }
     if (text < 100) fail('blank-page', `${text} characters`);
   }
 
@@ -831,6 +840,27 @@ class Walk {
             await p.waitForTimeout(700);
           }
           const verdict = await p.evaluate(() => window.kingfisher.updateStatus());
+          if (!shown && verdict?.status === 'up-to-date') {
+            /*
+              Sparkle's "You're up to date!" is an NSAlert run modally; while it
+              is up, macOS will not let the application quit. When the harness
+              is not the frontmost application its buttons are not listed by
+              System Events (Phase 85: seen from the Claude desktop shell), and
+              the walk left the alert open, so its final quit never happened.
+              Return is the alert's default button, OK. Only for an up-to-date
+              verdict: on an offered update, Return is Install Update.
+            */
+            execFileSync('osascript', [
+              '-e',
+              `tell application "System Events" to set frontmost of (first process whose unix id is ${target.pid}) to true`,
+              '-e',
+              'delay 0.4',
+              '-e',
+              'tell application "System Events" to key code 36',
+            ]);
+            await p.waitForTimeout(700);
+            said = 'dismissed with Return (up to date)';
+          }
           w.updateVerdicts = w.updateVerdicts ?? [];
           w.updateVerdicts.push(verdict);
           if (windowsOf(target).some((win) => win.buttons.includes('Install Update'))) {
@@ -1137,6 +1167,14 @@ class Walk {
     const enginesAfter = engineProcesses().filter(
       (p) => !this.baselineEngines.includes(p.pid) && alive(p.pid),
     );
+    if (closed.forced) {
+      this.findings.push({
+        step: this.stepIndex,
+        action: 'quit',
+        name: 'quit-not-honoured',
+        detail: 'the application did not quit when asked and was killed',
+      });
+    }
     if (closed.survivors.length) {
       this.findings.push({
         step: this.stepIndex,

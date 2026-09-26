@@ -160,6 +160,7 @@ let hiddenForWork = false;
 */
 let quitRequested = false;
 app.on('before-quit', () => {
+  if (!quitRequested) log('quit', 'requested');
   quitRequested = true;
 });
 const backgroundWork = createBackgroundWork({
@@ -592,7 +593,10 @@ function createWindow() {
     and the Dock icon brings the window back. Quit still quits.
   */
   window.on('close', (event) => {
-    if (!backgroundWork.shouldHide(state.quitting || quitRequested)) return;
+    if (!backgroundWork.shouldHide(state.quitting || quitRequested)) {
+      if (quitRequested) log('window', 'closing for the quit');
+      return;
+    }
     event.preventDefault();
     window.hide();
     hiddenForWork = true;
