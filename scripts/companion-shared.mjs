@@ -18,7 +18,7 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { stripTypeScriptTypes } from 'node:module';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 export const SHARED = ['material-query', 'route', 'line-index'];
@@ -45,7 +45,10 @@ export function generate(name) {
   );
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+// pathToFileURL, not `file://${argv[1]}`: a checkout whose path has a space
+// or an ampersand is URL-encoded in import.meta.url, and the plain comparison
+// made the script do nothing there — `--check` included — without a word.
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   const check = process.argv.includes('--check');
   mkdirSync(OUT, { recursive: true });
   let stale = 0;

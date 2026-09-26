@@ -10,7 +10,7 @@
 
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { build } from 'rolldown';
 
@@ -35,7 +35,10 @@ export async function buildCompanionKit(outFile = KIT_FILE) {
   return outFile;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+// pathToFileURL, not `file://${argv[1]}`: a checkout whose path has a space
+// or an ampersand is URL-encoded in import.meta.url, and the plain comparison
+// made the script do nothing there — `--check` included — without a word.
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   const file = await buildCompanionKit(process.argv[2] ?? KIT_FILE);
   console.log(`wrote ${path.relative(ROOT, file)}`);
 }
