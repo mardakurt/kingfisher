@@ -31,6 +31,20 @@ describe('background work', () => {
     expect(work.shouldHide(false)).toBe(false);
   });
 
+  it('says when the work ends, once, so a window hidden for it can finish closing', () => {
+    let idle = 0;
+    const work = createBackgroundWork({ powerSaveBlocker: blocker(), onIdle: () => (idle += 1) });
+    work.set({ active: false });
+    expect(idle).toBe(0);
+    work.set({ active: true, label: 'Deep analysis' });
+    work.set({ active: true, label: 'Deep analysis' });
+    expect(idle).toBe(0);
+    work.set({ active: false });
+    expect(idle).toBe(1);
+    work.set({ active: false });
+    expect(idle).toBe(1);
+  });
+
   it('holds exactly one power-save blocker while work goes on, and releases it after', () => {
     const power = blocker();
     const work = createBackgroundWork({ powerSaveBlocker: power });

@@ -437,7 +437,7 @@ async function main() {
 
   // And it still quits cleanly, which is the guarantee a suspend could break.
   const closing = Date.now();
-  await app.close();
+  await shared.quitKingfisher(app);
   await wait(500);
   const orphans = familyAfter.filter((child) => alive(child.pid));
   check(

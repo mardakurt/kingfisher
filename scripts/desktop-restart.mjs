@@ -109,7 +109,8 @@ async function startDeepAnalysis(window) {
   await section.getByRole('button', { name: 'Deepen from here…' }).click();
   const form = section.locator('[data-deepen-form]');
   await form.getByLabel('Moves per position').selectOption('2');
-  await form.getByLabel('Plies').selectOption('4');
+  // Long enough (126 positions) that the run is still going when the quit lands.
+  await form.getByLabel('Plies').selectOption('6');
   await form.getByLabel('Seconds each').selectOption('1');
   await form.getByRole('button', { name: 'Start' }).click();
   await section.locator('[data-deepen-progress]').waitFor({ timeout: 60_000 });
@@ -215,7 +216,7 @@ async function main() {
       deepBefore ? `${deepBefore.searched} positions searched` : 'no saved job',
     );
 
-    await app.close();
+    await shared.quitKingfisher(app);
     await wait(2000);
 
     // --- Run two: the whole point. ------------------------------------------
@@ -232,18 +233,24 @@ async function main() {
     check('the study is still there', kept === 1, `${kept} in IndexedDB at ${secondOrigin}`);
 
     let deepAfter = null;
+    let resumedAt = null;
     for (let attempt = 0; attempt < 480; attempt += 1) {
       deepAfter = await deepAnalysisJob(window);
-      if (deepAfter?.status === 'done') break;
+      if (deepAfter?.resumed >= 1 && resumedAt === null) resumedAt = deepAfter.searched;
+      // Picked up, and searching past where it was picked up: resumed, not restarted.
+      if (resumedAt !== null && deepAfter.searched > resumedAt) break;
+      if (deepAfter?.status === 'done' || deepAfter?.status === 'failed') break;
       await wait(250);
     }
     check(
-      'the deep analysis resumes after quit and finishes from its checkpoint',
-      deepAfter?.status === 'done' &&
-        deepAfter.resumed >= 1 &&
-        deepAfter.searched >= deepBefore.searched,
+      'the deep analysis resumes after quit and goes on from its checkpoint',
+      deepAfter?.resumed >= 1 &&
+        deepAfter.status !== 'failed' &&
+        resumedAt !== null &&
+        resumedAt >= deepBefore.searched &&
+        deepAfter.searched > resumedAt,
       deepAfter
-        ? `${deepAfter.searched} searched, resumed ${deepAfter.resumed} time(s)`
+        ? `${deepBefore.searched} before quit, picked up at ${resumedAt ?? '—'}, now ${deepAfter.searched} (${deepAfter.status}, resumed ${deepAfter.resumed})`
         : 'no saved job after relaunch',
     );
 
@@ -278,7 +285,7 @@ async function main() {
       partitions.join(', ') || 'none',
     );
 
-    await app.close();
+    await shared.quitKingfisher(app);
     await wait(1000);
   } finally {
     if (!args.keep) rmSync(profile, { recursive: true, force: true });

@@ -226,7 +226,7 @@ export async function launchKingfisher({
     async close({ keepProfile = false } = {}) {
       const before = descendants(child.pid);
       const closing = Date.now();
-      await app.close();
+      await quitKingfisher(app);
       await Promise.race([exited, new Promise((resolve) => setTimeout(resolve, 15_000))]);
       // Give the operating system a moment to reap before looking for survivors.
       await new Promise((resolve) => setTimeout(resolve, 1_500));
@@ -235,6 +235,30 @@ export async function launchKingfisher({
       return { closeMs: Date.now() - closing, descendants: before.length, survivors };
     },
   };
+}
+
+/**
+ * Quit Kingfisher the way ⌘Q does, and wait for the process to go.
+ *
+ * Playwright's `app.close()` closes the windows and waits for the application
+ * to end. Since Phase 85 a window closed during a deep analysis is hidden, not
+ * closed — the run goes on with the window shut — so a harness "quitting" by
+ * closing the window waited for ever (desktop:restart, found by desktop:certify).
+ * Quitting is what these harnesses mean; `app.close()` stays as the fallback
+ * for a shell too broken to take the message.
+ */
+export async function quitKingfisher(app, { timeout = 15_000 } = {}) {
+  const child = app.process();
+  const gone =
+    child.exitCode !== null || child.signalCode !== null
+      ? Promise.resolve()
+      : new Promise((resolve) => child.once('exit', resolve));
+  await app.evaluate(({ app: shell }) => shell.quit()).catch(() => undefined);
+  const quit = await Promise.race([
+    gone.then(() => true),
+    new Promise((resolve) => setTimeout(() => resolve(false), timeout)),
+  ]);
+  if (!quit) await app.close().catch(() => undefined);
 }
 
 /** Wait until the application has mounted, as the renderer itself reports it. */

@@ -149,7 +149,33 @@ const mark = (stage) => {
 };
 
 /** Work the page reports must go on with the window closed (Phase 85). */
-const backgroundWork = createBackgroundWork({ powerSaveBlocker, log });
+/** True while the window is hidden because it was closed during background work. */
+let hiddenForWork = false;
+/*
+  Set on `before-quit`, which Electron emits before it closes the windows.
+  `state.quitting` is set on `will-quit`, after they have closed — too late for
+  the window's close handler, which then hid the window during a deep analysis
+  and so cancelled the quit: ⌘Q did nothing while a run was going (Phase 85,
+  desktop:restart).
+*/
+let quitRequested = false;
+app.on('before-quit', () => {
+  quitRequested = true;
+});
+const backgroundWork = createBackgroundWork({
+  powerSaveBlocker,
+  log,
+  // The run finished with the window closed: finish the close the person asked for.
+  onIdle: () => {
+    if (!hiddenForWork) return;
+    hiddenForWork = false;
+    const window = state.window;
+    if (window && !window.isDestroyed() && !window.isVisible()) {
+      log('window', 'closed now that the background work has ended');
+      window.close();
+    }
+  },
+});
 
 /** Everything the shell owns for one run. Assembled in `start()`. */
 const state = {
@@ -566,9 +592,10 @@ function createWindow() {
     and the Dock icon brings the window back. Quit still quits.
   */
   window.on('close', (event) => {
-    if (!backgroundWork.shouldHide(state.quitting)) return;
+    if (!backgroundWork.shouldHide(state.quitting || quitRequested)) return;
     event.preventDefault();
     window.hide();
+    hiddenForWork = true;
     log('window', `hidden, not closed: ${backgroundWork.label()} is running`);
   });
 
@@ -1201,6 +1228,7 @@ if (!app.requestSingleInstanceLock()) {
     app.on('activate', () => {
       // A window hidden while background work went on comes back as it was.
       if (state.window && !state.window.isDestroyed() && !state.window.isVisible()) {
+        hiddenForWork = false;
         state.window.show();
         return;
       }

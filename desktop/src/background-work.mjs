@@ -22,7 +22,18 @@ export function normaliseWork(payload) {
   return { active, label: active ? label || 'Background work' : '' };
 }
 
-export function createBackgroundWork({ powerSaveBlocker, log = () => undefined }) {
+/**
+ * `onIdle` is called when reported work ends: a window hidden because work was
+ * running is then closed, as the person asked when they closed it — without
+ * it, the window stayed hidden after the run finished, the application never
+ * quit on its own, and a harness quitting "by closing the window" waited
+ * forever (Phase 85, desktop:restart).
+ */
+export function createBackgroundWork({
+  powerSaveBlocker,
+  log = () => undefined,
+  onIdle = () => undefined,
+}) {
   let label = null;
   let blocker = null;
   return {
@@ -35,10 +46,12 @@ export function createBackgroundWork({ powerSaveBlocker, log = () => undefined }
           blocker = powerSaveBlocker.start('prevent-app-suspension');
         }
       } else {
-        if (label !== null) log('work', `background work ended: ${label}`);
+        const ended = label !== null;
+        if (ended) log('work', `background work ended: ${label}`);
         label = null;
         if (blocker !== null && powerSaveBlocker.isStarted(blocker)) powerSaveBlocker.stop(blocker);
         blocker = null;
+        if (ended) onIdle();
       }
     },
     /** The work being done, or null. */
