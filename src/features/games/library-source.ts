@@ -169,6 +169,8 @@ export async function companionMoveSearch(input: {
       read: indexed.scanned,
       selected: indexed.selected,
       matches: found,
+      // Every hit is counted; only the first few thousand are sent.
+      found: indexed.total,
     };
     input.onProgress?.(state);
     return state;
@@ -183,6 +185,7 @@ export async function companionMoveSearch(input: {
     read: state.read + alreadyRead,
     selected: state.selected + alreadyRead,
     matches: [...found, ...state.matches],
+    found: (indexed?.total ?? 0) + state.matches.length,
   });
   const slow = await runPagedDeepSearch({
     selected: counted.total ?? 0,

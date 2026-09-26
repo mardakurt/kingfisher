@@ -30,6 +30,12 @@ export interface DeepSearchState {
   /** Games the header filters selected — the denominator. */
   readonly selected: number;
   readonly matches: readonly DeepMatch[];
+  /**
+   * Games that contain it, when more do than `matches` lists: the companion
+   * counts every hit and returns the first few thousand. Absent, the count
+   * is `matches.length`.
+   */
+  readonly found?: number;
   readonly error?: string;
 }
 

@@ -8,7 +8,15 @@ import { scanGame, scanLine, type DeepQuery } from '@/search/game-scan';
 import { parseMaterialQuery } from '@/search/material-query';
 import { parseRoute } from '@/search/route';
 
-import { lineFromRows, librarySource, LOCAL_SOURCE, queryForSource } from './library-source';
+import { setCompanion } from '@/companion/session';
+
+import {
+  companionMoveSearch,
+  lineFromRows,
+  librarySource,
+  LOCAL_SOURCE,
+  queryForSource,
+} from './library-source';
 
 describe('the database the Library shows', () => {
   it('reads a collection id into a source', () => {
@@ -75,5 +83,51 @@ describe('reading a companion game from its indexed rows', () => {
     expect(rows.length).toBeLessThan(7);
     expect(lineFromRows(rows)).toBeNull();
     expect(lineFromRows([])).toBeNull();
+  });
+});
+
+describe('the count a companion move search reports', () => {
+  it('is every game that contains it, not the first few thousand the companion lists', async () => {
+    // The transport is stubbed; the client, the session and the search are real.
+    const game = (id: string) => ({ id, white: 'A', black: 'B', result: '*' });
+    const fetchStub = vi.fn(async (url: string) => {
+      expect(url).toBe('http://127.0.0.1:4390/db/move-search');
+      return new Response(
+        JSON.stringify({
+          selected: 1_048_440,
+          scanned: 1_048_440,
+          unindexed: 0,
+          unanswerable: 0,
+          // The companion counted 163,840 games and sent the first two.
+          total: 163_840,
+          hits: [
+            { game: game('g1'), ply: 30 },
+            { game: game('g2'), ply: 41 },
+          ],
+          slices: 12,
+          elapsedMs: 4_300,
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      );
+    });
+    vi.stubGlobal('fetch', fetchStub);
+    setCompanion({ url: 'http://127.0.0.1:4390', token: 't' });
+    try {
+      const state = await companionMoveSearch({
+        source: librarySource('sqlite:lichess', 'Lichess') as Extract<
+          ReturnType<typeof librarySource>,
+          { kind: 'companion' }
+        >,
+        header: {},
+        deep: { theme: 'opposite-coloured-bishops' },
+      });
+      expect(state.status).toBe('done');
+      expect(state.matches).toHaveLength(2);
+      expect(state.found).toBe(163_840);
+      expect(state.read).toBe(1_048_440);
+    } finally {
+      setCompanion(null);
+      vi.unstubAllGlobals();
+    }
   });
 });
