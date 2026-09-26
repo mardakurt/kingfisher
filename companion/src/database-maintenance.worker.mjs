@@ -2,6 +2,7 @@ import { parentPort, workerData } from 'node:worker_threads';
 import { DatabaseSync } from 'node:sqlite';
 import { GameDatabase } from './database.mjs';
 import { buildClaimIndex, claimIndexReady } from './position-schema.mjs';
+import { POSTINGS_LAYOUT, readLayout } from './postings.mjs';
 
 const { file, operation } = workerData;
 const cancelled = new Int32Array(workerData.cancel);
@@ -27,6 +28,22 @@ try {
     if (!result.migrated && result.reason !== 'already-compact')
       throw new Error(`Migration refused: ${result.reason}.`);
     result = { ...result, schema: database.schemaStatus() };
+  } else if (operation === 'postings') {
+    /*
+      Phase 86: convert a row-layout collection to the posting layout. Chunked
+      and resumable (`migrateToPostings`): cancelling stops at a committed
+      chunk, and the next run carries on from its cursor. Nothing is deleted
+      until every game has its postings and their count equals the rows'.
+    */
+    database = new GameDatabase(file);
+    const converted = database.convertToPostings({
+      onProgress: ({ converted: done, total }) =>
+        progress({
+          phase: 'Converting to the compact position index',
+          progress: total ? Math.min(100, Math.round((done / total) * 100)) : null,
+        }),
+    });
+    result = { ...converted, schema: database.schemaStatus() };
   } else if (operation === 'claim-index') {
     /*
       Building the claim index for a collection that predates it.
@@ -53,13 +70,26 @@ try {
     // Read-only even when cancelled: opening must not run schema repair.
     database = new DatabaseSync(file, { readOnly: true });
     database.exec('BEGIN');
-    const queries = {
-      positions: 'SELECT COUNT(*) AS n FROM positions',
-      aggregatedPositions: 'SELECT COALESCE(SUM(games), 0) AS n FROM position_aggregates',
-      aggregateRows: 'SELECT COUNT(*) AS n FROM position_aggregates',
-      filteredCacheKeys: 'SELECT COUNT(*) AS n FROM position_filter_cache_keys',
-      filteredAggregateRows: 'SELECT COUNT(*) AS n FROM position_filter_cache',
-    };
+    // A posting-layout collection's aggregates are its hot positions'
+    // (postings.mjs); the check is the same equation over those tables.
+    const postingLayout = readLayout(database) === POSTINGS_LAYOUT;
+    const queries = postingLayout
+      ? {
+          positions:
+            'SELECT COUNT(*) AS n FROM postings WHERE pos IN (SELECT DISTINCT pos FROM posting_aggregates)',
+          aggregatedPositions: 'SELECT COALESCE(SUM(games), 0) AS n FROM posting_aggregates',
+          aggregateRows: 'SELECT COUNT(*) AS n FROM posting_aggregates',
+          filteredCacheKeys: 'SELECT COUNT(*) AS n FROM posting_filter_keys',
+          filteredAggregateRows: 'SELECT COUNT(*) AS n FROM posting_filter_cells',
+          postings: 'SELECT COUNT(*) AS n FROM postings',
+        }
+      : {
+          positions: 'SELECT COUNT(*) AS n FROM positions',
+          aggregatedPositions: 'SELECT COALESCE(SUM(games), 0) AS n FROM position_aggregates',
+          aggregateRows: 'SELECT COUNT(*) AS n FROM position_aggregates',
+          filteredCacheKeys: 'SELECT COUNT(*) AS n FROM position_filter_cache_keys',
+          filteredAggregateRows: 'SELECT COUNT(*) AS n FROM position_filter_cache',
+        };
     result = {};
     for (const [name, sql] of Object.entries(queries)) {
       progress({ phase: `Checking ${name}`, progress: null });

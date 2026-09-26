@@ -37,8 +37,27 @@ export interface DuplicateKeyRow {
   readonly result: string;
 }
 
+/** The rules code a posting-layout collection reads moves through (the import kit). */
+export interface GameDatabaseKit {
+  moveSan(positionKey: string, uci: string): string | null;
+  preparePgnBatch(
+    text: string,
+    openings: unknown,
+    keepPositions?: boolean,
+  ): { readonly payloads: readonly { readonly positions: readonly Record<string, unknown>[] }[] };
+}
+
+export interface GameDatabaseOptions {
+  /** `postings` makes an empty collection keep the compact posting index (Phase 86). */
+  readonly layout?: 'rows' | 'postings';
+  readonly kit?: GameDatabaseKit;
+}
+
 export declare class GameDatabase {
-  constructor(file: string);
+  constructor(file: string, options?: GameDatabaseOptions);
+  readonly layout: 'rows' | 'postings';
+  useKit(kit: GameDatabaseKit): void;
+  convertToPostings(options?: { chunk?: number }): { converted: number; postings?: number };
   count(): number;
   insertGames(batch: readonly unknown[]): { imported: number; duplicates: number };
   search<T = unknown>(query?: unknown): T;

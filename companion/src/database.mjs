@@ -34,6 +34,7 @@ import {
   positionSql,
   splitFen,
 } from './position-schema.mjs';
+import { decodeMove, migrateToPostings, PostingIndex, POSTINGS_LAYOUT } from './postings.mjs';
 
 const SCHEMA = `
 PRAGMA journal_mode = WAL;
@@ -364,8 +365,23 @@ export class GameDatabase {
   /** Phase 85: inside `beginBulk` … `endBulk`, the per-row maintenance is deferred. */
   #bulk = false;
   #bulkPending = 0;
+  /**
+   * Phase 86: the posting layout's index, when this collection uses it
+   * (`postings.mjs`), and the rules code it reads moves through. `null` for
+   * a collection in the row layout, which every method below still serves
+   * exactly as before.
+   */
+  #postings = null;
+  #kit = null;
 
-  constructor(file) {
+  /**
+   * `options.layout: 'postings'` makes an empty collection keep the compact
+   * posting index; an existing collection keeps whichever layout it has.
+   * `options.kit` is the companion's import kit (`moveSan`,
+   * `preparePgnBatch`), needed by a posting-layout collection to derive SAN
+   * and, for export, the position rows it does not store.
+   */
+  constructor(file, options = {}) {
     this.#file = file;
     this.#db = new DatabaseSync(file);
     this.#db.exec(SCHEMA);
@@ -399,10 +415,59 @@ export class GameDatabase {
       markClaimIndexReady(this.#db);
     }
     this.#claimIndexReady = claimIndexReady(this.#db);
+    this.#kit = options.kit ?? null;
+    this.#postings = PostingIndex.open(this.#db, {
+      create: options.layout === POSTINGS_LAYOUT,
+      moveSan: this.#kit?.moveSan,
+    });
     const hasAggregates = this.#db.prepare('SELECT 1 FROM position_aggregates LIMIT 1').get();
     if (!hasAggregates && this.#db.prepare('SELECT 1 FROM positions LIMIT 1').get())
       this.rebuildAggregates();
     this.#ensureSearchIndexes();
+  }
+
+  /** Which position index this collection keeps: `rows` or `postings`. */
+  get layout() {
+    return this.#postings ? POSTINGS_LAYOUT : 'rows';
+  }
+
+  /** Hand the import kit to a collection opened before it was loaded. */
+  useKit(kit) {
+    this.#kit = kit;
+    this.#postings?.setMoveSan(kit?.moveSan);
+  }
+
+  #requireKit(what) {
+    if (!this.#kit) {
+      throw new Error(
+        `This collection keeps the compact position index, and ${what} needs the companion's ` +
+          'import kit, which is not loaded.',
+      );
+    }
+    return this.#kit;
+  }
+
+  /**
+   * Position rows for a posting-layout game, re-derived from its PGN by the
+   * same import code that produced them — the layout keeps the game, not the
+   * rows, and the game is the authority.
+   */
+  #derivedPositions(pgn) {
+    const kit = this.#requireKit("reading a game's positions");
+    const prepared = kit.preparePgnBatch(String(pgn ?? ''), null, true);
+    return prepared.payloads[0]?.positions ?? [];
+  }
+
+  /**
+   * Convert this collection to the posting layout, in place. Forward-only and
+   * resumable; see `migrateToPostings`.
+   */
+  convertToPostings(options = {}) {
+    if (this.#postings) return { converted: 0, alreadyDone: true };
+    if (this.#bulk) throw new Error('A bulk load is running; convert after it ends.');
+    const result = migrateToPostings(this.#db, options);
+    this.#postings = PostingIndex.open(this.#db, { moveSan: this.#kit?.moveSan });
+    return result;
   }
 
   /**
@@ -529,7 +594,12 @@ export class GameDatabase {
 
   /** Which position schema this collection is on, and how far a migration got. */
   schemaStatus() {
-    return { ...migrationStatus(this.#db), file: this.#file, claimIndex: this.claimIndexStatus() };
+    return {
+      ...migrationStatus(this.#db),
+      file: this.#file,
+      layout: this.layout,
+      claimIndex: this.claimIndexStatus(),
+    };
   }
 
   /**
@@ -541,7 +611,7 @@ export class GameDatabase {
    * it would cost and what it has done so far.
    */
   claimIndexStatus() {
-    if (!this.#sql.compact) {
+    if (!this.#sql.compact || this.#postings) {
       return { ready: false, applicable: false, claims: 0, sets: 0, indexed: 0 };
     }
     return {
@@ -568,6 +638,9 @@ export class GameDatabase {
    * who has been shown the numbers and wants it anyway.
    */
   compactPositions(options = {}) {
+    if (this.#postings) {
+      return { migrated: false, reason: 'posting-layout', preflight: null };
+    }
     const preflight = this.compactionPreflight();
     if (preflight.sufficient !== true) {
       return {
@@ -915,7 +988,8 @@ export class GameDatabase {
   rebuildAggregates() {
     this.#db.exec('BEGIN');
     try {
-      this.#db.exec(REBUILD_DERIVED);
+      if (this.#postings) this.#postings.rebuildHot();
+      else this.#db.exec(REBUILD_DERIVED);
       this.#db.exec('COMMIT');
     } catch (error) {
       this.#db.exec('ROLLBACK');
@@ -925,6 +999,7 @@ export class GameDatabase {
 
   /** Cheap consistency facts for diagnostics and tests; no guessed repair. */
   aggregateIntegrity() {
+    if (this.#postings) return this.#postings.integrity();
     return this.#db
       .prepare(
         `SELECT
@@ -1074,6 +1149,27 @@ export class GameDatabase {
           normalized scan and the exact filter cache all agree on a count.
         */
         const seen = new Set();
+        if (this.#postings) {
+          const kept = [];
+          for (const position of entry.positions ?? []) {
+            const identity = `${position.positionKey}|${position.moveUci}`;
+            if (seen.has(identity)) continue;
+            seen.add(identity);
+            kept.push(position);
+          }
+          this.#postings.add(
+            id,
+            kept,
+            {
+              result: game.result,
+              year: game.year ?? null,
+              maxRating: ratings.length ? Math.max(...ratings) : null,
+            },
+            { maintain: !this.#bulk },
+          );
+          imported += 1;
+          continue;
+        }
         for (const position of entry.positions ?? []) {
           const identity = `${position.positionKey}|${position.moveUci}`;
           if (seen.has(identity)) continue;
@@ -1163,8 +1259,14 @@ export class GameDatabase {
     this.#db.exec('BEGIN');
     try {
       this.#db.exec('DELETE FROM affected_positions');
+      const idOf = this.#db.prepare('SELECT id FROM games WHERE fingerprint = ?');
       for (const fingerprint of fingerprints) {
-        collect.run(fingerprint);
+        if (this.#postings) {
+          const row = idOf.get(fingerprint);
+          if (row) this.#postings.remove([row.id]);
+        } else {
+          collect.run(fingerprint);
+        }
         deleted += Number(remove.run(fingerprint).changes);
       }
       this.#db.exec(REBUILD_AFFECTED);
@@ -1322,6 +1424,7 @@ export class GameDatabase {
 
   /** Every move played from a canonical position, aggregated. */
   explore(positionKey, limit = 24, filters = {}) {
+    if (this.#postings) return this.#postings.explore(positionKey, limit, filters);
     const where = ['p.position_key = ?'];
     const params = [positionKey];
     if (filters.minRating) {
@@ -1558,6 +1661,7 @@ export class GameDatabase {
 
   /** Games reaching a position, most recent first, for the model-game list. */
   gamesAtPosition(positionKey, limit = 12) {
+    if (this.#postings) return this.#postings.gamesAt(positionKey, limit).map(toSummary);
     return this.#db
       .prepare(
         `SELECT g.* FROM positions p JOIN games g ON g.id = p.game_id
@@ -1588,6 +1692,13 @@ export class GameDatabase {
    * position".
    */
   continuationsAt(positionKey, { games = 200, plies = 30 } = {}) {
+    if (this.#postings) {
+      return this.#postings.continuationsAt(
+        positionKey,
+        Math.max(1, Math.min(1000, games)),
+        Math.max(1, Math.min(120, plies)),
+      );
+    }
     const reached = this.#db
       .prepare(
         `SELECT p.game_id AS gameId, MIN(p.ply) AS ply
@@ -1778,6 +1889,23 @@ export class GameDatabase {
       `SELECT p.ply, p.move_uci AS moveUci, ${this.#sql.fen} AS fen
          FROM positions p ${this.#sql.join} WHERE p.game_id = ? ORDER BY p.ply`,
     );
+    if (this.#postings) {
+      return {
+        games: rows.map((row) => {
+          const pgn = content.get(row.id)?.pgn ?? null;
+          const derived = withPositions ? this.#derivedPositions(pgn) : [];
+          return {
+            summary: toSummary(row),
+            plyCount: row.ply_count ?? null,
+            pgn,
+            positions: lineOnly
+              ? derived.map((p) => ({ ply: p.ply, moveUci: p.moveUci, fen: p.fen }))
+              : derived.map((p) => ({ ...p, structureClaims: p.structureClaims ?? [] })),
+          };
+        }),
+        nextAfter: String(rows[rows.length - 1].id),
+      };
+    }
     const games = rows.map((row) => ({
       summary: toSummary(row),
       plyCount: row.ply_count ?? null,
@@ -1889,8 +2017,23 @@ export class GameDatabase {
         GROUP BY p.ply
         ORDER BY p.ply`,
     );
+    const pgnOf = this.#db.prepare('SELECT pgn FROM game_content WHERE game_id = ?');
+    const pliesOf = (id) => {
+      if (!this.#postings) return keys.all(id, maxPly + 1);
+      const byPly = new Map();
+      for (const position of this.#derivedPositions(pgnOf.get(id)?.pgn)) {
+        if (position.ply > maxPly + 1 || byPly.has(position.ply)) continue;
+        byPly.set(position.ply, {
+          ply: position.ply,
+          positionKey: position.positionKey,
+          fen: position.fen,
+          moveUci: position.moveUci,
+        });
+      }
+      return [...byPly.values()].sort((a, b) => a.ply - b.ply);
+    };
     const games = rows.map((row) => {
-      const plies = keys.all(row.id, maxPly + 1);
+      const plies = pliesOf(row.id);
       const last = plies[plies.length - 1];
       return {
         id: String(row.id),
@@ -1959,6 +2102,8 @@ export class GameDatabase {
    * expensive part is done once per position rather than once per game.
    */
   unindexedPositions(limit = 500) {
+    // The posting layout keeps no structure rows, so there is nothing to backfill.
+    if (this.#postings) return { positions: [], remaining: 0 };
     const rows = this.#db
       .prepare(
         `SELECT p.position_key AS positionKey FROM positions p
@@ -1971,6 +2116,7 @@ export class GameDatabase {
   }
 
   unindexedCount() {
+    if (this.#postings) return 0;
     return this.#db
       .prepare(
         `SELECT COUNT(*) AS n FROM (
@@ -1994,6 +2140,7 @@ export class GameDatabase {
    * newer import has already indexed properly.
    */
   applyStructures(entries) {
+    if (this.#postings) return { updated: 0, remaining: 0 };
     const update = this.#sql.compact
       ? this.#db.prepare(
           `UPDATE positions SET
@@ -2057,6 +2204,7 @@ export class GameDatabase {
    */
   searchStructures(query = {}) {
     const limit = Math.min(100, Math.max(1, Number(query.limit) || 30));
+    if (this.#postings) return this.#searchPostings(query, limit);
     if (query.mode === 'exact-position') {
       return this.#searchRows(query, limit, ['p.position_key = ?'], [query.positionKey]);
     }
@@ -2293,6 +2441,53 @@ export class GameDatabase {
     }));
   }
 
+  /**
+   * The structure search of a posting-layout collection.
+   *
+   * The exact position is answered from the postings, ordered as the row
+   * layout orders it (every row is the exact position, so by rating, then
+   * year). A position's skeleton and signature are functions of the position,
+   * so for the exact position they are the query's own. Skeleton, signature
+   * and claim searches need per-position structure rows this layout does not
+   * keep; they are refused in words, not answered from nothing.
+   */
+  #searchPostings(query, limit) {
+    if (query.mode !== 'exact-position') {
+      throw new Error(
+        'This collection keeps the compact position index, which does not store pawn ' +
+          'structures. Search its moves instead: the move search answers material, theme ' +
+          'and piece-route questions over every game.',
+      );
+    }
+    const kit = this.#requireKit('the position search');
+    const rows = this.#postings.rowsAt(String(query.positionKey), limit, query.sort);
+    const mover = String(query.positionKey).split(' ')[1] === 'b' ? 'b' : 'w';
+    return rows.map((row) => {
+      const moveUci = decodeMove(row.move);
+      return {
+        game: toSummary(row),
+        position: {
+          id: `${row.id}:${row.ply}`,
+          positionKey: query.positionKey,
+          gameId: String(row.id),
+          ply: row.ply,
+          moveUci,
+          moveSan: kit.moveSan(query.positionKey, moveUci),
+          mover,
+          fen: undefined,
+          nodeId: undefined,
+          pawnSkeleton: query.pawnSkeleton ?? undefined,
+          structureSignature: query.structureSignature ?? undefined,
+          structureClaims: [...(query.claims ?? [])],
+        },
+        exactPosition: true,
+        samePawnSkeleton: true,
+        sameSignature: true,
+        sharedClaims: (query.claims ?? []).length,
+      };
+    });
+  }
+
   /** Transactional deletion for an exact current game selection/filter. */
   deleteGamesMatching(query = {}) {
     /*
@@ -2323,6 +2518,7 @@ export class GameDatabase {
         DELETE FROM position_filter_total_cache;
         DELETE FROM position_filter_cache_keys;
       `);
+      this.#postings?.clear();
       if (this.#ftsAvailable) {
         this.#db.exec("INSERT INTO games_fts(games_fts) VALUES('delete-all')");
       }

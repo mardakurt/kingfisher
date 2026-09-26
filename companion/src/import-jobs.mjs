@@ -43,6 +43,30 @@ export async function ensureKit() {
   return buildCompanionKit(file);
 }
 
+/**
+ * The kit, loaded, and able to serve a posting-layout collection (Phase 86).
+ *
+ * `ensureKit` builds a kit only when there is none, so a checkout can hold one
+ * generated before `moveSan` existed; a posting-layout collection would then
+ * fail on its first explorer query. A kit without it is rebuilt where the
+ * builder exists (a checkout) and refused where it does not (a package ships
+ * the kit its own build produced).
+ */
+export async function loadKit() {
+  const file = await ensureKit();
+  let kit = await import(pathToFileURL(file).href);
+  if (typeof kit.moveSan === 'function') return kit;
+  const builder = path.join(HERE, '..', '..', 'scripts', 'build-companion-kit.mjs');
+  if (!existsSync(builder)) {
+    throw new Error("This companion's import kit is out of date: it cannot read compact indexes.");
+  }
+  const { buildCompanionKit } = await import(pathToFileURL(builder).href);
+  await buildCompanionKit(file);
+  kit = await import(`${pathToFileURL(file).href}?built=${Date.now()}`);
+  if (typeof kit.moveSan !== 'function') throw new Error('The rebuilt import kit lacks moveSan.');
+  return kit;
+}
+
 const CHESSBASE_PARTS = ['cbh', 'cbg', 'cba', 'cbp', 'cbt', 'cbc', 'cbs', 'cbe', 'cbj'];
 
 /** What a path is, and the files it stands for; refuses anything else. */

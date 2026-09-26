@@ -6,7 +6,7 @@
  * carry resource *keys*, never filesystem paths.
  */
 
-import { ImportFileError, ImportJobs } from './import-jobs.mjs';
+import { ImportFileError, ImportJobs, loadKit } from './import-jobs.mjs';
 import { randomUUID } from 'node:crypto';
 import { createServer } from 'node:http';
 import { networkInterfaces } from 'node:os';
@@ -339,10 +339,32 @@ const saveDatabases = () =>
   );
 
 const maintenance = new DatabaseMaintenance();
+
+/*
+  Phase 86: the import kit, loaded once. A collection in the compact posting
+  layout reads SAN through it and re-derives exported positions with it; a
+  row-layout collection never touches it. Loaded at start so the first
+  explorer query does not wait for it, and handed to any collection opened
+  before it arrived.
+*/
+let companionKit = null;
+let companionKitError = null;
+const kitReady = loadKit()
+  .then((kit) => {
+    companionKit = kit;
+    for (const opened of open.values()) opened.useKit(kit);
+    return kit;
+  })
+  .catch((error) => {
+    companionKitError = error;
+    return null;
+  });
+
 const database = (key) => {
   if (maintenance.busy(key))
     throw new Error('Collection maintenance is running. Other collections remain available.');
-  if (!open.has(key)) open.set(key, new GameDatabase(databaseRegistry.resolve(key).path));
+  if (!open.has(key))
+    open.set(key, new GameDatabase(databaseRegistry.resolve(key).path, { kit: companionKit }));
   return open.get(key);
 };
 
@@ -750,10 +772,18 @@ async function route(url, request, response) {
     // companion's own directory; a request cannot choose where it is written.
     const file = path.join(DATA_DIR, `${name}.kingfisher.sqlite`);
     const key = databaseKey(name);
+    // Phase 86: `layout: 'postings'` keeps the compact position index — about
+    // a twentieth of the disk, no pawn-structure search. Only an empty file
+    // can be created that way; GameDatabase refuses to switch one with games.
+    const layout = body.layout === 'postings' ? 'postings' : 'rows';
+    if (layout === 'postings') await kitReady;
     databaseRegistry.register(key, file, { name });
-    database(key);
+    if (layout === 'postings' && !open.has(key)) {
+      open.set(key, new GameDatabase(file, { layout, kit: companionKit }));
+    }
+    const created = database(key);
     saveDatabases();
-    return json(response, 200, { key, name });
+    return json(response, 200, { key, name, layout: created.layout });
   }
 
   /*
@@ -1259,12 +1289,36 @@ async function route(url, request, response) {
   */
   if (pathname === '/db/schema' && request.method === 'POST') {
     const body = await readBody(request);
-    return json(response, 200, database(String(body.key)).schemaStatus());
+    return json(response, 200, {
+      ...database(String(body.key)).schemaStatus(),
+      // Whether the rules code a compact collection reads through is here.
+      kit: companionKit ? 'loaded' : (companionKitError?.message ?? 'loading'),
+    });
   }
 
   if (pathname === '/db/compaction-preflight' && request.method === 'POST') {
     const body = await readBody(request);
     return json(response, 200, database(String(body.key)).compactionPreflight());
+  }
+
+  /*
+    Phase 86: convert a collection to the compact posting layout, as a
+    maintenance job (progress, cancel, resumable). The collection is closed
+    here and reopened by the next request, in its new layout.
+  */
+  if (pathname === '/db/convert-postings' && request.method === 'POST') {
+    const body = await readBody(request);
+    const key = String(body.key);
+    if (database(key).layout === 'postings') {
+      return json(response, 200, { status: 'completed', result: { alreadyDone: true } });
+    }
+    open.get(key)?.close();
+    open.delete(key);
+    return json(
+      response,
+      202,
+      maintenance.start(key, databaseRegistry.resolve(key).path, 'postings'),
+    );
   }
 
   if (pathname === '/db/compact' && request.method === 'POST') {

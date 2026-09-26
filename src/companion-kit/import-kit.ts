@@ -14,6 +14,7 @@
  */
 
 import { parsePgn } from '@/chess/pgn';
+import { Position } from '@/chess/position';
 import { ChessBaseDatabase, isGame } from '@/database/chessbase/database';
 import { prepareChessBaseGame } from '@/database/chessbase/prepare';
 import type { ByteSource } from '@/database/chessbase/types';
@@ -151,4 +152,21 @@ export function prepareChessBaseRange(
     }
   }
   return { payloads, failures };
+}
+
+/**
+ * The SAN of a move, from the position it was played in (Phase 86).
+ *
+ * The compact posting index (`companion/src/postings.mjs`) stores a move as
+ * fifteen bits, not as text: SAN follows from the position and the move, so
+ * it is derived here, by the same rules code that wrote it at import, rather
+ * than stored once per ply. `null` when the move is not legal in the position
+ * — which is how a reader notices a position-hash collision instead of
+ * showing another position's move.
+ */
+export function moveSan(positionKey: string, uci: string): string | null {
+  const position = Position.fromFen(`${positionKey} 0 1`);
+  if (!position.ok) return null;
+  const played = position.value.playUci(uci);
+  return played.ok ? played.value.san : null;
 }
