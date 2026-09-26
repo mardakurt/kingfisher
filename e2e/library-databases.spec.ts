@@ -31,7 +31,13 @@ test('lists, filters, previews and opens the games of a companion database', asy
   await expect(settings.getByText(name).first()).toBeVisible();
   await settings.getByPlaceholder('Paste a PGN collection…').fill(PGNS);
   await settings.getByRole('button', { name: 'Import', exact: true }).click();
-  await expect(settings.getByText(/2 games/).first()).toBeVisible({ timeout: 30_000 });
+  // This import's own completion: the paste is cleared and its toast names
+  // its count only on success. "2 games" anywhere in the dialog matched
+  // an earlier collection, and the page navigated away mid-import.
+  await expect(settings.getByPlaceholder('Paste a PGN collection…')).toHaveValue('', {
+    timeout: 30_000,
+  });
+  await expect(page.getByText(/\b2 games imported/)).toBeVisible();
   await settings.getByRole('button', { name: 'Close' }).click();
 
   await page.goto('/games');
@@ -92,7 +98,13 @@ test('searches the moves of a companion database, not only its headers', async (
       `${PGNS}\n\n[Event "Library DB 3"]\n[White "Route, Walker"]\n[Black "Knight, Tourist"]\n[Date "2025.03.01"]\n[Result "0-1"]\n\n1. e4 c5 2. Nf3 d6 3. d4 cxd4 4. Nxd4 Nf6 5. Nc3 a6 6. Be2 e5 7. Nb3 Nbd7 0-1`,
     );
   await settings.getByRole('button', { name: 'Import', exact: true }).click();
-  await expect(settings.getByText(/3 games/).first()).toBeVisible({ timeout: 30_000 });
+  // This import's own completion: the paste is cleared and its toast names
+  // its count only on success. "3 games" anywhere in the dialog matched
+  // an earlier collection, and the page navigated away mid-import.
+  await expect(settings.getByPlaceholder('Paste a PGN collection…')).toHaveValue('', {
+    timeout: 30_000,
+  });
+  await expect(page.getByText(/\b3 games imported/)).toBeVisible();
   await settings.getByRole('button', { name: 'Close' }).click();
 
   await page.goto('/games');

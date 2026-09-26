@@ -29,12 +29,12 @@ test('a source states what it holds, and what an empty answer means at this dept
   await expect(starter).toContainText('games aggregated');
 
   // Past move 21, the same source cannot be read as evidence of absence.
-  await page.evaluate(() => {
-    const url = new URL(window.location.href);
-    url.searchParams.set('fen', '4r1k1/5ppp/8/8/8/8/5PPP/4R1K1 w - - 0 30');
-    window.history.replaceState({}, '', url);
-    window.location.reload();
-  });
+  // A navigation Playwright waits for: a reload started inside evaluate() let
+  // ready() answer from the old document, still marked ready, and WebKit read
+  // the move-1 panel before the new page existed.
+  await page.goto(
+    `/analysis?fen=${encodeURIComponent('4r1k1/5ppp/8/8/8/8/5PPP/4R1K1 w - - 0 30')}`,
+  );
   await ready(page);
   const deep = page.locator('[data-workspace-dock]').first();
   await selectTool(page, deep, 'Coverage');

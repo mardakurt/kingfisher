@@ -304,17 +304,31 @@ test.describe('major workflows without a mouse', () => {
     await expect(page).toHaveURL(/\/games/, { timeout: 15_000 });
   });
 
-  test('the database screen is navigable by keyboard alone', async ({ page }) => {
+  test('the database screen is navigable by keyboard alone', async ({ page, browserName }) => {
     await page.goto('/databases');
     await waitForApp(page);
 
-    // Tab until a collection's own control has focus, then activate it.
+    /*
+      Tab until a collection's own control has focus, then activate it. The
+      control must be one — a link, a button or something given a tab stop —
+      and not merely an element whose text contains the name: <body> contains
+      every name, and a Tab that landed on it passed this check vacuously.
+      Safari's Tab visits only text fields and menus unless the person turns on
+      "Press Tab to highlight each item"; Option-Tab is how its keyboard users
+      reach buttons and links, and WebKit here behaves as Safari does.
+    */
+    const next = browserName === 'webkit' ? 'Alt+Tab' : 'Tab';
     let reached = false;
     for (let index = 0; index < 40 && !reached; index += 1) {
-      await page.keyboard.press('Tab');
-      reached = await page.evaluate(() =>
-        Boolean(document.activeElement?.textContent?.includes('My games')),
-      );
+      await page.keyboard.press(next);
+      reached = await page.evaluate(() => {
+        const active = document.activeElement;
+        if (!active || active === document.body) return false;
+        const control = active.matches(
+          'a[href], button, [role="button"], [role="link"], [tabindex]',
+        );
+        return control && Boolean(active.textContent?.includes('My games'));
+      });
     }
     expect(reached, 'No amount of tabbing reached the collection list').toBe(true);
     await page.keyboard.press('Enter');

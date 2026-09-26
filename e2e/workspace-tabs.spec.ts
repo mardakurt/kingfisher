@@ -18,6 +18,33 @@ async function ready(page: Page) {
 const strip = (page: Page) => page.getByRole('tablist', { name: 'Workspace tabs' });
 const tabs = (page: Page) => strip(page).getByRole('tab');
 
+/**
+ * Enters a tab and waits for the switch to finish, not merely to show.
+ *
+ * Entering a tab restores its fields at once, then pushes its address and
+ * writes the page's draft, and only then removes the entered tab's own copy.
+ * A reload in between is what `enter` warns about: the page's draft still
+ * describes the other tab. And Firefox, as the HTML standard says, aborts a
+ * pending reload when the router's pushState lands (`NS_BINDING_ABORTED`).
+ * Done means the page's draft was written after the click and only the tab
+ * that was left still has a copy of its own.
+ */
+async function enterTab(page: Page, index: number) {
+  const since = await page.evaluate(() => Date.now());
+  await tabs(page).nth(index).click();
+  await expect(tabs(page).nth(index)).toHaveAttribute('aria-selected', 'true');
+  await expect
+    .poll(() =>
+      page.evaluate(async (after) => {
+        const app = (globalThis as typeof globalThis & { __kingfisher: AppRepositories })
+          .__kingfisher;
+        const [active, copies] = await Promise.all([app.drafts.get(), app.drafts.listTabs()]);
+        return (active?.updatedAt ?? 0) >= after && copies.length === 1;
+      }, since),
+    )
+    .toBe(true);
+}
+
 async function play(page: Page, from: string, to: string) {
   const board = page.getByRole('grid', { name: 'Chessboard' }).first();
   await board.getByRole('gridcell', { name: new RegExp(`^${from},`) }).click();
@@ -77,6 +104,8 @@ test.describe('workspace tabs', () => {
 
     await page.getByRole('button', { name: 'New tab' }).click();
     await expect(tabs(page)).toHaveCount(2);
+    // A new tab opens on a board; go on from there, as a person would.
+    await expect(page).toHaveURL(/\/analysis/);
     await page
       .getByRole('navigation', { name: 'Sections' })
       .getByRole('link', { name: 'Players', exact: true })
@@ -85,7 +114,7 @@ test.describe('workspace tabs', () => {
     // The other tab's text is the other tab's: this one starts empty.
     await expect(search).toHaveValue('');
 
-    await tabs(page).nth(0).click();
+    await enterTab(page, 0);
     await expect(page).toHaveURL(/\/players/);
     await expect(search).toHaveValue('Capabl');
 
@@ -116,7 +145,7 @@ test.describe('workspace tabs', () => {
     await expect(page).toHaveURL(/\/games/);
     await expect(tabs(page).nth(1)).toContainText('Library');
 
-    await tabs(page).nth(0).click();
+    await enterTab(page, 0);
     await expect(page).toHaveURL(/\/analysis/);
     await expect(page.locator('[data-move-tree]').first()).toContainText('d4');
 

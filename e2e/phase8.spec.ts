@@ -406,7 +406,13 @@ test('SQLite selection deletion updates exact counts and passes integrity', asyn
   await expect(settings.getByText('Phase 8 deletion E2E').first()).toBeVisible();
   await settings.getByPlaceholder('Paste a PGN collection…').fill(STRUCTURE_PGNS);
   await settings.getByRole('button', { name: 'Import', exact: true }).click();
-  await expect(settings.getByText(/2 games/).first()).toBeVisible({ timeout: 30_000 });
+  // This import's own completion: the paste is cleared and its toast names
+  // its count only on success. "2 games" anywhere in the dialog matched
+  // an earlier collection, and the page navigated away mid-import.
+  await expect(settings.getByPlaceholder('Paste a PGN collection…')).toHaveValue('', {
+    timeout: 30_000,
+  });
+  await expect(page.getByText(/\b2 games imported/)).toBeVisible();
   await settings.getByRole('button', { name: 'Close' }).click();
 
   await page.goto('/databases');

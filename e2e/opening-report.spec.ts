@@ -176,7 +176,13 @@ test('the plan sections count a real collection, and cite how many games they re
   await expect(settings.getByText('Plan evidence E2E').first()).toBeVisible();
   await settings.getByPlaceholder('Paste a PGN collection…').fill(NAJDORF_PGNS);
   await settings.getByRole('button', { name: 'Import', exact: true }).click();
-  await expect(settings.getByText(/3 games/).first()).toBeVisible({ timeout: 30_000 });
+  // This import's own completion: the paste is cleared and its toast names
+  // its count only on success. "3 games" anywhere in the dialog matched
+  // an earlier collection, and the page navigated away mid-import.
+  await expect(settings.getByPlaceholder('Paste a PGN collection…')).toHaveValue('', {
+    timeout: 30_000,
+  });
+  await expect(page.getByText(/\b3 games imported/)).toBeVisible();
 
   /*
     And choose it, rather than relying on it being the only collection that can
