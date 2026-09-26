@@ -82,6 +82,9 @@ const ROUTES = [
   '/opening-files',
   '/team',
   '/recent',
+  '/daily',
+  '/season',
+  '/similar',
 ];
 
 test.describe('every control can be announced', () => {
@@ -188,6 +191,76 @@ test.describe('every control can be announced', () => {
     await page.keyboard.press('Escape');
     await expect(page.getByRole('dialog', { name: 'Command palette' })).toBeHidden();
   });
+});
+
+/*
+  Where focus is, on the seven pages Phase 86 reworked. Tabbing through each
+  page, every control that takes focus has to show it — an outline or a ring
+  — and be on screen when it does. A focus that lands on something invisible,
+  or draws nothing, is a keyboard user losing their place.
+*/
+test.describe('focus is visible on the reworked pages', () => {
+  for (const route of [
+    '/daily',
+    '/season',
+    '/endgame',
+    '/scoresheet',
+    '/similar',
+    '/team',
+    '/opening-files',
+  ]) {
+    test(`${route} shows where focus is at every Tab`, async ({ page }) => {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.goto(route);
+      await waitForApp(page);
+      await page.locator('[data-workspace-frame]').first().waitFor();
+      const problems: string[] = [];
+      const seen = new Set<string>();
+      for (let step = 0; step < 45; step += 1) {
+        await page.keyboard.press('Tab');
+        const state = await page.evaluate(() => {
+          const element = document.activeElement as HTMLElement | null;
+          if (!element || element === document.body) return null;
+          // The development server's own overlay ends the page's tab order.
+          if (element.tagName === 'NEXTJS-PORTAL') return { end: true } as const;
+          const style = getComputedStyle(element);
+          const rect = element.getBoundingClientRect();
+          const label = (
+            element.getAttribute('aria-label') ??
+            element.textContent ??
+            element.tagName
+          )
+            .trim()
+            .replace(/\s+/g, ' ')
+            .slice(0, 40);
+          const ring =
+            (style.outlineStyle !== 'none' && parseFloat(style.outlineWidth) > 0) ||
+            style.boxShadow !== 'none';
+          const onScreen =
+            rect.width > 0 &&
+            rect.height > 0 &&
+            rect.bottom > 0 &&
+            rect.right > 0 &&
+            rect.top < window.innerHeight &&
+            rect.left < window.innerWidth;
+          return {
+            key: `${element.tagName}:${label}:${Math.round(rect.top)}`,
+            label,
+            ring,
+            onScreen,
+          };
+        });
+        if (!state) continue;
+        if ('end' in state) break;
+        if (seen.has(state.key)) break;
+        seen.add(state.key);
+        if (!state.ring) problems.push(`no focus indicator on “${state.label}”`);
+        if (!state.onScreen) problems.push(`focus off screen on “${state.label}”`);
+      }
+      expect(seen.size, `${route}: Tab reached nothing`).toBeGreaterThan(5);
+      expect(problems, `${route}: ${problems.join('; ')}`).toEqual([]);
+    });
+  }
 });
 
 test.describe('the board is usable from the keyboard', () => {
