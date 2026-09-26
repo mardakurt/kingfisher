@@ -248,3 +248,29 @@ Lichess standard rated games database, released under
 dedication. Unlike the broadcast archive, which is CC BY-SA 4.0, this source
 carries no attribution requirement; Kingfisher records the attribution anyway,
 because a reader of a statistic should be able to find out where it came from.
+
+## The High-Rated Rapid & Classical pack (Phase 85)
+
+The pack above answers what strong players play online, and that is blitz:
+295,695 of its 305,169 games. A player preparing a classical game wants the
+slower population, and the sample at the top of this document says why a
+2400 floor cannot give it: 364 rapid and 34 classical games in 1.29 million.
+So this pack keeps **rapid and classical only**, opens the floor to **2200**,
+and reads **seven months** to be large.
+
+|                  |                                                                                  |
+| ---------------- | -------------------------------------------------------------------------------- |
+| Months           | 2026-02 … 2026-08, each verified against the publisher's SHA-256 while streaming |
+| Games considered | **623,208,492**                                                                  |
+| Games retained   | **783,262**: rapid 771,807 · classical 11,457 (bot games excluded: 114,150)      |
+| Positions        | 735,702, to ply 40                                                               |
+| Players          | 52,284                                                                           |
+| Full game scores | 65,927 (games where both players are 2400+)                                      |
+| Size             | 85.8 MB compressed                                                               |
+| Built            | 2026-09-26, `npm run reference:build -- --pack rapid-classical --months 7`       |
+| Published        | `https://mardakurt.github.io/kingfisher-data-packs/reference-rapid-v1/`          |
+
+It took 4 h 50 min of streaming on the build machine (seven archives in
+parallel, each about 29 GB compressed, none written to disk). Full scores are
+kept only from 2400 so that the pack's weight is its aggregates and the second
+mirror stays inside GitHub Pages' one-gigabyte limit.

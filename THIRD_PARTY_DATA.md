@@ -289,8 +289,12 @@ as the source.
 
 ## Lichess standard rated games database
 
-Used for the High-Rated Online reference. Definition, thresholds and the
-measurements behind them are in `docs/data/high-rated-online.md`.
+Used for the High-Rated Online reference and, since Phase 85, the High-Rated
+Rapid & Classical reference (both players 2200+, rapid and classical only,
+seven months: 783,262 games from 623,208,492 considered, published on the
+second data mirror, `mardakurt/kingfisher-data-packs`). Definitions,
+thresholds and the measurements behind them are in
+`docs/data/high-rated-online.md`.
 
 |              |                                                                                                |
 | ------------ | ---------------------------------------------------------------------------------------------- |

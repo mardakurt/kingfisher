@@ -98,6 +98,14 @@ export function DataLicencesPage(): JSX.Element {
             <td>CC0 1.0</td>
             <td>Public data mirror</td>
           </tr>
+          <tr>
+            <td>
+              <code>kingfisher-high-rated-rapid</code>
+            </td>
+            <td>What 2200+ Lichess players play at rapid and classical (783,262 games)</td>
+            <td>CC0 1.0</td>
+            <td>Second public data mirror</td>
+          </tr>
         </tbody>
       </table>
       <p>

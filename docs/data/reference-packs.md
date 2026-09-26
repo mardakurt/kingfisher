@@ -316,10 +316,11 @@ own:
 
 ```
 https://mardakurt.github.io/kingfisher-data/reference-recent-v1/manifest.json      Recent Theory (24 months)
-https://mardakurt.github.io/kingfisher-data/reference-recent-v3/manifest.json      Recent Theory (6 months), monthly
+https://mardakurt.github.io/kingfisher-data/reference-recent-v4/manifest.json      Recent Theory (6 months), monthly
 https://mardakurt.github.io/kingfisher-data/reference-online-v1/manifest.json      High-Rated Online
 https://mardakurt.github.io/kingfisher-data/channels/recent-theory-6m.json         the monthly pack's channel
-https://mardakurt.github.io/kingfisher-data-packs/reference-elite-v3/manifest.json Elite OTB, with history
+https://mardakurt.github.io/kingfisher-data-packs/reference-elite-v4/manifest.json Elite OTB, with history
+https://mardakurt.github.io/kingfisher-data-packs/reference-rapid-v1/manifest.json High-Rated Rapid & Classical
 ```
 
 `reference-elite-v2/` and `reference-recent-v2/` stay where they were for
@@ -327,9 +328,12 @@ installations that have them. `reference-recent-v2` carries v1's pack id and
 could never be installed from its catalog row; v3 is the first build under the
 row's own id.
 
-Every chunk of `reference-elite-v3` (256 chunks, 426.7 MB) and
-`reference-recent-v3` (72 chunks, 13.5 MB) was fetched back from Pages after
-publication and hashed against its manifest: none differed
+Every chunk of `reference-elite-v3` and `reference-elite-v4` (256 chunks,
+426.7 MB each) and `reference-recent-v3` and `reference-recent-v4` (72 chunks,
+13.5 MB each) was fetched back from Pages after publication and hashed against
+its manifest: none differed. v4 of both is v3 with relay dates read as dates
+(`packDate`: day-first dates and spreadsheet zero dates had become the years
+1508 and 1899)
 (`~/KingfisherWork/verify-published.mjs`, Phase 85).
 
 ### The monthly cycle

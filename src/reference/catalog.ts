@@ -306,6 +306,51 @@ export const CATALOG_PACKS: readonly CatalogPack[] = [
       archiveMonths: ['2026-07'],
     },
   },
+  {
+    /*
+      Phase 85 (D1.3): the large, freely licensed population at the pace where
+      preparation shows. The High-Rated Online row is 97% blitz because that is
+      what 2400+ online play is; this one keeps only rapid and classical, both
+      players 2200+, over seven months — 783,262 games from 623,208,492
+      considered. Full scores are kept for 2400+ games only.
+    */
+    id: 'kingfisher-high-rated-rapid',
+    name: 'High-Rated Rapid & Classical Online Reference',
+    description:
+      'Lichess rated rapid and classical games where both players are 2200 or ' +
+      'better, over seven months. Rapid 771,807 · classical 11,457 of 783,262 ' +
+      'games. Online play at a pace where preparation shows; not over-the-board.',
+    manifestUrl: `${largePackRelease('reference-rapid-v1')}manifest.json`,
+    bundled: false,
+    capabilities: [
+      'explorer',
+      'games',
+      'player-search',
+      'player-profiles',
+      'position-report',
+      'model-games',
+      'preparation',
+    ],
+    approximateBytes: 85_819_816,
+    maxPositionPly: 40,
+    license: LICHESS_STANDARD_LICENSE,
+    origin:
+      'Rapid 771,807 · classical 11,457, from seven months (2026-02 through ' +
+      '2026-08) of the Lichess standard database: 623,208,492 games considered, ' +
+      '783,262 retained (both players 2200+; bot games excluded), 735,702 ' +
+      'positions, 52,284 players, 65,927 full scores (2400+). Published in the ' +
+      'public, data-only mardakurt/kingfisher-data-packs repository.',
+    filter: {
+      minRating: 2200,
+      speeds: ['classical', 'rapid'],
+      excludeOnline: false,
+    },
+    window: {
+      firstYear: 2026,
+      lastYear: 2026,
+      archiveMonths: ['2026-08', '2026-07', '2026-06', '2026-05', '2026-04', '2026-03', '2026-02'],
+    },
+  },
 ];
 
 export const catalogPack = (id: string): CatalogPack | undefined =>

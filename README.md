@@ -212,13 +212,13 @@ the page says so. See [`THIRD_PARTY_DATA.md`](THIRD_PARTY_DATA.md).
   ([`kingfisher-data`](https://github.com/mardakurt/kingfisher-data) and, for
   the large ones, [`kingfisher-data-packs`](https://github.com/mardakurt/kingfisher-data-packs)).
   See [`docs/data/reference-packs.md`](docs/data/reference-packs.md).
-  - **Elite OTB** (v3), the whole broadcast archive 2020-01 → 2026-08: 425,022
+  - **Elite OTB** (v4), the whole broadcast archive 2020-01 → 2026-08: 425,022
     games, every one openable, 5,669,429 positions, and each position's games
     by year and Elo class with its earliest games; 427 MB.
   - **Recent Theory**, the last two years at a lower frequency threshold so
     rare and recent continuations survive: 44,200 games, 918,069 positions,
     34 MB.
-  - **Recent Theory (6 months)** (v3), rebuilt every month by a scheduled
+  - **Recent Theory (6 months)** (v4), rebuilt every month by a scheduled
     workflow when Lichess publishes a new month; an installed Kingfisher finds
     the new version through the pack's update channel. 11,277 games, 250,498
     positions, 13.5 MB.
@@ -227,6 +227,10 @@ the page says so. See [`THIRD_PARTY_DATA.md`](THIRD_PARTY_DATA.md).
     295,695 of them — and one month of it. It answers what strong players are
     playing online, which is not the same question as how a line scores over
     the board, and the row says so before you install it.
+  - **High-Rated Rapid & Classical Online**, both players 2200+, rapid and
+    classical only, seven months: 783,262 games from 623,208,492 considered,
+    735,702 positions, 86 MB. The online population at a pace where
+    preparation shows.
 
   Any address that serves a Kingfisher manifest can be installed from today —
   Databases → Reference sources → **Install from a URL** — through the identical
