@@ -12,6 +12,9 @@ desktop/dist
 public/data/players/titled-players.json
 
 # Generated test evidence, tool state, caches and local build inputs
+# (release evidence is recorded output — a worksheet as the app wrote it — and
+# is kept byte for byte, not reformatted)
+docs/release-evidence/
 test-results*/
 playwright-report/
 .playwright-mcp/

@@ -8,6 +8,10 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
+_Nothing yet since 1.3.1._
+
+## 1.3.1 — 2026-09-26
+
 - **Fixed: a move search over a large database undercounted.** Over the
   1,048,440-game Lichess collection the Library said "5,000 of 1,048,440
   games read contain it" for opposite-coloured bishops, which 163,840 of them
