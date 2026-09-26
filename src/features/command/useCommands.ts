@@ -618,6 +618,12 @@ export function useCommands(): readonly Command[] {
         run: () => ui().setShortcutsOpen(true),
       },
       {
+        id: 'analysis-jobs',
+        title: 'Analysis jobs',
+        group: 'Interface',
+        run: () => ui().setJobsOpen(true),
+      },
+      {
         id: 'settings',
         title: 'Settings',
         group: 'Interface',

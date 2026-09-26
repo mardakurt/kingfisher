@@ -47,6 +47,9 @@ interface UiState {
   shortcutsOpen: boolean;
   tourOpen: boolean;
   settingsOpen: boolean;
+  /** Phase 86: the Analysis jobs list. */
+  jobsOpen: boolean;
+  setJobsOpen(open: boolean): void;
   /**
    * Which settings section to show when the dialog next opens.
    *
@@ -121,6 +124,7 @@ export const useUi = create<UiState>((set) => ({
   shortcutsOpen: false,
   tourOpen: false,
   settingsOpen: false,
+  jobsOpen: false,
   settingsSection: null,
   importOpen: false,
   positionSetupOpen: false,
@@ -146,6 +150,7 @@ export const useUi = create<UiState>((set) => ({
   setShortcutsOpen: (shortcutsOpen) => set({ shortcutsOpen }),
   setTourOpen: (tourOpen) => set({ tourOpen }),
   setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
+  setJobsOpen: (jobsOpen) => set({ jobsOpen }),
   openSettingsAt: (settingsSection) => set({ settingsSection, settingsOpen: true }),
   setImportOpen: (importOpen) => set({ importOpen }),
   setPositionSetupOpen: (positionSetupOpen) => set({ positionSetupOpen }),

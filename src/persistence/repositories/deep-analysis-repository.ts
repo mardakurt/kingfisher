@@ -16,6 +16,7 @@ export type DeepAnalysisJobInput = Omit<
 
 export interface DeepAnalysisRepository {
   /** The newest run, or null. */
+  list(): Promise<readonly DeepAnalysisJobRecord[]>;
   latest(): Promise<DeepAnalysisJobRecord | null>;
   create(input: DeepAnalysisJobInput, now?: number): Promise<DeepAnalysisJobRecord>;
   /** Write the run's next state over its record. */
@@ -29,6 +30,14 @@ export interface DeepAnalysisRepository {
 
 export class LocalDeepAnalysisRepository implements DeepAnalysisRepository {
   constructor(private readonly database: PersistenceDatabase) {}
+
+  /** Every deep analysis kept, newest first (Phase 86: the jobs view). */
+  async list(): Promise<readonly DeepAnalysisJobRecord[]> {
+    const rows = await this.database.getAll<unknown>(STORE_NAMES.deepAnalysisJobs);
+    return rows
+      .map((row) => assertValid(row, isDeepAnalysisJobRecord, 'deep analysis'))
+      .sort((a, b) => b.updatedAt - a.updatedAt);
+  }
 
   async latest(): Promise<DeepAnalysisJobRecord | null> {
     const rows = await this.database.getAll<unknown>(STORE_NAMES.deepAnalysisJobs);

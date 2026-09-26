@@ -42,6 +42,10 @@ import { useDeepAnalysisResume } from '@/features/engine/useDeepAnalysisResume';
 // These feature surfaces are large and uncommon at startup. Conditional
 // mounting matters as much as the dynamic import: a closed dialog must not
 // fetch and evaluate its implementation merely because AppShell exists.
+const AnalysisJobsDialog = dynamic(
+  () => import('@/features/engine/AnalysisJobsDialog').then((module) => module.AnalysisJobsDialog),
+  { ssr: false },
+);
 const SettingsDialog = dynamic(
   () => import('@/features/shell/SettingsDialog').then((module) => module.SettingsDialog),
   { ssr: false },
@@ -134,6 +138,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, [compact]);
   const setSidebarOpen = useUi((state) => state.setSidebarOpen);
   const settingsOpen = useUi((state) => state.settingsOpen);
+  const jobsOpen = useUi((state) => state.jobsOpen);
+  const setJobsOpen = useUi((state) => state.setJobsOpen);
   const importOpen = useUi((state) => state.importOpen);
   const positionSetupOpen = useUi((state) => state.positionSetupOpen);
   const saveToStudyOpen = useUi((state) => state.saveToStudyOpen);
@@ -236,6 +242,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <ShortcutsDialog />
         <FirstRunTour />
         {settingsOpen ? <SettingsDialog /> : null}
+        {jobsOpen ? <AnalysisJobsDialog onClose={() => setJobsOpen(false)} /> : null}
         {importOpen ? <ImportDialog /> : null}
         {positionSetupOpen ? <PositionSetupDialog /> : null}
         {saveToStudyOpen ? <SaveToStudyDialog /> : null}
