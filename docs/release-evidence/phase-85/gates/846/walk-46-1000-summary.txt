@@ -1,0 +1,57 @@
+
+> kingfisher@1.3.0 desktop:walk
+> node scripts/desktop-walk.mjs --packaged --seed=46 --actions=1000
+
+Kingfisher 1.3.0 (build 846, 52cfcee, stable) at /Users/metinardakurt/KingfisherWork/desktop-out/mac-arm64/Kingfisher.app/Contents/MacOS/Kingfisher
+profile /var/folders/fx/khlfy3hs5cl21g815s4fx0tr0000gn/T/kingfisher-walk-46-eqW81V
+seed 46 · 1000 actions
+
+  ·     0 1s  main 185 MB  renderer 205 MB  procs 4  engines 0  windows 1  profile 6 MB
+  ·    25 17s  main 218 MB  renderer 591 MB  procs 4  engines 0  windows 1  profile 98 MB
+  ·    50 33s  main 196 MB  renderer 518 MB  procs 4  engines 0  windows 1  profile 98 MB
+  ·    75 138s  main 224 MB  renderer 532 MB  procs 4  engines 0  windows 1  profile 99 MB
+  ·   100 243s  main 227 MB  renderer 463 MB  procs 4  engines 0  windows 1  profile 99 MB
+  ·   125 260s  main 237 MB  renderer 494 MB  procs 4  engines 0  windows 1  profile 99 MB
+  ·   150 314s  main 242 MB  renderer 490 MB  procs 4  engines 0  windows 1  profile 99 MB
+  ·   175 371s  main 246 MB  renderer 410 MB  procs 4  engines 0  windows 1  profile 100 MB
+  ·   200 438s  main 253 MB  renderer 665 MB  procs 4  engines 0  windows 1  profile 100 MB
+  ·   225 449s  main 254 MB  renderer 402 MB  procs 4  engines 0  windows 1  profile 94 MB
+  ·   250 502s  main 255 MB  renderer 550 MB  procs 4  engines 0  windows 1  profile 95 MB
+  ·   275 508s  main 256 MB  renderer 527 MB  procs 4  engines 0  windows 1  profile 95 MB
+  ·   300 522s  main 257 MB  renderer 594 MB  procs 4  engines 0  windows 1  profile 95 MB
+  ·   325 584s  main 258 MB  renderer 482 MB  procs 4  engines 0  windows 1  profile 95 MB
+  ·   350 600s  main 260 MB  renderer 621 MB  procs 4  engines 0  windows 1  profile 97 MB
+  ·   375 614s  main 261 MB  renderer 459 MB  procs 4  engines 0  windows 1  profile 97 MB
+  ·   400 669s  main 264 MB  renderer 526 MB  procs 4  engines 0  windows 1  profile 97 MB
+  ·   425 681s  main 268 MB  renderer 302 MB  procs 4  engines 0  windows 1  profile 97 MB
+  ·   450 742s  main 269 MB  renderer 337 MB  procs 4  engines 0  windows 1  profile 97 MB
+  ·   475 747s  main 269 MB  renderer 425 MB  procs 4  engines 0  windows 1  profile 97 MB
+  ·   500 755s  main 270 MB  renderer 439 MB  procs 4  engines 0  windows 1  profile 97 MB
+  ·   525 813s  main 269 MB  renderer 368 MB  procs 4  engines 0  windows 1  profile 98 MB
+  ·   550 830s  main 271 MB  renderer 543 MB  procs 4  engines 0  windows 1  profile 98 MB
+  ·   575 889s  main 271 MB  renderer 433 MB  procs 4  engines 0  windows 1  profile 98 MB
+  ·   600 896s  main 273 MB  renderer 613 MB  procs 4  engines 0  windows 1  profile 98 MB
+  ·   625 903s  main 274 MB  renderer 528 MB  procs 4  engines 0  windows 1  profile 98 MB
+  ·   650 927s  main 274 MB  renderer 321 MB  procs 4  engines 0  windows 1  profile 99 MB
+  ·   675 936s  main 275 MB  renderer 440 MB  procs 4  engines 0  windows 1  profile 100 MB
+  ·   700 946s  main 275 MB  renderer 502 MB  procs 4  engines 0  windows 1  profile 100 MB
+  ·   725 953s  main 276 MB  renderer 605 MB  procs 4  engines 0  windows 1  profile 100 MB
+  ·   750 1057s  main 277 MB  renderer 598 MB  procs 4  engines 0  windows 1  profile 97 MB
+  ·   775 1065s  main 278 MB  renderer 445 MB  procs 4  engines 0  windows 1  profile 97 MB
+  ·   800 1124s  main 279 MB  renderer 568 MB  procs 4  engines 0  windows 1  profile 98 MB
+  ·   825 1131s  main 279 MB  renderer 567 MB  procs 4  engines 0  windows 1  profile 97 MB
+  ·   850 1140s  main 279 MB  renderer 393 MB  procs 4  engines 0  windows 1  profile 97 MB
+  ·   875 1149s  main 280 MB  renderer 301 MB  procs 4  engines 0  windows 1  profile 97 MB
+  ·   900 1156s  main 280 MB  renderer 459 MB  procs 4  engines 0  windows 1  profile 98 MB
+  ·   925 1216s  main 280 MB  renderer 538 MB  procs 4  engines 0  windows 1  profile 98 MB
+  ·   950 1224s  main 281 MB  renderer 540 MB  procs 4  engines 0  windows 1  profile 99 MB
+  ·   975 1231s  main 281 MB  renderer 585 MB  procs 4  engines 0  windows 1  profile 99 MB
+  ·  1000 1236s  main 281 MB  renderer 640 MB  procs 4  engines 0  windows 1  profile 99 MB
+  ·  1000 1236s  main 281 MB  renderer 640 MB  procs 4  engines 0  windows 1  profile 99 MB
+
+seed 46 · 1000 actions · 1242 s
+main 185 → 281 MB · renderer 205 → 640 MB
+quit: 5 descendants, 0 survivors, 5642 ms
+console errors: 0 · findings: 0
+report /var/folders/fx/khlfy3hs5cl21g815s4fx0tr0000gn/T/kingfisher-walk-46-1790404306552.json
+EXIT 0

@@ -1,0 +1,25 @@
+▶ notarize-dmg 12:48
+  notarize-dmg EXIT 0 12:50
+▶ trust 12:50
+  trust EXIT 0 12:50
+▶ appcast 12:50
+  appcast EXIT 0 12:51
+▶ certify 12:51
+  certify EXIT 0 13:07
+▶ menus 13:07
+  menus EXIT 0 13:08
+▶ engine-chaos 13:08
+  engine-chaos EXIT 0 13:10
+▶ walk-46-1000 13:10
+  walk-46-1000 EXIT 0 13:31
+▶ walk-7-faults 13:31
+  walk-7-faults EXIT 0 13:39
+▶ soak-leaks 13:39
+  soak-leaks EXIT 0 13:43
+▶ upgrade 13:43
+  upgrade EXIT 0 13:43
+▶ soak-30m 13:43
+  soak-30m EXIT 0 14:13
+▶ part-e 14:13
+  part-e EXIT 0 14:16
+ALLDONE

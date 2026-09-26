@@ -1,0 +1,77 @@
+descriptor: stable 1.3.0 build 846 · Kingfisher-1.3.0-arm64.dmg
+url: https://github.com/mardakurt/kingfisher/releases/download/v1.3.0/Kingfisher-1.3.0-arm64.dmg
+
+✓ the descriptor is what the landing links
+✓ the URL is immutable, not the moving latest pointer
+✓ the asset answers — HTTP 200
+✓ as a binary — application/octet-stream
+✓ with the descriptor byte count — 192006890 bytes, descriptor says 192006890
+✓ the final hop names the file — https://release-assets.githubusercontent.com/github-production-release-asset/1353965678/dd4d96ff-8205-48d9-9e12-80c9c4938385?…
+✓ the release page exists — HTTP 200 https://github.com/mardakurt/kingfisher/releases/tag/v1.3.0
+✓ the production landing is up — HTTP 200
+✓ the production landing links the descriptor's URL — https://kingfisherchess.app/
+✓ the production landing names the file — Kingfisher-1.3.0-arm64.dmg
+✓ the production install guide is up — HTTP 200
+✓ the production install guide links the descriptor's URL — https://kingfisherchess.app/install
+✓ the production install guide names the file — Kingfisher-1.3.0-arm64.dmg
+
+downloading Kingfisher-1.3.0-arm64.dmg (192 MB)…
+✓ the download starts — HTTP 200
+✓ every byte arrived — 192006890 bytes in 16.3 s
+✓ the SHA-256 is the descriptor's — 4ae6f338972a56421f5e09044eadd4f4d0453ba6c44da4e2e4abfbb95dcde353
+
+mounting and verifying the downloaded image…
+✓ dmg: hdiutil verify — image is sound
+✓ dmg: volume name — "Kingfisher"
+✓ dmg: volume icon — .VolumeIcon.icns
+✓ dmg: root layout — Applications, Kingfisher.app
+✓ dmg: exactly one application — Kingfisher.app
+✓ dmg: Applications link — /Applications
+✓ dmg: runtime: web/server.js — Resources/kingfisher/web/server.js
+✓ dmg: runtime: web/package.json — Resources/kingfisher/web/package.json
+✓ dmg: runtime: web/node_modules/next/package.json — Resources/kingfisher/web/node_modules/next/package.json
+✓ dmg: runtime: web/node_modules/react/package.json — Resources/kingfisher/web/node_modules/react/package.json
+✓ dmg: runtime: web/node_modules/react-dom/package.json — Resources/kingfisher/web/node_modules/react-dom/package.json
+✓ dmg: runtime: web/.next/BUILD_ID — Resources/kingfisher/web/.next/BUILD_ID
+✓ dmg: runtime: web/.next/required-server-files.json — Resources/kingfisher/web/.next/required-server-files.json
+✓ dmg: runtime: web/.next/server — Resources/kingfisher/web/.next/server
+✓ dmg: runtime: web/.next/static — Resources/kingfisher/web/.next/static
+✓ dmg: runtime: web/public/engine/stockfish/manifest.json — Resources/kingfisher/web/public/engine/stockfish/manifest.json
+✓ dmg: runtime: web/public/engine/stockfish/stockfish-18-lite-single.js — Resources/kingfisher/web/public/engine/stockfish/stockfish-18-lite-single.js
+✓ dmg: runtime: web/public/engine/stockfish/stockfish-18-lite-single.wasm — Resources/kingfisher/web/public/engine/stockfish/stockfish-18-lite-single.wasm
+✓ dmg: runtime: web/public/engine/stockfish/stockfish-18-lite.js — Resources/kingfisher/web/public/engine/stockfish/stockfish-18-lite.js
+✓ dmg: runtime: web/public/engine/stockfish/stockfish-18-lite.wasm — Resources/kingfisher/web/public/engine/stockfish/stockfish-18-lite.wasm
+✓ dmg: runtime: companion/src/server.mjs — Resources/kingfisher/companion/src/server.mjs
+✓ dmg: runtime: companion/generated/import-kit.mjs — Resources/kingfisher/companion/generated/import-kit.mjs
+✓ dmg: runtime: scripts/engine-catalogue.mjs — Resources/kingfisher/scripts/engine-catalogue.mjs
+✓ dmg: runtime: scripts/engine-digests.json — Resources/kingfisher/scripts/engine-digests.json
+✓ dmg: sparkle: Frameworks/Sparkle.framework/Versions/B/Sparkle — present
+✓ dmg: sparkle: Frameworks/Sparkle.framework/Versions/B/Autoupdate — present
+✓ dmg: sparkle: Frameworks/Sparkle.framework/Versions/B/Updater.app/Contents/MacOS/Updater — present
+✓ dmg: sparkle: Frameworks/Sparkle.framework/Versions/B/Resources/Info.plist — present
+✓ dmg: sparkle: Resources/app.asar.unpacked/native/sparkle/build/kingfisher-sparkle.node — present
+✓ dmg: sparkle: no XPCServices (not sandboxed) — absent
+✓ dmg: sparkle: no XPCServices (not sandboxed) — absent
+✓ dmg: sparkle: framework is 2.10.0 — 2.10.0
+✓ dmg: sparkle: SUFeedURL — https://github.com/mardakurt/kingfisher/releases/latest/download/appcast.xml
+✓ dmg: sparkle: SUPublicEDKey is the recorded key — iejytoJR…
+✓ dmg: sparkle: SUEnableAutomaticChecks is false — false
+✓ dmg: sparkle: SUAllowsAutomaticUpdates is false — false
+✓ dmg: bundle id — app.kingfisher.chess
+✓ dmg: bundle name — Kingfisher
+✓ dmg: minimum macOS — 13.0
+✓ dmg: .pgn document type declared — CFBundleDocumentTypes has pgn
+✓ dmg: marketing version — 1.3.0
+✓ dmg: build number — 846
+✓ dmg: build commit — 52cfcee281b3dff94c992bb76718120dbeda9b2e
+✓ dmg: build was not made from a dirty tree — false
+✓ dmg: architecture — arm64
+✓ dmg: signature verifies — /private/var/folders/fx/khlfy3hs5cl21g815s4fx0tr0000gn/T/kingfisher-dmg-verify-CK6aOM/dmg.BNKajg/Kingfisher.app: satisfies its Designated Requirement
+✓ dmg: hardened runtime — 0x10000(runtime)
+✓ dmg: signed by a known identity — Developer ID Application: Metin Arda Kurt (3B5CYF9DQ4)
+✓ dmg: no unexpected files — 3539 entries
+✓ the signing identity is the one the descriptor claims — Developer ID Application (Developer ID Application: Metin Arda Kurt (3B5CYF9DQ4))
+✓ the notarisation state is the one the descriptor claims — stapler validates a ticket
+
+67/67 checks passed
+PUBLIC DMG VERIFIED: Kingfisher-1.3.0-arm64.dmg (every byte)

@@ -1,0 +1,44 @@
+
+> kingfisher@1.3.0 desktop:certify
+> node scripts/desktop-certify.mjs
+
+Kingfisher desktop certification
+application  /Users/metinardakurt/KingfisherWork/desktop-out/mac-arm64/Kingfisher.app
+disk image   /Users/metinardakurt/KingfisherWork/desktop-out/Kingfisher-1.3.0-arm64.dmg
+mode         full
+
+▶ smoke: launch, bridge, isolation, companion, PGN, tablebase, quit
+✓ smoke: launch, bridge, isolation, companion, PGN, tablebase, quit — 14 s — 17/17 checks passed
+▶ chrome: the window buttons against every layout
+✓ chrome: the window buttons against every layout — 21 s — 109/109 checks passed
+▶ restart: quit and reopen, work still there
+✓ restart: quit and reopen, work still there — 25 s — 7/7 checks passed
+▶ engines: every managed engine, installed and searched in the bundle
+✓ engines: every managed engine, installed and searched in the bundle — 115 s — 25/25 checks passed
+▶ suspend: every process stopped for 20 s, then resumed
+✓ suspend: every process stopped for 20 s, then resumed — 43 s — 14/14 checks passed
+▶ walk: 200 seeded actions with invariants (seed 46)
+✓ walk: 200 seeded actions with invariants (seed 46) — 446 s — console errors: 0 · findings: 0
+▶ walk: 120 seeded actions with faults injected (seed 7)
+✓ walk: 120 seeded actions with faults injected (seed 7) — 196 s — console errors: 2 · findings: 0
+▶ dmg: launchable bundle, identity, signature, layout
+✓ dmg: launchable bundle, identity, signature, layout — 4 s — DMG verified: /Users/metinardakurt/KingfisherWork/desktop-out/Kingfisher-1.3.0-arm64.dmg
+▶ tests: no skipped tests anywhere
+✓ tests: no skipped tests anywhere — 0 s
+▶ tests: unit and integration suite
+✓ tests: unit and integration suite — 52 s — Test Files  340 passed (340) ·       Tests  3721 passed (3721)
+
+✓ smoke: launch, bridge, isolation, companion, PGN, tablebase, quit
+✓ chrome: the window buttons against every layout
+✓ restart: quit and reopen, work still there
+✓ engines: every managed engine, installed and searched in the bundle
+✓ suspend: every process stopped for 20 s, then resumed
+✓ walk: 200 seeded actions with invariants (seed 46)
+✓ walk: 120 seeded actions with faults injected (seed 7)
+✓ dmg: launchable bundle, identity, signature, layout
+✓ tests: no skipped tests anywhere
+✓ tests: unit and integration suite
+
+DESKTOP CERTIFIED — /Users/metinardakurt/KingfisherWork/desktop-out/mac-arm64/Kingfisher.app
+Every step ran against the packaged application. Signing identity and the public download are separate gates.
+EXIT 0

@@ -1,0 +1,22 @@
+
+> kingfisher@1.3.0 desktop:upgrade
+> node scripts/desktop-upgrade.mjs
+
+Kingfisher upgrade
+node v24.14.0 · darwin-arm64
+profile /private/var/folders/fx/khlfy3hs5cl21g815s4fx0tr0000gn/T/kingfisher-upgrade-pCzgAt
+
+  … opened 1.2.6 (build 714)
+
+  ✓ 1.2.6 (build 714) authored a study — Upgrade walk study
+  … reopened as 1.3.0 (build 846)
+
+  ✓ the two builds really are different builds — 1.2.6 (build 714) → 1.3.0 (build 846)
+  ✓ authored work survives the upgrade — Upgrade walk study
+  ✓ preferences survive the upgrade — boardTheme sage
+  ✓ reference-pack metadata survives the upgrade — kingfisher-starter:ready
+  ✓ the new build uses the same application data directory — /private/var/folders/fx/khlfy3hs5cl21g815s4fx0tr0000gn/T/kingfisher-upgrade-pCzgAt
+  ✓ and still opens a board — 668px
+
+7/7 checks passed
+EXIT 0

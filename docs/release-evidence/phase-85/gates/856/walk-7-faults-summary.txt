@@ -1,0 +1,29 @@
+
+> kingfisher@1.3.1 desktop:walk
+> node scripts/desktop-walk.mjs --packaged --seed=7 --actions=300 --faults
+
+Kingfisher 1.3.1 (build 856, d04b206, stable) at /Users/metinardakurt/KingfisherWork/desktop-out/mac-arm64/Kingfisher.app/Contents/MacOS/Kingfisher
+profile /var/folders/fx/khlfy3hs5cl21g815s4fx0tr0000gn/T/kingfisher-walk-7-Qye6nY
+seed 7 · 300 actions · faults on
+
+  ·     0 2s  main 174 MB  renderer 209 MB  procs 4  engines 0  windows 1  profile 10 MB
+  ·    25 11s  main 189 MB  renderer 531 MB  procs 4  engines 0  windows 1  profile 92 MB
+  ·    50 70s  main 199 MB  renderer 295 MB  procs 4  engines 0  windows 1  profile 94 MB
+  ·    75 134s  main 168 MB  renderer 213 MB  procs 4  engines 0  windows 1  profile 95 MB
+  ·   100 143s  main 177 MB  renderer 337 MB  procs 4  engines 0  windows 1  profile 95 MB
+  ·   125 244s  main 158 MB  renderer 206 MB  procs 4  engines 0  windows 1  profile 95 MB
+  ·   150 299s  main 137 MB  renderer 215 MB  procs 4  engines 0  windows 1  profile 96 MB
+  ·   175 311s  main 161 MB  renderer 345 MB  procs 4  engines 0  windows 1  profile 96 MB
+  ·   200 323s  main 169 MB  renderer 314 MB  procs 4  engines 0  windows 1  profile 97 MB
+  ·   225 331s  main 166 MB  renderer 339 MB  procs 4  engines 0  windows 1  profile 97 MB
+  ·   250 393s  main 151 MB  renderer 183 MB  procs 4  engines 0  windows 1  profile 97 MB
+  ·   275 452s  main 147 MB  renderer 213 MB  procs 4  engines 0  windows 1  profile 97 MB
+  ·   300 461s  main 165 MB  renderer 590 MB  procs 4  engines 0  windows 1  profile 97 MB
+  ·   300 462s  main 164 MB  renderer 589 MB  procs 4  engines 0  windows 1  profile 97 MB
+
+seed 7 · 300 actions · 467 s
+main 174 → 164 MB · renderer 209 → 589 MB
+quit: 5 descendants, 0 survivors, 5688 ms
+console errors: 2 · findings: 0
+report /var/folders/fx/khlfy3hs5cl21g815s4fx0tr0000gn/T/kingfisher-walk-7-1790419144128.json
+EXIT 0

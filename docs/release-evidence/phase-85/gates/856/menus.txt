@@ -1,0 +1,83 @@
+
+> kingfisher@1.3.1 desktop:menus
+> node scripts/desktop-menus.mjs --packaged
+
+58 menu leaves, 57 enabled
+
+  ✓ declared, performed by macOS: Kingfisher › About Kingfisher — role about
+  ✓ Kingfisher › Check for Updates… (CmdOrCtrl+Shift+U) — Sparkle verdict: up-to-date — this build is newer than the feed
+  ✓ Kingfisher › Settings… (Cmd+,) — dialog "Settings"
+  ✓ declared, performed by macOS: Kingfisher › Services — role services
+  ✓ Kingfisher › Hide Kingfisher (Command+H) — hidden and shown
+  ✓ Kingfisher › Hide Others (Command+Alt+H) — role hideothers, no exception
+  ✓ Kingfisher › Show All — role unhide, no exception
+  ✓ declared, performed by macOS: Kingfisher › Quit Kingfisher — role quit
+  ✓ File › New Tab (CmdOrCtrl+T) — tabs 1 → 2
+  ✓ File › New Analysis (CmdOrCtrl+N)
+  ✓ File › Open PGN… (CmdOrCtrl+O) — chooser "Open a PGN"
+  ✓ File › Open Database… (CmdOrCtrl+Shift+O) — chooser "Open a database"
+  ✓ disabled: File › Open Recent › No Recent Documents — the only honestly disabled item
+  ✓ File › Import Game or Position… (Shift+CmdOrCtrl+I) — dialog "Import a game or position"
+  ✓ File › Check for Updates… — Sparkle verdict: up-to-date — this build is newer than the feed
+  ✓ File › Close Tab (Cmd+W) — tabs 2 → 1
+  ✓ declared, performed by macOS: File › Close Window — role close
+  ✓ Edit › Undo (CommandOrControl+Z) — role undo, no exception
+  ✓ Edit › Redo (Shift+CommandOrControl+Z) — role redo, no exception
+  ✓ Edit › Cut (CommandOrControl+X) — role cut, no exception
+  ✓ Edit › Copy (CommandOrControl+C) — role copy, no exception
+  ✓ Edit › Paste (CommandOrControl+V) — role paste, no exception
+  ✓ Edit › Select All (CommandOrControl+A) — role selectall, no exception
+  ✓ View › Toggle Sidebar (Ctrl+Cmd+S)
+  ✓ View › Command Palette… (CmdOrCtrl+K) — dialog "Command palette"
+  ✓ View › Keyboard Shortcuts — dialog "Keyboard shortcuts"
+  ✓ View › Appearance › Light
+  ✓ View › Appearance › Dark
+  ✓ View › Reload (CmdOrCtrl+R) — renderer back
+  ✓ View › Force Reload (Shift+CmdOrCtrl+R) — role forcereload, no exception
+  ✓ View › Actual Size (CommandOrControl+0) — role resetzoom, no exception
+  ✓ View › Zoom In (CommandOrControl+Plus) — role zoomin, no exception
+  ✓ View › Zoom Out (CommandOrControl+-) — role zoomout, no exception
+  ✓ declared, performed by macOS: View › Toggle Full Screen — role togglefullscreen
+  ✓ Go › Back (CmdOrCtrl+[)
+  ✓ Go › Forward (CmdOrCtrl+])
+  ✓ Go › Search — route /search
+  ✓ Go › Analysis — route /analysis
+  ✓ Go › Openings — route /openings
+  ✓ Go › Studies — route /studies
+  ✓ Go › Repertoire — route /repertoire
+  ✓ Go › Preparation — route /preparation
+  ✓ Go › Players — route /players
+  ✓ Go › Review — route /review
+  ✓ Go › Training — route /training
+  ✓ Go › Library — route /games
+  ✓ Go › Databases — route /databases
+  ✓ declared, performed by macOS: Window › Minimize — role minimize
+  ✓ declared, performed by macOS: Window › Zoom — role zoom
+  ✓ Window › Show Previous Tab (Ctrl+Shift+Tab) — route /databases
+  ✓ Window › Show Next Tab (Ctrl+Tab) — route /analysis
+  ✓ Window › Show Previous Tab (Shift+Cmd+[) — route /databases
+  ✓ Window › Show Next Tab (Shift+Cmd+]) — route /analysis
+  ✓ Window › Duplicate Tab — tabs 2 → 3
+  ✓ declared, performed by macOS: Window › Bring All to Front — role front
+  ✓ Help › Kingfisher on GitHub — opened https://github.com/mardakurt/kingfisher
+  ✓ Help › Report an Issue… — opened https://github.com/mardakurt/kingfisher/issues/new
+  ✓ Help › Diagnostics… — dialog "Settings"
+  ✓ shortcut Cmd+, is declared on Settings… — Cmd+,
+  ✓ shortcut CmdOrCtrl+Shift+U is declared on Check for Updates… — CmdOrCtrl+Shift+U
+  ✓ shortcut CmdOrCtrl+O is declared on File › Open PGN… — CmdOrCtrl+O
+  ✓ shortcut CmdOrCtrl+Shift+O is declared on File › Open Database… — CmdOrCtrl+Shift+O
+  ✓ shortcut CmdOrCtrl+T is declared on File › New Tab — CmdOrCtrl+T
+  ✓ shortcut Cmd+W is declared on File › Close Tab — Cmd+W
+  ✓ close carries its standard shortcut Shift+Cmd+W — Shift+Cmd+W
+  ✓ minimize carries its standard shortcut CommandOrControl+M — CommandOrControl+M
+  ✓ togglefullscreen carries its standard shortcut Control+Command+F — Control+Command+F
+  ✓ hide carries its standard shortcut Command+H — Command+H
+  ✓ reload carries its standard shortcut CmdOrCtrl+R — CmdOrCtrl+R
+  ✓ quit carries its standard shortcut CommandOrControl+Q — CommandOrControl+Q
+  ✓ key Meta+k → Command palette (handled by the renderer)
+  ✓ key Meta+, → Settings (handled by the renderer)
+  ✓ no exception or renderer loss during the walk
+  ✓ nothing survives the quit — 5 descendants
+
+74/74 checks passed
+EXIT 0

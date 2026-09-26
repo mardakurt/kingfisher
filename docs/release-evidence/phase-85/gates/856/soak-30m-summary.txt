@@ -1,0 +1,55 @@
+
+> kingfisher@1.3.1 desktop:soak
+> node scripts/desktop-walk.mjs --packaged --duration=30m
+
+Kingfisher 1.3.1 (build 856, d04b206, stable) at /Users/metinardakurt/KingfisherWork/desktop-out/mac-arm64/Kingfisher.app/Contents/MacOS/Kingfisher
+profile /var/folders/fx/khlfy3hs5cl21g815s4fx0tr0000gn/T/kingfisher-walk-23046-reM0zq
+seed 23046 · 30 min
+
+  ·     0 2s  main 173 MB  renderer 270 MB  procs 4  engines 0  windows 1  profile 18 MB
+  ·    25 64s  main 161 MB  renderer 255 MB  procs 4  engines 0  windows 1  profile 93 MB
+  ·    50 116s  main 162 MB  renderer 266 MB  procs 4  engines 0  windows 1  profile 93 MB
+  ·    75 166s  main 162 MB  renderer 304 MB  procs 4  engines 0  windows 1  profile 94 MB
+  ·   100 226s  main 157 MB  renderer 371 MB  procs 4  engines 0  windows 1  profile 95 MB
+  ·   125 277s  main 120 MB  renderer 376 MB  procs 4  engines 0  windows 1  profile 96 MB
+  ·   150 387s  main 140 MB  renderer 307 MB  procs 4  engines 0  windows 1  profile 96 MB
+  ·   175 534s  main 135 MB  renderer 271 MB  procs 4  engines 0  windows 1  profile 96 MB
+  ·   200 645s  main 140 MB  renderer 238 MB  procs 4  engines 0  windows 1  profile 97 MB
+  ·   225 698s  main 144 MB  renderer 214 MB  procs 4  engines 0  windows 1  profile 98 MB
+  ·   250 842s  main 122 MB  renderer 129 MB  procs 4  engines 0  windows 1  profile 98 MB
+  ·   275 898s  main 138 MB  renderer 261 MB  procs 4  engines 0  windows 1  profile 98 MB
+  ·   300 947s  main 139 MB  renderer 295 MB  procs 4  engines 0  windows 1  profile 98 MB
+(You are currently running version 1.3.1.)"
+  ·   325 998s  main 128 MB  renderer 211 MB  procs 4  engines 0  windows 1  profile 98 MB
+(You are currently running version 1.3.1.)"
+  ·   350 1053s  main 134 MB  renderer 206 MB  procs 4  engines 0  windows 1  profile 98 MB
+  ·   375 1114s  main 137 MB  renderer 272 MB  procs 4  engines 0  windows 1  profile 99 MB
+  ·   400 1167s  main 141 MB  renderer 369 MB  procs 4  engines 0  windows 1  profile 99 MB
+(You are currently running version 1.3.1.)"
+(You are currently running version 1.3.1.)"
+  ·   425 1222s  main 141 MB  renderer 345 MB  procs 4  engines 0  windows 1  profile 99 MB
+  ·   450 1274s  main 127 MB  renderer 237 MB  procs 4  engines 0  windows 1  profile 95 MB
+  ·   475 1326s  main 137 MB  renderer 279 MB  procs 4  engines 0  windows 1  profile 96 MB
+(You are currently running version 1.3.1.)"
+  ·   500 1381s  main 152 MB  renderer 435 MB  procs 4  engines 0  windows 1  profile 96 MB
+(You are currently running version 1.3.1.)"
+  ·   525 1442s  main 141 MB  renderer 302 MB  procs 4  engines 0  windows 1  profile 98 MB
+(You are currently running version 1.3.1.)"
+  ·   550 1496s  main 144 MB  renderer 276 MB  procs 4  engines 0  windows 1  profile 98 MB
+  ·   575 1555s  main 132 MB  renderer 229 MB  procs 4  engines 0  windows 1  profile 98 MB
+(You are currently running version 1.3.1.)"
+(You are currently running version 1.3.1.)"
+  ·   600 1612s  main 144 MB  renderer 422 MB  procs 4  engines 0  windows 1  profile 98 MB
+(You are currently running version 1.3.1.)"
+  ·   625 1667s  main 157 MB  renderer 294 MB  procs 4  engines 0  windows 1  profile 98 MB
+  ·   650 1717s  main 146 MB  renderer 350 MB  procs 4  engines 0  windows 1  profile 98 MB
+  ·   675 1776s  main 134 MB  renderer 332 MB  procs 4  engines 0  windows 1  profile 99 MB
+(You are currently running version 1.3.1.)"
+  ·   686 1801s  main 146 MB  renderer 325 MB  procs 4  engines 0  windows 1  profile 99 MB
+
+seed 23046 · 686 actions · 1807 s
+main 173 → 146 MB · renderer 270 → 325 MB
+quit: 5 descendants, 0 survivors, 5687 ms
+console errors: 0 · findings: 0
+report /var/folders/fx/khlfy3hs5cl21g815s4fx0tr0000gn/T/kingfisher-walk-23046-1790421229835.json
+EXIT 0

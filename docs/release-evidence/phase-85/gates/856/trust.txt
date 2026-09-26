@@ -1,0 +1,97 @@
+✓ required executable Contents/MacOS/Kingfisher
+✓ required executable Contents/Frameworks/Electron Framework.framework
+✓ required executable Contents/Frameworks/Kingfisher Helper.app
+✓ required executable Contents/Frameworks/Kingfisher Helper (Renderer).app
+✓ required executable Contents/Frameworks/Kingfisher Helper (GPU).app
+✓ audited entitlements are readable
+✓ Kingfisher.app: Developer ID, same team, secure timestamp
+✓ Kingfisher.app: valid signature
+✓ Kingfisher.app: Hardened Runtime
+✓ Kingfisher.app: no unaudited entitlements
+✓ outer app matches audited entitlements
+✓ Contents/Frameworks/Electron Framework.framework: Developer ID, same team, secure timestamp
+✓ Contents/Frameworks/Electron Framework.framework: valid signature
+✓ Contents/Frameworks/Electron Framework.framework/Versions/A/Electron Framework: Developer ID, same team, secure timestamp
+✓ Contents/Frameworks/Electron Framework.framework/Versions/A/Electron Framework: valid signature
+✓ Contents/Frameworks/Electron Framework.framework/Versions/A/Helpers/chrome_crashpad_handler: Developer ID, same team, secure timestamp
+✓ Contents/Frameworks/Electron Framework.framework/Versions/A/Helpers/chrome_crashpad_handler: valid signature
+✓ Contents/Frameworks/Electron Framework.framework/Versions/A/Helpers/chrome_crashpad_handler: no unaudited entitlements
+✓ Contents/Frameworks/Electron Framework.framework/Versions/A/Libraries/libffmpeg.dylib: Developer ID, same team, secure timestamp
+✓ Contents/Frameworks/Electron Framework.framework/Versions/A/Libraries/libffmpeg.dylib: valid signature
+✓ Contents/Frameworks/Electron Framework.framework/Versions/A/Libraries/libvk_swiftshader.dylib: Developer ID, same team, secure timestamp
+✓ Contents/Frameworks/Electron Framework.framework/Versions/A/Libraries/libvk_swiftshader.dylib: valid signature
+✓ Contents/Frameworks/Kingfisher Helper (GPU).app: Developer ID, same team, secure timestamp
+✓ Contents/Frameworks/Kingfisher Helper (GPU).app: valid signature
+✓ Contents/Frameworks/Kingfisher Helper (GPU).app: Hardened Runtime
+✓ Contents/Frameworks/Kingfisher Helper (GPU).app: no unaudited entitlements
+✓ Contents/Frameworks/Kingfisher Helper (GPU).app/Contents/MacOS/Kingfisher Helper (GPU): Developer ID, same team, secure timestamp
+✓ Contents/Frameworks/Kingfisher Helper (GPU).app/Contents/MacOS/Kingfisher Helper (GPU): valid signature
+✓ Contents/Frameworks/Kingfisher Helper (GPU).app/Contents/MacOS/Kingfisher Helper (GPU): no unaudited entitlements
+✓ Contents/Frameworks/Kingfisher Helper (Plugin).app: Developer ID, same team, secure timestamp
+✓ Contents/Frameworks/Kingfisher Helper (Plugin).app: valid signature
+✓ Contents/Frameworks/Kingfisher Helper (Plugin).app: Hardened Runtime
+✓ Contents/Frameworks/Kingfisher Helper (Plugin).app: no unaudited entitlements
+✓ Contents/Frameworks/Kingfisher Helper (Plugin).app/Contents/MacOS/Kingfisher Helper (Plugin): Developer ID, same team, secure timestamp
+✓ Contents/Frameworks/Kingfisher Helper (Plugin).app/Contents/MacOS/Kingfisher Helper (Plugin): valid signature
+✓ Contents/Frameworks/Kingfisher Helper (Plugin).app/Contents/MacOS/Kingfisher Helper (Plugin): no unaudited entitlements
+✓ Contents/Frameworks/Kingfisher Helper (Renderer).app: Developer ID, same team, secure timestamp
+✓ Contents/Frameworks/Kingfisher Helper (Renderer).app: valid signature
+✓ Contents/Frameworks/Kingfisher Helper (Renderer).app: Hardened Runtime
+✓ Contents/Frameworks/Kingfisher Helper (Renderer).app: no unaudited entitlements
+✓ Contents/Frameworks/Kingfisher Helper (Renderer).app/Contents/MacOS/Kingfisher Helper (Renderer): Developer ID, same team, secure timestamp
+✓ Contents/Frameworks/Kingfisher Helper (Renderer).app/Contents/MacOS/Kingfisher Helper (Renderer): valid signature
+✓ Contents/Frameworks/Kingfisher Helper (Renderer).app/Contents/MacOS/Kingfisher Helper (Renderer): no unaudited entitlements
+✓ Contents/Frameworks/Kingfisher Helper.app: Developer ID, same team, secure timestamp
+✓ Contents/Frameworks/Kingfisher Helper.app: valid signature
+✓ Contents/Frameworks/Kingfisher Helper.app: Hardened Runtime
+✓ Contents/Frameworks/Kingfisher Helper.app: no unaudited entitlements
+✓ Contents/Frameworks/Kingfisher Helper.app/Contents/MacOS/Kingfisher Helper: Developer ID, same team, secure timestamp
+✓ Contents/Frameworks/Kingfisher Helper.app/Contents/MacOS/Kingfisher Helper: valid signature
+✓ Contents/Frameworks/Kingfisher Helper.app/Contents/MacOS/Kingfisher Helper: no unaudited entitlements
+✓ Contents/Frameworks/Mantle.framework: Developer ID, same team, secure timestamp
+✓ Contents/Frameworks/Mantle.framework: valid signature
+✓ Contents/Frameworks/Mantle.framework/Versions/A/Mantle: Developer ID, same team, secure timestamp
+✓ Contents/Frameworks/Mantle.framework/Versions/A/Mantle: valid signature
+✓ Contents/Frameworks/ReactiveObjC.framework: Developer ID, same team, secure timestamp
+✓ Contents/Frameworks/ReactiveObjC.framework: valid signature
+✓ Contents/Frameworks/ReactiveObjC.framework/Versions/A/ReactiveObjC: Developer ID, same team, secure timestamp
+✓ Contents/Frameworks/ReactiveObjC.framework/Versions/A/ReactiveObjC: valid signature
+✓ Contents/Frameworks/Sparkle.framework: Developer ID, same team, secure timestamp
+✓ Contents/Frameworks/Sparkle.framework: valid signature
+✓ Contents/Frameworks/Sparkle.framework/Versions/B/Autoupdate: Developer ID, same team, secure timestamp
+✓ Contents/Frameworks/Sparkle.framework/Versions/B/Autoupdate: valid signature
+✓ Contents/Frameworks/Sparkle.framework/Versions/B/Autoupdate: no unaudited entitlements
+✓ Contents/Frameworks/Sparkle.framework/Versions/B/Sparkle: Developer ID, same team, secure timestamp
+✓ Contents/Frameworks/Sparkle.framework/Versions/B/Sparkle: valid signature
+✓ Contents/Frameworks/Sparkle.framework/Versions/B/Updater.app: Developer ID, same team, secure timestamp
+✓ Contents/Frameworks/Sparkle.framework/Versions/B/Updater.app: valid signature
+✓ Contents/Frameworks/Sparkle.framework/Versions/B/Updater.app: Hardened Runtime
+✓ Contents/Frameworks/Sparkle.framework/Versions/B/Updater.app: no unaudited entitlements
+✓ Contents/Frameworks/Sparkle.framework/Versions/B/Updater.app/Contents/MacOS/Updater: Developer ID, same team, secure timestamp
+✓ Contents/Frameworks/Sparkle.framework/Versions/B/Updater.app/Contents/MacOS/Updater: valid signature
+✓ Contents/Frameworks/Sparkle.framework/Versions/B/Updater.app/Contents/MacOS/Updater: no unaudited entitlements
+✓ Contents/Frameworks/Squirrel.framework: Developer ID, same team, secure timestamp
+✓ Contents/Frameworks/Squirrel.framework: valid signature
+✓ Contents/Frameworks/Squirrel.framework/Versions/A/Resources/ShipIt: Developer ID, same team, secure timestamp
+✓ Contents/Frameworks/Squirrel.framework/Versions/A/Resources/ShipIt: valid signature
+✓ Contents/Frameworks/Squirrel.framework/Versions/A/Resources/ShipIt: no unaudited entitlements
+✓ Contents/Frameworks/Squirrel.framework/Versions/A/Squirrel: Developer ID, same team, secure timestamp
+✓ Contents/Frameworks/Squirrel.framework/Versions/A/Squirrel: valid signature
+✓ Contents/MacOS/Kingfisher: Developer ID, same team, secure timestamp
+✓ Contents/MacOS/Kingfisher: valid signature
+✓ Contents/MacOS/Kingfisher: no unaudited entitlements
+✓ Contents/Resources/app.asar.unpacked/native/sparkle/build/kingfisher-sparkle.node: Developer ID, same team, secure timestamp
+✓ Contents/Resources/app.asar.unpacked/native/sparkle/build/kingfisher-sparkle.node: valid signature
+✓ Contents/Resources/kingfisher/engines/tablebase/kingfisher-tbprobe: Developer ID, same team, secure timestamp
+✓ Contents/Resources/kingfisher/engines/tablebase/kingfisher-tbprobe: valid signature
+✓ Contents/Resources/kingfisher/engines/tablebase/kingfisher-tbprobe: no unaudited entitlements
+✓ complete sealed bundle verifies
+Signature verification: PASS (29 code objects)
+✓ stapled ticket validates
+✓ Gatekeeper accepts as Notarized Developer ID
+This assessment does not assert an offline or quarantined GUI launch.
+✓ stapled ticket validates
+✓ Gatekeeper accepts as Notarized Developer ID
+This assessment does not assert an offline or quarantined GUI launch.
+Trust gate: GREEN
+EXIT 0

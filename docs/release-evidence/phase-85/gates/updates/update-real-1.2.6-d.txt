@@ -1,0 +1,40 @@
+Kingfisher real update
+current  1.2.6 (build 714, Sparkle) at /var/folders/fx/khlfy3hs5cl21g815s4fx0tr0000gn/T/kingfisher-update-install-pEW613/Kingfisher.app
+next     1.3.0 (build 846) from Kingfisher-1.3.0-arm64.zip
+profile  /var/folders/fx/khlfy3hs5cl21g815s4fx0tr0000gn/T/kingfisher-update-profile-sMX05o
+
+  ✓ the public feed answers with the next version — https://github.com/mardakurt/kingfisher/releases/latest/download/appcast.xml
+  ✓ a study was authored in the current build
+  ✓ Check for Updates… exists in the application menu
+  ✓ Sparkle offers 1.3.0 (the application's verdict; the window was not readable) — {"status":"available","currentVersion":"1.2.6","latestVersion":"1.3.0","latestBuild":"846","releaseDate":"Sat, 26 Sep 2026 08:52:08 +0300","sizeBytes":191721315,"releaseName":"1.3.0","releaseNotesUrl":null}
+  · not verified: the offer's wording and Skip This Version (Accessibility could not read the window)
+  ✓ Install Update was chosen (Return on the offer) — downloading
+  ✓ Sparkle downloaded and verified the update, and offered Install and Relaunch — ready
+  ✗ the application quit to install — Install Update (Return) → Install and Relaunch (Return)
+  ✗ the installed bundle is now 1.3.0 — 1.2.6 (build 714)
+  ✓ the replaced bundle carries a Developer ID signature
+  ✓ the replaced bundle verifies (--deep --strict)
+  ✓ the replaced bundle carries Sparkle
+  ✓ the update engine relaunched Kingfisher — pid 21564
+  ✗ the relaunched 1.3.0 opened the test profile, not the default one — default profile log unchanged
+  ✓ the relaunched build started Sparkle
+  ✓ the reopened 1.3.0 reports its version
+  ✓ the post-update notice is shown
+  ✓ the study authored before the update is still there
+  ✓ nothing survives the quit — 5 descendants
+
+--- shell log, update lines ---
+2026-09-26T08:27:08.572Z [launch] Kingfisher 1.2.6 (build 714, 6281e03, stable) · Electron 44.2.0 · darwin-arm64 27.0.0 · packaged=true
+2026-09-26T08:27:08.618Z [update] Sparkle 2.10.0 started · feed https://github.com/mardakurt/kingfisher/releases/latest/download/appcast.xml
+2026-09-26T08:27:14.010Z [update] quiet check at launch requested
+2026-09-26T08:27:14.337Z [update] update found: 1.3.0 (build 846) — quiet check, menu relabelled
+2026-09-26T08:27:14.340Z [update] update cycle finished (information)
+2026-09-26T08:27:15.881Z [update] update found: 1.3.0 (build 846)
+2026-09-26T08:28:49.610Z [update] person chose install (not-downloaded)
+2026-09-26T08:33:20.558Z [launch] Kingfisher 1.3.0 (build 846, 52cfcee, stable) · Electron 44.2.0 · darwin-arm64 27.0.0 · packaged=true
+2026-09-26T08:33:20.601Z [update] Sparkle 2.10.0 started · feed https://github.com/mardakurt/kingfisher/releases/latest/download/appcast.xml
+2026-09-26T08:33:25.989Z [update] quiet check at launch requested
+2026-09-26T08:33:26.646Z [update] no update: on the latest version
+2026-09-26T08:33:26.649Z [update] update cycle finished (information): You’re up to date!
+
+Real update: FAILED

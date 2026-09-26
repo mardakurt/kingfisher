@@ -1,0 +1,32 @@
+
+> kingfisher@1.3.1 desktop:engine-chaos
+> node scripts/desktop-engine-chaos.mjs --packaged
+
+Kingfisher engine chaos · /Users/metinardakurt/KingfisherWork/desktop-out/mac-arm64/Kingfisher.app/Contents/MacOS/Kingfisher
+companion http://127.0.0.1:61450 · 0 engine process(es) already on the machine
+
+  ✓ stockfish-native installs and verifies — Stockfish 19
+  ✓ stormphrax installs and verifies — Stormphrax 8.0.0
+  · 25 cycles, 25 answered, 0 leaked
+  · 50 cycles, 50 answered, 0 leaked
+  · 75 cycles, 75 answered, 0 leaked
+  · 100 cycles, 100 answered, 0 leaked
+  ✓ 100 start/search/stop cycles leak no engine process — 100/100 answered, 61 s
+  ✓ a native engine is searching before SIGTERM — stockfish-macos-universal 21943
+  ✓ the session reports the SIGTERM death on its stream — an #exit/#error line arrived
+  ✓ no orphan after SIGTERM — none
+  ✓ a new session answers after SIGTERM — a1b2
+  ✓ nothing left after the SIGTERM exercise — 0 process(es)
+  ✓ a native engine is searching before SIGKILL — stockfish-macos-universal 22062
+  ✓ the session reports the SIGKILL death on its stream — an #exit/#error line arrived
+  ✓ no orphan after SIGKILL — none
+  ✓ a new session answers after SIGKILL — a1b2
+  ✓ nothing left after the SIGKILL exercise — 0 process(es)
+  ✓ every answer belongs to the position its search was for, across two engines and twelve rapid switches — 12/12
+  ✓ engine 1 restarts while engine 2 is still running
+  ✓ both engines gone after both stops — 0 process(es)
+  ✓ the renderer still shows a board after the chaos — 1 board(s), 1431 chars
+  ✓ nothing survives the quit — 5 descendants, 5786 ms
+
+18/18 checks passed
+EXIT 0

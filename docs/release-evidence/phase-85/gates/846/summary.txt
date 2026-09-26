@@ -1,0 +1,17 @@
+▶ menus 09:08
+  menus EXIT 0 09:09
+▶ engine-chaos 09:09
+  engine-chaos EXIT 0 09:11
+▶ walk-46-1000 09:11
+  walk-46-1000 EXIT 0 09:31
+▶ walk-7-faults 09:31
+  walk-7-faults EXIT 0 09:38
+▶ soak-leaks 09:38
+  soak-leaks EXIT 0 09:42
+▶ upgrade 09:42
+  upgrade EXIT 0 09:42
+▶ soak-30m 09:42
+  soak-30m EXIT 1 10:12
+▶ verify-dmg 10:12
+  verify-dmg EXIT 0 10:12
+ALLDONE

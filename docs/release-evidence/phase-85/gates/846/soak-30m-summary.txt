@@ -1,0 +1,43 @@
+
+> kingfisher@1.3.0 desktop:soak
+> node scripts/desktop-walk.mjs --packaged --duration=30m
+
+Kingfisher 1.3.0 (build 846, 52cfcee, stable) at /Users/metinardakurt/KingfisherWork/desktop-out/mac-arm64/Kingfisher.app/Contents/MacOS/Kingfisher
+profile /var/folders/fx/khlfy3hs5cl21g815s4fx0tr0000gn/T/kingfisher-walk-55806-9NQxd1
+seed 55806 · 30 min
+
+  ·     0 1s  main 185 MB  renderer 204 MB  procs 4  engines 0  windows 1  profile 6 MB
+  ·    25 54s  main 219 MB  renderer 469 MB  procs 4  engines 0  windows 1  profile 87 MB
+  ·    50 109s  main 225 MB  renderer 378 MB  procs 4  engines 0  windows 1  profile 88 MB
+  ·    75 208s  main 238 MB  renderer 337 MB  procs 4  engines 0  windows 1  profile 89 MB
+  ·   100 320s  main 244 MB  renderer 282 MB  procs 4  engines 0  windows 1  profile 95 MB
+  ·   125 472s  main 245 MB  renderer 352 MB  procs 4  engines 0  windows 1  profile 96 MB
+  ·   150 521s  main 253 MB  renderer 476 MB  procs 4  engines 0  windows 1  profile 96 MB
+  ·   175 676s  main 256 MB  renderer 476 MB  procs 4  engines 0  windows 1  profile 96 MB
+  ·   200 727s  main 256 MB  renderer 447 MB  procs 4  engines 0  windows 1  profile 98 MB
+  ·   225 784s  main 210 MB  renderer 289 MB  procs 4  engines 0  windows 1  profile 98 MB
+  ·   250 832s  main 215 MB  renderer 338 MB  procs 4  engines 0  windows 1  profile 98 MB
+  ·   275 885s  main 220 MB  renderer 341 MB  procs 4  engines 0  windows 1  profile 99 MB
+      ✗ action-threw: locator.click: Timeout 8000ms exceeded.
+  ·   300 950s  main 221 MB  renderer 388 MB  procs 4  engines 0  windows 1  profile 99 MB
+  ·   325 1014s  main 222 MB  renderer 577 MB  procs 4  engines 0  windows 1  profile 99 MB
+  ·   350 1071s  main 223 MB  renderer 370 MB  procs 4  engines 0  windows 1  profile 99 MB
+  ·   375 1122s  main 230 MB  renderer 451 MB  procs 4  engines 0  windows 1  profile 99 MB
+  ·   400 1231s  main 232 MB  renderer 375 MB  procs 4  engines 0  windows 1  profile 99 MB
+  ·   425 1333s  main 237 MB  renderer 520 MB  procs 4  engines 0  windows 1  profile 95 MB
+  ·   450 1438s  main 239 MB  renderer 318 MB  procs 4  engines 0  windows 1  profile 96 MB
+  ·   475 1536s  main 240 MB  renderer 395 MB  procs 4  engines 0  windows 1  profile 96 MB
+  ·   500 1637s  main 231 MB  renderer 393 MB  procs 4  engines 0  windows 1  profile 97 MB
+  ·   525 1694s  main 232 MB  renderer 437 MB  procs 4  engines 0  windows 1  profile 97 MB
+  ·   548 1801s  main 234 MB  renderer 394 MB  procs 4  engines 0  windows 1  profile 98 MB
+
+seed 55806 · 548 actions · 1806 s
+main 185 → 234 MB · renderer 204 → 394 MB
+quit: 5 descendants, 0 survivors, 5648 ms
+console errors: 0 · findings: 1
+  ✗ step 282 move: action-threw — locator.click: Timeout 8000ms exceeded.
+report /var/folders/fx/khlfy3hs5cl21g815s4fx0tr0000gn/T/kingfisher-walk-55806-1790406762029.json
+
+reproduce: node scripts/desktop-walk.mjs --packaged --seed=55806 --actions=548
+profile kept for reproduction: /var/folders/fx/khlfy3hs5cl21g815s4fx0tr0000gn/T/kingfisher-walk-55806-9NQxd1
+EXIT 1
