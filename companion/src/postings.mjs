@@ -48,6 +48,21 @@ export const HOT_GAMES = 64;
 /** Filtered-cell caches kept at once, as for the text schema's filter cache. */
 const FILTER_CACHE_POSITIONS = 128;
 
+/*
+  A bulk load writes postings in import order, which is random in the hash.
+  Inserting them straight into a clustered tree larger than memory — 700
+  million rows at ten million games, on a machine with 18 GB — is a random
+  read and write per row. So a bulk load appends them to 64 staging tables,
+  one per range of the hash's top six bits, and `finishBulk` sorts each range
+  into `postings` in ascending order and drops it: the tree is written once,
+  densely, in key order, and each dropped range's pages are reused by the next,
+  so the file never holds much more than the index plus one range.
+*/
+export const STAGE_PARTITIONS = 64;
+const stageTable = (index) => `posting_stage_${String(index).padStart(2, '0')}`;
+/** Signed 64-bit hash to its partition, in ascending signed order. */
+export const partitionOf = (pos) => Number((BigInt(pos) >> 58n) + 32n);
+
 export const POSTINGS_TABLES = `
 CREATE TABLE IF NOT EXISTS postings (
   pos  INTEGER NOT NULL,
@@ -179,12 +194,83 @@ export const readLayout = (db) => {
 export class PostingIndex {
   #db;
   #moveSan;
+  #sanMap;
+  /** UCI → SAN per position, most recent last; see `#san`. */
+  #sanCache = new Map();
   #statements = new Map();
+  #bulk = false;
 
-  constructor(db, { moveSan } = {}) {
+  constructor(db, { moveSan, sanMap } = {}) {
     this.#db = db;
     this.#moveSan = moveSan ?? null;
+    this.#sanMap = sanMap ?? null;
     db.exec(POSTINGS_TABLES);
+    /*
+      An interrupted bulk load leaves postings staged, and a staged posting is
+      invisible to every query. Finishing the merge is the resumption of that
+      load, so it happens here rather than leaving the explorer to answer from
+      part of the collection.
+    */
+    if (this.#stagedTables().length > 0) {
+      this.finishBulk();
+      db.exec('BEGIN');
+      try {
+        this.rebuildHot();
+        db.exec('COMMIT');
+      } catch (error) {
+        db.exec('ROLLBACK');
+        throw error;
+      }
+    }
+  }
+
+  #stagedTables() {
+    return this.#db
+      .prepare(
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name LIKE 'posting\\_stage\\_%' ESCAPE '\\' ORDER BY name",
+      )
+      .all()
+      .map((row) => row.name);
+  }
+
+  /** Stage postings instead of inserting them; see `STAGE_PARTITIONS`. */
+  beginBulk() {
+    for (let index = 0; index < STAGE_PARTITIONS; index += 1) {
+      this.#db.exec(
+        `CREATE TABLE IF NOT EXISTS ${stageTable(index)} (
+           pos INTEGER NOT NULL, game INTEGER NOT NULL, ply INTEGER NOT NULL, move INTEGER NOT NULL
+         )`,
+      );
+    }
+    this.#bulk = true;
+  }
+
+  /**
+   * Sort every staged range into `postings`, in ascending order, one range
+   * per transaction so an interruption resumes at the next range. The caller
+   * rebuilds the hot aggregates afterwards (`GameDatabase.endBulk`).
+   */
+  finishBulk({ onProgress = null } = {}) {
+    this.#bulk = false;
+    const tables = this.#stagedTables();
+    const outer = this.#db.isTransaction;
+    tables.forEach((table, index) => {
+      if (!outer) this.#db.exec('BEGIN');
+      try {
+        this.#db.exec(`
+          INSERT OR IGNORE INTO postings (pos, game, ply, move)
+          SELECT pos, game, ply, move FROM ${table} ORDER BY pos, game, ply;
+          DROP TABLE ${table};
+        `);
+        if (!outer) this.#db.exec('COMMIT');
+      } catch (error) {
+        if (!outer) this.#db.exec('ROLLBACK');
+        throw error;
+      }
+      onProgress?.({ merged: index + 1, total: tables.length });
+    });
+    this.#statements.clear();
+    return tables.length;
   }
 
   /**
@@ -192,15 +278,15 @@ export class PostingIndex {
    * collection use it. A collection that already holds games in the row
    * layout is never switched here: that is `migrateToPostings`.
    */
-  static open(db, { create = false, moveSan } = {}) {
-    if (readLayout(db) === POSTINGS_LAYOUT) return new PostingIndex(db, { moveSan });
+  static open(db, { create = false, moveSan, sanMap } = {}) {
+    if (readLayout(db) === POSTINGS_LAYOUT) return new PostingIndex(db, { moveSan, sanMap });
     if (!create) return null;
     if (db.prepare('SELECT 1 FROM games LIMIT 1').get()) {
       throw new Error(
         'This collection already holds games in the row layout; convert it rather than switching it.',
       );
     }
-    const index = new PostingIndex(db, { moveSan });
+    const index = new PostingIndex(db, { moveSan, sanMap });
     db.prepare('INSERT OR REPLACE INTO schema_state (key, value) VALUES (?, ?)').run(
       LAYOUT_KEY,
       POSTINGS_LAYOUT,
@@ -208,8 +294,10 @@ export class PostingIndex {
     return index;
   }
 
-  setMoveSan(moveSan) {
+  setMoveSan(moveSan, sanMap = null) {
     this.#moveSan = moveSan;
+    this.#sanMap = sanMap;
+    this.#sanCache.clear();
   }
 
   #prepare(sql) {
@@ -221,7 +309,27 @@ export class PostingIndex {
     return statement;
   }
 
+  /*
+    SAN through the rules code. With the kit's `sanMap`, one move generation
+    per position serves every move of it, and the last 1,024 positions are
+    kept, so a board walked back and forth does not regenerate. The map holds
+    only legal moves, so a move absent from it is exactly a move the rules
+    reject — the same `null` `moveSan` gives.
+  */
   #san(positionKey, uci) {
+    if (this.#sanMap) {
+      let map = this.#sanCache.get(positionKey);
+      if (map) {
+        this.#sanCache.delete(positionKey);
+      } else {
+        map = this.#sanMap(positionKey);
+        if (this.#sanCache.size >= 1024) {
+          this.#sanCache.delete(this.#sanCache.keys().next().value);
+        }
+      }
+      this.#sanCache.set(positionKey, map);
+      return map.get(uci) ?? null;
+    }
     if (!this.#moveSan) {
       throw new Error(
         'This collection keeps the compact position index, which reads moves through the ' +
@@ -241,9 +349,17 @@ export class PostingIndex {
    * them once at its end.
    */
   add(gameId, positions, game, { maintain = true } = {}) {
-    const insert = this.#prepare(
+    const insertPosting = this.#prepare(
       'INSERT OR IGNORE INTO postings (pos, game, ply, move) VALUES (?, ?, ?, ?)',
     );
+    const insert = this.#bulk
+      ? {
+          run: (pos, ...rest) =>
+            this.#prepare(
+              `INSERT INTO ${stageTable(partitionOf(pos))} (pos, game, ply, move) VALUES (?, ?, ?, ?)`,
+            ).run(pos, ...rest),
+        }
+      : insertPosting;
     const entries = [];
     const touched = new Set();
     for (const position of positions) {

@@ -419,6 +419,7 @@ export class GameDatabase {
     this.#postings = PostingIndex.open(this.#db, {
       create: options.layout === POSTINGS_LAYOUT,
       moveSan: this.#kit?.moveSan,
+      sanMap: this.#kit?.sanMap,
     });
     const hasAggregates = this.#db.prepare('SELECT 1 FROM position_aggregates LIMIT 1').get();
     if (!hasAggregates && this.#db.prepare('SELECT 1 FROM positions LIMIT 1').get())
@@ -434,7 +435,7 @@ export class GameDatabase {
   /** Hand the import kit to a collection opened before it was loaded. */
   useKit(kit) {
     this.#kit = kit;
-    this.#postings?.setMoveSan(kit?.moveSan);
+    this.#postings?.setMoveSan(kit?.moveSan, kit?.sanMap);
   }
 
   #requireKit(what) {
@@ -466,7 +467,10 @@ export class GameDatabase {
     if (this.#postings) return { converted: 0, alreadyDone: true };
     if (this.#bulk) throw new Error('A bulk load is running; convert after it ends.');
     const result = migrateToPostings(this.#db, options);
-    this.#postings = PostingIndex.open(this.#db, { moveSan: this.#kit?.moveSan });
+    this.#postings = PostingIndex.open(this.#db, {
+      moveSan: this.#kit?.moveSan,
+      sanMap: this.#kit?.sanMap,
+    });
     return result;
   }
 
@@ -928,6 +932,7 @@ export class GameDatabase {
       BEGIN;
     `);
     this.#bulkPending = 0;
+    this.#postings?.beginBulk();
     // A profile of a million-game load spent 72% of the writer's time in
     // SQLite's automatic checkpoint, copying the log into the file every
     // thousand pages: the same interior and intern-index pages, over and over.
@@ -950,6 +955,8 @@ export class GameDatabase {
     this.#db.exec(SCHEMA);
     this.#ensurePositionIndexes();
     if (this.#claimIndexReady) this.#db.exec(CLAIM_INDEX_INDEXES);
+    // The posting layout's staged ranges, sorted into the index (postings.mjs).
+    this.#postings?.finishBulk();
     this.rebuildAggregates();
     this.checkpoint();
   }

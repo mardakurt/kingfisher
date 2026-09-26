@@ -40,6 +40,7 @@ export interface DuplicateKeyRow {
 /** The rules code a posting-layout collection reads moves through (the import kit). */
 export interface GameDatabaseKit {
   moveSan(positionKey: string, uci: string): string | null;
+  sanMap(positionKey: string): Map<string, string>;
   preparePgnBatch(
     text: string,
     openings: unknown,

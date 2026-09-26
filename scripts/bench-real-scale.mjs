@@ -50,6 +50,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { Worker } from 'node:worker_threads';
 
 import { GameDatabase } from '../companion/src/database.mjs';
+import { loadKit } from '../companion/src/import-jobs.mjs';
 
 import { closeApp, loadApp } from './load-app.mjs';
 import { readGameTexts } from './reference/pgn-stream.mjs';
@@ -82,6 +83,7 @@ function parseArgs(list) {
     positions: true,
     workers: 1,
     bulk: false,
+    layout: 'rows',
   };
   for (let i = 0; i < list.length; i += 1) {
     const flag = list[i];
@@ -96,6 +98,8 @@ function parseArgs(list) {
     else if (flag === '--no-positions') args.positions = false;
     else if (flag === '--workers') args.workers = Number(list[++i]);
     else if (flag === '--bulk') args.bulk = true;
+    // Phase 86: the compact posting layout (companion/src/postings.mjs).
+    else if (flag === '--layout') args.layout = list[++i];
   }
   return args;
 }
@@ -584,7 +588,7 @@ async function main() {
   console.log(`node ${process.version} · ${process.platform}-${process.arch}`);
 
   if (args.queryOnly) {
-    const database = new GameDatabase(args.queryOnly);
+    const database = new GameDatabase(args.queryOnly, { kit: await loadKit() });
     console.log(`\nquerying ${args.queryOnly}`);
     console.log(`games on disk: ${n(database.count())}`);
     console.log(`file size:     ${gb(statSync(args.queryOnly).size)}\n`);
@@ -600,7 +604,11 @@ async function main() {
   const file = path.join(directory, 'real.sqlite');
   console.log(`database: ${file}\n`);
 
-  const database = new GameDatabase(file);
+  const database =
+    args.layout === 'postings'
+      ? new GameDatabase(file, { layout: 'postings', kit: await loadKit() })
+      : new GameDatabase(file);
+  console.log(`layout: ${database.layout}`);
   if (args.bulk) database.beginBulk();
   const stats =
     args.workers > 1 && args.archives.length > 0

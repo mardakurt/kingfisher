@@ -55,7 +55,7 @@ export async function ensureKit() {
 export async function loadKit() {
   const file = await ensureKit();
   let kit = await import(pathToFileURL(file).href);
-  if (typeof kit.moveSan === 'function') return kit;
+  if (typeof kit.moveSan === 'function' && typeof kit.sanMap === 'function') return kit;
   const builder = path.join(HERE, '..', '..', 'scripts', 'build-companion-kit.mjs');
   if (!existsSync(builder)) {
     throw new Error("This companion's import kit is out of date: it cannot read compact indexes.");
@@ -63,7 +63,7 @@ export async function loadKit() {
   const { buildCompanionKit } = await import(pathToFileURL(builder).href);
   await buildCompanionKit(file);
   kit = await import(`${pathToFileURL(file).href}?built=${Date.now()}`);
-  if (typeof kit.moveSan !== 'function') throw new Error('The rebuilt import kit lacks moveSan.');
+  if (typeof kit.sanMap !== 'function') throw new Error('The rebuilt import kit lacks sanMap.');
   return kit;
 }
 

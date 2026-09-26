@@ -317,6 +317,31 @@ describe('the posting layout', { timeout: 120_000 }, () => {
     bulk.close();
   });
 
+  it('finishes an interrupted bulk load when the collection is next opened', () => {
+    const file = path.join(directory, 'interrupted.sqlite');
+    const reference = new GameDatabase(path.join(directory, 'interrupted-rows.sqlite'));
+    const part = ALL.slice(0, 120);
+    reference.insertGames(part);
+    const bulk = new GameDatabase(file, { layout: 'postings', kit });
+    bulk.beginBulk();
+    bulk.insertGames(part);
+    bulk.checkpoint(); // committed, staged, never merged
+    bulk.close();
+    const staged = new DatabaseSync(file, { readOnly: true });
+    const stagedRows = staged
+      .prepare(
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name LIKE 'posting_stage_%'",
+      )
+      .all();
+    expect(stagedRows.length).toBeGreaterThan(0);
+    staged.close();
+    const reopened = new GameDatabase(file, { kit });
+    const keys = distinctKeys(path.join(directory, 'interrupted-rows.sqlite'));
+    expect(firstDifference(reference, reopened, keys)).toBeNull();
+    reopened.close();
+    reference.close();
+  });
+
   it('converts a row-layout collection in place, and then answers the same', () => {
     const copy = path.join(directory, 'converted.sqlite');
     rows.checkpoint();
