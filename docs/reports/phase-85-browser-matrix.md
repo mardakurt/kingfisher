@@ -1,0 +1,44 @@
+# Phase 85 — the Firefox and WebKit matrix, filed
+
+_2026-09-26, on the maintainer's Mac. `npm run test:e2e:matrix`
+(`KF_E2E_MATRIX=1`), four projects: Chrome, Playwright's Chromium, Firefox,
+WebKit. The brief (Part B.4): run it once, fix or file every failure._
+
+## The run
+
+**1,419 of 1,492 passed; Chrome passed everything.** An earlier attempt was
+void: the project's Playwright wanted Chromium build 1243 and the cache held
+1228, so every Chromium test failed to launch; the browsers were installed
+and the run repeated. It ran beside the 10M import, so the 22 functional
+failures were re-run alone on a quiet machine (`--last-failed`): 19 remained.
+
+## Fixed
+
+| Failures                                         | Cause                                                                                                                                    | Fix                                                                                       |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| 51 visual, Chromium/Firefox/WebKit               | Baselines from before the Studio redesign, never regenerated                                                                             | Regenerated; each within 0.4–4.7% of the inspected Chrome image (`0ca4c59`)               |
+| Firefox: team, study chapter, reload (hydration) | **Application defect.** Firefox restores a button's `disabled` across a reload before React hydrates; React does not patch the attribute | `autocomplete="off"` on `Button` and `IconButton` (`bb7419b`)                             |
+| WebKit: 7 specs ("due to access control checks") | The specs collected page errors without `isNavigationAbortNoise`; WebKit reports a fetch cancelled by navigation that way                | The specs use the filter; phase7's own reload handler knows the pack manifest (`bb7419b`) |
+| Firefox + WebKit: window-chrome drag region (4)  | The test read `-webkit-app-region`, which only Chromium implements                                                                       | Asserted absent where `CSS.supports` says so; geometry still asserted; not skipped        |
+| Firefox + WebKit: team clipboard (2)             | Chromium-only clipboard permissions                                                                                                      | A recording clipboard where the engine has none; the copied PGN is still asserted         |
+| Firefox: font download `status=2152398850`       | 0x804B0002 is `NS_BINDING_ABORTED`, spelled as a number                                                                                  | Recognised by the same filter                                                             |
+
+After the fixes the nine affected specs pass on all four engines, and the
+team spec passes on each.
+
+## Filed — open
+
+Each was reproduced alone on a quiet machine; none fails in Chrome.
+
+| Engine  | Spec                                                    | What happens                                                                       | Suspected cause                                                                                           |
+| ------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| WebKit  | `accessibility.spec.ts:307` database screen by keyboard | The "My games" heading is not visible after the keyboard route                     | WebKit's Tab order skips links by default (Safari's "Press Tab to highlight")                             |
+| WebKit  | `coverage.spec.ts:14`                                   | The dock's Coverage text is not what the spec expects                              | Not yet investigated                                                                                      |
+| WebKit  | `library-databases.spec.ts:18`                          | The Library shows "No games imported" instead of the companion database's games    | The database picker's selection not applied in WebKit; also once in Chromium under load — possibly a race |
+| Firefox | `workspace-tabs.spec.ts:68`                             | `page.reload: NS_BINDING_ABORTED`                                                  | Firefox aborts a reload issued while a navigation is settling; a harness habit                            |
+| Firefox | `reliability.spec.ts:319` (intermittent)                | Two console warnings: a font preloaded by Next was "not used within a few seconds" | A Firefox performance advisory; passed in the full matrix, failed once alone                              |
+
+None of these is known to affect a user of the application in Chrome or in
+the Mac application (Electron, Chromium); the WebKit keyboard case would
+affect a Safari user who relies on Tab to reach links, and is the one to
+look at first.
