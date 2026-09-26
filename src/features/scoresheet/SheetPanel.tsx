@@ -29,7 +29,7 @@ const HEADER_FIELDS: readonly { key: string; label: string; placeholder: string 
   { key: 'Black', label: 'Black', placeholder: 'Surname, Forename' },
   { key: 'Event', label: 'Event', placeholder: 'Club championship' },
   { key: 'Round', label: 'Round', placeholder: '3' },
-  { key: 'Date', label: 'Date', placeholder: '2026.09.21' },
+  { key: 'Date', label: 'Date', placeholder: 'YYYY.MM.DD' },
 ];
 
 const RESULTS = ['*', '1-0', '1/2-1/2', '0-1'] as const;
@@ -436,7 +436,9 @@ export function SheetPanel() {
 
       <section className="p-2" data-testid="sheet-details">
         <h2 className="mb-1 text-[10px] font-semibold text-tertiary">The game</h2>
-        <div className="grid grid-cols-2 gap-1">
+        {/* One column in a narrow rail, two where they fit: a name cut to
+            "Surname, Forena" is a name nobody can check before saving. */}
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(118px,1fr))] gap-1">
           {HEADER_FIELDS.map((field) => (
             <label key={field.key} className="text-2xs text-tertiary">
               {field.label}
@@ -465,23 +467,33 @@ export function SheetPanel() {
             </select>
           </label>
         </div>
-        <div className="mt-2 flex flex-wrap gap-2">
+        {/* Full width and stacked: side by side, the second label ran past
+            the rail's edge on a laptop and was clipped. */}
+        <div className="mt-2 flex flex-col gap-1.5">
           <Button
-            disabled={plyCount === 0 || saving || Boolean(gap)}
-            onClick={() => void save(false)}
-          >
-            Save to My games
-          </Button>
-          <Button
+            size="sm"
             variant="accent"
+            className="w-full"
             disabled={plyCount === 0 || saving || Boolean(gap)}
             onClick={() => void save(true)}
           >
             Save and start After the round
           </Button>
+          <Button
+            size="sm"
+            className="w-full"
+            disabled={plyCount === 0 || saving || Boolean(gap)}
+            onClick={() => void save(false)}
+          >
+            Save to My games
+          </Button>
         </div>
         {gap ? (
           <p className="mt-1 text-2xs text-caution">Fill the open gap before saving.</p>
+        ) : plyCount === 0 ? (
+          <p className="mt-1 text-2xs text-tertiary" data-sheet-save-hint>
+            Nothing to save yet: enter the moves first.
+          </p>
         ) : null}
       </section>
     </div>

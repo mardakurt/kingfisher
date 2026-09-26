@@ -313,6 +313,15 @@ test('a coach and a student hand work to each other through packets', async ({
     );
   }
 
+  // A note being written survives a reload until it is sent (Phase 86: it was
+  // component state, and a reload or another page emptied the box).
+  await thread(coach).getByRole('textbox', { name: 'Note' }).fill('Half a review, then a reload.');
+  await coach.reload();
+  await expect(thread(coach).getByRole('textbox', { name: 'Note' })).toHaveValue(
+    'Half a review, then a reload.',
+    { timeout: 15_000 },
+  );
+
   // A text-only note must not silently attach the currently loaded preparation.
   await thread(coach).getByRole('textbox', { name: 'Note' }).fill('Discuss the plan next lesson.');
   await thread(coach).getByRole('button', { name: 'Add a note' }).click();

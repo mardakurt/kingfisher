@@ -15,6 +15,7 @@
  * your device (`docs/design/team-hub.md`).
  */
 
+import { readNoteDrafts, writeNoteDrafts } from './note-drafts';
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
@@ -103,7 +104,9 @@ export function TeamWorkspace() {
   const [inboxView, setInboxView] = useState<InboxView>('all');
   const [assignee, setAssignee] = useState('');
   const [search, setSearch] = useState('');
-  const [notes, setNotes] = useState<Record<string, string>>({});
+  // Kept until sent, across a reload or another page (note-drafts.ts).
+  const [notes, setNotes] = useState<Record<string, string>>(readNoteDrafts);
+  useEffect(() => writeNoteDrafts(notes), [notes]);
   const [busy, setBusy] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 

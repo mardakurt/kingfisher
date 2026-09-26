@@ -30,7 +30,14 @@ export function PositionSummary() {
   const opening = useOpeningClassification(tree, currentId);
 
   return (
-    <div className="flex min-w-0 items-center gap-2 text-2xs text-tertiary sm:gap-3">
+    /*
+      Each fact on one line. The row shares the strip under the board with the
+      navigation buttons, and beside a rail and a dock on a laptop it was
+      narrow enough that "White to play" and "White view" broke over two lines
+      (Endgame, Team, Opening Files, Scoresheet at 1280px). What does not fit
+      is clipped from the end — the view, then the opening — never wrapped.
+    */
+    <div className="flex min-w-0 items-center gap-2 overflow-hidden text-2xs whitespace-nowrap text-tertiary sm:gap-3">
       {outcome ? (
         <span className="font-medium text-primary">
           {OUTCOME_TEXT[outcome.kind] ?? 'Game over'}
