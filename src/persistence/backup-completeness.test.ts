@@ -177,6 +177,24 @@ const authored: Partial<Record<StoreName, Record<string, unknown>>> = {
     source: 'local',
     lastRun: { at: 1, selected: 3, found: 2, fingerprints: ['a', 'b'], complete: true },
   },
+  analysisWriteBacks: {
+    ...common,
+    chapterId: 'c1',
+    studyId: 's1',
+    entries: [
+      {
+        nodeId: 'n1',
+        positionKey: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -',
+        evaluation: { score: { kind: 'cp', cp: 20 }, depth: 30, engine: 'Stockfish 18' },
+      },
+    ],
+    keptExisting: 0,
+    notAnalysed: 3,
+    beforeRevision: 4,
+    afterRevision: 5,
+    status: 'applied',
+    appliedAt: 1,
+  },
   inboxDecisions: {
     ...common,
     repertoireId: 'r1',

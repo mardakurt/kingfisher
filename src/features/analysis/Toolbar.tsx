@@ -24,6 +24,7 @@ import { useUi } from '@/stores/ui-store';
 
 import { DocumentHeader } from './DocumentHeader';
 import { useCopyActions } from './useCopyActions';
+import { useEvaluationWriteBack } from './useEvaluationWriteBack';
 
 const CRITICAL_CATEGORIES: readonly { id: CriticalCategory; label: string }[] = [
   { id: 'opening', label: 'Opening' },
@@ -49,6 +50,7 @@ export function Toolbar() {
   const setTrainingCaptureOpen = useUi((state) => state.setTrainingCaptureOpen);
   const setModelGameOpen = useUi((state) => state.setModelGameOpen);
   const copy = useCopyActions();
+  const writeBack = useEvaluationWriteBack();
 
   const sections: readonly MenuSection[] = [
     {
@@ -92,6 +94,22 @@ export function Toolbar() {
           icon: <Import />,
           run: () => setImportOpen(true),
         },
+        // Phase 86: stored engine evaluations into a study chapter, as one undoable batch.
+        ...(writeBack.available
+          ? [
+              {
+                id: 'add-evaluations',
+                label: 'Add stored evaluations',
+                run: () => void writeBack.add(),
+              },
+              {
+                id: 'undo-evaluations',
+                label: 'Undo added evaluations',
+                disabled: !writeBack.canUndo,
+                run: () => void writeBack.undo(),
+              },
+            ]
+          : []),
       ],
     },
     {

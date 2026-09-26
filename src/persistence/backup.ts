@@ -45,6 +45,7 @@ import {
   isImportedEvaluationRecord,
   isSavedQueryRecord,
   isInboxDecisionRecord,
+  isAnalysisWriteBackRecord,
   isPreparationSessionRecord,
   isOpeningFileRecord,
   isEndgamePositionRecord,
@@ -89,6 +90,7 @@ export const PORTABLE_STORES = [
   STORE_NAMES.importedEvaluations,
   STORE_NAMES.savedQueries,
   STORE_NAMES.inboxDecisions,
+  STORE_NAMES.analysisWriteBacks,
 ] as const;
 
 export const LATER_AUTHORED_STORES = new Set<StoreName>([
@@ -106,6 +108,7 @@ export const LATER_AUTHORED_STORES = new Set<StoreName>([
   STORE_NAMES.importedEvaluations,
   STORE_NAMES.savedQueries,
   STORE_NAMES.inboxDecisions,
+  STORE_NAMES.analysisWriteBacks,
 ]);
 
 export const GAME_STORES = [
@@ -444,6 +447,7 @@ function validateRecord(store: StoreName, value: unknown, index: number): void {
     if (store === STORE_NAMES.importedEvaluations) return isImportedEvaluationRecord(value);
     if (store === STORE_NAMES.savedQueries) return isSavedQueryRecord(value);
     if (store === STORE_NAMES.inboxDecisions) return isInboxDecisionRecord(value);
+    if (store === STORE_NAMES.analysisWriteBacks) return isAnalysisWriteBackRecord(value);
     if (store === STORE_NAMES.games) return isGameSummary(value);
     if (store === STORE_NAMES.gameContent) {
       return (

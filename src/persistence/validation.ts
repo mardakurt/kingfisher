@@ -9,6 +9,7 @@ import type {
   DeepAnalysisJobRecord,
   ImportedEvaluationRecord,
   InboxDecisionRecord,
+  AnalysisWriteBackRecord,
   SavedQueryRecord,
   ModelGameLinkRecord,
   RepertoirePositionRecord,
@@ -670,6 +671,31 @@ export const isInboxDecisionRecord = (value: unknown): value is InboxDecisionRec
   (value.snoozedUntil === undefined || finite(value.snoozedUntil)) &&
   text(value.evidence) &&
   finite(value.decidedAt) &&
+  finite(value.createdAt) &&
+  finite(value.updatedAt) &&
+  finite(value.revision);
+
+export const isAnalysisWriteBackRecord = (value: unknown): value is AnalysisWriteBackRecord =>
+  object(value) &&
+  text(value.id) &&
+  text(value.chapterId) &&
+  text(value.studyId) &&
+  array(value.entries) &&
+  value.entries.every(
+    (entry) =>
+      object(entry) &&
+      text(entry.nodeId) &&
+      text(entry.positionKey) &&
+      object(entry.evaluation) &&
+      isStoredScore(entry.evaluation.score),
+  ) &&
+  finite(value.keptExisting) &&
+  finite(value.notAnalysed) &&
+  finite(value.beforeRevision) &&
+  finite(value.afterRevision) &&
+  (value.status === 'applied' || value.status === 'undone') &&
+  finite(value.appliedAt) &&
+  (value.undoneAt === undefined || finite(value.undoneAt)) &&
   finite(value.createdAt) &&
   finite(value.updatedAt) &&
   finite(value.revision);

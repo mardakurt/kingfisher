@@ -20,6 +20,7 @@ import type { DeepAnalysisRepository } from './repositories/deep-analysis-reposi
 import type { ImportedEvaluationRepository } from './repositories/imported-evaluation-repository';
 import type { SavedQueryRepository } from './repositories/saved-query-repository';
 import type { InboxDecisionRepository } from './repositories/inbox-decision-repository';
+import type { AnalysisWriteBackRepository } from './repositories/analysis-write-back-repository';
 import type { EndgameRepository } from './repositories/endgame-repository';
 import type { PinnedLineRepository } from './repositories/pinned-line-repository';
 import type { LinkedAccountRepository } from './repositories/linked-account-repository';
@@ -461,6 +462,7 @@ export interface AppRepositories {
   readonly importedEvaluations: ImportedEvaluationRepository;
   readonly savedQueries: SavedQueryRepository;
   readonly inboxDecisions: InboxDecisionRepository;
+  readonly analysisWriteBacks: AnalysisWriteBackRepository;
   readonly endgames: EndgameRepository;
   readonly pinnedLines: PinnedLineRepository;
   readonly linkedAccounts: LinkedAccountRepository;

@@ -786,3 +786,31 @@ describe('migrating a Phase 85 installation (v21) to current', () => {
     current.close();
   });
 });
+
+describe('migrating a Phase 86 installation at v22 to current', () => {
+  it('v22 saved queries survive; write-back batches arrive empty and indexed by chapter', async () => {
+    const name = dbName();
+    const v22 = await openPersistenceDatabaseAt(22, name);
+    await v22.put(STORE_NAMES.savedQueries, { id: 'q1', name: 'Kept', updatedAt: 1 });
+    v22.close();
+    const current = await openPersistenceDatabaseAt(DATABASE_VERSION, name);
+    expect(await current.get(STORE_NAMES.savedQueries, 'q1')).toEqual({
+      id: 'q1',
+      name: 'Kept',
+      updatedAt: 1,
+    });
+    expect(await current.getAll(STORE_NAMES.analysisWriteBacks)).toEqual([]);
+    await current.put(STORE_NAMES.analysisWriteBacks, { id: 'w1', chapterId: 'c1' });
+    await current.put(STORE_NAMES.analysisWriteBacks, { id: 'w2', chapterId: 'c2' });
+    expect(
+      (
+        await current.getAllFromIndex<Record<string, unknown>>(
+          STORE_NAMES.analysisWriteBacks,
+          'chapterId',
+          'c1',
+        )
+      ).map((row) => row.id),
+    ).toEqual(['w1']);
+    current.close();
+  });
+});

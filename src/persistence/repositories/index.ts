@@ -27,6 +27,7 @@ import { LocalDeepAnalysisRepository } from './deep-analysis-repository';
 import { LocalImportedEvaluationRepository } from './imported-evaluation-repository';
 import { LocalSavedQueryRepository } from './saved-query-repository';
 import { LocalInboxDecisionRepository } from './inbox-decision-repository';
+import { LocalAnalysisWriteBackRepository } from './analysis-write-back-repository';
 
 const fromDatabase = (database: PersistenceDatabase): AppRepositories => ({
   studies: new LocalStudyRepository(database),
@@ -54,6 +55,7 @@ const fromDatabase = (database: PersistenceDatabase): AppRepositories => ({
   importedEvaluations: new LocalImportedEvaluationRepository(database),
   savedQueries: new LocalSavedQueryRepository(database),
   inboxDecisions: new LocalInboxDecisionRepository(database),
+  analysisWriteBacks: new LocalAnalysisWriteBackRepository(database),
   raw: database,
   close: () => database.close(),
 });

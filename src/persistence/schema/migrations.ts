@@ -1,5 +1,5 @@
 export const DATABASE_NAME = 'kingfisher';
-export const DATABASE_VERSION = 22;
+export const DATABASE_VERSION = 23;
 
 export const STORE_NAMES = {
   studies: 'studies',
@@ -55,6 +55,8 @@ export const STORE_NAMES = {
   savedQueries: 'savedQueries',
   /* Phase 86: a person's decisions on repertoire-inbox items; the items are derived. */
   inboxDecisions: 'inboxDecisions',
+  /* Phase 86: stored evaluations written into a chapter, one undoable batch each. */
+  analysisWriteBacks: 'analysisWriteBacks',
 } as const;
 
 export type StoreName = (typeof STORE_NAMES)[keyof typeof STORE_NAMES];
@@ -578,6 +580,16 @@ export const MIGRATIONS: readonly Migration[] = [
       target.createStore(STORE_NAMES.inboxDecisions, { keyPath: 'id' }, [
         { name: 'status', keyPath: 'status' },
         { name: 'repertoireId', keyPath: 'repertoireId' },
+      ]);
+    },
+  },
+  {
+    version: 23,
+    description: 'Keep each write of stored evaluations into a chapter, so it can be undone.',
+    apply(target) {
+      /* Asked for by chapter: "what was last written here, and can it be undone?" */
+      target.createStore(STORE_NAMES.analysisWriteBacks, { keyPath: 'id' }, [
+        { name: 'chapterId', keyPath: 'chapterId' },
       ]);
     },
   },

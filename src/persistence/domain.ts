@@ -8,7 +8,7 @@
 
 import type { Color, Fen, San, Uci } from '@/chess/types';
 import type { NodeId } from '@/chess/tree/types';
-import type { Score } from '@/chess/evaluation';
+import type { Evaluation, Score } from '@/chess/evaluation';
 import type { AnalysisLimit } from '@/engine/types';
 import type { FeatureTransition } from '@/chess/feature-transitions';
 
@@ -1558,6 +1558,33 @@ export interface InboxDecisionRecord {
   readonly snoozedUntil?: number;
   readonly evidence: string;
   readonly decidedAt: number;
+  readonly createdAt: number;
+  readonly updatedAt: number;
+  readonly revision: number;
+}
+
+/**
+ * Stored evaluations written into a chapter, as one batch (Phase 86,
+ * `src/evidence/write-back.ts`). `entries` is exactly what was written, so
+ * undoing it removes those and nothing a person changed afterwards.
+ */
+export interface AnalysisWriteBackRecord {
+  readonly id: string;
+  readonly chapterId: string;
+  readonly studyId: string;
+  readonly entries: readonly {
+    readonly nodeId: string;
+    readonly positionKey: string;
+    readonly evaluation: Evaluation;
+  }[];
+  readonly keptExisting: number;
+  readonly notAnalysed: number;
+  readonly beforeRevision: number;
+  readonly afterRevision: number;
+  readonly status: 'applied' | 'undone';
+  readonly appliedAt: number;
+  readonly undoneAt?: number;
+  readonly undo?: { readonly removed: number; readonly keptChanged: number };
   readonly createdAt: number;
   readonly updatedAt: number;
   readonly revision: number;
