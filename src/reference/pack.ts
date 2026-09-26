@@ -276,11 +276,52 @@ const clean = (value: string): string => value.replace(/[\t\n\r]/g, ' ').trim();
  * Applied on read as well as on write: packs built before this normalisation
  * existed carry both `2024.12.30` and `20241230`, and a game list that shows
  * one row each way looks broken whoever's fault it was.
+ *
+ * Phase 85: relays also write the day first — `15.08.2025` — and the
+ * previous version took any eight digits as year, month and day, so that game
+ * became `1508.20.25`: a year that passed every plausibility check and reached
+ * the Opening Report's "first games" as 1508. A date is now read by its
+ * shape, a month past 12 or a day past 31 is never produced, and a stored
+ * `1508.20.25` whose digits make a real day-first date is read as that date.
+ * Month and day that cannot be known are `??`, as PGN writes them.
  */
 export function packDate(value: string): string {
-  const digits = value.replace(/\D/g, '');
-  if (digits.length !== 8) return value.includes('.') ? value : '';
-  return `${digits.slice(0, 4)}.${digits.slice(4, 6)}.${digits.slice(6, 8)}`;
+  const text = value.trim();
+  const valid = (y: number, m: number, d: number) =>
+    y >= 1000 && m >= 1 && m <= 12 && d >= 1 && d <= 31;
+  const two = (n: number) => String(n).padStart(2, '0');
+  const iso = /^(\d{4})[.\-/ ](\d{1,2}|\?\?)[.\-/ ](\d{1,2}|\?\?)$/.exec(text);
+  if (iso) {
+    const [y, m, d] = [Number(iso[1]), Number(iso[2]), Number(iso[3])];
+    if (iso[2] === '??') return `${iso[1]}.??.??`;
+    if (iso[3] === '??') return m >= 1 && m <= 12 ? `${iso[1]}.${two(m)}.??` : `${iso[1]}.??.??`;
+    if (valid(y, m, d)) return `${iso[1]}.${two(m)}.${two(d)}`;
+    // A stored day-first date misread as year-first: 1508.20.25 was 15.08.2025.
+    const reread = iso[1] + two(m) + two(d);
+    const day = Number(reread.slice(0, 2));
+    const month = Number(reread.slice(2, 4));
+    const year = Number(reread.slice(4, 8));
+    if (valid(year, month, day)) return `${year}.${two(month)}.${two(day)}`;
+    return `${iso[1]}.??.??`;
+  }
+  const compact = /^(\d{4})(\d{2})(\d{2})$/.exec(text);
+  if (compact) {
+    const [y, m, d] = [Number(compact[1]), Number(compact[2]), Number(compact[3])];
+    return valid(y, m, d) ? `${compact[1]}.${compact[2]}.${compact[3]}` : '';
+  }
+  const dayFirst = /^(\d{1,2})([./-])(\d{1,2})\2(\d{4})$/.exec(text);
+  if (dayFirst) {
+    const [a, b, y] = [Number(dayFirst[1]), Number(dayFirst[3]), Number(dayFirst[4])];
+    // Dots are the day-first convention; with slashes only a number past 12 says which is which.
+    if (dayFirst[2] !== '/' || a > 12) {
+      return valid(y, b, a) ? `${y}.${two(b)}.${two(a)}` : `${y}.??.??`;
+    }
+    if (b > 12) return valid(y, a, b) ? `${y}.${two(a)}.${two(b)}` : `${y}.??.??`;
+    return `${y}.??.??`;
+  }
+  const yearOnly = /^(\d{4})(?:[.\-/ ]\?\?){0,2}$/.exec(text);
+  if (yearOnly) return `${yearOnly[1]}.??.??`;
+  return '';
 }
 
 export function encodeGameLine(game: PackGame): string {

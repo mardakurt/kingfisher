@@ -51,7 +51,7 @@ export const PACK_DEFINITIONS = {
       'Recent elite broadcast games, including online events, bundled with Kingfisher so the ' +
       'opening explorer, player search and model games work before anything ' +
       'is installed or imported.',
-    version: '5',
+    version: '6',
     output: 'public/reference/kingfisher-starter',
     source: LICHESS_BROADCAST,
     transformation: TRANSFORMATION,
@@ -69,7 +69,9 @@ export const PACK_DEFINITIONS = {
     */
     /*
       Version 5 (Phase 85) is version 4's window — the 48 months ending in
-      2026-08 — with each position's dated, rated history added. The window is
+      2026-08 — with each position's dated, rated history added. Version 6
+      is the same, with relay dates written day first (15.08.2025) read as
+      dates rather than as the year 1508 (src/reference/pack.ts, packDate). The window is
       pinned so that the counts every page and document quotes do not move
       with the calendar; widening it is its own version.
     */
@@ -264,7 +266,7 @@ export const PACK_DEFINITIONS = {
       'Rating- and title-filtered Lichess broadcast games since 2020, excluding ' +
       'explicit bot, engine and online event labels. Broadcast metadata is ' +
       'not proof of complete over-the-board coverage.',
-    version: '3',
+    version: '4',
     output: `${externalPacks}/kingfisher-elite-otb`,
     source: LICHESS_BROADCAST,
     transformation: TRANSFORMATION,

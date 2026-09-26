@@ -50,7 +50,7 @@ function shardWriter(kind, count) {
 async function main() {
   const { Position, positionKey } = await loadApp(['/src/chess/position.ts', '/src/chess/fen.ts']);
   const { playerKey } = await loadApp(['/src/persistence/schema/migrations.ts']);
-  const { shardOf } = await loadApp(['/src/reference/pack.ts']);
+  const { shardOf, packDate } = await loadApp(['/src/reference/pack.ts']);
 
   const explorer = shardWriter('explorer', shards.explorer);
   const games = shardWriter('game', shards.game);
@@ -219,7 +219,9 @@ async function main() {
       continue;
     }
 
-    const date = normaliseDate(tags.UTCDate ?? tags.Date ?? '');
+    // The application's own reader of dates (src/reference/pack.ts), so a pack
+    // and the app agree on what a relay's date was (Phase 85: 15.08.2025 is not 1508).
+    const date = packDate(tags.UTCDate ?? tags.Date ?? '');
     /*
       A relay occasionally carries a typo for a date, and one row reading 2308
       is enough to move the whole pack's "recent" window past every game in it.
@@ -346,12 +348,6 @@ async function main() {
 }
 
 /** `YYYY.MM.DD`, whichever of the several shapes in the wild the tag used. */
-function normaliseDate(value) {
-  const digits = value.replace(/\D/g, '');
-  if (digits.length !== 8) return '';
-  return `${digits.slice(0, 4)}.${digits.slice(4, 6)}.${digits.slice(6, 8)}`;
-}
-
 /**
  * A content hash of the game, in the same alphabet everywhere.
  *

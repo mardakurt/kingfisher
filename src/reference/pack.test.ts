@@ -115,6 +115,22 @@ describe('the game line codec', () => {
     expect(packDate('2024.12.30')).toBe('2024.12.30');
     expect(packDate('2024-12-30')).toBe('2024.12.30');
     expect(packDate('')).toBe('');
+  });
+
+  it('reads a day-first relay date as the date it is, never as a year in the 1500s', () => {
+    expect(packDate('15.08.2025')).toBe('2025.08.15');
+    expect(packDate('5.8.2025')).toBe('2025.08.05');
+    expect(packDate('15/08/2025')).toBe('2025.08.15');
+    expect(packDate('08/15/2025')).toBe('2025.08.15');
+    // Both readings possible with slashes: the year is all that is known.
+    expect(packDate('05/08/2025')).toBe('2025.??.??');
+    // What the old reader stored for 15.08.2025, read back as the real date.
+    expect(packDate('1508.20.25')).toBe('2025.08.15');
+    expect(packDate('2025.??.??')).toBe('2025.??.??');
+    expect(packDate('2025.08.??')).toBe('2025.08.??');
+    expect(packDate('2025')).toBe('2025.??.??');
+    expect(packDate('20251340')).toBe('');
+    expect(packDate('????.??.??')).toBe('');
     expect(packDate('2024.??.??')).toBe('2024.??.??');
   });
 });
