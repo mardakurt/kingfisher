@@ -36,6 +36,7 @@ import { useUi } from '@/stores/ui-store';
 import { WorkspaceFrame } from '@/features/workspace/WorkspaceFrame';
 import { RepertoireReviewDialog } from './RepertoireReviewDialog';
 import { RepertoireScanDialog } from './RepertoireScanDialog';
+import { RepertoireInboxDialog } from './RepertoireInboxDialog';
 import { PlayedAgainstYouPanel } from './PlayedAgainstYouPanel';
 import { ReferenceCoveragePanel } from './ReferenceCoveragePanel';
 import { plural } from '@/lib/plural';
@@ -71,6 +72,7 @@ export function RepertoireWorkspace() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
+  const [inboxOpen, setInboxOpen] = useState(false);
 
   const list = repertoires.data ?? [];
   const effectiveId = selectedId ?? list[0]?.id ?? null;
@@ -295,6 +297,12 @@ export function RepertoireWorkspace() {
                 onClick: () => setReviewOpen(true),
               },
               {
+                id: 'inbox',
+                label: 'Inbox',
+                onClick: () => setInboxOpen(true),
+                dataAttribute: 'data-repertoire-inbox-open',
+              },
+              {
                 id: 'scan',
                 label: 'Scan games against this repertoire',
                 shortLabel: 'Scan games',
@@ -410,6 +418,13 @@ export function RepertoireWorkspace() {
     >
       {scanOpen && repertoire.data ? (
         <RepertoireScanDialog repertoire={repertoire.data} onClose={() => setScanOpen(false)} />
+      ) : null}
+      {inboxOpen && repertoire.data ? (
+        <RepertoireInboxDialog
+          repertoire={repertoire.data}
+          gaps={gaps.data ?? []}
+          onClose={() => setInboxOpen(false)}
+        />
       ) : null}
       {reviewOpen && repertoire.data ? (
         <RepertoireReviewDialog repertoire={repertoire.data} onClose={() => setReviewOpen(false)} />
