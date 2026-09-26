@@ -134,7 +134,14 @@ async function enter(id: string, navigate: Navigate): Promise<void> {
   tabs.activate(id);
   tabs.publish(null);
   const target = tabs.tabs.find((tab) => tab.id === id);
-  if (target) navigate.push(target.href);
+  /*
+    Two tabs can share an address. Entering one that is already where the
+    window is must not navigate: the router fetched the page from the server
+    twice for nothing (e2e/workspace-tabs.spec.ts counts the requests), and
+    its history write, landing after the switch had visibly finished, made
+    Firefox abort a reload made in between.
+  */
+  if (target && target.href !== here()) navigate.push(target.href);
   /*
     The board's draft is written now rather than left to autosave's debounce,
     and only then is the tab's copy removed. In between, a reload would find
@@ -208,7 +215,8 @@ export function newTab(navigate: Navigate, options: { duplicate?: boolean } = {}
     // A duplicate keeps the board as it is: the store already holds a copy of
     // the work, and the original's copy was just written to its tab draft.
     if (!options.duplicate) useAnalysis.getState().newGame(START_FEN);
-    navigate.push(href);
+    // As in `enter`: no navigation to the address already shown.
+    if (href !== here()) navigate.push(href);
     // As in `enter`: the page's draft describes this tab from now on.
     await writeBoardDraft(options.duplicate === true && selectDirty(useAnalysis.getState()));
   });

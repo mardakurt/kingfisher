@@ -76,16 +76,27 @@ test('every section either cites a source or explains its absence', async ({ pag
   await play(page, 'c7', 'c5');
   await expect(section(page, 'branches')).toBeVisible();
 
-  const sections = report(page).locator('[data-report-section]');
-  const count = await sections.count();
-  expect(count).toBeGreaterThan(3);
-  for (let index = 0; index < count; index += 1) {
-    const entry = sections.nth(index);
-    const cited = await entry.locator('[data-report-provenance]').count();
-    const explained = await entry.locator('[data-report-empty]').count();
-    // Never both silent. This is the rule the module guarantees, checked
-    // against what the browser actually painted.
-    expect(cited + explained, await entry.innerText()).toBeGreaterThan(0);
+  /*
+    Never both silent. This is the rule the module guarantees, checked against
+    what the browser actually painted — in every frame, while sections are
+    still arriving too (a population's history section appears once its
+    history loads). So each check reads all sections from one frame: walking
+    them by index across frames read a slot the list had just vacated, and
+    found neither marker in a section that had both (Firefox, Phase 86).
+  */
+  for (let frame = 0; frame < 10; frame += 1) {
+    const painted = await report(page).evaluate((root) =>
+      [...root.querySelectorAll('[data-report-section]')].map((element) => ({
+        id: element.getAttribute('data-report-section'),
+        cited: element.querySelector('[data-report-provenance]') !== null,
+        explained: element.querySelector('[data-report-empty]') !== null,
+      })),
+    );
+    expect(painted.length).toBeGreaterThan(3);
+    for (const entry of painted) {
+      expect(entry.cited || entry.explained, `${entry.id} is silent`).toBe(true);
+    }
+    await page.waitForTimeout(200);
   }
 });
 

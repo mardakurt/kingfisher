@@ -114,9 +114,19 @@ test.describe('workspace tabs', () => {
     // The other tab's text is the other tab's: this one starts empty.
     await expect(search).toHaveValue('');
 
+    // Both tabs are on Players: entering the other one is already at its
+    // address, so it must not navigate. A navigation there fetched the page
+    // from the server for nothing, and Firefox aborted a reload that raced
+    // its late history write (NS_BINDING_ABORTED, the matrix's last failure).
+    const navigations: string[] = [];
+    page.on('request', (request) => {
+      if (request.url().includes('_rsc=')) navigations.push(request.url());
+    });
     await enterTab(page, 0);
     await expect(page).toHaveURL(/\/players/);
     await expect(search).toHaveValue('Capabl');
+    await page.waitForTimeout(1_000);
+    expect(navigations).toEqual([]);
 
     // And a reload of the window keeps it, as it keeps the tabs.
     await page.reload();

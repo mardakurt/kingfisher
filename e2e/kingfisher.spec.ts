@@ -156,7 +156,15 @@ test('analysis, games, repertoire and explorer share a working position', async 
     .getByRole('link', { name: 'Repertoire' })
     .click();
   await expectSquareBoard(page);
-  const repertoireDock = page.getByRole('complementary', { name: 'Workspace tools' });
+  /*
+    Scoped to the Repertoire's own frame. The Analysis page stays mounted until
+    the new route has loaded, and its dock is also "Workspace tools": WebKit
+    found Explorer in that dock's strip, and the click then waited a minute on
+    a tab being torn down (the Repertoire's strip folds Explorer under More).
+  */
+  const repertoireDock = page
+    .locator('[data-workspace-frame="repertoire"]')
+    .getByRole('complementary', { name: 'Workspace tools' });
   await expect(repertoireDock).toBeVisible();
   /*
     Phase 72: the strip fits one row and folds what does not fit under More
