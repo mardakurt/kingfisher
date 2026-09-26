@@ -1552,6 +1552,7 @@ function SqliteDatabases() {
   const [name, setName] = useState('');
   const [pgn, setPgn] = useState('');
   const [target, setTarget] = useState('');
+  const [compactLayout, setCompactLayout] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [aggregates, setAggregates] = useState<Record<string, string>>({});
 
@@ -1563,7 +1564,7 @@ function SqliteDatabases() {
     if (!client || !name.trim()) return;
     setBusy('create');
     try {
-      const created = await client.createDatabase(name.trim());
+      const created = await client.createDatabase(name.trim(), compactLayout ? 'postings' : 'rows');
       setName('');
       setTarget(created.key);
       await status.refetch();
@@ -1697,6 +1698,18 @@ function SqliteDatabases() {
           Create
         </Button>
       </div>
+      <label className="mt-1.5 flex items-start gap-1.5 text-2xs text-tertiary">
+        <input
+          type="checkbox"
+          className="mt-0.5"
+          checked={compactLayout}
+          onChange={(event) => setCompactLayout(event.target.checked)}
+        />
+        <span>
+          Posting index — about a twentieth of the disk, for very large archives; no pawn-structure
+          search (the move search still answers material, theme and route).
+        </span>
+      </label>
 
       {databases.length > 0 ? (
         <div className="mt-3">

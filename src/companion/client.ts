@@ -86,7 +86,7 @@ export interface CompactionPreflight {
 /** A long job on one collection: compaction, the claim index, or integrity. */
 export interface MaintenanceJob {
   readonly key: string;
-  readonly operation: 'compact' | 'integrity' | 'claim-index';
+  readonly operation: 'compact' | 'integrity' | 'claim-index' | 'postings';
   readonly status: 'running' | 'completed' | 'failed' | 'cancelled';
   readonly phase: string;
   readonly progress: number | null;
@@ -419,8 +419,17 @@ export class CompanionClient {
     return this.request('/db/encroissant/games', { path, after, limit }, signal);
   }
 
-  createDatabase(name: string): Promise<{ key: string; name: string }> {
-    return this.request('/db/create', { name });
+  /** `postings`: the compact posting index (Phase 86, companion/src/postings.mjs). */
+  createDatabase(
+    name: string,
+    layout: 'rows' | 'postings' = 'rows',
+  ): Promise<{ key: string; name: string; layout?: 'rows' | 'postings' }> {
+    return this.request('/db/create', { name, layout });
+  }
+
+  /** Convert a collection to the posting index. Returns the job; poll `maintenanceStatus`. */
+  startPostingConversion(key: string): Promise<MaintenanceJob> {
+    return this.request('/db/convert-postings', { key });
   }
 
   /**

@@ -37,10 +37,18 @@ try {
     */
     database = new GameDatabase(file);
     const converted = database.convertToPostings({
-      onProgress: ({ converted: done, total }) =>
+      onProgress: ({ phase, converted: done, total }) =>
         progress({
-          phase: 'Converting to the compact position index',
-          progress: total ? Math.min(100, Math.round((done / total) * 100)) : null,
+          phase:
+            phase === 'reclaiming'
+              ? 'Giving the freed disk back'
+              : 'Converting to the compact position index',
+          progress:
+            phase === 'reclaiming'
+              ? null
+              : total
+                ? Math.min(100, Math.round((done / total) * 100))
+                : null,
         }),
     });
     result = { ...converted, schema: database.schemaStatus() };

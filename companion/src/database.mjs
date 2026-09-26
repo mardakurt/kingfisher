@@ -471,6 +471,20 @@ export class GameDatabase {
       moveSan: this.#kit?.moveSan,
       sanMap: this.#kit?.sanMap,
     });
+    /*
+      Deleting the row tables frees their pages inside the file; it does not
+      shrink the file. Without this a person converted to save disk and saw
+      none saved. VACUUM rewrites the file at the new size — it needs room
+      for the (now small) collection once more while it runs.
+    */
+    if (options.vacuum !== false) {
+      options.onProgress?.({
+        phase: 'reclaiming',
+        converted: result.converted,
+        total: result.converted,
+      });
+      this.#db.exec('VACUUM');
+    }
     return result;
   }
 

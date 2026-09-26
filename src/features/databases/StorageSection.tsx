@@ -42,7 +42,7 @@ export function StorageSection({
 }) {
   const notify = useUi((state) => state.notify);
   const queryClient = useQueryClient();
-  const [confirming, setConfirming] = useState<'compact' | null>(null);
+  const [confirming, setConfirming] = useState<'compact' | 'postings' | null>(null);
 
   const schema = useQuery<CollectionSchemaStatus | null>({
     queryKey: ['collection-schema', sqliteKey],
@@ -87,12 +87,14 @@ export function StorageSection({
   }, [finished, queryClient, sqliteKey]);
 
   const start = useMutation({
-    mutationFn: async (operation: 'compact' | 'claim-index') => {
+    mutationFn: async (operation: 'compact' | 'claim-index' | 'postings') => {
       const client = companionClient();
       if (!client) throw new Error('The companion is not connected.');
       return operation === 'compact'
         ? client.startCompaction(sqliteKey!)
-        : client.startClaimIndex(sqliteKey!);
+        : operation === 'postings'
+          ? client.startPostingConversion(sqliteKey!)
+          : client.startClaimIndex(sqliteKey!);
     },
     onSuccess: () => void job.refetch(),
     onError: (error) =>
@@ -144,6 +146,7 @@ export function StorageSection({
     );
   }
 
+  const postings = schema.data?.layout === 'postings';
   const compact = schema.data?.compact === true || schema.data?.version === 2;
   const claims = schema.data?.claimIndex;
   const bytes = (value: unknown) => (typeof value === 'number' ? formatBytes(value) : null);
@@ -155,35 +158,44 @@ export function StorageSection({
           <h3 className="text-xs font-semibold text-tertiary">Position index</h3>
           <div className="mt-2 flex flex-wrap gap-1.5">
             <StatusChip
-              label={compact ? 'Compact schema' : 'Original schema'}
-              state={compact ? 'good' : 'unknown'}
+              label={postings ? 'Posting index' : compact ? 'Compact schema' : 'Original schema'}
+              state={postings || compact ? 'good' : 'unknown'}
             />
-            <StatusChip
-              label={
-                !claims?.applicable
-                  ? 'Claim index needs the compact schema'
-                  : claims.ready
-                    ? 'Claim search indexed'
-                    : 'Claim search scans'
-              }
-              state={claims?.ready ? 'good' : 'unknown'}
-            />
+            {postings ? null : (
+              <StatusChip
+                label={
+                  !claims?.applicable
+                    ? 'Claim index needs the compact schema'
+                    : claims.ready
+                      ? 'Claim search indexed'
+                      : 'Claim search scans'
+                }
+                state={claims?.ready ? 'good' : 'unknown'}
+              />
+            )}
           </div>
           <p className="mt-2 text-xs text-tertiary">
             {schema.isPending
               ? 'Reading the collection…'
               : schema.isError
                 ? 'The companion could not describe this collection.'
-                : describe(compact, claims)}
+                : postings
+                  ? 'Positions are kept as postings, about a twentieth of the disk of the row index, and the explorer, games at a position and continuations answer from them. Pawn-structure and claim searches are not kept; the move search answers material, theme and route questions over every game.'
+                  : describe(compact, claims)}
           </p>
         </div>
         <div className="ml-auto flex shrink-0 flex-wrap gap-2">
-          {!compact ? (
+          {!compact && !postings ? (
             <Button disabled={running || preflight.isPending} onClick={() => preflight.mutate()}>
               {preflight.isPending ? 'Checking…' : 'Compact this collection'}
             </Button>
           ) : null}
-          {claims?.applicable && !claims.ready ? (
+          {!postings && schema.data ? (
+            <Button disabled={running} onClick={() => setConfirming('postings')}>
+              Convert to the posting index
+            </Button>
+          ) : null}
+          {!postings && claims?.applicable && !claims.ready ? (
             <Button
               disabled={running || start.isPending}
               onClick={() => start.mutate('claim-index')}
@@ -217,6 +229,17 @@ export function StorageSection({
       ) : null}
 
       <ConfirmDialog
+        open={confirming === 'postings'}
+        title={`Convert ${collectionName} to the posting index?`}
+        description="Measured on 100,445 real games, the posting index held the positions in a twentieth of the disk and answered the explorer identically. It keeps no pawn structures: the Same pawns, Same features and Chosen facts searches stop working for this collection, and the move search answers material, theme and route instead. The conversion runs in the background, can be cancelled and resumes; nothing is removed until every game has its postings, and the freed disk is given back at the end."
+        confirmLabel="Convert"
+        onCancel={() => setConfirming(null)}
+        onConfirm={() => {
+          setConfirming(null);
+          start.mutate('postings');
+        }}
+      />
+      <ConfirmDialog
         open={confirming === 'compact'}
         title={`Compact ${collectionName}?`}
         description={compactionWarning(preflight.data, bytes)}
@@ -232,11 +255,13 @@ export function StorageSection({
 }
 
 const label = (operation: MaintenanceJob['operation']) =>
-  operation === 'compact'
-    ? 'Compaction'
-    : operation === 'claim-index'
-      ? 'The claim index'
-      : 'The integrity check';
+  operation === 'postings'
+    ? 'Conversion to the posting index'
+    : operation === 'compact'
+      ? 'Compaction'
+      : operation === 'claim-index'
+        ? 'The claim index'
+        : 'The integrity check';
 
 /** What the current state means for the person reading it. */
 function describe(

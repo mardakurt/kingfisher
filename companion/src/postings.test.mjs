@@ -13,7 +13,7 @@
  * are compared row for row.
  */
 
-import { copyFileSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { copyFileSync, mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -348,7 +348,12 @@ describe('the posting layout', { timeout: 120_000 }, () => {
     copyFileSync(rowsFile, copy);
     const converted = new GameDatabase(copy, { kit });
     expect(converted.layout).toBe('rows');
+    converted.checkpoint();
+    const before = statSync(copy).size;
     const result = converted.convertToPostings({ chunk: 37 });
+    converted.checkpoint();
+    // The disk the conversion is for is given back, not left free inside the file.
+    expect(statSync(copy).size).toBeLessThan(before * 0.6);
     expect(result.converted).toBe(rows.count());
     expect(converted.layout).toBe('postings');
     expect(firstDifference(rows, converted, distinctKeys(rowsFile))).toBeNull();
