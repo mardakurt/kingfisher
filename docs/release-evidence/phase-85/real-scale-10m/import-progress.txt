@@ -1,0 +1,10 @@
+  1,002,000 imported  825/s  rss 3479.5 MB
+  2,004,000 imported  811/s  rss 3545.5 MB
+  3,006,000 imported  806/s  rss 3853.9 MB
+  4,008,000 imported  793/s  rss 3853.9 MB
+  5,010,000 imported  796/s  rss 3952.4 MB
+  6,012,000 imported  784/s  rss 4077.8 MB
+  7,014,000 imported  760/s  rss 4077.8 MB
+  8,016,000 imported  759/s  rss 4180.4 MB
+  9,018,000 imported  741/s  rss 4180.4 MB
+  10,020,136 imported  705/s  rss 4180.4 MB

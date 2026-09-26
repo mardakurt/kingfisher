@@ -1,0 +1,45 @@
+importing /Users/metinardakurt/KingfisherWork/archives/lichess-standard/lichess_db_standard_rated_2017-01.pgn.zst → /Users/metinardakurt/KingfisherWork/real-scale/lichess-2017-01/collection.sqlite
+
+--- import (the product path) --------------------------------
+games read         10,680,708
+games imported     10,680,708
+duplicates         0
+rejected           0
+workers            6
+wall time          262.3 min (of which indexes 0.5 min)
+throughput         679 games/s
+peak memory (rss)  4180.4 MB
+database on disk   22.96 GB · 10,680,708 games · 2150 bytes a game
+
+--- queries (ms) ----------------------------------------------
+
+busiest player key: "carlsen m"  ·  prefix "car"
+
+open + count                   cold      6.1  median      5.2  p95      6.5  worst      6.5  (10,680,708 rows)
+first page (100)               cold      1.2  median      0.5  p95      1.1  worst      1.1  (100 rows)
+deep page (offset 50k)         cold      2.2  median      1.0  p95      2.1  worst      2.1  (100 rows)
+player prefix                  cold     48.8  median      0.3  p95      0.8  worst      0.8  (20 rows)
+player exact                   cold      0.6  median      0.0  p95      0.1  worst      0.1  (0 rows)
+preparation (newest 200 + PGN) cold      0.1  median      0.0  p95      0.0  worst      0.0  (0 rows)
+text common                    cold  51379.6  median  50589.4  p95  51639.7  worst  51639.7  (50 rows)
+text rare                      cold     10.3  median      0.3  p95      1.2  worst      1.2  (42 rows)
+text no match                  cold      1.4  median      0.0  p95      0.1  worst      0.1  (0 rows)
+eco filter                     cold     14.0  median      3.7  p95      3.8  worst      3.8  (50 rows)
+year filter                    cold      0.6  median      0.0  p95      0.0  worst      0.0  (0 rows)
+rating filter                  cold     12.7  median      6.1  p95      6.1  worst      6.1  (50 rows)
+explore start                  cold      1.0  median      0.0  p95      0.1  worst      0.1  (0 rows)
+explore najdorf                cold      0.0  median      0.0  p95      0.0  worst      0.0  (0 rows)
+explore filtered               cold      1.1  median      0.1  p95      0.1  worst      0.1  (0 rows)
+games at position              cold      0.1  median      0.0  p95      0.0  worst      0.0  (0 rows)
+duplicate scan page            cold     33.3  median      6.7  p95      7.6  worst      7.6  (5,000 rows)
+export page (200)              cold      3.3  median      1.5  p95      3.7  worst      3.7  (200 rows)
+aggregate integrity            cold      0.1  median      0.0  p95      0.0  worst      0.0  
+
+--- move search (line index) -----------------------------------
+material R v B                 cold   35.94 s  median   31.32 s  179,124 hits of 10,680,708 scanned (12 slices, 0 unindexed)
+theme opposite bishops         cold   28.32 s  median   30.79 s  1,733,380 hits of 10,680,708 scanned (12 slices, 0 unindexed)
+route N g1 f3 d4 f5            cold   42.78 s  median   43.08 s  156,107 hits of 10,680,708 scanned (12 slices, 0 unindexed)
+material + route               cold   30.96 s  median   35.17 s  122,881 hits of 10,680,708 scanned (12 slices, 0 unindexed)
+equivalence {"material":{"text":"R v B"}}      30,000 games: linear 561 hits in 143.2 s, index 561 hits — identical
+equivalence {"theme":"opposite-coloured-bishops"} 30,000 games: linear 4,789 hits in 148.3 s, index 4,789 hits — identical
+equivalence {"route":{"text":"N g1 f3 d4 f5"}} 30,000 games: linear 445 hits in 142.8 s, index 445 hits — identical

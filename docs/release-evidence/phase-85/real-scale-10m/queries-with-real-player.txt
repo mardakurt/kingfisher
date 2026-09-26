@@ -1,0 +1,31 @@
+database on disk   22.96 GB · 10,680,708 games · 2150 bytes a game
+
+--- queries (ms) ----------------------------------------------
+
+busiest player key: "beserking101"  ·  prefix "bes"
+
+open + count                   cold     45.5  median     46.0  p95     47.9  worst     47.9  (10,680,708 rows)
+first page (100)               cold      2.0  median      1.0  p95      1.8  worst      1.8  (100 rows)
+deep page (offset 50k)         cold      2.6  median      1.7  p95      1.9  worst      1.9  (100 rows)
+player prefix                  cold     12.5  median      0.1  p95      0.1  worst      0.1  (20 rows)
+player exact                   cold    760.6  median     16.2  p95     19.6  worst     19.6  (50 rows)
+preparation (newest 200 + PGN) cold     51.4  median     18.9  p95     19.9  worst     19.9  (200 rows)
+text common                    cold    483.5  median    405.2  p95    427.3  worst    427.3  (50 rows)
+text rare                      cold    115.5  median     44.0  p95     47.8  worst     47.8  (42 rows)
+text no match                  cold     49.2  median     44.5  p95     48.4  worst     48.4  (0 rows)
+eco filter                     cold     62.6  median      5.7  p95      6.7  worst      6.7  (50 rows)
+year filter                    cold      0.5  median      0.0  p95      0.1  worst      0.1  (0 rows)
+rating filter                  cold     58.2  median      8.8  p95     10.9  worst     10.9  (50 rows)
+explore start                  cold      0.3  median      0.0  p95      0.0  worst      0.0  (0 rows)
+explore najdorf                cold      0.0  median      0.0  p95      0.0  worst      0.0  (0 rows)
+explore filtered               cold      0.6  median      0.1  p95      0.1  worst      0.1  (0 rows)
+games at position              cold      0.3  median      0.0  p95      0.1  worst      0.1  (0 rows)
+duplicate scan page            cold     26.1  median      5.9  p95      7.0  worst      7.0  (5,000 rows)
+export page (200)              cold      3.0  median      1.7  p95      2.3  worst      2.3  (200 rows)
+aggregate integrity            cold      0.1  median      0.0  p95      0.0  worst      0.0  
+
+--- move search (line index) -----------------------------------
+material R v B                 cold   30.70 s  median   35.09 s  179,124 hits of 10,680,708 scanned (12 slices, 0 unindexed)
+theme opposite bishops         cold   35.07 s  median   29.96 s  1,733,380 hits of 10,680,708 scanned (12 slices, 0 unindexed)
+route N g1 f3 d4 f5            cold   38.17 s  median   39.33 s  156,107 hits of 10,680,708 scanned (12 slices, 0 unindexed)
+material + route               cold   28.97 s  median   31.69 s  122,881 hits of 10,680,708 scanned (12 slices, 0 unindexed)

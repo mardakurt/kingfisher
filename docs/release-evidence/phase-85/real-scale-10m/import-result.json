@@ -1,0 +1,247 @@
+{
+  "stats": {
+    "kind": "pgn",
+    "file": "/Users/metinardakurt/KingfisherWork/archives/lichess-standard/lichess_db_standard_rated_2017-01.pgn.zst",
+    "bytes": 1902198021,
+    "bulk": true,
+    "workers": 6,
+    "read": 10680708,
+    "imported": 10680708,
+    "duplicates": 0,
+    "rejected": 0,
+    "failures": [],
+    "peakRssBytes": 4180393984,
+    "elapsedMs": 15740348.565125,
+    "indexMs": 27346.66262499988,
+    "stopped": false
+  },
+  "size": 22963707904,
+  "queries": [
+    {
+      "label": "open + count",
+      "cold": 6.0663339998573065,
+      "median": 5.150000000372529,
+      "p95": 6.5166659988462925,
+      "worst": 6.5166659988462925,
+      "rows": 10680708
+    },
+    {
+      "label": "first page (100)",
+      "cold": 1.1688329987227917,
+      "median": 0.4598339982330799,
+      "p95": 1.1263340003788471,
+      "worst": 1.1263340003788471,
+      "rows": 100
+    },
+    {
+      "label": "deep page (offset 50k)",
+      "cold": 2.249625001102686,
+      "median": 1.0159159991890192,
+      "p95": 2.1394579987972975,
+      "worst": 2.1394579987972975,
+      "rows": 100
+    },
+    {
+      "label": "player prefix",
+      "cold": 48.767833998426795,
+      "median": 0.2569159995764494,
+      "p95": 0.8129169996827841,
+      "worst": 0.8129169996827841,
+      "rows": 20
+    },
+    {
+      "label": "player exact",
+      "cold": 0.5751669984310865,
+      "median": 0.041874999180436134,
+      "p95": 0.08145800046622753,
+      "worst": 0.08145800046622753,
+      "rows": 0
+    },
+    {
+      "label": "preparation (newest 200 + PGN)",
+      "cold": 0.11762499995529652,
+      "median": 0.039666999131441116,
+      "p95": 0.0431670006364584,
+      "worst": 0.0431670006364584,
+      "rows": 0
+    },
+    {
+      "label": "text common",
+      "cold": 51379.646833000705,
+      "median": 50589.38058299944,
+      "p95": 51639.72000000067,
+      "worst": 51639.72000000067,
+      "rows": 50
+    },
+    {
+      "label": "text rare",
+      "cold": 10.338499998673797,
+      "median": 0.2514999993145466,
+      "p95": 1.2092080004513264,
+      "worst": 1.2092080004513264,
+      "rows": 42
+    },
+    {
+      "label": "text no match",
+      "cold": 1.3809999991208315,
+      "median": 0.03962500020861626,
+      "p95": 0.07599999941885471,
+      "worst": 0.07599999941885471,
+      "rows": 0
+    },
+    {
+      "label": "eco filter",
+      "cold": 14.018457999452949,
+      "median": 3.7210409995168447,
+      "p95": 3.762000000104308,
+      "worst": 3.762000000104308,
+      "rows": 50
+    },
+    {
+      "label": "year filter",
+      "cold": 0.5599579997360706,
+      "median": 0.02837499976158142,
+      "p95": 0.042375000193715096,
+      "worst": 0.042375000193715096,
+      "rows": 0
+    },
+    {
+      "label": "rating filter",
+      "cold": 12.699374999850988,
+      "median": 6.070125000551343,
+      "p95": 6.109042000025511,
+      "worst": 6.109042000025511,
+      "rows": 50
+    },
+    {
+      "label": "explore start",
+      "cold": 0.9598750006407499,
+      "median": 0.029249999672174454,
+      "p95": 0.05100000090897083,
+      "worst": 0.05100000090897083,
+      "rows": 0
+    },
+    {
+      "label": "explore najdorf",
+      "cold": 0.03704199939966202,
+      "median": 0.02791599929332733,
+      "p95": 0.03379100002348423,
+      "worst": 0.03379100002348423,
+      "rows": 0
+    },
+    {
+      "label": "explore filtered",
+      "cold": 1.0984579995274544,
+      "median": 0.07570799998939037,
+      "p95": 0.1041250005364418,
+      "worst": 0.1041250005364418,
+      "rows": 0
+    },
+    {
+      "label": "games at position",
+      "cold": 0.10062500089406967,
+      "median": 0.045291999354958534,
+      "p95": 0.04720799997448921,
+      "worst": 0.04720799997448921,
+      "rows": 0
+    },
+    {
+      "label": "duplicate scan page",
+      "cold": 33.30012499913573,
+      "median": 6.6787910014390945,
+      "p95": 7.590832998976111,
+      "worst": 7.590832998976111,
+      "rows": 5000
+    },
+    {
+      "label": "export page (200)",
+      "cold": 3.338458999991417,
+      "median": 1.5373330004513264,
+      "p95": 3.6953750010579824,
+      "worst": 3.6953750010579824,
+      "rows": 200
+    },
+    {
+      "label": "aggregate integrity",
+      "cold": 0.0838330015540123,
+      "median": 0.010250000283122063,
+      "p95": 0.013250000774860382,
+      "worst": 0.013250000774860382,
+      "rows": null
+    }
+  ],
+  "moveSearch": [
+    {
+      "label": "material R v B",
+      "cold": 35943.293957998976,
+      "median": 31324.105000000447,
+      "hits": 179124,
+      "scanned": 10680708,
+      "unindexed": 0,
+      "slices": 12
+    },
+    {
+      "label": "theme opposite bishops",
+      "cold": 28315.035666000098,
+      "median": 30786.086959000677,
+      "hits": 1733380,
+      "scanned": 10680708,
+      "unindexed": 0,
+      "slices": 12
+    },
+    {
+      "label": "route N g1 f3 d4 f5",
+      "cold": 42779.94916699827,
+      "median": 43079.29929200001,
+      "hits": 156107,
+      "scanned": 10680708,
+      "unindexed": 0,
+      "slices": 12
+    },
+    {
+      "label": "material + route",
+      "cold": 30961.873500000685,
+      "median": 35173.86770899966,
+      "hits": 122881,
+      "scanned": 10680708,
+      "unindexed": 0,
+      "slices": 12
+    }
+  ],
+  "equivalence": [
+    {
+      "text": {
+        "material": {
+          "text": "R v B"
+        }
+      },
+      "read": 30000,
+      "linearHits": 561,
+      "indexHits": 561,
+      "linearMs": 143213.9531670008,
+      "same": true
+    },
+    {
+      "text": {
+        "theme": "opposite-coloured-bishops"
+      },
+      "read": 30000,
+      "linearHits": 4789,
+      "indexHits": 4789,
+      "linearMs": 148266.60770899802,
+      "same": true
+    },
+    {
+      "text": {
+        "route": {
+          "text": "N g1 f3 d4 f5"
+        }
+      },
+      "read": 30000,
+      "linearHits": 445,
+      "indexHits": 445,
+      "linearMs": 142791.28533400223,
+      "same": true
+    }
+  ]
+}
