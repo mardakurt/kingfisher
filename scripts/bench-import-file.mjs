@@ -44,6 +44,8 @@ for (let i = 2; i < argv.length; i += 1) {
   else if (argv[i] === '--sample') args.sample = Number(argv[++i]);
   // Search-only: headers and the line index, no per-position rows (the 10M run's disk budget).
   else if (argv[i] === '--no-positions') args.positions = false;
+  // A busy player's key, for the header and preparation queries.
+  else if (argv[i] === '--player') args.player = argv[++i];
 }
 
 let database;
@@ -100,7 +102,7 @@ console.log(
   `database on disk   ${gb(size)} · ${n(database.count())} games · ${Math.round(size / database.count())} bytes a game`,
 );
 console.log('\n--- queries (ms) ----------------------------------------------');
-const queries = benchmark(database, 5);
+const queries = benchmark(database, 5, args.player ? { player: args.player } : {});
 console.log('\n--- move search (line index) -----------------------------------');
 const moveSearch = await moveSearchBenchmark(database, 2);
 const equivalence = args.sample > 0 ? await equivalenceSample(database, args.sample) : [];

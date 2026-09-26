@@ -424,7 +424,7 @@ export async function buildParallel(database, limit, databaseFile, floorBytes, o
 }
 
 /** The queries a professional actually runs, against whatever is in the file. */
-export function benchmark(database, warm) {
+export function benchmark(database, warm, options = {}) {
   const rows = [];
   const add = (label, run) => {
     const row = measure(label, run, warm);
@@ -433,7 +433,10 @@ export function benchmark(database, warm) {
 
   // A busy player and a real opening, discovered from the data rather than
   // assumed, so this measures a populated answer and not an empty one.
-  const busiest = database.players('', 1)[0]?.nameKey ?? 'carlsen m';
+  // `options.player` names one when the players table is empty (a bulk import
+  // does not fill it): the fallback name then matched nothing, and the 1M
+  // run's "player exact" timed an empty answer (Phase 85).
+  const busiest = options.player ?? database.players('', 1)[0]?.nameKey ?? 'carlsen m';
   const prefix = busiest.slice(0, 3);
   console.log(`\nbusiest player key: "${busiest}"  ·  prefix "${prefix}"\n`);
 
@@ -442,6 +445,18 @@ export function benchmark(database, warm) {
   add('deep page (offset 50k)', () => database.search({ limit: 100, offset: 50_000 }));
   add('player prefix', () => database.players(prefix, 20));
   add('player exact', () => database.search({ player: busiest, limit: 50 }));
+  // What preparation asks a companion database: the player's newest 200 games
+  // by date, then each one's PGN.
+  add('preparation (newest 200 + PGN)', () => {
+    const found = database.search({
+      player: busiest,
+      sortBy: 'date',
+      sortDirection: 'desc',
+      limit: 200,
+    });
+    for (const game of found.games) database.content(game.id);
+    return found;
+  });
   add('text common', () => database.search({ text: 'open', limit: 50 }));
   add('text rare', () => database.search({ text: 'reykjavik', limit: 50 }));
   add('text no match', () => database.search({ text: 'zzzznobody', limit: 50 }));
