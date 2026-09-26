@@ -1,0 +1,5 @@
+--- move search (line index) -----------------------------------
+material R v B                 cold    4.54 s  median    3.30 s  16,675 hits of 1,048,440 scanned (12 slices, 0 unindexed)
+theme opposite bishops         cold    2.73 s  median    4.30 s  163,840 hits of 1,048,440 scanned (12 slices, 0 unindexed)
+route N g1 f3 d4 f5            cold    4.60 s  median    5.16 s  14,427 hits of 1,048,440 scanned (12 slices, 0 unindexed)
+material + route               cold    3.19 s  median    3.14 s  11,254 hits of 1,048,440 scanned (12 slices, 0 unindexed)

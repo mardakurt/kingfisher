@@ -1,0 +1,239 @@
+{
+  "stats": {
+    "kind": "pgn",
+    "file": "/Users/metinardakurt/KingfisherWork/archives/lichess-standard/lichess_db_standard_rated_2014-07.pgn.zst",
+    "bytes": 200304103,
+    "bulk": true,
+    "workers": 8,
+    "read": 1048440,
+    "imported": 1048440,
+    "duplicates": 0,
+    "rejected": 0,
+    "failures": [],
+    "peakRssBytes": 6751223808,
+    "elapsedMs": 8940677.268167,
+    "indexMs": 3778954.404917,
+    "stopped": false
+  },
+  "size": 33207283712,
+  "queries": [
+    {
+      "label": "open + count",
+      "cold": 0.9270829986780882,
+      "median": 0.13883299939334393,
+      "p95": 0.820457998663187,
+      "worst": 0.820457998663187,
+      "rows": 1048440
+    },
+    {
+      "label": "first page (100)",
+      "cold": 22.461124999448657,
+      "median": 6.479458000510931,
+      "p95": 716.0352079998702,
+      "worst": 716.0352079998702,
+      "rows": 100
+    },
+    {
+      "label": "deep page (offset 50k)",
+      "cold": 10.629792001098394,
+      "median": 4.127125000581145,
+      "p95": 5.2702910006046295,
+      "worst": 5.2702910006046295,
+      "rows": 100
+    },
+    {
+      "label": "player prefix",
+      "cold": 11.744374999776483,
+      "median": 0.04941700026392937,
+      "p95": 0.5675829984247684,
+      "worst": 0.5675829984247684,
+      "rows": 20
+    },
+    {
+      "label": "player exact",
+      "cold": 2.8417080007493496,
+      "median": 0.3880409989506006,
+      "p95": 1.0731669999659061,
+      "worst": 1.0731669999659061,
+      "rows": 0
+    },
+    {
+      "label": "text common",
+      "cold": 23943.232874998823,
+      "median": 265.6379589997232,
+      "p95": 426.9987920001149,
+      "worst": 426.9987920001149,
+      "rows": 50
+    },
+    {
+      "label": "text rare",
+      "cold": 4.488957999274135,
+      "median": 0.2038749996572733,
+      "p95": 13.474500000476837,
+      "worst": 13.474500000476837,
+      "rows": 0
+    },
+    {
+      "label": "text no match",
+      "cold": 11.914417000487447,
+      "median": 0.48825000040233135,
+      "p95": 1.1743330005556345,
+      "worst": 1.1743330005556345,
+      "rows": 0
+    },
+    {
+      "label": "eco filter",
+      "cold": 61.972666999325156,
+      "median": 8.135792000219226,
+      "p95": 8.626583000645041,
+      "worst": 8.626583000645041,
+      "rows": 50
+    },
+    {
+      "label": "year filter",
+      "cold": 0.7181659992784262,
+      "median": 0.042375000193715096,
+      "p95": 0.07929200120270252,
+      "worst": 0.07929200120270252,
+      "rows": 0
+    },
+    {
+      "label": "rating filter",
+      "cold": 707.3295840006322,
+      "median": 153.16400000080466,
+      "p95": 174.83454200066626,
+      "worst": 174.83454200066626,
+      "rows": 50
+    },
+    {
+      "label": "explore start",
+      "cold": 13.002917001023889,
+      "median": 0.5128750000149012,
+      "p95": 2.654500000178814,
+      "worst": 2.654500000178814,
+      "rows": 20
+    },
+    {
+      "label": "explore najdorf",
+      "cold": 0.8731249999254942,
+      "median": 0.5686670001596212,
+      "p95": 0.882582999765873,
+      "worst": 0.882582999765873,
+      "rows": 24
+    },
+    {
+      "label": "explore filtered",
+      "cold": 2285.190666999668,
+      "median": 1.1713330000638962,
+      "p95": 2.2561249993741512,
+      "worst": 2.2561249993741512,
+      "rows": 2
+    },
+    {
+      "label": "games at position",
+      "cold": 136.22633400000632,
+      "median": 14.397749999538064,
+      "p95": 345.16937500052154,
+      "worst": 345.16937500052154,
+      "rows": 12
+    },
+    {
+      "label": "duplicate scan page",
+      "cold": 385.59999999962747,
+      "median": 52.36491599865258,
+      "p95": 63.26645799912512,
+      "worst": 63.26645799912512,
+      "rows": 5000
+    },
+    {
+      "label": "export page (200)",
+      "cold": 342.4958750009537,
+      "median": 528.7453749999404,
+      "p95": 857.948958998546,
+      "worst": 857.948958998546,
+      "rows": 200
+    },
+    {
+      "label": "aggregate integrity",
+      "cold": 90820.15720799938,
+      "median": 83444.94029200077,
+      "p95": 101980.73087500036,
+      "worst": 101980.73087500036,
+      "rows": null
+    }
+  ],
+  "moveSearch": [
+    {
+      "label": "material R v B",
+      "cold": 56993.169000001624,
+      "median": 66710.92650000006,
+      "hits": 16675,
+      "scanned": 1048440,
+      "unindexed": 0,
+      "slices": 12
+    },
+    {
+      "label": "theme opposite bishops",
+      "cold": 123227.84912500158,
+      "median": 45583.88370800018,
+      "hits": 163840,
+      "scanned": 1048440,
+      "unindexed": 0,
+      "slices": 12
+    },
+    {
+      "label": "route N g1 f3 d4 f5",
+      "cold": 26538.589540999383,
+      "median": 28118.302624998614,
+      "hits": 14427,
+      "scanned": 1048440,
+      "unindexed": 0,
+      "slices": 12
+    },
+    {
+      "label": "material + route",
+      "cold": 23926.555917000398,
+      "median": 25312.560917001218,
+      "hits": 11254,
+      "scanned": 1048440,
+      "unindexed": 0,
+      "slices": 12
+    }
+  ],
+  "equivalence": [
+    {
+      "text": {
+        "material": {
+          "text": "R v B"
+        }
+      },
+      "read": 30000,
+      "linearHits": 491,
+      "indexHits": 491,
+      "linearMs": 355560.6926250011,
+      "same": true
+    },
+    {
+      "text": {
+        "theme": "opposite-coloured-bishops"
+      },
+      "read": 30000,
+      "linearHits": 4655,
+      "indexHits": 4655,
+      "linearMs": 240237.2564580012,
+      "same": true
+    },
+    {
+      "text": {
+        "route": {
+          "text": "N g1 f3 d4 f5"
+        }
+      },
+      "read": 30000,
+      "linearHits": 376,
+      "indexHits": 376,
+      "linearMs": 245864.04229200073,
+      "same": true
+    }
+  ]
+}
