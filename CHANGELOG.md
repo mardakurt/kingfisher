@@ -8,7 +8,15 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
-_Nothing yet since 1.3.0._
+- **Fixed: a move search over a large database undercounted.** Over the
+  1,048,440-game Lichess collection the Library said "5,000 of 1,048,440
+  games read contain it" for opposite-coloured bishops, which 163,840 of them
+  contain: the companion sends the first 5,000 and counts the rest. It now
+  says how many contain it and that the first 5,000 are listed. (Phase 85)
+- **Preparation reads your companion databases.** Preparing against a player
+  now also searches every database the companion holds — a Lichess month you
+  imported, your own ChessBase file — each as its own source with its own
+  count. (Phase 85)
 
 ## 1.3.0 — 2026-09-26
 

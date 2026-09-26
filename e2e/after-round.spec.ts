@@ -165,8 +165,10 @@ test('After the round reads the game and files one learning point', async ({ pag
   await expect(page.getByText(/variations? written into the game\./)).toBeVisible();
   // The engine's own move is in the game as a variation beside the move that
   // was played, carrying the two scores, the depth and which engine said so.
-  await expect(tree).toContainText('2.Nf3');
-  await expect(tree).toContainText(/at depth \d+: .* before 2\. Bc4, .* after\./);
+  // Asserted on 3.Qh5, which loses the queen: whether an engine also prefers
+  // 2.Nf3 to 2.Bc4 — two sound moves — depends on its depth and the machine's
+  // load, and a full run on 2026-09-26 found it agreeing with 2.Bc4.
+  await expect(tree).toContainText(/at depth \d+: .* before 3\. Qh5, .* after\./);
   await expect(tree).toContainText('This was its first choice.');
   // And no verdict: the vocabulary is the part left behind.
   await expect(tree).not.toContainText(/blunder|mistake|brilliant|inaccuracy|\?\?|!!/);
