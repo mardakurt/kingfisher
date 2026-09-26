@@ -123,7 +123,7 @@ const REPERTOIRE_EMPTY =
 const CRITICAL_EMPTY =
   'No critical positions due. Tag a position as critical in any review to start.';
 const ENDGAME_EMPTY = 'No saved endgame positions. Save a position from the position actions menu.';
-const BRIEF_EMPTY = 'No round brief to rehearse. Build one for an upcoming round in /preparation.';
+const BRIEF_EMPTY = 'No round brief to rehearse. Build one for an upcoming round in Preparation.';
 
 const dueInDays = (schedule: ScheduleState, now: number): number =>
   Math.round((schedule.dueAt - now) / DAY_MS);

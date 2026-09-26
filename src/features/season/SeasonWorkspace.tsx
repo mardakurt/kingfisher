@@ -17,8 +17,11 @@ import { WorkspaceFrame } from '@/features/workspace/WorkspaceFrame';
 import { NavButton } from '@/features/shell/NavButton';
 import { Panel, PanelBody } from '@/components/ui/Panel';
 import { useProfile } from '@/features/persistence/queries';
-import { buildSeason } from '@/season/season';
-import { namedSetUrl, type SeasonNamedSet } from '@/season/named-set';
+import { buildSeason, seasonScope } from '@/season/season';
+import Link from 'next/link';
+import { WorkspaceDocument } from '@/features/workspace/WorkspaceDocument';
+import { useUi } from '@/stores/ui-store';
+import { describeNamedSet, namedSetUrl, type SeasonNamedSet } from '@/season/named-set';
 import { useSeasonLog } from '@/stores/season-log-store';
 import { hashReport } from '@/features/season/hash-report';
 import { SeasonPicker } from './SeasonPicker';
@@ -54,53 +57,110 @@ export function SeasonWorkspace({ predicate }: { readonly predicate: SeasonNamed
     });
   }, [record, seasonResult, urlForLog, predicate]);
 
+  const scope = useMemo(
+    () => (games.data ? seasonScope({ games: games.data, aliases }) : null),
+    [games.data, aliases],
+  );
+  const openSettingsAt = useUi((state) => state.openSettingsAt);
+  const label = predicate ? describeNamedSet(predicate) : 'Last 90 days';
+
+  /*
+    Why a period is empty, in the order the causes apply. "No games match"
+    alone was said for all four, including the commonest — Kingfisher not
+    knowing which player is you — which no choice of period could fix.
+  */
+  const emptyBecause =
+    !scope || scope.yours > 0 ? null : scope.library === 0 ? (
+      <>
+        My games is empty.{' '}
+        <Link className="underline" href="/games">
+          Import your games
+        </Link>{' '}
+        — a PGN from your club, or a linked Lichess or Chess.com account — and they are read here.
+      </>
+    ) : scope.names === 0 ? (
+      <>
+        You have {scope.library.toLocaleString()} games in My games, but Kingfisher does not know
+        which player is you, and it never guesses.{' '}
+        <button type="button" className="underline" onClick={() => openSettingsAt('profile')}>
+          Add the names you play under
+        </button>{' '}
+        in Settings → Profile.
+      </>
+    ) : (
+      <>
+        None of your {scope.library.toLocaleString()} games in My games has a player named as in
+        Settings → Profile ({scope.names} {scope.names === 1 ? 'name' : 'names'}).{' '}
+        <button type="button" className="underline" onClick={() => openSettingsAt('profile')}>
+          Check the names
+        </button>
+        : they must match the PGN exactly, as “Surname, Forename” or a handle.
+      </>
+    );
+
   return (
     <WorkspaceFrame
       workspace="season"
       title="Season"
-      subtitle="A named set of your games, joined into one report."
-    >
-      <div className="flex flex-col gap-4">
-        <NavButton />
-        {!predicate ? (
-          <Panel>
-            <PanelBody>
-              <p className="text-sm text-secondary">
-                Pick a named set above — last 90 days, an event, a site, or an opening. The default
-                when no predicate is in the URL is <strong>Last 90 days</strong>; press a chip or
-                change the dropdown to see another.
+      subtitle="Your own games over a period, an event, a site or an opening."
+      takeover={
+        <WorkspaceDocument label="Season report">
+          <NavButton />
+          <section className="flex flex-col gap-2" data-season-scope>
+            <SeasonPicker
+              games={games.data ?? []}
+              predicate={predicate ?? { kind: 'last', value: '90' }}
+            />
+            {scope && scope.yours > 0 ? (
+              <p className="text-xs text-tertiary">
+                Reading {scope.yours.toLocaleString()} of your games (of{' '}
+                {scope.library.toLocaleString()} in My games
+                {scope.firstYear !== null
+                  ? `, dated ${scope.firstYear === scope.lastYear ? scope.firstYear : `${scope.firstYear}–${scope.lastYear}`}`
+                  : ''}
+                {scope.undatedYours ? `; ${scope.undatedYours.toLocaleString()} undated` : ''}).
+                Showing {label}.
               </p>
-            </PanelBody>
-          </Panel>
-        ) : null}
-        <SeasonPicker
-          games={games.data ?? []}
-          predicate={predicate ?? { kind: 'last', value: '90' }}
-        />
-        {games.isPending ? (
-          <Panel>
-            <PanelBody>
-              <p className="text-sm text-secondary">Reading your games…</p>
-            </PanelBody>
-          </Panel>
-        ) : games.error ? (
-          <Panel>
-            <PanelBody>
-              <p className="text-sm text-danger">
-                Failed to read your games: {String(games.error)}
-              </p>
-            </PanelBody>
-          </Panel>
-        ) : seasonResult && 'error' in seasonResult ? (
-          <Panel>
-            <PanelBody>
-              <p className="text-sm text-secondary">{seasonResult.error}</p>
-            </PanelBody>
-          </Panel>
-        ) : seasonResult ? (
-          <SeasonSections report={seasonResult.report} url={urlForLog} />
-        ) : null}
-      </div>
-    </WorkspaceFrame>
+            ) : null}
+          </section>
+          {games.isPending ? (
+            <Panel>
+              <PanelBody>
+                <p className="text-sm text-secondary">Reading your games…</p>
+              </PanelBody>
+            </Panel>
+          ) : games.error ? (
+            <Panel>
+              <PanelBody>
+                <p className="text-sm text-danger" role="alert">
+                  Your games could not be read: {String(games.error)}
+                </p>
+              </PanelBody>
+            </Panel>
+          ) : emptyBecause ? (
+            <Panel>
+              <PanelBody>
+                <p className="text-sm text-secondary" data-season-empty>
+                  {emptyBecause}
+                </p>
+              </PanelBody>
+            </Panel>
+          ) : seasonResult && 'error' in seasonResult ? (
+            <Panel>
+              <PanelBody>
+                <p className="text-sm text-secondary" data-season-empty>
+                  {seasonResult.error}
+                  {scope && scope.firstYear !== null
+                    ? ` Your games are dated ${scope.firstYear === scope.lastYear ? scope.firstYear : `${scope.firstYear}–${scope.lastYear}`}; choose a longer period, or an event or site.`
+                    : ''}
+                </p>
+              </PanelBody>
+            </Panel>
+          ) : seasonResult ? (
+            <SeasonSections report={seasonResult.report} url={urlForLog} />
+          ) : null}
+        </WorkspaceDocument>
+      }
+    />
   );
 }

@@ -122,11 +122,17 @@ test('the daily session shows four slices in order and grades cards', async ({ p
   await expect(page.getByRole('heading', { name: /Endgame/i })).toBeVisible();
   await expect(page.getByRole('heading', { name: /Brief rehearsal/i })).toBeVisible();
 
-  // Each seeded card is visible.
-  await expect(page.getByText('Recall your move after 1. e4 e5 2. Nf3')).toBeVisible();
-  await expect(page.getByText('Spend the next thirty seconds here.')).toBeVisible();
-  await expect(page.getByText('K vs k')).toBeVisible();
-  await expect(page.getByText('The opening the player wants to remember.')).toBeVisible();
+  // Each seeded card is listed in the queue. (The strip under the board also
+  // names the card to start with, so these are scoped to the queue.)
+  const queue = page.locator('[data-daily="true"]');
+  await expect(queue.getByText('Recall your move after 1. e4 e5 2. Nf3')).toBeVisible();
+  await expect(queue.getByText('Spend the next thirty seconds here.')).toBeVisible();
+  await expect(queue.getByText('K vs k')).toBeVisible();
+  await expect(queue.getByText('The opening the player wants to remember.')).toBeVisible();
+
+  // Nothing replaces the board until the person begins; then the first card is on it.
+  await page.locator('[data-daily-begin]').click();
+  await expect(page.locator('[data-daily-card-id] [aria-current="true"]')).toHaveCount(1);
 
   // The rehearsal counter starts at zero.
   await expect(page.locator('[data-daily-rehearsed="0"]')).toBeVisible();

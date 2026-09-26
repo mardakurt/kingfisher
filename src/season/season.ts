@@ -402,6 +402,44 @@ const slowestOpenings = (
 };
 
 /**
+ * Who a season is about, before any period is applied (Phase 86).
+ *
+ * A season reads only games where one player is you — by the exact names in
+ * Settings → Profile, never a guess. So "no games in this period" has four
+ * different causes, and a page that said only that misled: nothing imported,
+ * no names given, no game carrying those names, or games that exist but are
+ * dated elsewhere. These are the counts that tell them apart. `firstYear` and
+ * `lastYear` are the dated range of your games; undated games are counted
+ * separately rather than dropped, because unknown is not zero.
+ */
+export interface SeasonScope {
+  readonly library: number;
+  readonly names: number;
+  readonly yours: number;
+  readonly undatedYours: number;
+  readonly firstYear: number | null;
+  readonly lastYear: number | null;
+}
+
+export function seasonScope(input: {
+  readonly games: readonly GameRecord[];
+  readonly aliases: readonly string[];
+}): SeasonScope {
+  const yours = input.games.filter((game) => playerColor(game, input.aliases) !== null);
+  const years = yours
+    .map((game) => game.year)
+    .filter((year): year is number => typeof year === 'number');
+  return {
+    library: input.games.length,
+    names: input.aliases.filter((alias) => alias.trim()).length,
+    yours: yours.length,
+    undatedYours: yours.length - years.length,
+    firstYear: years.length ? Math.min(...years) : null,
+    lastYear: years.length ? Math.max(...years) : null,
+  };
+}
+
+/**
  * Build the five sections for a named-set predicate.
  *
  * Returns either the sections, or an error explaining why the set cannot
