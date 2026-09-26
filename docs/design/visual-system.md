@@ -56,8 +56,10 @@ source of every colour Kingfisher shows:
   `src/ui/palette.json`, which `src/ui/palette.test.ts` holds equal to the
   stylesheet.
 - The mark is the bird on the Studio board: near-white and periwinkle squares
-  in the board's navy frame (`--brand-frame`, `--brand-square-*`, the same in
-  both themes). `brand/kingfisher-mark.svg` is the master; its SVG copies are
+  filling the rounded tile to its edge, the bird in the board frame's navy
+  (`--brand-frame`, `--brand-square-*`, the same in both themes). There is no
+  frame round the squares: until Phase 85 there was, and the Dock icon and
+  the landing's mark read as a board inset in a dark border. `brand/kingfisher-mark.svg` is the master; its SVG copies are
   written by `scripts/render-brand-icons.py`, the Mac icon sits on Apple's
   824-in-1024 grid, and the sidebar's `BrandMark` draws the same geometry.
 - The faces are real properties, `--font-ui` and `--font-code`: a variable in

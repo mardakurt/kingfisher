@@ -32,6 +32,25 @@ describe('brand assets', () => {
     );
   });
 
+  it('fills the rounded tile with the board to its edge, with no frame round it', () => {
+    // A frame of the board's navy round the squares made the Dock icon and
+    // the landing's mark read as a board inset in a dark border.
+    const tile = /<g clip-path[^>]*>([\s\S]*?)<\/g>/.exec(MASTER)![1]!;
+    const squares = [...tile.matchAll(/<rect ([^>]*?)\/>/g)].map((m) => {
+      const attr = (name: string) =>
+        Number(new RegExp(`${name}="([\\d.]+)"`).exec(m[1]!)?.[1] ?? 0);
+      return [attr('x'), attr('y'), attr('width'), attr('height')];
+    });
+    expect(squares.sort()).toEqual(
+      [
+        [0, 0, 32, 32],
+        [0, 32, 32, 32],
+        [32, 0, 32, 32],
+        [32, 32, 32, 32],
+      ].sort(),
+    );
+  });
+
   it('draws the in-app mark with the master geometry', () => {
     const numbers = (text: string) =>
       [...text.matchAll(/-?\d+(?:\.\d+)?/g)].map((m) => Number(m[0]));

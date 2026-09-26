@@ -1,18 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
   <!--
     The Kingfisher mark: the bird on the Studio board. Four squares in the
-    board's own near-white and periwinkle, inside its navy frame, and the bird
-    in the frame's navy with the eye in the light square's colour. Every value
+    board's own near-white and periwinkle, filling the rounded tile to its
+    edge, and the bird in the board frame's navy with the eye in the light
+    square's colour. (Until Phase 85 a 5-unit navy frame ran round the squares,
+    and every icon read as a board inset in a dark border.) Every value
     is in src/ui/palette.json (board.light, board.dark, board.frame);
     src/ui/brand-assets.test.ts fails when the two disagree.
   -->
   <defs><clipPath id="t"><rect width="64" height="64" rx="14"/></clipPath></defs>
   <g clip-path="url(#t)">
-    <rect width="64" height="64" fill="#16224a"/>
-    <rect x="5" y="5" width="27" height="27" fill="#f1f3f9"/>
-    <rect x="32" y="5" width="27" height="27" fill="#7f9bd3"/>
-    <rect x="5" y="32" width="27" height="27" fill="#7f9bd3"/>
-    <rect x="32" y="32" width="27" height="27" fill="#f1f3f9"/>
+    <rect x="0" y="0" width="32" height="32" fill="#f1f3f9"/>
+    <rect x="32" y="0" width="32" height="32" fill="#7f9bd3"/>
+    <rect x="0" y="32" width="32" height="32" fill="#7f9bd3"/>
+    <rect x="32" y="32" width="32" height="32" fill="#f1f3f9"/>
   </g>
   <g transform="translate(1.8 4.6) scale(0.94)">
     <path fill="#16224a" d="

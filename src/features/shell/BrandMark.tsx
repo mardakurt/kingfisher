@@ -6,8 +6,8 @@ import { useId } from 'react';
  * The Kingfisher mark, for use inside the application.
  *
  * The app icon itself — `brand/kingfisher-mark.svg`: the bird on the Studio
- * board, four squares in the board's near-white and periwinkle inside its
- * navy frame. Until Phase 84 the sidebar drew the bird alone in the accent
+ * board, four squares in the board's near-white and periwinkle filling the
+ * rounded tile to its edge (no navy frame since Phase 85). Until Phase 84 the sidebar drew the bird alone in the accent
  * while the icon, the landing and the disk image each drew something else;
  * the Studio, the landing and the Mac application now show one mark.
  *
@@ -28,11 +28,10 @@ export function BrandMark({ className }: { readonly className?: string }) {
         </clipPath>
       </defs>
       <g clipPath={`url(#${clip})`}>
-        <rect width="64" height="64" fill="var(--brand-frame)" />
-        <rect x="5" y="5" width="27" height="27" fill="var(--brand-square-light)" />
-        <rect x="32" y="5" width="27" height="27" fill="var(--brand-square-dark)" />
-        <rect x="5" y="32" width="27" height="27" fill="var(--brand-square-dark)" />
-        <rect x="32" y="32" width="27" height="27" fill="var(--brand-square-light)" />
+        <rect x="0" y="0" width="32" height="32" fill="var(--brand-square-light)" />
+        <rect x="32" y="0" width="32" height="32" fill="var(--brand-square-dark)" />
+        <rect x="0" y="32" width="32" height="32" fill="var(--brand-square-dark)" />
+        <rect x="32" y="32" width="32" height="32" fill="var(--brand-square-light)" />
       </g>
       <g transform="translate(1.8 4.6) scale(0.94)">
         <path

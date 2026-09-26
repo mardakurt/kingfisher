@@ -36,8 +36,8 @@ SS = 4  # supersampling factor
 #     never clips the kingfisher mark. The 60% target follows the Web App
 #     Manifest "maskable" specification's 80% safe-area recommendation, then
 #     tightens to 60% so the bird still reads at very small sizes. The
-#     frame colour fills the whole canvas, because the mask is the
-#     operating system's to choose and a transparent margin shows through it.
+#     board's four squares run on to the canvas edge, because the mask is
+#     the operating system's to choose and a margin shows through it.
 #   - "macos"     — Apple's icon grid: the rounded body is 824 of 1024 px,
 #     centred, with the platform's own corner radius and a soft shadow under
 #     it. A full-bleed tile sat larger than every other icon in the Dock.
@@ -133,8 +133,17 @@ def render(size, kind="fullbleed"):
     canvas = Image.new("RGBA", (size * SS, size * SS), (0, 0, 0, 0))
     draw = ImageDraw.Draw(canvas)
     if kind == "maskable":
-        frame = root.find("svg:g", NS).find("svg:rect", NS).get("fill")
-        draw.rectangle([0, 0, canvas.size[0], canvas.size[1]], fill=frame)
+        # The board runs on under the operating system's mask: each of the
+        # four squares is extended to the canvas edge, so whatever shape the
+        # mask cuts is filled with board and never shows a margin colour.
+        full, half = canvas.size[0], canvas.size[0] / 2
+        for rect in root.find("svg:g", NS).findall("svg:rect", NS):
+            left = float(rect.get("x", 0)) < 32
+            top = float(rect.get("y", 0)) < 32
+            draw.rectangle(
+                [0 if left else half, 0 if top else half, half if left else full, half if top else full],
+                fill=rect.get("fill"),
+            )
 
     def at(x, y, tx=0.0, ty=0.0, sc=1.0):
         if kind == "maskable":
