@@ -281,8 +281,8 @@ test('popularity by year, Elo classes and first games come from the built-in pac
   await expect(popularity.locator('[data-report-provenance]')).toContainText(
     'One population; nothing combined.',
   );
-  // The archive begins in 2020, though a relayed game can carry an older date
-  // (one 1708 game reaches 1.e4): the rows are the population's own.
+  // The archive begins in 2020. (A "1708" row once appeared here: a relay's
+  // 17.08.2023 read as a year; src/reference/pack.ts packDate, Phase 85.)
   const recent = popularity.locator('li', { hasText: /^202[0-6]/ });
   await expect(recent.first()).toContainText(/share of Kingfisher Starter Reference/);
   expect(await recent.count()).toBeGreaterThanOrEqual(5);

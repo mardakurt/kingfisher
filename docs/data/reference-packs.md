@@ -114,8 +114,10 @@ rating the game states) and its five earliest games. The explorer chunks are
 byte-identical to version 4; the history is 17.0 MB more of gzip in its own
 chunks (41.3 MB in all). It is what the Opening Report's popularity, Elo-class
 and first-game sections read, each labelled with the pack
-(`e2e/opening-report.spec.ts`). The rows are the archive's own: a relayed game
-dated 1708 reaches 1.e4 and is shown under 1708.
+(`e2e/opening-report.spec.ts`). Version 6 (the same day) is version 5 with
+day-first relay dates (`15.08.2025`) read as dates: version 5, and every
+broadcast pack before it, read them as the years 1508, 1608 and 1708, and the
+Opening Report's first games showed them.
 
 Explorer depth is measured in **plies**, never ambiguously as “moves”. All
 four packs index the outgoing move at ply 40, which is 20 full moves.
