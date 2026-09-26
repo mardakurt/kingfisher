@@ -164,4 +164,30 @@ the bytes the landing links, downloaded from GitHub and verified.
 
 ## 6. Equality with GitHub, and what remains
 
-_Filled in at the close._
+At the close (after `git fetch --all --prune`): working tree clean;
+`git rev-parse HEAD origin/master` both `4cb6a5a3c691f2c075b53d0b72f470f7efbf8093`
+before this section was written, and nothing ahead or behind. The last code
+commit, `0ca4c59`, is green on CI
+([36249433243](https://github.com/mardakurt/kingfisher/actions/runs/36249433243));
+the documentation commits after it are skipped by the workflow. Remote
+branches were kept, as the owner asked. Locally at the close: unit
+3,732/3,732 (341 files), no skips, typecheck, lint, format, `docs:check`
+345/345, `npm run build`, `git diff --check`.
+
+What remains, in order:
+
+1. **Rows 5 and 12** — the remote engine between two real machines, and from
+   a cloud VM over the internet. Built and loopback-tested; needs the hardware.
+2. **Row 7** — a Windows build, signed, running the desktop harnesses; needs
+   a Windows machine and a certificate.
+3. **Row 10's other half** — the explorer and the position page at 10M need
+   a disk that holds the per-position rows (about 330 GB).
+4. **Row 1's owned half** — importing a ChessBase database of a million games
+   the owner has bought (the import path is built and tested at 1M on PGN).
+5. **The next Mac release** carries `876ff13` (common text search at 10M,
+   50 s → 405 ms) and the Firefox button fix (`bb7419b`); 1.3.1 does not.
+6. **The five filed matrix failures** (`phase-85-browser-matrix.md`), the
+   WebKit keyboard case first.
+7. The first 30-minute soak on build 846 had one unexplained 8 s click
+   timeout (seed 55806); the walk now records why, and no soak since has
+   repeated it.
