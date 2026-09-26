@@ -35,7 +35,8 @@ const target = value('target', 'browser');
 const base = value('base', 'http://localhost:3210').replace(/\/$/, '');
 const only = value('only')?.split(',').map(Number) ?? [1, 2, 3, 4, 5, 6];
 const collection = value('collection');
-const OUT = path.join(ROOT, 'docs', 'release-evidence', 'phase-85', target);
+// `--label` names the evidence folder (browser-production, packaged, …).
+const OUT = path.join(ROOT, 'docs', 'release-evidence', 'phase-85', value('label', target));
 mkdirSync(OUT, { recursive: true });
 
 const results = [];
