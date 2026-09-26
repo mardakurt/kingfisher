@@ -269,6 +269,8 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'coverage',
     'database',
   ],
+  /* Phase 86: Similar games has a board; these read the searched position. */
+  similar: ['explorer', 'transpositions', 'model-games', 'engine', 'notes'],
   'opening-files': [
     'document',
     'theory-book',

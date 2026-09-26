@@ -17,6 +17,7 @@
  * that silently ignores it.
  */
 
+import { nodeAtPly } from '@/chess/tree/find';
 import { parseSingleGame } from '@/chess/pgn';
 import type { GameTree } from '@/chess/tree/types';
 import type { CompanionMoveQuery, CompanionMoveSearchResult } from '@/companion/client';
@@ -114,9 +115,12 @@ export async function openSourceGame(
   }
   const tree = await sourceTree(source, game.id);
   if (!tree) throw new Error(`That game could not be read from ${source.name}.`);
+  // At the ply asked for, as a stored game opens (Phase 86: it opened at the start).
+  const currentId = options.ply !== undefined ? nodeAtPly(tree, options.ply) : null;
   useAnalysis.getState().openDocument({
     tree,
     document: { kind: 'untitled', title: `${gameTitle(game)} (${source.name})` },
+    ...(currentId ? { currentId } : {}),
   });
 }
 

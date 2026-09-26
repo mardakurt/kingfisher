@@ -10,6 +10,7 @@
  * list in a pack is validated by the rules code, not trusted.
  */
 
+import { nodeAtPosition } from '@/chess/tree/find';
 import { parsePgn } from '@/chess/pgn';
 import { referenceGamePgn } from '@/reference/player-games';
 import { useAnalysis, type OpenDocumentInput } from '@/stores/analysis-store';
@@ -29,14 +30,18 @@ export async function openReferenceGame(
   /** Where the game goes: the board by default, or a new tab. */
   open: (input: OpenDocumentInput) => unknown = (input) =>
     useAnalysis.getState().openDocument(input),
+  /** Open at the first main-line position with this canonical key (Phase 86). */
+  at?: string,
 ): Promise<void> {
   const pgn = await referenceGamePgn(sourceId, gameId);
   if (!pgn) throw new ReferenceGameUnavailableError();
   const parsed = parsePgn(pgn).games[0];
   if (!parsed) throw new ReferenceGameUnavailableError();
 
+  const currentId = at ? nodeAtPosition(parsed.tree, at) : null;
   await open({
     tree: parsed.tree,
     document: { kind: 'reference-game', title, sourceId, sourceName, gameId },
+    ...(currentId ? { currentId } : {}),
   });
 }

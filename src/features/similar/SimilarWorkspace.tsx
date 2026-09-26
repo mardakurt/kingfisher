@@ -13,7 +13,6 @@
  * count — populations are never merged.
  */
 
-import { WorkspaceTabStrip } from '@/features/tabs/WorkspaceTabStrip';
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
@@ -34,7 +33,9 @@ import { companionClient } from '@/companion/session';
 import { useCompanionStatus } from '@/companion/useCompanion';
 import { openReferenceGame } from '@/features/games/open-reference-game';
 import { openStoredGame } from '@/features/games/open-game';
-import { NavButton } from '@/features/shell/NavButton';
+import { WorkspaceFrame } from '@/features/workspace/WorkspaceFrame';
+import { librarySource, openSourceGame } from '@/features/games/library-source';
+import { usePreferences } from '@/stores/preferences-store';
 import { gameTitle } from '@/persistence/describe';
 import { getRepositories } from '@/persistence/repositories';
 import type {
@@ -73,6 +74,15 @@ export function SimilarWorkspace() {
   const catalog = useReferenceSources();
   const [mode, setMode] = useState<StructureSearchMode>('pawn-skeleton');
   const [submitted, setSubmitted] = useState<StructureSearchQuery | null>(null);
+  /*
+    "Chosen facts" said "only the facts you ticked" and offered nothing to
+    tick: it searched every fact of the position. The facts are listed now,
+    all ticked, and a person unticks what does not matter to them.
+  */
+  const [unticked, setUnticked] = useState<ReadonlySet<string>>(() => new Set());
+  const pairedCompanion = usePreferences((state) =>
+    Boolean(state.companionUrl && state.companionToken),
+  );
 
   const identity = useMemo(() => {
     const facts = structureFacts(fen);
@@ -82,6 +92,7 @@ export function SimilarWorkspace() {
       pawnSkeleton: pawnSkeletonKey(fen),
       structureSignature: structureSignature(facts),
       claims: structureClaims(facts).map((claim) => claim.id),
+      claimLabels: structureClaims(facts),
       description: describePawnSkeleton(fen),
     };
   }, [fen]);
@@ -147,7 +158,7 @@ export function SimilarWorkspace() {
       positionKey: identity.positionKey,
       pawnSkeleton: identity.pawnSkeleton,
       structureSignature: identity.structureSignature,
-      claims: identity.claims,
+      claims: identity.claims.filter((claim) => !unticked.has(claim)),
       limit: 40,
     });
   };
@@ -166,7 +177,14 @@ export function SimilarWorkspace() {
 
   const openPackGame = async (answer: PackAnswer, gameId: string, title: string) => {
     try {
-      await openReferenceGame(answer.packId, answer.packName, gameId, title);
+      await openReferenceGame(
+        answer.packId,
+        answer.packName,
+        gameId,
+        title,
+        undefined,
+        submitted?.positionKey,
+      );
       router.push('/analysis');
     } catch (error) {
       notify({
@@ -176,40 +194,101 @@ export function SimilarWorkspace() {
     }
   };
 
+  const openCollectionGame = async (
+    collection: { readonly key: string; readonly name: string },
+    row: StructureSearchResult,
+  ) => {
+    try {
+      await openSourceGame(librarySource(`sqlite:${collection.key}`, collection.name), row.game, {
+        ply: row.position.ply,
+      });
+      router.push('/analysis');
+    } catch (error) {
+      notify({
+        tone: 'error',
+        message: error instanceof Error ? error.message : 'That game could not be opened.',
+      });
+    }
+  };
+
+  // The board moved after the search: the answer is about another position.
+  const stale =
+    submitted !== null &&
+    identity !== null &&
+    (submitted.mode === 'pawn-skeleton'
+      ? submitted.pawnSkeleton !== identity.pawnSkeleton
+      : submitted.mode === 'signature'
+        ? submitted.structureSignature !== identity.structureSignature
+        : submitted.positionKey !== identity.positionKey);
+  const chosenClaims = identity ? identity.claims.filter((claim) => !unticked.has(claim)) : [];
+  const canSearch = identity !== null && (mode !== 'claims' || chosenClaims.length > 0);
+
   const loading = mine.isFetching || collections.isFetching || packs.isFetching;
 
-  return (
-    <div className="flex h-full min-h-0 flex-col" data-workspace-frame="similar">
-      <header className="flex shrink-0 items-center gap-2 border-b border-line-subtle px-2 py-2">
-        <NavButton />
-        <Search className="h-4 w-4 shrink-0 text-accent" />
-        <div className="min-w-0">
-          <h1 className="text-sm font-semibold text-primary">Similar games</h1>
-          <p className="hidden text-xs text-tertiary sm:block">
-            The position on the board, looked for in every source you have.
-          </p>
-        </div>
-        <Button variant="accent" className="ml-auto" disabled={!identity} onClick={run}>
-          Search
-        </Button>
-      </header>
-      <WorkspaceTabStrip />
-
-      <div className="shrink-0 border-b border-line-subtle p-2">
+  const railContent = (
+    <div className="flex flex-col gap-3 px-3 py-3">
+      <section aria-label="What counts as similar" className="flex flex-col gap-1.5">
         <Segmented items={MODES} value={mode} onChange={setMode} />
-        <p className="mt-1 text-2xs text-tertiary">{MODE_MEANING[mode]}</p>
+        <p className="text-2xs leading-relaxed text-tertiary">{MODE_MEANING[mode]}</p>
         {identity ? (
-          <p className="mt-1 truncate font-mono text-[9.5px] text-tertiary" title={fen}>
-            {mode === 'exact-position' ? identity.positionKey : identity.pawnSkeleton}
+          <p className="text-2xs leading-relaxed text-secondary" title={identity.pawnSkeleton}>
+            {mode === 'exact-position'
+              ? 'The position on the board, exactly.'
+              : `On the board: ${identity.description}`}
           </p>
         ) : (
-          <p className="mt-1 text-2xs text-negative">
+          <p className="text-2xs text-negative" role="alert">
             This position cannot be read, so there is nothing to match.
           </p>
         )}
-      </div>
-
-      <div className="min-h-0 flex-1 overflow-y-auto p-2 text-xs" data-testid="similar-results">
+        {mode === 'claims' && identity ? (
+          identity.claimLabels.length === 0 ? (
+            <p className="text-2xs text-tertiary">
+              Kingfisher finds no structural fact to match in this position.
+            </p>
+          ) : (
+            <fieldset className="flex flex-col gap-1" data-similar-claims>
+              <legend className="sr-only">Facts to match</legend>
+              {identity.claimLabels.map((claim) => (
+                <label key={claim.id} className="flex items-center gap-2 text-2xs text-secondary">
+                  <input
+                    type="checkbox"
+                    checked={!unticked.has(claim.id)}
+                    onChange={(event) =>
+                      setUnticked((current) => {
+                        const next = new Set(current);
+                        if (event.target.checked) next.delete(claim.id);
+                        else next.add(claim.id);
+                        return next;
+                      })
+                    }
+                  />
+                  {claim.label}
+                </label>
+              ))}
+            </fieldset>
+          )
+        ) : null}
+        <Button variant="accent" disabled={!canSearch} onClick={run} data-similar-search>
+          {stale ? 'Search this position' : 'Search'}
+        </Button>
+        <p className="text-2xs leading-relaxed text-tertiary">
+          Searched: My games, {pairedCompanion ? 'every companion collection, ' : ''}and the
+          reference packs installed. Each answers in its own list; nothing is added together.
+          {pairedCompanion
+            ? ''
+            : ' Companion collections are not searched: the companion is not paired.'}
+        </p>
+      </section>
+      {stale ? (
+        <p
+          className="rounded-[6px] border border-caution/40 bg-caution/10 p-2 text-2xs text-caution"
+          role="status"
+        >
+          The board has moved since this search. These results are for the earlier position.
+        </p>
+      ) : null}
+      <div className="text-xs" data-testid="similar-results">
         {submitted === null ? (
           <EmptyState
             title="Nothing searched yet."
@@ -225,7 +304,11 @@ export function SimilarWorkspace() {
             </h2>
             {(mine.data?.length ?? 0) === 0 ? (
               <p className="text-tertiary">
-                {mine.isFetching ? 'Searching your games…' : 'No game of yours matches.'}
+                {mine.isFetching
+                  ? 'Searching your games…'
+                  : mine.isError
+                    ? `My games could not be searched: ${mine.error instanceof Error ? mine.error.message : 'unknown error'}`
+                    : 'No game of yours matches.'}
               </p>
             ) : (
               <ul className="space-y-1">
@@ -262,12 +345,16 @@ export function SimilarWorkspace() {
               <ul className="space-y-1">
                 {collection.results.map((row) => (
                   <li key={`${collection.key}:${row.game.id}:${row.position.ply}`}>
-                    <span className="block rounded-[6px] border border-line px-2 py-1.5">
+                    <button
+                      type="button"
+                      className="w-full rounded-[6px] border border-line px-2 py-1.5 text-left hover:bg-surface-2"
+                      onClick={() => void openCollectionGame(collection, row)}
+                    >
                       <span className="block truncate text-primary">{gameTitle(row.game)}</span>
                       <span className="block truncate text-2xs text-tertiary">
                         move {Math.floor(row.position.ply / 2) + 1} · in {collection.name}
                       </span>
-                    </span>
+                    </button>
                   </li>
                 ))}
               </ul>
@@ -331,5 +418,17 @@ export function SimilarWorkspace() {
         ))}
       </div>
     </div>
+  );
+
+  return (
+    <WorkspaceFrame
+      workspace="similar"
+      title="Similar games"
+      subtitle="Games that reached this position, its pawns or its features — each source on its own."
+      icon={<Search />}
+      rail={{ label: 'Search', width: 320, content: railContent }}
+      board={{ mode: 'interactive' }}
+      contextLabel="Position"
+    />
   );
 }
