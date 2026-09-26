@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 import type { importGames } from '../src/persistence/import-game';
 import type { AppRepositories } from '../src/persistence/types';
+import { isNavigationAbortNoise } from './tools';
 
 async function ready(page: Page) {
   await page.locator('html[data-kingfisher-ready="true"]').waitFor();
@@ -57,10 +58,16 @@ async function seed(page: Page, games: readonly string[]) {
   }, games);
 }
 
-test('the season reads one named event through all five factual sections', async ({ page }) => {
+test('the season reads one named event through all five factual sections', async ({
+  page,
+  browserName,
+}) => {
   test.setTimeout(180_000);
   const errors: string[] = [];
-  page.on('pageerror', (error) => errors.push(error.message));
+  // A cancelled load at a navigation is engine noise (e2e/tools.ts), not an error.
+  page.on('pageerror', (error) => {
+    if (!isNavigationAbortNoise(error.message, browserName)) errors.push(error.message);
+  });
   await seed(page, [
     pgn({ event: 'Club Open 2026', site: 'OTB', date: '2026.09.19', opponent: 'One' }),
     pgn({ event: 'Club Open 2026', site: 'OTB', date: '2026.09.20', opponent: 'Two' }),

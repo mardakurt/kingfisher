@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import path from 'node:path';
+import { isNavigationAbortNoise } from './tools';
 
 const FIXTURES = path.resolve('src/database/chessbase/__fixtures__/world-ch');
 const FILES = ['cbh', 'cbg', 'cba', 'cbp', 'cbt', 'cbc', 'cbs', 'cbe'].map((ext) =>
@@ -17,9 +18,13 @@ async function ready(page: Page) {
  */
 test('a ChessBase database is read in the browser into My games, provenance kept', async ({
   page,
+  browserName,
 }) => {
   const errors: string[] = [];
-  page.on('pageerror', (error) => errors.push(error.message));
+  // A cancelled load at a navigation is engine noise (e2e/tools.ts), not an error.
+  page.on('pageerror', (error) => {
+    if (!isNavigationAbortNoise(error.message, browserName)) errors.push(error.message);
+  });
   await page.goto('/databases');
   await ready(page);
 

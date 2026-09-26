@@ -440,7 +440,7 @@ test('a study chapter with a thousand-node tree stays navigable and survives a r
     // errors when the old document unloads. Only classify them during the
     // explicit reload, and prove each resource is fetchable in the new page.
     const chunk = error.message.match(
-      /(\/reference\/kingfisher-starter\/[\w.-]+\.kfp\.gz) due to access control checks\.$/,
+      /(\/reference\/kingfisher-starter\/[\w.-]+\.(?:kfp\.gz|json)) due to access control checks\.$/,
     );
     if (reloading && browserName === 'webkit' && chunk && chunk[1]) reloadFetches.push(chunk[1]);
     else consoleFailures.push(error.message);

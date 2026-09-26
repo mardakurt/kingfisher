@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 import type { importGames } from '../src/persistence/import-game';
 import type { AppRepositories } from '../src/persistence/types';
+import { isNavigationAbortNoise } from './tools';
 
 async function ready(page: Page) {
   await page.locator('html[data-kingfisher-ready="true"]').waitFor();
@@ -22,10 +23,14 @@ const pgn = (index: number, result: '1-0' | '0-1') => `[Event "Recurring facts"]
 
 test('Improvement shows the four factual joins, changes the threshold, and opens evidence', async ({
   page,
+  browserName,
 }) => {
   test.setTimeout(180_000);
   const errors: string[] = [];
-  page.on('pageerror', (error) => errors.push(error.message));
+  // A cancelled load at a navigation is engine noise (e2e/tools.ts), not an error.
+  page.on('pageerror', (error) => {
+    if (!isNavigationAbortNoise(error.message, browserName)) errors.push(error.message);
+  });
 
   await page.goto('/analysis');
   await ready(page);

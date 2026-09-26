@@ -48,7 +48,9 @@ export async function selectTool(page: Page, dock: Locator, name: string): Promi
  * messages.
  */
 export function isNavigationAbortNoise(text: string, browserName: string): boolean {
-  if (browserName === 'firefox') return /NS_BINDING_ABORTED/.test(text);
+  // Firefox also spells it as the number: status=2152398850 is 0x804B0002,
+  // NS_BINDING_ABORTED, e.g. a font download the navigation cancelled.
+  if (browserName === 'firefox') return /NS_BINDING_ABORTED|status=2152398850\b/.test(text);
   if (browserName === 'webkit') {
     return (
       /due to access control checks/.test(text) ||

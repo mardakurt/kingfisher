@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import type { AppRepositories } from '../src/persistence/types';
 import type { importGames } from '../src/persistence/import-game';
 import type { Fen, San, Uci } from '../src/chess/types';
+import { isNavigationAbortNoise } from './tools';
 
 const FEN = 'rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2';
 const KEY = FEN.split(' ').slice(0, 4).join(' ');
@@ -92,10 +93,14 @@ async function seed(page: Page) {
 
 test('a position joins local work, clocks and stored evidence and opens the matching nodes', async ({
   page,
+  browserName,
 }) => {
   test.setTimeout(180_000);
   const errors: string[] = [];
-  page.on('pageerror', (error) => errors.push(error.message));
+  // A cancelled load at a navigation is engine noise (e2e/tools.ts), not an error.
+  page.on('pageerror', (error) => {
+    if (!isNavigationAbortNoise(error.message, browserName)) errors.push(error.message);
+  });
   const seeded = await seed(page);
   await page.goto(URL);
   await ready(page);

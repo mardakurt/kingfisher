@@ -248,7 +248,27 @@ test('a coach and a student hand work to each other through packets', async ({
   await expect(coach.getByRole('button', { name: 'd4', exact: true })).toHaveCount(0);
 
   // The PGN goes to the clipboard for whoever works in another program.
-  await coach.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+  // Firefox and WebKit have no clipboard permissions to grant; there the
+  // clipboard — a boundary — is a recording one, and the same text is read back.
+  const granted = await coach
+    .context()
+    .grantPermissions(['clipboard-read', 'clipboard-write'])
+    .then(() => true)
+    .catch(() => false);
+  if (!granted) {
+    await coach.evaluate(() => {
+      let copied = '';
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: {
+          writeText: async (text: string) => {
+            copied = text;
+          },
+          readText: async () => copied,
+        },
+      });
+    });
+  }
   await thread(coach).getByRole('button', { name: 'Copy PGN' }).first().click();
   await expect(coach.getByText('PGN copied.', { exact: false })).toBeVisible();
   expect(await coach.evaluate(() => navigator.clipboard.readText())).toContain('1. e4 e5');

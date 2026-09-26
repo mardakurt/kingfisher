@@ -251,7 +251,14 @@ for (const { route, header } of HEADER_ROUTES) {
     await ready(page);
     const browser = await survey();
     expect(browser, `${route}: the header must be in the tree in a browser`).not.toBeNull();
-    expect(browser?.drag, 'browser: the header is not a drag region').toBe('none');
+    /*
+      -webkit-app-region is Chromium's (the Mac shell is Electron). Firefox and
+      WebKit do not implement it and report an empty value; there the property
+      is asserted absent and the geometry below still holds, rather than the
+      test being skipped.
+    */
+    const appRegion = await page.evaluate(() => CSS.supports('-webkit-app-region', 'drag'));
+    expect(browser?.drag, 'browser: the header is not a drag region').toBe(appRegion ? 'none' : '');
 
     await page.addInitScript(() => {
       const stub = new Proxy(
@@ -281,7 +288,7 @@ for (const { route, header } of HEADER_ROUTES) {
     expect(desktop, `${route}: the header must be in the tree on the Mac shell`).not.toBeNull();
     expect(desktop?.top, 'the header sits at the top of the main pane').toBe(0);
     expect(desktop?.height, 'no empty strip above the header').toBeGreaterThanOrEqual(40);
-    expect(desktop?.drag, 'desktop: the header is a drag region').toBe('drag');
+    expect(desktop?.drag, 'desktop: the header is a drag region').toBe(appRegion ? 'drag' : '');
     expect(desktop?.controls, 'the header has controls to protect').toBeGreaterThan(0);
     expect(desktop?.controlsThatDrag, 'every control in the header opted out of the drag').toBe(0);
   });

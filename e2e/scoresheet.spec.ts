@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { isNavigationAbortNoise } from './tools';
 
 async function ready(page: Page) {
   await page.locator('html[data-kingfisher-ready="true"]').waitFor();
@@ -12,9 +13,13 @@ async function ready(page: Page) {
  */
 test('a scoresheet is typed as written, the gap is filled from the moves after it, and the game is saved', async ({
   page,
+  browserName,
 }) => {
   const errors: string[] = [];
-  page.on('pageerror', (error) => errors.push(error.message));
+  // A cancelled load at a navigation is engine noise (e2e/tools.ts), not an error.
+  page.on('pageerror', (error) => {
+    if (!isNavigationAbortNoise(error.message, browserName)) errors.push(error.message);
+  });
   await page.goto('/scoresheet');
   await ready(page);
 

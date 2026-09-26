@@ -26,6 +26,17 @@ const SIZES: Record<Size, string> = {
   md: 'h-9 gap-2 px-3 text-sm',
 };
 
+/*
+  Firefox restores a form control's dynamic state — `disabled` included —
+  when a page is reloaded, before React hydrates, and React does not patch an
+  attribute that differs from the server's HTML. A header button disabled on
+  the client ("Create a team first.") then hydrated with Firefox's restored
+  state and a mismatch warning (the Firefox matrix, Phase 85).
+  `autocomplete="off"` opts a control out of that restoration; a caller can
+  still pass its own.
+*/
+const NOT_RESTORED = { autoComplete: 'off' } as const;
+
 export function Button({
   variant = 'ghost',
   size = 'md',
@@ -38,6 +49,7 @@ export function Button({
   return (
     <button
       type="button"
+      {...NOT_RESTORED}
       className={cn(
         'inline-flex shrink-0 items-center rounded-[6px] whitespace-nowrap transition-colors duration-100',
         // A button given a width by its caller or stretched by a column keeps
@@ -76,6 +88,7 @@ export function IconButton({
   return (
     <button
       type="button"
+      {...NOT_RESTORED}
       title={label}
       aria-label={label}
       aria-pressed={active}

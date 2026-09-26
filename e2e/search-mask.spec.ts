@@ -10,6 +10,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 import type { importGames } from '../src/persistence/import-game';
 import type { AppRepositories } from '../src/persistence/types';
+import { isNavigationAbortNoise } from './tools';
 
 async function ready(page: Page) {
   await page.locator('html[data-kingfisher-ready="true"]').waitFor();
@@ -108,9 +109,15 @@ test('header filters narrow by event, date and time class, and print the rule', 
   await expect(rowsNamed(page, 'Endgame, Grinder')).toHaveCount(0);
 });
 
-test('a move search names what it read and opens the game at the moment', async ({ page }) => {
+test('a move search names what it read and opens the game at the moment', async ({
+  page,
+  browserName,
+}) => {
   const errors: string[] = [];
-  page.on('pageerror', (error) => errors.push(error.message));
+  // A cancelled load at a navigation is engine noise (e2e/tools.ts), not an error.
+  page.on('pageerror', (error) => {
+    if (!isNavigationAbortNoise(error.message, browserName)) errors.push(error.message);
+  });
   await seed(page);
 
   // A malformed query says what it could not read and cannot be run.
