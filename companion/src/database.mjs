@@ -1216,7 +1216,9 @@ export class GameDatabase {
     // One row over the page size answers "is there a next page" exactly,
     // without counting anything.
     const rows = query.text
-      ? this.#pageByIdFirst(clause, params, order, limit, offset)
+      ? this.#pageByIdFirst(clause, params, order, limit, offset, {
+          walkNewest: column === 'imported_at' && this.#textOnly(clause, params),
+        })
       : this.#db
           .prepare(`SELECT * FROM games ${clause} ORDER BY ${order} LIMIT ? OFFSET ?`)
           .all(...params, limit + 1, offset);
@@ -1257,9 +1259,33 @@ export class GameDatabase {
    * recorded in `docs/performance/phase-17-search.md`, so nobody tries them
    * again.
    */
-  #pageByIdFirst(clause, params, order, limit, offset) {
+  #pageByIdFirst(clause, params, order, limit, offset, { walkNewest = false } = {}) {
+    /*
+      Phase 85, at 10,680,708 games: "open" matches 57,544 of them, and the
+      sort above read imported_at for every one — random reads across a 23 GB
+      file, 8.1 s (50 s with the machine busy) — to return 51. Walking the
+      imported_at index (every entry carries its rowid, so the index is
+      already in this order) and keeping the ids the match holds took 13 ms.
+      For a term that matches almost nothing the walk is the slow plan: it
+      reads the whole index (0.4 s warm, 5.8 s cold) where the sort was
+      instant. So the match is counted first (the full-text index answers in
+      about a millisecond) and the cheaper plan is chosen: a walk reads about
+      (offset + limit + 1) × games ÷ matches sequential index entries, the
+      sort one random row per match, and a random row cost about 250 index
+      entries in those measurements.
+    */
+    const indexed =
+      walkNewest &&
+      (() => {
+        const matches = this.#db
+          .prepare('SELECT COUNT(*) AS n FROM games_fts WHERE games_fts MATCH ?')
+          .get(params[0]).n;
+        return matches * matches * 250 > (offset + limit + 1) * this.count();
+      })();
     const ids = this.#db
-      .prepare(`SELECT id FROM games ${clause} ORDER BY ${order} LIMIT ? OFFSET ?`)
+      .prepare(
+        `SELECT id FROM games ${indexed ? 'INDEXED BY games_imported ' : ''}${clause} ORDER BY ${order} LIMIT ? OFFSET ?`,
+      )
       .all(...params, limit + 1, offset)
       .map((row) => row.id);
     if (ids.length === 0) return [];
@@ -1267,6 +1293,15 @@ export class GameDatabase {
     return this.#db
       .prepare(`SELECT * FROM games WHERE id IN (${placeholders}) ORDER BY ${order}`)
       .all(...ids);
+  }
+
+  /** A query whose only filter is its text, answered by the full-text index. */
+  #textOnly(clause, params) {
+    return (
+      this.#ftsAvailable &&
+      params.length === 1 &&
+      clause === 'WHERE id IN (SELECT rowid FROM games_fts WHERE games_fts MATCH ?)'
+    );
   }
 
   content(id) {

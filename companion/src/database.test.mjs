@@ -678,3 +678,81 @@ describe('a text search pages exactly as the one-step query would', () => {
     expect(result.hasMore).toBe(false);
   });
 });
+
+/**
+ * Phase 85: a common term walks the imported_at index and stops at the page;
+ * a rare one sorts its few matches. Both must give the one-step query's page.
+ */
+describe('a text search chooses its plan by how many games match, and the page does not change', () => {
+  let directory;
+  let database;
+  let file;
+  const COUNT = 400;
+
+  beforeEach(() => {
+    directory = mkdtempSync(path.join(tmpdir(), 'kingfisher-search-plan-'));
+    file = path.join(directory, 'plan.sqlite');
+    database = new GameDatabase(file);
+    const games = [];
+    for (let index = 0; index < COUNT; index += 1) {
+      games.push(
+        entry({
+          fingerprint: `plan-${index}`,
+          // Three games carry a rare name; every game carries "Test event".
+          white: index % 150 === 7 ? `Rarename ${index}` : `White ${index}`,
+          black: `Black ${index}`,
+          result: '1-0',
+          // Imported out of insertion order: the page must follow imported_at.
+          year: 2000 + ((index * 37) % 23),
+          rating: 2000,
+          uci: 'e2e4',
+          san: 'e4',
+        }),
+      );
+    }
+    database.insertGames(games);
+  });
+
+  afterEach(() => {
+    database.close();
+    rmSync(directory, { recursive: true, force: true });
+  });
+
+  const oneStep = (term, direction, limit, offset) => {
+    const raw = new DatabaseSync(file);
+    try {
+      return raw
+        .prepare(
+          `SELECT fingerprint FROM games WHERE id IN (SELECT rowid FROM games_fts WHERE games_fts MATCH ?) ` +
+            `ORDER BY imported_at ${direction}, id ${direction} LIMIT ? OFFSET ?`,
+        )
+        .all(term, limit, offset)
+        .map((row) => row.fingerprint);
+    } finally {
+      raw.close();
+    }
+  };
+
+  for (const [term, query] of [
+    ['test', 'test'],
+    ['rarename', 'rarename'],
+  ]) {
+    for (const direction of ['desc', 'asc']) {
+      for (const offset of [0, 20]) {
+        it(`"${query}" ${direction} from ${offset}`, () => {
+          const page = database
+            .search({
+              text: query,
+              sortBy: 'importedAt',
+              sortDirection: direction,
+              limit: 10,
+              offset,
+            })
+            .games.map((game) => game.fingerprint);
+          expect(page).toEqual(oneStep(term, direction.toUpperCase(), 10, offset));
+          if (term === 'test') expect(page).toHaveLength(10);
+        });
+      }
+    }
+  }
+});
