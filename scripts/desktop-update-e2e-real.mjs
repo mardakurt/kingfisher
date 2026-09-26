@@ -343,17 +343,19 @@ try {
       seen.push('Install and Relaunch');
     } else {
       /*
-        The Accessibility tree did not show Sparkle's offer. On 2026-09-26,
-        run from a process whose responsible application had no
-        Accessibility grant, System Events read the window's title at most
-        and never its buttons — the permission is the machine owner's to
-        give, not this harness's. The update is then driven the way a person
+        The Accessibility tree did not show Sparkle's offer. On the morning
+        of 2026-09-26 System Events read at most the window's title, for
+        every 1.2.6 → 1.3.0 run; the same session read the whole window that
+        afternoon (1.2.6 → 1.3.1 and 1.3.0 → 1.3.1, both passing through it),
+        so it is not a missing permission. The cause was not established
+        (the eight-hour deep analysis running at the time, or the 1.3.0
+        feed's long embedded notes, are candidates). When it happens, the update is driven the way a person
         at the keyboard drives it: Return is the default button of each of
         Sparkle's windows (Install Update, then Install and Relaunch), and
         every step is confirmed by the application's own verdict
-        (`window.kingfisher.updateStatus()`, which Sparkle's delegate calls
-        write), not by the window. What only the window can show — the
-        offer's wording, Skip This Version — is reported as not verified.
+        (`window.kingfisher.updateStatus()`), not by the window. What only
+        the window can show — the offer's wording, Skip This Version — is
+        reported as not verified.
       */
       const page = instance.windows()[0];
       const verdict = () => page.evaluate(() => window.kingfisher.updateStatus()).catch(() => null);
