@@ -7,16 +7,26 @@ import { AppProviders } from './providers';
 import { WebAnalytics } from './_analytics/WebAnalytics';
 import './globals.css';
 
+/*
+  Neither face is preloaded. `--font-ui` puts the platform's own face first,
+  so on a Mac or a Windows machine Inter is never drawn at all, and the mono
+  face first appears in notation and FEN, seconds after the first paint. A
+  preload of each still cost every visitor about 90 KB before the page, and
+  Firefox reported both as preloaded and unused. `display: 'swap'` keeps the
+  text readable in the fallback while a face that is needed loads.
+*/
 const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
   display: 'swap',
+  preload: false,
 });
 
 const mono = JetBrains_Mono({
   subsets: ['latin'],
   variable: '--font-mono-face',
   display: 'swap',
+  preload: false,
 });
 
 const LANDING = publicUrl.landing;

@@ -8,7 +8,17 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
-_Nothing yet since 1.3.1._
+- **Fixed: in Firefox, a button could come back disabled after a reload.**
+  Firefox restores a button's state across a reload before the page is
+  ready, and the page did not undo it. (Phase 85, after 1.3.1)
+- **A common word searched in a ten-million-game database answers in under
+  a second** (it took 50 seconds): the companion reads its newest-first
+  index instead of sorting every match. Desktop users receive it with the
+  next Mac release. (Phase 85, after 1.3.1)
+- **Pages no longer download two fonts they do not show.** Kingfisher uses
+  your system's own face on a Mac and on Windows, yet every page still
+  fetched Inter and JetBrains Mono ahead of time, about 90 KB before the
+  page. Firefox reported both as fetched and unused. (Phase 86)
 
 ## 1.3.1 — 2026-09-26
 
