@@ -58,8 +58,23 @@ export const LICHESS_STANDARD = {
 const sha256 = (buffer) => createHash('sha256').update(buffer).digest('hex');
 
 /** The upstream digest list, as published, parsed into `file → sha256`. */
-export async function fetchChecksums(source) {
-  const response = await fetch(source.checksums);
+export async function fetchChecksums(source, { attempts = 6, delay = 30_000 } = {}) {
+  let response = null;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    response = await fetch(source.checksums);
+    /*
+      Phase 85: the publisher answers 429 while other downloads from it are
+      running (a seven-month pack build was streaming in parallel), and a
+      scheduled build that gives up on one refusal publishes nothing that month.
+      A refusal or a server error is waited out, as the server asks.
+    */
+    if (response.ok || !(response.status === 429 || response.status >= 500)) break;
+    if (attempt === attempts) break;
+    const asked = Number(response.headers.get('retry-after'));
+    await new Promise((resolve) =>
+      setTimeout(resolve, Number.isFinite(asked) && asked > 0 ? asked * 1000 : delay * attempt),
+    );
+  }
   if (!response.ok) throw new Error(`${source.checksums} → HTTP ${response.status}`);
   const text = await response.text();
   const digests = new Map();

@@ -147,9 +147,10 @@ export const CATALOG_PACKS: readonly CatalogPack[] = [
       'Rating- and title-filtered Lichess broadcast games since 2020, with ' +
       'per-position statistics, player indexes and selected full scores. ' +
       'Broadcast coverage is not a complete census of over-the-board chess.',
-    // Phase 85: v3 is v2's population through 2026-08 with each position's
-    // dated, rated history, on the second mirror (see `largePackRelease`).
-    manifestUrl: `${largePackRelease('reference-elite-v3')}manifest.json`,
+    // Phase 85: v3 added each position's dated, rated history, on the second
+    // mirror (see `largePackRelease`); v4 is v3 with relay dates read as dates
+    // (day-first dates and spreadsheet zero dates had become years 1508 and 1899).
+    manifestUrl: `${largePackRelease('reference-elite-v4')}manifest.json`,
     bundled: false,
     capabilities: [
       'explorer',
@@ -160,7 +161,7 @@ export const CATALOG_PACKS: readonly CatalogPack[] = [
       'model-games',
       'preparation',
     ],
-    approximateBytes: 426_701_086,
+    approximateBytes: 426_694_287,
     maxPositionPly: 40,
     license: LICHESS_BROADCAST_LICENSE,
     origin:
@@ -228,7 +229,7 @@ export const CATALOG_PACKS: readonly CatalogPack[] = [
     // Phase 85: v2 was published under v1's id and could not be installed from
     // this row; v3 is the first build of the monthly cycle, under this row's id,
     // and the channel names whichever month's build is current.
-    manifestUrl: `${packRelease('reference-recent-v3')}manifest.json`,
+    manifestUrl: `${packRelease('reference-recent-v4')}manifest.json`,
     channelUrl: `${packRelease('channels')}recent-theory-6m.json`,
     bundled: false,
     capabilities: [
