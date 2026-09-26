@@ -8,12 +8,11 @@ import { WebAnalytics } from './_analytics/WebAnalytics';
 import './globals.css';
 
 /*
-  Neither face is preloaded. `--font-ui` puts the platform's own face first,
-  so on a Mac or a Windows machine Inter is never drawn at all, and the mono
-  face first appears in notation and FEN, seconds after the first paint. A
-  preload of each still cost every visitor about 90 KB before the page, and
-  Firefox reported both as preloaded and unused. `display: 'swap'` keeps the
-  text readable in the fallback while a face that is needed loads.
+  Inter is not preloaded: `--font-ui` puts the platform's own face first, so on
+  a Mac or a Windows machine it is never drawn, and preloading it cost every
+  visitor about 48 KB that Firefox reported as fetched and unused. The mono
+  face is preloaded: the status bar's FEN and the shortcut keys draw it on the
+  first paint of every board page.
 */
 const inter = Inter({
   subsets: ['latin'],
@@ -26,7 +25,6 @@ const mono = JetBrains_Mono({
   subsets: ['latin'],
   variable: '--font-mono-face',
   display: 'swap',
-  preload: false,
 });
 
 const LANDING = publicUrl.landing;
@@ -193,12 +191,24 @@ const WINDOW_CHROME_BOOTSTRAP = `
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="light" suppressHydrationWarning>
+    /*
+      The faces' variables are defined here, on <html>, because the stacks that
+      use them (`--font-ui`, `--font-code`) are declared on :root. Defined on
+      <body> they were undefined where the stacks are computed, which made both
+      stacks invalid: every page, and the Mac application, fell back to
+      Tailwind's default sans, notation included (e2e/typography.spec.ts).
+    */
+    <html
+      lang="en"
+      data-theme="light"
+      className={`${inter.variable} ${mono.variable}`}
+      suppressHydrationWarning
+    >
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }} />
         <script dangerouslySetInnerHTML={{ __html: WINDOW_CHROME_BOOTSTRAP }} />
       </head>
-      <body className={`${inter.variable} ${mono.variable} antialiased`}>
+      <body className="antialiased">
         <AppProviders>{children}</AppProviders>
         {/* The website counts page views; the Mac application, built off Vercel, never loads this. */}
         {process.env.VERCEL ? <WebAnalytics /> : null}
