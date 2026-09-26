@@ -1,0 +1,63 @@
+Kingfisher real-scale benchmark
+node v24.14.0 · darwin-arm64
+database: /Users/metinardakurt/KingfisherWork/real-scale/p86/real.sqlite
+
+80 cached archives, lichess_db_broadcast_2020-01.pgn.zst … lichess_db_broadcast_2026-08.pgn.zst
+
+     25,000 read     22,792 stored    1,668,189 positions  126/s  rss 1075.8 MB  free 88.02 GB
+     50,000 read     47,309 stored    3,385,508 positions  124/s  rss 1069.1 MB  free 87.56 GB
+     75,000 read     71,325 stored    5,218,219 positions  123/s  rss 2066.3 MB  free 87.01 GB
+    100,000 read     95,600 stored    7,097,095 positions  123/s  rss 1821.3 MB  free 86.66 GB
+
+indexes and aggregates built in 1.1 min
+
+--- import ------------------------------------------------------
+archives           80 (2020-01 … 2026-08)
+games read         105,000
+games stored       100,445
+duplicates         0
+rejected           4,555
+positions indexed  7,484,042
+database on disk   3.80 GB (plus WAL)
+bytes per game     37794
+import wall time   15.5 min
+throughput         113 games/s
+peak rss           3266.6 MB
+
+--- queries -----------------------------------------------------
+all times in milliseconds
+
+
+busiest player key: "carlsen m"  ·  prefix "car"
+
+open + count                   cold     32.2  median      0.0  p95      0.0  worst      0.1  (100,445 rows)
+first page (100)               cold      1.6  median      0.4  p95      0.4  worst      0.5  (100 rows)
+deep page (offset 50k)         cold      1.7  median      0.9  p95      0.9  worst      0.9  (100 rows)
+player prefix                  cold      2.8  median      0.0  p95      0.1  worst      0.1  (20 rows)
+player exact                   cold      0.5  median      0.0  p95      0.0  worst      0.0  (0 rows)
+preparation (newest 200 + PGN) cold      0.1  median      0.0  p95      0.0  worst      0.0  (0 rows)
+text common                    cold     11.0  median      5.3  p95      5.5  worst      5.8  (50 rows)
+text rare                      cold      2.8  median      1.3  p95      1.3  worst      1.6  (50 rows)
+text no match                  cold      0.7  median      0.1  p95      0.1  worst      0.1  (0 rows)
+eco filter                     cold      4.4  median      0.7  p95      0.7  worst      0.8  (50 rows)
+year filter                    cold      0.1  median      0.0  p95      0.0  worst      0.1  (0 rows)
+rating filter                  cold      0.3  median      0.3  p95     10.6  worst    229.9  (50 rows)
+explore start                  cold      2.1  median      0.1  p95      0.1  worst      0.1  (20 rows)
+explore najdorf                cold      0.1  median      0.1  p95      0.1  worst      0.1  (22 rows)
+explore filtered               cold     74.6  median      0.5  p95      0.5  worst      0.5  (20 rows)
+games at position              cold     62.3  median      4.0  p95      4.6  worst      5.3  (12 rows)
+duplicate scan page            cold     19.0  median      5.1  p95      5.6  worst      7.4  (5,000 rows)
+export page (200)              cold     63.1  median     54.3  p95     55.7  worst    114.5  (200 rows)
+aggregate integrity            cold    460.0  median    438.3  p95    502.8  worst    562.2  
+
+--- move search (line index) -------------------------------------
+material R v B                 cold    0.43 s  median    0.21 s  1,742 hits of 100,445 scanned (6 slices, 0 unindexed)
+theme opposite bishops         cold    0.21 s  median    0.20 s  13,795 hits of 100,445 scanned (6 slices, 0 unindexed)
+route N g1 f3 d4 f5            cold    0.35 s  median    0.34 s  1,530 hits of 100,445 scanned (6 slices, 0 unindexed)
+material + route               cold    0.21 s  median    0.21 s  2,093 hits of 100,445 scanned (6 slices, 0 unindexed)
+equivalence {"material":{"text":"R v B"}}      30,000 games: linear 447 hits in 143.7 s, index 447 hits — identical
+equivalence {"theme":"opposite-coloured-bishops"} 30,000 games: linear 3,902 hits in 144.5 s, index 3,902 hits — identical
+equivalence {"route":{"text":"N g1 f3 d4 f5"}} 30,000 games: linear 444 hits in 145.5 s, index 444 hits — identical
+
+Database kept at /Users/metinardakurt/KingfisherWork/real-scale/p86/real.sqlite
+EXIT=0

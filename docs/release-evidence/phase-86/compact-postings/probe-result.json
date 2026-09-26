@@ -1,0 +1,378 @@
+{
+  "probe": "compact position postings",
+  "source": {
+    "file": "real.sqlite",
+    "games": 100445,
+    "positionRows": 7484042,
+    "fileBytes": 3797098496,
+    "positionSideBytes": 3257700352,
+    "gameSideBytes": 539394048,
+    "objects": [
+      {
+        "name": "positions",
+        "type": "table",
+        "table": "positions",
+        "bytes": 815501312
+      },
+      {
+        "name": "position_aggregates",
+        "type": "table",
+        "table": "position_aggregates",
+        "bytes": 542769152
+      },
+      {
+        "name": "positions_key",
+        "type": "index",
+        "table": "positions",
+        "bytes": 465625088
+      },
+      {
+        "name": "game_content",
+        "type": "table",
+        "table": "game_content",
+        "bytes": 429486080
+      },
+      {
+        "name": "sqlite_autoindex_structure_claim_sets_1",
+        "type": "index",
+        "table": "structure_claim_sets",
+        "bytes": 272769024
+      },
+      {
+        "name": "structure_claim_sets",
+        "type": "table",
+        "table": "structure_claim_sets",
+        "bytes": 234418176
+      },
+      {
+        "name": "claim_set_members",
+        "type": "table",
+        "table": "claim_set_members",
+        "bytes": 157769728
+      },
+      {
+        "name": "positions_recent",
+        "type": "index",
+        "table": "positions",
+        "bytes": 98672640
+      },
+      {
+        "name": "positions_rank",
+        "type": "index",
+        "table": "positions",
+        "bytes": 98672640
+      },
+      {
+        "name": "positions_game",
+        "type": "index",
+        "table": "positions",
+        "bytes": 87994368
+      },
+      {
+        "name": "positions_pawn_skeleton_id",
+        "type": "index",
+        "table": "positions",
+        "bytes": 87949312
+      },
+      {
+        "name": "positions_structure_claims_id",
+        "type": "index",
+        "table": "positions",
+        "bytes": 86077440
+      },
+      {
+        "name": "positions_structure_signature_id",
+        "type": "index",
+        "table": "positions",
+        "bytes": 84475904
+      },
+      {
+        "name": "sqlite_autoindex_structure_signatures_1",
+        "type": "index",
+        "table": "structure_signatures",
+        "bytes": 59674624
+      },
+      {
+        "name": "sqlite_autoindex_pawn_skeletons_1",
+        "type": "index",
+        "table": "pawn_skeletons",
+        "bytes": 58888192
+      },
+      {
+        "name": "structure_signatures",
+        "type": "table",
+        "table": "structure_signatures",
+        "bytes": 52871168
+      },
+      {
+        "name": "pawn_skeletons",
+        "type": "table",
+        "table": "pawn_skeletons",
+        "bytes": 52461568
+      },
+      {
+        "name": "game_lines",
+        "type": "table",
+        "table": "game_lines",
+        "bytes": 49803264
+      },
+      {
+        "name": "games",
+        "type": "table",
+        "table": "games",
+        "bytes": 28921856
+      },
+      {
+        "name": "games_fts_data",
+        "type": "table",
+        "table": "games_fts_data",
+        "bytes": 8429568
+      },
+      {
+        "name": "games_black_key",
+        "type": "index",
+        "table": "games",
+        "bytes": 2908160
+      },
+      {
+        "name": "games_white_key",
+        "type": "index",
+        "table": "games",
+        "bytes": 2891776
+      },
+      {
+        "name": "games_classified_with",
+        "type": "index",
+        "table": "games",
+        "bytes": 2846720
+      },
+      {
+        "name": "sqlite_autoindex_games_1",
+        "type": "index",
+        "table": "games",
+        "bytes": 2736128
+      },
+      {
+        "name": "games_imported",
+        "type": "index",
+        "table": "games",
+        "bytes": 1695744
+      },
+      {
+        "name": "games_fts_docsize",
+        "type": "table",
+        "table": "games_fts_docsize",
+        "bytes": 1503232
+      },
+      {
+        "name": "games_result",
+        "type": "index",
+        "table": "games",
+        "bytes": 1392640
+      },
+      {
+        "name": "games_eco",
+        "type": "index",
+        "table": "games",
+        "bytes": 1298432
+      },
+      {
+        "name": "games_classified_eco",
+        "type": "index",
+        "table": "games",
+        "bytes": 1282048
+      },
+      {
+        "name": "games_year",
+        "type": "index",
+        "table": "games",
+        "bytes": 1212416
+      },
+      {
+        "name": "games_max_rating",
+        "type": "index",
+        "table": "games",
+        "bytes": 1138688
+      },
+      {
+        "name": "players",
+        "type": "table",
+        "table": "players",
+        "bytes": 1003520
+      },
+      {
+        "name": "sqlite_autoindex_players_1",
+        "type": "index",
+        "table": "players",
+        "bytes": 573440
+      },
+      {
+        "name": "players_games",
+        "type": "index",
+        "table": "players",
+        "bytes": 212992
+      },
+      {
+        "name": "position_filter_cache",
+        "type": "table",
+        "table": "position_filter_cache",
+        "bytes": 200704
+      },
+      {
+        "name": "filter_cache_position_year_rating",
+        "type": "index",
+        "table": "position_filter_cache",
+        "bytes": 172032
+      },
+      {
+        "name": "filter_cache_position_rating_year",
+        "type": "index",
+        "table": "position_filter_cache",
+        "bytes": 172032
+      },
+      {
+        "name": "position_filter_total_cache",
+        "type": "table",
+        "table": "position_filter_total_cache",
+        "bytes": 131072
+      },
+      {
+        "name": "filter_total_cache_position_year_rating",
+        "type": "index",
+        "table": "position_filter_total_cache",
+        "bytes": 131072
+      },
+      {
+        "name": "filter_total_cache_position_rating_year",
+        "type": "index",
+        "table": "position_filter_total_cache",
+        "bytes": 126976
+      },
+      {
+        "name": "claims",
+        "type": "table",
+        "table": "claims",
+        "bytes": 90112
+      },
+      {
+        "name": "sqlite_autoindex_claims_1",
+        "type": "index",
+        "table": "claims",
+        "bytes": 77824
+      },
+      {
+        "name": "games_fts_idx",
+        "type": "table",
+        "table": "games_fts_idx",
+        "bytes": 28672
+      },
+      {
+        "name": "sqlite_schema",
+        "type": "internal",
+        "table": "sqlite_schema",
+        "bytes": 16384
+      },
+      {
+        "name": "schema_state",
+        "type": "table",
+        "table": "schema_state",
+        "bytes": 4096
+      },
+      {
+        "name": "positions_missing_result",
+        "type": "index",
+        "table": "positions",
+        "bytes": 4096
+      },
+      {
+        "name": "position_filter_cache_keys",
+        "type": "table",
+        "table": "position_filter_cache_keys",
+        "bytes": 4096
+      },
+      {
+        "name": "games_fts_config",
+        "type": "table",
+        "table": "games_fts_config",
+        "bytes": 4096
+      },
+      {
+        "name": "collection_sources",
+        "type": "table",
+        "table": "collection_sources",
+        "bytes": 4096
+      }
+    ]
+  },
+  "compact": {
+    "fileBytes": 179851264,
+    "buildMs": 61906,
+    "objects": [
+      {
+        "name": "postings",
+        "type": "table",
+        "table": "postings",
+        "bytes": 163459072
+      },
+      {
+        "name": "game_moves",
+        "type": "table",
+        "table": "game_moves",
+        "bytes": 16388096
+      },
+      {
+        "name": "sqlite_schema",
+        "type": "internal",
+        "table": "sqlite_schema",
+        "bytes": 4096
+      }
+    ]
+  },
+  "perGame": {
+    "sourcePositionSide": 32433,
+    "compactPositionSide": 1791,
+    "gameSide": 5370,
+    "bytesPerPosting": 21.84
+  },
+  "collisions": {
+    "distinctKeys": 6017030,
+    "distinctHashes": 6017030,
+    "collided": 0
+  },
+  "singletonPositions": 5791195,
+  "equivalence": {
+    "positions": 2984,
+    "top": 200,
+    "filters": [
+      "unfiltered",
+      "rating >= 2200",
+      "year >= 2025"
+    ],
+    "comparisons": 8952,
+    "movesWithDerivedSan": 9040,
+    "gameSetsChecked": 2984,
+    "blobsChecked": 500,
+    "blobMismatches": 0,
+    "mismatches": 0,
+    "firstMismatches": []
+  },
+  "queryMs": {
+    "sourceMedian": 0.013,
+    "compactMedian": 0.012,
+    "sourceP95": 2.155,
+    "compactP95": 0.753
+  },
+  "structureSearchBytes": 1147523072,
+  "projectionAtThisCorpusSizes": [
+    {
+      "games": 1048440,
+      "sourceBytes": 39633928490,
+      "compactBytes": 7507447408
+    },
+    {
+      "games": 10680708,
+      "sourceBytes": 403760269630,
+      "compactBytes": 76480154889
+    }
+  ]
+}

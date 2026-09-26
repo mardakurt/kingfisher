@@ -1,0 +1,27 @@
+Compact position postings — 100,445 real games, 7,484,042 rows
+
+Source file 3797.1 MB: position side 3257.7 MB (85.8%), game side 539.4 MB
+  table    positions                                    815.5 MB
+  table    position_aggregates                          542.8 MB
+  index    positions_key                                465.6 MB
+  index    sqlite_autoindex_structure_claim_sets_1      272.8 MB
+  table    structure_claim_sets                         234.4 MB
+  table    claim_set_members                            157.8 MB
+  index    positions_recent                             98.7 MB
+  index    positions_rank                               98.7 MB
+  index    positions_game                               88.0 MB
+  index    positions_pawn_skeleton_id                   87.9 MB
+  index    positions_structure_claims_id                86.1 MB
+  index    positions_structure_signature_id             84.5 MB
+Compact file 179.9 MB (postings + game_moves), built in 61.9 s
+  table    postings                                     163.5 MB
+  table    game_moves                                   16.4 MB
+  internal sqlite_schema                                0.0 MB
+Per game: position side 32433 B → 1791 B; 21.84 B a posting
+Collisions: 6,017,030 distinct keys, 6,017,030 distinct hashes
+Positions seen once: 5,791,195
+Equivalence: 2984 positions × 3 filters, 9040 moves with SAN derived, 2984 game sets, 500 move blobs — 0 mismatches
+Explorer query median 0.013 ms → 0.012 ms (p95 2.155 → 0.753)
+Structure search in the source (not in the compact file): 1147.5 MB
+At 1,048,440 games of this corpus's sizes: 39633.9 MB → 7507.4 MB
+At 10,680,708 games of this corpus's sizes: 403760.3 MB → 76480.2 MB

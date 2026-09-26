@@ -96,6 +96,10 @@ with [`AGENTS.md`](../AGENTS.md).
   Kingfisher against ChessBase 26 and ChessBase for Mac, workflow by workflow,
   with sources, what Phase 84 closed, and the verdict (ALMOST) with the gaps
   that stand between it and YES.
+- [`product/parity-ledger.md`](product/parity-ledger.md) — the parity
+  program's gate (Phase 86): every P0/P1 requirement with its verified state,
+  evidence authority and one of five statuses; the frozen ChessBase baseline
+  and the release-truth table.
 - [`product/market-research.md`](product/market-research.md) — the chess study
   market from first-hand sources: what people complain about, what they ask
   for and do not have, where Kingfisher stands on each, and the plan to close
@@ -124,6 +128,10 @@ with [`AGENTS.md`](../AGENTS.md).
 - [`design/season.md`](design/season.md) — one named set of the player's
   games, read through five clock and opening sections with denominators and
   source populations kept separate.
+- [`design/compact-position-postings.md`](design/compact-position-postings.md)
+  — why a million games cost 33 GB, and a posting index proven equal on
+  100,445 real games at 1/18 of the position side: ten million games in
+  about 40 GB instead of 330 (proposed, not yet the schema).
 - [`design/search-mask.md`](design/search-mask.md) — the Games search
   mask: header filters with written rules, time control by a printed
   formula, and material, theme, route and comment searches that read the
