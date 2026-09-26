@@ -17,6 +17,8 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { describeQuery, filtersFromQuery, parseQuery, type GameQuery } from '@/database/query/ast';
 import { executeQuery } from '@/database/query/execute';
+
+import { QueryEditorDialog } from './QueryEditor';
 import type { SavedQueryRecord } from '@/persistence/domain';
 import { getRepositories } from '@/persistence/repositories';
 import type { QueryRunDiff } from '@/persistence/repositories/saved-query-repository';
@@ -85,80 +87,121 @@ export function SavedQueries(props: {
     await client.invalidateQueries({ queryKey: KEY });
   };
 
+  const [editing, setEditing] = useState<{ record?: SavedQueryRecord } | null>(null);
+  const editor = editing ? (
+    <QueryEditorDialog
+      {...(editing.record && parseQuery(editing.record.query).ok
+        ? {
+            initial: {
+              name: editing.record.name,
+              query: (parseQuery(editing.record.query) as { ok: true; query: GameQuery }).query,
+            },
+          }
+        : {})}
+      onClose={() => setEditing(null)}
+      onSave={async (name, query) => {
+        const repositories = await getRepositories();
+        await repositories.savedQueries.save({
+          ...(editing.record ? { id: editing.record.id } : {}),
+          name,
+          query,
+          source: editing.record?.source ?? 'local',
+        });
+        await client.invalidateQueries({ queryKey: KEY });
+      }}
+    />
+  ) : null;
+  const newQuery = (
+    <Button size="sm" variant="subtle" onClick={() => setEditing({})} data-new-query>
+      New query with “any of” and “not”…
+    </Button>
+  );
+
   const list = saved.data ?? [];
   if (list.length === 0) {
     return (
-      <p className="text-[11px] text-tertiary" data-saved-queries-empty>
-        No saved queries. Set filters, then Save query; it is kept in your backups.
-      </p>
+      <div className="flex flex-col gap-2">
+        <p className="text-[11px] text-tertiary" data-saved-queries-empty>
+          No saved queries. Set filters, then Save query; it is kept in your backups.
+        </p>
+        {newQuery}
+        {editor}
+      </div>
     );
   }
   return (
-    <ul className="flex flex-col gap-2" data-saved-queries>
-      {list.map((record) => {
-        const parsed = parseQuery(record.query);
-        const words = parsed.ok ? describeQuery(parsed.query) : null;
-        const view = runs[record.id];
-        const fits = parsed.ok && filtersFromQuery(parsed.query) !== null;
-        return (
-          <li
-            key={record.id}
-            className="rounded-[6px] border border-line bg-surface-inset p-2 text-xs"
-            data-saved-query={record.name}
-          >
-            <div className="font-medium text-primary">{record.name}</div>
-            <div className="mt-0.5 text-[11px] text-secondary">
-              {words ? words.summary : 'This saved query no longer reads as a query.'}
-            </div>
-            {words?.exclusions.map((note) => (
-              <div key={note} className="text-[10.5px] text-tertiary">
-                {note}
+    <div className="flex flex-col gap-2">
+      {newQuery}
+      {editor}
+      <ul className="flex flex-col gap-2" data-saved-queries>
+        {list.map((record) => {
+          const parsed = parseQuery(record.query);
+          const words = parsed.ok ? describeQuery(parsed.query) : null;
+          const view = runs[record.id];
+          const fits = parsed.ok && filtersFromQuery(parsed.query) !== null;
+          return (
+            <li
+              key={record.id}
+              className="rounded-[6px] border border-line bg-surface-inset p-2 text-xs"
+              data-saved-query={record.name}
+            >
+              <div className="font-medium text-primary">{record.name}</div>
+              <div className="mt-0.5 text-[11px] text-secondary">
+                {words ? words.summary : 'This saved query no longer reads as a query.'}
               </div>
-            ))}
-            {record.source !== 'local' ? (
-              <div className="mt-1 text-[10.5px] text-tertiary">
-                Saved on another database; running here reads My games.
-              </div>
-            ) : null}
-            <div className="mt-1 text-[10.5px] text-tertiary" data-saved-query-result>
-              {view?.status === 'running'
-                ? `Reading… ${view.read.toLocaleString()} of ${view.selected.toLocaleString()} games`
-                : view?.status === 'failed'
-                  ? `The run failed: ${view.error ?? 'unknown error'}`
-                  : view?.status === 'done'
-                    ? `${view.found.toLocaleString()} of ${view.selected.toLocaleString()} games read match`
-                    : record.lastRun
-                      ? `Last run ${day(record.lastRun.at)}: ${record.lastRun.found.toLocaleString()} of ${record.lastRun.selected.toLocaleString()} games`
-                      : 'Not run yet'}
-            </div>
-            {view?.diff && view.diff.since !== null ? (
-              <div className="text-[10.5px] text-secondary" data-saved-query-diff>
-                Since {day(view.diff.since)}: {view.diff.added.length.toLocaleString()} new,{' '}
-                {view.diff.removed.length.toLocaleString()} gone
-                {view.diff.complete ? '' : ' (among the games each run kept)'}
-              </div>
-            ) : null}
-            <div className="mt-1.5 flex flex-wrap gap-1.5">
-              <Button
-                size="sm"
-                onClick={() => void run(record)}
-                disabled={!parsed.ok || view?.status === 'running'}
-              >
-                Run
-              </Button>
-              {fits && parsed.ok ? (
-                <Button size="sm" variant="subtle" onClick={() => props.onApply(parsed.query)}>
-                  Use as filters
-                </Button>
+              {words?.exclusions.map((note) => (
+                <div key={note} className="text-[10.5px] text-tertiary">
+                  {note}
+                </div>
+              ))}
+              {record.source !== 'local' ? (
+                <div className="mt-1 text-[10.5px] text-tertiary">
+                  Saved on another database; running here reads My games.
+                </div>
               ) : null}
-              <Button size="sm" variant="ghost" onClick={() => void remove(record)}>
-                Delete
-              </Button>
-            </div>
-          </li>
-        );
-      })}
-    </ul>
+              <div className="mt-1 text-[10.5px] text-tertiary" data-saved-query-result>
+                {view?.status === 'running'
+                  ? `Reading… ${view.read.toLocaleString()} of ${view.selected.toLocaleString()} games`
+                  : view?.status === 'failed'
+                    ? `The run failed: ${view.error ?? 'unknown error'}`
+                    : view?.status === 'done'
+                      ? `${view.found.toLocaleString()} of ${view.selected.toLocaleString()} games read match`
+                      : record.lastRun
+                        ? `Last run ${day(record.lastRun.at)}: ${record.lastRun.found.toLocaleString()} of ${record.lastRun.selected.toLocaleString()} games`
+                        : 'Not run yet'}
+              </div>
+              {view?.diff && view.diff.since !== null ? (
+                <div className="text-[10.5px] text-secondary" data-saved-query-diff>
+                  Since {day(view.diff.since)}: {view.diff.added.length.toLocaleString()} new,{' '}
+                  {view.diff.removed.length.toLocaleString()} gone
+                  {view.diff.complete ? '' : ' (among the games each run kept)'}
+                </div>
+              ) : null}
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                <Button
+                  size="sm"
+                  onClick={() => void run(record)}
+                  disabled={!parsed.ok || view?.status === 'running'}
+                >
+                  Run
+                </Button>
+                {fits && parsed.ok ? (
+                  <Button size="sm" variant="subtle" onClick={() => props.onApply(parsed.query)}>
+                    Use as filters
+                  </Button>
+                ) : null}
+                <Button size="sm" variant="ghost" onClick={() => setEditing({ record })}>
+                  Edit
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => void remove(record)}>
+                  Delete
+                </Button>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 }
 
