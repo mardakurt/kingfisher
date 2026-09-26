@@ -1,5 +1,5 @@
 export const DATABASE_NAME = 'kingfisher';
-export const DATABASE_VERSION = 21;
+export const DATABASE_VERSION = 22;
 
 export const STORE_NAMES = {
   studies: 'studies',
@@ -51,6 +51,10 @@ export const STORE_NAMES = {
   deepAnalysisJobs: 'deepAnalysisJobs',
   /* Phase 85: engine evaluations received from another Kingfisher as a file. */
   importedEvaluations: 'importedEvaluations',
+  /* Phase 86: named queries (src/database/query/) and what each last found. */
+  savedQueries: 'savedQueries',
+  /* Phase 86: a person's decisions on repertoire-inbox items; the items are derived. */
+  inboxDecisions: 'inboxDecisions',
 } as const;
 
 export type StoreName = (typeof STORE_NAMES)[keyof typeof STORE_NAMES];
@@ -551,6 +555,29 @@ export const MIGRATIONS: readonly Migration[] = [
       /* An evaluation received as a file is asked for by the position it is about. */
       target.createStore(STORE_NAMES.importedEvaluations, { keyPath: 'id' }, [
         { name: 'positionKey', keyPath: 'positionKey' },
+      ]);
+    },
+  },
+  {
+    version: 22,
+    description: 'Keep named queries, and decisions on repertoire-inbox items.',
+    apply(target) {
+      /*
+       * A saved query is listed newest first. Nothing existing is touched: the
+       * saved filters of earlier versions lived in localStorage, outside every
+       * backup, and are carried over by the repository the first time it is
+       * read (saved-query-repository.ts), not here, where there is no window.
+       */
+      target.createStore(STORE_NAMES.savedQueries, { keyPath: 'id' }, [
+        { name: 'updatedAt', keyPath: 'updatedAt' },
+      ]);
+      /*
+       * A decision is found by the item it decides (its id is the item's) and
+       * listed by status and by repertoire.
+       */
+      target.createStore(STORE_NAMES.inboxDecisions, { keyPath: 'id' }, [
+        { name: 'status', keyPath: 'status' },
+        { name: 'repertoireId', keyPath: 'repertoireId' },
       ]);
     },
   },

@@ -12,7 +12,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { listCollections } from '@/database/collections/registry';
 
 import { mainlinePath } from '@/chess/tree/tree';
@@ -82,14 +82,13 @@ import {
 import type { GameResult } from '@/database/types';
 import { useUi } from '@/stores/ui-store';
 import {
-  deleteResearchFilter,
   recentResearchFilters,
   rememberResearchFilter,
   rememberUsedFilters,
-  savedResearchFilters,
-  saveResearchFilter,
   type ResearchFilter,
 } from './research-filters';
+import { SAVED_QUERIES_KEY, SavedQueries, saveQuery } from './SavedQueries';
+import { filtersFromQuery, queryFromFilters, type GameQuery } from '@/database/query/ast';
 
 type SortField = NonNullable<GameSearchQuery['sortBy']>;
 
@@ -157,7 +156,6 @@ export function GamesWorkspace() {
   /** The row whose game the preview shows. */
   const [previewId, setPreviewId] = useState<string | null>(null);
   const wide = useMediaQuery('(min-width: 1024px)');
-  const [savedFilters, setSavedFilters] = useState<readonly ResearchFilter[]>(savedResearchFilters);
   const [recentFilters, setRecentFilters] =
     useState<readonly ResearchFilter[]>(recentResearchFilters);
 
@@ -372,12 +370,50 @@ export function GamesWorkspace() {
     setRecentFilters(rememberResearchFilter(filter));
   };
 
-  const saveCurrent = () => {
-    const name = window.prompt('Name this database filter');
+  /*
+    Phase 86: the whole question — header filters and the move mask — as one
+    query, in a store every backup carries. The saved filters before it kept
+    only the header half, in localStorage, which no backup read.
+  */
+  const queryClient = useQueryClient();
+  const saveCurrent = async () => {
+    if (compiledMoves.errors.material || compiledMoves.errors.route) {
+      notify({ tone: 'error', message: 'Correct the move filters before saving the query.' });
+      return;
+    }
+    const name = window.prompt('Name this query');
     if (!name?.trim()) return;
-    const { limit: _limit, offset: _offset, ...filters } = query;
-    setSavedFilters(saveResearchFilter(name, filters));
-    notify({ tone: 'success', message: `Saved filter “${name.trim()}”.` });
+    try {
+      await saveQuery(
+        name.trim(),
+        queryFromFilters(headerOnly, compiledMoves.query),
+        local ? 'local' : source.id,
+      );
+      await queryClient.invalidateQueries({ queryKey: SAVED_QUERIES_KEY });
+      notify({ tone: 'success', message: `Saved query “${name.trim()}”.` });
+    } catch (error) {
+      notify({ tone: 'error', message: error instanceof Error ? error.message : String(error) });
+    }
+  };
+
+  const applyQuery = (saved: GameQuery) => {
+    const fields = filtersFromQuery(saved);
+    if (!fields) return;
+    applyFilter({
+      id: 'saved-query',
+      name: 'Saved query',
+      source: 'local-collection',
+      filters: fields.header,
+      usedAt: Date.now(),
+    });
+    setMoves({
+      material: fields.moves.material?.text ?? '',
+      materialColour: fields.moves.material?.colour ?? 'either',
+      theme: fields.moves.theme ?? '',
+      route: fields.moves.route?.text ?? '',
+      routeColour: fields.moves.route?.colour ?? 'either',
+      comment: fields.moves.comment ?? '',
+    });
   };
 
   const clearFilters = () => {
@@ -938,15 +974,10 @@ export function GamesWorkspace() {
           >
             {filtersOpen ? (
               <FilterPanel
-                savedFilters={savedFilters}
                 recentFilters={recentFilters}
                 onApply={applyFilter}
-                onSave={saveCurrent}
-                onManage={() => {
-                  const selectedName = window.prompt('Exact saved filter name to delete');
-                  const target = savedFilters.find((entry) => entry.name === selectedName);
-                  if (target) setSavedFilters(deleteResearchFilter(target.id));
-                }}
+                onSave={() => void saveCurrent()}
+                savedQueries={<SavedQueries onApply={applyQuery} />}
                 player={player}
                 setPlayer={(value) => {
                   setPlayer(value);
@@ -1188,11 +1219,10 @@ function OpeningCell({ game }: { readonly game: GameSummary }) {
  * a panel they had to keep reopening.
  */
 function FilterPanel(props: {
-  readonly savedFilters: readonly ResearchFilter[];
   readonly recentFilters: readonly ResearchFilter[];
   readonly onApply: (filter: ResearchFilter) => void;
   readonly onSave: () => void;
-  readonly onManage: () => void;
+  readonly savedQueries: React.ReactNode;
   readonly player: string;
   readonly setPlayer: (value: string) => void;
   readonly playerColor: 'any' | 'w' | 'b';
@@ -1211,7 +1241,7 @@ function FilterPanel(props: {
   readonly onProfile?: (() => void) | undefined;
   readonly onClose: () => void;
 }) {
-  const { savedFilters, recentFilters } = props;
+  const { recentFilters } = props;
   return (
     <div className="flex min-h-0 flex-1 flex-col" data-library-filters>
       <div className="flex h-10 shrink-0 items-center gap-2 border-b border-line-subtle px-3.5">
@@ -1235,39 +1265,25 @@ function FilterPanel(props: {
         </IconButton>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto">
-        {savedFilters.length || recentFilters.length ? (
-          <PopoverSection title="Saved and recent">
+        <PopoverSection title="Saved queries">{props.savedQueries}</PopoverSection>
+        {recentFilters.length ? (
+          <PopoverSection title="Recent">
             <select
-              aria-label="Saved and recent filters"
+              aria-label="Recent filters"
               className={cn(FIELD, 'w-full')}
               defaultValue=""
               onChange={(event) => {
-                const chosen = [...savedFilters, ...recentFilters].find(
-                  (entry) => entry.id === event.target.value,
-                );
+                const chosen = recentFilters.find((entry) => entry.id === event.target.value);
                 if (chosen) props.onApply(chosen);
                 event.currentTarget.value = '';
               }}
             >
               <option value="">Choose…</option>
-              {savedFilters.length ? (
-                <optgroup label="Saved">
-                  {savedFilters.map((entry) => (
-                    <option key={entry.id} value={entry.id}>
-                      {entry.name}
-                    </option>
-                  ))}
-                </optgroup>
-              ) : null}
-              {recentFilters.length ? (
-                <optgroup label="Recent">
-                  {recentFilters.map((entry) => (
-                    <option key={`recent-${entry.id}`} value={entry.id}>
-                      {entry.name}
-                    </option>
-                  ))}
-                </optgroup>
-              ) : null}
+              {recentFilters.map((entry) => (
+                <option key={`recent-${entry.id}`} value={entry.id}>
+                  {entry.name}
+                </option>
+              ))}
             </select>
           </PopoverSection>
         ) : null}
@@ -1347,13 +1363,8 @@ function FilterPanel(props: {
         </PopoverSection>
         <div className="flex flex-wrap gap-1.5 px-3.5 py-3">
           <Button size="sm" onClick={props.onSave}>
-            Save filter
+            Save query
           </Button>
-          {savedFilters.length ? (
-            <Button size="sm" onClick={props.onManage}>
-              Manage saved
-            </Button>
-          ) : null}
         </div>
       </div>
     </div>

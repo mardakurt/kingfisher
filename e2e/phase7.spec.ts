@@ -268,12 +268,13 @@ test('study references, saved filters and storage facts are usable', async ({ pa
   await page.getByRole('button', { name: 'Filters' }).click();
   await page.getByLabel('Min Elo').fill('2400');
   page.once('dialog', (dialog) => dialog.accept('Masters 2400+'));
-  await page.getByRole('button', { name: 'Save filter' }).click();
+  await page.getByRole('button', { name: 'Save query' }).click();
+  await expect(page.getByText('Saved query “Masters 2400+”.')).toBeVisible();
   await page.reload();
   await page.getByRole('button', { name: 'Filters' }).click();
-  await expect(
-    page.getByLabel('Saved and recent filters').getByRole('option', { name: 'Masters 2400+' }),
-  ).toBeAttached();
+  await expect(page.locator('[data-saved-query="Masters 2400+"]')).toContainText(
+    'a rating 2400 or more',
+  );
 
   await page.goto('/databases');
   await expect(page.getByText(/Browser estimate:/)).toBeVisible();

@@ -1,5 +1,6 @@
 import { isOk } from '@/chess/result';
 import { parseFen } from '@/chess/fen';
+import { parseQuery } from '@/database/query/ast';
 import type { GameTree } from '@/chess/tree/types';
 
 import type {
@@ -7,6 +8,8 @@ import type {
   QuestionSessionRecord,
   DeepAnalysisJobRecord,
   ImportedEvaluationRecord,
+  InboxDecisionRecord,
+  SavedQueryRecord,
   ModelGameLinkRecord,
   RepertoirePositionRecord,
   RepertoireRecord,
@@ -634,6 +637,39 @@ export const isImportedEvaluationRecord = (value: unknown): value is ImportedEva
   (value.source.from === null || text(value.source.from)) &&
   finite(value.source.exportedAt) &&
   finite(value.source.importedAt) &&
+  finite(value.createdAt) &&
+  finite(value.updatedAt) &&
+  finite(value.revision);
+
+export const isSavedQueryRecord = (value: unknown): value is SavedQueryRecord =>
+  object(value) &&
+  text(value.id) &&
+  text(value.name) &&
+  parseQuery(value.query).ok &&
+  text(value.source) &&
+  (value.lastRun === undefined ||
+    (object(value.lastRun) &&
+      finite(value.lastRun.at) &&
+      finite(value.lastRun.selected) &&
+      finite(value.lastRun.found) &&
+      array(value.lastRun.fingerprints) &&
+      value.lastRun.fingerprints.every((entry) => typeof entry === 'string') &&
+      typeof value.lastRun.complete === 'boolean')) &&
+  finite(value.createdAt) &&
+  finite(value.updatedAt) &&
+  finite(value.revision);
+
+const INBOX_STATUSES = new Set(['accepted', 'dismissed', 'snoozed']);
+
+export const isInboxDecisionRecord = (value: unknown): value is InboxDecisionRecord =>
+  object(value) &&
+  text(value.id) &&
+  text(value.repertoireId) &&
+  INBOX_STATUSES.has(String(value.status)) &&
+  (value.reason === undefined || typeof value.reason === 'string') &&
+  (value.snoozedUntil === undefined || finite(value.snoozedUntil)) &&
+  text(value.evidence) &&
+  finite(value.decidedAt) &&
   finite(value.createdAt) &&
   finite(value.updatedAt) &&
   finite(value.revision);

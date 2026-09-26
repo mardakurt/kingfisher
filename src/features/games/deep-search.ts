@@ -9,6 +9,8 @@
  * presents a partial count as the answer.
  */
 
+import { queryFromFilters } from '@/database/query/ast';
+import { executeQuery, type QueryRun } from '@/database/query/execute';
 import type { GameRecord, GameRepository, GameSearchQuery, GameSummary } from '@/persistence/types';
 import {
   scanGame,
@@ -39,9 +41,13 @@ export interface DeepSearchState {
   readonly error?: string;
 }
 
-const SUMMARY_PAGE = 1_000;
-const CONTENT_BATCH = 100;
-
+/**
+ * Since Phase 86 this is the query model's executor (`src/database/query/`):
+ * the header filters and the move mask become one query, the planner pushes
+ * the header filters down to the store, and each selected game's moves are
+ * read and decided exactly — the same reading this function always did, now
+ * the one path every search surface can share.
+ */
 export async function runDeepSearch(input: {
   readonly games: Pick<GameRepository, 'search' | 'getMany'>;
   readonly header: Omit<GameSearchQuery, 'limit' | 'offset' | 'exactTotal'>;
@@ -50,53 +56,24 @@ export async function runDeepSearch(input: {
   readonly onProgress?: (state: DeepSearchState) => void;
 }): Promise<DeepSearchState> {
   const { games, header, deep, signal, onProgress } = input;
-  const matches: DeepMatch[] = [];
-  let read = 0;
-  let selected = 0;
-  const report = (status: DeepSearchState['status'], error?: string): DeepSearchState => {
-    const state: DeepSearchState = {
-      status,
-      read,
-      selected,
-      matches: [...matches],
-      ...(error ? { error } : {}),
-    };
-    onProgress?.(state);
-    return state;
-  };
-
-  try {
-    // Every selected id first, so the denominator is known before reading starts.
-    const ids: string[] = [];
-    for (let offset = 0; ; offset += SUMMARY_PAGE) {
-      if (signal?.aborted) return report('stopped');
-      const page = await games.search({ ...header, limit: SUMMARY_PAGE, offset });
-      ids.push(...page.games.map((game) => game.id));
-      if (!page.hasMore) break;
-    }
-    selected = ids.length;
-    report('running');
-
-    for (let start = 0; start < ids.length; start += CONTENT_BATCH) {
-      if (signal?.aborted) return report('stopped');
-      const batch = await games.getMany(ids.slice(start, start + CONTENT_BATCH));
-      for (const record of batch) {
-        const hit = scanGame(record.tree, deep);
-        if (hit) {
-          const { tree: _tree, normalizedPgn: _pgn, ...summary } = record;
-          matches.push({ game: summary, hit });
-        }
-      }
-      read += batch.length;
-      // A game deleted between the two reads is not "read"; it is gone, and the
-      // denominator follows it rather than claiming a game nobody looked at.
-      selected -= Math.min(CONTENT_BATCH, ids.length - start) - batch.length;
-      report('running');
-    }
-    return report('done');
-  } catch (error) {
-    return report('failed', error instanceof Error ? error.message : String(error));
-  }
+  const toState = (run: QueryRun): DeepSearchState => ({
+    status: run.status,
+    read: run.read,
+    selected: run.selected,
+    // Every match of a move search has a moment; the scan that found it gave one.
+    matches: run.matches.flatMap((match) =>
+      match.hit ? [{ game: match.game, hit: match.hit }] : [],
+    ),
+    ...(run.error ? { error: run.error } : {}),
+  });
+  const run = await executeQuery({
+    games,
+    query: queryFromFilters(header, deep),
+    limit: Number.MAX_SAFE_INTEGER,
+    ...(signal ? { signal } : {}),
+    onProgress: (progress) => onProgress?.(toState(progress)),
+  });
+  return toState(run);
 }
 
 /** One page of games with their moves, from a store that serves them in pages. */

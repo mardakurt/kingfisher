@@ -1,12 +1,9 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
-  deleteResearchFilter,
   describeResearchFilter,
   recentResearchFilters,
   rememberUsedFilters,
-  savedResearchFilters,
-  saveResearchFilter,
 } from './research-filters';
 
 /** A minimal localStorage, because these helpers are the browser's own memory. */
@@ -20,33 +17,6 @@ beforeEach(() => {
       setItem: (key: string, value: string) => void store.set(key, value),
       removeItem: (key: string) => void store.delete(key),
     },
-  });
-});
-
-describe('saved database filters', () => {
-  it('keeps one entry per name and returns the newest first', () => {
-    saveResearchFilter('Masters 2400+', { minRating: 2400 });
-    const second = saveResearchFilter('My classical games', { player: 'Kurt, M' });
-    expect(second.map((entry) => entry.name)).toEqual(['My classical games', 'Masters 2400+']);
-
-    const renamedSameName = saveResearchFilter('Masters 2400+', { minRating: 2500 });
-    expect(renamedSameName).toHaveLength(2);
-    expect(renamedSameName[0]?.filters).toEqual({ minRating: 2500 });
-    expect(savedResearchFilters()).toHaveLength(2);
-  });
-
-  it('deletes only the requested filter', () => {
-    saveResearchFilter('Keep', { eco: 'B90' });
-    const remove = saveResearchFilter('Drop', { eco: 'C42' });
-    const remaining = deleteResearchFilter(remove[0]!.id);
-    expect(remaining.map((entry) => entry.name)).toEqual(['Keep']);
-  });
-
-  it('ignores anything in storage that is not a filter', () => {
-    store.set('kingfisher.saved-database-filters.v1', '{"not":"an array"}');
-    expect(savedResearchFilters()).toEqual([]);
-    store.set('kingfisher.saved-database-filters.v1', '[{"id":"x"}]');
-    expect(savedResearchFilters()).toEqual([]);
   });
 });
 

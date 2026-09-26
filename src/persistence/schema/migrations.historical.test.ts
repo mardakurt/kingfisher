@@ -727,3 +727,62 @@ describe('migrating a Phase 74 installation (team hub, v18) to current', () => {
     current.close();
   });
 });
+
+describe('migrating a Phase 85 installation (v21) to current', () => {
+  /*
+   * v21 → v22: two stores for Phase 86's authored work, created empty. Named
+   * queries are listed newest first; inbox decisions are found by status and
+   * by repertoire. Nothing already there is touched.
+   */
+  it('v21 work survives; saved queries and inbox decisions arrive empty and indexed', async () => {
+    const name = dbName();
+    const v21 = await openPersistenceDatabaseAt(21, name);
+    await v21.put(STORE_NAMES.deepAnalysisJobs, { id: 'd1', status: 'running', updatedAt: 1 });
+    v21.close();
+
+    const current = await openPersistenceDatabaseAt(DATABASE_VERSION, name);
+    expect(await current.get(STORE_NAMES.deepAnalysisJobs, 'd1')).toEqual({
+      id: 'd1',
+      status: 'running',
+      updatedAt: 1,
+    });
+    expect(await current.getAll(STORE_NAMES.savedQueries)).toEqual([]);
+    expect(await current.getAll(STORE_NAMES.inboxDecisions)).toEqual([]);
+    const decision = (id: string, repertoireId: string, status: string) => ({
+      id,
+      repertoireId,
+      status,
+      evidence: 'x',
+      decidedAt: 1,
+      createdAt: 1,
+      updatedAt: 1,
+      revision: 0,
+    });
+    await current.put(STORE_NAMES.inboxDecisions, decision('i1', 'r1', 'dismissed'));
+    await current.put(STORE_NAMES.inboxDecisions, decision('i2', 'r2', 'accepted'));
+    await current.put(STORE_NAMES.inboxDecisions, decision('i3', 'r1', 'accepted'));
+    expect(
+      (
+        await current.getAllFromIndex<Record<string, unknown>>(
+          STORE_NAMES.inboxDecisions,
+          'repertoireId',
+          'r1',
+        )
+      )
+        .map((row) => row.id)
+        .sort(),
+    ).toEqual(['i1', 'i3']);
+    expect(
+      (
+        await current.getAllFromIndex<Record<string, unknown>>(
+          STORE_NAMES.inboxDecisions,
+          'status',
+          'accepted',
+        )
+      )
+        .map((row) => row.id)
+        .sort(),
+    ).toEqual(['i2', 'i3']);
+    current.close();
+  });
+});

@@ -161,6 +161,30 @@ const authored: Partial<Record<StoreName, Record<string, unknown>>> = {
       ],
     },
   },
+  savedQueries: {
+    ...common,
+    name: 'Najdorf, rated games',
+    query: {
+      version: 1,
+      where: {
+        type: 'and',
+        of: [
+          { type: 'eco', prefix: 'B9' },
+          { type: 'rating', min: 2500 },
+        ],
+      },
+    },
+    source: 'local',
+    lastRun: { at: 1, selected: 3, found: 2, fingerprints: ['a', 'b'], complete: true },
+  },
+  inboxDecisions: {
+    ...common,
+    repertoireId: 'r1',
+    status: 'dismissed',
+    reason: 'A blitz sideline; not worth the time.',
+    evidence: 'digest',
+    decidedAt: 2,
+  },
   importedEvaluations: {
     ...common,
     positionKey: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -',

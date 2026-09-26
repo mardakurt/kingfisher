@@ -1514,3 +1514,51 @@ export interface ImportedEvaluationRecord {
   readonly updatedAt: number;
   readonly revision: number;
 }
+
+/**
+ * A named query and what it last found (Phase 86). The query is the model in
+ * `src/database/query/`; `lastRun` keeps the fingerprints it matched so a
+ * rerun after an import or a corpus update can say what is new and what has
+ * gone, rather than only how many.
+ */
+export interface SavedQueryRecord {
+  readonly id: string;
+  readonly name: string;
+  /** A `GameQuery`, validated by `parseQuery` on every read. */
+  readonly query: unknown;
+  /** Where it runs: `local` (My games) or a companion collection's key. */
+  readonly source: string;
+  readonly lastRun?: {
+    readonly at: number;
+    readonly selected: number;
+    readonly found: number;
+    /** Up to `SAVED_RUN_FINGERPRINTS`; `complete` says whether that was all. */
+    readonly fingerprints: readonly string[];
+    readonly complete: boolean;
+  };
+  readonly createdAt: number;
+  readonly updatedAt: number;
+  readonly revision: number;
+}
+
+export type InboxStatus = 'accepted' | 'dismissed' | 'snoozed';
+
+/**
+ * A person's decision on one repertoire-inbox item (Phase 86). The item is
+ * derived from evidence and is not stored; the decision is. `evidence` is
+ * the digest of what the item said when it was decided: when the derived
+ * item's evidence changes materially, its digest differs and the item is
+ * open again, with this decision kept as its history.
+ */
+export interface InboxDecisionRecord {
+  readonly id: string;
+  readonly repertoireId: string;
+  readonly status: InboxStatus;
+  readonly reason?: string;
+  readonly snoozedUntil?: number;
+  readonly evidence: string;
+  readonly decidedAt: number;
+  readonly createdAt: number;
+  readonly updatedAt: number;
+  readonly revision: number;
+}

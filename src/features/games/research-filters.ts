@@ -8,7 +8,11 @@ export interface ResearchFilter {
   readonly usedAt: number;
 }
 
-const SAVED_KEY = 'kingfisher.saved-database-filters.v1';
+/*
+  Saved filters lived under `kingfisher.saved-database-filters.v1` until Phase
+  86; they are carried into the saved-query store (saved-query-repository.ts),
+  which backups include. Only the recent list, a convenience, stays here.
+*/
 const RECENT_KEY = 'kingfisher.recent-database-filters.v1';
 
 /*
@@ -36,35 +40,7 @@ const write = (key: string, values: readonly ResearchFilter[]) => {
   }
 };
 
-export const savedResearchFilters = () => read(SAVED_KEY);
 export const recentResearchFilters = () => read(RECENT_KEY);
-
-export function saveResearchFilter(
-  name: string,
-  filters: ResearchFilter['filters'],
-): ResearchFilter[] {
-  const now = Date.now();
-  const current = read(SAVED_KEY);
-  const normalized = name.trim();
-  const item: ResearchFilter = {
-    /*
-      A timestamp alone is not an identity: saving two filters in the same
-      millisecond gave them the same id, and the second silently replaced the
-      first. Renaming to an existing name still reuses that entry's id, which
-      is the only collision that should overwrite anything.
-    */
-    id:
-      current.find((entry) => entry.name.toLowerCase() === normalized.toLowerCase())?.id ??
-      `filter-${now.toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
-    name: normalized,
-    source: 'local-collection',
-    filters,
-    usedAt: now,
-  };
-  const next = [item, ...current.filter((entry) => entry.id !== item.id)].slice(0, 20);
-  write(SAVED_KEY, next);
-  return next;
-}
 
 /**
  * A readable name for a filter set the user never named.
@@ -126,12 +102,6 @@ export function rememberResearchFilter(filter: ResearchFilter): ResearchFilter[]
   write(RECENT_KEY, next);
   return next;
 }
-
-export const deleteResearchFilter = (id: string): ResearchFilter[] => {
-  const next = read(SAVED_KEY).filter((entry) => entry.id !== id);
-  write(SAVED_KEY, next);
-  return next;
-};
 
 function isResearchFilter(value: unknown): value is ResearchFilter {
   if (!value || typeof value !== 'object') return false;

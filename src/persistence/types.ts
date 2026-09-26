@@ -18,6 +18,8 @@ import type { JournalRepository } from './repositories/journal-repository';
 import type { QuestionSessionRepository } from './repositories/question-session-repository';
 import type { DeepAnalysisRepository } from './repositories/deep-analysis-repository';
 import type { ImportedEvaluationRepository } from './repositories/imported-evaluation-repository';
+import type { SavedQueryRepository } from './repositories/saved-query-repository';
+import type { InboxDecisionRepository } from './repositories/inbox-decision-repository';
 import type { EndgameRepository } from './repositories/endgame-repository';
 import type { PinnedLineRepository } from './repositories/pinned-line-repository';
 import type { LinkedAccountRepository } from './repositories/linked-account-repository';
@@ -457,6 +459,8 @@ export interface AppRepositories {
   readonly questionSessions: QuestionSessionRepository;
   readonly deepAnalysis: DeepAnalysisRepository;
   readonly importedEvaluations: ImportedEvaluationRepository;
+  readonly savedQueries: SavedQueryRepository;
+  readonly inboxDecisions: InboxDecisionRepository;
   readonly endgames: EndgameRepository;
   readonly pinnedLines: PinnedLineRepository;
   readonly linkedAccounts: LinkedAccountRepository;
