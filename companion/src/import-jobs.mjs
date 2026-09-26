@@ -181,6 +181,14 @@ export async function runImport(database, options, onProgress = () => undefined,
       }
     });
   } finally {
+    /*
+      A worker that has sent 'done' still listens for acknowledgements, and a
+      listening port keeps its thread alive: every import left one idle
+      thread per share, each holding the kit and the opening index, until the
+      companion quit (import-jobs.test.mjs). Ended here, whatever ended the
+      import.
+    */
+    await Promise.all(workers.map((worker) => worker.terminate()));
     if (bulk) {
       onProgress({ ...state, phase: 'indexing' });
       const indexing = performance.now();
