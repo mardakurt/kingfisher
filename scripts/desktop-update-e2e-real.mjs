@@ -269,8 +269,37 @@ try {
   const exited = new Promise((resolve) => instance.process().once('exit', resolve));
   const seen = [];
 
+  /*
+    Let the quiet look at launch finish before asking. Five seconds after the
+    window, the shell makes one information-only request; a menu check made
+    in the same second would overlap it. Whether the two interfere was not
+    established (on 2026-09-26 the offer window was unreadable either way —
+    see the Accessibility fallback below); a person opening the application
+    and choosing Check for Updates… a little later does not overlap them,
+    and this harness plays that person.
+  */
+  const shellLogFile = path.join(profile, 'logs', 'kingfisher.log');
+  const quietDone = () => {
+    try {
+      const text = readFileSync(shellLogFile, 'utf8');
+      const at = text.lastIndexOf('quiet check');
+      if (at < 0) return false;
+      const after = text.slice(at);
+      return (
+        /quiet check skipped|quiet check at launch failed/.test(after) ||
+        /update cycle finished|update found|up to date|no update/i.test(
+          after.split('\n').slice(1).join('\n'),
+        )
+      );
+    } catch {
+      return false;
+    }
+  };
+
   if (currentHasSparkle) {
     // --- 2. Check for Updates…, from the real menu; Sparkle's window. ---------
+    for (let waited = 0; waited < 30_000 && !quietDone(); waited += 250) await wait(250);
+    await wait(1000);
     const clicked = await chooseCheckForUpdates(instance);
     check('Check for Updates… exists in the application menu', clicked);
     // The process under test, by pid: an installed Kingfisher may be running
@@ -282,42 +311,111 @@ try {
       { button: /^Install Update$/ },
       { timeoutMs: 90_000 },
     );
-    const offered = found
-      ? found.texts.join(' | ')
-      : windowsOf(target)
-          .map((w) => `${w.title}: ${w.buttons.join(',')}`)
-          .join(' / ');
-    check(
-      `Sparkle offers ${nextVersion}`,
-      Boolean(found) && found.texts.some((t) => t.includes(nextVersion)),
-      offered,
-    );
-    // Sparkle's own words: "Kingfisher 1.1.8 is now available—you have
-    // 1.1.7", with Install Update and Skip This Version (a user-initiated
-    // check has no Remind Me Later); the release notes are in a web view the
-    // Accessibility tree does not list as static text.
-    check(
-      'the offer names both versions, and can be declined',
-      Boolean(found) &&
+    if (found) {
+      check(
+        `Sparkle offers ${nextVersion}`,
+        found.texts.some((t) => t.includes(nextVersion)),
+        found.texts.join(' | '),
+      );
+      // Sparkle's own words: "Kingfisher 1.1.8 is now available—you have
+      // 1.1.7", with Install Update and Skip This Version (a user-initiated
+      // check has no Remind Me Later); the release notes are in a web view the
+      // Accessibility tree does not list as static text.
+      check(
+        'the offer names both versions, and can be declined',
         found.texts.some((t) =>
           t.includes(`you have ${plist(app, 'CFBundleShortVersionString')}`),
-        ) &&
-        found.buttons.includes('Skip This Version'),
-      found ? found.buttons.join(', ') : '',
-    );
+        ) && found.buttons.includes('Skip This Version'),
+        found.buttons.join(', '),
+      );
 
-    // --- 3. Install Update: download, extract, then Install and Relaunch. ----
-    const installed = await waitAndClick(target, /^Install Update$/, { timeoutMs: 10_000 });
-    check('Install Update was clicked', Boolean(installed));
-    seen.push('Install Update');
-    const ready = await waitAndClick(target, /^Install and Relaunch$/, {
-      timeoutMs: 180_000,
-    });
-    check(
-      'Sparkle downloaded and verified the update, and offered Install and Relaunch',
-      Boolean(ready),
-    );
-    seen.push('Install and Relaunch');
+      // --- 3. Install Update: download, extract, then Install and Relaunch. --
+      const installed = await waitAndClick(target, /^Install Update$/, { timeoutMs: 10_000 });
+      check('Install Update was clicked', Boolean(installed));
+      seen.push('Install Update');
+      const ready = await waitAndClick(target, /^Install and Relaunch$/, {
+        timeoutMs: 180_000,
+      });
+      check(
+        'Sparkle downloaded and verified the update, and offered Install and Relaunch',
+        Boolean(ready),
+      );
+      seen.push('Install and Relaunch');
+    } else {
+      /*
+        The Accessibility tree did not show Sparkle's offer. On 2026-09-26,
+        run from a process whose responsible application had no
+        Accessibility grant, System Events read the window's title at most
+        and never its buttons — the permission is the machine owner's to
+        give, not this harness's. The update is then driven the way a person
+        at the keyboard drives it: Return is the default button of each of
+        Sparkle's windows (Install Update, then Install and Relaunch), and
+        every step is confirmed by the application's own verdict
+        (`window.kingfisher.updateStatus()`, which Sparkle's delegate calls
+        write), not by the window. What only the window can show — the
+        offer's wording, Skip This Version — is reported as not verified.
+      */
+      const page = instance.windows()[0];
+      const verdict = () => page.evaluate(() => window.kingfisher.updateStatus()).catch(() => null);
+      const until = async (predicate, ms) => {
+        for (let waited = 0; waited < ms; waited += 500) {
+          const v = await verdict();
+          if (v && predicate(v)) return v;
+          await wait(500);
+        }
+        return verdict();
+      };
+      const pressReturn = () =>
+        spawnSync('osascript', [
+          '-e',
+          `tell application "System Events" to set frontmost of (first process whose unix id is ${target.pid}) to true`,
+          '-e',
+          'delay 0.5',
+          '-e',
+          'tell application "System Events" to key code 36',
+        ]);
+      const offer = await until((v) => v.status === 'available', 30_000);
+      check(
+        `Sparkle offers ${nextVersion} (the application's verdict; the window was not readable)`,
+        offer?.status === 'available' && JSON.stringify(offer).includes(nextVersion),
+        JSON.stringify(offer),
+      );
+      console.log(
+        "  · not verified: the offer's wording and Skip This Version (Accessibility could not read the window)",
+      );
+      pressReturn();
+      seen.push('Install Update (Return)');
+      const moving = await until(
+        (v) =>
+          /downloading|downloaded|verifying|ready|waiting-for-save|installing|restarting/.test(
+            v.status,
+          ),
+        30_000,
+      );
+      check(
+        'Install Update was chosen (Return on the offer)',
+        /downloading|downloaded|verifying|ready|waiting-for-save|installing|restarting/.test(
+          moving?.status ?? '',
+        ),
+        moving?.status,
+      );
+      const ready = await until(
+        (v) => /ready|waiting-for-save|installing|restarting/.test(v.status),
+        180_000,
+      );
+      check(
+        'Sparkle downloaded and verified the update, and offered Install and Relaunch',
+        /ready|waiting-for-save|installing|restarting/.test(ready?.status ?? ''),
+        ready?.status,
+      );
+      // The ready-to-install prompt may be behind the main window by now;
+      // asking again brings Sparkle's open window forward instead of starting
+      // a second session (update-service.mjs, showUpdateDialog).
+      await page.evaluate(() => window.kingfisher.showUpdateDialog()).catch(() => {});
+      await wait(1500);
+      pressReturn();
+      seen.push('Install and Relaunch (Return)');
+    }
   } else {
     // --- 2/3. The previous engine's dialog, driven through Playwright. --------
     const updateWindow = instance.waitForEvent('window', {
