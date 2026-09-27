@@ -36,70 +36,85 @@ export function PositionSummary() {
       narrow enough that "White to play" and "White view" broke over two lines
       (Endgame, Team, Opening Files, Scoresheet at 1280px). What does not fit
       is clipped from the end — the view, then the opening — never wrapped.
+
+      Clipped by the viewport's width, a fact was cut mid-word ("Whi") when
+      the strip, not the window, was narrow: beside a rail and a dock at
+      1280px the window is wide and the strip is not. Each fact now appears
+      by the strip's own width (a container query), whole or not at all, and
+      only the opening name truncates.
     */
-    <div className="flex min-w-0 items-center gap-2 overflow-hidden text-2xs whitespace-nowrap text-tertiary sm:gap-3">
-      {outcome ? (
-        <span className="font-medium text-primary">
-          {OUTCOME_TEXT[outcome.kind] ?? 'Game over'}
-          {outcome.kind === 'checkmate' && ` — ${outcome.winner === 'w' ? 'White' : 'Black'} wins`}
-        </span>
-      ) : (
-        <span>
-          <span className="text-secondary">
-            {position.turn === 'w' ? 'White' : 'Black'} to play
+    <div className="@container min-w-0 flex-1">
+      <div className="flex min-w-0 items-center gap-2 overflow-hidden text-2xs whitespace-nowrap text-tertiary @[22rem]:gap-3">
+        {outcome ? (
+          <span className="font-medium text-primary">
+            {OUTCOME_TEXT[outcome.kind] ?? 'Game over'}
+            {outcome.kind === 'checkmate' &&
+              ` — ${outcome.winner === 'w' ? 'White' : 'Black'} wins`}
           </span>
-          {/*
+        ) : (
+          <span>
+            <span className="text-secondary">
+              {position.turn === 'w' ? 'White' : 'Black'} to play
+            </span>
+            {/*
             The move about to be played, not the one already made. `node.ply`
             is the move that *led here*, so numbering it says "White to play
             move 1" in the position after 1.e4 e5 — where White has already
             played move 1 and is about to play move 2. Wrong on every White
             move, on the status line a player reads most often.
           */}
-          {node.ply > 0 && (
-            <span className="ml-1.5 tabular">move {moveNumberOfPly(node.ply + 1)}</span>
-          )}
-        </span>
-      )}
+            {node.ply > 0 && (
+              <span className="ml-1.5 tabular">move {moveNumberOfPly(node.ply + 1)}</span>
+            )}
+          </span>
+        )}
 
-      {position.isCheck() && !outcome && <span className="text-caution">Check</span>}
+        {position.isCheck() && !outcome && <span className="text-caution">Check</span>}
 
-      {repetitions >= 2 && !outcome && (
-        <span className="hidden sm:inline" title="This position has occurred before in this line">
-          repetition ×{repetitions}
-        </span>
-      )}
+        {repetitions >= 2 && !outcome && (
+          <span
+            className="hidden shrink-0 @[16rem]:inline"
+            title="This position has occurred before in this line"
+          >
+            repetition ×{repetitions}
+          </span>
+        )}
 
-      {material !== 0 && (
-        <span className="hidden tabular sm:inline" title="Material balance in pawns">
-          {material > 0 ? '+' : '−'}
-          {Math.abs(material)} {material > 0 ? 'White' : 'Black'}
-        </span>
-      )}
+        {material !== 0 && (
+          <span
+            className="hidden shrink-0 tabular @[18rem]:inline"
+            title="Material balance in pawns"
+          >
+            {material > 0 ? '+' : '−'}
+            {Math.abs(material)} {material > 0 ? 'White' : 'Black'}
+          </span>
+        )}
 
-      {opening ? (
-        /*
+        {opening ? (
+          /*
           Kingfisher's own classification, never the imported tag: this is
           computed from the position on the board, which is the only answer
           that stays right when the user plays a move into a different line.
         */
-        <span
-          className="hidden min-w-0 items-center gap-1.5 md:flex"
-          data-opening-classification={opening.eco}
-          title={`${opening.ply < node.ply ? 'Last classified opening: ' : ''}${openingLabel(opening)} — classified by Kingfisher from the position, at move ${moveNumberOfPly(opening.ply)}`}
-        >
-          <span className="rounded-[5px] border border-line bg-surface-2 px-1 text-[10px] font-semibold text-secondary tabular">
-            {opening.eco}
+          <span
+            className="hidden min-w-0 items-center gap-1.5 @[24rem]:flex"
+            data-opening-classification={opening.eco}
+            title={`${opening.ply < node.ply ? 'Last classified opening: ' : ''}${openingLabel(opening)} — classified by Kingfisher from the position, at move ${moveNumberOfPly(opening.ply)}`}
+          >
+            <span className="rounded-[5px] border border-line bg-surface-2 px-1 text-[10px] font-semibold text-secondary tabular">
+              {opening.eco}
+            </span>
+            <span className="truncate text-secondary">
+              {opening.ply < node.ply ? 'Last classified: ' : ''}
+              {openingLabel(opening)}
+            </span>
           </span>
-          <span className="truncate text-secondary">
-            {opening.ply < node.ply ? 'Last classified: ' : ''}
-            {openingLabel(opening)}
-          </span>
-        </span>
-      ) : null}
+        ) : null}
 
-      <span className="hidden text-tertiary/70 sm:inline">
-        {orientation === 'w' ? 'White view' : 'Black view'}
-      </span>
+        <span className="hidden shrink-0 @[20rem]:inline" data-board-view>
+          {orientation === 'w' ? 'White view' : 'Black view'}
+        </span>
+      </div>
     </div>
   );
 }

@@ -76,9 +76,14 @@ export function Segmented<T extends string>({
   className,
 }: SegmentedProps<T>) {
   return (
+    /*
+      Options that do not fit wrap onto a second row. The control used to
+      scroll sideways instead, which in a narrow rail showed "Chosen facts"
+      cut in half with nothing saying there was a fourth option to scroll to.
+    */
     <div
       className={cn(
-        'inline-flex max-w-full overflow-x-auto rounded-[6px] border border-line bg-surface-2 p-0.5',
+        'inline-flex max-w-full flex-wrap gap-y-0.5 rounded-[6px] border border-line bg-surface-2 p-0.5',
         className,
       )}
     >

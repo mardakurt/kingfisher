@@ -38,6 +38,7 @@ const PAGES = [
 
 const WINDOWS = [
   { name: 'small window', width: 1024, height: 700 },
+  { name: '13-inch laptop', width: 1280, height: 800 },
   { name: 'desk', width: 1440, height: 900 },
   { name: 'large screen', width: 1920, height: 1080 },
   { name: 'phone', width: 390, height: 844 },
@@ -137,6 +138,38 @@ const measure = (gutter: number) => {
     const outer = scrollers.find((candidate) => candidate !== inner && candidate.contains(inner));
     if (outer)
       findings.push(`scrolls inside a scroller: ${describe(inner)} inside ${describe(outer)}`);
+  }
+
+  // Clipping: text cut off by a container that hides its overflow, without
+  // the ellipsis that says there is more. "White view" read "Whi" beside a
+  // rail and a dock at 1280 px.
+  {
+    const clipWalker = document.createTreeWalker(frame, NodeFilter.SHOW_TEXT);
+    const clipRange = document.createRange();
+    let clipped = 0;
+    for (let node = clipWalker.nextNode(); node && clipped < 6; node = clipWalker.nextNode()) {
+      const element = node.parentElement;
+      if (!element || !(node.textContent ?? '').trim() || !visible(element)) continue;
+      if (element.closest('[data-board-surface] svg, [aria-hidden="true"]')) continue;
+      clipRange.selectNodeContents(node);
+      const text = clipRange.getBoundingClientRect();
+      if (text.width === 0) continue;
+      for (let box = element; box && box !== frame.parentElement; box = box.parentElement) {
+        const style = getComputedStyle(box);
+        if (style.overflowX === 'visible') continue;
+        if (style.textOverflow === 'ellipsis') break;
+        const edge = box.getBoundingClientRect();
+        // Partly out, not wholly: a whole item scrolled out of a list is not clipped.
+        const cut =
+          (text.right > edge.right + 1 && text.left < edge.right - 1) ||
+          (text.left < edge.left - 1 && text.right > edge.left + 1);
+        if (cut) {
+          clipped += 1;
+          findings.push(`clipped: ${describe(element)} is cut off by ${describe(box)}`);
+        }
+        break;
+      }
+    }
   }
 
   // Legibility: text against the background it is drawn on.
