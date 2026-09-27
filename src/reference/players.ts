@@ -17,6 +17,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 
+import { BUNDLED_PACK_ID } from './catalog';
 import { LEGENDS, type Legend } from './legends';
 import { readyPackReaders } from './manager';
 import type { PackPlayer } from './pack';
@@ -271,6 +272,27 @@ const combine = (current: CatalogPlayer, player: PackPlayer, source: string): Ca
  * rows, well under a megabyte compressed — and searching by name has no shard
  * to go to, so this is the one read that loads a kind whole.
  */
+/**
+ * Whether the installed sources are settled enough to count a player's games.
+ *
+ * The sources must have been read, and the bundled pack — local, installed on
+ * first run in a second or two — must not be half-way in. A catalog pack the
+ * user is downloading does not hold the catalog back: until it is ready it is
+ * not a source, and a count that leaves it out is true of what is installed.
+ */
+export function catalogReady(
+  loaded: boolean,
+  sources: readonly { readonly id: string; readonly state: string; readonly installed: boolean }[],
+  errors: Readonly<Record<string, string>> = {},
+): boolean {
+  if (!loaded) return false;
+  const bundled = sources.find((source) => source.id === BUNDLED_PACK_ID);
+  if (!bundled || errors[BUNDLED_PACK_ID]) return true;
+  // On a fresh profile the bundled pack is first "available", then
+  // "installing": both are the moment before it answers, not its absence.
+  return bundled.installed && bundled.state !== 'installing' && bundled.state !== 'updating';
+}
+
 export function usePlayerCatalog() {
   const references = useReferenceSources();
   const installed = references.sources
@@ -281,6 +303,14 @@ export function usePlayerCatalog() {
   return useQuery({
     queryKey: ['player-catalog', installed],
     queryFn: () => collect(),
+    /*
+      Not before the installed packs are known. Collected earlier, the catalog
+      is the roster alone, and every row in it says it has no games: the
+      preparation box offered "Carlsen, Magnus — no reference games" for the
+      first second of every visit while the Players page listed 705. Unknown
+      is not zero; until the sources are read there is no catalog at all.
+    */
+    enabled: catalogReady(references.loaded, references.sources, references.errors),
     staleTime: Number.POSITIVE_INFINITY,
     gcTime: 30 * 60_000,
   });

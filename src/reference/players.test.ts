@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { LEGENDS, LEGEND_GROUPS, legendYears } from './legends';
 import {
+  catalogReady,
   foldName,
   matchKey,
   PLAYER_NICKNAMES,
@@ -328,5 +329,41 @@ describe('matchKey', () => {
     expect(matchKey('Vachier-Lagrave, Maxime')).toBe('vachier lagrave maxime');
     expect(matchKey("O'Kelly de Galway, Alberic")).toBe('o kelly de galway alberic');
     expect(matchKey('Polgár, Judit')).toBe('polgar judit');
+  });
+});
+
+describe('when the catalog may count games', () => {
+  const bundled = (state: string, installed: boolean) => ({
+    id: 'kingfisher-starter',
+    state,
+    installed,
+  });
+
+  it('waits for the sources to be read at all', () => {
+    expect(catalogReady(false, [])).toBe(false);
+  });
+
+  it('waits while the bundled pack is about to install or installing, on a fresh profile', () => {
+    // Collected in this window the catalog was the roster alone, and the
+    // preparation box offered Carlsen with "no reference games".
+    expect(catalogReady(true, [bundled('available', false)])).toBe(false);
+    expect(catalogReady(true, [bundled('installing', false)])).toBe(false);
+    expect(catalogReady(true, [bundled('updating', true)])).toBe(false);
+  });
+
+  it('counts once the bundled pack is ready, or has failed and will not answer', () => {
+    expect(catalogReady(true, [bundled('ready', true)])).toBe(true);
+    expect(catalogReady(true, [bundled('available', false)], { 'kingfisher-starter': 'x' })).toBe(
+      true,
+    );
+  });
+
+  it('does not wait for a catalog pack the user is downloading', () => {
+    expect(
+      catalogReady(true, [
+        bundled('ready', true),
+        { id: 'kingfisher-elite-otb', state: 'installing', installed: false },
+      ]),
+    ).toBe(true);
   });
 });

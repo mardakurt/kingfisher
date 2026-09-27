@@ -114,6 +114,15 @@ export function OpponentSearch({
           placeholder="Opponent's name…"
           className="h-8 w-full rounded-[6px] border border-line bg-surface-inset pr-2 pl-8 text-xs text-primary outline-none placeholder:text-tertiary/70 focus:border-accent/60"
         />
+        {open && value.trim().length >= 2 && !catalog.data && !catalog.error ? (
+          <p
+            role="status"
+            data-opponent-catalog-loading
+            className="absolute top-full left-0 z-30 mt-1 w-full min-w-[320px] rounded-[7px] border border-line bg-surface-1 px-3 py-2 text-xs text-tertiary shadow-lg"
+          >
+            Reading the player library…
+          </p>
+        ) : null}
         {open && suggestions.length > 0 ? (
           <ul
             id="opponent-suggestions"

@@ -34,6 +34,7 @@ import { cn } from '@/lib/cn';
 import { DossierPanel } from './DossierPanel';
 import { SheetBoard } from './SheetBoard';
 import { SurprisesPanel } from './SurprisesPanel';
+import type { OpponentSource } from './opponent-games';
 import type { Surprise } from '@/preparation/surprises';
 
 export type ReportView = 'openings' | 'games' | 'style' | 'dossier' | 'sheet';
@@ -45,7 +46,7 @@ export interface PreparationReportProps {
   readonly profile: PlayerProfile;
   readonly games: readonly GameRecord[];
   readonly aliases: readonly string[];
-  readonly sources: readonly { id: string; name: string; games: number; found: number }[];
+  readonly sources: readonly OpponentSource[];
   readonly localTotal: number | null;
   readonly tree: OpeningTree;
   readonly node: TreeNode;
@@ -173,8 +174,13 @@ function PlayerCard({
               <li key={source.id} data-report-source={source.id}>
                 {source.games.toLocaleString()} from {source.name}
                 {source.found > source.games
-                  ? ` (the newest of ${source.found.toLocaleString()} found; Filters → Most recent games reads more)`
+                  ? ` (the newest of ${source.found.toLocaleString()} that match; Filters → Most recent games reads more)`
                   : ''}
+                {source.recorded && source.kept ? (
+                  <span data-report-source-cap>
+                    {` · the source records ${source.recorded.toLocaleString()} games for this player and keeps the moves of the newest ${source.kept.toLocaleString()}`}
+                  </span>
+                ) : null}
               </li>
             ))}
             {localTotal !== null && localTotal > profile.games ? (

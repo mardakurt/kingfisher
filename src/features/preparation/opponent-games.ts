@@ -37,7 +37,26 @@ export interface OpponentSource {
   readonly games: number;
   /** Games this source had for the query before the limit was applied. */
   readonly found: number;
+  /**
+   * For a reference pack that keeps only a player's newest games: how many
+   * games the pack *records* for the player, and how many of those it keeps
+   * the moves of. Absent when the pack keeps every game it records.
+   *
+   * Without this the report said "the newest of 300 found" for a player the
+   * Players page lists with 705 games: 300 is the build's per-player cap
+   * (`gamesPerPlayer` in `scripts/reference/packs.mjs`), not what was found.
+   */
+  readonly recorded?: number;
+  readonly kept?: number;
 }
+
+type OfferedSource = {
+  readonly id: string;
+  readonly name: string;
+  readonly found: number;
+  readonly recorded?: number;
+  readonly kept?: number;
+};
 
 /**
  * Each source's share of the games the report actually reads.
@@ -52,7 +71,7 @@ export interface OpponentSource {
 export function sourceShares(
   kept: readonly { readonly fingerprint: string }[],
   origin: ReadonlyMap<string, string>,
-  offered: readonly { readonly id: string; readonly name: string; readonly found: number }[],
+  offered: readonly OfferedSource[],
 ): OpponentSource[] {
   const counts = new Map<string, number>();
   for (const game of kept) {
@@ -128,7 +147,7 @@ export function acceptsGame(game: GameRecord, query: OpponentQuery, keys: Readon
 export async function collectOpponentGames(query: OpponentQuery): Promise<OpponentGames> {
   const aliases = opponentAliases(query);
   const keys = new Set(aliases.map(playerKey).filter(Boolean));
-  const offered: { id: string; name: string; found: number }[] = [];
+  const offered: OfferedSource[] = [];
   const origin = new Map<string, string>();
   const seen = new Set<string>();
   const games: GameRecord[] = [];
@@ -164,11 +183,17 @@ export async function collectOpponentGames(query: OpponentQuery): Promise<Oppone
   */
   for (const reader of readyPackReaders()) {
     const ids = new Set<string>();
+    let filedUnder: string | null = null;
     for (const alias of aliases) {
-      for (const id of await reader.playerGames(playerKey(alias))) ids.add(id);
-      if (ids.size > 0) break;
+      const key = playerKey(alias);
+      for (const id of await reader.playerGames(key)) ids.add(id);
+      if (ids.size > 0) {
+        filedUnder = key;
+        break;
+      }
     }
     if (ids.size === 0) continue;
+    const recorded = filedUnder ? ((await reader.player(filedUnder))?.games ?? 0) : 0;
     let added = 0;
     for (const game of await reader.games([...ids])) {
       const parsed = parsePgn(packGamePgn(game, reader.manifest)).games[0];
@@ -182,7 +207,12 @@ export async function collectOpponentGames(query: OpponentQuery): Promise<Oppone
       added += 1;
     }
     if (added > 0) {
-      offered.push({ id: reader.manifest.id, name: reader.manifest.name, found: added });
+      offered.push({
+        id: reader.manifest.id,
+        name: reader.manifest.name,
+        found: added,
+        ...(recorded > ids.size ? { recorded, kept: ids.size } : {}),
+      });
     }
   }
 
