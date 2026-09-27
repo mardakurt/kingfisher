@@ -130,7 +130,9 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   if (isShellAsset(url.pathname)) {
-    event.respondWith(staleWhileRevalidate(request, buildCacheName(), 60 * 60 * 24));
+    event.respondWith(
+      staleWhileRevalidate(request, buildCacheName(), 60 * 60 * 24, { stamped: true }),
+    );
     return;
   }
   // Pass through. We deliberately do not intercept reference,
@@ -206,26 +208,33 @@ function withRequestUrl(response) {
   });
 }
 
-async function staleWhileRevalidate(request, cacheName, maxAgeSeconds) {
+/*
+ * `stamped` is for the shell assets (icons, manifest), whose URLs are not
+ * content-addressed. Their cached copy carries the time it was stored, and
+ * one older than `maxAgeSeconds` — or with no time at all — is refetched.
+ *
+ * Until Phase 87 the time was set on the network response's own headers,
+ * which a fetched Response does not allow: the set threw, was swallowed, and
+ * every icon counted as fresh for ever. The mark was redrawn and a page that
+ * asked for `/icon-192.png` kept the old one. The stamped copy is a new
+ * Response, which may carry any header. Content-addressed assets under
+ * `/_next/static/` are stored as fetched, URL and all, and never go stale.
+ */
+async function staleWhileRevalidate(request, cacheName, maxAgeSeconds, options) {
+  const stamped = Boolean(options && options.stamped);
   const cache = await caches.open(cacheName);
   const cached = await cache.match(request);
   const networkPromise = fetch(request)
-    .then((response) => {
+    .then(async (response) => {
       if (response && response.ok) {
-        const clone = response.clone();
-        // Attach a stale marker so we can evict on age.
-        try {
-          clone.headers.set('x-cf-cached-at', String(Date.now()));
-        } catch (e) {
-          /* Headers may be immutable; fall through. */
-        }
-        cache.put(request, clone).catch(() => {});
+        const stored = stamped ? await stampedCopy(response.clone()) : response.clone();
+        cache.put(request, stored).catch(() => {});
       }
       return response;
     })
     .catch(() => null);
   if (cached) {
-    if (await isFresh(cached, maxAgeSeconds)) {
+    if (!stamped || isFresh(cached, maxAgeSeconds)) {
       // Refresh in the background. Do not block the response.
       networkPromise.catch(() => {});
       return cached;
@@ -237,11 +246,20 @@ async function staleWhileRevalidate(request, cacheName, maxAgeSeconds) {
   throw new Error('No cached response and no network.');
 }
 
-async function isFresh(response, maxAgeSeconds) {
-  const header = response.headers.get('x-cf-cached-at');
-  if (!header) return true;
-  const cachedAt = Number(header);
-  if (!Number.isFinite(cachedAt)) return true;
+async function stampedCopy(response) {
+  const headers = new Headers(response.headers);
+  headers.set('x-cf-cached-at', String(Date.now()));
+  return new Response(await response.blob(), {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
+function isFresh(response, maxAgeSeconds) {
+  const cachedAt = Number(response.headers.get('x-cf-cached-at'));
+  // No time, or an unreadable one — stored by an earlier worker — is stale.
+  if (!Number.isFinite(cachedAt) || cachedAt <= 0) return false;
   return Date.now() - cachedAt < maxAgeSeconds * 1000;
 }
 

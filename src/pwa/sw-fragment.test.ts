@@ -119,3 +119,27 @@ describe('the service worker keeps a worker script’s own fragment', () => {
     expect(response.url).toBe(chunk);
   });
 });
+
+describe('the service worker refreshes the icons it keeps', () => {
+  const icon = 'https://studio.test/icon-192.png';
+
+  it('refetches an icon an earlier worker stored without a time, instead of serving it for ever', async () => {
+    const { listeners, store } = loadServiceWorker();
+    // What every worker before Phase 87 stored: the network response with
+    // no time on it, because setting one on a fetched Response throws.
+    store.set(icon, new Response('the old mark'));
+    const response = await serve(listeners, icon);
+    expect(await response.text()).toBe(`bootstrap for ${icon}`);
+  });
+
+  it('serves a freshly stamped icon from the cache, and stores it stamped', async () => {
+    const { listeners, store } = loadServiceWorker();
+    await serve(listeners, icon);
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    const stored = store.get(icon);
+    expect(Number(stored?.headers.get('x-cf-cached-at'))).toBeGreaterThan(0);
+    // (The harness's network clone has no body, so the body is not asserted.)
+    const again = await serve(listeners, icon);
+    expect(again.headers.get('x-cf-cached-at')).not.toBeNull();
+  });
+});

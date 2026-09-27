@@ -39,11 +39,16 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 import { isApplicationHost } from '@/proxy-host-rules';
+import { versionedIcon } from '@/ui/brand-icon-version';
 import { PALETTE } from '@/ui/palette';
 
-const ICON_192 = '/icon-192.png';
-const ICON_512 = '/icon-512.png';
-const ICON_MASKABLE = '/icon-maskable-512.png';
+/*
+  Versioned by the mark (Phase 87): at bare paths a redrawn icon kept its
+  URL, and an installed web app or a browser's icon store kept the old one.
+*/
+const ICON_192 = versionedIcon('/icon-192.png');
+const ICON_512 = versionedIcon('/icon-512.png');
+const ICON_MASKABLE = versionedIcon('/icon-maskable-512.png');
 
 const STUDIO_MANIFEST = {
   name: 'Kingfisher Studio',
