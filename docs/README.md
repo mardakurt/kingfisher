@@ -102,8 +102,9 @@ with [`AGENTS.md`](../AGENTS.md).
   from them, measured before-and-after numbers, and the verdict — yes on the
   core workflows with a player's own data, not yet for the professional who
   depends on ChessBase's corpus, remote engines or Windows.
-- [`product/not-built.md`](product/not-built.md) — what is not built after
-  Phase 86: blocked, designed, partly built and not started, each with why.
+- [`product/not-built.md`](product/not-built.md) — what is not built or not
+  done after Phase 87: blocked, designed, partly built, not started, what the
+  Phase 87 brief left open, and the runs not repeated, each with why.
 - [`product/parity-ledger.md`](product/parity-ledger.md) — the parity
   program's gate (Phase 86): every P0/P1 requirement with its verified state,
   evidence authority and one of five statuses; the frozen ChessBase baseline

@@ -1,8 +1,9 @@
 # What is not built
 
-_2026-09-27, after Phase 86 and Kingfisher 1.3.2. The single list of work the
-two Phase 86 briefs asked for, or that Phase 86 left open, which does not
-exist in the product. Each entry says why it is not built, what unblocks it,
+_2026-09-27, after Phase 87 and Kingfisher 1.3.3 (first written after Phase 86
+and 1.3.2). The single list of work the Phase 86 and Phase 87 briefs asked for,
+or that those phases left open, which does not exist in the product or was not
+done. Each entry says why it is not built, what unblocks it,
 and where its design or evidence already lives. The criterion-by-criterion
 state is in [`parity-ledger.md`](parity-ledger.md); this file is the short
 answer to "what is left"._
@@ -15,12 +16,14 @@ ledger row, in the same commit.
 Nothing in the repository can close these; each needs something only the
 owner can provide.
 
-| Item                                                              | Why it is blocked                                                                  | What unblocks it                                   | What exists                                                                                                                                |
-| ----------------------------------------------------------------- | ---------------------------------------------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| A remote engine on a second machine, and over the internet (P0.3) | no second machine or cloud VM                                                      | a second Mac or a VM the companion can run on      | built and tested between two companions on one machine over loopback, including a host killed mid-search (`docs/design/remote-engines.md`) |
-| A ChessBase export opened in ChessBase (P0.4)                     | no ChessBase licence                                                               | a ChessBase installation to open the exported file | the CBH export is read back by Kingfisher's own reader (`e2e/chessbase-export.spec.ts`)                                                    |
-| Sync, team access control, a coach sharing one assignment (P0.6)  | the owner decided "file exchange only; no server, no hosted share" (2026-09-24/25) | reversing that decision                            | portable backups; Team packets by file; `docs/adr/00xx-optional-account-sync.md` is Proposed                                               |
-| Windows: packaged harnesses and a signed installer (P0.7, P0.8)   | no Windows machine or code-signing certificate                                     | a Windows machine and a certificate                | `docs/design/windows.md` sizes the work; the companion's shutdown contract already covers Windows                                          |
+| Item                                                              | Why it is blocked                                                                    | What unblocks it                                   | What exists                                                                                                                                |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------ | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| A remote engine on a second machine, and over the internet (P0.3) | no second machine or cloud VM                                                        | a second Mac or a VM the companion can run on      | built and tested between two companions on one machine over loopback, including a host killed mid-search (`docs/design/remote-engines.md`) |
+| A ChessBase export opened in ChessBase (P0.4)                     | no ChessBase licence                                                                 | a ChessBase installation to open the exported file | the CBH export is read back by Kingfisher's own reader (`e2e/chessbase-export.spec.ts`)                                                    |
+| Sync, team access control, a coach sharing one assignment (P0.6)  | the owner decided "file exchange only; no server, no hosted share" (2026-09-24/25)   | reversing that decision                            | portable backups; Team packets by file; `docs/adr/00xx-optional-account-sync.md` is Proposed                                               |
+| Windows: packaged harnesses and a signed installer (P0.7, P0.8)   | no Windows machine or code-signing certificate                                       | a Windows machine and a certificate                | `docs/design/windows.md` sizes the work; the companion's shutdown contract already covers Windows                                          |
+| A hands-on comparison with ChessBase (Phase 87)                   | no ChessBase licence; ChessBase for Mac is announced for November 2026, not released | a ChessBase licence                                | the comparison from ChessBase's own pages and the owner's ten photographs, in `competitive-assessment-phase-87.md`                         |
+| A licensed, dated, annotated reference corpus (Phase 84, 87)      | a licensing and data-rights question, not code                                       | a licence for such a corpus, or a decision on one  | open packs and fourteen public-domain annotated games; `docs/data/historical-games-audit.md` is the rights process                         |
 
 ## 2. Designed, not built
 
@@ -68,12 +71,47 @@ Written up with an architecture and a plan; no code yet.
 | Explainable model-game recommendations (P1)                        | model games are curated and source-linked; no ranking rule has been designed             |
 | A Linux / Intel Mac decision (P1)                                  | no documented segment decision                                                           |
 
-## 5. Verification not repeated after the last changes
+## 5. The Phase 87 brief: what was not done
+
+The brief asked for a reassessment against ChessBase, improvements, a
+documentation audit and verification
+(`docs/reports/phase-87-handover.md`, `competitive-assessment-phase-87.md`).
+What it asked for and did not get:
+
+| Item                                                                                                                       | State                                                                                                                                                                                                                      | What would close it                                                                          |
+| -------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Read the Next.js guides in `node_modules/next/dist/docs/` before writing code (AGENTS.md)                                  | not read in Phase 87                                                                                                                                                                                                       | read them, and check the Phase 87 code against anything they deprecate                       |
+| Read `ARCHITECTURE.md` in full                                                                                             | read only the passages Phase 87 changed                                                                                                                                                                                    | a full read                                                                                  |
+| A design pass over every screen                                                                                            | Analysis, Library, Preparation, Databases, Repertoire, Studies and the tool dock were walked and changed; Training, Review, Openings, Players, Settings, Team, Daily, Season and Endgame only had their existing tests run | the same walk — laptop and large windows, light and dark, empty and loaded — over those nine |
+| Dark theme across the product                                                                                              | checked on Analysis and Databases                                                                                                                                                                                          | the same check on every route                                                                |
+| Keyboard access, visible focus and contrast                                                                                | not re-audited; the existing accessibility tests pass                                                                                                                                                                      | see "Accessibility" in §3                                                                    |
+| Workflow W1: does Back to Library keep the list's scroll and the selected row, at a million games?                         | unknown — not tested                                                                                                                                                                                                       | a companion collection of that size, and a test that returns from a game                     |
+| Workflow W6: the density of a study's chapter list                                                                         | unknown — not walked                                                                                                                                                                                                       | a study with many chapters, walked at laptop size                                            |
+| Backup, restore, import and export walked by hand                                                                          | covered by their existing tests only                                                                                                                                                                                       | a hand walk of each, including a restore into a fresh profile                                |
+| The Mac application offline                                                                                                | not exercised in Phase 87                                                                                                                                                                                                  | a packaged walk with the network off                                                         |
+| User evaluation of the new layouts — above all the trade-off that the Explorer shows five rows instead of nine at 1280x720 | not done                                                                                                                                                                                                                   | strong players, coaches and seconds using it                                                 |
+| The owner's sidebar screenshot (sent mid-phase) in the photograph catalogue                                                | not added                                                                                                                                                                                                                  | add it as R11 in the assessment                                                              |
+| Every document read in full                                                                                                | the audit searched all 264 files for what Phase 87 changed and read in full only those it hit (`docs/reports/phase-87-documentation-audit.md`)                                                                             | a full read of the categories marked "not read in full"                                      |
+| Which database connection WebKit keeps after a page merely navigates away                                                  | not established (the test now closes the page, which ends it)                                                                                                                                                              | a WebKit trace of `indexedDB.deleteDatabase` with the application's workers listed           |
+
+Decided rather than missing: the sidebar keeps its four groups (the owner's
+choice; a Research-first order was tried and reverted), so on a 1280x800
+window Databases stays below the fold of the list.
+
+Outside the application's reach: a visitor's own browser may keep the old
+favicon in its icon store until it revalidates; the site, the manifest icons
+and the offline worker all serve the new mark.
+
+## 6. Verification not repeated after the last changes
 
 Not missing features — runs that were not repeated after the final commits
-of Phase 86 (`docs/reports/phase-86-handover.md` §3):
+of Phase 87 (`docs/reports/phase-87-handover.md` §6):
 
-- the whole four-engine browser matrix after `0444fd2` (the ten failing
-  specs were rerun on Chrome, Firefox and WebKit and pass);
-- the Linux visual comparison after the status-line change in `6c5bb4d`;
-- the eight-hour soak on 1.3.2 (`npm run desktop:soak -- --duration=8h`).
+- the whole four-engine browser matrix after the last application changes
+  (it ran at `7f23b85`, 1,647/1,648, and its one WebKit failure was fixed in
+  `c2d0836`; the database-connection fix, the icon change and the sidebar
+  revert came after, and were rerun on the full Chrome suite and on the
+  affected specs in all four engines);
+- a first launch of 1.3.3 from a real Finder download, through Gatekeeper's
+  own sheet — it needs the owner at the machine;
+- the eight-hour soak (`npm run desktop:soak -- --duration=8h`), now on 1.3.3.
