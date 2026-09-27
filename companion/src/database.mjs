@@ -346,6 +346,9 @@ function lineBytes(value) {
 
 const MOVE_SEARCH_WORKER = new URL('./move-search.worker.mjs', import.meta.url);
 
+/** Present in `schema_state` from `beginBulk` until `endBulk` finishes. */
+const BULK_KEY = 'bulk_load';
+
 export class GameDatabase {
   #db;
   #file;
@@ -365,6 +368,8 @@ export class GameDatabase {
   /** Phase 85: inside `beginBulk` … `endBulk`, the per-row maintenance is deferred. */
   #bulk = false;
   #bulkPending = 0;
+  /** True when opening this collection finished a bulk load that was interrupted. */
+  recoveredInterruptedLoad = false;
   /**
    * Phase 86: the posting layout's index, when this collection uses it
    * (`postings.mjs`), and the rules code it reads moves through. `null` for
@@ -421,8 +426,23 @@ export class GameDatabase {
       moveSan: this.#kit?.moveSan,
       sanMap: this.#kit?.sanMap,
     });
+    /*
+      A bulk load that never reached `endBulk` — the companion killed, the
+      machine asleep past its battery — committed its games, players and
+      search rows batch by batch, but not the aggregates it defers. Checking
+      only for *empty* aggregates missed exactly that case: a collection that
+      had some before the load answered the explorer from the counts it had
+      then, short by every game since. The load leaves a mark until it ends,
+      and a mark found here means finish it. The posting layout finishes its
+      own staged ranges on open (`PostingIndex`), hot counts included.
+    */
+    const interrupted = this.#db.prepare('SELECT 1 FROM schema_state WHERE key = ?').get(BULK_KEY);
     const hasAggregates = this.#db.prepare('SELECT 1 FROM position_aggregates LIMIT 1').get();
-    if (!hasAggregates && this.#db.prepare('SELECT 1 FROM positions LIMIT 1').get())
+    if (interrupted) {
+      if (!this.#postings?.recovered) this.rebuildAggregates();
+      this.#db.prepare('DELETE FROM schema_state WHERE key = ?').run(BULK_KEY);
+      this.recoveredInterruptedLoad = true;
+    } else if (!hasAggregates && this.#db.prepare('SELECT 1 FROM positions LIMIT 1').get())
       this.rebuildAggregates();
     this.#ensureSearchIndexes();
   }
@@ -945,6 +965,9 @@ export class GameDatabase {
       PRAGMA wal_autocheckpoint = 262144;
       BEGIN;
     `);
+    this.#db
+      .prepare('INSERT OR REPLACE INTO schema_state (key, value) VALUES (?, ?)')
+      .run(BULK_KEY, String(Date.now()));
     this.#bulkPending = 0;
     this.#postings?.beginBulk();
     // A profile of a million-game load spent 72% of the writer's time in
@@ -972,6 +995,7 @@ export class GameDatabase {
     // The posting layout's staged ranges, sorted into the index (postings.mjs).
     this.#postings?.finishBulk();
     this.rebuildAggregates();
+    this.#db.prepare('DELETE FROM schema_state WHERE key = ?').run(BULK_KEY);
     this.checkpoint();
   }
 

@@ -57,6 +57,8 @@ export interface GameDatabaseOptions {
 export declare class GameDatabase {
   constructor(file: string, options?: GameDatabaseOptions);
   readonly layout: 'rows' | 'postings';
+  /** True when opening this collection finished a bulk load that was interrupted. */
+  readonly recoveredInterruptedLoad: boolean;
   useKit(kit: GameDatabaseKit): void;
   convertToPostings(options?: { chunk?: number }): { converted: number; postings?: number };
   count(): number;

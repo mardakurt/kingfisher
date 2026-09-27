@@ -199,6 +199,8 @@ export class PostingIndex {
   #sanCache = new Map();
   #statements = new Map();
   #bulk = false;
+  /** True when opening this index finished a bulk load that was interrupted. */
+  recovered = false;
 
   constructor(db, { moveSan, sanMap } = {}) {
     this.#db = db;
@@ -212,6 +214,7 @@ export class PostingIndex {
       part of the collection.
     */
     if (this.#stagedTables().length > 0) {
+      this.recovered = true;
       this.finishBulk();
       db.exec('BEGIN');
       try {

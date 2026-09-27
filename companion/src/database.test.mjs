@@ -71,6 +71,27 @@ describe('GameDatabase', () => {
     expect(database.explore(POSITION).totalGames).toBe(2);
   });
 
+  it('finishes the aggregates of a bulk load that was interrupted', () => {
+    // A collection with counts before the load: the old check rebuilt only
+    // empty aggregates, so an interrupted load left these short for good.
+    const game = { white: 'Alpha', black: 'Beta', result: '1-0', year: 2025, rating: 2400 };
+    database.insertGames([entry({ ...game, fingerprint: 'before', uci: 'e2e4', san: 'e4' })]);
+    expect(database.explore(POSITION).totalGames).toBe(1);
+    database.beginBulk();
+    database.insertGames([entry({ ...game, fingerprint: 'during', uci: 'd2d4', san: 'd4' })]);
+    database.checkpoint(); // committed; the process then dies before endBulk
+    database.close();
+
+    database = new GameDatabase(path.join(directory, 'games.sqlite'));
+    expect(database.recoveredInterruptedLoad).toBe(true);
+    expect(database.count()).toBe(2);
+    expect(database.explore(POSITION).totalGames).toBe(2);
+    // And the mark is gone: the next open is an ordinary one.
+    database.close();
+    database = new GameDatabase(path.join(directory, 'games.sqlite'));
+    expect(database.recoveredInterruptedLoad).toBe(false);
+  });
+
   it('imports summaries and content atomically and rejects duplicate fingerprints', () => {
     const game = entry({
       fingerprint: 'game-1',
