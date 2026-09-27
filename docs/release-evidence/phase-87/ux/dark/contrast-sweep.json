@@ -1,0 +1,154 @@
+[
+ {
+  "route": "search",
+  "theme": "dark",
+  "bg": "rgb(28, 28, 30)",
+  "low": []
+ },
+ {
+  "route": "recent",
+  "theme": "dark",
+  "bg": "rgb(28, 28, 30)",
+  "low": []
+ },
+ {
+  "route": "analysis",
+  "theme": "dark",
+  "bg": "rgb(28, 28, 30)",
+  "low": [
+   "— (1.00)"
+  ]
+ },
+ {
+  "route": "openings",
+  "theme": "dark",
+  "bg": "rgb(28, 28, 30)",
+  "low": []
+ },
+ {
+  "route": "studies",
+  "theme": "dark",
+  "bg": "rgb(28, 28, 30)",
+  "low": []
+ },
+ {
+  "route": "repertoire",
+  "theme": "dark",
+  "bg": "rgb(28, 28, 30)",
+  "low": []
+ },
+ {
+  "route": "preparation",
+  "theme": "dark",
+  "bg": "rgb(28, 28, 30)",
+  "low": []
+ },
+ {
+  "route": "players",
+  "theme": "dark",
+  "bg": "rgb(28, 28, 30)",
+  "low": []
+ },
+ {
+  "route": "opening-files",
+  "theme": "dark",
+  "bg": "rgb(28, 28, 30)",
+  "low": [
+   "— (1.00)"
+  ]
+ },
+ {
+  "route": "team",
+  "theme": "dark",
+  "bg": "rgb(28, 28, 30)",
+  "low": [
+   "— (1.00)"
+  ]
+ },
+ {
+  "route": "review",
+  "theme": "dark",
+  "bg": "rgb(28, 28, 30)",
+  "low": []
+ },
+ {
+  "route": "training",
+  "theme": "dark",
+  "bg": "rgb(28, 28, 30)",
+  "low": []
+ },
+ {
+  "route": "daily",
+  "theme": "dark",
+  "bg": "rgb(28, 28, 30)",
+  "low": []
+ },
+ {
+  "route": "season",
+  "theme": "dark",
+  "bg": "rgb(28, 28, 30)",
+  "low": []
+ },
+ {
+  "route": "endgame",
+  "theme": "dark",
+  "bg": "rgb(28, 28, 30)",
+  "low": [
+   "— (1.00)"
+  ]
+ },
+ {
+  "route": "games",
+  "theme": "dark",
+  "bg": "rgb(28, 28, 30)",
+  "low": []
+ },
+ {
+  "route": "scoresheet",
+  "theme": "dark",
+  "bg": "rgb(28, 28, 30)",
+  "low": []
+ },
+ {
+  "route": "similar",
+  "theme": "dark",
+  "bg": "rgb(28, 28, 30)",
+  "low": []
+ },
+ {
+  "route": "databases",
+  "theme": "dark",
+  "bg": "rgb(28, 28, 30)",
+  "low": []
+ },
+ {
+  "route": "settings",
+  "theme": "dark",
+  "bg": "rgb(28, 28, 30)",
+  "low": []
+ },
+ {
+  "route": "position",
+  "theme": "dark",
+  "bg": "rgb(28, 28, 30)",
+  "low": []
+ },
+ {
+  "route": "install",
+  "theme": "dark",
+  "bg": "rgb(28, 28, 30)",
+  "low": []
+ },
+ {
+  "route": "privacy",
+  "theme": "dark",
+  "bg": "rgb(28, 28, 30)",
+  "low": []
+ },
+ {
+  "route": "security",
+  "theme": "dark",
+  "bg": "rgb(28, 28, 30)",
+  "low": []
+ }
+]

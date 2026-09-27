@@ -25,3 +25,10 @@ node docs/release-evidence/phase-87/ux/scripts/metrics.mjs http://localhost:3210
 `measure.mjs` and the capture scripts take an output directory and read
 `http://localhost:3210`. The bench games are synthetic (`public/bench/`);
 they exercise the layout, not chess evidence.
+
+- `dark/` — every sidebar route plus Settings, the position page and the three
+  public pages (24 in all) in the dark theme at 1440x900, from a production
+  build (`scripts/dark.mjs`, run against `next start`), as one contact sheet,
+  with a contrast sweep of every visible text node (`contrast-sweep.json`):
+  nothing under 3:1 except the evaluation bar's "—", whose light band is a
+  sibling layer the sweep cannot see — it reads dark on light in the image.
