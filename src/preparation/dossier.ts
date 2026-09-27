@@ -42,6 +42,10 @@ export interface DossierChoice {
   readonly recentGames: number;
   readonly recentFrequency: number;
   readonly score: number;
+  /** The opponent's results in these games, from their side of the board. */
+  readonly wins: number;
+  readonly draws: number;
+  readonly losses: number;
   readonly lastYear?: number;
 }
 
@@ -156,6 +160,7 @@ function tally(
         recentGames: recent.length,
         recentFrequency: percent(recent.length, recentTotal),
         score: scoreOf(group, color),
+        ...resultsOf(group, color),
         ...(lastYear !== undefined ? { lastYear } : {}),
       };
     })
@@ -450,6 +455,27 @@ const indexOfBlack = (moves: readonly San[], san: string): number => {
 };
 
 const within = (index: number, plies: number): boolean => index >= 0 && index < plies;
+
+/**
+ * Wins, draws and losses for one side. A game with no recorded result (`*`)
+ * is in none of the three, so the three need not add up to the games.
+ */
+function resultsOf(
+  games: readonly GameRecord[],
+  color: 'w' | 'b',
+): { readonly wins: number; readonly draws: number; readonly losses: number } {
+  const won = color === 'w' ? '1-0' : '0-1';
+  const lost = color === 'w' ? '0-1' : '1-0';
+  let wins = 0;
+  let draws = 0;
+  let losses = 0;
+  for (const game of games) {
+    if (game.result === won) wins += 1;
+    else if (game.result === lost) losses += 1;
+    else if (game.result === '1/2-1/2') draws += 1;
+  }
+  return { wins, draws, losses };
+}
 
 /** Points for one side, where a draw is half. */
 function scoreOf(games: readonly GameRecord[], color: 'w' | 'b'): number {

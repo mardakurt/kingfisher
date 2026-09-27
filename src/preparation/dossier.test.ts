@@ -85,6 +85,37 @@ describe('the opponent dossier', () => {
   });
 });
 
+describe('results by opening family', () => {
+  it("counts the opponent's wins, draws and losses from their own side, and leaves * out", () => {
+    const sicilian = { opening: 'Sicilian Defense: Najdorf Variation' };
+    const games = [
+      asWhite('1. e4 c5', 2026, { ...sicilian, result: '1-0' }),
+      asWhite('1. e4 c5', 2026, { ...sicilian, result: '1-0' }),
+      asWhite('1. e4 c5', 2025, { ...sicilian, result: '1/2-1/2' }),
+      asWhite('1. e4 c5', 2025, { ...sicilian, result: '0-1' }),
+      asWhite('1. e4 c5', 2024, { ...sicilian, result: '*' }),
+      // As Black the same result string is the other side's win.
+      game({
+        white: 'Other, O',
+        black: 'Player, X',
+        year: 2026,
+        moves: '1. e4 c5',
+        result: '1-0',
+        ...sicilian,
+      }),
+    ];
+    const dossier = buildDossier('player, x', games, { recentFromYear: 2025 });
+    expect(dossier.white.openings[0]).toMatchObject({
+      label: 'Sicilian Defense',
+      games: 5,
+      wins: 2,
+      draws: 1,
+      losses: 1,
+    });
+    expect(dossier.black.openings[0]).toMatchObject({ wins: 0, draws: 0, losses: 1 });
+  });
+});
+
 describe('recent versus historical', () => {
   it('reports the change in percentage points and the sample under it', () => {
     const games = [

@@ -208,27 +208,67 @@ function ChoiceList({
       </div>
     );
   }
+  /*
+    A table the width of what it says, not of the page: at 1440px the label
+    sat at the left edge and its figures 1,100px away at the right (Phase 87).
+    Their score beside the share, with the results it is made of — the same
+    games, from the opponent's side of the board.
+  */
   return (
-    <div>
-      <h4 className="text-[9.5px] text-tertiary">{title}</h4>
-      <ul className="mt-1 flex flex-col gap-0.5">
-        {choices.map((choice) => (
-          <li key={choice.label} className="flex items-baseline gap-2">
-            <span className="min-w-0 flex-1 truncate text-[11px] text-primary">{choice.label}</span>
-            {/* A bar, not a chart: proportion at a glance, number beside it. */}
-            <span className="h-1 w-12 shrink-0 rounded-full bg-surface-3">
-              <span
-                className="block h-1 rounded-full bg-accent"
-                style={{ width: `${Math.min(100, choice.frequency)}%` }}
-              />
-            </span>
-            <span className="shrink-0 text-[10px] text-tertiary tabular">
-              {choice.frequency}% <span className="text-[9px]">({choice.games}</span>
-              <span className="text-[9px]">/{total})</span>
-            </span>
-          </li>
-        ))}
-      </ul>
+    <div className="max-w-2xl">
+      <table className="w-full table-fixed text-[11px] tabular" data-dossier-choices={title}>
+        <caption className="pb-1 text-left text-[9.5px] text-tertiary">{title}</caption>
+        {/* Fixed columns, so the first-move and family tables line up. */}
+        <colgroup>
+          <col />
+          <col className="w-14" />
+          <col className="w-24" />
+          <col className="w-24" />
+          <col className="w-24" />
+        </colgroup>
+        <thead>
+          <tr className="text-[9.5px] text-tertiary">
+            <th className="pb-1 text-left font-medium">
+              <span className="sr-only">Choice</span>
+            </th>
+            <th className="pb-1 text-right font-medium" colSpan={2}>
+              Share of {total}
+            </th>
+            <th className="pb-1 pl-4 text-right font-medium">Their score</th>
+            <th className="pb-1 pl-2 text-right font-medium">
+              <abbr title="Wins, draws, losses — theirs" className="no-underline">
+                +W =D −L
+              </abbr>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {choices.map((choice) => (
+            <tr key={choice.label} className="border-t border-line-subtle">
+              <td className="truncate py-1 pr-3 text-primary" title={choice.label}>
+                {choice.label}
+              </td>
+              <td className="w-14 py-1">
+                {/* A bar, not a chart: proportion at a glance, number beside it. */}
+                <span className="block h-1 w-12 rounded-full bg-surface-3">
+                  <span
+                    className="block h-1 rounded-full bg-accent"
+                    style={{ width: `${Math.min(100, choice.frequency)}%` }}
+                  />
+                </span>
+              </td>
+              <td className="py-1 text-right text-secondary">
+                {choice.frequency}%{' '}
+                <span className="text-[9.5px] text-tertiary">({choice.games})</span>
+              </td>
+              <td className="py-1 pl-4 text-right text-secondary">{choice.score}%</td>
+              <td className="py-1 pl-2 text-right text-[10px] text-tertiary">
+                +{choice.wins} ={choice.draws} −{choice.losses}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

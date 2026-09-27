@@ -59,3 +59,43 @@ test('the report says what the pack records and what it keeps, and agrees with t
     /newest of [\d,]+ found/,
   );
 });
+
+test('Enter pressed before the player library is read waits for it, and finds the player', async ({
+  page,
+}) => {
+  await page.goto('/preparation');
+  await page.locator(READY).waitFor();
+  // At once, on a fresh profile: the bundled pack has not installed yet.
+  const box = page.getByRole('combobox', { name: 'Player name' });
+  await box.fill('Carlsen');
+  await box.press('Enter');
+  await expect(page.getByRole('heading', { name: 'Carlsen, Magnus', level: 2 })).toBeVisible({
+    timeout: 30_000,
+  });
+  await expect(page.getByText('No games found.')).toHaveCount(0);
+});
+
+test("the dossier gives each opening family the opponent's score and results", async ({ page }) => {
+  await page.goto('/preparation');
+  await page.locator(READY).waitFor();
+  const box = page.getByRole('combobox', { name: 'Player name' });
+  await box.fill('Carlsen');
+  await box.press('Enter');
+  await expect(page.getByRole('heading', { name: 'Carlsen, Magnus', level: 2 })).toBeVisible({
+    timeout: 30_000,
+  });
+  await page.getByRole('tab', { name: 'Dossier' }).click();
+  const families = page.locator('[data-dossier-choices="Opening families"]');
+  await expect(families.getByRole('columnheader', { name: 'Their score' })).toBeVisible();
+  const first = families.locator('tbody tr').first();
+  await expect(first).toContainText(/\d+(\.\d)?%/);
+  const [wins, draws, losses, games] = await first.evaluate((row) => {
+    const text = row.textContent ?? '';
+    const results = /\+(\d+) =(\d+) −(\d+)/.exec(text);
+    const count = /%\s*\((\d+)\)/.exec(text);
+    return [results?.[1], results?.[2], results?.[3], count?.[1]].map(Number);
+  });
+  // The results are of the games counted beside them, never more.
+  expect(wins! + draws! + losses!).toBeLessThanOrEqual(games!);
+  expect(wins! + draws! + losses!).toBeGreaterThan(0);
+});

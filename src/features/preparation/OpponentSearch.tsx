@@ -62,6 +62,23 @@ export function OpponentSearch({
     onSubmit(choice);
   };
 
+  /*
+    Enter pressed before the player library has been read. Submitting the bare
+    text then asked the sources for "Carlsen" — not a name any pack files a
+    player under — and the report said no installed source held his games.
+    The submission waits for the library instead, and is then resolved the way
+    an Enter always is: the first suggestion if there is one, else the text.
+  */
+  const pending = useRef<string | null>(null);
+  const submitPending = () => {
+    const typed = pending.current;
+    if (typed === null || !catalog.data) return;
+    pending.current = null;
+    const found = searchPlayers(catalog.data, { query: typed, filter: 'all', limit: 1 })[0];
+    choose(found ? { name: found.name, player: found } : { name: typed, player: null });
+  };
+  useEffect(submitPending, [catalog.data]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <form
       ref={root as never}
@@ -70,6 +87,11 @@ export function OpponentSearch({
         event.preventDefault();
         const typed = value.trim();
         if (!typed) return;
+        if (!catalog.data && !catalog.error && typed.length >= 2) {
+          pending.current = typed;
+          setOpen(true);
+          return;
+        }
         const highlighted = open ? suggestions[active] : undefined;
         choose(
           highlighted
