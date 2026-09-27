@@ -189,11 +189,13 @@ export function RepertoireWorkspace() {
   const railContent = (
     <div className="flex h-full min-h-0 flex-col">
       {list.length === 0 ? (
-        <EmptyState
-          title="No repertoire yet."
-          description="Create one here, then play a line on the board and press Add to repertoire. Positions reached by transposition converge automatically."
-          action={<Button onClick={() => setCreating(true)}>Create repertoire</Button>}
-        />
+        /*
+          One place to start, not three: the page's centre offers New
+          repertoire and so does the header. The list only says what it holds.
+        */
+        <p className="px-3 py-3 text-[11.5px] leading-relaxed text-tertiary">
+          Your repertoires will be listed here.
+        </p>
       ) : (
         <>
           <div className="border-b border-line-subtle p-2">
@@ -328,15 +330,22 @@ export function RepertoireWorkspace() {
       rail={{ label: 'Repertoire', width: 250, content: railContent }}
       empty={
         !repertoire.data ? (
-          <EmptyState
-            title="Choose a repertoire."
-            description="Create a repertoire to start organising prepared moves by position."
-            action={
-              <Button variant="accent" onClick={() => setCreating(true)}>
-                New repertoire
-              </Button>
-            }
-          />
+          list.length === 0 ? (
+            <EmptyState
+              title="No repertoire yet."
+              description="Create one, then play a line on the board and press Add to repertoire. It is stored by position, so lines reached by transposition converge."
+              action={
+                <Button variant="accent" onClick={() => setCreating(true)}>
+                  New repertoire
+                </Button>
+              }
+            />
+          ) : (
+            <EmptyState
+              title="Choose a repertoire."
+              description="Pick one from the list, or start another with New repertoire."
+            />
+          )
         ) : undefined
       }
       banner={

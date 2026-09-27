@@ -170,8 +170,8 @@ export function ToolContent({
     return (
       contextPanel ?? (
         <EmptyState
-          title="No route context available."
-          description="Choose another tool for evidence at this position."
+          title="Nothing open yet."
+          description="This panel shows what belongs to the open document — a chapter's references, a repertoire's decisions. Open or create one first."
         />
       )
     );

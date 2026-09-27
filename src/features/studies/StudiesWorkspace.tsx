@@ -398,15 +398,13 @@ export function StudiesWorkspace() {
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto p-2">
         {list.length === 0 ? (
-          <EmptyState
-            title="No studies yet."
-            description="A study is a notebook of chapters: opening lines, endgame technique, preparation."
-            action={
-              <Button variant="accent" onClick={() => setPrompt({ kind: 'create-study' })}>
-                Start a study
-              </Button>
-            }
-          />
+          /*
+            One place to start, not three: the page's centre offers "Start a
+            study" and the header has New. The list only says what it will hold.
+          */
+          <p className="px-2 py-3 text-[11.5px] leading-relaxed text-tertiary">
+            Your studies will be listed here.
+          </p>
         ) : chapters.length === 0 ? (
           <EmptyState
             title="No chapters yet."
@@ -589,8 +587,12 @@ export function StudiesWorkspace() {
           />
         ) : !chapter ? (
           <EmptyState
-            title={list.length === 0 ? 'Create a study to begin.' : 'Create or select a chapter.'}
-            description="A chapter opens the canonical board, move tree, comments and every research tool in one place."
+            title={list.length === 0 ? 'No studies yet.' : 'Create or select a chapter.'}
+            description={
+              list.length === 0
+                ? 'A study is a notebook of chapters — opening lines, endgame technique, preparation. Each chapter opens the board, the notation, comments and every research tool in one place.'
+                : 'A chapter opens the board, the notation, comments and every research tool in one place.'
+            }
             action={
               list.length === 0 ? (
                 <Button variant="accent" onClick={() => setPrompt({ kind: 'create-study' })}>
