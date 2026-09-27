@@ -60,7 +60,8 @@ async function openSettings(page: Page, section: string) {
   return dialog;
 }
 
-test('a backup survives a profile that no longer exists', async ({ page }) => {
+test('a backup survives a profile that no longer exists', async ({ page: first, context }) => {
+  let page = first;
   test.setTimeout(300_000);
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/studies');
@@ -157,24 +158,38 @@ test('a backup survives a profile that no longer exists', async ({ page }) => {
   expect(records, 'the backup contains records').toBeGreaterThan(0);
 
   // --- 3. Throw the profile away. -----------------------------------------
-  await page.keyboard.press('Escape');
-  await page.evaluate(async () => {
+  /*
+    With Kingfisher closed, as a person's data is lost: the application's page
+    is closed and the profile is deleted from a new page of the same browser
+    profile that runs none of the application (Phase 87). Deleting from inside
+    the running app, or after only navigating away from it, raced connections
+    the app had opened: in WebKit, one run in four to eight, the delete of
+    `kingfisher` never finished and the test timed out. Which connection
+    WebKit kept after navigation is not established; closing the page ends it.
+  */
+  await page.close();
+  page = await context.newPage();
+  await page.goto('/robots.txt');
+  // Each delete must finish — `blocked` is a promise to finish later, not a
+  // deletion, and resolving on it let a live connection keep the profile.
+  const outcomes = await page.evaluate(async () => {
     const databases = (await indexedDB.databases?.()) ?? [];
-    await Promise.all(
+    const results = await Promise.all(
       databases.map(
         (entry) =>
-          new Promise<void>((resolve) => {
-            if (!entry.name) return resolve();
+          new Promise<string>((resolve) => {
+            if (!entry.name) return resolve('unnamed');
             const request = indexedDB.deleteDatabase(entry.name);
-            request.onsuccess = () => resolve();
-            request.onerror = () => resolve();
-            request.onblocked = () => resolve();
+            request.onsuccess = () => resolve(`${entry.name}: deleted`);
+            request.onerror = () => resolve(`${entry.name}: ${request.error?.name ?? 'error'}`);
           }),
       ),
     );
     localStorage.clear();
+    return results;
   });
-  await page.reload();
+  expect(outcomes.filter((outcome) => !/: deleted$|^unnamed$/.test(outcome))).toEqual([]);
+  await page.goto('/analysis');
   await ready(page);
   // A fresh profile opens straight into the workspace (Phase 61): no tour to
   // dismiss, and its absence is the first sign the profile really is fresh.

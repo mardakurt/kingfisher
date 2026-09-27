@@ -493,8 +493,13 @@ export async function downloadWorkspaceBackup(
   { readonly ok: true; readonly bytes: number } | { readonly ok: false; readonly message: string }
 > {
   try {
-    const { openPersistenceDatabase } = await import('./indexeddb/database');
-    const database = await openPersistenceDatabase();
+    /*
+      The application's own connection, as Settings → Export backup uses. This
+      opened a new one per download and never closed it (Phase 87), so every
+      backup from the status bar left a connection holding the database.
+    */
+    const { getRepositories } = await import('./repositories');
+    const database = (await getRepositories()).raw;
     const backup = await createWorkspaceBackup(
       database,
       {},

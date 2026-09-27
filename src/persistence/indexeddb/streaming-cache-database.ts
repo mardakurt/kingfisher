@@ -65,7 +65,21 @@ class IndexedDbStreamingCacheDatabase implements StreamingCacheStorage {
             store.createIndex('packVersion', 'packVersion');
           }
         };
-        request.onsuccess = () => resolve(request.result);
+        request.onsuccess = () => {
+          const db = request.result;
+          /*
+            Let go when another context deletes or upgrades this database —
+            a restore that clears the profile, a newer build in another tab.
+            This connection lives as long as the page, and holding it made
+            their request wait on it: WebKit then hung a profile reset in
+            e2e/backup-restore.spec.ts (Phase 87). The next call reopens.
+          */
+          db.onversionchange = () => {
+            db.close();
+            this.dbPromise = null;
+          };
+          resolve(db);
+        };
         request.onerror = () =>
           reject(request.error ?? new Error('Could not open the streaming cache database.'));
         request.onblocked = () =>
