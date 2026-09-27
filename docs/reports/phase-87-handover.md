@@ -144,5 +144,7 @@ In order, with results:
 | Release 1.3.3 (Section B)                                     | preflight GREEN; `desktop:dist` stable: **1.3.3 · build 932 · `ebd7d63`**, notarised and stapled; DMG notarised (submission 530f2136…); appcast; `desktop:trust:verify` GREEN; `verify-dmg` verified; `desktop:certify` **10/10**; `release:mac:publish v1.3.3`; `--latest`; the feed redirects to v1.3.3; `desktop:update:real` from 1.3.2 build 908 with the public feed **PASS 19/19**                                                                     |
 | Descriptor and documents                                      | `macos-download.json` → 1.3.3 (SHA-256 `0d558a60…`, 191,953,378 bytes); release manifest regenerated; README, SECURITY, install guide, launch kit, public claims, security page, AGENTS; `docs:check` 345/345                                                                                                                                                                                                                                                 |
 
+After the push of `2986faa`: `deploy:status` up to date; the live landing links only `Kingfisher-1.3.3-arm64.dmg`; `desktop:public:verify -- --landing --full` **67/67, every byte**.
+
 Still not done: a quarantined first launch from a real Finder download with
 Gatekeeper's sheet (it needs the owner at the machine); the eight-hour soak.
