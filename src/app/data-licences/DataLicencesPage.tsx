@@ -22,7 +22,10 @@ export function DataLicencesPage(): JSX.Element {
             <td>
               <code>kingfisher-starter</code> pack
             </td>
-            <td>206,451 over-the-board games, 300,413 position aggregates</td>
+            <td>
+              206,451 elite broadcast games (over the board and online events), 300,413 position
+              aggregates
+            </td>
             <td>
               <a href="https://creativecommons.org/licenses/by-sa/4.0/" rel="noopener">
                 CC BY-SA 4.0
@@ -128,36 +131,41 @@ export function DataLicencesPage(): JSX.Element {
           <tr>
             <td>Lichess Explorer</td>
             <td>
-              <em>Explorer → Online</em> (a user opt-in, not the default for installed packs)
-            </td>
-            <td>Public, no key needed</td>
-          </tr>
-          <tr>
-            <td>Lichess tablebase</td>
-            <td>
-              <em>Endgame tablebase</em> (a user opt-in, when a position falls to few pieces)
-            </td>
-            <td>Free for non-commercial use</td>
-          </tr>
-          <tr>
-            <td>Lichess account</td>
-            <td>
-              <em>Sign in with Lichess</em> (PKCE OAuth, no scopes beyond “read your games”)
+              Choosing a Lichess source in the explorer — it needs a connected Lichess account or a
+              personal token; the built-in pack is the default
             </td>
             <td>Lichess terms apply</td>
           </tr>
           <tr>
-            <td>Chess.com account</td>
+            <td>Lichess tablebase</td>
+            <td>A position with few enough pieces, when no local Syzygy table answers</td>
+            <td>Free for non-commercial use</td>
+          </tr>
+          <tr>
+            <td>Lichess cloud evaluation</td>
             <td>
-              <em>Sign in with Chess.com</em> (public API by username)
+              The engine panel&apos;s <em>Lichess cloud</em>, off at the start of each session
             </td>
+            <td>Lichess terms apply</td>
+          </tr>
+          <tr>
+            <td>Lichess account</td>
+            <td>
+              <em>Connect Lichess</em> (OAuth with PKCE, no scopes requested)
+            </td>
+            <td>Lichess terms apply</td>
+          </tr>
+          <tr>
+            <td>Chess.com games</td>
+            <td>Syncing a Chess.com username&apos;s public games (no sign-in; the public API)</td>
             <td>Chess.com API terms</td>
           </tr>
         </tbody>
       </table>
       <p>
-        The CSP in <code>vercel.json</code> is the network allow-list; any host not on it is refused
-        at the browser layer.
+        What each call sends is on the <a href="/privacy">privacy page</a>. The CSP in{' '}
+        <code>vercel.json</code> names these hosts but also allows any <code>https:</code> host, so
+        the code, not the policy, bounds the requests.
       </p>
 
       <h2 id="engines">Engine binaries</h2>
@@ -183,9 +191,9 @@ export function DataLicencesPage(): JSX.Element {
         <li>Kaggle / figshare “all games” archives (re-uploads with unclear origin)</li>
         <li>ChessBase, Chess.com master databases (commercial)</li>
         <li>
-          Lichess standard-games export (CC0, but the population is amateur online blitz — not the
-          question an over-the-board reference is for; not a fit for what the packs are meant to
-          answer)
+          The Lichess standard-games export <strong>as an over-the-board reference</strong> (CC0,
+          but the population is online play). It is used for what it is: the two High-Rated Online
+          packs, filtered by rating and pace and labelled as online
         </li>
       </ul>
 
