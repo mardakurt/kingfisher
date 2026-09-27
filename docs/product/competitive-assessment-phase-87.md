@@ -127,19 +127,20 @@ in Kingfisher today.
 Each row has a test that fails without the change (reverted once and run;
 the commit message says which).
 
-| Change                                                                                      | Commit    | Test                                                 |
-| ------------------------------------------------------------------------------------------- | --------- | ---------------------------------------------------- |
-| Preparation: no false "no reference games" while packs load; the pack's cap stated as a cap | `ec5d5e9` | `e2e/preparation-counts.spec.ts`, `players.test.ts`  |
-| Notation beside the board at every height; explorer table fits its panel; layout row → icon | `dcd1c0a` | `e2e/analysis-laptop.spec.ts`, `e2e/phase10.spec.ts` |
-| Skip icons drew each other's glyph                                                          | `e0f9550` | `src/components/icons.test.tsx`                      |
-| Library opens at the previewed move                                                         | `68dfff6` | `e2e/library-continuity.spec.ts`                     |
-| Sidebar: research loop first                                                                | `d03ffd6` | `e2e/navigation-order.spec.ts`                       |
-| Tab strip counts padding and gaps (a regression the layout audit caught)                    | `1738396` | `e2e/seven-pages-layout.spec.ts`                     |
-| One create action on empty Repertoire/Studies; no "route context"                           | `243dc62` | `e2e/empty-states.spec.ts`                           |
-| Early Enter in Preparation waits for the library; dossier results                           | `ea7de86` | `e2e/preparation-counts.spec.ts`, `dossier.test.ts`  |
-| One quiet Connect Lichess per source                                                        | `7d1b949` | (visual; no behavioural test)                        |
-| Engine under the board layout; short engine panels show lines first                         | `e762a23` | `e2e/analysis-laptop.spec.ts`                        |
-| Documents and Settings copy corrected                                                       | `7dde258` | `npm run docs:check`                                 |
+| Change                                                                                            | Commit    | Test                                                 |
+| ------------------------------------------------------------------------------------------------- | --------- | ---------------------------------------------------- |
+| Preparation: no false "no reference games" while packs load; the pack's cap stated as a cap       | `ec5d5e9` | `e2e/preparation-counts.spec.ts`, `players.test.ts`  |
+| Notation beside the board at every height; explorer table fits its panel; layout row → icon       | `dcd1c0a` | `e2e/analysis-laptop.spec.ts`, `e2e/phase10.spec.ts` |
+| Skip icons drew each other's glyph                                                                | `e0f9550` | `src/components/icons.test.tsx`                      |
+| Library opens at the previewed move                                                               | `68dfff6` | `e2e/library-continuity.spec.ts`                     |
+| Sidebar: research loop first                                                                      | `d03ffd6` | `e2e/navigation-order.spec.ts`                       |
+| Tab strip counts padding and gaps (a regression the layout audit caught)                          | `1738396` | `e2e/seven-pages-layout.spec.ts`                     |
+| One create action on empty Repertoire/Studies; no "route context"                                 | `243dc62` | `e2e/empty-states.spec.ts`                           |
+| Early Enter in Preparation waits for the library; dossier results                                 | `ea7de86` | `e2e/preparation-counts.spec.ts`, `dossier.test.ts`  |
+| One quiet Connect Lichess per source                                                              | `7d1b949` | (visual; no behavioural test)                        |
+| Engine under the board layout; short engine panels show lines first                               | `e762a23` | `e2e/analysis-laptop.spec.ts`                        |
+| Documents and Settings copy corrected                                                             | `7dde258` | `npm run docs:check`                                 |
+| Repertoire's side panel scrolls, so Position evidence never collapses (found by the full e2e run) | `2a08341` | `e2e/phase7.spec.ts`                                 |
 
 Every hash above is from `git log --oneline 0547f38..`.
 
