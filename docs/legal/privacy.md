@@ -64,12 +64,12 @@ are an inert JSON object with no PII beyond what you yourself
 typed (a study name, a repertoire name).
 
 The bulk of your work is in **IndexedDB**. IndexedDB is
-origin-scoped, so a profile on `kingfisher-roan.vercel.app` is
-not the same database as one on `kingfisher-chess.vercel.app`
-or one on `localhost`. If you move between them, the work does
+origin-scoped, so a profile on `kingfisherchess.app` is not the
+same database as one on `localhost`, in another browser, or in
+another browser profile. If you move between them, the work does
 not move with you — the supported way to move work between
 machines and profiles is the **Settings → Database → Export
-backup / Import backup** flow, which produces and consumes a
+backup… / Choose backup to restore…** flow, which produces and consumes a
 versioned JSON file under your control.
 
 ### Reference cache
@@ -82,8 +82,8 @@ attributed, are not exported with your work and are not
 considered user data. They are technical infrastructure for the
 product.
 
-The cache is the same `localhost`-only database as everything
-else; it does not sync.
+The cache is origin-scoped like everything else, and it does not
+sync.
 
 ### Network requests
 
@@ -111,6 +111,11 @@ product needs:
   browser afterwards. The request carries no identifier of yours, and
   the bytes are refused unless they hash to the SHA-256 recorded in
   Kingfisher.
+- **A service you configure yourself.** If you give _Settings →
+  Assistant_ an endpoint, the evidence you ask it to explain is
+  sent there, and so is a score-sheet photo you choose to have
+  read. Nothing goes to it unless you set it up and ask, and
+  Kingfisher does not choose or know what that service is.
 - **The application's own origin** for the static assets
   (the standard Stockfish WASM, piece art, the marketing/landing assets,
   the app code itself).
@@ -136,10 +141,14 @@ product needs:
   through 1.1.7 — the engine is `electron-updater` and the
   request is `latest-mac.yml`; the behaviour is the same.)
 
-The Content-Security-Policy in `vercel.json` is the enforced
-allow-list. Any other host is refused at the browser layer,
-and the desktop companion's loopback server is a separate
-trust boundary with its own authentication.
+The Content-Security-Policy in `vercel.json` names these hosts,
+but it also allows any `https:` host, because two of the calls
+above choose their host at run time (the full-network engine's
+mirror and a service you configure). So it is the code, not the
+policy, that limits where requests go — and the code makes no
+call beyond this list. Scripts, styles and frames are restricted
+to this origin. The desktop companion's loopback server is a
+separate trust boundary with its own authentication.
 
 ### Cookies and trackers
 
@@ -181,9 +190,33 @@ data is collected.
 **Cross-device Sync is not currently available.** Your work
 lives on the machine you created it on. To move work between
 machines: _Settings → Database → Export backup_ on the source
-machine; _Settings → Database → Import backup_ on the
+machine; _Settings → Database → Choose backup to restore…_ on the
 destination machine. The backup file is portable JSON and is
 under your control at all times.
+
+### Feedback
+
+The in-app Feedback dialog sends a single submission only when
+you press _Send feedback_. Nothing is uploaded automatically. The
+submission carries the category you picked, the message you typed
+(up to 4,000 characters), the board position only when you tick
+_Include current position_ (off by default), and a short
+technical block (version, surface, browser, viewport, storage
+state) only when you tick _Include technical information_ and
+preview it. It never carries your games, studies, repertoire,
+training, notes, preferences, credentials or file paths.
+
+Where it goes: to this site's own server, never from your browser
+to anyone else, and the server forwards it. **Today it forwards
+it to ntfy.sh**, a public notification service, under a topic
+only the maintainer knows; it is also written to the server log.
+The server can instead open an issue in a private GitHub feedback
+repository (a token scoped to that repository alone), or keep
+submissions in its log only, in which case the dialog also offers
+an "Open GitHub feedback" button for a pre-filled issue. The
+endpoint enforces same-origin requests, a 64 KB body limit, a
+per-address rate limit, a minimum form-fill time and a honeypot
+field. If the destination changes, this section changes with it.
 
 ### Children
 

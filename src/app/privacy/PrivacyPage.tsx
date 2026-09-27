@@ -86,8 +86,8 @@ export function PrivacyPage(): JSX.Element {
         <code>localhost</code>, in another browser, or in another browser profile. If you move
         between them, the work does not move with you — the supported way to move work between
         machines, browsers and profiles is the{' '}
-        <em>Settings → Database → Export backup / Import backup</em> flow, which produces and
-        consumes a versioned JSON file under your control.
+        <em>Settings → Database → Export backup… / Choose backup to restore…</em> flow, which
+        produces and consumes a versioned JSON file under your control.
       </p>
 
       <h2 id="reference-cache">Reference cache</h2>
@@ -154,14 +154,23 @@ export function PrivacyPage(): JSX.Element {
           standard Stockfish 18 build is served from this origin and needs nothing else.
         </li>
         <li>
+          <strong>A service you configure yourself.</strong> If you give{' '}
+          <em>Settings → Assistant</em> an endpoint, the evidence you ask it to explain is sent
+          there, and so is a score-sheet photo you choose to have read. Nothing goes to it unless
+          you set it up and ask, and Kingfisher does not choose or know what that service is.
+        </li>
+        <li>
           <strong>The application&apos;s own origin</strong> for the static assets (the standard
           Stockfish WASM, piece art, the marketing/landing assets, the app code itself).
         </li>
       </ul>
       <p>
-        The Content-Security-Policy in <code>vercel.json</code> is the enforced allow-list. Any
-        other host is refused at the browser layer, and the desktop companion&apos;s loopback server
-        is a separate trust boundary with its own authentication.
+        The Content-Security-Policy in <code>vercel.json</code> names these hosts, but it also
+        allows any <code>https:</code> host, because two of the calls above choose their host at run
+        time (the full-network engine&apos;s mirror and a service you configure). So it is the code,
+        not the policy, that limits where requests go — and the code makes no call beyond this list.
+        Scripts, styles and frames are restricted to this origin. The desktop companion&apos;s
+        loopback server is a separate trust boundary with its own authentication.
       </p>
 
       <h2 id="cookies">Cookies and trackers</h2>
@@ -209,9 +218,9 @@ export function PrivacyPage(): JSX.Element {
         <strong>There is no cloud sync today.</strong> Your work lives on the machine you created it
         on, and Kingfisher does not push it anywhere. To move work between machines, two browsers,
         or a browser and a desktop install: <em>Settings → Database → Export backup</em> on the
-        source machine; <em>Settings → Database → Import backup</em> on the destination machine. The
-        backup file is portable JSON, is held on disk under your control, and is never sent to a
-        server.
+        source machine; <em>Settings → Database → Choose backup to restore…</em> on the destination
+        machine. The backup file is portable JSON, is held on disk under your control, and is never
+        sent to a server.
       </p>
       <p>
         A future Kingfisher version may add an opt-in cloud sync. If it does, this page will be
@@ -244,11 +253,14 @@ export function PrivacyPage(): JSX.Element {
         notes, preferences, Lichess or companion credentials, or filesystem paths.
       </p>
       <p>
-        Where it goes: when the operator has configured the secure sink (a fine-grained GitHub token
-        scoped to a single feedback repository), the submission is forwarded there server-side,
-        never from the browser. When no sink is configured, the submission is validated,
-        acknowledged with a reference handle, and the operator sees it in the server log; the dialog
-        also offers an “Open GitHub feedback” button that opens a pre-filled issue in a new tab.
+        Where it goes: the submission is sent to this site&apos;s own server, never from your
+        browser to anyone else, and the server forwards it.{' '}
+        <strong>Today it forwards it to ntfy.sh</strong>, a public notification service, under a
+        topic only the maintainer knows, where the maintainer reads it; it is also written to the
+        server log. The server can instead be set to open an issue in a private GitHub feedback
+        repository (with a token scoped to that repository alone), or to keep submissions in its log
+        only — in which case the dialog also offers an “Open GitHub feedback” button that opens a
+        pre-filled issue in a new tab. If the destination changes, this paragraph changes with it.
       </p>
       <p>
         The endpoint enforces same-origin requests, a 64 KB body ceiling, a per-IP rate limit, a

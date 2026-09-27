@@ -1,13 +1,16 @@
 # Kingfisher companion
 
-An optional local service for the two native capabilities shipped in Phase 4:
+An optional local service for what a browser cannot do:
 
-1. run **native UCI engines** as real processes (Lc0, Stormphrax, Stockfish native),
-2. query a **SQLite** game database far larger than IndexedDB is comfortable with.
-
-Tablebase evidence is exposed through a separate provider abstraction. The
-current provider is the documented Lichess Syzygy service; this companion does
-not expose local Syzygy files.
+1. run **native UCI engines** as real processes — the managed catalogue
+   (`scripts/engine-catalogue.mjs`, installed from Settings → Engines) and
+   engines the user registers — and lend them to another companion
+   (`--serve-engines`, `docs/design/remote-engines.md`);
+2. hold **SQLite** game databases far larger than IndexedDB is comfortable
+   with, and import large PGN, compressed PGN and ChessBase files into them;
+3. probe **local Syzygy tablebases** through a managed helper
+   (`src/tbprobe-helper.mjs`, the `/tablebase/*` routes) when a folder is
+   chosen; without one, tablebase answers come from the Lichess service.
 
 It is not a server for the application. Kingfisher works completely without it;
 the companion adds capabilities and never becomes a dependency of the UI. No
@@ -53,14 +56,21 @@ treated as hostile-by-default surface:
 - **Origin allowlist.** Browser requests must come from a configured localhost
   origin. A page on another site cannot talk to it even if it guesses the port,
   and it answers CORS preflights only for allowed origins.
-- **No arbitrary paths.** Engines are launched only from the manifest that
-  `npm run engines:install` wrote; databases only from paths the user imported
-  through the companion itself. A path arriving in a request is looked up in
-  that registry — it is never used to open a file directly.
+- **Paths only where a path is the point, and checked there.** Everything
+  else is addressed by key: engines from the managed manifest or the custom
+  registry, databases from the import registry. Two routes take a path, each
+  with its own check: `POST /engine/register` accepts a binary only after it
+  is a real executable and completes a UCI handshake (ADR 0036), and
+  `POST /db/attach` opens a file read-only and refuses anything that is not
+  already a Kingfisher collection. A large-file import reads the file the user
+  chose and records only its basename, size and the user's own note.
 - **No shell.** Processes are spawned with an argv array, never through a
   shell, and the binary is always one from the manifest.
-- **No writes outside its own directory.** Import writes into
-  `companion/data/`; nothing else on the filesystem is written.
+- **No writes outside its own directory.** Collections, registries, managed
+  engines and the tablebase helper live in the data directory —
+  `companion/data/` in a checkout, the profile's own folder in the Mac
+  application (`KINGFISHER_COMPANION_DATA_DIR`, set by `desktop/src/main.mjs`);
+  nothing else on the filesystem is written.
 
 What it deliberately does _not_ defend against: another program running as you
 on the same machine. It cannot — that program could read the token from the

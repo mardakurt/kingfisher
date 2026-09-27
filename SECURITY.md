@@ -58,7 +58,7 @@ in the running deployment.
   frames and objects are restricted to the origin regardless.
 - **External link restrictions** — outbound links are validated
   against an allow-list before the application will follow them; see
-  `src/middleware-host-rules.ts` and `src/lib/redirect-validation.ts`.
+  `src/proxy-host-rules.ts` and `src/lib/redirect-validation.ts`.
 - **Downloaded data is verified.** Every reference-pack chunk and
   every managed engine binary is checked against a SHA-256 recorded
   in the manifest before it is used; a mismatch is reported, never
