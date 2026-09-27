@@ -339,7 +339,7 @@ the browser claims to be offline, leaving `status: 'pending'` with
 resolved. Most queries here read IndexedDB anyway, and the explorer treats a
 paused fetch as its own state rather than as loading.
 
-All three answer the same query — _what happens from this position?_ — and
+Every provider answers the same query — _what happens from this position?_ — and
 return the same `ExplorerResult`: totals, per-move counts, White/draw/Black
 splits, average rating, performance rating, notable players, top games. The
 panel does not know which provider it is talking to.
@@ -499,7 +499,8 @@ handshake rather than tabulated: Lc0 has no `Hash`, no `Use NNUE`, a `Threads`
 default of 0 and a `WeightsFile` no alpha-beta engine has, and a hand-written
 table would encode that as folklore and go stale.
 
-**Any UCI engine can be added**, not only the six the catalogue knows. The
+**Any UCI engine can be added**, not only the ones the catalogue
+(`scripts/engine-catalogue.mjs`) knows. The
 engine layer needed nothing for this — capabilities have been read from the
 engine rather than tabulated since Phase 6 — so what registration adds is
 trust, not plumbing. `POST /engine/register` is the one companion route that
@@ -565,10 +566,12 @@ shipped beside a 119 MB Node.
 Four rules hold here and are the ones to keep:
 
 - **The shell owns the companion's lifetime, and the shutdown is a contract.**
-  `SIGTERM` first, so the companion runs its own `stopAll` and ends its
-  engines; escalation if it will not go; and an IPC channel the companion
-  watches, so a shell that is _killed_ rather than quit still takes its engines
-  with it. Engines are spawned detached, in their own process groups, which is
+  A `{type: 'shutdown'}` message over the IPC channel first, so the companion
+  runs its own `stopAll` and ends its engines on any platform — Windows has no
+  `SIGTERM`, and a shell that only signalled would strand every engine there
+  (Phase 76); then `SIGTERM`; escalation if it will not go; and the same
+  channel watched from the other end, so a shell that is _killed_ rather than
+  quit still takes its engines with it. Engines are spawned detached, in their own process groups, which is
   exactly the property that lets them outlive a parent nobody told to stop.
   `desktop/src/services.test.mjs` forks real processes and asserts all three.
 - **Native file access goes through one boundary.** Everything the renderer can
@@ -671,8 +674,10 @@ Optional, and nothing depends on it. `companion/` is a dependency-free Node
 service for the two native capabilities shipped here: native UCI engines and
 SQLite. It is reached through the ordinary `EngineProvider` and
 `ChessDatabaseProvider` interfaces, so no UI code knows it exists. Tablebases
-use the independent `TablebaseProvider` boundary; the current implementation is
-the documented Lichess Syzygy service, not a companion route.
+use the independent `TablebaseProvider` boundary: local Syzygy tables through
+the companion's `/tablebase/*` routes and its managed probe helper
+(`companion/src/tbprobe-helper.mjs`), and the Lichess Syzygy service when no
+local table can answer — see _Where a tablebase answer comes from_.
 
 Loopback only; a token minted per run and never written to disk; origin
 allowlist; resource **keys** rather than paths, so a request cannot name a file;
@@ -724,7 +729,7 @@ LinkedAccountRepo      linked Lichess/Chess.com usernames and their sync cursors
 TeamRepository         teams, assignments and their append-only handovers; the packet merge's commit
 ```
 
-Thirty-one object stores (schema version 18) are created by a versioned
+Thirty-eight object stores (schema version 23) are created by a versioned
 migration array, never by deleting the database. Schema v3 moves trees and normalized PGN into
 `gameContent`; lists, search and explorer read only `games` summaries. Phase 3
 adds repertoires/positions, training items/reviews, model-game links and the
@@ -737,8 +742,10 @@ endgame positions and pinned lines; v11 `linkedAccounts`; v12 the opening
 classification indexes; v13 source sets; v14 player identities; v15 reference
 packs and their chunks; v16 opening books; v17 the auto-backup store; v18
 the team hub's teams and assignments; v19 the round journal, one entry
-per game by fingerprint; and v20 the multi-entry `tags` index on studies and
-chapters.
+per game by fingerprint; v20 the multi-entry `tags` index on studies and
+chapters; v21 question sessions, deep-analysis jobs and imported evaluations;
+v22 saved queries and repertoire-inbox decisions; and v23 the evaluation
+write-back batches that make a write into a chapter undoable.
 Records are validated on the way out, because a record written by an older
 build is plausible and malformed data must not reach the board.
 
@@ -980,8 +987,9 @@ contributes only what makes it that route:
 | `contextPanel` | Journal, References, Opening tree — in the dock             |
 | `takeover`     | a whole-workspace replacement: the openings library         |
 
-Everything else is the same on every page by construction: the board column
-with the move tree, the lower panel, the resizable dock and its tab strip, the
+Everything else is the same on every page by construction: the board column,
+the notation (at the top of the dock by default), the lower panel, the
+resizable dock and its tab strip, the
 position menu, position setup, command search, theme and settings. The rail
 folds to a strip, and whether it is folded is part of the stored arrangement
 (`railCollapsed`) beside the dock's width. The frame also consumes a `?fen=`
@@ -1029,8 +1037,8 @@ nor storage, so what a layout _means_ is testable without a browser. A
 ```
 placement    Partial<Record<ModuleId, Region>>   sparse: only the differences
 active       Partial<Record<Region, ModuleId>>   the selected tab per region
-dockWidth    320–640
-lowerHeight  140–520
+dockWidth    300–640
+lowerHeight  96–520
 dockCollapsed
 ```
 
@@ -1086,7 +1094,7 @@ _visible_ in the tab strip rather than being pushed into More — on a desktop
 they had a panel of their own, and demoting the move tree to a menu entry
 because the screen got narrower loses it where it is hardest to find again.
 
-The store is at version 3. Version 2's single dock width, collapsed flag and
+The store is at version 4. Version 2's single dock width, collapsed flag and
 per-route active tool all have equivalents here and are carried across rather
 than dropped: making every user re-arrange every workspace after an update is
 the failure the migration exists to prevent.
@@ -1104,7 +1112,7 @@ Phase 9 rendered every tool as an equally weighted tab in a horizontally
 scrolling row — thirteen of them on Analysis, so the last five sat off-screen
 behind a scrollbar most people never noticed. The strip now shows the route's
 own context panel, the pinned tools, and the active one; everything else is
-behind a single **More**. Tabs are 32px with real words on them: miniature
+behind a single **More**. Tabs are 28px tall with real words on them: miniature
 navigation is cheap to add and expensive to use.
 
 The strip never scrolls. It measures its row and moves whatever does not fit
@@ -1296,10 +1304,15 @@ the real piece limit is. Someone with five-piece tables is told five; someone
 with WDL but no DTZ files is told that too, because the two are downloaded
 separately and a partial set is the state most users are in.
 
-Probing is delegated to a local tablebase server. Kingfisher does not implement
-Syzygy decompression — several thousand lines of Huffman-coded table decoding
-whose failure mode is a silently wrong endgame assessment, in a feature whose
-central claim is that a tablebase result is proof rather than opinion.
+Probing is delegated to a probe helper the companion manages
+(`companion/src/tbprobe-helper.mjs`): it starts it when a directory is
+configured, keeps one alive, queues one request at a time with a deadline, and
+reports a failure as a state that falls back to the remote service. Until then
+(Phase 11) the user had to run a tablebase server themselves. Kingfisher's own
+code still does not implement Syzygy decompression — several thousand lines of
+Huffman-coded table decoding whose failure mode is a silently wrong endgame
+assessment, in a feature whose central claim is that a tablebase result is
+proof rather than opinion.
 
 `chooseTablebaseProvider` returns a decision _with a reason_, and the panel
 prints it: local when it can genuinely answer, remote otherwise, and the reason
@@ -1349,7 +1362,7 @@ games. See ADR 0035.
 
 ## The position report
 
-`src/features/position-report/report.ts` assembles ten sections about the
+`src/features/position-report/report.ts` assembles eleven sections about the
 position on the board from evidence that already existed in six different
 panels. The assembly is a pure function over already-fetched evidence, so its
 rules are testable without a database or a network.
@@ -1653,19 +1666,23 @@ every tool in the dock read one position. The mode is passed by the surface
 rather than inferred from the route — see ADR 0017 for why inferring it was a
 bug rather than a shortcut.
 
-**Sizing is CSS-owned.** The board is an `aspect-ratio: 1` surface inside a
-grid capped by both available width and dynamic viewport height. JavaScript
-does not measure pixels to keep it square. At 1100 px the information
-architecture changes once: wide screens show engine/explorer/notes beside a
-separate move tree; narrower screens place the board first and expose Moves,
-Engine, Explorer and Notes as one compact tab set. The sidebar similarly moves
-from full, to icon rail, to an accessible drawer.
+**Sizing is measured once, in one place.** `CanonicalBoardSurface` observes
+its container with a `ResizeObserver` and sets one frame size — the smaller of
+the width left after the evaluation bar, the height, and the policy's ceiling
+(`board-grid.ts` holds the arithmetic to a unit test). An earlier version left
+the board to CSS `aspect-ratio` alone; the grid then sized the whole row to the
+height and made the board narrower than it by the bar (see
+`docs/product/postmortem-board-tiny.md`). At 1100 px the information
+architecture changes once: wide screens show the notation at the top of the
+dock with the tools under it; narrower screens place the board first and expose
+the notation, Engine, Explorer and Notes as one compact tab set. The sidebar
+similarly moves from full, to icon rail, to an accessible drawer.
 
 ---
 
 ## Configuration
 
-Eleven sections of settings means nobody can remember which one holds
+Twelve sections of settings means nobody can remember which one holds
 "threads". `features/shell/settings-index.ts` is a searchable catalogue —
 label, section, a sentence of explanation and the words a user would actually
 type. Keywords are stored beside the entry rather than derived from the label,
@@ -2024,7 +2041,7 @@ and deletes it.
 
 ## Testing
 
-3,112 tests across 260 files (`npm test`, 2026-09-20; the count includes the desktop shell's, the companion's and the scripts' own suites), all on the parts where being wrong is expensive.
+3,798 tests across 356 files (`npm test`, 2026-09-27; the count includes the desktop shell's, the companion's and the scripts' own suites), all on the parts where being wrong is expensive.
 
 | Area                | Covered                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -2055,7 +2072,7 @@ and deletes it.
 | Opening library     | Every one of the 3,810 dataset lines replayed to the position it is filed under; search by ECO, name, nickname, move sequence and FEN; every alias resolving to something the dataset contains; and transposition search returning only orders the rules code played to the same position                                                                                                                                                                                                                                                                          |
 | Polyglot            | All nine positions the specification publishes worked keys for, including the en-passant cases; the packed-move encoding and its king-takes-rook castling; binary search hitting the first and last entries; and refusal of a file that is not a book                                                                                                                                                                                                                                                                                                              |
 | Lichess PKCE        | Verifier alphabet and length, S256 determinism, an authorization request carrying no secret and no empty scope, a mismatched `state` refused rather than repaired, a cancelled sign-in reported as cancelled, and every refusal shape from the token endpoint including a non-JSON error body                                                                                                                                                                                                                                                                      |
-| Appearance          | Twelve themes with square colours far enough apart to see and a piece colour legible on each; thirteen piece sets with an author, a licence URL and a source, and none carrying a non-commercial or no-derivatives clause                                                                                                                                                                                                                                                                                                                                          |
+| Appearance          | Thirteen themes with square colours far enough apart to see and a piece colour legible on each; thirteen piece sets with an author, a licence URL and a source, and none carrying a non-commercial or no-derivatives clause                                                                                                                                                                                                                                                                                                                                        |
 | Navigation          | Every section owning its own icon, drawn from the one icon set, in a declared group, with a distinct route and a hint that says what it is for                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | Position report     | Every section carries provenance or a stated empty reason; the reference source is named with its size; a failed lookup is distinguished from an empty one; the scoring threshold is stated and small samples excluded; and no highlight criterion anywhere contains "best", "recommended", "strongest" or "should"                                                                                                                                                                                                                                                |
 | Position key        | Counters ignored, castling distinguished, en passant kept only when usable, transpositions merged                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
@@ -2082,14 +2099,16 @@ Run with `npm test`.
 
 ### Browser tests
 
-308 Playwright tests across 44 spec files in `e2e/` (channel chrome,
-2026-09-20), run with `npm run test:e2e` against a real dev server and a real
+409 Playwright tests across 93 spec files in `e2e/` (channel chrome,
+2026-09-27; 1,636 across Chrome, Chromium, Firefox and WebKit with
+`npm run test:e2e:matrix`), run with `npm run test:e2e` against a real dev server and a real
 Stockfish build, and at
 **zero retries** — a test that only passes on its second attempt is a bug, and a
 gate that re-runs it hides that bug rather than reporting it. They exist because the failures these
 phases fixed — a board that did not track the selected node, tools missing from
 a route, a provider reporting a `401` as an empty database, a chapter silently
-overwritten by another tab — are all invisible to unit tests.
+overwritten by another tab — are all invisible to unit tests. The table
+below describes the early specs; every later one is named for what it holds.
 
 | Spec              | Covers                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
