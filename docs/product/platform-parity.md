@@ -24,17 +24,16 @@ validation, scheduled backup preference serialization, and an incorrect
 native-companion prerequisite on the AI assistant panel. The engine toolbar
 also wraps controls to keep the engine selector readable in a narrow panel.
 
-**Published revision check (Phase 86, Mac-facing — not yet released).**
-`master` is ahead of the public Mac 1.3.1 (`d04b206`) in shared application
-code the Mac embeds: the font stacks now take effect (`48cc382` — since
-`8737815` every page, and 1.3.0 and 1.3.1, drew the FEN and shortcut keys in
-the system sans rather than JetBrains Mono, because the stacks referred to
-faces defined on `<body>` from `:root`); Inter is no longer preloaded
-(`4561a64`); Firefox's restored button state (`bb7419b`); and in the bundled
-companion, the common text search at 10M (`876ff13`) and a bulk-load
-checkpoint that commits first (`b3a57d1`, reachable only from the benchmark
-scripts). Nothing under `desktop/` changed. The website serves them; a Mac
-user receives them with the next release (section B).
+**Published revision check (Phase 86, 1.3.2 — 2026-09-27).** The public
+Mac is **1.3.2, build 908, `6b59452`**: signed, notarised (application and
+disk image), `desktop:certify` 10/10 on that bundle, and the same source the
+website serves at that commit. It carries everything Phase 86 changed in
+shared application code — the font stacks taking effect (`48cc382`), the
+seven reworked pages, the query editor, the repertoire inbox, analysis jobs,
+the ChessBase loss report, the contrast change — and in the bundled
+companion the posting layout, the interrupted-import recovery (`4795c4c`),
+the game-ordered hot rebuild (`128ab64`) and the 10M text search
+(`876ff13`). Nothing under `desktop/` changed.
 
 **Published revision check (Phase 85, 1.3.1 — 2026-09-26, afternoon).**
 Two changes in shared application code, both visible on the Mac: the
