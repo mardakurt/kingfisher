@@ -45,14 +45,19 @@ export const ChevronUp = (p: IconProps) => (
     <path d="m6 15 6-6 6 6" />
   </Icon>
 );
+/*
+  |◀ and ▶|. Until Phase 87 the two drawings were each other's: "Start of
+  game" showed a triangle pointing at a bar on the right, the glyph every
+  player reads as "to the end". `icons.test.tsx` now checks the geometry.
+*/
 export const SkipStart = (p: IconProps) => (
   <Icon {...p}>
-    <path d="M18 5v14M16 12 8 5v14z" />
+    <path d="M6 5v14M18 5 8 12 18 19z" />
   </Icon>
 );
 export const SkipEnd = (p: IconProps) => (
   <Icon {...p}>
-    <path d="M6 5v14M8 12l8-7v14z" />
+    <path d="M18 5v14M6 5 16 12 6 19z" />
   </Icon>
 );
 export const Play = (p: IconProps) => (

@@ -19,7 +19,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
-import { Board, Recall, Repertoire, Review, Target } from './icons';
+import { Board, Recall, Repertoire, Review, SkipEnd, SkipStart, Target } from './icons';
 
 const isSvg = (markup: string) => /^<svg /.test(markup);
 
@@ -78,5 +78,40 @@ describe('icons', () => {
     expect(board).not.toBe(target);
     expect(target).not.toBe(review);
     expect(review).not.toBe(repertoire);
+  });
+});
+
+/**
+ * Where a skip icon's bar is, and which way its triangle points.
+ *
+ * The bar is the `M x 5v14` stroke; the triangle is three absolute points,
+ * and its tip is the one on the centre line (y = 12).
+ */
+function skipGeometry(markup: string) {
+  const d = /d="([^"]+)"/.exec(markup)?.[1] ?? '';
+  const bar = Number(/M(\d+) 5v14/.exec(d)?.[1]);
+  const triangle = d
+    .slice(d.indexOf('M', 1) + 1)
+    .replace('z', '')
+    .trim()
+    .split(/\s+/)
+    .map(Number);
+  const points = [0, 2, 4].map((index) => ({ x: triangle[index]!, y: triangle[index + 1]! }));
+  const tip = points.find((point) => point.y === 12)!;
+  const base = points.find((point) => point.y !== 12)!;
+  return { bar, tipTowardsBar: Math.abs(tip.x - bar) < Math.abs(base.x - bar) };
+}
+
+describe('the skip icons point where they go', () => {
+  it('draws Start as |◀: the bar on the left, the triangle pointing at it', () => {
+    const start = skipGeometry(renderToStaticMarkup(<SkipStart />));
+    expect(start.bar).toBeLessThan(12);
+    expect(start.tipTowardsBar).toBe(true);
+  });
+
+  it('draws End as ▶|: the bar on the right, the triangle pointing at it', () => {
+    const end = skipGeometry(renderToStaticMarkup(<SkipEnd />));
+    expect(end.bar).toBeGreaterThan(12);
+    expect(end.tipTowardsBar).toBe(true);
   });
 });
