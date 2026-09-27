@@ -15,7 +15,7 @@
  * for, from imported games.
  */
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 
 import { Search } from '@/components/icons';
 import { Button } from '@/components/ui/Button';
@@ -70,14 +70,20 @@ export function OpponentSearch({
     an Enter always is: the first suggestion if there is one, else the text.
   */
   const pending = useRef<string | null>(null);
-  const submitPending = () => {
+  /*
+    An Effect Event (React 19.2): it reads the latest `choose` without making
+    the effect depend on it, so the effect runs only when the library arrives.
+  */
+  const submitPending = useEffectEvent(() => {
     const typed = pending.current;
     if (typed === null || !catalog.data) return;
     pending.current = null;
     const found = searchPlayers(catalog.data, { query: typed, filter: 'all', limit: 1 })[0];
     choose(found ? { name: found.name, player: found } : { name: typed, player: null });
-  };
-  useEffect(submitPending, [catalog.data]); // eslint-disable-line react-hooks/exhaustive-deps
+  });
+  useEffect(() => {
+    submitPending();
+  }, [catalog.data]);
 
   return (
     <form
