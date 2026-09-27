@@ -382,7 +382,14 @@ export function RepertoireWorkspace() {
       }
       contextLabel="Repertoire"
       contextPanel={
-        <div className="flex h-full min-h-0 flex-col">
+        /*
+          One column that scrolls, with a floor under the position's evidence.
+          It was a fixed column: when the panel got shorter — the notation
+          above it on a laptop since Phase 87 — the sections above took every
+          pixel and Position evidence, with its move editor and the
+          changed-in-another-tab alert, collapsed to nothing under its header.
+        */
+        <div className="flex h-full min-h-0 flex-col overflow-y-auto" data-repertoire-context>
           {repertoire.data ? (
             <CoverageSummary metrics={metrics} unresolved={gaps.data?.length ?? 0} />
           ) : null}
@@ -409,7 +416,7 @@ export function RepertoireWorkspace() {
                 : undefined
             }
           />
-          <div className="min-h-0 flex-1">
+          <div className="min-h-[360px] flex-1 shrink-0">
             <PositionEvidence
               position={current}
               onChanged={() => invalidateRepertoires(queryClient)}
