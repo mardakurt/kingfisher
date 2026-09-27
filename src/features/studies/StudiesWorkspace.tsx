@@ -133,6 +133,14 @@ export function StudiesWorkspace() {
       : (chapters[0]?.id ?? null);
 
   const chapter = chapters.find((candidate) => candidate.id === chapterId) ?? null;
+  // The open chapter in view in the list: a new or chosen chapter far down a
+  // long study was open on the board and out of sight in the list.
+  useEffect(() => {
+    if (!chapterId) return;
+    document
+      .querySelector(`[data-chapter-row="${CSS.escape(chapterId)}"]`)
+      ?.scrollIntoView({ block: 'nearest' });
+  }, [chapterId]);
   /*
     Phase 84: the chapter's questions, read from the tree on the board — the
     chapter as it is now, edits included, not as it was last saved.
@@ -416,29 +424,46 @@ export function StudiesWorkspace() {
             }
           />
         ) : (
-          <ol className="space-y-1">
+          /*
+            One line per chapter, as a source list reads (Phase 87). Each was a
+            55px two-line card, so a study of forty showed eight at 1280x800;
+            the move count now sits at the end of the line, the tags get a
+            second line only when there are some, the whole title is the
+            row's tooltip, and the open chapter is scrolled into view.
+          */
+          <ol className="space-y-px" data-chapter-list>
             {chapters.map((entry, index) => (
               <li
                 key={entry.id}
+                data-chapter-row={entry.id}
                 className={cn(
-                  'rounded-[6px] border',
-                  entry.id === chapterId
-                    ? 'border-accent/70 bg-accent-muted'
-                    : 'border-transparent hover:bg-surface-2',
+                  'rounded-[6px]',
+                  entry.id === chapterId ? 'bg-accent-muted' : 'hover:bg-surface-2',
                 )}
               >
                 <button
                   type="button"
                   onClick={() => setChosenChapterId(entry.id)}
-                  className="w-full px-3 py-2 text-left"
+                  title={entry.title}
+                  aria-current={entry.id === chapterId ? 'true' : undefined}
+                  className="w-full px-2.5 py-1.5 text-left"
                 >
-                  <span className="block truncate text-sm text-primary">
-                    {index + 1}. {entry.title}
+                  <span className="flex items-baseline gap-2">
+                    <span className="min-w-0 flex-1 truncate text-[13px] text-primary">
+                      <span className="text-tertiary tabular">{index + 1}.</span> {entry.title}
+                    </span>
+                    {/* A count only when there is one: "0 moves" on every new row cost the title its width. */}
+                    {nodeCount(entry.tree) > 0 ? (
+                      <span className="shrink-0 text-[10px] text-tertiary tabular">
+                        {plural(nodeCount(entry.tree), 'move')}
+                      </span>
+                    ) : null}
                   </span>
-                  <span className="mt-0.5 block text-[10px] text-tertiary">
-                    {plural(nodeCount(entry.tree), 'move')}
-                    {entry.tags?.length ? ` · ${entry.tags.join(' · ')}` : ''}
-                  </span>
+                  {entry.tags?.length ? (
+                    <span className="mt-0.5 block truncate text-[10px] text-tertiary">
+                      {entry.tags.join(' · ')}
+                    </span>
+                  ) : null}
                 </button>
                 {entry.id === chapterId ? (
                   <div className="border-t border-line-subtle px-2 py-1">
