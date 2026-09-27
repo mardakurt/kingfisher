@@ -91,11 +91,11 @@ export function ModuleTabStrip({
     const element = strip.current;
     if (!element) return;
     const observer = new ResizeObserver(() => {
-      const next = element.clientWidth;
+      const next = contentWidth(element);
       setRowWidth((current) => (current === next ? current : next));
     });
     observer.observe(element);
-    setRowWidth(element.clientWidth);
+    setRowWidth(contentWidth(element));
     return () => observer.disconnect();
   }, []);
 
@@ -109,7 +109,7 @@ export function ModuleTabStrip({
     // The observer reports size changes; this is the same number read again
     // whenever the contents change, so a width the observer has not delivered
     // yet is still caught on the next render.
-    const width = element.clientWidth;
+    const width = contentWidth(element);
     setRowWidth((current) => (current === width ? current : width));
     const widths: Record<string, number> = {};
     const mode = element.dataset.tabStripCompact ? 'compact' : 'full';
@@ -117,9 +117,8 @@ export function ModuleTabStrip({
       const width = tab.offsetWidth;
       if (width > 0) widths[`${mode}:${tab.dataset.tabId!}`] = width;
     }
-    const more = element.querySelector<HTMLElement>('[data-tab-strip-more-box]')?.offsetWidth ?? 0;
-    const actions =
-      element.querySelector<HTMLElement>('[data-tab-strip-actions]')?.offsetWidth ?? 0;
+    const more = outerWidth(element.querySelector<HTMLElement>('[data-tab-strip-more-box]'));
+    const actions = outerWidth(element.querySelector<HTMLElement>('[data-tab-strip-actions]'));
     setMeasured((current) => {
       const merged = { ...current.widths, ...widths };
       const changed =
@@ -148,7 +147,13 @@ export function ModuleTabStrip({
     fitTabs({
       wanted,
       active: value,
-      rowWidth,
+      /*
+        Less the gap between items: one per tab, one before More and one
+        before the actions. Until Phase 87 neither the row's padding nor its
+        gaps were counted, and the last few pixels of the row — the collapse
+        button — were clipped whenever the tabs fitted to within them.
+      */
+      rowWidth: rowWidth > 0 ? rowWidth - ROW_GAP * (wanted.length + 2) : 0,
       widthOf: (id) => widthIn(mode, id),
       moreWidth: measured.more || MORE_WIDTH_ESTIMATE,
       actionsWidth: measured.actions,
@@ -206,7 +211,9 @@ export function ModuleTabStrip({
             title={tab.unavailable ?? tab.label}
             onClick={() => onChange(tab.id)}
             className={cn(
-              'relative flex h-7 shrink-0 items-center gap-1.5 rounded-[6px] px-2 text-xs font-medium whitespace-nowrap transition-colors',
+              'relative flex h-7 shrink-0 items-center gap-1.5 rounded-[6px] text-xs font-medium whitespace-nowrap transition-colors',
+              // Compact drops the icon first and then 2px a side, before any tab is folded.
+              compact ? 'px-1.5' : 'px-2',
               selected
                 ? 'bg-surface-3 text-primary'
                 : 'text-secondary hover:bg-surface-2 hover:text-primary',
@@ -263,6 +270,26 @@ export function ModuleTabStrip({
         </div>
       ) : null}
     </div>
+  );
+}
+
+/** The row's `gap-0.5` between items. */
+const ROW_GAP = 2;
+
+/** The width a row has for its items: its client width less its padding. */
+function contentWidth(element: HTMLElement): number {
+  const style = getComputedStyle(element);
+  return Math.floor(
+    element.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight),
+  );
+}
+
+/** An item's width with its margins, which `offsetWidth` leaves out. */
+function outerWidth(element: HTMLElement | null): number {
+  if (!element) return 0;
+  const style = getComputedStyle(element);
+  return Math.ceil(
+    element.offsetWidth + parseFloat(style.marginLeft) + parseFloat(style.marginRight),
   );
 }
 

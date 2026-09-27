@@ -256,7 +256,7 @@ export function WorkspaceToolDock({
             <button
               type="button"
               onClick={() => setDockCollapsed(workspace, device, true)}
-              className="w-7 shrink-0 border-l border-line-subtle text-lg text-tertiary hover:bg-surface-2 hover:text-primary"
+              className="w-6 shrink-0 border-l border-line-subtle text-lg text-tertiary hover:bg-surface-2 hover:text-primary"
               aria-label="Collapse workspace tools"
             >
               {wide ? '›' : '⌄'}
@@ -526,7 +526,7 @@ function WorkspaceLayoutMenu({
             aria-label={`Layout: ${layoutName}`}
             title={`Layout: ${layoutName}`}
             data-layout-menu
-            className="flex h-full w-7 shrink-0 items-center justify-center border-l border-line-subtle text-tertiary hover:bg-surface-2 hover:text-primary"
+            className="flex h-full w-6 shrink-0 items-center justify-center border-l border-line-subtle text-tertiary hover:bg-surface-2 hover:text-primary"
           >
             <PanelRight className="h-3.5 w-3.5" />
           </button>
