@@ -24,6 +24,52 @@ Phase numbers below this header will be moved into a dated `## <version>` sectio
   your system's own face on a Mac and on Windows, yet every page still
   fetched Inter ahead of time, which Firefox reported as fetched and unused.
   (Phase 86)
+- **Fixed: grading a repertoire card in Daily never rescheduled it.** The
+  card came back due every day, under a button that had just promised an
+  interval; a critical card's grade could fail outright. Both now write the
+  schedule the way Training and Review do. (Phase 86)
+- **Daily can be resumed and finished.** The rehearsed count went back to
+  zero after every grade, so the session never said it was complete; today's
+  rehearsals are now kept for the day, a reload continues where you were,
+  and a finished day says so. (Phase 86)
+- **Fixed: reloading the Score Sheet threw away the moves typed so far.** It
+  now waits for your work to be restored before starting a new sheet, and a
+  Take back button corrects the last move. (Phase 86)
+- **Opening Files link what they said they linked.** A file links the study
+  chapter on the board and your model games, lists them by name, opens them,
+  and can be renamed or deleted; a position is kept with the moves that
+  reach it and your reason; notes save as you type. Fixed: switching files
+  showed — and could save — the previous file's notes. (Phase 86)
+- **Endgame says which tablebase answers the position on the board**: your
+  own Syzygy files, lichess.org's online tablebase (and that the position is
+  sent there), none when offline, or none above seven pieces. (Phase 86)
+- **Similar Games has a board**, lets you choose which facts must match,
+  says when results are stale, and opens a result at the matching move.
+  (Phase 86)
+- **Daily and Season no longer crowd the sidebar**; their content sits in
+  the page with the same margins as every other page. (Phase 86)
+- **Easier to read**: secondary captions, hints and inactive tabs reach
+  WCAG AA contrast in light and dark. Nothing under the board is cut off
+  mid-word, and a switch with more options than room wraps instead of
+  hiding them. (Phase 86)
+- **Queries with "any of" and "not"**, built in the Library, saved with
+  your backups, and re-run to see what is new since last time. (Phase 86)
+- **A repertoire inbox**: what needs attention in your repertoire, why, and
+  your decision about it. (Phase 86)
+- **Every analysis job in one list** — queued games and deep analyses, with
+  engine, budget and checkpoint (command palette → Analysis jobs). (Phase 86)
+- **ChessBase imports report what they left behind**, as a downloadable
+  loss report. (Phase 86)
+- **Stored evaluations can be added to a chapter in one undoable step.**
+  (Phase 86)
+- **A companion database can use a compact position index** about eighteen
+  times smaller on the position side, answering exactly as before; choose
+  it when creating a database, or convert one (Databases → the database →
+  Storage).
+  Desktop users receive it with the next Mac release. (Phase 86)
+- **Fixed: an import interrupted mid-way could leave the explorer's counts
+  short** for good in the original database layout; the next open now
+  finishes them. (Phase 86)
 
 ## 1.3.1 — 2026-09-26
 

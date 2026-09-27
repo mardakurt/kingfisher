@@ -40,7 +40,11 @@ async function pairAndCreate(page: Page, collections: readonly (readonly [string
 async function openCollection(page: Page, name: string) {
   await page.goto('/databases');
   await page.locator(READY).waitFor();
-  await page.getByText(name).first().click();
+  // The tile, not the companion panel that also names every collection.
+  await page
+    .getByRole('list', { name: 'Collections' })
+    .getByRole('button', { name: new RegExp(name) })
+    .click();
   return page.getByTestId('storage-section');
 }
 

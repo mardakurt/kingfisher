@@ -132,3 +132,42 @@ test('an opening file links the open chapter, keeps positions with their line, a
   );
   expect(chapterStill).toBe(true);
 });
+
+test('notes changed in another tab are not overwritten', async ({ page, context }) => {
+  await page.goto('/opening-files');
+  await page.locator(READY).waitFor();
+  await newFile(page, 'Two tabs');
+  const other = await context.newPage();
+  await other.goto('/opening-files');
+  await other.locator(READY).waitFor();
+  await other
+    .locator('[data-opening-files]')
+    .getByRole('button', { name: /Two tabs/ })
+    .click();
+  await page
+    .locator('[data-opening-files]')
+    .getByRole('button', { name: /Two tabs/ })
+    .click();
+
+  // The other tab writes first.
+  const theirs = other.locator('[data-opening-file-panel]');
+  await theirs.getByRole('textbox', { name: /Notes/ }).fill('Written in the other tab.');
+  await expect(theirs.locator('[data-opening-file-notes-state]')).toHaveAttribute(
+    'data-opening-file-notes-state',
+    'saved',
+  );
+
+  // This tab, which loaded the notes empty, does not replace them.
+  const mine = page.locator('[data-opening-file-panel]');
+  await mine.getByRole('textbox', { name: /Notes/ }).fill('Written here.');
+  await expect(mine.locator('[data-opening-file-notes-state]')).toHaveAttribute(
+    'data-opening-file-notes-state',
+    'conflict',
+  );
+  await expect(mine.getByRole('textbox', { name: /Notes/ })).toHaveValue('Written here.');
+  const stored = await page.evaluate(async () => {
+    const app = (globalThis as unknown as { __kingfisher: AppRepositories }).__kingfisher;
+    return (await app.openingFiles.list()).find((file) => file.name === 'Two tabs')?.notes;
+  });
+  expect(stored).toBe('Written in the other tab.');
+});

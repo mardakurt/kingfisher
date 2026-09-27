@@ -37,14 +37,15 @@ export function PositionSummary() {
       (Endgame, Team, Opening Files, Scoresheet at 1280px). What does not fit
       is clipped from the end — the view, then the opening — never wrapped.
 
-      Clipped by the viewport's width, a fact was cut mid-word ("Whi") when
-      the strip, not the window, was narrow: beside a rail and a dock at
-      1280px the window is wide and the strip is not. Each fact now appears
-      by the strip's own width (a container query), whole or not at all, and
-      only the opening name truncates.
+      Clipping from the end cut a fact mid-word ("Whi") when the strip, not
+      the window, was narrow — beside a rail and a dock at 1280px. The row now
+      wraps and shows one line: a fact that does not fit whole moves to the
+      second, hidden line, so each is shown whole or not at all, whatever
+      else is present. The opening comes last and alone truncates, taking
+      whatever room is left once it has six rem.
     */
-    <div className="@container min-w-0 flex-1">
-      <div className="flex min-w-0 items-center gap-2 overflow-hidden text-2xs whitespace-nowrap text-tertiary @[22rem]:gap-3">
+    <div className="min-w-0 flex-1">
+      <div className="flex max-h-5 min-w-0 flex-wrap content-start items-center gap-x-2 overflow-hidden text-2xs whitespace-nowrap text-tertiary sm:gap-x-3">
         {outcome ? (
           <span className="font-medium text-primary">
             {OUTCOME_TEXT[outcome.kind] ?? 'Game over'}
@@ -72,23 +73,21 @@ export function PositionSummary() {
         {position.isCheck() && !outcome && <span className="text-caution">Check</span>}
 
         {repetitions >= 2 && !outcome && (
-          <span
-            className="hidden shrink-0 @[16rem]:inline"
-            title="This position has occurred before in this line"
-          >
+          <span className="hidden sm:inline" title="This position has occurred before in this line">
             repetition ×{repetitions}
           </span>
         )}
 
         {material !== 0 && (
-          <span
-            className="hidden shrink-0 tabular @[18rem]:inline"
-            title="Material balance in pawns"
-          >
+          <span className="hidden tabular sm:inline" title="Material balance in pawns">
             {material > 0 ? '+' : '−'}
             {Math.abs(material)} {material > 0 ? 'White' : 'Black'}
           </span>
         )}
+
+        <span className="hidden sm:inline" data-board-view>
+          {orientation === 'w' ? 'White view' : 'Black view'}
+        </span>
 
         {opening ? (
           /*
@@ -97,11 +96,11 @@ export function PositionSummary() {
           that stays right when the user plays a move into a different line.
         */
           <span
-            className="hidden min-w-0 items-center gap-1.5 @[24rem]:flex"
+            className="hidden min-w-[6rem] flex-1 basis-0 items-center gap-1.5 md:flex"
             data-opening-classification={opening.eco}
             title={`${opening.ply < node.ply ? 'Last classified opening: ' : ''}${openingLabel(opening)} — classified by Kingfisher from the position, at move ${moveNumberOfPly(opening.ply)}`}
           >
-            <span className="rounded-[5px] border border-line bg-surface-2 px-1 text-[10px] font-semibold text-secondary tabular">
+            <span className="shrink-0 rounded-[5px] border border-line bg-surface-2 px-1 text-[10px] font-semibold text-secondary tabular">
               {opening.eco}
             </span>
             <span className="truncate text-secondary">
@@ -110,10 +109,6 @@ export function PositionSummary() {
             </span>
           </span>
         ) : null}
-
-        <span className="hidden shrink-0 @[20rem]:inline" data-board-view>
-          {orientation === 'w' ? 'White view' : 'Black view'}
-        </span>
       </div>
     </div>
   );
