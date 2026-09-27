@@ -51,7 +51,10 @@ for (const scheme of ['light', 'dark']) {
   await page.goto(`${args.base}/analysis`);
   await page.locator('html[data-kingfisher-ready="true"]').waitFor();
   await page.evaluate((theme) => {
-    localStorage.setItem('kingfisher.preferences', JSON.stringify({ state: { theme }, version: 7 }));
+    localStorage.setItem(
+      'kingfisher.preferences',
+      JSON.stringify({ state: { theme }, version: 7 }),
+    );
   }, scheme);
   if (args.seed) {
     const pgn = readFileSync(path.join(ROOT, 'public/bench/bench-1k.pgn'), 'utf8')
@@ -75,7 +78,8 @@ for (const scheme of ['light', 'dark']) {
       // The bottom of every scrolling region, where content meets the sidebar.
       await page.evaluate(() => {
         for (const element of document.querySelectorAll('*')) {
-          if (element.scrollHeight > element.clientHeight + 4) element.scrollTop = element.scrollHeight;
+          if (element.scrollHeight > element.clientHeight + 4)
+            element.scrollTop = element.scrollHeight;
         }
         window.scrollTo(0, document.body.scrollHeight);
       });
