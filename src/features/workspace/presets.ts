@@ -12,6 +12,7 @@ import type { WorkspaceToolId } from './modules';
 
 export type WorkspacePreset =
   | 'analysis'
+  | 'engine-below'
   | 'opening-research'
   | 'study'
   | 'preparation'
@@ -29,6 +30,16 @@ export const WORKSPACE_PRESETS: readonly {
     id: 'analysis',
     label: 'Analysis',
     description: 'Board, move tree and the engine beside them.',
+  },
+  /*
+    Phase 87: the notation, the explorer's table and the engine's lines on
+    screen at once — the engine under the board, the other two beside it.
+    Every other preset shows one of the three evidence panels at a time.
+  */
+  {
+    id: 'engine-below',
+    label: 'Engine under the board',
+    description: 'Notation and explorer beside the board, the engine lines under it — all at once.',
   },
   {
     id: 'opening-research',
@@ -68,6 +79,12 @@ export const WORKSPACE_PRESETS: readonly {
  */
 export const PRESET_ARRANGEMENTS: Record<WorkspacePreset, WorkspaceArrangement> = {
   analysis: { ...DEFAULT_ARRANGEMENT, dockWidth: 420, active: { dock: 'engine' } },
+  'engine-below': {
+    ...DEFAULT_ARRANGEMENT,
+    placement: { engine: 'lower' },
+    lowerHeight: 240,
+    active: { dock: 'explorer', lower: 'engine' },
+  },
   'opening-research': {
     ...DEFAULT_ARRANGEMENT,
     dockWidth: 520,

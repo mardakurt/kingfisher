@@ -58,3 +58,35 @@ test('at 1280x720 the whole game is beside the board and the explorer needs no s
   );
   expect(visibleRows).toBeGreaterThanOrEqual(5);
 });
+
+test('the Engine under the board layout shows notation, explorer and engine lines at once', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 860 });
+  await page.goto('/analysis');
+  await page.locator(READY).waitFor();
+  await page
+    .getByRole('button', { name: /^Import( PGN or FEN)?$/ })
+    .first()
+    .click();
+  const dialog = page.getByRole('dialog', { name: 'Import a game or position' });
+  await dialog.getByRole('textbox').fill('1. e4 c5 2. Nf3 d6 3. d4 cxd4 4. Nxd4 Nf6 5. Nc3 a6 *');
+  await dialog.getByRole('button', { name: /Import game/ }).click();
+  await expect(dialog).toBeHidden();
+
+  await page.getByRole('button', { name: /^Layout/ }).click();
+  await page.getByRole('menuitem', { name: 'Engine under the board' }).click();
+
+  const dock = page.getByRole('complementary', { name: 'Workspace tools' });
+  const lower = page.locator('[data-workspace-lower]');
+  await expect(dock.getByRole('region', { name: 'Notation' })).toBeVisible();
+  await expect(dock.locator('[data-explorer-move]').first()).toBeInViewport({ timeout: 20_000 });
+  await lower.getByRole('button', { name: 'Start analysis (E)' }).click();
+  // The top line, whole, in the panel under the board — not scrolled away by
+  // the statistics, as it was at this height before Phase 87.
+  await expect(lower.locator('[data-engine-line="1"]')).toBeInViewport({
+    ratio: 1,
+    timeout: 30_000,
+  });
+  await expect(lower.locator('[data-engine-stats]')).toBeHidden();
+});

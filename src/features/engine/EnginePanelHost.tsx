@@ -21,8 +21,9 @@ export function EnginePanelHost() {
   const [view, setView] = useState<View>('single');
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="shrink-0 border-b border-line-subtle px-2.5 py-1.5">
+    <div className="flex h-full min-h-0 flex-col [container-type:size]">
+      {/* In a short panel the switch shrinks to the room it needs (Phase 87). */}
+      <div className="shrink-0 border-b border-line-subtle px-2.5 py-1.5 [@container(max-height:260px)]:py-0.5">
         <Segmented
           items={[
             { id: 'single' as const, label: 'One engine' },

@@ -141,7 +141,13 @@ export function EnginePanel() {
 
   return (
     <div
-      className="flex h-full min-h-0 flex-col"
+      /*
+        A size container, so a short panel — the engine under the board, at
+        180px — can let the arrow legend and the statistics step aside for the
+        lines themselves (Phase 87: in that panel they left the lines no
+        height at all). Depth, nodes and speed stay in the status bar.
+      */
+      className="flex h-full min-h-0 flex-col [container-type:size]"
       /* The position the panel's evidence belongs to, so a test can hold it to the board's. */
       data-engine-panel-fen={analysedFen ?? ''}
     >
@@ -215,7 +221,7 @@ export function EnginePanel() {
 
       {showEngineArrows && identity ? (
         <div
-          className="flex items-center gap-3 border-b border-line-subtle px-2.5 py-1 text-[10px] text-tertiary"
+          className="flex items-center gap-3 border-b border-line-subtle px-2.5 py-1 text-[10px] text-tertiary [@container(max-height:260px)]:hidden"
           data-engine-arrow-legend
         >
           <EngineLegendRow identity="engine-a" name={identity.name} />
@@ -403,7 +409,10 @@ export function EnginePanel() {
       </PanelBody>
 
       {analysis && !stale && analysis.nodes > 0 && (
-        <footer className="shrink-0 border-t border-line-subtle px-2.5 py-1 text-[10px] text-tertiary tabular">
+        <footer
+          className="shrink-0 border-t border-line-subtle px-2.5 py-1 text-[10px] text-tertiary tabular [@container(max-height:260px)]:hidden"
+          data-engine-stats
+        >
           <div className="flex items-center gap-3">
             <span>{formatCount(analysis.nodes)} nodes</span>
             <span>{Math.round(analysis.nps / 1000)}k n/s</span>
