@@ -60,25 +60,27 @@ Three reasons, and the second is the one that is easy to miss:
    supports. (`zstd` is not — which is why the _upstream_ archives, which are
    `.zst`, are decompressed by the build script and never by the browser.)
 
-## The four packs
+## The six packs
 
-Three are drawn from the same over-the-board broadcast archive and differ by a
-threshold; the fourth is a different population entirely, and is kept apart for
-exactly that reason.
+Four are drawn from the same over-the-board broadcast archive and differ by a
+threshold and a window; the other two are Lichess rated online games, a
+different population entirely, and are kept apart for exactly that reason.
+The versions are the ones the catalogue installs (`src/reference/catalog.ts`),
+and every figure is the published manifest's own (read 2026-09-27).
 
-|                     | `kingfisher-starter`                             | `kingfisher-recent-theory` (v1) | `kingfisher-recent-theory-narrow` (v3, 6 months) | `kingfisher-elite-otb` (v3)               | `kingfisher-high-rated-online` |
-| ------------------- | ------------------------------------------------ | ------------------------------- | ------------------------------------------------ | ----------------------------------------- | ------------------------------ |
-| Distribution        | Committed to this repository, ships with the app | Installed on demand             | Installed on demand                              | Installed on demand                       | Installed on demand            |
-| Population          | Broadcast, over the board                        | Broadcast, over the board       | Broadcast, over the board                        | Broadcast, over the board                 | Lichess rated, online, 2400+   |
-| Upstream            | The 48 most recent monthly broadcast archives    | The 24 most recent              | The 6 most recent, rebuilt monthly               | All 80, from 2020                         | One monthly standard archive   |
-| Window              | 2022-09 → most recent                            | 2024-09 → most recent           | 2026-03 → 2026-08                                | 2020-01 → 2026-08                         | one month                      |
-| Licence             | CC-BY-SA-4.0                                     | CC-BY-SA-4.0                    | CC-BY-SA-4.0                                     | CC-BY-SA-4.0                              | CC0-1.0                        |
-| Games counted       | 206,451                                          | 44,200                          | 11,277                                           | 425,022                                   | 305,169                        |
-| Full game scores    | 38,749 (rated 2500+, or GM/IM v GM/IM unrated)   | 18,151 (rated 2500+)            | 4,600 (rated 2500+)                              | 425,022 — every game                      | 305,169 — every game           |
-| Position aggregates | 300,413                                          | 918,069                         | 250,498                                          | 5,669,429                                 | 315,668                        |
-| Deepest query ply   | 40 (20 full moves)                               | 40 (20 full moves)              | 40 (20 full moves)                               | 40 (20 full moves)                        | 40 (20 full moves)             |
-| Player identities   | 13,738                                           | 2,567                           | 1,577                                            | 34,261                                    | 12,315                         |
-| Size                | 24.3 MB in 104 chunks                            | 33.9 MB in 80 chunks            | 13.5 MB in 72 chunks (history included)          | 426.7 MB in 256 chunks (history included) | 85.8 MB in 160 chunks          |
+|                     | `kingfisher-starter`                             | `kingfisher-recent-theory` (v1) | `kingfisher-recent-theory-narrow` (v4, 6 months) | `kingfisher-elite-otb` (v4)               | `kingfisher-high-rated-online` | `kingfisher-high-rated-rapid` (v1)                    |
+| ------------------- | ------------------------------------------------ | ------------------------------- | ------------------------------------------------ | ----------------------------------------- | ------------------------------ | ----------------------------------------------------- |
+| Distribution        | Committed to this repository, ships with the app | Installed on demand             | Installed on demand                              | Installed on demand                       | Installed on demand            | Installed on demand                                   |
+| Population          | Broadcast, over the board                        | Broadcast, over the board       | Broadcast, over the board                        | Broadcast, over the board                 | Lichess rated, online, 2400+   | Lichess rated rapid and classical, both players 2200+ |
+| Upstream            | The 48 most recent monthly broadcast archives    | The 24 most recent              | The 6 most recent, rebuilt monthly               | All 80, from 2020                         | One monthly standard archive   | Seven monthly standard archives                       |
+| Window              | 2022-09 → most recent                            | 2024-09 → most recent           | 2026-03 → 2026-08                                | 2020-01 → 2026-08                         | one month                      | seven months                                          |
+| Licence             | CC-BY-SA-4.0                                     | CC-BY-SA-4.0                    | CC-BY-SA-4.0                                     | CC-BY-SA-4.0                              | CC0-1.0                        | CC0-1.0                                               |
+| Games counted       | 206,451                                          | 44,200                          | 11,277                                           | 425,022                                   | 305,169                        | 783,262                                               |
+| Full game scores    | 38,749 (rated 2500+, or GM/IM v GM/IM unrated)   | 18,151 (rated 2500+)            | 4,600 (rated 2500+)                              | 425,022 — every game                      | 305,169 — every game           | 65,927                                                |
+| Position aggregates | 300,413                                          | 918,069                         | 250,498                                          | 5,669,429                                 | 315,668                        | 735,702                                               |
+| Deepest query ply   | 40 (20 full moves)                               | 40 (20 full moves)              | 40 (20 full moves)                               | 40 (20 full moves)                        | 40 (20 full moves)             | 40 (20 full moves)                                    |
+| Player identities   | 13,738                                           | 2,567                           | 1,577                                            | 34,261                                    | 12,315                         | 52,284                                                |
+| Size                | 24.3 MB in 104 chunks                            | 33.9 MB in 80 chunks            | 13.5 MB in 72 chunks (history included)          | 426.7 MB in 256 chunks (history included) | 85.8 MB in 160 chunks          | 44.4 MB in 176 chunks                                 |
 
 Separate thresholds for statistics and for stored games, because the two cost
 very different amounts: a game's contribution to the statistics is a handful of
@@ -140,7 +142,7 @@ exactly where preparation begins. `deepFromPly` and `deepMinGames` state a
 second, lower threshold for the deep half.
 
 Measured on the version-2 starter pack's own scan (172,376 games; the
-version-4 pack is the same rule over 206,451 games and 300,413 positions,
+current version-6 pack is the same rule over 206,451 games and 300,413 positions,
 24.3 MB with the wider window and set of stored scores):
 
 | Rule                                      | Positions |    Size | Corpus answered at 20 plies |
