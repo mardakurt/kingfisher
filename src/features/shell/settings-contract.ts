@@ -169,8 +169,7 @@ export const SETTING_CONTRACTS: readonly SettingContract[] = [
     surface: 'settings',
     control: 'features/shell/SettingsDialog.tsx',
     consumer: 'features/workspace/use-arrangement.ts',
-    effect:
-      'The dock narrows, the notation panel shortens or folds into the dock, and the board grows into the space.',
+    effect: 'The side panel narrows, the lower panel shortens, and the board grows into the space.',
     indexedAs: 'board-priority',
     previewable: true,
     verifiedBy: 'e2e/board-size.spec.ts',

@@ -8,6 +8,38 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
+- **The notation stays beside the board on a laptop.** On a window under
+  860px tall it used to sit under the board as a strip two lines high; it is
+  now the top of the side panel at every height, and the board is larger —
+  556px instead of 452 at 1280x720, 626 instead of 522 at 1440x790. Moving it
+  under the board from its ⋯ menu still works and is remembered. (Phase 87)
+- **The explorer's table fits its panel.** Its result columns no longer sit
+  behind a sideways scroll: in the side panel, wins, draws and losses are a
+  small bar beside Score (the numbers are in its tooltip), and a wide panel
+  keeps every column. The panel's title is the opening's name. (Phase 87)
+- **Layout → Engine under the board** shows the notation, the explorer and
+  the engine's lines at the same time. (Phase 87)
+- **The sidebar starts with the research loop**: Analysis, Library,
+  Databases, Openings, Players and Similar games, then Prepare, then Improve.
+  Databases was below the fold on a 13-inch screen. (Phase 87)
+- **Fixed: Preparation could say a famous player had no games.** For the
+  first moments after opening the page it offered "Carlsen, Magnus — no
+  reference games" while the packs were still loading; it now waits, and an
+  Enter pressed meanwhile finds him. The report also said "the newest of 300
+  found" where the pack records 705 of his games and keeps the moves of 300;
+  it now says so. (Phase 87)
+- **The dossier shows how the opponent scores** with each first move and
+  opening family — their score and the wins, draws and losses behind it.
+  (Phase 87)
+- **The Library opens a game at the move you were previewing**, not at move
+  one; Review does the same. (Phase 87)
+- **Fixed: the Start and End buttons showed each other's symbol** (|◀ and
+  ▶|), under the board and in the Library preview. (Phase 87)
+- Quieter pages: an empty Repertoire or Studies page offers one way to start
+  rather than three; one missing Lichess credential is one quiet button per
+  source rather than three accent buttons; the tool row's layout menu is an
+  icon instead of a row of its own. (Phase 87)
+
 ## 1.3.2 — 2026-09-27
 
 - **Fixed: in Firefox, a button could come back disabled after a reload.**

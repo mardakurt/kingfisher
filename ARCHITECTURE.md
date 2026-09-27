@@ -1045,6 +1045,12 @@ something that is not in it, rendering nothing and looking broken. And
 `moveModule` selects the module in its new region, so a move is visible rather
 than appearing to do nothing.
 
+_Superseded in part: since Phase 82 the move tree's home is the dock on a
+screen 860px tall, and since Phase 87 on every desk-width screen
+(`policyMoveTreeHome` in `layout-model.ts`); the lower panel is where a person
+moves it. The reasoning below — never stack a fixed move tree and a lower
+panel under the board — still holds._
+
 The move tree's home is `lower`, not `primary`, and that is load-bearing.
 Stacking a fixed move tree _and_ a lower panel under the board took the board
 from 490px to 277px on a 1440x900 screen while this was being built — exactly
@@ -1056,8 +1062,8 @@ test holds the board above 400px at that viewport.
 
 ### Presets, saved layouts and reset
 
-Eight presets (Analysis, Opening Research, Study, Preparation, Calculation,
-Review, Endgame, Minimal) each express an opinion about what a kind of session
+Nine presets (Analysis, Engine under the board — Phase 87 —, Opening
+Research, Study, Preparation, Calculation, Review, Endgame, Minimal) each express an opinion about what a kind of session
 needs on screen. Users save their own under any name; a saved layout stores
 arrangement only and never which document or position was open, because
 "Tournament Prep" is a shape of workspace and restoring it should not drag last
@@ -1564,11 +1570,12 @@ That is the class of bug two renderers produce, and the reason there is now one.
 ### How large the board is
 
 A policy, not a pixel setting — ADR 0040. `BOARD_PRIORITIES` sizes the chrome
-(dock width, notation height, whether the notation folds into the dock, and a
-ceiling), and the board takes what is left, which is why one setting works on a
-1280x720 laptop and on a 27-inch display. On screens under 860px tall the
-notation panel starts smaller, because at 720px the board is limited by height
-by a wide margin.
+(dock width, the lower panel's height and a ceiling), and the board takes what
+is left, which is why one setting works on a 1280x720 laptop and on a 27-inch
+display. On screens under 860px tall the lower panel starts smaller, because at
+720px the board is limited by height by a wide margin — and since Phase 87 the
+notation is not in it by default: it is the top third of the side panel, which
+took the board from 452px to 556px at 1280x720 (`e2e/analysis-laptop.spec.ts`).
 
 A stored arrangement always wins; the policy only decides the shape of a
 workspace nobody has rearranged. `e2e/board-size.spec.ts` holds absolute pixel

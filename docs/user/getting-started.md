@@ -21,8 +21,9 @@ Play a move. Either drag a piece, or use the keyboard:
 - **Backspace** takes the move back.
 
 Every board page — Analysis, Studies, Repertoire, Openings,
-Preparation, Review, Endgame — has the same shape: the board with
-the move list under it, the tool dock on the right, and **Position**
+Preparation, Review, Endgame — has the same shape: the board, and on
+the right the notation with the tools under it (Engine, Explorer,
+Theory Book, Notes, and More), and **Position**
 and **Set up** in the header. **Set up** is where you add or remove
 pieces to build an endgame or a "what if" position; the Position
 menu is everything else you can do with what is on the board.

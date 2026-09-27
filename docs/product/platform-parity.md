@@ -24,6 +24,18 @@ validation, scheduled backup preference serialization, and an incorrect
 native-companion prerequisite on the AI assistant panel. The engine toolbar
 also wraps controls to keep the engine selector readable in a narrow panel.
 
+**Published revision check (Phase 87 — 2026-09-27, not released).** Master
+is ahead of the public Mac (1.3.2, build 908, `6b59452`) by the Phase 87
+changes, all in shared application code and all Mac-facing: the notation's
+default place and the explorer's narrow table, the Engine under the board
+layout, the sidebar order, the preparation counts and early Enter, the
+dossier's results, the Library opening at the previewed move, the corrected
+skip icons, and the quieter empty states. Nothing under `desktop/` or
+`companion/` changed. No version was bumped and no build was published:
+section B of `docs/operations/after-a-fix.md` has not been run for them, so
+until the next release a Mac user has 1.3.2's behaviour. What was run on a
+package built from this source is in `docs/reports/phase-87-handover.md`.
+
 **Published revision check (Phase 86, 1.3.2 — 2026-09-27).** The public
 Mac is **1.3.2, build 908, `6b59452`**: signed, notarised (application and
 disk image), `desktop:certify` 10/10 on that bundle, and the same source the

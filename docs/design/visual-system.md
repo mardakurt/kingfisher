@@ -99,12 +99,38 @@ not depend on hue alone. Settings is the one labelled row at the foot; theme,
 feedback and collapse share a row of icons, each with its accessible name.
 The list fits a 1440x900 display without scrolling.
 
+Since Phase 87 the groups follow the research loop: two unlabelled rows
+(Search, Recent), then **Research** (Analysis, Library, Databases, Openings,
+Players, Similar games), **Prepare** (Preparation, Repertoire, Studies,
+Opening Files, Team) and **Improve** (Review, Scoresheet, Training, Daily,
+Season, Endgame). Library and Databases used to close the list, and on a
+1280x800 or 1440x860 window Databases was below the fold;
+`e2e/navigation-order.spec.ts` holds the core workflows in view at those
+sizes. The order is `src/features/shell/navigation.ts`.
+
 The board column holds the board and its controls. The side panel opens with
 the **Notation** as a disclosure section — folded or open, remembered per
 browser — and the tools below it as a row of pill tabs: Engine, Explorer,
-Theory Book and Notes visible, the long tail under More. A person can still
+Theory Book and Notes visible, the long tail under More. Phase 82 did this on
+screens 860px tall and kept the notation under the board below that; Phase 87
+does it at every height, with the notation a third of the column on a laptop
+(it had been a 63px strip under the board at 1440x790). A person can still
 move the notation under the board from its ⋯ menu, and that choice is stored.
 On a phone the panel is one sheet and the notation is a tab in it.
+
+The layout menu (presets, moving and pinning the shown tool, saved layouts)
+is one icon at the end of the tool tabs, named "Layout: <preset>" — it was a
+36px row of its own. The tab row fits its tabs against its content width, gaps
+and margins counted, so its edge buttons are never clipped; tabs lose their
+icons and then 2px a side before any is folded under More.
+
+**Panels that must fit a narrow column adapt to their own width or height,
+not the window's** (container queries). The explorer's move table needs
+650px; in the 380px side panel its W, D, B, Elo, Opening and Mine columns step
+aside and the same three counts are a small bar beside Score, with the numbers
+in its accessible name. The engine panel, when shorter than 260px (the
+**Engine under the board** layout), drops its arrow legend and statistics so
+its lines show; depth, nodes and speed stay in the status bar.
 
 ## Pages, headers and shared controls (Phase 83)
 
@@ -130,7 +156,10 @@ built from them, so they cannot drift into three dialects.
   ring, then Openings (the tree, the board preview, the repertoire comparison,
   surprises and priorities), Games, Style (measured, never graded; see
   `src/preparation/style.ts`), Dossier and Sheet. "Open on the board" and
-  "Prepare" take a position to Analysis.
+  "Prepare" take a position to Analysis. The Dossier's first moves and
+  opening families are a table bounded to its content — share, the
+  opponent's score, and the wins, draws and losses behind it (Phase 87).
+  The Library's preview opens a game at the move it was stepped to.
 - **Databases**: every collection as a tile in "All databases"; a click opens
   its detail, the corner checkbox selects it for cross-collection search and
   duplicates, and the provider health stays in the right-hand column.

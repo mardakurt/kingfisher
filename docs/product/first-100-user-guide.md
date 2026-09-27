@@ -24,8 +24,11 @@ view, depending on what you are doing.
 Three places to know:
 
 - **The board.** Drag a piece, or type the move (e.g. `e4`).
-- **The left rail.** The pages: Analysis, Studies, Repertoire,
-  Training, Database, Openings, Players, Settings.
+- **The left rail.** The pages, in three groups: Research (Analysis,
+  Library, Databases, Openings, Players, Similar games), Prepare
+  (Preparation, Repertoire, Studies, Opening Files, Team) and Improve
+  (Review, Scoresheet, Training, Daily, Season, Endgame); Settings at
+  the foot.
 - **The bottom-left status.** This is the save indicator. It
   always says what is true: `Saved on this device`, `Saving…`, or
   `Save failed`.

@@ -3393,7 +3393,7 @@ function WorkspaceSection() {
       */}
       <Row
         label="Board priority"
-        hint="How much of a workspace the board gets. Balanced keeps a taller notation panel and a wider dock; Maximum folds the notation into the dock and lets the board fill the column. A panel you have dragged to a size yourself keeps that size; everything else follows this setting. On a short screen the board may already be limited by window height, in which case the larger policies change the panels around it rather than the board itself."
+        hint="How much of a workspace the board gets. Balanced keeps a wider side panel and a taller lower panel; Maximum narrows the side panel and lets the board fill the column. A panel you have dragged to a size yourself keeps that size; everything else follows this setting. On a short screen the board may already be limited by window height, in which case the larger policies change the panels around it rather than the board itself."
       >
         <Segmented
           items={[
