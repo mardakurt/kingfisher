@@ -318,12 +318,20 @@ export function GamesWorkspace() {
   };
 
   // The list holds summaries; the moves are fetched only when one is opened.
-  const open = async (game: GameSummary, destination: '/analysis' | '/review' = '/analysis') => {
+  const open = async (
+    game: GameSummary,
+    destination: '/analysis' | '/review' = '/analysis',
+    at?: number,
+  ) => {
     try {
-      // A move-search row opens at the moment it was found, not at move one.
-      const ply = foundAt.get(game.id);
+      /*
+        The move the preview was stepped to, when it was (Phase 87: the board
+        opened at move one after the player had found the moment they wanted);
+        otherwise a move-search row opens at the moment it was found.
+      */
+      const ply = at ?? foundAt.get(game.id);
       if (local) await openStoredGame(game.id, ply === undefined ? {} : { ply });
-      else await openSourceGame(source, game);
+      else await openSourceGame(source, game, ply === undefined ? {} : { ply });
       router.push(destination);
     } catch (error) {
       notify({
@@ -1045,8 +1053,8 @@ export function GamesWorkspace() {
               <GamePreview
                 source={source}
                 game={previewing}
-                onOpen={(game) => void open(game)}
-                onReview={(game) => void open(game, '/review')}
+                onOpen={(game, ply) => void open(game, '/analysis', ply)}
+                onReview={(game, ply) => void open(game, '/review', ply)}
                 onQueue={local ? (game) => openAnalysisQueue([game.id]) : undefined}
               />
             )}
@@ -1384,8 +1392,9 @@ function GamePreview({
 }: {
   readonly source: LibrarySource;
   readonly game: GameSummary | null;
-  readonly onOpen: (game: GameSummary) => void;
-  readonly onReview: (game: GameSummary) => void;
+  /** `ply` is the move the preview was stepped to; absent when it was not. */
+  readonly onOpen: (game: GameSummary, ply?: number) => void;
+  readonly onReview: (game: GameSummary, ply?: number) => void;
   /** Absent for a database the analysis queue does not read. */
   readonly onQueue: ((game: GameSummary) => void) | undefined;
 }) {
@@ -1425,6 +1434,11 @@ function GamePreview({
   const at = ply === null ? last : Math.max(0, Math.min(last, ply));
   const node = line[at];
   const display = openingDisplay(game);
+  /* Only a move the player stepped to; the preview's default is not a choice. */
+  const chosenPly = ply === null || !node ? undefined : node.ply;
+  const moveLabel = node?.move
+    ? `${Math.ceil(node.ply / 2)}${node.ply % 2 === 1 ? '.' : '…'}${node.move.san}`
+    : 'the start';
 
   return (
     <div className="flex min-h-0 flex-1 flex-col" data-library-preview={game.id}>
@@ -1495,10 +1509,15 @@ function GamePreview({
         )}
       </div>
       <div className="flex shrink-0 flex-wrap gap-1.5 border-t border-line-subtle px-4 py-2.5">
-        <Button variant="accent" icon={<Board />} onClick={() => onOpen(game)}>
+        <Button
+          variant="accent"
+          icon={<Board />}
+          onClick={() => onOpen(game, chosenPly)}
+          title={chosenPly === undefined ? undefined : `Opens at the move shown (${moveLabel})`}
+        >
           Open
         </Button>
-        <Button onClick={() => onReview(game)}>Review</Button>
+        <Button onClick={() => onReview(game, chosenPly)}>Review</Button>
         {onQueue ? <Button onClick={() => onQueue(game)}>Analyse</Button> : null}
       </div>
     </div>
