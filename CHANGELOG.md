@@ -8,6 +8,8 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
+## 1.3.3 — 2026-09-27
+
 - **The notation stays beside the board on a laptop.** On a window under
   860px tall it used to sit under the board as a strip two lines high; it is
   now the top of the side panel at every height, and the board is larger —
@@ -39,6 +41,9 @@ Phase numbers below this header will be moved into a dated `## <version>` sectio
   rather than three; one missing Lichess credential is one quiet button per
   source rather than three accent buttons; the tool row's layout menu is an
   icon instead of a row of its own. (Phase 87)
+- **Fixed: Download backup, from the storage status, left a database
+  connection open after each backup.** It now uses the application's own
+  connection, as Settings → Export backup does. (Phase 87)
 
 ## 1.3.2 — 2026-09-27
 
