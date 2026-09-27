@@ -8,13 +8,14 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
+## 1.3.2 — 2026-09-27
+
 - **Fixed: in Firefox, a button could come back disabled after a reload.**
   Firefox restores a button's state across a reload before the page is
   ready, and the page did not undo it. (Phase 85, after 1.3.1)
 - **A common word searched in a ten-million-game database answers in under
   a second** (it took 50 seconds): the companion reads its newest-first
-  index instead of sorting every match. Desktop users receive it with the
-  next Mac release. (Phase 85, after 1.3.1)
+  index instead of sorting every match. (Phase 85, after 1.3.1)
 - **Fixed: notation was not set in its monospaced face.** Since the Mac
   redesign the font settings were invalid on every page, so a FEN, a PGN and
   the shortcut keys were drawn in the system's sans-serif face. They are in
@@ -65,8 +66,7 @@ Phase numbers below this header will be moved into a dated `## <version>` sectio
 - **A companion database can use a compact position index** about eighteen
   times smaller on the position side, answering exactly as before; choose
   it when creating a database, or convert one (Databases → the database →
-  Storage).
-  Desktop users receive it with the next Mac release. (Phase 86)
+  Storage). (Phase 86)
 - **Fixed: an import interrupted mid-way could leave the explorer's counts
   short** for good in the original database layout; the next open now
   finishes them. (Phase 86)
