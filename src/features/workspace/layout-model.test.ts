@@ -13,7 +13,6 @@ import {
   LOWER_HEIGHT_MIN,
   modulesInRegion,
   moveModule,
-  policyMoveTreeHome,
   regionOf,
   resolveArrangement,
   resolveBoardPriority,
@@ -137,7 +136,6 @@ describe('board priority', () => {
     expect(resolveArrangement(DEFAULT_ARRANGEMENT, unknown)).toEqual(
       resolveArrangement(DEFAULT_ARRANGEMENT, 'large'),
     );
-    expect(policyMoveTreeHome(unknown, true)).toBe(policyMoveTreeHome('large', true));
   });
 
   it('offers three policies, ordered by how much the board gets', () => {
@@ -167,15 +165,18 @@ describe('board priority', () => {
     }
   });
 
-  it('puts the notation beside the board on a tall screen, and under it on a laptop', () => {
-    // Phase 82: on a tall screen the board column holds the board alone.
+  it('puts the notation beside the board at every height, for every policy', () => {
+    /*
+      Phase 87: under the board on a laptop-height window the notation was a
+      63px strip — two lines of a 42-ply game — beside a mostly empty dock.
+    */
     for (const priority of ['balanced', 'large', 'maximum'] as const) {
-      expect(policyMoveTreeHome(priority, false)).toBe('dock');
+      for (const short of [false, true]) {
+        expect(resolveArrangement(DEFAULT_ARRANGEMENT, priority, short).moveTreeRegion).toBe(
+          'dock',
+        );
+      }
     }
-    // A short screen keeps the notation under the board, except at Maximum.
-    expect(policyMoveTreeHome('maximum', true)).toBe('dock');
-    expect(policyMoveTreeHome('large', true)).toBe('lower');
-    expect(policyMoveTreeHome('balanced', true)).toBe('lower');
   });
 
   it('records no dimensions of its own, so the policy can keep governing', () => {
@@ -207,8 +208,7 @@ describe('resolveArrangement', () => {
     expect(maximum.dockWidth).toBeLessThan(balanced.dockWidth);
     expect(maximum.lowerHeight).toBeLessThan(balanced.lowerHeight);
     expect(maximum.moveTreeRegion).toBe('dock');
-    expect(balanced.moveTreeRegion).toBe('lower');
-    expect(resolveArrangement(tabSelected, 'balanced', false).moveTreeRegion).toBe('dock');
+    expect(balanced.moveTreeRegion).toBe('dock');
   });
 
   it('gives the board more at every step from Balanced to Maximum', () => {

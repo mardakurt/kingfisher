@@ -109,14 +109,13 @@ export function useWorkspaceArrangement(
       })),
       /*
         The notation panel's home is the policy's, not the module table's:
-        Maximum folds it into the dock, and that is most of the difference
-        between Maximum and Large.
+        beside the board, at every height (Phase 87).
       */
       ...(withMoveTree
         ? [
             {
               id: MOVE_TREE_MODULE.id as WorkspaceModuleId,
-              home: policyMoveTreeHome(priority, shortScreen),
+              home: policyMoveTreeHome(),
             },
           ]
         : []),
@@ -147,8 +146,7 @@ export function useWorkspaceArrangement(
       activeLower: activeInRegion(arrangement, lowerModules, 'lower'),
       moveTreeInPrimary:
         !withMoveTree ||
-        regionOf(arrangement, MOVE_TREE_MODULE.id, policyMoveTreeHome(priority, shortScreen)) ===
-          'primary',
+        regionOf(arrangement, MOVE_TREE_MODULE.id, policyMoveTreeHome()) === 'primary',
     };
-  }, [arrangement, device, priority, shortScreen, wide, withMoveTree, workspace]);
+  }, [arrangement, device, priority, wide, withMoveTree, workspace]);
 }

@@ -283,6 +283,12 @@ export function ExplorerPanel() {
       <PanelHeader
         actions={
           <>
+            <Link
+              href="/openings"
+              className="mr-1 shrink-0 text-[10px] font-normal text-accent underline-offset-2 hover:underline"
+            >
+              Browse openings
+            </Link>
             {/*
               Comparing sources is a mode, not a filter: it changes what the
               panel is showing rather than which games it counts.
@@ -327,17 +333,15 @@ export function ExplorerPanel() {
             </IconButton>
           </>
         }
+        className={descent ? 'h-auto min-h-8 py-1' : undefined}
       >
-        Explorer
-      </PanelHeader>
-
-      <div className="shrink-0 border-b border-line-subtle px-2.5 py-1.5">
         {/*
-          The opening, above the numbers rather than buried in a column. It is
-          the first thing a player wants from a position and the last thing the
-          table gets round to saying.
+          The opening, in the panel's title row. The row used to say
+          "Explorer", which the selected tab above it already says; the
+          opening is the first thing a player wants from a position and the
+          last thing the table gets round to saying (Phase 87).
         */}
-        <div className="mb-1.5 flex items-baseline gap-1.5">
+        <span className="flex min-w-0 items-baseline gap-1.5 font-normal">
           {opening?.eco ? (
             <span className="shrink-0 rounded-[5px] bg-surface-3 px-1 font-mono text-[10px] text-accent">
               {opening.eco}
@@ -363,14 +367,10 @@ export function ExplorerPanel() {
               <span className="min-w-0 truncate text-[10px] text-tertiary">{descent}</span>
             ) : null}
           </span>
-          <Link
-            href="/openings"
-            className="ml-auto shrink-0 text-[10px] text-accent underline-offset-2 hover:underline"
-          >
-            Browse openings
-          </Link>
-        </div>
+        </span>
+      </PanelHeader>
 
+      <div className="shrink-0 border-b border-line-subtle px-2.5 py-1.5">
         <SourcePicker
           sources={sources}
           value={provider?.id ?? (resolved.kind === 'waiting' ? resolved.preferredId : '')}
@@ -578,8 +578,15 @@ export function ExplorerPanel() {
           />
         ) : (
           <>
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[650px] border-collapse text-[10.5px]">
+            {/*
+              Phase 87: the dock is 380px wide by default and this table needed
+              650, so the result columns sat behind a sideways scroll nobody
+              finds. In a narrow panel the raw W/D/B, Elo, Opening and Mine
+              columns step aside and the same three counts are drawn as a bar
+              beside Score; a wide panel (or the lower region) keeps them all.
+            */}
+            <div className="@container overflow-x-auto" data-explorer-table>
+              <table className="w-full border-collapse text-[10.5px] @min-[560px]:min-w-[650px]">
                 <thead>
                   <tr className="border-b border-line-subtle text-left text-[9.5px] text-tertiary">
                     <th className="w-6 px-1.5 py-1.5" />
@@ -601,12 +608,14 @@ export function ExplorerPanel() {
                       </th>
                     ) : null}
                     <th className="px-1.5 py-1.5 text-right font-medium">Score</th>
-                    <th className="px-1.5 py-1.5 text-right font-medium">W</th>
-                    <th className="px-1.5 py-1.5 text-right font-medium">D</th>
-                    <th className="px-1.5 py-1.5 text-right font-medium">B</th>
-                    <th className="px-1.5 py-1.5 text-right font-medium">Elo</th>
-                    <th className="px-1.5 py-1.5 font-medium">Opening</th>
-                    <th className="px-1.5 py-1.5 font-medium">Mine</th>
+                    <th className="@max-[559px]:hidden px-1.5 py-1.5 text-right font-medium">W</th>
+                    <th className="@max-[559px]:hidden px-1.5 py-1.5 text-right font-medium">D</th>
+                    <th className="@max-[559px]:hidden px-1.5 py-1.5 text-right font-medium">B</th>
+                    <th className="@max-[559px]:hidden px-1.5 py-1.5 text-right font-medium">
+                      Elo
+                    </th>
+                    <th className="@max-[559px]:hidden px-1.5 py-1.5 font-medium">Opening</th>
+                    <th className="@max-[559px]:hidden px-1.5 py-1.5 font-medium">Mine</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line-subtle">
@@ -884,19 +893,32 @@ function Row({
         </td>
       ) : null}
       <td className="px-1.5 py-1.5 text-right text-secondary tabular">
-        {Math.round(entry.score * 100)}%
+        <span className="inline-flex items-center justify-end gap-1.5">
+          <ResultBar
+            white={entry.database.white}
+            draws={entry.database.draws}
+            black={entry.database.black}
+          />
+          {Math.round(entry.score * 100)}%
+        </span>
       </td>
-      <td className="px-1.5 py-1.5 text-right text-secondary tabular">{entry.database.white}</td>
-      <td className="px-1.5 py-1.5 text-right text-secondary tabular">{entry.database.draws}</td>
-      <td className="px-1.5 py-1.5 text-right text-secondary tabular">{entry.database.black}</td>
-      <td className="px-1.5 py-1.5 text-right text-secondary tabular">
+      <td className="@max-[559px]:hidden px-1.5 py-1.5 text-right text-secondary tabular">
+        {entry.database.white}
+      </td>
+      <td className="@max-[559px]:hidden px-1.5 py-1.5 text-right text-secondary tabular">
+        {entry.database.draws}
+      </td>
+      <td className="@max-[559px]:hidden px-1.5 py-1.5 text-right text-secondary tabular">
+        {entry.database.black}
+      </td>
+      <td className="@max-[559px]:hidden px-1.5 py-1.5 text-right text-secondary tabular">
         {entry.database.averageRating ?? '—'}
       </td>
-      <td className="max-w-[150px] truncate px-1.5 py-1.5 text-tertiary">
+      <td className="@max-[559px]:hidden max-w-[150px] truncate px-1.5 py-1.5 text-tertiary">
         {[entry.database.opening?.eco, entry.database.opening?.name].filter(Boolean).join(' ') ||
           '—'}
       </td>
-      <td className="px-1.5 py-1.5 text-[10px] text-tertiary">
+      <td className="@max-[559px]:hidden px-1.5 py-1.5 text-[10px] text-tertiary">
         {entry.repertoireRole
           ? entry.repertoireExpected
             ? 'expected'
@@ -904,6 +926,40 @@ function Row({
           : '—'}
       </td>
     </tr>
+  );
+}
+
+/**
+ * White wins, draws and Black wins as one bar, in proportion to the counts.
+ *
+ * Shown only where the W, D and B columns have stepped aside for a narrow
+ * panel; the counts themselves are in the bar's accessible name and title, so
+ * nothing the columns said is lost.
+ */
+function ResultBar({
+  white,
+  draws,
+  black,
+}: {
+  readonly white: number;
+  readonly draws: number;
+  readonly black: number;
+}) {
+  const total = white + draws + black;
+  if (total === 0) return null;
+  const label = `White won ${white.toLocaleString()}, drawn ${draws.toLocaleString()}, Black won ${black.toLocaleString()}`;
+  return (
+    <span
+      role="img"
+      aria-label={label}
+      title={label}
+      data-explorer-result-bar
+      className="flex h-1.5 w-12 overflow-hidden rounded-full border border-line-subtle @min-[560px]:hidden"
+    >
+      <span className="bg-[var(--eval-white)]" style={{ width: `${(white / total) * 100}%` }} />
+      <span className="bg-line-strong" style={{ width: `${(draws / total) * 100}%` }} />
+      <span className="bg-[var(--eval-black)]" style={{ width: `${(black / total) * 100}%` }} />
+    </span>
   );
 }
 

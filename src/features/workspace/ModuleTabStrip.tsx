@@ -206,7 +206,7 @@ export function ModuleTabStrip({
             title={tab.unavailable ?? tab.label}
             onClick={() => onChange(tab.id)}
             className={cn(
-              'relative flex h-7 shrink-0 items-center gap-1.5 rounded-[6px] px-2.5 text-xs font-medium whitespace-nowrap transition-colors',
+              'relative flex h-7 shrink-0 items-center gap-1.5 rounded-[6px] px-2 text-xs font-medium whitespace-nowrap transition-colors',
               selected
                 ? 'bg-surface-3 text-primary'
                 : 'text-secondary hover:bg-surface-2 hover:text-primary',

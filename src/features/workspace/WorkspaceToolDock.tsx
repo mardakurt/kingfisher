@@ -7,7 +7,7 @@ import {
   type ReactNode,
 } from 'react';
 
-import { ChevronDown, ChevronRight, Database } from '@/components/icons';
+import { ChevronDown, ChevronRight, Database, PanelRight } from '@/components/icons';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { IconButton } from '@/components/ui/Button';
 import { Menu, type MenuSection } from '@/components/ui/Menu';
@@ -96,6 +96,11 @@ export function WorkspaceToolDock({
   readonly narrow?: boolean;
 }) {
   const wide = useMediaQuery('(min-width: 1100px)');
+  /*
+    The notation is stacked above the tools on any desk-width screen with room
+    for both; below 600px (a window dragged small) it becomes the first tab.
+  */
+  const roomForNotation = useMediaQuery('(min-height: 600px)');
   const tall = useMediaQuery('(min-height: 860px)');
   const view = useWorkspaceArrangement(workspace, { withMoveTree });
   const { device, dockModules, activeDock, foldedFromLower } = view;
@@ -165,13 +170,13 @@ export function WorkspaceToolDock({
     Phase 82: on a desk-width screen the notation is not a tab. It is the
     first section of the panel, always on screen above whichever tool is
     chosen — the move list and the evidence about it read together, as in
-    any Mac chess application. Only on a screen at least 860px tall: below
-    that (1366x768, 1280x720) half a dock is too short for the explorer's
-    table or a repertoire's decisions, so the notation is the first tab
-    instead and every tool keeps the full height. On a phone the dock is one
-    sheet and the notation is a tab in it.
+    any Mac chess application. Phase 87 extended that from screens 860px tall
+    to any with room for both (600px): under the board on a laptop-height
+    window it had been a 63px strip. On a phone the dock is one sheet and the
+    notation is a tab in it.
   */
-  const stackNotation = wide && tall && withMoveTree && dockModules.includes('move-tree');
+  const stackNotation =
+    wide && roomForNotation && withMoveTree && dockModules.includes('move-tree');
   const toolModules = stackNotation ? dockModules.filter((id) => id !== 'move-tree') : dockModules;
   const shownTool =
     stackNotation && activeDock === 'move-tree' ? (toolModules[0] ?? null) : activeDock;
@@ -206,16 +211,11 @@ export function WorkspaceToolDock({
       {stackNotation ? (
         <NotationSection
           workspace={workspace}
+          share={tall ? 'tall' : 'short'}
           moveTreePanel={moveTreePanel}
           onMove={(region) => moveModuleTo(workspace, device, 'move-tree', region)}
         />
       ) : null}
-      <WorkspaceLayoutBar
-        workspace={workspace}
-        contextLabel={contextLabel}
-        view={view}
-        activeTool={shownTool}
-      />
       <ModuleTabStrip
         tabs={tabs}
         /*
@@ -246,14 +246,22 @@ export function WorkspaceToolDock({
         value={shownTool}
         onChange={select}
         actions={
-          <button
-            type="button"
-            onClick={() => setDockCollapsed(workspace, device, true)}
-            className="w-9 shrink-0 border-l border-line-subtle text-lg text-tertiary hover:bg-surface-2 hover:text-primary"
-            aria-label="Collapse workspace tools"
-          >
-            {wide ? '›' : '⌄'}
-          </button>
+          <>
+            <WorkspaceLayoutMenu
+              workspace={workspace}
+              contextLabel={contextLabel}
+              view={view}
+              activeTool={shownTool}
+            />
+            <button
+              type="button"
+              onClick={() => setDockCollapsed(workspace, device, true)}
+              className="w-7 shrink-0 border-l border-line-subtle text-lg text-tertiary hover:bg-surface-2 hover:text-primary"
+              aria-label="Collapse workspace tools"
+            >
+              {wide ? '›' : '⌄'}
+            </button>
+          </>
         }
       />
       <div className="min-h-0 flex-1 overflow-hidden">
@@ -385,7 +393,15 @@ function LockedTool({
  * never require clearing localStorage by hand. Reset is two clicks from
  * anywhere a layout can be broken.
  */
-function WorkspaceLayoutBar({
+/**
+ * The layout menu: presets, moving and pinning the shown tool, saved layouts.
+ *
+ * Until Phase 87 this was a row of its own above the tool tabs — "Layout
+ * Analysis ▾ … 22 tools" — 36px of every dock's height spent on a control
+ * used rarely and a count nobody acts on. It is now one icon at the end of
+ * the tab row; its accessible name still says which layout is in force.
+ */
+function WorkspaceLayoutMenu({
   workspace,
   contextLabel,
   view,
@@ -397,7 +413,7 @@ function WorkspaceLayoutBar({
   /** The tool the strip shows, which is not the notation when it is stacked. */
   readonly activeTool: WorkspaceModuleId | null;
 }) {
-  const { device, arrangement, available } = view;
+  const { device, arrangement } = view;
   const activeDock = activeTool;
   const setPreset = useWorkspaceLayout((state) => state.setPreset);
   const moveModuleTo = useWorkspaceLayout((state) => state.moveModuleTo);
@@ -493,10 +509,13 @@ function WorkspaceLayoutBar({
   // not go on claiming to be that preset.
   const modified = Object.keys(arrangement.placement).length > 0 || arrangement.dockCollapsed;
 
+  const layoutName = modified ? `${presetLabel} (modified)` : presetLabel;
+
   return (
-    <div className="flex h-9 shrink-0 items-center gap-2 px-2.5 pt-1">
+    <>
       <Menu
         sections={sections}
+        align="end"
         trigger={({ toggle, open, id }) => (
           <button
             type="button"
@@ -504,18 +523,15 @@ function WorkspaceLayoutBar({
             onClick={toggle}
             aria-expanded={open}
             aria-haspopup="menu"
-            className="flex h-6 min-w-0 items-center gap-1.5 rounded-[6px] px-1.5 text-2xs text-secondary hover:bg-surface-2 hover:text-primary"
+            aria-label={`Layout: ${layoutName}`}
+            title={`Layout: ${layoutName}`}
+            data-layout-menu
+            className="flex h-full w-7 shrink-0 items-center justify-center border-l border-line-subtle text-tertiary hover:bg-surface-2 hover:text-primary"
           >
-            <span className="text-tertiary">Layout</span>
-            <span className="truncate">{modified ? `${presetLabel} (modified)` : presetLabel}</span>
-            <span aria-hidden className="text-[9px]">
-              ▾
-            </span>
+            <PanelRight className="h-3.5 w-3.5" />
           </button>
         )}
       />
-      <span className="min-w-0 flex-1" />
-      <span className="shrink-0 text-2xs text-tertiary tabular">{available.length} tools</span>
       <PromptDialog
         open={saving}
         title="Save layout"
@@ -529,7 +545,7 @@ function WorkspaceLayoutBar({
         }}
         onCancel={() => setSaving(false)}
       />
-    </div>
+    </>
   );
 }
 
@@ -579,10 +595,13 @@ function subscribeNotationFolded(listener: () => void): () => void {
  */
 function NotationSection({
   workspace,
+  share,
   moveTreePanel,
   onMove,
 }: {
   readonly workspace: string;
+  /** A laptop-height window gives the notation a third of the column, not two fifths. */
+  readonly share: 'tall' | 'short';
   readonly moveTreePanel?: ReactNode;
   readonly onMove: (region: WorkspaceRegion) => void;
 }) {
@@ -594,7 +613,11 @@ function NotationSection({
     <section
       className={cn(
         'flex min-h-0 flex-col border-b border-line-subtle',
-        folded ? 'shrink-0' : 'min-h-[160px] flex-[0_0_38%]',
+        folded
+          ? 'shrink-0'
+          : share === 'tall'
+            ? 'min-h-[160px] flex-[0_0_38%]'
+            : 'min-h-[140px] flex-[0_0_34%]',
       )}
       aria-label="Notation"
       data-notation-section={workspace}

@@ -52,15 +52,24 @@ test.describe('workspace composer', () => {
     await expect(dock(page).getByRole('tab', { name: 'Engine' })).toBeVisible();
     await expect(dock(page).getByRole('tab', { name: 'Explorer' })).toBeVisible();
     await expect(dock(page).getByRole('tab', { name: 'Notes' })).toBeVisible();
-    // On a laptop-height screen the notation stays under the board, as a tab.
-    await expect(lower(page).getByRole('tab', { name: 'Notation' })).toBeVisible();
-
-    // Phase 82: on a tall screen it is the first section of the side panel,
-    // beside the board, and nothing is under the board at all.
-    await page.setViewportSize({ width: 1440, height: 900 });
-    await expect(dock(page).getByRole('region', { name: 'Notation' })).toBeVisible();
-    await expect(lower(page)).toHaveCount(0);
-    await expect(dock(page).getByRole('tab', { name: 'Explorer' })).toBeVisible();
+    /*
+      Phase 87: the notation is the first section of the side panel, beside
+      the board, on a laptop-height window as on a tall one, and nothing is
+      under the board. Under it at 1280x720 it had been a 63px strip.
+    */
+    for (const size of [
+      { width: 1280, height: 720 },
+      { width: 1440, height: 790 },
+      { width: 1440, height: 900 },
+    ]) {
+      await page.setViewportSize(size);
+      const notation = dock(page).getByRole('region', { name: 'Notation' });
+      await expect(notation).toBeVisible();
+      await expect(lower(page)).toHaveCount(0);
+      expect((await notation.boundingBox())!.height).toBeGreaterThanOrEqual(140);
+      await expect(dock(page).getByRole('tab', { name: 'Explorer' })).toBeVisible();
+      await expect(dock(page).getByRole('tab', { name: 'Notes' })).toBeVisible();
+    }
   });
 
   test('§58 the board stays large in the default layout', async ({ page }) => {
