@@ -480,6 +480,23 @@ if (descriptor) {
     new RegExp(`Kingfisher ${escaped} for Apple Silicon`),
     `SECURITY.md names ${version} as the current macOS product`,
   );
+  /*
+    The web build's version is the source's (it deploys from master), stated
+    on the security policy and the public security page. Both said
+    "Kingfisher 1.1" from 1.1 to 1.3.3 because nothing compared them
+    (Phase 87).
+  */
+  const pkgEscaped = pkg.version.replace(/\./g, '\\.');
+  mustMatch(
+    'SECURITY.md',
+    new RegExp(`\\*\\*Web:\\*\\* Kingfisher ${pkgEscaped} at`),
+    `SECURITY.md names ${pkg.version} as the web build`,
+  );
+  mustMatch(
+    'src/app/security/SecurityPage.tsx',
+    new RegExp(`<td>Web application</td>\\s*<td>Kingfisher ${pkgEscaped}</td>`),
+    `the security page names ${pkg.version} as the web build`,
+  );
   mustMatch(
     'docs/release/install-macos.md',
     new RegExp(`Kingfisher ${escaped} for macOS`),
