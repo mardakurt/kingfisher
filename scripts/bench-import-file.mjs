@@ -53,6 +53,9 @@ for (let i = 2; i < argv.length; i += 1) {
   // oracle checks the explorer on.
   else if (argv[i] === '--layout') args.layout = argv[++i];
   else if (argv[i] === '--oracle') args.oracle = Number(argv[++i]);
+  // Rebuild the hot aggregates before the queries, and say how long it took
+  // (the step that ends every large import).
+  else if (argv[i] === '--rebuild-hot') args.rebuildHot = true;
 }
 
 let database;
@@ -61,7 +64,15 @@ let stats = null;
 const kit = await loadKit();
 if (args.queryOnly) {
   file = args.queryOnly;
+  const opened = performance.now();
   database = new GameDatabase(file, { kit });
+  console.log(`opened in ${((performance.now() - opened) / 1000).toFixed(1)} s`);
+  if (args.rebuildHot) {
+    const started = performance.now();
+    database.rebuildAggregates();
+    args.rebuildHotSeconds = Math.round((performance.now() - started) / 1000);
+    console.log(`hot aggregates rebuilt in ${args.rebuildHotSeconds} s`);
+  }
 } else {
   mkdirSync(args.out, { recursive: true });
   file = path.join(args.out, 'collection.sqlite');
@@ -120,7 +131,16 @@ if (args.out) {
   writeFileSync(
     path.join(args.out, 'result.json'),
     JSON.stringify(
-      { stats, size, layout: database.layout, queries, moveSearch, equivalence, oracle },
+      {
+        stats,
+        size,
+        layout: database.layout,
+        rebuildHotSeconds: args.rebuildHotSeconds ?? null,
+        queries,
+        moveSearch,
+        equivalence,
+        oracle,
+      },
       null,
       2,
     ),

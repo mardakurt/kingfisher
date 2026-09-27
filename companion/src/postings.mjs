@@ -461,21 +461,34 @@ export class PostingIndex {
     ).run(pos, move);
   }
 
-  /** Every hot aggregate, from the postings. Transaction is the caller's. */
+  /*
+    Every hot aggregate, from the postings; the transaction is the caller's. Each hot posting needs its
+    game's result, rating and year. Joined in posting order, that is one
+    random lookup into `games` per posting — at 7.46M games, a 36 GB file
+    read a page at a time, which ran for hours at the end of every large
+    import. The hot postings are first copied out in game order, so the
+    lookups walk `games` from its first row to its last.
+  */
   rebuildHot() {
     this.#db.exec(`
       DELETE FROM posting_aggregates;
+      DROP TABLE IF EXISTS temp.hot_postings;
+      CREATE TEMP TABLE hot_postings (game INTEGER NOT NULL, pos INTEGER NOT NULL, move INTEGER NOT NULL);
+      INSERT INTO hot_postings (game, pos, move)
+        SELECT p.game, p.pos, p.move FROM postings p
+         WHERE p.pos IN (SELECT pos FROM postings GROUP BY pos HAVING COUNT(*) >= ${HOT_GAMES})
+         ORDER BY p.game;
       INSERT INTO posting_aggregates (
         pos, move, games, white, draws, black, rating_total, rating_count, latest_year
       )
-      SELECT p.pos, p.move, COUNT(*),
+      SELECT h.pos, h.move, COUNT(*),
              SUM(CASE WHEN g.result = '1-0' THEN 1 ELSE 0 END),
              SUM(CASE WHEN g.result = '1/2-1/2' THEN 1 ELSE 0 END),
              SUM(CASE WHEN g.result = '0-1' THEN 1 ELSE 0 END),
              COALESCE(SUM(g.max_rating), 0), COUNT(g.max_rating), MAX(g.year)
-        FROM postings p JOIN games g ON g.id = p.game
-       WHERE p.pos IN (SELECT pos FROM postings GROUP BY pos HAVING COUNT(*) >= ${HOT_GAMES})
-       GROUP BY p.pos, p.move;
+        FROM hot_postings h JOIN games g ON g.id = h.game
+       GROUP BY h.pos, h.move;
+      DROP TABLE temp.hot_postings;
       DELETE FROM posting_filter_cells;
       DELETE FROM posting_filter_totals;
       DELETE FROM posting_filter_keys;
