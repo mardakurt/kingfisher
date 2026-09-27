@@ -572,13 +572,20 @@ function ProviderHealthRow({ provider }: { readonly provider: ChessDatabaseProvi
         test was working, and there was nothing it could change.
       */}
       {state === 'authentication-required' ? (
+        /*
+          Secondary, and without the settings path beside it: three accent
+          buttons over three copies of "Settings → Accounts → Lichess" made one
+          missing credential the loudest thing on the page (Phase 87). The
+          button opens that very pane; its name says what it will do there.
+        */
         <div className="mt-1.5 ml-4 flex flex-wrap items-center gap-1.5">
-          <Button size="sm" variant="accent" onClick={() => openSettingsAt('accounts')}>
+          <Button
+            size="sm"
+            onClick={() => openSettingsAt('accounts')}
+            title={health.data?.remedy ?? undefined}
+          >
             Connect Lichess
           </Button>
-          {health.data?.remedy ? (
-            <span className="text-[10.5px] text-tertiary">{health.data.remedy}</span>
-          ) : null}
         </div>
       ) : state !== 'ready' && state !== 'loading' ? (
         <div className="mt-1.5 ml-4 flex flex-wrap items-center gap-1.5">
