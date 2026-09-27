@@ -96,6 +96,8 @@ with [`AGENTS.md`](../AGENTS.md).
   Kingfisher against ChessBase 26 and ChessBase for Mac, workflow by workflow,
   with sources, what Phase 84 closed, and the verdict (ALMOST) with the gaps
   that stand between it and YES.
+- [`product/not-built.md`](product/not-built.md) — what is not built after
+  Phase 86: blocked, designed, partly built and not started, each with why.
 - [`product/parity-ledger.md`](product/parity-ledger.md) — the parity
   program's gate (Phase 86): every P0/P1 requirement with its verified state,
   evidence authority and one of five statuses; the frozen ChessBase baseline
