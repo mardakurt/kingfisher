@@ -27,8 +27,10 @@
  * Three things must be true after `stopAll()` resolves, and each has a reason
  * it is not automatic:
  *
- *  1. **The companion ran its own shutdown.** It is sent `SIGTERM`, which its
- *     handler turns into `engines.stopAll()`. A `SIGKILL` would skip that, and
+ *  1. **The companion ran its own shutdown.** It is first asked over the IPC
+ *     channel (`{type: 'shutdown'}`), then sent `SIGTERM` — both reach the
+ *     handler that runs `engines.stopAll()`; the message comes first because
+ *     Windows has no `SIGTERM` (see `stop()`). A `SIGKILL` would skip that, and
  *     engines are spawned *detached* — in their own process groups, so that
  *     stopping one stops its helpers — which is exactly what makes them
  *     survive a parent that dies without asking them to stop.
