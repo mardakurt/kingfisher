@@ -76,13 +76,13 @@ Price: not stated on that page.
 
 ### 2.2 Kingfisher against them
 
-| Principle                         | Kingfisher before Phase 87 (measured)                                                                                                                                                     | Kept                                                                | Changed in Phase 87                                                                           |
-| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| Grouped source list               | Grouped (Study, Prepare, Improve, Data), but Library and Databases were the last group; Databases below the fold at 1280x800 and 1440x860                                                 | Sentence-case groups, 30px rows, one accent (Phase 82)              | Research group first: Analysis, Library, Databases, Openings, Players, Similar games          |
-| Several kinds of evidence at once | Notation at the top of the side panel on screens ≥860px; **below that, a 63px strip under the board** (two lines of a 42-ply game). One tool tab visible at a time                        | Notation as a disclosure section; tools as pinned tabs + More       | Notation beside the board at every height; a layout with the engine under the board           |
-| Find → analyse continuity         | Preview, open, Back restores the query (`/games?q=`); **Open always started at move one** even after stepping the preview                                                                 | The Library table, preview and filters (Phase 83)                   | Open and Review start at the previewed move                                                   |
-| Results by opening                | The dossier computed each family's score and did not show it; figures 1,100px from their labels at 1440                                                                                   | "Measured, never graded" Style (no adjectives, no invented ratings) | Family and first-move tables with share, their score and +W =D −L                             |
-| Compact, restrained               | Explorer table 650px wide in a 380px panel (W/D/B behind a sideways scroll); a 36px layout row on every dock; three accent "Connect Lichess"; three create buttons on an empty Repertoire | Tokens, hairlines, typography (Phases 82–84)                        | Container-query table, layout menu as an icon, one quiet credential button, one create action |
+| Principle                         | Kingfisher before Phase 87 (measured)                                                                                                                                                     | Kept                                                                | Changed in Phase 87                                                                                                                                            |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Grouped source list               | Grouped (Study, Prepare, Improve, Data), but Library and Databases were the last group; Databases below the fold at 1280x800 and 1440x860                                                 | Sentence-case groups, 30px rows, one accent (Phase 82)              | Research group first (`d03ffd6`), then **restored at the owner's preference** — the four groups stay; Databases remains below the fold of the list at 1280x800 |
+| Several kinds of evidence at once | Notation at the top of the side panel on screens ≥860px; **below that, a 63px strip under the board** (two lines of a 42-ply game). One tool tab visible at a time                        | Notation as a disclosure section; tools as pinned tabs + More       | Notation beside the board at every height; a layout with the engine under the board                                                                            |
+| Find → analyse continuity         | Preview, open, Back restores the query (`/games?q=`); **Open always started at move one** even after stepping the preview                                                                 | The Library table, preview and filters (Phase 83)                   | Open and Review start at the previewed move                                                                                                                    |
+| Results by opening                | The dossier computed each family's score and did not show it; figures 1,100px from their labels at 1440                                                                                   | "Measured, never graded" Style (no adjectives, no invented ratings) | Family and first-move tables with share, their score and +W =D −L                                                                                              |
+| Compact, restrained               | Explorer table 650px wide in a 380px panel (W/D/B behind a sideways scroll); a 36px layout row on every dock; three accent "Connect Lichess"; three create buttons on an empty Repertoire | Tokens, hairlines, typography (Phases 82–84)                        | Container-query table, layout menu as an icon, one quiet credential button, one create action                                                                  |
 
 **Deliberately not taken:** ChessBase's name, red, artwork and wording; the
 shop (R10); cloud databases; and the Style report's adjectives and
@@ -133,7 +133,7 @@ the commit message says which).
 | Notation beside the board at every height; explorer table fits its panel; layout row → icon       | `dcd1c0a` | `e2e/analysis-laptop.spec.ts`, `e2e/phase10.spec.ts` |
 | Skip icons drew each other's glyph                                                                | `e0f9550` | `src/components/icons.test.tsx`                      |
 | Library opens at the previewed move                                                               | `68dfff6` | `e2e/library-continuity.spec.ts`                     |
-| Sidebar: research loop first                                                                      | `d03ffd6` | `e2e/navigation-order.spec.ts`                       |
+| Sidebar: research loop first — **reverted** at the owner's preference, see the handover           | `d03ffd6` | (removed with the revert)                            |
 | Tab strip counts padding and gaps (a regression the layout audit caught)                          | `1738396` | `e2e/seven-pages-layout.spec.ts`                     |
 | One create action on empty Repertoire/Studies; no "route context"                                 | `243dc62` | `e2e/empty-states.spec.ts`                           |
 | Early Enter in Preparation waits for the library; dossier results                                 | `ea7de86` | `e2e/preparation-counts.spec.ts`, `dossier.test.ts`  |
@@ -149,17 +149,17 @@ Every hash above is from `git log --oneline 0547f38..`.
 Baseline `0547f38` against the Phase 87 master, same scripts, fresh
 profiles, Chrome.
 
-| Measure                                               | Before                   | After             |
-| ----------------------------------------------------- | ------------------------ | ----------------- |
-| Board at 1280x720 / 1280x800 / 1440x790               | 452 / 532 / 522px        | 556 / 614 / 626px |
-| Notation height at those sizes                        | 63px each                | 208 / 235 / 232px |
-| Board and notation at 1470x860 and 1728x1000          | 664 / 804px, 283 / 336px | unchanged         |
-| Explorer table sideways overflow at 1280x720          | 271px                    | 0                 |
-| Explorer rows readable without scrolling, 1280x720    | **9**                    | **5**             |
-| Databases visible in the sidebar at 1280x800          | no                       | yes               |
-| Create-repertoire buttons on an empty Repertoire page | 3                        | 2 (header + page) |
-| "Start a study" on an empty Studies page              | 2                        | 1                 |
-| "no reference games" shown for Carlsen, fresh profile | yes, then 705            | never             |
+| Measure                                               | Before                   | After                                                   |
+| ----------------------------------------------------- | ------------------------ | ------------------------------------------------------- |
+| Board at 1280x720 / 1280x800 / 1440x790               | 452 / 532 / 522px        | 556 / 614 / 626px                                       |
+| Notation height at those sizes                        | 63px each                | 208 / 235 / 232px                                       |
+| Board and notation at 1470x860 and 1728x1000          | 664 / 804px, 283 / 336px | unchanged                                               |
+| Explorer table sideways overflow at 1280x720          | 271px                    | 0                                                       |
+| Explorer rows readable without scrolling, 1280x720    | **9**                    | **5**                                                   |
+| Databases visible in the sidebar at 1280x800          | no                       | no (the Phase 87 reorder that made it yes was reverted) |
+| Create-repertoire buttons on an empty Repertoire page | 3                        | 2 (header + page)                                       |
+| "Start a study" on an empty Studies page              | 2                        | 1                                                       |
+| "no reference games" shown for Carlsen, fresh profile | yes, then 705            | never                                                   |
 
 **The trade-off in that table is real.** With the notation beside the board
 on a laptop, the explorer's table has a third less height: nine readable rows

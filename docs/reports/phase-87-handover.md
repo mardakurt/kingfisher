@@ -113,7 +113,7 @@ listed there.
    is certified (§3); Section B (version, notarisation, publish, descriptor)
    is the owner's call.
 3. **User evaluation** of the laptop trade-off (explorer 9 → 5 rows) and the
-   sidebar order, with strong players, coaches and seconds.
+   layouts, with strong players, coaches and seconds.
 4. **Matrix engines.** Their macOS visual baselines were already stale before
    this phase (the WebKit endgame baseline predates Phase 86's "What can
    answer here"); the full matrix was not run.

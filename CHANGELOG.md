@@ -21,9 +21,6 @@ Phase numbers below this header will be moved into a dated `## <version>` sectio
   keeps every column. The panel's title is the opening's name. (Phase 87)
 - **Layout → Engine under the board** shows the notation, the explorer and
   the engine's lines at the same time. (Phase 87)
-- **The sidebar starts with the research loop**: Analysis, Library,
-  Databases, Openings, Players and Similar games, then Prepare, then Improve.
-  Databases was below the fold on a 13-inch screen. (Phase 87)
 - **Fixed: Preparation could say a famous player had no games.** For the
   first moments after opening the page it offered "Carlsen, Magnus — no
   reference games" while the packs were still loading; it now waits, and an

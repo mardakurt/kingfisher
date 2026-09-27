@@ -273,7 +273,7 @@ with [`AGENTS.md`](../AGENTS.md).
 
 - [`reports/phase-87-handover.md`](reports/phase-87-handover.md) — the
   ChessBase-alternative reassessment: the laptop layout, preparation counts,
-  Library continuity, sidebar order and empty states, with every gate run;
+  Library continuity and empty states, with every gate run;
   unreleased. [`reports/phase-87-documentation-audit.md`](reports/phase-87-documentation-audit.md)
   — what Phase 87 checked in all 264 Markdown files, category by category,
   and what it did not. Before-and-after evidence:

@@ -99,14 +99,13 @@ not depend on hue alone. Settings is the one labelled row at the foot; theme,
 feedback and collapse share a row of icons, each with its accessible name.
 The list fits a 1440x900 display without scrolling.
 
-Since Phase 87 the groups follow the research loop: two unlabelled rows
-(Search, Recent), then **Research** (Analysis, Library, Databases, Openings,
-Players, Similar games), **Prepare** (Preparation, Repertoire, Studies,
-Opening Files, Team) and **Improve** (Review, Scoresheet, Training, Daily,
-Season, Endgame). Library and Databases used to close the list, and on a
-1280x800 or 1440x860 window Databases was below the fold;
-`e2e/navigation-order.spec.ts` holds the core workflows in view at those
-sizes. The order is `src/features/shell/navigation.ts`.
+The groups are Study (Analysis, Openings, Studies, Repertoire), Prepare
+(Preparation, Players, Opening Files, Team), Improve (Review, Training, Daily,
+Season, Endgame) and Data (Library, Scoresheet, Similar games, Databases),
+under two unlabelled rows (Search, Recent). Phase 87 tried a Research group
+first (Analysis, Library, Databases…) because Databases sits below the fold of
+the list on a 1280x800 window; the owner preferred these groups and they were
+restored. The order is `src/features/shell/navigation.ts`.
 
 The board column holds the board and its controls. The side panel opens with
 the **Notation** as a disclosure section — folded or open, remembered per

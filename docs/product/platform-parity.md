@@ -28,7 +28,7 @@ also wraps controls to keep the engine selector readable in a narrow panel.
 is ahead of the public Mac (1.3.2, build 908, `6b59452`) by the Phase 87
 changes, all in shared application code and all Mac-facing: the notation's
 default place and the explorer's narrow table, the Engine under the board
-layout, the sidebar order, the preparation counts and early Enter, the
+layout, the preparation counts and early Enter, the
 dossier's results, the Library opening at the previewed move, the corrected
 skip icons, and the quieter empty states. Nothing under `desktop/` or
 `companion/` changed. No version was bumped and no build was published:
