@@ -1,0 +1,20 @@
+/* eslint-disable no-console -- measurement scripts report on stdout */
+import { chromium } from '@playwright/test';
+const out = process.argv[2];
+const browser = await chromium.launch({ channel: 'chrome' });
+const page = await (await browser.newContext({ viewport:{width:1440,height:860} })).newPage();
+await page.goto('http://localhost:3210/analysis');
+await page.locator('html[data-kingfisher-ready="true"]').waitFor();
+await page.getByRole('button', { name: /^Import( PGN or FEN)?$/ }).first().click();
+const dialog = page.getByRole('dialog', { name: 'Import a game or position' });
+await dialog.getByRole('textbox').fill('1. e4 c5 2. Nf3 d6 3. d4 cxd4 4. Nxd4 Nf6 5. Nc3 a6 *');
+await dialog.getByRole('button', { name: /Import game/ }).click();
+await page.waitForTimeout(1200);
+await page.keyboard.press('End');
+await page.getByRole('button', { name: /^Layout/ }).click();
+await page.getByRole('menuitem', { name: 'Engine under the board' }).click();
+await page.waitForTimeout(800);
+await page.getByRole('button', { name: 'Analyse this position' }).click().catch(() => console.log('no analyse'));
+await page.waitForTimeout(6000);
+await page.screenshot({ path: `${out}/preset-engine-below.png` });
+await browser.close();

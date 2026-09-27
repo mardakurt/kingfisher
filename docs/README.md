@@ -96,6 +96,12 @@ with [`AGENTS.md`](../AGENTS.md).
   Kingfisher against ChessBase 26 and ChessBase for Mac, workflow by workflow,
   with sources, what Phase 84 closed, and the verdict (ALMOST) with the gaps
   that stand between it and YES.
+- [`product/competitive-assessment-phase-87.md`](product/competitive-assessment-phase-87.md)
+  — Kingfisher against ChessBase by workflow, from the running application
+  (Phase 87): the ten reference photographs and what was and was not taken
+  from them, measured before-and-after numbers, and the verdict — yes on the
+  core workflows with a player's own data, not yet for the professional who
+  depends on ChessBase's corpus, remote engines or Windows.
 - [`product/not-built.md`](product/not-built.md) — what is not built after
   Phase 86: blocked, designed, partly built and not started, each with why.
 - [`product/parity-ledger.md`](product/parity-ledger.md) — the parity
@@ -265,6 +271,17 @@ with [`AGENTS.md`](../AGENTS.md).
 
 ## Historical
 
+- [`reports/phase-87-handover.md`](reports/phase-87-handover.md) — the
+  ChessBase-alternative reassessment: the laptop layout, preparation counts,
+  Library continuity, sidebar order and empty states, with every gate run;
+  unreleased. [`reports/phase-87-documentation-audit.md`](reports/phase-87-documentation-audit.md)
+  — what Phase 87 checked in all 264 Markdown files, category by category,
+  and what it did not. Before-and-after evidence:
+  [`release-evidence/phase-87/ux/`](release-evidence/phase-87/ux).
+- [`reports/phase-86-handover.md`](reports/phase-86-handover.md) — the parity
+  program's first phase, seven pages reworked, Mac 1.3.2;
+  [`reports/phase-86-workflow-matrix.md`](reports/phase-86-workflow-matrix.md)
+  — its journeys with the test behind each.
 - [`reports/phase-85-handover.md`](reports/phase-85-handover.md) — the
   evidence-led ChessBase verdict: million-game import/search, dated and rated
   packs, persistent deep analysis, the Mac gates, and every acceptance row.

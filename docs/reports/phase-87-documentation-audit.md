@@ -1,0 +1,48 @@
+# Phase 87 — documentation audit
+
+_2026-09-27. Scope: every Markdown file tracked by git (`git ls-files '*.md'`,
+264 files), the Settings copy in `src/features/shell/`, and the in-app
+public pages under `src/app/`. The question asked of each was narrow and
+stated: **did Phase 87 make it untrue, and does it still name things that
+exist?** A document not read end to end is recorded as such._
+
+## Method
+
+1. **Automated claims.** `npm run docs:check` — 345 assertions over the
+   public surface, the release descriptor, the install guide, security and
+   privacy pages, and every relative link in all 264 files. Result at the
+   Phase 87 documentation commit: **345/345**.
+2. **Targeted search for what Phase 87 changed.** Every Markdown file and
+   `src/` string searched for the behaviours that moved: the notation's
+   place (`under the board`, `860`, `lower panel`, `folds … into the dock`,
+   `moveTreeInDock`), the sidebar's groups and page names (`Study`,
+   `Data`, the old page list), the layout row (`Layout`, `tools` count), the
+   preset count, and the preparation wording (`newest of`, `found`).
+3. **Read in full** where a hit was found, and the user-facing guides.
+
+## Disposition by category
+
+| Category (files)                                                                                                                      | Disposition                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| ------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Root: README, ARCHITECTURE, AGENTS, CLAUDE, CHANGELOG, SECURITY, THIRD_PARTY_DATA, THIRD_PARTY_ASSETS (8)                             | **ARCHITECTURE** corrected: the move-tree home (marked superseded in part, reasoning kept), the preset count (nine), the board-size policy paragraph. **CHANGELOG** Unreleased (web) lists the Phase 87 changes. README, AGENTS, SECURITY: searched, no statement Phase 87 made untrue; `docs:check` holds their release claims. THIRD_PARTY_*: no dataset or asset added in Phase 87 — unchanged.                                                                                     |
+| `docs/design/` (21)                                                                                                                   | **visual-system.md** corrected and extended (sidebar groups, notation at every height, layout icon, container-query panels, dossier, Library opening at the previewed move). The other twenty searched: no hit.                                                                                                                                                                                                                                                                        |
+| `docs/product/` (34, plus the new assessment)                                                                                         | **platform-parity.md**: Phase 87 published-revision entry (master ahead of the public Mac, unreleased). **first-100-user-guide.md**: the sidebar page list rewritten. **competitive-assessment-phase-87.md**: new. `chessbase-parity-audit.md` and `parity-ledger.md` are records of Phases 84–86 and were not rewritten; the new assessment cites them and states what Phase 87 adds. Phase-numbered audits in this folder are historical (per `docs/README.md`) and were not edited. |
+| `docs/user/` (2)                                                                                                                      | **getting-started.md**: "the board with the move list under it" corrected (untrue since Phase 82). `diagnostics.md`: searched, no hit.                                                                                                                                                                                                                                                                                                                                                 |
+| `docs/operations/` (9), `docs/deployment.md`, `docs/release/` (32)                                                                    | Searched; no Phase 87 hit. Release notes are records of their versions and were not edited. No release was made, so the install guide and descriptor are unchanged and `docs:check` confirms they agree.                                                                                                                                                                                                                                                                               |
+| `docs/adr/` (53)                                                                                                                      | Records. Searched for the notation policy (ADR 0040 is the board-priority decision): its decision — a policy, not a pixel size — stands; the notation's default place is not an ADR's subject. Not edited.                                                                                                                                                                                                                                                                             |
+| `docs/reports/` (62)                                                                                                                  | Historical handovers and matrices. Not edited. Phase 87 adds this audit and `phase-87-handover.md`.                                                                                                                                                                                                                                                                                                                                                                                    |
+| `docs/data/` (9), `docs/performance/` (16), `docs/benchmark-reports/` (2), `docs/security/` (2), `docs/legal/` (3), `docs/ENGINES.md` | Searched; no Phase 87 hit. Not read in full in this phase.                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `docs/release-evidence/` (1), `.github/` (3), `companion/` (2), `data/` (1), `marketing/` (1)                                         | Searched; no Phase 87 hit. Not read in full.                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| In-app copy                                                                                                                           | **Settings → Board priority** hint and the settings contract's effect line said Maximum "folds the notation into the dock"; every policy does now. Corrected. The tools panel's "No route context available" replaced. The public pages under `src/app/` (landing, install, privacy, security, data licences, terms) make no claim about the layouts changed here; `docs:check` passes over them.                                                                                      |
+| `docs/README.md` (the index)                                                                                                          | Lists the two new documents.                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+
+## What this audit does not establish
+
+- **"All documentation is current" is not claimed.** The search in step 2
+  finds what Phase 87 could have made untrue; it does not re-verify claims
+  in documents Phase 87 did not touch. Categories marked "not read in full"
+  were not re-read.
+- Counts in the reference-data documents (games per pack, players in the
+  roster) were not recomputed; no pack or roster changed in Phase 87.
+- Screenshots in older release evidence show the old sidebar and layout.
+  They are records of their phase and were left as they are.

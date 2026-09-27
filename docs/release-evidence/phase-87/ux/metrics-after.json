@@ -1,0 +1,15 @@
+{
+ "explorer1280x720": {
+  "visibleRows": 5,
+  "tableOverflowPx": 0
+ },
+ "sidebar1280x800": {
+  "databasesVisible": true
+ },
+ "repertoireCreateButtons": 2,
+ "studiesStartButtons": 1,
+ "routeContextSentence": 0,
+ "prepSuggestionsSeen": [
+  "GMCarlsen, MagnusNO 705 reference games"
+ ]
+}
