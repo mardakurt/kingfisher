@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+
 import { expect, test, type Page } from '@playwright/test';
 
 import type { importGames } from '../src/persistence/import-game';
@@ -19,20 +21,20 @@ const GAME = `[Event "Continuity Open"]
 1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Be7 6. Re1 b5 7. Bb3 d6 8. c3 O-O 1-0
 `;
 
-async function seed(page: Page) {
+async function seed(page: Page, pgn = GAME) {
   await page.goto('/games');
   await page.locator('html[data-kingfisher-ready="true"]').waitFor();
   await page.waitForFunction(() =>
     Boolean((globalThis as { __kingfisher?: unknown }).__kingfisher),
   );
-  await page.evaluate(async (pgn) => {
+  await page.evaluate(async (text) => {
     const app = (
       globalThis as typeof globalThis & {
         __kingfisher: AppRepositories & { importGames: typeof importGames };
       }
     ).__kingfisher;
-    await app.importGames(pgn, app.games);
-  }, GAME);
+    await app.importGames(text, app.games);
+  }, pgn);
   await page.reload();
   await page.locator('html[data-kingfisher-ready="true"]').waitFor();
 }
@@ -59,4 +61,40 @@ test('Open without stepping still opens at the start, as before', async ({ page 
   const frame = page.locator('[data-workspace-frame="analysis"]');
   await expect(frame.getByText('Bb5', { exact: true }).first()).toBeVisible();
   await expect(frame.locator('[data-current="true"]')).toHaveCount(0);
+});
+
+test('Back from a game returns to the same page, with the same game selected and in view', async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  await page.setViewportSize({ width: 1440, height: 860 });
+  // 250 games: three pages of a hundred.
+  const pgn = readFileSync('public/bench/bench-1k.pgn', 'utf8')
+    .split('\n\n[Event')
+    .slice(0, 250)
+    .join('\n\n[Event');
+  await seed(page, pgn);
+  const firstOnPageOne = await page.locator('tbody tr').first().getAttribute('data-game-row');
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await expect(page.getByText('2/3', { exact: true })).toBeVisible();
+  await expect
+    .poll(() => page.locator('tbody tr').first().getAttribute('data-game-row'))
+    .not.toBe(firstOnPageOne);
+  const row = page.locator('tbody tr').nth(60);
+  await row.scrollIntoViewIfNeeded();
+  await row.click();
+  const chosen = await row.getAttribute('data-game-row');
+
+  expect(chosen).toBeTruthy();
+
+  await row.dblclick();
+  await page.waitForURL('**/analysis');
+  await page.goBack();
+  await page.locator('html[data-kingfisher-ready="true"]').waitFor();
+
+  await expect(page.getByText('2/3', { exact: true })).toBeVisible();
+  const selected = page.locator(`tbody tr[data-game-row="${chosen}"]`);
+  await expect(selected).toHaveAttribute('aria-selected', 'true');
+  await expect(selected).toBeInViewport();
+  await expect(page.locator(`[data-library-preview="${chosen}"]`)).toBeVisible();
 });

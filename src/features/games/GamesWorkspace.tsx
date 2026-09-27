@@ -10,7 +10,7 @@
  * seven-column table at 320px is a table nobody can read.
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { listCollections } from '@/database/collections/registry';
@@ -155,6 +155,8 @@ export function GamesWorkspace() {
   const [page, setPage] = useState(0);
   /** The row whose game the preview shows. */
   const [previewId, setPreviewId] = useState<string | null>(null);
+  /** The row to bring into view once, after a return restored the preview. */
+  const restoreScrollTo = useRef<string | null>(null);
   const wide = useMediaQuery('(min-width: 1024px)');
   const [recentFilters, setRecentFilters] =
     useState<readonly ResearchFilter[]>(recentResearchFilters);
@@ -170,12 +172,25 @@ export function GamesWorkspace() {
     const q = params.get('q');
     const who = params.get('player');
     const db = params.get('db');
+    const pageNumber = Number(params.get('page'));
+    const game = params.get('game');
     // The address is outside React and unknown to the server render, so it is
     // read once here; setting state from it is the synchronisation itself.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (q) setText(q);
     if (db) setSourceId(db);
     if (who) setPlayer(who);
+    /*
+      Phase 87: the page and the previewed game as well. Back from a game
+      opened on page 2 came to page 1, scrolled to the top, nothing selected
+      — the place in the list was lost at exactly the moment a player returns
+      to it for the next game.
+    */
+    if (Number.isInteger(pageNumber) && pageNumber > 1) setPage(pageNumber - 1);
+    if (game) {
+      setPreviewId(game);
+      restoreScrollTo.current = game;
+    }
   }, []);
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -194,6 +209,23 @@ export function GamesWorkspace() {
     }, 400);
     return () => window.clearTimeout(timer);
   }, [text, player, sourceId]);
+  /*
+    The page and the previewed game go into the address at once, not after
+    the typing debounce: a click on a row and a double-click to open it come
+    well inside 400ms, and the debounce was cancelled by the navigation.
+  */
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (page > 0) params.set('page', String(page + 1));
+    else params.delete('page');
+    if (previewId) params.set('game', previewId);
+    else params.delete('game');
+    const search = params.toString();
+    const next = `${window.location.pathname}${search ? `?${search}` : ''}`;
+    if (next !== `${window.location.pathname}${window.location.search}`) {
+      window.history.replaceState(window.history.state, '', next);
+    }
+  }, [page, previewId]);
 
   /*
     Phase 84: the database the list shows. My games is the browser's own; a
@@ -526,6 +558,16 @@ export function GamesWorkspace() {
   }));
 
   const previewing = previewId ? (rows.find((row) => row.id === previewId) ?? null) : null;
+  // Once the restored page has its rows, the restored game is brought into view.
+  const rowKey = rows.map((row) => row.id).join('|');
+  useEffect(() => {
+    const id = restoreScrollTo.current;
+    if (!id || !rowKey.split('|').includes(id)) return;
+    restoreScrollTo.current = null;
+    document
+      .querySelector(`tr[data-game-row="${CSS.escape(id)}"]`)
+      ?.scrollIntoView({ block: 'center' });
+  }, [rowKey]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -812,6 +854,7 @@ export function GamesWorkspace() {
                   return (
                     <tr
                       key={game.id}
+                      data-game-row={game.id}
                       tabIndex={0}
                       aria-selected={active}
                       onClick={() => setPreviewId(game.id)}
