@@ -48,7 +48,7 @@ async function photoAsDataUrl(file: File, maxEdge = 1800): Promise<string> {
   return canvas.toDataURL('image/jpeg', 0.85);
 }
 
-export function SheetPanel() {
+export function SheetPanel({ ready = true }: { readonly ready?: boolean }) {
   const photo = useScoresheet((state) => state.photo);
   const gap = useScoresheet((state) => state.gap);
   const reading = useScoresheet((state) => state.reading);
@@ -91,6 +91,10 @@ export function SheetPanel() {
   const assistantReady = Boolean(prefs.assistantBaseUrl && prefs.assistantModel);
 
   useEffect(() => () => useScoresheet.getState().reset(), []);
+  // A disabled field cannot take the autofocus; it takes focus once it opens.
+  useEffect(() => {
+    if (ready) inputRef.current?.focus();
+  }, [ready]);
 
   const submit = (token = text) => {
     if (!token.trim()) return;
@@ -314,6 +318,7 @@ export function SheetPanel() {
             ref={inputRef}
             aria-label="Move as written on the sheet"
             value={text}
+            disabled={!ready}
             autoFocus
             spellCheck={false}
             autoComplete="off"
@@ -330,9 +335,11 @@ export function SheetPanel() {
               }
             }}
             placeholder={
-              gap
-                ? 'Next cell after the gap…'
-                : 'Nf3, Sf3, 0-0, ed, e8Q — or ? for a cell you cannot read'
+              !ready
+                ? 'Opening your sheet…'
+                : gap
+                  ? 'Next cell after the gap…'
+                  : 'Nf3, Sf3, 0-0, ed, e8Q — or ? for a cell you cannot read'
             }
             className="h-8 w-full rounded-[6px] border border-line bg-surface-inset px-2 font-mono text-[12px] text-primary outline-none focus:border-accent/60"
           />

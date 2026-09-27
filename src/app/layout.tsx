@@ -11,8 +11,10 @@ import './globals.css';
   Inter is not preloaded: `--font-ui` puts the platform's own face first, so on
   a Mac or a Windows machine it is never drawn, and preloading it cost every
   visitor about 48 KB that Firefox reported as fetched and unused. The mono
-  face is preloaded: the status bar's FEN and the shortcut keys draw it on the
-  first paint of every board page.
+  face is not preloaded either: not every page draws it on first paint (the
+  Studies list does not), and Firefox reports a preload unused for a few
+  seconds as a warning. With `display: 'swap'` a FEN is drawn at once in the
+  fallback and takes the face when it arrives.
 */
 const inter = Inter({
   subsets: ['latin'],
@@ -25,6 +27,7 @@ const mono = JetBrains_Mono({
   subsets: ['latin'],
   variable: '--font-mono-face',
   display: 'swap',
+  preload: false,
 });
 
 const LANDING = publicUrl.landing;

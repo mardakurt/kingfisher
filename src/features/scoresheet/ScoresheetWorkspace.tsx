@@ -9,7 +9,7 @@
  * profile's own name where the sheet would carry it.
  */
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import { createTree } from '@/chess/tree/tree';
 import { START_FEN } from '@/chess/fen';
@@ -23,6 +23,13 @@ import { SheetPanel } from './SheetPanel';
 const SHEET_TITLE = 'From the sheet';
 
 export function ScoresheetWorkspace() {
+  /*
+    Nothing can be typed until the sheet is on the board. Waiting for the
+    restore opened a window in which the entry line wrote to whatever
+    document was there, and the fresh sheet then replaced it: WebKit settles
+    the restore late enough to lose the first move typed.
+  */
+  const [ready, setReady] = useState(false);
   useEffect(() => {
     /*
       Arriving here means starting a sheet, unless one is already in
@@ -36,7 +43,10 @@ export function ScoresheetWorkspace() {
     void workspaceRestored().then(() => {
       if (cancelled) return;
       const { document, openDocument } = useAnalysis.getState();
-      if (document.kind === 'untitled' && document.title === SHEET_TITLE) return;
+      if (document.kind === 'untitled' && document.title === SHEET_TITLE) {
+        setReady(true);
+        return;
+      }
       openDocument({
         tree: createTree(START_FEN, {
           Event: '?',
@@ -47,6 +57,7 @@ export function ScoresheetWorkspace() {
         }),
         document: { kind: 'untitled', title: SHEET_TITLE },
       });
+      setReady(true);
     });
     return () => {
       cancelled = true;
@@ -59,7 +70,7 @@ export function ScoresheetWorkspace() {
       title="Scoresheet"
       subtitle="Your over-the-board game, from the sheet to the board"
       icon={<Pencil className="h-4 w-4 text-accent" />}
-      rail={{ label: 'Sheet', width: 320, content: <SheetPanel /> }}
+      rail={{ label: 'Sheet', width: 320, content: <SheetPanel ready={ready} /> }}
       board={{ mode: 'interactive', showEvaluationArtifacts: false }}
     />
   );

@@ -149,9 +149,13 @@ test('notes changed in another tab are not overwritten', async ({ page, context 
     .getByRole('button', { name: /Two tabs/ })
     .click();
 
+  // Typed key by key: Playwright's fill() does not reach React in a Firefox
+  // page that is not in front, which is not how a person enters notes.
   // The other tab writes first.
   const theirs = other.locator('[data-opening-file-panel]');
-  await theirs.getByRole('textbox', { name: /Notes/ }).fill('Written in the other tab.');
+  await theirs
+    .getByRole('textbox', { name: /Notes/ })
+    .pressSequentially('Written in the other tab.');
   await expect(theirs.locator('[data-opening-file-notes-state]')).toHaveAttribute(
     'data-opening-file-notes-state',
     'saved',
@@ -159,7 +163,7 @@ test('notes changed in another tab are not overwritten', async ({ page, context 
 
   // This tab, which loaded the notes empty, does not replace them.
   const mine = page.locator('[data-opening-file-panel]');
-  await mine.getByRole('textbox', { name: /Notes/ }).fill('Written here.');
+  await mine.getByRole('textbox', { name: /Notes/ }).pressSequentially('Written here.');
   await expect(mine.locator('[data-opening-file-notes-state]')).toHaveAttribute(
     'data-opening-file-notes-state',
     'conflict',

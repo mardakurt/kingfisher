@@ -209,7 +209,9 @@ test.describe('focus is visible on the reworked pages', () => {
     '/team',
     '/opening-files',
   ]) {
-    test(`${route} shows where focus is at every Tab`, async ({ page }) => {
+    test(`${route} shows where focus is at every Tab`, async ({ page, browserName }) => {
+      // Safari's Tab moves between fields only; Option-Tab reaches every control.
+      const next = browserName === 'webkit' ? 'Alt+Tab' : 'Tab';
       await page.setViewportSize({ width: 1440, height: 900 });
       await page.goto(route);
       await waitForApp(page);
@@ -217,7 +219,7 @@ test.describe('focus is visible on the reworked pages', () => {
       const problems: string[] = [];
       const seen = new Set<string>();
       for (let step = 0; step < 45; step += 1) {
-        await page.keyboard.press('Tab');
+        await page.keyboard.press(next);
         const state = await page.evaluate(() => {
           const element = document.activeElement as HTMLElement | null;
           if (!element || element === document.body) return null;
