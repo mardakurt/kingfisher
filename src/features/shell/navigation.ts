@@ -8,7 +8,7 @@
  * Three things this file is responsible for, and they are all about being able
  * to find something in a list that has grown to fourteen entries:
  *
- *  - **Groups.** Thirteen equally-weighted rows is a menu nobody reads. Four
+ *  - **Groups.** Thirteen equally-weighted rows is a menu nobody reads. Three
  *    named groups turn it into four short lists, and the names say what the
  *    sections are *for* rather than what they are called.
  *  - **One icon per section, never shared.** Openings and Opening Files used
@@ -43,7 +43,7 @@ import {
   Team,
 } from '@/components/icons';
 
-export type NavGroupId = 'start' | 'study' | 'prepare' | 'improve' | 'data';
+export type NavGroupId = 'start' | 'research' | 'prepare' | 'improve';
 
 export interface NavSection {
   readonly id: string;
@@ -54,13 +54,20 @@ export interface NavSection {
   readonly group: NavGroupId;
 }
 
-/** `start` has no heading: one row does not need a title above it. */
+/**
+ * `start` has no heading: two rows do not need a title above them.
+ *
+ * Phase 87 put the research workstation's own loop first — the board, the
+ * games, the databases, the openings and the players they come from. Until
+ * then Library and Databases were the last group ("Data"), below Season and
+ * Endgame, and on a 1280x800 or 1440x860 window Databases was under the fold
+ * of the sidebar. What falls under it now is the least-used end of Improve.
+ */
 export const NAV_GROUPS: readonly { readonly id: NavGroupId; readonly label: string | null }[] = [
   { id: 'start', label: null },
-  { id: 'study', label: 'Study' },
+  { id: 'research', label: 'Research' },
   { id: 'prepare', label: 'Prepare' },
   { id: 'improve', label: 'Improve' },
-  { id: 'data', label: 'Data' },
 ];
 
 export const NAV_SECTIONS: readonly NavSection[] = [
@@ -86,7 +93,23 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     href: '/analysis',
     icon: Board,
     hint: 'Analyse a position or game with engine and evidence.',
-    group: 'study',
+    group: 'research',
+  },
+  {
+    id: 'games',
+    label: 'Library',
+    href: '/games',
+    icon: Library,
+    hint: 'Every game you keep: search, filter, preview, and open on the board.',
+    group: 'research',
+  },
+  {
+    id: 'databases',
+    label: 'Databases',
+    href: '/databases',
+    icon: Database,
+    hint: 'Collections, reference packs, and what each source may answer.',
+    group: 'research',
   },
   {
     id: 'openings',
@@ -94,23 +117,23 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     href: '/openings',
     icon: Opening,
     hint: 'Browse the opening library and explore theory with database evidence.',
-    group: 'study',
+    group: 'research',
   },
   {
-    id: 'studies',
-    label: 'Studies',
-    href: '/studies',
-    icon: Notebook,
-    hint: 'Notebooks of chapters and analysis.',
-    group: 'study',
+    id: 'players',
+    label: 'Players',
+    href: '/players',
+    icon: Players,
+    hint: 'Search elite and historical players across your reference sources.',
+    group: 'research',
   },
   {
-    id: 'repertoire',
-    label: 'Repertoire',
-    href: '/repertoire',
-    icon: Repertoire,
-    hint: 'Maintain lines you intend to play.',
-    group: 'study',
+    id: 'similar',
+    label: 'Similar games',
+    href: '/similar',
+    icon: Similar,
+    hint: 'The position on the board, looked for in every source you have.',
+    group: 'research',
   },
   {
     id: 'preparation',
@@ -121,11 +144,19 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     group: 'prepare',
   },
   {
-    id: 'players',
-    label: 'Players',
-    href: '/players',
-    icon: Players,
-    hint: 'Search elite and historical players across your reference sources.',
+    id: 'repertoire',
+    label: 'Repertoire',
+    href: '/repertoire',
+    icon: Repertoire,
+    hint: 'Maintain lines you intend to play.',
+    group: 'prepare',
+  },
+  {
+    id: 'studies',
+    label: 'Studies',
+    href: '/studies',
+    icon: Notebook,
+    hint: 'Notebooks of chapters and analysis.',
     group: 'prepare',
   },
   {
@@ -150,6 +181,14 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     href: '/review',
     icon: Review,
     hint: 'Study your own decisions: record first, reveal the evidence after.',
+    group: 'improve',
+  },
+  {
+    id: 'scoresheet',
+    label: 'Scoresheet',
+    href: '/scoresheet',
+    icon: Pencil,
+    hint: 'Your over-the-board game, from the sheet to the board.',
     group: 'improve',
   },
   {
@@ -183,38 +222,6 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     icon: Endgame,
     hint: 'A library of endgames, with tablebase proof beside them.',
     group: 'improve',
-  },
-  {
-    id: 'games',
-    label: 'Library',
-    href: '/games',
-    icon: Library,
-    hint: 'Every game you keep: search, filter, preview, and open on the board.',
-    group: 'data',
-  },
-  {
-    id: 'scoresheet',
-    label: 'Scoresheet',
-    href: '/scoresheet',
-    icon: Pencil,
-    hint: 'Your over-the-board game, from the sheet to the board.',
-    group: 'data',
-  },
-  {
-    id: 'similar',
-    label: 'Similar games',
-    href: '/similar',
-    icon: Similar,
-    hint: 'The position on the board, looked for in every source you have.',
-    group: 'data',
-  },
-  {
-    id: 'databases',
-    label: 'Databases',
-    href: '/databases',
-    icon: Database,
-    hint: 'Collections, reference packs, and what each source may answer.',
-    group: 'data',
   },
 ];
 
