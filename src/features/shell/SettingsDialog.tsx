@@ -828,6 +828,17 @@ function DatabaseSection() {
           onChange={(event) => prefs.set('explorerSourceId', event.target.value)}
           className="h-8 w-full max-w-[220px] rounded-[6px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
         >
+          {/*
+            The saved source, even when it is not a provider yet. On a fresh
+            profile the built-in pack is still installing, and a select whose
+            value matches no option shows its first option — "Lichess
+            Masters", which the explorer was not using (Phase 87).
+          */}
+          {providers.some((provider) => provider.id === prefs.explorerSourceId) ? null : (
+            <option value={prefs.explorerSourceId}>
+              {catalogPack(prefs.explorerSourceId)?.name ?? prefs.explorerSourceId} — not ready yet
+            </option>
+          )}
           {providers.map((provider) => (
             <option key={provider.id} value={provider.id}>
               {provider.name}
