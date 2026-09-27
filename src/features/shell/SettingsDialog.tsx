@@ -2124,6 +2124,18 @@ function BackupControls() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [includeGames, setIncludeGames] = useState(false);
   const [pending, setPending] = useState<WorkspaceBackup | null>(null);
+  /*
+    The backup chosen, brought into view. It appears at the foot of a long
+    section, and after the file dialog closed it rendered below the visible
+    part of the panel: nothing seemed to happen (Phase 87, measured at 131px
+    under the fold on a 900px window).
+  */
+  const previewRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!pending) return;
+    previewRef.current?.scrollIntoView({ block: 'nearest' });
+    previewRef.current?.focus({ preventScroll: true });
+  }, [pending]);
   const [replaceOpen, setReplaceOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   /*
@@ -2374,7 +2386,14 @@ function BackupControls() {
         />
       </div>
       {pending ? (
-        <div className="mt-3 rounded-[6px] border border-line bg-surface-inset p-3">
+        <div
+          ref={previewRef}
+          tabIndex={-1}
+          role="region"
+          aria-label="Backup to restore"
+          data-backup-preview
+          className="mt-3 rounded-[6px] border border-line bg-surface-inset p-3 outline-none"
+        >
           <p className="text-2xs text-secondary">
             Backup from {new Date(pending.createdAt).toLocaleString()} ·{' '}
             {pending.includesGames ? 'includes games' : 'authored work only'}
