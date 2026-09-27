@@ -152,15 +152,17 @@ export function EndgameWorkspace({
             <p className="mt-3 text-2xs leading-relaxed text-tertiary">
               Positions of up to seven pieces are also answered by a tablebase — see{' '}
               <em>What can answer here</em> above. To answer them offline and keep them on this
-              machine, add Syzygy files in{' '}
-              <button
-                type="button"
-                onClick={() => openSettingsAt('companion')}
-                className="cursor-pointer underline decoration-dotted underline-offset-2 hover:text-secondary"
-              >
-                Settings → Companion
-              </button>
-              .
+              machine, add Syzygy files in {/* The link and its full stop wrap together. */}
+              <span className="whitespace-nowrap">
+                <button
+                  type="button"
+                  onClick={() => openSettingsAt('companion')}
+                  className="cursor-pointer underline decoration-dotted underline-offset-2 hover:text-secondary"
+                >
+                  Settings → Companion
+                </button>
+                .
+              </span>
             </p>
           </EmptyState>
         ) : (
