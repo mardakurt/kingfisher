@@ -81,3 +81,39 @@ test('typing needs no endpoint, and reading a photo says what it needs', async (
     'Reading a photo needs an assistant endpoint; typing needs nothing.',
   );
 });
+
+/**
+ * Correction and interruption: a wrong move taken back and re-entered, then
+ * the window reloaded mid-sheet. The moves are the workspace's document, so
+ * they come back; nothing typed is lost to a reload.
+ */
+test('a sheet is corrected by taking a move back, and survives a reload', async ({ page }) => {
+  await page.goto('/scoresheet');
+  await ready(page);
+  const entry = page.getByLabel('Move as written on the sheet');
+  const type = async (token: string) => {
+    await entry.fill(token);
+    await entry.press('Enter');
+  };
+  const counted = page.getByTestId('sheet-entry');
+
+  for (const token of ['e4', 'e5', 'Nf3', 'Nf6']) await type(token);
+  await expect(counted).toContainText('4 on the board');
+  // Misread: it was Nc6. Taken back with the button, then with Backspace.
+  await counted.getByRole('button', { name: 'Take back', exact: true }).click();
+  await expect(counted).toContainText('3 on the board');
+  await expect(counted.getByRole('status')).toHaveText('Took the last move back.');
+  await type('Sc6');
+  await type('Lb5');
+  await entry.press('Backspace');
+  await expect(counted).toContainText('4 on the board');
+  await type('Bc4');
+  await expect(counted).toContainText('5 on the board');
+
+  await page.reload();
+  await ready(page);
+  await expect(page.getByTestId('sheet-entry')).toContainText('5 on the board');
+  const board = page.getByRole('grid', { name: 'Chessboard' }).first();
+  await expect(board.getByRole('gridcell', { name: /^c4, White bishop/ })).toBeVisible();
+  await expect(board.getByRole('gridcell', { name: /^c6, Black knight/ })).toBeVisible();
+});

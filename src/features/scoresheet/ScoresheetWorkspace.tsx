@@ -15,23 +15,42 @@ import { createTree } from '@/chess/tree/tree';
 import { START_FEN } from '@/chess/fen';
 import { Pencil } from '@/components/icons';
 import { WorkspaceFrame } from '@/features/workspace/WorkspaceFrame';
+import { workspaceRestored } from '@/features/persistence/useWorkspacePersistence';
 import { useAnalysis } from '@/stores/analysis-store';
 
 import { SheetPanel } from './SheetPanel';
 
-export function ScoresheetWorkspace() {
-  const openDocument = useAnalysis((state) => state.openDocument);
-  const document = useAnalysis((state) => state.document);
+const SHEET_TITLE = 'From the sheet';
 
+export function ScoresheetWorkspace() {
   useEffect(() => {
-    // Arriving here means starting a sheet, unless one is already in progress.
-    if (document.kind === 'untitled' && document.title === 'From the sheet') return;
-    openDocument({
-      tree: createTree(START_FEN, { Event: '?', Round: '?', White: '?', Black: '?', Result: '*' }),
-      document: { kind: 'untitled', title: 'From the sheet' },
+    /*
+      Arriving here means starting a sheet, unless one is already in
+      progress. "Already" has to wait for the reload's draft restore: decided
+      at mount, the page saw the default document, opened a blank sheet, and
+      the moves typed before the reload were replaced by it — every one of
+      them, on the page whose job is not to lose a game. Workspace tabs wait
+      on the same promise for the same reason.
+    */
+    let cancelled = false;
+    void workspaceRestored().then(() => {
+      if (cancelled) return;
+      const { document, openDocument } = useAnalysis.getState();
+      if (document.kind === 'untitled' && document.title === SHEET_TITLE) return;
+      openDocument({
+        tree: createTree(START_FEN, {
+          Event: '?',
+          Round: '?',
+          White: '?',
+          Black: '?',
+          Result: '*',
+        }),
+        document: { kind: 'untitled', title: SHEET_TITLE },
+      });
     });
-    // Once, on entering the route.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (

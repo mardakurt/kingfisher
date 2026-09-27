@@ -279,9 +279,25 @@ export function SheetPanel() {
       </section>
 
       <section className="border-b border-line-subtle p-2" data-testid="sheet-entry">
-        <h2 className="mb-1 text-[10px] font-semibold text-tertiary">
-          Enter moves · {plyCount} on the board
-        </h2>
+        <div className="mb-1 flex items-center gap-2">
+          <h2 className="text-[10px] font-semibold text-tertiary">
+            Enter moves · {plyCount} on the board
+          </h2>
+          {/* Backspace on an empty line does the same; this is the pointer's way. */}
+          <Button
+            size="sm"
+            variant="ghost"
+            className="ml-auto"
+            disabled={plyCount === 0 && !gap}
+            onClick={() => {
+              takeBack();
+              setMessage('Took the last move back.');
+              inputRef.current?.focus();
+            }}
+          >
+            Take back
+          </Button>
+        </div>
         {/*
           Enter takes what was written, never the reading under it: the
           candidate list is a help, and substituting its first entry would
