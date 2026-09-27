@@ -21,7 +21,7 @@
  * See `docs/design/daily-session.md` for the design.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -34,6 +34,7 @@ import {
   type SessionCard,
   type SliceId,
 } from '@/daily/session';
+import { localDay, readRehearsed, writeRehearsed } from '@/daily/rehearsed';
 import Link from 'next/link';
 
 import { Button } from '@/components/ui/Button';
@@ -74,9 +75,25 @@ export function DailyWorkspace() {
   const client = useQueryClient();
   const router = useRouter();
   const [now] = useState(() => Date.now());
-  const [graded, setGraded] = useState<ReadonlySet<string>>(() => new Set());
+  const day = localDay(now);
+  /*
+    Today's rehearsals (see \`src/daily/rehearsed.ts\`). Read in the
+    initializer: the server has no storage and renders the loading state,
+    which does not depend on them, so the first client render agrees.
+  */
+  const [graded, setGraded] = useState<ReadonlySet<string>>(() => new Set(readRehearsed(day)));
   const [currentId, setCurrentId] = useState<string | null>(null);
-  const appliedHash = useRef<string | null>(null);
+
+  const markRehearsed = useCallback(
+    (id: string) =>
+      setGraded((current) => {
+        const next = new Set(current);
+        next.add(id);
+        writeRehearsed(day, next);
+        return next;
+      }),
+    [day],
+  );
 
   const salt = profile.data?.id ?? 'anonymous';
   const session: DailySession | null = useMemo(() => {
@@ -91,30 +108,12 @@ export function DailyWorkspace() {
     });
   }, [training.data, review.data, endgames.data, sessions.data, now, salt]);
 
-  /*
-   * Reset the graded set when the underlying content hash changes —
-   * e.g. a card was graded and removed from the queue by re-querying.
-   * The schedule itself records what was attempted; this transient
-   * state is only for the in-flight session, and a refresh is fine.
-   */
-  useEffect(() => {
-    if (!session) return;
-    if (appliedHash.current !== session.contentHash) {
-      appliedHash.current = session.contentHash;
-      setGraded(new Set());
-    }
-  }, [session]);
-
   const grade = useCallback(
     async (card: SessionCard, choice: ReviewGrade) => {
       if (card.kind !== 'repertoire' && card.kind !== 'critical') {
         // Endgame and brief cards have no schedule to update; the rehearsal
         // is logged in the player's own attempt, never against the source.
-        setGraded((current) => {
-          const next2 = new Set(current);
-          next2.add(card.id);
-          return next2;
-        });
+        markRehearsed(card.id);
         notify({
           tone: 'info',
           message: 'Rehearsed. Endgame and brief cards do not reschedule themselves.',
@@ -123,21 +122,27 @@ export function DailyWorkspace() {
       }
       try {
         const repositories = await getRepositories();
-        const next = scheduleGrade(card.schedule, choice, Date.now());
+        /*
+          Written through the calls the Training and Review pages use. The
+          page used to write the repertoire card with `training.update`,
+          which deliberately keeps the stored schedule — so a graded card was
+          never rescheduled and came back due for ever, under a button that
+          had promised an interval. And it passed the critical card's review
+          count where the record's revision belongs, which only worked while
+          the two happened to be equal.
+        */
         if (card.kind === 'repertoire') {
-          const current = training.data?.find((item) => item.id === card.id);
-          if (!current) throw new Error('That card no longer exists.');
-          await repositories.training.update({ ...current, schedule: next });
+          await repositories.training.review(card.id, choice, choice !== 'again', Date.now());
         } else {
-          await repositories.review.scheduleReviewItem(card.id, card.schedule.reviewCount, next);
+          const current = await repositories.review.getReviewItem(card.id);
+          if (!current) throw new Error('That position is no longer in the queue.');
+          const next = scheduleGrade(current.schedule ?? card.schedule, choice, Date.now());
+          await repositories.review.scheduleReviewItem(current.id, current.revision, next);
         }
-        setGraded((current) => {
-          const next2 = new Set(current);
-          next2.add(card.id);
-          return next2;
-        });
+        markRehearsed(card.id);
         void client.invalidateQueries({ queryKey: ['persistence', 'training'] });
         void client.invalidateQueries({ queryKey: ['persistence', 'review'] });
+        void client.invalidateQueries({ queryKey: ['review'] });
       } catch (error) {
         notify({
           tone: 'error',
@@ -146,7 +151,7 @@ export function DailyWorkspace() {
         });
       }
     },
-    [client, notify, training.data],
+    [client, markRehearsed, notify],
   );
 
   /*
@@ -209,11 +214,16 @@ export function DailyWorkspace() {
   }
 
   const cards = session.slices.flatMap((slice) => slice.cards);
-  const rehearsed = cards.filter((card) => graded.has(card.id)).length;
+  /*
+    Counted from the day, not from the queue: a graded repertoire or critical
+    card is rescheduled and leaves the queue, and is still rehearsed.
+  */
+  const rehearsed = graded.size;
+  const remaining = cards.filter((card) => !graded.has(card.id));
   const header =
-    session.totalCount === 0
+    session.totalCount === 0 && rehearsed === 0
       ? 'Nothing is due today'
-      : `${session.totalCount} ${session.totalCount === 1 ? 'position' : 'positions'} · about ${session.minutes} min · ${rehearsed} rehearsed`;
+      : `${remaining.length} to go · ${rehearsed} rehearsed today`;
   const current = cards.find((card) => card.id === currentId) ?? null;
   const nextCard = cards.find((card) => !graded.has(card.id) && card.id !== currentId) ?? null;
 
@@ -253,7 +263,7 @@ export function DailyWorkspace() {
       <p className="text-[11px] leading-relaxed text-secondary">
         {session.totalCount === 0
           ? 'Only your own material is rehearsed here, and none is due. Each kind below says what puts a position in it.'
-          : `${rehearsed} of ${session.totalCount} rehearsed. Only your own material; nothing is scored beyond the schedule.`}
+          : `${rehearsed} rehearsed today, ${remaining.length} to go — about ${session.minutes} min for today's queue. Only your own material; nothing is scored beyond the schedule.`}
       </p>
       {session.slices.map((slice) => (
         <section key={slice.id} aria-labelledby={`daily-${slice.id}`}>
@@ -303,7 +313,7 @@ export function DailyWorkspace() {
   );
 
   const strip =
-    session.totalCount === 0 ? undefined : (
+    session.totalCount === 0 && rehearsed === 0 ? undefined : (
       <div className="shrink-0 border-t border-line-subtle px-3 py-2" data-daily-current>
         {current ? (
           <>
@@ -335,7 +345,7 @@ export function DailyWorkspace() {
               </Button>
             </div>
           </>
-        ) : rehearsed === session.totalCount ? (
+        ) : remaining.length === 0 ? (
           <p className="text-xs text-primary" data-daily-complete>
             Session complete — {rehearsed} rehearsed. What you graded is rescheduled; come back
             tomorrow for what falls due.
@@ -370,12 +380,18 @@ export function DailyWorkspace() {
       belowBoard={strip}
       {...(session.totalCount === 0
         ? {
-            empty: (
-              <EmptyState
-                title="Nothing is due today."
-                description="The session is built from your own repertoire, the critical positions from your reviews, your saved endgames and your round briefs. Add to any of them and it appears here."
-              />
-            ),
+            empty:
+              rehearsed > 0 ? (
+                <EmptyState
+                  title="Today's session is done."
+                  description={`${rehearsed} rehearsed. What you graded is rescheduled; come back tomorrow for what falls due.`}
+                />
+              ) : (
+                <EmptyState
+                  title="Nothing is due today."
+                  description="The session is built from your own repertoire, the critical positions from your reviews, your saved endgames and your round briefs. Add to any of them and it appears here."
+                />
+              ),
           }
         : {})}
     />

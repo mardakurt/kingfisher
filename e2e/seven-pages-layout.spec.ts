@@ -154,7 +154,11 @@ const measure = (gutter: number) => {
       clipRange.selectNodeContents(node);
       const text = clipRange.getBoundingClientRect();
       if (text.width === 0) continue;
-      for (let box = element; box && box !== frame.parentElement; box = box.parentElement) {
+      for (
+        let box: HTMLElement | null = element;
+        box && box !== frame.parentElement;
+        box = box.parentElement
+      ) {
         const style = getComputedStyle(box);
         if (style.overflowX === 'visible') continue;
         if (style.textOverflow === 'ellipsis') break;

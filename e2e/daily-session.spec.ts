@@ -137,12 +137,52 @@ test('the daily session shows four slices in order and grades cards', async ({ p
   // The rehearsal counter starts at zero.
   await expect(page.locator('[data-daily-rehearsed="0"]')).toBeVisible();
 
-  // Grade the repertoire card — rehearsal count goes to 1, button disabled.
+  // Grade the repertoire card — rehearsal count goes to 1.
+  const gradedAt = Date.now();
   await page
-    .getByRole('button', { name: /^Again · / })
+    .getByRole('button', { name: /^Good · / })
     .first()
     .click();
   await expect(page.locator('[data-daily-rehearsed="1"]')).toBeVisible();
+
+  /*
+    The grade is written to the card's schedule — it used to go through an
+    update that keeps the stored schedule, so the card stayed due for ever —
+    and the card leaves the queue when it is read again. The count used to be
+    taken from the queue and went back to 0 here; it is the day's count now.
+  */
+  await expect(page.locator('[data-daily-count="3"]')).toBeVisible();
+  await expect(page.locator('[data-daily-rehearsed="1"]')).toBeVisible();
+  const schedules = async () =>
+    page.evaluate(async () => {
+      const app = (globalThis as unknown as { __kingfisher: AppRepositories }).__kingfisher;
+      const items = await app.training.list();
+      const reviews = await app.review.listReviewItems();
+      return {
+        repertoire: items.map((item) => item.schedule.dueAt),
+        critical: reviews.map((item) => item.schedule?.dueAt ?? 0),
+      };
+    });
+  expect((await schedules()).repertoire.every((due) => due > gradedAt)).toBe(true);
+
+  // A reload resumes: the rehearsal is still counted, and the button continues.
+  await page.reload();
+  await ready(page);
+  await expect(page.locator('[data-daily-rehearsed="1"]')).toBeVisible();
+  await expect(page.locator('[data-daily-begin]')).toHaveText('Continue');
+  await page.locator('[data-daily-begin]').click();
+
+  // Grade what is left, and the session says it is done.
+  const strip = page.locator('[data-daily-current]');
+  for (let step = 0; step < 6; step += 1) {
+    if (await strip.locator('[data-daily-complete]').isVisible()) break;
+    await strip.locator('[data-daily-grade="good"]').click();
+    await page.waitForTimeout(400);
+  }
+  await expect(strip.locator('[data-daily-complete]')).toContainText(
+    'Session complete — 4 rehearsed',
+  );
+  expect((await schedules()).critical.every((due) => due > gradedAt)).toBe(true);
 
   expect(consoleErrors).toEqual([]);
 });
