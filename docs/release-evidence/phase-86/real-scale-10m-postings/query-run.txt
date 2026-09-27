@@ -1,0 +1,40 @@
+opened in 7.5 s
+hot aggregates rebuilt in 646 s
+database on disk   36.37 GB · 7,484,400 games · 4859 bytes a game
+
+--- queries (ms) ----------------------------------------------
+
+busiest player key: "carlsen m"  ·  prefix "car"
+
+open + count                   cold     37.6  median     32.3  p95     33.5  worst     33.5  (7,484,400 rows)
+first page (100)               cold      2.8  median      0.4  p95      2.3  worst      2.3  (100 rows)
+deep page (offset 50k)         cold      2.8  median      0.9  p95      1.3  worst      1.3  (100 rows)
+player prefix                  cold     59.4  median      0.8  p95      1.1  worst      1.1  (20 rows)
+player exact                   cold      1.0  median      0.1  p95      0.1  worst      0.1  (0 rows)
+preparation (newest 200 + PGN) cold      0.1  median      0.0  p95      0.1  worst      0.1  (0 rows)
+text common                    cold    332.8  median    279.0  p95    287.1  worst    287.1  (50 rows)
+text rare                      cold     50.2  median     30.2  p95     30.6  worst     30.6  (33 rows)
+text no match                  cold     40.1  median     30.1  p95     31.1  worst     31.1  (0 rows)
+eco filter                     cold    162.8  median      6.3  p95      8.0  worst      8.0  (50 rows)
+year filter                    cold      0.3  median      0.0  p95      0.0  worst      0.0  (0 rows)
+rating filter                  cold    192.3  median     11.1  p95     14.9  worst     14.9  (50 rows)
+explore start                  cold     10.7  median      0.1  p95      0.6  worst      0.6  (20 rows)
+explore najdorf                cold      8.8  median      0.1  p95      0.3  worst      0.3  (24 rows)
+explore filtered               cold   4850.4  median      0.6  p95      0.7  worst      0.7  (14 rows)
+games at position              cold     94.1  median     92.0  p95    106.7  worst    106.7  (12 rows)
+duplicate scan page            cold     46.0  median      5.4  p95      5.8  worst      5.8  (5,000 rows)
+export page (200)              cold   1322.8  median    974.5  p95   1171.9  worst   1171.9  (200 rows)
+aggregate integrity            cold 410633.7  median 432996.8  p95 446202.7  worst 446202.7  
+
+--- move search (line index) -----------------------------------
+material R v B                 cold   25.73 s  median   27.57 s  125,547 hits of 7,484,400 scanned (12 slices, 0 unindexed)
+theme opposite bishops         cold   26.80 s  median   25.92 s  1,213,185 hits of 7,484,400 scanned (12 slices, 0 unindexed)
+route N g1 f3 d4 f5            cold   36.53 s  median   38.17 s  109,458 hits of 7,484,400 scanned (12 slices, 0 unindexed)
+material + route               cold   26.95 s  median   27.61 s  86,303 hits of 7,484,400 scanned (12 slices, 0 unindexed)
+equivalence {"material":{"text":"R v B"}}      30,000 games: linear 561 hits in 145.1 s, index 561 hits — identical
+equivalence {"theme":"opposite-coloured-bishops"} 30,000 games: linear 4,802 hits in 150.0 s, index 4,802 hits — identical
+equivalence {"route":{"text":"N g1 f3 d4 f5"}} 30,000 games: linear 448 hits in 147.5 s, index 448 hits — identical
+
+--- explorer against a linear oracle ---------------------------
+50 positions (9 hot), 7,484,400 games read in 157 s: identical
+exit 0

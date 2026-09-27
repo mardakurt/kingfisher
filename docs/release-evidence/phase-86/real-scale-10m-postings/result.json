@@ -1,0 +1,242 @@
+{
+  "stats": null,
+  "size": 36369481728,
+  "layout": "postings",
+  "rebuildHotSeconds": 646,
+  "queries": [
+    {
+      "label": "open + count",
+      "cold": 37.63991700008046,
+      "median": 32.33929200004786,
+      "p95": 33.537624999997206,
+      "worst": 33.537624999997206,
+      "rows": 7484400
+    },
+    {
+      "label": "first page (100)",
+      "cold": 2.8347080000676215,
+      "median": 0.40270800003781915,
+      "p95": 2.2938750000903383,
+      "worst": 2.2938750000903383,
+      "rows": 100
+    },
+    {
+      "label": "deep page (offset 50k)",
+      "cold": 2.825124999973923,
+      "median": 0.912542000063695,
+      "p95": 1.3051670000422746,
+      "worst": 1.3051670000422746,
+      "rows": 100
+    },
+    {
+      "label": "player prefix",
+      "cold": 59.40437500004191,
+      "median": 0.8045410000486299,
+      "p95": 1.0603330000303686,
+      "worst": 1.0603330000303686,
+      "rows": 20
+    },
+    {
+      "label": "player exact",
+      "cold": 0.9699999999720603,
+      "median": 0.06545900006312877,
+      "p95": 0.10662500001490116,
+      "worst": 0.10662500001490116,
+      "rows": 0
+    },
+    {
+      "label": "preparation (newest 200 + PGN)",
+      "cold": 0.1335420000832528,
+      "median": 0.040874999947845936,
+      "p95": 0.05691699997987598,
+      "worst": 0.05691699997987598,
+      "rows": 0
+    },
+    {
+      "label": "text common",
+      "cold": 332.8194160000421,
+      "median": 278.9585410000291,
+      "p95": 287.13883399998304,
+      "worst": 287.13883399998304,
+      "rows": 50
+    },
+    {
+      "label": "text rare",
+      "cold": 50.221250000060536,
+      "median": 30.15920900006313,
+      "p95": 30.551957999938168,
+      "worst": 30.551957999938168,
+      "rows": 33
+    },
+    {
+      "label": "text no match",
+      "cold": 40.06441700004507,
+      "median": 30.12404200003948,
+      "p95": 31.086624999996275,
+      "worst": 31.086624999996275,
+      "rows": 0
+    },
+    {
+      "label": "eco filter",
+      "cold": 162.78575000003912,
+      "median": 6.298625000054017,
+      "p95": 7.980916999978945,
+      "worst": 7.980916999978945,
+      "rows": 50
+    },
+    {
+      "label": "year filter",
+      "cold": 0.3437089999206364,
+      "median": 0.0299579999409616,
+      "p95": 0.047667000093497336,
+      "worst": 0.047667000093497336,
+      "rows": 0
+    },
+    {
+      "label": "rating filter",
+      "cold": 192.34016699995846,
+      "median": 11.105791000067256,
+      "p95": 14.85570899990853,
+      "worst": 14.85570899990853,
+      "rows": 50
+    },
+    {
+      "label": "explore start",
+      "cold": 10.746375000104308,
+      "median": 0.09175000002142042,
+      "p95": 0.5635829999810085,
+      "worst": 0.5635829999810085,
+      "rows": 20
+    },
+    {
+      "label": "explore najdorf",
+      "cold": 8.766749999951571,
+      "median": 0.11675000004470348,
+      "p95": 0.32225000008475035,
+      "worst": 0.32225000008475035,
+      "rows": 24
+    },
+    {
+      "label": "explore filtered",
+      "cold": 4850.44616599998,
+      "median": 0.5987500000046566,
+      "p95": 0.6924580000340939,
+      "worst": 0.6924580000340939,
+      "rows": 14
+    },
+    {
+      "label": "games at position",
+      "cold": 94.12566700007301,
+      "median": 91.9622499999823,
+      "p95": 106.67037499998696,
+      "worst": 106.67037499998696,
+      "rows": 12
+    },
+    {
+      "label": "duplicate scan page",
+      "cold": 46.02933299995493,
+      "median": 5.373791999998502,
+      "p95": 5.759916999959387,
+      "worst": 5.759916999959387,
+      "rows": 5000
+    },
+    {
+      "label": "export page (200)",
+      "cold": 1322.7973749999655,
+      "median": 974.4947079999838,
+      "p95": 1171.8637500000186,
+      "worst": 1171.8637500000186,
+      "rows": 200
+    },
+    {
+      "label": "aggregate integrity",
+      "cold": 410633.70137499995,
+      "median": 432996.752417,
+      "p95": 446202.69316599984,
+      "worst": 446202.69316599984,
+      "rows": null
+    }
+  ],
+  "moveSearch": [
+    {
+      "label": "material R v B",
+      "cold": 25732.940500000026,
+      "median": 27570.992250000127,
+      "hits": 125547,
+      "scanned": 7484400,
+      "unindexed": 0,
+      "slices": 12
+    },
+    {
+      "label": "theme opposite bishops",
+      "cold": 26802.7543329997,
+      "median": 25924.52133399993,
+      "hits": 1213185,
+      "scanned": 7484400,
+      "unindexed": 0,
+      "slices": 12
+    },
+    {
+      "label": "route N g1 f3 d4 f5",
+      "cold": 36529.029749999754,
+      "median": 38173.49162500026,
+      "hits": 109458,
+      "scanned": 7484400,
+      "unindexed": 0,
+      "slices": 12
+    },
+    {
+      "label": "material + route",
+      "cold": 26946.334125000052,
+      "median": 27607.29095799988,
+      "hits": 86303,
+      "scanned": 7484400,
+      "unindexed": 0,
+      "slices": 12
+    }
+  ],
+  "equivalence": [
+    {
+      "text": {
+        "material": {
+          "text": "R v B"
+        }
+      },
+      "read": 30000,
+      "linearHits": 561,
+      "indexHits": 561,
+      "linearMs": 145143.4998750002,
+      "same": true
+    },
+    {
+      "text": {
+        "theme": "opposite-coloured-bishops"
+      },
+      "read": 30000,
+      "linearHits": 4802,
+      "indexHits": 4802,
+      "linearMs": 150022.3000830002,
+      "same": true
+    },
+    {
+      "text": {
+        "route": {
+          "text": "N g1 f3 d4 f5"
+        }
+      },
+      "read": 30000,
+      "linearHits": 448,
+      "indexHits": 448,
+      "linearMs": 147495.84649999999,
+      "same": true
+    }
+  ],
+  "oracle": {
+    "positions": 50,
+    "hotPositions": 9,
+    "gamesRead": 7484400,
+    "oracleSeconds": 157,
+    "mismatches": 0,
+    "firstMismatches": []
+  }
+}

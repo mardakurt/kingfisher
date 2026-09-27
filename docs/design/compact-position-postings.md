@@ -3,8 +3,8 @@
 _Design and measured proposal, 2026-09-26 (Phase 86). Answers the storage
 half of the Phase 85 verdict's row 10: the explorer and the position page
 were not measured at 10,680,708 games because their per-position rows would
-need about 330 GB. Status: **proposed and proven on real games; not yet the
-companion's schema.**_
+need about 330 GB. Status: **built** — the companion's `postings` layout, opt-in per
+collection, measured at 7,484,400 games (§3)._
 
 ## 1. The problem, measured
 
@@ -155,6 +155,13 @@ is **22.96 GB** (games, content, text search, line index). Postings add
 this Mac's free space. The plies a game of that month and the hot-position
 aggregates are the two unknowns; the 10M import with postings is what
 settles it (§6).
+
+**Measured since (Phase 86):** 7,484,400 games of that month imported in
+the posting layout — the run stopped there when its session ended — take
+**36.37 GB, 4,859 bytes a game**; the whole month extrapolates to **about
+52 GB**, not 38–43. The explorer answered 50 positions identically to a
+linear oracle over all 7,484,400 games
+(`docs/release-evidence/phase-86/real-scale-10m-postings/`).
 
 ## 4. What the proposal costs, and what it does not do
 

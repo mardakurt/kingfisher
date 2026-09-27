@@ -57,10 +57,15 @@ The companion now has two position layouts (`docs/design/compact-position-postin
 
 ### 3.1 At scale
 
-_Filled from `docs/release-evidence/phase-86/real-scale-10m-postings/` — see
-that folder's `README.md` for the commands. The run stopped at 7,464,900 of
-10,680,708 games; the figure for the whole month is an extrapolation from
-the measured bytes a game and is labelled as one._
+Measured on 7,484,400 games of Lichess 2017-01 in the posting layout
+(`docs/release-evidence/phase-86/real-scale-10m-postings/`): **36.37 GB,
+4,859 bytes a game**, every position indexed; the explorer identical to a
+linear oracle on 50 positions, warm explorer answers in 0.1–0.6 ms, games
+at a position in 92 ms, the move search in 26–38 s. Extrapolated to the
+whole month (10,680,708 games): **about 52 GB**, against about 330 GB in
+the row layout. That is small enough for an external SSD and too large to
+be a laptop default for every month a player might want — which is what
+the recommendations below are for.
 
 ## 4. Options
 
