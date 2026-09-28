@@ -410,7 +410,7 @@ export function LandingPage(): JSX.Element {
                 <li>
                   <strong>Elite OTB</strong>
                   <span>
-                    407,538 games · 5,438,808 positions · CC BY-SA 4.0 · installable on demand
+                    425,022 games · 5,669,429 positions · CC BY-SA 4.0 · installable on demand
                   </span>
                 </li>
                 <li>
@@ -418,8 +418,18 @@ export function LandingPage(): JSX.Element {
                   <span>44,200 games · 918,069 positions · CC BY-SA 4.0 · two-year window</span>
                 </li>
                 <li>
+                  <strong>Recent Theory (6 months)</strong>
+                  <span>11,277 games · 250,498 positions · CC BY-SA 4.0 · rebuilt monthly</span>
+                </li>
+                <li>
                   <strong>High-Rated Online</strong>
                   <span>305,169 games · 315,668 positions · CC0 1.0 · Lichess 2400+</span>
+                </li>
+                <li>
+                  <strong>High-Rated Rapid &amp; Classical</strong>
+                  <span>
+                    783,262 games · 735,702 positions · CC0 1.0 · Lichess 2200+, rapid and classical
+                  </span>
                 </li>
               </ul>
             </div>

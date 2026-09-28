@@ -3,7 +3,7 @@
 /**
  * Streamable reference data provider (skeleton).
  *
- * Phase 28 BC: the player has a 339 MB Elite OTB pack on a remote
+ * Phase 28 BC: the player has a multi-hundred-megabyte Elite OTB pack on a remote
  * host; the explorer wants to answer one position without
  * downloading every shard. This provider fetches the relevant shard
  * on demand, verifies its SHA-256, caches it locally, and serves
@@ -40,7 +40,6 @@
  *     arrived. Today's pack chunks are small (≤64 MiB) so
  *     "download then parse" is acceptable; a 10x-elite pack would
  *     need a streaming parser.
- *   - Partial cache eviction. The LRU lives in the next phase.
  *   - Top games (full game fetch on demand). The pack format
  *     already supports `kind: 'game'` chunks; the skeleton does
  *     not yet route those.

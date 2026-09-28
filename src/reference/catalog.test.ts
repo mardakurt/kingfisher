@@ -37,11 +37,16 @@ describe('the published reference catalog', () => {
     ) as {
       maxPositionPly: number;
       compressedBytes: number;
+      history?: { compressedBytes: number };
       counts: { games: number; positions: number; players: number };
     };
     const row = catalogPack(BUNDLED_PACK_ID);
     expect(row?.maxPositionPly).toBe(shipped.maxPositionPly);
-    expect(row?.approximateBytes).toBe(shipped.compressedBytes);
+    // An install writes the history chunks as well (`allChunks`), so the size a
+    // storage check is asked about is both sets, not the explorer's alone.
+    expect(row?.approximateBytes).toBe(
+      shipped.compressedBytes + (shipped.history?.compressedBytes ?? 0),
+    );
     // The origin line quotes counts; they have to be the ones in the pack.
     for (const count of [shipped.counts.games, shipped.counts.positions, shipped.counts.players]) {
       expect(row?.origin).toContain(count.toLocaleString('en-US'));

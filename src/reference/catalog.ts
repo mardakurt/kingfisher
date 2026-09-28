@@ -130,15 +130,15 @@ export const CATALOG_PACKS: readonly CatalogPack[] = [
      * this same list, so the trade-off is one row away rather than one
      * document away.
      */
-    approximateBytes: 24_290_884,
+    approximateBytes: 41_299_147,
     maxPositionPly: 40,
     license: LICHESS_BROADCAST_LICENSE,
     origin:
       'Built from the most recent four years of the Lichess broadcast ' +
       'archive: 206,451 games, 300,413 positions, ' +
       '13,738 players. For more games on the same machine install the ' +
-      'Elite OTB Reference (407,538 games, 339 MB) or one of the Recent ' +
-      'Theory Reference variants from this same catalog.',
+      'Elite OTB Reference or one of the Recent Theory Reference variants ' +
+      'from this same catalog.',
   },
   {
     id: 'kingfisher-elite-otb',
@@ -241,15 +241,16 @@ export const CATALOG_PACKS: readonly CatalogPack[] = [
       'model-games',
       'preparation',
     ],
-    approximateBytes: 8_985_913,
+    approximateBytes: 13_527_720,
     maxPositionPly: 40,
     license: LICHESS_BROADCAST_LICENSE,
     origin:
       'Built from the last six months of the Lichess broadcast archive ' +
-      '(2026-03 through 2026-08): 11,280 games accepted from 223,248 ' +
-      'candidates, 4,600 openable full scores, 250,498 position ' +
-      'aggregates and 1,577 player identities. Published in the public, ' +
-      'data-only mardakurt/kingfisher-data repository.',
+      '(2026-03 through 2026-08): 11,277 games from 223,248 candidates, ' +
+      '4,600 openable full scores, 250,498 position aggregates and 1,577 ' +
+      'player identities. Rebuilt every month; the row installs whichever ' +
+      'month is current. Published in the public, data-only ' +
+      'mardakurt/kingfisher-data repository.',
     filter: {
       minRating: 2400,
       titles: ['GM', 'IM', 'WGM'],
