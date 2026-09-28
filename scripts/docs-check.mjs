@@ -758,8 +758,11 @@ mustExist('src/app/robots.ts');
   }
 }
 
-// 16. .vercel/project.json and the production deploy script are present.
-mustExist('.vercel/project.json');
+// 16. The deploy configuration is present. `.vercel/` is what `vercel link`
+// writes on one machine and is git-ignored: production deploys from Git, and
+// requiring it made this gate fail in every clean checkout. Where it exists it
+// must still be whole.
+if (existsSync(join(REPO_ROOT, '.vercel'))) mustExist('.vercel/project.json');
 mustExist('vercel.json');
 
 // 17. The CHANGELOG and ARCHITECTURE are still in the repo and non-empty.
