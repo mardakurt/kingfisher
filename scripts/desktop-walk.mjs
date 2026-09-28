@@ -30,6 +30,7 @@
  *   node scripts/desktop-walk.mjs --packaged --seed=46 --actions=1000
  *   node scripts/desktop-walk.mjs --packaged --seed=7 --duration=30m
  *   node scripts/desktop-walk.mjs --packaged --seed=3 --faults        # inject failures too
+ *   node scripts/desktop-walk.mjs --packaged --seed=5 --offline       # no network from launch
  *   node scripts/desktop-walk.mjs --packaged --profile=/path/to/profile # a returning user
  *
  * `--report=<file>` writes the JSON report there; the default is a file in
@@ -82,6 +83,8 @@ const args = {
   profile: value('profile'),
   report: value('report'),
   faults: flag('faults'),
+  /** Block every request that does not go to loopback, from before the first window. */
+  offline: flag('offline'),
   quiet: flag('quiet'),
   /** How often to sample metrics, in actions. */
   sampleEvery: Number(value('sample-every', '25')),
@@ -155,7 +158,9 @@ class Walk {
       packaged: args.packaged,
       profile: this.profile,
       env: { KINGFISHER_STARTUP_TRACE: '1' },
+      offline: args.offline,
     });
+    this.injected.offline = args.offline;
     this.app = this.k.app;
     this.page = this.k.window;
     await this.attachRenderer(this.page);
@@ -203,7 +208,7 @@ class Walk {
     this.say(`Kingfisher ${this.build?.label ?? diag.shell.version} at ${this.k.executable}`);
     this.say(`profile ${this.profile}`);
     this.say(
-      `seed ${args.seed} · ${args.duration ? `${args.duration / 60000} min` : `${args.actions} actions`}${args.faults ? ' · faults on' : ''}\n`,
+      `seed ${args.seed} · ${args.duration ? `${args.duration / 60000} min` : `${args.actions} actions`}${args.faults ? ' · faults on' : ''}${args.offline ? ' · offline' : ''}\n`,
     );
     this.baselineEngines = engineProcesses().map((p) => p.pid);
   }
@@ -1060,7 +1065,11 @@ class Walk {
   }
 
   async step() {
-    const all = this.actions().filter((a) => !a.faults || args.faults);
+    // Offline from launch means offline throughout: the fault that toggles the
+    // network back on is left out.
+    const all = this.actions().filter(
+      (a) => (!a.faults || args.faults) && !(args.offline && a.name === 'fault-offline-toggle'),
+    );
     // Weighted choice among the actions whose precondition holds.
     const eligible = [];
     for (const action of all) {
@@ -1215,6 +1224,7 @@ class Walk {
       seed: args.seed,
       packaged: args.packaged,
       faults: args.faults,
+      offline: args.offline,
       build: this.build,
       executable: this.k.executable,
       profile: this.profile,
@@ -1266,7 +1276,7 @@ class Walk {
     console.log(`report ${file}`);
     if (this.findings.length) {
       console.log(
-        `\nreproduce: node scripts/desktop-walk.mjs${args.packaged ? ' --packaged' : ''} --seed=${args.seed} --actions=${this.stepIndex}${args.faults ? ' --faults' : ''}`,
+        `\nreproduce: node scripts/desktop-walk.mjs${args.packaged ? ' --packaged' : ''} --seed=${args.seed} --actions=${this.stepIndex}${args.faults ? ' --faults' : ''}${args.offline ? ' --offline' : ''}`,
       );
     }
     if (!args.profile) {
