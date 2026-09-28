@@ -1,255 +1,131 @@
 # Kingfisher data inventory
 
-The current state of every data source Kingfisher knows about, as the 1.1
-cycle begins. Read by `node scripts/build-reference-pack.mjs` for the
-first-party packs and by the application code for the online providers.
-
-All counts and dates below are the values the manifests actually published.
-If a value disagrees with what you think, the manifest wins; the manifest is
-what the application verifies against on install.
+Every data source Kingfisher knows about: what it is, how large, under which
+licence, and where it comes from. The pack figures are the published
+manifests' own, read on 2026-09-28 from the manifest each catalogue row
+installs (`src/reference/catalog.ts`); if a figure here disagrees with a
+manifest, the manifest wins, because it is what an install verifies against.
+How the packs are built and read is in [`reference-packs.md`](reference-packs.md).
 
 ## First-party reference packs
 
-All three are built by `scripts/build-reference-pack.mjs` from Lichess
-published archives. The pipeline is the same for all three; only the
-filters change. Every game entering the pack is:
+Every pack is built by `scripts/build-reference-pack.mjs` from a Lichess
+archive, filtered on its headers, deduplicated, replayed through Kingfisher's
+own rules code and reduced to per-position move aggregates, a player table and
+full game scores. A game whose replay fails is **rejected**, not repaired;
+metadata may be normalised, moves never are. Filters are declared in
+`scripts/reference/packs.mjs`.
 
-- parsed
-- filtered by rating / speed / title
-- deduplicated within the pack
-- replayed through Kingfisher's own rules code (castling, en passant,
-  promotion, check state)
-- reduced to per-position move aggregates, a player table, and full
-  game scores
+| Pack (catalogue row)                          | Id                                | Version | Built      | Upstream                                     | Licence      |
+| --------------------------------------------- | --------------------------------- | ------- | ---------- | -------------------------------------------- | ------------ |
+| Kingfisher Starter Reference (bundled)        | `kingfisher-starter`              | 6       | 2026-09-26 | Broadcast archive, 48 months 2022-09…2026-08 | CC BY-SA 4.0 |
+| Elite OTB Reference                           | `kingfisher-elite-otb`            | 4       | 2026-09-26 | Broadcast archive, 80 months 2020-01…2026-08 | CC BY-SA 4.0 |
+| Recent Theory Reference                       | `kingfisher-recent-theory`        | 1       | 2026-09-05 | Broadcast archive, 24 months 2024-08…2026-07 | CC BY-SA 4.0 |
+| Recent Theory Reference (6 months)            | `kingfisher-recent-theory-narrow` | 4       | 2026-09-26 | Broadcast archive, 6 months 2026-03…2026-08  | CC BY-SA 4.0 |
+| High-Rated Online Reference                   | `kingfisher-high-rated-online`    | 1       | 2026-09-05 | Standard rated database, 2026-07             | CC0 1.0      |
+| High-Rated Rapid & Classical Online Reference | `kingfisher-high-rated-rapid`     | 1       | 2026-09-26 | Standard rated database, 2026-02…2026-08     | CC0 1.0      |
 
-If a replay fails the game is **rejected**, not repaired. Metadata
-normalisation is allowed; chess move reconstruction is not.
+| Pack                   | Games considered | Games counted | Full scores | Positions | Players |                    Size |
+| ---------------------- | ---------------: | ------------: | ----------: | --------: | ------: | ----------------------: |
+| Starter                |        1,068,626 |       206,451 |      38,749 |   300,413 |  13,738 |  41.3 MB (168 chunks)\* |
+| Elite OTB              |        1,235,278 |       425,022 |     425,022 | 5,669,429 |  34,261 | 426.7 MB (256 chunks)\* |
+| Recent Theory          |     not recorded |        44,200 |      18,151 |   918,069 |   2,567 |     33.8 MB (80 chunks) |
+| Recent Theory 6 months |          223,248 |        11,277 |       4,600 |   250,498 |   1,577 |   13.5 MB (72 chunks)\* |
+| High-Rated Online      |       89,288,421 |       305,169 |     305,169 |   315,668 |  12,315 |    85.7 MB (160 chunks) |
+| High-Rated Rapid       |      623,208,492 |       783,262 |      65,927 |   735,702 |  52,284 |  85.8 MB (304 chunks)\* |
 
-### Kingfisher Starter (bundled with the application)
+\* Including each position's history (games by year and rating band, and its
+five earliest games, through ply 30): Starter 17.0 MB, Elite OTB 72.9 MB,
+Recent Theory 6 months 4.5 MB, High-Rated Rapid 41.4 MB. Recent Theory v1 was
+built before `packs.mjs` recorded the games it considered.
 
-- **Pack id:** `kingfisher-starter`
-- **Logical name:** Kingfisher Starter Reference
-- **Pack version:** 3
-- **Built at:** 2026-09-14
-- **Source:** Lichess broadcast archive
-- **Licence:** CC BY-SA 4.0 (Lichess broadcast archive)
-- **Upstream files (most recent first):** last 36 months of
-  `lichess_db_broadcast_YYYY-MM.pgn.zst` (2023-09 … 2026-08)
-- **Population:** rating ≥ 2200 (open: 2500, or GM/IM against GM/IM
-  without ratings), ceiling 2900, GM/IM/WGM titles, exclude online
-  events, minimum 12 plies, recent years window 2, up to 200 stored
-  scores a player (version 2 opened at 2600 and kept 120)
-- **Build location:** `public/reference/kingfisher-starter/`
-- **Distribution:** ships inside the application bundle — no install
-  step, no network access required
-- **Update mechanism:** re-released with each Kingfisher application
-  release
+**Populations.** The four broadcast packs keep over-the-board-style events
+between rated or titled players and drop events whose name says they were
+online, played by engines or at bullet (TCEC, Titled Tuesday and the like).
+That test reads the event name, so an online event with a neutral name
+(Chessable Masters, for one) is kept — which is why the Starter row says
+_including online events_. The thresholds:
 
-### Elite OTB
+A rated game enters on its ratings; a game with no ratings enters only when
+both players hold one of the pack's titles, because exhibition and match
+events often carry titles and no ratings.
 
-- **Pack id:** `kingfisher-elite-otb`
-- **Logical name:** Elite OTB Reference
-- **Pack version:** 2
-- **Built at:** 2026-09-05
-- **Source:** Lichess broadcast archive
-- **Licence:** CC BY-SA 4.0 (Lichess broadcast archive)
-- **Upstream files (most recent first):** all available
-  `lichess_db_broadcast_YYYY-MM.pgn.zst` (2020–present)
-- **Population:** rating ≥ 2000 (open: 2000), ceiling 2900,
-  GM/IM/WGM/WIM/FM titles, exclude online events, minimum 10 plies
-- **Counts (live at the time of inventory):**
-  - games: 425,022 (v4, 2026-09-26; v2 held 407,538)
-  - openable: 425,022
-  - positions: 5,669,429
-  - players: 34,261
-- **History (v3 and later):** each position's games by year and Elo class, and its five earliest games, to ply 30
-- **Shards:** 96 explorer / 48 game / 8 players / 8 playergames
-- **Distribution:** GitHub Pages data mirror; installed on demand
-- **Update mechanism:** new version published to the data mirror as
-  `reference-elite-v<N>/` (v4 on the second mirror, `kingfisher-data-packs`);
-  installable from the Databases workspace
+- **Starter** — 2200+, or GM/IM/WGM on both sides; ceiling 2900; at least
+  12 plies; full scores for 2500+ or GM/IM against GM/IM, up to 300 a player.
+- **Elite OTB** — 2000+, or GM/IM/WGM/WIM/FM on both sides; ceiling 2900; at
+  least 10 plies; every game has its full score.
+- **Recent Theory** and **Recent Theory 6 months** — 2400+, or GM/IM/WGM on
+  both sides; ceiling 2900; at least 12 plies; full scores for 2500+ or GM/IM
+  against GM/IM; a lower deep threshold so rare recent lines survive.
+- **High-Rated Online** — both players 2400+, blitz 295,695 · rapid 9,429 ·
+  classical 48; bullet and ultrabullet excluded.
+- **High-Rated Rapid** — both players 2200+, rapid 771,807 · classical
+  11,457; bot games excluded; full scores for 2400+ games only.
 
-### Recent Theory (v1)
-
-- **Pack id:** `kingfisher-recent-theory`
-- **Logical name:** Recent Theory Reference
-- **Pack version:** 1
-- **Built at:** 2026-09-05
-- **Source:** Lichess broadcast archive
-- **Licence:** CC BY-SA 4.0 (Lichess broadcast archive)
-- **Upstream files (most recent first):** last 24 months of
-  `lichess_db_broadcast_YYYY-MM.pgn.zst`
-- **Population:** rating ≥ 2400 (open: 2500), ceiling 2900, GM/IM/WGM
-  titles, exclude online events, minimum 12 plies, recent years
-  window 1
-- **Counts:**
-  - games: 44,200
-  - openable: 18,151
-  - positions: 918,069
-  - players: 2,567
-- **Time window:** _last 24 months of broadcast archive_ (a recency
-  source, not a weight-of-evidence one)
-- **Distribution:** GitHub Pages data mirror; installed on demand
-- **Update mechanism:** new version published to the data mirror as
-  `reference-recent-v<N>/`
-
-### Recent Theory (v2, 6 months)
-
-- **Pack id:** `kingfisher-recent-theory`
-- **Logical name:** Recent Theory Reference (6 months)
-- **Pack version:** 2
-- **Built at:** 2026-09-10
-- **Source:** Lichess broadcast archive
-- **Licence:** CC BY-SA 4.0 (Lichess broadcast archive)
-- **Upstream files (most recent first):** last 6 months of
-  `lichess_db_broadcast_YYYY-MM.pgn.zst`
-  (2026-03, 2026-04, 2026-05, 2026-06, 2026-07, 2026-08)
-- **Population:** rating ≥ 2400 (open: 2500), ceiling 2900, GM/IM/WGM
-  titles, exclude online events, minimum 12 plies, recent years
-  window 1 — same thresholds as v1
-- **Counts (Phase 35 actual build):**
-  - input games: 223,248
-  - accepted games: 11,280 by the build log; the published
-    manifest's `counts.games` is **11,277**, and that is the number
-    the application shows. The three-game difference between the
-    filter's acceptance count and the packed count has not been
-    traced; treat the manifest as authoritative.
-  - rejected games: 211,968 (178,350 below min rating; 12,416 bad
-    result; 8,440 missing rating; 4,797 online event; 4,559 too
-    short; 2,438 non-standard variant; 950 above max rating; 14
-    bot match; 4 set up position)
-  - duplicates: 0
-  - replay failures: 0
-  - openable full scores: 4,600
-  - positions: 250,498
-  - players: 1,577
-  - compressed bytes: 8,985,913 (8.6 MB on disk, 29.4 MB raw)
-  - chunks: 48
-- **Time window:** 2026-03 → 2026-08 (six complete Lichess broadcast
-  months). A recency source, narrower than v1.
-- **Distribution:** GitHub Pages data mirror; installed on demand.
-  The v1 directory remains published and is not deleted when v2
-  lands — users who installed v1 keep using it until they choose
-  otherwise.
-- **Update mechanism:** new version published to the data mirror as
-  `reference-recent-v<N>/`. v1 → v2 reuses chunks with matching
-  SHA-256 across versions because the chunk format is
-  content-addressed.
-
-### High-Rated Online
-
-- **Pack id:** `kingfisher-high-rated-online`
-- **Logical name:** High-Rated Online Reference
-- **Pack version:** 1
-- **Built at:** 2026-09-05
-- **Source:** Lichess standard rated games database
-- **Licence:** CC0 1.0 (Lichess standard rated games database)
-- **Upstream files:** a rolling 3 months of
-  `lichess_db_standard_rated_YYYY-MM.pgn.zst` (current build: 2026-07)
-- **Population:** both players rated ≥ 2400; speeds classical / rapid /
-  blitz; bullet and ultrabullet excluded by design (see `packs.mjs`
-  rationale); ceiling 4000; minimum 12 plies
-- **Counts:**
-  - games: 305,169
-  - openable: 305,169
-  - positions: 315,668
-  - players: 12,315
-- **Time window:** _rolling 3 months_ (a current-events source, not
-  historical)
-- **Distribution:** GitHub Pages data mirror; installed on demand
-- **Update mechanism:** new version published to the data mirror as
-  `reference-online-v<N>/`
+**Distribution.** The Starter is committed at `public/reference/kingfisher-starter/`
+and ships inside the application, so it answers offline before anything is
+installed. The rest are installed on demand from _Databases → Reference
+sources_ from GitHub Pages: `mardakurt.github.io/kingfisher-data/` for Recent
+Theory, Recent Theory 6 months and High-Rated Online, and
+`mardakurt.github.io/kingfisher-data-packs/` for Elite OTB and High-Rated
+Rapid, which do not fit under Pages' one-gigabyte site limit beside the others.
 
 ## Online providers
 
-These are queried at runtime over the network. They are not installed,
-not versioned by Kingfisher, and are not merged with first-party packs.
+Queried over the network when the person asks. Not installed, not versioned by
+Kingfisher, never merged with a pack, and a failure never blanks local
+evidence. `docs/data/online-integrations-audit.md` records what each answered
+when last checked, and _Privacy_ says what each request carries.
 
-### Lichess Masters
-
-- **Source URL:** `https://explorer.lichess.org/masters` (the
-  [opening explorer API](https://lichess.org/api#tag/Opening-Explorer))
-- **Redistribution:** none — the provider's own terms; Kingfisher
-  queries live
-- **Used for:** the over-the-board masters database as an explorer
-  source, and the PGN of a single masters game
-- **Status:** the explorer query endpoints answer 401 without a token
-  (checked 2026-09-06 and 2026-09-12), so this source needs the user's
-  own Lichess API token from _Settings → Database_; without one Kingfisher
-  says so rather than showing a count. Single-game PGN export needs no
-  token.
-
-### Lichess rated (player)
-
-- **Source URL:** `https://lichess.org/api/games/user/{username}` (the
-  [games export API](https://lichess.org/api#tag/Games))
-- **Redistribution:** none — the provider's own terms; Kingfisher
-  queries live
-- **Used for:** a logged-in Lichess user's recent games
-- **Status:** requires a Lichess OAuth token; otherwise hidden
-
-### Lichess Explorer (rated online games)
-
-- **Source URL:** `https://explorer.lichess.org/lichess` (the same
-  [opening explorer API](https://lichess.org/api#tag/Opening-Explorer))
-- **Redistribution:** none — live API
-- **Used for:** opening tree beyond Kingfisher's installed packs
-- **Status:** as for Lichess Masters — needs the user's own token; the
-  installed High-Rated Online pack answers the same question offline
-
-### Lichess tablebase
-
-- **Source URL:** `https://tablebase.lichess.ovh/standard` (the
-  [tablebase API](https://lichess.org/api#tag/Tablebase))
-- **Redistribution:** none — live API
-- **Used for:** 7-piece exact endgame evaluation
-- **Status:** available when online
+| Provider                     | Endpoint                                  | Used for                                                        | Needs                                                                                             |
+| ---------------------------- | ----------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Lichess Masters explorer     | `explorer.lichess.org/masters`            | the masters database as an explorer source                      | the person's own Lichess token (_Settings → Database_); without one it says so instead of a count |
+| Lichess rated-games explorer | `explorer.lichess.org/lichess`, `/player` | Lichess rated games, all or one player's, as an explorer source | the same token                                                                                    |
+| Lichess game export          | `lichess.org/api/games/user/{name}`       | syncing a Lichess account's games into My games                 | nothing; a token only raises the rate allowance                                                   |
+| Chess.com published data     | `api.chess.com/pub`                       | syncing a Chess.com account's games into My games               | nothing; public and read-only                                                                     |
+| Lichess cloud evaluation     | `lichess.org/api/cloud-eval`              | a stored evaluation for the position, only when asked           | nothing                                                                                           |
+| Lichess tablebase            | `tablebase.lichess.ovh/standard`          | exact results with seven pieces or fewer                        | nothing; the Mac application also probes local Syzygy tables                                      |
 
 ## User-authored data
 
-Local to the machine. Not redistributed, not uploaded by Kingfisher
-infrastructure.
+Local to the machine, never uploaded by Kingfisher: My games (imported or
+synced, indexed like a pack so the Explorer can read it when chosen), studies,
+the repertoire, training records, notes, preparation dossiers and preferences.
+An En Croissant or ChessBase database is read, never written. The portable
+backup holds all of the authored work (`PORTABLE_STORES` in
+`src/persistence/backup.ts`) and the preferences, and My games when the person
+includes them; pack contents are not in it, pack metadata is, so a restore can
+say which sources to reinstall.
 
-- **My Games** — personal PGN imports, indexed in the same shape as
-  reference packs so the Explorer can include them when selected
-- **Studies** — annotations, move trees, engine output, persisted
-  per study
-- **Repertoire** — decisions per position, persisted
-- **Preferences** — UI, engine settings, piece set, theme
-- **En Croissant** imports — third-party database, attached, queried
-  by the same Explorer pipeline
+## How a pack changes
 
-## Update mechanism summary
+- A published version is an **immutable directory**, `reference-<name>-v<N>/`,
+  whose manifest pins every chunk's SHA-256. `npm run publish:data` only ever
+  adds a directory and refuses to modify or delete one.
+- A catalogue row names a version. A pack rebuilt every month (Recent Theory
+  6 months, by `.github/workflows/data-monthly.yml`) also has a channel file,
+  `channels/<name>.json`, the one mutable file on the mirror; the update check
+  and the install read it, and it can only name something newer.
+- The Starter installs itself at first start from the application's own
+  files, and again when a release ships a new version of it; nothing is
+  fetched from the network for it.
+- Any other installed pack whose current version differs shows _Update
+  available_. Nothing downloads until the person installs it, and an install
+  reuses every chunk already present with the same digest and reports how many
+  it reused.
 
-- First-party packs are versioned **immutable directories** under
-  `reference-<id>-v<N>/`. The manifest pins every chunk's SHA-256.
-- A new version is published by adding a new directory; the old one
-  is never modified.
-- The application code references packs by **logical name** (e.g.
-  `Elite OTB`), not by version, so a v2 → v3 update does not break
-  saved layouts.
-- The user must explicitly trigger an install / update from the
-  Databases workspace. There is no automatic background download.
-- Chunk reuse by content hash is a 1.1 design goal — see
-  `docs/reports/phase-27-handover.md` § Update architecture for
-  the current state.
+## History
 
-## Catalogue trust
+Dated records, kept as they were written. They are not current figures.
 
-The application trusts the **GitHub Pages data mirror** for pack
-manifests and chunks. The mirror is published via
-`scripts/publish-data.mjs`, which is the only path that may add a
-new version directory; it refuses to delete or modify a published
-version. No remote catalogue can silently push a new pack version
-into Kingfisher.
-
-## Phase 34 freshness audit
+### Phase 34 freshness audit
 
 Captured 2026-09-10 against the live
 `https://mardakurt.github.io/kingfisher-data/` mirror. These are
-the values the running manifests actually publish; the previous
-sections of this document were last edited before Phase 34 and
-are kept for context.
+the values the running manifests published then. The table's first two
+rows were later overwritten with 2026-09-26 figures, and its Starter
+size is the pack with its history (24.3 MB without); the current values
+are in the table at the top of this document.
 
 | Pack              | Version | Built      | Window    | Games   | Positions | Players | Compressed |
 | ----------------- | ------- | ---------- | --------- | ------- | --------- | ------- | ---------- |
