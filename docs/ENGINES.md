@@ -33,14 +33,14 @@ only (`companion/src/security.mjs`). So the same engine list means three
 different things depending on where the page is served from, and the
 selector says which (`src/companion/reach.ts`):
 
-| Engine                                            | Web at `kingfisherchess.app` | Mac application                      | Checkout on `localhost`          | How it runs                                                                |
-| ------------------------------------------------- | ---------------------------- | ------------------------------------ | -------------------------------- | -------------------------------------------------------------------------- |
-| Stockfish 18 (lite network)                       | **yes**, nothing to set up   | yes                                  | yes                              | WebAssembly worker, 7 MB served by the deployment                          |
-| Stockfish 18 (full network)                       | **yes**, first use 113 MB    | no — native Stockfish 19 instead     | yes (`engine:install -- --full`) | WebAssembly worker; the network is fetched from a recorded address (below) |
-| Stockfish 19 (native)                             | no — Mac application         | yes, one click in Settings → Engines | yes, after `npm run companion`   | native process through the companion, digest-verified                      |
-| Lc0, Stormphrax, Viridithas, Halogen, PlentyChess | no — Mac application         | yes, one click each                  | yes, after `npm run companion`   | native process through the companion, digest-verified                      |
-| Berserk, Koivisto, Obsidian                       | no                           | no — Windows / Linux releases only   | only on those platforms          | native process; the selector says "Windows only" and the like              |
-| Custom engine by path                             | no                           | yes (Settings → Companion)           | yes                              | native process the person registered; capabilities read from the engine    |
+| Engine                                            | Web at `kingfisherchess.app` | Mac application                               | Checkout on `localhost`          | How it runs                                                                |
+| ------------------------------------------------- | ---------------------------- | --------------------------------------------- | -------------------------------- | -------------------------------------------------------------------------- |
+| Stockfish 18 (lite network)                       | **yes**, nothing to set up   | yes                                           | yes                              | WebAssembly worker, 7 MB served by the deployment                          |
+| Stockfish 18 (full network)                       | **yes**, first use 113 MB    | no — native Stockfish 19 instead              | yes (`engine:install -- --full`) | WebAssembly worker; the network is fetched from a recorded address (below) |
+| Stockfish 19 (native)                             | no — Mac application         | yes, one click in Settings → Engine → Engines | yes, after `npm run companion`   | native process through the companion, digest-verified                      |
+| Lc0, Stormphrax, Viridithas, Halogen, PlentyChess | no — Mac application         | yes, one click each                           | yes, after `npm run companion`   | native process through the companion, digest-verified                      |
+| Berserk, Koivisto, Obsidian                       | no                           | no — Windows / Linux releases only            | only on those platforms          | native process; the selector says "Windows only" and the like              |
+| Custom engine by path                             | no                           | yes (Settings → Companion)                    | yes                              | native process the person registered; capabilities read from the engine    |
 
 "Tested" in this table means what `npm run engines:verify` and the fleet
 section below record: the native rows were installed and searched on Apple
@@ -157,7 +157,7 @@ Measured on 14 September 2026 in Chrome on Apple silicon, from a fresh cache:
 the full multi-threaded build handshook, searched the start position to depth
 21 in 4.4 s at 767 k nodes/s and reported `+0.35` — a real round trip, not a
 manifest read. The native engines remain out of a browser's reach; that is a
-fact about browsers, and the Settings → Engines page says so.
+fact about browsers, and Settings → Engine → Engines says so.
 
 ### What the fleet actually reported
 
