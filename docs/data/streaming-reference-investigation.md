@@ -2,6 +2,14 @@
 
 > What we discovered, what we built, what is left.
 
+> **A dated record (Phase 28).** What it lists as left was done in Phases 29
+> and 30: `src/reference/manager.ts` registers a `RemoteReferenceProvider` for
+> each pack the person chooses to use online, and `TieredStreamingCache` keeps
+> verified chunks in an in-memory LRU (256 MB) over a persistent IndexedDB tier
+> (768 MB in a browser, 1.5 GB in the Mac application). The chunks are served
+> from the GitHub Pages mirrors, not from the Vercel host named below. The
+> status table is as it stood in Phase 28.
+
 ## The question
 
 Phase 28 BC asks whether Kingfisher can use a multi-hundred-megabyte

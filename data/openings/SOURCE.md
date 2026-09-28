@@ -32,5 +32,5 @@ keyed by Kingfisher's canonical position identity. The generator is the only
 consumer of these files; the application never parses TSV at runtime.
 
 Re-vendoring is a straight copy of the five files followed by
-`npm run openings:build`, and the check in `openings.generated.test.ts` fails if
+`npm run openings:build`, and the check in `src/theory/opening-index.generated.test.ts` fails if
 the generated index and the vendored source have drifted apart.

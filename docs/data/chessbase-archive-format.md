@@ -12,8 +12,10 @@ headers), `.cbg` (movetext), `.cba` (annotations), `.cbp` (players), `.cbt`
 (tournaments), `.cbc` (annotators), `.cbs` (sources), `.cbe` (teams), `.cbj`
 (the extended header, read for team ids only) and others Kingfisher ignores
 (search boosters, guiding-text media). A `.cbv` is those files packed into one
-archive. Kingfisher reads all of it **and never writes any of it**: the files
-belong to a program that may be running.
+archive. Kingfisher reads all of it **and never writes into it**: the files
+belong to a program that may be running. (Since Phase 86 it can write a _new_
+CBH database of its own, `write.ts`; what survives each direction is in
+[`chessbase-preservation-matrix.md`](chessbase-preservation-matrix.md).)
 
 The layouts of the database files follow the format description that ships
 with Jimmy Mårdell's `morphy` (`morphy-cbh/docs/cbh-format/`, the result of
@@ -110,7 +112,7 @@ format, then repeated with the TypeScript reader in the repository.
 
 ## 4. What is in the repository
 
-Fixtures in `src/database/chessbase/__fixtures__/`, 104 KB in all, listed in
+Fixtures in `src/database/chessbase/__fixtures__/`, 32 KB in all (32,225 bytes), listed in
 `THIRD_PARTY_DATA.md`:
 
 - `world-ch/` — a 23-game slice of morphy's `World-ch`: the 1886
