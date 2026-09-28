@@ -117,8 +117,14 @@ test('a merge opens in its own tab and keeps the analysis already on the board',
   await expect(tabs.nth(1)).toHaveAttribute('aria-selected', 'true');
   await expect(notation).toContainText('Bb5');
   await tabs.nth(0).click();
-  await expect(notation).toContainText('d4');
-  await expect(notation).not.toContainText('Bb5');
+  await expect(tabs.nth(0)).toHaveAttribute('aria-selected', 'true');
+  /*
+    One assertion, retried until it holds of the tree on screen. As two, the
+    first passed and the second then found no move tree at all — the tree is
+    remounted while the tab switch settles — the one intermittent failure in
+    a Phase 87 run (one in about four hundred and twenty).
+  */
+  await expect(notation).toHaveText(/^(?![\s\S]*Bb5)[\s\S]*d4/);
 });
 
 test('the explorer merges the model games of the built-in reference', async ({ page }) => {
