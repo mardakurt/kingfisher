@@ -1,8 +1,8 @@
 # What is not built
 
-_2026-09-27, after Phase 87 and Kingfisher 1.3.3 (first written after Phase 86
-and 1.3.2). The single list of work the Phase 86 and Phase 87 briefs asked for,
-or that those phases left open, which does not exist in the product or was not
+_2026-09-28, after Phase 87 and Kingfisher 1.3.3 (first written after Phase 86
+and 1.3.2; revised as items are closed). The single list of work the Phase 86
+and Phase 87 briefs asked for, or that those phases left open, which does not exist in the product or was not
 done. Each entry says why it is not built, what unblocks it,
 and where its design or evidence already lives. The criterion-by-criterion
 state is in [`parity-ledger.md`](parity-ledger.md); this file is the short
