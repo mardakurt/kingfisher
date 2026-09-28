@@ -17,10 +17,6 @@ Phase numbers below this header will be moved into a dated `## <version>` sectio
   same actions are one ⌘K away. They are in ⌘? under their own **Tabs**
   heading, and every one of them can be rebound.
 - **⌘B shows and hides the navigation**, and ⌘⇧I opens Import.
-- **The navigation button now shows what it does.** It was a chevron, which
-  points somewhere; it is now the window with its left column filled while the
-  navigation is on screen, so the button says which state pressing it will
-  leave you in.
 
 - **Fixed: the accent was unreadable as text in the dark theme.** An ECO code
   on the Openings page — and every other link, value and label drawn in the

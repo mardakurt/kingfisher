@@ -3,7 +3,15 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-import { Close, Feedback, Moon, Settings, SidebarGlyph, Sun } from '@/components/icons';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Close,
+  Feedback,
+  Moon,
+  Settings,
+  Sun,
+} from '@/components/icons';
 import { IconButton } from '@/components/ui/Button';
 import { cn } from '@/lib/cn';
 import { StoragePersistenceStatus } from '@/persistence/StoragePersistenceStatus';
@@ -260,14 +268,11 @@ export function Sidebar({ variant = 'desktop', onClose }: SidebarProps) {
               title={collapsed ? 'Show navigation  ⌘B' : 'Hide navigation  ⌘B'}
               data-sidebar-toggle=""
             >
-              {/*
-                A chevron, which is what this was, points. A person who has
-                collapsed the navigation once knows which way round it goes;
-                everybody else has to remember. The glyph now shows the window
-                it controls and which state pressing it will leave them in —
-                see `SidebarGlyph`.
-              */}
-              <SidebarGlyph open={!collapsed} className="h-[17px] w-[17px]" />
+              {collapsed ? (
+                <ChevronRight className="h-[17px] w-[17px]" />
+              ) : (
+                <ChevronLeft className="h-[17px] w-[17px]" />
+              )}
             </button>
           )}
         </div>

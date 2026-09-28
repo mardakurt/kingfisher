@@ -36,7 +36,10 @@ been deployed from these commits either.
   header; and the layout audit was extended from six routes to all twenty-two.
 - `bd5b721` — the working tabs get their keys (⌘T, ⌘W, ⌘⇧T, ⌘⌥→/←), plus ⌘B
   for the navigation and ⌘⇧I for Import, all listed under a new **Tabs**
-  heading in ⌘?; and the navigation button became the stateful panel glyph.
+  heading in ⌘?. The navigation button was briefly changed to a stateful panel
+  glyph and is **back to the chevron**: it was tried and reverted at the
+  owner's preference, and the icon that drew it was removed rather than left
+  unused in the set.
 
 **Mac-facing: yes**, and deliberately so — ⌘T and ⌘W are keys the browser keeps
 for itself, so the tab bindings are only real inside the packaged application.

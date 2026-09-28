@@ -392,51 +392,6 @@ export const PanelRight = (p: IconProps) => (
   </Icon>
 );
 
-/**
- * The navigation toggle, showing which state it is in.
- *
- * A chevron says "go somewhere"; this says "this window, with its left
- * column", and the filled column says which of the two the button will leave
- * you in. The control that hides the navigation is the one a person reaches
- * for most often and reasons about least, so the glyph carries the answer
- * rather than asking them to remember which way round they are.
- *
- * `open` is the navigation's state, not the button's: a full column means the
- * navigation is on screen, and pressing it will take it away.
- */
-export const SidebarGlyph = ({ open, ...p }: IconProps & { open: boolean }) => (
-  <Icon {...p}>
-    <rect x="3" y="5" width="18" height="14" rx="2.5" />
-    {open ? (
-      <>
-        <path d="M9.5 5v14" />
-        {/* The two rules inside the column, filled rather than stroked: at 17px
-            a hairline reads as dirt, a fill reads as material. */}
-        <rect
-          x="5.25"
-          y="8.5"
-          width="2.5"
-          height="1.75"
-          rx="0.875"
-          fill="currentColor"
-          stroke="none"
-        />
-        <rect
-          x="5.25"
-          y="12.25"
-          width="2.5"
-          height="1.75"
-          rx="0.875"
-          fill="currentColor"
-          stroke="none"
-        />
-      </>
-    ) : (
-      <path d="M9.5 5v14" strokeDasharray="2.5 2.5" />
-    )}
-  </Icon>
-);
-
 export const MoreHorizontal = (p: IconProps) => (
   <Icon {...p}>
     <circle cx="6" cy="12" r="1" fill="currentColor" />
