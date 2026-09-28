@@ -51,20 +51,13 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { positionKey, START_FEN } from '@/chess/fen';
 import { Position } from '@/chess/position';
 import { createTree } from '@/chess/tree/tree';
-import {
-  Board,
-  ChevronRight,
-  PanelLeft,
-  PanelRight,
-  Search,
-  Settings,
-  Target,
-} from '@/components/icons';
+import { Board, ChevronRight, PanelLeft, PanelRight, Target } from '@/components/icons';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Button, IconButton } from '@/components/ui/Button';
 import { Menu } from '@/components/ui/Menu';
 import { MoveTreePanel } from '@/features/movetree/MoveTreePanel';
 import { HeaderActions, type RouteAction } from './HeaderActions';
+import { ControlDivider, GlobalControls } from '@/features/shell/GlobalControls';
 import { NavButton } from '@/features/shell/NavButton';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { cn } from '@/lib/cn';
@@ -453,9 +446,7 @@ function FrameHeader({
 
   const fen = useAnalysis((state) => state.tree.nodes[state.currentId]?.fen ?? START_FEN);
   const documentTitle = useAnalysis((state) => state.document.title);
-  const setSettingsOpen = useUi((state) => state.setSettingsOpen);
   const setPositionSetupOpen = useUi((state) => state.setPositionSetupOpen);
-  const toggleCommandPalette = useUi((state) => state.toggleCommandPalette);
   const positionActions = usePositionActions({
     ...(position ?? {}),
     fen,
@@ -475,7 +466,7 @@ function FrameHeader({
       {toolbar ?? (
         <div className="flex min-w-0 items-center gap-2">
           {icon ? (
-            <span className="shrink-0 text-accent [&>svg]:h-5 [&>svg]:w-5">{icon}</span>
+            <span className="shrink-0 text-accent-ink [&>svg]:h-5 [&>svg]:w-5">{icon}</span>
           ) : null}
           <div className="min-w-0" data-header-title>
             <h1 className="truncate text-[15px] font-semibold tracking-[-0.01em] text-primary">
@@ -493,7 +484,7 @@ function FrameHeader({
           <HeaderActions actions={routeActions} available={available} onMeasured={measure} />
         ) : null}
         {actions}
-        <span className="mx-1 hidden h-4 w-px bg-line-subtle sm:block" />
+        <ControlDivider />
         <Menu
           sections={positionActions.sections}
           trigger={({ open, toggle, id }) => (
@@ -531,30 +522,12 @@ function FrameHeader({
           <span className="hidden xs:inline">Set up</span>
         </Button>
         {/*
-          Search commands keeps a longer label than Position or Set up, so the
-          threshold for it is wider: at `mid` (900 px) the rest of the toolbar
-          has the room it needs without the search button pushing the theme
-          toggle off the right edge. Below that the icon and the kbd stay, so
-          the shortcut is still discoverable.
+          Search commands and Settings are the same on every route, and they
+          are the same *component* — see `GlobalControls.tsx` for what that
+          fixed. The labels here are Position and Set up, which belong to a
+          board and are not offered on a route with no position.
         */}
-        <button
-          type="button"
-          onClick={toggleCommandPalette}
-          aria-label="Search commands"
-          className="flex h-8 shrink-0 items-center gap-2 rounded-[8px] bg-surface-2 px-3 text-xs text-tertiary transition-colors hover:bg-surface-3 hover:text-secondary"
-        >
-          <Search className="h-3.5 w-3.5" />
-          <span className="hidden mid:inline">Search commands</span>
-          <kbd className="hidden rounded-[5px] bg-surface-1 px-1 font-mono text-[10px] mid:inline">
-            ⌘K
-          </kbd>
-        </button>
-        {/* Phase 82: the theme switch lives at the foot of the sidebar (and
-            in the phone's navigation drawer), where a Mac application keeps
-            such a control; a second copy here cost the route its actions. */}
-        <IconButton label="Settings (⌘,)" onClick={() => setSettingsOpen(true)}>
-          <Settings />
-        </IconButton>
+        <GlobalControls />
       </div>
     </header>
   );

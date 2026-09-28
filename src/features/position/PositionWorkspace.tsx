@@ -1,6 +1,6 @@
 'use client';
 
-import { WorkspaceTabStrip } from '@/features/tabs/WorkspaceTabStrip';
+import { PageHeader } from '@/features/shell/PageHeader';
 import { useMemo, useState, useSyncExternalStore } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -8,7 +8,7 @@ import { START_FEN } from '@/chess/fen';
 import { formatScore } from '@/chess/evaluation';
 import { Button } from '@/components/ui/Button';
 import { MiniBoard } from '@/features/board/MiniBoard';
-import { NavButton } from '@/features/shell/NavButton';
+
 import { PositionHistorySection } from './PositionHistory';
 import { useProfile } from '@/features/persistence/queries';
 import { openStoredGame } from '@/features/games/open-game';
@@ -58,17 +58,16 @@ export function PositionWorkspace() {
 
   return (
     <div className="flex h-full min-h-0 flex-col" data-workspace-frame="position">
-      <header className="flex shrink-0 items-center gap-3 border-b border-line-subtle px-3 py-3">
-        <NavButton />
-        <div className="min-w-0 flex-1">
-          <h1 className="text-base font-semibold text-primary">Position page</h1>
-          <p className="text-xs text-secondary">Your work and the evidence, in one place.</p>
-        </div>
-        <Button onClick={() => void client.invalidateQueries({ queryKey: ['position-page'] })}>
-          Refresh
-        </Button>
-      </header>
-      <WorkspaceTabStrip />
+      {/* The shared header — see the note in SearchWorkspace.tsx. */}
+      <PageHeader
+        title="Position page"
+        subtitle="Your work and the evidence, in one place."
+        actions={
+          <Button onClick={() => void client.invalidateQueries({ queryKey: ['position-page'] })}>
+            Refresh
+          </Button>
+        }
+      />
       {!identity ? (
         <div className="p-6" role="alert">
           This position cannot be read. Open the page from a board, or supply a valid standard-chess

@@ -154,7 +154,7 @@ export function PlayedAgainstYouPanel({
               <button
                 type="button"
                 onClick={() => setExpanded((value) => !value)}
-                className="text-[10px] text-accent hover:underline"
+                className="text-[10px] text-accent-ink hover:underline"
               >
                 {expanded ? 'Show fewer' : `Show all ${list.length}`}
               </button>

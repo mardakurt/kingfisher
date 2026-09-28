@@ -14,14 +14,14 @@
  * explorer, not the web, and it says so.
  */
 
-import { WorkspaceTabStrip } from '@/features/tabs/WorkspaceTabStrip';
+import { PageHeader } from '@/features/shell/PageHeader';
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 import { Search } from '@/components/icons';
 import { EmptyState } from '@/components/ui/Panel';
-import { NavButton } from '@/features/shell/NavButton';
+
 import { openPositionHit, openWorkspaceHit } from '@/features/search/open-hit';
 import { parseMoveSequence } from '@/features/search/move-sequence';
 import {
@@ -133,17 +133,17 @@ export function SearchWorkspace() {
 
   return (
     <div className="flex h-full min-h-0 flex-col" data-workspace-frame="search">
-      <header className="flex shrink-0 items-center gap-2 border-b border-line-subtle px-2 py-2">
-        <NavButton />
-        <Search className="h-4 w-4 shrink-0 text-accent" />
-        <div className="min-w-0">
-          <h1 className="text-sm font-semibold text-primary">Search</h1>
-          <p className="hidden text-xs text-tertiary sm:block">
-            Everything you have made or imported — by position, by line, or by name.
-          </p>
-        </div>
-      </header>
-      <WorkspaceTabStrip />
+      {/*
+        The shared header, so this page's title row, its height and the
+        controls at its right are the same ones the board routes and the
+        Library draw. It was its own `<header>` with a 14px title where they
+        use 15px, a border they do not have, and neither ⌘K nor Settings.
+      */}
+      <PageHeader
+        title="Search"
+        subtitle="Everything you have made or imported — by position, by line, or by name."
+        icon={<Search className="h-4 w-4" />}
+      />
 
       <div className="shrink-0 border-b border-line-subtle p-2">
         <form

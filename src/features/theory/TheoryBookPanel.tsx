@@ -165,7 +165,7 @@ export function TheoryBookPanel() {
                   className="flex w-full items-baseline gap-2 py-1.5 text-left hover:bg-surface-2"
                   data-book-branch
                 >
-                  <span className="font-mono text-2xs text-accent">
+                  <span className="font-mono text-2xs text-accent-ink">
                     {numberedFrom(root.moves, 0)}
                   </span>
                   <span className="min-w-0 flex-1 truncate text-xs text-secondary">
@@ -359,7 +359,7 @@ function BranchList({
                   className="flex w-full items-baseline gap-2 py-1.5 text-left hover:bg-surface-2"
                   data-book-branch
                 >
-                  <span className="shrink-0 font-mono text-2xs text-accent">
+                  <span className="shrink-0 font-mono text-2xs text-accent-ink">
                     {showMoves
                       ? numberedFrom(branch.definingMoves, from.plies)
                       : `${branch.plies > from.plies ? `+${branch.plies - from.plies}` : ''}`}

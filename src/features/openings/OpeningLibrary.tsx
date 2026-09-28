@@ -122,7 +122,9 @@ export function OpeningLibrary() {
                 )}
               >
                 <span className="flex items-baseline gap-2">
-                  <span className="shrink-0 font-mono text-[11px] text-accent">{entry.eco}</span>
+                  <span className="shrink-0 font-mono text-[11px] text-accent-ink">
+                    {entry.eco}
+                  </span>
                   <span
                     className="min-w-0 flex-1 text-sm leading-snug text-primary"
                     style={{
@@ -236,7 +238,7 @@ function OpeningDetail({ entry }: { readonly entry: OpeningEntry }) {
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-baseline gap-2">
-            <span className="rounded-[5px] bg-surface-3 px-1.5 py-0.5 font-mono text-xs text-accent">
+            <span className="rounded-[5px] bg-surface-3 px-1.5 py-0.5 font-mono text-xs text-accent-ink">
               {entry.eco}
             </span>
             <h2 className="text-lg font-semibold text-primary">{entry.name}</h2>
@@ -382,7 +384,7 @@ function OpeningDetail({ entry }: { readonly entry: OpeningEntry }) {
                     href={game.url}
                     target="_blank"
                     rel="noreferrer noopener"
-                    className="text-xs text-accent underline-offset-2 hover:underline"
+                    className="text-xs text-accent-ink underline-offset-2 hover:underline"
                   >
                     View
                   </a>

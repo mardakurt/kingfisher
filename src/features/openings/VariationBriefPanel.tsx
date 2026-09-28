@@ -106,7 +106,7 @@ export function VariationBriefPanel({
         <button
           type="button"
           onClick={() => setPreference('showVariationBrief', !show)}
-          className="ml-auto shrink-0 text-[10px] text-accent underline-offset-2 hover:underline"
+          className="ml-auto shrink-0 text-[10px] text-accent-ink underline-offset-2 hover:underline"
           aria-expanded={show}
         >
           {show ? 'Hide' : 'Show'}
@@ -161,7 +161,7 @@ export function VariationBriefPanel({
                   <button
                     type="button"
                     onClick={() => setWhy(true)}
-                    className="text-accent underline-offset-2 hover:underline"
+                    className="text-accent-ink underline-offset-2 hover:underline"
                   >
                     Why so short?
                   </button>

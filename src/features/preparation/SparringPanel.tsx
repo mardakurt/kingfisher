@@ -338,7 +338,7 @@ export function SparringPanel() {
                         className={cn(
                           'mr-1.5 rounded-[5px] px-1 py-px text-[9px] font-semibold ',
                           entry.source === 'book'
-                            ? 'bg-accent/15 text-accent'
+                            ? 'bg-accent/15 text-accent-ink'
                             : 'bg-surface-3 text-tertiary',
                         )}
                       >

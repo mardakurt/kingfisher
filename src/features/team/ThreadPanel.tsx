@@ -145,7 +145,7 @@ export function ThreadPanel({
             className={cn(
               'inline-block rounded-[5px] px-1.5 py-0.5 text-[10px] font-medium',
               status === 'accepted' && 'bg-positive/15 text-positive',
-              status === 'handed-in' && 'bg-accent/15 text-accent',
+              status === 'handed-in' && 'bg-accent/15 text-accent-ink',
               status === 'returned' && 'bg-caution/15 text-caution',
               status === 'todo' && 'bg-surface-3 text-secondary',
             )}
@@ -321,7 +321,7 @@ export function ThreadPanel({
                   The board is empty. Play your moves on it, or{' '}
                   <button
                     type="button"
-                    className="text-accent underline-offset-2 hover:underline"
+                    className="text-accent-ink underline-offset-2 hover:underline"
                     onClick={() => openImport(true)}
                   >
                     import a PGN

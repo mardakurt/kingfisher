@@ -143,6 +143,25 @@
   --accent-muted: #4b93f52e;
   --accent-contrast: #07111f;
 
+  /*
+   * The accent as *text*, which is not the same job as the accent as a fill.
+
+   * `--accent` is chosen to carry white-on-accent text, sit under a focus
+   * ring and paint a selected row — it is a surface, and on this theme it is
+   * a mid blue. Painted as 12px type on a raised chip it is a different
+   * question: 4.07:1 on `--surface-3`, under the 4.5:1 WCAG AA floor. That is
+   * not a theory — it is what the ECO code on the Openings page measured, on
+   * every window, in the dark theme, and `e2e/route-audit.spec.ts` now holds
+   * every route to it.
+
+   * So the two are separate tokens, as the evaluation colours already are
+   * (`--eval-white` and `--eval-black` are the readings; `--eval-track` is
+   * the surface). This one is the reading: the same blue, carried light
+   * enough to be text on the darkest surface the workspace draws text on.
+   * 5.1:1 on `--surface-3` and 6.5:1 on the canvas.
+   */
+  --accent-ink: #7fb0f7;
+
   --positive: #5fb772;
   --negative: #ef6b62;
   --caution: #e0b04a;
@@ -220,6 +239,10 @@
   --accent-hover: #1854ba;
   --accent-muted: #1f64d61f;
   --accent-contrast: #ffffff;
+  /* See the dark theme: the accent read as text rather than as a fill. The
+     light theme's accent already clears 4.5:1 on `--surface-3` (5.6:1), so
+     this is the same colour until it is not. */
+  --accent-ink: #1f64d6;
 
   --positive: #2f8a47;
   --negative: #c4392f;
@@ -281,6 +304,7 @@
   --color-accent-hover: var(--accent-hover);
   --color-accent-muted: var(--accent-muted);
   --color-accent-contrast: var(--accent-contrast);
+  --color-accent-ink: var(--accent-ink);
 
   --color-positive: var(--positive);
   --color-negative: var(--negative);

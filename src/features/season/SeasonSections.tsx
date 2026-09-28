@@ -228,7 +228,7 @@ function LongestPositionsSection({
             <div className="flex items-baseline justify-between gap-2">
               <Link
                 href={`/position?fen=${encodeURIComponent(row.fen)}`}
-                className="text-sm font-semibold text-accent hover:underline"
+                className="text-sm font-semibold text-accent-ink hover:underline"
               >
                 {row.firstSeenMoveNumber === row.lastSeenMoveNumber
                   ? `Position at move ${row.firstSeenMoveNumber}`
@@ -329,7 +329,7 @@ function SlowestOpeningsSection({
               <td className="py-1">
                 <Link
                   href={`/preparation?player=${encodeURIComponent(row.player)}&side=${row.color}&eco=${encodeURIComponent(row.opening)}`}
-                  className="text-accent hover:underline"
+                  className="text-accent-ink hover:underline"
                 >
                   {row.opening} · {row.color === 'w' ? 'White' : 'Black'}
                 </Link>

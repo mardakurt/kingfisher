@@ -15,6 +15,7 @@
  * the honest description of what continuing actually is.
  */
 
+import { GlobalControls } from '@/features/shell/GlobalControls';
 import { WorkspaceTabStrip } from '@/features/tabs/WorkspaceTabStrip';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -258,8 +259,20 @@ export function RecentWorkspace() {
       ) : null}
 
       <header data-titlebar-drag="" className="shrink-0 border-b border-line-subtle px-5 py-5">
-        <h1 className="text-xl font-semibold tracking-tight text-primary">Recent work</h1>
-        <p className="mt-0.5 text-sm text-secondary">Pick up where you left off.</p>
+        {/*
+          This page's header is a "pick up where you left off" panel rather than
+          a toolbar — the one route whose content of the day earns the space —
+          but the two controls that are the same on every route still belong at
+          its top right, or ⌘K and Settings are unreachable from here except by
+          remembering the shortcut. `GlobalControls.tsx` says what that is.
+        */}
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="text-xl font-semibold tracking-tight text-primary">Recent work</h1>
+            <p className="mt-0.5 text-sm text-secondary">Pick up where you left off.</p>
+          </div>
+          <GlobalControls />
+        </div>
 
         {continuable ? (
           <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -459,7 +472,7 @@ function Row({
         <IconButton
           label={pinned ? `Unpin ${label}` : `Pin ${label}`}
           onClick={onPin}
-          className={cn(pinned && 'text-accent')}
+          className={cn(pinned && 'text-accent-ink')}
         >
           <Pin />
         </IconButton>
@@ -475,7 +488,7 @@ function Empty({ what, href }: { what: string; href: string }) {
         title={`No ${what} yet.`}
         description="They appear here once you create one."
         action={
-          <Link href={href} className="text-xs text-accent hover:underline">
+          <Link href={href} className="text-xs text-accent-ink hover:underline">
             Go to {what}
           </Link>
         }

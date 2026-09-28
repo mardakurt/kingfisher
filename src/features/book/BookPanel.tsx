@@ -64,7 +64,7 @@ export function BookPanel() {
               <button
                 type="button"
                 onClick={() => openSettingsAt('engine')}
-                className="text-xs text-accent underline-offset-2 hover:underline"
+                className="text-xs text-accent-ink underline-offset-2 hover:underline"
               >
                 Manage books
               </button>
@@ -92,7 +92,7 @@ export function BookPanel() {
                       <button
                         type="button"
                         disabled={!move.legal}
-                        className="font-medium text-primary hover:text-accent disabled:text-tertiary"
+                        className="font-medium text-primary hover:text-accent-ink disabled:text-tertiary"
                         onClick={() => {
                           const legal = position.playUci(move.uci);
                           if (!legal.ok) {

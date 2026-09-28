@@ -972,7 +972,7 @@ function CompanionSection() {
                 href={publicUrl.landing + '#macos'}
                 target="_blank"
                 rel="noreferrer"
-                className="mt-2 inline-block text-accent hover:underline"
+                className="mt-2 inline-block text-accent-ink hover:underline"
               >
                 Download Kingfisher for macOS →
               </a>
@@ -981,7 +981,7 @@ function CompanionSection() {
                 href={`${publicUrl.repository}/blob/master/companion/README.md`}
                 target="_blank"
                 rel="noreferrer"
-                className="mt-2 inline-block text-accent hover:underline"
+                className="mt-2 inline-block text-accent-ink hover:underline"
               >
                 Read about the companion →
               </a>
@@ -1024,7 +1024,7 @@ function CompanionSection() {
               href={`${publicUrl.repository}/blob/master/companion/README.md`}
               target="_blank"
               rel="noreferrer"
-              className="mt-2 inline-block text-accent hover:underline"
+              className="mt-2 inline-block text-accent-ink hover:underline"
             >
               Read the full setup guide →
             </a>
@@ -2999,7 +2999,7 @@ function HelpSection() {
               openFeedback('broken');
               onClose();
             }}
-            className="text-accent hover:underline"
+            className="text-accent-ink hover:underline"
             data-feedback-from-settings=""
           >
             Report a problem →
@@ -3014,7 +3014,7 @@ function HelpSection() {
             href="https://github.com/mardakurt/kingfisher/discussions"
             target="_blank"
             rel="noopener"
-            className="text-accent hover:underline"
+            className="text-accent-ink hover:underline"
           >
             Ask the community →
           </a>
@@ -3036,7 +3036,7 @@ function HelpSection() {
               setTourOpen(true);
               onClose();
             }}
-            className="text-accent hover:underline"
+            className="text-accent-ink hover:underline"
             data-open-tour=""
           >
             Open the tour guide of the website →
@@ -3051,7 +3051,7 @@ function HelpSection() {
             href="https://github.com/mardakurt/kingfisher/blob/master/CHANGELOG.md"
             target="_blank"
             rel="noopener"
-            className="text-accent hover:underline"
+            className="text-accent-ink hover:underline"
           >
             Changelog →
           </a>
@@ -3064,7 +3064,7 @@ function HelpSection() {
             href="https://github.com/mardakurt/kingfisher/blob/master/SECURITY.md"
             target="_blank"
             rel="noopener"
-            className="text-accent hover:underline"
+            className="text-accent-ink hover:underline"
           >
             Security policy →
           </a>
@@ -3231,7 +3231,7 @@ function ProviderDiagnostic({ provider }: { provider: ChessDatabaseProvider }) {
               status.tone === 'positive' && 'bg-positive/15 text-positive',
               status.tone === 'negative' && 'bg-negative/15 text-negative',
               status.tone === 'caution' && 'bg-caution/15 text-caution',
-              status.tone === 'pending' && 'bg-accent/15 text-accent',
+              status.tone === 'pending' && 'bg-accent/15 text-accent-ink',
               status.tone === 'neutral' && 'bg-surface-2 text-tertiary',
             )}
           >

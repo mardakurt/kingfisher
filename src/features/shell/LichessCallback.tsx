@@ -90,7 +90,7 @@ export function LichessCallback() {
   return (
     <main className="flex min-h-dvh items-center justify-center bg-surface-0 p-6">
       <div className="w-full max-w-md rounded-[8px] border border-line bg-surface-1 p-6 text-center">
-        <BrandMark className="mx-auto h-10 w-10 text-accent" />
+        <BrandMark className="mx-auto h-10 w-10 text-accent-ink" />
         {state.kind === 'working' ? (
           <>
             <h1 className="mt-4 text-base font-semibold text-primary">Finishing the sign-in…</h1>

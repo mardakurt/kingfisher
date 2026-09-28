@@ -311,7 +311,7 @@ function OpeningsView(props: PreparationReportProps) {
                   key={edge.uci}
                   type="button"
                   onClick={() => props.onPrepare(edge)}
-                  className="mt-1 block w-full text-left text-[11px] text-tertiary hover:text-accent"
+                  className="mt-1 block w-full text-left text-[11px] text-tertiary hover:text-accent-ink"
                 >
                   {edge.san} · {edge.games} games · no prepared reply — prepare one
                 </button>
@@ -386,7 +386,7 @@ export function MoveTable({
               <td className="px-3 py-1.5">
                 <button
                   type="button"
-                  className="font-semibold text-primary hover:text-accent"
+                  className="font-semibold text-primary hover:text-accent-ink"
                   onClick={(event) => {
                     event.stopPropagation();
                     onSelect(edge.resultingKey, edge.san);
@@ -416,7 +416,7 @@ export function MoveTable({
                 ) : (
                   <button
                     type="button"
-                    className="text-tertiary hover:text-accent"
+                    className="text-tertiary hover:text-accent-ink"
                     onClick={(event) => {
                       event.stopPropagation();
                       onPrepare(edge);

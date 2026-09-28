@@ -42,6 +42,19 @@ surface, `surface-inset` is an input or recessed work area, and
 `surface-sidebar` is the source list's own grey. Borders follow
 subtle/default/strong.
 
+**The accent has two jobs, and two tokens.** `--accent` is a _surface_: it
+carries `--accent-contrast` text, it sits under the focus ring, it paints a
+selected row. `--accent-ink` is a _reading_: the accent as type. They are the
+same colour in the light theme, where `--accent` already clears 4.5:1 on the
+darkest raised surface (5.6:1). In the dark theme they are not: `--accent` on
+`--surface-3` measured **4.07:1**, which is how an ECO code on the Openings
+page — and every other accent-coloured label, link and value — failed WCAG AA
+in dark while passing in light. Use `text-accent-ink` for anything that is
+text; `text-accent` is for a glyph. `src/ui/accent-ink.test.ts` asserts the
+floor against all four surfaces in both themes, measured from the stylesheet,
+and `e2e/route-audit.spec.ts` measures it again in a real browser on every
+route.
+
 **One identity, one source (Phase 84).** The Studio's stylesheet is the
 source of every colour Kingfisher shows:
 
@@ -146,6 +159,28 @@ definition each: `SearchField` (rounded, filled, with a clear button),
 `PopoverSection`, and `ScoreRing` (wins, draws and losses as one ring, the
 arcs the counts in proportion). The Library, Preparation and Databases are
 built from them, so they cannot drift into three dialects.
+
+### The two controls that are the same on every route
+
+`GlobalControls` (`src/features/shell/GlobalControls.tsx`) is the command
+palette and Settings, and it is the end of **both** header components —
+`PageHeader`'s and `WorkspaceFrame`'s. They are two components for good
+reasons (the second measures room for folding a route's actions and owns the
+position menu; the first is a plain title row), but the controls at the right
+of them are the same control, so they are the same component.
+
+They used to exist only inside `WorkspaceFrame`. The measured result was that
+six application routes — the Library, Players, Databases, Recent, Search and
+the Position page — carried neither, and on Search and Players the right of the
+header was empty. `e2e/header-controls.spec.ts` derives its route list from
+`src/app/` and holds every one of them to it, so a route added later is held to
+it too.
+
+Three more pages had rolled their own title row — Search at 14px, Players at
+14px, the Position page at 16px, two of them with a rule under the header that
+the shared header does not draw. They use `PageHeader` now. The one page that
+keeps a header of its own is Recent, whose "pick up where you left off" panel
+earns the space; it carries `GlobalControls` in its first row.
 
 - **Library** (`/games`): search and Filters over a dense striped table; a
   single click previews the game (board, notation, open/review/analyse) in the

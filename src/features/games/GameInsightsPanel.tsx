@@ -111,7 +111,7 @@ export function GameInsightsPanel() {
                   {insights.deviation.own ? (
                     <button
                       type="button"
-                      className="mt-1 text-left text-accent hover:underline"
+                      className="mt-1 text-left text-accent-ink hover:underline"
                       onClick={() => goTo(insights.deviation!.own!.nodeId)}
                     >
                       You deviated with {insights.deviation.own.playedSan} on ply{' '}
@@ -121,7 +121,7 @@ export function GameInsightsPanel() {
                   {insights.deviation.opponent ? (
                     <button
                       type="button"
-                      className="mt-1 text-left text-accent hover:underline"
+                      className="mt-1 text-left text-accent-ink hover:underline"
                       onClick={() => goTo(insights.deviation!.opponent!.nodeId)}
                     >
                       Your opponent deviated with {insights.deviation.opponent.playedSan} on ply{' '}

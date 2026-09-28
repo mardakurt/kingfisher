@@ -43,7 +43,7 @@ export function SessionBar({
 
   return (
     <div className="flex h-9 shrink-0 flex-wrap items-center gap-2 border-b border-line-subtle bg-surface-2 px-2 sm:px-3">
-      <Target className="h-3.5 w-3.5 shrink-0 text-accent" />
+      <Target className="h-3.5 w-3.5 shrink-0 text-accent-ink" />
       <label className="flex min-w-0 items-center gap-1.5 text-[10px] text-tertiary">
         Session
         <select

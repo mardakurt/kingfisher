@@ -29,7 +29,7 @@ export function RecoveryNotice() {
       role="alert"
       className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 border-b border-accent/40 bg-accent/10 px-4 py-2.5"
     >
-      <Info className="h-4 w-4 shrink-0 text-accent" />
+      <Info className="h-4 w-4 shrink-0 text-accent-ink" />
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium text-primary">
           Unsaved work was found for “{recovery.chapterTitle}”.

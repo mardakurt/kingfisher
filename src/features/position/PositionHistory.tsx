@@ -110,7 +110,7 @@ function HistoryBody({
             <dd className="min-w-0">
               <button
                 type="button"
-                className="truncate text-left text-accent hover:underline"
+                className="truncate text-left text-accent-ink hover:underline"
                 onClick={() => onOpen(history.first!)}
                 data-history-first
               >
@@ -125,7 +125,7 @@ function HistoryBody({
             <dd className="min-w-0">
               <button
                 type="button"
-                className="truncate text-left text-accent hover:underline"
+                className="truncate text-left text-accent-ink hover:underline"
                 onClick={() => onOpen(history.latest!)}
               >
                 {gameTitle(history.latest)} · {history.latest.result}
@@ -145,7 +145,7 @@ function HistoryBody({
               <li key={player.name} className="flex min-w-0 items-baseline gap-2">
                 <Link
                   href={`/player/${encodeURIComponent(playerKey(player.name))}`}
-                  className="truncate text-primary hover:text-accent hover:underline"
+                  className="truncate text-primary hover:text-accent-ink hover:underline"
                 >
                   {player.name}
                 </Link>

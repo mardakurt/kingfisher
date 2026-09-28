@@ -65,7 +65,7 @@ export function CollectionList({
                 </span>
                 {collection.reference ? (
                   <span
-                    className="shrink-0 text-[9px] font-semibold text-accent"
+                    className="shrink-0 text-[9px] font-semibold text-accent-ink"
                     title="The explorer's default source"
                   >
                     Ref

@@ -31,7 +31,7 @@ export function ResearchTrail() {
     <div className="flex h-7 shrink-0 items-center gap-2 border-b border-line-subtle bg-surface-2 px-2 sm:px-3">
       <button
         type="button"
-        className="flex items-center gap-1 text-[11px] text-secondary transition-colors hover:text-accent focus-visible:text-accent"
+        className="flex items-center gap-1 text-[11px] text-secondary transition-colors hover:text-accent-ink focus-visible:text-accent-ink"
         onClick={() => {
           const popped = useResearchHistory.getState().pop();
           if (!popped) return;

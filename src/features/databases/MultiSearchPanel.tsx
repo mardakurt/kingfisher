@@ -231,7 +231,7 @@ export function MultiSearchPanel({ selected, onCreateFromResults }: MultiSearchP
                       Provenance, never merged away. This is the column that
                       makes a federated result different from a bigger list.
                     */}
-                    <span className="w-32 shrink-0 truncate text-right text-[11px] text-accent">
+                    <span className="w-32 shrink-0 truncate text-right text-[11px] text-accent-ink">
                       {hit.source.name}
                     </span>
                   </li>

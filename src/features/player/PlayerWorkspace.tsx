@@ -361,7 +361,7 @@ export function PlayerWorkspace({ playerId }: { readonly playerId: string }) {
                         <td className="py-1.5">
                           <button
                             type="button"
-                            className="text-left text-primary hover:text-accent"
+                            className="text-left text-primary hover:text-accent-ink"
                             onClick={() =>
                               router.push(`/player/${encodeURIComponent(opponent.key)}`)
                             }
@@ -574,7 +574,7 @@ function OverviewSection(props: {
                 <li key={session.id}>
                   <button
                     type="button"
-                    className="text-xs text-primary hover:text-accent"
+                    className="text-xs text-primary hover:text-accent-ink"
                     onClick={() => props.onOpenSession(session.id)}
                   >
                     {session.title}

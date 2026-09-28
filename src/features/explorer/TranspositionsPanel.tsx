@@ -127,7 +127,7 @@ export function TranspositionsPanel() {
               <button
                 type="button"
                 onClick={() => setExpanded(!expanded)}
-                className="w-full px-3 py-2 text-left text-2xs text-accent hover:bg-surface-2"
+                className="w-full px-3 py-2 text-left text-2xs text-accent-ink hover:bg-surface-2"
               >
                 {expanded ? 'Show fewer' : `Show ${merged.length - INITIAL} more`}
               </button>

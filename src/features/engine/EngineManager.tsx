@@ -186,7 +186,7 @@ export function EngineManager() {
             <p className="mt-2 text-2xs">
               <a
                 href={publicUrl.landing + '#macos'}
-                className="text-accent hover:underline"
+                className="text-accent-ink hover:underline"
                 target="_blank"
                 rel="noreferrer"
               >
@@ -444,7 +444,7 @@ function EngineRow({
               className={cn(
                 'rounded-[5px] px-1.5 py-0.5 text-[10px]',
                 state === 'Ready'
-                  ? 'bg-accent-muted text-accent'
+                  ? 'bg-accent-muted text-accent-ink'
                   : 'border border-line text-tertiary',
               )}
             >
@@ -551,7 +551,7 @@ function EngineRow({
                 href={source.startsWith('http') ? source : undefined}
                 target="_blank"
                 rel="noreferrer"
-                className="text-accent underline-offset-2 hover:underline"
+                className="text-accent-ink underline-offset-2 hover:underline"
               >
                 {source}
               </a>

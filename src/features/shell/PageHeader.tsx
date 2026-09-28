@@ -1,13 +1,21 @@
 'use client';
 
 /**
- * The header every page without a board shares, and the tab strip under it.
+ * The plain title row, and the tab strip under it.
  *
  * A title row the height of a Mac window's toolbar — the page's name, a quiet
  * line saying what it holds, and its actions to the right — with the working
- * tabs beneath. The board routes have the same two rows through
- * `WorkspaceFrame`. One shape, so a person who has learned one page has
- * learned the header of all of them.
+ * tabs beneath. The board routes draw the same two rows through
+ * `WorkspaceFrame`, which adds the rail toggle, the position menu and the
+ * fold that protects the title when a route's actions are wide. One shape, so
+ * a person who has learned one page has learned the header of all of them.
+ *
+ * It is not a second way of drawing the same header: it is the header for the
+ * pages that have no board to give a column to. Three pages that had rolled
+ * their own row — Search, the Position page and Players — were using this
+ * before and were on 14px and 16px titles, two of them with a rule under them
+ * that this does not draw. See `GlobalControls.tsx` for the controls at the
+ * right, which are shared with `WorkspaceFrame` for the same reason.
  */
 
 import type { ReactNode } from 'react';
@@ -15,6 +23,7 @@ import type { ReactNode } from 'react';
 import { WorkspaceTabStrip } from '@/features/tabs/WorkspaceTabStrip';
 import { cn } from '@/lib/cn';
 
+import { ControlDivider, GlobalControls } from './GlobalControls';
 import { NavButton } from './NavButton';
 
 export function PageHeader({
@@ -57,9 +66,18 @@ export function PageHeader({
           ) : null}
         </div>
         {children}
-        {actions ? (
-          <div className="ml-auto flex shrink-0 items-center gap-1.5">{actions}</div>
-        ) : null}
+        {/*
+          The route's own actions, then the two controls that are the same on
+          every route. The free space is taken by this group as a whole, so
+          the header's right edge is in the same place whether a route has
+          three actions, one, or none — which is what a person moving between
+          the Library and the Position page should not have to notice.
+        */}
+        <div className="ml-auto flex shrink-0 items-center gap-1.5">
+          {actions}
+          <ControlDivider />
+          <GlobalControls />
+        </div>
       </header>
       <WorkspaceTabStrip />
     </>

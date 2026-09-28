@@ -259,7 +259,7 @@ export function CalculationPanel({
                   <li key={line.branchId} className="flex items-baseline gap-1.5">
                     <button
                       type="button"
-                      className="min-w-0 flex-1 truncate text-left font-mono text-[10.5px] text-primary hover:text-accent"
+                      className="min-w-0 flex-1 truncate text-left font-mono text-[10.5px] text-primary hover:text-accent-ink"
                       onClick={() =>
                         useCalculation.getState().navigate(line.moves.map((move) => move.id))
                       }

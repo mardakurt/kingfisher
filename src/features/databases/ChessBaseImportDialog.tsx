@@ -261,7 +261,7 @@ export function ChessBaseImportDialog({ open, onClose }: { open: boolean; onClos
             {job.examined > 0 ? (
               <button
                 type="button"
-                className="text-xs text-accent underline"
+                className="text-xs text-accent-ink underline"
                 data-chessbase-loss-report
                 onClick={() => {
                   const report = job.lossReport();

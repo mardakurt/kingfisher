@@ -82,7 +82,7 @@ export function GameDaySheet({
                   ) : null}
                   <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[10px] text-tertiary">
                     {card.intendedSan ? (
-                      <span className="text-accent">Play {card.intendedSan}</span>
+                      <span className="text-accent-ink">Play {card.intendedSan}</span>
                     ) : null}
                     {card.source ? <span>from {card.source.replace('-', ' ')}</span> : null}
                   </p>

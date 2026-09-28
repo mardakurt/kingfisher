@@ -174,7 +174,7 @@ export function OpponentSearch({
               >
                 <span className="min-w-0 flex-1 truncate">
                   {player.title ? (
-                    <span className="mr-1.5 text-[10px] font-medium text-accent">
+                    <span className="mr-1.5 text-[10px] font-medium text-accent-ink">
                       {player.title}
                     </span>
                   ) : null}

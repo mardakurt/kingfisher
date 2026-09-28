@@ -271,7 +271,7 @@ function ScanSection({
                     <button
                       type="button"
                       onClick={() => onOpen(game)}
-                      className="max-w-full truncate text-left text-[11.5px] text-accent hover:underline"
+                      className="max-w-full truncate text-left text-[11.5px] text-accent-ink hover:underline"
                     >
                       {gameTitle(game.game)}
                       {game.game.result && game.game.result !== '*' ? ` · ${game.game.result}` : ''}

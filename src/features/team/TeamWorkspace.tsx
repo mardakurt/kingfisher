@@ -506,7 +506,7 @@ export function TeamWorkspace() {
             <section key={column} data-team-column={column}>
               <h3 className="px-3 pb-1 pt-2.5 text-[9.5px] text-tertiary">
                 {COLUMN_LABEL[column]} · {rows.length}
-                {fresh > 0 ? <span className="text-accent"> · {fresh} new</span> : null}
+                {fresh > 0 ? <span className="text-accent-ink"> · {fresh} new</span> : null}
               </h3>
               <ul className="divide-y divide-line-subtle border-b border-line-subtle">
                 {rows.map((entry) => {
@@ -627,7 +627,7 @@ export function TeamWorkspace() {
         ]}
         banner={
           dropping ? (
-            <div className="border-b border-accent/40 bg-accent/10 px-3 py-1.5 text-[11px] text-accent">
+            <div className="border-b border-accent/40 bg-accent/10 px-3 py-1.5 text-[11px] text-accent-ink">
               Drop the packet to receive it.
             </div>
           ) : undefined

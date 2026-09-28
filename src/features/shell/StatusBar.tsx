@@ -159,7 +159,7 @@ export function StatusBar() {
           backupDays === null && 'text-negative',
           backupDays !== null && backupDue && 'text-caution',
           backupDays !== null && !backupDue && backupDays > 0 && 'text-secondary',
-          backupStatus === 'running' && 'text-accent',
+          backupStatus === 'running' && 'text-accent-ink',
         )}
       >
         {backupStatus === 'running' ? (

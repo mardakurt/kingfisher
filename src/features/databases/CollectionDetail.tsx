@@ -216,7 +216,7 @@ export function CollectionDetail({ collection, onTransfer, onChanged }: Collecti
   return (
     <div className="@container mx-auto max-w-4xl p-5 md:p-8">
       <header className="flex flex-wrap items-start gap-4 border-b border-line-subtle pb-6">
-        <Database className="h-10 w-10 shrink-0 text-accent" />
+        <Database className="h-10 w-10 shrink-0 text-accent-ink" />
         <div className="min-w-0 flex-1">
           <h2 className="text-xl font-semibold text-primary">{collection.name}</h2>
           <p className="mt-1 text-sm text-secondary">

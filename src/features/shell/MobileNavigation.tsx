@@ -32,7 +32,7 @@ export function MobileNavigation() {
             aria-current={active ? 'page' : undefined}
             className={cn(
               'flex min-w-0 flex-col items-center justify-center gap-0.5 text-[10px]',
-              active ? 'text-accent' : 'text-tertiary',
+              active ? 'text-accent-ink' : 'text-tertiary',
             )}
           >
             <Icon className="h-5 w-5" />

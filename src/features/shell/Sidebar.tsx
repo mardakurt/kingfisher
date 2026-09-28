@@ -112,7 +112,7 @@ export function Sidebar({ variant = 'desktop', onClose }: SidebarProps) {
           data-sidebar-home=""
           className="flex items-center gap-2.5 rounded-[5px] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
         >
-          <BrandMark className="kf-titlebar-yield h-9 w-9 shrink-0 text-accent" />
+          <BrandMark className="kf-titlebar-yield h-9 w-9 shrink-0 text-accent-ink" />
           <span
             className={cn(
               'text-[16px] font-semibold tracking-[-0.01em] text-primary',
@@ -187,7 +187,7 @@ export function Sidebar({ variant = 'desktop', onClose }: SidebarProps) {
                         <Icon
                           className={cn(
                             'h-[17px] w-[17px] shrink-0',
-                            active ? 'text-accent' : 'text-secondary',
+                            active ? 'text-accent-ink' : 'text-secondary',
                           )}
                         />
                         <span className={cn('truncate', compact && 'hidden')}>{section.label}</span>

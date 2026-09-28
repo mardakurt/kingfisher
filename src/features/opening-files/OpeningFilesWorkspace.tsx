@@ -247,7 +247,7 @@ export function OpeningFilesWorkspace() {
                   >
                     <button
                       type="button"
-                      className="min-w-0 flex-1 truncate text-left font-mono text-[10.5px] text-secondary hover:text-accent"
+                      className="min-w-0 flex-1 truncate text-left font-mono text-[10.5px] text-secondary hover:text-accent-ink"
                       title={entry.note ? `${entry.fen} — ${entry.note}` : entry.fen}
                       onClick={() =>
                         openDocument({
@@ -605,7 +605,7 @@ function LinkedList({
             <button
               type="button"
               onClick={() => void entry.open?.()}
-              className="min-w-0 flex-1 truncate text-left text-primary hover:text-accent"
+              className="min-w-0 flex-1 truncate text-left text-primary hover:text-accent-ink"
               title={entry.subtitle ? `${entry.title} — ${entry.subtitle}` : entry.title}
             >
               {entry.title}

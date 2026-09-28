@@ -285,7 +285,7 @@ export function ExplorerPanel() {
           <>
             <Link
               href="/openings"
-              className="mr-1 shrink-0 text-[10px] font-normal text-accent underline-offset-2 hover:underline"
+              className="mr-1 shrink-0 text-[10px] font-normal text-accent-ink underline-offset-2 hover:underline"
             >
               Browse openings
             </Link>
@@ -343,7 +343,7 @@ export function ExplorerPanel() {
         */}
         <span className="flex min-w-0 items-baseline gap-1.5 font-normal">
           {opening?.eco ? (
-            <span className="shrink-0 rounded-[5px] bg-surface-3 px-1 font-mono text-[10px] text-accent">
+            <span className="shrink-0 rounded-[5px] bg-surface-3 px-1 font-mono text-[10px] text-accent-ink">
               {opening.eco}
             </span>
           ) : null}
@@ -669,7 +669,7 @@ export function ExplorerPanel() {
                   (query.data?.topGames?.length ?? 0) >= 2 ? (
                     <button
                       type="button"
-                      className="ml-auto text-[10px] text-accent underline-offset-2 hover:underline"
+                      className="ml-auto text-[10px] text-accent-ink underline-offset-2 hover:underline"
                       onClick={() => {
                         let opened = false;
                         void mergeReferenceGames(
@@ -855,7 +855,7 @@ function Row({
         <button
           type="button"
           data-explorer-move={entry.san}
-          className="font-medium text-primary hover:text-accent"
+          className="font-medium text-primary hover:text-accent-ink"
           onClick={onPlay}
         >
           {entry.san}

@@ -8,6 +8,28 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
+- **Fixed: the accent was unreadable as text in the dark theme.** An ECO code
+  on the Openings page — and every other link, value and label drawn in the
+  accent colour — measured 4.07:1 against a raised chip, under the 4.5:1
+  accessibility floor. The accent was never wrong as a fill, which is what it
+  was chosen for; reading it as text is a separate job and now has its own
+  colour. The light theme is unchanged, and every route is now measured for it
+  on every build.
+- **The command palette and Settings are on every page.** They were drawn
+  only on the board routes, so the Library, Players, Databases, Recent, Search
+  and the Position page had no way to reach either except by remembering the
+  keyboard shortcut — and on Search and Players the right of the header was
+  empty. All of them now carry the same two controls, in the same place.
+- **The header is the same header.** Search, the Position page and Players
+  each drew their own title row, at 14, 15 and 16px, some with a rule beneath
+  them and some without. They use the shared one now, so moving between pages
+  does not change the size of the title or the line under it.
+- **Every route is held to the layout audit.** The audit that checks for text
+  crowded under the sidebar, a scroller inside a scroller, text clipped
+  without an ellipsis and text under 4.5:1 ran on six pages. It now runs on
+  all twenty-two, in both themes, at a small window and at desk width — and
+  the six it finds the rest of the product against.
+
 ## 1.3.3 — 2026-09-27
 
 - **The notation stays beside the board on a laptop.** On a window under

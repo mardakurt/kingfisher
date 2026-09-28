@@ -432,7 +432,7 @@ function MoveToken({
       {node.meta.question !== undefined && (
         /* Phase 84: this move is a chapter question — asked at the position before it. */
         <span
-          className="mr-1 inline-flex h-4 select-none items-center rounded-[4px] bg-accent-muted px-1 align-[1px] text-[10px] font-semibold text-accent"
+          className="mr-1 inline-flex h-4 select-none items-center rounded-[4px] bg-accent-muted px-1 align-[1px] text-[10px] font-semibold text-accent-ink"
           title={`Question: ${node.meta.question || 'Find the move.'}`}
           data-question-marker
         >
@@ -491,7 +491,7 @@ function MoveToken({
         <span
           aria-hidden
           title={`${node.shapes.length} arrow(s) or highlight(s) on this move`}
-          className="mr-1 select-none text-[10px] text-accent/70"
+          className="mr-1 select-none text-[10px] text-accent-ink/70"
         >
           ◆
         </span>

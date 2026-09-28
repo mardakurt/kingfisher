@@ -136,7 +136,7 @@ export function TablebasePanel() {
                       <td className="px-3 py-1.5">
                         <button
                           type="button"
-                          className="font-medium text-primary hover:text-accent"
+                          className="font-medium text-primary hover:text-accent-ink"
                           onClick={() => {
                             const played = position.playUci(move.uci);
                             if (!played.ok) return;

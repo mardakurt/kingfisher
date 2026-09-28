@@ -69,7 +69,7 @@ export function IconGallery() {
             {icons.map(({ label, icon: Icon }, index) => (
               <div key={`${label}-${index}`} className="bg-surface-1 p-3">
                 <p className="mb-3 text-xs text-secondary">{label}</p>
-                <div className="flex items-end gap-3 text-accent">
+                <div className="flex items-end gap-3 text-accent-ink">
                   {SIZES.map((size) => (
                     <Icon
                       key={size}

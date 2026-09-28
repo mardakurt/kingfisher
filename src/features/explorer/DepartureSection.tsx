@@ -285,7 +285,7 @@ function DepartureAnswer({
                       {openable ? (
                         <button
                           type="button"
-                          className="w-full truncate text-left text-secondary hover:text-accent"
+                          className="w-full truncate text-left text-secondary hover:text-accent-ink"
                           aria-label={`Open ${game.white} – ${game.black} in a new tab`}
                           onClick={() => onOpenGame(game)}
                         >

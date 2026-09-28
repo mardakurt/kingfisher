@@ -16,14 +16,14 @@
  */
 
 import { useTabField } from '@/features/tabs/tab-fields';
-import { WorkspaceTabStrip } from '@/features/tabs/WorkspaceTabStrip';
+import { PageHeader } from '@/features/shell/PageHeader';
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 
 import { Search } from '@/components/icons';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/Panel';
-import { NavButton } from '@/features/shell/NavButton';
+
 import { cn } from '@/lib/cn';
 import { legendYears } from '@/reference/legends';
 import { describeTitledPlayer, regionName } from '@/reference/titled-players';
@@ -91,27 +91,21 @@ export function PlayersWorkspace() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header
-        data-titlebar-drag=""
-        className="flex min-h-14 shrink-0 items-center gap-3 border-b border-line-subtle bg-surface-1 px-3 md:px-5"
-      >
-        <NavButton />
-        <div className="min-w-0">
-          <h1 className="text-sm font-semibold text-primary">Players</h1>
-          <p className="hidden text-xs text-tertiary sm:block">
-            {catalog.isPending
-              ? 'Reading the installed reference sources…'
-              : `${players
-                  .filter((player) => player.games > 0)
-                  .length.toLocaleString()} players with games in ${installed.length} installed ${
-                  installed.length === 1 ? 'source' : 'sources'
-                }; ${players
-                  .filter((player) => player.games === 0)
-                  .length.toLocaleString()} more titled and historical players by search.`}
-          </p>
-        </div>
-      </header>
-      <WorkspaceTabStrip />
+      {/* The shared header — see the note in SearchWorkspace.tsx. */}
+      <PageHeader
+        title="Players"
+        subtitle={
+          catalog.isPending
+            ? 'Reading the installed reference sources…'
+            : `${players
+                .filter((player) => player.games > 0)
+                .length.toLocaleString()} players with games in ${installed.length} installed ${
+                installed.length === 1 ? 'source' : 'sources'
+              }; ${players
+                .filter((player) => player.games === 0)
+                .length.toLocaleString()} more titled and historical players by search.`
+        }
+      />
 
       <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-line-subtle bg-surface-1 px-3 py-2 md:px-5">
         <label className="relative flex min-w-[240px] flex-1 items-center">
@@ -260,7 +254,7 @@ function PlayerRow({
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
           <Link
             href={`/player/${encodeURIComponent(player.key)}`}
-            className="truncate text-sm font-medium text-primary hover:text-accent"
+            className="truncate text-sm font-medium text-primary hover:text-accent-ink"
           >
             {player.name}
           </Link>
@@ -270,7 +264,7 @@ function PlayerRow({
             </span>
           ) : null}
           {legend?.reign ? (
-            <span className="shrink-0 text-[10px] text-accent">{legend.reign}</span>
+            <span className="shrink-0 text-[10px] text-accent-ink">{legend.reign}</span>
           ) : null}
           {/* Where the person is from, when the roster records it. */}
           {player.titled?.citizenship ? (

@@ -96,7 +96,7 @@ export function IconButton({
         'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[6px] transition-colors duration-100',
         'text-secondary hover:bg-surface-3 hover:text-primary',
         'disabled:pointer-events-none disabled:opacity-35',
-        active && 'bg-accent-muted text-accent',
+        active && 'bg-accent-muted text-accent-ink',
         tone === 'danger' && 'hover:text-negative',
         className,
       )}

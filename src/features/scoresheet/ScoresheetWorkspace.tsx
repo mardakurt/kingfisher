@@ -69,7 +69,7 @@ export function ScoresheetWorkspace() {
       workspace="scoresheet"
       title="Scoresheet"
       subtitle="Your over-the-board game, from the sheet to the board"
-      icon={<Pencil className="h-4 w-4 text-accent" />}
+      icon={<Pencil className="h-4 w-4 text-accent-ink" />}
       rail={{ label: 'Sheet', width: 320, content: <SheetPanel ready={ready} /> }}
       board={{ mode: 'interactive', showEvaluationArtifacts: false }}
     />

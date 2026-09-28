@@ -291,7 +291,7 @@ export function AfterRoundPanel() {
               No {colorName(color)} repertoire yet.{' '}
               <button
                 type="button"
-                className="text-accent hover:underline"
+                className="text-accent-ink hover:underline"
                 onClick={() => router.push('/repertoire')}
               >
                 Start one
@@ -494,7 +494,7 @@ export function AfterRoundPanel() {
                 {entry.data ? (
                   <button
                     type="button"
-                    className="text-2xs text-accent hover:underline"
+                    className="text-2xs text-accent-ink hover:underline"
                     onClick={() => router.push('/review')}
                   >
                     In Review → Rounds
@@ -546,7 +546,7 @@ function Jump({
   return (
     <button
       type="button"
-      className="mt-1 block text-left text-accent hover:underline"
+      className="mt-1 block text-left text-accent-ink hover:underline"
       onClick={onClick}
     >
       {children}

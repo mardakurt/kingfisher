@@ -57,7 +57,7 @@ export function DocumentHeader() {
               exactly where the board is smallest.
             */
             <span
-              className="shrink-0 rounded-[5px] bg-accent/15 px-1 text-[10px] font-medium text-accent"
+              className="shrink-0 rounded-[5px] bg-accent/15 px-1 text-[10px] font-medium text-accent-ink"
               data-viewer-side={document.viewerSide}
             >
               You played {document.viewerSide === 'w' ? 'White' : 'Black'}

@@ -472,7 +472,7 @@ const Badge = ({ kind }: { readonly kind: SourceKind }) => (
 const STATE_TONE_CLASS = {
   neutral: 'border-line text-tertiary',
   positive: 'border-success/40 bg-success/10 text-success',
-  accent: 'border-accent/40 bg-accent-muted text-accent',
+  accent: 'border-accent/40 bg-accent-muted text-accent-ink',
   warning: 'border-warning/40 bg-warning/10 text-warning',
   danger: 'border-danger/40 bg-danger/10 text-danger',
 } as const;
@@ -613,7 +613,7 @@ function Details({
               href={source.license.url}
               target="_blank"
               rel="noreferrer"
-              className="text-accent underline-offset-2 hover:underline"
+              className="text-accent-ink underline-offset-2 hover:underline"
             >
               {source.license.name}
             </a>

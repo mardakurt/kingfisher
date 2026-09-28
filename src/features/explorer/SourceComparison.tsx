@@ -166,7 +166,7 @@ export function SourceComparison({
                       <button
                         type="button"
                         onClick={() => onPlay(row.san)}
-                        className="font-medium text-primary hover:text-accent"
+                        className="font-medium text-primary hover:text-accent-ink"
                       >
                         {row.san}
                       </button>
