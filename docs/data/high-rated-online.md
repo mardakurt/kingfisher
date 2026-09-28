@@ -1,9 +1,10 @@
 # The High-Rated Online reference — what it is, and why those thresholds
 
-Kingfisher's other two references answer "how has this position scored among
-strong players over the board". This one answers a different question: what
-strong players are playing online, where far more games exist and theory moves
-faster.
+Kingfisher's four broadcast references answer "how has this position scored
+among strong players over the board". This one answers a different question:
+what strong players are playing online, where far more games exist and theory
+moves faster. Its slower sibling, High-Rated Rapid & Classical, is at the end of
+this document.
 
 Every number below was measured before the definition was chosen, on a real
 sample rather than assumed. The sample is the first 400 MB of

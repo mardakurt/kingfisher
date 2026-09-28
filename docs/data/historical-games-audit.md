@@ -60,9 +60,9 @@ data.
 What was done instead is the part of the brief that does not depend on finding
 a corpus: **make sure nothing in the product promises games Kingfisher does not
 have.** See `src/reference/players.ts`. Every browse set now contains only
-players with at least one game in an installed source; the 67 people the roster
-knows and the packs have nothing for are in a Historical index that says what it
-is. A profile for one of them shows the roster's own facts — title, dates,
+players with at least one game in an installed source; the people the roster
+knows and the packs have nothing for (67 of them when this was written) are in a
+Historical index that says what it is. A profile for one of them shows the roster's own facts — title, dates,
 reign, a checked sentence — above a plain statement that the packs begin in 2020. Held by `src/reference/players.test.ts` and `e2e/players.spec.ts`.
 
 ## Redistributing a corpus is not the same question as researching one
