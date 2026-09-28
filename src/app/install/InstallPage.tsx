@@ -177,23 +177,20 @@ export function InstallPage({
         <li>
           <strong>
             Press <em>Analyse this position</em>.
-          </strong>
-          {}
+          </strong>{' '}
           Stockfish 18 runs in the application; nothing is downloaded and nothing is sent anywhere.
         </li>
         <li>
           <strong>
             Open the <em>Explorer</em> tool.
-          </strong>
-          {}
-          It answers from Kingfisher Starter — 206,451 over-the-board games — and keeps answering
-          twenty full moves in.
+          </strong>{' '}
+          It answers from Kingfisher Starter — 206,451 broadcast games — and keeps answering twenty
+          full moves in.
         </li>
         <li>
           <strong>
             Open the <em>Theory Book</em> tool.
-          </strong>
-          {}
+          </strong>{' '}
           It names the opening you are in, with its ECO code, and shows no numbers at all: a name is
           the only claim it makes.
         </li>
@@ -219,7 +216,7 @@ export function InstallPage({
           whether to replace — confirm.
         </li>
         <li>
-          Your studies, repertoire, notes and preferences are kept; they live in{}
+          Your studies, repertoire, notes and preferences are kept; they live in{' '}
           <code>~/Library/Application Support/kingfisher-desktop/</code> and are not touched by
           replacing the application bundle.
         </li>
@@ -228,7 +225,7 @@ export function InstallPage({
       <h2 id="uninstalling">8. Uninstalling</h2>
       <ol>
         <li>
-          <strong>Export a backup first</strong> if you want to keep your studies:{}
+          <strong>Export a backup first</strong> if you want to keep your studies:{' '}
           <em>Settings → Database → Export backup</em>.
         </li>
         <li>Quit Kingfisher.</li>
@@ -259,7 +256,7 @@ export function InstallPage({
       <h3 id="no-window">Kingfisher did not get as far as a window</h3>
       <p>
         There is nothing on screen to copy from. The shell keeps its own log — launch, companion
-        failures, quit — at{}
+        failures, quit — at{' '}
         <code>~/Library/Application Support/kingfisher-desktop/logs/kingfisher.log</code>.
       </p>
       <p>
@@ -299,11 +296,10 @@ export function InstallPage({
           <strong>A Lichess or Chess.com account</strong>, to study your own games.
         </li>
         <li>
-          <strong>Larger reference data.</strong> <em>Databases → Reference sources → Install</em>
-          {}
-          lists Elite OTB, Recent Theory and High-Rated Online. The install button does the full
-          download + checksum + install for you. Sizes are honest; pick the pack that matches the
-          question you actually have.
+          <strong>Larger reference data.</strong> <em>Databases → Reference sources → Install</em>{' '}
+          lists Elite OTB, the two Recent Theory packs, High-Rated Online and High-Rated Rapid &amp;
+          Classical. The install button does the full download + checksum + install for you. Sizes
+          are honest; pick the pack that matches the question you actually have.
         </li>
       </ul>
     </DocsLayout>

@@ -46,7 +46,7 @@ export function TermsPage(): JSX.Element {
         the source repository receives.
       </p>
       <p>
-        The “current canonical landing” and “current canonical studio” URLs are recorded in{}
+        The “current canonical landing” and “current canonical studio” URLs are recorded in{' '}
         <code>docs/product/public-claims.md</code> and surfaced as a single canonical source (
         <code>src/release/public-urls.ts</code> in this repository).
       </p>
@@ -55,7 +55,7 @@ export function TermsPage(): JSX.Element {
       <p>
         Each reference pack and each upstream provider carries its own licence, recorded in the pack
         manifest and in <a href="/data-licences">Data &amp; licences</a>. Kingfisher redistributes
-        data only where the licence permits, with the attribution the licence requires.{}
+        data only where the licence permits, with the attribution the licence requires.{' '}
         <strong>Your</strong> use of a pack inherits the packs licence; if you want to redistribute
         a pack, read the licence, not this page.
       </p>
@@ -70,12 +70,11 @@ export function TermsPage(): JSX.Element {
       <h2 id="engines">Engine binaries</h2>
       <p>
         The native engines Kingfisher can install (Stockfish, Halogen, PlentyChess, Stormphrax,
-        Viridithas, Lc0 and others) carry their own licences, recorded in{}
-        <code>docs/ENGINES.md</code> and in the catalogue row inside the application.{}
+        Viridithas, Lc0 and others) carry their own licences, recorded in{' '}
+        <code>docs/ENGINES.md</code> and in the catalogue row inside the application.{' '}
         <strong>
           Native engines run with your user accounts permissions and are not sandboxed.
-        </strong>
-        {}
+        </strong>{' '}
         You agree to that by installing one.
       </p>
 
@@ -95,7 +94,7 @@ export function TermsPage(): JSX.Element {
 
       <h2 id="contact">Contact</h2>
       <p>
-        The maintainer can be reached through the public issue tracker at{}
+        The maintainer can be reached through the public issue tracker at{' '}
         <a href="https://github.com/mardakurt/kingfisher/issues" rel="noopener">
           github.com/mardakurt/kingfisher/issues
         </a>

@@ -56,14 +56,17 @@ in the running deployment.
   not refuse other HTTPS hosts; what the application connects to is
   bounded by its code, which makes no other call. Scripts, styles,
   frames and objects are restricted to the origin regardless.
-- **External link restrictions** — outbound links are validated
-  against an allow-list before the application will follow them; see
-  `src/proxy-host-rules.ts` and `src/lib/redirect-validation.ts`.
+- **The Mac application's window only shows Kingfisher.** It never
+  navigates away from the server the shell started: a link anywhere
+  else is opened in the person's own browser, and only when it is an
+  `https:` address; the one navigation that comes back is the Lichess
+  sign-in callback. See `desktop/src/main.mjs`. In a browser, a link is
+  an ordinary link; there is no outbound allow-list.
 - **Downloaded data is verified.** Every reference-pack chunk and
   every managed engine binary is checked against a SHA-256 recorded
   in the manifest before it is used; a mismatch is reported, never
   silently accepted. See `src/reference/install.ts`,
-  `src/engine/manager.ts` and [`THIRD_PARTY_DATA.md`](THIRD_PARTY_DATA.md).
+  `companion/src/managed-engines.mjs` and [`THIRD_PARTY_DATA.md`](THIRD_PARTY_DATA.md).
 - **Decompression bounds** — every decompression path uses
   `DecompressionStream` with an explicit byte budget and rejects a
   chunk whose decompressed size exceeds the manifest's record. See

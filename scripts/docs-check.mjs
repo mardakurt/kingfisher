@@ -839,6 +839,66 @@ mustExist('ARCHITECTURE.md');
   );
 }
 
+// Public pack counts are the catalogue's. The landing quoted Elite OTB v2's
+// 407,538 games and 5,438,808 positions for two pack versions after v4
+// shipped, because nothing tied the page to the rows the application installs.
+// Every "N games" or "N positions" a public page prints must be a figure
+// src/reference/catalog.ts states (or, for named openings, the dataset's
+// data/openings/SOURCE.md, which opening-index.generated.test.ts holds).
+{
+  const catalog =
+    readFileSync(join(REPO_ROOT, 'src/reference/catalog.ts'), 'utf8') +
+    readFileSync(join(REPO_ROOT, 'data/openings/SOURCE.md'), 'utf8');
+  for (const rel of [
+    'src/app/landing/LandingPage.tsx',
+    'src/app/install/InstallPage.tsx',
+    'src/app/data-licences/DataLicencesPage.tsx',
+  ]) {
+    const content = readFileSync(join(REPO_ROOT, rel), 'utf8');
+    const figures = [
+      ...content.matchAll(
+        /(\d{1,3}(?:,\d{3})+)(?: [a-z-]+)? (?:games|positions|position aggregates)\b/g,
+      ),
+    ].map((match) => match[1]);
+    const unstated = figures.filter((figure) => !catalog.includes(figure));
+    record(
+      `public-counts:${rel}`,
+      figures.length > 0 && unstated.length === 0,
+      unstated.length > 0
+        ? `not stated by the catalogue or the opening dataset: ${unstated.join(', ')}`
+        : figures.length === 0
+          ? 'no pack figure found; the check has nothing to hold'
+          : `${figures.length} figures, each stated at its source`,
+    );
+  }
+}
+
+// A public page that cites a file as its evidence has to cite one that exists.
+// The security page pointed at src/engine/manager.ts, which never did.
+{
+  const pages = readdirSync(join(REPO_ROOT, 'src/app'), { recursive: true })
+    .map(String)
+    .filter((file) => /Page\.tsx$/.test(file))
+    .map((file) => `src/app/${file}`);
+  for (const rel of pages) {
+    const content = readFileSync(join(REPO_ROOT, rel), 'utf8');
+    const cited = [
+      ...content.matchAll(/<code>([\w./-]+\.(?:tsx?|mjs|cjs|md|json|ya?ml))<\/code>/g),
+    ].map((match) => match[1]);
+    const missing = cited.filter(
+      (file) => file.includes('/') && !existsSync(join(REPO_ROOT, file)),
+    );
+    if (cited.length === 0) continue;
+    record(
+      `public-citations:${rel}`,
+      missing.length === 0,
+      missing.length > 0
+        ? `cites files that do not exist: ${missing.join(', ')}`
+        : `${cited.length} cited files exist`,
+    );
+  }
+}
+
 // Reporting ----------------------------------------------------------------
 
 if (asJson) {

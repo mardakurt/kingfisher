@@ -172,7 +172,7 @@ export function DataLicencesPage(): JSX.Element {
       <p>
         Engine binaries are not committed. They are downloaded on demand by the application,
         recorded with a SHA-256, and qualified by a real search before they are allowed to answer a
-        position. The full list and the licence each engine carries is in{}
+        position. The full list and the licence each engine carries is in{' '}
         <code>docs/ENGINES.md</code>.
       </p>
 

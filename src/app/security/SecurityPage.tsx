@@ -43,28 +43,26 @@ export function SecurityPage({ issuesUrl }: { issuesUrl: string }): JSX.Element 
       <ul>
         <li>
           <strong>Content Security Policy</strong> — <code>vercel.json</code> ships a strict CSP
-          with <code>default-src self</code>, no third-party <code>script-src</code>,{}
-          <code>frame-ancestors none</code>, <code>base-uri self</code>,{}
-          <code>object-src none</code>. The only <code>script-src</code> allowances are{}
-          <code>self</code>, <code>wasm-unsafe-eval</code> (Stockfish WebAssembly) and{}
+          with <code>default-src self</code>, no third-party <code>script-src</code>,{' '}
+          <code>frame-ancestors none</code>, <code>base-uri self</code>,{' '}
+          <code>object-src none</code>. The only <code>script-src</code> allowances are{' '}
+          <code>self</code>, <code>wasm-unsafe-eval</code> (Stockfish WebAssembly) and{' '}
           <code>unsafe-inline</code> (no scripts are inlined; this allowance is retained for Next.js
           style attributes and does not allow arbitrary inline JavaScript).
         </li>
         <li>
-          <strong>Cross-Origin-Opener-Policy: same-origin</strong> and{}
+          <strong>Cross-Origin-Opener-Policy: same-origin</strong> and{' '}
           <strong>Cross-Origin-Embedder-Policy: credentialless</strong> are sent on every response,
           which is what enables <code>SharedArrayBuffer</code> for the Stockfish multi-threaded
           build.
         </li>
         <li>
-          <strong>HSTS</strong> with <code>max-age=31536000; includeSubDomains; preload</code> and a
-          {}
+          <strong>HSTS</strong> with <code>max-age=31536000; includeSubDomains; preload</code> and a{' '}
           <strong>Referrer-Policy: strict-origin-when-cross-origin</strong> header on every
           response.
         </li>
         <li>
-          <strong>Permissions-Policy</strong> disables <code>camera</code>, <code>microphone</code>,
-          {}
+          <strong>Permissions-Policy</strong> disables <code>camera</code>, <code>microphone</code>,{' '}
           <code>geolocation</code> and <code>interest-cohort</code> (FLoC) at the document level.
         </li>
         <li>
@@ -78,19 +76,20 @@ export function SecurityPage({ issuesUrl }: { issuesUrl: string }): JSX.Element 
           and objects are restricted to the origin regardless.
         </li>
         <li>
-          <strong>External link restrictions</strong> — outbound links are validated against an
-          allow-list before the application will follow them; see{}
-          <code>src/proxy-host-rules.ts</code> and <code>src/lib/redirect-validation.ts</code>.
+          <strong>The Mac application&rsquo;s window only shows Kingfisher.</strong> It never
+          navigates away from the server the shell started: a link anywhere else is opened in your
+          own browser, and only when it is an <code>https:</code> address; the one navigation that
+          comes back is the Lichess sign-in callback. See <code>desktop/src/main.mjs</code>. In a
+          browser, a link is an ordinary link; there is no outbound allow-list.
         </li>
         <li>
           <strong>Downloaded data is verified.</strong> Every reference-pack chunk and every managed
           engine binary is checked against a SHA-256 recorded in the manifest before it is used; a
-          mismatch is reported, never silently accepted. See <code>src/reference/install.ts</code>,
-          {}
-          <code>src/engine/manager.ts</code> and <code>THIRD_PARTY_DATA.md</code>.
+          mismatch is reported, never silently accepted. See <code>src/reference/install.ts</code>,{' '}
+          <code>companion/src/managed-engines.mjs</code> and <code>THIRD_PARTY_DATA.md</code>.
         </li>
         <li>
-          <strong>Decompression bounds</strong> — every decompression path uses{}
+          <strong>Decompression bounds</strong> — every decompression path uses{' '}
           <code>DecompressionStream</code> with an explicit byte budget and rejects a chunk whose
           decompressed size exceeds the manifests record.
         </li>
@@ -108,7 +107,7 @@ export function SecurityPage({ issuesUrl }: { issuesUrl: string }): JSX.Element 
       <h2 id="macos">macOS application</h2>
       <ul>
         <li>
-          The desktop shell is <strong>Electron</strong> with <code>contextIsolation: true</code>,{}
+          The desktop shell is <strong>Electron</strong> with <code>contextIsolation: true</code>,{' '}
           <code>nodeIntegration: false</code>, <code>sandbox: true</code> for the renderer, and a
           preload that exposes a typed bridge. The bridge returns <code>null</code> in a browser, so
           the same application is safe to serve over a public origin.
@@ -188,15 +187,14 @@ export function SecurityPage({ issuesUrl }: { issuesUrl: string }): JSX.Element 
       </p>
       <p>
         If the GitHub security flow is unavailable for any reason, open a private issue at the same
-        repository with the word <code>SECURITY:</code> at the start of the title and{}
+        repository with the word <code>SECURITY:</code> at the start of the title and{' '}
         <strong>without</strong> exploit detail in the body — the maintainer will move the
         conversation to the private advisory flow.
       </p>
       <p>The report should include:</p>
       <ul>
         <li>
-          the affected version (e.g. <code>Kingfisher 1.3.3</code> and the date for the web build or
-          {}
+          the affected version (e.g. <code>Kingfisher 1.3.3</code> and the date for the web build or{' '}
           <code>Kingfisher 1.3.3</code> and its build number for the macOS application);
         </li>
         <li>a minimal reproduction;</li>
@@ -235,15 +233,14 @@ export function SecurityPage({ issuesUrl }: { issuesUrl: string }): JSX.Element 
         <li>
           <strong>
             Phishing, social engineering, or supply-chain attacks on the users machine.
-          </strong>
-          {}
+          </strong>{' '}
           Kingfisher is local-first; the product is not a hosted service.
         </li>
       </ul>
 
       <h2 id="non-security">Non-security issues</h2>
       <p>
-        For bugs, regressions and product questions, open an issue at{}
+        For bugs, regressions and product questions, open an issue at{' '}
         <a href={issuesUrl} rel="noopener">
           the issue tracker
         </a>
