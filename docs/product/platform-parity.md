@@ -24,6 +24,47 @@ validation, scheduled backup preference serialization, and an incorrect
 native-companion prerequisite on the AI assistant panel. The engine toolbar
 also wraps controls to keep the engine selector readable in a narrow panel.
 
+**Unpublished — the public Mac is behind `master` (2026-09-28).** Two commits
+change shared application code and are **not** in any published build. The
+public Mac is still **1.3.3, build 932, `ebd7d63`**, and the website has not
+been deployed from these commits either.
+
+- `55902b6` — the accent read as text was **failing WCAG AA in the dark theme**
+  at 4.07:1 (a measured defect, now a token and a test); the command palette
+  and Settings were reachable on only sixteen of the twenty-two application
+  routes; Search, the Position page and Players were moved onto the shared
+  header; and the layout audit was extended from six routes to all twenty-two.
+- `bd5b721` — the working tabs get their keys (⌘T, ⌘W, ⌘⇧T, ⌘⌥→/←), plus ⌘B
+  for the navigation and ⌘⇧I for Import, all listed under a new **Tabs**
+  heading in ⌘?; and the navigation button became the stateful panel glyph.
+
+**Mac-facing: yes**, and deliberately so — ⌘T and ⌘W are keys the browser keeps
+for itself, so the tab bindings are only real inside the packaged application.
+Nothing under `desktop/` or `companion/` changed; both commits are renderer
+and shared-surface only.
+
+**Section B was not run, and nothing here claims it was.** No version was
+bumped, and that is not an oversight: `docs/operations/after-a-fix.md` section
+B is a release, not a fix — it signs, notarises, staples and publishes, and
+needs the Developer ID identity and `APPLE_API_KEY` that live in the owner's
+release environment, not in a checkout. `AGENTS.md` is explicit that the
+marketing version moves "only for a real release".
+
+What that leaves **unverified**, stated plainly rather than implied by
+silence: no `Kingfisher.app` was built for these commits, so
+`desktop:smoke -- --packaged`, `desktop:chrome -- --packaged`,
+`desktop:certify` and `verify-dmg` have not been run against them. The
+unpackaged shell _was_ driven on this source — `desktop:chrome` 109/109 and
+`desktop:smoke` 17/17, including live full-screen (the reservation collapses
+to 0 and the mark moves to x=14) — which is real evidence about the shell and
+no evidence at all about a bundle. A bundled `Kingfisher.app` that fails to
+launch has shipped from this repository before, which is why the difference
+between the two is written down rather than rounded off.
+
+Also outstanding from the same work: `e2e/merge-games.spec.ts:76` failed once
+in a 426-test sequential run and passes 3/3 in isolation. Not reproduced as
+deterministic and not attributed to anything.
+
 **Published revision check (Phase 87, 1.3.3 — 2026-09-27).** The public
 Mac is **1.3.3, build 932, `ebd7d63`**: signed, notarised (application and
 disk image), `desktop:certify` 10/10 and a real Sparkle update from 1.3.2
