@@ -1,5 +1,11 @@
 # Phase 24 security review
 
+> **A dated record** of the public surface at 1.0.0-rc.4. The controls as they
+> stand today are in [`SECURITY.md`](../../SECURITY.md). Both open items below
+> have since closed: the web application is served at
+> <https://kingfisherchess.app/>, and Mac releases are signed with a Developer
+> ID and notarised (`src/release/macos-download.json`).
+
 A broad security review of the Kingfisher public surface as it
 exists at the end of Phase 24. The review is intentionally
 narrow: it is the local, repeatable, gate-friendly audit. The
@@ -185,7 +191,7 @@ exercise the failure paths.
 
 ### Engine download security
 
-`scripts/engines/install-engines.mjs` downloads every engine
+`scripts/install-engines.mjs` downloads every engine
 over HTTPS, from a fixed allow-list of upstream hosts, into
 a single named file, and verifies the SHA-256 of the
 downloaded archive against the digest recorded in

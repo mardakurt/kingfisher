@@ -1,6 +1,12 @@
 # Phase 25 public-preview security review
 
-This is the current public-release review. Phase 24's report remains historical.
+> **A dated record** (2026-09-09). It was the current review when written and
+> is not now: the controls as they stand today are in
+> [`SECURITY.md`](../../SECURITY.md). Two statements below have since changed —
+> the landing is the application's own `/` route under the application's
+> policy, not a static page with `default-src 'none'`, and Mac releases are
+> signed with a Developer ID and notarised, so the preview limitation at the
+> end no longer applies.
 
 ## Result
 
