@@ -168,9 +168,16 @@ figures. A full Chrome run also passed at `ae7d21e` (413/413) after the
 dev server of an earlier attempt died mid-run and every later test failed
 to connect — a harness failure, rerun rather than reported as a result.
 
-Found while doing so, and left open: the nightly Linux browser run fails one
-test since Phase 87 — on Linux fonts the Training dock folds its pinned
-Explorer tab into More (`not-built.md` §6). And the checkout itself: a second
+Found while doing so, and then fixed at the owner's choice: the nightly Linux
+browser run had failed one test since Phase 87 — on Linux fonts the Training
+dock (300 px at 1280x720) folded its pinned Explorer tab into More, the row
+having about 10 px to spare on macOS. In a compact row More is now an icon,
+giving the tabs about 30 px (`a12de97`, with `e2e/dock-tab-room.spec.ts`,
+which fails without it); a race in `merge-games` seen once in that run's
+Chrome suite is fixed in `431cf74`. At `431cf74`: the full Chrome suite
+421/422 before the race fix, the race 24/24 after it; unit 3,798/3,798;
+GitHub CI green; Linux visual comparison green; and the Linux browser run,
+dispatched with 0 retries (run 36461868887), **422/422**. And the checkout itself: a second
 session left `PageHeader.tsx`, `WorkspaceFrame.tsx`, `SearchWorkspace.tsx`
 modified and `GlobalControls.tsx`, `e2e/route-audit.spec.ts` new, uncommitted
 and mid-edit (the tree does not typecheck with them); none of it is in these

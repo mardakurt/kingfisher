@@ -101,9 +101,4 @@ of Phase 87 (`docs/reports/phase-87-handover.md` §6 and §7):
 
 - a first launch of 1.3.3 from a real Finder download, through Gatekeeper's
   own sheet — it needs the owner at the machine;
-- the eight-hour soak (`npm run desktop:soak -- --duration=8h`), now on 1.3.3;
-- the nightly Linux browser run (`browser-cert.yml`): one failure since
-  Phase 87 — on Linux fonts, the Training dock (300 px at 1280x720) folds its
-  pinned Explorer tab into More. Measured on macOS the row has about 10 px to
-  spare, so any wider rendering folds it; the fix is room in the row (a
-  narrower More button, or the layout menu out of the strip), not the test.
+- the eight-hour soak (`npm run desktop:soak -- --duration=8h`), now on 1.3.3.
