@@ -20,7 +20,17 @@ import {
 import { useShortcuts } from '@/stores/shortcuts-store';
 import { useUi } from '@/stores/ui-store';
 
-const GROUPS: readonly ShortcutGroup[] = ['Navigation', 'Analysis', 'Editing', 'Interface'];
+const GROUPS: readonly ShortcutGroup[] = [
+  'Navigation',
+  'Analysis',
+  'Editing',
+  'Interface',
+  // The working tabs are a group of their own rather than more "Interface":
+  // they are the keys a person in several studies at once uses most, and
+  // burying five of them under the heading that also holds the theme toggle
+  // is how a documented key stays undiscovered. Phase 9's `D` is the argument.
+  'Tabs',
+];
 
 /**
  * The shortcut reference, and the place they are rebound.

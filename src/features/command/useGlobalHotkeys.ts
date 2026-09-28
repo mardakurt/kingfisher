@@ -9,8 +9,11 @@ import { useEngine } from '@/stores/engine-store';
 import { usePreferences } from '@/stores/preferences-store';
 import { useShortcuts } from '@/stores/shortcuts-store';
 import { useUi } from '@/stores/ui-store';
+import { useWorkspaceLayout } from '@/stores/workspace-layout-store';
 import { showTool } from '@/features/workspace/select-tool';
 import { useCalculation } from '@/features/calculation/calculation-store';
+import { newTab, requestCloseTab, stepTab } from '@/features/tabs/tab-actions';
+import { useTabs } from '@/features/tabs/tab-store';
 
 import { resolveAction } from './bindings';
 
@@ -210,6 +213,43 @@ export function useGlobalHotkeys(): void {
           });
           return;
         }
+        /*
+          The working tabs, and the two window-level controls. Every one of
+          these calls the same function the command palette calls for the same
+          title — `newTab`, `stepTab`, `requestCloseTab` — so the key and the
+          palette entry cannot drift into meaning different things later, which
+          is the failure this table exists to prevent.
+        */
+        case 'tab-new':
+          event.preventDefault();
+          void newTab(router);
+          return;
+        case 'tab-duplicate':
+          event.preventDefault();
+          void newTab(router, { duplicate: true });
+          return;
+        case 'tab-close':
+          event.preventDefault();
+          void requestCloseTab(useTabs.getState().activeId, router);
+          return;
+        case 'tab-next':
+          event.preventDefault();
+          void stepTab(1, router);
+          return;
+        case 'tab-previous':
+          event.preventDefault();
+          void stepTab(-1, router);
+          return;
+        case 'sidebar': {
+          event.preventDefault();
+          const layout = useWorkspaceLayout.getState();
+          layout.setSidebarCollapsed(!layout.sidebarCollapsed);
+          return;
+        }
+        case 'import':
+          event.preventDefault();
+          ui.setImportOpen(true);
+          return;
         default:
           return;
       }

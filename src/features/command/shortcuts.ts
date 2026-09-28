@@ -15,7 +15,7 @@
 
 import type { Binding } from './bindings';
 
-export type ShortcutGroup = 'Navigation' | 'Analysis' | 'Editing' | 'Interface';
+export type ShortcutGroup = 'Navigation' | 'Analysis' | 'Editing' | 'Interface' | 'Tabs';
 
 export interface Shortcut {
   readonly id: string;
@@ -78,6 +78,58 @@ export const SHORTCUTS: readonly Shortcut[] = [
     group: 'Analysis',
   },
   { id: 'flip', defaultBinding: 'f', label: 'Flip the board', group: 'Analysis' },
+
+  /*
+    The working tabs, on the keys a person already has for them.
+
+    Kingfisher has had a tab strip with a `+`, a close button, a context menu
+    and drag-to-reorder since it had a board; what it had no way to do was open
+    a tab without leaving the keys. These are the browser's own chords, because
+    they are the ones already in the fingers: ⌘T opens, ⌘W closes, ⌘⇧T
+    duplicates. Each one is a command the palette already ran, so the key and
+    the menu entry cannot come to mean different things.
+
+    A note on where they work. ⌘T and ⌘W are the browser's own, and no page
+    can take them: `preventDefault` on ⌘W in a browser tab closes the tab
+    whatever the handler says. So these are real in the **packaged application**,
+    where the window is the application's and the keys are the application's —
+    which is where a person working in several studies at once actually is. In
+    a browser they simply do not arrive, and the same actions are one ⌘K away
+    there. That is a property of the platform, not a binding that fails, so the
+    table states it rather than the reference dialog implying otherwise.
+  */
+  { id: 'tab-new', defaultBinding: 'mod+t', label: 'New tab', group: 'Tabs' },
+  {
+    id: 'tab-duplicate',
+    defaultBinding: 'mod+shift+t',
+    label: 'Duplicate this tab',
+    group: 'Tabs',
+  },
+  { id: 'tab-close', defaultBinding: 'mod+w', label: 'Close this tab', group: 'Tabs' },
+  {
+    id: 'tab-next',
+    defaultBinding: 'mod+alt+arrowright',
+    label: 'Next tab',
+    group: 'Tabs',
+  },
+  {
+    id: 'tab-previous',
+    defaultBinding: 'mod+alt+arrowleft',
+    label: 'Previous tab',
+    group: 'Tabs',
+  },
+  {
+    id: 'sidebar',
+    defaultBinding: 'mod+b',
+    label: 'Show or hide the navigation',
+    group: 'Interface',
+  },
+  {
+    id: 'import',
+    defaultBinding: 'mod+shift+i',
+    label: 'Import a PGN or FEN',
+    group: 'Interface',
+  },
 
   { id: 'promote', defaultBinding: 'shift+arrowup', label: 'Move variation up', group: 'Editing' },
   {

@@ -8,6 +8,20 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
+- **The keys for the working tabs.** ⌘T opens a tab, ⌘W closes it, ⌘⇧T
+  duplicates it, ⌘⌥→ and ⌘⌥← step between them — the browser's own chords,
+  because they are the ones already in the fingers. Each calls the same
+  function the command palette calls, so a key and a menu entry cannot come to
+  mean different things. These are real in the Mac application, where the keys
+  belong to the window; a browser keeps ⌘T and ⌘W for itself, and there the
+  same actions are one ⌘K away. They are in ⌘? under their own **Tabs**
+  heading, and every one of them can be rebound.
+- **⌘B shows and hides the navigation**, and ⌘⇧I opens Import.
+- **The navigation button now shows what it does.** It was a chevron, which
+  points somewhere; it is now the window with its left column filled while the
+  navigation is on screen, so the button says which state pressing it will
+  leave you in.
+
 - **Fixed: the accent was unreadable as text in the dark theme.** An ECO code
   on the Openings page — and every other link, value and label drawn in the
   accent colour — measured 4.07:1 against a raised chip, under the 4.5:1
