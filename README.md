@@ -86,9 +86,10 @@ re-import. No cloud sync is required and none is implied.
   [`docs/release/install-macos.md`](docs/release/install-macos.md).
 - **Source** at <https://github.com/mardakurt/kingfisher>. Releases, source,
   issues and changelog live here.
-- **Optional reference data** (Elite OTB, Recent Theory, High-Rated Online)
-  installs in-app from a public data mirror — see _Databases → Reference
-  sources → Install_ in the application.
+- **Optional reference data** (Elite OTB, the two Recent Theory packs, and
+  High-Rated Online and High-Rated Rapid & Classical) installs in-app from a
+  public data mirror — see _Databases → Reference sources → Install_ in the
+  application.
 
 ## What it does
 
