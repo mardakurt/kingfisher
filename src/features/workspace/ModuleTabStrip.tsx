@@ -2,6 +2,7 @@
 
 import { useLayoutEffect, useRef, useState } from 'react';
 
+import { MoreHorizontal } from '@/components/icons';
 import { Menu, type MenuSection } from '@/components/ui/Menu';
 import { cn } from '@/lib/cn';
 
@@ -76,9 +77,10 @@ export function ModuleTabStrip({
   const [measured, setMeasured] = useState<{
     /** Keyed by `${mode}:${id}`: a tab is a different width with its icon. */
     readonly widths: Readonly<Record<string, number>>;
-    readonly more: number;
+    /** More is a word in a full row and an icon in a compact one: one width each. */
+    readonly more: Readonly<Partial<Record<'full' | 'compact', number>>>;
     readonly actions: number;
-  }>({ widths: {}, more: 0, actions: 0 });
+  }>({ widths: {}, more: {}, actions: 0 });
   /*
     Before any tab is folded, the icons go. A tab's icon is 18 px of
     decoration beside a real word; at the default 380 px dock the four
@@ -123,9 +125,15 @@ export function ModuleTabStrip({
       const merged = { ...current.widths, ...widths };
       const changed =
         Object.keys(merged).some((id) => merged[id] !== current.widths[id]) ||
-        (more > 0 && more !== current.more) ||
+        (more > 0 && more !== current.more[mode]) ||
         actions !== current.actions;
-      return changed ? { widths: merged, more: more > 0 ? more : current.more, actions } : current;
+      return changed
+        ? {
+            widths: merged,
+            more: more > 0 ? { ...current.more, [mode]: more } : current.more,
+            actions,
+          }
+        : current;
     });
   }, [drawn, rowWidth, value, compact]);
 
@@ -155,7 +163,7 @@ export function ModuleTabStrip({
       */
       rowWidth: rowWidth > 0 ? rowWidth - ROW_GAP * (wanted.length + 2) : 0,
       widthOf: (id) => widthIn(mode, id),
-      moreWidth: measured.more || MORE_WIDTH_ESTIMATE,
+      moreWidth: measured.more[mode] ?? MORE_WIDTH_ESTIMATE[mode],
       actionsWidth: measured.actions,
       // The remaining tools are folded even when they are not pinned.
       rest,
@@ -246,12 +254,31 @@ export function ModuleTabStrip({
                 aria-expanded={open}
                 aria-haspopup="menu"
                 data-tab-strip-more
-                className="flex h-7 shrink-0 items-center gap-1 rounded-[6px] px-2 text-xs font-medium whitespace-nowrap text-secondary hover:bg-surface-2 hover:text-primary"
+                title={compact ? `More — ${overflow.length} more tools` : undefined}
+                className={cn(
+                  'flex h-7 shrink-0 items-center justify-center gap-1 rounded-[6px] text-xs font-medium whitespace-nowrap text-secondary hover:bg-surface-2 hover:text-primary',
+                  compact ? 'w-7' : 'px-2',
+                )}
               >
-                More
-                <span aria-hidden className="text-[9px]">
-                  ▾
-                </span>
+                {/*
+                  In a compact row the word gives way to an icon, and gives the
+                  tabs about thirty pixels: at a 300 px dock on Linux fonts the
+                  word pushed a pinned Explorer tab into its own menu. The
+                  accessible name is the same either way.
+                */}
+                {compact ? (
+                  <>
+                    <MoreHorizontal aria-hidden className="h-4 w-4" />
+                    <span className="sr-only">More</span>
+                  </>
+                ) : (
+                  <>
+                    More
+                    <span aria-hidden className="text-[9px]">
+                      ▾
+                    </span>
+                  </>
+                )}
                 <span className="sr-only">{overflow.length} more tools</span>
               </button>
             )}
@@ -296,7 +323,7 @@ function outerWidth(element: HTMLElement | null): number {
 /** A tab's icon (14 px) and the gap after it (4 px). */
 const ICON_ALLOWANCE = 18;
 /** "More ▾" with its margin and border, before it has been drawn once. */
-const MORE_WIDTH_ESTIMATE = 60;
+const MORE_WIDTH_ESTIMATE = { full: 60, compact: 32 } as const;
 /** A tab that has never been drawn: icon, gap, a typical label, padding. */
 const TAB_WIDTH_ESTIMATE = 84;
 
