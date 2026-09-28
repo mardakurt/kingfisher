@@ -97,13 +97,13 @@ and the offline worker all serve the new mark.
 ## 6. Verification not repeated after the last changes
 
 Not missing features — runs that were not repeated after the final commits
-of Phase 87 (`docs/reports/phase-87-handover.md` §6):
+of Phase 87 (`docs/reports/phase-87-handover.md` §6 and §7):
 
-- the whole four-engine browser matrix after the last application changes
-  (it ran at `7f23b85`, 1,647/1,648, and its one WebKit failure was fixed in
-  `c2d0836`; the database-connection fix, the icon change and the sidebar
-  revert came after, and were rerun on the full Chrome suite and on the
-  affected specs in all four engines);
 - a first launch of 1.3.3 from a real Finder download, through Gatekeeper's
   own sheet — it needs the owner at the machine;
-- the eight-hour soak (`npm run desktop:soak -- --duration=8h`), now on 1.3.3.
+- the eight-hour soak (`npm run desktop:soak -- --duration=8h`), now on 1.3.3;
+- the nightly Linux browser run (`browser-cert.yml`): one failure since
+  Phase 87 — on Linux fonts, the Training dock (300 px at 1280x720) folds its
+  pinned Explorer tab into More. Measured on macOS the row has about 10 px to
+  spare, so any wider rendering folds it; the fix is room in the row (a
+  narrower More button, or the layout menu out of the strip), not the test.
