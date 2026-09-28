@@ -194,10 +194,11 @@ test.describe('every control can be announced', () => {
 });
 
 /*
-  Where focus is, on the seven pages Phase 86 reworked. Tabbing through each
-  page, every control that takes focus has to show it — an outline or a ring
-  — and be on screen when it does. A focus that lands on something invisible,
-  or draws nothing, is a keyboard user losing their place.
+  Where focus is, on the seven pages Phase 86 reworked and the six Phase 87
+  rearranged. Tabbing through each page, every control that takes focus has
+  to show it — an outline or a ring — and be on screen when it does. A focus
+  that lands on something invisible, or draws nothing, is a keyboard user
+  losing their place.
 */
 test.describe('focus is visible on the reworked pages', () => {
   for (const route of [
@@ -208,6 +209,12 @@ test.describe('focus is visible on the reworked pages', () => {
     '/similar',
     '/team',
     '/opening-files',
+    '/analysis',
+    '/games',
+    '/preparation',
+    '/databases',
+    '/repertoire',
+    '/studies',
   ]) {
     test(`${route} shows where focus is at every Tab`, async ({ page, browserName }) => {
       // Safari's Tab moves between fields only; Option-Tab reaches every control.
@@ -215,7 +222,7 @@ test.describe('focus is visible on the reworked pages', () => {
       await page.setViewportSize({ width: 1440, height: 900 });
       await page.goto(route);
       await waitForApp(page);
-      await page.locator('[data-workspace-frame]').first().waitFor();
+      await page.locator('[data-workspace-frame], main').first().waitFor();
       const problems: string[] = [];
       const seen = new Set<string>();
       for (let step = 0; step < 45; step += 1) {
