@@ -7,15 +7,16 @@ labels: data
 
 ## What data?
 
-Which data source? The **Reference catalog** in the Studio has the
-canonical names; one of:
+Which data source? _Databases → Reference sources_ has the canonical
+names; one of:
 
-- [ ] Elite OTB
-- [ ] Recent Theory
-- [ ] High-Rated Online
-- [ ] Bundled (Starter)
-- [ ] Lichess
-- [ ] My Database (please describe)
+- [ ] Kingfisher Starter Reference (built in)
+- [ ] Elite OTB Reference
+- [ ] Recent Theory Reference
+- [ ] High-Rated Online Reference
+- [ ] High-Rated Rapid & Classical Online Reference
+- [ ] Lichess (online)
+- [ ] My games, or a database of yours (please describe)
 - [ ] Other: ___
 
 ## What were you trying to do?
@@ -37,8 +38,9 @@ ECO, a position.
 
 ## Kingfisher version
 
-From Help → About (or the `Settings → Diagnostics` panel). The
-"Copy support information" button captures it.
+From _Kingfisher → About Kingfisher_ in the Mac application, or the
+`Settings → Diagnostics` panel on either. The "Copy support
+information" button there captures it.
 
 ## Where
 
@@ -51,12 +53,9 @@ macOS / Windows / Linux and the version (e.g. macOS 14.5).
 
 ## Source state
 
-Open `Settings → Storage` and tell us which sources are:
-
-- Installed
-- Cached
-- Online only
-- Unavailable
+Open _Databases → Reference sources_ and tell us the state each source
+shows — _Installed_, _Update available_, _Cached · partial_,
+_Online · cached_, _Available online_, _Not installed_ or _Failed_.
 
 A screenshot is fine.
 

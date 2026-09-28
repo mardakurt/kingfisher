@@ -21,8 +21,9 @@ fine; "I expected this to work and it printed X" is better.
 
 ## Kingfisher version
 
-From Help → About (or the `Settings → Diagnostics` panel). The
-"Copy support information" button captures it.
+From _Kingfisher → About Kingfisher_ in the Mac application, or the
+`Settings → Diagnostics` panel on either. The "Copy support
+information" button there captures it.
 
 ## Where
 
