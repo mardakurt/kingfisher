@@ -69,7 +69,7 @@ test('Back from a game returns to the same page, with the same game selected and
   test.setTimeout(120_000);
   await page.setViewportSize({ width: 1440, height: 860 });
   // 250 games: three pages of a hundred.
-  const pgn = readFileSync('public/bench/bench-1k.pgn', 'utf8')
+  const pgn = readFileSync('data/fixtures/bench-1k.pgn', 'utf8')
     .split('\n\n[Event')
     .slice(0, 250)
     .join('\n\n[Event');

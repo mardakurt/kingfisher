@@ -118,7 +118,7 @@ const IMPORTED_AT = 1_790_000_000_000;
 const prepare = (text) => kit.preparePgnBatch(text, null, true, IMPORTED_AT);
 
 const bench = prepare(
-  read('public/bench/bench-1k.pgn').split('\n\n[Event').slice(0, 300).join('\n\n[Event'),
+  read('data/fixtures/bench-1k.pgn').split('\n\n[Event').slice(0, 300).join('\n\n[Event'),
 );
 const capablanca = prepare(read('public/data/annotated/capablanca-chess-fundamentals-1921.pgn'));
 const edges = prepare(EDGES);

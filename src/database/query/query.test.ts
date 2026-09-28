@@ -71,7 +71,7 @@ const START = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -';
 
 async function repositoryWithGames() {
   const games = new LocalGameRepository(new MemoryPersistenceDatabase());
-  const bench = read('public/bench/bench-1k.pgn')
+  const bench = read('data/fixtures/bench-1k.pgn')
     .split('\n\n[Event')
     .slice(0, 150)
     .join('\n\n[Event');

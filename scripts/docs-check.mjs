@@ -899,6 +899,41 @@ mustExist('ARCHITECTURE.md');
   }
 }
 
+// A test must not read a file a clean checkout does not have. Three unit test
+// files read the generated, git-ignored public/bench/bench-1k.pgn; they passed
+// on the maintainer's machine and failed CI on every push from 2026-09-26.
+{
+  const listed = spawnSync('git', ['ls-files', '--', 'src', 'e2e', 'companion/src', 'scripts'], {
+    cwd: REPO_ROOT,
+    encoding: 'utf8',
+  });
+  const tests = (listed.stdout ?? '')
+    .split('\n')
+    .filter((file) => /(?:\.test\.[cm]?[jt]sx?|\.spec\.ts)$/.test(file));
+  const referenced = new Map();
+  for (const file of tests) {
+    const content = readFileSync(join(REPO_ROOT, file), 'utf8');
+    for (const match of content.matchAll(
+      /['"`](?:\.\.\/)*((?:public|data|e2e|src|companion|scripts|docs)\/[\w./-]+\.[a-z0-9]+)['"`]/g,
+    )) {
+      if (!referenced.has(match[1])) referenced.set(match[1], file);
+    }
+  }
+  const check = spawnSync('git', ['check-ignore', '--stdin'], {
+    cwd: REPO_ROOT,
+    encoding: 'utf8',
+    input: [...referenced.keys()].join('\n'),
+  });
+  const ignored = (check.stdout ?? '').trim().split('\n').filter(Boolean);
+  record(
+    'tests:no-ignored-fixtures',
+    ignored.length === 0,
+    ignored.length > 0
+      ? `tests read files a clean checkout lacks: ${ignored.map((path) => `${path} (${referenced.get(path)})`).join(', ')}`
+      : `${referenced.size} repository paths read by tests, none ignored`,
+  );
+}
+
 // Reporting ----------------------------------------------------------------
 
 if (asJson) {

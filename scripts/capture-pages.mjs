@@ -57,7 +57,7 @@ for (const scheme of ['light', 'dark']) {
     );
   }, scheme);
   if (args.seed) {
-    const pgn = readFileSync(path.join(ROOT, 'public/bench/bench-1k.pgn'), 'utf8')
+    const pgn = readFileSync(path.join(ROOT, 'data/fixtures/bench-1k.pgn'), 'utf8')
       .split('\n\n[Event')
       .slice(0, 200)
       .join('\n\n[Event');

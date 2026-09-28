@@ -38,7 +38,7 @@ const post = async (route, body) => {
 };
 
 const games = kit.preparePgnBatch(
-  readFileSync(new URL('../../public/bench/bench-1k.pgn', import.meta.url), 'utf8')
+  readFileSync(new URL('../../data/fixtures/bench-1k.pgn', import.meta.url), 'utf8')
     .split('\n\n[Event')
     .slice(0, 120)
     .join('\n\n[Event'),
