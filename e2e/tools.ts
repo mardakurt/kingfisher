@@ -38,7 +38,11 @@ export async function selectTool(page: Page, dock: Locator, name: string): Promi
  *
  * `page.goto` unloads the document while pack chunks and worker scripts are
  * still arriving. Chromium settles those rejections silently on unload;
- * Firefox reports the worker script as `NS_BINDING_ABORTED`, and WebKit
+ * Firefox reports the worker script as `NS_BINDING_ABORTED`, and a lazily
+ * loaded Next chunk as "Loading failed for the <script> with source …" — in
+ * the trace of the one run that raised it, 40 ms after `goto` had left the
+ * page that was loading it (Phase 87: the opening index and tree-eco chunks,
+ * one run in three or four of the viewport walk); and WebKit
  * reports every cancelled same-origin fetch as "due to access control
  * checks", "Load failed" or "WebKit encountered an internal error" — and
  * raises them as page errors. None of them happens on a route change inside
@@ -50,7 +54,15 @@ export async function selectTool(page: Page, dock: Locator, name: string): Promi
 export function isNavigationAbortNoise(text: string, browserName: string): boolean {
   // Firefox also spells it as the number: status=2152398850 is 0x804B0002,
   // NS_BINDING_ABORTED, e.g. a font download the navigation cancelled.
-  if (browserName === 'firefox') return /NS_BINDING_ABORTED|status=2152398850\b/.test(text);
+  if (browserName === 'firefox') {
+    return (
+      /NS_BINDING_ABORTED|status=2152398850\b/.test(text) ||
+      // The application's own chunks only: a third-party script failing is not this.
+      /Loading failed for the <script> with source “https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?\/_next\/static\/chunks\//.test(
+        text,
+      )
+    );
+  }
   if (browserName === 'webkit') {
     return (
       /due to access control checks/.test(text) ||
