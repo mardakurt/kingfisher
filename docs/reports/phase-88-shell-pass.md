@@ -130,7 +130,40 @@ tolerance, and the two genuine board changes — the position-setup frame and th
 library's empty state — are the only ones that could have moved one, and neither
 does at rest.
 
-## 7. Not done
+## 7. The next phase's scope, recorded now
+
+Not work for this pass — a scoping input, written down so it is not rediscovered
+and then forgotten. The gap is concentrated in three directories, and
+`src/chess/` is otherwise well covered (`advance`, `chess960`, `fuzz`,
+`variant-contract`, `features`, `themes`, `tree/`, `scoresheet/`).
+
+**No sibling test file, by size:**
+
+| Lines | File                                         | Why it matters                                     |
+| ----- | -------------------------------------------- | -------------------------------------------------- |
+| 547   | `src/database/query/ast.ts`                  | every database search request is parsed here       |
+| 457   | `src/database/chessbase/encode.ts`           | a silent bug corrupts the user's database on write |
+| 416   | `src/repertoire/index.ts`                    | the repertoire index itself                        |
+| 393   | `src/chess/pgn/parse.ts`                     | the primary input path for the whole application   |
+| 278   | `src/chess/pgn/serialize.ts`                 | PGN output                                         |
+| 274   | `src/database/collections/local.ts`          | the local, non-SQLite backend                      |
+| 252   | `src/engine/stockfish/provider.ts`           | the core analysis engine                           |
+| 224   | `src/chess/pgn/lexer.ts`                     | the tokeniser underneath the parser                |
+| 216   | `src/database/providers/companion-sqlite.ts` | the companion's SQLite driver                      |
+| 216   | `src/chess/pgn/comment-commands.ts`          | PGN comment syntax                                 |
+
+**Thinnest by source-lines per `expect()`:** `variation-briefs.ts` 70,
+`chessbase/annotations.ts` 50, `engine/uci-session.ts` 40,
+`chessbase/preservation.ts` 31, `chessbase/moves.ts` 30, `chess/fen.ts` 24,
+`remote-reference.ts` 24, `chessbase/archive.ts` 23, `chess/descriptive.ts` 22,
+`engine/jobs.ts` 22.
+
+This session read this code and found it sound. That is not coverage, and the
+distinction is the point: reading is how a defect survives a review, and
+`parse.ts` at 393 lines is the file most likely to contain one that reading
+misses.
+
+## 8. Not done
 
 - The ~300 remaining radius call sites, and the other nine of twelve declared
   elevation values. The mapping is written down; the sweep is mechanical.
