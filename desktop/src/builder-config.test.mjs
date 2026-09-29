@@ -78,10 +78,27 @@ describe('electron-builder.yml', () => {
       // Built by `desktop:build:web` (scripts/build-companion-kit.mjs).
       '../companion/generated',
     ]);
+    /*
+      Every entry in `produced` is build-generated or git-ignored, so on a clean
+      checkout it is genuinely absent and this loop checks fewer sources than it
+      appears to — while the test name still claims the lot. The reduction is
+      legitimate; what was missing is that it was *silent*. So the skipped set is
+      now itself the assertion: an entry that starts being skipped for a reason
+      nobody added here fails the test instead of quietly widening the hole.
+    */
+    const skipped = [];
     for (const entry of config.extraResources) {
-      if (produced.has(entry.from)) continue;
+      if (produced.has(entry.from)) {
+        skipped.push(entry.from);
+        continue;
+      }
       expect(existsSync(path.join(DESKTOP, entry.from)), `${entry.from} does not exist`).toBe(true);
     }
+    expect(
+      [...skipped].sort(),
+      'an extraResource is now build-generated or ignored but is not listed in `produced`, ' +
+        'so this test has stopped checking it without saying so',
+    ).toEqual([...produced].sort());
   });
 
   it('keeps the spawned processes out of the archive and the tests out of the bundle', () => {

@@ -33,10 +33,15 @@ test('the command palette renders section dividers between runs of different gro
   await input.fill('the');
   // Two groups are guaranteed at the top of the empty-palette state (the
   // commands themselves and the first thing they navigate to). After typing
-  // "the", the opening index has to load — give it room.
-  await page.waitForTimeout(2_500);
-  const dividers = await dialog.locator('[data-group-header]').count();
-  expect(dividers, 'at least one section divider is rendered').toBeGreaterThanOrEqual(1);
+  // "the", the opening index has to load — so wait for the thing being
+  // asserted rather than for a fixed number of milliseconds. This was 2.5s of
+  // sleep on every run of the suite, whether or not the index had loaded.
+  await expect
+    .poll(async () => dialog.locator('[data-group-header]').count(), {
+      message: 'the opening index never loaded, so no section divider appeared',
+      timeout: 10_000,
+    })
+    .toBeGreaterThanOrEqual(1);
   // The dividers are the only place a group name reaches the screen now —
   // the row no longer carries one. A row with the old in-row label would
   // have a wide uppercase span; nothing of the sort survives this test.

@@ -43,7 +43,12 @@ test('Send feedback posts the dialog contents to the route and shows the referen
   await dialog.getByRole('radio', { name: 'general' }).check();
   await dialog.getByRole('textbox').fill('The evaluation bar is the wrong way up after a flip.');
   await dialog.getByRole('switch', { name: 'Include current position' }).click();
-  /* The route refuses a form filled in under 1.5 s. */
+  /*
+    This sleep stays. The route refuses a form filled in under 1.5 s, so the
+    delay *is* the behaviour under test — there is no state to poll for, because
+    "not yet rate-limited" and "waiting" are the same state. It is the one
+    `waitForTimeout` in this pass that earns its place.
+  */
   await page.waitForTimeout(1_600);
   await dialog.getByRole('button', { name: 'Send feedback' }).click();
 

@@ -12,6 +12,16 @@ test('the landing page scrolls and serves actual manifest images', async ({ page
   await page.evaluate(() => window.scrollTo(0, 700));
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
   const manifest = await (await page.request.get('/manifest.webmanifest')).json();
+  /*
+    The loop below is the whole test. If `icons` came back empty — or under a
+    key this code no longer reads — the loop runs zero times, the body never
+    executes, and the test passes having checked nothing. Same shape as
+    `visual.spec.ts` guarding its baseline count, and for the same reason.
+  */
+  expect(
+    Array.isArray(manifest.icons) && manifest.icons.length,
+    'the web manifest ships no icons, so nothing below is checked',
+  ).toBeGreaterThan(0);
   for (const icon of manifest.icons) {
     const response = await page.request.get(icon.src);
     expect(response.headers()['content-type']).toContain('image/png');

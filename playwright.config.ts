@@ -41,6 +41,27 @@ const browserProjects = [
 
 const matrixMode = process.env.KF_E2E_MATRIX === '1';
 
+/**
+ * How many times a failing test is retried, from the environment.
+ *
+ * Anything that is not a non-negative integer is **zero**, and says so. The
+ * previous `Number(process.env.PLAYWRIGHT_RETRIES ?? 0)` turned a typo into
+ * `NaN`, which is not zero, does not look like a mistake, and reached the
+ * packaged acceptance run through this config's spread. A gate that must run
+ * at zero retries should not be reachable by misspelling a variable.
+ */
+function parseRetries(raw: string | undefined): number {
+  if (raw === undefined || raw.trim() === '') return 0;
+  const parsed = Number(raw);
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    console.warn(
+      `[playwright] PLAYWRIGHT_RETRIES="${raw}" is not a non-negative integer; running with 0 retries.`,
+    );
+    return 0;
+  }
+  return parsed;
+}
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: false,
@@ -53,8 +74,22 @@ export default defineConfig({
     (.github/workflows/e2e-diagnostic.yml) sets PLAYWRIGHT_RETRIES for the
     separate, non-gating job that exists to tell a flaky test apart from a
     broken one.
+
+    Not pinned to 0 here, deliberately. `browser-cert.yml` fires on a weekly
+    cron and on `v*` tag pushes, and on both `github.event.inputs.retries` is
+    empty, so the release gate is already pinned to 0 by the workflow itself
+    and no config change could loosen it. The only way to raise this is a
+    manual `workflow_dispatch`, which is the intended diagnostic entry point.
+    Pinning the config would remove that tool and protect nothing.
+
+    What *was* worth fixing is the arithmetic. `Number('abc')` is `NaN`, not
+    0 — so a typo in the variable name (`PLAYWRIGHT_RETRES=2` in a shell
+    profile, say) produced `retries: NaN`, which is not the zero the gate
+    requires and does not look like a mistake on inspection. It also reached
+    the packaged acceptance run, which spreads this config. Unparseable now
+    means zero, loudly.
   */
-  retries: Number(process.env.PLAYWRIGHT_RETRIES ?? 0),
+  retries: parseRetries(process.env.PLAYWRIGHT_RETRIES),
   reporter: process.env.CI ? [['line'], ['html', { open: 'never' }]] : 'line',
   expect: { timeout: 10_000 },
   /*

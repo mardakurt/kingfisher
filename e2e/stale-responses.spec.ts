@@ -198,8 +198,19 @@ test('the explorer ends on the position and source the user actually chose', asy
   }
   await playMove(page, 'g1', 'f3');
 
-  // Let every in-flight answer land, including the ones now irrelevant.
-  await page.waitForTimeout(5_000);
+  /*
+    This was a five-second sleep — the longest in the repository — inside the
+    one spec that is about *which answer wins*. Sleeping proves that five
+    seconds passed; it says nothing about ordering, and it is slow for every
+    run and still wrong for a slow machine. Polling for the settled state
+    asserts the thing actually under test and returns as soon as it is true.
+  */
+  await expect
+    .poll(async () => (await explorerState(page)).source, {
+      message: 'the explorer never settled on the deliberately chosen source',
+      timeout: 10_000,
+    })
+    .toBe(answering);
   const raced = await explorerState(page);
 
   expect(raced.fen, 'the raced walk did not reach the position the deliberate one did').toBe(

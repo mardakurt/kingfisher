@@ -13,10 +13,26 @@ import {
 
 describe('the public host serves both surfaces on one origin', () => {
   it('recognises the apex and www, with or without a port, and nothing else', () => {
+    /*
+      The loop used to be the only assertion, and it iterates the list the
+      implementation exports. Delete a host from `PUBLIC_DEFAULT_HOSTS` and the
+      loop shrinks to the survivors — the test still passes, having checked less
+      and reported the same. So the list is pinned here, in this test, in
+      literals: a host that stops being served is a change to the public
+      surface, and it has to be a change somebody makes on purpose.
+    */
+    expect([...PUBLIC_DEFAULT_HOSTS].sort()).toEqual([
+      'kingfisherchess.app',
+      'www.kingfisherchess.app',
+    ]);
     for (const host of PUBLIC_DEFAULT_HOSTS) {
       expect(publicHostFor(host)).toBe(host);
       expect(publicHostFor(`${host.toUpperCase()}:443`)).toBe(host);
     }
+    // The literals again, so the loop is not the only thing standing here.
+    expect(publicHostFor('kingfisherchess.app')).toBe('kingfisherchess.app');
+    expect(publicHostFor('www.kingfisherchess.app')).toBe('www.kingfisherchess.app');
+    expect(publicHostFor('WWW.KINGFISHERCHESS.APP:443')).toBe('www.kingfisherchess.app');
     expect(publicHostFor('kingfisherchess.app.evil.example')).toBeNull();
     expect(publicHostFor('kingfisher-chess.vercel.app')).toBeNull();
     expect(publicHostFor(null)).toBeNull();
@@ -74,9 +90,18 @@ describe('host routing rules', () => {
 
 describe('studioHostFor', () => {
   it('matches the default studio hosts', () => {
+    // Pinned in literals, for the same reason as the public list above.
+    expect([...STUDIO_DEFAULT_HOSTS].sort()).toEqual([
+      'studio.kingfisher-chess.vercel.app',
+      'studio.localhost',
+    ]);
     for (const host of STUDIO_DEFAULT_HOSTS) {
       expect(studioHostFor(host)).toBe(host);
     }
+    expect(studioHostFor('studio.kingfisher-chess.vercel.app')).toBe(
+      'studio.kingfisher-chess.vercel.app',
+    );
+    expect(studioHostFor('studio.localhost')).toBe('studio.localhost');
   });
 
   it('ignores port differences', () => {

@@ -100,16 +100,25 @@ test('the round brief is one self-contained page that names its populations', as
   const inRow = header.getByRole('button', { name: /Round brief/ });
   const more = page.getByRole('button', { name: 'More actions' });
   await expect(inRow.or(more).first()).toBeVisible({ timeout: 30_000 });
-  await expect(async () => {
-    if (await inRow.isVisible()) {
-      await inRow.click();
-    } else {
-      await more.click();
-      await page.getByRole('menuitem', { name: /Round brief/ }).click({ timeout: 2_000 });
-    }
-  }).toPass({ timeout: 30_000 });
+  /*
+    The retried block used to contain nothing but clicks, so a click that did
+    nothing satisfied it and the thirty-second budget bought nothing: the only
+    proof the brief opened was asserted *after* the retry had already
+    succeeded. The assertion is inside the block now, which is what makes the
+    retry mean "keep trying to open it" rather than "click once, hope".
+  */
   const dialog = page.getByRole('dialog', { name: 'Round brief' });
-  await expect(dialog).toBeVisible();
+  await expect(async () => {
+    if (!(await dialog.isVisible())) {
+      if (await inRow.isVisible()) {
+        await inRow.click();
+      } else {
+        await more.click();
+        await page.getByRole('menuitem', { name: /Round brief/ }).click({ timeout: 2_000 });
+      }
+    }
+    await expect(dialog).toBeVisible({ timeout: 2_000 });
+  }).toPass({ timeout: 30_000 });
   const summary = dialog.getByTestId('brief');
   await expect(summary).toContainText('Round 3 · vs Rival, R · Club Open');
   await expect(summary).toContainText('Playing White');

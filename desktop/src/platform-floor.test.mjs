@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, test } from 'vitest';
 
 import { MINIMUM_MACOS, compareMacOSVersions, describeMinimumMacOS } from './platform-floor.mjs';
 
@@ -35,14 +35,38 @@ function electronDeclaredFloor() {
 }
 
 describe('the macOS floor', () => {
-  it('is what the Electron in the bundle declares', () => {
+  /*
+    Two different assertions live behind this one name. `desktop/dist/` is
+    git-ignored, so in a clean checkout the bundle is absent, the plist cannot be
+    read, and the Electron-declared floor is never checked — while the test
+    title still says it is. The pass is the same either way, which is what makes
+    it worth fixing: a green that means "checked something else" is exactly the
+    kind nobody can audit from the outside.
+  */
+  it('is what the Electron in the bundle declares, or pins the floor when there is no bundle', () => {
     const declared = electronDeclaredFloor();
     if (declared !== null) {
-      expect(declared).toBe(MINIMUM_MACOS);
+      // The bundle is here, so this really is the check the title promises.
+      expect({ source: 'packaged plist', declared }).toEqual({
+        source: 'packaged plist',
+        declared: MINIMUM_MACOS,
+      });
       return;
     }
     const electronMajor = Number(require_('electron/package.json').version.split('.')[0]);
-    expect({ electronMajor, floor: MINIMUM_MACOS }).toEqual({ electronMajor: 44, floor: '13.0' });
+    // `source` is in both sides on purpose. A bundle appearing — or vanishing —
+    // changes which assertion runs, and carrying the branch in the compared
+    // object turns that switch into a failure rather than a silent change of
+    // meaning under a title that no longer describes what was checked.
+    expect({
+      source: 'no bundle; pinned to Electron',
+      electronMajor,
+      floor: MINIMUM_MACOS,
+    }).toEqual({
+      source: 'no bundle; pinned to Electron',
+      electronMajor: 44,
+      floor: '13.0',
+    });
   });
 
   it('is what the build declares to Finder', () => {
