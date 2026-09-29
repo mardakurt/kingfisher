@@ -118,5 +118,9 @@ test('a chapter asks its questions, and the missed ones go to Training', async (
 
   await page.goto('/training');
   await ready(page);
-  await expect(page.getByText('Defend the pawn.').first()).toBeVisible();
+  await expect(
+    page
+      .getByRole('complementary', { name: 'Queue' })
+      .getByRole('button', { name: /Defend the pawn\./ }),
+  ).toBeVisible();
 });

@@ -36,8 +36,11 @@ test('an En Croissant user imports the authentic database and opens its games', 
   await expect(dialog).toContainText('Import complete.', { timeout: 60_000 });
   await expect(dialog).toContainText('60 imported · 0 duplicates · 0 rejected');
   await dialog.getByRole('button', { name: 'Done', exact: true }).click();
-  await expect(page.getByRole('button', { name: collection })).toBeVisible();
-  await page.getByRole('button', { name: collection }).click();
-  await expect(page.getByText('60 games', { exact: false }).first()).toBeVisible();
+  const collectionRow = page
+    .getByRole('list', { name: 'Collections' })
+    .getByRole('button', { name: collection });
+  await expect(collectionRow).toBeVisible();
+  await expect(collectionRow).toContainText('60 games');
+  await collectionRow.click();
   expect(errors).toEqual([]);
 });

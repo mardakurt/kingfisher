@@ -39,7 +39,9 @@ test('a public-domain annotated book is added to my games with its notes', async
   await expect(row).toBeVisible({ timeout: 15_000 });
   await row.dblclick();
   // The first note of the game, on the move Capablanca wrote it about (4.Bxc6).
-  await expect(page.getByText(/The object of this move is to bring/).first()).toBeVisible({
-    timeout: 15_000,
-  });
+  await expect(
+    page
+      .getByRole('region', { name: 'Notation' })
+      .getByRole('button', { name: /The object of this move is to bring/ }),
+  ).toBeVisible({ timeout: 15_000 });
 });

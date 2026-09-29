@@ -142,15 +142,9 @@ test.describe('the workspace survives its providers', () => {
       refuses to open because a helper process is not running would be exactly
       the fragility this application is trying not to have.
     */
-    /*
-      Left as it was. I changed the role to `tab` on the theory that "My games"
-      is a workspace tab; it is not, and the run proved it — the databases
-      screen's browser collection is a source row, and nothing there has the
-      `tab` role. Scoping this properly means finding the container the source
-      list lives in, which is more investigation than this change is worth
-      without it. The `.first()` remains, and it remains a weakness.
-    */
-    await expect(page.getByRole('button', { name: /My games/ }).first()).toBeVisible();
+    await expect(
+      page.getByRole('list', { name: 'Collections' }).getByRole('button', { name: /My games/ }),
+    ).toBeVisible();
   });
 
   test('a companion that answers 500 to every database call is reported, not fatal', async ({
@@ -219,7 +213,9 @@ test.describe('recovery without a restart', () => {
       timeout: 20_000,
     });
     // And the browser's own collection is unaffected by any of it.
-    await expect(page.getByRole('button', { name: /My games/ }).first()).toBeVisible();
+    await expect(
+      page.getByRole('list', { name: 'Collections' }).getByRole('button', { name: /My games/ }),
+    ).toBeVisible();
 
     /*
       The companion comes back. Recovery has to happen inside the running
