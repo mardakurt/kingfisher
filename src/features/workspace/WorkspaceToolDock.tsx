@@ -3,6 +3,7 @@
 import {
   useState,
   useSyncExternalStore,
+  type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from 'react';
@@ -18,7 +19,12 @@ import { useCalculation } from '@/features/calculation/calculation-store';
 import { useUi } from '@/stores/ui-store';
 import { useWorkspaceLayout } from '@/stores/workspace-layout-store';
 
-import { DOCK_WIDTH_MIN, type WorkspaceModuleId, type WorkspaceRegion } from './layout-model';
+import {
+  DOCK_WIDTH_MAX,
+  DOCK_WIDTH_MIN,
+  type WorkspaceModuleId,
+  type WorkspaceRegion,
+} from './layout-model';
 import { MOVE_TREE_MODULE, WORKSPACE_MODULES, type WorkspaceToolId } from './modules';
 import { ModuleTabStrip } from './ModuleTabStrip';
 import { ToolContent } from './ToolContent';
@@ -125,7 +131,7 @@ export function WorkspaceToolDock({
 
   const select = (module: WorkspaceModuleId) => setActiveModule(workspace, device, 'dock', module);
 
-  const resize = (event: ReactPointerEvent<HTMLButtonElement>) => {
+  const resize = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (!wide) return;
     const startX = event.clientX;
     const startWidth = arrangement.dockWidth;
@@ -147,6 +153,29 @@ export function WorkspaceToolDock({
     target.addEventListener('pointermove', move);
     target.addEventListener('pointerup', done);
     target.addEventListener('pointercancel', done);
+  };
+
+  const resizeWithKeyboard = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    const step = event.shiftKey ? 40 : 16;
+    let width: number;
+    switch (event.key) {
+      case 'ArrowLeft':
+        width = arrangement.dockWidth + step;
+        break;
+      case 'ArrowRight':
+        width = arrangement.dockWidth - step;
+        break;
+      case 'Home':
+        width = DOCK_WIDTH_MAX;
+        break;
+      case 'End':
+        width = DOCK_WIDTH_MIN;
+        break;
+      default:
+        return;
+    }
+    event.preventDefault();
+    setDockWidth(workspace, device, width);
   };
 
   if (arrangement.dockCollapsed) {
@@ -201,11 +230,18 @@ export function WorkspaceToolDock({
       data-workspace-dock={workspace}
     >
       {wide && !fill ? (
-        <button
-          type="button"
+        <div
+          role="separator"
+          tabIndex={0}
           aria-label="Resize workspace tools"
+          aria-orientation="vertical"
+          aria-valuemin={DOCK_WIDTH_MIN}
+          aria-valuemax={DOCK_WIDTH_MAX}
+          aria-valuenow={arrangement.dockWidth}
+          aria-valuetext={`${arrangement.dockWidth} pixels`}
           onPointerDown={resize}
-          className="absolute inset-y-0 -left-1 z-20 w-2 cursor-col-resize touch-none"
+          onKeyDown={resizeWithKeyboard}
+          className="absolute inset-y-0 -left-1 z-20 w-2 cursor-col-resize touch-none hover:bg-accent/15 focus-visible:bg-accent/20"
         />
       ) : (
         <div className="mx-auto my-1 h-1 w-12 rounded-full bg-line-strong" aria-hidden />

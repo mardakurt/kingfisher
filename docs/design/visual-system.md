@@ -192,6 +192,11 @@ is one icon at the end of the tool tabs, named "Layout: <preset>" — it was a
 and margins counted, so its edge buttons are never clipped; tabs lose their
 icons and then 2px a side before any is folded under More.
 
+The divider beside the tools is a keyboard-operable separator. Left and right
+arrows change the dock width in 16px steps, Shift uses 40px steps, and Home and
+End reach its limits. Pointer dragging and keyboard input write the same saved
+layout width; the separator announces its current value to assistive technology.
+
 **Panels that must fit a narrow column adapt to their own width or height,
 not the window's** (container queries). The explorer's move table needs
 650px; in the 380px side panel its W, D, B, Elo, Opening and Mine columns step
@@ -240,8 +245,10 @@ earns the space; it carries `GlobalControls` in its first row.
 
 - **Library** (`/games`): search and Filters over a dense striped table; a
   single click previews the game (board, notation, open/review/analyse) in the
-  right-hand column, a double click or Return opens it; the Filters panel docks
-  in the same column and every filter in force is a chip under the search.
+  right-hand column, a double click or Return opens it. On a desktop window the
+  Filters panel floats over the table beside the preview, so the selected game
+  remains visible while a filter is changed; on a narrow window it is a sheet.
+  Every filter in force is a chip under the search.
 - **Preparation**: a report, not a board — the player card with the score
   ring, then Openings (the tree, the board preview, the repertoire comparison,
   surprises and priorities), Games, Style (measured, never graded; see

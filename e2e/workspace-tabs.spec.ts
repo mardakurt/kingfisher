@@ -197,6 +197,26 @@ test.describe('workspace tabs', () => {
 });
 
 test.describe('the Library', () => {
+  test('filters fit a phone window and close back to their trigger', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 812 });
+    await seed(page);
+    await page.goto('/games');
+    await ready(page);
+
+    const trigger = page.getByRole('button', { name: /^Filters/ });
+    await trigger.click();
+    const filters = page.getByRole('complementary', { name: 'Filters' });
+    await expect(filters).toBeVisible();
+    const box = await filters.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(391);
+    await filters.getByRole('textbox', { name: 'Player' }).focus();
+    await page.keyboard.press('Escape');
+    await expect(filters).toBeHidden();
+    await expect(trigger).toBeFocused();
+  });
+
   test('a row previews its game, and filters are chips that remove themselves', async ({
     page,
   }) => {
@@ -216,6 +236,14 @@ test.describe('the Library', () => {
     await expect(preview.getByRole('button', { name: 'd6' })).toBeVisible();
 
     await page.getByRole('button', { name: /^Filters/ }).click();
+    await expect(preview).toBeVisible();
+    const filters = page.getByRole('complementary', { name: 'Filters' });
+    await expect(filters).toBeVisible();
+    const previewBox = await preview.boundingBox();
+    const filterBox = await filters.boundingBox();
+    expect(previewBox).not.toBeNull();
+    expect(filterBox).not.toBeNull();
+    expect(filterBox!.x + filterBox!.width).toBeLessThanOrEqual(previewBox!.x + 1);
     await page
       .getByRole('radiogroup', { name: 'Result' })
       .getByRole('radio', { name: '½-½' })
@@ -225,6 +253,11 @@ test.describe('the Library', () => {
 
     await page.getByRole('button', { name: 'Remove Result filter' }).click();
     await expect(rows).toHaveCount(3);
+
+    await filters.getByRole('textbox', { name: 'Player' }).focus();
+    await page.keyboard.press('Escape');
+    await expect(filters).toBeHidden();
+    await expect(page.getByRole('button', { name: /^Filters/ })).toBeFocused();
 
     // The search survives in the address, so a tab that is left keeps it.
     await page.getByRole('searchbox', { name: 'Search games' }).fill('Titled');

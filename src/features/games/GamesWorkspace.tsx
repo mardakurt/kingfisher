@@ -148,6 +148,10 @@ export function GamesWorkspace() {
   const [sortBy, setSortBy] = useState<SortField>('importedAt');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const closeFilters = () => {
+    setFiltersOpen(false);
+    document.getElementById('library-filters-trigger')?.focus();
+  };
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
   const [confirmation, setConfirmation] = useState<'selected' | 'all' | null>(null);
   /** The games whose departures are being found (Phase 85), in the list's order. */
@@ -630,8 +634,10 @@ export function GamesWorkspace() {
           </select>
         </label>
         <Button
+          id="library-filters-trigger"
           active={filtersOpen || filtersActive}
           aria-expanded={filtersOpen}
+          aria-controls="library-filters-panel"
           icon={<Filter />}
           onClick={() => setFiltersOpen((open) => !open)}
         >
@@ -1022,94 +1028,106 @@ export function GamesWorkspace() {
             </ul>
           )}
         </div>
-        {wide || filtersOpen ? (
+        {wide ? (
           <aside
-            className={cn(
-              'flex shrink-0 flex-col border-line-subtle bg-surface-1',
-              wide
-                ? 'w-[340px] border-l xl:w-[380px]'
-                : 'absolute inset-x-0 bottom-0 z-20 max-h-[70%] border-t shadow-[var(--shadow-popover)]',
-            )}
-            aria-label={filtersOpen ? 'Filters' : 'Game preview'}
+            className="flex w-[340px] shrink-0 flex-col border-l border-line-subtle bg-surface-1 xl:w-[380px]"
+            aria-label="Game preview"
           >
-            {filtersOpen ? (
-              <FilterPanel
-                recentFilters={recentFilters}
-                onApply={applyFilter}
-                onSave={() => void saveCurrent()}
-                savedQueries={<SavedQueries onApply={applyQuery} />}
-                player={player}
-                setPlayer={(value) => {
-                  setPlayer(value);
-                  setPage(0);
-                }}
-                playerColor={playerColor}
-                setPlayerColor={(value) => {
-                  setPlayerColor(value);
-                  setPage(0);
-                }}
-                result={result}
-                setResult={(value) => {
-                  setResult(value);
-                  setPage(0);
-                }}
-                minRating={minRating}
-                setMinRating={(value) => {
-                  setMinRating(value);
-                  setPage(0);
-                }}
-                eco={eco}
-                setEco={(value) => {
-                  setEco(value);
-                  setPage(0);
-                }}
-                header={header}
-                setHeader={(next) => {
-                  setHeader(next);
-                  setPage(0);
-                }}
-                moves={
-                  <>
-                    {!local ? (
-                      /*
+            <GamePreview
+              source={source}
+              game={previewing}
+              onOpen={(game, ply) => void open(game, '/analysis', ply)}
+              onReview={(game, ply) => void open(game, '/review', ply)}
+              onQueue={local ? (game) => openAnalysisQueue([game.id]) : undefined}
+            />
+          </aside>
+        ) : null}
+        {filtersOpen ? (
+          <aside
+            id="library-filters-panel"
+            className={cn(
+              'z-20 flex flex-col border border-line bg-surface-1 shadow-[var(--shadow-popover)]',
+              wide
+                ? 'absolute inset-y-3 right-[348px] w-[320px] rounded-[var(--radius-panel)] xl:right-[388px]'
+                : 'absolute inset-x-0 bottom-0 max-h-[70%] border-t',
+            )}
+            aria-label="Filters"
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') {
+                event.preventDefault();
+                event.stopPropagation();
+                closeFilters();
+              }
+            }}
+          >
+            <FilterPanel
+              recentFilters={recentFilters}
+              onApply={applyFilter}
+              onSave={() => void saveCurrent()}
+              savedQueries={<SavedQueries onApply={applyQuery} />}
+              player={player}
+              setPlayer={(value) => {
+                setPlayer(value);
+                setPage(0);
+              }}
+              playerColor={playerColor}
+              setPlayerColor={(value) => {
+                setPlayerColor(value);
+                setPage(0);
+              }}
+              result={result}
+              setResult={(value) => {
+                setResult(value);
+                setPage(0);
+              }}
+              minRating={minRating}
+              setMinRating={(value) => {
+                setMinRating(value);
+                setPage(0);
+              }}
+              eco={eco}
+              setEco={(value) => {
+                setEco(value);
+                setPage(0);
+              }}
+              header={header}
+              setHeader={(next) => {
+                setHeader(next);
+                setPage(0);
+              }}
+              moves={
+                <>
+                  {!local ? (
+                    /*
                         A companion database is read for its moves too: the
                         companion selects by header and serves the games a
                         page at a time, and each is asked the question here.
                       */
-                      <p className="mb-1 text-[11px] text-tertiary" data-move-search-source>
-                        Reads the moves of {source.name}’s games through the companion, a page at a
-                        time; a large file takes a while, and it can be stopped.
-                      </p>
-                    ) : null}
-                    <MoveMaskFields
-                      mask={moves}
-                      onChange={setMoves}
-                      compiled={compiledMoves}
-                      state={moveState}
-                      onSearch={startMoveSearch}
-                      onStop={deep.stop}
-                      onClear={deep.clear}
-                    />
-                  </>
-                }
-                active={filtersActive}
-                onClear={clearFilters}
-                onProfile={
-                  player.trim()
-                    ? () => router.push(`/player/${encodeURIComponent(playerKey(player))}`)
-                    : undefined
-                }
-                onClose={() => setFiltersOpen(false)}
-              />
-            ) : (
-              <GamePreview
-                source={source}
-                game={previewing}
-                onOpen={(game, ply) => void open(game, '/analysis', ply)}
-                onReview={(game, ply) => void open(game, '/review', ply)}
-                onQueue={local ? (game) => openAnalysisQueue([game.id]) : undefined}
-              />
-            )}
+                    <p className="mb-1 text-[11px] text-tertiary" data-move-search-source>
+                      Reads the moves of {source.name}’s games through the companion, a page at a
+                      time; a large file takes a while, and it can be stopped.
+                    </p>
+                  ) : null}
+                  <MoveMaskFields
+                    mask={moves}
+                    onChange={setMoves}
+                    compiled={compiledMoves}
+                    state={moveState}
+                    onSearch={startMoveSearch}
+                    onStop={deep.stop}
+                    onClear={deep.clear}
+                  />
+                </>
+              }
+              active={filtersActive}
+              onClear={clearFilters}
+              onProfile={
+                player.trim()
+                  ? () => router.push(`/player/${encodeURIComponent(playerKey(player))}`)
+                  : undefined
+              }
+              onClose={closeFilters}
+            />
           </aside>
         ) : null}
       </div>

@@ -91,6 +91,26 @@ test('the board stays square, and never overflows its column', async ({ page }) 
   expect(geometry.insideHeight).toBe(true);
 });
 
+test('the workspace divider can resize the dock from the keyboard', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/analysis');
+  await ready(page);
+
+  const divider = page.getByRole('separator', { name: 'Resize workspace tools' });
+  const dock = page.locator('[data-workspace-dock="analysis"]');
+  await expect(divider).toHaveAttribute('aria-orientation', 'vertical');
+  await divider.focus();
+  const before = await dock.evaluate((element) => element.getBoundingClientRect().width);
+  await page.keyboard.press('ArrowLeft');
+  await expect
+    .poll(() => dock.evaluate((element) => element.getBoundingClientRect().width))
+    .toBeGreaterThan(before);
+  await page.keyboard.press('ArrowRight');
+  await expect
+    .poll(() => dock.evaluate((element) => element.getBoundingClientRect().width))
+    .toBe(before);
+});
+
 /**
  * An arrangement of the kind selecting a tool tab writes.
  *
