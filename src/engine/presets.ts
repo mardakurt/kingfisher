@@ -61,6 +61,77 @@ export const enginePreset = (id: EnginePresetId): EnginePreset | null =>
   ENGINE_PRESETS.find((preset) => preset.id === id) ?? null;
 
 /**
+ * The three values a preset owns, and the only ones it owns.
+ *
+ * Threads are deliberately not here: `resolveThreads` scales them to the
+ * machine, so a preset exported on a 16-core workstation and imported on a
+ * four-core laptop cannot agree about threads without one of them lying.
+ */
+export interface PresetOwnedValues {
+  readonly multiPv: number;
+  readonly hashMb: number;
+  readonly limit: AnalysisLimit;
+}
+
+/**
+ * Does this preset still describe these values?
+ *
+ * `kind: 'infinite'` and `kind: 'infinite'` are the same limit; anything else
+ * must match on its own terms, so "infinite" and "3000 nodes" are different
+ * choices and a preset that named one cannot be said to describe the other.
+ */
+export function presetDescribes(preset: EnginePreset, values: PresetOwnedValues): boolean {
+  if (preset.multiPv !== values.multiPv) return false;
+  if (preset.hashMb !== values.hashMb) return false;
+  if (preset.limit.kind !== values.limit.kind) return false;
+  if (preset.limit.kind === 'infinite' && values.limit.kind === 'infinite') return true;
+  return JSON.stringify(preset.limit) === JSON.stringify(values.limit);
+}
+
+/**
+ * Keep the preset honest when preferences are written wholesale.
+ *
+ * A preset is a *label* for the values, not a second source of truth: every
+ * control that changes MultiPV, hash or the limit sets the preset to `custom`
+ * for exactly that reason, and Settings says so in as many words — "The value
+ * is always what the engine runs with; a preset only fills it in."
+ *
+ * Settings import was the one path that wrote preferences without holding to
+ * that, so a file naming `deep` while carrying a one-thread, two-line engine
+ * left the dialog reading **Deep** over settings that were not Deep. Nothing in
+ * the interface could tell the user their engine was not configured as the
+ * preset beside it said. The label is corrected here, at the boundary, using
+ * the values that will actually be in force: the incoming ones where the file
+ * supplies them, this machine's defaults where it does not.
+ *
+ * Threads are not consulted, for the reason above.
+ */
+export function reconcileEnginePreset(
+  incoming: Readonly<Record<string, unknown>>,
+  defaults: PresetOwnedValues,
+): Record<string, unknown> {
+  const declared = incoming.enginePreset;
+  if (typeof declared !== 'string') return { ...incoming };
+  if (declared === 'custom') return { ...incoming };
+  const preset = enginePreset(declared as EnginePresetId);
+  // A preset this build has never heard of keeps whatever it was: refusing to
+  // invent a meaning for it is better than guessing at one.
+  if (!preset) return { ...incoming };
+
+  const effective: PresetOwnedValues = {
+    multiPv: typeof incoming.engineMultiPv === 'number' ? incoming.engineMultiPv : defaults.multiPv,
+    hashMb: typeof incoming.engineHashMb === 'number' ? incoming.engineHashMb : defaults.hashMb,
+    limit:
+      incoming.engineLimit && typeof incoming.engineLimit === 'object'
+        ? (incoming.engineLimit as AnalysisLimit)
+        : defaults.limit,
+  };
+
+  if (presetDescribes(preset, effective)) return { ...incoming };
+  return { ...incoming, enginePreset: 'custom' };
+}
+
+/**
  * Threads for a preset on this machine.
  *
  * Always leaves a core for the interface: an engine that saturates every core

@@ -13,6 +13,7 @@
  * is not on it, which turns the dangerous direction into a build error.
  */
 
+import { reconcileEnginePreset } from '@/engine/presets';
 import { DEFAULT_PREFERENCES, type Preferences } from '@/stores/preferences-store';
 
 /** Preference keys that must never leave the machine. */
@@ -114,13 +115,27 @@ export function parseSettingsExport(raw: unknown): SettingsImportResult {
     }
   }
 
+  /*
+    §64 again, one level up: the individual keys are valid, but a file can be
+    internally inconsistent in a way no per-key type check can see. The engine
+    preset is the one case that matters — it is a *label* for MultiPV, hash and
+    the limit, so a file that says `deep` and carries different values would
+    otherwise leave Settings asserting a configuration the engine is not in.
+    Reconciled here, where every wholesale write goes through.
+  */
+  const coherent = reconcileEnginePreset(preferences, {
+    multiPv: DEFAULT_PREFERENCES.engineMultiPv,
+    hashMb: DEFAULT_PREFERENCES.engineHashMb,
+    limit: DEFAULT_PREFERENCES.engineLimit,
+  });
+
   return {
     ok: true,
     value: {
       kind: SETTINGS_EXPORT_KIND,
       version: value.version,
       exportedAt: typeof value.exportedAt === 'number' ? value.exportedAt : 0,
-      preferences: preferences as Partial<Preferences>,
+      preferences: coherent as Partial<Preferences>,
       layout: value.layout ?? null,
       shortcuts,
     },

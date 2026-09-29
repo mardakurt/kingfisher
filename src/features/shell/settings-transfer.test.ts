@@ -134,4 +134,86 @@ describe('parseSettingsExport', () => {
     if (!result.ok) return;
     expect(result.value.shortcuts).toEqual({ comment: 'c' });
   });
+
+  /*
+    The preset is a label for MultiPV, hash and the limit, not a second source
+    of truth — every control that changes one of those writes `custom` for
+    exactly that reason. Import was the one wholesale write that did not, so a
+    file could leave Settings reading "Deep" over an engine that was neither
+    five lines nor a 256 MB hash. Every key below passes the per-key type check
+    that already ran; the disagreement is between them, which no per-key check
+    can see.
+  */
+  describe('an engine preset that does not describe the values it arrives with', () => {
+    const imported = (prefs: Record<string, unknown>) => {
+      const result = parseSettingsExport({ ...exported(), preferences: prefs });
+      expect(result.ok).toBe(true);
+      if (!result.ok) throw new Error('expected a valid export');
+      return result.value.preferences;
+    };
+
+    it('becomes custom when the line count disagrees', () => {
+      const restored = imported({
+        enginePreset: 'deep',
+        engineMultiPv: 1,
+        engineHashMb: 256,
+        engineLimit: { kind: 'infinite' },
+      });
+      expect(restored.enginePreset).toBe('custom');
+      // The values the file actually carried are kept: the import is a
+      // transfer, not a reconfiguration.
+      expect(restored.engineMultiPv).toBe(1);
+      expect(restored.engineHashMb).toBe(256);
+    });
+
+    it('becomes custom when the hash disagrees', () => {
+      expect(
+        imported({ enginePreset: 'deep', engineMultiPv: 5, engineHashMb: 64 }).enginePreset,
+      ).toBe('custom');
+    });
+
+    it('becomes custom when the limit is a different limit', () => {
+      expect(
+        imported({
+          enginePreset: 'deep',
+          engineMultiPv: 5,
+          engineHashMb: 256,
+          engineLimit: { kind: 'movetime', ms: 2000 },
+        }).enginePreset,
+      ).toBe('custom');
+    });
+
+    it('becomes custom when the file names a preset and no values beside it', () => {
+      // A one-key file is valid: there is no type error to catch. The machine's
+      // defaults are what will be in force, and they are Standard's.
+      expect(imported({ enginePreset: 'deep' }).enginePreset).toBe('custom');
+    });
+
+    it('keeps a preset that genuinely describes the values beside it', () => {
+      const restored = imported({
+        enginePreset: 'deep',
+        engineMultiPv: 5,
+        engineHashMb: 256,
+        engineLimit: { kind: 'infinite' },
+        // Threads are not consulted: a preset scales them per machine, so a
+        // workstation's count cannot be expected to survive the move.
+        engineThreads: 12,
+      });
+      expect(restored.enginePreset).toBe('deep');
+      expect(restored.engineThreads).toBe(12);
+    });
+
+    it('leaves custom and unknown preset ids exactly as they were', () => {
+      expect(imported({ enginePreset: 'custom', engineMultiPv: 1 }).enginePreset).toBe('custom');
+      expect(imported({ enginePreset: 'fromTheFuture', engineMultiPv: 1 }).enginePreset).toBe(
+        'fromTheFuture',
+      );
+    });
+
+    it('treats a file with no preset key as untouched', () => {
+      const restored = imported({ engineMultiPv: 5, boardTheme: 'sage' });
+      expect(restored).not.toHaveProperty('enginePreset');
+      expect(restored.engineMultiPv).toBe(5);
+    });
+  });
 });

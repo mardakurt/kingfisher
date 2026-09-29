@@ -265,7 +265,27 @@ export const SETTING_CONTRACTS: readonly SettingContract[] = [
     surface: 'settings',
     control: 'features/engine/EnginePanel.tsx',
     consumer: 'engine/presets.ts',
-    effect: 'Lines, threads, hash and limit are set together to that preset’s values.',
+    /*
+      A **label**, not a second source of truth. The values are what the engine
+      runs with; a preset only fills them in, which is why every control that
+      changes MultiPV, hash or the limit writes `custom` beside this one.
+
+      `consumer: 'engine/presets.ts'` is now true in the sense it was always
+      meant to be. It was a pure lookup that nothing read, and the only place
+      the preset was applied was the segmented control's own `onChange`, so a
+      settings import — the one path that writes preferences wholesale — could
+      leave this label naming a configuration the engine was not in, with the
+      dialog asserting it. `reconcileEnginePreset` in that module is what holds
+      the invariant now, and `settings-transfer.ts` calls it.
+
+      Threads are the one value a preset does not own, because they scale to
+      the machine: a preset exported from a 16-core workstation cannot be
+      expected to survive the move to a laptop.
+    */
+    effect:
+      'Selecting a preset sets lines, hash and limit together, with threads scaled to this ' +
+      'machine. It is a label for those values: any other change makes it Custom, and importing ' +
+      'a file whose preset does not match the values beside it does too.',
     indexedAs: null,
     previewable: true,
   },
