@@ -25,7 +25,7 @@ import { installedReferenceSources } from '@/reference/manager';
 
 interface AutoBackupState {
   lastBackupAt: number | null;
-  status: 'idle' | 'checking' | 'running' | 'failed';
+  status: 'idle' | 'checking' | 'running' | 'failed' | 'unavailable';
   setState: (next: Partial<AutoBackupState>) => void;
 }
 
@@ -47,8 +47,29 @@ export function useAutoBackup(): void {
 
     void (async () => {
       setState({ status: 'checking' });
-      const repositories = await getRepositories();
-      const recent = await mostRecentBackup(repositories.raw);
+
+      /*
+        Reading the store is the step that can fail for reasons the run itself
+        cannot: IndexedDB is unavailable in a private window, refused by a
+        blocked-storage policy, or holds a database this build cannot open. It
+        used to be unguarded, and both consequences were false statements. The
+        rejection escaped as an unhandled promise, and `status` stayed at
+        `checking` — which the indicator renders as its most alarming state, a
+        red "No backup yet", on a workspace that may hold a backup from
+        yesterday. An unknown is not a zero: `unavailable` says the store could
+        not be read, which is what happened and is a different thing to act on.
+      */
+      let repositories: Awaited<ReturnType<typeof getRepositories>>;
+      let recent: Awaited<ReturnType<typeof mostRecentBackup>>;
+      try {
+        repositories = await getRepositories();
+        recent = await mostRecentBackup(repositories.raw);
+      } catch {
+        if (cancelled) return;
+        setState({ status: 'unavailable' });
+        return;
+      }
+
       if (cancelled) return;
       const lastBackupAt = recent?.createdAt ?? null;
       setState({ lastBackupAt });

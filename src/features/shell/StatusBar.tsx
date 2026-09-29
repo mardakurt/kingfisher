@@ -10,8 +10,8 @@ import { useEngine } from '@/stores/engine-store';
 import { usePreferences } from '@/stores/preferences-store';
 import { useUi } from '@/stores/ui-store';
 
-import { daysSinceLastBackup } from './auto-backup';
 import { BackgroundActivityCentre } from './BackgroundActivityCentre';
+import { BACKUP_TEXT_CLASS, BACKUP_TONE_CLASS, describeBackupStatus } from './backup-status';
 import { useAutoBackupState } from './useAutoBackup';
 
 const ENGINE_LABEL: Record<string, string> = {
@@ -34,7 +34,6 @@ export function StatusBar() {
   const analysis = useEngine((state) => state.primary.analysis);
   const backupAt = useAutoBackupState((state) => state.lastBackupAt);
   const backupStatus = useAutoBackupState((state) => state.status);
-  const backupDays = daysSinceLastBackup(backupAt);
   /*
     The schedule the user set is the reminder threshold — the settings
     contract has said so since Phase 56, and until Phase 71 this line held a
@@ -42,7 +41,11 @@ export function StatusBar() {
     gap was fine.
   */
   const reminderDays = usePreferences((state) => state.autoBackupReminderDays);
-  const backupDue = backupDays === null || backupDays > reminderDays;
+  const backup = describeBackupStatus({
+    status: backupStatus,
+    lastBackupAt: backupAt,
+    reminderDays,
+  });
   const [copied, setCopied] = useState(false);
   const [showFen, setShowFen] = useState(false);
 
@@ -126,63 +129,29 @@ export function StatusBar() {
       <BackgroundActivityCentre />
 
       {/*
-        Backup indicator. A small, quiet line that says when the last
-        auto-backup ran. Three states: never (red), recent (neutral),
-        overdue (yellow). The user clicks it to open Settings → Database
-        and either export a backup or trigger one manually.
+        Backup indicator. What it says, and in which colour, is decided by
+        `describeBackupStatus` — one pure function holding every claim the bar
+        is entitled to make about the user's backups, unit tested against all
+        five of them. This component draws it. The version before that computed
+        the same thing in JSX and had no arm for `failed` or `unavailable`, so
+        both fell through to the ordinary branch and drew a green dot beside a
+        safety net that had not run.
       */}
       <button
         type="button"
         onClick={() => openSettingsAt('database')}
-        aria-label={
-          backupDays === null
-            ? 'No backup yet — open the database settings'
-            : `Last backup ${backupDays === 0 ? 'today' : `${backupDays} day${backupDays === 1 ? '' : 's'} ago`} — open the database settings`
-        }
-        title={
-          backupDays === null
-            ? 'No backup yet. Click to back up now from Settings → Database.'
-            : backupDue
-              ? `Backup is ${backupDays} days old. Click to back up now from Settings → Database.`
-              : `Backed up ${backupDays} day${backupDays === 1 ? '' : 's'} ago. Click to manage backups.`
-        }
+        aria-label={backup.ariaLabel}
+        title={backup.title}
+        data-backup-status={backupStatus}
         className={cn(
-          'ml-1 hidden shrink-0 items-center gap-1 whitespace-nowrap rounded-[5px] px-1.5 py-0.5 transition-colors sm:inline-flex',
-          'hover:bg-surface-2',
-          /*
-           * Phase 57: a positive accent on "today" — the previous
-           * treatment was neutral, which made a fresh backup
-           * indistinguishable from a 5-day-old one. "Today" is the
-           * one state a user actively wants to see.
-           */
-          backupDays === 0 && 'text-positive',
-          backupDays === null && 'text-negative',
-          backupDays !== null && backupDue && 'text-caution',
-          backupDays !== null && !backupDue && backupDays > 0 && 'text-secondary',
-          backupStatus === 'running' && 'text-accent-ink',
+          'ml-1 hidden shrink-0 items-center gap-1 whitespace-nowrap rounded-[var(--radius-control)] px-1.5 py-0.5 transition-colors sm:inline-flex',
+          'hover:bg-surface-2 active:bg-surface-press',
+          BACKUP_TEXT_CLASS[backup.tone],
+          backupStatus === 'running' && 'animate-pulse',
         )}
       >
-        {backupStatus === 'running' ? (
-          <>
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent" />
-            <span>Backing up…</span>
-          </>
-        ) : backupDays === null ? (
-          <>
-            <span className="h-1.5 w-1.5 rounded-full bg-negative" />
-            <span>No backup yet</span>
-          </>
-        ) : (
-          <>
-            <span
-              className={cn(
-                'h-1.5 w-1.5 rounded-full',
-                backupDays === 0 ? 'bg-positive' : backupDue ? 'bg-caution' : 'bg-positive/70',
-              )}
-            />
-            <span>Backup {backupDays === 0 ? 'today' : `${backupDays}d ago`}</span>
-          </>
-        )}
+        <span className={cn('h-1.5 w-1.5 rounded-full', BACKUP_TONE_CLASS[backup.tone])} />
+        <span>{backup.label}</span>
       </button>
 
       {/*
@@ -205,8 +174,8 @@ export function StatusBar() {
           aria-live="polite"
           data-copy-fen
           className={cn(
-            'inline-flex items-center gap-1 rounded-[5px] px-1.5 py-0.5 transition-colors',
-            'text-tertiary hover:bg-surface-2 hover:text-secondary',
+            'inline-flex items-center gap-1 rounded-[var(--radius-control)] px-1.5 py-0.5 transition-colors',
+            'text-tertiary hover:bg-surface-2 hover:text-secondary active:bg-surface-press',
             copied && 'text-positive',
           )}
         >
@@ -223,7 +192,7 @@ export function StatusBar() {
           data-fen-tooltip
           aria-hidden={!showFen && !copied}
           className={cn(
-            'pointer-events-none absolute bottom-full right-0 z-30 mb-1 max-w-[60ch] truncate rounded-[5px] border border-line bg-surface-3 px-1.5 py-1 font-mono text-[10px] text-secondary shadow-md transition-opacity',
+            'pointer-events-none absolute bottom-full right-0 z-30 mb-1 max-w-[60ch] truncate rounded-[var(--radius-control)] border border-line bg-surface-3 px-1.5 py-1 font-mono text-[10px] text-secondary shadow-md transition-opacity',
             showFen || copied ? 'opacity-100' : 'opacity-0',
           )}
         >
