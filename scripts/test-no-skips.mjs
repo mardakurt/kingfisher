@@ -40,7 +40,17 @@ const ROOT = fileURLToPath(new URL('..', import.meta.url));
 
 const SCAN_DIRS = ['src', 'companion', 'scripts', 'desktop', 'e2e'];
 
-const SCAN_CONFIGS = ['vitest.config.mts', 'playwright.config.ts'];
+// `playwright.packaged.config.ts` was missing. It is the *second* Playwright
+// config, and `npm run desktop:soak:leaks` runs it — so a `test.skip` added
+// there was invisible to the gate that exists to find exactly that. A gate that
+// covers one of two configs and reports "OK" is worse than one that covers
+// neither, because it is believed.
+const SCAN_CONFIGS = [
+  'vitest.config.mts',
+  'vitest.bench.config.mts',
+  'playwright.config.ts',
+  'playwright.packaged.config.ts',
+];
 
 /**
  * Patterns we treat as prohibited skips. The list is exhaustive

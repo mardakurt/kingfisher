@@ -906,10 +906,18 @@ mustExist('ARCHITECTURE.md');
 // files read the generated, git-ignored public/bench/bench-1k.pgn; they passed
 // on the maintainer's machine and failed CI on every push from 2026-09-26.
 {
-  const listed = spawnSync('git', ['ls-files', '--', 'src', 'e2e', 'companion/src', 'scripts'], {
-    cwd: REPO_ROOT,
-    encoding: 'utf8',
-  });
+  // `desktop` was missing. Vitest runs `desktop/src/**/*.test.mjs` — 23
+  // tracked files — and the gate never looked at one of them, so a desktop
+  // test reading a git-ignored path would pass here and fail CI. That is the
+  // 2026-09-26 failure mode exactly, one directory over.
+  const listed = spawnSync(
+    'git',
+    ['ls-files', '--', 'src', 'e2e', 'companion/src', 'scripts', 'desktop'],
+    {
+      cwd: REPO_ROOT,
+      encoding: 'utf8',
+    },
+  );
   const tests = (listed.stdout ?? '')
     .split('\n')
     .filter((file) => /(?:\.test\.[cm]?[jt]sx?|\.spec\.ts)$/.test(file));
@@ -917,7 +925,12 @@ mustExist('ARCHITECTURE.md');
   for (const file of tests) {
     const content = readFileSync(join(REPO_ROOT, file), 'utf8');
     for (const match of content.matchAll(
-      /['"`](?:\.\.\/)*((?:public|data|e2e|src|companion|scripts|docs)\/[\w./-]+\.[a-z0-9]+)['"`]/g,
+      // The roots are the ones .gitignore actually hides, so a reference to a
+      // generated artefact is caught whichever way it is written. It used to
+      // be a short list of source directories, which is why a read assembled
+      // at runtime — `path.join(ROOT, '.real-scale', 'real.sqlite')` in
+      // scripts/bench-claim-search.mjs — walked straight past it.
+      /['"`](?:\.\.\/)*((?:public|data|e2e|src|companion|scripts|docs|output|tmp|desktop|\.real-scale|\.archive-cache|\.packs|generated)\/[\w./-]+\.[a-z0-9]+)['"`]/g,
     )) {
       if (!referenced.has(match[1])) referenced.set(match[1], file);
     }

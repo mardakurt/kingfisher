@@ -17,6 +17,16 @@ export default defineConfig({
       'scripts/**/*.test.mjs',
       'scripts/**/*.test.ts',
       'desktop/src/**/*.test.mjs',
+      // The two `bench-*.test.ts` files are measurements, not gates: they
+      // print a number and assert nothing, so in `npm test` they spent up to
+      // two minutes each proving that a loop terminates. Their own headers
+      // already said to run them under `vitest.bench.config.mts`, which did not
+      // exist — so the instruction was false and the cost was real. That config
+      // exists now, and these two are reachable only through it. Thresholding
+      // wall-clock instead was considered and rejected: a performance budget
+      // on a shared machine is a flaky test, and a suite that goes red for
+      // reasons a person cannot act on stops being evidence.
+      '!scripts/bench-*.test.ts',
     ],
   },
 });
