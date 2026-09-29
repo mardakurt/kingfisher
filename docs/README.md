@@ -272,6 +272,9 @@ with [`AGENTS.md`](../AGENTS.md).
 
 ## Historical
 
+- [`reports/2026-09-29-interface-continuation.md`](reports/2026-09-29-interface-continuation.md)
+  — the remaining shell-pass gates, the ChessBase-reference comparison, the
+  shared-interface improvements, and the reasons for keeping Electron.
 - [`reports/phase-88-shell-pass.md`](reports/phase-88-shell-pass.md) — the
   shell and workspace bug-fix pass: the settings-contract guard that passed
   four mis-declared consumers, a Tailwind class that was completed by

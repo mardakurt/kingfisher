@@ -7,6 +7,17 @@ file plus `src/desktop/bridge.ts`, which returns `null` in a browser.
 This document is the Phase 49 check on that claim, feature by feature,
 with the deliberate differences named and the reason for each.
 
+**Published revision check (2026-09-29 interface continuation).** The current
+branch keeps the Electron shell and the shared Next.js/React renderer. It
+adds keyboard resizing to the Analysis tool divider, keeps a Library game's
+preview visible while desktop filters open, and consolidates radii and
+elevation on the existing light/dark tokens. These changes are shared by the
+web build and a Mac package built from this source; they are **not** in the
+public Mac **1.3.3, build 932, `ebd7d63`**, and a local dev package is not a
+published update. The unfiltered browser suite passed **432/432** on
+`a14e4d4`; packaged verification and publication are separate evidence. The
+decision record is in `docs/reports/2026-09-29-interface-continuation.md`.
+
 **Browser verification follow-up (2026-09-16).** Phase 58–60 application
 changes are shared with macOS, even though they do not edit `desktop/src/`.
 The public Mac 1.1.9 (build 590, `d46fe98`) embeds an older Next.js build;

@@ -8,6 +8,17 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
+- **Library filters keep the selected game in view.** On a desktop-width
+  window, opening Filters places them over the game table while the selected
+  game's board and details remain visible. On a phone the filters use a sheet;
+  closing either view returns keyboard focus to the Filters control.
+- **The Analysis tool divider works from the keyboard.** Focus the divider and
+  use the arrow keys to resize it, Shift with an arrow for a larger step, or
+  Home and End for its limits. The chosen width still persists.
+- **Corners and elevation follow one visual system.** Remaining control,
+  board, and panel corners and the floating-panel shadows now use the shared
+  light/dark tokens, so related surfaces keep the same shape and depth.
+
 - **Fixed: a failed backup was reported as a working one.** The status bar
   knows whether the last automatic backup completed, and has said so since
   Phase 56 — but it never drew that state. A failed run leaves the previous

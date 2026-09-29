@@ -122,7 +122,10 @@ that the mapping is written down.
 `npm test` **3,876 / 3,876** across 362 files (this pass adds 13) · typecheck
 clean · lint 0 problems · `format:check` clean · `test:no-skips` OK ·
 `docs:check` **357 / 357** · `npm run test:e2e:visual` **43 / 43**, exit 0, no
-baseline regenerated · `test:e2e` unfiltered, recorded in the session report.
+baseline regenerated. The unfiltered `npm run test:e2e` was completed in the
+2026-09-29 continuation on `a14e4d4`: **432 / 432 passed in 28.6 minutes**,
+exit 0; the later run includes two new UI regression cases. See
+`2026-09-29-interface-continuation.md` for its scope.
 
 Visual baselines changed across this pass: **none**. Every one of the four
 pixel-moving changes in the eleven-file radius sweep sat inside the 2%
@@ -179,3 +182,11 @@ misses.
   zero-assertion bench files, the env-overridable `retries`.
 - No release, publish, notarisation, version or DMG-descriptor change. The
   public Mac is still 1.3.3 build 932 and contains none of this.
+
+**Continuation, 2026-09-29.** The remaining radius and elevation sweeps and
+the four ambiguous selectors above were completed in separate commits. The
+floor heights were rendered at 1280×720 and retained; the different content
+measures were retained for their different content. Timed behavior tests were
+not flattened into immediate assertions. F11 remains separate chess-coverage
+work. This dated note updates the completion status without changing what
+was true when this pass originally ended.
