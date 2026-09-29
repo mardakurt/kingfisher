@@ -18,6 +18,8 @@ import { toolsForWorkspace, WORKSPACE_MODULES } from '@/features/workspace/modul
 import type { WorkspaceToolId } from '@/features/workspace/modules';
 import { useWorkspaceLayout, type DeviceClass } from '@/stores/workspace-layout-store';
 
+import { DESKTOP_MIN_WIDTH_QUERY } from './breakpoints';
+
 /** The workspace key for a pathname. Must match the table in `modules.ts`. */
 export function workspaceForPath(pathname: string): string {
   const segment = pathname.split('/')[1] ?? '';
@@ -33,7 +35,7 @@ export function workspaceForPath(pathname: string): string {
  */
 export function currentDeviceClass(): DeviceClass {
   if (typeof window === 'undefined') return 'desktop';
-  return window.matchMedia('(min-width: 1100px)').matches ? 'desktop' : 'compact';
+  return window.matchMedia(DESKTOP_MIN_WIDTH_QUERY).matches ? 'desktop' : 'compact';
 }
 
 /**

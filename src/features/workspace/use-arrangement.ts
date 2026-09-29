@@ -23,6 +23,8 @@ import {
 } from './layout-model';
 import { MOVE_TREE_MODULE, toolsForWorkspace, WORKSPACE_MODULES } from './modules';
 
+import { DESKTOP_MIN_WIDTH_QUERY, TALL_VIEWPORT_QUERY } from './breakpoints';
+
 /**
  * Whether this screen can hold a side dock at all.
  *
@@ -32,7 +34,7 @@ import { MOVE_TREE_MODULE, toolsForWorkspace, WORKSPACE_MODULES } from './module
  * cannot write a phone-shaped arrangement over a desktop one.
  */
 export function useDeviceClass(): DeviceClass {
-  return useMediaQuery('(min-width: 1100px)') ? 'desktop' : 'compact';
+  return useMediaQuery(DESKTOP_MIN_WIDTH_QUERY) ? 'desktop' : 'compact';
 }
 
 /**
@@ -43,7 +45,7 @@ export function useDeviceClass(): DeviceClass {
  * chosen so that 1440x900 (the commonest large laptop) is *not* short, and
  * 1366x768 and 1280x720 are.
  */
-export const useShortScreen = (): boolean => !useMediaQuery('(min-height: 860px)');
+export const useShortScreen = (): boolean => !useMediaQuery(TALL_VIEWPORT_QUERY);
 
 export interface WorkspaceArrangementView {
   readonly device: DeviceClass;

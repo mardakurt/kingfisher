@@ -59,6 +59,8 @@ import {
   usePlayerTendencies,
 } from './usePlayer';
 
+import { TITLEBAR_BAND_MIN_CLASS } from '@/features/workspace/breakpoints';
+
 type Section =
   'overview' | 'openings' | 'opponents' | 'tendencies' | 'games' | 'reference' | 'identity';
 
@@ -169,7 +171,10 @@ export function PlayerWorkspace({ playerId }: { readonly playerId: string }) {
     <div className="flex min-h-0 flex-1 flex-col">
       <header
         data-titlebar-drag=""
-        className="flex min-h-14 shrink-0 flex-wrap items-center gap-3 border-b border-line-subtle bg-surface-1 px-3 md:px-5"
+        className={cn(
+          'flex shrink-0 flex-wrap items-center gap-3 border-b border-line-subtle bg-surface-1 px-3 md:px-5',
+          TITLEBAR_BAND_MIN_CLASS,
+        )}
       >
         <NavButton />
         <div className="min-w-0">

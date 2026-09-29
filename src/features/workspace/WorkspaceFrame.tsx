@@ -73,6 +73,14 @@ import { WorkspaceTabStrip } from '@/features/tabs/WorkspaceTabStrip';
 import { WorkspaceLowerPanel } from './WorkspaceLowerPanel';
 import { WorkspaceToolDock, type WorkspaceLock } from './WorkspaceToolDock';
 
+import {
+  LAPTOP_MAX_WIDTH_QUERY,
+  NARROW_DOCK_MAX_WIDTH_QUERY,
+  SHORT_VIEWPORT_TAILWIND_QUERY,
+  TALL_VIEWPORT_TAILWIND_QUERY,
+  TITLEBAR_BAND_MIN_CLASS,
+} from './breakpoints';
+
 export interface WorkspaceRail {
   /** What the list is, for the collapsed strip and assistive technology. */
   readonly label: string;
@@ -197,8 +205,8 @@ export function WorkspaceFrame({
     rail stays open, because a page's own list is what the page is for; a
     choice to fold it is stored and wins.
   */
-  const laptop = useMediaQuery('(max-width: 1399px)');
-  const narrowDock = useMediaQuery('(max-width: 1599px)');
+  const laptop = useMediaQuery(LAPTOP_MAX_WIDTH_QUERY);
+  const narrowDock = useMediaQuery(NARROW_DOCK_MAX_WIDTH_QUERY);
   const railCollapsed = rail ? (view.arrangement.railCollapsed ?? false) : false;
   const dockNarrow = Boolean(rail) && !railCollapsed && narrowDock;
   const railWidth = rail
@@ -284,9 +292,9 @@ export function WorkspaceFrame({
                     what that policy promises.
                   */
                   className={cn(
-                    'min-h-[460px] flex-1 px-2 py-2 sm:px-3 wide:min-h-0 [@media(max-height:859px)]:py-1',
+                    `min-h-[460px] flex-1 px-2 py-2 sm:px-3 wide:min-h-0 [@${SHORT_VIEWPORT_TAILWIND_QUERY}]:py-1`,
                     view.priority !== 'maximum' &&
-                      '[@media(min-height:860px)]:sm:px-5 [@media(min-height:860px)]:sm:py-4',
+                      `[@${TALL_VIEWPORT_TAILWIND_QUERY}]:sm:px-5 [@${TALL_VIEWPORT_TAILWIND_QUERY}]:sm:py-4`,
                   )}
                 />
               ))
@@ -456,7 +464,10 @@ function FrameHeader({
   return (
     <header
       ref={header}
-      className="flex min-h-14 min-w-0 shrink-0 items-center gap-1.5 bg-surface-1 px-2 sm:px-4"
+      className={cn(
+        'flex min-w-0 shrink-0 items-center gap-1.5 bg-surface-1 px-2 sm:px-4',
+        TITLEBAR_BAND_MIN_CLASS,
+      )}
       data-workspace-header
       data-titlebar-drag=""
     >

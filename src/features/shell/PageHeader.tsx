@@ -26,6 +26,8 @@ import { cn } from '@/lib/cn';
 import { ControlDivider, GlobalControls } from './GlobalControls';
 import { NavButton } from './NavButton';
 
+import { TITLEBAR_BAND_CLASS } from '@/features/workspace/breakpoints';
+
 export function PageHeader({
   title,
   subtitle,
@@ -49,7 +51,8 @@ export function PageHeader({
         data-titlebar-drag=""
         data-page-header=""
         className={cn(
-          'flex h-14 min-w-0 shrink-0 items-center gap-2 bg-surface-1 px-3 sm:px-4',
+          'flex min-w-0 shrink-0 items-center gap-2 bg-surface-1 px-3 sm:px-4',
+          TITLEBAR_BAND_CLASS,
           className,
         )}
       >

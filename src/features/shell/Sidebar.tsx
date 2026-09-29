@@ -25,6 +25,8 @@ import { BrandMark } from './BrandMark';
 import { TitleBarSafeCorner } from './TitleBarSafeArea';
 import { NAV_GROUPS, sectionsInGroup } from './navigation';
 
+import { TITLEBAR_BAND_CLASS } from '@/features/workspace/breakpoints';
+
 /*
  * A sidebar row is a Mac source-list row: flat, no card, no border, and a
  * filled selection rather than an accent bar. The press state is one step past
@@ -97,7 +99,8 @@ export function Sidebar({ variant = 'desktop', onClose }: SidebarProps) {
     >
       <div
         className={cn(
-          'relative flex h-14 shrink-0 items-center',
+          'relative flex shrink-0 items-center',
+          TITLEBAR_BAND_CLASS,
           drawer || !compact ? 'gap-2.5' : 'justify-center',
         )}
         /*
