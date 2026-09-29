@@ -15,8 +15,10 @@ elevation on the existing light/dark tokens. These changes are shared by the
 web build and a Mac package built from this source; they are **not** in the
 public Mac **1.3.3, build 932, `ebd7d63`**, and a local dev package is not a
 published update. The unfiltered browser suite passed **432/432** on
-`a14e4d4`; packaged verification and publication are separate evidence. The
-decision record is in `docs/reports/2026-09-29-interface-continuation.md`.
+`a14e4d4`; a clean local dev package from `43f3073` passed
+`desktop:certify` **10/10** against one app and DMG. Notarization and
+publication were not performed. The decision record is in
+`docs/reports/2026-09-29-interface-continuation.md`.
 
 **Browser verification follow-up (2026-09-16).** Phase 58–60 application
 changes are shared with macOS, even though they do not edit `desktop/src/`.

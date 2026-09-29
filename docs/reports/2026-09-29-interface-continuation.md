@@ -74,6 +74,31 @@ The benchmark's explicit **REJECT replacement** decision for direct
 `chess.js` PGN loading is an expected result of its comparison, not a failed
 command: that loader loses variations, NAGs, and recovery provenance.
 
+`npm run desktop:dist` then built a clean **1.3.3 dev build 994** from
+`43f3073` and verified a fresh packaged boot of its renderer, web server,
+companion, engine catalogue, and Sparkle 2.10.0. Developer ID signing was
+applied; **notarization was skipped** because the dev builder had no
+notarization options. The generated
+`Kingfisher-1.3.3-dev-994-arm64.dmg` was passed explicitly with its matching
+`mac-arm64/Kingfisher.app` to `npm run desktop:certify -- --app … --dmg …`.
+The full packaged gate returned **DESKTOP CERTIFIED, 10/10 steps**:
+
+| Packaged check                                                    | Result                                              |
+| ----------------------------------------------------------------- | --------------------------------------------------- |
+| Smoke: launch, bridge, isolation, companion, PGN, tablebase, quit | 17/17                                               |
+| Real window chrome                                                | 109/109                                             |
+| Quit and reopen with work intact                                  | 7/7                                                 |
+| Managed engines installed and searched                            | 25/25                                               |
+| Suspend and resume                                                | 14/14                                               |
+| Seed 46, 200 actions                                              | 0 findings, 0 console errors                        |
+| Seed 7, 120 fault-injected actions                                | 0 findings, 2 console errors during injected faults |
+| DMG launch, identity, signature, layout                           | verified                                            |
+| No-skip scan                                                      | passed                                              |
+| Unit and integration suite in certification                       | 3,874/3,874                                         |
+
+This is evidence for one exact local dev package. It does not certify the
+public download, notarization, a live deployment, or a future release.
+
 ## Decisions left as decisions
 
 The 860/960 px board-surface measures and the 1080 px document measure serve
@@ -109,4 +134,4 @@ existing renderer and narrow shell bridge. A full native rewrite has no
 evidence-based case here.
 
 The public Mac remains 1.3.3 build 932 until a separately verified and
-published release. A local development build is not that release.
+published release. The locally certified development build is not that release.
