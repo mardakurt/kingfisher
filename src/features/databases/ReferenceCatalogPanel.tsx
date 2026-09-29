@@ -167,7 +167,14 @@ export function ReferenceCatalogPanel() {
               value={url}
               onChange={(event) => setUrl(event.target.value)}
               placeholder="https://example.org/kingfisher-pack/manifest.json"
-              className="h-8 flex-1 rounded-[6px] border border-line bg-surface-1 px-2 text-xs text-primary placeholder:text-tertiary focus:border-accent focus:outline-none"
+              /*
+               * The focus signal here was a 1px border-colour change, which is
+               * below the 3:1 non-text contrast floor in both themes, and
+               * `focus:outline-none` beside it says the author expected the
+               * border to be doing the work. A ring is the same idea drawn
+               * where it can be measured.
+               */
+              className="h-8 flex-1 rounded-[var(--radius-control)] border border-line bg-surface-1 px-2 text-xs text-primary placeholder:text-tertiary focus:border-accent focus-visible:ring-2 focus-visible:ring-accent/50"
             />
             <Button type="submit" disabled={installing}>
               {installing ? 'Installing…' : 'Install'}
@@ -364,7 +371,7 @@ export function ReferenceCatalogPanel() {
                       }
                       aria-expanded={open}
                       onClick={() => setExpanded(open ? null : source.id)}
-                      className="rounded-[6px] p-1 text-tertiary transition-colors hover:bg-surface-2 hover:text-primary"
+                      className="rounded-[6px] p-1 text-tertiary transition-colors hover:bg-surface-2 active:bg-surface-press hover:text-primary"
                     >
                       {open ? (
                         <ChevronUp className="h-4 w-4" />
@@ -379,7 +386,7 @@ export function ReferenceCatalogPanel() {
                       aria-label={`Move ${source.name} up`}
                       disabled={index === 0}
                       onClick={() => actions.promote(source.id, order)}
-                      className="rounded-[5px] px-1 text-[11px] text-tertiary transition-colors hover:bg-surface-2 hover:text-primary disabled:opacity-30"
+                      className="rounded-[5px] px-1 text-[11px] text-tertiary transition-colors hover:bg-surface-2 active:bg-surface-press hover:text-primary disabled:opacity-30"
                     >
                       ↑
                     </button>
@@ -388,7 +395,7 @@ export function ReferenceCatalogPanel() {
                       aria-label={`Move ${source.name} down`}
                       disabled={index === sources.length - 1}
                       onClick={() => actions.demote(source.id, order)}
-                      className="rounded-[5px] px-1 text-[11px] text-tertiary transition-colors hover:bg-surface-2 hover:text-primary disabled:opacity-30"
+                      className="rounded-[5px] px-1 text-[11px] text-tertiary transition-colors hover:bg-surface-2 active:bg-surface-press hover:text-primary disabled:opacity-30"
                     >
                       ↓
                     </button>

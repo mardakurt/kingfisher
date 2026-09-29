@@ -880,9 +880,18 @@ export function GamesWorkspace() {
                       data-library-row={game.id}
                       className={cn(
                         'cursor-default border-b border-line-subtle transition-colors focus:outline-none',
+                        /*
+                          The active branch named no `focus:` rule, so
+                          keyboard-focusing the row you are already on produced
+                          no change from the row's own styling — the only branch
+                          that could go anywhere. The global outline still
+                          covers it, so this is about the class list telling the
+                          truth rather than about a blind control: a reader
+                          would reasonably delete the outline as redundant.
+                        */
                         active
-                          ? 'bg-accent-muted shadow-[inset_3px_0_0_var(--accent)]'
-                          : 'odd:bg-surface-2/40 hover:bg-surface-2 focus:bg-surface-3',
+                          ? 'bg-accent-muted shadow-[inset_3px_0_0_var(--accent)] focus:bg-accent-muted/80'
+                          : 'odd:bg-surface-2/40 hover:bg-surface-2 focus:bg-surface-3 active:bg-surface-3',
                       )}
                     >
                       <td className="px-2 py-[5px]" onClick={(event) => event.stopPropagation()}>

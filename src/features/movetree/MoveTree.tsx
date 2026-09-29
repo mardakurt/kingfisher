@@ -457,7 +457,9 @@ function MoveToken({
         className={cn(
           'mr-1 rounded-[5px] px-1 py-px transition-colors',
           depth === 0 ? 'font-medium' : 'text-secondary',
-          current ? 'bg-accent text-accent-contrast' : 'hover:bg-surface-3 hover:text-primary',
+          current
+            ? 'bg-accent text-accent-contrast'
+            : 'hover:bg-surface-3 active:bg-surface-press hover:text-primary',
           /*
             Move quality in the two colours every chess reader knows: good in
             the positive token, bad in the negative one, dubious in caution.
@@ -521,7 +523,7 @@ const CommentToken = ({ text, onEdit }: { text: string; onEdit?: (() => void) | 
       type="button"
       onClick={onEdit}
       title="Edit this comment"
-      className="mr-1 whitespace-pre-wrap rounded-[5px] text-left text-[11.5px] italic text-secondary transition-colors hover:bg-surface-3 hover:text-primary"
+      className="mr-1 whitespace-pre-wrap rounded-[5px] text-left text-[11.5px] italic text-secondary transition-colors hover:bg-surface-3 active:bg-surface-press hover:text-primary"
     >
       {text}
     </button>

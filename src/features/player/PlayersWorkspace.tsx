@@ -116,7 +116,7 @@ export function PlayersWorkspace() {
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search players — Carlsen, Tal, Ju Wenjun…"
             aria-label="Search players"
-            className="h-9 w-full rounded-[7px] border border-line bg-surface-2 pl-8 pr-2.5 text-sm text-primary placeholder:text-tertiary focus:border-accent focus:outline-none"
+            className="h-9 w-full rounded-[var(--radius-control)] border border-line bg-surface-2 pl-8 pr-2.5 text-sm text-primary placeholder:text-tertiary focus:border-accent focus-visible:ring-2 focus-visible:ring-accent/50"
           />
         </label>
         <div className="flex flex-wrap gap-1" role="group" aria-label="Filter players">
@@ -154,13 +154,13 @@ export function PlayersWorkspace() {
             </Button>
             <Link
               href={`/games?players=${encodeURIComponent(chosen.map((p) => p.key).join('|'))}`}
-              className="inline-flex h-8 items-center rounded-[7px] border border-line bg-surface-1 px-2.5 text-xs text-primary hover:border-line-strong"
+              className="inline-flex h-8 items-center rounded-[7px] border border-line bg-surface-1 px-2.5 text-xs text-primary hover:border-line-strong active:border-line-strong"
             >
               Show games
             </Link>
             <Link
               href={`/preparation?opponents=${encodeURIComponent(chosen.map((p) => p.key).join('|'))}`}
-              className="inline-flex h-8 items-center rounded-[7px] border border-line bg-surface-1 px-2.5 text-xs text-primary hover:border-line-strong"
+              className="inline-flex h-8 items-center rounded-[7px] border border-line bg-surface-1 px-2.5 text-xs text-primary hover:border-line-strong active:border-line-strong"
             >
               Prepare against
             </Link>

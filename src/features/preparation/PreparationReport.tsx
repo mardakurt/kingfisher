@@ -104,7 +104,7 @@ export function PreparationReport(props: PreparationReportProps) {
                 'h-7 rounded-[7px] px-3 text-xs font-medium transition-colors',
                 view === entry.id
                   ? 'bg-accent text-accent-contrast shadow-sm'
-                  : 'text-secondary hover:bg-surface-2 hover:text-primary',
+                  : 'text-secondary hover:bg-surface-2 active:bg-surface-press hover:text-primary',
               )}
             >
               {entry.label}
@@ -380,7 +380,7 @@ export function MoveTable({
           {node.edges.map((edge) => (
             <tr
               key={edge.uci}
-              className="cursor-pointer text-secondary hover:bg-surface-2/70"
+              className="cursor-pointer text-secondary hover:bg-surface-2 active:bg-surface-press/70"
               onClick={() => onSelect(edge.resultingKey, edge.san)}
             >
               <td className="px-3 py-1.5">
@@ -533,7 +533,7 @@ function GamesView({
                 onKeyDown={(event) => {
                   if (event.key === 'Enter') onOpen(game);
                 }}
-                className="cursor-pointer text-secondary hover:bg-surface-2/70 focus:bg-accent-muted focus:outline-none"
+                className="cursor-pointer text-secondary hover:bg-surface-2 active:bg-surface-press/70 focus:bg-accent-muted focus:outline-none"
               >
                 <td className="max-w-[180px] truncate px-3 py-1.5 text-primary">{game.white}</td>
                 <td className="px-2 py-1.5 text-right tabular">{game.whiteRating ?? ''}</td>

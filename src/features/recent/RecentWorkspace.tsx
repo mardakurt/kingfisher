@@ -312,7 +312,7 @@ export function RecentWorkspace() {
               <Link
                 key={entry.href}
                 href={entry.href}
-                className="inline-flex h-9 items-center gap-2 rounded-[7px] border border-line px-2.5 text-xs text-secondary transition-colors hover:border-line-strong hover:bg-surface-2 hover:text-primary"
+                className="inline-flex h-9 items-center gap-2 rounded-[7px] border border-line px-2.5 text-xs text-secondary transition-colors hover:border-line-strong hover:bg-surface-2 active:bg-surface-press hover:text-primary"
               >
                 <Icon className="h-4 w-4 shrink-0" />
                 {entry.label}
@@ -456,14 +456,17 @@ function Row({
   return (
     <div className="flex items-center gap-1 pr-1">
       {href ? (
-        <Link href={href} className="min-w-0 flex-1 px-3 py-2 hover:bg-surface-2">
+        <Link
+          href={href}
+          className="min-w-0 flex-1 px-3 py-2 hover:bg-surface-2 active:bg-surface-press"
+        >
           {body}
         </Link>
       ) : (
         <button
           type="button"
           onClick={onOpen}
-          className="min-w-0 flex-1 px-3 py-2 text-left hover:bg-surface-2"
+          className="min-w-0 flex-1 px-3 py-2 text-left hover:bg-surface-2 active:bg-surface-press"
         >
           {body}
         </button>

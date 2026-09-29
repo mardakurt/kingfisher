@@ -97,7 +97,7 @@ export function TheoryBookPanel() {
     <button
       type="button"
       onClick={toStart}
-      className="rounded-[5px] px-1 py-1 text-xs text-secondary hover:bg-surface-2"
+      className="rounded-[5px] px-1 py-1 text-xs text-secondary hover:bg-surface-2 active:bg-surface-press"
     >
       All openings
     </button>
@@ -162,7 +162,7 @@ export function TheoryBookPanel() {
                 <button
                   type="button"
                   onClick={() => openLine(root.moves)}
-                  className="flex w-full items-baseline gap-2 py-1.5 text-left hover:bg-surface-2"
+                  className="flex w-full items-baseline gap-2 py-1.5 text-left hover:bg-surface-2 active:bg-surface-press"
                   data-book-branch
                 >
                   <span className="font-mono text-2xs text-accent-ink">
@@ -227,7 +227,7 @@ export function TheoryBookPanel() {
                 type="button"
                 onClick={() => openLine(crumb.moves)}
                 className={cn(
-                  'rounded-[5px] px-1 py-0.5 text-xs hover:bg-surface-2',
+                  'rounded-[5px] px-1 py-0.5 text-xs hover:bg-surface-2 active:bg-surface-press',
                   index === crumbs.length - 1 ? 'font-semibold text-primary' : 'text-secondary',
                 )}
               >
@@ -356,7 +356,7 @@ function BranchList({
                 <button
                   type="button"
                   onClick={() => onOpen(branch.moves)}
-                  className="flex w-full items-baseline gap-2 py-1.5 text-left hover:bg-surface-2"
+                  className="flex w-full items-baseline gap-2 py-1.5 text-left hover:bg-surface-2 active:bg-surface-press"
                   data-book-branch
                 >
                   <span className="shrink-0 font-mono text-2xs text-accent-ink">

@@ -82,7 +82,7 @@ export function OpeningLibrary() {
               }}
               placeholder="Najdorf · B90 · 1.e4 c5 2.Nf3 · a FEN"
               aria-label="Search openings"
-              className="h-9 w-full rounded-[7px] border border-line bg-surface-2 pl-8 pr-2.5 text-sm text-primary placeholder:text-tertiary focus:border-accent focus:outline-none"
+              className="h-9 w-full rounded-[var(--radius-control)] border border-line bg-surface-2 pl-8 pr-2.5 text-sm text-primary placeholder:text-tertiary focus:border-accent focus-visible:ring-2 focus-visible:ring-accent/50"
             />
           </label>
           {query.trim().length === 0 ? (

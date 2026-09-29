@@ -231,7 +231,7 @@ export function SettingsDialog() {
                 'rounded-[6px] px-3 py-1.5 text-left text-xs transition-colors',
                 selected
                   ? 'bg-accent-muted font-medium text-primary'
-                  : 'text-secondary hover:bg-surface-2 hover:text-primary',
+                  : 'text-secondary hover:bg-surface-2 active:bg-surface-press hover:text-primary',
               )}
             >
               {entry.label}
@@ -468,7 +468,7 @@ function PiecesSection() {
               'flex items-center gap-3 rounded-[7px] border px-2.5 py-2 text-left transition-colors',
               active
                 ? 'border-accent bg-accent-muted'
-                : 'border-line hover:border-line-strong hover:bg-surface-2',
+                : 'border-line hover:border-line-strong hover:bg-surface-2 active:bg-surface-press',
             )}
           >
             {/*
@@ -2092,7 +2092,7 @@ function LichessAccess() {
               href={LICHESS_TOKEN_URL}
               target="_blank"
               rel="noreferrer noopener"
-              className="flex h-8 items-center rounded-[6px] border border-line px-2.5 text-2xs text-secondary hover:border-line-strong"
+              className="flex h-8 items-center rounded-[6px] border border-line px-2.5 text-2xs text-secondary hover:border-line-strong active:border-line-strong"
             >
               Create one
             </a>
