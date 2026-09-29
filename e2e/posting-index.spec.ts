@@ -6,6 +6,7 @@
  */
 
 import { expect, test, type Page } from '@playwright/test';
+import { settingsButton } from './support/settings-control';
 
 const READY = 'html[data-kingfisher-ready="true"]';
 
@@ -15,7 +16,7 @@ const PGNS = [
 ].join('\n\n');
 
 async function pairAndCreate(page: Page, collections: readonly (readonly [string, boolean])[]) {
-  await page.getByRole('button', { name: 'Settings ⌘,' }).click();
+  await settingsButton(page).click();
   const settings = page.getByRole('dialog', { name: 'Settings' });
   await settings.getByRole('tab', { name: 'Companion' }).click();
   await settings.getByLabel('Pairing address').fill('http://127.0.0.1:4338#token=phase8-e2e-token');

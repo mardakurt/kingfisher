@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 import macosDownload from '../src/release/macos-download.json' with { type: 'json' };
+import { settingsButton } from './support/settings-control';
 
 /*
  * Production smoke test against kingfisherchess.app. Verifies the
@@ -37,7 +38,7 @@ test('live /analysis loads and the dock tools are reachable', async ({ page }) =
     await expect(tour).toBeHidden();
   }
   // Tools the user opens on first run, post-Phase-60 follow-up.
-  await page.getByRole('button', { name: 'Settings ⌘,' }).click();
+  await settingsButton(page).click();
   await expect(page.getByRole('dialog', { name: 'Settings', exact: true })).toBeVisible();
   await page.keyboard.press('Escape');
 });

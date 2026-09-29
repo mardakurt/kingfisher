@@ -23,6 +23,7 @@ import { expect, type Page } from '@playwright/test';
 
 import { selectTool } from './tools';
 import { test, analysisUrl } from './desktop-test';
+import { settingsButton } from './support/settings-control';
 
 /**
  * How many full cycles to drive after the warm-up snapshot.
@@ -330,7 +331,7 @@ async function cycle(page: Page, index: number) {
   await expect(dock.getByRole('tab', { name: 'Engine' })).toBeVisible();
 
   // Settings mounts the live board preview and every provider health query.
-  await page.getByRole('button', { name: 'Settings (⌘,)' }).click();
+  await settingsButton(page).click();
   const settings = page.getByRole('dialog', { name: 'Settings' });
   await settings.getByRole('tab', { name: 'Pieces' }).click();
   await settings.getByRole('tab', { name: 'Workspace' }).click();

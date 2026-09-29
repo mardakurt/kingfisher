@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 import { isNavigationAbortNoise, selectTool } from './tools';
+import { settingsButton } from './support/settings-control';
 
 const SAMPLE_PGN = `[Event "Kingfisher E2E"]
 [Site "Local"]
@@ -293,7 +294,7 @@ test('canonical board handles special positions, orientation and every external 
   await page.getByRole('button', { name: 'Flip board (F)' }).click();
   await expect(firstSquare).toHaveAccessibleName(beforeFlip?.startsWith('a8') ? /^h1,/ : /^a8,/);
 
-  await page.getByRole('button', { name: 'Settings ⌘,' }).click();
+  await settingsButton(page).click();
   const settings = page.getByRole('dialog', { name: 'Settings' });
   await settings.getByRole('tab', { name: 'Pieces' }).click();
   for (const set of ['Cburnett', 'Merida', 'Chessnut', 'Fantasy', 'Spatial']) {
@@ -436,8 +437,8 @@ test('authenticated Lichess explorer contract and appearance preferences work wi
   await waitForApp(page);
   // Light is the default theme since Phase 82; the sidebar names the current one.
   await expect(page.getByRole('button', { name: 'Light theme' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Settings ⌘,' })).toBeVisible();
-  await page.getByRole('button', { name: 'Settings ⌘,' }).click();
+  await expect(settingsButton(page)).toBeVisible();
+  await settingsButton(page).click();
   let settings = page.getByRole('dialog', { name: 'Settings' });
   await settings.getByRole('tab', { name: 'Accounts' }).click();
   // The personal token is the advanced path now; the front door is the PKCE
@@ -460,7 +461,7 @@ test('authenticated Lichess explorer contract and appearance preferences work wi
   expect(authHeaders).not.toHaveLength(0);
   expect(authHeaders.every((header) => header === 'Bearer e2e-token')).toBe(true);
 
-  await page.getByRole('button', { name: 'Settings ⌘,' }).click();
+  await settingsButton(page).click();
   settings = page.getByRole('dialog', { name: 'Settings' });
   await settings.getByRole('tab', { name: 'Board', exact: true }).click();
   await settings.getByRole('button', { name: 'Tournament Blue' }).click();

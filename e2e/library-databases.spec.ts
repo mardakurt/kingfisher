@@ -7,6 +7,7 @@
  */
 
 import { expect, test } from '@playwright/test';
+import { settingsButton } from './support/settings-control';
 
 const READY = 'html[data-kingfisher-ready="true"]';
 
@@ -19,7 +20,7 @@ test('lists, filters, previews and opens the games of a companion database', asy
   test.setTimeout(180_000);
   await page.goto('/analysis');
   await page.locator(READY).waitFor();
-  await page.getByRole('button', { name: 'Settings ⌘,' }).click();
+  await settingsButton(page).click();
   const settings = page.getByRole('dialog', { name: 'Settings' });
   await settings.getByRole('tab', { name: 'Companion' }).click();
   await settings.getByLabel('Pairing address').fill('http://127.0.0.1:4338#token=phase8-e2e-token');
@@ -81,7 +82,7 @@ test('searches the moves of a companion database, not only its headers', async (
   test.setTimeout(180_000);
   await page.goto('/analysis');
   await page.locator(READY).waitFor();
-  await page.getByRole('button', { name: 'Settings ⌘,' }).click();
+  await settingsButton(page).click();
   const settings = page.getByRole('dialog', { name: 'Settings' });
   await settings.getByRole('tab', { name: 'Companion' }).click();
   await settings.getByLabel('Pairing address').fill('http://127.0.0.1:4338#token=phase8-e2e-token');

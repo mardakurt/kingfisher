@@ -21,6 +21,7 @@
  */
 
 import { expect, test, type Page } from '@playwright/test';
+import { settingsButton } from './support/settings-control';
 
 const READY = 'html[data-kingfisher-ready="true"]';
 
@@ -110,7 +111,7 @@ test.describe('every control can be announced', () => {
   test('the settings dialog names its controls', async ({ page }) => {
     await page.goto('/analysis');
     await waitForApp(page);
-    await page.getByRole('button', { name: 'Settings ⌘,' }).click();
+    await settingsButton(page).click();
     await expect(page.getByRole('dialog', { name: 'Settings' })).toBeVisible();
     expect(await unnamedControls(page)).toEqual([]);
   });
@@ -312,7 +313,7 @@ test.describe('dialogs return focus where it came from', () => {
     await page.goto('/analysis');
     await waitForApp(page);
 
-    const opener = page.getByRole('button', { name: 'Settings ⌘,' });
+    const opener = settingsButton(page);
     /*
       Opened from the keyboard: a keyboard user reaches the button with Tab and
       presses Enter, and that is the user whose place matters here. Safari does
@@ -353,7 +354,7 @@ test.describe('dialogs return focus where it came from', () => {
   test('Tab stays inside an open dialog', async ({ page }) => {
     await page.goto('/analysis');
     await waitForApp(page);
-    await page.getByRole('button', { name: 'Settings ⌘,' }).click();
+    await settingsButton(page).click();
     const dialog = page.getByRole('dialog', { name: 'Settings' });
     await expect(dialog).toBeVisible();
 
@@ -420,7 +421,7 @@ test.describe('major workflows without a mouse', () => {
   test('settings are searchable and reachable without a pointer', async ({ page }) => {
     await page.goto('/analysis');
     await waitForApp(page);
-    await page.getByRole('button', { name: 'Settings ⌘,' }).click();
+    await settingsButton(page).click();
     const dialog = page.getByRole('dialog', { name: 'Settings' });
     await expect(dialog).toBeVisible();
 

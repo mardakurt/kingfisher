@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 import { selectTool } from './tools';
+import { settingsButton } from './support/settings-control';
 
 /**
  * The Opening Report, driven the way a player would drive it.
@@ -176,7 +177,7 @@ test('the plan sections count a real collection, and cite how many games they re
   await page.goto('/analysis');
   await page.locator(READY).waitFor();
 
-  await page.getByRole('button', { name: 'Settings ⌘,' }).click();
+  await settingsButton(page).click();
   const settings = page.getByRole('dialog', { name: 'Settings' });
   await settings.getByRole('tab', { name: 'Companion' }).click();
   await settings.getByLabel('Pairing address').fill('http://127.0.0.1:4338#token=phase8-e2e-token');

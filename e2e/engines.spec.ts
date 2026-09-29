@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { settingsButton } from './support/settings-control';
 
 /**
  * The engine catalogue, through the real companion.
@@ -23,7 +24,7 @@ async function ready(page: Page) {
 
 /** Pair with the e2e companion, the way a user does: one pasted address. */
 async function pairCompanion(page: Page) {
-  await page.getByRole('button', { name: 'Settings ⌘,' }).click();
+  await settingsButton(page).click();
   const settings = page.getByRole('dialog', { name: 'Settings' });
   await settings.getByRole('tab', { name: 'Companion' }).click();
   await settings.getByLabel('Pairing address').fill('http://127.0.0.1:4338#token=phase8-e2e-token');
@@ -126,7 +127,7 @@ test('opening books are listed, and the engine book is refused out loud', async 
   await page.goto('/analysis');
   await ready(page);
 
-  await page.getByRole('button', { name: 'Settings ⌘,' }).click();
+  await settingsButton(page).click();
   const settings = page.getByRole('dialog', { name: 'Settings' });
   await settings.getByRole('tab', { name: 'Engine', exact: true }).click();
   await settings.getByRole('button', { name: 'Books' }).click();

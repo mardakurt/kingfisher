@@ -11,6 +11,7 @@
  */
 
 import { expect, test, type Page } from '@playwright/test';
+import { settingsButton } from './support/settings-control';
 
 async function ready(page: Page) {
   await page.locator('html[data-kingfisher-ready="true"]').waitFor();
@@ -26,7 +27,7 @@ const TWO_GAMES =
 async function openAccounts(page: Page) {
   await page.goto('/analysis');
   await ready(page);
-  await page.getByRole('button', { name: 'Settings (⌘,)' }).click();
+  await settingsButton(page).click();
   const dialog = page.getByRole('dialog', { name: 'Settings' });
   await expect(dialog).toBeVisible();
   await dialog.getByRole('tab', { name: 'Accounts' }).click();
@@ -172,7 +173,7 @@ test('§36 the position report gathers evidence with provenance under every sect
     different guarantee, and one the earlier tests in this file cover. To
     exercise the evidence path, give it a token first.
   */
-  await page.getByRole('button', { name: 'Settings (⌘,)' }).click();
+  await settingsButton(page).click();
   const settings = page.getByRole('dialog', { name: 'Settings' });
   await settings.getByRole('tab', { name: 'Accounts' }).click();
   // The token is the advanced path now; the front door is a PKCE redirect,

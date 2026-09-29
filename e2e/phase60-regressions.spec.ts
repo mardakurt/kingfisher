@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { selectTool } from './tools';
+import { settingsButton } from './support/settings-control';
 
 const ready = (page: Page) => page.locator('html[data-kingfisher-ready="true"]').waitFor();
 
@@ -40,7 +41,7 @@ test('the tour opens from Settings only, steps by keyboard, and stays closed aft
   await page.waitForTimeout(500);
   await expect(tour).toBeHidden();
 
-  await page.getByRole('button', { name: 'Settings ⌘,' }).click();
+  await settingsButton(page).click();
   await page.getByRole('tab', { name: 'Diagnostics', exact: true }).click();
   await page.locator('[data-open-tour]').click();
   await expect(tour).toBeVisible();
@@ -56,7 +57,7 @@ test('the tour opens from Settings only, steps by keyboard, and stays closed aft
   await ready(page);
   await page.waitForTimeout(500);
   await expect(tour).toBeHidden();
-  await page.getByRole('button', { name: 'Settings ⌘,' }).click();
+  await settingsButton(page).click();
   await expect(page.getByRole('dialog', { name: 'Settings', exact: true })).toBeVisible();
   await expect(tour).toBeHidden();
 });
@@ -66,7 +67,7 @@ test('account validation accepts mixed case for both providers and rejects white
 }) => {
   await page.goto('/analysis');
   await ready(page);
-  await page.getByRole('button', { name: 'Settings ⌘,' }).click();
+  await settingsButton(page).click();
   await page.getByRole('tab', { name: 'Accounts', exact: true }).click();
   const input = page.getByRole('textbox', { name: 'Account username' });
   for (const provider of ['Lichess', 'Chess.com']) {

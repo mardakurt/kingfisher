@@ -19,6 +19,7 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
 
 import { selectTool } from './tools';
+import { settingsButton } from './support/settings-control';
 
 const READY = 'html[data-kingfisher-ready="true"]';
 
@@ -53,7 +54,7 @@ async function expectWorkspaceUsable(page: Page, moves: number) {
 
 /** Pair with the e2e companion, the way a user does: one pasted address. */
 async function pairCompanion(page: Page) {
-  await page.getByRole('button', { name: 'Settings ⌘,' }).click();
+  await settingsButton(page).click();
   const settings = page.getByRole('dialog', { name: 'Settings' });
   await settings.getByRole('tab', { name: 'Companion' }).click();
   await settings.getByLabel('Pairing address').fill('http://127.0.0.1:4338#token=phase8-e2e-token');

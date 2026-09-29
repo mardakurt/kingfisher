@@ -14,6 +14,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 import { isNavigationAbortNoise, selectTool } from './tools';
+import { settingsButton } from './support/settings-control';
 
 const SAMPLE_PGN = (count: number) =>
   Array.from(
@@ -220,7 +221,7 @@ test('the diagnostic report carries no secrets', async ({ page, browserName }) =
   await waitForApp(page);
 
   // Configure a token, so the report has something it could leak.
-  await page.getByRole('button', { name: 'Settings ⌘,' }).click();
+  await settingsButton(page).click();
   const settings = page.getByRole('dialog', { name: 'Settings' });
   await settings.getByRole('tab', { name: 'Accounts' }).click();
   // The token moved behind the advanced disclosure when PKCE became the front
@@ -251,7 +252,7 @@ test('the integrity scan reports a healthy database and finds a planted orphan',
   await page.goto('/analysis');
   await waitForApp(page);
 
-  await page.getByRole('button', { name: 'Settings ⌘,' }).click();
+  await settingsButton(page).click();
   const settings = page.getByRole('dialog', { name: 'Settings' });
   await settings.getByRole('tab', { name: 'Diagnostics' }).click();
   await settings.getByRole('button', { name: 'Run integrity scan' }).click();

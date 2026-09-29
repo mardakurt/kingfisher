@@ -11,6 +11,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 import { selectTool } from './tools';
+import { settingsButton } from './support/settings-control';
 
 const GAME_PGN = `[Event "Phase 8"]
 [Site "Local"]
@@ -395,7 +396,7 @@ test('SQLite selection deletion updates exact counts and passes integrity', asyn
   test.setTimeout(180_000);
   await page.goto('/analysis');
   await ready(page);
-  await page.getByRole('button', { name: 'Settings ⌘,' }).click();
+  await settingsButton(page).click();
   const settings = page.getByRole('dialog', { name: 'Settings' });
   await settings.getByRole('tab', { name: 'Companion' }).click();
   await settings.getByLabel('Pairing address').fill('http://127.0.0.1:4338#token=phase8-e2e-token');

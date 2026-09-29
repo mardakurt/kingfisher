@@ -35,6 +35,7 @@ import { existsSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 
 import { expect, test, type Page } from '@playwright/test';
+import { settingsButton } from './support/settings-control';
 
 const READY = 'html[data-kingfisher-ready="true"]';
 
@@ -333,7 +334,7 @@ test.describe(() => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/analysis');
     await settle(page);
-    await page.getByRole('button', { name: 'Settings ⌘,' }).click();
+    await settingsButton(page).click();
     await expect(page.getByRole('dialog', { name: 'Settings' })).toBeVisible();
     await page.getByRole('tab', { name: 'Board', exact: true }).click();
     await expect(page.locator('[data-mini-board="board-preview"]')).toBeVisible();

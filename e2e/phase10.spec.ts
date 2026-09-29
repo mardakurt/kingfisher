@@ -12,6 +12,7 @@
  */
 
 import { expect, test, type Page } from '@playwright/test';
+import { settingsButton } from './support/settings-control';
 
 async function ready(page: Page) {
   await page.locator('html[data-kingfisher-ready="true"]').waitFor();
@@ -327,7 +328,7 @@ test.describe('settings', () => {
   const openSettings = async (page: Page) => {
     await page.goto('/analysis');
     await ready(page);
-    await page.getByRole('button', { name: 'Settings (⌘,)' }).click();
+    await settingsButton(page).click();
     await expect(page.getByRole('dialog', { name: 'Settings' })).toBeVisible();
   };
 
@@ -465,7 +466,7 @@ test.describe('settings', () => {
     });
     await page.reload();
     await ready(page);
-    await page.getByRole('button', { name: 'Settings (⌘,)' }).click();
+    await settingsButton(page).click();
     await page.getByRole('tab', { name: 'Diagnostics' }).click();
 
     const download = page.waitForEvent('download');
