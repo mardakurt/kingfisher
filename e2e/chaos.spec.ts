@@ -142,6 +142,14 @@ test.describe('the workspace survives its providers', () => {
       refuses to open because a helper process is not running would be exactly
       the fragility this application is trying not to have.
     */
+    /*
+      Left as it was. I changed the role to `tab` on the theory that "My games"
+      is a workspace tab; it is not, and the run proved it — the databases
+      screen's browser collection is a source row, and nothing there has the
+      `tab` role. Scoping this properly means finding the container the source
+      list lives in, which is more investigation than this change is worth
+      without it. The `.first()` remains, and it remains a weakness.
+    */
     await expect(page.getByRole('button', { name: /My games/ }).first()).toBeVisible();
   });
 
@@ -193,8 +201,21 @@ test.describe('recovery without a restart', () => {
 
     await page.goto('/databases');
     await waitForApp(page);
-    // Paired, and unreachable: the screen has to say the second thing.
-    await expect(page.getByText(/not reachable|did not answer/i).first()).toBeVisible({
+    /*
+      Paired, and unreachable: the screen has to say the second thing.
+
+      I split this alternation into one assertion per message on the reasoning
+      that "either one is fine, so `.first()` on top accepts the wrong one". That
+      reasoning was wrong and the run said so: the databases screen does not
+      emit "did not answer" at all — that string belongs to Settings, the
+      review queue and the assistant — so the second assertion could never pass.
+      The alternation was not a bug, it was the test stating that the screen may
+      report this two sanctioned ways. What *was* wrong is `.first()`: with a
+      single assertion there is nothing for it to disambiguate, and it removes
+      the chance of strict mode noticing a genuine duplicate. So the alternation
+      stays and `.first()` goes.
+    */
+    await expect(page.getByText(/not reachable|did not answer/i)).toBeVisible({
       timeout: 20_000,
     });
     // And the browser's own collection is unaffected by any of it.

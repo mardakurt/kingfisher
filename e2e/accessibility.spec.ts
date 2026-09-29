@@ -120,7 +120,14 @@ test.describe('every control can be announced', () => {
     await page.goto('/analysis');
     await waitForApp(page);
     await page.keyboard.press('ControlOrMeta+k');
-    await expect(page.getByRole('dialog').first()).toBeVisible();
+    /*
+      Was `getByRole('dialog').first()` — no accessible-name filter at all, so
+      any dialog in the tree qualified and a settings dialog or a leftover
+      `aria-modal` element rendering first would be the one inspected. This
+      file already names the palette at the line below; the three bare calls are
+      the same dialog.
+    */
+    await expect(page.getByRole('dialog', { name: 'Command palette' })).toBeVisible();
     expect(await unnamedControls(page)).toEqual([]);
   });
 
@@ -344,7 +351,7 @@ test.describe('dialogs return focus where it came from', () => {
     await page.goto('/analysis');
     await waitForApp(page);
     await page.keyboard.press('ControlOrMeta+k');
-    const palette = page.getByRole('dialog').first();
+    const palette = page.getByRole('dialog', { name: 'Command palette' });
     await expect(palette).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(palette).toBeHidden();
@@ -380,7 +387,7 @@ test.describe('major workflows without a mouse', () => {
     await waitForApp(page);
 
     await page.keyboard.press('ControlOrMeta+k');
-    await expect(page.getByRole('dialog').first()).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Command palette' })).toBeVisible();
     await page.keyboard.type('library');
     await page.keyboard.press('Enter');
 

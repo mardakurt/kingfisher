@@ -283,8 +283,20 @@ test.describe('a brand-new installation', () => {
     await detail.getByRole('button', { name: /Open on the board/ }).click();
     await expect(page).toHaveURL(/\/analysis/);
     await ready(page);
-    // Ten plies of the Najdorf are on the board.
-    await expect(page.getByText('a6').first()).toBeVisible({ timeout: 30_000 });
+    /*
+      Ten plies of the Najdorf are on the board. This used to be
+      `getByText('a6').first()`, which is a *substring* match satisfied by any
+      element containing those two characters — a move list reading
+      `…d4 a6 b5…`, a `Ra6`, a `Na6`, a rank label — so it proved that some text
+      existed somewhere, not that the position was reached. Scoped to the
+      notation region and matched exactly, which is the form
+      `analysis-laptop.spec.ts` already uses for the same panel.
+    */
+    const notation = page.getByRole('region', { name: 'Notation' });
+    await expect(
+      notation.getByText('a6', { exact: true }),
+      'the Najdorf walk did not reach a6 in the notation',
+    ).toBeVisible({ timeout: 30_000 });
   });
 
   test('lists the data sources it is actually using, with their licences', async ({ page }) => {

@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { describe, expect, it, test } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { MINIMUM_MACOS, compareMacOSVersions, describeMinimumMacOS } from './platform-floor.mjs';
 

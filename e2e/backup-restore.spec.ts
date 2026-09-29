@@ -69,6 +69,18 @@ test('a backup survives a profile that no longer exists', async ({ page: first, 
 
   // --- 1. Author something worth losing. ----------------------------------
   const STUDY = 'Backup walk study';
+
+  /*
+   * How the restored study is located, and why.
+   *
+   * Dropping the `.first()` from `getByText(STUDY)` paid for itself immediately:
+   * strict mode reported that the title renders in *two* places — the page's own
+   * `<h1>` and an `<option>` in the study picker. The old assertion had been
+   * inspecting whichever came first and calling it a pass, which is exactly the
+   * failure this file's own `toHaveCount(0)` at :209 was written to avoid. The
+   * heading is the element that means "this study is open", so that is what the
+   * assertion asks for.
+   */
   await page
     .getByRole('button', { name: /New study|Create study/i })
     .first()
@@ -80,7 +92,9 @@ test('a backup survives a profile that no longer exists', async ({ page: first, 
     .getByRole('button', { name: /^(Create|Save|OK)\b/i })
     .first()
     .click();
-  await expect(page.getByText(STUDY).first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole('heading', { name: STUDY, exact: true })).toBeVisible({
+    timeout: 30_000,
+  });
 
   const REPERTOIRE = 'Backup walk repertoire';
   await page.goto('/repertoire');
@@ -216,7 +230,9 @@ test('a backup survives a profile that no longer exists', async ({ page: first, 
   // --- 5. Everything authored is back. ------------------------------------
   await page.goto('/studies');
   await ready(page);
-  await expect(page.getByText(STUDY).first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole('heading', { name: STUDY, exact: true })).toBeVisible({
+    timeout: 30_000,
+  });
 
   await page.goto('/repertoire');
   await ready(page);
