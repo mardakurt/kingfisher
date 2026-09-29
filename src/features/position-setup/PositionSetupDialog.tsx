@@ -107,7 +107,21 @@ export function PositionSetupDialog() {
       <div className="grid gap-5 md:grid-cols-[minmax(300px,460px)_minmax(260px,1fr)]">
         <div>
           <div
-            className="relative aspect-square w-full overflow-hidden rounded-[var(--radius-board)] border border-line-strong shadow-[var(--shadow-panel)]"
+            /*
+              This surface builds its own board rather than mounting
+              `Chessboard`, which is legitimate — it is a piece placement
+              model, not a game. But it also drew its own *frame*: a hard-coded
+              `border-line-strong` and a panel shadow, where every other board
+              in the application takes its frame from the theme's
+              `--board-frame-ring`. Two board frames shipped side by side, and
+              the preview was not the colour a person would recognise from the
+              board they were setting up.
+
+              The frame is now the same one the board itself uses. The radius
+              still differs by a pixel from `Chessboard`'s grid layer; that is
+              a radius question, and belongs with the radius pass, not here.
+            */
+            className="relative aspect-square w-full overflow-hidden rounded-[var(--radius-board)] shadow-[var(--board-frame-ring),var(--shadow-board)] ring-1 ring-black/20"
             style={boardThemeVariables(boardTheme(theme))}
             data-position-setup-board
           >

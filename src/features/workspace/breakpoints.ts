@@ -34,9 +34,21 @@ export const TALL_VIEWPORT_PX = 860;
 export const TALL_VIEWPORT_QUERY = `(min-height: ${TALL_VIEWPORT_PX}px)`;
 export const SHORT_VIEWPORT_QUERY = `(max-height: ${TALL_VIEWPORT_PX - 0.02}px)`;
 
-/** `min-h` of the *wide* workspace column, in px, for the Tailwind arbitrary form. */
-export const SHORT_VIEWPORT_TAILWIND_QUERY = `(max-height:${TALL_VIEWPORT_PX - 0.02}px)`;
-export const TALL_VIEWPORT_TAILWIND_QUERY = `(min-height:${TALL_VIEWPORT_PX}px)`;
+/**
+ * The same two thresholds as Tailwind arbitrary media variants — **literals**.
+ *
+ * This is the third time this session that a class assembled by interpolation
+ * silently did nothing, and the third time typecheck, lint and every unit test
+ * passed while the layout was wrong. Tailwind scans source *text* for complete
+ * class names; `[@${TALL_VIEWPORT_TAILWIND_QUERY}]:sm:px-5` contains no
+ * complete class, so nothing was emitted and the workspace lost its padding at
+ * every tall viewport. It surfaced as eleven failing visual baselines and
+ * nothing else. The queries above are for `matchMedia` and may be built any
+ * way a test likes; these are for the build and must be spelled out.
+ */
+export const SHORT_VIEWPORT_PADDING_CLASS = '[@media(max-height:859.98px)]:py-1';
+export const TALL_VIEWPORT_PADDING_CLASS =
+  '[@media(min-height:860px)]:sm:px-5 [@media(min-height:860px)]:sm:py-4';
 
 /*
  * The two widths below are not tokens, and were not invented to be. They are

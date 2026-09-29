@@ -36,6 +36,33 @@ import { PieceIcon } from './pieces';
  */
 export const SQUARE_GRID_CLASS = 'grid grid-cols-8 grid-rows-8 overflow-hidden';
 
+/**
+ * One board square, as a percentage of the board.
+ *
+ * Exported because the promotion picker is positioned in board-square units
+ * and was re-deriving `12.5` from the same eight the grid uses. It is a *menu*
+ * that occupies one square, not a square, which is why it needs the number and
+ * not the layer.
+ */
+export const BOARD_SQUARE_PERCENT = 100 / 8;
+
+/**
+ * The class for one board square — and it is a **literal**, for the same
+ * reason the titlebar band class is.
+ *
+ * Written as `` `h-[${BOARD_SQUARE_PERCENT}%] w-[${BOARD_SQUARE_PERCENT}%]` ``
+ * it is correct TypeScript that silently does nothing: Tailwind scans source
+ * text for complete class names and cannot evaluate an interpolation, so no
+ * rule is emitted, every piece loses its size constraint, and the board renders
+ * as a handful of enormous pieces spilling out of their squares.
+ *
+ * Typecheck is clean, the unit tests are green, and the only thing that caught
+ * it was the visual baseline comparison — thirteen route baselines, every
+ * screen with a board on it. A build-time class name is a build-time contract,
+ * so it is asserted as one in `board-grid.test.ts` rather than trusted.
+ */
+export const BOARD_SQUARE_CLASS = 'h-[12.5%] w-[12.5%]';
+
 /** The background of one square, in whichever theme is in force. */
 export const squareStyle = (square: Square): CSSProperties => {
   const light = squareColor(square) === 'light';
@@ -94,7 +121,7 @@ export function PieceLayer({
         return (
           <div
             key={placed.key}
-            className="absolute left-0 top-0 h-[12.5%] w-[12.5%]"
+            className={`absolute left-0 top-0 ${BOARD_SQUARE_CLASS}`}
             style={{
               ...style,
               zIndex: custom?.zIndex ?? 10,

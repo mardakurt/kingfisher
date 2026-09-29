@@ -76,8 +76,8 @@ import { WorkspaceToolDock, type WorkspaceLock } from './WorkspaceToolDock';
 import {
   LAPTOP_MAX_WIDTH_QUERY,
   NARROW_DOCK_MAX_WIDTH_QUERY,
-  SHORT_VIEWPORT_TAILWIND_QUERY,
-  TALL_VIEWPORT_TAILWIND_QUERY,
+  SHORT_VIEWPORT_PADDING_CLASS,
+  TALL_VIEWPORT_PADDING_CLASS,
   TITLEBAR_BAND_MIN_CLASS,
 } from './breakpoints';
 
@@ -292,9 +292,8 @@ export function WorkspaceFrame({
                     what that policy promises.
                   */
                   className={cn(
-                    `min-h-[460px] flex-1 px-2 py-2 sm:px-3 wide:min-h-0 [@${SHORT_VIEWPORT_TAILWIND_QUERY}]:py-1`,
-                    view.priority !== 'maximum' &&
-                      `[@${TALL_VIEWPORT_TAILWIND_QUERY}]:sm:px-5 [@${TALL_VIEWPORT_TAILWIND_QUERY}]:sm:py-4`,
+                    `min-h-[460px] flex-1 px-2 py-2 sm:px-3 wide:min-h-0 ${SHORT_VIEWPORT_PADDING_CLASS}`,
+                    view.priority !== 'maximum' && TALL_VIEWPORT_PADDING_CLASS,
                   )}
                 />
               ))

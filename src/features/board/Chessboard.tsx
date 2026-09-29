@@ -10,7 +10,7 @@ import type { Color, Fen, Piece, PromotionPiece, Square } from '@/chess/types';
 import { cn } from '@/lib/cn';
 
 import { BoardShapes } from './BoardShapes';
-import { PieceLayer, SQUARE_GRID_CLASS, squareStyle } from './BoardLayers';
+import { BOARD_SQUARE_CLASS, PieceLayer, SQUARE_GRID_CLASS, squareStyle } from './BoardLayers';
 import {
   EMPTY_TRACKER,
   squareFromPoint,
@@ -754,7 +754,7 @@ function PromotionPicker({ square, orientation, color, pieceSet, onChoose }: Pro
         role="dialog"
         aria-modal
         aria-label="Choose promotion piece"
-        className="absolute flex w-[12.5%] flex-col overflow-hidden rounded-[3px] border border-line-strong bg-surface-1 shadow-xl"
+        className={`absolute flex ${BOARD_SQUARE_CLASS} flex-col overflow-hidden rounded-[var(--radius-board)] border border-line-strong bg-surface-1 shadow-[var(--shadow-popover)]`}
         style={{
           left: `${x / 8}%`,
           [downwards ? 'top' : 'bottom']: `${downwards ? y / 8 : (700 - y) / 8}%`,

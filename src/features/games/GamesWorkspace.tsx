@@ -1515,10 +1515,23 @@ function GamePreview({
         </p>
       </div>
       <div className="shrink-0 px-4 py-3">
+        {/*
+          The empty case used to draw a blank grey square with the right aspect
+          ratio, which reads as a board that failed to render. It also bypassed
+          `SheetBoard`, so it carried none of the board's own styling — a
+          different frame from every other board in the application, for a
+          position that is simply not reached yet. The hole is now what it is.
+        */}
         {node ? (
           <SheetBoard fen={node.fen} className="w-full" />
         ) : (
-          <div className="aspect-square w-full rounded-[4px] bg-surface-2" />
+          <div
+            className="flex aspect-square w-full items-center justify-center rounded-[var(--radius-panel)] border border-dashed border-line bg-surface-1 p-4 text-center text-[11px] text-tertiary"
+            role="img"
+            aria-label="No position reached yet"
+          >
+            Not reached yet
+          </div>
         )}
         <div className="mt-2 flex items-center justify-center gap-0.5">
           <IconButton label="Start" disabled={at === 0} onClick={() => setPly(0)}>
