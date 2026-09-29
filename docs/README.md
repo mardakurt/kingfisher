@@ -272,6 +272,12 @@ with [`AGENTS.md`](../AGENTS.md).
 
 ## Historical
 
+- [`reports/phase-88-shell-pass.md`](reports/phase-88-shell-pass.md) — the
+  shell and workspace bug-fix pass: the settings-contract guard that passed
+  four mis-declared consumers, a Tailwind class that was completed by
+  interpolation three separate times, eight layout literals collapsed onto
+  the tokens they were restating, and eleven corner radii reduced to three —
+  with what was refuted, what was not done, and why.
 - [`reports/phase-88-handover.md`](reports/phase-88-handover.md) — a
   defect-finding and desktop-UX session rather than a feature phase: the
   failed backup the status bar reported as a green success, the settings
