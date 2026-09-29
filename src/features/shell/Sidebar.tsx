@@ -87,7 +87,7 @@ export function Sidebar({ variant = 'desktop', onClose }: SidebarProps) {
       className={cn(
         'shrink-0 flex-col border-r border-line-subtle bg-surface-sidebar',
         drawer
-          ? 'flex h-full w-[min(86vw,300px)] shadow-2xl'
+          ? 'flex h-full w-[min(86vw,300px)] shadow-[var(--shadow-popover)]'
           : compact
             ? 'hidden w-[var(--sidebar-collapsed)] md:flex'
             : 'hidden w-[var(--sidebar-expanded)] md:flex',

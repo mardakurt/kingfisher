@@ -136,7 +136,7 @@ export function StoragePersistenceStatus({ compact = false }: { readonly compact
         <div
           role="dialog"
           aria-label="Saved status"
-          className="absolute bottom-full left-0 z-50 mb-2 w-80 rounded-[var(--radius-control)] border border-line bg-surface-1 p-3 text-[12px] text-secondary shadow-lg"
+          className="absolute bottom-full left-0 z-50 mb-2 w-80 rounded-[var(--radius-control)] border border-line bg-surface-1 p-3 text-[12px] text-secondary shadow-[var(--shadow-popover)]"
         >
           <p className="font-medium text-primary">{view.label}</p>
           <p className="mt-1 text-[11px] text-tertiary">{view.detail}</p>

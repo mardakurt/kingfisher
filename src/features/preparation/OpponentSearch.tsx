@@ -146,7 +146,7 @@ export function OpponentSearch({
           <p
             role="status"
             data-opponent-catalog-loading
-            className="absolute top-full left-0 z-30 mt-1 w-full min-w-[320px] rounded-[var(--radius-control)] border border-line bg-surface-1 px-3 py-2 text-xs text-tertiary shadow-lg"
+            className="absolute top-full left-0 z-30 mt-1 w-full min-w-[320px] rounded-[var(--radius-control)] border border-line bg-surface-1 px-3 py-2 text-xs text-tertiary shadow-[var(--shadow-popover)]"
           >
             Reading the player library…
           </p>
@@ -155,7 +155,7 @@ export function OpponentSearch({
           <ul
             id="opponent-suggestions"
             role="listbox"
-            className="absolute top-full left-0 z-30 mt-1 w-full min-w-[320px] overflow-hidden rounded-[var(--radius-control)] border border-line bg-surface-1 py-1 shadow-lg"
+            className="absolute top-full left-0 z-30 mt-1 w-full min-w-[320px] overflow-hidden rounded-[var(--radius-control)] border border-line bg-surface-1 py-1 shadow-[var(--shadow-popover)]"
           >
             {suggestions.map((player, index) => (
               <li

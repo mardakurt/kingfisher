@@ -313,7 +313,7 @@ function PaletteDialog() {
         role="dialog"
         aria-modal
         aria-label="Command palette"
-        className="max-h-[calc(100dvh-2rem)] w-[540px] max-w-full overflow-hidden rounded-[var(--radius-panel)] border border-line-strong bg-surface-1 shadow-2xl animate-rise sm:max-w-[92vw]"
+        className="max-h-[calc(100dvh-2rem)] w-[540px] max-w-full overflow-hidden rounded-[var(--radius-panel)] border border-line-strong bg-surface-1 shadow-[var(--shadow-popover)] animate-rise sm:max-w-[92vw]"
         onPointerDown={(event) => event.stopPropagation()}
       >
         {/*

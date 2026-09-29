@@ -1028,7 +1028,7 @@ export function GamesWorkspace() {
               'flex shrink-0 flex-col border-line-subtle bg-surface-1',
               wide
                 ? 'w-[340px] border-l xl:w-[380px]'
-                : 'absolute inset-x-0 bottom-0 z-20 max-h-[70%] border-t shadow-2xl',
+                : 'absolute inset-x-0 bottom-0 z-20 max-h-[70%] border-t shadow-[var(--shadow-popover)]',
             )}
             aria-label={filtersOpen ? 'Filters' : 'Game preview'}
           >

@@ -103,7 +103,7 @@ export function PreparationReport(props: PreparationReportProps) {
               className={cn(
                 'h-7 rounded-[var(--radius-control)] px-3 text-xs font-medium transition-colors',
                 view === entry.id
-                  ? 'bg-accent text-accent-contrast shadow-sm'
+                  ? 'bg-accent text-accent-contrast shadow-[var(--shadow-panel)]'
                   : 'text-secondary hover:bg-surface-2 active:bg-surface-press hover:text-primary',
               )}
             >

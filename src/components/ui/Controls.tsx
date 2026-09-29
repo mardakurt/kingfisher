@@ -120,7 +120,7 @@ export function Segmented<T extends string>({
               'rounded-[var(--radius-board)] font-medium whitespace-nowrap transition-colors',
               size === 'sm' ? 'h-6 px-2 text-[11px]' : 'h-7 px-2.5 text-xs',
               selected
-                ? 'bg-accent text-accent-contrast shadow-sm active:brightness-95'
+                ? 'bg-accent text-accent-contrast shadow-[var(--shadow-panel)] active:brightness-95'
                 : 'text-secondary hover:bg-black/[0.04] hover:text-primary active:bg-black/[0.08] dark:hover:bg-white/[0.06] dark:active:bg-white/[0.12]',
             )}
           >

@@ -192,7 +192,7 @@ export function StatusBar() {
           data-fen-tooltip
           aria-hidden={!showFen && !copied}
           className={cn(
-            'pointer-events-none absolute bottom-full right-0 z-30 mb-1 max-w-[60ch] truncate rounded-[var(--radius-control)] border border-line bg-surface-3 px-1.5 py-1 font-mono text-[10px] text-secondary shadow-md transition-opacity',
+            'pointer-events-none absolute bottom-full right-0 z-30 mb-1 max-w-[60ch] truncate rounded-[var(--radius-control)] border border-line bg-surface-3 px-1.5 py-1 font-mono text-[10px] text-secondary shadow-[var(--shadow-popover)] transition-opacity',
             showFen || copied ? 'opacity-100' : 'opacity-0',
           )}
         >
