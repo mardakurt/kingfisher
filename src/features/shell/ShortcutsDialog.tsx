@@ -87,7 +87,7 @@ export function ShortcutsDialog() {
         <div
           role="alertdialog"
           aria-label="Shortcut conflict"
-          className="mb-3 rounded-[7px] border border-negative/40 bg-negative/10 p-3"
+          className="mb-3 rounded-[var(--radius-control)] border border-negative/40 bg-negative/10 p-3"
         >
           <p className="text-xs text-primary">
             {formatBinding(pending.binding)} is already assigned to{' '}
@@ -150,7 +150,7 @@ export function ShortcutsDialog() {
                             commit(shortcut.id, bindingFromEvent(event));
                           }}
                           className={cn(
-                            'rounded-[5px] border px-1.5 py-0.5 font-mono text-[10px]',
+                            'rounded-[var(--radius-control)] border px-1.5 py-0.5 font-mono text-[10px]',
                             capturing === shortcut.id
                               ? 'border-accent bg-accent/15 text-primary'
                               : 'border-line bg-surface-2 text-tertiary hover:border-line-strong hover:text-primary',
@@ -169,7 +169,7 @@ export function ShortcutsDialog() {
                               : formatBinding(binding)}
                         </button>
                       ) : (
-                        <kbd className="rounded-[5px] border border-line bg-surface-2 px-1.5 py-0.5 font-mono text-[10px] text-tertiary">
+                        <kbd className="rounded-[var(--radius-control)] border border-line bg-surface-2 px-1.5 py-0.5 font-mono text-[10px] text-tertiary">
                           {shortcut.mouse ? shortcut.defaultBinding : formatBinding(binding)}
                         </kbd>
                       )}
@@ -198,7 +198,7 @@ export function ShortcutsDialog() {
               <div key={hint.keys} className="flex items-baseline justify-between gap-3">
                 <dt className="text-xs text-secondary">{hint.label}</dt>
                 <dd>
-                  <kbd className="rounded-[5px] border border-line bg-surface-2 px-1.5 py-0.5 font-mono text-[10px] text-tertiary">
+                  <kbd className="rounded-[var(--radius-control)] border border-line bg-surface-2 px-1.5 py-0.5 font-mono text-[10px] text-tertiary">
                     {hint.keys}
                   </kbd>
                 </dd>

@@ -71,7 +71,7 @@ export function AnalysisJobsDialog({ onClose }: { readonly onClose: () => void }
               <li
                 key={`${job.kind}:${job.id}`}
                 data-analysis-job={job.state}
-                className="rounded-[6px] border border-line bg-surface-inset p-2.5"
+                className="rounded-[var(--radius-control)] border border-line bg-surface-inset p-2.5"
               >
                 <div className="flex items-baseline justify-between gap-2">
                   <span className="truncate text-primary">{job.title}</span>

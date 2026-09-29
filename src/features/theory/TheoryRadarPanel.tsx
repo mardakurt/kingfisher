@@ -122,7 +122,7 @@ export function TheoryRadarPanel({
               {radar.windows.twelveMonth.toLocaleString()} since {currentYear}
             </p>
             {radar.thin ? (
-              <p className="mt-1.5 rounded-[6px] bg-surface-2 px-2 py-1.5 text-[10px] leading-relaxed text-caution">
+              <p className="mt-1.5 rounded-[var(--radius-control)] bg-surface-2 px-2 py-1.5 text-[10px] leading-relaxed text-caution">
                 Too few games for these shares to mean much. Read the counts.
               </p>
             ) : null}

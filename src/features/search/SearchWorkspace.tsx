@@ -159,7 +159,7 @@ export function SearchWorkspace() {
             spellCheck={false}
             onChange={(event) => submit(event.target.value)}
             placeholder="A FEN, a line like 1.e4 c5 2.Nf3, or a name"
-            className="h-9 w-full rounded-[6px] border border-line bg-surface-inset px-2 text-sm text-primary outline-none focus:border-accent/60"
+            className="h-9 w-full rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-sm text-primary outline-none focus:border-accent/60"
           />
         </form>
         <p className="mt-1 text-2xs text-tertiary" data-testid="search-reading">
@@ -203,7 +203,7 @@ export function SearchWorkspace() {
                     <li key={hit.id}>
                       <button
                         type="button"
-                        className="w-full rounded-[6px] border border-line px-2 py-1.5 text-left hover:bg-surface-2"
+                        className="w-full rounded-[var(--radius-control)] border border-line px-2 py-1.5 text-left hover:bg-surface-2"
                         onClick={() => void openPositionHit(hit, navigate).catch(failed)}
                       >
                         <span className="block truncate text-primary">{hit.title}</span>
@@ -232,7 +232,7 @@ export function SearchWorkspace() {
                   <li key={hit.id}>
                     <button
                       type="button"
-                      className="w-full rounded-[6px] border border-line px-2 py-1.5 text-left hover:bg-surface-2"
+                      className="w-full rounded-[var(--radius-control)] border border-line px-2 py-1.5 text-left hover:bg-surface-2"
                       onClick={() => void openPositionHit(hit, navigate).catch(failed)}
                     >
                       <span className="block truncate text-primary">{hit.title}</span>
@@ -260,7 +260,7 @@ export function SearchWorkspace() {
                       <button
                         type="button"
                         className={cn(
-                          'w-full rounded-[6px] border border-line px-2 py-1.5 text-left hover:bg-surface-2',
+                          'w-full rounded-[var(--radius-control)] border border-line px-2 py-1.5 text-left hover:bg-surface-2',
                         )}
                         onClick={() => void openWorkspaceHit(hit, navigate).catch(failed)}
                       >

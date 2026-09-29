@@ -45,7 +45,7 @@ export function GlobalControls({ className }: { readonly className?: string }) {
       >
         <Search className="h-3.5 w-3.5" />
         <span className="hidden mid:inline">Search commands</span>
-        <kbd className="hidden rounded-[4px] bg-surface-1 px-1 font-mono text-[10px] mid:inline">
+        <kbd className="hidden rounded-[var(--radius-board)] bg-surface-1 px-1 font-mono text-[10px] mid:inline">
           ⌘K
         </kbd>
       </button>

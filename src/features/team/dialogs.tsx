@@ -16,7 +16,7 @@ import { KIND_LABEL, ROLE_LABEL } from './labels';
 import { BRIEF_STARTERS } from './briefs';
 
 const INPUT =
-  'h-8 rounded-[6px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60';
+  'h-8 rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60';
 const ROLES: readonly TeamRole[] = ['coach', 'second', 'player', 'student'];
 const KINDS: readonly AssignmentKind[] = ['game', 'opening', 'opponent', 'positions', 'other'];
 
@@ -172,7 +172,7 @@ export function MembersDialog({
             Roles are labels for the thread, not permissions: whoever holds the packet can edit it.
             Mark which member you are, so your handovers carry your name.
           </p>
-          <ul className="mt-2 divide-y divide-line-subtle rounded-[6px] border border-line-subtle">
+          <ul className="mt-2 divide-y divide-line-subtle rounded-[var(--radius-control)] border border-line-subtle">
             {team.members.map((member) => (
               <MemberRow
                 key={member.id}
@@ -411,7 +411,7 @@ export function NewAssignmentDialog({
             value={brief}
             onChange={(event) => setBrief(event.target.value)}
             placeholder="What to do, and what a good hand-in looks like. “Annotate your game; mark the move where you stopped calculating and say what you saw.”"
-            className="resize-y rounded-[6px] border border-line bg-surface-inset px-2 py-1.5 text-[11px] leading-relaxed text-primary outline-none focus:border-accent/60"
+            className="resize-y rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 py-1.5 text-[11px] leading-relaxed text-primary outline-none focus:border-accent/60"
             data-team-assignment-brief
           />
         </Field>

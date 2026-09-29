@@ -85,7 +85,7 @@ export function EvaluationBar({
       data-catching-up={catchingUp && !outcome ? 'true' : undefined}
       data-outcome={outcome?.kind}
       className={cn(
-        'relative flex shrink-0 flex-col overflow-hidden rounded-[2px] bg-eval-black transition-opacity',
+        'relative flex shrink-0 flex-col overflow-hidden rounded-[var(--radius-board)] bg-eval-black transition-opacity',
         dimmed && 'opacity-60',
       )}
       style={{

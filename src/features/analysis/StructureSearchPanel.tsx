@@ -221,7 +221,7 @@ export function StructureSearchPanel({ fen }: { readonly fen: string }) {
             aria-label="Structure result order"
             value={sort}
             onChange={(event) => setSort(event.target.value as StructureSearchSort)}
-            className="mt-1 h-7 w-full rounded-[6px] border border-line bg-surface-inset px-2 text-[11px] text-primary"
+            className="mt-1 h-7 w-full rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-[11px] text-primary"
           >
             {SORTS.map((entry) => (
               <option key={entry.id} value={entry.id}>

@@ -62,7 +62,7 @@ const NAGS = [
 ];
 
 const FIELD =
-  'h-7 min-w-0 rounded-[5px] border border-line bg-surface-inset px-1.5 text-[11px] text-primary';
+  'h-7 min-w-0 rounded-[var(--radius-control)] border border-line bg-surface-inset px-1.5 text-[11px] text-primary';
 
 function blank(type: PredicateType, boardKey: string): QueryPredicate {
   switch (type) {
@@ -406,7 +406,7 @@ function NodeEditor({
     const group = inner;
     return (
       <div
-        className="flex flex-col gap-1.5 rounded-[6px] border border-line p-2"
+        className="flex flex-col gap-1.5 rounded-[var(--radius-control)] border border-line p-2"
         data-query-group={group.type}
       >
         <div className="flex flex-wrap items-center gap-1.5">
@@ -561,7 +561,7 @@ export function QueryEditorDialog({
           boardKey={boardKey}
           onChange={(where) => setQuery({ ...query, where })}
         />
-        <section className="rounded-[6px] bg-surface-2 p-2" aria-live="polite">
+        <section className="rounded-[var(--radius-control)] bg-surface-2 p-2" aria-live="polite">
           {words ? (
             <>
               <p className="text-secondary" data-query-words>

@@ -187,7 +187,7 @@ export function PublishDialog({
         {pending ? (
           <p
             role="status"
-            className="rounded-[6px] border border-caution/50 bg-caution/10 p-2 text-caution"
+            className="rounded-[var(--radius-control)] border border-caution/50 bg-caution/10 p-2 text-caution"
             data-testid="publish-unsaved"
           >
             “{openChapter?.title}” has edits that are still being saved. The file is made from what

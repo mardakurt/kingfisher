@@ -31,7 +31,7 @@ import { runDeepSearch, type DeepSearchState } from './deep-search';
 import { companionMoveSearch, LOCAL_SOURCE, type LibrarySource } from './library-source';
 
 export const FIELD =
-  'h-7 w-full rounded-[6px] border border-line bg-surface-inset px-2 text-2xs text-primary outline-none placeholder:text-tertiary/70 focus:border-accent/60';
+  'h-7 w-full rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-2xs text-primary outline-none placeholder:text-tertiary/70 focus:border-accent/60';
 
 export const Field = ({
   label,

@@ -175,7 +175,7 @@ export function BatchDepartureDialog({
           Against
           <select
             aria-label="Departure source"
-            className="mt-1 h-8 w-full rounded-[6px] border border-line bg-surface-inset px-2 text-sm text-primary"
+            className="mt-1 h-8 w-full rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-sm text-primary"
             value={provider?.id ?? ''}
             disabled={running}
             onChange={(event) => setSourceId(event.target.value)}

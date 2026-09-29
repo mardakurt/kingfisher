@@ -133,7 +133,10 @@ export function ImprovementSummary({
         <section>
           <dl className="grid grid-cols-2 gap-x-3 gap-y-2">
             {report.figures.map((figure) => (
-              <div key={figure.id} className="rounded-[6px] border border-line-subtle p-2">
+              <div
+                key={figure.id}
+                className="rounded-[var(--radius-control)] border border-line-subtle p-2"
+              >
                 <dt className="text-[10px] leading-tight text-tertiary">{figure.label}</dt>
                 <dd className="mt-0.5 text-lg leading-none text-primary tabular">{figure.value}</dd>
                 {figure.detail ? (
@@ -167,7 +170,7 @@ export function ImprovementSummary({
                       onClick={() => setTheme(theme === entry.theme ? null : entry.theme)}
                       aria-pressed={theme === entry.theme}
                       className={cn(
-                        'flex w-full items-baseline gap-2 rounded-[6px] px-2 py-1 text-left text-xs transition-colors',
+                        'flex w-full items-baseline gap-2 rounded-[var(--radius-control)] px-2 py-1 text-left text-xs transition-colors',
                         theme === entry.theme
                           ? 'bg-accent-muted text-primary'
                           : 'text-secondary hover:bg-surface-2 hover:text-primary',

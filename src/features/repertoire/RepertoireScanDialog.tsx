@@ -161,7 +161,7 @@ export function RepertoireScanDialog({
               value={collectionId}
               disabled={running}
               onChange={(event) => setCollectionId(event.target.value)}
-              className="h-8 rounded-[6px] border border-line bg-surface-inset px-2 text-xs text-primary"
+              className="h-8 rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-xs text-primary"
             >
               {(list.length
                 ? list
@@ -181,7 +181,7 @@ export function RepertoireScanDialog({
               value={depth}
               disabled={running}
               onChange={(event) => setDepth(Number(event.target.value))}
-              className="h-8 rounded-[6px] border border-line bg-surface-inset px-2 text-xs text-primary"
+              className="h-8 rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-xs text-primary"
             >
               {DEPTHS.map((plies) => (
                 <option key={plies} value={plies}>
@@ -211,7 +211,7 @@ export function RepertoireScanDialog({
         )}
 
         {state && state.status !== 'running' && state.hits.length === 0 ? (
-          <p className="rounded-[6px] bg-surface-2 px-3 py-2 text-xs text-secondary">
+          <p className="rounded-[var(--radius-control)] bg-surface-2 px-3 py-2 text-xs text-secondary">
             No game in this collection left your repertoire at least {depth / 2} moves in.
           </p>
         ) : null}

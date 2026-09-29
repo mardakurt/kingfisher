@@ -92,7 +92,7 @@ export function GameInsightsPanel() {
                 <select
                   value={effectiveId ?? ''}
                   onChange={(event) => setSelectedId(event.target.value)}
-                  className="ml-auto h-6 max-w-44 rounded-[5px] border border-line bg-surface-inset px-1.5 text-[10.5px] text-secondary"
+                  className="ml-auto h-6 max-w-44 rounded-[var(--radius-control)] border border-line bg-surface-inset px-1.5 text-[10.5px] text-secondary"
                 >
                   {matching.map((entry) => (
                     <option key={entry.id} value={entry.id}>

@@ -215,7 +215,7 @@ function GroupRow({
   return (
     <li
       className={cn(
-        'rounded-[6px] border p-3',
+        'rounded-[var(--radius-control)] border p-3',
         group.kind === 'exact' ? 'border-line bg-surface-1' : 'border-caution/40 bg-caution/5',
       )}
     >

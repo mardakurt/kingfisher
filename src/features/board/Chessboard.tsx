@@ -455,7 +455,7 @@ export function Chessboard({
     return (
       <div
         className={cn(
-          'flex aspect-square w-full items-center justify-center rounded-md border border-line bg-surface-2 text-sm text-secondary',
+          'flex aspect-square w-full items-center justify-center rounded-[var(--radius-control)] border border-line bg-surface-2 text-sm text-secondary',
           className,
         )}
       >
@@ -492,7 +492,7 @@ export function Chessboard({
           ref={boardRef}
           className={cn(
             SQUARE_GRID_CLASS,
-            'absolute inset-0 rounded-[2px] shadow-[var(--board-frame-ring),var(--shadow-board)] ring-1 ring-black/20',
+            'absolute inset-0 rounded-[var(--radius-board)] shadow-[var(--board-frame-ring),var(--shadow-board)] ring-1 ring-black/20',
           )}
           style={{
             /*
@@ -569,7 +569,7 @@ export function Chessboard({
                 {isTarget &&
                   (occupied ? (
                     <div
-                      className="absolute inset-0 rounded-[2px] border-[5px]"
+                      className="absolute inset-0 rounded-[var(--radius-board)] border-[5px]"
                       style={{ borderColor: 'var(--square-legal)' }}
                     />
                   ) : (

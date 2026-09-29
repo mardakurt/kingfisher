@@ -231,7 +231,7 @@ export function OpeningFilesWorkspace() {
                 onChange={(event) => setPositionNote(event.target.value)}
                 placeholder="Why this position (optional)"
                 disabled={!node || inFile}
-                className="h-7 min-w-[10rem] flex-1 rounded-[6px] border border-line bg-surface-inset px-2 text-[11px] text-primary outline-none focus:border-accent/60 disabled:opacity-50"
+                className="h-7 min-w-[10rem] flex-1 rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-[11px] text-primary outline-none focus:border-accent/60 disabled:opacity-50"
               />
               <Button type="submit" disabled={!node || inFile}>
                 {inFile ? 'This position is in the file' : 'Add this position'}
@@ -672,7 +672,7 @@ function FileHeader({
                 setName(file.name);
               }
             }}
-            className="h-6 min-w-0 flex-1 rounded-[5px] border border-line bg-surface-inset px-1.5 text-[11px] text-primary outline-none focus:border-accent/60"
+            className="h-6 min-w-0 flex-1 rounded-[var(--radius-control)] border border-line bg-surface-inset px-1.5 text-[11px] text-primary outline-none focus:border-accent/60"
           />
           <Button size="sm" type="submit">
             Save
@@ -776,7 +776,7 @@ function NotesEditor({
         }}
         onBlur={() => void save()}
         placeholder="What this file is for, and what you have concluded."
-        className="mt-1 w-full resize-y rounded-[6px] border border-line bg-surface-inset px-2 py-1.5 text-[11px] leading-relaxed text-primary outline-none focus:border-accent/60"
+        className="mt-1 w-full resize-y rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 py-1.5 text-[11px] leading-relaxed text-primary outline-none focus:border-accent/60"
       />
     </label>
   );
@@ -810,7 +810,7 @@ function NewFileDialog({
             value={name}
             onChange={(event) => setName(event.target.value)}
             placeholder="Black vs 1.e4 — Najdorf"
-            className="h-8 rounded-[6px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
+            className="h-8 rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
           />
         </label>
         <div className="grid grid-cols-2 gap-3">
@@ -819,7 +819,7 @@ function NewFileDialog({
             <select
               value={color}
               onChange={(event) => setColor(event.target.value as 'w' | 'b')}
-              className="h-8 rounded-[6px] border border-line bg-surface-inset px-2 text-xs text-primary"
+              className="h-8 rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-xs text-primary"
             >
               <option value="w">White</option>
               <option value="b">Black</option>
@@ -831,7 +831,7 @@ function NewFileDialog({
               value={eco}
               onChange={(event) => setEco(event.target.value)}
               placeholder="B90"
-              className="h-8 rounded-[6px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
+              className="h-8 rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
             />
           </label>
         </div>

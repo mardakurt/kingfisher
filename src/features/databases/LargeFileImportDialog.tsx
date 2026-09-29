@@ -150,7 +150,7 @@ export function LargeFileImportDialog({ onClose }: { readonly onClose: () => voi
             <label className="block text-xs text-secondary">
               Collection name
               <input
-                className="mt-1 h-8 w-full rounded-[6px] border border-line bg-surface-inset px-2 text-sm text-primary"
+                className="mt-1 h-8 w-full rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-sm text-primary"
                 value={name}
                 onChange={(event) => setName(event.target.value)}
               />
@@ -158,7 +158,7 @@ export function LargeFileImportDialog({ onClose }: { readonly onClose: () => voi
             <label className="block text-xs text-secondary">
               The licence you hold it under (kept with the collection)
               <input
-                className="mt-1 h-8 w-full rounded-[6px] border border-line bg-surface-inset px-2 text-sm text-primary"
+                className="mt-1 h-8 w-full rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-sm text-primary"
                 placeholder="e.g. Mega Database 2026, my licence · Lichess database, CC0"
                 value={licence}
                 onChange={(event) => setLicence(event.target.value)}

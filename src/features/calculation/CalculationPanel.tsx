@@ -43,7 +43,7 @@ import { branchAt, candidatesOf, countMoves, lines, maxDepth, movesAlong } from 
 import { plural } from '@/lib/plural';
 
 const FIELD =
-  'mt-1 w-full rounded-[6px] border border-line bg-surface-inset px-2.5 py-1.5 text-xs text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60';
+  'mt-1 w-full rounded-[var(--radius-control)] border border-line bg-surface-inset px-2.5 py-1.5 text-xs text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60';
 
 const VISIBILITIES: readonly { id: BoardVisibility; label: string }[] = [
   { id: 'full', label: 'Board' },
@@ -187,7 +187,7 @@ export function CalculationPanel({
       </PanelHeader>
       <PanelBody className="px-3 py-3">
         {!state.revealed ? (
-          <p className="rounded-[6px] border border-line-subtle bg-surface-2 px-2.5 py-2 text-2xs leading-relaxed text-secondary">
+          <p className="rounded-[var(--radius-control)] border border-line-subtle bg-surface-2 px-2.5 py-2 text-2xs leading-relaxed text-secondary">
             Engine, explorer, database, tablebase and repertoire are hidden while you calculate.
             Nothing is running.
           </p>
@@ -310,7 +310,7 @@ export function CalculationPanel({
                   useCalculation.getState().choose(candidate.uci as Uci, candidate.san as San)
                 }
                 className={cn(
-                  'rounded-[6px] border px-2 py-0.5 font-mono text-[11px]',
+                  'rounded-[var(--radius-control)] border px-2 py-0.5 font-mono text-[11px]',
                   state.chosenUci === candidate.uci
                     ? 'border-accent bg-accent-muted text-primary'
                     : 'border-line text-secondary hover:border-accent/50',
@@ -365,7 +365,7 @@ export function CalculationPanel({
 
         {state.revealed ? (
           <>
-            <p className="mt-3 rounded-[6px] border border-line-subtle bg-surface-2 px-2.5 py-2 text-2xs leading-relaxed text-secondary">
+            <p className="mt-3 rounded-[var(--radius-control)] border border-line-subtle bg-surface-2 px-2.5 py-2 text-2xs leading-relaxed text-secondary">
               Recorded and frozen. The evidence tools are usable now; what you wrote above cannot be
               edited, which is what makes it worth reading in a month.
               {savedId ? ' Saved to the decision journal.' : ''}

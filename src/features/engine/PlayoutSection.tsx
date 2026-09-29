@@ -23,7 +23,7 @@ const MILLISECONDS = [50, 100, 250, 500] as const;
 const MAX_PLIES = 200;
 
 const SELECT =
-  'h-6 rounded-[5px] border border-line bg-surface-inset px-1 text-[10.5px] text-primary';
+  'h-6 rounded-[var(--radius-control)] border border-line bg-surface-inset px-1 text-[10.5px] text-primary';
 
 export function PlayoutSection({ fen }: { readonly fen: Fen }) {
   const job = usePlayouts();

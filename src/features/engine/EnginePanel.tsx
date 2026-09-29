@@ -321,7 +321,7 @@ export function EnginePanel() {
                 <div className="flex items-baseline gap-2">
                   <span
                     className={cn(
-                      'w-[52px] shrink-0 rounded-[5px] px-1 py-0.5 text-center text-xs font-medium tabular',
+                      'w-[52px] shrink-0 rounded-[var(--radius-control)] px-1 py-0.5 text-center text-xs font-medium tabular',
                       scoreTone(line),
                     )}
                   >
@@ -337,7 +337,7 @@ export function EnginePanel() {
                             type="button"
                             title="Add this line up to here"
                             onClick={() => insert(line.moves, moveIndexOf(line, index, node.ply))}
-                            className="mr-1 rounded-[5px] px-0.5 text-primary transition-colors hover:bg-accent-muted"
+                            className="mr-1 rounded-[var(--radius-control)] px-0.5 text-primary transition-colors hover:bg-accent-muted"
                           >
                             {token.text}
                           </button>
@@ -586,7 +586,7 @@ interface PinnedRowProps {
 function PinnedRow({ line, applicable, onInsert, onRemove }: PinnedRowProps) {
   return (
     <li className="group flex items-baseline gap-2 px-2.5 py-1.5">
-      <span className="w-[52px] shrink-0 rounded-[5px] bg-surface-3 px-1 py-0.5 text-center text-xs font-medium text-secondary tabular">
+      <span className="w-[52px] shrink-0 rounded-[var(--radius-control)] bg-surface-3 px-1 py-0.5 text-center text-xs font-medium text-secondary tabular">
         {formatScore(line.score)}
       </span>
       <div className="min-w-0 flex-1">

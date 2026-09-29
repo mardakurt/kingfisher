@@ -602,7 +602,7 @@ export function GamesWorkspace() {
           aria-label="Search games"
           className="max-w-[520px] min-w-[220px] flex-1"
         />
-        <label className="inline-flex h-8 items-center gap-1.5 rounded-[8px] bg-surface-2 pr-1 pl-2.5 text-xs text-secondary">
+        <label className="inline-flex h-8 items-center gap-1.5 rounded-[var(--radius-panel)] bg-surface-2 pr-1 pl-2.5 text-xs text-secondary">
           <Database className="h-3.5 w-3.5 shrink-0 text-tertiary" />
           <span className="sr-only">Database</span>
           <select
@@ -1561,7 +1561,7 @@ function GamePreview({
                 type="button"
                 onClick={() => setPly(index + 1)}
                 className={cn(
-                  'mx-0.5 rounded-[4px] px-0.5',
+                  'mx-0.5 rounded-[var(--radius-board)] px-0.5',
                   at === index + 1
                     ? 'bg-accent text-accent-contrast'
                     : 'text-primary hover:bg-surface-2',

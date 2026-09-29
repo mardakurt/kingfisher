@@ -52,7 +52,7 @@ export function Tabs<T extends string>({ items, value, onChange, className }: Ta
           >
             {item.label}
             {item.badge && (
-              <span className="rounded-sm bg-surface-3 px-1 text-[10px] text-tertiary tabular">
+              <span className="rounded-[var(--radius-board)] bg-surface-3 px-1 text-[10px] text-tertiary tabular">
                 {item.badge}
               </span>
             )}
@@ -96,7 +96,7 @@ export function Segmented<T extends string>({
           onClick={() => onChange(item.id)}
           aria-pressed={item.id === value}
           className={cn(
-            'shrink-0 rounded-[4px] px-2 py-0.5 text-2xs transition-colors',
+            'shrink-0 rounded-[var(--radius-board)] px-2 py-0.5 text-2xs transition-colors',
             item.id === value
               ? 'bg-surface-3 text-primary active:bg-surface-press'
               : 'text-tertiary hover:bg-surface-3 hover:text-secondary active:bg-surface-press',

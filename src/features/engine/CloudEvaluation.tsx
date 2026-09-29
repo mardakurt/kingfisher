@@ -134,7 +134,7 @@ export function CloudEvaluationSection({ fen, ply }: { readonly fen: Fen; readon
               >
                 <span
                   className={cn(
-                    'w-[52px] shrink-0 rounded-[5px] px-1 py-0.5 text-center text-xs font-medium tabular',
+                    'w-[52px] shrink-0 rounded-[var(--radius-control)] px-1 py-0.5 text-center text-xs font-medium tabular',
                     scoreTone(line),
                   )}
                 >

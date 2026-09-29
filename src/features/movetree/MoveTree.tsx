@@ -275,7 +275,7 @@ function VirtualRow({
       ) : null}
       {eco ? (
         <span
-          className="mr-1 rounded-[5px] border border-line px-1 text-[9px] text-tertiary"
+          className="mr-1 rounded-[var(--radius-control)] border border-line px-1 text-[9px] text-tertiary"
           data-eco-mark={eco.eco}
           title={[eco.name, eco.variation].filter(Boolean).join(' — ')}
         >
@@ -432,7 +432,7 @@ function MoveToken({
       {node.meta.question !== undefined && (
         /* Phase 84: this move is a chapter question — asked at the position before it. */
         <span
-          className="mr-1 inline-flex h-4 select-none items-center rounded-[4px] bg-accent-muted px-1 align-[1px] text-[10px] font-semibold text-accent-ink"
+          className="mr-1 inline-flex h-4 select-none items-center rounded-[var(--radius-board)] bg-accent-muted px-1 align-[1px] text-[10px] font-semibold text-accent-ink"
           title={`Question: ${node.meta.question || 'Find the move.'}`}
           data-question-marker
         >
@@ -455,7 +455,7 @@ function MoveToken({
         }}
         title={node.comment}
         className={cn(
-          'mr-1 rounded-[5px] px-1 py-px transition-colors',
+          'mr-1 rounded-[var(--radius-control)] px-1 py-px transition-colors',
           depth === 0 ? 'font-medium' : 'text-secondary',
           current
             ? 'bg-accent text-accent-contrast'
@@ -523,7 +523,7 @@ const CommentToken = ({ text, onEdit }: { text: string; onEdit?: (() => void) | 
       type="button"
       onClick={onEdit}
       title="Edit this comment"
-      className="mr-1 whitespace-pre-wrap rounded-[5px] text-left text-[11.5px] italic text-secondary transition-colors hover:bg-surface-3 active:bg-surface-press hover:text-primary"
+      className="mr-1 whitespace-pre-wrap rounded-[var(--radius-control)] text-left text-[11.5px] italic text-secondary transition-colors hover:bg-surface-3 active:bg-surface-press hover:text-primary"
     >
       {text}
     </button>

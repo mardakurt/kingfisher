@@ -197,7 +197,7 @@ export function SharedEvaluationsSection({
           <input
             aria-label="Your name in the file (optional)"
             placeholder="Your name in the file (optional)"
-            className="h-7 min-w-0 flex-1 rounded-[5px] border border-line bg-surface-inset px-2 text-[11px] text-primary"
+            className="h-7 min-w-0 flex-1 rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-[11px] text-primary"
             value={name}
             onChange={(event) => setName(event.target.value)}
           />
@@ -218,7 +218,7 @@ export function SharedEvaluationsSection({
               <div className="group flex items-baseline gap-2">
                 <span
                   className={cn(
-                    'w-[52px] shrink-0 rounded-[5px] px-1 py-0.5 text-center text-xs font-medium tabular',
+                    'w-[52px] shrink-0 rounded-[var(--radius-control)] px-1 py-0.5 text-center text-xs font-medium tabular',
                     scoreTone({ score: row.score }),
                   )}
                 >

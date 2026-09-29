@@ -630,7 +630,7 @@ function NotationSection({
           type="button"
           onClick={toggle}
           aria-expanded={!folded}
-          className="-ml-1 flex h-7 min-w-0 flex-1 items-center gap-1.5 rounded-[6px] px-1 text-left text-xs font-semibold text-primary hover:bg-surface-2"
+          className="-ml-1 flex h-7 min-w-0 flex-1 items-center gap-1.5 rounded-[var(--radius-control)] px-1 text-left text-xs font-semibold text-primary hover:bg-surface-2"
         >
           <Chevron className="h-3.5 w-3.5 shrink-0 text-tertiary" />
           Notation

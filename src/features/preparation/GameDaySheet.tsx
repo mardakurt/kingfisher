@@ -66,7 +66,7 @@ export function GameDaySheet({
                 <button
                   type="button"
                   onClick={() => onOpen(card)}
-                  className="shrink-0 rounded-[5px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+                  className="shrink-0 rounded-[var(--radius-control)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
                   aria-label={`Open position ${index + 1}`}
                 >
                   <SheetBoard fen={card.fen} className="w-16" />
@@ -158,7 +158,7 @@ function CardEditor({
         <input
           value={why}
           onChange={(event) => setWhy(event.target.value)}
-          className="mt-0.5 h-7 w-full rounded-[6px] border border-line bg-surface-inset px-2 text-[11px] text-primary outline-none focus:border-accent/60"
+          className="mt-0.5 h-7 w-full rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-[11px] text-primary outline-none focus:border-accent/60"
         />
       </label>
       <label className="text-[10px] text-tertiary">
@@ -167,7 +167,7 @@ function CardEditor({
           value={note}
           onChange={(event) => setNote(event.target.value)}
           rows={2}
-          className="mt-0.5 w-full resize-y rounded-[6px] border border-line bg-surface-inset px-2 py-1 text-[11px] leading-relaxed text-primary outline-none focus:border-accent/60"
+          className="mt-0.5 w-full resize-y rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 py-1 text-[11px] leading-relaxed text-primary outline-none focus:border-accent/60"
         />
       </label>
       <div className="flex gap-1.5">

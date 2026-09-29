@@ -81,7 +81,7 @@ export class ErrorBoundary extends Component<Props, State> {
 }
 
 const ACTION =
-  'rounded-[6px] border border-line bg-surface-2 px-2.5 py-1 text-2xs text-primary transition-colors hover:bg-surface-3';
+  'rounded-[var(--radius-control)] border border-line bg-surface-2 px-2.5 py-1 text-2xs text-primary transition-colors hover:bg-surface-3';
 
 export interface RecordedFailure {
   readonly label: string;

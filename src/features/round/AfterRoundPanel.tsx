@@ -263,7 +263,7 @@ export function AfterRoundPanel() {
                 aria-label="Which side you played"
                 value={chosen ?? ''}
                 onChange={(event) => setChosen((event.target.value || null) as Color | null)}
-                className="h-6 rounded-[5px] border border-line bg-surface-inset px-1.5 text-[10.5px] text-secondary"
+                className="h-6 rounded-[var(--radius-control)] border border-line bg-surface-inset px-1.5 text-[10.5px] text-secondary"
               >
                 <option value="">Choose…</option>
                 <option value="w">White</option>
@@ -445,7 +445,7 @@ export function AfterRoundPanel() {
                         aria-label="How much a move must cost to be written down"
                         value={threshold}
                         onChange={(event) => setThreshold(event.target.value as CostThreshold)}
-                        className="ml-1 h-6 rounded-[5px] border border-line bg-surface-inset px-1 text-[11px] text-primary"
+                        className="ml-1 h-6 rounded-[var(--radius-control)] border border-line bg-surface-inset px-1 text-[11px] text-primary"
                       >
                         <option value="everything">3 points of win chance or more</option>
                         <option value="noticeable">10 points or more</option>
@@ -480,7 +480,7 @@ export function AfterRoundPanel() {
                 onChange={(event) => setNote(event.target.value)}
                 disabled={busy}
                 placeholder="The one thing this game taught. “I spent 20 minutes on move 14 and 30 seconds on move 32.”"
-                className="w-full rounded-[5px] border border-line bg-surface-inset px-2 py-1.5 text-[11.5px] text-primary outline-none focus:border-accent/60"
+                className="w-full rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 py-1.5 text-[11.5px] text-primary outline-none focus:border-accent/60"
               />
               <div className="mt-2 flex items-center gap-2">
                 <Button

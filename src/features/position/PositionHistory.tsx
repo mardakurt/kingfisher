@@ -176,7 +176,7 @@ function YearChart({ years }: { readonly years: readonly YearCount[] }) {
         preserveAspectRatio="none"
         role="img"
         aria-label={`Games per year from ${years[0]!.year} to ${years.at(-1)!.year}`}
-        className="block h-16 w-full rounded-[6px] bg-surface-inset"
+        className="block h-16 w-full rounded-[var(--radius-control)] bg-surface-inset"
       >
         {years.map((year, index) => {
           const height = (year.games / most) * 44;

@@ -447,7 +447,7 @@ function FeedbackBody(props: {
             <label
               key={value}
               className={cn(
-                'flex cursor-pointer items-center gap-2 rounded-md border border-line-subtle px-2 py-1.5',
+                'flex cursor-pointer items-center gap-2 rounded-[var(--radius-control)] border border-line-subtle px-2 py-1.5',
                 category === value ? 'bg-accent/10 ring-1 ring-accent' : 'bg-surface-2',
               )}
             >
@@ -472,7 +472,7 @@ function FeedbackBody(props: {
           onChange={(event) => onMessageChange(event.target.value)}
           maxLength={maxMessage}
           rows={6}
-          className="resize-y rounded-md border border-line-subtle bg-surface-2 px-2 py-1.5 text-sm"
+          className="resize-y rounded-[var(--radius-control)] border border-line-subtle bg-surface-2 px-2 py-1.5 text-sm"
           placeholder="Describe what you saw, what you expected, and how to reproduce it."
         />
         <span className="text-right text-[11px] text-tertiary">
@@ -507,7 +507,7 @@ function FeedbackBody(props: {
         />
       </label>
       {includeTechnical && (
-        <details className="rounded-md border border-line-subtle bg-surface-2 p-2 text-[11px]">
+        <details className="rounded-[var(--radius-control)] border border-line-subtle bg-surface-2 p-2 text-[11px]">
           <summary className="cursor-pointer font-medium">What will be included?</summary>
           <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap break-all">
             {previewTechnical ?? 'Collecting…'}
@@ -518,18 +518,18 @@ function FeedbackBody(props: {
         </details>
       )}
       {result?.ok && (
-        <p className="rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2 py-1.5 text-[11px] text-emerald-700">
+        <p className="rounded-[var(--radius-control)] border border-emerald-500/40 bg-emerald-500/10 px-2 py-1.5 text-[11px] text-emerald-700">
           Thanks. Your feedback was sent. Reference {result.reference}.
         </p>
       )}
       {result && !result.ok && (
-        <p className="rounded-md border border-rose-500/40 bg-rose-500/10 px-2 py-1.5 text-[11px] text-rose-700">
+        <p className="rounded-[var(--radius-control)] border border-rose-500/40 bg-rose-500/10 px-2 py-1.5 text-[11px] text-rose-700">
           {result.message}
         </p>
       )}
       {unconfigured && (
         <p
-          className="rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-1.5 text-[11px] text-amber-800"
+          className="rounded-[var(--radius-control)] border border-amber-500/40 bg-amber-500/10 px-2 py-1.5 text-[11px] text-amber-800"
           role="status"
         >
           Direct feedback is not currently configured. Use <strong>Copy feedback</strong> or{' '}

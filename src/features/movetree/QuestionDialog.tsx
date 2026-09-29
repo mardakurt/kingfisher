@@ -79,7 +79,7 @@ export function QuestionDialog({
         <label className="block text-xs text-secondary">
           Question
           <input
-            className="mt-1 h-8 w-full rounded-[6px] border border-line bg-surface-inset px-2 text-sm text-primary outline-none focus:border-accent/60"
+            className="mt-1 h-8 w-full rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-sm text-primary outline-none focus:border-accent/60"
             value={prompt}
             onChange={(event) => setPrompt(event.target.value)}
             autoFocus
@@ -89,7 +89,7 @@ export function QuestionDialog({
           <label className="block flex-1 text-xs text-secondary">
             Points (optional)
             <input
-              className="mt-1 h-8 w-full rounded-[6px] border border-line bg-surface-inset px-2 text-sm text-primary outline-none focus:border-accent/60"
+              className="mt-1 h-8 w-full rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-sm text-primary outline-none focus:border-accent/60"
               inputMode="numeric"
               placeholder="none"
               value={points}
@@ -99,7 +99,7 @@ export function QuestionDialog({
           <label className="block flex-1 text-xs text-secondary">
             Time limit in seconds (optional)
             <input
-              className="mt-1 h-8 w-full rounded-[6px] border border-line bg-surface-inset px-2 text-sm text-primary outline-none focus:border-accent/60"
+              className="mt-1 h-8 w-full rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-sm text-primary outline-none focus:border-accent/60"
               inputMode="numeric"
               placeholder="untimed"
               value={seconds}

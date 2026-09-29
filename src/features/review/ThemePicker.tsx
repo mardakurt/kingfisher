@@ -127,7 +127,7 @@ export function ThemePicker({
           }}
           placeholder="Add your own theme"
           aria-label="Add your own theme"
-          className="h-7 min-w-0 flex-1 rounded-[6px] border border-line bg-surface-inset px-2 text-[11px] text-primary outline-none focus:border-accent/60"
+          className="h-7 min-w-0 flex-1 rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-[11px] text-primary outline-none focus:border-accent/60"
         />
         <Button onClick={() => void addCustom()} disabled={!adding.trim() || busy}>
           Add

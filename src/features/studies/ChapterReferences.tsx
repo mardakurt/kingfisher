@@ -119,7 +119,7 @@ export function ChapterReferences({ chapter }: { readonly chapter: ChapterRecord
                   {rows.map((entry) => (
                     <li
                       key={entry.reference.id}
-                      className="flex items-center gap-2 rounded-[6px] border border-line-subtle bg-surface-inset p-2"
+                      className="flex items-center gap-2 rounded-[var(--radius-control)] border border-line-subtle bg-surface-inset p-2"
                     >
                       <button
                         type="button"

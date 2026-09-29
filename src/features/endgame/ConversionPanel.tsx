@@ -214,7 +214,7 @@ export function ConversionPanel({
                 <select
                   value={side}
                   onChange={(event) => setSide(event.target.value as Color)}
-                  className="mt-1 h-9 w-full rounded-[6px] border border-line bg-surface-inset px-2 text-sm text-primary"
+                  className="mt-1 h-9 w-full rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-sm text-primary"
                 >
                   <option value="w">White</option>
                   <option value="b">Black</option>
@@ -225,7 +225,7 @@ export function ConversionPanel({
                 <select
                   value={strength}
                   onChange={(event) => setStrength(event.target.value as OpponentStrength)}
-                  className="mt-1 h-9 w-full rounded-[6px] border border-line bg-surface-inset px-2 text-sm text-primary"
+                  className="mt-1 h-9 w-full rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-sm text-primary"
                 >
                   {(Object.keys(OPPONENT_STRENGTH_LABEL) as readonly OpponentStrength[]).map(
                     (id) => (
@@ -325,7 +325,7 @@ export function ConversionPanel({
             role="status"
             data-conversion-change
             className={cn(
-              'mt-3 rounded-[6px] border px-2.5 py-2 text-xs leading-relaxed',
+              'mt-3 rounded-[var(--radius-control)] border px-2.5 py-2 text-xs leading-relaxed',
               change.direction === 'worse'
                 ? 'border-caution/40 bg-caution/10 text-primary'
                 : 'border-positive/40 bg-positive/10 text-primary',
@@ -339,7 +339,7 @@ export function ConversionPanel({
           <p
             role="status"
             data-conversion-ending
-            className="mt-3 rounded-[6px] border border-line bg-surface-2 px-2.5 py-2 text-xs leading-relaxed text-primary"
+            className="mt-3 rounded-[var(--radius-control)] border border-line bg-surface-2 px-2.5 py-2 text-xs leading-relaxed text-primary"
           >
             {describeEnding(session.ending, session.side)}
           </p>

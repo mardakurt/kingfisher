@@ -292,7 +292,7 @@ export function DailyWorkspace() {
                     onClick={() => openOnBoard(card)}
                     aria-current={card.id === currentId ? 'true' : undefined}
                     className={cn(
-                      'w-full rounded-[6px] px-2 py-1.5 text-left transition-colors hover:bg-surface-2',
+                      'w-full rounded-[var(--radius-control)] px-2 py-1.5 text-left transition-colors hover:bg-surface-2',
                       card.id === currentId && 'bg-accent/10 ring-1 ring-accent/40',
                       graded.has(card.id) && 'opacity-60',
                     )}

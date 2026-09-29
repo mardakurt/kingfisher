@@ -343,7 +343,7 @@ export function ExplorerPanel() {
         */}
         <span className="flex min-w-0 items-baseline gap-1.5 font-normal">
           {opening?.eco ? (
-            <span className="shrink-0 rounded-[5px] bg-surface-3 px-1 font-mono text-[10px] text-accent-ink">
+            <span className="shrink-0 rounded-[var(--radius-control)] bg-surface-3 px-1 font-mono text-[10px] text-accent-ink">
               {opening.eco}
             </span>
           ) : null}
@@ -378,7 +378,7 @@ export function ExplorerPanel() {
         />
         {bundledMissing ? (
           <p
-            className="mt-1 rounded-[6px] border border-caution/40 bg-caution/10 px-2 py-1 text-[10.5px] text-secondary"
+            className="mt-1 rounded-[var(--radius-control)] border border-caution/40 bg-caution/10 px-2 py-1 text-[10.5px] text-secondary"
             role="status"
             data-testid="bundled-reference-state"
           >
@@ -418,13 +418,13 @@ export function ExplorerPanel() {
               onChange={(event) => setPlayer(event.target.value)}
               placeholder="Exact Lichess username"
               aria-label="Lichess player"
-              className="h-8 min-w-0 flex-1 rounded-[6px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
+              className="h-8 min-w-0 flex-1 rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
             />
             <select
               value={playerColor}
               onChange={(event) => setPlayerColor(event.target.value as 'w' | 'b')}
               aria-label="Player colour"
-              className="h-8 rounded-[6px] border border-line bg-surface-inset px-2 text-xs text-primary"
+              className="h-8 rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-xs text-primary"
             >
               <option value="w">as White</option>
               <option value="b">as Black</option>
@@ -456,7 +456,7 @@ export function ExplorerPanel() {
                     Number(event.target.value.replace(/\D/g, '')) || null,
                   )
                 }
-                className="mt-0.5 block h-6 w-[70px] rounded-[5px] border border-line bg-surface-inset px-1.5 text-[10.5px] text-primary outline-none focus:border-accent/60"
+                className="mt-0.5 block h-6 w-[70px] rounded-[var(--radius-control)] border border-line bg-surface-inset px-1.5 text-[10.5px] text-primary outline-none focus:border-accent/60"
               />
             </label>
             <label className="text-[10px] text-tertiary">
@@ -470,7 +470,7 @@ export function ExplorerPanel() {
                     Number(event.target.value.replace(/\D/g, '').slice(0, 4)) || null,
                   )
                 }
-                className="mt-0.5 block h-6 w-[70px] rounded-[5px] border border-line bg-surface-inset px-1.5 text-[10.5px] text-primary outline-none focus:border-accent/60"
+                className="mt-0.5 block h-6 w-[70px] rounded-[var(--radius-control)] border border-line bg-surface-inset px-1.5 text-[10.5px] text-primary outline-none focus:border-accent/60"
               />
             </label>
             <Button

@@ -355,7 +355,7 @@ export function CanonicalBoardSurface({
                 aria-hidden
                 data-board-blindfold
               >
-                <span className="rounded-[6px] bg-surface-2/90 px-2 py-1 text-[10px] text-tertiary">
+                <span className="rounded-[var(--radius-control)] bg-surface-2/90 px-2 py-1 text-[10px] text-tertiary">
                   Pieces hidden
                 </span>
               </div>
@@ -365,7 +365,7 @@ export function CanonicalBoardSurface({
       </div>
       {capture ? (
         <p
-          className="mx-auto mt-1.5 w-full max-w-[860px] shrink-0 rounded-[6px] border border-accent/40 bg-accent/10 px-2.5 py-1 text-center text-[10.5px] text-primary"
+          className="mx-auto mt-1.5 w-full max-w-[860px] shrink-0 rounded-[var(--radius-control)] border border-accent/40 bg-accent/10 px-2.5 py-1 text-center text-[10.5px] text-primary"
           data-board-capture
           role="status"
         >

@@ -35,7 +35,7 @@ export function CollectionList({
       {collections.map((collection) => (
         <li key={collection.id} className="mb-1 flex items-stretch gap-1">
           <label
-            className="flex shrink-0 cursor-pointer items-center rounded-[6px] px-1.5 hover:bg-surface-2"
+            className="flex shrink-0 cursor-pointer items-center rounded-[var(--radius-control)] px-1.5 hover:bg-surface-2"
             title={`Include ${collection.name} in multi-collection search and duplicate detection`}
           >
             <input
@@ -51,7 +51,7 @@ export function CollectionList({
             onClick={() => onFocus(collection.id)}
             aria-current={collection.id === focusedId}
             className={cn(
-              'flex min-w-0 flex-1 items-start gap-2 rounded-[6px] border px-2 py-2 text-left transition-colors',
+              'flex min-w-0 flex-1 items-start gap-2 rounded-[var(--radius-control)] border px-2 py-2 text-left transition-colors',
               collection.id === focusedId
                 ? 'border-accent/70 bg-accent-muted'
                 : 'border-transparent hover:border-line hover:bg-surface-2',
@@ -119,7 +119,7 @@ export function StatusChip({
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1 rounded-[5px] border px-1.5 py-0.5 text-[10px]',
+        'inline-flex items-center gap-1 rounded-[var(--radius-control)] border px-1.5 py-0.5 text-[10px]',
         state === 'good'
           ? 'border-positive/40 bg-positive/10 text-positive'
           : state === 'warn'

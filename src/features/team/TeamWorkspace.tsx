@@ -403,7 +403,7 @@ export function TeamWorkspace() {
               setSelectedId(null);
               clearFilters();
             }}
-            className="h-6 min-w-0 flex-1 rounded-[5px] border border-line bg-surface-inset px-1.5 text-[11px] text-primary outline-none focus:border-accent/60"
+            className="h-6 min-w-0 flex-1 rounded-[var(--radius-control)] border border-line bg-surface-inset px-1.5 text-[11px] text-primary outline-none focus:border-accent/60"
           >
             {teams.data?.map((entry) => (
               <option key={entry.id} value={entry.id}>

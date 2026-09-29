@@ -497,7 +497,7 @@ function TrainingAuthoringEditor({
             <input
               value={prompt}
               onChange={(event) => setPrompt(event.target.value)}
-              className="mt-1 h-8 w-full rounded-[6px] border border-line bg-surface-inset px-2 text-xs text-primary"
+              className="mt-1 h-8 w-full rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-xs text-primary"
             />
           </label>
           <label className="block text-2xs text-tertiary">
@@ -505,7 +505,7 @@ function TrainingAuthoringEditor({
             <textarea
               value={explanation}
               onChange={(event) => setExplanation(event.target.value)}
-              className="mt-1 h-16 w-full rounded-[6px] border border-line bg-surface-inset px-2 py-1 text-xs text-primary"
+              className="mt-1 h-16 w-full rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 py-1 text-xs text-primary"
             />
           </label>
           <label className="block text-2xs text-tertiary">
@@ -514,7 +514,7 @@ function TrainingAuthoringEditor({
               value={tags}
               onChange={(event) => setTags(event.target.value)}
               placeholder="opening, calculation"
-              className="mt-1 h-8 w-full rounded-[6px] border border-line bg-surface-inset px-2 text-xs text-primary"
+              className="mt-1 h-8 w-full rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-xs text-primary"
             />
           </label>
           <Button variant="accent" type="submit" disabled={!prompt.trim()}>

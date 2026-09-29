@@ -319,7 +319,7 @@ export function StudiesWorkspace() {
             setChosenStudyId(event.target.value as StudyId);
             setChosenChapterId(null);
           }}
-          className="h-8 min-w-0 flex-1 rounded-[6px] border border-line bg-surface-inset px-2 text-xs text-primary"
+          className="h-8 min-w-0 flex-1 rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-xs text-primary"
         >
           {list.length === 0 ? (
             <option value="">
@@ -377,7 +377,7 @@ export function StudiesWorkspace() {
                   tags: parseTagInput(event.target.value),
                 })
               }
-              className="mt-0.5 h-7 w-full rounded-[5px] border border-line bg-surface-inset px-1.5 text-[11px] text-primary"
+              className="mt-0.5 h-7 w-full rounded-[var(--radius-control)] border border-line bg-surface-inset px-1.5 text-[11px] text-primary"
             />
           </label>
         </div>
@@ -437,7 +437,7 @@ export function StudiesWorkspace() {
                 key={entry.id}
                 data-chapter-row={entry.id}
                 className={cn(
-                  'rounded-[6px]',
+                  'rounded-[var(--radius-control)]',
                   entry.id === chapterId ? 'bg-accent-muted' : 'hover:bg-surface-2',
                 )}
               >
@@ -486,7 +486,7 @@ export function StudiesWorkspace() {
                             tags: parseTagInput(event.target.value),
                           })
                         }
-                        className="mt-0.5 h-7 w-full rounded-[5px] border border-line bg-surface-inset px-1.5 text-[11px] text-primary"
+                        className="mt-0.5 h-7 w-full rounded-[var(--radius-control)] border border-line bg-surface-inset px-1.5 text-[11px] text-primary"
                       />
                     </label>
                   </div>

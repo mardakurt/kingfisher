@@ -58,7 +58,7 @@ export function NotesPanel() {
               ? 'What is this game or position about?'
               : 'What is the idea? What did you miss? What should you remember?'
           }
-          className="h-28 w-full resize-none rounded-[6px] border border-line bg-surface-inset px-2.5 py-2 text-xs leading-relaxed text-primary outline-none placeholder:text-tertiary/70 focus:border-accent/60"
+          className="h-28 w-full resize-none rounded-[var(--radius-control)] border border-line bg-surface-inset px-2.5 py-2 text-xs leading-relaxed text-primary outline-none placeholder:text-tertiary/70 focus:border-accent/60"
         />
 
         {isRoot ? (
@@ -117,7 +117,7 @@ const NagGroup = ({ title, nags, active, onToggle }: NagGroupProps) => (
           aria-pressed={active.includes(nag.code)}
           onClick={() => onToggle(nag.code)}
           className={cn(
-            'h-6 min-w-7 rounded-[6px] border px-1.5 text-xs transition-colors',
+            'h-6 min-w-7 rounded-[var(--radius-control)] border px-1.5 text-xs transition-colors',
             active.includes(nag.code)
               ? 'border-accent bg-accent-muted text-primary'
               : 'border-line bg-surface-2 text-secondary hover:border-line-strong hover:text-primary',

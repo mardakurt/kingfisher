@@ -185,7 +185,7 @@ function PerMoveSection({
             title={`Move ${row.moveNumber} · ${formatThink(row.averageSeconds)} avg · ${row.gamesCounted} game(s)${row.anyInTimeTrouble ? ' · in time trouble' : ''}`}
           >
             <div
-              className="w-full rounded-sm"
+              className="w-full rounded-[var(--radius-board)]"
               style={{
                 height: `${Math.max(2, (row.averageSeconds / maxAvg) * 100)}%`,
                 background: row.anyInTimeTrouble ? 'var(--accent)' : 'var(--border-strong)',
@@ -223,7 +223,7 @@ function LongestPositionsSection({
         {section.longestPositions.map((row) => (
           <li
             key={row.positionKey}
-            className="rounded-md border border-line-subtle bg-surface-1 p-2"
+            className="rounded-[var(--radius-control)] border border-line-subtle bg-surface-1 p-2"
           >
             <div className="flex items-baseline justify-between gap-2">
               <Link

@@ -84,7 +84,7 @@ export function EvaluationGraph({ tree, currentId, onSelect, className }: Evalua
       <figure
         data-evaluation-graph="empty"
         className={cn(
-          'flex min-w-0 items-center justify-center rounded-[5px] border border-dashed border-line-subtle bg-surface-inset px-3 py-2',
+          'flex min-w-0 items-center justify-center rounded-[var(--radius-control)] border border-dashed border-line-subtle bg-surface-inset px-3 py-2',
           className,
         )}
       >
@@ -116,7 +116,7 @@ export function EvaluationGraph({ tree, currentId, onSelect, className }: Evalua
           preserveAspectRatio="none"
           role="img"
           aria-label={`Evaluation over ${columns.length} plies, ${evaluated} of them analysed`}
-          className="block h-12 w-full rounded-[5px] border border-line-subtle bg-eval-track"
+          className="block h-12 w-full rounded-[var(--radius-control)] border border-line-subtle bg-eval-track"
         >
           {columns.map((column, index) => {
             if (column.advantage === null) return null;

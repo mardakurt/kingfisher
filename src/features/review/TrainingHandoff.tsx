@@ -85,7 +85,7 @@ export function TrainingHandoff({
           value={choice}
           onChange={(event) => setChoice(event.target.value)}
           aria-label="Training set"
-          className="mt-1 h-7 w-full rounded-[6px] border border-line bg-surface-inset px-2 text-[11px] text-primary outline-none focus:border-accent/60"
+          className="mt-1 h-7 w-full rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-[11px] text-primary outline-none focus:border-accent/60"
         >
           <option value="">No set</option>
           {(sets.data ?? []).map((set) => (
@@ -105,7 +105,7 @@ export function TrainingHandoff({
             onChange={(event) => setNewName(event.target.value)}
             placeholder="Trade decisions"
             aria-label="New set name"
-            className="mt-1 h-7 w-full rounded-[6px] border border-line bg-surface-inset px-2 text-[11px] text-primary outline-none focus:border-accent/60"
+            className="mt-1 h-7 w-full rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-[11px] text-primary outline-none focus:border-accent/60"
           />
         </label>
       ) : null}

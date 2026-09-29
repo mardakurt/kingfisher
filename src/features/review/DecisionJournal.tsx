@@ -49,7 +49,7 @@ import { ScheduleReview } from './ScheduleReview';
 import { draftEstimate, hasAnswers, useReviewSession } from './review-session-store';
 
 const FIELD =
-  'mt-1 w-full rounded-[6px] border border-line bg-surface-inset px-2.5 py-1.5 text-xs text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60';
+  'mt-1 w-full rounded-[var(--radius-control)] border border-line bg-surface-inset px-2.5 py-1.5 text-xs text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60';
 
 export function DecisionJournal({
   decision,
@@ -266,7 +266,7 @@ export function DecisionJournal({
               {answers.candidates.map((candidate) => (
                 <li
                   key={candidate.uci}
-                  className="rounded-[6px] border border-line-subtle bg-surface-inset p-2"
+                  className="rounded-[var(--radius-control)] border border-line-subtle bg-surface-inset p-2"
                 >
                   <div className="flex items-center gap-2">
                     <button
@@ -279,7 +279,7 @@ export function DecisionJournal({
                       }
                       aria-pressed={answers.chosenUci === candidate.uci}
                       className={cn(
-                        'rounded-[5px] border px-1.5 py-0.5 text-[11px] tabular',
+                        'rounded-[var(--radius-control)] border px-1.5 py-0.5 text-[11px] tabular',
                         answers.chosenUci === candidate.uci
                           ? 'border-accent bg-accent-muted text-primary'
                           : 'border-line text-secondary hover:text-primary',
@@ -338,7 +338,7 @@ export function DecisionJournal({
                 aria-checked={answers.band === band.id}
                 onClick={() => setAnswers({ band: answers.band === band.id ? undefined : band.id })}
                 className={cn(
-                  'w-full rounded-[6px] border px-2.5 py-1.5 text-left text-xs transition-colors',
+                  'w-full rounded-[var(--radius-control)] border px-2.5 py-1.5 text-left text-xs transition-colors',
                   answers.band === band.id
                     ? 'border-accent bg-accent-muted text-primary'
                     : 'border-line-subtle text-secondary hover:border-line hover:text-primary',

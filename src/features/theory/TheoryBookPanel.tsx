@@ -97,7 +97,7 @@ export function TheoryBookPanel() {
     <button
       type="button"
       onClick={toStart}
-      className="rounded-[5px] px-1 py-1 text-xs text-secondary hover:bg-surface-2 active:bg-surface-press"
+      className="rounded-[var(--radius-control)] px-1 py-1 text-xs text-secondary hover:bg-surface-2 active:bg-surface-press"
     >
       All openings
     </button>
@@ -227,7 +227,7 @@ export function TheoryBookPanel() {
                 type="button"
                 onClick={() => openLine(crumb.moves)}
                 className={cn(
-                  'rounded-[5px] px-1 py-0.5 text-xs hover:bg-surface-2 active:bg-surface-press',
+                  'rounded-[var(--radius-control)] px-1 py-0.5 text-xs hover:bg-surface-2 active:bg-surface-press',
                   index === crumbs.length - 1 ? 'font-semibold text-primary' : 'text-secondary',
                 )}
               >

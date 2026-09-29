@@ -312,7 +312,7 @@ export function RecentWorkspace() {
               <Link
                 key={entry.href}
                 href={entry.href}
-                className="inline-flex h-9 items-center gap-2 rounded-[7px] border border-line px-2.5 text-xs text-secondary transition-colors hover:border-line-strong hover:bg-surface-2 active:bg-surface-press hover:text-primary"
+                className="inline-flex h-9 items-center gap-2 rounded-[var(--radius-control)] border border-line px-2.5 text-xs text-secondary transition-colors hover:border-line-strong hover:bg-surface-2 active:bg-surface-press hover:text-primary"
               >
                 <Icon className="h-4 w-4 shrink-0" />
                 {entry.label}
@@ -419,7 +419,7 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="min-w-0 rounded-[7px] border border-line-subtle bg-surface-1">
+    <section className="min-w-0 rounded-[var(--radius-control)] border border-line-subtle bg-surface-1">
       <h2 className="flex items-center gap-2 border-b border-line-subtle px-3 py-2 text-xs font-semibold text-tertiary">
         <span className="[&>svg]:h-4 [&>svg]:w-4">{icon}</span>
         {title}

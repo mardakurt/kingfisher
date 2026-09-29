@@ -105,7 +105,7 @@ export function SeasonPicker({ games, predicate }: SeasonPickerProps) {
             aria-label="Days"
             value={predicate?.value ?? '90'}
             onChange={(event) => navigateTo({ kind: 'last', value: event.target.value })}
-            className="rounded-md border border-line-subtle bg-surface-1 px-2 py-1 text-sm"
+            className="rounded-[var(--radius-control)] border border-line-subtle bg-surface-1 px-2 py-1 text-sm"
           >
             {SEASON_LAST_DAYS.map((days) => (
               <option key={days} value={days}>
@@ -122,7 +122,7 @@ export function SeasonPicker({ games, predicate }: SeasonPickerProps) {
             aria-label={KIND_LABEL[kind]}
             value={predicate?.value ?? ''}
             onChange={(event) => setValue(event.target.value)}
-            className="rounded-md border border-line-subtle bg-surface-1 px-2 py-1 text-sm"
+            className="rounded-[var(--radius-control)] border border-line-subtle bg-surface-1 px-2 py-1 text-sm"
           >
             {options.map((opt) => (
               <option key={opt} value={opt}>

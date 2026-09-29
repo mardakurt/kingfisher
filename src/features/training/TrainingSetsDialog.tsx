@@ -118,7 +118,7 @@ export function TrainingSetsDialog({
             <button
               type="button"
               onClick={() => onSelect(null)}
-              className="mt-2 flex w-full items-center rounded-[6px] px-2 py-1.5 text-left text-xs text-secondary hover:bg-surface-2"
+              className="mt-2 flex w-full items-center rounded-[var(--radius-control)] px-2 py-1.5 text-left text-xs text-secondary hover:bg-surface-2"
             >
               All training <span className="ml-auto text-tertiary">{items.length}</span>
             </button>
@@ -127,7 +127,7 @@ export function TrainingSetsDialog({
                 key={set.id}
                 type="button"
                 onClick={() => onSelect(set.id)}
-                className="mt-1 flex w-full items-center rounded-[6px] px-2 py-1.5 text-left text-xs text-secondary hover:bg-surface-2"
+                className="mt-1 flex w-full items-center rounded-[var(--radius-control)] px-2 py-1.5 text-left text-xs text-secondary hover:bg-surface-2"
               >
                 <span className="min-w-0 flex-1 truncate">{set.name}</span>
                 <span className="ml-2 text-[10px] text-tertiary">{counts.get(set.id) ?? 0}</span>
@@ -223,7 +223,7 @@ export function TrainingSetsDialog({
                   </select>
                 </label>
                 {kind === 'dynamic' ? (
-                  <div className="mt-2 space-y-2 rounded-[6px] border border-line-subtle p-2">
+                  <div className="mt-2 space-y-2 rounded-[var(--radius-control)] border border-line-subtle p-2">
                     <label className="block text-2xs text-tertiary">
                       Themes (comma separated)
                       <input
@@ -285,4 +285,4 @@ export function TrainingSetsDialog({
 }
 
 const FIELD =
-  'mt-1 h-8 w-full rounded-[6px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60';
+  'mt-1 h-8 w-full rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60';

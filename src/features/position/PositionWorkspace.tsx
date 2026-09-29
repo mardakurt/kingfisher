@@ -35,8 +35,9 @@ import {
 const NO_PROVIDERS: readonly ChessDatabaseProvider[] = [];
 const serverProviders = () => NO_PROVIDERS;
 const rowClass =
-  'block w-full rounded-md border border-line-subtle bg-surface-1 p-3 text-left text-sm hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-accent';
-const sectionClass = 'min-w-0 rounded-lg border border-line-subtle bg-surface-1 p-4';
+  'block w-full rounded-[var(--radius-control)] border border-line-subtle bg-surface-1 p-3 text-left text-sm hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-accent';
+const sectionClass =
+  'min-w-0 rounded-[var(--radius-panel)] border border-line-subtle bg-surface-1 p-4';
 const headingClass = 'mb-2 text-sm font-semibold text-primary';
 
 export function PositionWorkspace() {
@@ -346,7 +347,7 @@ function ReferenceColumn({
   });
   return (
     <section
-      className="min-w-0 rounded-md border border-line-subtle p-3"
+      className="min-w-0 rounded-[var(--radius-control)] border border-line-subtle p-3"
       data-position-source={provider.id}
     >
       <h3 className="text-sm font-medium text-primary">{provider.name}</h3>
@@ -420,7 +421,10 @@ function EngineEvidence({ identity }: { readonly identity: PositionIdentity }) {
           ) : (
             <ul className="space-y-2">
               {evidence.data.pinned.value.map((line) => (
-                <li key={line.id} className="rounded-md border border-line-subtle p-3 text-sm">
+                <li
+                  key={line.id}
+                  className="rounded-[var(--radius-control)] border border-line-subtle p-3 text-sm"
+                >
                   <p>
                     {line.engineName} {line.engineVersion ?? ''} · depth {line.depth} ·{' '}
                     {formatScore(line.score)}
@@ -445,7 +449,10 @@ function EngineEvidence({ identity }: { readonly identity: PositionIdentity }) {
           ) : (
             <ul className="space-y-2">
               {evidence.data.queued.value.map((line) => (
-                <li key={line.id} className="rounded-md border border-line-subtle p-3 text-sm">
+                <li
+                  key={line.id}
+                  className="rounded-[var(--radius-control)] border border-line-subtle p-3 text-sm"
+                >
                   <p>
                     {line.engineName} · depth {line.depth} · {formatScore(line.score)}
                   </p>

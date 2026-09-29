@@ -142,7 +142,7 @@ export function SavedQueries(props: {
           return (
             <li
               key={record.id}
-              className="rounded-[6px] border border-line bg-surface-inset p-2 text-xs"
+              className="rounded-[var(--radius-control)] border border-line bg-surface-inset p-2 text-xs"
               data-saved-query={record.name}
             >
               <div className="font-medium text-primary">{record.name}</div>

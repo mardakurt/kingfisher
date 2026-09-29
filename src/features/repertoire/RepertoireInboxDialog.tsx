@@ -199,7 +199,7 @@ export function RepertoireInboxDialog({
               <li
                 key={item.id}
                 data-inbox-item={item.kind}
-                className="rounded-[6px] border border-line bg-surface-inset p-2.5"
+                className="rounded-[var(--radius-control)] border border-line bg-surface-inset p-2.5"
               >
                 <p className="text-[10.5px] font-semibold text-tertiary">
                   {INBOX_KIND_LABEL[item.kind]}
@@ -219,7 +219,7 @@ export function RepertoireInboxDialog({
                       <li key={entry.id}>
                         <button
                           type="button"
-                          className="rounded-[5px] border border-line px-1.5 py-0.5 text-[10.5px] text-secondary hover:bg-surface-2"
+                          className="rounded-[var(--radius-control)] border border-line px-1.5 py-0.5 text-[10.5px] text-secondary hover:bg-surface-2"
                           onClick={() => void openGame(entry.id, entry.ply)}
                         >
                           {entry.title}
@@ -252,7 +252,7 @@ export function RepertoireInboxDialog({
                     onChange={(event) =>
                       setReasons((current) => ({ ...current, [item.id]: event.target.value }))
                     }
-                    className="h-7 min-w-[160px] flex-1 rounded-[5px] border border-line bg-surface-1 px-1.5 text-[11px]"
+                    className="h-7 min-w-[160px] flex-1 rounded-[var(--radius-control)] border border-line bg-surface-1 px-1.5 text-[11px]"
                   />
                   <Button
                     size="sm"

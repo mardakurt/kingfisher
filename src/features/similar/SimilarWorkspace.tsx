@@ -282,7 +282,7 @@ export function SimilarWorkspace() {
       </section>
       {stale ? (
         <p
-          className="rounded-[6px] border border-caution/40 bg-caution/10 p-2 text-2xs text-caution"
+          className="rounded-[var(--radius-control)] border border-caution/40 bg-caution/10 p-2 text-2xs text-caution"
           role="status"
         >
           The board has moved since this search. These results are for the earlier position.
@@ -316,7 +316,7 @@ export function SimilarWorkspace() {
                   <li key={`${row.game.id}:${row.position.ply}`}>
                     <button
                       type="button"
-                      className="w-full rounded-[6px] border border-line px-2 py-1.5 text-left hover:bg-surface-2"
+                      className="w-full rounded-[var(--radius-control)] border border-line px-2 py-1.5 text-left hover:bg-surface-2"
                       onClick={() => void openMine(row)}
                     >
                       <span className="block truncate text-primary">{gameTitle(row.game)}</span>
@@ -347,7 +347,7 @@ export function SimilarWorkspace() {
                   <li key={`${collection.key}:${row.game.id}:${row.position.ply}`}>
                     <button
                       type="button"
-                      className="w-full rounded-[6px] border border-line px-2 py-1.5 text-left hover:bg-surface-2"
+                      className="w-full rounded-[var(--radius-control)] border border-line px-2 py-1.5 text-left hover:bg-surface-2"
                       onClick={() => void openCollectionGame(collection, row)}
                     >
                       <span className="block truncate text-primary">{gameTitle(row.game)}</span>
@@ -375,7 +375,7 @@ export function SimilarWorkspace() {
             {answer.unanswerable ? (
               <p
                 className={cn(
-                  'rounded-[6px] border border-caution/40 bg-caution/10 p-2 text-caution',
+                  'rounded-[var(--radius-control)] border border-caution/40 bg-caution/10 p-2 text-caution',
                 )}
               >
                 {answer.unanswerable}
@@ -388,7 +388,7 @@ export function SimilarWorkspace() {
                   <li key={`${answer.packId}:${match.game.id}`}>
                     <button
                       type="button"
-                      className="w-full rounded-[6px] border border-line px-2 py-1.5 text-left hover:bg-surface-2"
+                      className="w-full rounded-[var(--radius-control)] border border-line px-2 py-1.5 text-left hover:bg-surface-2"
                       onClick={() =>
                         void openPackGame(
                           answer,

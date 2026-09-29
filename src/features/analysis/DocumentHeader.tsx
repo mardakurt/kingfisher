@@ -57,14 +57,14 @@ export function DocumentHeader() {
               exactly where the board is smallest.
             */
             <span
-              className="shrink-0 rounded-[5px] bg-accent/15 px-1 text-[10px] font-medium text-accent-ink"
+              className="shrink-0 rounded-[var(--radius-control)] bg-accent/15 px-1 text-[10px] font-medium text-accent-ink"
               data-viewer-side={document.viewerSide}
             >
               You played {document.viewerSide === 'w' ? 'White' : 'Black'}
             </span>
           ) : null}
           {document.kind === 'database-game' || document.kind === 'reference-game' ? (
-            <span className="hidden shrink-0 rounded-[5px] bg-surface-3 px-1 text-[10px] text-tertiary wide:inline">
+            <span className="hidden shrink-0 rounded-[var(--radius-control)] bg-surface-3 px-1 text-[10px] text-tertiary wide:inline">
               read-only source
             </span>
           ) : null}
@@ -127,7 +127,7 @@ function DocumentTitle({ document }: { readonly document: AnalysisDocument }) {
       <span
         className={cn(
           'min-w-0 truncate text-[15px] font-semibold tracking-[-0.01em] text-primary',
-          editable && 'cursor-text rounded-[5px] hover:bg-surface-2',
+          editable && 'cursor-text rounded-[var(--radius-control)] hover:bg-surface-2',
         )}
         role={editable ? 'button' : undefined}
         tabIndex={editable ? 0 : undefined}
@@ -190,7 +190,7 @@ function DocumentTitle({ document }: { readonly document: AnalysisDocument }) {
             cancel();
           }
         }}
-        className="block w-full min-w-0 max-w-full rounded-[5px] border border-accent/60 bg-surface-2 px-1 text-[15px] font-semibold text-primary outline-none focus:border-accent"
+        className="block w-full min-w-0 max-w-full rounded-[var(--radius-control)] border border-accent/60 bg-surface-2 px-1 text-[15px] font-semibold text-primary outline-none focus:border-accent"
       />
     </span>
   );

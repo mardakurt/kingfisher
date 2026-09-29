@@ -198,7 +198,7 @@ export function PlayerWorkspace({ playerId }: { readonly playerId: string }) {
                     (PERIODS[0] as PlayerPeriod),
                 )
               }
-              className="h-7 rounded-[6px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
+              className="h-7 rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
             >
               {PERIODS.map((entry) => (
                 <option key={entry.id} value={entry.id}>
@@ -235,7 +235,7 @@ export function PlayerWorkspace({ playerId }: { readonly playerId: string }) {
             onClick={() => setSection(entry.id)}
             aria-current={section === entry.id}
             className={cn(
-              'shrink-0 rounded-[6px] px-2.5 py-1.5 text-xs transition-colors',
+              'shrink-0 rounded-[var(--radius-control)] px-2.5 py-1.5 text-xs transition-colors',
               section === entry.id
                 ? 'bg-accent-muted font-medium text-primary'
                 : 'text-secondary hover:bg-surface-2 hover:text-primary',
@@ -933,7 +933,7 @@ function RosterFacts({ playerKey }: { readonly playerKey: string }) {
 
   return (
     <section
-      className="mb-4 rounded-[7px] border border-line-subtle bg-surface-1 p-4"
+      className="mb-4 rounded-[var(--radius-control)] border border-line-subtle bg-surface-1 p-4"
       data-roster-facts
       data-roster-source={legend ? 'legend' : 'titled'}
     >

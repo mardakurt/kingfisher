@@ -108,7 +108,7 @@ export function DossierPanel({
             {periods.historicalWindow.to}, {periods.recentTotal} from {periods.recentWindow.from}.
           </p>
           {periods.thin ? (
-            <p className="mt-1 rounded-[6px] bg-surface-2 px-2 py-1.5 text-[10px] leading-relaxed text-caution">
+            <p className="mt-1 rounded-[var(--radius-control)] bg-surface-2 px-2 py-1.5 text-[10px] leading-relaxed text-caution">
               Too few games in one window for these shares to mean much. Read the counts, not the
               percentages.
             </p>
@@ -171,7 +171,7 @@ export function DossierPanel({
             <button
               key={print.id}
               type="button"
-              className="flex items-baseline gap-2 rounded-[6px] px-1.5 py-1 text-left transition-colors hover:bg-surface-2 focus-visible:bg-surface-2"
+              className="flex items-baseline gap-2 rounded-[var(--radius-control)] px-1.5 py-1 text-left transition-colors hover:bg-surface-2 focus-visible:bg-surface-2"
               onClick={() => onOpenGames?.(print.gameIds, print.label)}
             >
               <span className="min-w-0 flex-1 truncate text-[11px] text-primary">
@@ -297,7 +297,7 @@ function RecentFormSection({ form }: { readonly form: RecentForm }) {
         <span className="text-negative tabular">{form.losses}L</span>
       </p>
       {/* The strip — each game is one tile, the colour carries the outcome. */}
-      <div className="mt-2 flex flex-wrap gap-px overflow-hidden rounded-[5px]">
+      <div className="mt-2 flex flex-wrap gap-px overflow-hidden rounded-[var(--radius-control)]">
         {form.games.map((game) => (
           <span
             key={game.id}

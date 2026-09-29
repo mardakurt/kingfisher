@@ -59,7 +59,7 @@ export function MiniBoard({
     <div
       style={boardThemeVariables(boardTheme(theme))}
       className={cn(
-        'relative aspect-square w-full overflow-hidden rounded-[3px] border border-line-subtle',
+        'relative aspect-square w-full overflow-hidden rounded-[var(--radius-board)] border border-line-subtle',
         className,
       )}
       aria-hidden

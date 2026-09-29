@@ -101,7 +101,7 @@ export function SourceSetsPanel({ collections, checked, onApply }: SourceSetsPan
                 type="button"
                 onClick={() => onApply(present)}
                 disabled={present.length === 0}
-                className="min-w-0 flex-1 rounded-[6px] px-2 py-1.5 text-left hover:bg-surface-2 disabled:opacity-50"
+                className="min-w-0 flex-1 rounded-[var(--radius-control)] px-2 py-1.5 text-left hover:bg-surface-2 disabled:opacity-50"
               >
                 <span className="block truncate text-xs text-primary">{set.name}</span>
                 <span className="block truncate text-[10px] text-tertiary tabular">

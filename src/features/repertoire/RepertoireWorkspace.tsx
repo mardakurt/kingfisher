@@ -206,7 +206,7 @@ export function RepertoireWorkspace() {
                 setSelectedId(event.target.value);
                 setSelectedPositionId(null);
               }}
-              className="h-8 w-full rounded-[6px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
+              className="h-8 w-full rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
             >
               {list.map((item) => (
                 <option key={item.id} value={item.id}>
@@ -488,7 +488,7 @@ export function RepertoireWorkspace() {
               autoFocus
               value={newTitle}
               onChange={(event) => setNewTitle(event.target.value)}
-              className="mt-1 h-8 w-full rounded-[6px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
+              className="mt-1 h-8 w-full rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
             />
           </label>
           <label className="mt-3 block text-2xs text-tertiary">
@@ -496,7 +496,7 @@ export function RepertoireWorkspace() {
             <select
               value={newColor}
               onChange={(event) => setNewColor(event.target.value as 'w' | 'b')}
-              className="mt-1 h-8 w-full rounded-[6px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
+              className="mt-1 h-8 w-full rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
             >
               <option value="w">White</option>
               <option value="b">Black</option>
@@ -945,7 +945,7 @@ function MoveEditor({
                   onChange={(event) =>
                     void write(move.uci, { role: event.target.value as RepertoireRole })
                   }
-                  className="h-6 rounded-[5px] border border-line bg-surface-inset px-1.5 text-[10.5px] text-secondary outline-none focus:border-accent/60"
+                  className="h-6 rounded-[var(--radius-control)] border border-line bg-surface-inset px-1.5 text-[10.5px] text-secondary outline-none focus:border-accent/60"
                 >
                   {REPERTOIRE_ROLES.map((role) => (
                     <option key={role} value={role}>
@@ -988,7 +988,7 @@ function MoveEditor({
                   value={note}
                   onChange={(event) => setNote(event.target.value)}
                   placeholder="Why this move, and what to remember about it"
-                  className="h-7 min-w-0 flex-1 rounded-[5px] border border-line bg-surface-inset px-2 text-[11px] text-primary outline-none focus:border-accent/60"
+                  className="h-7 min-w-0 flex-1 rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-[11px] text-primary outline-none focus:border-accent/60"
                 />
                 <Button variant="accent" type="submit" disabled={busy === move.uci}>
                   Save

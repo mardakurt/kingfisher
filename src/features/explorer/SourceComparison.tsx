@@ -118,7 +118,7 @@ export function SourceComparison({
             aria-pressed={ids.includes(source.id)}
             disabled={!ids.includes(source.id) && ids.length >= MAX_COLUMNS}
             className={cn(
-              'rounded-[5px] border px-1.5 py-0.5 text-[10px]',
+              'rounded-[var(--radius-control)] border px-1.5 py-0.5 text-[10px]',
               ids.includes(source.id)
                 ? 'border-accent/60 bg-accent/10 text-primary'
                 : 'border-line text-tertiary hover:text-secondary disabled:opacity-40',
@@ -204,7 +204,7 @@ export function SourceComparison({
             <button
               type="button"
               onClick={() => setShowScore(!showScore)}
-              className="rounded-[5px] border border-line px-1.5 py-0.5 text-[10px] text-tertiary hover:text-secondary"
+              className="rounded-[var(--radius-control)] border border-line px-1.5 py-0.5 text-[10px] text-tertiary hover:text-secondary"
             >
               {showScore ? 'Showing score' : 'Showing share'}
             </button>

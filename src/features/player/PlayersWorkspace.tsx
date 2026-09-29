@@ -127,7 +127,7 @@ export function PlayersWorkspace() {
               aria-pressed={filter === entry.id}
               onClick={() => setFilter(entry.id)}
               className={cn(
-                'h-8 rounded-[7px] border px-2.5 text-xs transition-colors',
+                'h-8 rounded-[var(--radius-control)] border px-2.5 text-xs transition-colors',
                 filter === entry.id
                   ? 'border-accent bg-accent-muted text-primary'
                   : 'border-line text-tertiary hover:border-line-strong hover:text-secondary',
@@ -154,13 +154,13 @@ export function PlayersWorkspace() {
             </Button>
             <Link
               href={`/games?players=${encodeURIComponent(chosen.map((p) => p.key).join('|'))}`}
-              className="inline-flex h-8 items-center rounded-[7px] border border-line bg-surface-1 px-2.5 text-xs text-primary hover:border-line-strong active:border-line-strong"
+              className="inline-flex h-8 items-center rounded-[var(--radius-control)] border border-line bg-surface-1 px-2.5 text-xs text-primary hover:border-line-strong active:border-line-strong"
             >
               Show games
             </Link>
             <Link
               href={`/preparation?opponents=${encodeURIComponent(chosen.map((p) => p.key).join('|'))}`}
-              className="inline-flex h-8 items-center rounded-[7px] border border-line bg-surface-1 px-2.5 text-xs text-primary hover:border-line-strong active:border-line-strong"
+              className="inline-flex h-8 items-center rounded-[var(--radius-control)] border border-line bg-surface-1 px-2.5 text-xs text-primary hover:border-line-strong active:border-line-strong"
             >
               Prepare against
             </Link>
@@ -259,7 +259,7 @@ function PlayerRow({
             {player.name}
           </Link>
           {player.title ? (
-            <span className="shrink-0 rounded-[5px] bg-surface-3 px-1 text-[10px] text-secondary">
+            <span className="shrink-0 rounded-[var(--radius-control)] bg-surface-3 px-1 text-[10px] text-secondary">
               {player.title}
             </span>
           ) : null}

@@ -182,7 +182,7 @@ export function CompanionPanel() {
               if (event.key === 'Enter') fireAsk();
             }}
             placeholder="Ask about this position…"
-            className="h-7 min-w-0 flex-1 rounded-[5px] border border-line bg-surface-inset px-2 text-[11px] text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60"
+            className="h-7 min-w-0 flex-1 rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-[11px] text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60"
           />
           <Button variant="accent" onClick={fireAsk} disabled={ask.isPending}>
             {ask.isPending ? 'Asking…' : 'Ask'}

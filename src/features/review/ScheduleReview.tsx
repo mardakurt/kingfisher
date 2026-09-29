@@ -80,7 +80,7 @@ export function ScheduleReview({ item }: { readonly item: ReviewItemRecord }) {
             disabled={saving !== null}
             onClick={() => void choose(choice.id)}
             className={cn(
-              'rounded-[6px] border px-1.5 py-0.5 text-[10.5px] transition-colors',
+              'rounded-[var(--radius-control)] border px-1.5 py-0.5 text-[10.5px] transition-colors',
               'border-line text-secondary hover:border-accent/50 hover:text-primary',
               'disabled:opacity-50',
             )}

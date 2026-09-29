@@ -50,7 +50,7 @@ const SECONDS = [1, 3, 10, 30, 60] as const;
 const MAX_BUDGET = 1000;
 
 const SELECT =
-  'h-6 rounded-[5px] border border-line bg-surface-inset px-1 text-[10.5px] text-primary';
+  'h-6 rounded-[var(--radius-control)] border border-line bg-surface-inset px-1 text-[10.5px] text-primary';
 
 /** `1.e4 c5 2.Nf3` from a start position and a path of tree nodes. */
 function lineText(start: Fen, path: readonly DeepNode[]): string {

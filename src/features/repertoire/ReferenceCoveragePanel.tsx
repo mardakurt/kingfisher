@@ -73,7 +73,7 @@ export function ReferenceCoveragePanel({
         <select
           value={sourceId}
           onChange={(event) => setSourceId(event.target.value as SourceId)}
-          className="ml-auto h-6 rounded-[5px] border border-line bg-surface-inset px-1.5 text-[10px] text-primary outline-none focus:border-accent/60"
+          className="ml-auto h-6 rounded-[var(--radius-control)] border border-line bg-surface-inset px-1.5 text-[10px] text-primary outline-none focus:border-accent/60"
         >
           {SOURCES.map((entry) => (
             <option key={entry.id} value={entry.id}>

@@ -118,7 +118,7 @@ export function EndgameWorkspace({
             aria-label="Endgame category"
             value={category}
             onChange={(event) => setCategory(event.target.value as EndgameCategory | 'all')}
-            className="h-6 w-full rounded-[5px] border border-line bg-surface-inset px-1.5 text-[11px] text-primary"
+            className="h-6 w-full rounded-[var(--radius-control)] border border-line bg-surface-inset px-1.5 text-[11px] text-primary"
           >
             <option value="all">Every category</option>
             {ENDGAME_CATEGORIES.map((entry) => (
@@ -274,7 +274,7 @@ function SaveButton({
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
                 placeholder="Lucena, rook behind the pawn"
-                className="h-8 rounded-[6px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
+                className="h-8 rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
               />
             </label>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -283,7 +283,7 @@ function SaveButton({
                 <select
                   value={category}
                   onChange={(event) => setCategory(event.target.value as EndgameCategory)}
-                  className="h-8 rounded-[6px] border border-line bg-surface-inset px-2 text-xs text-primary"
+                  className="h-8 rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-xs text-primary"
                 >
                   {ENDGAME_CATEGORIES.map((entry) => (
                     <option key={entry} value={entry}>
@@ -297,7 +297,7 @@ function SaveButton({
                 <select
                   value={goal}
                   onChange={(event) => setGoal(event.target.value as EndgameGoal)}
-                  className="h-8 rounded-[6px] border border-line bg-surface-inset px-2 text-xs text-primary"
+                  className="h-8 rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-xs text-primary"
                 >
                   {GOALS.map((entry) => (
                     <option key={entry} value={entry}>
@@ -313,7 +313,7 @@ function SaveButton({
                 rows={2}
                 value={note}
                 onChange={(event) => setNote(event.target.value)}
-                className="resize-y rounded-[6px] border border-line bg-surface-inset px-2 py-1 text-xs leading-relaxed text-primary outline-none focus:border-accent/60"
+                className="resize-y rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 py-1 text-xs leading-relaxed text-primary outline-none focus:border-accent/60"
               />
             </label>
             <p className="text-[10px] leading-relaxed text-tertiary">
