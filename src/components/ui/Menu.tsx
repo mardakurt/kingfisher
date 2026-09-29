@@ -86,7 +86,7 @@ function MenuList({ sections, onClose, labelledBy, autoFocus = true }: MenuListP
         so a long menu scrolls on a laptop in split screen instead of running
         off the bottom with its last items unreachable.
       */
-      className="max-h-[min(70dvh,32rem,var(--menu-room,100dvh))] min-w-[200px] overflow-y-auto overscroll-contain rounded-[7px] border border-line-strong bg-surface-1 py-1 shadow-2xl"
+      className="max-h-[min(70dvh,32rem,var(--menu-room,100dvh))] min-w-[200px] overflow-y-auto overscroll-contain rounded-[var(--radius-panel)] border border-line-strong bg-surface-1 py-1 shadow-[var(--shadow-popover)]"
     >
       {sections.map((section, index) => (
         <div key={section.id}>
@@ -105,8 +105,8 @@ function MenuList({ sections, onClose, labelledBy, autoFocus = true }: MenuListP
                 'flex w-full items-center gap-2 px-2.5 py-1 text-left text-xs transition-colors',
                 'disabled:pointer-events-none disabled:opacity-35',
                 item.danger
-                  ? 'text-negative hover:bg-negative/12'
-                  : 'text-secondary hover:bg-surface-3 hover:text-primary',
+                  ? 'text-negative hover:bg-negative/12 active:bg-negative/20'
+                  : 'text-secondary hover:bg-surface-3 hover:text-primary active:bg-surface-press',
                 'focus:bg-surface-3 focus:text-primary focus:outline-none',
               )}
             >

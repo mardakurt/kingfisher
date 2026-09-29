@@ -70,7 +70,7 @@ export function WorkspaceTabStrip() {
         data-workspace-tabs="pending"
         aria-hidden
       >
-        <div className="h-[26px] flex-1 rounded-[7px] bg-surface-2 [@media(max-height:859px)]:h-[22px]" />
+        <div className="h-[26px] flex-1 rounded-[var(--radius-control)] bg-surface-2 [@media(max-height:859px)]:h-[22px]" />
       </div>
     );
   }
@@ -98,7 +98,7 @@ export function WorkspaceTabStrip() {
       <div
         role="tablist"
         aria-label="Workspace tabs"
-        className="flex h-[26px] min-w-0 flex-1 items-stretch gap-0.5 rounded-[7px] bg-surface-2 p-[2px] [@media(max-height:859px)]:h-[22px]"
+        className="flex h-[26px] min-w-0 flex-1 items-stretch gap-0.5 rounded-[var(--radius-control)] bg-surface-2 p-[2px] [@media(max-height:859px)]:h-[22px]"
       >
         {tabs.map((tab, index) => {
           const selected = tab.id === activeId;
@@ -130,10 +130,10 @@ export function WorkspaceTabStrip() {
               }}
               data-tab={tab.id}
               className={cn(
-                'group relative flex min-w-0 flex-1 cursor-default items-center justify-center rounded-[5px] px-6 text-[11.5px] transition-colors select-none',
+                'group relative flex min-w-0 flex-1 cursor-default items-center justify-center rounded-[4px] px-6 text-[11.5px] transition-colors select-none',
                 selected
-                  ? 'bg-surface-1 font-medium text-primary shadow-[0_0_0_0.5px_rgb(0_0_0/0.08),0_1px_2px_rgb(0_0_0/0.08)]'
-                  : 'text-secondary hover:bg-black/[0.035] dark:hover:bg-white/[0.05]',
+                  ? 'bg-surface-1 font-medium text-primary shadow-[0_0_0_0.5px_rgb(0_0_0/0.08),0_1px_2px_rgb(0_0_0/0.08)] active:bg-surface-2'
+                  : 'text-secondary hover:bg-black/[0.035] active:bg-black/[0.07] dark:hover:bg-white/[0.05] dark:active:bg-white/[0.09]',
               )}
             >
               <span className="truncate">{label}</span>
@@ -167,7 +167,7 @@ export function WorkspaceTabStrip() {
         }
         disabled={tabs.length >= MAX_TABS}
         onClick={() => void newTab(router)}
-        className="flex size-[26px] shrink-0 items-center justify-center rounded-[6px] [@media(max-height:859px)]:size-[22px] text-secondary hover:bg-surface-2 hover:text-primary disabled:opacity-35"
+        className="flex size-[26px] shrink-0 items-center justify-center rounded-[var(--radius-control)] [@media(max-height:859px)]:size-[22px] text-secondary transition-colors hover:bg-surface-2 hover:text-primary active:bg-surface-press disabled:opacity-35"
       >
         <Plus className="size-3.5" />
       </button>

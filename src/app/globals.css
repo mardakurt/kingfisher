@@ -126,6 +126,15 @@
   --surface-1: #1c1c1e;
   --surface-2: #2a2a2d;
   --surface-3: #333336;
+  /*
+    One step past `--surface-3`, which is the hover fill. A Mac control shows a
+    distinct state while it is held down, not the same one it shows under the
+    pointer — without this there was nowhere for "pressed" to go, so no button
+    in the application had a press state at all (measured: 0 of 50 rendered
+    buttons carried one). Kept as a real face rather than a filter, so it can be
+    reasoned about in both themes and cannot darken a coloured control.
+  */
+  --surface-press: #3d3d41;
   --surface-inset: #161618;
   --surface-sidebar: #242427;
 
@@ -223,6 +232,8 @@
   --surface-1: #ffffff;
   --surface-2: #f4f4f6;
   --surface-3: #ebebef;
+  /* One step past hover. See the dark theme's note on the same token. */
+  --surface-press: #e0e0e7;
   --surface-inset: #f4f4f6;
   --surface-sidebar: #f2f2f5;
 
@@ -288,6 +299,7 @@
   --color-surface-1: var(--surface-1);
   --color-surface-2: var(--surface-2);
   --color-surface-3: var(--surface-3);
+  --color-surface-press: var(--surface-press);
   --color-surface-inset: var(--surface-inset);
   --color-surface-sidebar: var(--surface-sidebar);
 
@@ -382,10 +394,29 @@ body {
   background-color: var(--text-tertiary);
 }
 
+/*
+ * The focus ring, for everything.
+ *
+ * It is deliberately unlayered so it outranks a component's own `outline-none`
+ * — that is the point of a global accessibility affordance, and the comment
+ * above the palette field below depends on the same precedence.
+ *
+ * It used to carry `border-radius: 3px` as well, and that one declaration was
+ * the most expensive line in the stylesheet. Unlayered beats every layered
+ * utility, so it beat `rounded-[6px]`, `rounded-[10px]` and `rounded-full` on
+ * every one of the 373 radius sites in the application: the instant an element
+ * took keyboard focus, its corners snapped — a pill becoming a 3px rectangle,
+ * a panel's 10px corners cutting to 3 — and the outline, which follows the
+ * border radius, redrew itself in a shape that no longer matched the control
+ * it was drawn around. Measured in Chromium before the fix: a control
+ * declaring `rounded-[6px]` computed 6px blurred and 3px focused.
+ *
+ * Nothing declares a radius here, so the ring now takes the shape of whatever
+ * it is around, which is what a focus ring is for.
+ */
 :focus-visible {
   outline: var(--focus-ring) solid var(--accent);
   outline-offset: 1px;
-  border-radius: 3px;
 }
 
 /*
@@ -404,6 +435,21 @@ body {
 }
 [data-palette-search] input:focus-visible {
   outline: none;
+}
+
+/*
+ * The sidebar's section list, when it does not fit.
+ *
+ * macOS overlay scrollbars are invisible until you scroll, so a list that
+ * overflows its box gave no signal at all: at 1280x720 the whole Data group
+ * sat below a hard edge, and the cut ran through the middle of a row so it read
+ * as a rendering fault rather than as more content. The fade is the standard
+ * answer and it costs nothing: it is a mask on the list, present only while
+ * `Sidebar` has measured that there is something below, so a list that fits is
+ * untouched.
+ */
+[data-nav-overflows='true'] {
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent 100%);
 }
 
 /* Numeric data must line up in columns: evaluations, node counts, ratings. */

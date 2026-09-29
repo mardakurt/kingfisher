@@ -41,15 +41,22 @@ export function GlobalControls({ className }: { readonly className?: string }) {
         type="button"
         onClick={toggleCommandPalette}
         aria-label="Search commands"
-        className="flex h-8 shrink-0 items-center gap-2 rounded-[8px] bg-surface-2 px-3 text-xs text-tertiary transition-colors hover:bg-surface-3 hover:text-secondary"
+        className="flex h-8 shrink-0 items-center gap-2 rounded-[var(--radius-control)] bg-surface-2 px-3 text-xs text-tertiary transition-colors hover:bg-surface-3 hover:text-secondary active:bg-surface-press"
       >
         <Search className="h-3.5 w-3.5" />
         <span className="hidden mid:inline">Search commands</span>
-        <kbd className="hidden rounded-[5px] bg-surface-1 px-1 font-mono text-[10px] mid:inline">
+        <kbd className="hidden rounded-[4px] bg-surface-1 px-1 font-mono text-[10px] mid:inline">
           ⌘K
         </kbd>
       </button>
-      <IconButton label="Settings (⌘,)" onClick={() => setSettingsOpen(true)}>
+      {/*
+        `aria-keyshortcuts` rather than a shortcut inside the name. The sidebar
+        carries the same control, and when both spelled their shortcut as text
+        the two announced themselves as "Settings comma" and "Settings, comma" —
+        one command, two names a person could not tell apart. Both now name
+        what they do and let the platform announce the key.
+      */}
+      <IconButton label="Settings" aria-keyshortcuts="Meta+," onClick={() => setSettingsOpen(true)}>
         <Settings />
       </IconButton>
     </div>

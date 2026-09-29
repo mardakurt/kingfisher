@@ -219,12 +219,14 @@ export function ModuleTabStrip({
             title={tab.unavailable ?? tab.label}
             onClick={() => onChange(tab.id)}
             className={cn(
-              'relative flex h-7 shrink-0 items-center gap-1.5 rounded-[6px] text-xs font-medium whitespace-nowrap transition-colors',
+              'relative flex h-7 shrink-0 items-center gap-1.5 rounded-[var(--radius-control)] text-xs font-medium whitespace-nowrap transition-colors',
               // Compact drops the icon first and then 2px a side, before any tab is folded.
               compact ? 'px-1.5' : 'px-2',
+              // Press is one step past hover, as everywhere else: these are the
+              // most-pressed controls in the application.
               selected
-                ? 'bg-surface-3 text-primary'
-                : 'text-secondary hover:bg-surface-2 hover:text-primary',
+                ? 'bg-surface-3 text-primary active:bg-surface-press'
+                : 'text-secondary hover:bg-surface-2 hover:text-primary active:bg-surface-press',
             )}
           >
             {compact ? null : <Icon className="h-3.5 w-3.5 shrink-0" />}

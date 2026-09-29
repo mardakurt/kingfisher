@@ -52,6 +52,25 @@ const FILES = sourceFiles();
 const read = (relative: string) =>
   FILES.find((file) => file.path === relative.split('/').join(path.sep))?.text ?? '';
 
+/**
+ * A file that is not there reads as `''`, and every check below is a substring
+ * test. A file that is renamed, moved or reformatted therefore turns its checks
+ * into `''.includes(...) === false` — which fails loudly for the "must contain"
+ * cases and, for the loops below, fails to run at all. `expect` on an empty
+ * string is not a finding; a zero-iteration loop is not a pass.
+ *
+ * So the reader refuses to be silent, and each loop proves it did work.
+ */
+const readRequired = (relative: string): string => {
+  const text = read(relative);
+  expect(
+    text.length,
+    `${relative} could not be read, so every assertion about it below checked nothing. ` +
+      'This file is a guard against drift; if it moved, point this at the new path.',
+  ).toBeGreaterThan(0);
+  return text;
+};
+
 /** Files that may mention a name without that counting as using it. */
 const isDeclarationSite = (file: { path: string }) =>
   file.path.includes('preferences-store') ||
@@ -89,7 +108,7 @@ describe('every preference has a consumer', () => {
 });
 
 describe('every workspace tool has a renderer', () => {
-  const renderer = read('features/workspace/ToolContent.tsx');
+  const renderer = readRequired('features/workspace/ToolContent.tsx');
 
   it.each(Object.keys(WORKSPACE_MODULES))('%s is rendered', (id) => {
     /*
@@ -109,7 +128,13 @@ describe('every workspace tool has a renderer', () => {
   });
 
   it('renders no tool that is not in the catalogue', () => {
-    for (const match of renderer.matchAll(/tool === '([a-z-]+)'/g)) {
+    const branches = [...renderer.matchAll(/tool === '([a-z-]+)'/g)];
+    // The loop below does nothing at all if the pattern stops matching, which
+    // is a formatting change away. It must have found the renderer's branches.
+    expect(branches.length, "no `tool === '…'` branches were found in ToolContent").toBeGreaterThan(
+      5,
+    );
+    for (const match of branches) {
       const id = match[1] as WorkspaceToolId;
       expect(
         Object.hasOwn(WORKSPACE_MODULES, id),
@@ -128,7 +153,7 @@ describe('every workspace tool has a renderer', () => {
 });
 
 describe('every documented shortcut maps to an action', () => {
-  const hotkeys = read('features/command/useGlobalHotkeys.ts');
+  const hotkeys = readRequired('features/command/useGlobalHotkeys.ts');
 
   it.each(REBINDABLE_SHORTCUTS.map((shortcut) => shortcut.id))('%s has a handler', (id) => {
     expect(

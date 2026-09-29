@@ -14,11 +14,21 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   readonly active?: boolean;
 }
 
-const VARIANTS: Record<Variant, string> = {
-  ghost: 'text-secondary hover:bg-surface-3 hover:text-primary',
-  subtle: 'bg-surface-2 text-primary border border-line hover:bg-surface-3',
-  accent: 'bg-accent text-accent-contrast hover:bg-accent-hover font-medium',
-  danger: 'text-negative hover:bg-negative/12',
+const VARIANTS: Readonly<Record<Variant, string>> = {
+  /*
+    Press is its own state, one step past hover, on every variant.
+    259 hover utilities existed against 5 press ones, so nothing in the
+    application acknowledged a click between the pointer going down and the
+    work arriving — on a desktop application where a click is the primary
+    gesture, and on a slow one (a database query, a companion round trip)
+    where the wait is exactly when a person wonders whether the press landed.
+  */
+  ghost: 'text-secondary hover:bg-surface-3 hover:text-primary active:bg-surface-press',
+  subtle:
+    'bg-surface-2 text-primary border border-line hover:bg-surface-3 active:bg-surface-press active:border-line-strong',
+  accent:
+    'bg-accent text-accent-contrast hover:bg-accent-hover font-medium active:bg-accent-hover active:brightness-95',
+  danger: 'text-negative hover:bg-negative/12 active:bg-negative/20',
 };
 
 const SIZES: Record<Size, string> = {
@@ -51,7 +61,7 @@ export function Button({
       type="button"
       {...NOT_RESTORED}
       className={cn(
-        'inline-flex shrink-0 items-center rounded-[6px] whitespace-nowrap transition-colors duration-100',
+        'inline-flex shrink-0 items-center rounded-[var(--radius-control)] whitespace-nowrap transition-colors duration-100',
         // A button given a width by its caller or stretched by a column keeps
         // its label on the centre line. `cn` does not merge conflicting
         // utilities, so a caller that wants a start-aligned row says so with
@@ -93,8 +103,8 @@ export function IconButton({
       aria-label={label}
       aria-pressed={active}
       className={cn(
-        'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[6px] transition-colors duration-100',
-        'text-secondary hover:bg-surface-3 hover:text-primary',
+        'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-control)] transition-colors duration-100',
+        'text-secondary hover:bg-surface-3 hover:text-primary active:bg-surface-press',
         'disabled:pointer-events-none disabled:opacity-35',
         active && 'bg-accent-muted text-accent-ink',
         tone === 'danger' && 'hover:text-negative',

@@ -33,7 +33,24 @@ describe('design token references', () => {
   it('reads no custom property that nothing defines', () => {
     const defined = new Set<string>();
     const read = new Map<string, Set<string>>();
-    for (const file of sources(ROOT)) {
+    const files = sources(ROOT);
+    /*
+      The scan itself, guarded. Every assertion in this file is a set
+      comparison, so if the scan quietly stopped finding anything — a moved
+      scan root, an extension filter that stopped matching — `read` and
+      `defined` would both be empty, `undefinedReads` would be `[]`, and the
+      test would pass having checked nothing. It has already caught two real
+      rendering bugs; silence from it is not a result. These two assertions say
+      the scan ran and found the stylesheet, which is the only way the
+      comparison below means anything.
+    */
+    expect(files.length, 'the scan found no source files to read').toBeGreaterThan(50);
+    expect(
+      files.some((file) => file.endsWith('.css')),
+      'the scan found no stylesheet, so it can define nothing',
+    ).toBe(true);
+
+    for (const file of files) {
       const source = fs.readFileSync(file, 'utf8');
       /*
         `@theme inline` declares Tailwind's utilities; its properties are
@@ -58,6 +75,9 @@ describe('design token references', () => {
     const undefinedReads = [...read]
       .filter(([name]) => !defined.has(name))
       .map(([name, files]) => `${name} in ${[...files].join(', ')}`);
+    // And the scan found references to compare against, not zero of them.
+    expect(read.size, 'the scan read no custom properties at all').toBeGreaterThan(50);
+    expect(defined.size, 'the scan defined no custom properties at all').toBeGreaterThan(50);
     expect(undefinedReads).toEqual([]);
   });
 });

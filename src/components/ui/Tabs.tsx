@@ -45,7 +45,9 @@ export function Tabs<T extends string>({ items, value, onChange, className }: Ta
             }}
             className={cn(
               'relative flex min-w-0 shrink-0 items-center gap-1.5 px-3 text-xs font-medium tracking-wide transition-colors',
-              selected ? 'text-primary' : 'text-tertiary hover:text-secondary',
+              selected
+                ? 'text-primary active:bg-surface-2'
+                : 'text-tertiary hover:bg-surface-2 hover:text-secondary active:bg-surface-3',
             )}
           >
             {item.label}
@@ -83,7 +85,7 @@ export function Segmented<T extends string>({
     */
     <div
       className={cn(
-        'inline-flex max-w-full flex-wrap gap-y-0.5 rounded-[6px] border border-line bg-surface-2 p-0.5',
+        'inline-flex max-w-full flex-wrap gap-y-0.5 rounded-[var(--radius-control)] border border-line bg-surface-2 p-0.5',
         className,
       )}
     >
@@ -94,8 +96,10 @@ export function Segmented<T extends string>({
           onClick={() => onChange(item.id)}
           aria-pressed={item.id === value}
           className={cn(
-            'shrink-0 rounded-[5px] px-2 py-0.5 text-2xs transition-colors',
-            item.id === value ? 'bg-surface-3 text-primary' : 'text-tertiary hover:text-secondary',
+            'shrink-0 rounded-[4px] px-2 py-0.5 text-2xs transition-colors',
+            item.id === value
+              ? 'bg-surface-3 text-primary active:bg-surface-press'
+              : 'text-tertiary hover:bg-surface-3 hover:text-secondary active:bg-surface-press',
           )}
         >
           {item.label}

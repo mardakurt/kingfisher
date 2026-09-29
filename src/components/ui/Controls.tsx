@@ -41,7 +41,7 @@ export function SearchField({
   return (
     <div
       className={cn(
-        'flex h-8 min-w-0 items-center gap-1.5 rounded-[8px] bg-surface-2 pl-2.5 pr-1 focus-within:ring-2 focus-within:ring-accent/40',
+        'group flex h-8 min-w-0 items-center gap-1.5 rounded-[var(--radius-panel)] bg-surface-2 pl-2.5 pr-1 focus-within:ring-2 focus-within:ring-accent/40',
         className,
       )}
       data-search-field
@@ -59,7 +59,7 @@ export function SearchField({
           type="button"
           aria-label="Clear search"
           onClick={() => (onClear ? onClear() : onChange(''))}
-          className="flex size-5 shrink-0 items-center justify-center rounded-full bg-tertiary/60 text-surface-1 hover:bg-tertiary"
+          className="flex size-5 shrink-0 items-center justify-center rounded-full bg-tertiary/60 text-surface-1 transition-colors hover:bg-tertiary active:bg-primary"
         >
           <Close className="size-2.5" />
         </button>
@@ -102,7 +102,7 @@ export function Segmented<T extends string>({
       role="radiogroup"
       aria-label={label}
       className={cn(
-        'inline-flex shrink-0 items-center gap-0.5 rounded-[7px] bg-surface-2 p-[2px]',
+        'inline-flex shrink-0 items-center gap-0.5 rounded-[var(--radius-control)] bg-surface-2 p-[2px]',
         className,
       )}
     >
@@ -117,11 +117,11 @@ export function Segmented<T extends string>({
             title={option.title}
             onClick={() => onChange(option.id)}
             className={cn(
-              'rounded-[5px] font-medium whitespace-nowrap transition-colors',
+              'rounded-[4px] font-medium whitespace-nowrap transition-colors',
               size === 'sm' ? 'h-6 px-2 text-[11px]' : 'h-7 px-2.5 text-xs',
               selected
-                ? 'bg-accent text-accent-contrast shadow-sm'
-                : 'text-secondary hover:bg-black/[0.04] hover:text-primary dark:hover:bg-white/[0.06]',
+                ? 'bg-accent text-accent-contrast shadow-sm active:brightness-95'
+                : 'text-secondary hover:bg-black/[0.04] hover:text-primary active:bg-black/[0.08] dark:hover:bg-white/[0.06] dark:active:bg-white/[0.12]',
             )}
           >
             {option.label}
@@ -148,7 +148,7 @@ export function FilterChip({
 }) {
   return (
     <span
-      className="inline-flex h-6 max-w-full shrink-0 items-center gap-1.5 rounded-[6px] border border-line bg-surface-1 pl-2 pr-1 text-[11px]"
+      className="inline-flex h-6 max-w-full shrink-0 items-center gap-1.5 rounded-[var(--radius-control)] border border-line bg-surface-1 pl-2 pr-1 text-[11px]"
       data-filter-chip
     >
       {icon ? <span className="shrink-0 text-tertiary [&>svg]:h-3 [&>svg]:w-3">{icon}</span> : null}
@@ -158,7 +158,7 @@ export function FilterChip({
         type="button"
         aria-label={`Remove ${name ? `${name} ` : ''}filter`}
         onClick={onRemove}
-        className="flex size-4 shrink-0 items-center justify-center rounded-[4px] text-tertiary hover:bg-surface-3 hover:text-primary"
+        className="flex size-4 shrink-0 items-center justify-center rounded-[3px] text-tertiary transition-colors hover:bg-surface-3 hover:text-primary active:bg-surface-press"
       >
         <Close className="size-2.5" />
       </button>
@@ -228,7 +228,7 @@ export function Popover({
           role="dialog"
           aria-label={label}
           className={cn(
-            'absolute top-full z-50 mt-1.5 overflow-y-auto overscroll-contain rounded-[10px] border border-line bg-surface-1 shadow-[var(--shadow-popover)] animate-rise',
+            'absolute top-full z-50 mt-1.5 overflow-y-auto overscroll-contain rounded-[var(--radius-panel)] border border-line bg-surface-1 shadow-[var(--shadow-popover)] animate-rise',
             align === 'end' ? 'right-0' : 'left-0',
           )}
           style={{ width, maxHeight: room ?? undefined }}
