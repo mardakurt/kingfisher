@@ -134,11 +134,7 @@ test('After the round reads the game and files one learning point', async ({ pag
   const running = page.getByRole('dialog', { name: 'Background analysis queue' });
   await expect(running).toBeVisible();
   await running.getByRole('button', { name: 'Start queue' }).click();
-  // Scoped to the dialog, which is right. `.first()` on top of a generic
-  // "Close" only matters if the dialog ever grows a second dismiss control —
-  // and then this would click whichever came first, which is not a failure
-  // mode worth discovering at that point.
-  await running.getByRole('button', { name: 'Close', exact: true }).click();
+  await running.locator('footer').getByRole('button', { name: 'Close', exact: true }).click();
   await expect(running).toBeHidden();
 
   // The learning point, filed, then read back.
