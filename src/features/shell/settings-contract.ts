@@ -81,7 +81,15 @@ export const SETTING_CONTRACTS: readonly SettingContract[] = [
     label: 'Board theme',
     surface: 'settings',
     control: 'features/shell/SettingsDialog.tsx',
-    consumer: 'features/board/Chessboard.tsx',
+    /*
+      Was `features/board/Chessboard.tsx`, which is where the audit said the
+      reader was and where there is none. That file opens
+      `import { boardTheme, boardThemeVariables } from './themes'` and calls a
+      *local* function of the same name against a `theme` prop — so the name
+      was present and the preference was not read. The board surface that
+      every route mounts is what actually consumes it.
+    */
+    consumer: 'features/workspace/CanonicalBoardSurface.tsx',
     effect: 'The squares change colour.',
     indexedAs: 'board-theme',
     previewable: true,
@@ -114,7 +122,15 @@ export const SETTING_CONTRACTS: readonly SettingContract[] = [
     label: 'Move animation',
     surface: 'settings',
     control: 'features/shell/SettingsDialog.tsx',
-    consumer: 'stores/preferences-store.ts',
+    /*
+      Was `stores/preferences-store.ts`, which *defines* `resolveAnimationMs`
+      but takes the speed as an argument and never reads the preference. The
+      strengthened guard is what surfaced this row; it had been passing because
+      the store's own `DEFAULT_PREFERENCES` and the `reset` path both spell the
+      key. Seven modules read it; the board surface is the one every route
+      mounts, and the contract asks for one.
+    */
+    consumer: 'features/workspace/CanonicalBoardSurface.tsx',
     effect: 'resolveAnimationMs returns a different duration, and Off also honours reduced motion.',
     indexedAs: 'animation',
     previewable: true,
@@ -422,7 +438,14 @@ export const SETTING_CONTRACTS: readonly SettingContract[] = [
     label: 'Lichess token',
     surface: 'settings',
     control: 'features/shell/SettingsDialog.tsx',
-    consumer: 'database/providers/lichess-auth.ts',
+    /*
+      Was `database/providers/lichess-auth.ts`, which keeps the token in a
+      module-level variable and never reads the preference — the string was in
+      the file, the read was not. `useCompanion` is where the token is taken
+      out of the store and put on the wire, and it is the same module the
+      companion-token row above already names.
+    */
+    consumer: 'companion/useCompanion.ts',
     effect: 'Lichess requests are authenticated, so the Lichess explorer answers at all.',
     indexedAs: 'lichess-token',
     previewable: true,
@@ -434,7 +457,13 @@ export const SETTING_CONTRACTS: readonly SettingContract[] = [
     label: 'Remember Lichess token',
     surface: 'settings',
     control: 'features/shell/SettingsDialog.tsx',
-    consumer: 'features/shell/LichessCallback.tsx',
+    /*
+      Was `features/shell/LichessCallback.tsx`, whose only occurrence of this key
+      is the `setPreference('rememberLichessToken', true)` it performs — a
+      write, which a substring check cannot tell from a read. The sole read is
+      the store deciding whether the secret survives a reload.
+    */
+    consumer: 'stores/preferences-store.ts',
     effect: 'The token survives a reload, or is dropped when the tab closes.',
     indexedAs: 'lichess-token',
     previewable: false,

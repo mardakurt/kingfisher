@@ -28,6 +28,44 @@ const SRC = path.join(process.cwd(), 'src');
 const read = (relative: string) => readFileSync(path.join(SRC, relative), 'utf8');
 const preferenceKeys = Object.keys(DEFAULT_PREFERENCES);
 
+/**
+ * Does this module read the preference, as opposed to mentioning it?
+ *
+ * Three shapes count, and they are the three this codebase actually uses:
+ *
+ * - `state.boardTheme` — a member access on whatever holds the preference.
+ * - `state['boardTheme']` — the bracket form, for keys that are awkward as
+ *   identifiers.
+ * - `const { boardTheme } = usePreferences(...)` — a destructured binding. The
+ *   negative lookahead is what keeps `{ boardTheme: 'sage' }` out: that is an
+ *   object literal naming the key, which is how a *write* looks.
+ *
+ * What deliberately does not count is a bare string literal, `'boardTheme'`.
+ * That is the shape a write takes — `setPreference('boardTheme', x)` — and it
+ * is also the shape of a key mentioned in a comment, a type, or a lookup
+ * table. Accepting it is what let three rows pass that name a module doing
+ * something other than reading the value.
+ *
+ * Imports and comments are removed first, because both can carry a binding or
+ * a member expression without the module reading anything.
+ * `boardTheme` is the case in point: `Chessboard.tsx` opens with
+ * `import { boardTheme, boardThemeVariables } from './themes'` and calls a
+ * *local* function of the same name against a `theme` prop. Scanned naively
+ * the import satisfies a destructure match and the row passes again — which is
+ * precisely the false pass this test is here to prevent.
+ */
+function readsPreference(source: string, key: string): boolean {
+  const code = source
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .replace(/^\s*import[\s\S]*?from\s+['"][^'"]+['"];?$/gm, ' ')
+    .replace(/\/\/[^\n]*/g, ' ');
+  const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  if (new RegExp(`\\.${escaped}\\b`).test(code)) return true;
+  if (new RegExp(`\\[\\s*['"\`]${escaped}['"\`]\\s*\\]`).test(code)) return true;
+  if (new RegExp(`\\{[^}]*\\b${escaped}\\b(?!\\s*:)[^}]*\\}`, 's').test(code)) return true;
+  return false;
+}
+
 describe('settings contract', () => {
   it('declares every preference exactly once', () => {
     const declared = SETTING_CONTRACTS.map((entry) => entry.key);
@@ -69,11 +107,33 @@ describe('settings contract', () => {
       sufficient — boardPriority passed a check like this throughout the period
       it did nothing — which is why `effect` is written down too and
       `verifiedBy` names the browser test where one exists.
+
+      It used to be `source.includes(entry.key)`, which is true for three kinds
+      of thing that are not a read at all:
+
+        - a **function of the same name**. `enginePreset` was declared with
+          `consumer: 'engine/presets.ts'`, and `presets.ts` exported a
+          function called `enginePreset` — so the row passed while nothing in
+          the module ever read the preference. The values were applied once,
+          imperatively, in a segmented control's `onChange`, and the stored key
+          was a label that no code honoured.
+        - a **string literal naming the key in a file that only writes it**.
+          `rememberLichessToken` was declared with
+          `consumer: 'LichessCallback.tsx'`, and that file's only occurrence is
+          the `setPreference('rememberLichessToken', true)` it performs. The
+          single read lives in the store.
+        - a **module-local variable of the same name**. `lichessToken` was
+          declared with `consumer: 'database/providers/lichess-auth.ts'`, which
+          holds the token in a local and never touches the preference.
+
+      So a read has to look like one: a member access, a bracket access, or a
+      destructured binding that is not an object-literal key. Writes pass
+      `'key'` as an argument or `key:` as a property, and neither counts.
     */
     const broken: string[] = [];
     for (const entry of SETTING_CONTRACTS) {
       const source = read(entry.consumer);
-      if (!source.includes(entry.key)) {
+      if (!readsPreference(source, entry.key)) {
         broken.push(`${entry.key}: ${entry.consumer} does not read it`);
       }
     }
