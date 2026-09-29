@@ -148,7 +148,7 @@ export function EngineManager() {
           instruction that could not succeed. See `companion/reach.ts`.
         */
         <div
-          className="rounded-[6px] border border-line bg-surface-2 p-3 text-xs text-tertiary"
+          className="rounded-[var(--radius-control)] border border-line bg-surface-2 p-3 text-xs text-tertiary"
           data-engine-manager-unpaired={reach}
         >
           <p className="text-secondary">
@@ -283,7 +283,7 @@ function NotOfferedHere({ platform }: { readonly platform: string }) {
         : platform;
   return (
     <div
-      className="rounded-[6px] border border-line bg-surface-2 p-3 text-[11px] leading-relaxed text-tertiary"
+      className="rounded-[var(--radius-control)] border border-line bg-surface-2 p-3 text-[11px] leading-relaxed text-tertiary"
       data-engines-not-offered
     >
       <p className="text-secondary">
@@ -429,7 +429,10 @@ function EngineRow({
 }) {
   const level = TRUST_LEVELS[trust];
   return (
-    <div className="rounded-[7px] border border-line bg-surface-2 p-2.5" data-engine-row={id}>
+    <div
+      className="rounded-[var(--radius-control)] border border-line bg-surface-2 p-2.5"
+      data-engine-row={id}
+    >
       <div className="flex items-start gap-2.5">
         <Toggle
           label={`Show ${name} in the engine selector`}
@@ -442,7 +445,7 @@ function EngineRow({
             {version ? <span className="text-[10px] text-tertiary">{version}</span> : null}
             <span
               className={cn(
-                'rounded-[5px] px-1.5 py-0.5 text-[10px]',
+                'rounded-[var(--radius-control)] px-1.5 py-0.5 text-[10px]',
                 state === 'Ready'
                   ? 'bg-accent-muted text-accent-ink'
                   : 'border border-line text-tertiary',
@@ -467,7 +470,7 @@ function EngineRow({
                 <span
                   key={key}
                   className={cn(
-                    'rounded-[5px] border px-1',
+                    'rounded-[var(--radius-control)] border px-1',
                     capabilities[key]
                       ? 'border-line-strong text-secondary'
                       : 'border-line text-tertiary line-through',
@@ -494,7 +497,7 @@ function EngineRow({
             aria-label={expanded ? `Hide details of ${name}` : `Show details of ${name}`}
             aria-expanded={expanded}
             onClick={onExpand}
-            className="rounded-[6px] p-1 text-tertiary transition-colors hover:bg-surface-3 hover:text-primary"
+            className="rounded-[var(--radius-control)] p-1 text-tertiary transition-colors hover:bg-surface-3 hover:text-primary"
           >
             {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </button>

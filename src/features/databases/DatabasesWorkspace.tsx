@@ -482,7 +482,7 @@ function TabButton({
       title={hint}
       aria-current={active}
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-[6px] px-2.5 py-1.5 text-xs transition-colors',
+        'inline-flex items-center gap-1.5 rounded-[var(--radius-control)] px-2.5 py-1.5 text-xs transition-colors',
         'disabled:opacity-40',
         active
           ? 'bg-accent-muted font-medium text-primary'
@@ -676,14 +676,14 @@ function DatabaseGrid({
                 onClick={() => onOpen(collection.id)}
                 aria-current={collection.id === focusedId}
                 className={cn(
-                  'flex w-full flex-col items-center gap-2 rounded-[12px] px-2 pt-4 pb-3 text-center transition-colors',
+                  'flex w-full flex-col items-center gap-2 rounded-[var(--radius-panel)] px-2 pt-4 pb-3 text-center transition-colors',
                   isChecked ? 'bg-accent-muted' : 'hover:bg-surface-2',
                 )}
               >
                 <span
                   aria-hidden
                   className={cn(
-                    'flex size-16 items-center justify-center rounded-[16px] shadow-[0_1px_2px_rgb(0_0_0/0.12),inset_0_0_0_0.5px_rgb(0_0_0/0.08)]',
+                    'flex size-16 items-center justify-center rounded-[var(--radius-panel)] shadow-[0_1px_2px_rgb(0_0_0/0.12),inset_0_0_0_0.5px_rgb(0_0_0/0.08)]',
                     collection.kind === 'sqlite'
                       ? 'bg-gradient-to-b from-[#6f7785] to-[#4b525d] text-white'
                       : 'bg-gradient-to-b from-[#4f8ff0] to-[#2563d4] text-white',
@@ -708,7 +708,7 @@ function DatabaseGrid({
               </button>
               <label
                 className={cn(
-                  'absolute top-1.5 left-1.5 flex size-6 cursor-pointer items-center justify-center rounded-[6px] transition-opacity',
+                  'absolute top-1.5 left-1.5 flex size-6 cursor-pointer items-center justify-center rounded-[var(--radius-control)] transition-opacity',
                   isChecked
                     ? 'opacity-100'
                     : 'opacity-0 group-hover:opacity-100 focus-within:opacity-100',
@@ -725,7 +725,7 @@ function DatabaseGrid({
               </label>
               {collection.reference ? (
                 <span
-                  className="absolute top-2 right-2 rounded-[4px] bg-accent px-1 text-[9px] font-semibold text-accent-contrast"
+                  className="absolute top-2 right-2 rounded-[var(--radius-board)] bg-accent px-1 text-[9px] font-semibold text-accent-contrast"
                   title="The explorer's default source"
                 >
                   Ref
@@ -739,11 +739,11 @@ function DatabaseGrid({
             type="button"
             aria-label="Open the reference catalogue: packs and live services"
             onClick={onReferenceSources}
-            className="flex w-full flex-col items-center gap-2 rounded-[12px] px-2 pt-4 pb-3 text-center transition-colors hover:bg-surface-2"
+            className="flex w-full flex-col items-center gap-2 rounded-[var(--radius-panel)] px-2 pt-4 pb-3 text-center transition-colors hover:bg-surface-2"
           >
             <span
               aria-hidden
-              className="flex size-16 items-center justify-center rounded-[16px] bg-gradient-to-b from-[#f5c451] to-[#e0a21c] text-white shadow-[0_1px_2px_rgb(0_0_0/0.12)]"
+              className="flex size-16 items-center justify-center rounded-[var(--radius-panel)] bg-gradient-to-b from-[#f5c451] to-[#e0a21c] text-white shadow-[0_1px_2px_rgb(0_0_0/0.12)]"
             >
               <Dossier className="h-7 w-7" />
             </span>

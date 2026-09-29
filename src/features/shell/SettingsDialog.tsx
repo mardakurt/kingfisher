@@ -216,7 +216,7 @@ export function SettingsDialog() {
           placeholder="Filter sections…"
           aria-label="Filter settings sections"
           data-settings-section-filter=""
-          className="mb-1 h-7 rounded-[6px] border border-line bg-surface-inset px-2 text-2xs text-primary outline-none placeholder:text-tertiary/70 focus:border-accent/60"
+          className="mb-1 h-7 rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-2xs text-primary outline-none placeholder:text-tertiary/70 focus:border-accent/60"
         />
         {visibleSections.map((entry) => {
           const selected = entry.id === section;
@@ -228,7 +228,7 @@ export function SettingsDialog() {
               aria-selected={selected}
               onClick={() => choose(entry.id)}
               className={cn(
-                'rounded-[6px] px-3 py-1.5 text-left text-xs transition-colors',
+                'rounded-[var(--radius-control)] px-3 py-1.5 text-left text-xs transition-colors',
                 selected
                   ? 'bg-accent-muted font-medium text-primary'
                   : 'text-secondary hover:bg-surface-2 active:bg-surface-press hover:text-primary',
@@ -321,11 +321,11 @@ function AppearanceSection() {
           {(['green', 'red', 'blue', 'yellow'] as const).map((brush) => (
             <div
               key={brush}
-              className="flex flex-col items-stretch gap-1 rounded-[6px] border border-line-subtle p-1.5"
+              className="flex flex-col items-stretch gap-1 rounded-[var(--radius-control)] border border-line-subtle p-1.5"
               title={`${brush} brush`}
             >
               <span
-                className="h-7 w-full rounded-[5px]"
+                className="h-7 w-full rounded-[var(--radius-control)]"
                 style={{ background: `var(--shape-${brush})` }}
               />
               <span className="text-center font-mono text-[9.5px] text-tertiary">{brush}</span>
@@ -333,7 +333,7 @@ function AppearanceSection() {
           ))}
         </div>
         <div
-          className="flex items-baseline justify-between rounded-[6px] border border-line-subtle bg-surface-inset px-2.5 py-1.5 font-mono"
+          className="flex items-baseline justify-between rounded-[var(--radius-control)] border border-line-subtle bg-surface-inset px-2.5 py-1.5 font-mono"
           aria-hidden
         >
           <span className="text-positive">Nf3!!</span>
@@ -378,13 +378,13 @@ function BoardSection() {
               onClick={() => prefs.set('boardTheme', theme.id)}
               title={theme.description}
               className={cn(
-                'flex items-center gap-2 rounded-[6px] border px-1.5 py-1 text-left text-2xs transition-colors',
+                'flex items-center gap-2 rounded-[var(--radius-control)] border px-1.5 py-1 text-left text-2xs transition-colors',
                 prefs.boardTheme === theme.id
                   ? 'border-accent bg-accent-muted text-primary'
                   : 'border-line text-tertiary hover:border-line-strong hover:text-secondary',
               )}
             >
-              <span className="grid h-6 w-6 shrink-0 grid-cols-2 grid-rows-2 overflow-hidden rounded-[2px]">
+              <span className="grid h-6 w-6 shrink-0 grid-cols-2 grid-rows-2 overflow-hidden rounded-[var(--radius-board)]">
                 <span style={{ background: theme.light }} />
                 <span style={{ background: theme.dark }} />
                 <span style={{ background: theme.dark }} />
@@ -465,7 +465,7 @@ function PiecesSection() {
             aria-pressed={active}
             onClick={() => prefs.set('pieceSet', set.id)}
             className={cn(
-              'flex items-center gap-3 rounded-[7px] border px-2.5 py-2 text-left transition-colors',
+              'flex items-center gap-3 rounded-[var(--radius-control)] border px-2.5 py-2 text-left transition-colors',
               active
                 ? 'border-accent bg-accent-muted'
                 : 'border-line hover:border-line-strong hover:bg-surface-2 active:bg-surface-press',
@@ -476,7 +476,7 @@ function PiecesSection() {
               and vanishes on the other is the failure worth catching here.
             */}
             <span
-              className="flex h-9 shrink-0 overflow-hidden rounded-[5px]"
+              className="flex h-9 shrink-0 overflow-hidden rounded-[var(--radius-control)]"
               style={boardThemeVariables(theme) as React.CSSProperties}
             >
               {PREVIEW_PIECES.map((type, index) => (
@@ -610,7 +610,7 @@ function AnalysisSettings() {
             prefs.set('engineThreads', Number(event.target.value));
             prefs.set('enginePreset', 'custom');
           }}
-          className="h-8 w-full max-w-[220px] rounded-[6px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
+          className="h-8 w-full max-w-[220px] rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
         >
           {threadChoices(detectCores(), capabilities?.maxThreads, prefs.engineThreads).map(
             (count) => (
@@ -633,7 +633,7 @@ function AnalysisSettings() {
             prefs.set('engineHashMb', Number(event.target.value));
             prefs.set('enginePreset', 'custom');
           }}
-          className="h-8 w-full max-w-[220px] rounded-[6px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
+          className="h-8 w-full max-w-[220px] rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
         >
           {hashChoices(capabilities?.maxHashMb, prefs.engineHashMb).map((mb) => (
             <option key={mb} value={String(mb)}>
@@ -797,7 +797,7 @@ function SearchLimitControl({
             max={value.kind === 'depth' ? 99 : value.kind === 'movetime' ? 3600 : 100000}
             value={amount ?? ''}
             onChange={(event) => onChange(build(value.kind, Number(event.target.value)))}
-            className="h-8 w-20 rounded-[6px] border border-line bg-surface-inset px-2 text-xs text-primary tabular outline-none focus:border-accent/60"
+            className="h-8 w-20 rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-xs text-primary tabular outline-none focus:border-accent/60"
           />
           {value.kind === 'depth' ? 'plies' : value.kind === 'movetime' ? 'seconds' : 'M nodes'}
         </label>
@@ -826,7 +826,7 @@ function DatabaseSection() {
           aria-label="Explorer source"
           value={prefs.explorerSourceId}
           onChange={(event) => prefs.set('explorerSourceId', event.target.value)}
-          className="h-8 w-full max-w-[220px] rounded-[6px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
+          className="h-8 w-full max-w-[220px] rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
         >
           {/*
             The saved source, even when it is not a provider yet. On a fresh
@@ -948,13 +948,13 @@ function CompanionSection() {
           .
         </p>
         {reach === 'desktop' ? (
-          <p className="mt-3 rounded-[6px] border border-line bg-surface-inset px-2.5 py-2 text-2xs leading-relaxed text-secondary">
+          <p className="mt-3 rounded-[var(--radius-control)] border border-line bg-surface-inset px-2.5 py-2 text-2xs leading-relaxed text-secondary">
             This is the Mac application: the companion is built in and started with the application.
             There is nothing to install or pair — native engines are installed from{' '}
             <em className="not-italic">Settings → Engines</em>.
           </p>
         ) : reach === 'remote' ? (
-          <div className="mt-3 rounded-[6px] border border-line bg-surface-inset px-2.5 py-2 text-2xs leading-relaxed text-secondary">
+          <div className="mt-3 rounded-[var(--radius-control)] border border-line bg-surface-inset px-2.5 py-2 text-2xs leading-relaxed text-secondary">
             <p>
               <strong className="font-medium text-primary">Not available on the web.</strong> The
               companion runs on your own machine and, for your safety, answers only pages served
@@ -989,7 +989,7 @@ function CompanionSection() {
           </div>
         ) : (
           <details
-            className="mt-3 rounded-[6px] border border-line bg-surface-inset px-2.5 py-2 text-2xs text-secondary"
+            className="mt-3 rounded-[var(--radius-control)] border border-line bg-surface-inset px-2.5 py-2 text-2xs text-secondary"
             open
           >
             <summary className="cursor-pointer select-none font-medium text-primary">
@@ -1033,7 +1033,7 @@ function CompanionSection() {
       </div>
 
       {connected ? (
-        <div className="rounded-[6px] border border-line bg-surface-inset p-3">
+        <div className="rounded-[var(--radius-control)] border border-line bg-surface-inset p-3">
           <p className="text-2xs text-secondary">
             Paired with <span className="font-mono">{prefs.companionUrl}</span>
           </p>
@@ -1079,7 +1079,7 @@ function CompanionSection() {
               value={pairing}
               onChange={(event) => setPairing(event.target.value)}
               placeholder="http://127.0.0.1:4321#token=…"
-              className="mt-1 h-8 w-full rounded-[6px] border border-line bg-surface-inset px-2.5 font-mono text-[11px] text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60"
+              className="mt-1 h-8 w-full rounded-[var(--radius-control)] border border-line bg-surface-inset px-2.5 font-mono text-[11px] text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60"
             />
           </label>
           {error ? <p className="mt-1 text-2xs text-negative">{error}</p> : null}
@@ -1189,7 +1189,7 @@ function AccountsSection() {
             return (
               <li
                 key={account.id}
-                className="rounded-[6px] border border-line bg-surface-inset p-2.5"
+                className="rounded-[var(--radius-control)] border border-line bg-surface-inset p-2.5"
               >
                 <div className="flex items-center justify-between gap-2">
                   <span className="truncate text-2xs text-secondary">
@@ -1245,7 +1245,7 @@ function AccountsSection() {
               value={provider}
               aria-label="Account provider"
               onChange={(event) => setProvider(event.target.value as SyncProvider)}
-              className="h-8 rounded-[6px] border border-line bg-surface-inset px-2 text-[11px] text-primary outline-none focus:border-accent/60"
+              className="h-8 rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-[11px] text-primary outline-none focus:border-accent/60"
             >
               <option value="lichess">Lichess</option>
               <option value="chess.com">Chess.com</option>
@@ -1262,7 +1262,7 @@ function AccountsSection() {
               placeholder="username"
               aria-label="Account username"
               aria-invalid={username.length > 0 && !isUsernameValid}
-              className="h-8 min-w-0 flex-1 rounded-[6px] border border-line bg-surface-inset px-2.5 font-mono text-[11px] text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60"
+              className="h-8 min-w-0 flex-1 rounded-[var(--radius-control)] border border-line bg-surface-inset px-2.5 font-mono text-[11px] text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60"
             />
             <Button
               variant="accent"
@@ -1383,7 +1383,7 @@ function CustomEngines() {
   };
 
   return (
-    <div className="rounded-[6px] border border-line bg-surface-inset p-3">
+    <div className="rounded-[var(--radius-control)] border border-line bg-surface-inset p-3">
       <h3 className="text-xs text-primary">Custom UCI engines</h3>
       <p className="mt-1 text-2xs leading-relaxed text-tertiary">
         Any engine that speaks UCI, not only the ones this build knows how to install. The companion
@@ -1396,7 +1396,7 @@ function CustomEngines() {
           {custom.map((engine) => (
             <li
               key={engine.id}
-              className="flex items-center justify-between gap-2 rounded-[6px] border border-line-subtle px-2 py-1 text-[10.5px]"
+              className="flex items-center justify-between gap-2 rounded-[var(--radius-control)] border border-line-subtle px-2 py-1 text-[10.5px]"
             >
               <span className="truncate text-secondary">
                 {engine.name}
@@ -1491,7 +1491,10 @@ function RemoteEngineHosts() {
   };
 
   return (
-    <div className="rounded-[6px] border border-line bg-surface-inset p-3" data-remote-hosts>
+    <div
+      className="rounded-[var(--radius-control)] border border-line bg-surface-inset p-3"
+      data-remote-hosts
+    >
       <h3 className="text-xs text-primary">Remote engine hosts</h3>
       <p className="mt-1 text-2xs leading-relaxed text-tertiary">
         Engines on another of your machines — a desktop in the next room, or a cloud machine you run
@@ -1504,7 +1507,7 @@ function RemoteEngineHosts() {
           {(hosts.data ?? []).map((host) => (
             <li
               key={host.id}
-              className="flex items-center justify-between gap-2 rounded-[6px] border border-line-subtle px-2 py-1 text-[10.5px]"
+              className="flex items-center justify-between gap-2 rounded-[var(--radius-control)] border border-line-subtle px-2 py-1 text-[10.5px]"
             >
               <span className="truncate text-secondary">
                 {host.label ?? 'Engine host'}
@@ -1530,7 +1533,7 @@ function RemoteEngineHosts() {
         <input
           aria-label="Engine host pairing code"
           placeholder="kingfisher-engines://…"
-          className="h-8 min-w-0 flex-1 rounded-[6px] border border-line bg-surface-2 px-2 text-[11px] text-primary"
+          className="h-8 min-w-0 flex-1 rounded-[var(--radius-control)] border border-line bg-surface-2 px-2 text-[11px] text-primary"
           value={code}
           onChange={(event) => setCode(event.target.value)}
         />
@@ -1673,7 +1676,7 @@ function SqliteDatabases() {
           {databases.map((entry) => (
             <li
               key={entry.key}
-              className="flex items-center gap-2 rounded-[6px] border border-line bg-surface-inset px-2.5 py-1.5 text-2xs"
+              className="flex items-center gap-2 rounded-[var(--radius-control)] border border-line bg-surface-inset px-2.5 py-1.5 text-2xs"
             >
               <div className="min-w-0 flex-1">
                 <span className="block truncate text-secondary">{entry.name}</span>
@@ -1742,7 +1745,7 @@ function SqliteDatabases() {
             value={pgn}
             onChange={(event) => setPgn(event.target.value)}
             placeholder="Paste a PGN collection…"
-            className="mt-1.5 min-h-24 w-full resize-y rounded-[6px] border border-line bg-surface-inset px-2.5 py-2 font-mono text-[10.5px] text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60"
+            className="mt-1.5 min-h-24 w-full resize-y rounded-[var(--radius-control)] border border-line bg-surface-inset px-2.5 py-2 font-mono text-[10.5px] text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60"
           />
           <div className="mt-1.5 flex items-center justify-end gap-2">
             {busy?.startsWith('import:') ? (
@@ -1824,7 +1827,7 @@ function AssistantSection() {
 }
 
 const FIELD_INPUT =
-  'mt-1 h-8 w-full rounded-[6px] border border-line bg-surface-inset px-2.5 text-xs text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60';
+  'mt-1 h-8 w-full rounded-[var(--radius-control)] border border-line bg-surface-inset px-2.5 text-xs text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60';
 
 function ProfileSection() {
   const queryClient = useQueryClient();
@@ -1901,7 +1904,7 @@ function ProfileSection() {
         value={aliases}
         onChange={(event) => setDraftAliases(event.target.value)}
         placeholder={'Carlsen, Magnus\nMagnus Carlsen'}
-        className="mt-3 min-h-32 w-full resize-y rounded-[6px] border border-line bg-surface-inset px-2.5 py-2 font-mono text-xs leading-relaxed text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60"
+        className="mt-3 min-h-32 w-full resize-y rounded-[var(--radius-control)] border border-line bg-surface-inset px-2.5 py-2 font-mono text-xs leading-relaxed text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60"
       />
       <div className="mt-2 flex justify-end">
         <Button variant="accent" onClick={() => void save()} disabled={busy}>
@@ -2074,7 +2077,7 @@ function LichessAccess() {
         {advanced ? 'Hide' : 'Advanced:'} use a personal access token instead
       </button>
       {advanced ? (
-        <div className="mt-2 rounded-[6px] border border-line bg-surface-2 p-2.5">
+        <div className="mt-2 rounded-[var(--radius-control)] border border-line bg-surface-2 p-2.5">
           <p className="text-[10px] leading-relaxed text-tertiary">
             For a scripted setup, or a browser that cannot complete a redirect. No scopes are
             required.
@@ -2086,13 +2089,13 @@ function LichessAccess() {
               value={prefs.lichessToken}
               onChange={(event) => prefs.set('lichessToken', event.target.value.trim())}
               placeholder="lip_…"
-              className="h-8 min-w-0 flex-1 rounded-[6px] border border-line bg-surface-inset px-2.5 font-mono text-[11px] text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60"
+              className="h-8 min-w-0 flex-1 rounded-[var(--radius-control)] border border-line bg-surface-inset px-2.5 font-mono text-[11px] text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60"
             />
             <a
               href={LICHESS_TOKEN_URL}
               target="_blank"
               rel="noreferrer noopener"
-              className="flex h-8 items-center rounded-[6px] border border-line px-2.5 text-2xs text-secondary hover:border-line-strong active:border-line-strong"
+              className="flex h-8 items-center rounded-[var(--radius-control)] border border-line px-2.5 text-2xs text-secondary hover:border-line-strong active:border-line-strong"
             >
               Create one
             </a>
@@ -2331,7 +2334,7 @@ function BackupControls() {
             aria-label="Auto-backup schedule in days"
             value={String(prefs.autoBackupReminderDays)}
             onChange={(event) => prefs.set('autoBackupReminderDays', Number(event.target.value))}
-            className="h-7 rounded-[6px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
+            className="h-7 rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
             data-auto-backup-schedule=""
           >
             {[1, 3, 7, 14, 30].map((days) => (
@@ -2347,7 +2350,7 @@ function BackupControls() {
             aria-label="Auto-backup retention"
             value={String(prefs.autoBackupRetention)}
             onChange={(event) => prefs.set('autoBackupRetention', Number(event.target.value))}
-            className="h-7 rounded-[6px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
+            className="h-7 rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
             data-auto-backup-retention=""
           >
             {[1, 3, 5, 10].map((count) => (
@@ -2392,7 +2395,7 @@ function BackupControls() {
           role="region"
           aria-label="Backup to restore"
           data-backup-preview
-          className="mt-3 rounded-[6px] border border-line bg-surface-inset p-3 outline-none"
+          className="mt-3 rounded-[var(--radius-control)] border border-line bg-surface-inset p-3 outline-none"
         >
           <p className="text-2xs text-secondary">
             Backup from {new Date(pending.createdAt).toLocaleString()} ·{' '}
@@ -2416,7 +2419,7 @@ function BackupControls() {
         </div>
       ) : null}
       {missingSources.length > 0 ? (
-        <div className="mt-3 rounded-[6px] border border-line bg-surface-inset p-3">
+        <div className="mt-3 rounded-[var(--radius-control)] border border-line bg-surface-inset p-3">
           <p className="text-2xs text-secondary">
             These reference sources were installed when the backup was made, and are not on this
             machine:
@@ -3227,7 +3230,7 @@ function ProviderDiagnostic({ provider }: { provider: ChessDatabaseProvider }) {
           <span
             data-test-status={status.tone}
             className={cn(
-              'shrink-0 rounded-[5px] px-1.5 py-px text-[9.5px] font-semibold ',
+              'shrink-0 rounded-[var(--radius-control)] px-1.5 py-px text-[9.5px] font-semibold ',
               status.tone === 'positive' && 'bg-positive/15 text-positive',
               status.tone === 'negative' && 'bg-negative/15 text-negative',
               status.tone === 'caution' && 'bg-caution/15 text-caution',
@@ -3372,10 +3375,10 @@ function SettingsSearch({ onJump }: { readonly onJump: (section: Section) => voi
         onChange={(event) => setQuery(event.target.value)}
         placeholder="Search settings — try “threads”, “piece set”, “shortcut”"
         aria-label="Search settings"
-        className="h-8 w-full rounded-[6px] border border-line bg-surface-inset px-2.5 text-xs text-primary outline-none placeholder:text-tertiary focus:border-accent/60"
+        className="h-8 w-full rounded-[var(--radius-control)] border border-line bg-surface-inset px-2.5 text-xs text-primary outline-none placeholder:text-tertiary focus:border-accent/60"
       />
       {query.trim() !== '' ? (
-        <div className="mt-2 max-h-56 overflow-y-auto rounded-[6px] border border-line-subtle">
+        <div className="mt-2 max-h-56 overflow-y-auto rounded-[var(--radius-control)] border border-line-subtle">
           {results.length === 0 ? (
             <p className="p-3 text-xs text-tertiary">No setting matches “{query.trim()}”.</p>
           ) : (
@@ -3704,7 +3707,7 @@ function HealthLine({
   return (
     <div
       role="status"
-      className="mb-3 flex items-center justify-between gap-3 rounded-[6px] border border-line-subtle bg-surface-2 px-2.5 py-1.5"
+      className="mb-3 flex items-center justify-between gap-3 rounded-[var(--radius-control)] border border-line-subtle bg-surface-2 px-2.5 py-1.5"
     >
       <p className="min-w-0 text-2xs leading-relaxed text-tertiary">{detail}</p>
       <span className={cn('shrink-0 text-[10px] ', ok ? 'text-positive' : 'text-caution')}>

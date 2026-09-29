@@ -117,7 +117,7 @@ export function Segmented<T extends string>({
             title={option.title}
             onClick={() => onChange(option.id)}
             className={cn(
-              'rounded-[4px] font-medium whitespace-nowrap transition-colors',
+              'rounded-[var(--radius-board)] font-medium whitespace-nowrap transition-colors',
               size === 'sm' ? 'h-6 px-2 text-[11px]' : 'h-7 px-2.5 text-xs',
               selected
                 ? 'bg-accent text-accent-contrast shadow-sm active:brightness-95'
@@ -158,7 +158,7 @@ export function FilterChip({
         type="button"
         aria-label={`Remove ${name ? `${name} ` : ''}filter`}
         onClick={onRemove}
-        className="flex size-4 shrink-0 items-center justify-center rounded-[3px] text-tertiary transition-colors hover:bg-surface-3 hover:text-primary active:bg-surface-press"
+        className="flex size-4 shrink-0 items-center justify-center rounded-[var(--radius-board)] text-tertiary transition-colors hover:bg-surface-3 hover:text-primary active:bg-surface-press"
       >
         <Close className="size-2.5" />
       </button>

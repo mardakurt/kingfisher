@@ -74,6 +74,30 @@ tree had eleven distinct hard-coded radii against three tokens, with
 radius. The shared components use the tokens; literals are the exception, not
 the rule.
 
+**The mapping, and why it is this one.** A corner radius is not a free
+parameter — it is a statement about what kind of thing this is, and a Mac
+application makes only three kinds of statement. So the eleven collapse to three
+by _kind_, not by proximity of value:
+
+| family              | literals                 | becomes            | why                                                                                                                                      |
+| ------------------- | ------------------------ | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| a control you press | 5px, 6px, 7px (320 uses) | `--radius-control` | 5 and 7 are undeclared variants of 6. Two near-identical values on adjacent buttons is a difference nobody can see and nobody asked for. |
+| a small inset       | 2px, 3px, 4px            | `--radius-board`   | the inside of a square, a thumbnail edge, a tab's own corner                                                                             |
+| a raised surface    | 8px, 10px, 12px, 16px    | `--radius-panel`   | a popover, a dialog, a panel — things that float above the workspace                                                                     |
+
+`rounded-full` (43) is not in this table because it is not arbitrary: a circle is
+a circle. `rounded-md` / `rounded-sm` / `rounded-lg` are the same problem as the
+arbitrary scale wearing a different hat — Tailwind's 6px/2px/8px against
+`--radius-control`/`--radius-board`/`--radius-panel` — and collapse onto the
+same three.
+
+**A radius change is a pixel change, and a pixel change on a committed
+baseline.** This consolidation is not free to apply: every corner it moves is
+visible in one of the 115 committed screenshots. It is therefore done as a
+deliberate sweep with the visual comparison run before and after, and the
+baselines are reviewed rather than regenerated on sight. A baseline that moves
+for a reason nobody can name is a stop, not a refresh.
+
 **The accent has two jobs, and two tokens.** `--accent` is a _surface_: it
 carries `--accent-contrast` text, it sits under the focus ring, it paints a
 selected row. `--accent-ink` is a _reading_: the accent as type. They are the

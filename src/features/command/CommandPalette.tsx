@@ -313,7 +313,7 @@ function PaletteDialog() {
         role="dialog"
         aria-modal
         aria-label="Command palette"
-        className="max-h-[calc(100dvh-2rem)] w-[540px] max-w-full overflow-hidden rounded-[8px] border border-line-strong bg-surface-1 shadow-2xl animate-rise sm:max-w-[92vw]"
+        className="max-h-[calc(100dvh-2rem)] w-[540px] max-w-full overflow-hidden rounded-[var(--radius-panel)] border border-line-strong bg-surface-1 shadow-2xl animate-rise sm:max-w-[92vw]"
         onPointerDown={(event) => event.stopPropagation()}
       >
         {/*
@@ -327,7 +327,7 @@ function PaletteDialog() {
         <div className="border-b border-line-subtle p-2">
           <div
             data-palette-search
-            className="flex h-10 items-center gap-2.5 rounded-[6px] border border-line bg-surface-2 px-2.5"
+            className="flex h-10 items-center gap-2.5 rounded-[var(--radius-control)] border border-line bg-surface-2 px-2.5"
           >
             <Search className="h-3.5 w-3.5 shrink-0 text-tertiary" aria-hidden />
             <input
@@ -407,13 +407,13 @@ function PaletteDialog() {
                     onPointerEnter={() => setIndex(position)}
                     onClick={() => run(command)}
                     className={cn(
-                      'flex w-full items-center gap-3 rounded-[6px] px-2.5 py-1.5 text-left text-xs',
+                      'flex w-full items-center gap-3 rounded-[var(--radius-control)] px-2.5 py-1.5 text-left text-xs',
                       position === selected ? 'bg-surface-3 text-primary' : 'text-secondary',
                     )}
                   >
                     <span className="min-w-0 flex-1 truncate">{command.title}</span>
                     {command.shortcut ? (
-                      <kbd className="shrink-0 rounded-[5px] border border-line bg-surface-1 px-1.5 py-0.5 font-mono text-[10px] text-tertiary">
+                      <kbd className="shrink-0 rounded-[var(--radius-control)] border border-line bg-surface-1 px-1.5 py-0.5 font-mono text-[10px] text-tertiary">
                         {command.shortcut}
                       </kbd>
                     ) : null}

@@ -130,7 +130,7 @@ export function WorkspaceTabStrip() {
               }}
               data-tab={tab.id}
               className={cn(
-                'group relative flex min-w-0 flex-1 cursor-default items-center justify-center rounded-[4px] px-6 text-[11.5px] transition-colors select-none',
+                'group relative flex min-w-0 flex-1 cursor-default items-center justify-center rounded-[var(--radius-board)] px-6 text-[11.5px] transition-colors select-none',
                 selected
                   ? 'bg-surface-1 font-medium text-primary shadow-[0_0_0_0.5px_rgb(0_0_0/0.08),0_1px_2px_rgb(0_0_0/0.08)] active:bg-surface-2'
                   : 'text-secondary hover:bg-black/[0.035] active:bg-black/[0.07] dark:hover:bg-white/[0.05] dark:active:bg-white/[0.09]',
@@ -146,7 +146,7 @@ export function WorkspaceTabStrip() {
                     void requestCloseTab(tab.id, router);
                   }}
                   className={cn(
-                    'absolute left-1 flex size-4 items-center justify-center rounded-[4px] text-tertiary hover:bg-black/[0.08] hover:text-primary dark:hover:bg-white/[0.1]',
+                    'absolute left-1 flex size-4 items-center justify-center rounded-[var(--radius-board)] text-tertiary hover:bg-black/[0.08] hover:text-primary dark:hover:bg-white/[0.1]',
                     selected
                       ? 'opacity-100'
                       : 'opacity-0 group-hover:opacity-100 focus:opacity-100',

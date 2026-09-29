@@ -221,7 +221,7 @@ export function SheetPanel({ ready = true }: { readonly ready?: boolean }) {
           ) : null}
         </div>
         {photo ? (
-          <div className="h-56 overflow-auto rounded-[6px] border border-line bg-surface-inset">
+          <div className="h-56 overflow-auto rounded-[var(--radius-control)] border border-line bg-surface-inset">
             {/* A local object URL of the user's own photo; next/image has nothing to optimise. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -233,7 +233,7 @@ export function SheetPanel({ ready = true }: { readonly ready?: boolean }) {
             />
           </div>
         ) : (
-          <label className="flex h-24 cursor-pointer items-center justify-center rounded-[6px] border border-dashed border-line text-center text-secondary">
+          <label className="flex h-24 cursor-pointer items-center justify-center rounded-[var(--radius-control)] border border-dashed border-line text-center text-secondary">
             <span>
               Drop a photo of the sheet here, or choose one
               <input
@@ -341,7 +341,7 @@ export function SheetPanel({ ready = true }: { readonly ready?: boolean }) {
                   ? 'Next cell after the gap…'
                   : 'Nf3, Sf3, 0-0, ed, e8Q — or ? for a cell you cannot read'
             }
-            className="h-8 w-full rounded-[6px] border border-line bg-surface-inset px-2 font-mono text-[12px] text-primary outline-none focus:border-accent/60"
+            className="h-8 w-full rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 font-mono text-[12px] text-primary outline-none focus:border-accent/60"
           />
         </form>
         {candidates.length && !gap ? (
@@ -351,7 +351,7 @@ export function SheetPanel({ ready = true }: { readonly ready?: boolean }) {
                 <button
                   type="button"
                   className={cn(
-                    'rounded-[5px] border px-1.5 py-0.5 font-mono text-[11px]',
+                    'rounded-[var(--radius-control)] border px-1.5 py-0.5 font-mono text-[11px]',
                     candidate.distance === 0
                       ? 'border-accent/60 text-primary'
                       : 'border-line text-secondary',
@@ -366,7 +366,7 @@ export function SheetPanel({ ready = true }: { readonly ready?: boolean }) {
         ) : null}
         {gap ? (
           <div
-            className="mt-1 rounded-[6px] border border-caution/50 bg-caution/10 p-2"
+            className="mt-1 rounded-[var(--radius-control)] border border-caution/50 bg-caution/10 p-2"
             data-testid="sheet-gap"
           >
             <p className="text-primary">
@@ -379,7 +379,7 @@ export function SheetPanel({ ready = true }: { readonly ready?: boolean }) {
                   <li key={candidate.move.uci}>
                     <button
                       type="button"
-                      className="rounded-[5px] border border-line px-1.5 py-0.5 font-mono text-[11px] text-primary"
+                      className="rounded-[var(--radius-control)] border border-line px-1.5 py-0.5 font-mono text-[11px] text-primary"
                       onClick={() => {
                         fillGap(candidate.move.san);
                         setMessage(
@@ -419,7 +419,7 @@ export function SheetPanel({ ready = true }: { readonly ready?: boolean }) {
               <li
                 key={flag.id}
                 className={cn(
-                  'rounded-[6px] border p-1.5',
+                  'rounded-[var(--radius-control)] border p-1.5',
                   flag.id === currentId ? 'border-accent/60' : 'border-line',
                 )}
               >
@@ -437,7 +437,7 @@ export function SheetPanel({ ready = true }: { readonly ready?: boolean }) {
                     <button
                       key={alternative}
                       type="button"
-                      className="rounded-[5px] border border-line px-1.5 py-0.5 font-mono text-[11px] text-primary"
+                      className="rounded-[var(--radius-control)] border border-line px-1.5 py-0.5 font-mono text-[11px] text-primary"
                       onClick={() => setMessage(resolve(flag.id, alternative))}
                     >
                       {alternative} instead
@@ -445,7 +445,7 @@ export function SheetPanel({ ready = true }: { readonly ready?: boolean }) {
                   ))}
                   <button
                     type="button"
-                    className="rounded-[5px] border border-line px-1.5 py-0.5 text-[11px] text-secondary"
+                    className="rounded-[var(--radius-control)] border border-line px-1.5 py-0.5 text-[11px] text-secondary"
                     onClick={() => acceptFlag(flag.id)}
                   >
                     It is {flag.san}
@@ -470,7 +470,7 @@ export function SheetPanel({ ready = true }: { readonly ready?: boolean }) {
                 value={tree.headers[field.key] === '?' ? '' : (tree.headers[field.key] ?? '')}
                 placeholder={field.placeholder}
                 onChange={(event) => setHeaderValue(field.key, event.target.value)}
-                className="mt-0.5 h-7 w-full rounded-[5px] border border-line bg-surface-inset px-1.5 text-[11px] text-primary"
+                className="mt-0.5 h-7 w-full rounded-[var(--radius-control)] border border-line bg-surface-inset px-1.5 text-[11px] text-primary"
               />
             </label>
           ))}
@@ -480,7 +480,7 @@ export function SheetPanel({ ready = true }: { readonly ready?: boolean }) {
               aria-label="Result"
               value={tree.headers.Result ?? '*'}
               onChange={(event) => setHeaderValue('Result', event.target.value)}
-              className="mt-0.5 h-7 w-full rounded-[5px] border border-line bg-surface-inset px-1.5 text-[11px] text-primary"
+              className="mt-0.5 h-7 w-full rounded-[var(--radius-control)] border border-line bg-surface-inset px-1.5 text-[11px] text-primary"
             >
               {RESULTS.map((result) => (
                 <option key={result} value={result}>

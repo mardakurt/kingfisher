@@ -206,7 +206,7 @@ export function ReferenceCatalogPanel() {
                     <StateBadgePill source={source} />
                     {source.inFlightCount && source.inFlightCount > 0 ? (
                       <span
-                        className="inline-flex items-center gap-1 rounded-[5px] border border-line px-1.5 py-0.5 text-[10px] text-tertiary"
+                        className="inline-flex items-center gap-1 rounded-[var(--radius-control)] border border-line px-1.5 py-0.5 text-[10px] text-tertiary"
                         data-streaming-pill
                         aria-label={`${source.inFlightCount} chunks downloading`}
                       >
@@ -371,7 +371,7 @@ export function ReferenceCatalogPanel() {
                       }
                       aria-expanded={open}
                       onClick={() => setExpanded(open ? null : source.id)}
-                      className="rounded-[6px] p-1 text-tertiary transition-colors hover:bg-surface-2 active:bg-surface-press hover:text-primary"
+                      className="rounded-[var(--radius-control)] p-1 text-tertiary transition-colors hover:bg-surface-2 active:bg-surface-press hover:text-primary"
                     >
                       {open ? (
                         <ChevronUp className="h-4 w-4" />
@@ -386,7 +386,7 @@ export function ReferenceCatalogPanel() {
                       aria-label={`Move ${source.name} up`}
                       disabled={index === 0}
                       onClick={() => actions.promote(source.id, order)}
-                      className="rounded-[5px] px-1 text-[11px] text-tertiary transition-colors hover:bg-surface-2 active:bg-surface-press hover:text-primary disabled:opacity-30"
+                      className="rounded-[var(--radius-control)] px-1 text-[11px] text-tertiary transition-colors hover:bg-surface-2 active:bg-surface-press hover:text-primary disabled:opacity-30"
                     >
                       ↑
                     </button>
@@ -395,7 +395,7 @@ export function ReferenceCatalogPanel() {
                       aria-label={`Move ${source.name} down`}
                       disabled={index === sources.length - 1}
                       onClick={() => actions.demote(source.id, order)}
-                      className="rounded-[5px] px-1 text-[11px] text-tertiary transition-colors hover:bg-surface-2 active:bg-surface-press hover:text-primary disabled:opacity-30"
+                      className="rounded-[var(--radius-control)] px-1 text-[11px] text-tertiary transition-colors hover:bg-surface-2 active:bg-surface-press hover:text-primary disabled:opacity-30"
                     >
                       ↓
                     </button>
@@ -471,7 +471,7 @@ export function ReferenceCatalogPanel() {
 }
 
 const Badge = ({ kind }: { readonly kind: SourceKind }) => (
-  <span className="rounded-[5px] border border-line px-1.5 py-0.5 text-[10px] text-tertiary">
+  <span className="rounded-[var(--radius-control)] border border-line px-1.5 py-0.5 text-[10px] text-tertiary">
     {KIND_LABELS[kind]}
   </span>
 );
@@ -488,7 +488,7 @@ const StateBadgePill = ({ source }: { readonly source: ReferenceSource }) => {
   const badge = badgeForSource(source);
   return (
     <span
-      className={`rounded-[5px] border px-1.5 py-0.5 text-[10px] ${STATE_TONE_CLASS[badge.tone]}`}
+      className={`rounded-[var(--radius-control)] border px-1.5 py-0.5 text-[10px] ${STATE_TONE_CLASS[badge.tone]}`}
       title={`Source state: ${badge.label}`}
     >
       {badge.label}

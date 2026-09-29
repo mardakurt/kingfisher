@@ -101,7 +101,7 @@ export function PreparationReport(props: PreparationReportProps) {
               aria-selected={view === entry.id}
               onClick={() => setView(entry.id)}
               className={cn(
-                'h-7 rounded-[7px] px-3 text-xs font-medium transition-colors',
+                'h-7 rounded-[var(--radius-control)] px-3 text-xs font-medium transition-colors',
                 view === entry.id
                   ? 'bg-accent text-accent-contrast shadow-sm'
                   : 'text-secondary hover:bg-surface-2 active:bg-surface-press hover:text-primary',
@@ -270,7 +270,7 @@ function OpeningsView(props: PreparationReportProps) {
             {node.games.toLocaleString()} games here
           </span>
         </div>
-        <div className="overflow-hidden rounded-[10px] border border-line-subtle">
+        <div className="overflow-hidden rounded-[var(--radius-panel)] border border-line-subtle">
           <MoveTable
             node={node}
             preparedKeys={prepared}
@@ -452,7 +452,7 @@ export function PriorityQueue({
         {priorities.slice(0, 8).map((priority) => (
           <article
             key={priority.edge.uci}
-            className="rounded-[8px] border border-line-subtle bg-surface-1 px-3 py-2"
+            className="rounded-[var(--radius-panel)] border border-line-subtle bg-surface-1 px-3 py-2"
           >
             <div className="flex items-center gap-2 text-xs">
               <strong className="text-primary">{priority.edge.san}</strong>
@@ -509,7 +509,7 @@ function GamesView({
     return <EmptyState title="No games." description="The selected set holds no games." />;
   }
   return (
-    <div className="overflow-hidden rounded-[10px] border border-line-subtle">
+    <div className="overflow-hidden rounded-[var(--radius-panel)] border border-line-subtle">
       <div className="overflow-x-auto">
         <table className="w-full min-w-[640px] border-collapse text-xs" data-preparation-games>
           <thead>

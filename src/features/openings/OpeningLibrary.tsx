@@ -92,7 +92,7 @@ export function OpeningLibrary() {
                   key={family}
                   type="button"
                   onClick={() => setQuery(family)}
-                  className="rounded-[6px] border border-line px-1.5 py-0.5 text-[11px] text-tertiary transition-colors hover:border-line-strong hover:text-secondary"
+                  className="rounded-[var(--radius-control)] border border-line px-1.5 py-0.5 text-[11px] text-tertiary transition-colors hover:border-line-strong hover:text-secondary"
                 >
                   {family.replace(' Defense', '').replace(' Opening', '')}
                 </button>
@@ -238,7 +238,7 @@ function OpeningDetail({ entry }: { readonly entry: OpeningEntry }) {
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-baseline gap-2">
-            <span className="rounded-[5px] bg-surface-3 px-1.5 py-0.5 font-mono text-xs text-accent-ink">
+            <span className="rounded-[var(--radius-control)] bg-surface-3 px-1.5 py-0.5 font-mono text-xs text-accent-ink">
               {entry.eco}
             </span>
             <h2 className="text-lg font-semibold text-primary">{entry.name}</h2>

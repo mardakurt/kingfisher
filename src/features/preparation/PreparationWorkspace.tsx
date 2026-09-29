@@ -452,7 +452,7 @@ export function PreparationWorkspace({
             aria-label="Compare repertoire"
             value={effectiveRepertoireId ?? ''}
             onChange={(event) => setRepertoireId(event.target.value)}
-            className="h-6 max-w-40 rounded-[6px] border border-line bg-surface-1 px-1.5 text-[11px] text-secondary"
+            className="h-6 max-w-40 rounded-[var(--radius-control)] border border-line bg-surface-1 px-1.5 text-[11px] text-secondary"
           >
             {matchingRepertoires.map((entry) => (
               <option key={entry.id} value={entry.id}>
@@ -464,7 +464,7 @@ export function PreparationWorkspace({
       }
       sheet={
         session ? (
-          <div className="overflow-hidden rounded-[10px] border border-line-subtle">
+          <div className="overflow-hidden rounded-[var(--radius-panel)] border border-line-subtle">
             <GameDaySheet
               session={session}
               onOpen={(card) => {
@@ -534,7 +534,7 @@ export function PreparationWorkspace({
                 const value = event.target.value;
                 if (value) search(value, null);
               }}
-              className="h-8 max-w-[18ch] rounded-[7px] border border-line bg-surface-1 px-1.5 text-xs text-primary"
+              className="h-8 max-w-[18ch] rounded-[var(--radius-control)] border border-line bg-surface-1 px-1.5 text-xs text-primary"
             >
               <option value="">Favourites…</option>
               {profile.data?.favoritePlayers?.map((entry) => (
@@ -728,7 +728,7 @@ function PreparationToolbar(props: {
             props.setToYear('');
             props.setFromYear(chosen.years === null ? '' : String(thisYear - chosen.years + 1));
           }}
-          className="h-8 rounded-[7px] border border-line bg-surface-1 px-2 text-xs text-primary"
+          className="h-8 rounded-[var(--radius-control)] border border-line bg-surface-1 px-2 text-xs text-primary"
         >
           {YEAR_SPANS.map((entry) => (
             <option key={entry.id} value={entry.id}>
@@ -877,5 +877,5 @@ function PreparationWelcome({
 }
 
 const FIELD =
-  'h-7 w-full rounded-[6px] border border-line bg-surface-inset px-2 text-xs text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60';
+  'h-7 w-full rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-xs text-primary outline-none placeholder:text-tertiary/60 focus:border-accent/60';
 const digits = (value: string, length: number) => value.replace(/\D/g, '').slice(0, length);
