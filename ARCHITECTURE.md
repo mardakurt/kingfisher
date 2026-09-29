@@ -749,6 +749,29 @@ write-back batches that make a write into a chapter undoable.
 Records are validated on the way out, because a record written by an older
 build is plausible and malformed data must not reach the board.
 
+**A backup indicator that cannot be wrong, or it is not a backup.** The
+status bar's auto-backup line is a claim about the only recovery path a user
+has, and it has five of them: a run in progress, a **failure**, a store that
+could not be **read**, never a backup, and an ordinary age against the
+schedule the user set. What it had was three, because `failed` and
+`unavailable` had no arm to render into — and both leave `lastBackupAt` at its
+previous value, so the missing arm fell through to the ordinary branch and
+drew a **green** dot beside "Backup 3d ago". A user whose safety net had
+failed was told it was working, with the failure resting on the fact that
+nobody drew it.
+
+The states are separated because they are different things to act on, and one
+of them is not a quantity at all: a store that cannot be read tells you
+nothing about what is in it, so it is **unknown**, and unknown is rendered
+as unknown rather than collapsed into the zero that "No backup yet" claims.
+What it used to do instead was reject unhandled and leave the bar in its
+`checking` state — which renders as the most alarming reading available, on a
+workspace that may hold yesterday's backup.
+
+`features/shell/backup-status.ts` holds the whole mapping as a pure function,
+so "which claim does this state make" is a unit test rather than a ternary
+chain inside a `footer` — the same reason `layout-model.ts` holds no React.
+
 **A reload inside the autosave debounce.** Autosave writes 900 ms after a
 change, and an IndexedDB write does not outlive the page. Since Phase 84 a
 `pagehide` with unsaved work also writes the draft synchronously to
@@ -1679,6 +1702,27 @@ the notation, Engine, Explorer and Notes as one compact tab set. The sidebar
 similarly moves from full, to icon rail, to an accessible drawer.
 
 ---
+
+### A label is not a value
+
+The analysis preset is a **label** for the lines, hash and search limit, and
+the values are the source of truth. Every control that changes one of those
+three writes `custom` beside it, and Settings says so in as many words — "The
+value is always what the engine runs with; a preset only fills it in."
+
+That invariant needs holding at every place preferences are written _whole_,
+and there was one that did not: a settings import. Every key passed its
+per-key type check, and a file could still say `deep` while carrying a
+one-thread, two-line engine, which left the dialog asserting a configuration
+the engine was not in and nothing on screen to say otherwise. The file was
+internally inconsistent in a way no per-key check can see — §64's rule again,
+one level up.
+
+`reconcileEnginePreset` in `src/engine/presets.ts` is the boundary check, and
+`settings-transfer.ts` calls it. The incoming values are kept: an import
+transfers a configuration, it does not reconfigure one. Threads are the one
+value a preset does not own, because `resolveThreads` scales them to the
+machine and a workstation's count cannot be expected to survive the move.
 
 ## Configuration
 

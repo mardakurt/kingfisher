@@ -68,6 +68,27 @@ Also outstanding from the same work: `e2e/merge-games.spec.ts:76` failed once
 in a 426-test sequential run and passes 3/3 in isolation. Not reproduced as
 deterministic and not attributed to anything.
 
+**Published revision check (this session, 1.3.3 — 2026-09-29).** The public
+Mac is still **1.3.3, build 932, `ebd7d63`** and does **not** contain the work
+below, which is on local `master` and unpushed at the time of writing. The
+changes are all in shared application code, so a Mac build from this source
+would carry them and a package from 932 would not:
+
+- the status bar reporting a **failed** automatic backup as a failure rather
+  than as a green "Backup 3d ago", and a store it could not read as
+  _unknown_ rather than as _none_;
+- settings import reconciling the engine preset label with the values beside
+  it, so the dialog can no longer assert a configuration the engine is not in;
+- the global focus ring no longer overriding every border radius in the
+  application on keyboard focus;
+- a pressed state for every control, one step past hover, in both themes;
+- the sidebar fading at its bottom edge when the section list does not fit;
+- one accessible name for the two Settings controls.
+
+Nothing under `desktop/` or `companion/` changed, so no shell behaviour is
+affected. Section B — version, notarisation, publish, descriptor — is the
+owner's call and was not run.
+
 **Published revision check (Phase 87, 1.3.3 — 2026-09-27).** The public
 Mac is **1.3.3, build 932, `ebd7d63`**: signed, notarised (application and
 disk image), `desktop:certify` 10/10 and a real Sparkle update from 1.3.2

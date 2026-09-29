@@ -8,6 +8,50 @@ real users notice.
 
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
+- **Fixed: a failed backup was reported as a working one.** The status bar
+  knows whether the last automatic backup completed, and has said so since
+  Phase 56 — but it never drew that state. A failed run leaves the previous
+  backup's timestamp in place, so the indicator fell through to its ordinary
+  branch and showed **Backup 3d ago** with a green dot beside it: a safety net
+  that had failed, reported as one that had not. It now reads **Backup failed**,
+  and says what a failure did not cost, because the previous backup is
+  untouched. The same indicator has a second new state for the case where the
+  backup store could not be _read_ at all — a blocked or unavailable
+  IndexedDB, which used to reject unhandled and leave the bar claiming **No
+  backup yet** forever, on a workspace that may hold yesterday's. It now says
+  **Backup status unknown**, because an unknown is not a zero.
+- **Fixed: importing settings could misreport the engine configuration.**
+  The analysis preset is a _label_ for lines, hash and the search limit, and
+  every control that changes one of those puts the label into **Custom** for
+  exactly that reason. Importing settings was the one path that wrote
+  preferences without holding to it, so a file naming **Deep** while carrying a
+  one-thread, two-line engine left Settings asserting a configuration the
+  engine was not in, with nothing on screen to tell you so. The label is now
+  reconciled at the boundary, and the values the file carried are kept —
+  importing transfers your configuration, it does not reconfigure it.
+- **Fixed: keyboard focus no longer reshapes the control it is on.** The
+  global focus ring carried a `border-radius` of its own, and because it is
+  unlayered it outranked every radius in the application: the instant a button
+  took focus its corners snapped — a 6px control became 3px, and a rounded
+  pill became a rectangle — and the ring, which follows the radius, redrew
+  itself in a shape that no longer matched the thing it was drawn around. The
+  ring now takes the shape of whatever it is around.
+- **Every control has a press state.** Kingfisher drew hover on 259 elements
+  and pressed on five, so a click gave no feedback between the pointer going
+  down and the work arriving — most noticeable on exactly the operations where
+  you wait, a database query or a companion round trip. There is now a real
+  **pressed** face, one step past hover, shared by every button, tab, segment,
+  sidebar row and menu item.
+- **The sidebar says when there is more below it.** Nineteen sections do not
+  fit a 720px window, and macOS scrollbars are invisible until you scroll, so
+  the whole Data group sat below a hard edge with no sign of it and the cut
+  ran through the middle of a row. The list now fades at its bottom edge
+  exactly when it is measured to have something below.
+- **One Settings control, one name.** The sidebar row and the header control
+  announced themselves as "Settings comma" and "Settings, comma" — the same
+  command under two names a person using a screen reader cannot tell apart.
+  Both now name what they do and let the system announce ⌘,.
+
 - **The keys for the working tabs.** ⌘T opens a tab, ⌘W closes it, ⌘⇧T
   duplicates it, ⌘⌥→ and ⌘⌥← step between them — the browser's own chords,
   because they are the ones already in the fingers. Each calls the same

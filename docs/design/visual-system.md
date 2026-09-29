@@ -38,9 +38,41 @@ Surface levels mean one thing everywhere: `surface-0` is the application
 canvas, `surface-1` is primary chrome — the same white as the canvas in the
 light theme, so regions are divided by hairlines rather than by tone —
 `surface-2` is a hovered or raised region, `surface-3` is the selected
-surface, `surface-inset` is an input or recessed work area, and
-`surface-sidebar` is the source list's own grey. Borders follow
-subtle/default/strong.
+surface, `surface-press` is a held control, `surface-inset` is an input or
+recessed work area, and `surface-sidebar` is the source list's own grey.
+Borders follow subtle/default/strong.
+
+**A control has four states, and pressed is one of them.** Hover is
+`surface-3`; press is `surface-press`, one step further, in both themes
+(`#3d3d41` on `#333336`, `#e0e0e7` on `#ebebef`). It is a real face rather
+than a filter so it can be reasoned about per theme and cannot darken a
+coloured control — the accent variant presses through `--accent-hover` and a
+brightness step instead. This was missing entirely until this session: 259
+hover utilities against 5 press ones, and a measurement of the running
+application found **0 of 50** rendered buttons carrying one. On a desktop
+application where a click is the primary gesture, and most sharply on the
+operations you _wait_ for — a database query, a companion round trip — a
+control that gave no feedback between pointer-down and arrival read as
+unresponsive rather than as busy.
+
+**The focus ring takes the shape of what it is around.** The global
+`:focus-visible` rule is unlayered on purpose, so it outranks a component's
+own `outline-none`: a global accessibility affordance that a utility could
+switch off is not one. It also used to declare `border-radius: 3px`, and
+unlayered beats every layered utility — so it beat all 373 radius sites in
+the application. Measured in Chromium before the fix: a control declaring
+`rounded-[6px]` computed 6px blurred and **3px** focused, and a pill
+collapsed to a rectangle. The outline follows the border radius, so the ring
+also redrew itself in a shape that no longer matched the control it was drawn
+around. Nothing declares a radius there now.
+
+**Radii are tokens, not literals.** `--radius-control` (6px) is a button, tab,
+segment, chip, menu item or sidebar row; `--radius-panel` (10px) is a popover,
+dialog or panel; `--radius-board` (3px) is the board and a small inset. The
+tree had eleven distinct hard-coded radii against three tokens, with
+`rounded-[5px]` and `rounded-[7px]` as undeclared variants of the control
+radius. The shared components use the tokens; literals are the exception, not
+the rule.
 
 **The accent has two jobs, and two tokens.** `--accent` is a _surface_: it
 carries `--accent-contrast` text, it sits under the focus ring, it paints a

@@ -272,6 +272,14 @@ with [`AGENTS.md`](../AGENTS.md).
 
 ## Historical
 
+- [`reports/phase-88-handover.md`](reports/phase-88-handover.md) — a
+  defect-finding and desktop-UX session rather than a feature phase: the
+  failed backup the status bar reported as a green success, the settings
+  import that could assert an engine configuration the engine was not in,
+  the focus ring that reshaped every control it touched, the missing press
+  state, the sidebar's silent overflow, and the two drift guards that
+  passed vacuously — each with its reproduction, fix and a regression
+  proven able to fail; unreleased.
 - [`reports/phase-87-handover.md`](reports/phase-87-handover.md) — the
   ChessBase-alternative reassessment: the laptop layout, preparation counts,
   Library continuity and empty states, with every gate run;
