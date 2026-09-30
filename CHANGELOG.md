@@ -6,6 +6,23 @@ real users notice.
 
 ## Unreleased (web)
 
+- **Board coordinates are easier to read.** All thirteen board themes now use
+  coordinate ink that reaches 4.5:1 on both base square colors.
+
+- **Analysis has a Research workspace layout.** Keep notation, an installed
+  reference source and compact engine candidates beside a full-height board.
+  Narrow windows fold the tools into tabs; full principal variations remain
+  available through Preview and Insert.
+- **Both workspace dividers support keyboard resizing.** Library rows support
+  Home and End, and keys on a row's checkbox no longer open the game.
+- **Text composition keeps its own keys.** IME Escape and candidate navigation
+  no longer dismiss dialogs or activate global commands while composing.
+- **Preparation keeps session actions in its toolbar.** The unused session
+  selector appears when there is a session to select.
+- **Chessboard and notation expose position context.** The board describes the
+  side to move, move number, orientation and selected square; notation marks
+  the current move for assistive technology.
+
 Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
 - **Library filters keep the selected game in view.** On a desktop-width

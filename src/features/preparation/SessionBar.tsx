@@ -15,6 +15,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Dialog } from '@/components/ui/Dialog';
 import { Target } from '@/components/icons';
+import { cn } from '@/lib/cn';
 import type { PreparationSessionRecord } from '@/persistence/domain';
 
 export function SessionBar({
@@ -24,6 +25,7 @@ export function SessionBar({
   onCreate,
   onOpenSheet,
   sheetCount,
+  compact = false,
 }: {
   readonly sessions: readonly PreparationSessionRecord[];
   readonly active: PreparationSessionRecord | null;
@@ -38,29 +40,38 @@ export function SessionBar({
   }) => void;
   readonly onOpenSheet: () => void;
   readonly sheetCount: number;
+  readonly compact?: boolean;
 }) {
   const [creating, setCreating] = useState(false);
 
   return (
-    <div className="flex h-9 shrink-0 flex-wrap items-center gap-2 border-b border-line-subtle bg-surface-2 px-2 sm:px-3">
-      <Target className="h-3.5 w-3.5 shrink-0 text-accent-ink" />
-      <label className="flex min-w-0 items-center gap-1.5 text-[10px] text-tertiary">
-        Session
-        <select
-          aria-label="Preparation session"
-          value={active?.id ?? ''}
-          onChange={(event) => onSelect(event.target.value || null)}
-          className="h-6 max-w-[22ch] rounded-[var(--radius-control)] border border-line bg-surface-inset px-1.5 text-[11px] text-primary outline-none focus:border-accent/60"
-        >
-          <option value="">No session</option>
-          {sessions.map((session) => (
-            <option key={session.id} value={session.id}>
-              {session.title}
-              {session.opponent ? ` · ${session.opponent}` : ''}
-            </option>
-          ))}
-        </select>
-      </label>
+    <div
+      className={cn(
+        'flex shrink-0 flex-wrap items-center gap-2',
+        !compact && 'min-h-9 border-b border-line-subtle bg-surface-2 px-2 py-1 sm:px-3',
+      )}
+      data-preparation-session
+    >
+      {!compact ? <Target className="h-3.5 w-3.5 shrink-0 text-accent-ink" /> : null}
+      {!compact || sessions.length > 0 ? (
+        <label className="flex min-w-0 items-center gap-1.5 text-[10px] text-tertiary">
+          Session
+          <select
+            aria-label="Preparation session"
+            value={active?.id ?? ''}
+            onChange={(event) => onSelect(event.target.value || null)}
+            className="h-6 max-w-[22ch] rounded-[var(--radius-control)] border border-line bg-surface-inset px-1.5 text-[11px] text-primary outline-none focus:border-accent/60"
+          >
+            <option value="">No session</option>
+            {sessions.map((session) => (
+              <option key={session.id} value={session.id}>
+                {session.title}
+                {session.opponent ? ` · ${session.opponent}` : ''}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
 
       {active ? (
         <>
@@ -75,11 +86,11 @@ export function SessionBar({
             <span className="ml-1 text-tertiary tabular">{sheetCount}</span>
           </Button>
         </>
-      ) : (
+      ) : !compact ? (
         <span className="text-[10px] text-tertiary">
           Create a session to collect a game-day sheet.
         </span>
-      )}
+      ) : null}
 
       <Button className={active ? '' : 'ml-auto'} onClick={() => setCreating(true)}>
         New session

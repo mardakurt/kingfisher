@@ -44,6 +44,8 @@ export function Dialog({
     closeRef.current?.focus();
 
     const handleKeyDown = (event: KeyboardEvent) => {
+      // Candidate selection belongs to the input method while composing.
+      if (event.isComposing || event.keyCode === 229) return;
       if (event.key === 'Escape') {
         event.preventDefault();
         onCloseRef.current();

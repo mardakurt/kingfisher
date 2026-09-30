@@ -277,3 +277,19 @@ describe('sanitizeArrangement', () => {
     expect(result.placement).toEqual({});
   });
 });
+
+describe('research arrangement compatibility', () => {
+  it('preserves the optional engine split when a stored layout is read back', () => {
+    const raw = JSON.parse('{"dockEngine":true,"dockWidth":420,"active":{"dock":"explorer"}}');
+    expect(sanitizeArrangement(raw, knownModules)).toMatchObject({
+      dockEngine: true,
+      dockWidth: 420,
+      active: { dock: 'explorer' },
+    });
+  });
+  it('keeps older layouts unsplit and ignores malformed split flags', () => {
+    expect(sanitizeArrangement({}, knownModules).dockEngine).toBeUndefined();
+    expect(sanitizeArrangement({ dockEngine: 'true' }, knownModules).dockEngine).toBeUndefined();
+    expect(sanitizeArrangement({ dockEngine: false }, knownModules).dockEngine).toBe(false);
+  });
+});

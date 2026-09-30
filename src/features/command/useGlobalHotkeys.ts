@@ -46,6 +46,8 @@ export function useGlobalHotkeys(): void {
   const router = useRouter();
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      // Candidate selection belongs to the input method while composing.
+      if (event.isComposing || event.keyCode === 229) return;
       const ui = useUi.getState();
 
       /*

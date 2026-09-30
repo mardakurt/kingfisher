@@ -989,6 +989,14 @@ cursor, the FEN, the orientation and the document by reading the analysis
 store. It holds no chess state of its own — a second source of position truth
 is the bug class this seam exists to prevent.
 
+The optional Research workspace preset keeps the existing notation, selected
+reference tool and one compact engine panel in the right dock. Its optional
+`dockEngine` layout flag survives sanitization; older records retain their
+previous layout. Moving Engine elsewhere or selecting its full tab removes the
+split, and compact windows fold tools into tabs. There is still one engine
+session and one board architecture. Compact candidates abbreviate the displayed
+PV only; Preview and Insert continue to consume the complete engine line.
+
 `WorkspaceFrame` (`features/workspace/WorkspaceFrame.tsx`) is the page every
 board route is. Until it existed each route laid itself out by hand — its own
 header, its own three-column grid with its own column widths, its own idea of

@@ -98,3 +98,24 @@ test('Back from a game returns to the same page, with the same game selected and
   await expect(selected).toBeInViewport();
   await expect(page.locator(`[data-library-preview="${chosen}"]`)).toBeVisible();
 });
+
+test('table keyboard selection reaches both ends and nested checkbox keys stay local', async ({
+  page,
+}) => {
+  const games = readFileSync('data/fixtures/bench-1k.pgn', 'utf8')
+    .split('\n\n[Event')
+    .slice(0, 3)
+    .join('\n\n[Event');
+  await seed(page, games);
+  const rows = page.locator('[data-library-row]');
+  await expect(rows).toHaveCount(3);
+  await rows.nth(1).focus();
+  await rows.nth(1).press('End');
+  await expect(rows.nth(2)).toBeFocused();
+  await expect(rows.nth(2)).toHaveAttribute('aria-selected', 'true');
+  await rows.nth(2).press('Home');
+  await expect(rows.nth(0)).toBeFocused();
+  await expect(rows.nth(0)).toHaveAttribute('aria-selected', 'true');
+  await rows.nth(0).getByRole('checkbox').press('Enter');
+  await expect(page).toHaveURL(/\/games/);
+});

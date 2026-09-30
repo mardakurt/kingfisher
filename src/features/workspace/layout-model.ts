@@ -46,6 +46,8 @@ export interface WorkspaceArrangement {
   /** A height the user chose by dragging the notation panel. Same rule. */
   readonly lowerHeight?: number;
   readonly dockCollapsed: boolean;
+  /** Keep the engine below the selected dock tool on a research desk. */
+  readonly dockEngine?: boolean;
   /**
    * Whether the route's own list — chapters, repertoires, the review queue —
    * is folded to a strip.
@@ -336,6 +338,7 @@ export function sanitizeArrangement(
       ? { lowerHeight: clampLowerHeight(raw.lowerHeight as number) }
       : {}),
     dockCollapsed: raw.dockCollapsed === true,
+    ...(typeof raw.dockEngine === 'boolean' ? { dockEngine: raw.dockEngine } : {}),
     ...(typeof raw.railCollapsed === 'boolean' ? { railCollapsed: raw.railCollapsed } : {}),
   };
 }

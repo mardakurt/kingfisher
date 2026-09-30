@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 
 import type { Brush, Shape } from '@/chess/annotations';
 import { boardSquares, squareColor } from '@/chess/board';
@@ -109,6 +109,7 @@ export function Chessboard({
 }: ChessboardProps) {
   const outsideCoordinates = coordinates === 'outside';
   const insideCoordinates = coordinates === 'inside';
+  const descriptionId = useId();
   const boardRef = useRef<HTMLDivElement>(null);
   const interactionRef = useRef<Interaction | null>(null);
   const selectedRef = useRef<Square | null>(null);
@@ -481,6 +482,11 @@ export function Chessboard({
         untouched, so pointer-to-square mapping needs no adjustment at all.
       */}
       {outsideCoordinates && <OutsideCoordinates orientation={orientation} />}
+      <span id={descriptionId} className="sr-only">
+        {parsed.ok
+          ? `${parsed.value.turn === 'w' ? 'White' : 'Black'} to move, move ${parsed.value.fullmoveNumber}. ${orientation === 'w' ? 'White' : 'Black'} at the bottom. ${activeSelection ? `Selected square ${activeSelection}.` : ''}`
+          : 'Invalid position'}
+      </span>
 
       <div
         className="absolute"
@@ -521,6 +527,7 @@ export function Chessboard({
           onContextMenu={(event) => event.preventDefault()}
           role="grid"
           aria-label="Chessboard"
+          aria-describedby={descriptionId}
         >
           {squares.map((square, index) => {
             const light = squareColor(square) === 'light';

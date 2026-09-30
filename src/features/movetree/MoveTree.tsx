@@ -448,6 +448,7 @@ function MoveToken({
       <button
         type="button"
         data-current={current}
+        aria-current={current ? 'step' : undefined}
         onClick={() => onSelect(node.id)}
         onContextMenu={(event) => {
           event.preventDefault();

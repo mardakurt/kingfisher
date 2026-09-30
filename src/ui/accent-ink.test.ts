@@ -97,3 +97,21 @@ describe('the accent read as text', () => {
     if (accent >= 4.5) expect(tokens['--accent-ink']).toBe(tokens['--accent']);
   });
 });
+
+describe('workspace reading and keyboard focus', () => {
+  it.each(THEMES)('keeps workspace text and focus legible in %s', (_theme, opening) => {
+    const tokens = block(opening);
+    for (const surface of SURFACES) {
+      for (const foreground of ['--text-primary', '--text-secondary', '--text-tertiary']) {
+        expect(
+          contrast(tokens[foreground]!, tokens[surface]!),
+          `${foreground} on ${surface}`,
+        ).toBeGreaterThanOrEqual(4.5);
+      }
+      expect(
+        contrast(tokens['--accent']!, tokens[surface]!),
+        `focus on ${surface}`,
+      ).toBeGreaterThanOrEqual(3);
+    }
+  });
+});

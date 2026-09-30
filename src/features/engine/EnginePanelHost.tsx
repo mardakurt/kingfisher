@@ -17,8 +17,12 @@ import { EnginePanel } from './EnginePanel';
 
 type View = 'single' | 'compare';
 
-export function EnginePanelHost() {
+export function EnginePanelHost({ compact = false }: { readonly compact?: boolean }) {
   const [view, setView] = useState<View>('single');
+
+  // The compact candidate strip has one job. The Engine tab retains the
+  // full comparison controls without squeezing a second engine into it.
+  if (compact) return <EnginePanel compact />;
 
   return (
     <div className="flex h-full min-h-0 flex-col [container-type:size]">

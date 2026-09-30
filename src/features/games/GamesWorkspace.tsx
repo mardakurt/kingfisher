@@ -866,7 +866,23 @@ export function GamesWorkspace() {
                       onClick={() => setPreviewId(game.id)}
                       onDoubleClick={() => void open(game)}
                       onKeyDown={(event) => {
+                        if (event.target !== event.currentTarget || event.nativeEvent.isComposing)
+                          return;
                         if (event.key === 'Enter') void open(game);
+                        if (event.key === 'Home' || event.key === 'End') {
+                          event.preventDefault();
+                          const next = event.key === 'Home' ? rows[0] : rows.at(-1);
+                          if (next) {
+                            setPreviewId(next.id);
+                            const body = event.currentTarget.parentElement;
+                            const target = (
+                              event.key === 'Home'
+                                ? body?.firstElementChild
+                                : body?.lastElementChild
+                            ) as HTMLElement | null;
+                            target?.focus();
+                          }
+                        }
                         if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
                           event.preventDefault();
                           const index = rows.findIndex((row) => row.id === game.id);

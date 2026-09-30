@@ -7,6 +7,13 @@ file plus `src/desktop/bridge.ts`, which returns `null` in a browser.
 This document is the Phase 49 check on that claim, feature by feature,
 with the deliberate differences named and the reason for each.
 
+**Published revision check (2026-09-30 interface acceptance).** The research
+layout, lower keyboard divider, Library navigation, Preparation toolbar and
+composition/accessibility fixes are shared renderer changes and Mac-facing.
+They are not in public Mac 1.3.3 build 932. A local package, browser gate or
+performance result does not publish an update. Current evidence is recorded in
+`docs/reports/2026-09-30-interface-acceptance.md`.
+
 **Published revision check (2026-09-29 interface continuation).** The current
 branch keeps the Electron shell and the shared Next.js/React renderer. It
 adds keyboard resizing to the Analysis tool divider, keeps a Library game's

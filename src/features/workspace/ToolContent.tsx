@@ -138,11 +138,13 @@ function ToolLoading() {
 export function ToolContent({
   tool,
   contextPanel,
+  compactEngine = false,
 }: {
   readonly tool: WorkspaceToolId;
   readonly contextPanel?: ReactNode;
+  readonly compactEngine?: boolean;
 }) {
-  if (tool === 'engine') return <EnginePanelHost />;
+  if (tool === 'engine') return <EnginePanelHost compact={compactEngine} />;
   if (tool === 'explorer') return <ExplorerPanel />;
   if (tool === 'theory-book') return <TheoryBookPanel />;
   if (tool === 'opening-report') return <OpeningReportPanel />;

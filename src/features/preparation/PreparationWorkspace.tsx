@@ -602,14 +602,17 @@ export function PreparationWorkspace({
             setResult={setResult}
             recentN={recentN}
             setRecentN={setRecentN}
-          />
-          <SessionBar
-            sessions={sessions}
-            active={session}
-            onSelect={setSessionId}
-            onCreate={(input) => void createSession(input)}
-            onOpenSheet={() => setSheetOpen(true)}
-            sheetCount={session?.sheet.length ?? 0}
+            sessionControls={
+              <SessionBar
+                compact
+                sessions={sessions}
+                active={session}
+                onSelect={setSessionId}
+                onCreate={(input) => void createSession(input)}
+                onOpenSheet={() => setSheetOpen(true)}
+                sheetCount={session?.sheet.length ?? 0}
+              />
+            }
           />
         </>
       }
@@ -675,6 +678,7 @@ const YEAR_SPANS: readonly { id: string; label: string; years: number | null }[]
  * in force on the button so nothing narrows the report unseen.
  */
 function PreparationToolbar(props: {
+  readonly sessionControls: React.ReactNode;
   readonly player: string;
   readonly setPlayer: (value: string) => void;
   readonly onSearch: (choice: OpponentChoice) => void;
@@ -715,7 +719,7 @@ function PreparationToolbar(props: {
       className="flex shrink-0 flex-wrap items-center gap-2 border-b border-line-subtle px-3 py-2 sm:px-4"
       data-preparation-toolbar
     >
-      <div className="flex min-w-[260px] max-w-[560px] flex-1">
+      <div className="flex min-w-[260px] max-w-[560px] flex-1 basis-[280px]">
         <OpponentSearch value={props.player} onChange={props.setPlayer} onSubmit={props.onSearch} />
       </div>
       <div className="ml-auto flex flex-wrap items-center gap-2">
@@ -829,6 +833,7 @@ function PreparationToolbar(props: {
           </PopoverSection>
         </Popover>
       </div>
+      {props.sessionControls}
     </div>
   );
 }

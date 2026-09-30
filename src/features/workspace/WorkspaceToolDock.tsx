@@ -211,6 +211,14 @@ export function WorkspaceToolDock({
   const toolModules = stackNotation ? dockModules.filter((id) => id !== 'move-tree') : dockModules;
   const shownTool =
     stackNotation && activeDock === 'move-tree' ? (toolModules[0] ?? null) : activeDock;
+  // A research desk renders each tool once. Choosing Engine uses its normal
+  // full panel; moving it elsewhere or narrowing the window folds the split.
+  const splitEngine =
+    wide &&
+    roomForNotation &&
+    arrangement.dockEngine &&
+    dockModules.includes('engine') &&
+    shownTool !== 'engine';
 
   const tabs = toolModules.map((id) => ({
     id,
@@ -250,6 +258,7 @@ export function WorkspaceToolDock({
         <NotationSection
           workspace={workspace}
           share={tall ? 'tall' : 'short'}
+          compact={Boolean(splitEngine)}
           moveTreePanel={moveTreePanel}
           onMove={(region) => moveModuleTo(workspace, device, 'move-tree', region)}
         />
@@ -321,6 +330,23 @@ export function WorkspaceToolDock({
           onDiagnostics={() => openSettingsAt('diagnostics')}
         />
       </div>
+      {splitEngine ? (
+        <section
+          aria-label="Engine candidates"
+          className="h-[224px] min-h-0 shrink-0 border-t border-line-subtle"
+          data-research-engine
+        >
+          <RegionBody
+            module="engine"
+            compactEngine
+            contextLabel={contextLabel}
+            lock={effectiveLock}
+            unavailable={availability('engine')}
+            onClose={() => select('engine')}
+            onDiagnostics={() => openSettingsAt('diagnostics')}
+          />
+        </section>
+      ) : null}
     </aside>
   );
 }
@@ -341,6 +367,7 @@ export function RegionBody({
   unavailable,
   onClose,
   onDiagnostics,
+  compactEngine = false,
 }: {
   readonly module: WorkspaceModuleId | null;
   readonly contextLabel: string;
@@ -350,6 +377,7 @@ export function RegionBody({
   readonly unavailable: string | null;
   readonly onClose: () => void;
   readonly onDiagnostics: () => void;
+  readonly compactEngine?: boolean;
 }) {
   if (!module) {
     return (
@@ -396,7 +424,11 @@ export function RegionBody({
       {module === 'move-tree' ? (
         (moveTreePanel ?? null)
       ) : (
-        <ToolContent tool={module as WorkspaceToolId} contextPanel={contextPanel} />
+        <ToolContent
+          tool={module as WorkspaceToolId}
+          contextPanel={contextPanel}
+          compactEngine={compactEngine}
+        />
       )}
     </ErrorBoundary>
   );
@@ -636,12 +668,14 @@ function NotationSection({
   share,
   moveTreePanel,
   onMove,
+  compact = false,
 }: {
   readonly workspace: string;
   /** A laptop-height window gives the notation a third of the column, not two fifths. */
   readonly share: 'tall' | 'short';
   readonly moveTreePanel?: ReactNode;
   readonly onMove: (region: WorkspaceRegion) => void;
+  readonly compact?: boolean;
 }) {
   const folded = useSyncExternalStore(subscribeNotationFolded, readNotationFolded, () => false);
   const toggle = () => writeNotationFolded(!folded);
@@ -653,9 +687,11 @@ function NotationSection({
         'flex min-h-0 flex-col border-b border-line-subtle',
         folded
           ? 'shrink-0'
-          : share === 'tall'
-            ? 'min-h-[160px] flex-[0_0_38%]'
-            : 'min-h-[140px] flex-[0_0_34%]',
+          : compact
+            ? 'min-h-[140px] flex-[0_0_22%]'
+            : share === 'tall'
+              ? 'min-h-[160px] flex-[0_0_38%]'
+              : 'min-h-[140px] flex-[0_0_34%]',
       )}
       aria-label="Notation"
       data-notation-section={workspace}

@@ -1,13 +1,18 @@
 'use client';
 
-import { useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
+import {
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+} from 'react';
 
 import { Menu, type MenuSection } from '@/components/ui/Menu';
 import { cn } from '@/lib/cn';
 import { useUi } from '@/stores/ui-store';
 import { useWorkspaceLayout } from '@/stores/workspace-layout-store';
 
-import type { WorkspaceModuleId } from './layout-model';
+import { LOWER_HEIGHT_MIN, LOWER_HEIGHT_MAX, type WorkspaceModuleId } from './layout-model';
 import { MOVE_TREE_MODULE, WORKSPACE_MODULES, type WorkspaceToolId } from './modules';
 import { ModuleTabStrip } from './ModuleTabStrip';
 import { useModuleAvailability } from './use-module-availability';
@@ -54,7 +59,7 @@ export function WorkspaceLowerPanel({
   // rather than reproduce desktop geometry on a phone.
   if (!wide || lowerModules.length === 0) return null;
 
-  const resize = (event: ReactPointerEvent<HTMLButtonElement>) => {
+  const resize = (event: ReactPointerEvent<HTMLDivElement>) => {
     const startY = event.clientY;
     const startHeight = arrangement.lowerHeight;
     const target = event.currentTarget;
@@ -71,6 +76,23 @@ export function WorkspaceLowerPanel({
     target.addEventListener('pointermove', move);
     target.addEventListener('pointerup', done);
     target.addEventListener('pointercancel', done);
+  };
+
+  const resizeWithKeyboard = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    const step = event.shiftKey ? 40 : 16;
+    const height =
+      event.key === 'ArrowUp'
+        ? arrangement.lowerHeight + step
+        : event.key === 'ArrowDown'
+          ? arrangement.lowerHeight - step
+          : event.key === 'Home'
+            ? LOWER_HEIGHT_MAX
+            : event.key === 'End'
+              ? LOWER_HEIGHT_MIN
+              : null;
+    if (height === null) return;
+    event.preventDefault();
+    setLowerHeight(workspace, device, height);
   };
 
   const tabs = lowerModules.map((id) => ({
@@ -110,12 +132,19 @@ export function WorkspaceLowerPanel({
       aria-label="Lower workspace panel"
       data-workspace-lower={workspace}
     >
-      <button
-        type="button"
+      <div
+        role="separator"
+        tabIndex={0}
         aria-label="Resize the lower panel"
+        aria-orientation="horizontal"
+        aria-valuemin={LOWER_HEIGHT_MIN}
+        aria-valuemax={LOWER_HEIGHT_MAX}
+        aria-valuenow={arrangement.lowerHeight}
+        aria-valuetext={`${arrangement.lowerHeight} pixels`}
         onPointerDown={resize}
+        onKeyDown={resizeWithKeyboard}
         className={cn(
-          'absolute inset-x-0 -top-1 z-20 h-2 cursor-row-resize touch-none',
+          'absolute inset-x-0 -top-1 z-20 h-2 cursor-row-resize touch-none hover:bg-accent/15 focus-visible:bg-accent/20',
           dragging && 'bg-accent/30',
         )}
       />

@@ -272,6 +272,12 @@ with [`AGENTS.md`](../AGENTS.md).
 
 ## Historical
 
+- [`reports/2026-09-30-interface-acceptance.md`](reports/2026-09-30-interface-acceptance.md)
+  — the populated Analysis prototype, keyboard and composition fixes, and its
+  measured acceptance evidence.
+- [`product/interface-usability-study.md`](product/interface-usability-study.md)
+  — the unrun five-player protocol and architecture checkpoint.
+
 - [`reports/2026-09-29-interface-continuation.md`](reports/2026-09-29-interface-continuation.md)
   — the remaining shell-pass gates, the ChessBase-reference comparison, the
   shared-interface improvements, and the reasons for keeping Electron.

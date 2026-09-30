@@ -12,6 +12,7 @@ import type { WorkspaceToolId } from './modules';
 
 export type WorkspacePreset =
   | 'analysis'
+  | 'research'
   | 'engine-below'
   | 'opening-research'
   | 'study'
@@ -26,6 +27,11 @@ export const WORKSPACE_PRESETS: readonly {
   readonly label: string;
   readonly description: string;
 }[] = [
+  {
+    id: 'research',
+    label: 'Research workspace',
+    description: 'Notation, reference evidence and engine candidates beside a full-height board.',
+  },
   {
     id: 'analysis',
     label: 'Analysis',
@@ -78,6 +84,12 @@ export const WORKSPACE_PRESETS: readonly {
  * route with no tablebase without special-casing it here.
  */
 export const PRESET_ARRANGEMENTS: Record<WorkspacePreset, WorkspaceArrangement> = {
+  research: {
+    ...DEFAULT_ARRANGEMENT,
+    dockWidth: 410,
+    dockEngine: true,
+    active: { dock: 'explorer' },
+  },
   analysis: { ...DEFAULT_ARRANGEMENT, dockWidth: 420, active: { dock: 'engine' } },
   'engine-below': {
     ...DEFAULT_ARRANGEMENT,

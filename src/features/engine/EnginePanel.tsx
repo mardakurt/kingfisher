@@ -48,7 +48,7 @@ import { PlayoutSection } from './PlayoutSection';
 import { EngineSelect } from './EngineSelect';
 import { scoreTone } from './score-chip';
 
-export function EnginePanel() {
+export function EnginePanel({ compact = false }: { readonly compact?: boolean }) {
   const { node, currentId, tree } = useAnalysisPosition();
 
   const status = useEngine((state) => state.primary.status);
@@ -155,15 +155,33 @@ export function EnginePanel() {
         className="h-auto min-h-8 flex-wrap py-1 [&>div:first-child]:flex-wrap"
         actions={
           <>
-            <Segmented
-              items={[1, 2, 3, 4, 5].map((n) => ({ id: String(n), label: String(n) }))}
-              value={String(prefs.engineMultiPv)}
-              onChange={(value) => {
-                prefs.set('engineMultiPv', Number(value));
-                prefs.set('enginePreset', 'custom');
-              }}
-              className="mr-1"
-            />
+            {compact ? (
+              <select
+                aria-label="Candidate lines"
+                value={String(prefs.engineMultiPv)}
+                onChange={(event) => {
+                  prefs.set('engineMultiPv', Number(event.target.value));
+                  prefs.set('enginePreset', 'custom');
+                }}
+                className="h-6 w-[62px] rounded-[var(--radius-control)] border border-line bg-surface-1 px-1 text-2xs text-primary"
+              >
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <option key={n} value={n}>
+                    {n} {n === 1 ? 'line' : 'lines'}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <Segmented
+                items={[1, 2, 3, 4, 5].map((n) => ({ id: String(n), label: String(n) }))}
+                value={String(prefs.engineMultiPv)}
+                onChange={(value) => {
+                  prefs.set('engineMultiPv', Number(value));
+                  prefs.set('enginePreset', 'custom');
+                }}
+                className="mr-1"
+              />
+            )}
             <IconButton
               label="Save this evaluation to the current move"
               onClick={saveEvaluation}
@@ -192,7 +210,11 @@ export function EnginePanel() {
           to be a label, and changing the engine meant a detour through Two
           engines: the selector there was the only one.
         */}
-        <EngineSelect slot="primary" label="Engine" className="w-40 shrink-0" />
+        <EngineSelect
+          slot="primary"
+          label="Engine"
+          className={compact ? 'w-28 min-w-0 shrink' : 'w-40 shrink-0'}
+        />
         {analysis && !stale && analysis.depth > 0 && (
           <span className={cn('tabular', stale ? 'text-tertiary/60' : 'text-tertiary')}>
             depth {analysis.depth}
@@ -205,7 +227,7 @@ export function EnginePanel() {
          * staring at the engine output and wants the best line pinned
          * without scrolling should not have to.
          */}
-        {analysis && !stale && analysis.lines[0] ? (
+        {!compact && analysis && !stale && analysis.lines[0] ? (
           <Button
             size="sm"
             variant="ghost"
@@ -317,7 +339,11 @@ export function EnginePanel() {
         ) : (
           <ol className={cn('divide-y divide-line-subtle', stale && 'opacity-50')}>
             {analysis.lines.map((line) => (
-              <li key={line.rank} className="group px-2.5 py-1.5" data-engine-line={line.rank}>
+              <li
+                key={line.rank}
+                className={cn('group px-2.5', compact ? 'py-1' : 'py-1.5')}
+                data-engine-line={line.rank}
+              >
                 <div className="flex items-baseline gap-2">
                   <span
                     className={cn(
@@ -330,26 +356,36 @@ export function EnginePanel() {
 
                   <div className="min-w-0 flex-1 text-[12px] leading-relaxed [overflow-wrap:anywhere]">
                     {line.san && line.san.length > 0 ? (
-                      variationTokens(node.ply, line.san).map((token, index) =>
-                        token.isMove ? (
-                          <button
-                            key={`${line.rank}-${index}`}
-                            type="button"
-                            title="Add this line up to here"
-                            onClick={() => insert(line.moves, moveIndexOf(line, index, node.ply))}
-                            className="mr-1 rounded-[var(--radius-control)] px-0.5 text-primary transition-colors hover:bg-accent-muted"
-                          >
-                            {token.text}
-                          </button>
-                        ) : (
-                          <span
-                            key={`${line.rank}-${index}`}
-                            className="mr-0.5 text-tertiary tabular"
-                          >
-                            {token.text}
+                      <>
+                        {variationTokens(node.ply, compact ? line.san.slice(0, 6) : line.san).map(
+                          (token, index) =>
+                            token.isMove ? (
+                              <button
+                                key={`${line.rank}-${index}`}
+                                type="button"
+                                title="Add this line up to here"
+                                onClick={() =>
+                                  insert(line.moves, moveIndexOf(line, index, node.ply))
+                                }
+                                className="mr-1 rounded-[var(--radius-control)] px-0.5 text-primary transition-colors hover:bg-accent-muted"
+                              >
+                                {token.text}
+                              </button>
+                            ) : (
+                              <span
+                                key={`${line.rank}-${index}`}
+                                className="mr-0.5 text-tertiary tabular"
+                              >
+                                {token.text}
+                              </span>
+                            ),
+                        )}
+                        {compact && line.san.length > 6 ? (
+                          <span title="Preview the complete variation" className="text-secondary">
+                            …
                           </span>
-                        ),
-                      )
+                        ) : null}
+                      </>
                     ) : (
                       <span className="text-tertiary">…</span>
                     )}

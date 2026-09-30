@@ -338,6 +338,7 @@ function PaletteDialog() {
                 setIndex(0);
               }}
               onKeyDown={(event) => {
+                if (event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229) return;
                 if (event.key === 'ArrowDown') {
                   event.preventDefault();
                   setIndex(Math.min(selected + 1, matches.length - 1));

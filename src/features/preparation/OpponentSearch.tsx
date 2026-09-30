@@ -123,6 +123,7 @@ export function OpponentSearch({
           }}
           onFocus={() => setOpen(true)}
           onKeyDown={(event) => {
+            if (event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229) return;
             if (!open || suggestions.length === 0) return;
             if (event.key === 'ArrowDown') {
               event.preventDefault();
