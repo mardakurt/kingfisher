@@ -148,3 +148,28 @@ The marketing version remains 1.3.3. The handoff expressly prohibits a version
 bump or publication in this pass. Development builds record a new commit/build
 identity automatically; a new public stable release would require its own
 version, trusted-release and Sparkle update validation procedure.
+
+## Screenshot review correction
+
+Build 1002 passed the original nine native assertions, but screenshot inspection
+found a partially visible first reference row and current notation scrolled out
+of view after keyboard traversal. Those assertions were insufficient. The native
+harness now requires the entire first reference row and current notation to be
+in the viewport. The optional departure analysis follows the primary move table;
+source identity, populations, counts, licences and all departure actions remain.
+
+Notation is a keyboard group at the root and otherwise has one current move tab
+stop. Arrow/Home/End navigation uses the existing immutable-tree navigation
+helpers and the supplied selection callback. It preserves focus, including a
+virtualized destination, and does not trap Tab. The browser regression passed
+with this behavior and failed with 49 tabbable move buttons restored (expected
+one, received 49). A focused pass returned 6/6. A missing dialog-close wait in
+the first new focus test was corrected; no retries were introduced.
+
+The build-1002 clipboard harness initially refused a typeless Electron item
+before changing the clipboard. AppKit confirmed the native pasteboard was empty.
+The harness accepts this empty placeholder only after that read-only check;
+it refuses an untyped nonempty pasteboard it cannot preserve. A subsequent pass
+restored the clipboard and shut down without survivors. Build 1002 remains
+intermediate evidence because of the screenshot findings above. The interrupted
+438-test browser run is not counted as a completed final run.

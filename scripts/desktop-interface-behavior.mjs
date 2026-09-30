@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 /** Exercise the shared research UI inside one exact macOS package. */
 import assert from 'node:assert/strict';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -56,19 +57,37 @@ async function tabTo(page, control) {
 try {
   // Electron 44 uses async ClipboardItems; keep all advertised formats in the
   // main process rather than serializing private clipboard contents to a file.
-  await launch.app.evaluate(async ({ clipboard, ClipboardItem }) => {
+  const hasUntypedItems = await launch.app.evaluate(async ({ clipboard, ClipboardItem }) => {
     const items = await clipboard.read();
     globalThis.__interfaceClipboardBefore = await Promise.all(
-      items.map(
-        async (item) =>
-          new ClipboardItem(
-            Object.fromEntries(
-              await Promise.all(item.types.map(async (type) => [type, await item.getType(type)])),
+      items
+        .filter((item) => item.types.length > 0)
+        .map(
+          async (item) =>
+            new ClipboardItem(
+              Object.fromEntries(
+                await Promise.all(item.types.map(async (type) => [type, await item.getType(type)])),
+              ),
             ),
-          ),
-      ),
+        ),
     );
+    return items.some((item) => item.types.length === 0);
   });
+  if (hasUntypedItems) {
+    // Electron can return a typeless placeholder for an empty native pasteboard.
+    // Refuse an unsupported nonempty pasteboard rather than discarding its data.
+    const nativeCount = execFileSync(
+      'osascript',
+      [
+        '-l',
+        'JavaScript',
+        '-e',
+        'ObjC.import("AppKit"); String($.NSPasteboard.generalPasteboard.pasteboardItems.count);',
+      ],
+      { encoding: 'utf8', timeout: 5000 },
+    ).trim();
+    assert.equal(nativeCount, '0', 'Cannot preserve an untyped nonempty native pasteboard');
+  }
   clipboardSaved = true;
   const page = launch.window;
   identity = await page.evaluate(async () => {
@@ -131,12 +150,10 @@ try {
   await page.keyboard.press('Enter');
   const dock = page.getByRole('complementary', { name: 'Workspace tools' });
   const engine = dock.getByRole('region', { name: 'Engine candidates' });
-  const notationMove = dock
-    .getByRole('region', { name: 'Notation' })
-    .getByRole('button', { name: 'd4', exact: true })
-    .first();
-  await tabTo(page, notationMove);
-  await page.keyboard.press('Enter');
+  const notation = dock.getByRole('group', { name: 'Game notation' });
+  await tabTo(page, notation);
+  await page.keyboard.press('ArrowRight');
+  await expect(page.locator('[data-current="true"]')).toHaveText('d4');
   const selectedBeforeResize = await page.locator('[data-current="true"]').textContent();
   const candidateControl = engine.getByRole('combobox', { name: 'Candidate lines' });
   await tabTo(page, candidateControl);
@@ -186,7 +203,8 @@ try {
       await page.mouse.wheel(0, -3000);
       for (const rank of [1, 2, 3])
         await expect(engine.locator(`[data-engine-line="${rank}"]`)).toBeInViewport({ ratio: 1 });
-      await expect(dock.locator('[data-explorer-move]').first()).toBeInViewport();
+      await expect(dock.locator('[data-explorer-move]').first()).toBeInViewport({ ratio: 1 });
+      await expect(dock.locator('[data-current="true"]')).toBeInViewport({ ratio: 1 });
       const board = await page
         .locator('[data-workspace-board-column] [data-board-frame]')
         .boundingBox();

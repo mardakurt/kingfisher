@@ -6,6 +6,7 @@ import { nagInfo, nagSymbol } from '@/chess/annotations';
 import type { EcoMark } from '@/theory/tree-eco';
 import { formatScore } from '@/chess/evaluation';
 import type { GameTree, MoveNode, NodeId } from '@/chess/tree/types';
+import { lastNodeOfLine, nextNode, previousNode } from '@/chess/tree/tree';
 import { moveNumberOfPly } from '@/chess/tree/types';
 import { cn } from '@/lib/cn';
 import { flattenMoveTree, type MoveTreeRow } from './flatten';
@@ -61,8 +62,26 @@ export function MoveTree({
   // Keep the cursor in view when navigating with the keyboard.
   useEffect(() => {
     const element = containerRef.current?.querySelector<HTMLElement>('[data-current="true"]');
+    const container = containerRef.current;
+    let frame: number | undefined;
+    if (container?.contains(document.activeElement)) {
+      (element ?? container).focus({ preventScroll: true });
+      if (!element && currentId !== tree.rootId) {
+        // Virtual notation mounts the destination after its scroll range changes.
+        frame = requestAnimationFrame(() => {
+          if (document.activeElement === container) {
+            container
+              .querySelector<HTMLElement>('[data-current="true"]')
+              ?.focus({ preventScroll: true });
+          }
+        });
+      }
+    }
     element?.scrollIntoView({ block: 'nearest', behavior: 'auto' });
-  }, [currentId]);
+    return () => {
+      if (frame !== undefined) cancelAnimationFrame(frame);
+    };
+  }, [currentId, tree.rootId]);
 
   const root = tree.nodes[tree.rootId];
   const empty = !root || root.children.length === 0;
@@ -71,6 +90,36 @@ export function MoveTree({
   return (
     <div
       ref={containerRef}
+      role="group"
+      aria-label="Game notation"
+      tabIndex={currentId === tree.rootId ? 0 : -1}
+      onKeyDown={(event) => {
+        if (
+          event.defaultPrevented ||
+          event.nativeEvent.isComposing ||
+          event.nativeEvent.keyCode === 229 ||
+          event.metaKey ||
+          event.ctrlKey ||
+          event.altKey ||
+          event.shiftKey
+        )
+          return;
+        const target = event.target as HTMLElement;
+        if (target !== event.currentTarget && !target.closest('button[data-current]')) return;
+        const destination =
+          event.key === 'ArrowRight'
+            ? nextNode(tree, currentId)
+            : event.key === 'ArrowLeft'
+              ? previousNode(tree, currentId)
+              : event.key === 'Home'
+                ? tree.rootId
+                : event.key === 'End'
+                  ? lastNodeOfLine(tree, currentId)
+                  : undefined;
+        if (destination === undefined) return;
+        event.preventDefault();
+        if (destination) onSelect(destination);
+      }}
       className="h-full overflow-y-auto px-2.5 py-2 text-[12.5px] leading-[1.75]"
     >
       {root?.comment && (
@@ -448,6 +497,7 @@ function MoveToken({
       <button
         type="button"
         data-current={current}
+        tabIndex={current ? 0 : -1}
         aria-current={current ? 'step' : undefined}
         onClick={() => onSelect(node.id)}
         onContextMenu={(event) => {

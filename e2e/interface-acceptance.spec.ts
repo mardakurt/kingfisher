@@ -53,6 +53,7 @@ for (const theme of ['light', 'dark']) {
       await page.setViewportSize(size);
       await expect(dock.getByRole('region', { name: 'Notation' })).toBeInViewport();
       await expect(dock.locator('[data-explorer-move]').first()).toBeInViewport({
+        ratio: 1,
         timeout: 20_000,
       });
       for (const rank of [1, 2, 3]) {
@@ -137,4 +138,34 @@ test('the board exposes position context and notation marks the current step', a
   await page.getByRole('gridcell', { name: 'e4, empty', exact: true }).click();
   await expect(board).toHaveAccessibleDescription(/Black to move.*move 1/);
   await expect(page.locator('[data-current="true"]')).toHaveAttribute('aria-current', 'step');
+});
+
+test('notation has one tab stop and keeps keyboard selection focused without trapping Tab', async ({
+  page,
+}) => {
+  await page.goto('/analysis');
+  await page.locator(READY).waitFor();
+  await page.getByRole('button', { name: /^Import( PGN or FEN)?$/ }).click();
+  const dialog = page.getByRole('dialog', { name: 'Import a game or position' });
+  await dialog.getByRole('textbox').fill(GAME);
+  await dialog.getByRole('button', { name: /Import game/ }).click();
+  await expect(dialog).toBeHidden();
+  const notation = page.getByRole('group', { name: 'Game notation' });
+  await notation.focus();
+  await expect(notation).toBeFocused();
+  await page.keyboard.press('ArrowRight');
+  const current = notation.locator('[data-current="true"]');
+  await expect(current).toHaveText('d4');
+  await expect(current).toBeFocused();
+  await expect(notation.locator('button[tabindex="0"]')).toHaveCount(1);
+  await page.keyboard.press('ArrowRight');
+  await expect(current).toHaveText('d5');
+  await expect(current).toBeFocused();
+  await page.keyboard.press('Home');
+  await expect(notation).toBeFocused();
+  await page.keyboard.press('End');
+  await expect(current).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(notation).not.toBeFocused();
+  await expect(current).not.toBeFocused();
 });

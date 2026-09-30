@@ -433,15 +433,6 @@ export function ExplorerPanel() {
         ) : null}
       </div>
 
-      {provider ? (
-        <DepartureSection
-          provider={provider}
-          filters={filters}
-          tree={tree}
-          depthLimit={coverageSource?.maxPositionPly ?? null}
-        />
-      ) : null}
-
       {filtersOpen ? (
         <div className="shrink-0 space-y-1.5 border-b border-line-subtle bg-surface-2 px-2.5 py-2">
           <div className="flex items-end gap-2">
@@ -802,6 +793,14 @@ export function ExplorerPanel() {
             To training
           </Button>
         </div>
+        {provider ? (
+          <DepartureSection
+            provider={provider}
+            filters={filters}
+            tree={tree}
+            depthLimit={coverageSource?.maxPositionPly ?? null}
+          />
+        ) : null}
       </PanelBody>
     </div>
   );

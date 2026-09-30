@@ -6,6 +6,8 @@ real users notice.
 
 ## Unreleased (web)
 
+- Keep current notation in view through keyboard navigation with one move tab stop, and put the Explorer move table before optional departure analysis.
+
 - Engine startup names the selected engine instead of hard-coding Stockfish; unknown evaluation identity is no longer attributed to Stockfish.
 
 - **Board coordinates are easier to read.** All thirteen board themes now use
