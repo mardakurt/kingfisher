@@ -133,7 +133,7 @@ try {
   const engine = dock.getByRole('region', { name: 'Engine candidates' });
   const notationMove = dock
     .getByRole('region', { name: 'Notation' })
-    .getByRole('button', { name: 'Nf3', exact: true })
+    .getByRole('button', { name: 'd4', exact: true })
     .first();
   await tabTo(page, notationMove);
   await page.keyboard.press('Enter');
@@ -189,6 +189,32 @@ try {
       });
     }
     check(`${theme} native appearance and actual window geometry at 1440, 1280 and 1100`);
+
+    await launch.app.evaluate(({ BrowserWindow }) =>
+      BrowserWindow.getAllWindows()[0].setFullScreen(true),
+    );
+    await expect(page.locator('html')).toHaveAttribute('data-fullscreen', 'true', {
+      timeout: 15_000,
+    });
+    assert.equal(
+      await page.evaluate(() =>
+        getComputedStyle(document.documentElement).getPropertyValue('--titlebar-safe-w').trim(),
+      ),
+      '0px',
+    );
+    await expect(page.locator('[data-current="true"]')).toHaveText(selectedBeforeResize);
+    await page.screenshot({
+      path: path.join(output, `research-${theme.toLowerCase()}-fullscreen.png`),
+    });
+    await launch.app.evaluate(({ BrowserWindow }) =>
+      BrowserWindow.getAllWindows()[0].setFullScreen(false),
+    );
+    await expect(page.locator('html')).toHaveAttribute('data-fullscreen', 'false', {
+      timeout: 15_000,
+    });
+    check(
+      `${theme} real native full screen clears chrome reservation and restores the selected move`,
+    );
   }
   const move = dock
     .getByRole('region', { name: 'Notation' })
@@ -207,27 +233,6 @@ try {
   await expect(engine).toBeVisible();
   await expect(page.locator('[data-current="true"]')).toHaveText(current);
   check('minimum native window folds tools and retains the selected move when widened');
-  await launch.app.evaluate(({ BrowserWindow }) =>
-    BrowserWindow.getAllWindows()[0].setFullScreen(true),
-  );
-  await expect(page.locator('html')).toHaveAttribute('data-fullscreen', 'true', {
-    timeout: 15_000,
-  });
-  assert.equal(
-    await page.evaluate(() =>
-      getComputedStyle(document.documentElement).getPropertyValue('--titlebar-safe-w').trim(),
-    ),
-    '0px',
-  );
-  await expect(page.locator('[data-current="true"]')).toHaveText(current);
-  await page.screenshot({ path: path.join(output, 'research-fullscreen.png') });
-  await launch.app.evaluate(({ BrowserWindow }) =>
-    BrowserWindow.getAllWindows()[0].setFullScreen(false),
-  );
-  await expect(page.locator('html')).toHaveAttribute('data-fullscreen', 'false', {
-    timeout: 15_000,
-  });
-  check('real native full screen clears chrome reservation and restores the selected move');
   await launch.app.evaluate(({ app }) => app.setAccessibilitySupportEnabled(true));
   const ax = await page.context().newCDPSession(page);
   const tree = await ax.send('Accessibility.getFullAXTree');
