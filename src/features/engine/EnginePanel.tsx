@@ -363,7 +363,7 @@ export function EnginePanel({ compact = false }: { readonly compact?: boolean })
                   <div className="min-w-0 flex-1 text-[12px] leading-relaxed [overflow-wrap:anywhere]">
                     {line.san && line.san.length > 0 ? (
                       <>
-                        {variationTokens(node.ply, compact ? line.san.slice(0, 6) : line.san).map(
+                        {variationTokens(node.ply, compact ? line.san.slice(0, 4) : line.san).map(
                           (token, index) =>
                             token.isMove ? (
                               <button
@@ -386,7 +386,7 @@ export function EnginePanel({ compact = false }: { readonly compact?: boolean })
                               </span>
                             ),
                         )}
-                        {compact && line.san.length > 6 ? (
+                        {compact && line.san.length > 4 ? (
                           <span title="Preview the complete variation" className="text-secondary">
                             …
                           </span>

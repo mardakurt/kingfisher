@@ -333,7 +333,7 @@ export function WorkspaceToolDock({
       {splitEngine ? (
         <section
           aria-label="Engine candidates"
-          className="h-[240px] min-h-0 shrink-0 border-t border-line-subtle"
+          className="h-[184px] min-h-0 shrink-0 border-t border-line-subtle"
           data-research-engine
         >
           <RegionBody

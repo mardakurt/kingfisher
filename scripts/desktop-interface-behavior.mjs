@@ -9,13 +9,19 @@ import { launchKingfisher } from './desktop-lib/launch.mjs';
 let [binary, output] = process.argv.slice(2);
 if (!binary || !output)
   throw new Error(
-    'Usage: node scripts/desktop-interface-behavior.mjs candidate.app output-directory',
+    'Usage: node scripts/desktop-interface-behavior.mjs candidate.app|--checkout output-directory',
   );
 if (binary.endsWith('.app')) binary += '/Contents/MacOS/Kingfisher';
 mkdirSync(output, { recursive: true });
 const checks = [];
 let identity = null;
-const launch = await launchKingfisher({ packaged: true, executablePath: binary });
+const checkout = binary === '--checkout';
+console.log(
+  checkout ? 'Target: checkout preview, not packaged acceptance' : 'Target: packaged application',
+);
+const launch = await launchKingfisher(
+  checkout ? { packaged: false } : { packaged: true, executablePath: binary },
+);
 let clipboardSaved = false;
 const check = (name) => {
   checks.push(name);
@@ -178,6 +184,9 @@ try {
   check(
     'keyboard alone selects research, configures candidates, runs/stops the engine and resizes the dock',
   );
+  await page
+    .getByText('1 game added to your database.', { exact: true })
+    .waitFor({ state: 'hidden', timeout: 12000 });
   for (const theme of ['Light', 'Dark']) {
     // This is the existing native application-menu command, not a CSS override.
     await launch.app.evaluate(({ Menu, BrowserWindow }, label) => {
@@ -203,7 +212,8 @@ try {
       await page.mouse.wheel(0, -3000);
       for (const rank of [1, 2, 3])
         await expect(engine.locator(`[data-engine-line="${rank}"]`)).toBeInViewport({ ratio: 1 });
-      await expect(dock.locator('[data-explorer-move]').first()).toBeInViewport({ ratio: 1 });
+      for (const row of [0, 1])
+        await expect(dock.locator('[data-explorer-move]').nth(row)).toBeInViewport({ ratio: 1 });
       await expect(dock.locator('[data-current="true"]')).toBeInViewport({ ratio: 1 });
       const board = await page
         .locator('[data-workspace-board-column] [data-board-frame]')
@@ -304,6 +314,17 @@ try {
   assert.deepEqual(closed.survivors, []);
   writeFileSync(
     path.join(output, 'results.json'),
-    JSON.stringify({ binary, identity, checks, closed, restorationError }, null, 2) + '\n',
+    JSON.stringify(
+      {
+        target: checkout ? 'checkout preview' : 'packaged',
+        binary,
+        identity,
+        checks,
+        closed,
+        restorationError,
+      },
+      null,
+      2,
+    ) + '\n',
   );
 }

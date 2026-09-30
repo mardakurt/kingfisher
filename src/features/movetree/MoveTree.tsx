@@ -93,6 +93,13 @@ export function MoveTree({
       role="group"
       aria-label="Game notation"
       tabIndex={currentId === tree.rootId ? 0 : -1}
+      onBlurCapture={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+          event.currentTarget
+            .querySelector<HTMLElement>('[data-current="true"]')
+            ?.scrollIntoView({ block: 'nearest', behavior: 'auto' });
+        }
+      }}
       onKeyDown={(event) => {
         if (
           event.defaultPrevented ||
@@ -344,6 +351,7 @@ function VirtualRow({
       {row.node.comment ? (
         <CommentToken
           text={row.node.comment}
+          tabIndex={current ? 0 : -1}
           onEdit={onEditComment ? () => onEditComment(row.id) : undefined}
         />
       ) : null}
@@ -405,6 +413,7 @@ function LineContent(props: LineProps): ReactNode {
         <CommentToken
           key={`${mainId}-c`}
           text={main.comment}
+          tabIndex={mainId === currentId ? 0 : -1}
           onEdit={onEditComment ? () => onEditComment(mainId) : undefined}
         />,
       );
@@ -429,6 +438,7 @@ function LineContent(props: LineProps): ReactNode {
           {alt.comment && (
             <CommentToken
               text={alt.comment}
+              tabIndex={altId === currentId ? 0 : -1}
               onEdit={onEditComment ? () => onEditComment(altId) : undefined}
             />
           )}
@@ -568,11 +578,20 @@ function MoveToken({
 }
 
 /** Comments read as prose inside the notation, and open for editing on click. */
-const CommentToken = ({ text, onEdit }: { text: string; onEdit?: (() => void) | undefined }) =>
+const CommentToken = ({
+  text,
+  onEdit,
+  tabIndex = -1,
+}: {
+  text: string;
+  onEdit?: (() => void) | undefined;
+  tabIndex?: number;
+}) =>
   onEdit ? (
     <button
       type="button"
       onClick={onEdit}
+      tabIndex={tabIndex}
       title="Edit this comment"
       className="mr-1 whitespace-pre-wrap rounded-[var(--radius-control)] text-left text-[11.5px] italic text-secondary transition-colors hover:bg-surface-3 active:bg-surface-press hover:text-primary"
     >

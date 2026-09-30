@@ -13,16 +13,18 @@ architecture is replaced here.
 
 ## Changes
 
-- Research workspace is an opt-in layout, available from Layout. A full-height
+- Research workspace is an opt-in layout available from Layout. A full-height
   board sits beside notation, the selected reference tool and one engine panel.
-  Compact candidates show six half-moves; Preview and Insert use the complete
-  line. Three candidates are visible at laptop height. Comparison controls remain in
-  the full Engine tab rather than squeezing two engines into the strip. Selecting the full
-  Engine tab, moving Engine to another region or entering compact mode removes
-  the split, rather than mounting a second engine panel. The packaged pass
-  exposed a roughly 2 px clip of a wrapped third candidate; the compact engine
-  region is now 240 px rather than 224 px. A runtime CSS diagnostic confirmed
-  the proposed size, but only a fresh unmodified package counts as acceptance.
+  The compact 184 px candidate strip shows four half-moves per line, with an
+  explicit ellipsis. Preview and Insert use the complete line; the full Engine
+  tab retains full lines and comparison controls. Three complete candidates and
+  at least two complete reference rows must be visible at the tested laptop
+  sizes. The selected move must remain visible after keyboard traversal.
+  Selecting the full Engine tab, moving Engine elsewhere or entering compact
+  mode removes the split rather than mounting a second engine panel.
+  Source identity, populations, counts and licences stay visible. The optional
+  departure analysis follows the primary table. The old six-move strip needed
+  240 px for wrapped candidates; shortening this overview frees reference space.
 - The lower divider now has separator semantics, a measured value and the same
   arrow/Shift/Home/End keyboard interaction as the side divider. A packaged pass
   found that consumed divider keys also reached global chess navigation. The
@@ -154,7 +156,7 @@ version, trusted-release and Sparkle update validation procedure.
 Build 1002 passed the original nine native assertions, but screenshot inspection
 found a partially visible first reference row and current notation scrolled out
 of view after keyboard traversal. Those assertions were insufficient. The native
-harness now requires the entire first reference row and current notation to be
+harness now requires two entire reference rows and current notation to be
 in the viewport. The optional departure analysis follows the primary move table;
 source identity, populations, counts, licences and all departure actions remain.
 
@@ -173,3 +175,12 @@ it refuses an untyped nonempty pasteboard it cannot preserve. A subsequent pass
 restored the clipboard and shut down without survivors. Build 1002 remains
 intermediate evidence because of the screenshot findings above. The interrupted
 438-test browser run is not counted as a completed final run.
+
+The final preview also checks all actual tabbable buttons, including comment
+controls. Only the current move and its comment participate in the tab sequence;
+other comments remain clickable and become keyboard reachable on selection.
+Leaving the group restores the selected move to view. The compact strip's 160 px
+trial clipped the third candidate and was rejected. The 184 px/four-half-move
+version passed 6/6 focused browser cases and all nine strengthened Electron
+checkout-preview checks. These preview results are not packaged acceptance.
+The final signed package and complete gates are still required below.
