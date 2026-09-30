@@ -112,6 +112,18 @@ async function measure(executablePath, research) {
         const duration = await page.evaluate(() => window.__interfaceTimings.duration);
         if (step >= 10) timings.push(duration);
       }
+      // Repeat with a real search running and follow-board enabled. Navigation
+      // exercises the existing stop/restart identity boundary rather than a fake PV.
+      await panel.getByRole('button', { name: 'Start analysis (E)' }).click();
+      await panel.locator('[data-engine-line="3"]').waitFor();
+      const searchingTimings = [];
+      for (let step = 0; step < 60; step++) {
+        await page.keyboard.press(step % 2 === 0 ? 'ArrowRight' : 'ArrowLeft');
+        await page.waitForFunction(() => window.__interfaceTimings.duration !== null);
+        const duration = await page.evaluate(() => window.__interfaceTimings.duration);
+        if (step >= 10) searchingTimings.push(duration);
+      }
+      await panel.getByRole('button', { name: 'Stop analysis (E)' }).click();
       runs.push({
         trial,
         interactiveMs,
@@ -120,10 +132,12 @@ async function measure(executablePath, research) {
         engineId,
         engineSettings,
         responseSamples: timings,
+        searchingResponseSamples: searchingTimings,
+        p95SearchingResponseMs: percentile(searchingTimings, 0.95),
         p95ResponseMs: percentile(timings, 0.95),
       });
       console.log(
-        `${research ? 'candidate' : 'baseline'} trial ${trial + 1}: ready ${interactiveMs.toFixed(0)} ms, RSS ${settled.rssMiB.toFixed(1)} MiB, p95 ${percentile(timings, 0.95).toFixed(1)} ms`,
+        `${research ? 'candidate' : 'baseline'} trial ${trial + 1}: ready ${interactiveMs.toFixed(0)} ms, RSS ${settled.rssMiB.toFixed(1)} MiB, p95 ${percentile(timings, 0.95).toFixed(1)} ms, searching p95 ${percentile(searchingTimings, 0.95).toFixed(1)} ms`,
       );
     } finally {
       const closed = await launch.close();
@@ -136,6 +150,10 @@ async function measure(executablePath, research) {
     runs,
     medianStartupMs: median(runs.map((r) => r.interactiveMs)),
     medianRssMiB: median(runs.map((r) => r.rssMiB)),
+    p95SearchingResponseMs: percentile(
+      runs.flatMap((r) => r.searchingResponseSamples),
+      0.95,
+    ),
     p95ResponseMs: percentile(
       runs.flatMap((r) => r.responseSamples),
       0.95,
@@ -149,7 +167,7 @@ const result = {
   }).trim(),
   os: execFileSync('sw_vers', [], { encoding: 'utf8' }).trim(),
   protocol:
-    '5 fresh profiles per app; 1280x720; first annotated Capablanca game; default engine, 1 thread/64 MiB hash, 3 lines; stop search, settle 5 s; 50 alternating navigation samples after 10 warmups; keydown to two animation frames after current-move mutation; RSS of full descendant process tree.',
+    '5 fresh profiles per app; 1280x720; first annotated Capablanca game; default engine, 1 thread/64 MiB hash, 3 lines; stop search, settle 5 s; 50 alternating navigation samples after 10 warmups, then repeat with search running and follow-board enabled; keydown to two animation frames after current-move mutation; RSS of full descendant process tree.',
   baseline: await measure(baseline, false),
   candidate: await measure(candidate, true),
 };
@@ -159,6 +177,7 @@ result.memoryChangePercent =
   (result.candidate.medianRssMiB / result.baseline.medianRssMiB - 1) * 100;
 result.pass =
   result.candidate.p95ResponseMs < 100 &&
+  result.candidate.p95SearchingResponseMs < 100 &&
   result.startupChangePercent <= 10 &&
   result.memoryChangePercent <= 10;
 writeFileSync(output, `${JSON.stringify(result, null, 2)}\n`);

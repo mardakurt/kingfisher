@@ -80,12 +80,13 @@ usability result.
 `scripts/desktop-interface-performance.mjs` compares two exact packaged apps in
 fresh disposable profiles. It records the machine, OS, five startup trials,
 settled RSS of the entire descendant process tree, and 250 navigation samples
-per app after warmup. It imports the same annotated game and uses the default
+per app after warmup in each of two conditions: stopped search and a running
+follow-board search. It imports the same annotated game and uses the default
 engine with one thread, 64 MiB hash and three candidates. The candidate uses the
 Research workspace; the baseline uses Engine under the board. The response
 measurement runs from captured keydown to two animation frames after the
 current-move mutation. This estimates visible response, not GPU presentation
-latency measured externally. Target: p95 below 100 ms, and no unexplained startup
+latency measured externally. Target: p95 below 100 ms in both conditions, and no unexplained startup
 or settled-memory increase above 10%. Run without another build or suite competing
 for resources.
 
