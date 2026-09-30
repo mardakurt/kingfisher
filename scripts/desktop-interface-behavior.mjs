@@ -5,6 +5,14 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { expect } from '@playwright/test';
 import { launchKingfisher } from './desktop-lib/launch.mjs';
+import { dismissUpdateDialog } from './desktop-lib/dismiss-update-dialog.mjs';
+import {
+  clickButton,
+  closeWindow,
+  findWindow,
+  waitForWindow,
+  windowsOf,
+} from './desktop-lib/sparkle-ui.mjs';
 
 let [binary, output] = process.argv.slice(2);
 if (!binary || !output)
@@ -245,6 +253,32 @@ try {
     await page.screenshot({
       path: path.join(output, `research-${theme.toLowerCase()}-fullscreen.png`),
     });
+    if (!checkout) {
+      const target = { pid: launch.pid };
+      await page.evaluate(() => window.kingfisher.showUpdateDialog());
+      const { verdict } = await dismissUpdateDialog(target, {
+        waitForWindow,
+        findWindow,
+        clickButton,
+        closeWindow,
+        windowsOf,
+        pause: (ms) => page.waitForTimeout(ms),
+        readVerdict: () => page.evaluate(() => window.kingfisher.updateStatus()),
+        confirmUpToDate: ({ pid }) =>
+          execFileSync('osascript', [
+            '-e',
+            `tell application "System Events" to set frontmost of (first process whose unix id is ${pid}) to true`,
+            '-e',
+            'delay 0.4',
+            '-e',
+            'tell application "System Events" to key code 36',
+          ]),
+      });
+      assert.equal(verdict.status, 'up-to-date');
+      await expect(page.locator('html')).toHaveAttribute('data-fullscreen', 'true');
+      await expect(page.locator('[data-current="true"]')).toHaveText('d4');
+      check(`${theme} native up-to-date dialog dismisses safely inside full screen`);
+    }
     await launch.app.evaluate(({ BrowserWindow }) =>
       BrowserWindow.getAllWindows()[0].setFullScreen(false),
     );

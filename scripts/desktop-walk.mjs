@@ -59,6 +59,7 @@ import {
   waitForWindow,
   windowsOf,
 } from './desktop-lib/sparkle-ui.mjs';
+import { dismissUpdateDialog } from './desktop-lib/dismiss-update-dialog.mjs';
 
 // --- arguments ---------------------------------------------------------------
 
@@ -811,61 +812,24 @@ class Walk {
           */
           const target = { pid: w.app.process().pid };
           await p.evaluate(() => window.kingfisher.showUpdateDialog());
-          const shown = await waitForWindow(
-            target,
-            { button: /^(OK|Install Update|Cancel Update|Close|Remind Me Later)$/ },
-            { timeoutMs: 45_000 },
-          );
-          let said = null;
-          if (shown) {
-            said = shown.texts.join(' | ');
-            const dismiss = ['OK', 'Cancel Update', 'Close', 'Remind Me Later'].find((name) =>
-              shown.buttons.includes(name),
-            );
-            // Re-resolve the window at click time, and retry: Sparkle's
-            // "Checking for updates…" panel closes as the verdict alert
-            // opens, and the index found a moment ago can name a window that
-            // is already gone (seed 46, step 83, at the 1.2.6 certification).
-            let clicked = false;
-            let lastError = null;
-            for (let attempt = 0; attempt < 8 && !clicked; attempt += 1) {
-              const current =
-                findWindow(target, { button: dismiss ? new RegExp(`^${dismiss}$`) : null }) ??
-                shown;
-              try {
-                if (dismiss) clickButton(target, current.index, dismiss, current.sheet);
-                else closeWindow(target, current.index);
-                clicked = true;
-              } catch (error) {
-                lastError = error;
-                await p.waitForTimeout(400);
-              }
-            }
-            if (!clicked) throw lastError;
-            await p.waitForTimeout(700);
-          }
-          const verdict = await p.evaluate(() => window.kingfisher.updateStatus());
-          if (!shown && verdict?.status === 'up-to-date') {
-            /*
-              Sparkle's "You're up to date!" is an NSAlert run modally; while it
-              is up, macOS will not let the application quit. When the harness
-              is not the frontmost application its buttons are not listed by
-              System Events (Phase 85: seen from the Claude desktop shell), and
-              the walk left the alert open, so its final quit never happened.
-              Return is the alert's default button, OK. Only for an up-to-date
-              verdict: on an offered update, Return is Install Update.
-            */
-            execFileSync('osascript', [
-              '-e',
-              `tell application "System Events" to set frontmost of (first process whose unix id is ${target.pid}) to true`,
-              '-e',
-              'delay 0.4',
-              '-e',
-              'tell application "System Events" to key code 36',
-            ]);
-            await p.waitForTimeout(700);
-            said = 'dismissed with Return (up to date)';
-          }
+          const { verdict, said } = await dismissUpdateDialog(target, {
+            waitForWindow,
+            findWindow,
+            clickButton,
+            closeWindow,
+            windowsOf,
+            pause: (ms) => p.waitForTimeout(ms),
+            readVerdict: () => p.evaluate(() => window.kingfisher.updateStatus()),
+            confirmUpToDate: ({ pid }) =>
+              execFileSync('osascript', [
+                '-e',
+                `tell application "System Events" to set frontmost of (first process whose unix id is ${pid}) to true`,
+                '-e',
+                'delay 0.4',
+                '-e',
+                'tell application "System Events" to key code 36',
+              ]),
+          });
           w.updateVerdicts = w.updateVerdicts ?? [];
           w.updateVerdicts.push(verdict);
           if (windowsOf(target).some((win) => win.buttons.includes('Install Update'))) {
