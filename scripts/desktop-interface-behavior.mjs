@@ -176,6 +176,14 @@ try {
       [1100, 800],
     ]) {
       await resize(width, height);
+      // Keyboard traversal intentionally reaches the advanced controls below
+      // the candidates and scrolls this panel. Return to its candidate view
+      // with the same wheel action a user would use before judging geometry.
+      await engine.hover();
+      await page.mouse.wheel(0, -2500);
+      const referenceBody = dock.locator('[data-explorer-table]').locator('..');
+      await referenceBody.hover();
+      await page.mouse.wheel(0, -3000);
       for (const rank of [1, 2, 3])
         await expect(engine.locator(`[data-engine-line="${rank}"]`)).toBeInViewport({ ratio: 1 });
       await expect(dock.locator('[data-explorer-move]').first()).toBeInViewport();
@@ -190,6 +198,9 @@ try {
     }
     check(`${theme} native appearance and actual window geometry at 1440, 1280 and 1100`);
 
+    const chromeWidthBefore = await page.evaluate(() =>
+      getComputedStyle(document.documentElement).getPropertyValue('--titlebar-safe-w').trim(),
+    );
     await launch.app.evaluate(({ BrowserWindow }) =>
       BrowserWindow.getAllWindows()[0].setFullScreen(true),
     );
@@ -209,9 +220,16 @@ try {
     await launch.app.evaluate(({ BrowserWindow }) =>
       BrowserWindow.getAllWindows()[0].setFullScreen(false),
     );
-    await expect(page.locator('html')).toHaveAttribute('data-fullscreen', 'false', {
+    await expect(page.locator('html')).not.toHaveAttribute('data-fullscreen', 'true', {
       timeout: 15_000,
     });
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          getComputedStyle(document.documentElement).getPropertyValue('--titlebar-safe-w').trim(),
+        ),
+      )
+      .toBe(chromeWidthBefore);
     check(
       `${theme} real native full screen clears chrome reservation and restores the selected move`,
     );

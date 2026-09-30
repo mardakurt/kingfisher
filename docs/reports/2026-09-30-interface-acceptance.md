@@ -19,7 +19,10 @@ architecture is replaced here.
   line. Three candidates are visible at laptop height. Comparison controls remain in
   the full Engine tab rather than squeezing two engines into the strip. Selecting the full
   Engine tab, moving Engine to another region or entering compact mode removes
-  the split, rather than mounting a second engine panel.
+  the split, rather than mounting a second engine panel. The packaged pass
+  exposed a roughly 2 px clip of a wrapped third candidate; the compact engine
+  region is now 240 px rather than 224 px. A runtime CSS diagnostic confirmed
+  the proposed size, but only a fresh unmodified package counts as acceptance.
 - The lower divider now has separator semantics, a measured value and the same
   arrow/Shift/Home/End keyboard interaction as the side divider. A packaged pass
   found that consumed divider keys also reached global chess navigation. The

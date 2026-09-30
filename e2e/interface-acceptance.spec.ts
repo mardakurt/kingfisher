@@ -33,9 +33,17 @@ for (const theme of ['light', 'dark']) {
     await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
     const dock = page.getByRole('complementary', { name: 'Workspace tools' });
     const engine = dock.getByRole('region', { name: 'Engine candidates' });
+    await dock
+      .getByRole('region', { name: 'Notation' })
+      .getByRole('button', { name: 'd4', exact: true })
+      .first()
+      .click();
     await engine.getByRole('combobox', { name: 'Candidate lines' }).selectOption('3');
     await engine.getByRole('button', { name: 'Start analysis (E)' }).click();
     await expect(engine.locator('[data-engine-line="3"]')).toBeVisible({ timeout: 30_000 });
+    await expect(
+      engine.locator('[data-engine-line="3"] button[title="Add this line up to here"]'),
+    ).toHaveCount(6, { timeout: 30_000 });
     await engine.getByRole('button', { name: 'Stop analysis (E)' }).click();
     for (const size of [
       { width: 1440, height: 900 },
